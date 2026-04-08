@@ -65,7 +65,7 @@ function CoachAnalysisDialogResultRuntimeFallback({
 
     return (
             <div className="space-y-4">
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[15px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
                 <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
             </div>
@@ -396,7 +396,7 @@ export default function CoachAnalysisDialogRuntime({
                     {/* Team Selection Section */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between px-1">
-                            <p className="flex items-center gap-2 text-[15px] font-semibold text-gray-600 dark:text-gray-300">
+                            <p className="flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                 {homeTeamId && awayTeamId ? '분석 기준 팀 선택' : '분석 대상 팀 선택'}
                             </p>
@@ -436,7 +436,7 @@ export default function CoachAnalysisDialogRuntime({
 
                     {/* Focus Points Section */}
                     <div className="space-y-6">
-                        <p className="flex items-center gap-2 px-1 text-[15px] font-semibold text-gray-600 dark:text-gray-300">
+                        <p className="flex items-center gap-2 px-1 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
                             분석 집중 항목
                         </p>
@@ -465,7 +465,7 @@ export default function CoachAnalysisDialogRuntime({
                                             <opt.icon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className={`font-semibold text-[15px] mb-1 ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            <p className={`font-semibold text-[16px] mb-1 ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {opt.label}
                                             </p>
                                             <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -484,12 +484,12 @@ export default function CoachAnalysisDialogRuntime({
                             onClick={handleAnalyze}
                             disabled={loading}
                             data-testid="coach-analysis-run-button"
-                            className="w-full bg-primary hover:bg-primary-dark text-white h-12 sm:h-14 text-[15px] sm:text-base font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.99]"
+                            className="w-full bg-primary hover:bg-primary-dark text-white h-12 sm:h-14 text-[16px] sm:text-base font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.99]"
                         >
                             {loading ? (
                                 <div className="flex min-w-0 items-center gap-4">
                                     <Loader2 className="h-6 w-6 text-white animate-spin" />
-                                    <span className="min-w-0 text-[15px] font-semibold">
+                                    <span className="min-w-0 text-[16px] font-semibold">
                                         {analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}
                                     </span>
                                     <span className="ml-auto flex min-w-[34px] justify-end gap-1 text-white/85" aria-hidden="true">

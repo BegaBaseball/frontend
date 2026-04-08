@@ -120,7 +120,7 @@ export default function CoachBriefingContentRuntime({
             </div>
 
             {seasonSummary ? (
-              <p className="mb-2 text-[15px] font-semibold text-gray-500 dark:text-gray-400">
+              <p className="mb-2 text-[16px] font-semibold text-gray-500 dark:text-gray-400">
                 {seasonSummary}
               </p>
             ) : null}
@@ -147,7 +147,7 @@ export default function CoachBriefingContentRuntime({
                   <span data-testid="coach-briefing-message" className="sr-only">
                     {activeMessage}
                   </span>
-                  <ul className="space-y-2 text-[15px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
+                  <ul className="space-y-2 text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
                     {summaryPoints.map((point) => (
                       <li
                         key={point}
@@ -161,7 +161,7 @@ export default function CoachBriefingContentRuntime({
                   </ul>
                 </div>
               ) : (
-                <p className="text-[15px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
+                <p className="text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
                   <span data-testid="coach-briefing-message">{displayedMessage}</span>
                   {aiLoading ? (
                     <span className="ml-1 inline-block h-3 w-1 animate-pulse align-middle bg-emerald-200/80" />
@@ -173,7 +173,7 @@ export default function CoachBriefingContentRuntime({
                   data-testid="coach-briefing-data-quality-note"
                   className="mt-4 border-t border-gray-200/80 pt-3 dark:border-border/80"
                 >
-                  <div className="flex items-start gap-2 text-[15px] font-semibold text-gray-500 dark:text-gray-400">
+                  <div className="flex items-start gap-2 text-[16px] font-semibold text-gray-500 dark:text-gray-400">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
                     <p className="break-keep">{inlineDataQualityNote}</p>
                   </div>
@@ -192,7 +192,7 @@ export default function CoachBriefingContentRuntime({
               onClick={onLoginAction}
             >
               <Zap className="mr-2 h-4 w-4 text-emerald-50" />
-              <span className="text-[15px] font-semibold">{loginButtonLabel}</span>
+              <span className="text-[16px] font-semibold">{loginButtonLabel}</span>
             </Button>
           ) : isAuthCheckPending ? (
             <Button
@@ -202,7 +202,7 @@ export default function CoachBriefingContentRuntime({
               className="h-10 w-full rounded-xl border border-emerald-700/40 bg-emerald-950/70 text-emerald-50 shadow-sm disabled:opacity-100 md:w-auto"
             >
               <Zap className="mr-2 h-4 w-4 text-emerald-50" />
-              <span className="text-[15px] font-semibold">로그인 확인 중...</span>
+              <span className="text-[16px] font-semibold">로그인 확인 중...</span>
             </Button>
           ) : (
             <CoachAnalysisDialogLauncher

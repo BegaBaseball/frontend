@@ -92,7 +92,7 @@ function CoachAnalysisDialogFallback({
       bodyClassName="flex max-h-[calc(90vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-secondary"
     >
       <div className="flex min-h-[18rem] items-center justify-center bg-gray-50/60 dark:bg-black/40">
-        <div className="inline-flex items-center gap-2 text-[15px] font-semibold text-gray-600 dark:text-gray-300">
+        <div className="inline-flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
           <Loader2 className="h-4 w-4 animate-spin" />
           AI 코치 분석 도구를 불러오는 중입니다.
         </div>
