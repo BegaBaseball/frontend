@@ -23,7 +23,12 @@ export const resolveCoachBriefingPolicy = ({
   isMeaningfulGame,
   isCoachStateEnabledForAuto = true,
 }: CoachBriefingPolicyInput): CoachBriefingPolicy => {
-  const autoEnabled = Boolean(hasSelectedGame && canCallAI && isCoachStateEnabledForAuto);
+  const autoEnabled = Boolean(
+    hasSelectedGame
+    && canCallAI
+    && isCoachStateEnabledForAuto
+    && (isPostseasonGame || isMeaningfulGame),
+  );
 
   return {
     autoEnabled,
@@ -31,4 +36,3 @@ export const resolveCoachBriefingPolicy = ({
     requestMode: autoEnabled ? 'auto_brief' : 'manual_detail',
   };
 };
-

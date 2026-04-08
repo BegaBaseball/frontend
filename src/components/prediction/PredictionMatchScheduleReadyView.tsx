@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
@@ -6,7 +6,6 @@ import type { RangeLoadState } from '../../hooks/predictionHookShared';
 import { Card } from '../ui/card';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
 
-const PredictionMatchInteractiveRuntime = lazy(() => import('./PredictionMatchInteractiveRuntime'));
 const PredictionMatchSchedulePreviewRuntime = lazy(() => import('./PredictionMatchSchedulePreviewRuntime'));
 
 type PredictionMatchScheduleReadyViewProps = {
@@ -62,6 +61,7 @@ export default function PredictionMatchScheduleReadyView({
 }: PredictionMatchScheduleReadyViewProps) {
   const [hasEnteredMatchDetail, setHasEnteredMatchDetail] = useState(false);
   const [hasStoredRunSession, setHasStoredRunSession] = useState(false);
+  const [InteractiveRuntimeComponent, setInteractiveRuntimeComponent] = useState<ComponentType | null>(null);
 
   const deepLinkGameId = useMemo(() => {
     const queryGameId = searchParams.get('gameId')?.trim() || '';
@@ -132,44 +132,77 @@ export default function PredictionMatchScheduleReadyView({
   const shouldRenderMatchCard =
     (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession) && Boolean(currentGameId);
 
+  useEffect(() => {
+    let canceled = false;
+
+    if (!shouldRenderMatchCard || InteractiveRuntimeComponent) {
+      return () => {
+        canceled = true;
+      };
+    }
+
+    void import('./PredictionMatchInteractiveRuntime').then((module) => {
+      if (canceled) {
+        return;
+      }
+
+      setInteractiveRuntimeComponent(() => module.default);
+    });
+
+    return () => {
+      canceled = true;
+    };
+  }, [InteractiveRuntimeComponent, shouldRenderMatchCard]);
+
   return (
-    <Suspense
-      fallback={(
-        <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-          <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-            <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
-            경기 화면을 준비하고 있습니다.
-          </div>
-        </Card>
-      )}
-    >
-      {shouldRenderMatchCard ? (
-        <PredictionMatchInteractiveRuntime />
-      ) : (
-        <PredictionMatchSchedulePreviewRuntime
-          currentGame={currentGame}
-          currentDateGames={currentDateGames}
-          currentDate={currentDate}
-          currentDayNavigationMeta={currentDayNavigationMeta}
-          allDatesData={allDatesData}
-          currentDateIndex={currentDateIndex}
-          deepLinkNotice={deepLinkNotice}
-          goToPreviousDate={goToPreviousDate}
-          goToNextDate={goToNextDate}
-          goToDate={goToDate}
-          currentGameId={currentGameId}
-          pastRangeLoadState={pastRangeLoadState}
-          pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
-          futureRangeLoadState={futureRangeLoadState}
-          futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
-          canLoadMorePast={canLoadMorePast}
-          canLoadMoreFuture={canLoadMoreFuture}
-          matchBounds={matchBounds}
-          retryLoadMorePastMatches={retryLoadMorePastMatches}
-          retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-          onEnterMatchDetail={handleEnterMatchDetail}
-        />
-      )}
-    </Suspense>
+    <div className="font-sans">
+      <Suspense
+        fallback={(
+          <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+              <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+              경기 화면을 준비하고 있습니다.
+            </div>
+          </Card>
+        )}
+      >
+        {shouldRenderMatchCard ? (
+          InteractiveRuntimeComponent ? (
+            <InteractiveRuntimeComponent />
+          ) : (
+            <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+              <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+                경기 화면을 준비하고 있습니다.
+              </div>
+            </Card>
+          )
+        ) : (
+          <PredictionMatchSchedulePreviewRuntime
+            currentGame={currentGame}
+            currentDateGames={currentDateGames}
+            currentDate={currentDate}
+            currentDayNavigationMeta={currentDayNavigationMeta}
+            allDatesData={allDatesData}
+            currentDateIndex={currentDateIndex}
+            deepLinkNotice={deepLinkNotice}
+            goToPreviousDate={goToPreviousDate}
+            goToNextDate={goToNextDate}
+            goToDate={goToDate}
+            currentGameId={currentGameId}
+            pastRangeLoadState={pastRangeLoadState}
+            pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
+            futureRangeLoadState={futureRangeLoadState}
+            futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
+            canLoadMorePast={canLoadMorePast}
+            canLoadMoreFuture={canLoadMoreFuture}
+            matchBounds={matchBounds}
+            retryLoadMorePastMatches={retryLoadMorePastMatches}
+            retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
+            onEnterMatchDetail={handleEnterMatchDetail}
+          />
+        )}
+      </Suspense>
+    </div>
   );
 }

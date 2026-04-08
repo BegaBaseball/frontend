@@ -33,7 +33,7 @@ function CoachAnalysisTriggerButton({
       ) : (
         <Zap className="w-4 h-4 mr-2 text-emerald-50" />
       )}
-      <span className="text-xs font-semibold">
+      <span className="text-[15px] font-semibold">
         {disabled ? '분석 도구 준비 중...' : buttonLabel}
       </span>
     </Button>

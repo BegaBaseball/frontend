@@ -27,11 +27,11 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
             className="rounded-2xl border bg-white p-5 shadow-sm transition-colors dark:bg-gray-900"
         >
             <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="text-sm font-semibold tracking-wide text-gray-600 dark:text-gray-300 uppercase">
+                <span className="text-[16px] font-semibold tracking-wide text-gray-600 dark:text-gray-300 uppercase">
                     {stat.label}
                 </span>
                 {stat.is_critical && (
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${isCriticalClass}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-[16px] font-semibold ${isCriticalClass}`}>
                         <AlertTriangle className="w-3.5 h-3.5 mr-1" />주의
                     </span>
                 )}
@@ -43,13 +43,13 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
                 </span>
             </div>
 
-            <div className={`mt-4 inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold ${trendTextClass[stat.trend]}`}>
+            <div className={`mt-4 inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-1.5 text-[16px] font-semibold ${trendTextClass[stat.trend]}`}>
                 {stat.trend === 'up' && <ArrowUpRight className="h-3.5 w-3.5" />}
                 {stat.trend === 'down' && <ArrowDownRight className="h-3.5 w-3.5" />}
                 <span>{statusLabel}</span>
             </div>
 
-            <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-4 text-[16px] text-gray-500 dark:text-gray-400">
                 {trendLabel} 추세
             </div>
         </div>

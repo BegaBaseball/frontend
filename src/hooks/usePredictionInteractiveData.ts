@@ -322,8 +322,6 @@ export const usePredictionInteractiveData = () => {
     goToPreviousDate: schedule.goToPreviousDate,
     goToNextDate: schedule.goToNextDate,
     goToDate: schedule.goToDate,
-    formatDate: schedule.formatDate,
-    getTomorrowString: schedule.getTomorrowString,
     emitFlowEvent,
     showPredictionErrorOverlay,
     confirm,

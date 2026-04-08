@@ -1,18 +1,15 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchRankingSnapshot } from '../../api/rankings';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
-import type { RankingSnapshot } from '../../types/home';
 import type { Game, GameDetail, VoteTeam } from '../../types/prediction';
 import type { GameStatusCode } from '../../utils/predictionStatus';
-import { resolveCoachBriefingPolicy } from '../../utils/predictionCoachPolicy';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 
-const ComboAnimation = lazy(() => import('../retro/ComboAnimation'));
-const CoachBriefing = lazy(() => import('../CoachBriefing'));
 const LazyAdvancedMatchCard = lazy(() => import('./AdvancedMatchCard'));
+const PredictionCoachBriefingRuntime = lazy(() => import('./PredictionCoachBriefingRuntime'));
+const PredictionComboAnimationRuntime = lazy(() => import('./PredictionComboAnimationRuntime'));
 
 interface PredictionMatchDetailPanelProps {
   game: Game;
@@ -44,8 +41,6 @@ interface PredictionMatchDetailPanelProps {
   isAuthLoading: boolean;
 }
 
-const TOTAL_SEASON_GAMES = 144;
-
 export default function PredictionMatchDetailPanel({
   game,
   gameDetail,
@@ -72,159 +67,6 @@ export default function PredictionMatchDetailPanel({
   isAuthLoading,
 }: PredictionMatchDetailPanelProps) {
   const shouldRenderComboAnimation = useLeaderboardStore((state) => state.showComboAnimation);
-  const [rankingSnapshot, setRankingSnapshot] = useState<RankingSnapshot | null>(null);
-  const [shouldMountCoachBriefing, setShouldMountCoachBriefing] = useState(false);
-  const rankingSnapshotDate = useMemo(() => {
-    const referenceDate = gameDetail?.gameDate || game.gameDate;
-    if (!referenceDate) {
-      return null;
-    }
-
-    const parsed = new Date(referenceDate);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }, [game.gameDate, gameDetail?.gameDate]);
-  const seasonYear = useMemo(
-    () => rankingSnapshotDate?.getFullYear() ?? new Date().getFullYear(),
-    [rankingSnapshotDate],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    setRankingSnapshot(null);
-
-    void fetchRankingSnapshot(rankingSnapshotDate ? { date: rankingSnapshotDate } : { seasonYear })
-      .then((snapshot) => {
-        if (!cancelled) {
-          setRankingSnapshot(snapshot);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setRankingSnapshot({
-            rankingSeasonYear: seasonYear,
-            rankingSourceMessage: '순위 데이터를 불러오지 못했습니다.',
-            isOffSeason: false,
-            rankings: [],
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [rankingSnapshotDate, seasonYear]);
-
-  const areRankingsReady = rankingSnapshot != null;
-  const rankings = rankingSnapshot?.rankings ?? [];
-
-  useEffect(() => {
-    if (!areRankingsReady) {
-      setShouldMountCoachBriefing(false);
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setShouldMountCoachBriefing(true);
-    }, 250);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [areRankingsReady]);
-
-  const rankingByTeamId = useMemo(() => {
-    const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
-    rankings.forEach((team) => {
-      map.set(team.teamId, {
-        rank: team.rank,
-        gamesBehind: team.gamesBehind,
-        games: team.games,
-      });
-    });
-    return map;
-  }, [rankings]);
-
-  const buildTeamContext = (teamId?: string) => {
-    if (!teamId) {
-      return null;
-    }
-
-    const ranking = rankingByTeamId.get(teamId);
-    if (!ranking || ranking.gamesBehind == null) {
-      return null;
-    }
-
-    const remainingGames = Math.max(0, TOTAL_SEASON_GAMES - ranking.games);
-    if (!Number.isFinite(remainingGames)) {
-      return null;
-    }
-
-    return {
-      rank: ranking.rank,
-      gamesBehind: ranking.gamesBehind,
-      remainingGames,
-    };
-  };
-
-  const seasonContext = useMemo(() => {
-    const homeSeasonContext = buildTeamContext(game.homeTeam);
-    const awaySeasonContext = buildTeamContext(game.awayTeam);
-    const canCallAI = !!homeSeasonContext && !!awaySeasonContext;
-    const maxGamesBehind = canCallAI
-      ? Math.max(homeSeasonContext.gamesBehind, awaySeasonContext.gamesBehind)
-      : null;
-    const minRemainingGames = canCallAI
-      ? Math.min(homeSeasonContext.remainingGames, awaySeasonContext.remainingGames)
-      : null;
-    const isPostseasonGame = game.leagueType === 'POST';
-    const isMeaningfulGame = !!canCallAI
-      && (
-        (maxGamesBehind != null && maxGamesBehind <= 2)
-        || (minRemainingGames != null && minRemainingGames <= 20)
-      );
-
-    return {
-      home: homeSeasonContext,
-      away: awaySeasonContext,
-      isPostseasonGame,
-      canCallAI,
-      isMeaningfulGame,
-      maxGamesBehind,
-      minRemainingGames,
-    };
-  }, [game.awayTeam, game.homeTeam, game.leagueType, rankingByTeamId]);
-
-  const hasSelectedGame = Boolean(game);
-  const isScheduledGame = statusCode === 'SCHEDULED';
-  const isAutoBriefEligibleGameState =
-    statusCode === 'SCHEDULED' || statusCode === 'LIVE' || statusCode === 'COMPLETED';
-
-  const coachBriefingPolicyInput = useMemo(
-    () => ({
-      hasSelectedGame,
-      canCallAI: !!seasonContext?.canCallAI,
-      isScheduledGame,
-      isCoachStateEnabledForAuto: hasSelectedGame && isAutoBriefEligibleGameState,
-      isPostseasonGame: !!seasonContext?.isPostseasonGame,
-      isMeaningfulGame: !!seasonContext?.isMeaningfulGame,
-    }),
-    [
-      hasSelectedGame,
-      isAutoBriefEligibleGameState,
-      isScheduledGame,
-      seasonContext?.canCallAI,
-      seasonContext?.isMeaningfulGame,
-      seasonContext?.isPostseasonGame,
-    ],
-  );
-
-  const coachBriefingPolicy = useMemo(
-    () => resolveCoachBriefingPolicy(coachBriefingPolicyInput),
-    [coachBriefingPolicyInput],
-  );
-
-  const shouldAutoRequestCoachBriefing =
-    coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief';
 
   const gameDetailActions = gameDetailError ? (
     <>
@@ -251,11 +93,11 @@ export default function PredictionMatchDetailPanel({
   ) : null;
 
   return (
-    <>
+    <div className="font-sans">
       <Suspense
         fallback={(
           <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-            <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
               <Loader2 className="h-4 w-4 animate-spin" />
               경기 카드를 준비하고 있습니다.
             </div>
@@ -282,31 +124,26 @@ export default function PredictionMatchDetailPanel({
           hasPrevDate={hasPrevDate}
           hasNextDate={hasNextDate}
           coachBriefing={(
-            areRankingsReady && shouldMountCoachBriefing ? (
-              <Suspense fallback={null}>
-                <CoachBriefing
-                  game={game}
-                  gameDetail={gameDetail}
-                  seasonContext={seasonContext}
-                  isPastGame={isPastGame}
-                  isFutureGame={isFutureGame}
-                  isLoggedIn={isLoggedIn}
-                  isAuthLoading={isAuthLoading}
-                  requestMode={coachBriefingPolicy.requestMode}
-                  autoEnabled={shouldAutoRequestCoachBriefing}
-                  forceManual={coachBriefingPolicy.forceManual}
-                />
-              </Suspense>
-            ) : null
+            <Suspense fallback={null}>
+              <PredictionCoachBriefingRuntime
+                game={game}
+                gameDetail={gameDetail}
+                statusCode={statusCode}
+                isPastGame={isPastGame}
+                isFutureGame={isFutureGame}
+                isLoggedIn={isLoggedIn}
+                isAuthLoading={isAuthLoading}
+              />
+            </Suspense>
           )}
         />
       </Suspense>
 
       {shouldRenderComboAnimation ? (
         <Suspense fallback={null}>
-          <ComboAnimation />
+          <PredictionComboAnimationRuntime />
         </Suspense>
       ) : null}
-    </>
+    </div>
   );
 }

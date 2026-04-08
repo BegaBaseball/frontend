@@ -5,14 +5,16 @@ const PredictionMatchScheduleDataRuntime = lazy(() => import('./PredictionMatchS
 
 export default function PredictionMatchScheduleRuntime() {
   return (
-    <Suspense
-      fallback={(
-        <Suspense fallback={null}>
-          <PredictionLoadingView topNotice={null} />
-        </Suspense>
-      )}
-    >
-      <PredictionMatchScheduleDataRuntime />
-    </Suspense>
+    <div className="font-sans">
+      <Suspense
+        fallback={(
+          <Suspense fallback={null}>
+            <PredictionLoadingView topNotice={null} />
+          </Suspense>
+        )}
+      >
+        <PredictionMatchScheduleDataRuntime />
+      </Suspense>
+    </div>
   );
 }
