@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react';
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TEAM_LIST, getFullTeamName } from '../constants/teams';
@@ -323,10 +323,7 @@ export default function SignUp() {
                 처리 중...
               </span>
             ) : isSuccess ? (
-              <span className="flex items-center justify-center gap-2">
-                <CheckCircle2 className="h-5 w-5" />
-                성공!
-              </span>
+              <span className="flex items-center justify-center">성공!</span>
             ) : '회원가입'}
           </Button>
 

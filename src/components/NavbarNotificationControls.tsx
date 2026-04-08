@@ -47,7 +47,7 @@ export default function NavbarNotificationControls({
             <span className="absolute top-1 right-1.5 flex h-5 w-5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-background items-center justify-center">
-                <span className="relative text-[14px] font-bold text-white leading-none">
+                <span className="relative text-[16px] font-bold text-white leading-none">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               </span>
@@ -66,11 +66,11 @@ export default function NavbarNotificationControls({
         "
       >
         <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
-          <h3 className="font-bold text-[15px] text-primary dark:text-primary-light">
+          <h3 className="font-bold text-[16px] text-primary dark:text-primary-light">
             알림
           </h3>
           {unreadCount > 0 && (
-            <span className="text-[14px] text-muted-foreground dark:text-gray-300">
+            <span className="text-[16px] text-muted-foreground dark:text-gray-300">
               {unreadCount}개의 읽지 않은 알림
             </span>
           )}
@@ -78,7 +78,7 @@ export default function NavbarNotificationControls({
         <div className="max-h-[60vh] overflow-y-auto">
           <Suspense
             fallback={
-      <div className="flex min-h-[300px] items-center justify-center text-[15px] text-muted-foreground">
+      <div className="flex min-h-[300px] items-center justify-center text-[16px] text-muted-foreground">
         알림을 불러오는 중...
       </div>
             }

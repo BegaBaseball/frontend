@@ -179,7 +179,7 @@ export default function LazyEmojiPicker({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="이모지 검색..."
-            className="w-full bg-transparent text-[15px] outline-none placeholder:text-inherit"
+            className="w-full bg-transparent text-[16px] outline-none placeholder:text-inherit"
           />
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function LazyEmojiPicker({
                 setQuery('');
                 setActiveGroupId(group.id);
               }}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-[14px] font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[16px] font-semibold transition-colors ${
                 isActive
                   ? isDarkMode
                     ? 'bg-primary/20 text-primary'
@@ -232,7 +232,7 @@ export default function LazyEmojiPicker({
           </div>
         ) : (
           <div
-            className={`flex h-full items-center justify-center rounded-xl text-[15px] ${
+            className={`flex h-full items-center justify-center rounded-xl text-[16px] ${
               isDarkMode ? 'text-slate-400' : 'text-slate-500'
             }`}
           >
