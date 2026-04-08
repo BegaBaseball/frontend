@@ -12,7 +12,6 @@ import { CommentItem } from './cheer/CommentItem';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { MessageSquare } from 'lucide-react';
 import type { ConfirmOptions } from './contexts/confirmDialogCore';
 
 type PendingComment = Comment & { isPending?: boolean };
@@ -33,6 +32,8 @@ interface CheerDetailCommentsPanelProps {
   onRedirectToLogin: () => void;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 }
+
+const COMMENT_PREVIEW_LIMIT = 5;
 
 const resolveProfileImage = (imageUrl?: string | null) => {
   if (!imageUrl) return baseballLogo;
@@ -64,9 +65,14 @@ export default function CheerDetailCommentsPanel({
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
   const [isReplyPending, setIsReplyPending] = useState(false);
   const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
   const commentLikeTimersRef = useRef<Record<number, number>>({});
+
+  useEffect(() => {
+    setShowAllComments(false);
+  }, [resolvedPostId]);
 
   useEffect(() => {
     return () => {
@@ -75,6 +81,12 @@ export default function CheerDetailCommentsPanel({
       });
     };
   }, []);
+
+  const hasMoreComments = comments.length > COMMENT_PREVIEW_LIMIT;
+  const visibleComments = hasMoreComments && !showAllComments
+    ? comments.slice(0, COMMENT_PREVIEW_LIMIT)
+    : comments;
+  const commentToggleLabel = hasMoreComments && !showAllComments ? '댓글 더보기' : '댓글 접기';
 
   useEffect(() => {
     const loadComments = async () => {
@@ -226,7 +238,6 @@ export default function CheerDetailCommentsPanel({
     if (!replyDraft.trim()) return;
     setIsReplyPending(true);
     try {
-      toast.info('답글 기능은 준비 중입니다.');
       handleReplyCancel();
     } finally {
       setIsReplyPending(false);
@@ -269,30 +280,17 @@ export default function CheerDetailCommentsPanel({
       id="cheer-comments-section"
       className="mt-4 border-t border-slate-200/70 pt-4 dark:border-white/10"
     >
-      <div className="mb-3">
+      <div className="mb-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: detailAccent }}>
-            댓글
-          </p>
-          <h3 className="mt-1.5 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">댓글 {commentCount}개</h3>
-          <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400 sm:text-[13px]">
-            응원은 댓글에서 더 뜨거워집니다.
-          </p>
-          {!areCommentRepliesAvailable && (
-            <div
-              data-testid="cheer-reply-status"
-              className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
-            >
-              <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-              <span>답글 기능은 준비 중입니다. 지금은 댓글과 좋아요로 응원에 참여할 수 있습니다.</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[18px] font-bold text-slate-900 dark:text-slate-100 sm:text-[19px]">댓글 {commentCount}개</h3>
+          </div>
         </div>
       </div>
 
       {isLoggedIn ? (
         <div
-          className="mb-4 rounded-[20px] border bg-white/85 p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3.5"
+          className="mb-2 rounded-[18px] border bg-white/85 p-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3"
           style={primaryBorderStyle}
         >
           <div className="flex gap-3">
@@ -303,26 +301,26 @@ export default function CheerDetailCommentsPanel({
               width={40}
               height={40}
               showRing
-              ringClassName="p-px bg-black/5 dark:bg-white/10"
+              ringVariant="cheer"
             />
             <div className="min-w-0 flex-1">
-              <Textarea
-                value={commentText}
-                onChange={(event) => setCommentText(event.target.value)}
-                placeholder="오늘의 응원 한마디를 남겨보세요."
-                disabled={sendingComment}
-                aria-label="댓글 입력"
-                className="min-h-[64px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3.5 py-2.5 text-sm leading-5 dark:border-white/10 dark:bg-slate-950/70"
-              />
-              <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <Textarea
+                  value={commentText}
+                  onChange={(event) => setCommentText(event.target.value)}
+                  placeholder="오늘의 응원 한마디를 남겨보세요."
+                  disabled={sendingComment}
+                  aria-label="댓글 입력"
+                  className="min-h-[54px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3 py-2 text-[16px] leading-5 dark:border-white/10 dark:bg-slate-950/70"
+                />
+                <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[16px] font-semibold text-slate-500 dark:text-slate-400">
                   서로를 존중하는 응원 문화를 지켜주세요.
                 </p>
                 <Button
                   onClick={handleCommentSubmit}
                   disabled={!commentText.trim() || sendingComment}
                   aria-label="댓글 등록"
-                  className="h-8 rounded-full px-4 text-[12px] text-white sm:h-9 sm:text-[13px]"
+                  className="h-7 rounded-full px-3 text-[16px] font-semibold text-white sm:h-7 sm:text-[16px]"
                   style={{ backgroundColor: detailAccent }}
                 >
                   등록
@@ -333,18 +331,18 @@ export default function CheerDetailCommentsPanel({
         </div>
       ) : (
         <div
-          className="mb-4 rounded-[20px] border p-4 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+          className="mb-2 rounded-[18px] border p-2.5 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
           style={{
             ...primaryBorderStyle,
             ...surfaceTintStyle,
           }}
         >
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-[16px] font-semibold text-slate-600 dark:text-slate-300">
             댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.
           </p>
           <Button
             onClick={onRedirectToLogin}
-            className="mt-4 h-9 rounded-full px-4 text-[13px] text-white"
+            className="mt-2.5 h-7 rounded-full px-3 text-[16px] font-semibold text-white"
             style={{ backgroundColor: detailAccent }}
           >
             로그인하고 참여하기
@@ -353,8 +351,8 @@ export default function CheerDetailCommentsPanel({
       )}
 
       {commentsError ? (
-        <div className="rounded-[20px] border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
-          <p>{commentsError}</p>
+        <div className="rounded-[16px] border border-slate-200 bg-white p-3 text-[16px] text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
+          <p className="font-semibold">{commentsError}</p>
           <Button
             variant="outline"
             className="mt-3 rounded-full"
@@ -381,17 +379,17 @@ export default function CheerDetailCommentsPanel({
           </Button>
         </div>
       ) : commentsLoading ? (
-        <div aria-busy="true" aria-label="댓글 불러오는 중" className="space-y-2">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="flex animate-pulse gap-3 rounded-[20px] border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-900/70"
-            >
-              <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
-              <div className="flex-1 space-y-2">
+          <div aria-busy="true" aria-label="댓글 불러오는 중" className="space-y-1.5">
+            {[1, 2].map((item) => (
+              <div
+                key={item}
+                className="flex animate-pulse gap-2 rounded-[16px] border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-900/70"
+              >
+              <div className="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-800" />
+              <div className="flex-1 space-y-1.5">
                 <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-3 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
               </div>
             </div>
           ))}
@@ -407,16 +405,16 @@ export default function CheerDetailCommentsPanel({
             loggedIn={isLoggedIn}
             userId={authUserId ? String(authUserId) : null}
             wave="ads_wave2"
-            minHeight={152}
-            className="mb-4"
+            minHeight={128}
+            className="mb-3"
           />
-          <div
-            className="rounded-[18px] border p-3 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400"
+            <div
+            className="rounded-[18px] border p-3 text-center text-[16px] font-semibold text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400"
             style={{
               ...primaryBorderStyle,
               ...surfaceTintStyle,
             }}
-          >
+            >
             아직 댓글이 없습니다. 첫 댓글로 응원의 흐름을 시작해보세요.
           </div>
         </>
@@ -432,16 +430,16 @@ export default function CheerDetailCommentsPanel({
               loggedIn={isLoggedIn}
               userId={authUserId ? String(authUserId) : null}
               wave="ads_wave2"
-              minHeight={152}
-              className="mb-4"
+              minHeight={128}
+              className="mb-3"
             />
           ) : null}
           <div
             role="list"
             aria-label="댓글 목록"
-            className="space-y-2"
+            className="space-y-1.5"
           >
-            {comments.flatMap((comment, index) => [
+            {visibleComments.flatMap((comment, index) => [
               <div
                 key={comment.id}
                 role="listitem"
@@ -467,7 +465,7 @@ export default function CheerDetailCommentsPanel({
                   userHandle={authUserHandle ?? undefined}
                 />
               </div>,
-              index === 2 ? (
+              !showAllComments && index === COMMENT_PREVIEW_LIMIT - 1 && comments.length > COMMENT_PREVIEW_LIMIT ? (
                 <AdSlot
                   key="cheer-detail-1"
                   slotId="cheer_detail_1"
@@ -478,11 +476,24 @@ export default function CheerDetailCommentsPanel({
                   loggedIn={isLoggedIn}
                   userId={authUserId ? String(authUserId) : null}
                   wave="ads_wave2"
-                  minHeight={152}
+                  minHeight={128}
+                  className="my-2"
                 />
               ) : null,
             ])}
           </div>
+          {hasMoreComments ? (
+          <Button
+              variant="outline"
+              className="mt-3 h-8 w-full rounded-full text-[16px] font-semibold"
+              onClick={() => setShowAllComments((prev) => !prev)}
+              aria-expanded={showAllComments}
+              aria-label="댓글 목록 토글"
+              data-testid="cheer-comments-show-more"
+            >
+              {commentToggleLabel}
+            </Button>
+          ) : null}
         </>
       )}
     </div>

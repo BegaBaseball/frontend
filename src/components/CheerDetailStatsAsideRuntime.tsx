@@ -1,0 +1,85 @@
+import { lazy, Suspense, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { ChevronDown, Megaphone } from 'lucide-react';
+import { cn } from '../lib/utils';
+
+const LazyCheerDetailStatsBody = lazy(() => import('./CheerDetailStatsBody'));
+
+interface CheerDetailStatsAsideRuntimeProps {
+    commentCount: number;
+    createdAtLabel: string;
+    detailAccent: string;
+    primaryBorderStyle: CSSProperties;
+    repostedAtLabel: string | null;
+    teamName: string;
+    views: number;
+}
+
+export default function CheerDetailStatsAsideRuntime({
+    commentCount,
+    createdAtLabel,
+    detailAccent,
+    primaryBorderStyle,
+    repostedAtLabel,
+    teamName,
+    views,
+}: CheerDetailStatsAsideRuntimeProps) {
+    const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+    return (
+        <aside>
+            <div
+                className="rounded-[16px] border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
+                style={primaryBorderStyle}
+            >
+                <button
+                    type="button"
+                    onClick={() => setIsStatsOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-md py-0.5 text-left"
+                    aria-label="응원 현황 토글"
+                    aria-expanded={isStatsOpen}
+                    aria-controls="cheer-detail-stats"
+                >
+                    <div className="flex items-center gap-1.5 text-[16px] font-semibold" style={{ color: detailAccent }}>
+                        <Megaphone className="h-3.5 w-3.5" />
+                        <span>응원 현황</span>
+                    </div>
+                    <ChevronDown
+                        className={cn(
+                            'h-3.5 w-3.5 text-slate-500 transition-transform duration-200 lg:hidden',
+                            isStatsOpen && 'rotate-180'
+                        )}
+                    />
+                </button>
+                <div
+                    id="cheer-detail-stats"
+                    className={cn(
+                        'mt-2 space-y-1.5 lg:block',
+                        isStatsOpen ? 'block' : 'hidden'
+                    )}
+                >
+                    <Suspense
+                        fallback={(
+                            <>
+                                {[1, 2, 3].map((item) => (
+                                    <div
+                                        key={item}
+                                        className="h-[44px] animate-pulse rounded-[12px] bg-slate-100 dark:bg-slate-800/80"
+                                    />
+                                ))}
+                            </>
+                        )}
+                    >
+                        <LazyCheerDetailStatsBody
+                            commentCount={commentCount}
+                            createdAtLabel={createdAtLabel}
+                            repostedAtLabel={repostedAtLabel}
+                            teamName={teamName}
+                            views={views}
+                        />
+                    </Suspense>
+                </div>
+            </div>
+        </aside>
+    );
+}
