@@ -1,7 +1,6 @@
-import { useLayoutEffect, useRef } from 'react';
+import { lazy } from 'react';
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 
-import { usePredictionVoteFlow } from '../../hooks/usePredictionVoteFlow';
 import type {
   LoadVoteStatusOptions,
   PredictionFlowEmitter,
@@ -10,6 +9,8 @@ import type {
 } from '../../hooks/predictionHookShared';
 import type { Game, VoteTeam } from '../../types/prediction';
 
+const PredictionMatchVoteControllerRuntime = lazy(() => import('./PredictionMatchVoteControllerRuntime'));
+
 export type PredictionPendingVoteAction = {
   requestId: number;
   team: VoteTeam;
@@ -17,17 +18,16 @@ export type PredictionPendingVoteAction = {
   isVoteOpen: boolean;
 };
 
-export type PredictionMatchVoteControllerRenderState = Pick<
-  ReturnType<typeof usePredictionVoteFlow>,
-  | 'handleVote'
-  | 'isRunInProgress'
-  | 'isRunBannerDismissed'
-  | 'runProgressMessage'
-  | 'dismissRunProgressBanner'
-  | 'resumeRunProgressBanner'
->;
+export type PredictionMatchVoteControllerRenderState = {
+  handleVote: (team: VoteTeam, game: Game, isVoteOpen: boolean) => Promise<void>;
+  isRunInProgress: boolean;
+  isRunBannerDismissed: boolean;
+  runProgressMessage: string;
+  dismissRunProgressBanner: () => void;
+  resumeRunProgressBanner: () => void;
+};
 
-type PredictionMatchVoteControllerProps = {
+export type PredictionMatchVoteControllerProps = {
   isAuthLoading: boolean;
   isLoggedIn: boolean;
   currentGameId: string | null;
@@ -44,51 +44,7 @@ type PredictionMatchVoteControllerProps = {
 };
 
 export default function PredictionMatchVoteController({
-  isAuthLoading,
-  isLoggedIn,
-  currentGameId,
-  userVote,
-  setUserVote,
-  loadVoteStatus,
-  reloadVoteStatus,
-  emitFlowEvent,
-  showPredictionErrorOverlay,
-  confirm,
-  pendingVoteAction,
-  onPendingVoteHandled,
-  children,
+  ...props
 }: PredictionMatchVoteControllerProps) {
-  const handledPendingVoteActionRef = useRef<number | null>(null);
-  const voteFlow = usePredictionVoteFlow({
-    isAuthLoading,
-    isLoggedIn,
-    currentGameId,
-    userVote,
-    setUserVote,
-    loadVoteStatus,
-    reloadVoteStatus,
-    emitFlowEvent,
-    showPredictionErrorOverlay,
-    confirm,
-  });
-
-  useLayoutEffect(() => {
-    if (!pendingVoteAction) {
-      return;
-    }
-
-    if (handledPendingVoteActionRef.current === pendingVoteAction.requestId) {
-      return;
-    }
-
-    handledPendingVoteActionRef.current = pendingVoteAction.requestId;
-    onPendingVoteHandled(pendingVoteAction.requestId);
-    void voteFlow.handleVote(
-      pendingVoteAction.team,
-      pendingVoteAction.game,
-      pendingVoteAction.isVoteOpen,
-    );
-  }, [onPendingVoteHandled, pendingVoteAction, voteFlow]);
-
-  return children(voteFlow);
+  return <PredictionMatchVoteControllerRuntime {...props} />;
 }

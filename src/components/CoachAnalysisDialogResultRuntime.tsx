@@ -673,7 +673,7 @@ export default function CoachAnalysisDialogResultRuntime({
         <>
             {loading && !analysisData && (
                 <div className="space-y-4">
-                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[15px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
                         <span>{analysisStep || loadingFallbackMessage}</span>
                     </div>
@@ -693,7 +693,7 @@ export default function CoachAnalysisDialogResultRuntime({
 
             {hasFocusMeta && (
                 <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2">
-                    <p className="text-[15px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    <p className="text-[16px] font-semibold text-emerald-700 dark:text-emerald-300">
                         이번 분석 기준 focus
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -713,12 +713,12 @@ export default function CoachAnalysisDialogResultRuntime({
                         )}
                     </div>
                     {focusMismatch && (
-                        <p className="text-[15px] text-amber-700 dark:text-amber-300 font-semibold">
+                        <p className="text-[16px] text-amber-700 dark:text-amber-300 font-semibold">
                             선택한 focus와 실제 적용된 focus가 달라 일부 항목이 자동으로 제외되었습니다.
                         </p>
                     )}
                     {result?.focus_section_missing && (
-                        <p className="text-[15px] text-amber-700 dark:text-amber-300 font-semibold">
+                        <p className="text-[16px] text-amber-700 dark:text-amber-300 font-semibold">
                             일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
                         </p>
                     )}
@@ -737,7 +737,7 @@ export default function CoachAnalysisDialogResultRuntime({
                         >
                             {analysisDataQualityLabel}
                         </span>
-                        <p className="text-[15px] font-semibold">
+                        <p className="text-[16px] font-semibold">
                             {analysisDataQualityNotice.message}
                         </p>
                     </div>
@@ -758,7 +758,7 @@ export default function CoachAnalysisDialogResultRuntime({
                                 <p
                                     key={detail}
                                     data-testid="coach-analysis-grounding-detail"
-                                    className="text-[15px] font-semibold leading-relaxed text-amber-800/90 dark:text-amber-100/90"
+                                    className="text-[16px] font-semibold leading-relaxed text-amber-800/90 dark:text-amber-100/90"
                                 >
                                     {detail}
                                 </p>
@@ -788,12 +788,12 @@ export default function CoachAnalysisDialogResultRuntime({
                         >
                             생성 방식
                         </span>
-                        <p className="text-[15px] font-semibold">
+                        <p className="text-[16px] font-semibold">
                             {generationModeLabel}
                         </p>
                     </div>
                         {result.generation_mode === 'evidence_fallback' && (
-                        <p className="mt-3 text-[15px] font-semibold leading-relaxed">
+                        <p className="mt-3 text-[16px] font-semibold leading-relaxed">
                             이번 응답은 확인 가능한 근거만으로 보수 생성되었습니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.
                         </p>
                     )}
@@ -808,7 +808,7 @@ export default function CoachAnalysisDialogResultRuntime({
 
             {result?.error && !analysisData && (
                 <div className="rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4">
-                    <p className="text-[15px] font-semibold text-red-700 dark:text-red-300">
+                    <p className="text-[16px] font-semibold text-red-700 dark:text-red-300">
                         {result.error}
                     </p>
                     {errorAction === 'login' && (
