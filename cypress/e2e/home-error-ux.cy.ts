@@ -124,6 +124,148 @@ describe('Home error UX', () => {
     });
   });
 
+  it('recovers public auth controls after home refresh when deferred bootstrap succeeds', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          id: 123,
+          email: 'test@example.com',
+          name: 'TestUser',
+          handle: 'testuser',
+          favoriteTeam: 'HH',
+          role: 'ROLE_USER',
+          hasPassword: true,
+          profileImageUrl: null,
+        },
+      },
+    }).as('getMeRecovered');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeRecovered');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('not.exist');
+    cy.contains('button', '로그아웃').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('returns to the normal login button after home refresh when deferred bootstrap returns 401', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 401,
+      body: {
+        success: false,
+        code: 'UNAUTHORIZED',
+        message: '인증이 필요합니다.',
+        error: 'Unauthorized',
+      },
+    }).as('getMeUnauthorized');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeUnauthorized');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('returns to the normal login button after home refresh when deferred bootstrap returns 503', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 503,
+      body: {
+        success: false,
+        code: 'UPSTREAM_TIMEOUT',
+        message: 'Unavailable',
+      },
+    }).as('getMeServerError');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeServerError');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
   it('suppresses deferred mypage retry on home during recent failure cooldown', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,

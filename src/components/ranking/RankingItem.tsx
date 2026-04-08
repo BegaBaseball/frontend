@@ -85,7 +85,7 @@ const RankingItem = React.memo(function RankingItem({
       {index === PLAYOFF_TEAMS && (
         <div className="my-4 flex items-center gap-4 opacity-80">
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
-          <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
+          <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[13px] font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
             가을야구 진출 (PS)
           </span>
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
@@ -138,7 +138,7 @@ const RankingItem = React.memo(function RankingItem({
               )}
             </div>
           ) : (
-            <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-sm">
+            <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-[16px]">
               팀을 선택하세요
             </div>
           )}
