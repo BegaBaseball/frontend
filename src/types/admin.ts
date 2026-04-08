@@ -314,6 +314,57 @@ export interface AdminOffseasonMovementPayload {
   announcedAt?: string;
 }
 
+export type AdminCoachAutoBriefOpsWindow = 'today' | 'tomorrow' | 'custom';
+
+export interface AdminCoachAutoBriefOpsSummary {
+  loaded_target_count: number;
+  selected_target_count: number;
+  generated_success_count: number;
+  cache_hit_count: number;
+  in_progress_count: number;
+  failed_count: number;
+  unresolved_count: number;
+  completed_count: number;
+  cache_state_breakdown: Record<string, number>;
+  data_quality_breakdown: Record<string, number>;
+}
+
+export interface AdminCoachAutoBriefOpsLatestReport {
+  path: string;
+  run_started_at?: string | null;
+  run_finished_at?: string | null;
+  date_window?: string | null;
+  unresolved_count: number;
+  completed_count: number;
+  cache_state_breakdown: Record<string, number>;
+  data_quality_breakdown: Record<string, number>;
+}
+
+export interface AdminCoachAutoBriefOpsTargetSample {
+  game_id: string;
+  game_date: string;
+  away_team_id: string;
+  home_team_id: string;
+  stage_label: string;
+  game_status_bucket: string;
+  cache_key: string;
+  cache_state: string;
+  data_quality: string;
+  headline?: string | null;
+  reason?: string | null;
+}
+
+export interface AdminCoachAutoBriefOpsHealth {
+  window: AdminCoachAutoBriefOpsWindow;
+  date_window: string;
+  generated_at_utc: string;
+  runbook_path: string;
+  recommended_command: string;
+  summary: AdminCoachAutoBriefOpsSummary;
+  unresolved_targets: AdminCoachAutoBriefOpsTargetSample[];
+  latest_report?: AdminCoachAutoBriefOpsLatestReport | null;
+}
+
 export interface ReleaseDecisionPreset {
   scenario: string;
   task_prompt: string;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  fetchCoachAutoBriefOpsHealth,
   fetchAdminGameStatusMismatches,
   fetchAdminPlaces,
   fetchAdminStadiums,
@@ -213,6 +214,53 @@ test('repairAdminGameStatusMismatches는 POST query와 빈 JSON body로 dryRun �
   assert.equal(requestInit?.credentials, 'include');
   assert.equal(requestInit?.method, 'POST');
   assert.equal(requestInit?.body, '{}');
+});
+
+test('fetchCoachAutoBriefOpsHealth는 window/date query를 AI 운영 health endpoint로 전달한다', async (t) => {
+  let requestUrl = '';
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    return buildJsonResponse({
+      window: 'custom',
+      date_window: '2026-04-08:2026-04-09',
+      generated_at_utc: '2026-04-08T09:00:00Z',
+      runbook_path: 'task/operations/coach-auto-brief-prewarm-runbook.md',
+      recommended_command: './.venv/bin/python scripts/batch_coach_auto_brief.py',
+      summary: {
+        loaded_target_count: 12,
+        selected_target_count: 2,
+        generated_success_count: 0,
+        cache_hit_count: 1,
+        in_progress_count: 1,
+        failed_count: 0,
+        unresolved_count: 1,
+        completed_count: 1,
+        cache_state_breakdown: { COMPLETED: 1, PENDING_WAIT: 1 },
+        data_quality_breakdown: { grounded: 1, partial: 1 },
+      },
+      unresolved_targets: [],
+      latest_report: null,
+    });
+  });
+
+  const response = await fetchCoachAutoBriefOpsHealth({
+    window: 'custom',
+    startDate: '2026-04-08',
+    endDate: '2026-04-09',
+    sampleSize: 7,
+  });
+
+  assert.equal(response.summary.selected_target_count, 2);
+  assert.match(
+    requestUrl,
+    /\/api\/ai\/coach\/auto-brief\/ops\/health\?window=custom&start_date=2026-04-08&end_date=2026-04-09&sample_size=7$/,
+  );
 });
 
 test('fetchReleaseDecisionPresets는 AI 운영 프리셋 raw 응답을 반환한다', async (t) => {

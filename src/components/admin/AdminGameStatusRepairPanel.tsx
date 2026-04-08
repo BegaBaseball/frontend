@@ -58,7 +58,7 @@ const statusBadgeClassName = (status: string | null | undefined) => {
 
 const escapeCsvCell = (value: string | number | boolean | null | undefined) => {
   const normalized = value == null ? '' : String(value);
-  const escaped = normalized.replaceAll('"', '""');
+  const escaped = normalized.split('"').join('""');
 
   if (/[",\n]/.test(escaped)) {
     return `"${escaped}"`;
@@ -149,7 +149,7 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-2xl border p-5 ${accentClassName}`}>
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-3 text-3xl font-black text-slate-50">{value}</p>
     </div>
   );
@@ -177,7 +177,7 @@ function MismatchReasons({ reasons }: { reasons: string[] }) {
 function RepairedGameRow({ game }: { game: AdminGameScoreSyncResult }) {
   return (
     <TableRow data-testid={`admin-game-status-repaired-${game.gameId}`} className="border-slate-800/80">
-      <TableCell className="font-mono text-xs text-slate-300">{game.gameId}</TableCell>
+      <TableCell className="font-mono text-sm text-slate-300">{game.gameId}</TableCell>
       <TableCell>
         <AdminBadge className={statusBadgeClassName(game.gameStatus)}>
           {game.gameStatus}
@@ -217,13 +217,13 @@ function MismatchDateSuggestionCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold">{recommendation.gameDate}</p>
-          <p className="mt-1 text-xs text-slate-400">mismatch {recommendation.mismatchCount}건</p>
+      <p className="mt-1 text-sm text-slate-400">mismatch {recommendation.mismatchCount}건</p>
         </div>
         <AdminBadge className="border-amber-500/25 bg-amber-500/10 text-amber-200">
           추천
         </AdminBadge>
       </div>
-      <p className="mt-3 text-xs text-slate-300">
+      <p className="mt-3 text-sm text-slate-300">
         예상 상태: {statusSummary || '-'}
       </p>
     </button>
@@ -415,7 +415,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
       <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-2xl">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-300">
               <ShieldAlert className="h-4 w-4" />
               Prediction 경기 상태 복구
             </div>
@@ -429,7 +429,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:min-w-[540px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
                 <CalendarDays className="h-4 w-4" />
                 시작일
               </span>
@@ -442,7 +442,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
+              <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
               <Input
                 data-testid="admin-game-status-end-date"
                 type="date"
@@ -636,7 +636,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                     className="border-slate-800/80"
                   >
                     <TableCell className="text-slate-300">{mismatch.gameDate}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-300">{mismatch.gameId}</TableCell>
+                    <TableCell className="font-mono text-sm text-slate-300">{mismatch.gameId}</TableCell>
                     <TableCell className="text-slate-300">{formatTimeLabel(mismatch.startTime)}</TableCell>
                     <TableCell>
                       <AdminBadge className={statusBadgeClassName(mismatch.normalizedRawStatus || mismatch.rawStatus)}>

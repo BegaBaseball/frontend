@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Calendar, Trash2 } from 'lucide-react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -18,14 +19,6 @@ interface AdminMate {
 interface MatesAdminPanelProps {
   mates: AdminMate[];
   handleDeleteMate: (mateId: number) => void;
-}
-
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
 }
 
 const statusBadge: Record<string, { className: string; label: string }> = {
@@ -70,7 +63,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <TableCell className="text-slate-300 font-mono text-sm">{mate.id}</TableCell>
-                  <TableCell className="text-slate-200 font-medium max-w-[200px] truncate">{mate.title}</TableCell>
+                  <TableCell className="text-slate-200 font-semibold max-w-[200px] truncate">{mate.title}</TableCell>
                   <TableCell className="text-slate-300">{mate.hostName}</TableCell>
                   <TableCell className="text-slate-400 text-sm">{formatGameDate(mate.gameDate)}</TableCell>
                   <TableCell>
