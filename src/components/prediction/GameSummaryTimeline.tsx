@@ -46,7 +46,7 @@ export function GameSummaryTimeline({
                   />
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className="inline-flex items-center rounded px-2 py-0.5 text-[12px] font-bold text-white"
+                      className="inline-flex items-center rounded px-2 py-0.5 text-[16px] font-bold text-white"
                       style={{
                         backgroundColor: badgeColor,
                         transition: 'background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
@@ -54,12 +54,12 @@ export function GameSummaryTimeline({
                     >
                       {item.type}
                     </span>
-                    <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="text-[16px] font-semibold text-gray-900 dark:text-gray-100">
                       {item.playerName || '기록'}
                     </p>
                   </div>
                   {item.detail && (
-                    <p className="mt-1 text-[12px] text-gray-500 dark:text-gray-300">
+                    <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-300">
                       {item.detail}
                     </p>
                   )}

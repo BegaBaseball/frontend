@@ -38,6 +38,10 @@ export async function consumeSseStream(
       return;
     }
 
+    if (trimmedLine.startsWith(':')) {
+      return;
+    }
+
     if (!trimmedLine.startsWith('data:')) {
       return;
     }

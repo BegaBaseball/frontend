@@ -99,7 +99,7 @@ export default function PredictionMatchTab({
         >
           <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
-        <span className="font-medium text-slate-900 dark:text-gray-100">
+        <span className="font-semibold text-slate-900 dark:text-gray-100">
           {formatDate(currentDate)}
         </span>
         <button
@@ -119,7 +119,7 @@ export default function PredictionMatchTab({
             <Suspense
               fallback={(
                 <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-                  <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
+                  <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
                     <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                     경기 카드를 준비하고 있습니다.
                   </div>

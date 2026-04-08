@@ -59,7 +59,7 @@ export default function PredictionMatchPreviewTab({
         >
           <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
-        <span className="font-medium text-slate-900 dark:text-gray-100">
+        <span className="font-semibold text-slate-900 dark:text-gray-100">
           {formatDate(currentDate)}
         </span>
         <button
@@ -82,7 +82,7 @@ export default function PredictionMatchPreviewTab({
                   <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
                     {awayTeamName} vs {homeTeamName}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-gray-300 mt-1">
+                  <p className="text-[16px] text-slate-500 dark:text-gray-300 mt-1">
                     {gameStatus.statusLabel}
                   </p>
                 </div>
