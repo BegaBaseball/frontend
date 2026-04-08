@@ -39,7 +39,7 @@ function ProfileBadge({
 }) {
     return (
         <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${className}`}
+            className={`inline-flex items-center rounded-full px-3 py-1 text-[16px] font-semibold ${className}`}
             style={style}
         >
             {children}
@@ -225,7 +225,7 @@ export default function UserProfile() {
                 <button
                     type="button"
                     onClick={() => navigate(-1)}
-                    className="flex items-center text-primary font-medium hover:underline"
+                    className="flex items-center text-primary font-semibold hover:underline"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     뒤로 가기
@@ -325,7 +325,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(totalPosts)}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
                             <FileText className="w-3.5 h-3.5" />
                             게시글
                         </span>
@@ -338,7 +338,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followerCount || 0)}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
                             <Users className="w-3.5 h-3.5" />
                             팔로워
                         </span>
@@ -351,7 +351,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followingCount || 0)}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
                             <UserPlus className="w-3.5 h-3.5" />
                             팔로잉
                         </span>
@@ -393,7 +393,7 @@ export default function UserProfile() {
                                 작성글 보기
                             </Button>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
+                        <p className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
                             <MessageCircle className="w-3.5 h-3.5" />
                             메시지 기능은 준비 중입니다. 지금은 작성글과 팔로우로 활동을 확인할 수 있습니다.
                         </p>
@@ -410,7 +410,7 @@ export default function UserProfile() {
                                     {profile.bio}
                                 </p>
                             ) : (
-                                <p className="text-gray-400 dark:text-gray-300 italic text-sm">
+                                <p className="text-gray-400 dark:text-gray-300 italic text-[16px]">
                                     아직 자기소개가 없습니다.
                                 </p>
                             )}
@@ -426,7 +426,7 @@ export default function UserProfile() {
                         <FileText className="w-5 h-5" style={{ color: theme.accent }} />
                         작성한 게시글
                     </h2>
-                    <span className="text-sm text-gray-500 dark:text-gray-300">
+                    <span className="text-[16px] text-gray-500 dark:text-gray-300">
                         {totalPosts}개의 글
                     </span>
                 </div>

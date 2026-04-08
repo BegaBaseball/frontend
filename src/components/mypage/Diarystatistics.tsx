@@ -56,7 +56,7 @@ export default function DiaryStatistics() {
         <div className="lg:col-span-1">
           <Card className="h-full bg-gradient-to-br from-primary/10 to-muted/40 border-none shadow-md p-6 flex flex-col justify-center items-center text-center">
             <Flame className="w-10 h-10 text-orange-500 mb-2 animate-pulse" />
-            <h3 className="text-sm font-medium text-muted-foreground">현재 연승/연패</h3>
+            <h3 className="text-[16px] font-semibold text-muted-foreground">현재 연승/연패</h3>
             <div className="text-3xl font-black mt-1">
               {statistics.currentWinStreak > 0 ? (
                 <span className="text-red-500">{statistics.currentWinStreak}연승 중! 🔥</span>
@@ -66,7 +66,7 @@ export default function DiaryStatistics() {
                 <span className="text-muted-foreground">-</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">최장 연승: {statistics.longestWinStreak || 0}연승</p>
+            <p className="text-[16px] text-muted-foreground mt-2">최장 연승: {statistics.longestWinStreak || 0}연승</p>
           </Card>
         </div>
       </div>
@@ -120,31 +120,31 @@ export default function DiaryStatistics() {
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-medium">최다 방문 구장</span>
+                <span className="text-muted-foreground font-semibold">최다 방문 구장</span>
                 <span className="font-bold text-primary">
                   {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
                 </span>
               </div>
               <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-medium">가장 행복했던 달</span>
+                <span className="text-muted-foreground font-semibold">가장 행복했던 달</span>
                 <span className="font-bold text-primary">
                   {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
                 </span>
               </div>
               <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-medium">상대하기 쉬운 팀</span>
+                <span className="text-muted-foreground font-semibold">상대하기 쉬운 팀</span>
                 <span className="font-bold text-primary">
                   {statistics.bestOpponent || '-'}
                 </span>
               </div>
               <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-medium">상대하기 어려운 팀</span>
+                <span className="text-muted-foreground font-semibold">상대하기 어려운 팀</span>
                 <span className="font-bold text-primary">
                   {statistics.worstOpponent || '-'}
                 </span>
               </div>
               <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-medium">연간 승률</span>
+                <span className="text-muted-foreground font-semibold">연간 승률</span>
                 <span className="font-bold text-primary">
                   {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
                 </span>

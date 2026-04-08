@@ -122,7 +122,7 @@ export default function FollowButton({
         }
     }, [handle, isLoading, isFollowing, notifyNewPosts, onFollowChange]);
 
-    const buttonSize = size === 'sm' ? 'h-8 px-3 text-xs' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
+    const buttonSize = size === 'sm' ? 'h-8 px-3 text-[16px]' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 
     if (!isFollowing) {
         return (
@@ -194,7 +194,7 @@ export default function FollowButton({
                         type="button"
                         role="menuitem"
                         onClick={handleToggleNotify}
-                        className="flex w-full items-center rounded-sm px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
                     >
                         {notifyNewPosts ? (
                             <>
@@ -212,7 +212,7 @@ export default function FollowButton({
                         type="button"
                         role="menuitem"
                         onClick={handleToggleFollow}
-                        className="flex w-full items-center rounded-sm px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
                         <UserMinus className="mr-2 h-4 w-4" />
                         언팔로우

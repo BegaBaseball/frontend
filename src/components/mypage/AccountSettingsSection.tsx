@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Eye, EyeOff, AlertTriangle, Trash2, Clock3, Fingerprint } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Clock3 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import '../common/autofill-input.css';
-import PlainDialog from '../ui/plain-dialog';
 import {
   getConnectedProviders,
   getDeviceSessions,
@@ -36,6 +33,7 @@ interface AccountSettingsSectionProps {
 const DELETE_CONFIRM_TEXT = '삭제하겠습니다';
 const LAST_METHOD_TOOLTIP = '현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.';
 const deletePasswordInputClass = 'auth-autofill-input pr-10';
+const LazyAccountSettingsAdvancedRuntime = lazy(() => import('./AccountSettingsAdvancedRuntime'));
 
 type ProviderKey = 'google' | 'kakao' | 'naver';
 
@@ -70,7 +68,7 @@ const PROVIDERS: ProviderMeta[] = [
     key: 'kakao',
     label: 'Kakao',
     icon: (
-      <div className="w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center text-xs font-bold text-black">
+      <div className="w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center text-[16px] font-bold text-black">
         k
       </div>
     ),
@@ -83,7 +81,7 @@ const PROVIDERS: ProviderMeta[] = [
     key: 'naver',
     label: 'Naver',
     icon: (
-      <div className="w-4 h-4 rounded-full bg-[#03C75A] text-white flex items-center justify-center text-[10px] font-extrabold italic">
+      <div className="w-4 h-4 rounded-full bg-[#03C75A] text-white flex items-center justify-center text-[16px] font-extrabold italic">
         N
       </div>
     ),
@@ -427,22 +425,22 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           <div className="flex items-center gap-3 min-w-0">
             <span className={isConnected ? '' : 'grayscale opacity-70'}>{provider.icon}</span>
             <div className="min-w-0">
-              <p className="font-semibold text-sm">{provider.label}</p>
-              <p className={`text-xs ${isConnected ? 'text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+              <p className="font-semibold text-[16px]">{provider.label}</p>
+              <p className={`text-[16px] ${isConnected ? 'text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground'}`}>
                 {isConnected ? '연동됨' : '연동되지 않음'}
               </p>
               {isConnected && connectedEmail && (
-                <p className="text-xs text-muted-foreground truncate mt-1">{connectedEmail}</p>
+                <p className="text-[16px] text-muted-foreground truncate mt-1">{connectedEmail}</p>
               )}
               {!isConnected && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[16px] text-muted-foreground mt-1">
                   3초 만에 연결하고 로그인 편하게 하기
                 </p>
               )}
               {disabled && isConnected && (
                 <p
                   id={helperTextId}
-                  className="mt-2 text-xs text-amber-700 dark:text-amber-300"
+                  className="mt-2 text-[16px] text-amber-700 dark:text-amber-300"
                 >
                   {LAST_METHOD_TOOLTIP}
                 </p>
@@ -498,16 +496,16 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       </div>
 
       <section className="mb-8">
-        <h3 className="text-sm font-medium text-muted-foreground mb-4">로그인 연동 관리</h3>
+        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">로그인 연동 관리</h3>
         <div className="space-y-3">{PROVIDERS.map(renderProviderCard)}</div>
       </section>
 
       <section className="mb-8">
-        <h3 className="text-sm font-medium text-muted-foreground mb-4">현재 기기</h3>
+        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">현재 기기</h3>
         {isSessionLoading ? (
-          <p className="text-sm text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
+          <p className="text-[16px] text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
         ) : isSessionError ? (
-          <p className="text-sm text-red-500 dark:text-red-400">
+          <p className="text-[16px] text-red-500 dark:text-red-400">
             기기 정보를 불러오지 못했습니다. 다시 시도해 주세요.
             {sessionError instanceof Error ? ` (${sessionError.message})` : ''}
           </p>
@@ -525,31 +523,31 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-[16px] font-semibold text-foreground">
                           {session.deviceLabel || session.deviceType || '알 수 없음'}
                         </p>
                         {session.isCurrent ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
                             현재 기기
                           </span>
                         ) : null}
                         {!session.isCurrent && session.isRevoked ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[16px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
                             만료 추정
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground truncate">
+                        <p className="mt-1 text-[16px] text-muted-foreground truncate">
                         {[session.browser || '브라우저', session.os || 'OS'].filter(Boolean).join(' · ')}
                       </p>
 
-                      <div className="mt-3 grid gap-2 text-[11px] text-muted-foreground sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 text-[16px] text-muted-foreground sm:grid-cols-2">
                         <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                          <p className="font-medium text-foreground/90">최근 활동</p>
+                          <p className="font-semibold text-foreground/90">최근 활동</p>
                           <p className="mt-1">{formatSessionTime(session.lastActiveAt || session.lastSeenAt)}</p>
                         </div>
                         <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                          <p className="font-medium text-foreground/90">네트워크</p>
+                          <p className="font-semibold text-foreground/90">네트워크</p>
                           <p className="mt-1">{session.ip || 'IP 정보 없음'}</p>
                         </div>
                       </div>
@@ -582,16 +580,16 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             )}
           </div>
         ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[16px] text-muted-foreground">
               기기 정보가 없습니다.
             </p>
         )}
       </section>
 
       <section className="mb-8">
-        <h3 className="text-sm font-medium text-muted-foreground mb-4">최근 보안 활동</h3>
+        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">최근 보안 활동</h3>
         {isSecurityEventsLoading ? (
-          <p className="text-sm text-muted-foreground">최근 보안 활동을 불러오는 중입니다.</p>
+          <p className="text-[16px] text-muted-foreground">최근 보안 활동을 불러오는 중입니다.</p>
         ) : securityEvents.length > 0 ? (
           <div className="space-y-3">
             {securityEvents.map((event) => {
@@ -607,13 +605,13 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <p className="text-sm font-semibold leading-5 text-foreground">{event.message}</p>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                        <p className="text-[16px] font-semibold leading-5 text-foreground">{event.message}</p>
+                        <span className="shrink-0 text-[16px] text-muted-foreground">
                           {formatSessionTime(event.occurredAt)}
                         </span>
                       </div>
                       {meta && (
-                        <p className="mt-1 text-xs text-muted-foreground">{meta}</p>
+                        <p className="mt-1 text-[16px] text-muted-foreground">{meta}</p>
                       )}
                     </div>
                   </div>
@@ -622,7 +620,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[16px] text-muted-foreground">
             아직 보안 활동 기록이 없습니다. 새 기기 로그인, 계정 연동 변경, 세션 정리 내역이 여기에 표시됩니다.
           </p>
         )}
@@ -633,8 +631,8 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
               <div className="space-y-1.5">
-                <p className="font-medium">고급 설정</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="font-semibold">고급 설정</p>
+                <p className="text-[16px] leading-relaxed text-muted-foreground">
                   자주 쓰지 않는 보안 작업만 따로 모아두었습니다. 보안 확인 후 팝업에서 열립니다.
                 </p>
               </div>
@@ -642,7 +640,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
                 {['신뢰 기기 관리', '다른 기기 로그아웃', '탈퇴 예약'].map((label) => (
                   <span
                     key={label}
-                    className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-xs text-muted-foreground"
+                    className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-[16px] text-muted-foreground"
                   >
                     {label}
                   </span>
@@ -663,234 +661,39 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         </div>
       </section>
 
-      <PlainDialog
-        open={showAdvancedSettingsDialog}
-        onClose={() => setShowAdvancedSettingsDialog(false)}
-        title="고급 설정"
-        description="평소에는 자주 쓰지 않지만, 계정 보호나 정리가 필요할 때 사용하는 기능입니다. 일부 작업은 현재 로그인 상태와 다른 기기에 영향을 줄 수 있습니다."
-        className="sm:max-w-2xl"
-        footer={(
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowAdvancedSettingsDialog(false)}>
-            닫기
-          </Button>
-        )}
-      >
-          <div className="space-y-4 pt-1">
-            <div className="rounded-xl border border-border bg-card/80 p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium">보안 정리</p>
-                </div>
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
-                  {hasOtherDeviceSessions ? `${otherDeviceSessionCount}대 정리 가능` : '추가 정리 없음'}
-                </span>
-              </div>
-              <p className="mb-4 text-xs text-muted-foreground">
-                현재 사용 중인 기기를 제외한 나머지 로그인 세션을 정리합니다. 공용 기기나 더 이상 쓰지 않는 기기에서 로그인한 적이 있다면 사용하세요.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteOtherSessions}
-                disabled={deleteOtherSessionsMutation.isPending || !hasOtherDeviceSessions}
-                className="w-full"
-              >
-                {deleteOtherSessionsMutation.isPending ? '세션 정리 중...' : '다른 기기에서 로그아웃'}
-              </Button>
-              {!hasOtherDeviceSessions && (
-                <p className="mt-2 text-[11px] text-muted-foreground">지금은 정리할 다른 기기 세션이 없습니다.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-border bg-card/80 p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Fingerprint className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium">신뢰 기기 관리</p>
-                </div>
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
-                  {trustedDevices.length}대 등록됨
-                </span>
-              </div>
-              <p className="mb-4 text-xs text-muted-foreground">
-                로그인 성공 시 자동 등록된 기기 목록입니다. 해제해도 현재 로그인 세션은 유지되며, 다음 로그인부터 새 기기로 다시 감지됩니다.
-              </p>
-              {isTrustedDevicesLoading ? (
-                <p className="text-xs text-muted-foreground">신뢰 기기 정보를 불러오는 중입니다.</p>
-              ) : trustedDevices.length > 0 ? (
-                <div className="space-y-2">
-                  {trustedDevices.map((device) => (
-                    <div
-                      key={device.id}
-                      className="rounded-lg border border-border bg-background/80 px-3 py-3"
-                    >
-                      <div className="space-y-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">{device.deviceLabel}</p>
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                              신뢰 중
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {[device.browser, device.os].filter(Boolean).join(' · ')}
-                          </p>
-                        </div>
-
-                        <div className="grid gap-2 text-[11px] text-muted-foreground sm:grid-cols-2">
-                          <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                            <p className="font-medium text-foreground/90">최근 확인</p>
-                            <p className="mt-1">{formatSessionTime(device.lastSeenAt)}</p>
-                          </div>
-                          <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                            <p className="font-medium text-foreground/90">기기 정보</p>
-                            <p className="mt-1">{[device.browser, device.os].filter(Boolean).join(' · ') || '정보 없음'}</p>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleTrustedDeviceRemove(device.id)}
-                          disabled={removeTrustedDeviceMutation.isPending}
-                          className="w-full sm:w-auto"
-                        >
-                          이 기기 신뢰 해제
-                        </Button>
-                        {device.lastIp && (
-                          <p className="text-[11px] text-muted-foreground/80">마지막 IP: {device.lastIp}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">등록된 신뢰 기기가 없습니다.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-red-200 bg-red-50/80 p-5 dark:border-red-800 dark:bg-red-900/20">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4 text-red-700 dark:text-red-300" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300">탈퇴 예약</p>
-                </div>
-                <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                  7일 유예
-                </span>
-              </div>
-              <div className="mb-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-red-200 bg-white/70 px-2.5 py-1 text-[11px] text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-                  즉시 로그아웃
-                </span>
-                <span className="rounded-full border border-red-200 bg-white/70 px-2.5 py-1 text-[11px] text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-                  이메일 링크로 취소 가능
-                </span>
-              </div>
-              <p className="mb-4 text-xs text-red-600 dark:text-red-400">
-                정말 필요한 경우에만 진행하세요. 예약 즉시 로그아웃되며, 7일 동안은 이메일 복구 링크로 취소할 수 있습니다. 유예 기간이 지나면 최종 삭제 절차가 진행됩니다.
-              </p>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleOpenDeleteDialog}
-                className="w-full"
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                탈퇴 예약
-              </Button>
-            </div>
-
-          </div>
-      </PlainDialog>
-
-      <PlainDialog
-        open={showDeleteDialog}
-        onClose={handleDeleteDialogClose}
-        title={(
-          <span className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            탈퇴 예약 확인
-          </span>
-        )}
-        className="sm:max-w-lg"
-        hideCloseButton={deleteMutation.isPending}
-        footer={(
-          <>
-            <Button variant="outline" onClick={handleDeleteDialogClose} disabled={deleteMutation.isPending}>
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteMutation.isPending || !isDeleteConfirmMatched}
-            >
-              {deleteMutation.isPending ? '예약 중...' : '탈퇴 예약'}
-            </Button>
-          </>
-        )}
-      >
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>탈퇴 예약을 진행하면 즉시 로그아웃되며, 7일 후 최종 삭제 절차가 진행됩니다.</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>유예 기간 동안 로그인과 토큰 재발급이 차단됩니다.</li>
-              <li>이메일로 전달된 복구 링크로 7일 안에 예약을 취소할 수 있습니다.</li>
-              <li>유예 기간이 지나면 기존과 동일한 데이터 정리 절차가 시작됩니다.</li>
-            </ul>
-            <p>본인이 직접 요청한 경우에만 아래 확인을 진행해 주세요.</p>
-          </div>
-
-          {error && (
-            <Alert variant="destructive" className="my-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>오류</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {isLocalUser && (
-            <div className="my-4 space-y-2">
-              <label htmlFor="deletePassword" className="text-sm font-medium text-foreground">
-                비밀번호 확인
-              </label>
-              <div className="relative">
-                <Input
-                  id="deletePassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호를 입력하세요"
-                  className={deletePasswordInputClass}
-                  disabled={deleteMutation.isPending}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="my-2 space-y-2">
-            <label htmlFor="deleteConfirmText" className="text-sm font-medium text-foreground">
-              확인 문구 입력
-            </label>
-            <Input
-              id="deleteConfirmText"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={DELETE_CONFIRM_TEXT}
-              className="font-medium"
-              disabled={deleteMutation.isPending}
-            />
-            <p className="text-xs text-muted-foreground">위 문구를 정확히 입력하면 탈퇴 예약이 진행됩니다.</p>
-          </div>
-      </PlainDialog>
+      {(showAdvancedSettingsDialog || showDeleteDialog) && (
+        <Suspense fallback={null}>
+          <LazyAccountSettingsAdvancedRuntime
+            showAdvancedSettingsDialog={showAdvancedSettingsDialog}
+            showDeleteDialog={showDeleteDialog}
+            onAdvancedDialogClose={() => setShowAdvancedSettingsDialog(false)}
+            onDeleteDialogClose={handleDeleteDialogClose}
+            onDeleteOtherSessions={handleDeleteOtherSessions}
+            onTrustedDeviceRemove={handleTrustedDeviceRemove}
+            onOpenDeleteDialog={handleOpenDeleteDialog}
+            onDeleteConfirm={handleDeleteConfirm}
+            isDeleteOtherSessionsPending={deleteOtherSessionsMutation.isPending}
+            hasOtherDeviceSessions={hasOtherDeviceSessions}
+            otherDeviceSessionCount={otherDeviceSessionCount}
+            trustedDevices={trustedDevices}
+            isTrustedDevicesLoading={isTrustedDevicesLoading}
+            isRemoveTrustedDevicePending={removeTrustedDeviceMutation.isPending}
+            isDeletePending={deleteMutation.isPending}
+            isLocalUser={isLocalUser}
+            password={password}
+            onPasswordChange={setPassword}
+            showPassword={showPassword}
+            onToggleShowPassword={() => setShowPassword((prev) => !prev)}
+            deleteConfirmText={deleteConfirmText}
+            onDeleteConfirmTextChange={setDeleteConfirmText}
+            deleteConfirmTextPlaceholder={DELETE_CONFIRM_TEXT}
+            isDeleteConfirmMatched={isDeleteConfirmMatched}
+            deletePasswordInputClass={deletePasswordInputClass}
+            error={error}
+            formatSessionTime={formatSessionTime}
+          />
+        </Suspense>
+      )}
 
       <VerificationRequiredDialog
         isOpen={showSecurityDialog}

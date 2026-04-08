@@ -42,11 +42,11 @@ export default function BlockedUsersSection() {
             </div>
 
             <div className="mb-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[16px] text-muted-foreground">
                     차단한 사용자는 내 게시글을 볼 수 없으며, 나에게 메시지를 보낼 수 없습니다.
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                    상대방 프로필에서 <span className="font-medium text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
+                <p className="text-[16px] text-muted-foreground mt-2">
+                    상대방 프로필에서 <span className="font-semibold text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                 </p>
             </div>
 
@@ -75,10 +75,10 @@ export default function BlockedUsersSection() {
                                         ringClassName="p-0.5 bg-muted"
                                     />
                                     <div className="flex flex-col truncate">
-                                        <span className="text-sm font-bold text-foreground truncate">
+                                        <span className="text-[16px] font-bold text-foreground truncate">
                                             {user.name}
                                         </span>
-                                        <span className="text-xs text-muted-foreground truncate">
+                                        <span className="text-[16px] text-muted-foreground truncate">
                                             {user.handle}
                                         </span>
                                     </div>
@@ -106,10 +106,10 @@ export default function BlockedUsersSection() {
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
                             <Ban className="h-6 w-6 text-red-500" />
                         </div>
-                        <p className="text-foreground font-medium mb-1">
+                        <p className="text-foreground font-semibold mb-1">
                             차단한 사용자가 없습니다.
                         </p>
-                        <p className="mt-2 text-xs text-muted-foreground font-medium inline-flex items-center gap-1 justify-center">
+                        <p className="mt-2 text-[16px] text-muted-foreground font-semibold inline-flex items-center gap-1 justify-center">
                             <Info className="w-3.5 h-3.5" />
                             상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                         </p>

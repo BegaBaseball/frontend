@@ -24,7 +24,7 @@ const BADGES: BadgeInfo[] = [
 
 function BadgeShell({ children }: { children: ReactNode }) {
     return (
-        <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
+        <span className="inline-flex items-center rounded-full px-3 py-1 text-[16px] font-semibold">
             {children}
         </span>
     );
@@ -63,8 +63,8 @@ export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps)
                                     )}
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-bold text-foreground">{badge.name}</p>
-                                    <p className="max-w-[96px] text-[11px] leading-4 text-muted-foreground">
+                                    <p className="text-[16px] font-bold text-foreground">{badge.name}</p>
+                                    <p className="max-w-[96px] text-[16px] leading-4 text-muted-foreground">
                                         {badge.description}
                                     </p>
                                     <BadgeShell>
