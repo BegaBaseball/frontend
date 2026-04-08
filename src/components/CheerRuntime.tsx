@@ -460,10 +460,10 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                 style={isActive ? { color: teamAccent } : undefined}
                             >
                                 <Icon className="h-5 w-5" />
-                                  <span className="text-[16px] font-semibold">{item.label}</span>
-                            </button>
-                        );
-                    })}
+                                  <span className="text-[16px] font-bold">{item.label}</span>
+                                </button>
+                            );
+                        })}
                 </div>
             </nav>
 
