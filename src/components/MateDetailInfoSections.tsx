@@ -29,7 +29,7 @@ function InlineBadge({
   return (
     <span
       className={joinClassNames(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold',
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[16px] font-semibold',
         className,
       )}
     >
@@ -82,13 +82,13 @@ export default function MateDetailInfoSections({
           {party.status === 'SELLING' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-600 dark:text-gray-300">티켓 판매가</span>
+                <span className="font-semibold text-gray-600 dark:text-gray-300">티켓 판매가</span>
                 <span className="text-xl font-bold text-orange-600">
                   {party.price?.toLocaleString()}원
                 </span>
               </div>
               <div className="my-2 h-px w-full bg-gray-200 dark:bg-border" aria-hidden="true" />
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="text-[16px] text-blue-700 dark:text-blue-300">
                 직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
               </p>
             </div>
@@ -101,7 +101,7 @@ export default function MateDetailInfoSections({
                 </span>
               </div>
               <div className="my-2 h-px w-full bg-gray-200 dark:bg-border" aria-hidden="true" />
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="text-[16px] text-blue-700 dark:text-blue-300">
                 직거래 안내: 승인 후 채팅에서 거래 시간과 장소를 조율하고 당사자 간 직접 거래합니다.
               </p>
             </div>
@@ -109,14 +109,14 @@ export default function MateDetailInfoSections({
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className={`${insetPanelClass} p-4`}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">정책 안내</p>
+            <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
               플랫폼 결제/환불 없이 승인 후 채팅으로 직거래를 조율합니다.
             </p>
           </div>
           <div className={`${insetPanelClass} p-4`}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">다음 단계</p>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">다음 단계</p>
+            <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
               {isHost
                 ? '신청 관리에서 승인 여부를 결정하고, 이후 채팅이나 체크인으로 흐름을 이어갈 수 있습니다.'
                 : '상태에 따라 승인 대기, 채팅 입장, 체크인 준비로 이어집니다.'}
@@ -138,7 +138,7 @@ export default function MateDetailInfoSections({
               ringClassName="p-1 bg-white/95 dark:bg-secondary/90 border border-white/60 dark:border-white/10 shadow-lg"
             />
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">Host Trust</p>
               <button
                 type="button"
                 className="mt-1 text-left text-xl font-black text-gray-900 dark:text-white"
@@ -171,7 +171,7 @@ export default function MateDetailInfoSections({
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
           <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
         </h3>
-        <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
+        <p className="mb-4 whitespace-pre-wrap text-[16px] leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
           {stripHashtags(party.description)}
         </p>
         {hostTags.length > 0 && (
@@ -190,7 +190,7 @@ export default function MateDetailInfoSections({
           <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
         </h3>
         <div className={`${insetPanelClass} p-5`}>
-          <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+          <p className="text-[16px] leading-relaxed text-gray-600 dark:text-gray-300">
             경기장 구역 설명과 실제 좌석 시야 사진은 보조 패널에서 확인할 수 있습니다.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">

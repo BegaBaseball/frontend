@@ -45,7 +45,7 @@ const sanitizeUserFacingMessage = (message: string, fallback: string): string =>
 
 function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[16px] font-semibold ${className}`}>
       {children}
     </span>
   );
@@ -331,13 +331,13 @@ export default function MateApply() {
           <h1 className="mt-3 text-2xl font-black tracking-tight text-primary sm:text-3xl">
             {isSelling ? '티켓 구매' : '파티 참여 신청'}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
+          <p className="mt-2 max-w-2xl text-[16px] text-gray-600 dark:text-gray-300 sm:text-base">
             {flowDescription}
           </p>
         </div>
         {isPartyRevalidating && (
           <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+            <AlertDescription className="text-blue-700 dark:text-blue-300 text-[16px]">
               최신 파티 정보를 다시 확인하고 있습니다.
             </AlertDescription>
           </Alert>
@@ -359,14 +359,14 @@ export default function MateApply() {
                 <h3 className="text-base font-black leading-tight text-primary sm:text-lg">
                   {party.stadium}
                 </h3>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                <p className="mt-1 text-[16px] text-gray-600 dark:text-gray-300">
                   {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
                 </p>
               </div>
             </div>
             <div className="w-full rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
               <div className="flex items-center justify-between gap-4 sm:block">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
                   {summaryAmountLabel}
                 </p>
                 <p className="text-xl font-black text-primary sm:mt-2 sm:text-2xl">
@@ -378,20 +378,20 @@ export default function MateApply() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
+              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
+              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
             </div>
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>
+              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">현재 상태</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">현재 상태</p>
+              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
             </div>
           </div>
         </Card>
@@ -402,10 +402,10 @@ export default function MateApply() {
               <MessageSquare className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">소개 메시지</h3>
             </div>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-300">
+            <p className="mb-4 text-[16px] text-gray-500 dark:text-gray-300">
               승인 여부를 판단하는 핵심 정보입니다. 관람 스타일과 거래 조율 의사를 간단히 적어주세요.
             </p>
-            <label htmlFor="message" className="mb-2 block text-sm font-medium text-gray-900 dark:text-gray-100">
+            <label htmlFor="message" className="mb-2 block text-[16px] font-semibold text-gray-900 dark:text-gray-100">
               호스트에게 전달할 메시지
             </label>
             <Textarea
@@ -416,7 +416,7 @@ export default function MateApply() {
               className="min-h-[120px] mb-2 border-gray-200 bg-white dark:border-border dark:bg-card/70"
               maxLength={200}
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-[16px] text-gray-500 dark:text-gray-400">
               {message.length}/200
             </p>
           </Card>
@@ -428,13 +428,13 @@ export default function MateApply() {
               <Ticket className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
               {ticketVerified && (
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 dark:bg-green-950/30 dark:text-green-300">
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[16px] font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-300">
                   <CheckCircle className="w-3.5 h-3.5" />
                   인증 완료
                 </span>
               )}
             </div>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-300">
+            <p className="mb-4 text-[16px] text-gray-500 dark:text-gray-300">
               티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
             </p>
 
@@ -443,10 +443,10 @@ export default function MateApply() {
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                   <div className="mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-700 dark:text-green-400">티켓 인증 완료</span>
+                    <span className="font-semibold text-green-700 dark:text-green-400">티켓 인증 완료</span>
                   </div>
                   {ticketInfo && (
-                    <div className="space-y-1.5 text-sm text-green-600 dark:text-green-300">
+                    <div className="space-y-1.5 text-[16px] text-green-600 dark:text-green-300">
                       {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
                       {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
                       {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
@@ -457,7 +457,7 @@ export default function MateApply() {
                 </div>
                 <Button
                   variant="ghost"
-                  className="text-sm text-gray-500 dark:text-gray-300"
+                  className="text-[16px] text-gray-500 dark:text-gray-300"
                   onClick={() => { setTicketVerified(false); setTicketInfo(null); }}
                 >
                   다시 인증하기
@@ -482,13 +482,13 @@ export default function MateApply() {
                   {isScanning ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                      <p className="font-medium text-primary">AI가 티켓을 분석 중...</p>
+                      <p className="font-semibold text-primary">AI가 티켓을 분석 중...</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <Ticket className="w-10 h-10 text-primary" />
-                      <p className="font-medium text-primary">티켓 사진 업로드</p>
-                      <p className="text-xs text-gray-400">JPG, PNG (최대 10MB)</p>
+                      <p className="font-semibold text-primary">티켓 사진 업로드</p>
+                      <p className="text-[16px] text-gray-400">JPG, PNG (최대 10MB)</p>
                     </div>
                   )}
                 </label>
@@ -526,7 +526,7 @@ export default function MateApply() {
 
             {isSelling && (
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-700 dark:text-gray-300">티켓 판매가</span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">티켓 판매가</span>
                 <span className="text-lg font-bold text-primary">
                   {sellingPrice.toLocaleString()}원
                 </span>
@@ -538,9 +538,9 @@ export default function MateApply() {
             <div className={`${insetPanelClass} p-4`}>
               <div className="mb-3 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">정책 안내</h4>
+                <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">정책 안내</h4>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
                 {policyHighlights.map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -553,9 +553,9 @@ export default function MateApply() {
             <div className={`${insetPanelClass} p-4`}>
               <div className="mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">다음 단계</h4>
+                <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">다음 단계</h4>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
                 {nextSteps.map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -577,7 +577,7 @@ export default function MateApply() {
             </Button>
 
             {!isSelling && !isSubmitReady && (
-              <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-center text-[16px] text-gray-500 dark:text-gray-400">
                 메시지를 10자 이상 입력해주세요
               </p>
             )}
@@ -588,14 +588,14 @@ export default function MateApply() {
       <div className={`${mateMobileBarClass} lg:hidden`}>
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 basis-[180px]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
               {summaryAmountLabel}
             </p>
             <p className="mt-1 text-lg font-black text-primary">
               {primaryAmount.toLocaleString()}원
             </p>
             {!isSelling && !isSubmitReady && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-400">
                 메시지를 10자 이상 입력해주세요
               </p>
             )}
