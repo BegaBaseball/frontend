@@ -30,7 +30,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             >
                 <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
                     <Trash2 className="h-4 w-4" />
-                    <span className="text-[15px]">삭제된 게시글입니다</span>
+                    <span className="text-[16px]">삭제된 게시글입니다</span>
                 </div>
             </div>
         );
@@ -64,12 +64,12 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                             sizes="24px"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center text-[15px] font-semibold text-slate-500 dark:text-gray-300">
+                        <div className="h-full w-full flex items-center justify-center text-[16px] font-semibold text-slate-500 dark:text-gray-300">
                             {post.author?.slice(0, 1) || '?'}
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-1.5 text-[15px] min-w-0">
+                <div className="flex items-center gap-1.5 text-[16px] min-w-0">
                     <span className="font-semibold text-gray-900 dark:text-white truncate">
                         {post.author}
                     </span>
@@ -81,7 +81,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
 
             {/* 본문 미리보기 */}
             {previewContent && (
-                <p className="text-[15px] text-gray-600 dark:text-gray-300 line-clamp-2">
+                <p className="text-[16px] text-gray-600 dark:text-gray-300 line-clamp-2">
                     {previewContent}
                 </p>
             )}
