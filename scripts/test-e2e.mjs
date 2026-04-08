@@ -82,9 +82,13 @@ const hasViteErrorOverlay = (body) => (
   body.includes('Failed to fetch dynamically imported module')
 );
 
-const runCypressCommand = (commandArgs) => {
+const runCypressCommand = (commandArgs, envOverrides = {}) => {
   return spawnSync(commandArgs[0], commandArgs.slice(1), {
     cwd: projectRoot,
+    env: {
+      ...process.env,
+      ...envOverrides,
+    },
     stdio: 'inherit',
   }).status ?? 1;
 };
@@ -343,8 +347,13 @@ const buildCypressCommandArgs = (script, scriptArgs) => {
   return ['npm', 'run', script, ...(scriptArgs.length ? ['--', ...scriptArgs] : [])];
 };
 
-const runCypressWithFallback = (scriptArgs) => {
-  const status = runCypressCommand(scriptArgs);
+const buildExecutionPlanCypressEnv = (executionPlan) => ({
+  CYPRESS_DOCKER_BASE_URL: executionPlan.targetUrl,
+  CYPRESS_FRONTEND_BASE_URL: executionPlan.targetUrl,
+});
+
+const runCypressWithFallback = (scriptArgs, envOverrides = {}) => {
+  const status = runCypressCommand(scriptArgs, envOverrides);
   if (status === 0) {
     return 0;
   }
@@ -354,7 +363,8 @@ const runCypressWithFallback = (scriptArgs) => {
 
 const runDirectCypressAndExit = (executionPlan, { useDocker = false, useAutoDocker = false } = {}) => {
   console.log(`\nRunning Cypress directly (${executionPlan.testCommand})`);
-  const status = runCypressWithFallback(executionPlan.testCommandArgs);
+  const executionEnv = buildExecutionPlanCypressEnv(executionPlan);
+  const status = runCypressWithFallback(executionPlan.testCommandArgs, executionEnv);
   if (status === 0) {
     process.exit(0);
   }
@@ -365,6 +375,7 @@ const runDirectCypressAndExit = (executionPlan, { useDocker = false, useAutoDock
     console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
     const rescueStatus = runCypressWithFallback(
       buildCypressCommandArgs('cy:run:rescue', executionPlan.cypressArgsWithBaseUrl),
+      executionEnv,
     );
     if (rescueStatus === 0) {
       process.exit(0);
@@ -569,9 +580,10 @@ try {
   if (status !== 0) {
     console.log('\nstart-server-and-test 종료: ');
     const serverReadyAfterFailure = await isServerReady(executionPlan.targetUrl);
+    const executionEnv = buildExecutionPlanCypressEnv(executionPlan);
 
     if (serverReadyAfterFailure) {
-      const fallbackStatus = runCypressWithFallback(executionPlan.testCommandArgs);
+      const fallbackStatus = runCypressWithFallback(executionPlan.testCommandArgs, executionEnv);
       if (fallbackStatus === 0) {
         process.exit(0);
       }
@@ -582,6 +594,7 @@ try {
       console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(
         buildCypressCommandArgs('cy:run:rescue', executionPlan.cypressArgsWithBaseUrl),
+        executionEnv,
       );
       if (rescueStatus === 0) {
         process.exit(0);

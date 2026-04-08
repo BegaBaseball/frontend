@@ -553,7 +553,12 @@ const rewriteArgsForDocker = (args, hostUrl, dockerBackendUrl) => {
 const runDocker = () => {
   const image = process.env.CYPRESS_DOCKER_IMAGE
     || (installedCypressVersion ? `cypress/included:${installedCypressVersion}` : 'cypress/included:15.9.0');
-  const hostUrl = normalizeDockerReachableUrl(process.env.CYPRESS_DOCKER_BASE_URL || 'http://host.docker.internal:5176')
+  const hostUrl = normalizeDockerReachableUrl(
+    process.env.CYPRESS_DOCKER_BASE_URL
+      || process.env.CYPRESS_FRONTEND_BASE_URL
+      || process.env.CYPRESS_BASE_URL
+      || 'http://host.docker.internal:5176',
+  )
     || 'http://host.docker.internal:5176';
   const dockerBackendUrl = normalizeDockerReachableUrl(
     process.env.CYPRESS_DOCKER_BACKEND_BASE_URL

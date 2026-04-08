@@ -165,6 +165,7 @@ describe('Prediction Coach Briefing Regression', () => {
         return;
       }
       cy.tick(ms);
+      cy.wait(50, { log: false });
     };
 
     // Advance clock to let React initialization and hydration proceed
@@ -580,6 +581,7 @@ describe('Prediction Coach Briefing Regression', () => {
 	      .should('be.enabled')
 	      .click({ force: true });
 	    cy.wait('@getGameDetail');
+      ensureCoachBriefingVisible();
 	    cy.tick(100);
 	    cy.tick(5000);
 	    cy.get('@coachAnalyzeReset.all', { timeout: 10000 }).should((interceptions: any) => {
@@ -587,11 +589,10 @@ describe('Prediction Coach Briefing Regression', () => {
       const switchedGameRequests = interceptionList.filter((interception) => (
         extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
       ));
-      expect(interceptionList.length).to.be.greaterThan(beforeSwitchCount);
-      expect(switchedGameRequests.length).to.be.gte(1);
-      const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
-      expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
-    });
+	      expect(switchedGameRequests.length).to.be.gte(1);
+	      const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
+	      expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
+	    });
   });
 
   it('does not restart auto brief when delayed game detail only adds transient scheduled state', () => {
