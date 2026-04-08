@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -9,6 +9,12 @@ const runArgs = new Set(process.argv.slice(2));
 const shouldRepair = runArgs.has('--repair');
 const inspectGlobalCache = runArgs.has('--global-cache') || runArgs.has('--compare-default-cache');
 const log = (message) => console.log(message);
+const summarizeLines = (text, matcher, limit = 4) => String(text || '')
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(Boolean)
+  .filter((line) => matcher.test(line))
+  .slice(0, limit);
 
 const getCommandEnv = (extraEnv = {}) => ({
   ...process.env,
@@ -96,16 +102,67 @@ const repairDirectory = (directory, versions) => {
     }
 
     log(`\n- Repair attempt (${version})`);
-    try {
-      execSync(`xattr -cr "${appPath}"`, {
-        cwd: projectRoot,
-        stdio: 'ignore',
-      });
+    const result = spawnSync('xattr', ['-cr', appPath], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    if ((result.status ?? 1) === 0) {
       log('  ok');
-    } catch {
-      log('  warning: xattr clear failed (permission or protected filesystem)');
+      return;
     }
+
+    const stderr = String(result.stderr ?? '');
+    const blockedSamples = summarizeLines(stderr, /Operation not permitted/i);
+    const errorCount = stderr
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean).length;
+
+    if (blockedSamples.length > 0) {
+      log(`  warning: xattr clear failed on ${errorCount} entries (operation not permitted).`);
+      blockedSamples.forEach((sample) => log(`    ${sample}`));
+      return;
+    }
+
+    log('  warning: xattr clear failed (permission or protected filesystem)');
   });
+};
+
+const runBinarySmokeTest = (directory, version) => {
+  const binaryPath = join(directory, version, 'Cypress.app', 'Contents', 'MacOS', 'Cypress');
+  if (!existsSync(binaryPath)) {
+    return false;
+  }
+
+  log(`\n- Binary smoke test (${version})`);
+  const result = spawnSync(binaryPath, ['--no-sandbox', '--smoke-test', `--ping=${process.pid}`], {
+    cwd: projectRoot,
+    env: getCommandEnv({ CYPRESS_CACHE_FOLDER: directory }),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 15000,
+  });
+
+  if ((result.status ?? 1) === 0) {
+    log('  ok');
+    return true;
+  }
+
+  if (result.signal) {
+    log(`  fail: terminated by ${result.signal}`);
+  } else {
+    log(`  fail: exit code ${result.status ?? 1}`);
+  }
+
+  const summary = summarizeLines(
+    `${result.stdout ?? ''}\n${result.stderr ?? ''}`,
+    /SIGABRT|Aborted|missing library|required-dependencies|invalid signature|operation not permitted/i,
+    6,
+  );
+  summary.forEach((line) => log(`    ${line}`));
+  return false;
 };
 
 log('Cypress local health check start');
@@ -171,6 +228,10 @@ activeVersions.forEach((version) => {
     `spctl assess (${version})`,
     `spctl --assess --verbose=4 "${appPath}" || true`,
   );
+
+  if (version === activeVersions[activeVersions.length - 1]) {
+    runBinarySmokeTest(activeCacheDir, version);
+  }
 });
 
 if (inspectGlobalCache && defaultCacheDir && defaultVersions.length > 0) {
@@ -217,12 +278,21 @@ log('  npm run cy:install');
 log('- If signature checks fail repeatedly, delete cache and reinstall:');
 log(`  rm -rf ${cacheDir}`);
 log('  npm run cy:install');
+log('- If xattr repair reports "operation not permitted", this host is blocking bundle repair in place.');
+log('  Reinstall alone may not fix runtime launch on this macOS host.');
 if (hasDocker()) {
   log('- Docker fallback is available. You can run:');
   log('  npm run test:e2e:docker');
   log('  CYPRESS_USE_DOCKER=1 npm run cy:run');
 } else {
   log('- Docker fallback unavailable: install Docker Desktop to use Cypress Docker image fallback.');
+  log('- While local Cypress is unavailable, use Playwright smoke scripts for targeted UI checks:');
+  log('  npm run qa:mobile:smoke');
+  log('    runs prediction and mate smoke in sequence');
+  log('  npm run qa:prediction:mobile:smoke');
+  log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
+  log('  npm run qa:mate:mobile:smoke');
+  log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
 }
 if (!inspectGlobalCache && defaultCacheDir && defaultCacheDir !== activeCacheDir) {
   log('- Compare the global cache only when needed:');

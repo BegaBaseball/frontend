@@ -289,29 +289,63 @@ npm run test:e2e:ai:real
 
 ## 🧪 QA
 
+### 모바일 fallback smoke
+```bash
+# Cypress가 막힌 로컬의 기본 대체 경로
+npm run qa:mobile:smoke
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:mobile:smoke:attached
+```
+
+- `qa:mobile:smoke`는 prediction smoke와 mate smoke를 순서대로 실행합니다.
+- 기본적으로 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 재사용하고, 없으면 각 runner가 필요한 dev server를 자체 기동합니다.
+- `qa:mobile:smoke:attached`는 두 smoke 모두 attach-only로 실행합니다.
+- combined 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/mobile-playwright-smoke-summary.md`에 저장됩니다.
+- GitHub Actions에서 같은 흐름을 수동 실행하려면 [frontend-mobile-playwright-smoke.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-mobile-playwright-smoke.yml)을 `workflow_dispatch`로 실행하면 됩니다.
+
 ### Prediction 모바일 회귀
 ```bash
-# 대표 smoke 세트
+# 팀 기본 smoke
 npm run qa:prediction:mobile:smoke
 
 # 전체 상태 회귀
 npm run qa:prediction:mobile
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:prediction:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:prediction:mobile:smoke:attached
 ```
 
 - `smoke`는 `match`, `ranking`, `ranking-save-dialog`, `ranking-saved`, `detail-error`를 대상으로 PR 검증용으로 사용합니다.
+- `smoke`는 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 그 서버를 재사용하고, 없으면 자체 dev server를 띄웁니다. prediction 검증의 팀 기본 명령으로 사용합니다.
 - `full`은 `ranking-ready`, `ranking-ended`, `empty`까지 포함한 8개 상태를 검증합니다.
+- `attached`는 기존 Vite 서버만 사용하고 새 dev server를 띄우지 않습니다. 다른 포트에 붙이거나 attach-only 동작이 필요할 때만 사용합니다.
 - 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile-regression-summary.md`에, 상세 캡처는 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile/`에 저장됩니다.
 - GitHub Actions smoke workflow는 [frontend-prediction-mobile-qa.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-prediction-mobile-qa.yml)을 사용합니다.
 
 ### Mate 모바일 회귀
 ```bash
-# 대표 smoke 세트
+# 팀 기본 smoke
 npm run qa:mate:mobile:smoke
 
 # 전체 mate 모바일 회귀
 npm run qa:mate:mobile
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:mate:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:mate:mobile:smoke:attached
 ```
 
+- `smoke`는 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 그 서버를 재사용하고, 없으면 자체 dev server를 띄웁니다. mate 검증의 기본 명령으로 사용합니다.
+- `attached`는 기존 Vite 서버만 사용하고 새 dev server를 띄우지 않습니다. 다른 포트에 붙이거나 attach-only 동작이 필요할 때만 사용합니다.
 - 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/mate-mobile-regression-summary.md`에 저장됩니다.
 
 ---

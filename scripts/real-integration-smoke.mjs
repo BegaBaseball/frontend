@@ -728,6 +728,61 @@ const main = async () => {
     };
   });
 
+  await runStep('auth-reissue-after-access-cookie-drop', async () => {
+    if (!cookieJar.has('Refresh')) {
+      throw new Error('refresh 쿠키가 없어 reissue smoke를 진행할 수 없습니다.');
+    }
+
+    if (!cookieJar.has('Authorization')) {
+      throw new Error('authorization 쿠키가 없어 access drop smoke를 진행할 수 없습니다.');
+    }
+
+    const removedAccessCookie = cookieJar.get('Authorization');
+    cookieJar.delete('Authorization');
+
+    const unauthorizedResponse = await requestJson('/auth/mypage', {
+      authenticated: true,
+      expectedStatuses: [401],
+    });
+
+    const reissueResponse = await requestJson('/auth/reissue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    if (reissueResponse.data?.success !== true) {
+      throw new Error(reissueResponse.data?.message || 'reissue 응답 success=false');
+    }
+
+    const reissuedAccessCookie = cookieJar.get('Authorization');
+    if (!reissuedAccessCookie) {
+      throw new Error('reissue 이후 authorization 쿠키가 재설정되지 않았습니다.');
+    }
+
+    if (reissuedAccessCookie === removedAccessCookie) {
+      throw new Error('reissue 이후 authorization 쿠키 값이 갱신되지 않았습니다.');
+    }
+
+    const recoveredResponse = await requestJson('/auth/mypage', {
+      authenticated: true,
+      expectedStatuses: [200],
+    });
+
+    if (recoveredResponse.data?.success !== true || !recoveredResponse.data?.data?.id) {
+      throw new Error(recoveredResponse.data?.message || 'reissue 후 mypage 응답이 유효하지 않습니다.');
+    }
+
+    return {
+      unauthorizedStatus: unauthorizedResponse.status,
+      reissueStatus: reissueResponse.status,
+      recoveredStatus: recoveredResponse.status,
+      refreshedCookieCount: cookieJar.size,
+    };
+  });
+
   await runStep('chat-unread-count', async () => {
     const response = await requestJson('/chat/my/unread-counts', {
       authenticated: true,
