@@ -88,7 +88,7 @@ export default function RepostModal({
                                 <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                     <Repeat2 className="w-6 h-6 text-gray-400" />
                                 </div>
-                                <p className="text-[15px] text-gray-500 dark:text-gray-300">
+                                <p className="text-[16px] text-gray-500 dark:text-gray-300">
                                     {repostUnavailableMessage}
                                 </p>
                             </div>
@@ -150,7 +150,7 @@ export default function RepostModal({
                                     <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                         <Quote className="w-6 h-6 text-gray-400" />
                                     </div>
-                                    <p className="text-[15px] text-gray-500 dark:text-gray-300">
+                                    <p className="text-[16px] text-gray-500 dark:text-gray-300">
                                         {repostUnavailableMessage}
                                     </p>
                                 </div>
@@ -161,7 +161,7 @@ export default function RepostModal({
                             <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                 <Repeat2 className="w-6 h-6 text-gray-400" />
                             </div>
-                            <p className="text-[15px] text-gray-500 dark:text-gray-300">
+                            <p className="text-[16px] text-gray-500 dark:text-gray-300">
                                 {repostUnavailableMessage}
                             </p>
                         </div>
@@ -173,7 +173,7 @@ export default function RepostModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-full py-2.5 text-[15px] font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        className="w-full py-2.5 text-[16px] font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                         취소
                     </button>

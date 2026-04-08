@@ -240,37 +240,37 @@ export default function CheerDetailArticleRuntime({
                                 >
                                     <ArrowLeft className="h-5 w-5" />
                                 </button>
-                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[15px] font-semibold backdrop-blur-sm sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10" style={softBadgeStyle}>
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[13px] font-semibold backdrop-blur-sm sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-white/10" style={softBadgeStyle}>
                                     <Megaphone className="h-3 w-3" />
                                     {teamName}
                                 </span>
                                 {selectedPost.postType === 'NOTICE' && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[15px] font-semibold text-white sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10 dark:bg-white dark:text-slate-950">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[13px] font-semibold text-white sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-white/10 dark:bg-white dark:text-slate-950">
                                         공지
                                     </span>
                                 )}
                                 {selectedPost.isHot && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[15px] font-semibold text-orange-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[13px] font-semibold text-orange-600 sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
                                         <Flame className="h-3 w-3" />
                                         HOT
                                     </span>
                                 )}
                                 {isSimpleRepost && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[15px] font-semibold text-emerald-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[13px] font-semibold text-emerald-600 sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
                                         <Repeat2 className="h-3 w-3" />
                                         <span className="max-sm:hidden">리포스트</span>
                                         <span className="sm:hidden">리포</span>
                                     </span>
                                 )}
                                 {isQuoteRepost && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[15px] font-semibold text-violet-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[13px] font-semibold text-violet-600 sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
                                         <Quote className="h-3 w-3" />
                                         <span className="max-sm:hidden">인용 응원</span>
                                         <span className="sm:hidden">인용</span>
                                     </span>
                                 )}
                                 {selectedPost.shareMode?.startsWith('EXTERNAL_') && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[15px] font-semibold text-sky-700 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[13px] font-semibold text-sky-700 sm:px-2 sm:py-0.5 sm:text-[13px] dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
                                         <ExternalLink className="h-3 w-3" />
                                         <span className="max-sm:hidden">외부 출처</span>
                                         <span className="sm:hidden">외부</span>
@@ -315,7 +315,7 @@ export default function CheerDetailArticleRuntime({
                                     >
                                         {displayAuthor}
                                     </button>
-                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] font-semibold text-slate-500 dark:text-slate-400">
+                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] font-bold text-slate-500 dark:text-slate-400">
                                         <span>{displayAuthorHandleLabel}</span>
                                         <span className="mx-0.5 h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-500" />
                                         <span className="flex items-center gap-1">

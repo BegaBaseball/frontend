@@ -40,7 +40,7 @@ export default function CheerDetailStatsAsideRuntime({
                     aria-expanded={isStatsOpen}
                     aria-controls="cheer-detail-stats"
                 >
-                    <div className="flex items-center gap-1.5 text-[16px] font-semibold" style={{ color: detailAccent }}>
+                    <div className="flex items-center gap-1.5 text-[16px] font-bold" style={{ color: detailAccent }}>
                         <Megaphone className="h-3.5 w-3.5" />
                         <span>응원 현황</span>
                     </div>

@@ -222,7 +222,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-secondary rounded-lg dark:bg-card dark:border dark:border-border"
             >
                 <div className="flex items-center justify-between mb-2 text-[16px] text-[#536471] dark:text-gray-300">
-                    <span className="font-semibold">{post.team}</span>
+                    <span className="font-bold">{post.team}</span>
                     <span>{post.timeAgo}</span>
                 </div>
                 <div className="text-[16px] font-bold text-[#0f1419] dark:text-gray-100 leading-relaxed mb-3">
@@ -358,7 +358,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             >
                                 {(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.author : post.author}
                             </span>
-                            <span className="text-[16px] font-semibold text-[#536471] dark:text-gray-300 truncate">
+                            <span className="text-[16px] font-bold text-[#536471] dark:text-gray-300 truncate">
                                 {(post.repostType === 'SIMPLE' && post.originalPost)
                                     ? (post.originalPost.authorHandle || '')
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
@@ -490,7 +490,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-sky-500/20 animate-like-ring" />
                                 )}
                                 <MessageCircle
-                                    className={`h-[18px] w-[18px] ${commentAnimating ? 'animate-like-pop' : ''
+                                    className={`h-5 w-5 ${commentAnimating ? 'animate-like-pop' : ''
                                         }`}
                                 />
                             </span>
@@ -524,7 +524,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
                                         )}
                                         <Repeat2
-                                            className={`h-[18px] w-[18px] transition-all duration-200 ${repostButtonActive
+                                            className={`h-5 w-5 transition-all duration-200 ${repostButtonActive
                                                 ? 'text-emerald-500 scale-110'
                                                 : ''
                                                 } ${repostAnimating ? 'animate-like-pop' : ''}`}
@@ -630,7 +630,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
                                 )}
                                 <Heart
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${likeActive
+                                    className={`h-5 w-5 transition-all duration-200 ${likeActive
                                         ? 'fill-rose-500 text-rose-500 scale-110'
                                         : 'fill-transparent'
                                         } ${likeAnimating ? 'animate-like-pop' : ''}`}
@@ -652,7 +652,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     }`}
                             >
                                 <Bookmark
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${bookmarkActive
+                                    className={`h-5 w-5 transition-all duration-200 ${bookmarkActive
                                         ? 'fill-yellow-500 text-yellow-500 scale-110'
                                         : 'fill-transparent'
                                         }`}

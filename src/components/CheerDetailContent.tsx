@@ -286,7 +286,7 @@ export default function CheerDetailContent({
             {hasMountedReportModal ? (
                 <Suspense
                     fallback={isReportModalOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
                             신고 창을 불러오는 중...
                         </div>
                     ) : null}
@@ -301,7 +301,7 @@ export default function CheerDetailContent({
             {hasMountedQuoteEditor ? (
                 <Suspense
                     fallback={isQuoteEditorOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
                             인용 작성기를 불러오는 중...
                         </div>
                     ) : null}
