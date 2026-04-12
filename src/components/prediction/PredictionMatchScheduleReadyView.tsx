@@ -1,6 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import {
+  PREDICTION_RUN_SESSION_EVENT,
+  hasPredictionRunSession,
+} from '../../utils/predictionRecovery';
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
 import { Card } from '../ui/card';
@@ -91,11 +95,7 @@ export default function PredictionMatchScheduleReadyView({
     }
 
     const syncStoredRunSession = () => {
-      const hasPendingRunSession = Boolean(
-        window.sessionStorage.getItem('prediction:run-session:v1')
-        || window.sessionStorage.getItem('prediction:run-session')
-      );
-      setHasStoredRunSession(hasPendingRunSession);
+      setHasStoredRunSession(hasPredictionRunSession());
     };
 
     const handlePageShow = () => {
@@ -106,13 +106,18 @@ export default function PredictionMatchScheduleReadyView({
         syncStoredRunSession();
       }
     };
+    const handleRunSessionUpdated = () => {
+      syncStoredRunSession();
+    };
 
     syncStoredRunSession();
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

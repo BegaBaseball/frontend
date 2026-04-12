@@ -1,7 +1,8 @@
-import { type ReactNode, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Clock3, Loader2 } from 'lucide-react';
 
 import TeamLogo from '../TeamLogo';
+import ViewportDeferred from '../ViewportDeferred';
 import type { Game, GameDetail, GameSummary } from '../../types/prediction';
 import type { GameStatusCode } from '../../utils/prediction';
 import {
@@ -10,7 +11,8 @@ import {
   getSectionHeadingTextStyle,
 } from '../../utils/advancedMatchCardStyles';
 import { VotePercentageGauge } from './VotePercentageGauge';
-import { GameSummaryTimeline } from './GameSummaryTimeline';
+
+const AdvancedMatchCardSupplementaryRuntime = lazy(() => import('./AdvancedMatchCardSupplementaryRuntime'));
 
 type InningRows = Record<number, { away?: number | null; home?: number | null }>;
 
@@ -172,6 +174,25 @@ export default function AdvancedMatchCardContentRuntime({
       .sort((a, b) => (a._inning - b._inning) || (a._index - b._index)),
     [groupedSummary],
   );
+  const inningRowCount = Object.keys(inningRows).length;
+  const shouldShowSupplementaryRuntime = Boolean(
+    timelineEntries.length > 0
+    || (!gameDetailLoading && !shouldHideResultSections && inningRowCount === 0)
+    || (!gameDetailLoading && !shouldHideResultSections && summaryGroups['심판']?.length)
+    || attendanceLabel
+    || weatherLabel
+    || gameTimeLabel
+    || shouldShowMatchEnvironmentLoading,
+  );
+
+  const supplementaryFallback = shouldShowSupplementaryRuntime ? (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-5 dark:border-border dark:bg-secondary/40">
+        <div className="h-4 w-32 rounded bg-gray-200/80 dark:bg-border/70" />
+        <div className="mt-3 h-20 rounded-lg bg-gray-100 dark:bg-secondary/60" />
+      </div>
+    </div>
+  ) : null;
 
   const handleInningSwipeOffset = (offsetX: number) => {
     if (!hasExtraInnings) return;
@@ -223,7 +244,7 @@ export default function AdvancedMatchCardContentRuntime({
               <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-semibold">
+              <p className="font-bold">
                 {gameDetailError
                   ? '일부 경기 상세 정보를 불러오지 못했습니다.'
                   : gameDetailRefreshing
@@ -303,16 +324,16 @@ export default function AdvancedMatchCardContentRuntime({
                       <table className="w-full table-fixed border-collapse text-center text-[16px]">
                         <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
                           <tr>
-                            <th className="px-2 py-2 text-left font-semibold">팀</th>
+                            <th className="px-2 py-2 text-left font-bold">팀</th>
                             {cols.map((inning) => (
                               <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
                             ))}
-                            <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
+                            <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600">R</th>
                           </tr>
                         </thead>
                         <tbody className="text-gray-700 dark:text-gray-200">
                           <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
-                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
+                            <td className="px-2 py-2 text-left font-bold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
                               {awayTeamName}
                             </td>
                             {cols.map((inning) => (
@@ -320,12 +341,12 @@ export default function AdvancedMatchCardContentRuntime({
                                 {inningRows[inning]?.away ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600 bg-red-50/40 dark:bg-red-900/20">
                               {awayScoreForDisplay}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
-                            <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
+                            <td className="px-2 py-2 text-left font-bold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
                               {homeTeamName}
                             </td>
                             {cols.map((inning) => (
@@ -333,7 +354,7 @@ export default function AdvancedMatchCardContentRuntime({
                                 {inningRows[inning]?.home ?? '-'}
                               </td>
                             ))}
-                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">
+                            <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600 bg-red-50/40 dark:bg-red-900/20">
                               {homeScoreForDisplay}
                             </td>
                           </tr>
@@ -359,16 +380,16 @@ export default function AdvancedMatchCardContentRuntime({
                 <table className="w-full table-fixed border-collapse text-center text-[16px]">
                   <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
                     <tr>
-                      <th className="px-2 py-2 text-left font-semibold">팀</th>
+                      <th className="px-2 py-2 text-left font-bold">팀</th>
                       {regularInningCols.map((inning) => (
                         <th key={inning} className="px-2 py-2 border-l border-gray-200 dark:border-border/70">{inning}</th>
                       ))}
-                      <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600">R</th>
+                      <th className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600">R</th>
                     </tr>
                   </thead>
                   <tbody className="text-gray-700 dark:text-gray-200">
                     <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
-                      <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
+                        <td className="px-2 py-2 text-left font-bold bg-gray-50/70 dark:bg-secondary/30" style={awayTeamNameStyle}>
                         {awayTeamName}
                       </td>
                       {regularInningCols.map((inning) => (
@@ -376,10 +397,10 @@ export default function AdvancedMatchCardContentRuntime({
                           {inningRows[inning]?.away ?? '-'}
                         </td>
                       ))}
-                      <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreForDisplay}</td>
+                      <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600 bg-red-50/40 dark:bg-red-900/20">{awayScoreForDisplay}</td>
                     </tr>
                     <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
-                      <td className="px-2 py-2 text-left font-semibold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
+                        <td className="px-2 py-2 text-left font-bold bg-gray-50/70 dark:bg-secondary/30" style={homeTeamNameStyle}>
                         {homeTeamName}
                       </td>
                       {regularInningCols.map((inning) => (
@@ -387,7 +408,7 @@ export default function AdvancedMatchCardContentRuntime({
                           {inningRows[inning]?.home ?? '-'}
                         </td>
                       ))}
-                      <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-semibold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreForDisplay}</td>
+                      <td className="px-2 py-2 border-l border-gray-200 dark:border-border font-bold text-red-600 bg-red-50/40 dark:bg-red-900/20">{homeScoreForDisplay}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -415,7 +436,7 @@ export default function AdvancedMatchCardContentRuntime({
       )}
 
       <section>
-        <div className="mb-2.5 flex items-center gap-2 text-[16px] sm:text-[16px] font-semibold tracking-[0.08em] text-gray-500 dark:text-white/60" style={headingTextStyle}>
+        <div className="mb-2.5 flex items-center gap-2 text-[16px] sm:text-[16px] font-bold tracking-[0.08em] text-gray-500 dark:text-white/60" style={headingTextStyle}>
           <span className="h-[2px] w-6 rounded-full bg-gray-500 dark:bg-white/60" />
           선발 투수
         </div>
@@ -444,54 +465,25 @@ export default function AdvancedMatchCardContentRuntime({
 
       {!gameDetailLoading && !isPostponedOrCancelled ? coachBriefing : null}
 
-      {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 ? (
-        <GameSummaryTimeline
-          timelineEntries={timelineEntries}
-          awayColor={awayColor}
-          homeColor={homeColor}
-        />
-      ) : null}
-
-      {!gameDetailLoading && !shouldHideResultSections && Object.keys(inningRows).length === 0 && timelineEntries.length === 0 ? (
-        <div className="text-center text-[16px] text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
-      ) : null}
-
-      {!gameDetailLoading && !shouldHideResultSections && summaryGroups['심판']?.length > 0 ? (
-        <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[16px] text-gray-500 dark:text-gray-300">
-          심판: {summaryGroups['심판'][0]?.playerName || summaryGroups['심판'][0]?.detail || '정보 없음'}
-        </div>
-      ) : null}
-
-      {(attendanceLabel || weatherLabel || gameTimeLabel || shouldShowMatchEnvironmentLoading) ? (
-        <section>
-          <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-gray-100"
-            style={headingTextStyle}
-          >
-            <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
-            경기 환경
-          </div>
-          <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[16px] sm:grid-cols-3 sm:gap-3">
-            <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">관중</p>
-              <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-                {attendanceLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">날씨</p>
-              <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-                {weatherLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">경기시간</p>
-              <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-                {gameTimeLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
-              </p>
-            </div>
-          </div>
-        </section>
+      {shouldShowSupplementaryRuntime ? (
+        <ViewportDeferred fallback={supplementaryFallback} rootMargin="220px 0px 320px 0px">
+          <Suspense fallback={supplementaryFallback}>
+            <AdvancedMatchCardSupplementaryRuntime
+              awayColor={awayColor}
+              homeColor={homeColor}
+              timelineEntries={timelineEntries}
+              summaryGroups={summaryGroups}
+              inningRowCount={inningRowCount}
+              shouldHideResultSections={shouldHideResultSections}
+              gameDetailLoading={gameDetailLoading}
+              attendanceLabel={attendanceLabel}
+              weatherLabel={weatherLabel}
+              gameTimeLabel={gameTimeLabel}
+              shouldShowMatchEnvironmentLoading={shouldShowMatchEnvironmentLoading}
+              isDarkMode={isDarkMode}
+            />
+          </Suspense>
+        </ViewportDeferred>
       ) : null}
     </div>
   );

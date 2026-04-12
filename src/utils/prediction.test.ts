@@ -5,7 +5,9 @@ import {
   COACH_BRIEFING_MANUAL_HINT,
   buildCoachBriefingRequestDescriptor,
   CoachRequestMode,
+  getCoachAnalysisFocusSectionNotice,
   getCoachBriefingDataQualityNotice,
+  getCoachGenerationModeNotice,
   getCoachBriefingGroundingReasonLabels,
   parseAiBriefing,
   resolveCoachAnalysisPresentation,
@@ -322,6 +324,25 @@ test('getCoachBriefingDataQualityNotice: 중복 기본 경고는 숨기고 구�
     reasons: ['승부처 데이터 부족', '요청 항목 근거 부족'],
     details: ['요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.'],
   });
+});
+
+test('getCoachAnalysisFocusSectionNotice: 누락 focus를 사용자 문구로 변환한다', () => {
+  assert.equal(
+    getCoachAnalysisFocusSectionNotice(['bullpen']),
+    '불펜 상태 섹션은 실데이터 부족으로 축약되었습니다.',
+  );
+  assert.equal(
+    getCoachAnalysisFocusSectionNotice(['bullpen', 'recent_form']),
+    '불펜 상태, 최근 전력 섹션은 실데이터 부족으로 축약되었습니다.',
+  );
+});
+
+test('getCoachGenerationModeNotice: evidence_fallback partial은 오류가 아닌 보수 생성으로 안내한다', () => {
+  assert.equal(
+    getCoachGenerationModeNotice('evidence_fallback', 'partial'),
+    '이번 응답은 실패가 아니라, 확인 가능한 근거만으로 보수 생성된 결과입니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.',
+  );
+  assert.equal(getCoachGenerationModeNotice('llm_manual', 'partial'), null);
 });
 
 test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 반환한다', () => {

@@ -34,6 +34,8 @@ let predictionScheduleBoundaryLoadersModulePromise:
   Promise<typeof import('./predictionScheduleBoundaryLoaders')> | null = null;
 let predictionScheduleDeepLinkRuntimeModulePromise:
   Promise<typeof import('./predictionScheduleDeepLinkRuntime')> | null = null;
+let predictionScheduleAdjacentPrefetchModulePromise:
+  Promise<typeof import('./predictionScheduleAdjacentPrefetch')> | null = null;
 let predictionRangeLoaderModulePromise:
   Promise<typeof import('../utils/predictionRangeLoader')> | null = null;
 
@@ -65,6 +67,13 @@ const loadPredictionScheduleDeepLinkRuntimeModule = () => {
     predictionScheduleDeepLinkRuntimeModulePromise = import('./predictionScheduleDeepLinkRuntime');
   }
   return predictionScheduleDeepLinkRuntimeModulePromise;
+};
+
+const loadPredictionScheduleAdjacentPrefetchModule = () => {
+  if (!predictionScheduleAdjacentPrefetchModulePromise) {
+    predictionScheduleAdjacentPrefetchModulePromise = import('./predictionScheduleAdjacentPrefetch');
+  }
+  return predictionScheduleAdjacentPrefetchModulePromise;
 };
 
 const loadPredictionRangeLoaderModule = () => {
@@ -590,28 +599,6 @@ export const usePredictionSchedule = ({
     syncRangeStateFromDates,
   ]);
 
-  const prefetchAdjacentDays = useCallback((anchorDate: string) => {
-    const normalizedDate = normalizeDateKey(anchorDate) || anchorDate;
-    const meta = dayNavigationByDateRef.current[normalizedDate];
-    if (!meta) {
-      return;
-    }
-
-    if (meta.prevDate) {
-      void loadPredictionDay(meta.prevDate, {
-        preserveVisibleDate: true,
-        requestKeySuffix: `prefetch:past:${normalizedDate}`,
-      });
-    }
-
-    if (meta.nextDate) {
-      void loadPredictionDay(meta.nextDate, {
-        preserveVisibleDate: true,
-        requestKeySuffix: `prefetch:future:${normalizedDate}`,
-      });
-    }
-  }, [loadPredictionDay]);
-
   const clearScheduledAdjacentPrefetch = useCallback(() => {
     if (typeof window === 'undefined') {
       return;
@@ -628,31 +615,18 @@ export const usePredictionSchedule = ({
   }, []);
 
   const scheduleAdjacentPrefetch = useCallback((anchorDate: string) => {
-    if (typeof window === 'undefined') {
-      prefetchAdjacentDays(anchorDate);
-      return;
-    }
-
-    clearScheduledAdjacentPrefetch();
-    let hasRun = false;
-    const run = () => {
-      if (hasRun) {
-        return;
-      }
-      hasRun = true;
-      adjacentPrefetchIdleCallbackRef.current = null;
-      adjacentPrefetchTimeoutRef.current = null;
-      prefetchAdjacentDays(anchorDate);
-    };
-
-    if ('requestIdleCallback' in window) {
-      adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(run, {
-        timeout: 1200,
+    const normalizedDate = normalizeDateKey(anchorDate) || anchorDate;
+    void loadPredictionScheduleAdjacentPrefetchModule().then(({ schedulePredictionAdjacentPrefetch }) => {
+      schedulePredictionAdjacentPrefetch({
+        anchorDate: normalizedDate,
+        dayNavigationByDateRef,
+        adjacentPrefetchIdleCallbackRef,
+        adjacentPrefetchTimeoutRef,
+        clearScheduledAdjacentPrefetch,
+        loadPredictionDay,
       });
-    }
-
-    adjacentPrefetchTimeoutRef.current = globalThis.setTimeout(run, 650) as unknown as number;
-  }, [clearScheduledAdjacentPrefetch, prefetchAdjacentDays]);
+    });
+  }, [clearScheduledAdjacentPrefetch, loadPredictionDay]);
 
   const fetchMatchRangeWindow = useCallback(async (request: MatchRangeLoadRequest) => {
     const [{ fetchMatchesByRangeWithMeta }, { buildPredictionRangeWindow }] = await Promise.all([
