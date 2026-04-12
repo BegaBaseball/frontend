@@ -329,6 +329,30 @@ export interface AdminCoachAutoBriefOpsSummary {
   data_quality_breakdown: Record<string, number>;
 }
 
+export interface AdminCoachAutoBriefOpsGateThresholds {
+  max_unresolved: number;
+  max_failed_locked: number;
+  max_pending_wait?: number | null;
+  max_insufficient_ratio?: number | null;
+  min_selected_targets: number;
+  fail_on_missing_report: boolean;
+}
+
+export interface AdminCoachAutoBriefOpsGateChecks {
+  failed: string[];
+  warnings: string[];
+}
+
+export interface AdminCoachAutoBriefOpsGate {
+  verdict: 'PASS' | 'WARN' | 'FAIL';
+  thresholds: AdminCoachAutoBriefOpsGateThresholds;
+  failed_locked_count: number;
+  pending_wait_count: number;
+  insufficient_count: number;
+  insufficient_ratio: number;
+  checks: AdminCoachAutoBriefOpsGateChecks;
+}
+
 export interface AdminCoachAutoBriefOpsLatestReport {
   path: string;
   run_started_at?: string | null;
@@ -361,6 +385,7 @@ export interface AdminCoachAutoBriefOpsHealth {
   runbook_path: string;
   recommended_command: string;
   summary: AdminCoachAutoBriefOpsSummary;
+  gate: AdminCoachAutoBriefOpsGate;
   unresolved_targets: AdminCoachAutoBriefOpsTargetSample[];
   latest_report?: AdminCoachAutoBriefOpsLatestReport | null;
 }
