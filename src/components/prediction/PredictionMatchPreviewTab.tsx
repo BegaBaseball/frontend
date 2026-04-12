@@ -59,7 +59,7 @@ export default function PredictionMatchPreviewTab({
         >
           <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
-        <span className="font-semibold text-slate-900 dark:text-gray-100">
+        <span className="font-bold text-slate-900 dark:text-gray-100">
           {formatDate(currentDate)}
         </span>
         <button
@@ -79,7 +79,7 @@ export default function PredictionMatchPreviewTab({
             {currentGame ? (
               <>
                 <div className="mb-3">
-                  <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
+                  <p className="text-lg font-bold text-slate-900 dark:text-gray-100">
                     {awayTeamName} vs {homeTeamName}
                   </p>
                   <p className="text-[16px] text-slate-500 dark:text-gray-300 mt-1">
@@ -96,7 +96,7 @@ export default function PredictionMatchPreviewTab({
                 </Button>
               </>
             ) : (
-              <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
+              <p className="text-lg font-bold text-slate-900 dark:text-gray-100">
                 {formatDate(currentDate)}
               </p>
             )}
@@ -149,11 +149,11 @@ export default function PredictionMatchPreviewTab({
               <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-gray-300" />
             </div>
             <div className="mb-4">
-              <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
+              <p className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1">
                 {formatDate(currentDate)}
               </p>
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-2">
               {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
             </h3>
             <p className="text-slate-500 dark:text-gray-300">

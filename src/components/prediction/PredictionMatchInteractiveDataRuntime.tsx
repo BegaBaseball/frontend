@@ -1,6 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { usePredictionInteractiveData } from '../../hooks/usePredictionInteractiveData';
+import {
+  PREDICTION_RUN_SESSION_EVENT,
+  hasPredictionRunSession,
+} from '../../utils/predictionRecovery';
 import type { Game, VoteTeam } from '../../types/prediction';
 import type {
   PredictionMatchVoteControllerRenderState,
@@ -9,17 +13,6 @@ import type {
 
 const PredictionMatchInteractiveView = lazy(() => import('./PredictionMatchInteractiveView'));
 const PredictionMatchVoteController = lazy(() => import('./PredictionMatchVoteController'));
-
-const hasPredictionRunSession = () => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  return Boolean(
-    window.sessionStorage.getItem('prediction:run-session:v1')
-    || window.sessionStorage.getItem('prediction:run-session'),
-  );
-};
 
 export default function PredictionMatchInteractiveDataRuntime() {
   const {
@@ -98,12 +91,17 @@ export default function PredictionMatchInteractiveDataRuntime() {
         enableVoteControllerIfRunSessionExists();
       }
     };
+    const handleRunSessionUpdated = () => {
+      enableVoteControllerIfRunSessionExists();
+    };
 
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

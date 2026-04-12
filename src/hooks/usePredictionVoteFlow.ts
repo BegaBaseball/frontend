@@ -8,14 +8,17 @@ import { getFullTeamName } from '../constants/teams';
 import { parseError } from '../utils/errorUtils';
 import { useUserLeaderboardStats } from './useLeaderboardPrivate';
 import {
+  LEGACY_PREDICTION_RUN_SESSION_STORAGE_KEY,
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
   PREDICTION_RUN_SESSION_STORAGE_KEY,
   canSchedulePredictionRetry,
   createPredictionRetryAttemptState,
+  emitPredictionRunSessionUpdated,
   getPredictionRetryDelayMs,
   increasePredictionRetryAttempt,
   isPredictionRunSessionStale,
   parsePredictionRunSession,
+  readPredictionRunSession,
   resetPredictionRetryAttempt,
   type PredictionRetryActionKey,
   type PredictionRunAction,
@@ -138,10 +141,13 @@ export const usePredictionVoteFlow = ({
 
     if (!session) {
       window.sessionStorage.removeItem(PREDICTION_RUN_SESSION_STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_PREDICTION_RUN_SESSION_STORAGE_KEY);
+      emitPredictionRunSessionUpdated();
       return;
     }
 
     window.sessionStorage.setItem(PREDICTION_RUN_SESSION_STORAGE_KEY, JSON.stringify(session));
+    emitPredictionRunSessionUpdated();
   }, []);
 
   const patchRunSession = useCallback((patch: Partial<PredictionRunSessionV1>) => {
@@ -985,9 +991,7 @@ export const usePredictionVoteFlow = ({
       return;
     }
 
-    const parsedSession = parsePredictionRunSession(
-      window.sessionStorage.getItem(PREDICTION_RUN_SESSION_STORAGE_KEY)
-    );
+    const parsedSession = parsePredictionRunSession(readPredictionRunSession());
 
     if (!parsedSession) {
       clearRunSession();

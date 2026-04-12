@@ -425,7 +425,7 @@ export default function CoachAnalysisDialogRuntime({
                                         <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 relative flex items-center justify-center">
                                             <TeamLogo team={teamName} size={48} className={`w-full h-full transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'opacity-60 grayscale-[0.5]'}`} />
                                         </div>
-                                        <span className={`text-[14px] font-semibold ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
+                                        <span className={`text-[16px] font-semibold ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
                                             {teamName}
                                         </span>
                                     </button>
@@ -468,7 +468,7 @@ export default function CoachAnalysisDialogRuntime({
                                             <p className={`font-semibold text-[16px] mb-1 ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {opt.label}
                                             </p>
-                                            <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                            <p className="text-[16px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                                 {opt.desc}
                                             </p>
                                         </div>
