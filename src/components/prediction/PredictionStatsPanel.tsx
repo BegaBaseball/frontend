@@ -91,33 +91,33 @@ export default function PredictionStatsPanel() {
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                 <Hash className="w-3.5 h-3.5" />
-                <span className="text-[16px] sm:text-[16px] font-semibold">총 예측</span>
+                <span className="text-[16px] sm:text-[16px] font-bold">총 예측</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                   {predictionStats.totalPredictions}
                 </span>
-                <span className="text-[16px] sm:text-[16px] font-semibold text-slate-400">회</span>
+                <span className="text-[16px] sm:text-[16px] font-bold text-slate-400">회</span>
               </div>
             </div>
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-[16px] sm:text-[16px] font-semibold">적중</span>
+                <span className="text-[16px] sm:text-[16px] font-bold">적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">
                   {predictionStats.correctPredictions}
                 </span>
-                <span className="text-[16px] sm:text-[16px] font-semibold text-slate-400">회</span>
+                <span className="text-[16px] sm:text-[16px] font-bold text-slate-400">회</span>
               </div>
             </div>
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
                 <Flame className="w-3.5 h-3.5" />
-                <span className="text-[16px] sm:text-[16px] font-semibold">연속 적중</span>
+                <span className="text-[16px] sm:text-[16px] font-bold">연속 적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
                 <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">

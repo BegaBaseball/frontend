@@ -78,7 +78,7 @@ export default function RepostModal({
                                     <p className="font-semibold text-red-600 dark:text-red-400">
                                         리포스트 삭제
                                     </p>
-                                    <p className="text-[13px] text-red-500/70 dark:text-red-400/70">
+                                    <p className="text-[16px] font-semibold text-red-500/70 dark:text-red-400/70">
                                         내 프로필에서 제거됩니다
                                     </p>
                                 </div>
@@ -88,7 +88,7 @@ export default function RepostModal({
                                 <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                     <Repeat2 className="w-6 h-6 text-gray-400" />
                                 </div>
-                                <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                                        <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                     {repostUnavailableMessage}
                                 </p>
                             </div>
@@ -118,7 +118,7 @@ export default function RepostModal({
                                             }`}>
                                             {isRepostedByMe ? '리포스트 취소' : '리포스트'}
                                         </p>
-                                        <p className="text-[13px] text-gray-500 dark:text-gray-300">
+                                    <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                             {isRepostedByMe
                                                 ? '내 프로필에서 제거됩니다'
                                                 : '내 프로필에 바로 공유됩니다'}
@@ -140,7 +140,7 @@ export default function RepostModal({
                                         <p className="font-semibold text-gray-900 dark:text-white">
                                             인용하기
                                         </p>
-                                        <p className="text-[13px] text-gray-500 dark:text-gray-300">
+                                        <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                             내 의견을 덧붙여 공유합니다
                                         </p>
                                     </div>
@@ -150,7 +150,7 @@ export default function RepostModal({
                                     <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                         <Quote className="w-6 h-6 text-gray-400" />
                                     </div>
-                                    <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                                <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                         {repostUnavailableMessage}
                                     </p>
                                 </div>
@@ -161,7 +161,7 @@ export default function RepostModal({
                             <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
                                 <Repeat2 className="w-6 h-6 text-gray-400" />
                             </div>
-                            <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                            <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                 {repostUnavailableMessage}
                             </p>
                         </div>

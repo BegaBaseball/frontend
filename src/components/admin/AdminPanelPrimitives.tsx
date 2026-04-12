@@ -18,7 +18,7 @@ export const evalStatusBadgeClass: Record<'PASS' | 'FAIL', string> = {
 };
 
 export const adminNativeSelectClassName =
-  'w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-slate-200 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-60';
+  'w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-[14px] font-medium text-slate-200 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 export function AdminBadge({
   className = '',
@@ -29,7 +29,7 @@ export function AdminBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[13px] font-semibold transition-colors ${className}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[14px] font-semibold transition-colors ${className}`}
     >
       {children}
     </span>

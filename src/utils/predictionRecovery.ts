@@ -2,6 +2,8 @@ export const PREDICTION_NETWORK_RETRY_DELAYS_MS = [1000, 2000, 4000] as const;
 export const PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS = PREDICTION_NETWORK_RETRY_DELAYS_MS.length;
 export const PREDICTION_RUN_SESSION_TTL_MS = 120_000;
 export const PREDICTION_RUN_SESSION_STORAGE_KEY = 'prediction:run-session:v1';
+export const LEGACY_PREDICTION_RUN_SESSION_STORAGE_KEY = 'prediction:run-session';
+export const PREDICTION_RUN_SESSION_EVENT = 'prediction:run-session-updated';
 
 export type PredictionRetryActionKey = 'submitVote' | 'cancelVote' | 'voteStatus';
 export type PredictionRunAction = 'vote' | 'cancel';
@@ -17,6 +19,27 @@ export interface PredictionRunSessionV1 {
   bannerDismissed: boolean;
   timeoutStage: PredictionRunTimeoutStage;
 }
+
+export const readPredictionRunSession = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return (
+    window.sessionStorage.getItem(PREDICTION_RUN_SESSION_STORAGE_KEY)
+    || window.sessionStorage.getItem(LEGACY_PREDICTION_RUN_SESSION_STORAGE_KEY)
+  );
+};
+
+export const hasPredictionRunSession = (): boolean => Boolean(readPredictionRunSession());
+
+export const emitPredictionRunSessionUpdated = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new Event(PREDICTION_RUN_SESSION_EVENT));
+};
 
 export const createPredictionRetryAttemptState = (): PredictionRetryAttemptState => ({
   submitVote: 0,

@@ -217,7 +217,7 @@ export function TicketUploadModal({
                                     분석 완료
                                 </div>
                                 {ticketData.gameId && (
-                                    <span className="text-[13px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                                        <span className="text-[16px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
                                         경기 일정 매칭됨
                                     </span>
                                 )}

@@ -58,7 +58,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                   className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <TableCell className="text-slate-300 font-mono text-sm">{post.id}</TableCell>
+                  <TableCell className="text-slate-300 font-mono text-[14px]">{post.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <TeamLogo team={post.team} size={24} />
@@ -69,14 +69,14 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     <div className="flex items-center gap-2">
                       <span className="text-slate-200">{post.content?.slice(0, 40) || '-'}</span>
                       {post.isHot && (
-                        <AdminBadge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] px-1.5 py-0 border-0 animate-pulse">
+                        <AdminBadge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[11px] px-1.5 py-0 border-0 animate-pulse">
                           HOT
                         </AdminBadge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-300">{post.author}</TableCell>
-                  <TableCell className="text-slate-400 text-sm">{getTimeAgo(post.createdAt)}</TableCell>
+                  <TableCell className="text-slate-400 text-[14px]">{getTimeAgo(post.createdAt)}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1 text-rose-400">
                       <span className="text-lg">♥</span>
@@ -84,7 +84,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-emerald-400 font-semibold text-sm">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-emerald-400 font-semibold text-[14px]">
                       {post.commentCount}
                     </span>
                   </TableCell>
@@ -130,7 +130,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
         )}
       >
         {pendingDeletePost ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-[14px] text-slate-400">
             <span className="font-semibold text-slate-200">#{pendingDeletePost.id}</span> 게시글을 삭제합니다.
           </p>
         ) : null}

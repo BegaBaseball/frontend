@@ -1,12 +1,28 @@
 import { CATEGORY_CONFIGS, THEME_COLORS } from './constants';
-import { MapPin } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import {
+  MapPinIcon,
+  ParkingCircleIcon,
+  ShoppingBagIcon,
+  TruckIcon,
+  UtensilsIcon,
+} from '../components/icons/PublicShellIcons';
+import type { StadiumCategoryIconKey, StadiumIconComponent } from '../types/stadium';
+
+const CATEGORY_ICON_COMPONENTS: Record<StadiumCategoryIconKey, StadiumIconComponent> = {
+  utensils: UtensilsIcon,
+  truck: TruckIcon,
+  shoppingBag: ShoppingBagIcon,
+  parkingCircle: ParkingCircleIcon,
+};
+
+export const getCategoryIcon = (iconKey?: StadiumCategoryIconKey): StadiumIconComponent =>
+  iconKey ? CATEGORY_ICON_COMPONENTS[iconKey] : MapPinIcon;
 
 /**
  * 카테고리 아이콘 정보 가져오기
  */
 export const getCategoryIconConfig = (category: string): {
-  Icon: LucideIcon;
+  Icon: StadiumIconComponent;
   color: string;
 } => {
   const config = category in CATEGORY_CONFIGS
@@ -15,13 +31,13 @@ export const getCategoryIconConfig = (category: string): {
   
   if (!config) {
     return {
-      Icon: MapPin,
+      Icon: MapPinIcon,
       color: THEME_COLORS.primary,
     };
   }
 
   return {
-    Icon: config.icon,
+    Icon: getCategoryIcon(config.iconKey),
     color: config.color,
   };
 };

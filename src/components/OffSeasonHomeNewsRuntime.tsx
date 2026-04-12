@@ -42,7 +42,7 @@ export default function OffSeasonHomeNewsRuntime({
             <TrendingUp className="h-5 w-5 text-white md:h-6 md:w-6" />
           </div>
           <h3 className="text-xl font-black text-primary md:text-2xl">2025 주요 이적 소식</h3>
-          <OffseasonPill className="ml-2 animate-pulse border-none px-2 py-1 text-[13px] text-white md:px-3 md:text-[14px]" style={{ backgroundColor: '#ef4444' }}>
+          <OffseasonPill className="ml-2 animate-pulse border-none px-2 py-1 text-[15px] text-white md:px-3 md:text-[15px]" style={{ backgroundColor: '#ef4444' }}>
             Breaking
           </OffseasonPill>
         </div>
@@ -83,8 +83,8 @@ export default function OffSeasonHomeNewsRuntime({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="mb-1.5 flex items-center gap-2 md:mb-2">
-                      <OffseasonPill className="bg-primary px-2 py-0.5 text-[13px] font-bold text-white">{news.section}</OffseasonPill>
-                      <span className="text-[13px] font-semibold text-gray-400 dark:text-zinc-300">{news.date}</span>
+                      <OffseasonPill className="bg-primary px-2 py-0.5 text-[15px] font-bold text-white">{news.section}</OffseasonPill>
+                      <span className="text-[15px] font-semibold text-gray-400 dark:text-zinc-300">{news.date}</span>
                     </div>
                     <p className="line-clamp-1 text-base font-bold text-gray-900 transition-colors group-hover:text-primary md:text-lg dark:text-white">
                       {news.player} ({getTeamName(news.team)})

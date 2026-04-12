@@ -127,7 +127,7 @@ export function OffseasonListContentRuntime({
                         </p>
                     </div>
                     {!isMobile && (
-                        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[14px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                             {sortOrder === 'headline'
                                 ? '주요 소식 우선 정렬'
                                 : SORT_OPTIONS.find((option) => option.value === sortOrder)?.label}
@@ -152,12 +152,12 @@ export function OffseasonListContentRuntime({
                                 <p className="text-[15px] font-black tracking-tight text-zinc-900 dark:text-zinc-50">
                                     현재 조건에 맞는 이적 {filteredList.length}건
                                 </p>
-                                <p className="text-[13px] font-semibold text-zinc-500 dark:text-zinc-300">
+                                <p className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-300">
                                     선수, 팀, 계약 내용을 같은 구조로 보여주도록 목록을 정리했습니다.
                                 </p>
                             </div>
                             {bigOnly && (
-                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-[13px] font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-[14px] font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                     주요 소식 필터 적용
                                 </OffseasonPill>
                             )}

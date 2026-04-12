@@ -114,7 +114,7 @@ function MonitoringCard({
 
   return (
     <div className={`rounded-2xl border p-5 ${toneClass}`}>
-      <p className="text-sm uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <p className="text-[14px] uppercase tracking-[0.2em] text-slate-400">{label}</p>
       <p className="mt-3 text-4xl font-black">{value.toLocaleString()}</p>
     </div>
   );
@@ -245,7 +245,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
             </div>
             <div>
               <h2 className="text-2xl font-black text-white">클라이언트 에러 관제</h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-[14px] text-slate-400">
                 브라우저가 보고한 API/Runtime/Feedback 이벤트를 한 화면에서 추적합니다.
               </p>
             </div>
@@ -278,7 +278,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
       </div>
 
       {panelError ? (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[14px] text-red-200">
           {panelError}
         </div>
       ) : null}
@@ -294,7 +294,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold text-white">Bucket별 발생 추이</h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-[14px] text-slate-400">
                 {WINDOW_LABEL[windowKey]} 기준 집계. 피드백은 별도 row로 적재된 사용자 제보 수입니다.
               </p>
             </div>
@@ -313,7 +313,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
         <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <h3 className="text-lg font-bold text-white">상위 Fingerprints</h3>
-          <p className="mb-4 text-sm text-slate-400">
+          <p className="mb-4 text-[14px] text-slate-400">
             동일 오류를 hash fingerprint로 묶어 상위 재발 패턴을 확인합니다.
           </p>
           <div className="space-y-3">
@@ -339,10 +339,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                       {item.latestAlertChannel.toUpperCase()}
                     </AdminBadge>
                   ) : null}
-                  <span className="text-sm font-semibold text-white">{item.count.toLocaleString()}건</span>
+                <span className="text-[14px] font-semibold text-white">{item.count.toLocaleString()}건</span>
                 </div>
-                <p className="line-clamp-2 text-sm text-slate-200">{item.message}</p>
-                <div className="mt-3 space-y-1 text-sm text-slate-400">
+                <p className="line-clamp-2 text-[14px] text-slate-200">{item.message}</p>
+                <div className="mt-3 space-y-1 text-[14px] text-slate-400">
                   <p>route: {item.route}</p>
                   <p>fingerprint: {item.fingerprint}</p>
                   <p>최근 발생: {getTimeAgo(item.latestOccurredAt)}</p>
@@ -350,7 +350,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                 </div>
               </button>
             )) : (
-              <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-[14px] text-slate-500">
                 집계할 fingerprint가 없습니다.
               </div>
             )}
@@ -363,7 +363,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           <Filter className="h-5 w-5 text-slate-400" />
           <div>
             <h3 className="text-lg font-bold text-white">이벤트 탐색</h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-[14px] text-slate-400">
               bucket, source, status group, route, fingerprint, 전문 검색으로 raw event를 좁힙니다.
             </p>
           </div>
@@ -468,18 +468,18 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[320px] whitespace-normal">
-                      <p className="line-clamp-2 text-sm text-slate-200">{event.message}</p>
-                      <p className="mt-2 text-sm font-mono text-slate-500">{event.eventId}</p>
+                <p className="line-clamp-2 text-[14px] text-slate-200">{event.message}</p>
+                      <p className="mt-2 text-[14px] font-mono text-slate-500">{event.eventId}</p>
                     </TableCell>
-                    <TableCell className="max-w-[220px] whitespace-normal text-sm text-slate-300">
+                    <TableCell className="max-w-[220px] whitespace-normal text-[14px] text-slate-300">
                       {event.route}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-300">
+                    <TableCell className="text-[14px] text-slate-300">
                       {event.statusCode ? `${event.statusCode} (${event.statusGroup})` : event.statusGroup}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-400">
+                    <TableCell className="text-[14px] text-slate-400">
                       <p>{getTimeAgo(event.occurredAt)}</p>
-                      <p className="mt-1 text-sm text-slate-500">{formatDetailedDateTime(event.occurredAt)}</p>
+                      <p className="mt-1 text-[14px] text-slate-500">{formatDetailedDateTime(event.occurredAt)}</p>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -499,7 +499,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </Table>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-400">
+        <div className="mt-4 flex items-center justify-between text-[14px] text-slate-400">
           <span>
             총 {eventsPage.totalElements.toLocaleString()}건 중 {(eventsPage.number ?? 0) + 1} / {Math.max(eventsPage.totalPages, 1)} 페이지
           </span>

@@ -59,12 +59,12 @@ export function OffseasonMovementDetailPanel({
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                                 <OffseasonSectionPill section={movement.section} />
-                                <OffseasonPill className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[13px] font-bold text-emerald-50">
+                                <OffseasonPill className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[14px] font-bold text-emerald-50">
                                     {statusLabel}
                                 </OffseasonPill>
                             </div>
                             <div>
-                                <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-emerald-100/65">{teamName}</p>
+                                <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-emerald-100/65">{teamName}</p>
                                 <h3 className="mt-1 text-2xl font-black tracking-tight text-white">{movement.player}</h3>
                             </div>
                         </div>
@@ -88,14 +88,14 @@ export function OffseasonMovementDetailPanel({
                         key={item.label}
                         className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/70"
                     >
-                        <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                        <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
                         <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-zinc-50">{item.value}</p>
                     </div>
                 ))}
             </div>
 
             <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
+                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
                 <div className="mt-3 text-[15px] font-semibold leading-7 text-zinc-700 dark:text-zinc-200">
                     {formatRemarks(summary)}
                 </div>
@@ -104,11 +104,11 @@ export function OffseasonMovementDetailPanel({
             <div className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">Structured Details</p>
+                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Structured Details</p>
                         <p className="mt-1 text-[15px] font-bold text-zinc-900 dark:text-zinc-50">수집된 상세 데이터</p>
                     </div>
                     {hasStructuredFacts && (
-                        <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[13px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[14px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                             {detailFacts.length}개 항목
                         </OffseasonPill>
                     )}
@@ -120,7 +120,7 @@ export function OffseasonMovementDetailPanel({
                                 key={item.label}
                                 className="rounded-3xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950/80"
                             >
-                                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
                                 <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-zinc-50">{item.value}</p>
                             </div>
                         ))}
@@ -134,7 +134,7 @@ export function OffseasonMovementDetailPanel({
 
             {showRawRemarks && (
                 <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">Raw Notes</p>
+                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Raw Notes</p>
                 <div className="mt-3 text-[15px] font-semibold leading-7 text-zinc-700 dark:text-zinc-200">
                     {formatRemarks(remarks)}
                 </div>
@@ -144,11 +144,11 @@ export function OffseasonMovementDetailPanel({
             <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">Source</p>
+                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Source</p>
                         <p className="mt-1 text-[15px] font-bold text-zinc-900 dark:text-zinc-50">출처 정보</p>
                     </div>
                     {hasSourceFacts && (
-                        <OffseasonPill className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[13px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                        <OffseasonPill className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                             확인 가능
                         </OffseasonPill>
                     )}
@@ -157,7 +157,7 @@ export function OffseasonMovementDetailPanel({
                     <div className="mt-4 space-y-3">
                         {sourceFacts.map((item) => (
                             <div key={item.label} className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/70">
-                                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
                                 <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-zinc-50">{item.value}</p>
                             </div>
                         ))}
@@ -181,10 +181,10 @@ export function OffseasonMovementDetailPanel({
 
             <div className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="flex flex-wrap items-center gap-2">
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[13px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         데이터 ID #{movement.id}
                     </OffseasonPill>
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[13px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         팀 코드 {movement.team}
                     </OffseasonPill>
                 </div>

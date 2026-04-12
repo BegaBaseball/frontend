@@ -107,13 +107,13 @@ export default function CoachBriefingContentRuntime({
               {dataQuality ? (
                 <span
                   data-testid="coach-briefing-quality-badge"
-                  className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${getCoachBriefingBadgeClassName(dataQuality)}`}
+                  className={`rounded-full border px-2.5 py-0.5 text-[15px] font-semibold ${getCoachBriefingBadgeClassName(dataQuality)}`}
                 >
                   {getCoachDataQualityLabel(dataQuality)}
                 </span>
               ) : null}
               {totalEvidenceCount > 0 ? (
-                <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[13px] font-semibold text-gray-500 dark:border-border dark:text-gray-400">
+                <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[15px] font-semibold text-gray-500 dark:border-border dark:text-gray-400">
                   근거 {totalEvidenceCount}건
                 </span>
               ) : null}
@@ -135,7 +135,7 @@ export default function CoachBriefingContentRuntime({
             {briefingStatusMessage ? (
               <div
                 data-testid="coach-briefing-status-note"
-                className={`mb-3 inline-flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-[13px] font-semibold leading-relaxed ${getCoachBriefingStatusClassName(briefingStatusTone)}`}
+                className={`mb-3 inline-flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-[15px] font-semibold leading-relaxed ${getCoachBriefingStatusClassName(briefingStatusTone)}`}
               >
                 <span className="break-keep">{briefingStatusMessage}</span>
               </div>

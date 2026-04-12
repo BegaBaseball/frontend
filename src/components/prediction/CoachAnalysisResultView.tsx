@@ -83,7 +83,7 @@ function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReview
                         key={`risk-${idx}`}
                         className={`rounded-xl border p-4 text-[16px] leading-relaxed shadow-sm ${levelClassName(risk.level)}`}
                     >
-                        <p className="mb-1 text-[16px] font-semibold uppercase opacity-80">{risk.area}</p>
+                        <p className="mb-1 text-[16px] font-bold uppercase opacity-80">{risk.area}</p>
                         <p>{risk.description}</p>
                     </div>
                 ))}
@@ -114,7 +114,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         : 'border-red-200/80 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/20'
                 }`}
             >
-                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[16px] font-semibold ${
+                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[16px] font-bold ${
                     isPositive
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
@@ -132,7 +132,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         )}
                         <span>{analysisData.dashboard.headline}</span>
                     </h3>
-                    <p className="text-[16px] font-semibold leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
+                    <p className="text-[16px] font-bold leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
                         {analysisData.dashboard.context}
                     </p>
                 </div>
@@ -155,7 +155,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                             </div>
                             <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과 진단' : '코치 판단'}</h4>
                         </div>
-                        <p className="text-base font-semibold leading-relaxed text-gray-900 dark:text-white">
+                        <p className="text-base font-bold leading-relaxed text-gray-900 dark:text-white">
                             {analysisData.verdict || analysisData.analysis_summary}
                         </p>
                     </div>
@@ -270,7 +270,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
 
                     {analysisData.coach_note && (
                         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <p className="mb-1 text-[16px] font-semibold text-gray-900 dark:text-gray-100">코치의 한마디</p>
+                            <p className="mb-1 text-[16px] font-bold text-gray-900 dark:text-gray-100">코치의 한마디</p>
                             <p className="whitespace-pre-line text-[16px] leading-relaxed text-gray-700 dark:text-gray-300">
                                 {analysisData.coach_note}
                             </p>

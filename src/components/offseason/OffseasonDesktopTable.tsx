@@ -54,7 +54,7 @@ export function OffseasonDesktopTable({
                                     }`}
                             >
                                 <span className="space-y-1">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em]">Date</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Date</span>
                                     <span className="block text-[15px] font-bold">날짜</span>
                                 </span>
                                 <ArrowUpDown className={`h-4 w-4 ${sortOrder === 'latest' ? 'opacity-100' : 'opacity-40'}`} />
@@ -63,7 +63,7 @@ export function OffseasonDesktopTable({
                         <TableHead className="h-auto w-[130px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">Section</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Section</span>
                                     <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">구분</span>
                                 </span>
                             </div>
@@ -71,7 +71,7 @@ export function OffseasonDesktopTable({
                         <TableHead className="h-auto w-[220px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">Club</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Club</span>
                                     <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">팀</span>
                                 </span>
                             </div>
@@ -79,7 +79,7 @@ export function OffseasonDesktopTable({
                         <TableHead className="h-auto w-[220px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">Player</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Player</span>
                                     <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">선수</span>
                                 </span>
                             </div>
@@ -87,7 +87,7 @@ export function OffseasonDesktopTable({
                         <TableHead className="h-auto min-w-[340px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">Details</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Details</span>
                                     <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">계약 내용</span>
                                 </span>
                             </div>
@@ -102,7 +102,7 @@ export function OffseasonDesktopTable({
                                     }`}
                             >
                                 <span className="space-y-1 text-right">
-                                    <span className="block text-[13px] font-black uppercase tracking-[0.2em]">Amount</span>
+                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Amount</span>
                                     <span className="block text-[15px] font-bold">금액</span>
                                 </span>
                                 <ArrowUpDown className={`h-4 w-4 ${sortOrder === 'amount' ? 'opacity-100' : 'opacity-40'}`} />
@@ -136,13 +136,13 @@ export function OffseasonDesktopTable({
                                     <div className="relative pl-4">
                                         <span className={`absolute left-0 top-0 h-full w-1 rounded-full ${item.isBigEvent ? 'bg-yellow-400' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                                         <div className="space-y-2">
-                                            <p className="text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                                            <p className="text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">
                                                 {item.isBigEvent ? 'Headline' : 'Update'}
                                             </p>
                                             <p className="text-[15px] font-black tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
                                                 {formatDateLabel(item.date)}
                                             </p>
-                                            <p className="text-[13px] font-semibold text-zinc-400 dark:text-zinc-500">ID #{item.id}</p>
+                                            <p className="text-[14px] font-semibold text-zinc-400 dark:text-zinc-500">ID #{item.id}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -162,7 +162,7 @@ export function OffseasonDesktopTable({
                                         </div>
                                         <div className="space-y-0.5">
                                             <p className="text-[15px] font-extrabold tracking-tight text-zinc-800 dark:text-zinc-100">{teamName}</p>
-                                            <p className="text-[13px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{item.team}</p>
+                                            <p className="text-[14px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{item.team}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -180,7 +180,7 @@ export function OffseasonDesktopTable({
                                             )}
                                         </div>
                                         {item.isBigEvent && (
-                                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[13px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[14px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                                     헤드라인 이동
                                                 </OffseasonPill>
                                             )}
@@ -200,7 +200,7 @@ export function OffseasonDesktopTable({
                                     : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'
                                     }`}>
                                     <div className="space-y-2">
-                                        <p className="text-[13px] font-black uppercase tracking-[0.18em] text-zinc-400">Deal Value</p>
+                                        <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Deal Value</p>
                                         <div className={`inline-flex rounded-2xl px-3 py-2 text-[15px] font-black tracking-tight ${amountLabel
                                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
                                             : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'

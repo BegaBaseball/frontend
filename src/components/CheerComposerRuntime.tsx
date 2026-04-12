@@ -365,7 +365,7 @@ export default function CheerComposerRuntime({
                 {composerDragging && (
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-sky-50/30 backdrop-blur-sm dark:bg-sky-900/30">
                         <ImagePlus className="h-8 w-8 text-sky-500 dark:text-sky-400" />
-                        <span className="text-[16px] font-semibold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
+                        <span className="text-[16px] font-bold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
                     </div>
                 )}
                 <div className="flex gap-3">
@@ -430,9 +430,9 @@ export default function CheerComposerRuntime({
                                     </span>
                                 </button>
                                 {composerFiles.length >= 10 ? (
-                                    <span className="text-[16px] font-semibold text-amber-500 dark:text-amber-400">10장 제한</span>
+                                    <span className="text-[16px] font-bold text-amber-500 dark:text-amber-400">10장 제한</span>
                                 ) : composerFiles.length > 0 ? (
-                                    <span className="text-[16px] font-semibold text-slate-400">{composerFiles.length}/10</span>
+                                    <span className="text-[16px] font-bold text-slate-400">{composerFiles.length}/10</span>
                                 ) : null}
                                 <Smile className="h-4 w-4" />
                                 <input
@@ -447,7 +447,7 @@ export default function CheerComposerRuntime({
                             </div>
                             <div className="flex items-center gap-2">
                                 {!composerContent.trim() && (
-                                    <span className="text-[16px] font-semibold text-slate-400 dark:text-gray-300">내용을 입력해 주세요</span>
+                                    <span className="text-[16px] font-bold text-slate-400 dark:text-gray-300">내용을 입력해 주세요</span>
                                 )}
                                 <button
                                     type="button"
@@ -491,7 +491,7 @@ export default function CheerComposerRuntime({
             {hasMountedWriteModal ? (
                 <Suspense
                     fallback={isWriteModalOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
                             작성 모달을 불러오는 중...
                         </div>
                     ) : null}

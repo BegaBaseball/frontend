@@ -5,7 +5,7 @@ import { Shield } from 'lucide-react';
 const AdminPageRuntimeContent = lazy(() => import('./AdminPageRuntimeContent'));
 
 const AdminPageRuntimeFallback = () => (
-  <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-6 py-12 text-center text-sm text-slate-300 shadow-2xl">
+  <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-6 py-12 text-center text-[14px] text-slate-300 shadow-2xl">
     관리자 패널을 준비하고 있습니다.
   </div>
 );
@@ -37,7 +37,7 @@ export default function AdminPage() {
               <h1 className="text-3xl font-black tracking-tight text-white">
                 ADMIN <span className="text-amber-400">CONTROL</span>
               </h1>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-slate-400 text-[14px] font-semibold mt-1">
                 BEGA Platform Management Dashboard
               </p>
             </div>
@@ -48,7 +48,7 @@ export default function AdminPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-sm text-emerald-400 font-semibold uppercase tracking-wider">
+            <span className="text-[14px] text-emerald-400 font-semibold uppercase tracking-wider">
               Live Monitoring
             </span>
           </div>

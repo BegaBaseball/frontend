@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { ImageOffIcon } from '../icons/PublicShellIcons';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     src: string;
@@ -53,7 +53,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                 aria-label={alt || '이미지를 불러올 수 없습니다'}
                 title={alt || '이미지를 불러올 수 없습니다'}
             >
-                <ImageOff className="w-6 h-6 opacity-50" />
+                <ImageOffIcon className="w-6 h-6 opacity-50" />
             </div>
         );
     }

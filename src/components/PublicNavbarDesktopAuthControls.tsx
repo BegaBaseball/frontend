@@ -1,7 +1,7 @@
-import { LogOut, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { LogOutIcon, ShieldAlertIcon } from './icons/PublicShellIcons';
 import { Button } from './ui/button';
 
 interface PublicNavbarDesktopAuthControlsProps {
@@ -67,12 +67,12 @@ export default function PublicNavbarDesktopAuthControls({
       </button>
       {isAdmin && (
         <Button
-          type="button"
-          onClick={() => navigate('/admin')}
-          variant="outline"
-          className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
-        >
-          <ShieldAlert className="w-4 h-4" />
+        type="button"
+        onClick={() => navigate('/admin')}
+        variant="outline"
+        className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+      >
+          <ShieldAlertIcon className="w-4 h-4" />
           관리자
         </Button>
       )}
@@ -82,7 +82,7 @@ export default function PublicNavbarDesktopAuthControls({
         className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
         variant="outline"
       >
-        <LogOut className="w-4 h-4" />
+        <LogOutIcon className="w-4 h-4" />
         로그아웃
       </Button>
     </>

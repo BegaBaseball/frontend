@@ -183,6 +183,8 @@ const openChatbotAndWaitForGreeting = () => {
     cy.contains(greetingText, { timeout: 15000 }).should('be.visible');
 };
 
+const getChatTranscript = () => cy.get('[aria-label="대화 내용"]');
+
 const nextTimestamp = () => {
     timestampCursor += 1;
     return new Date(Date.UTC(2026, 2, 22, 12, 0, timestampCursor)).toISOString();
@@ -937,10 +939,10 @@ describe('AI Chatbot', () => {
             cy.getBySel('chatbot-message-input').should('be.enabled').type(secondMessage);
             cy.getBySel('chatbot-send-button').should('be.enabled').click();
 
-            cy.contains(firstMessage).should('be.visible');
-            cy.contains(secondMessage).should('be.visible');
-            cy.contains(secondResponse, { timeout: 10000 }).should('be.visible');
-            cy.get('[aria-label="대화 내용"]').invoke('text').should('include', '응답 취소됨');
+            getChatTranscript().should('contain.text', firstMessage);
+            getChatTranscript().should('contain.text', secondMessage);
+            getChatTranscript().should('contain.text', secondResponse);
+            getChatTranscript().invoke('text').should('include', '응답 취소됨');
 
             cy.wait(3500);
 

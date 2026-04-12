@@ -28,7 +28,7 @@ export function OffseasonSectionPill({
   return (
     <OffseasonPill
       className={joinClassNames(
-        'px-3 py-1 text-[13px] font-black uppercase tracking-wide',
+        'px-3 py-1 text-[14px] font-black uppercase tracking-wide',
         getSectionColor(section),
         className,
       )}

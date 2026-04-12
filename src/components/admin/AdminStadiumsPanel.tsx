@@ -53,7 +53,7 @@ export function AdminStadiumsPanel({
   return (
     <>
       {stadiumError && (
-        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-[14px] text-red-300">
           {stadiumError}
         </div>
       )}
@@ -127,7 +127,7 @@ export function AdminStadiumsPanel({
                     className="animate-fade-in-up border-slate-800 transition-colors duration-200 hover:bg-slate-800/30"
                     style={{ animationDelay: `${index * 40}ms` }}
                   >
-                    <TableCell className="font-mono text-sm text-slate-300">
+                    <TableCell className="font-mono text-[14px] text-slate-300">
                       {place.id}
                     </TableCell>
                     <TableCell>
@@ -138,15 +138,15 @@ export function AdminStadiumsPanel({
                     <TableCell className="font-semibold text-slate-200">
                       {place.name}
                     </TableCell>
-                    <TableCell className="max-w-[160px] truncate text-sm text-slate-400">
+                    <TableCell className="max-w-[160px] truncate text-[14px] text-slate-400">
                       {place.address || '-'}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-400">
+                    <TableCell className="text-[14px] text-slate-400">
                       {place.phone || '-'}
                     </TableCell>
                     <TableCell>
                       {place.rating != null ? (
-                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-400">
+                        <span className="inline-flex items-center gap-1 text-[14px] font-semibold text-amber-400">
                           {place.rating.toFixed(1)}
                           <span className="text-amber-500/60">★</span>
                         </span>
@@ -154,7 +154,7 @@ export function AdminStadiumsPanel({
                         <span className="text-slate-600">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-400">
+                    <TableCell className="text-[14px] text-slate-400">
                       {place.openTime && place.closeTime
                         ? `${place.openTime} ~ ${place.closeTime}`
                         : place.openTime || '-'}

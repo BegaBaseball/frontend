@@ -59,14 +59,14 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
             {/* Header */}
             <div className="flex justify-between items-start mb-2 relative z-10">
                 <div className="flex items-center gap-1.5">
-                    <span className={`rounded border border-current px-1.5 py-0.5 text-[16px] font-semibold tracking-wide uppercase ${styles.text}`}>
+                    <span className={`rounded border border-current px-1.5 py-0.5 text-[16px] font-bold tracking-wide uppercase ${styles.text}`}>
                         {category}
                     </span>
                     <span className={`rounded-full ${styles.iconColor}`}>
                         <Icon className="h-3.5 w-3.5" />
                     </span>
                 </div>
-                <div className={`rounded-full px-2.5 py-1 text-[16px] font-semibold ${progressClass}`}>
+                    <div className={`rounded-full px-2.5 py-1 text-[16px] font-bold ${progressClass}`}>
                     {trendLabel[trend]}
                 </div>
             </div>
@@ -75,20 +75,20 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
             <div className="flex-1 relative z-10">
                 {value ? (
                     <>
-                        <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">{name}</p>
-                        <p className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{value}</p>
+                        <p className="text-[16px] font-bold text-gray-500 dark:text-gray-300">{name}</p>
+                        <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">{value}</p>
                     </>
                 ) : (
-                    <p className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">{name}</p>
+                        <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{name}</p>
                 )}
             </div>
 
             <div className="mt-5 space-y-2 rounded-2xl bg-white/70 p-3 text-[16px] shadow-sm dark:bg-black/20">
-                <div className="flex items-center justify-between font-semibold tracking-wide text-gray-500 dark:text-gray-300">
+                <div className="flex items-center justify-between font-bold tracking-wide text-gray-500 dark:text-gray-300">
                     <span>해석 포인트</span>
                     <span className={styles.text}>{statusLabel}</span>
                 </div>
-                <div className={`inline-flex w-fit items-center gap-2 rounded-full px-2.5 py-1 text-[16px] font-semibold ${progressClass}`}>
+                <div className={`inline-flex w-fit items-center gap-2 rounded-full px-2.5 py-1 text-[16px] font-bold ${progressClass}`}>
                     <Icon className="h-3.5 w-3.5" />
                     <span>{trendLabel[trend]}</span>
                 </div>

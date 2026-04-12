@@ -99,7 +99,7 @@ export default function PredictionMatchTab({
         >
           <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
-        <span className="font-semibold text-slate-900 dark:text-gray-100">
+        <span className="font-bold text-slate-900 dark:text-gray-100">
           {formatDate(currentDate)}
         </span>
         <button
@@ -154,7 +154,7 @@ export default function PredictionMatchTab({
             </Suspense>
           ) : (
             <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[190px] rounded-2xl">
-              <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
+              <p className="text-lg font-bold text-slate-900 dark:text-gray-100">
                 {formatDate(currentDate)}
               </p>
 
@@ -207,11 +207,11 @@ export default function PredictionMatchTab({
               <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-gray-300" />
             </div>
             <div className="mb-4">
-              <p className="text-lg font-semibold text-slate-900 dark:text-gray-100 mb-1">
+              <p className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1">
                 {formatDate(currentDate)}
               </p>
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-2">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-2">
               {isCurrentDateToday || isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
             </h3>
             <p className="text-slate-500 dark:text-gray-300">

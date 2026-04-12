@@ -774,6 +774,51 @@ export const getCoachBriefingDataQualityNotice = (
   };
 };
 
+const COACH_ANALYSIS_FOCUS_LABELS: Record<string, string> = {
+  recent_form: '최근 전력',
+  bullpen: '불펜 상태',
+  starter: '선발 투수',
+  matchup: '상대 전적',
+  batting: '타격 생산성',
+};
+
+export const getCoachAnalysisFocusSectionNotice = (
+  missingFocusSections?: string[] | null,
+): string | null => {
+  const labels = Array.isArray(missingFocusSections)
+    ? Array.from(new Set(
+      missingFocusSections
+        .filter((focus): focus is string => typeof focus === 'string' && focus.length > 0)
+        .map((focus) => COACH_ANALYSIS_FOCUS_LABELS[focus] || focus),
+    ))
+    : [];
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  if (labels.length === 1) {
+    return `${labels[0]} 섹션은 실데이터 부족으로 축약되었습니다.`;
+  }
+
+  return `${labels.join(', ')} 섹션은 실데이터 부족으로 축약되었습니다.`;
+};
+
+export const getCoachGenerationModeNotice = (
+  generationMode?: string | null,
+  dataQuality?: string | null,
+): string | null => {
+  if (generationMode !== 'evidence_fallback') {
+    return null;
+  }
+
+  if (dataQuality === 'partial' || dataQuality === 'insufficient') {
+    return '이번 응답은 실패가 아니라, 확인 가능한 근거만으로 보수 생성된 결과입니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.';
+  }
+
+  return '이번 응답은 확인 가능한 근거만으로 보수 생성되었습니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.';
+};
+
 export type GameStatusCode = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'POSTPONED' | 'CANCELLED' | 'DRAW' | 'UNKNOWN';
 
 export interface GameStatusResult {

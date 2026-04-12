@@ -379,7 +379,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 </div>
               )}
               <div
-                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[16px] font-semibold leading-tight backdrop-blur sm:px-3 sm:text-[16px]`}
+                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[16px] font-bold leading-tight backdrop-blur sm:px-3 sm:text-[16px]`}
                 style={surfaceTransitionStyle}
               >
                 <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
@@ -419,7 +419,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 {isScheduledLayout ? (
                   <div className="flex flex-col items-center justify-center gap-1.5">
                     <span className="h-px w-8 bg-gray-300 dark:bg-gray-600" />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                       <Clock3 className="h-3 w-3" />
                       경기 시작 예정
                     </span>
@@ -431,10 +431,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                       <span className="text-gray-300 dark:text-gray-300">:</span>
                       <span style={topHomeScoreStyle}>{hasGameScore ? countedScores.home : '-'}</span>
                     </div>
-                    <div className="mt-1 text-[16px] font-semibold text-gray-500 dark:text-gray-300 sm:text-[16px]">{matchStatusLabel}</div>
+                    <div className="mt-1 text-[16px] font-bold text-gray-500 dark:text-gray-300 sm:text-[16px]">{matchStatusLabel}</div>
                     {winnerLabel ? (
                       <div
-                        className={`mt-1 text-[16px] font-semibold ${
+                        className={`mt-1 text-[16px] font-bold ${
                           winnerLabel === '무승부'
                             ? 'text-amber-600 dark:text-amber-300'
                             : 'text-slate-600 dark:text-slate-200'

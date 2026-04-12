@@ -47,7 +47,7 @@ export default function CheerDetailEmbeddedPostRuntime({
                 ...surfaceTintStyle,
             }}
         >
-            <div className="flex items-center gap-2 text-[16px] font-semibold" style={{ color: detailAccent }}>
+            <div className="flex items-center gap-2 text-[16px] font-bold" style={{ color: detailAccent }}>
                 {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
                 <span>
                     {isSimpleRepost
