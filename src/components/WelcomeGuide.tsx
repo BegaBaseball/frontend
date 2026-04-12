@@ -1,20 +1,21 @@
 import { useState, useEffect, useMemo, useCallback, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import {
-  Home,
-  MapPin,
-  TrendingUp,
-  BookOpen,
-  MessageCircle,
-  X,
-  ChevronRight,
-  ChevronLeft,
-  Users,
-  Megaphone,
-  LineChart
-} from 'lucide-react';
+  BookOpenIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  HomeIcon,
+  LineChartIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  MessageCircleIcon,
+  TrendingUpIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import { useUIStore } from '../store/uiStore';
@@ -142,14 +143,14 @@ const SlideIcon = ({ iconType, color, isIntro }: { iconType: string; color: stri
 
   const icons = {
     baseball: <img src={baseballLogo} alt="BEGA 로고" className={iconClass} />,
-    home: <Home className={iconClass} />,
-    megaphone: <Megaphone className={iconClass} />,
-    map: <MapPin className={iconClass} />,
-    trending: <TrendingUp className={iconClass} />,
-    users: <Users className={iconClass} />,
-    book: <BookOpen className={iconClass} />,
-    message: <MessageCircle className={iconClass} />,
-    linechart: <LineChart className={iconClass} />
+    home: <HomeIcon className={iconClass} />,
+    megaphone: <MegaphoneIcon className={iconClass} />,
+    map: <MapPinIcon className={iconClass} />,
+    trending: <TrendingUpIcon className={iconClass} />,
+    users: <UsersIcon className={iconClass} />,
+    book: <BookOpenIcon className={iconClass} />,
+    message: <MessageCircleIcon className={iconClass} />,
+    linechart: <LineChartIcon className={iconClass} />,
   };
 
   return (
@@ -331,7 +332,7 @@ export default function WelcomeGuide() {
                   className="text-white/80 hover:text-white hover:bg-white/10 transition-colors h-8 w-8 sm:h-9 sm:w-9"
                   aria-label="가이드 닫기"
                 >
-                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <CloseIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
             </div>
@@ -452,7 +453,7 @@ export default function WelcomeGuide() {
                       className="gap-1 sm:gap-2 text-[16px] sm:text-[16px] h-9 sm:h-10 px-2.5 sm:px-4 min-w-[44px] dark:border-border dark:text-gray-200 dark:hover:bg-gray-700"
                       aria-label="이전 슬라이드"
                     >
-                      <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <ChevronLeftIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">이전</span>
                     </Button>
                   )}
@@ -465,7 +466,7 @@ export default function WelcomeGuide() {
                     {currentSlide < SLIDES_DATA.length - 1 ? (
                       <>
                         다음
-                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <ChevronRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </>
                     ) : (
                       '시작하기'

@@ -1,6 +1,23 @@
-import { ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { FeatureCardProps } from '../types/landing';
+import type { FeatureCardProps } from '../types/landing';
+import {
+  BookOpenIcon,
+  ChevronDownIcon,
+  HomeIcon,
+  LineChartIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
+
+const featureIconMap = {
+  home: HomeIcon,
+  megaphone: MegaphoneIcon,
+  map: MapPinIcon,
+  linechart: LineChartIcon,
+  users: UsersIcon,
+  book: BookOpenIcon,
+} as const;
 
 export default function FeatureCard({
   feature,
@@ -10,7 +27,7 @@ export default function FeatureCard({
   onToggle,
   featureRef
 }: FeatureCardProps) {
-  const Icon = feature.icon;
+  const Icon = featureIconMap[feature.iconKey];
   const imageSource = feature.mobileImage || feature.image;
   const fallbackImage = feature.image;
 
@@ -38,7 +55,7 @@ export default function FeatureCard({
           <div className="flex-1">
             <div className="flex items-start justify-between gap-4">
               <h3 className="ds-card-title text-left">{feature.title}</h3>
-              <ChevronDown
+              <ChevronDownIcon
                 className={cn(
                   'mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300',
                   isExpanded && 'rotate-180',

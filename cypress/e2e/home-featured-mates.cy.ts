@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { visitHomePage } from '../support/homePage';
+import { getHomeAuthRequestTraces, visitHomePage } from '../support/homePage';
 
 describe('Home featured mates navigation', () => {
   const selectedDate = '2026-03-16';
@@ -81,9 +81,10 @@ describe('Home featured mates navigation', () => {
       resetStorage: true,
     });
 
-    cy.wait('@getMe');
     cy.wait('@getHomeBootstrap');
     cy.wait('@getHomeWidgets');
+    cy.get('@getMe.all').should('have.length', 0);
+    getHomeAuthRequestTraces().should('deep.equal', []);
 
     cy.contains('TestUser 님', { timeout: 10000 }).should('be.visible');
     cy.contains('button', '키움').click();

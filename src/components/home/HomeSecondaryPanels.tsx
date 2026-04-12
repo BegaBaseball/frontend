@@ -1,15 +1,4 @@
 import { lazy, Suspense } from 'react';
-import {
-  AlertTriangle,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Flame,
-  MessageSquare,
-  RefreshCw,
-  Trophy,
-  Users,
-} from 'lucide-react';
 
 import type { CheerPost } from '../../api/cheerApi';
 import type { FeaturedMateCard } from '../../types/home';
@@ -17,6 +6,15 @@ import { formatTimeAgo } from '../../utils/time';
 import { getMateTeamDisplayName } from '../../utils/homeTeamNameResolution';
 import TeamLogo from '../TeamLogo';
 import AdSlot from '../ads/AdSlot';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FlameIcon,
+  MessageSquareIcon,
+  RefreshIcon,
+  TrophyIcon,
+  UsersIcon,
+} from '../icons/PublicShellIcons';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
@@ -40,7 +38,6 @@ export interface HomeDisplayedRanking {
 
 interface HomeSecondaryPanelsProps {
   selectedDate: Date;
-  selectedDateKey: string;
   showCalendar: boolean;
   shouldMountWelcomeGuide: boolean;
   calendarDialogTitleId: string;
@@ -77,7 +74,6 @@ interface HomeSecondaryPanelsProps {
 
 export default function HomeSecondaryPanels({
   selectedDate,
-  selectedDateKey,
   showCalendar,
   shouldMountWelcomeGuide,
   calendarDialogTitleId,
@@ -135,16 +131,16 @@ export default function HomeSecondaryPanels({
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
-                    <Flame className="w-5 h-5 text-red-500" />
+                    <FlameIcon className="w-5 h-5 text-red-500" />
                     실시간 인기 응원글
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={onNavigateToCheer}
-                  className="text-[16px] font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
+                  className="text-[16px] font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
                   >
-                    더보기 <ChevronRight className="w-4 h-4" />
+                    더보기 <ChevronRightIcon className="w-4 h-4" />
                   </Button>
                 </div>
                 <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${homeDashboardCardHeightClass} overflow-y-auto relative`}>
@@ -163,12 +159,12 @@ export default function HomeSecondaryPanels({
                         onClick={onRetryWidgets}
                         className="mt-4"
                       >
-                        <RefreshCw className="mr-1.5 h-4 w-4" />
+                        <RefreshIcon className="mr-1.5 h-4 w-4" />
                         다시 시도
                       </Button>
                     </div>
                   ) : hotCheerPosts.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-semibold">
+                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-bold">
                       인기 응원글이 없습니다.
                     </div>
                   ) : (
@@ -185,16 +181,16 @@ export default function HomeSecondaryPanels({
                             <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
                               <div className="flex flex-col min-w-0">
-                              <span className="text-[16px] text-zinc-700 dark:text-zinc-500 font-semibold">{post.author || '익명'}</span>
-                                  <p className="text-[16px] text-gray-900 dark:text-zinc-100 font-semibold leading-snug mt-0.5 line-clamp-2">
+                              <span className="text-[16px] text-zinc-700 dark:text-zinc-500 font-bold">{post.author || '익명'}</span>
+                                  <p className="text-[16px] text-gray-900 dark:text-zinc-100 font-bold leading-snug mt-0.5 line-clamp-2">
                                     {post.content}
                                   </p>
                                 </div>
-                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 shrink-0 font-semibold">{formatTimeAgo(post.createdAt)}</span>
+                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 shrink-0 font-bold">{formatTimeAgo(post.createdAt)}</span>
                               </div>
                               <div className="flex gap-2.5 mt-1.5">
-                                <span className="text-[16px] font-semibold text-rose-300 flex items-center gap-1.5"><Flame className="w-3 h-3 text-rose-400" /> {post.likeCount}</span>
-                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-semibold"><MessageSquare className="w-3 h-3 text-zinc-500 dark:text-zinc-400" /> {post.commentCount}</span>
+                                <span className="text-[16px] font-bold text-rose-300 flex items-center gap-1.5"><FlameIcon className="w-3 h-3 text-rose-400" /> {post.likeCount}</span>
+                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-bold"><MessageSquareIcon className="w-3 h-3 text-zinc-500 dark:text-zinc-400" /> {post.commentCount}</span>
                               </div>
                             </div>
                           </div>
@@ -208,16 +204,16 @@ export default function HomeSecondaryPanels({
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
-                    <Users className="w-5 h-5 text-blue-500" />
+                    <UsersIcon className="w-5 h-5 text-blue-500" />
                     직관 메이트 찾기
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={onNavigateToMate}
-                    className="text-[16px] font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
+                    className="text-[16px] font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
                   >
-                    더보기 <ChevronRight className="w-4 h-4" />
+                    더보기 <ChevronRightIcon className="w-4 h-4" />
                   </Button>
                 </div>
                 <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${homeDashboardCardHeightClass} overflow-y-auto relative`}>
@@ -236,12 +232,12 @@ export default function HomeSecondaryPanels({
                         onClick={onRetryWidgets}
                         className="mt-4"
                       >
-                        <RefreshCw className="mr-1.5 h-4 w-4" />
+                        <RefreshIcon className="mr-1.5 h-4 w-4" />
                         다시 시도
                       </Button>
                     </div>
                   ) : featuredMates.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-semibold">
+                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-bold">
                       모집 중인 팟이 없습니다.
                     </div>
                   ) : (
@@ -267,7 +263,7 @@ export default function HomeSecondaryPanels({
                             className="text-left w-full px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
                           >
                             <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="text-[16px] font-semibold text-zinc-500 dark:text-zinc-500">
+                                <p className="text-[16px] font-bold text-zinc-500 dark:text-zinc-500">
                                 {gameDateLabel} {mate.gameTime}
                               </p>
                               <p className="inline-flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-1.5 py-0.5 text-[16px] leading-none text-zinc-500 dark:text-zinc-400">
@@ -301,7 +297,7 @@ export default function HomeSecondaryPanels({
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Trophy className="w-5 h-5 text-[#2ecc71]" />
+                  <TrophyIcon className="w-5 h-5 text-[#2ecc71]" />
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
                 </div>
                 <div className="flex items-center bg-slate-100 dark:bg-card border border-zinc-200 dark:border-zinc-800 rounded-full p-0.5 shadow-sm">
@@ -312,7 +308,7 @@ export default function HomeSecondaryPanels({
                     onClick={onLoadPreviousRankingSeason}
                     className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeftIcon className="w-4 h-4" />
                   </Button>
                   <span className="text-[16px] font-bold w-12 text-center text-zinc-900 dark:text-zinc-200">
                     {rankingSeasonYear}
@@ -325,7 +321,7 @@ export default function HomeSecondaryPanels({
                     disabled={rankingSeasonYear >= currentYear}
                     className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRightIcon className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -346,18 +342,18 @@ export default function HomeSecondaryPanels({
                       variant="outline"
                       size="sm"
                       onClick={onRetryRanking}
-                      className="border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-white bg-transparent font-semibold"
+                      className="border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-white bg-transparent font-bold"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshIcon className="w-4 h-4 mr-2" />
                       다시 시도
                     </Button>
                   </div>
                 ) : displayedRankings.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                    <p className="text-zinc-900 dark:text-zinc-200 font-semibold mb-2">
+                    <p className="text-zinc-900 dark:text-zinc-200 font-bold mb-2">
                       {rankingDataVisibilityMessage}
                     </p>
-                    <p className="text-zinc-500 dark:text-zinc-500 text-[16px] font-semibold">
+                    <p className="text-zinc-500 dark:text-zinc-500 text-[16px] font-bold">
                       {rankingStatusHintMessage}
                     </p>
                   </div>
@@ -388,16 +384,16 @@ export default function HomeSecondaryPanels({
                               {team.winRate}
                             </span>
                             {team.gamesBehind != null && (
-                              <span className="text-[16px] text-zinc-500 dark:text-zinc-400 tabular-nums w-7 text-center font-semibold">
+                              <span className="text-[16px] text-zinc-500 dark:text-zinc-400 tabular-nums w-7 text-center font-bold">
                                 {team.rank === 1 ? '-' : team.gamesBehind % 1 === 0 ? team.gamesBehind.toFixed(0) : team.gamesBehind.toFixed(1)}
                               </span>
                             )}
-                            <span className="flex items-center gap-1.5 text-[16px] font-semibold text-zinc-700 dark:text-zinc-300 whitespace-nowrap tabular-nums">
+                            <span className="flex items-center gap-1.5 text-[16px] font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap tabular-nums">
                                 <span className="text-zinc-900 dark:text-zinc-200 font-bold">{team.wins}승</span>
-                                <span className="text-zinc-500 dark:text-zinc-300 font-semibold">·</span>
-                                <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{team.draws}무</span>
-                                <span className="text-zinc-500 dark:text-zinc-300 font-semibold">·</span>
-                                <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{team.losses}패</span>
+                                <span className="text-zinc-500 dark:text-zinc-300 font-bold">·</span>
+                                <span className="text-zinc-700 dark:text-zinc-300 font-bold">{team.draws}무</span>
+                                <span className="text-zinc-500 dark:text-zinc-300 font-bold">·</span>
+                                <span className="text-zinc-700 dark:text-zinc-300 font-bold">{team.losses}패</span>
                             </span>
                           </div>
                         </div>
@@ -421,7 +417,7 @@ export default function HomeSecondaryPanels({
                         </div>
                         <div className="shrink-0 flex items-center gap-2 sm:gap-3 whitespace-nowrap text-right">
                           <span className="block h-4 w-12 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-                          <span className="flex items-center gap-1.5 text-[16px] font-semibold text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums">
+                          <span className="flex items-center gap-1.5 text-[16px] font-bold text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums">
                             <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
                             <span className="block h-4 w-3 rounded bg-zinc-100 dark:bg-zinc-700/70" />
                             <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
@@ -451,7 +447,7 @@ export default function HomeSecondaryPanels({
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-3">
-                <h2 id={calendarDialogTitleId} className="text-lg leading-none font-semibold">
+                <h2 id={calendarDialogTitleId} className="text-lg leading-none font-bold">
                   날짜 선택
                 </h2>
                   <button
