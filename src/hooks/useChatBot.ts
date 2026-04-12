@@ -2,22 +2,6 @@ import { startTransition, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { normalizeAiDataSources, normalizeAiToolCalls } from '../api/aiMeta';
 import {
-  addChatFavorite,
-  createChatSession,
-  deleteChatSession,
-  getChatSessionMessages,
-  listChatFavorites,
-  listChatSessions,
-  removeChatFavorite,
-  saveAssistantChatMessage,
-  saveUserChatMessage,
-} from '../api/chatSessions';
-import {
-  ChatStreamEventError,
-  RateLimitError,
-  sendChatMessageStream,
-} from '../api/chatbot';
-import {
   CHATBOT_STATUS_RATE_LIMIT,
   CHATBOT_STATUS_SERVICE_UNAVAILABLE,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
@@ -53,6 +37,40 @@ type QueuedMessage = {
   historyPayload: Array<{ role: string; content: string }> | null;
   userMessage: Message;
 };
+
+type RateLimitLikeError = Error & {
+  retryAfterSeconds?: number;
+};
+
+type ChatStreamEventLikeError = Error & {
+  detail?: string;
+  eventCode?: string;
+};
+
+let chatSessionsModulePromise: Promise<typeof import('../api/chatSessions')> | null = null;
+let chatBotStreamModulePromise: Promise<typeof import('../api/chatbot')> | null = null;
+
+const loadChatSessionsModule = () => {
+  if (!chatSessionsModulePromise) {
+    chatSessionsModulePromise = import('../api/chatSessions');
+  }
+  return chatSessionsModulePromise;
+};
+
+const loadChatBotStreamModule = () => {
+  if (!chatBotStreamModulePromise) {
+    chatBotStreamModulePromise = import('../api/chatbot');
+  }
+  return chatBotStreamModulePromise;
+};
+
+const isRateLimitLikeError = (error: unknown): error is RateLimitLikeError =>
+  error instanceof Error
+  && error.name === 'RateLimitError'
+  && typeof (error as RateLimitLikeError).retryAfterSeconds === 'number';
+
+const isChatStreamEventLikeError = (error: unknown): error is ChatStreamEventLikeError =>
+  error instanceof Error && error.name === 'ChatStreamEventError';
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -199,7 +217,7 @@ const buildAssistantPersistencePayload = (
 });
 
 const buildFailureText = (error: unknown): string => {
-  if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
+  if (isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
     return '요청이 많아 잠시 후 다시 시도해주세요.';
   }
   if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
@@ -211,8 +229,8 @@ const buildFailureText = (error: unknown): string => {
   if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
     return '응답이 중단되었습니다. 다시 시도해주세요.';
   }
-  if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
-    return error instanceof ChatStreamEventError
+  if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
+    return isChatStreamEventLikeError(error)
       ? error.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
       : '일시적인 오류가 발생했습니다. 다시 시도해주세요.';
   }
@@ -408,9 +426,10 @@ export const useChatBot = (initialOpen = false) => {
       setIsLoadingFavorites(true);
 
       try {
+        const chatSessionsApi = await loadChatSessionsModule();
         const [nextSessions, nextFavorites] = await Promise.all([
-          listChatSessions(),
-          listChatFavorites(),
+          chatSessionsApi.listChatSessions(),
+          chatSessionsApi.listChatFavorites(),
         ]);
         const sortedSessions = sortSessions(nextSessions);
         setSessions(sortedSessions);
@@ -427,7 +446,7 @@ export const useChatBot = (initialOpen = false) => {
 
         if (selectedSessionId !== null) {
           setIsLoadingMessages(true);
-          const storedMessages = await getChatSessionMessages(selectedSessionId);
+          const storedMessages = await chatSessionsApi.getChatSessionMessages(selectedSessionId);
           setMessages(storedMessages.map(normalizeStoredMessage));
           setIsLoadingMessages(false);
         } else {
@@ -506,6 +525,7 @@ export const useChatBot = (initialOpen = false) => {
     meta: ChatMeta | null,
     overrides?: Partial<{ cancelled: boolean; errorCode: string | null }>,
   ) => {
+    const { saveAssistantChatMessage } = await loadChatSessionsModule();
     const stored = await saveAssistantChatMessage(
       sessionId,
       buildAssistantPersistencePayload(content, status, meta, overrides),
@@ -517,6 +537,7 @@ export const useChatBot = (initialOpen = false) => {
   const loadSessionMessages = async (sessionId: number) => {
     setIsLoadingMessages(true);
     try {
+      const { getChatSessionMessages } = await loadChatSessionsModule();
       const storedMessages = await getChatSessionMessages(sessionId);
       setMessages(storedMessages.map(normalizeStoredMessage));
       setCurrentSessionId(sessionId);
@@ -583,6 +604,7 @@ export const useChatBot = (initialOpen = false) => {
         return next;
       });
 
+      const { sendChatMessageStream } = await loadChatBotStreamModule();
       await sendChatMessageStream(
         { question: userMessage.text, history: historyPayload },
         (delta) => {
@@ -660,18 +682,20 @@ export const useChatBot = (initialOpen = false) => {
         }
       } else {
         const failureText = buildFailureText(error);
-        const errorCode = error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)
+        const errorCode = isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)
           ? 'rate_limit'
-          : error instanceof ChatStreamEventError
+          : isChatStreamEventLikeError(error)
             ? error.eventCode || 'temporary_error'
             : error instanceof Error
               ? error.message
               : 'chat_stream_error';
 
-        if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
+        if (isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
           const nextFailureCount = Math.min(failureCount + 1, 3);
           const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
-          const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
+          const retryAfterSeconds = isRateLimitLikeError(error)
+            ? error.retryAfterSeconds ?? DEFAULT_RETRY_SECONDS
+            : DEFAULT_RETRY_SECONDS;
           const jitterSeconds = Math.floor(Math.random() * (JITTER_MAX_SECONDS - JITTER_MIN_SECONDS + 1)) + JITTER_MIN_SECONDS;
           const waitSeconds = Math.min(MAX_BACKOFF_SECONDS, Math.max(retryAfterSeconds, backoffSeconds) + jitterSeconds);
 
@@ -684,7 +708,7 @@ export const useChatBot = (initialOpen = false) => {
           toast.error('응답 시간이 초과되었습니다.');
         } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
           toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
-        } else if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
+        } else if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
           toast.error(failureText);
         } else {
           toast.error('응답 중 오류가 발생했습니다.');
@@ -705,7 +729,7 @@ export const useChatBot = (initialOpen = false) => {
           }));
         }
 
-        if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
+        if (!(isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
           setInputMessage(pendingMessage);
         }
       }
@@ -737,6 +761,7 @@ export const useChatBot = (initialOpen = false) => {
       }
     }
 
+    const { createChatSession } = await loadChatSessionsModule();
     const created = await createChatSession();
     setSessions((prev) => sortSessions([created, ...prev]));
     setCurrentSessionId(created.sessionId);
@@ -762,6 +787,7 @@ export const useChatBot = (initialOpen = false) => {
     try {
       const activeSession = await ensureActiveSession();
       const historyPayload = buildHistoryPayload(messages);
+      const { saveUserChatMessage } = await loadChatSessionsModule();
       const storedUserMessage = await saveUserChatMessage(activeSession.sessionId, trimmedInput);
       const normalizedUserMessage = createOptimisticUserMessage(storedUserMessage);
 
@@ -819,6 +845,7 @@ export const useChatBot = (initialOpen = false) => {
     }
     setMessageQueue([]);
     try {
+      const { createChatSession } = await loadChatSessionsModule();
       const session = await createChatSession();
       setSessions((prev) => sortSessions([session, ...prev]));
       setCurrentSessionId(session.sessionId);
@@ -851,6 +878,7 @@ export const useChatBot = (initialOpen = false) => {
     }
 
     try {
+      const { deleteChatSession } = await loadChatSessionsModule();
       await deleteChatSession(sessionId);
       setFavorites((prev) => prev.filter((item) => item.sessionId !== sessionId));
       setSessions((prev) => {
@@ -885,6 +913,7 @@ export const useChatBot = (initialOpen = false) => {
 
     try {
       if (message.favorite) {
+        const { removeChatFavorite } = await loadChatSessionsModule();
         await removeChatFavorite(message.serverId);
         setFavorites((prev) => prev.filter((item) => item.messageId !== message.serverId));
         setMessages((prev) => prev.map((item) => (
@@ -893,6 +922,7 @@ export const useChatBot = (initialOpen = false) => {
         return;
       }
 
+      const { addChatFavorite } = await loadChatSessionsModule();
       const favorite = await addChatFavorite(message.serverId);
       setFavorites((prev) => [favorite, ...prev.filter((item) => item.messageId !== favorite.messageId)]);
       setMessages((prev) => prev.map((item) => (
