@@ -1,8 +1,15 @@
-import { LineChart, LogOut, Map, Megaphone, ShieldAlert, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import {
+  LineChartIcon,
+  LogOutIcon,
+  MapIcon,
+  MegaphoneIcon,
+  ShieldAlertIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { Button } from './ui/button';
 import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbarNavItems';
@@ -10,11 +17,11 @@ import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbar
 const navIconToggleClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary';
 const navIconSizeClass = 'h-6 w-6';
 
-const navItemIconMap: Record<PublicNavbarNavItemId, typeof Megaphone> = {
-  cheer: Megaphone,
-  stadium: Map,
-  prediction: LineChart,
-  mate: Users,
+const navItemIconMap: Record<PublicNavbarNavItemId, typeof MegaphoneIcon> = {
+  cheer: MegaphoneIcon,
+  stadium: MapIcon,
+  prediction: LineChartIcon,
+  mate: UsersIcon,
 };
 
 interface PublicNavbarMenuPanelProps {
@@ -134,7 +141,7 @@ export default function PublicNavbarMenuPanel({
                 aria-label="관리자 페이지로 이동"
               >
                 <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                  <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  <ShieldAlertIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
                 <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
@@ -149,7 +156,7 @@ export default function PublicNavbarMenuPanel({
               className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
               aria-label="로그아웃"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOutIcon className="w-5 h-5" />
               <span>로그아웃</span>
             </button>
           </div>

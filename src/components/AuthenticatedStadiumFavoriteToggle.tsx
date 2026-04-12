@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   addStadiumFavorite,
   getMyFavoriteStadiumIds,
   removeStadiumFavorite,
 } from '../api/stadium';
+import { HeartIcon } from './icons/PublicShellIcons';
 
 type AuthenticatedStadiumFavoriteToggleProps = {
   stadiumId: string;
@@ -40,9 +40,10 @@ export default function AuthenticatedStadiumFavoriteToggle({
       className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
       aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
     >
-      <Heart
+      <HeartIcon
         className={isFavorite ? 'fill-red-400 text-red-400' : 'text-gray-400 dark:text-white/60'}
-        size={18}
+        width={18}
+        height={18}
       />
     </button>
   );

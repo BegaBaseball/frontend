@@ -209,6 +209,7 @@ describe('MateDetail state coverage', () => {
     visitWithAuth(`/mate/${party.id}`);
     cy.wait('@getPartyById');
     cy.wait('@getPartyApplications');
+    cy.get('@getMyApplicationByParty.all').should('have.length', 0);
 
     getDesktopActionCard().scrollIntoView().within(() => {
       cy.contains('호스트 모드').should('exist');

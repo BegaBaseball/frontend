@@ -150,8 +150,8 @@ export default function TeamRecommendationTest({
                           <div className="flex items-center gap-2">
                             {/* Option Letter */}
                             <div
-                              className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-[13px] transition-all flex-shrink-0
+                                className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-[16px] transition-all flex-shrink-0
                                 ${
                                   selectedAnswer === index
                                     ? 'text-white shadow-lg bg-primary'
