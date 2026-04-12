@@ -20,7 +20,7 @@ export default function ClientErrorAdminInsightsRuntime({
           <Link2 className="h-5 w-5 text-amber-300" />
           <div>
             <h3 className="text-lg font-bold text-white">Recent Feedback</h3>
-            <p className="text-sm text-slate-400">사용자가 Error ID 기준으로 전송한 최신 제보입니다.</p>
+            <p className="text-[14px] text-slate-400">사용자가 Error ID 기준으로 전송한 최신 제보입니다.</p>
           </div>
         </div>
 
@@ -29,17 +29,17 @@ export default function ClientErrorAdminInsightsRuntime({
             <div key={`${item.eventId}-${item.occurredAt}`} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <AdminBadge className={bucketBadgeClass.feedback}>FEEDBACK</AdminBadge>
-                <span className="text-sm text-slate-500">{getTimeAgo(item.occurredAt)}</span>
+                <span className="text-[14px] text-slate-500">{getTimeAgo(item.occurredAt)}</span>
               </div>
-              <p className="text-sm text-slate-100">{item.comment}</p>
-              <div className="mt-3 space-y-1 text-sm text-slate-400">
+              <p className="text-[14px] text-slate-100">{item.comment}</p>
+              <div className="mt-3 space-y-1 text-[14px] text-slate-400">
                 <p>eventId: {item.eventId}</p>
                 <p>route: {item.route}</p>
                 <p>actionTaken: {item.actionTaken}</p>
               </div>
             </div>
           )) : (
-            <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-[14px] text-slate-500">
               최근 피드백이 없습니다.
             </div>
           )}
@@ -51,7 +51,7 @@ export default function ClientErrorAdminInsightsRuntime({
           <Siren className="h-5 w-5 text-rose-300" />
           <div>
             <h3 className="text-lg font-bold text-white">Recent Alerts</h3>
-            <p className="text-sm text-slate-400">백엔드가 설정된 채널로 전송한 최근 알림 결과입니다.</p>
+            <p className="text-[14px] text-slate-400">백엔드가 설정된 채널로 전송한 최근 알림 결과입니다.</p>
           </div>
         </div>
 
@@ -66,10 +66,10 @@ export default function ClientErrorAdminInsightsRuntime({
                     {item.deliveryStatus}
                   </AdminBadge>
                 </div>
-                <span className="text-sm text-slate-500">{formatDetailedDateTime(item.notifiedAt)}</span>
+                <span className="text-[14px] text-slate-500">{formatDetailedDateTime(item.notifiedAt)}</span>
               </div>
-              <p className="text-sm text-slate-100">{item.latestMessage || '메시지 없음'}</p>
-              <div className="mt-3 space-y-1 text-sm text-slate-400">
+              <p className="text-[14px] text-slate-100">{item.latestMessage || '메시지 없음'}</p>
+              <div className="mt-3 space-y-1 text-[14px] text-slate-400">
                 <p>route: {item.route}</p>
                 <p>count: {item.observedCount} / threshold {item.thresholdCount}</p>
                 <p>fingerprint: {item.fingerprint}</p>
@@ -77,7 +77,7 @@ export default function ClientErrorAdminInsightsRuntime({
               </div>
             </div>
           )) : (
-            <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-800 px-4 py-10 text-center text-[14px] text-slate-500">
               최근 알림 이력이 없습니다.
             </div>
           )}

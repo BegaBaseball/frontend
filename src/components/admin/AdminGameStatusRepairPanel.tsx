@@ -149,7 +149,7 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-2xl border p-5 ${accentClassName}`}>
-      <p className="text-sm uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="text-[14px] uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-3 text-3xl font-black text-slate-50">{value}</p>
     </div>
   );
@@ -177,7 +177,7 @@ function MismatchReasons({ reasons }: { reasons: string[] }) {
 function RepairedGameRow({ game }: { game: AdminGameScoreSyncResult }) {
   return (
     <TableRow data-testid={`admin-game-status-repaired-${game.gameId}`} className="border-slate-800/80">
-      <TableCell className="font-mono text-sm text-slate-300">{game.gameId}</TableCell>
+      <TableCell className="font-mono text-[14px] text-slate-300">{game.gameId}</TableCell>
       <TableCell>
         <AdminBadge className={statusBadgeClassName(game.gameStatus)}>
           {game.gameStatus}
@@ -216,14 +216,14 @@ function MismatchDateSuggestionCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">{recommendation.gameDate}</p>
-      <p className="mt-1 text-sm text-slate-400">mismatch {recommendation.mismatchCount}건</p>
+          <p className="text-[14px] font-semibold">{recommendation.gameDate}</p>
+      <p className="mt-1 text-[14px] text-slate-400">mismatch {recommendation.mismatchCount}건</p>
         </div>
         <AdminBadge className="border-amber-500/25 bg-amber-500/10 text-amber-200">
           추천
         </AdminBadge>
       </div>
-      <p className="mt-3 text-sm text-slate-300">
+      <p className="mt-3 text-[14px] text-slate-300">
         예상 상태: {statusSummary || '-'}
       </p>
     </button>
@@ -415,13 +415,13 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
       <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-2xl">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[14px] font-semibold text-emerald-300">
               <ShieldAlert className="h-4 w-4" />
               Prediction 경기 상태 복구
             </div>
             <div>
               <h2 className="text-2xl font-black text-white">경기 상태 mismatch 진단 및 복구</h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-400">
+              <p className="mt-2 max-w-3xl text-[14px] text-slate-400">
                 raw game status와 점수/이닝 데이터가 어긋난 경기를 날짜 범위 기준으로 진단하고, dry-run 또는 실제 복구를 바로 실행할 수 있습니다.
               </p>
             </div>
@@ -429,7 +429,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:min-w-[540px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <span className="flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                 <CalendarDays className="h-4 w-4" />
                 시작일
               </span>
@@ -442,7 +442,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
+              <span className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
               <Input
                 data-testid="admin-game-status-end-date"
                 type="date"
@@ -512,13 +512,13 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {lastActionMessage && (
-          <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-[14px] text-emerald-200">
             {lastActionMessage}
           </div>
         )}
 
         {panelError && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[14px] text-rose-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{panelError}</span>
           </div>
@@ -529,7 +529,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">최근 mismatch 날짜 추천</h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-[14px] text-slate-400">
               최근 14일({suggestionWindowStartDate} ~ {today}) 범위에서 mismatch가 발견된 날짜입니다.
             </p>
           </div>
@@ -548,18 +548,18 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {suggestionsError && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[14px] text-rose-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{suggestionsError}</span>
           </div>
         )}
 
         {loadingSuggestions ? (
-          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-sm text-slate-400">
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
             최근 mismatch 날짜를 확인 중입니다.
           </div>
         ) : recentRecommendations.length === 0 ? (
-          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-sm text-slate-400">
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
             최근 14일 범위에서 추천할 mismatch 날짜가 없습니다.
           </div>
         ) : (
@@ -598,7 +598,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">진단 결과</h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-[14px] text-slate-400">
               조회 범위: {formatRangeLabel(startDate, endDate || undefined)}
             </p>
           </div>
@@ -610,7 +610,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {mismatchResult && mismatchList.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-sm text-slate-400">
+          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
             선택한 날짜 범위에서 경기 상태 불일치가 없습니다.
           </div>
         ) : (
@@ -636,7 +636,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                     className="border-slate-800/80"
                   >
                     <TableCell className="text-slate-300">{mismatch.gameDate}</TableCell>
-                    <TableCell className="font-mono text-sm text-slate-300">{mismatch.gameId}</TableCell>
+                    <TableCell className="font-mono text-[14px] text-slate-300">{mismatch.gameId}</TableCell>
                     <TableCell className="text-slate-300">{formatTimeLabel(mismatch.startTime)}</TableCell>
                     <TableCell>
                       <AdminBadge className={statusBadgeClassName(mismatch.normalizedRawStatus || mismatch.rawStatus)}>
@@ -668,7 +668,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold text-white">복구 반영 목록</h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-[14px] text-slate-400">
                 {formatRangeLabel(repairResult.startDate, repairResult.endDate)} 범위에서 실제로 반영된 경기입니다.
               </p>
             </div>

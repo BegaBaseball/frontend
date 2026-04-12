@@ -244,6 +244,25 @@ test('fetchCoachAutoBriefOpsHealth는 window/date query를 AI 운영 health endp
         cache_state_breakdown: { COMPLETED: 1, PENDING_WAIT: 1 },
         data_quality_breakdown: { grounded: 1, partial: 1 },
       },
+      gate: {
+        verdict: 'PASS',
+        thresholds: {
+          max_unresolved: 2,
+          max_failed_locked: 0,
+          max_pending_wait: 2,
+          max_insufficient_ratio: 0.4,
+          min_selected_targets: 0,
+          fail_on_missing_report: true,
+        },
+        failed_locked_count: 0,
+        pending_wait_count: 1,
+        insufficient_count: 0,
+        insufficient_ratio: 0,
+        checks: {
+          failed: [],
+          warnings: [],
+        },
+      },
       unresolved_targets: [],
       latest_report: null,
     });
