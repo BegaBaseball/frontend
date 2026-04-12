@@ -247,7 +247,7 @@ export default function OffSeasonList() {
                         <div className="space-y-4">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
                                 <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
-                                <span className="text-[13px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
+                                <span className="text-[14px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-3xl font-black leading-none tracking-tight text-white md:text-4xl">
@@ -258,7 +258,7 @@ export default function OffSeasonList() {
                                     검색, 팀 필터, 구분 필터를 한 번에 묶어 원하는 선수 이동을 빠르게 좁혀볼 수 있게 정리했습니다.
                                 </p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-emerald-100/75">
+                            <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-emerald-100/75">
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
                                     <CalendarDays className="h-3.5 w-3.5" />
                                     최근 업데이트 {latestUpdate}
@@ -283,7 +283,7 @@ export default function OffSeasonList() {
                                     key={stat.label}
                                     className="rounded-3xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm"
                                 >
-                                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
+                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
                                     <p className={`mt-2 text-3xl font-black tracking-tight ${stat.accent}`}>{stat.value}</p>
                                 </div>
                             ))}
@@ -293,7 +293,7 @@ export default function OffSeasonList() {
 
                 <Card className="sticky top-4 z-30 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/95 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
                     <div className="space-y-4 p-4 md:p-5">
-                        <div className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                        <div className="flex items-center gap-2 text-[14px] font-bold uppercase tracking-[0.18em] text-zinc-400">
                             <Filter className="h-4 w-4" />
                             탐색 도구
                         </div>
@@ -379,13 +379,13 @@ export default function OffSeasonList() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[13px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                                 전체 {movements.length}건 중 {filteredList.length}건 표시
                             </span>
                             {activeFilters.map((label) => (
                                 <OffseasonPill
                                     key={label}
-                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[13px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                                 >
                                     {label}
                                 </OffseasonPill>

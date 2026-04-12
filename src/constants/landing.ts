@@ -1,15 +1,14 @@
-import { Home, Megaphone, MapPin, LineChart, Users, BookOpen } from 'lucide-react';
 import homeScreenshot from '../assets/home.png';
 import predictionScreenshot from '../assets/prediction.png';
 import diaryScreenshot from '../assets/diary.png';
 import screenshot2 from '../assets/cheer.png';
 import screenshot3 from '../assets/stadium.webp';
 import mateScreenshot1 from '../assets/mate.png';
-import { Feature } from '../types/landing';
+import type { Feature } from '../types/landing';
 
 export const LANDING_FEATURES: Feature[] = [
   {
-    icon: Home,
+    iconKey: 'home',
     title: 'KBO 경기일정 및 홈',
     description: '실시간 경기 정보, 스토브리그 소식을 확인하세요',
     image: homeScreenshot,
@@ -21,7 +20,7 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: Megaphone,
+    iconKey: 'megaphone',
     title: '응원석',
     description: '마이팀 설정으로 필터링하여 우리 팀 소식만 모아보세요',
     image: screenshot2,
@@ -33,7 +32,7 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: MapPin,
+    iconKey: 'map',
     title: '구장 가이드',
     description: '야구장 내부 맛집, 배달존 및 근처 편의점, 주차장 정보 제공',
     image: screenshot3,
@@ -45,7 +44,7 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: LineChart,
+    iconKey: 'linechart',
     title: '전력분석실',
     description: '전력 분석과 승부 예측으로 경기를 더 재미있게 즐기세요',
     image: predictionScreenshot,
@@ -57,7 +56,7 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: Users,
+    iconKey: 'users',
     title: '같이가요',
     description: '직관메이트를 구하고 함께 야구를 즐기세요',
     image: mateScreenshot1,
@@ -69,7 +68,7 @@ export const LANDING_FEATURES: Feature[] = [
     ]
   },
   {
-    icon: BookOpen,
+    iconKey: 'book',
     title: '다이어리',
     description: '개인화된 페이지에서 나만의 야구 다이어리를 작성하세요',
     image: diaryScreenshot,
