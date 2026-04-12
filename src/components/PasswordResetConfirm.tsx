@@ -1,9 +1,15 @@
-import { ArrowLeft, Check, Eye, EyeOff, Lock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { usePasswordResetConfirm } from '../hooks/usePasswordResetConfirm';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LockIcon,
+} from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -46,7 +52,7 @@ export default function PasswordResetConfirm() {
             className="auth-back-link"
             data-testid="password-reset-confirm-back-link"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeftIcon className="h-5 w-5" />
             <span>로그인으로 돌아가기</span>
           </button>
 
@@ -67,7 +73,7 @@ export default function PasswordResetConfirm() {
             <AuthFieldGroup>
               <div className="space-y-2">
                 <label htmlFor="newPassword" className="flex items-center gap-2 text-foreground">
-                  <Lock className="h-4 w-4 text-primary" />
+                  <LockIcon className="h-4 w-4 text-primary" />
                   새 비밀번호
                 </label>
                 <div className="relative">
@@ -92,7 +98,7 @@ export default function PasswordResetConfirm() {
                     aria-label={showNewPassword ? '새 비밀번호 숨기기' : '새 비밀번호 보기'}
                     data-testid="password-reset-confirm-new-password-visibility"
                   >
-                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showNewPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                   </button>
                 </div>
                 {fieldErrors.newPassword ? (
@@ -108,7 +114,7 @@ export default function PasswordResetConfirm() {
 
               <div className="space-y-2">
                 <label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
-                  <Lock className="h-4 w-4 text-primary" />
+                  <LockIcon className="h-4 w-4 text-primary" />
                   비밀번호 확인
                 </label>
                 <div className="relative">
@@ -133,7 +139,7 @@ export default function PasswordResetConfirm() {
                     aria-label={showConfirmPassword ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
                     data-testid="password-reset-confirm-confirm-password-visibility"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                   </button>
                 </div>
                 {fieldErrors.confirmPassword ? <p className="auth-error-text">* {fieldErrors.confirmPassword}</p> : null}
@@ -179,7 +185,7 @@ export default function PasswordResetConfirm() {
 
           <div className="space-y-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white">
-              <Check className="h-10 w-10" />
+              <CheckIcon className="h-10 w-10" />
             </div>
 
             <AuthActionGroup>

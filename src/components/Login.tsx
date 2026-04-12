@@ -1,4 +1,3 @@
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { getSocialLoginUrl } from '../api/authPublic';
@@ -6,6 +5,7 @@ import { useLoginForm } from '../hooks/useLoginForm';
 import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
 import { sanitizeLoginPasswordText, sanitizeLoginText } from '../utils/validation';
 import AuthLayout from './auth/AuthLayout';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -62,7 +62,7 @@ export default function Login() {
         <AuthFieldGroup>
           <div className="space-y-2">
             <label htmlFor="email" className="flex items-center gap-2 text-foreground">
-              <Mail className="h-4 w-4 text-primary" />
+              <MailIcon className="h-4 w-4 text-primary" />
               E-mail
             </label>
             <Input
@@ -86,7 +86,7 @@ export default function Login() {
 
           <div className="space-y-2">
             <label htmlFor="password" className="flex items-center gap-2 text-foreground">
-              <Lock className="h-4 w-4 text-primary" />
+              <LockIcon className="h-4 w-4 text-primary" />
               Password
             </label>
             <div className="relative">
@@ -111,7 +111,7 @@ export default function Login() {
                 aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                 data-testid="login-password-visibility"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
               </button>
             </div>
             {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}

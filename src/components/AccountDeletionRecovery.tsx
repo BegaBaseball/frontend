@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
@@ -8,6 +7,11 @@ import {
 } from '../api/accountDeletionRecoveryPublic';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ShieldAlertIcon,
+} from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthHeader,
@@ -107,7 +111,7 @@ export default function AccountDeletionRecovery() {
         className="auth-back-link"
         data-testid="account-recovery-back-link"
       >
-        <ArrowLeft className="h-5 w-5" />
+        <ArrowLeftIcon className="h-5 w-5" />
         <span>로그인 화면으로</span>
       </button>
 
@@ -122,7 +126,7 @@ export default function AccountDeletionRecovery() {
 
           <div className="space-y-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white">
-              <CheckCircle2 className="h-10 w-10" />
+              <CheckCircleIcon className="h-10 w-10" />
             </div>
 
             <AuthActionGroup>
@@ -151,7 +155,7 @@ export default function AccountDeletionRecovery() {
           <div className="space-y-6" data-testid="account-recovery-panel">
             <div className="flex items-center justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <ShieldAlert className="h-7 w-7" />
+                <ShieldAlertIcon className="h-7 w-7" />
               </div>
             </div>
 
