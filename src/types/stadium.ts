@@ -1,3 +1,5 @@
+import type { ComponentType, SVGProps } from 'react';
+
 // src/types/stadium.ts
 export interface Stadium {
   stadiumId: string;
@@ -25,11 +27,13 @@ export interface Place {
 }
 
 export type CategoryType = 'food' | 'delivery' | 'store' | 'parking';
+export type StadiumCategoryIconKey = 'utensils' | 'truck' | 'shoppingBag' | 'parkingCircle';
+export type StadiumIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 export interface CategoryConfig {
   key: CategoryType;
   label: string;
-  icon: import('lucide-react').LucideIcon;
+  iconKey: StadiumCategoryIconKey;
   color: string;
   bgColor: string;
   borderColor: string;
