@@ -87,7 +87,7 @@ export default function MateDetailRuntime() {
     ...(partyId != null
       ? getMatePartyMyApplicationQueryOptions(partyId, currentUserId)
       : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
-    enabled: Boolean(partyId && currentUserId),
+    enabled: Boolean(partyId && currentUserId && !isHost),
   });
   const myApplication = myApplicationQuery.data ?? null;
 

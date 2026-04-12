@@ -14,7 +14,9 @@ import {
 import {
     COACH_BRIEFING_DISPLAY_MESSAGE,
     COACH_BRIEFING_MANUAL_HINT,
+    getCoachAnalysisFocusSectionNotice,
     getCoachBriefingDataQualityNotice,
+    getCoachGenerationModeNotice,
     normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
 } from '../utils/prediction';
@@ -657,6 +659,14 @@ export default function CoachAnalysisDialogResultRuntime({
         () => getCoachGenerationModeLabel(result?.generation_mode),
         [result?.generation_mode],
     );
+    const focusSectionNotice = useMemo(
+        () => getCoachAnalysisFocusSectionNotice(result?.missing_focus_sections),
+        [result?.missing_focus_sections],
+    );
+    const generationModeNotice = useMemo(
+        () => getCoachGenerationModeNotice(result?.generation_mode, result?.data_quality),
+        [result?.data_quality, result?.generation_mode],
+    );
     const selectedFocusNormalized = useMemo(
         () => normalizeFocus(selectedFocus),
         [selectedFocus],
@@ -701,13 +711,13 @@ export default function CoachAnalysisDialogResultRuntime({
                             resolvedFocus.map((focusId) => (
                                 <span
                                     key={focusId}
-                                    className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[13px] font-semibold text-emerald-700 dark:text-emerald-200"
+                                className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[16px] font-semibold text-emerald-700 dark:text-emerald-200"
                                 >
                                     {focusLabelMap[focusId] || focusId}
                                 </span>
                             ))
                         ) : (
-                            <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[13px] font-semibold text-emerald-700 dark:text-emerald-200">
+                            <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[16px] font-semibold text-emerald-700 dark:text-emerald-200">
                                 종합 분석
                             </span>
                         )}
@@ -719,7 +729,7 @@ export default function CoachAnalysisDialogResultRuntime({
                     )}
                     {result?.focus_section_missing && (
                         <p className="text-[16px] text-amber-700 dark:text-amber-300 font-semibold">
-                            일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.
+                            {focusSectionNotice || '일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.'}
                         </p>
                     )}
                 </div>
@@ -733,7 +743,7 @@ export default function CoachAnalysisDialogResultRuntime({
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             data-testid="coach-analysis-data-quality-badge"
-                            className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[13px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
+                            className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[16px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
                         >
                             {analysisDataQualityLabel}
                         </span>
@@ -746,7 +756,7 @@ export default function CoachAnalysisDialogResultRuntime({
                             <span
                                 key={reason}
                                 data-testid="coach-analysis-grounding-reason"
-                                className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[13px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
+                                className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[16px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
                             >
                                 {reason}
                             </span>
@@ -780,7 +790,7 @@ export default function CoachAnalysisDialogResultRuntime({
                 >
                     <div className="flex flex-wrap items-center gap-2">
                         <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[13px] font-semibold ${
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[16px] font-semibold ${
                                 result.generation_mode === 'llm_manual'
                                     ? 'border-emerald-300/70 bg-white/80 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-100'
                                     : 'border-slate-300/70 bg-white/80 text-slate-700 dark:border-slate-600/70 dark:bg-slate-800/60 dark:text-slate-100'
@@ -792,9 +802,9 @@ export default function CoachAnalysisDialogResultRuntime({
                             {generationModeLabel}
                         </p>
                     </div>
-                        {result.generation_mode === 'evidence_fallback' && (
+                        {result.generation_mode === 'evidence_fallback' && generationModeNotice && (
                         <p className="mt-3 text-[16px] font-semibold leading-relaxed">
-                            이번 응답은 확인 가능한 근거만으로 보수 생성되었습니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.
+                            {generationModeNotice}
                         </p>
                     )}
                 </div>

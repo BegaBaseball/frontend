@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getHomeWidgetsQueryOptions } from '../../api/home';
@@ -6,7 +6,7 @@ import { seedMatePartyQueryData } from '../../hooks/mateList';
 import type { FeaturedMateCard } from '../../types/home';
 import { buildDisplayableRankings } from '../../utils/homeDashboard';
 import { getRankingDisplayName } from '../../utils/homeTeamNameResolution';
-import HomeSecondaryPanels from './HomeSecondaryPanels';
+const HomeSecondaryPanels = lazy(() => import('./HomeSecondaryPanels'));
 
 const HOME_DASHBOARD_TEAM_COUNT = 10;
 const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = 'h-[260px]';
@@ -48,6 +48,30 @@ export default function HomeSecondaryPanelsContainer({
 }: HomeSecondaryPanelsContainerProps) {
   const queryClient = useQueryClient();
   const [rankingSeasonOverride, setRankingSeasonOverride] = useState<number | null>(null);
+  const homeSecondaryPanelsFallback = (
+    <div className="space-y-5" data-testid="home-secondary-panels">
+      <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-12">
+        <div className="flex flex-col gap-4 lg:col-span-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <section className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">실시간 인기 응원글</h3>
+              <div className="h-[260px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
+            </section>
+            <section className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">직관 메이트 찾기</h3>
+              <div className="h-[260px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
+            </section>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 lg:col-span-4">
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
+            <div className="h-[529px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70" />
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     setRankingSeasonOverride(null);
@@ -119,48 +143,49 @@ export default function HomeSecondaryPanelsContainer({
   };
 
   return (
-    <HomeSecondaryPanels
-      selectedDate={selectedDate}
-      selectedDateKey={selectedDateKey}
-      showCalendar={showCalendar}
-      shouldMountWelcomeGuide={shouldMountWelcomeGuide}
-      calendarDialogTitleId={calendarDialogTitleId}
-      loggedIn={loggedIn}
-      userId={userId}
-      currentYear={currentYear}
-      isHotCheerLoading={isHotCheerLoading}
-      hotCheerError={hotCheerError}
-      hotCheerPosts={hotCheerPosts}
-      isFeaturedMatesLoading={isFeaturedMatesLoading}
-      featuredMatesError={featuredMatesError}
-      featuredMates={featuredMates}
-      rankingSeasonYear={rankingSeasonYear}
-      isRankingsLoading={isRankingsLoading}
-      rankingsError={rankingFailedWithoutData}
-      displayedRankings={displayedRankings}
-      rankingDataVisibilityMessage={rankingDataVisibilityMessage}
-      rankingStatusHintMessage={rankingStatusHintMessage}
-      rankingPlaceholderRows={rankingPlaceholderRows}
-      homeDashboardCardHeightClass={HOME_DASHBOARD_CARD_HEIGHT_CLASS}
-      teamRankingCardHeightClass={TEAM_RANKING_CARD_HEIGHT_CLASS}
-      homeDashboardRankingRowClass={HOME_DASHBOARD_RANKING_ROW_CLASS}
-      onRetryWidgets={handleRetryWidgets}
-      onRetryRanking={handleRetryRanking}
-      onLoadPreviousRankingSeason={() => {
-        setRankingSeasonOverride(rankingSeasonYear - 1);
-      }}
-      onLoadNextRankingSeason={() => {
-        if (rankingSeasonYear >= currentYear) {
-          return;
-        }
-        setRankingSeasonOverride(rankingSeasonYear + 1);
-      }}
-      onNavigateToCheer={onNavigateToCheer}
-      onNavigateToMate={onNavigateToMate}
-      onNavigateToCheerPost={onNavigateToCheerPost}
-      onSelectFeaturedMate={handleSelectFeaturedMate}
-      onCloseCalendar={onCloseCalendar}
-      onSelectCalendarDate={onSelectCalendarDate}
-    />
+    <Suspense fallback={homeSecondaryPanelsFallback}>
+      <HomeSecondaryPanels
+        selectedDate={selectedDate}
+        showCalendar={showCalendar}
+        shouldMountWelcomeGuide={shouldMountWelcomeGuide}
+        calendarDialogTitleId={calendarDialogTitleId}
+        loggedIn={loggedIn}
+        userId={userId}
+        currentYear={currentYear}
+        isHotCheerLoading={isHotCheerLoading}
+        hotCheerError={hotCheerError}
+        hotCheerPosts={hotCheerPosts}
+        isFeaturedMatesLoading={isFeaturedMatesLoading}
+        featuredMatesError={featuredMatesError}
+        featuredMates={featuredMates}
+        rankingSeasonYear={rankingSeasonYear}
+        isRankingsLoading={isRankingsLoading}
+        rankingsError={rankingFailedWithoutData}
+        displayedRankings={displayedRankings}
+        rankingDataVisibilityMessage={rankingDataVisibilityMessage}
+        rankingStatusHintMessage={rankingStatusHintMessage}
+        rankingPlaceholderRows={rankingPlaceholderRows}
+        homeDashboardCardHeightClass={HOME_DASHBOARD_CARD_HEIGHT_CLASS}
+        teamRankingCardHeightClass={TEAM_RANKING_CARD_HEIGHT_CLASS}
+        homeDashboardRankingRowClass={HOME_DASHBOARD_RANKING_ROW_CLASS}
+        onRetryWidgets={handleRetryWidgets}
+        onRetryRanking={handleRetryRanking}
+        onLoadPreviousRankingSeason={() => {
+          setRankingSeasonOverride(rankingSeasonYear - 1);
+        }}
+        onLoadNextRankingSeason={() => {
+          if (rankingSeasonYear >= currentYear) {
+            return;
+          }
+          setRankingSeasonOverride(rankingSeasonYear + 1);
+        }}
+        onNavigateToCheer={onNavigateToCheer}
+        onNavigateToMate={onNavigateToMate}
+        onNavigateToCheerPost={onNavigateToCheerPost}
+        onSelectFeaturedMate={handleSelectFeaturedMate}
+        onCloseCalendar={onCloseCalendar}
+        onSelectCalendarDate={onSelectCalendarDate}
+      />
+    </Suspense>
   );
 }

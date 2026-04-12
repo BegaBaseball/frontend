@@ -271,7 +271,7 @@ export default function CheerFeedRuntimeContent({
                             <ErrorBoundary
                                 key={post.id}
                                 fallback={(
-                                    <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
                                         일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
                                     </article>
                                 )}
@@ -295,7 +295,7 @@ export default function CheerFeedRuntimeContent({
                 )}
                 <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
                     {queryError && currentPosts.length > 0 ? (
-                        <div className="flex flex-col items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                        <div className="flex flex-col items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-gray-300">
                                 <span className="font-bold">데이터를 불러오지 못했습니다.</span>
                             <p className="text-[16px] font-bold text-slate-400 dark:text-slate-300">
                                 네트워크 상태를 확인하고 다시 시도해 주세요
@@ -309,7 +309,7 @@ export default function CheerFeedRuntimeContent({
                             </button>
                         </div>
                     ) : isFetchingNextPage ? (
-                        <div className="flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                        <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-gray-300">
                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             <span className="font-bold">불러오는 중...</span>
                         </div>

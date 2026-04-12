@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import type { Game, Ranking } from '../types/home';
-import { buildDisplayableRankings, groupGamesBySourceDate, partitionGamesByLeague } from './homeDashboard';
+import { buildDisplayableRankings } from './homeDashboard';
+import { groupGamesBySourceDate, partitionGamesByLeague } from './homeGameGrouping';
 
 const buildGame = (overrides: Partial<Game>): Game => ({
   gameId: '20260324KBO1',

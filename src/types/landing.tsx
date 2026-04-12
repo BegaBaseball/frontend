@@ -1,7 +1,13 @@
-import { LucideIcon } from 'lucide-react';
+export type LandingFeatureIconKey =
+  | 'home'
+  | 'megaphone'
+  | 'map'
+  | 'linechart'
+  | 'users'
+  | 'book';
 
 export interface Feature {
-  icon: LucideIcon;
+  iconKey: LandingFeatureIconKey;
   title: string;
   description: string;
   image: string;

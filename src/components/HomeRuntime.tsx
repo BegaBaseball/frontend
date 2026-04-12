@@ -1,9 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    ChevronLeft, ChevronRight,
-    Loader2, Flame, AlertTriangle, RefreshCw
-} from 'lucide-react';
 
 import { Button } from './ui/button';
 import {
@@ -20,18 +16,25 @@ import {
     type LeagueTab,
 } from '../utils/predictionHomeLogic';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import { groupGamesBySourceDate, partitionGamesByLeague } from '../utils/homeDashboard';
+import { groupGamesBySourceDate, partitionGamesByLeague } from '../utils/homeGameGrouping';
 import type { Game, HomeProps, LeagueStartDates } from '../types/home';
 import { queryClient } from '../lib/queryClient';
 import {
     toLocalMiddayDate,
     formatHomeDate,
 } from '../utils/homeSeasonLogic';
-import { resolveLeagueBadge } from '../utils/homeTeamNameResolution';
+import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
-import { buildMateRouteLocationState } from '../utils/mate';
 import { GameCardSkeleton, ScheduledGameCardSkeleton } from './home/GameCardSkeleton';
+import {
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    FlameIcon,
+    RefreshIcon,
+    SpinnerIcon,
+    WarningTriangleIcon,
+} from './icons/PublicShellIcons';
 import { useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
 
 const LazyHomeSecondaryPanels = lazy(() => import('./home/HomeSecondaryPanelsContainer'));
@@ -557,7 +560,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     if (!leagueStartDates) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <SpinnerIcon className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
@@ -567,17 +570,17 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
             {connectionError && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
                     <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                            <p className="text-[16px] text-amber-800 dark:text-amber-300 font-semibold">
+                        <WarningTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <p className="text-[16px] text-amber-800 dark:text-amber-300 font-bold">
                                 서버 연결에 문제가 있습니다. 백엔드 서비스 상태를 확인해주세요.
                             </p>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
-                                className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 font-semibold"
+                                className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 font-bold"
                             >
-                            <RefreshCw className="w-4 h-4 mr-1" /> 재시도
+                            <RefreshIcon className="w-4 h-4 mr-1" /> 재시도
                         </Button>
                     </div>
                 </div>
@@ -592,13 +595,13 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 KBO LEAGUE
                             </h1>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-300 font-semibold pl-4">
+                        <p className="text-gray-500 dark:text-gray-300 font-bold pl-4">
                             {selectedDate.getFullYear()} 시즌 경기 일정 및 순위
                         </p>
                     </div>
                     <div>
                         <Button variant="outline" onClick={() => navigate('/offseason')} className="border-emerald-600/20 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
-                            <Flame className="w-4 h-4 mr-2 text-orange-500" /> 스토브리그
+                            <FlameIcon className="w-4 h-4 mr-2 text-orange-500" /> 스토브리그
                         </Button>
                     </div>
                 </div>
@@ -613,7 +616,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                       aria-label="이전 날짜"
                       className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
                     >
-                        <ChevronLeft className="w-6 h-6" />
+                        <ChevronLeftIcon className="w-6 h-6" />
                     </Button>
 
                     <div className="flex flex-col items-center min-w-[140px]">
@@ -642,7 +645,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                       aria-label="다음 날짜"
                       className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
                     >
-                        <ChevronRight className="w-6 h-6" />
+                        <ChevronRightIcon className="w-6 h-6" />
                     </Button>
                 </div>
 
@@ -664,7 +667,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                             aria-selected={isActive}
                                             aria-controls={`home-tabpanel-${tab.value}`}
                                             id={`home-tab-${tab.value}`}
-                                            className={`rounded-lg px-2 py-2 text-[16px] font-semibold transition-all ${
+                                            className={`rounded-lg px-2 py-2 text-[16px] font-bold transition-all ${
                                                 isActive
                                                     ? 'bg-primary text-white shadow-md'
                                                     : 'text-foreground dark:text-muted-foreground'
@@ -724,7 +727,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             onNavigateToMate={() => navigate('/mate')}
                             onNavigateToCheerPost={(postId) => navigate(`/cheer?postId=${postId}`)}
                             onSelectFeaturedMate={(mate) => navigate(`/mate/${mate.id}`, {
-                                state: buildMateRouteLocationState(mate),
+                                state: { partySeed: mate },
                             })}
                             onCloseCalendar={() => setShowCalendar(false)}
                             onSelectCalendarDate={(nextDate) => {

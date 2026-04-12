@@ -1,11 +1,11 @@
 import { Suspense, lazy, useState } from 'react';
-import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TEAM_LIST, getFullTeamName } from '../constants/teams';
 import { useSignUpForm } from '../hooks/useSignUpForm';
 import { buildLoginPath } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -60,10 +60,9 @@ export default function SignUp() {
         eyebrow="New Account"
         title="회원가입"
         description="응원팀과 프로필 정보를 설정해 BEGA 경험을 바로 시작하세요."
-        data-testid="signup-header"
       />
 
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate data-testid="signup-form">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {isSuccess || error ? (
           <Suspense fallback={null}>
             <LazySignUpStatusPanel error={error} isSuccess={isSuccess} />
@@ -73,7 +72,7 @@ export default function SignUp() {
         <AuthFieldGroup>
           <div className="space-y-2">
             <label htmlFor="name" className="flex items-center gap-2 text-foreground">
-              <User className="h-4 w-4 text-primary" />
+              <UserIcon className="h-4 w-4 text-primary" />
               닉네임
             </label>
             <Input
@@ -94,7 +93,7 @@ export default function SignUp() {
 
           <div className="space-y-2">
             <label htmlFor="handle" className="flex items-center gap-2 text-foreground">
-              <User className="h-4 w-4 text-primary" />
+              <UserIcon className="h-4 w-4 text-primary" />
               사용자 핸들 (@)
             </label>
             <Input
@@ -126,7 +125,7 @@ export default function SignUp() {
 
           <div className="space-y-2">
             <label htmlFor="email" className="flex items-center gap-2 text-foreground">
-              <Mail className="h-4 w-4 text-primary" />
+              <MailIcon className="h-4 w-4 text-primary" />
               이메일
             </label>
             <Input
@@ -157,7 +156,7 @@ export default function SignUp() {
 
           <div className="space-y-2">
             <label htmlFor="password" className="flex items-center gap-2 text-foreground">
-              <Lock className="h-4 w-4 text-primary" />
+              <LockIcon className="h-4 w-4 text-primary" />
               비밀번호
             </label>
             <div className="relative">
@@ -182,7 +181,7 @@ export default function SignUp() {
                 aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                 data-testid="signup-password-visibility"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
               </button>
             </div>
             {fieldErrors.password ? (
@@ -198,7 +197,7 @@ export default function SignUp() {
 
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="flex items-center gap-2 text-foreground">
-              <Lock className="h-4 w-4 text-primary" />
+              <LockIcon className="h-4 w-4 text-primary" />
               비밀번호 확인
             </label>
             <div className="relative">
@@ -223,7 +222,7 @@ export default function SignUp() {
                 aria-label={showConfirmPassword ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
                 data-testid="signup-confirm-password-visibility"
               >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
               </button>
             </div>
             {fieldErrors.confirmPassword ? <p className="auth-error-text">* {fieldErrors.confirmPassword}</p> : null}

@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
-import { Bell } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { useUIStore } from '../store/uiStore';
+import { BellIcon } from './icons/PublicShellIcons';
 import PlainMenu from './ui/plain-menu';
 
 const NotificationPanel = lazy(() => import('./NotificationPanel'));
@@ -40,7 +40,7 @@ export default function NavbarNotificationControls({
           <span
             className={unreadCount > 0 ? 'inline-flex animate-pulse' : 'inline-flex'}
           >
-            <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-primary-light' : ''}`} />
+            <BellIcon className={`w-6 h-6 ${unreadCount > 0 ? 'text-primary dark:text-primary-light' : ''}`} />
           </span>
 
           {unreadCount > 0 && (

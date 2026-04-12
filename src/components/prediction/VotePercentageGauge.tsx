@@ -27,7 +27,7 @@ export function VotePercentageGauge({
     <div className="my-5 px-2.5">
       <div className="mb-2 flex items-end justify-between gap-3 max-sm:items-start max-sm:gap-2">
         <div className="min-w-0 flex-1 text-left">
-          <div className="mb-0.5 truncate text-[0.85rem] font-bold text-gray-400 max-sm:text-[0.76rem]">
+          <div className="mb-0.5 truncate text-[1rem] font-bold text-gray-400 max-sm:text-[0.92rem]">
             {awayTeamName} 응원
           </div>
           <div className="flex flex-wrap items-baseline justify-start gap-1 max-sm:flex-col max-sm:items-start max-sm:gap-0.5">
@@ -37,7 +37,7 @@ export function VotePercentageGauge({
             >
               {awayVotes.toLocaleString()}
             </span>
-            <span className="text-[0.9rem] leading-none opacity-70 max-sm:text-[0.72rem]">
+            <span className="text-[1.02rem] leading-none opacity-70 max-sm:text-[0.92rem]">
               ({awayPercent.toFixed(1)}%)
             </span>
           </div>
@@ -50,7 +50,7 @@ export function VotePercentageGauge({
           🔥
         </div>
         <div className="min-w-0 flex-1 text-right">
-          <div className="mb-0.5 truncate text-[0.85rem] font-bold text-gray-400 max-sm:text-[0.76rem]">
+          <div className="mb-0.5 truncate text-[1rem] font-bold text-gray-400 max-sm:text-[0.92rem]">
             {homeTeamName} 응원
           </div>
           <div className="flex flex-wrap items-baseline justify-end gap-1 max-sm:flex-col max-sm:items-end max-sm:gap-0.5">
@@ -60,7 +60,7 @@ export function VotePercentageGauge({
             >
               {homeVotes.toLocaleString()}
             </span>
-            <span className="text-[0.9rem] leading-none opacity-70 max-sm:text-[0.72rem]">
+            <span className="text-[1.02rem] leading-none opacity-70 max-sm:text-[0.92rem]">
               ({homePercent.toFixed(1)}%)
             </span>
           </div>

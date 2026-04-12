@@ -1,9 +1,14 @@
 import type { CSSProperties } from 'react';
-import { AlertTriangle, ChevronDown, Clock3, RefreshCw } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import GameCard from '../GameCard';
 import ScheduledGameCard from '../ScheduledGameCard';
+import {
+  ChevronDownIcon,
+  ClockIcon,
+  RefreshIcon,
+  WarningTriangleIcon,
+} from '../icons/PublicShellIcons';
 import { GameCardSkeleton, ScheduledGameCardSkeleton } from './GameCardSkeleton';
 import { formatSourceDateLabel } from '../../utils/homeSeasonLogic';
 import type { Game } from '../../types/home';
@@ -70,21 +75,21 @@ export default function HomeMatchPanel({
         style={matchSectionMinHeightStyle}
       >
         <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
-          <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
+          <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
         </div>
-        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+        <p className="text-gray-700 dark:text-gray-200 font-bold mb-1">
           경기 일정을 불러오지 못했습니다
         </p>
-        <p className="text-gray-400 dark:text-gray-400 text-[16px] font-semibold mb-4">
+        <p className="text-gray-400 dark:text-gray-400 text-[16px] font-bold mb-4">
           네트워크 연결을 확인하고 다시 시도해주세요
         </p>
         <Button
           variant="outline"
           size="sm"
           onClick={onRetry}
-          className="border-primary/30 text-primary hover:bg-primary/5 font-semibold"
+          className="border-primary/30 text-primary hover:bg-primary/5 font-bold"
         >
-          <RefreshCw className="w-4 h-4 mr-1.5" />
+          <RefreshIcon className="w-4 h-4 mr-1.5" />
           다시 시도
         </Button>
       </div>
@@ -111,24 +116,24 @@ export default function HomeMatchPanel({
       return (
         <div
           className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm"
-          style={matchSectionMinHeightStyle}
-        >
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-500 dark:text-red-400" />
+        style={matchSectionMinHeightStyle}
+      >
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
+            <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
-        <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">
+        <p className="text-gray-700 dark:text-gray-200 font-bold mb-1">
             예정 경기 일정을 불러오지 못했습니다
           </p>
-          <p className="text-gray-500 dark:text-gray-400 text-[16px] font-semibold mt-1">
+          <p className="text-gray-500 dark:text-gray-400 text-[16px] font-bold mt-1">
             네트워크 연결을 확인하고 다시 시도해주세요
           </p>
           <Button
             variant="outline"
             size="sm"
             onClick={onRetry}
-            className="border-primary/30 text-primary hover:bg-primary/5 mt-3 font-semibold"
+            className="border-primary/30 text-primary hover:bg-primary/5 mt-3 font-bold"
           >
-            <RefreshCw className="w-4 h-4 mr-1.5" />
+            <RefreshIcon className="w-4 h-4 mr-1.5" />
             다시 시도
           </Button>
         </div>
@@ -137,7 +142,7 @@ export default function HomeMatchPanel({
 
     if (scheduledPrimaryGames.length === 0 && scheduledSecondaryGames.length === 0) {
       return (
-      <div className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300 font-semibold" style={matchSectionMinHeightStyle}>
+      <div className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300 font-bold" style={matchSectionMinHeightStyle}>
           선택한 날짜부터 7일 내 예정 경기가 없습니다.
         </div>
       );
@@ -149,16 +154,16 @@ export default function HomeMatchPanel({
           <section className="space-y-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
               <div className="flex items-center gap-2 text-[16px] font-bold text-gray-700 dark:text-gray-100">
-                <Clock3 className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
+                <ClockIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                 곧 열리는 경기
               </div>
-              <span className="inline-flex min-w-10 justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300">
+              <span className="inline-flex min-w-10 justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[16px] font-bold text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300">
                 {scheduledPrimaryGames.length}건
               </span>
             </div>
             {scheduledPrimaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
               <div key={`scheduled-primary-${sourceDate}`} className="space-y-3">
-                <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
+                <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-bold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                   {formatSourceDateLabel(sourceDate)}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
@@ -179,29 +184,29 @@ export default function HomeMatchPanel({
           <section className="space-y-4">
             <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
               <div className="flex items-center gap-2 text-[16px] font-bold text-amber-700 dark:text-amber-300">
-                <AlertTriangle className="w-4 h-4" />
+                <WarningTriangleIcon className="w-4 h-4" />
                 연기/취소
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex min-w-10 justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[16px] font-semibold text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-300">
+                <span className="inline-flex min-w-10 justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[16px] font-bold text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-300">
                   {scheduledSecondaryGames.length}건
                 </span>
                 <button
                   type="button"
                   data-testid="home-scheduled-secondary-toggle"
-                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[16px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-border dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary/70"
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[16px] font-bold text-gray-600 hover:bg-gray-50 dark:border-border dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary/70"
                   aria-expanded={isSecondarySectionExpanded}
                   onClick={onToggleSecondarySection}
                 >
                   {isSecondarySectionExpanded ? '접기' : '펼치기'}
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSecondarySectionExpanded ? 'rotate-180' : ''}`} />
+                  <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${isSecondarySectionExpanded ? 'rotate-180' : ''}`} />
                 </button>
               </div>
             </div>
             {isSecondarySectionExpanded ? (
               scheduledSecondaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
                 <div key={`scheduled-secondary-${sourceDate}`} className="space-y-3">
-                  <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-semibold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
+                  <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-bold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
                     {formatSourceDateLabel(sourceDate)}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
@@ -216,7 +221,7 @@ export default function HomeMatchPanel({
                 </div>
               ))
             ) : (
-              <p className="text-[16px] text-gray-500 dark:text-gray-300 font-semibold px-1">
+              <p className="text-[16px] text-gray-500 dark:text-gray-300 font-bold px-1">
                 연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.
               </p>
             )}
@@ -224,7 +229,7 @@ export default function HomeMatchPanel({
         )}
 
         {liveOrFinishedScheduledGames.length > 0 && (
-          <p className="text-[16px] text-gray-400 dark:text-gray-300 text-center font-semibold">
+          <p className="text-[16px] text-gray-400 dark:text-gray-300 text-center font-bold">
             기타 상태 경기 {liveOrFinishedScheduledGames.length}건은 예정경기 탭에서 제외되었습니다.
           </p>
         )}
@@ -235,7 +240,7 @@ export default function HomeMatchPanel({
   if (activeStandardGames.length === 0) {
     return (
       <div
-        className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300 font-semibold"
+        className="text-center py-16 flex items-center justify-center text-gray-500 dark:text-gray-300 font-bold"
         style={matchSectionMinHeightStyle}
       >
         경기가 없는 날입니다.

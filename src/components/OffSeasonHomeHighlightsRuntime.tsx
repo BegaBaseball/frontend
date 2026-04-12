@@ -41,12 +41,12 @@ export default function OffSeasonHomeHighlightsRuntime({
                     <TeamLogo team={award.team} size={36} className="md:w-11 md:h-11" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-[14px] md:text-[15px] font-black text-primary uppercase tracking-wider mb-0.5 md:mb-1">{award.award}</h4>
+                    <h4 className="text-[15px] md:text-[15px] font-black text-primary uppercase tracking-wider mb-0.5 md:mb-1">{award.award}</h4>
                     <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{award.playerName}</p>
                   </div>
                 </div>
                 <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-border">
-                  <p className="text-[14px] md:text-[15px] text-gray-600 dark:text-gray-300 font-semibold leading-relaxed">{award.stats}</p>
+                  <p className="text-[15px] md:text-[15px] text-gray-600 dark:text-gray-300 font-semibold leading-relaxed">{award.stats}</p>
                 </div>
               </div>
             </Card>
@@ -67,52 +67,52 @@ export default function OffSeasonHomeHighlightsRuntime({
             <div className="flex flex-col gap-4 py-2">
               <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-border">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-gray-300 dark:bg-border"></div>
-                <span className="text-[14px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">와일드카드</span>
+                <span className="text-[15px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">와일드카드</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-[13px] font-bold text-gray-500 dark:text-zinc-300 w-6">5위</span>
+                    <span className="text-[14px] font-bold text-gray-500 dark:text-zinc-300 w-6">5위</span>
                     <TeamLogo team="NC" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">NC</span>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-[13px] font-bold text-primary w-6">4위</span>
+                    <span className="text-[14px] font-bold text-primary w-6">4위</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
 
               <div className="relative pl-8 pb-4 border-l-2 border-primary">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-[13px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">준플레이오프</span>
+                <span className="text-[15px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">준플레이오프</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-[13px] font-bold text-gray-500 dark:text-zinc-300 w-6">3위</span>
+                    <span className="text-[14px] font-bold text-gray-500 dark:text-zinc-300 w-6">3위</span>
                     <TeamLogo team="SSG" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">SSG</span>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-[13px] font-bold text-primary w-6">WC</span>
+                    <span className="text-[14px] font-bold text-primary w-6">WC</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
 
               <div className="relative pl-8 pb-4 border-l-2 border-primary">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-[13px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">플레이오프</span>
+                <span className="text-[15px] font-bold text-gray-400 dark:text-gray-300 mb-2 block">플레이오프</span>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-[13px] font-bold text-primary w-6">2위</span>
+                    <span className="text-[14px] font-bold text-primary w-6">2위</span>
                     <TeamLogo team="한화" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">한화</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-[13px] font-bold text-gray-500 dark:text-zinc-300 w-6">준PO</span>
+                    <span className="text-[14px] font-bold text-gray-500 dark:text-zinc-300 w-6">준PO</span>
                     <TeamLogo team="삼성" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">삼성</span>
                   </div>
@@ -123,17 +123,17 @@ export default function OffSeasonHomeHighlightsRuntime({
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-yellow-500"></div>
                 <div className="flex items-center gap-2 mb-2">
                   <Crown className="w-4 h-4 text-yellow-500" />
-                  <span className="text-[13px] font-bold text-yellow-600 dark:text-yellow-400">한국시리즈</span>
+                  <span className="text-[14px] font-bold text-yellow-600 dark:text-yellow-400">한국시리즈</span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg">
-                    <span className="text-[13px] font-bold text-emerald-200 w-6">1위</span>
+                    <span className="text-[14px] font-bold text-emerald-200 w-6">1위</span>
                     <TeamLogo team="LG" size={24} />
                     <span className="font-bold text-white">LG</span>
-                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[13px] text-black">V3</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[14px] text-black">V3</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border opacity-70">
-                    <span className="text-[13px] font-bold text-gray-500 dark:text-zinc-300 w-6">PO</span>
+                    <span className="text-[14px] font-bold text-gray-500 dark:text-zinc-300 w-6">PO</span>
                     <TeamLogo team="한화" size={20} />
                     <span className="font-bold text-gray-900 dark:text-white text-[15px]">한화</span>
                   </div>
@@ -144,7 +144,7 @@ export default function OffSeasonHomeHighlightsRuntime({
             <div className="min-w-[680px] sm:min-w-[760px] md:min-w-[800px] flex items-center justify-center relative h-[340px] sm:h-[380px] md:h-[400px] gap-6 sm:gap-9 md:gap-12">
               <div className="flex flex-col gap-4 relative z-10 translate-y-20">
                 <div className="flex flex-col gap-2">
-                <span className="text-[13px] font-bold text-gray-400 dark:text-gray-300 text-center">와일드카드</span>
+                <span className="text-[14px] font-bold text-gray-400 dark:text-gray-300 text-center">와일드카드</span>
                   <div className="flex flex-col gap-3 relative">
                     <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
                     <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
@@ -158,7 +158,7 @@ export default function OffSeasonHomeHighlightsRuntime({
                     <span className="text-[15px] font-bold text-primary w-8">4위</span>
                       <TeamLogo team="삼성" size={24} />
                       <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                      <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                      <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                     </div>
                   </div>
                 </div>
@@ -181,7 +181,7 @@ export default function OffSeasonHomeHighlightsRuntime({
                     <span className="text-[15px] font-bold text-primary w-8">WC</span>
                     <TeamLogo team="삼성" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@ export default function OffSeasonHomeHighlightsRuntime({
                     <span className="text-[15px] font-bold text-primary w-8">2위</span>
                     <TeamLogo team="한화" size={24} />
                     <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[13px] text-white">승</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[14px] text-white">승</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-52">
                     <span className="text-[15px] font-bold text-gray-500 dark:text-zinc-300 w-8">준PO</span>
@@ -220,7 +220,7 @@ export default function OffSeasonHomeHighlightsRuntime({
                     <span className="text-[15px] font-bold text-emerald-200 w-8">1위</span>
                     <TeamLogo team="LG" size={32} />
                     <span className="font-bold text-white text-lg">LG</span>
-                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[13px] text-black">V3</OffseasonPill>
+                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[14px] text-black">V3</OffseasonPill>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-60 opacity-70">
                     <span className="text-[15px] font-bold text-gray-500 dark:text-zinc-300 w-8">PO</span>

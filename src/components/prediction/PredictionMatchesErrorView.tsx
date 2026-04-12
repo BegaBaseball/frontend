@@ -20,7 +20,7 @@ export default function PredictionMatchesErrorView({
           <div className="mb-4 rounded-full bg-rose-100 p-4 dark:bg-card">
             <PredictionTrendingUpIcon className="h-8 w-8 text-rose-500 dark:text-rose-300" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-slate-800 dark:text-gray-100">
+          <h3 className="mb-2 text-xl font-bold text-slate-800 dark:text-gray-100">
             예측 경기 데이터를 불러오지 못했습니다.
           </h3>
           <p className="text-slate-500 dark:text-gray-300">

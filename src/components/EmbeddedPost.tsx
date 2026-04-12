@@ -30,7 +30,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             >
                 <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
                     <Trash2 className="h-4 w-4" />
-                    <span className="text-[16px]">삭제된 게시글입니다</span>
+                    <span className="text-[16px] font-semibold">삭제된 게시글입니다</span>
                 </div>
             </div>
         );
@@ -69,7 +69,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-1.5 text-[16px] min-w-0">
+                    <div className="flex items-center gap-1.5 text-[16px] font-semibold min-w-0">
                     <span className="font-semibold text-gray-900 dark:text-white truncate">
                         {post.author}
                     </span>
@@ -81,7 +81,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
 
             {/* 본문 미리보기 */}
             {previewContent && (
-                <p className="text-[16px] text-gray-600 dark:text-gray-300 line-clamp-2">
+                <p className="text-[16px] font-semibold text-gray-600 dark:text-gray-300 line-clamp-2">
                     {previewContent}
                 </p>
             )}
@@ -99,7 +99,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                         sizes="(max-width: 1024px) 100vw, 320px"
                     />
                     {post.imageUrls.length > 1 && (
-                        <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[13px] px-1.5 py-0.5 rounded">
+                        <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[16px] px-1.5 py-0.5 rounded">
                           +{post.imageUrls.length - 1}
                         </div>
                     )}
