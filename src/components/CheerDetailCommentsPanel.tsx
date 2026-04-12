@@ -310,7 +310,7 @@ export default function CheerDetailCommentsPanel({
                   placeholder="오늘의 응원 한마디를 남겨보세요."
                   disabled={sendingComment}
                   aria-label="댓글 입력"
-                  className="min-h-[54px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3 py-2 text-[16px] leading-5 dark:border-white/10 dark:bg-slate-950/70"
+                  className="min-h-[54px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3 py-2 text-[16px] font-semibold leading-5 dark:border-white/10 dark:bg-slate-950/70"
                 />
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[16px] font-bold text-slate-500 dark:text-slate-400">
@@ -320,7 +320,7 @@ export default function CheerDetailCommentsPanel({
                   onClick={handleCommentSubmit}
                   disabled={!commentText.trim() || sendingComment}
                   aria-label="댓글 등록"
-                  className="h-7 rounded-full px-3 text-[16px] font-semibold text-white sm:h-7 sm:text-[16px]"
+                  className="h-7 rounded-full px-3 text-[16px] font-bold text-white sm:h-7 sm:text-[16px]"
                   style={{ backgroundColor: detailAccent }}
                 >
                   등록
@@ -338,11 +338,11 @@ export default function CheerDetailCommentsPanel({
           }}
         >
           <p className="text-[16px] font-bold text-slate-600 dark:text-slate-300">
-            댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.
+            댓글과 좋아요는 로그인 후 이용할 수 있습니다.
           </p>
           <Button
             onClick={onRedirectToLogin}
-            className="mt-2.5 h-7 rounded-full px-3 text-[16px] font-semibold text-white"
+            className="mt-2.5 h-7 rounded-full px-3 text-[16px] font-bold text-white"
             style={{ backgroundColor: detailAccent }}
           >
             로그인하고 참여하기
@@ -351,11 +351,11 @@ export default function CheerDetailCommentsPanel({
       )}
 
       {commentsError ? (
-        <div className="rounded-[16px] border border-slate-200 bg-white p-3 text-[16px] text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
+        <div className="rounded-[16px] border border-slate-200 bg-white p-3 text-[16px] font-semibold text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
             <p className="font-bold">{commentsError}</p>
           <Button
             variant="outline"
-            className="mt-3 rounded-full"
+            className="mt-3 rounded-full font-bold"
             onClick={async () => {
               setCommentsLoading(true);
               setCommentsError(null);
@@ -485,7 +485,7 @@ export default function CheerDetailCommentsPanel({
           {hasMoreComments ? (
           <Button
               variant="outline"
-              className="mt-3 h-8 w-full rounded-full text-[16px] font-semibold"
+              className="mt-3 h-8 w-full rounded-full text-[16px] font-bold"
               onClick={() => setShowAllComments((prev) => !prev)}
               aria-expanded={showAllComments}
               aria-label="댓글 목록 토글"

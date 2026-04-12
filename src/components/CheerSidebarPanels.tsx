@@ -57,7 +57,7 @@ export default function CheerSidebarPanels({
                         <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
                     </div>
                 ) : isTeamMetadataError ? (
-                        <div className="mt-3 rounded-xl bg-red-50 px-3 py-3 text-[16px] text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                        <div className="mt-3 rounded-xl bg-red-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
                         <p>팀 요약 정보를 불러오지 못했습니다.</p>
                         <p className="mt-1 text-[16px] text-slate-500 dark:text-slate-300 font-bold">
                             네트워크 상태를 확인하고 다시 시도해 주세요
@@ -84,7 +84,7 @@ export default function CheerSidebarPanels({
                         <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-secondary" />
                     </div>
                 ) : isGamesError ? (
-                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
                         경기 정보를 불러오지 못했습니다.
                         <button
                             type="button"
@@ -147,7 +147,7 @@ export default function CheerSidebarPanels({
                         </button>
                     </div>
                 ) : (
-                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
                         오늘 예정된 경기가 없습니다.
                     </div>
                 )}

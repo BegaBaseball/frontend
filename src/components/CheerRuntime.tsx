@@ -255,7 +255,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                         type="button"
                                         onClick={() => navigate(item.path)}
                                         className={cn(
-                                            'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-semibold transition-colors',
+                                            'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-bold transition-colors',
                                             isActive
                                                 ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
                                                 : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-gray-300 dark:hover:bg-secondary'
@@ -290,7 +290,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
                                                 className={cn(
-                                                    'relative px-4 py-2 min-h-11 flex items-center text-[16px] font-semibold rounded-full transition-all duration-200',
+                                                    'relative px-4 py-2 min-h-11 flex items-center text-[16px] font-bold rounded-full transition-all duration-200',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
