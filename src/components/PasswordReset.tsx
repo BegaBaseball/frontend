@@ -1,9 +1,9 @@
-import { ArrowLeft, Check, Mail } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { usePasswordReset } from '../hooks/usePasswordReset';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
+import { ArrowLeftIcon, CheckIcon, MailIcon } from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -42,7 +42,7 @@ export default function PasswordReset() {
             className="auth-back-link"
             data-testid="password-reset-back-link"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeftIcon className="h-5 w-5" />
             <span>로그인으로 돌아가기</span>
           </button>
 
@@ -63,7 +63,7 @@ export default function PasswordReset() {
             <AuthFieldGroup>
               <div className="space-y-2">
                 <label htmlFor="email" className="flex items-center gap-2 text-foreground">
-                  <Mail className="h-4 w-4 text-primary" />
+                  <MailIcon className="h-4 w-4 text-primary" />
                   E-mail
                 </label>
                 <Input
@@ -111,7 +111,7 @@ export default function PasswordReset() {
 
           <div className="space-y-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white">
-              <Check className="h-10 w-10" />
+              <CheckIcon className="h-10 w-10" />
             </div>
 
             <AuthActionGroup>

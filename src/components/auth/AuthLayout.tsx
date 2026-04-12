@@ -1,4 +1,3 @@
-import { Home } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +6,7 @@ import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.we
 import './auth-layout.css';
 import '../common/autofill-input.css';
 import { OptimizedImage } from '../common/OptimizedImage';
+import { HomeIcon } from '../icons/PublicShellIcons';
 import { Button } from '../ui/button';
 import {
   AuthFormPanel,
@@ -69,7 +69,7 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
                 data-testid="auth-home-button"
                 aria-label="홈으로 이동"
               >
-                <Home className="h-5 w-5" />
+                <HomeIcon className="h-5 w-5" />
                 <span className="sr-only">홈으로 이동</span>
               </Button>
             ) : null}

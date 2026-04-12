@@ -1,39 +1,28 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactElement } from 'react';
-import { Laptop, Smartphone, ShieldAlert, Unlink, Link, Clock3 } from 'lucide-react';
+import { lazy, Suspense, useState, type ReactElement } from 'react';
+import { ShieldAlert, Unlink, Link } from 'lucide-react';
 import { Button } from '../ui/button';
 import '../common/autofill-input.css';
 import {
   getConnectedProviders,
-  getDeviceSessions,
   unlinkProvider,
-  deleteAccount,
-  deleteDeviceSession,
-  deleteOtherDeviceSessions,
-  getSecurityEvents,
-  getTrustedDevices,
-  deleteTrustedDevice,
 } from '../../api/profile';
 import { getSocialLoginUrl } from '../../api/authPublic';
 import { getLinkToken } from '../../api/authPrivate';
-import { useAuthAccessActions } from '../../store/authStore';
 import { useAuthRedirectState } from '../../store/authStore';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { ACCOUNT_SETTINGS_REDIRECT_PATH } from '../../utils/authFlow';
-import { type DeviceSessionItem, type SecurityEventItem, type TrustedDeviceItem } from '../../types/profile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
+import ViewportDeferred from '../ViewportDeferred';
 
 interface AccountSettingsSectionProps {
   userProvider?: string;
   hasPassword?: boolean;
 }
 
-const DELETE_CONFIRM_TEXT = '삭제하겠습니다';
 const LAST_METHOD_TOOLTIP = '현재 로그인 중인 유일한 수단이라 해제할 수 없습니다.';
-const deletePasswordInputClass = 'auth-autofill-input pr-10';
-const LazyAccountSettingsAdvancedRuntime = lazy(() => import('./AccountSettingsAdvancedRuntime'));
+const LazyAccountSettingsSecurityRuntime = lazy(() => import('./AccountSettingsSecurityRuntime'));
 
 type ProviderKey = 'google' | 'kakao' | 'naver';
 
@@ -92,140 +81,16 @@ const PROVIDERS: ProviderMeta[] = [
   },
 ];
 
-const getSessionIcon = (deviceType?: string) => {
-  switch ((deviceType || 'desktop').toLowerCase()) {
-    case 'mobile':
-      return <Smartphone className="w-5 h-5" />;
-    case 'tablet':
-      return <Smartphone className="w-5 h-5" />;
-    default:
-      return <Laptop className="w-5 h-5" />;
-  }
-};
-
 export default function AccountSettingsSection({ userProvider, hasPassword = true }: AccountSettingsSectionProps) {
-  const navigate = useNavigate();
-  const { logout } = useAuthAccessActions();
   const { setPendingLoginRedirect } = useAuthRedirectState();
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [error, setError] = useState('');
   const [showSecurityDialog, setShowSecurityDialog] = useState(false);
-  const [securityDialogMode, setSecurityDialogMode] = useState<'unlink' | 'delete' | null>(null);
-  const [showAdvancedSettingsDialog, setShowAdvancedSettingsDialog] = useState(false);
   const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<ProviderKey | null>(null);
   const [isLinking, setIsLinking] = useState(false);
-
-  const isLocalUser = !userProvider || userProvider.toLowerCase() === 'local';
-  const isDeleteConfirmMatched = deleteConfirmText === DELETE_CONFIRM_TEXT;
 
   const { data: connectedProviders = [], isLoading: isProvidersLoading, refetch: refetchProviders } = useQuery({
     queryKey: ['connectedProviders'],
     queryFn: getConnectedProviders,
-  });
-
-  const {
-    data: securityEvents = [],
-    isLoading: isSecurityEventsLoading,
-    refetch: refetchSecurityEvents,
-  } = useQuery<SecurityEventItem[]>({
-    queryKey: ['accountSecurityEvents'],
-    queryFn: getSecurityEvents,
-    staleTime: 60_000,
-  });
-
-  const {
-    data: trustedDevices = [],
-    isLoading: isTrustedDevicesLoading,
-    refetch: refetchTrustedDevices,
-  } = useQuery<TrustedDeviceItem[]>({
-    queryKey: ['trustedDevices'],
-    queryFn: getTrustedDevices,
-    staleTime: 60_000,
-  });
-
-  const {
-    data: deviceSessions = [],
-    isLoading: isSessionLoading,
-    isError: isSessionError,
-    error: sessionError,
-    refetch: refetchDeviceSessions,
-  } = useQuery<DeviceSessionItem[]>({
-    queryKey: ['accountSessions'],
-    queryFn: getDeviceSessions,
-    staleTime: 60_000,
-  });
-
-  const sortedDeviceSessions = useMemo(
-    () =>
-      [...deviceSessions].sort((left, right) => {
-        const leftIsCurrent = left.isCurrent ? 1 : 0;
-        const rightIsCurrent = right.isCurrent ? 1 : 0;
-        if (leftIsCurrent !== rightIsCurrent) {
-          return rightIsCurrent - leftIsCurrent;
-        }
-
-        const leftTime = left.lastActiveAt ? new Date(left.lastActiveAt).getTime() : 0;
-        const rightTime = right.lastActiveAt ? new Date(right.lastActiveAt).getTime() : 0;
-        return rightTime - leftTime;
-      }),
-    [deviceSessions]
-  );
-  const hasOtherDeviceSessions = useMemo(() => sortedDeviceSessions.some((session) => !session.isCurrent), [sortedDeviceSessions]);
-  const otherDeviceSessionCount = useMemo(
-    () => sortedDeviceSessions.filter((session) => !session.isCurrent).length,
-    [sortedDeviceSessions]
-  );
-
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteAccount(isLocalUser ? password : undefined),
-    onSuccess: (data) => {
-      const recoveryUntil = data?.scheduledFor ? formatSessionTime(data.scheduledFor) : '';
-      toast.success(
-        recoveryUntil
-          ? `탈퇴 예약이 완료되었습니다. ${recoveryUntil}까지 이메일 링크로 예약을 취소할 수 있습니다.`
-          : '탈퇴 예약이 완료되었습니다.'
-      );
-      logout();
-      navigate('/');
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, '탈퇴 예약에 실패했습니다. 다시 시도해주세요.'));
-    },
-  });
-
-  const deleteSessionMutation = useMutation({
-    mutationFn: (sessionId: string) => deleteDeviceSession(sessionId),
-    onSuccess: (message) => {
-      toast.success(message);
-      refetchDeviceSessions();
-      refetchSecurityEvents();
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, '기기 로그아웃에 실패했습니다. 다시 시도해주세요.'));
-    },
-  });
-
-  const deleteOtherSessionsMutation = useMutation({
-    mutationFn: () => deleteOtherDeviceSessions(),
-    onSuccess: (message) => {
-      toast.success(message);
-      refetchDeviceSessions();
-      refetchSecurityEvents();
-    },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : '';
-      if (errorMessage.includes('현재 세션을 확인하지 못해')) {
-        toast.error('다른 기기 로그아웃을 완료하지 못했습니다.', {
-          description: '보안을 위해 작업을 중단했습니다. 다시 로그인한 뒤 다시 시도해주세요.',
-        });
-        return;
-      }
-      toast.error(getApiErrorMessage(error, '다른 기기 로그아웃에 실패했습니다. 다시 시도해주세요.'));
-    },
   });
 
   const unlinkMutation = useMutation({
@@ -233,7 +98,6 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     onSuccess: () => {
       toast.success('계정 연동이 해제되었습니다.');
       refetchProviders();
-      refetchSecurityEvents();
     },
     onError: (error: unknown) => {
       toast.error(getApiErrorMessage(error, '연동 해제에 실패했습니다. 다시 시도해주세요.'));
@@ -241,21 +105,6 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     onSettled: () => {
       setPendingUnlinkProvider(null);
       setShowSecurityDialog(false);
-      setSecurityDialogMode(null);
-    },
-  });
-
-  const removeTrustedDeviceMutation = useMutation({
-    mutationFn: (deviceId: number) => deleteTrustedDevice(deviceId),
-    onSuccess: () => {
-      toast.success('신뢰 기기가 해제되었습니다.', {
-        description: '현재 로그인 세션은 유지되고, 다음 로그인부터 새 기기로 다시 감지됩니다.',
-      });
-      refetchTrustedDevices();
-      refetchSecurityEvents();
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, '신뢰 기기 해제에 실패했습니다. 다시 시도해주세요.'));
     },
   });
 
@@ -273,22 +122,6 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       return false;
     }
     return !hasPassword && linkedCount <= 1;
-  };
-
-  const handleDeleteConfirm = async () => {
-    setError('');
-
-    if (isLocalUser && !password) {
-      setError('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    if (!isDeleteConfirmMatched) {
-      setError('확인 문구를 정확히 입력해 주세요.');
-      return;
-    }
-
-    await deleteMutation.mutateAsync();
   };
 
   const handleLinkAccount = async (provider: ProviderKey) => {
@@ -314,19 +147,11 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     }
 
     setPendingUnlinkProvider(provider);
-    setSecurityDialogMode('unlink');
     setShowSecurityDialog(true);
   };
 
   const handleSecurityConfirm = async () => {
-    if (securityDialogMode === 'delete') {
-      setShowSecurityDialog(false);
-      setSecurityDialogMode(null);
-      setShowAdvancedSettingsDialog(true);
-      return;
-    }
-
-    if (!pendingUnlinkProvider || securityDialogMode !== 'unlink') {
+    if (!pendingUnlinkProvider) {
       return;
     }
 
@@ -342,36 +167,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
 
   const handleUnlinkDialogClose = () => {
     setShowSecurityDialog(false);
-    setSecurityDialogMode(null);
     setPendingUnlinkProvider(null);
-  };
-
-  const handleAdvancedSectionRequest = () => {
-    setSecurityDialogMode('delete');
-    setShowSecurityDialog(true);
-  };
-
-  const handleOpenDeleteDialog = () => {
-    setShowAdvancedSettingsDialog(false);
-    setShowDeleteDialog(true);
-  };
-
-  const handleDeleteOtherSessions = () => {
-    deleteOtherSessionsMutation.mutate();
-  };
-
-  const handleTrustedDeviceRemove = (deviceId: number) => {
-    removeTrustedDeviceMutation.mutate(deviceId);
-  };
-
-  const renderSecurityMeta = (event: SecurityEventItem) => {
-    const parts = [event.deviceLabel, event.browser, event.os].filter(Boolean);
-    const summary = parts.join(' · ');
-    if (!summary && !event.ip) {
-      return null;
-    }
-
-    return [summary, event.ip ? `IP: ${event.ip}` : null].filter(Boolean).join(' · ');
   };
 
   const renderProviderCard = (provider: ProviderMeta) => {
@@ -453,41 +249,6 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
     );
   };
 
-  const formatSessionTime = (value?: string) => {
-    if (!value) {
-      return '시간 정보 없음';
-    }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return date.toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  useEffect(() => {
-    if (!showDeleteDialog) {
-      setPassword('');
-      setDeleteConfirmText('');
-      setShowPassword(false);
-      setError('');
-    }
-  }, [showDeleteDialog]);
-
-  const handleDeleteDialogClose = () => {
-    if (deleteMutation.isPending) {
-      return;
-    }
-    setShowDeleteDialog(false);
-  };
-
   return (
       <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
       <div className="flex items-center gap-3 mb-6">
@@ -500,222 +261,33 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         <div className="space-y-3">{PROVIDERS.map(renderProviderCard)}</div>
       </section>
 
-      <section className="mb-8">
-        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">현재 기기</h3>
-        {isSessionLoading ? (
-          <p className="text-[16px] text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
-        ) : isSessionError ? (
-          <p className="text-[16px] text-red-500 dark:text-red-400">
-            기기 정보를 불러오지 못했습니다. 다시 시도해 주세요.
-            {sessionError instanceof Error ? ` (${sessionError.message})` : ''}
-          </p>
-        ) : sortedDeviceSessions.length > 0 ? (
-          <div className="space-y-3">
-            {sortedDeviceSessions.map((session) => (
-              <div
-                key={session.id}
-                className="rounded-xl border border-border bg-card/70 px-4 py-3"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-foreground">
-                      {getSessionIcon(session.deviceType)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[16px] font-semibold text-foreground">
-                          {session.deviceLabel || session.deviceType || '알 수 없음'}
-                        </p>
-                        {session.isCurrent ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
-                            현재 기기
-                          </span>
-                        ) : null}
-                        {!session.isCurrent && session.isRevoked ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[16px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-                            만료 추정
-                          </span>
-                        ) : null}
-                      </div>
-                        <p className="mt-1 text-[16px] text-muted-foreground truncate">
-                        {[session.browser || '브라우저', session.os || 'OS'].filter(Boolean).join(' · ')}
-                      </p>
-
-                      <div className="mt-3 grid gap-2 text-[16px] text-muted-foreground sm:grid-cols-2">
-                        <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                          <p className="font-semibold text-foreground/90">최근 활동</p>
-                          <p className="mt-1">{formatSessionTime(session.lastActiveAt || session.lastSeenAt)}</p>
-                        </div>
-                        <div className="rounded-md bg-muted/40 px-2.5 py-2">
-                          <p className="font-semibold text-foreground/90">네트워크</p>
-                          <p className="mt-1">{session.ip || 'IP 정보 없음'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {!session.isCurrent && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full shrink-0 sm:w-auto"
-                      disabled={deleteSessionMutation.isPending}
-                      onClick={() => deleteSessionMutation.mutate(session.id)}
-                    >
-                      세션 종료
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {sortedDeviceSessions.length > 1 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={deleteOtherSessionsMutation.isPending}
-                onClick={() => deleteOtherSessionsMutation.mutate()}
-              >
-                {deleteOtherSessionsMutation.isPending ? '세션 정리 중...' : '다른 기기에서 로그아웃'}
-              </Button>
-            )}
-          </div>
-        ) : (
-            <p className="text-[16px] text-muted-foreground">
-              기기 정보가 없습니다.
-            </p>
-        )}
-      </section>
-
-      <section className="mb-8">
-        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">최근 보안 활동</h3>
-        {isSecurityEventsLoading ? (
-          <p className="text-[16px] text-muted-foreground">최근 보안 활동을 불러오는 중입니다.</p>
-        ) : securityEvents.length > 0 ? (
-          <div className="space-y-3">
-            {securityEvents.map((event) => {
-              const meta = renderSecurityMeta(event);
-              return (
-                <div
-                  key={event.id}
-                  className="rounded-xl border border-border bg-card/70 px-4 py-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-foreground">
-                      <Clock3 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <p className="text-[16px] font-semibold leading-5 text-foreground">{event.message}</p>
-                        <span className="shrink-0 text-[16px] text-muted-foreground">
-                          {formatSessionTime(event.occurredAt)}
-                        </span>
-                      </div>
-                      {meta && (
-                        <p className="mt-1 text-[16px] text-muted-foreground">{meta}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-[16px] text-muted-foreground">
-            아직 보안 활동 기록이 없습니다. 새 기기 로그인, 계정 연동 변경, 세션 정리 내역이 여기에 표시됩니다.
-          </p>
-        )}
-      </section>
-
-      <section className="border-t border-border pt-6">
-        <div className="rounded-xl border border-border bg-gradient-to-br from-muted/80 via-card to-card p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
-              <div className="space-y-1.5">
-                <p className="font-semibold">고급 설정</p>
-                <p className="text-[16px] leading-relaxed text-muted-foreground">
-                  자주 쓰지 않는 보안 작업만 따로 모아두었습니다. 보안 확인 후 팝업에서 열립니다.
-                </p>
-              </div>
-              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-                {['신뢰 기기 관리', '다른 기기 로그아웃', '탈퇴 예약'].map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-[16px] text-muted-foreground"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
+      <ViewportDeferred
+        fallback={(
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-card/70 px-4 py-6 text-[16px] text-muted-foreground">
+              기기 및 보안 활동을 불러오는 중입니다.
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAdvancedSectionRequest}
-              className="w-full sm:w-auto sm:flex-shrink-0"
-              disabled={showSecurityDialog}
-            >
-              <ShieldAlert className="w-4 h-4 mr-2" />
-              보안 확인 후 열기
-            </Button>
           </div>
-        </div>
-      </section>
-
-      {(showAdvancedSettingsDialog || showDeleteDialog) && (
+        )}
+        rootMargin="220px 0px 300px 0px"
+      >
         <Suspense fallback={null}>
-          <LazyAccountSettingsAdvancedRuntime
-            showAdvancedSettingsDialog={showAdvancedSettingsDialog}
-            showDeleteDialog={showDeleteDialog}
-            onAdvancedDialogClose={() => setShowAdvancedSettingsDialog(false)}
-            onDeleteDialogClose={handleDeleteDialogClose}
-            onDeleteOtherSessions={handleDeleteOtherSessions}
-            onTrustedDeviceRemove={handleTrustedDeviceRemove}
-            onOpenDeleteDialog={handleOpenDeleteDialog}
-            onDeleteConfirm={handleDeleteConfirm}
-            isDeleteOtherSessionsPending={deleteOtherSessionsMutation.isPending}
-            hasOtherDeviceSessions={hasOtherDeviceSessions}
-            otherDeviceSessionCount={otherDeviceSessionCount}
-            trustedDevices={trustedDevices}
-            isTrustedDevicesLoading={isTrustedDevicesLoading}
-            isRemoveTrustedDevicePending={removeTrustedDeviceMutation.isPending}
-            isDeletePending={deleteMutation.isPending}
-            isLocalUser={isLocalUser}
-            password={password}
-            onPasswordChange={setPassword}
-            showPassword={showPassword}
-            onToggleShowPassword={() => setShowPassword((prev) => !prev)}
-            deleteConfirmText={deleteConfirmText}
-            onDeleteConfirmTextChange={setDeleteConfirmText}
-            deleteConfirmTextPlaceholder={DELETE_CONFIRM_TEXT}
-            isDeleteConfirmMatched={isDeleteConfirmMatched}
-            deletePasswordInputClass={deletePasswordInputClass}
-            error={error}
-            formatSessionTime={formatSessionTime}
-          />
+          <LazyAccountSettingsSecurityRuntime userProvider={userProvider} />
         </Suspense>
-      )}
+      </ViewportDeferred>
 
       <VerificationRequiredDialog
         isOpen={showSecurityDialog}
         onClose={handleUnlinkDialogClose}
         mode="security"
-        title={securityDialogMode === 'delete' ? '고급 설정 진입' : '연동 해제'}
+        title="연동 해제"
         description={(
           <>
-            {securityDialogMode === 'delete' ? (
-              <>
-                탈퇴 예약과 같은 고급 설정은 본인 확인 후에만 열 수 있습니다.<br />
-                확인 후에만 고급 설정 내용을 볼 수 있습니다.
-              </>
-            ) : (
-              <>
-                로그인 수단을 변경하기 전에 본인 확인이 필요합니다.<br />
-                계속 진행하면 연동이 해제됩니다.
-              </>
-            )}
+            로그인 수단을 변경하기 전에 본인 확인이 필요합니다.<br />
+            계속 진행하면 연동이 해제됩니다.
           </>
         )}
-        confirmLabel={securityDialogMode === 'delete' ? '고급 설정 진입' : '연동 해제 진행'}
+        confirmLabel="연동 해제 진행"
         onConfirm={handleSecurityConfirm}
       />
     </div>
