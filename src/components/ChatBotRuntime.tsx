@@ -1,9 +1,9 @@
 import chatBotIcon from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import './ChatBot.css';
-import { X, Loader2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { CloseIcon, SpinnerIcon } from './icons/PublicShellIcons';
 import { useAuthSession } from '../store/authStore';
 import { useIsMobile } from '../hooks/use-mobile';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -130,11 +130,11 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
           className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer p-2 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center focus:outline-none focus-visible:outline-none focus:ring-0"
           aria-label="챗봇 닫기"
         >
-          <X className="w-5 h-5" />
+          <CloseIcon className="w-5 h-5" />
         </button>
       </div>
       <div className="flex flex-1 items-center justify-center text-[16px] text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <SpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
         챗봇을 준비하는 중입니다.
       </div>
     </div>
@@ -177,7 +177,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer p-2 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center focus:outline-none focus-visible:outline-none focus:ring-0"
               aria-label="챗봇 닫기"
             >
-              <X className="w-5 h-5" />
+              <CloseIcon className="w-5 h-5" />
             </button>
           </div>
 
