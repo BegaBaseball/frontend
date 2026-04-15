@@ -1,26 +1,27 @@
 import { Suspense, lazy } from 'react';
 import type { CSSProperties } from 'react';
-import {
-    ArrowLeft,
-    Clock3,
-    Edit2,
-    ExternalLink,
-    Eye,
-    Flag,
-    Flame,
-    Megaphone,
-    MoreVertical,
-    Quote,
-    Repeat2,
-    Trash2,
-} from 'lucide-react';
 import type { CheerPost } from '../api/cheerApi';
 import { TEAM_DATA } from '../constants/teams';
 import { formatTimeAgo } from '../utils/time';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
+import { sanitizeExternalUrl } from '../utils/safeExternalUrl';
 import ImageGrid from './ImageGrid';
 import TeamLogo from './TeamLogo';
+import {
+    ArrowLeftIcon,
+    ClockIcon,
+    EditIcon,
+    ExternalLinkIcon,
+    EyeIcon,
+    FlagIcon,
+    FlameIcon,
+    MegaphoneIcon,
+    MoreVerticalIcon,
+    QuoteIcon,
+    RepeatIcon,
+    TrashIcon,
+} from './icons/CheerIcons';
 import PlainMenu from './ui/plain-menu';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
@@ -124,6 +125,8 @@ export default function CheerDetailArticleRuntime({
     const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
     const canCancelRepost = isRepost && selectedPost.isOwner;
     const repostButtonActive = canCancelRepost ? true : interactionRepostedByMe;
+    const sourceInfo = selectedPost.sourceInfo;
+    const safeSourceUrl = sanitizeExternalUrl(sourceInfo?.url);
     const originalEmbeddedPost = selectedPost.originalPost
         ? { ...selectedPost.originalPost, deleted: selectedPost.originalDeleted || selectedPost.originalPost.deleted }
         : null;
@@ -238,10 +241,10 @@ export default function CheerDetailArticleRuntime({
                                     className="rounded-full p-1.5 -ml-2 text-slate-700 transition-colors hover:bg-black/5 sm:p-2 dark:text-slate-200 dark:hover:bg-white/10"
                                     aria-label="이전으로"
                                 >
-                                    <ArrowLeft className="h-5 w-5" />
+                                    <ArrowLeftIcon className="h-5 w-5" />
                                 </button>
                                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[15px] font-bold backdrop-blur-sm sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10" style={softBadgeStyle}>
-                                    <Megaphone className="h-3 w-3" />
+                                    <MegaphoneIcon className="h-3 w-3" />
                                     {teamName}
                                 </span>
                                 {selectedPost.postType === 'NOTICE' && (
@@ -251,27 +254,27 @@ export default function CheerDetailArticleRuntime({
                                 )}
                                 {selectedPost.isHot && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[15px] font-bold text-orange-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
-                                        <Flame className="h-3 w-3" />
+                                        <FlameIcon className="h-3 w-3" />
                                         HOT
                                     </span>
                                 )}
                                 {isSimpleRepost && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[15px] font-bold text-emerald-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
-                                        <Repeat2 className="h-3 w-3" />
+                                        <RepeatIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">리포스트</span>
                                         <span className="sm:hidden">리포</span>
                                     </span>
                                 )}
                                 {isQuoteRepost && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[15px] font-bold text-violet-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
-                                        <Quote className="h-3 w-3" />
+                                        <QuoteIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">인용 응원</span>
                                         <span className="sm:hidden">인용</span>
                                     </span>
                                 )}
                                 {selectedPost.shareMode?.startsWith('EXTERNAL_') && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[15px] font-bold text-sky-700 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
-                                        <ExternalLink className="h-3 w-3" />
+                                        <ExternalLinkIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">외부 출처</span>
                                         <span className="sm:hidden">외부</span>
                                     </span>
@@ -280,7 +283,7 @@ export default function CheerDetailArticleRuntime({
 
                             <div className="mt-2.5 flex items-start gap-2.5 sm:mt-3 sm:gap-3">
                                 <div
-                                    className="relative h-12 w-12 flex-shrink-0 cursor-pointer rounded-full transition-transform hover:scale-[1.02]"
+                                    className="relative h-12 w-12 flex-shrink-0 cursor-pointer rounded-full"
                                     onClick={() => onNavigateToProfile(displayAuthorHandle)}
                                 >
                                     <ProfileAvatar
@@ -290,7 +293,7 @@ export default function CheerDetailArticleRuntime({
                                         width={48}
                                         height={48}
                                         showRing
-                                        ringVariant="cheer"
+                                        ringVariant="cheerFeed"
                                     />
                                     {displayAuthorTeamId && (
                                         <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white p-0.5 shadow-sm dark:bg-slate-800">
@@ -319,12 +322,12 @@ export default function CheerDetailArticleRuntime({
                                         <span>{displayAuthorHandleLabel}</span>
                                         <span className="mx-0.5 h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-500" />
                                         <span className="flex items-center gap-1">
-                                            <Clock3 className="h-3 w-3" />
+                                            <ClockIcon className="h-3 w-3" />
                                             {displayTimeAgo}
                                         </span>
                                         <span className="mx-0.5 h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-500" />
                                         <span className="flex items-center gap-1">
-                                            <Eye className="h-3 w-3" />
+                                            <EyeIcon className="h-3 w-3" />
                                             조회 {selectedPost.views.toLocaleString()}
                                         </span>
                                     </div>
@@ -348,7 +351,7 @@ export default function CheerDetailArticleRuntime({
                                             aria-expanded={isOwnerMenuOpen}
                                             aria-haspopup="menu"
                                         >
-                                            <MoreVertical className="h-5 w-5" />
+                                            <MoreVerticalIcon className="h-5 w-5" />
                                         </button>
                                     )}
                                 >
@@ -361,7 +364,7 @@ export default function CheerDetailArticleRuntime({
                                         }}
                                         className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
                                     >
-                                        <Edit2 className="mr-2 h-4 w-4" />
+                                        <EditIcon className="mr-2 h-4 w-4" />
                                         수정하기
                                     </button>
                                     <button
@@ -373,7 +376,7 @@ export default function CheerDetailArticleRuntime({
                                         }}
                                         className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                     >
-                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <TrashIcon className="mr-2 h-4 w-4" />
                                         삭제하기
                                     </button>
                                 </PlainMenu>
@@ -385,7 +388,7 @@ export default function CheerDetailArticleRuntime({
                                     title="신고하기"
                                     aria-label="신고하기"
                                 >
-                                    <Flag className="h-5 w-5" />
+                                    <FlagIcon className="h-5 w-5" />
                                 </button>
                             ) : null}
                         </div>
@@ -429,22 +432,22 @@ export default function CheerDetailArticleRuntime({
                                             {displayContent}
                                         </div>
 
-                                        {selectedPost.shareMode?.startsWith('EXTERNAL_') && selectedPost.sourceInfo?.url && (
+                                        {selectedPost.shareMode?.startsWith('EXTERNAL_') && safeSourceUrl && (
                                             <a
-                                                href={selectedPost.sourceInfo.url}
+                                                href={safeSourceUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="mt-4 flex items-start justify-between gap-3 rounded-[18px] border border-sky-200 bg-sky-50/80 px-3.5 py-3 text-left text-sky-800 transition-colors hover:bg-sky-100 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/15"
                                             >
                                                 <div className="min-w-0">
                                                     <p className="text-[16px] font-bold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300">출처</p>
-                                                    <p className="mt-1 truncate text-[16px] font-bold">{selectedPost.sourceInfo.url}</p>
+                                                    <p className="mt-1 truncate text-[16px] font-bold">{safeSourceUrl}</p>
                                                     <p className="mt-1 text-[16px] font-bold text-sky-700/80 dark:text-sky-200/80">
-                                                        {selectedPost.sourceInfo.author || '작성자 미상'}
-                                                        {selectedPost.sourceInfo.license ? ` · ${selectedPost.sourceInfo.license}` : ''}
+                                                        {sourceInfo?.author || '작성자 미상'}
+                                                        {sourceInfo?.license ? ` · ${sourceInfo.license}` : ''}
                                                     </p>
                                                 </div>
-                                                <ExternalLink className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                                <ExternalLinkIcon className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                             </a>
                                         )}
 

@@ -1,7 +1,6 @@
-import { Sparkles } from 'lucide-react';
-
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { Button } from '../ui/button';
+import { SparklesIcon } from '../icons/PublicFeatureIcons';
 import PlainDialog from '../ui/plain-dialog';
 import TeamLogo from '../TeamLogo';
 import { OffseasonMovement } from './offseasonListTypes';
@@ -71,7 +70,7 @@ export function OffseasonMovementDetailPanel({
                     </div>
                     {movement.isBigEvent && (
                         <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400 text-[#173b34] shadow-sm">
-                            <Sparkles className="h-5 w-5" />
+                            <SparklesIcon className="h-5 w-5" />
                         </div>
                     )}
                 </div>

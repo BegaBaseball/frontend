@@ -439,6 +439,7 @@ export async function createPost(
   data: {
     teamId: string;
     content: string;
+    images?: string[];
     postType?: string;
     shareMode?: ShareMode;
     sourceUrl?: string;
@@ -462,6 +463,7 @@ export async function updatePost(
   id: number,
   data: {
     content: string;
+    images?: string[];
     shareMode?: ShareMode;
     sourceUrl?: string;
     sourceTitle?: string;
@@ -503,7 +505,8 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
 }
 
 export async function createComment(postId: number, content: string): Promise<Comment> {
-  return privatePost<Comment, { content: string }>(`/cheer/posts/${postId}/comments`, { content });
+  const response = await privatePost<CommentDTO, { content: string }>(`/cheer/posts/${postId}/comments`, { content });
+  return transformComment(response);
 }
 
 export async function deleteComment(commentId: number) {

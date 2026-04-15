@@ -1,11 +1,17 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Info, MapPin, MessageSquare, Shield, Star } from 'lucide-react';
 
 import AdSlot from './ads/AdSlot';
 import ViewportDeferred from './ViewportDeferred';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
+import {
+  MateInfoIcon,
+  MateMapPinIcon,
+  MateMessageSquareIcon,
+  MateShieldIcon,
+  MateStarIcon,
+} from './MateIcons';
 import type { Party } from '../types/mate';
 import {
   extractHashtags,
@@ -76,7 +82,7 @@ export default function MateDetailInfoSections({
     <>
       <Card className={`p-6 ${sectionCardClass}`}>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-          <Info className="w-5 h-5 text-primary" /> 비용 안내
+          <MateInfoIcon className="w-5 h-5 text-primary" /> 비용 안내
         </h3>
         <div className={`${insetPanelClass} p-5`}>
           {party.status === 'SELLING' ? (
@@ -148,11 +154,11 @@ export default function MateDetailInfoSections({
               </button>
               <div className="mt-2 flex flex-wrap gap-2">
                 <InlineBadge className="dark:border-border dark:text-gray-200">
-                  <Star className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
+                  <MateStarIcon className={`w-3 h-3 ${mannerScore === null ? 'text-gray-400' : 'text-yellow-500 fill-yellow-500'}`} />
                   {mannerScore === null ? mannerScoreLabel : `평점 ${mannerScoreLabel}`}
                 </InlineBadge>
                 <InlineBadge className={`${party.ticketVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200' : 'dark:border-border dark:text-gray-200'}`}>
-                  <Shield className="w-3 h-3" />
+                  <MateShieldIcon className="w-3 h-3" />
                   {party.ticketVerified ? '티켓 인증' : '인증 확인 전'}
                 </InlineBadge>
                 <InlineBadge className="border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-900/50 dark:bg-purple-950/35 dark:text-purple-200">
@@ -169,7 +175,7 @@ export default function MateDetailInfoSections({
 
       <Card className={`p-6 ${sectionCardClass}`}>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-          <MessageSquare className="w-5 h-5 text-primary" /> 파티 소개
+          <MateMessageSquareIcon className="w-5 h-5 text-primary" /> 파티 소개
         </h3>
         <p className="mb-4 whitespace-pre-wrap text-[16px] leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
           {stripHashtags(party.description)}
@@ -187,7 +193,7 @@ export default function MateDetailInfoSections({
 
       <Card className={`p-6 overflow-hidden ${sectionCardClass}`}>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white">
-          <MapPin className="w-5 h-5 text-primary" /> 좌석 시야
+          <MateMapPinIcon className="w-5 h-5 text-primary" /> 좌석 시야
         </h3>
         <div className={`${insetPanelClass} p-5`}>
           <p className="text-[16px] leading-relaxed text-gray-600 dark:text-gray-300">
@@ -198,7 +204,7 @@ export default function MateDetailInfoSections({
               {party.section.split(' ')[0]}
             </InlineBadge>
             <InlineBadge className="dark:border-border dark:text-gray-200">
-              <MapPin className="h-3 w-3" />
+              <MateMapPinIcon className="h-3 w-3" />
               {party.stadium}
             </InlineBadge>
           </div>

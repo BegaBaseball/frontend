@@ -1,5 +1,4 @@
 import { type UseMutationResult } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 
 import './Diary.css';
@@ -12,6 +11,10 @@ import { type DiaryFormData, type DiaryEntry } from '../../types/diary';
 import { getEmojiByName, getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import {
+  MyPageChevronLeftIcon,
+  MyPageChevronRightIcon,
+} from './MyPageIcons';
 
 interface DiaryReadModeProps {
   diaryForm: DiaryFormData;
@@ -76,7 +79,7 @@ export default function DiaryViewSection() {
                 }
                 className="p-2 hover:bg-muted rounded-full"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <MyPageChevronLeftIcon className="w-5 h-5" />
               </button>
               <h3 style={{ fontWeight: 900 }}>
                 {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
@@ -90,7 +93,7 @@ export default function DiaryViewSection() {
                 }
                 className="p-2 hover:bg-muted rounded-full"
               >
-                <ChevronRight className="w-5 h-5" />
+                <MyPageChevronRightIcon className="w-5 h-5" />
               </button>
             </div>
 
@@ -230,7 +233,7 @@ export default function DiaryViewSection() {
                 onClick={weekCalendar.goToPrevWeek}
                 className="p-2 hover:bg-muted rounded-full"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <MyPageChevronLeftIcon className="w-5 h-5" />
               </button>
               <h3 style={{ fontWeight: 900, fontSize: '16px' }}>
                 {weekCalendar.getWeekDays()[0].getMonth() + 1}월{' '}
@@ -243,7 +246,7 @@ export default function DiaryViewSection() {
                 onClick={weekCalendar.goToNextWeek}
                 className="p-2 hover:bg-muted rounded-full"
               >
-                <ChevronRight className="w-5 h-5" />
+                <MyPageChevronRightIcon className="w-5 h-5" />
               </button>
             </div>
 

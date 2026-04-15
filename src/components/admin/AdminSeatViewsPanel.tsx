@@ -1,5 +1,3 @@
-import { Eye } from 'lucide-react';
-
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -11,6 +9,7 @@ import {
   TableRow,
 } from '../ui/table';
 import type { AdminSeatView, AdminSeatViewFilters } from '../../types/admin';
+import { AdminEyeIcon } from './AdminDetailIcons';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
 type SeatViewModerationPayload = {
@@ -189,7 +188,7 @@ export function AdminSeatViewsPanel({
                           openSeatViewDetail(seatView.id);
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <AdminEyeIcon className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"

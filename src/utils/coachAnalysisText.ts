@@ -1,0 +1,70 @@
+const stripInlineMarkdown = (value: string): string => (
+    value
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .replace(/~~(.*?)~~/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+);
+
+const normalizeStructuredLine = (value: string): string => (
+    stripInlineMarkdown(
+        value
+            .replace(/^\s*#{1,6}\s*/, '')
+            .replace(/^\s*[-*+]\s+/, '')
+            .replace(/^\s*\d+\.\s+/, ''),
+    )
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+);
+
+export const normalizeStructuredInlineText = (
+    value: string,
+    fallback = '',
+): string => {
+    const normalized = normalizeStructuredLine(
+        String(value || '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\n+/g, ' '),
+    );
+
+    return normalized || fallback;
+};
+
+export const normalizeStructuredMultilineText = (
+    value: string,
+    fallback = '',
+): string => {
+    const source = String(value || '').replace(/\r\n/g, '\n');
+    const normalizedLines = source.split('\n').map(normalizeStructuredLine);
+    const compactLines: string[] = [];
+
+    normalizedLines.forEach((line) => {
+        if (!line) {
+            if (compactLines.length > 0 && compactLines[compactLines.length - 1] !== '') {
+                compactLines.push('');
+            }
+            return;
+        }
+        compactLines.push(line);
+    });
+
+    while (compactLines[0] === '') {
+        compactLines.shift();
+    }
+    while (compactLines[compactLines.length - 1] === '') {
+        compactLines.pop();
+    }
+
+    return compactLines.join('\n').trim() || fallback;
+};
+
+export const normalizeStructuredInsightList = (values?: unknown[]): string[] => (
+    Array.isArray(values)
+        ? values
+            .map((value) => (typeof value === 'string' ? normalizeStructuredInlineText(value, '') : ''))
+            .filter((value) => Boolean(value))
+        : []
+);

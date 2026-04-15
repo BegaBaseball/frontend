@@ -1,5 +1,5 @@
-import { Loader2, Star } from 'lucide-react';
 import type { ChatFavoriteItem } from '../../types/chatbot';
+import { ChatBotSpinnerIcon, ChatBotStarIcon } from './ChatBotIcons';
 
 interface ChatBotFavoritesTabProps {
   favorites: ChatFavoriteItem[];
@@ -22,7 +22,7 @@ export default function ChatBotFavoritesTab({
       <div className="flex-1 space-y-3 overflow-y-auto">
         {isLoadingFavorites ? (
           <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             즐겨찾기를 불러오는 중입니다.
           </div>
         ) : favorites.length === 0 ? (
@@ -45,7 +45,7 @@ export default function ChatBotFavoritesTab({
                     {new Date(favorite.favoritedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <Star className="h-4 w-4 fill-current text-amber-500" />
+                <ChatBotStarIcon className="h-4 w-4 fill-current text-amber-500" />
               </div>
               {favorite.prompt && (
                 <div className="mt-3 rounded-xl bg-gray-50 px-3 py-2 text-[16px] text-muted-foreground dark:bg-black/20">

@@ -30,13 +30,63 @@ const getAvailabilityMessageClassName = (state: 'idle' | 'checking' | 'available
   return 'auth-helper-text';
 };
 
+function AvailabilityMessage({
+  state,
+  message,
+  idleMessage,
+}: {
+  state: 'idle' | 'checking' | 'available' | 'taken' | 'error';
+  message?: string;
+  idleMessage?: string;
+}) {
+  if (state !== 'idle' && message) {
+    return (
+      <p className={getAvailabilityMessageClassName(state)}>
+        {state === 'taken' || state === 'error' ? '* ' : ''}
+        {message}
+      </p>
+    );
+  }
+
+  if (idleMessage) {
+    return <p className="auth-helper-text">{idleMessage}</p>;
+  }
+
+  return null;
+}
+
+function PasswordVisibilityButton({
+  isVisible,
+  onToggle,
+  disabled,
+  showLabel,
+  hideLabel,
+}: {
+  isVisible: boolean;
+  onToggle: () => void;
+  disabled: boolean;
+  showLabel: string;
+  hideLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+      disabled={disabled}
+      aria-label={isVisible ? hideLabel : showLabel}
+    >
+      {isVisible ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+    </button>
+  );
+}
+
 export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showTeamTest, setShowTeamTest] = useState(false);
-  const [hasOpenedTeamTest, setHasOpenedTeamTest] = useState(false);
 
   const {
     formData,
@@ -53,6 +103,7 @@ export default function SignUp() {
   } = useSignUpForm();
 
   const loginPath = buildLoginPath(new URLSearchParams(location.search).get('redirect'));
+  const isFormLocked = isLoading || isSuccess;
 
   return (
     <AuthLayout>
@@ -85,8 +136,7 @@ export default function SignUp() {
               onBlur={() => handleFieldBlur('name')}
               className={`auth-input auth-autofill-input ${fieldErrors.name ? 'auth-input-error' : ''}`}
               placeholder="홍길동"
-              disabled={isLoading || isSuccess}
-              data-testid="signup-name"
+              disabled={isFormLocked}
             />
             {fieldErrors.name ? <p className="auth-error-text">* {fieldErrors.name}</p> : null}
           </div>
@@ -108,18 +158,14 @@ export default function SignUp() {
               onBlur={() => handleFieldBlur('handle')}
               className={`auth-input auth-autofill-input ${fieldErrors.handle ? 'auth-input-error' : ''}`}
               placeholder="@username"
-              disabled={isLoading || isSuccess}
-              data-testid="signup-handle"
+              disabled={isFormLocked}
             />
-            {fieldErrors.handle ? (
-              <p className="auth-error-text">* {fieldErrors.handle}</p>
-            ) : handleAvailability.state !== 'idle' ? (
-              <p className={getAvailabilityMessageClassName(handleAvailability.state)}>
-                {handleAvailability.state === 'taken' || handleAvailability.state === 'error' ? '* ' : ''}
-                {handleAvailability.message}
-              </p>
-            ) : (
-              <p className="auth-helper-text">핸들은 내 프로필 주소로 사용되며 소문자로 저장됩니다. (기호는 _만 가능)</p>
+            {fieldErrors.handle ? <p className="auth-error-text">* {fieldErrors.handle}</p> : (
+              <AvailabilityMessage
+                state={handleAvailability.state}
+                message={handleAvailability.message}
+                idleMessage="핸들은 내 프로필 주소로 사용되며 소문자로 저장됩니다. (기호는 _만 가능)"
+              />
             )}
           </div>
 
@@ -141,17 +187,14 @@ export default function SignUp() {
               onBlur={() => handleFieldBlur('email')}
               className={`auth-input auth-autofill-input ${fieldErrors.email ? 'auth-input-error' : ''}`}
               placeholder="example@email.com"
-              disabled={isLoading || isSuccess}
-              data-testid="signup-email"
+              disabled={isFormLocked}
             />
-            {fieldErrors.email ? (
-              <p className="auth-error-text">* {fieldErrors.email}</p>
-            ) : emailAvailability.state !== 'idle' ? (
-              <p className={getAvailabilityMessageClassName(emailAvailability.state)}>
-                {emailAvailability.state === 'taken' || emailAvailability.state === 'error' ? '* ' : ''}
-                {emailAvailability.message}
-              </p>
-            ) : null}
+            {fieldErrors.email ? <p className="auth-error-text">* {fieldErrors.email}</p> : (
+              <AvailabilityMessage
+                state={emailAvailability.state}
+                message={emailAvailability.message}
+              />
+            )}
           </div>
 
           <div className="space-y-2">
@@ -170,19 +213,15 @@ export default function SignUp() {
                 onBlur={() => handleFieldBlur('password')}
                 className={`auth-input auth-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
                 placeholder="8자 이상 입력"
-                disabled={isLoading || isSuccess}
-                data-testid="signup-password"
+                disabled={isFormLocked}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={isLoading || isSuccess}
-                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                data-testid="signup-password-visibility"
-              >
-                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-              </button>
+              <PasswordVisibilityButton
+                isVisible={showPassword}
+                onToggle={() => setShowPassword((current) => !current)}
+                disabled={isFormLocked}
+                showLabel="비밀번호 보기"
+                hideLabel="비밀번호 숨기기"
+              />
             </div>
             {fieldErrors.password ? (
               <p className="auth-error-text">* {fieldErrors.password}</p>
@@ -211,19 +250,15 @@ export default function SignUp() {
                 onBlur={() => handleFieldBlur('confirmPassword')}
                 className={`auth-input auth-autofill-input pr-12 ${fieldErrors.confirmPassword ? 'auth-input-error' : ''}`}
                 placeholder="비밀번호 재입력"
-                disabled={isLoading || isSuccess}
-                data-testid="signup-confirm-password"
+                disabled={isFormLocked}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={isLoading || isSuccess}
-                aria-label={showConfirmPassword ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
-                data-testid="signup-confirm-password-visibility"
-              >
-                {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-              </button>
+              <PasswordVisibilityButton
+                isVisible={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword((current) => !current)}
+                disabled={isFormLocked}
+                showLabel="비밀번호 확인 보기"
+                hideLabel="비밀번호 확인 숨기기"
+              />
             </div>
             {fieldErrors.confirmPassword ? <p className="auth-error-text">* {fieldErrors.confirmPassword}</p> : null}
           </div>
@@ -237,9 +272,8 @@ export default function SignUp() {
               name="favoriteTeam"
               value={formData.favoriteTeam}
               onChange={(event) => handleFieldChange('favoriteTeam', event.target.value)}
-              disabled={isLoading || isSuccess}
+              disabled={isFormLocked}
               className={`auth-select-trigger ${fieldErrors.favoriteTeam ? 'auth-input-error' : ''}`}
-              data-testid="signup-favorite-team"
             >
               <option value="" disabled>
                 팀을 선택하세요
@@ -267,28 +301,16 @@ export default function SignUp() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => {
-                  setHasOpenedTeamTest(true);
-                  setShowTeamTest(true);
-                }}
+                onClick={() => setShowTeamTest(true)}
                 className="h-auto px-2 py-1 text-[16px] text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
-                disabled={isLoading || isSuccess}
-                data-testid="signup-team-test"
+                disabled={isFormLocked}
               >
                 구단 테스트 해보기
               </Button>
             </div>
 
-            {hasOpenedTeamTest ? (
-              <Suspense
-                fallback={
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-                    <div className="rounded-2xl border border-border bg-card px-6 py-4 text-[16px] text-muted-foreground shadow-2xl">
-                      구단 테스트를 불러오는 중...
-                    </div>
-                  </div>
-                }
-              >
+            {showTeamTest ? (
+              <Suspense fallback={null}>
                 <LazyTeamRecommendationTest
                   isOpen={showTeamTest}
                   onClose={() => setShowTeamTest(false)}
@@ -311,14 +333,10 @@ export default function SignUp() {
             size="touchLg"
             className="w-full"
             disabled={isSubmitDisabled}
-            data-testid="signup-submit"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
                 처리 중...
               </span>
             ) : isSuccess ? (
@@ -332,8 +350,7 @@ export default function SignUp() {
               type="button"
               onClick={() => navigate(loginPath)}
               className="auth-link"
-              disabled={isLoading || isSuccess}
-              data-testid="signup-login-link"
+              disabled={isFormLocked}
             >
               로그인
             </button>

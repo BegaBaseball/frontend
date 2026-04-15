@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { ChatBotSpinnerIcon } from './ChatBotIcons';
 import type { Message } from '../../types/chatbot';
 
 const ChatBotConversationPanel = lazy(() => import('./ChatBotConversationPanel'));
@@ -309,7 +309,7 @@ export default function ChatBotConversationRuntime({
       <Suspense
         fallback={(
           <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             탭을 불러오는 중입니다.
           </div>
         )}

@@ -172,6 +172,68 @@ describe('Mate execution flow UI', () => {
     });
   });
 
+  it('supports direct-entry check-in with a manual code when no QR session is present', () => {
+    const party = buildParty({
+      id: 932,
+      hostId: 999,
+      currentParticipants: 2,
+      status: 'CHECKED_IN',
+    });
+    let checkIns: Array<Record<string, unknown>> = [];
+
+    cy.intercept('GET', '**/api/parties/932*', {
+      statusCode: 200,
+      body: party,
+    }).as('getManualCheckInParty');
+
+    cy.intercept('GET', '**/api/checkin/party/932*', {
+      statusCode: 200,
+      body: checkIns,
+    }).as('getManualCheckIns');
+
+    cy.intercept('POST', '**/api/checkin', (req) => {
+      expect(req.body).to.deep.equal({
+        partyId: 932,
+        location: '잠실야구장',
+        manualCode: '0427',
+      });
+      checkIns = [
+        {
+          id: 2,
+          partyId: 932,
+          userId: 123,
+          userName: 'TestUser',
+          location: '잠실야구장',
+          checkedInAt: '2026-03-21T09:12:00Z',
+        },
+      ];
+      req.reply({
+        statusCode: 201,
+        body: checkIns[0],
+      });
+    }).as('createManualCheckIn');
+
+    cy.visit('/mate/932/checkin');
+    cy.wait('@getManualCheckInParty');
+    cy.wait('@getManualCheckIns');
+
+    cy.contains('수동 체크인 코드 입력').should('be.visible');
+    cy.get('[data-testid="checkin-summary-strip"]').within(() => {
+      cy.contains('일반 진입').should('be.visible');
+      cy.contains('0/2명').should('be.visible');
+    });
+
+    cy.get('#manualCode').type('0427');
+    cy.contains('button', '체크인하기').click();
+    cy.wait('@createManualCheckIn');
+
+    cy.contains('체크인 완료').should('be.visible');
+    cy.get('[data-testid="checkin-progress-card"]').within(() => {
+      cy.contains('1명').should('be.visible');
+      cy.contains('50%').should('be.visible');
+    });
+  });
+
   it('shows the host completion state when everyone has checked in', () => {
     const party = buildParty({
       id: 931,

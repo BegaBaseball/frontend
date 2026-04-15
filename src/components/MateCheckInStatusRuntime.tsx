@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 
-import { CheckCircle, Loader2, MapPin } from 'lucide-react';
-
 import { cn } from '../lib/utils';
 import { mateInsetPanelClass, mateSectionCardClass } from '../utils/mateFlowUi';
 import type { CheckIn } from '../types/mate';
+import { MateCheckCircleIcon, MateLoaderIcon, MateMapPinIcon } from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 
@@ -87,7 +86,7 @@ export default function MateCheckInStatusRuntime({
 
             <div className={`${mateInsetPanelClass} min-w-full p-5 text-center sm:min-w-[280px] lg:max-w-[320px]`}>
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/25">
-                <MapPin className="h-10 w-10 text-primary" />
+                <MateMapPinIcon className="h-10 w-10 text-primary" />
               </div>
               <p className="mt-4 text-lg font-bold text-gray-900 dark:text-white">체크인 준비 완료</p>
               <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
@@ -101,12 +100,12 @@ export default function MateCheckInStatusRuntime({
               >
                 {isChecking ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <MateLoaderIcon className="mr-2 h-5 w-5 animate-spin" />
                     처리 중...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="mr-2 h-5 w-5" />
+                    <MateCheckCircleIcon className="mr-2 h-5 w-5" />
                     체크인하기
                   </>
                 )}
@@ -132,7 +131,7 @@ export default function MateCheckInStatusRuntime({
 
             <div className={`${mateInsetPanelClass} min-w-full p-5 text-center sm:min-w-[280px] lg:max-w-[320px]`}>
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/25">
-                <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
+                <MateCheckCircleIcon className="h-10 w-10 text-green-600 dark:text-green-400" />
               </div>
               <p className="mt-4 text-lg font-bold text-green-700 dark:text-green-300">도착 인증 완료</p>
               <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">

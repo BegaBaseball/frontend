@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  SharedChevronLeftIcon,
+  SharedChevronRightIcon,
+  SharedCloseIcon,
+} from './icons/SharedLeafIcons';
 
 interface ImageLightboxProps {
   images: string[];
@@ -50,10 +54,10 @@ export default function ImageLightbox({
           event.stopPropagation();
           onClose();
         }}
-        onPointerDown={(event) => event.stopPropagation()}
-        aria-label="Close image viewer"
+      onPointerDown={(event) => event.stopPropagation()}
+      aria-label="Close image viewer"
       >
-        <X className="h-8 w-8" />
+        <SharedCloseIcon className="h-8 w-8" />
       </button>
 
       {images.length > 1 && (
@@ -68,7 +72,7 @@ export default function ImageLightbox({
         onPointerDown={(event) => event.stopPropagation()}
         aria-label="Previous image"
       >
-        <ChevronLeft className="h-10 w-10" />
+        <SharedChevronLeftIcon className="h-10 w-10" />
       </button>
       )}
 
@@ -101,7 +105,7 @@ export default function ImageLightbox({
         onPointerDown={(event) => event.stopPropagation()}
         aria-label="Next image"
       >
-        <ChevronRight className="h-10 w-10" />
+        <SharedChevronRightIcon className="h-10 w-10" />
       </button>
       )}
     </div>

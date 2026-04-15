@@ -1,5 +1,4 @@
 import { type UseMutationResult } from '@tanstack/react-query';
-import { Camera, Loader2, Ticket, X } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,6 +16,12 @@ import {
 import { getFullImageUrl } from '../../utils/diary';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
+import {
+  MyPageCameraIcon,
+  MyPageCloseIcon,
+  MyPageLoaderIcon,
+  MyPageTicketIcon,
+} from './MyPageIcons';
 
 interface DiaryEditModeProps {
   diaryForm: DiaryFormData;
@@ -164,12 +169,12 @@ export default function DiaryEditModeRuntime({
         >
           {isScanning ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <MyPageLoaderIcon className="h-5 w-5 animate-spin text-primary" />
               <span className="font-semibold text-primary">티켓 분석 중...</span>
             </>
           ) : (
             <>
-              <Ticket className="h-5 w-5 text-primary" />
+              <MyPageTicketIcon className="h-5 w-5 text-primary" />
               <span className="font-semibold text-primary">티켓 사진으로 자동 입력</span>
             </>
           )}
@@ -294,13 +299,13 @@ export default function DiaryEditModeRuntime({
                   onClick={() => removePhoto(index)}
                   className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
                 >
-                  <X className="h-4 w-4" />
+                  <MyPageCloseIcon className="h-4 w-4" />
                 </button>
               </div>
             ))}
             {allPhotos.length < MAX_PHOTOS && (
               <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-muted dark:hover:bg-secondary">
-                <Camera className="mb-2 h-8 w-8 text-muted-foreground" />
+                <MyPageCameraIcon className="mb-2 h-8 w-8 text-muted-foreground" />
                 <span className="text-[16px] text-muted-foreground">사진 추가</span>
                 <input
                   type="file"

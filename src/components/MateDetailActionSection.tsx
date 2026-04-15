@@ -1,7 +1,6 @@
-import { Clock } from 'lucide-react';
-
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
+import { MateClockIcon } from './MateIcons';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
 
 export interface MateDetailActionContext {
@@ -67,7 +66,7 @@ export default function MateDetailActionSection({
                 className={`${insetPanelClass} flex items-start gap-3 p-4 text-[16px] text-gray-600 dark:text-gray-300`}
               >
                 <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-600 dark:bg-amber-400/15 dark:text-amber-200">
-                  <Clock className="h-4 w-4" />
+                  <MateClockIcon className="h-4 w-4" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white">

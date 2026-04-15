@@ -33,12 +33,56 @@ interface CheerDetailCommentsPanelProps {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 }
 
-const COMMENT_PREVIEW_LIMIT = 5;
+const COMMENT_PAGE_SIZE = 20;
 
 const resolveProfileImage = (imageUrl?: string | null) => {
   if (!imageUrl) return baseballLogo;
   if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return DEFAULT_PROFILE_IMAGE;
   return imageUrl;
+};
+
+const countCommentNodes = (list: PendingComment[]): number => list.reduce(
+  (total, comment) => total + 1 + countCommentNodes((comment.replies as PendingComment[] | undefined) ?? []),
+  0,
+);
+
+const mergeCommentPages = (previous: PendingComment[], incoming: PendingComment[]): PendingComment[] => {
+  const next = [...previous];
+  const seenIds = new Set(previous.map((comment) => comment.id));
+
+  incoming.forEach((comment) => {
+    if (seenIds.has(comment.id)) {
+      return;
+    }
+    seenIds.add(comment.id);
+    next.push(comment);
+  });
+
+  return next;
+};
+
+const removeCommentTree = (
+  list: PendingComment[],
+  targetId: number,
+): { comments: PendingComment[]; removedCount: number } => {
+  let removedCount = 0;
+
+  const comments = list.flatMap((comment) => {
+    if (comment.id === targetId) {
+      removedCount += countCommentNodes([comment]);
+      return [];
+    }
+
+    const childResult = removeCommentTree((comment.replies as PendingComment[] | undefined) ?? [], targetId);
+    removedCount += childResult.removedCount;
+
+    return [{
+      ...comment,
+      replies: childResult.comments,
+    }];
+  });
+
+  return { comments, removedCount };
 };
 
 export default function CheerDetailCommentsPanel({
@@ -60,19 +104,19 @@ export default function CheerDetailCommentsPanel({
   const { deleteCommentMutation } = useCheerMutations();
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<PendingComment[]>([]);
+  const [commentsTotal, setCommentsTotal] = useState(commentCount);
   const [sendingComment, setSendingComment] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
-  const [showAllComments, setShowAllComments] = useState(false);
+  const [nextCommentsPage, setNextCommentsPage] = useState(0);
+  const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [isReplyPending, setIsReplyPending] = useState(false);
   const [commentLikeAnimating, setCommentLikeAnimating] = useState<Record<number, boolean>>({});
   const commentLikeTimersRef = useRef<Record<number, number>>({});
-
-  useEffect(() => {
-    setShowAllComments(false);
-  }, [resolvedPostId]);
+  const commentsRef = useRef<PendingComment[]>([]);
 
   useEffect(() => {
     return () => {
@@ -82,33 +126,66 @@ export default function CheerDetailCommentsPanel({
     };
   }, []);
 
-  const hasMoreComments = comments.length > COMMENT_PREVIEW_LIMIT;
-  const visibleComments = hasMoreComments && !showAllComments
-    ? comments.slice(0, COMMENT_PREVIEW_LIMIT)
-    : comments;
-  const commentToggleLabel = hasMoreComments && !showAllComments ? '댓글 더보기' : '댓글 접기';
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
 
   useEffect(() => {
-    const loadComments = async () => {
+    setCommentsTotal(commentCount);
+  }, [commentCount]);
+
+  const syncCommentCount = (nextCount: number) => {
+    setCommentsTotal(nextCount);
+    onCommentCountChange(nextCount);
+  };
+
+  const loadCommentsPage = async (page: number, append: boolean) => {
+    if (append) {
+      setLoadingMoreComments(true);
+    } else {
       setCommentsLoading(true);
       setCommentsError(null);
-      try {
-        const data = await cheerApi.fetchComments(resolvedPostId);
-        setComments(data.content);
-        if (typeof data.totalElements === 'number') {
-          onCommentCountChange(data.totalElements);
-        } else {
-          onCommentCountChange(data.content?.length ?? 0);
-        }
-      } catch (error) {
-        console.error('댓글 목록 로드 실패:', error);
+    }
+
+    try {
+      const data = await cheerApi.fetchComments(resolvedPostId, page, COMMENT_PAGE_SIZE);
+      const baseComments = append ? commentsRef.current : [];
+      const nextComments = append ? mergeCommentPages(baseComments, data.content) : data.content;
+
+      commentsRef.current = nextComments;
+      setComments(nextComments);
+
+      const nextTotal = typeof data.totalElements === 'number'
+        ? data.totalElements
+        : countCommentNodes(nextComments);
+      syncCommentCount(nextTotal);
+
+      const currentPage = typeof data.number === 'number' ? data.number : page;
+      setNextCommentsPage(currentPage + 1);
+      setCommentsHasMore(!(data.last ?? true));
+    } catch (error) {
+      console.error('댓글 목록 로드 실패:', error);
+      if (append) {
+        toast.error('댓글을 더 불러오지 못했습니다.');
+      } else {
         setCommentsError('댓글을 불러오지 못했습니다.');
-      } finally {
+      }
+    } finally {
+      if (append) {
+        setLoadingMoreComments(false);
+      } else {
         setCommentsLoading(false);
       }
-    };
+    }
+  };
 
-    void loadComments();
+  useEffect(() => {
+    commentsRef.current = [];
+    setComments([]);
+    setCommentsError(null);
+    setNextCommentsPage(0);
+    setCommentsHasMore(false);
+    void loadCommentsPage(0, false);
   }, [onCommentCountChange, resolvedPostId]);
 
   const handleCommentSubmit = async () => {
@@ -134,30 +211,35 @@ export default function CheerDetailCommentsPanel({
     };
 
     setCommentText('');
-    setComments((prev) => [optimisticComment, ...prev]);
-    onCommentCountChange(commentCount + 1);
+    setComments((prev) => {
+      const nextComments = [optimisticComment, ...prev];
+      commentsRef.current = nextComments;
+      return nextComments;
+    });
+    const previousTotal = commentsTotal;
+    syncCommentCount(previousTotal + 1);
     setSendingComment(true);
 
     try {
       const created = await cheerApi.createComment(resolvedPostId, trimmed);
       if (created?.id) {
-        setComments((prev) =>
-          prev.map((comment) =>
+        setComments((prev) => {
+          const nextComments = prev.map((comment) =>
             comment.id === optimisticId ? { ...created, isPending: false } : comment
-          )
-        );
+          );
+          commentsRef.current = nextComments;
+          return nextComments;
+        });
       } else {
-        const reloaded = await cheerApi.fetchComments(resolvedPostId);
-        setComments(reloaded.content);
-        onCommentCountChange(
-          typeof reloaded.totalElements === 'number'
-            ? reloaded.totalElements
-            : reloaded.content?.length ?? 0
-        );
+        await loadCommentsPage(0, false);
       }
     } catch (error) {
-      setComments((prev) => prev.filter((comment) => comment.id !== optimisticId));
-      onCommentCountChange(Math.max(0, commentCount - 1));
+      setComments((prev) => {
+        const nextComments = prev.filter((comment) => comment.id !== optimisticId);
+        commentsRef.current = nextComments;
+        return nextComments;
+      });
+      syncCommentCount(previousTotal);
       setCommentText(draft);
       const parsed = parseError(error);
       toast.error(getDuplicateCommentErrorMessage(error, parsed.message || '댓글 작성 실패'));
@@ -194,7 +276,11 @@ export default function CheerDetailCommentsPanel({
       return;
     }
 
-    setComments((prev) => updateCommentLikes(prev, commentId));
+    setComments((prev) => {
+      const nextComments = updateCommentLikes(prev, commentId);
+      commentsRef.current = nextComments;
+      return nextComments;
+    });
     setCommentLikeAnimating((prev) => ({ ...prev, [commentId]: true }));
 
     if (commentLikeTimersRef.current[commentId]) {
@@ -208,7 +294,11 @@ export default function CheerDetailCommentsPanel({
       await cheerApi.toggleCommentLike(commentId);
     } catch (error) {
       console.error('Comment like failed', error);
-      setComments((prev) => updateCommentLikes(prev, commentId));
+      setComments((prev) => {
+        const nextComments = updateCommentLikes(prev, commentId);
+        commentsRef.current = nextComments;
+        return nextComments;
+      });
       toast.error(parseError(error).message || '좋아요 처리 실패');
     }
   };
@@ -253,26 +343,31 @@ export default function CheerDetailCommentsPanel({
     });
     if (!commentDeleteConfirmed) return;
 
-    const previousComments = [...comments];
+    const previousComments = commentsRef.current;
+    const previousTotal = commentsTotal;
+    const { comments: nextComments, removedCount } = removeCommentTree(previousComments, commentId);
+    const nextTotal = Math.max(0, previousTotal - Math.max(removedCount, 1));
 
-    const filterComments = (list: PendingComment[], targetId: number): PendingComment[] => (
-      list.filter((comment) => comment.id !== targetId).map((comment) => ({
-        ...comment,
-        replies: comment.replies ? filterComments(comment.replies as PendingComment[], targetId) : [],
-      }))
-    );
-
-    setComments((prev) => filterComments(prev, commentId));
-    onCommentCountChange(Math.max(0, commentCount - 1));
+    commentsRef.current = nextComments;
+    setComments(nextComments);
+    syncCommentCount(nextTotal);
 
     try {
       await deleteCommentMutation.mutateAsync(commentId);
     } catch (error) {
       console.error('Comment deletion failed', error);
+      commentsRef.current = previousComments;
       setComments(previousComments);
-      onCommentCountChange(previousComments.length);
+      syncCommentCount(previousTotal);
       toast.error(parseError(error).message || '댓글 삭제 실패');
     }
+  };
+
+  const handleLoadMoreComments = async () => {
+    if (loadingMoreComments || !commentsHasMore) {
+      return;
+    }
+    await loadCommentsPage(nextCommentsPage, true);
   };
 
   return (
@@ -283,7 +378,7 @@ export default function CheerDetailCommentsPanel({
       <div className="mb-2">
         <div>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[18px] font-bold text-slate-900 dark:text-slate-100 sm:text-[19px]">댓글 {commentCount}개</h3>
+            <h3 className="text-[18px] font-bold text-slate-900 dark:text-slate-100 sm:text-[19px]">댓글 {commentsTotal}개</h3>
           </div>
         </div>
       </div>
@@ -301,7 +396,7 @@ export default function CheerDetailCommentsPanel({
               width={40}
               height={40}
               showRing
-              ringVariant="cheer"
+              ringVariant="cheerFeed"
             />
             <div className="min-w-0 flex-1">
                 <Textarea
@@ -356,23 +451,8 @@ export default function CheerDetailCommentsPanel({
           <Button
             variant="outline"
             className="mt-3 rounded-full font-bold"
-            onClick={async () => {
-              setCommentsLoading(true);
-              setCommentsError(null);
-              try {
-                const data = await cheerApi.fetchComments(resolvedPostId);
-                setComments(data.content);
-                onCommentCountChange(
-                  typeof data.totalElements === 'number'
-                    ? data.totalElements
-                    : data.content?.length ?? 0
-                );
-              } catch (error) {
-                console.error('댓글 목록 로드 실패:', error);
-                setCommentsError('댓글을 불러오지 못했습니다.');
-              } finally {
-                setCommentsLoading(false);
-              }
+            onClick={() => {
+              void loadCommentsPage(0, false);
             }}
           >
             다시 시도
@@ -439,7 +519,7 @@ export default function CheerDetailCommentsPanel({
             aria-label="댓글 목록"
             className="space-y-1.5"
           >
-            {visibleComments.flatMap((comment, index) => [
+            {comments.flatMap((comment, index) => [
               <div
                 key={comment.id}
                 role="listitem"
@@ -465,7 +545,7 @@ export default function CheerDetailCommentsPanel({
                   userHandle={authUserHandle ?? undefined}
                 />
               </div>,
-              !showAllComments && index === COMMENT_PREVIEW_LIMIT - 1 && comments.length > COMMENT_PREVIEW_LIMIT ? (
+              index === 4 && comments.length > 5 ? (
                 <AdSlot
                   key="cheer-detail-1"
                   slotId="cheer_detail_1"
@@ -482,16 +562,18 @@ export default function CheerDetailCommentsPanel({
               ) : null,
             ])}
           </div>
-          {hasMoreComments ? (
-          <Button
+          {commentsHasMore ? (
+            <Button
               variant="outline"
               className="mt-3 h-8 w-full rounded-full text-[16px] font-bold"
-              onClick={() => setShowAllComments((prev) => !prev)}
-              aria-expanded={showAllComments}
-              aria-label="댓글 목록 토글"
+              onClick={() => {
+                void handleLoadMoreComments();
+              }}
+              disabled={loadingMoreComments}
+              aria-label="댓글 더 불러오기"
               data-testid="cheer-comments-show-more"
             >
-              {commentToggleLabel}
+              {loadingMoreComments ? '불러오는 중...' : '댓글 더보기'}
             </Button>
           ) : null}
         </>

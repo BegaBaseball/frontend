@@ -598,7 +598,7 @@ describe('Theme visual checks for public pages', () => {
   }, () => {
     cy.wait('@getMatchDay');
     cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-    cy.get('@getUserVotes.all').its('length').should('be.gte', 1);
+    cy.get('@getUserVotes.all').should('have.length', 0);
     cy.get('@getUserVotePredictionTheme.all').should('have.length', 0);
   });
 });

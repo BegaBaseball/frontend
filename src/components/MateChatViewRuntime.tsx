@@ -1,19 +1,27 @@
-import { lazy, Suspense, type ChangeEvent, type FormEvent, type MutableRefObject, type ReactNode } from 'react';
 import {
-  ArrowRightCircle,
-  Calendar,
-  ChevronLeft,
-  LucideIcon,
-  MapPin,
-  MessageSquare,
-  Shield,
-  Ticket,
-  Wifi,
-  WifiOff,
-} from 'lucide-react';
+  lazy,
+  Suspense,
+  type ChangeEvent,
+  type ComponentType,
+  type FormEvent,
+  type MutableRefObject,
+  type ReactNode,
+  type SVGProps,
+} from 'react';
 
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import TeamLogo from './TeamLogo';
+import {
+  MateArrowRightCircleIcon,
+  MateCalendarIcon,
+  MateChevronLeftIcon,
+  MateMapPinIcon,
+  MateMessageSquareIcon,
+  MateShieldIcon,
+  MateTicketIcon,
+  MateWifiIcon,
+  MateWifiOffIcon,
+} from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -27,7 +35,7 @@ import {
   matePageShellClass,
   mateSectionCardClass,
 } from '../utils/mateFlowUi';
-import { formatGameDate } from '../utils/mate';
+import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
 
 const MateChatConversationPanel = lazy(() => import('./MateChatConversationPanel'));
 
@@ -64,7 +72,7 @@ type MateChatViewRuntimeProps = {
 };
 
 type SummaryItemProps = {
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   label: string;
   value: string;
   detail: string;
@@ -135,25 +143,25 @@ export default function MateChatViewRuntime({
   const nextActionLabel = canAccessCheckIn ? '체크인 준비 가능' : '대화 조율 단계';
   const summaryItems = [
     {
-      icon: MessageSquare,
+      icon: MateMessageSquareIcon,
       label: '대화 권한',
       value: roleLabel,
       detail: approvalLabel,
     },
     {
-      icon: Ticket,
+      icon: MateTicketIcon,
       label: '거래 흐름',
       value: flowLabel,
       detail: '채팅 중심으로 전달 일정을 조율합니다.',
     },
     {
-      icon: Shield,
+      icon: MateShieldIcon,
       label: '티켓 신뢰',
       value: party.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
       detail: party.ticketVerified ? '상세페이지와 동일한 인증 신호가 유지됩니다.' : '추가 인증이 필요한 상태일 수 있습니다.',
     },
     {
-      icon: isConnected ? Wifi : WifiOff,
+      icon: isConnected ? MateWifiIcon : MateWifiOffIcon,
       label: '연결 상태',
       value: isConnected ? '실시간 연결됨' : '재연결 중',
       detail: isConnected ? nextActionLabel : '메시지 전송은 HTTP 폴백으로 계속 시도됩니다.',
@@ -176,7 +184,7 @@ export default function MateChatViewRuntime({
             onClick={onNavigateBack}
             className="mb-2 -ml-2"
           >
-            <ChevronLeft className="mr-2 h-4 w-4" />
+            <MateChevronLeftIcon className="mr-2 h-4 w-4" />
             뒤로
           </Button>
 
@@ -185,7 +193,7 @@ export default function MateChatViewRuntime({
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 gap-3 sm:gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                    <TeamLogo teamId={party.teamId} size="md" />
+                    <TeamLogo teamId={getMatePartyDisplayTeamId(party)} size="md" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[16px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -210,7 +218,7 @@ export default function MateChatViewRuntime({
                       {party.ticketVerified && (
                         <MatePill className="border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                           <span className="flex items-center gap-1">
-                            <Ticket className="h-3.5 w-3.5" />
+                            <MateTicketIcon className="h-3.5 w-3.5" />
                             티켓 인증
                           </span>
                         </MatePill>
@@ -222,7 +230,7 @@ export default function MateChatViewRuntime({
                 <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
                   <div className="grid gap-3 text-[16px] text-gray-600 dark:text-gray-300">
                     <div className="flex items-start gap-3">
-                      <Calendar className="mt-0.5 h-4 w-4 text-primary" />
+                      <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
                         <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">
@@ -231,7 +239,7 @@ export default function MateChatViewRuntime({
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                      <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
                         <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">{party.stadium}</p>
@@ -239,7 +247,11 @@ export default function MateChatViewRuntime({
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      {isConnected ? <Wifi className="mt-0.5 h-4 w-4 text-emerald-500" /> : <WifiOff className="mt-0.5 h-4 w-4 text-amber-500" />}
+                      {isConnected ? (
+                        <MateWifiIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <MateWifiOffIcon className="mt-0.5 h-4 w-4 text-amber-500" />
+                      )}
                       <div>
                         <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">실시간 상태</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">
@@ -275,7 +287,7 @@ export default function MateChatViewRuntime({
                         className="w-full justify-center border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30 sm:w-auto"
                         onClick={onNavigateCheckIn}
                       >
-                        <ArrowRightCircle className="mr-2 h-4 w-4" />
+                        <MateArrowRightCircleIcon className="mr-2 h-4 w-4" />
                         체크인
                       </Button>
                     )}

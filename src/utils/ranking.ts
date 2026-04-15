@@ -1,39 +1,60 @@
 // utils/ranking.ts (기존 파일에 추가)
 import { Team } from '../types/ranking';
+import { TEAM_ID_TO_CODE, TEAM_NAME_TO_ID } from '../constants/teams';
 
 const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
 const KAKAO_SDK_INTEGRITY = 'sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4';
 
 let kakaoSdkLoadPromise: Promise<void> | null = null;
 
+const resolveCanonicalRankingTeamId = (value: Pick<Team, 'id' | 'name' | 'shortName'> | string): string | null => {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    return (
+      TEAM_NAME_TO_ID[normalized]
+      || TEAM_ID_TO_CODE[normalized.toLowerCase()]
+      || normalized.toUpperCase()
+    );
+  }
+
+  return (
+    TEAM_ID_TO_CODE[value.id?.toLowerCase?.() || '']
+    || TEAM_NAME_TO_ID[value.shortName]
+    || TEAM_NAME_TO_ID[value.name]
+    || null
+  );
+};
+
 /**
  * 팀 ID 배열을 Team 객체 배열로 복원
  */
 export const restoreTeamsFromIds = (
-  teamIdsInOrder: string[], 
+  teamIdsInOrder: string[],
   allTeams: Team[]
 ): (Team | null)[] => {
-  
-  
-  
   const restoredRankings = teamIdsInOrder.map(teamId => {
-    const team = allTeams.find(t => 
-      t.shortName === teamId || 
-      t.name === teamId || 
-      t.id === teamId
+    const resolvedTeamId = resolveCanonicalRankingTeamId(teamId);
+    const team = allTeams.find(t =>
+      t.shortName === teamId
+      || t.name === teamId
+      || t.id === teamId
+      || resolveCanonicalRankingTeamId(t) === resolvedTeamId
     );
-    
+
     if (!team) {
       console.warn(`팀을 찾을 수 없습니다: ${teamId}`, {
         availableShortNames: allTeams.map(t => t.shortName),
-        availableNames: allTeams.map(t => t.name)
+        availableNames: allTeams.map(t => t.name),
       });
     }
-    
+
     return team || null;
   });
 
-  
   return restoredRankings;
 };
 
@@ -45,12 +66,18 @@ export const isRankingComplete = (rankings: (Team | null)[]): boolean => {
 };
 
 /**
- * Team 객체 배열을 팀 ID(shortName) 배열로 변환
+ * Team 객체 배열을 canonical team code 배열로 변환
  */
 export const extractTeamIds = (rankings: (Team | null)[]): string[] => {
   return rankings
     .filter(team => team !== null)
-    .map(team => team!.shortName);
+    .map(team => {
+      const canonicalTeamId = resolveCanonicalRankingTeamId(team!);
+      if (!canonicalTeamId) {
+        throw new Error(`팀 코드를 찾을 수 없습니다: ${team!.id}`);
+      }
+      return canonicalTeamId;
+    });
 };
 
 /**

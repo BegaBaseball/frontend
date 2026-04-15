@@ -1,9 +1,13 @@
 import { type UIEvent } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { getBlockedUsers } from '../../api/blockApi';
-import { Loader2, Ban, Info } from 'lucide-react';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import BlockButton from '../profile/BlockButton';
+import {
+  MyPageBanIcon,
+  MyPageInfoIcon,
+  MyPageLoaderIcon,
+} from './MyPageIcons';
 
 export default function BlockedUsersSection() {
     const queryClient = useQueryClient();
@@ -37,7 +41,7 @@ export default function BlockedUsersSection() {
     return (
         <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-4 sm:p-6 md:p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <Ban className="w-6 h-6 text-red-500" />
+                <MyPageBanIcon className="w-6 h-6 text-red-500" />
                 <h2 className="text-xl font-bold text-red-500">차단 관리</h2>
             </div>
 
@@ -56,7 +60,7 @@ export default function BlockedUsersSection() {
             >
                 {isLoading ? (
                     <div className="flex justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+                        <MyPageLoaderIcon className="h-8 w-8 animate-spin text-red-500" />
                     </div>
                 ) : users.length > 0 ? (
                     <div className="divide-y divide-border">
@@ -97,20 +101,20 @@ export default function BlockedUsersSection() {
 
                         {isFetchingNextPage && (
                             <div className="flex justify-center p-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <MyPageLoaderIcon className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
-                            <Ban className="h-6 w-6 text-red-500" />
+                            <MyPageBanIcon className="h-6 w-6 text-red-500" />
                         </div>
                         <p className="text-foreground font-semibold mb-1">
                             차단한 사용자가 없습니다.
                         </p>
                         <p className="mt-2 text-[16px] text-muted-foreground font-semibold inline-flex items-center gap-1 justify-center">
-                            <Info className="w-3.5 h-3.5" />
+                            <MyPageInfoIcon className="w-3.5 h-3.5" />
                             상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                         </p>
                     </div>

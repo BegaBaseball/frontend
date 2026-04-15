@@ -9,8 +9,11 @@ import {
   fetchLeagueStartDates,
   getHomeBootstrapQueryOptions,
   getHomeWidgetsQueryOptions,
+  isHomeBootstrapBusinessConflict,
+  shouldRetryHomeBootstrapQuery,
   shouldShowHomeConnectionError,
 } from './home';
+import { PublicApiError } from './publicClient';
 
 const buildJsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -121,6 +124,23 @@ test('getHomeBootstrapQueryOptions는 날짜별 bootstrap 캐시 키를 사용�
   );
 });
 
+test('home bootstrap query는 비즈니스 409를 재시도하지 않는다', () => {
+  const manualDataConflict = new PublicApiError(409, 'conflict', {
+    code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  });
+  const upstreamFailure = new PublicApiError(500, 'boom');
+
+  assert.equal(isHomeBootstrapBusinessConflict(manualDataConflict), true);
+  assert.equal(isHomeBootstrapBusinessConflict(upstreamFailure), false);
+  assert.equal(shouldRetryHomeBootstrapQuery(0, manualDataConflict), false);
+  assert.equal(shouldRetryHomeBootstrapQuery(0, upstreamFailure), true);
+  assert.equal(shouldRetryHomeBootstrapQuery(1, upstreamFailure), false);
+  assert.equal(
+    getHomeBootstrapQueryOptions(new Date('2026-03-16T12:00:00')).retry(0, manualDataConflict),
+    false,
+  );
+});
+
 test('공개 홈 보조 데이터 요청은 same-origin fetch를 사용한다', async (t) => {
   const observedUrls: string[] = [];
   const observedInit: RequestInit[] = [];
@@ -165,6 +185,7 @@ test('buildHomeLoadState는 레거시 폴백 timeout 상태를 구조화한다',
     source: 'legacy-fallback',
     isFallback: true,
     timedOut: true,
+    failureReason: null,
   });
 });
 

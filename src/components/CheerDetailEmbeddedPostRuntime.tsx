@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
-import { Quote, Repeat2 } from 'lucide-react';
 import EmbeddedPost from './EmbeddedPost';
+import { QuoteIcon, RepeatIcon } from './icons/CheerIcons';
 
 interface CheerDetailEmbeddedPostRuntimeProps {
     detailAccent: string;
@@ -48,7 +48,7 @@ export default function CheerDetailEmbeddedPostRuntime({
             }}
         >
             <div className="flex items-center gap-2 text-[16px] font-bold" style={{ color: detailAccent }}>
-                {isQuoteRepost ? <Quote className="h-3.5 w-3.5" /> : <Repeat2 className="h-3.5 w-3.5" />}
+                {isQuoteRepost ? <QuoteIcon className="h-3.5 w-3.5" /> : <RepeatIcon className="h-3.5 w-3.5" />}
                 <span>
                     {isSimpleRepost
                         ? '원글 반응/댓글과 함께 보입니다.'

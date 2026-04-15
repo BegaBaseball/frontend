@@ -5,6 +5,8 @@ import {
   AdminClientErrorDashboard,
   AdminClientErrorEventDetail,
   AdminClientErrorEventPage,
+  AdminNonCanonicalCleanupTrackerEntry,
+  AdminNonCanonicalCleanupTrackerRecord,
   AdminGameStatusMismatchBatchResult,
   AdminGameStatusRepairBatchResult,
   AdminMate,
@@ -312,6 +314,76 @@ export const repairAdminGameStatusMismatches = async (params: {
     }
 
     throw new Error(readErrorMessage(error, '경기 상태 불일치 복구 실패'));
+  }
+};
+
+export const fetchAdminNonCanonicalCleanupTrackers = async (): Promise<AdminNonCanonicalCleanupTrackerEntry[]> => {
+  try {
+    const response = await privateGet<AdminApiResponse<AdminNonCanonicalCleanupTrackerEntry[]>>(
+      '/admin/games/non-canonical-cleanup-trackers',
+    );
+    return unwrapAdminResponse(response, '비정상 팀 코드 정제 tracker 조회 실패');
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, '비정상 팀 코드 정제 tracker 조회 실패'));
+  }
+};
+
+export const upsertAdminNonCanonicalCleanupTracker = async (params: {
+  startDate: string;
+  endDate?: string;
+  record: AdminNonCanonicalCleanupTrackerRecord;
+}): Promise<AdminNonCanonicalCleanupTrackerEntry> => {
+  try {
+    const response = await privatePut<
+      AdminApiResponse<AdminNonCanonicalCleanupTrackerEntry>,
+      Omit<AdminNonCanonicalCleanupTrackerRecord, 'updatedAt'>
+    >(
+      '/admin/games/non-canonical-cleanup-trackers',
+      {
+        ticketUrl: params.record.ticketUrl,
+        assignee: params.record.assignee,
+        status: params.record.status,
+        note: params.record.note,
+        gameIds: params.record.gameIds,
+      },
+      {
+        params: {
+          startDate: params.startDate,
+          endDate: params.endDate ?? params.startDate,
+        },
+      },
+    );
+    return unwrapAdminResponse(response, '비정상 팀 코드 정제 tracker 저장 실패');
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, '비정상 팀 코드 정제 tracker 저장 실패'));
+  }
+};
+
+export const deleteAdminNonCanonicalCleanupTracker = async (params: {
+  startDate: string;
+  endDate?: string;
+}): Promise<void> => {
+  try {
+    await privateDelete<null>('/admin/games/non-canonical-cleanup-trackers', {
+      params: {
+        startDate: params.startDate,
+        endDate: params.endDate ?? params.startDate,
+      },
+    });
+  } catch (error) {
+    if (isStatusError(error, 403)) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+
+    throw new Error(readErrorMessage(error, '비정상 팀 코드 정제 tracker 삭제 실패'));
   }
 };
 

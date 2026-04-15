@@ -1,32 +1,30 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { lazy, Suspense, type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
 import { fetchPublicUserProfileByHandle } from '../../api/profilePublic';
 import { fetchUserPostsByHandle } from '../../api/cheerPublic';
 import { getPublicFollowCounts, type FollowCountResponse, type FollowToggleResponse } from '../../api/followPublic';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import {
-    Loader2,
-    Trophy,
-    Quote,
-    ArrowLeft,
-    AlertCircle,
-    Award,
-    FileText,
-    Users,
-    UserPlus,
-    MessageCircle,
-} from 'lucide-react';
+    ArrowLeftIcon,
+    DiamondIcon,
+    MessageCircleIcon,
+    PenSquareIcon,
+    SpinnerIcon,
+    TrophyIcon,
+    UserIcon,
+    UsersIcon,
+    XCircleIcon,
+} from '../icons/PublicShellIcons';
 import { Skeleton } from '../ui/skeleton';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { getTeamTheme } from '../../utils/teamColors';
-import EndOfFeed from '../EndOfFeed';
 import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 
-const CheerCard = lazy(() => import('../CheerCard'));
 const FollowButton = lazy(() => import('./FollowButton'));
 const UserListModal = lazy(() => import('./UserListModal'));
+const UserProfilePostsSection = lazy(() => import('./UserProfilePostsSection'));
 
 function ProfileBadge({
     className = '',
@@ -55,15 +53,7 @@ export default function UserProfile() {
     const { userHandle: currentUserHandle } = useAuthProfileSnapshot();
     const postsSectionRef = useRef<HTMLDivElement | null>(null);
 
-    const [userListModal, setUserListModal] = useState<{
-        isOpen: boolean;
-        type: 'followers' | 'following';
-        title: string;
-    }>({
-        isOpen: false,
-        type: 'followers',
-        title: '',
-    });
+    const [userListModalType, setUserListModalType] = useState<'followers' | 'following' | null>(null);
 
     // URL에 @가 없는 경우 붙여줌 (UX)
     const normalizedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : undefined;
@@ -103,22 +93,19 @@ export default function UserProfile() {
     });
 
     // 팀 테마 색상 계산
-    const theme = useMemo(() => getTeamTheme(profile?.favoriteTeam), [profile?.favoriteTeam]);
+    const theme = getTeamTheme(profile?.favoriteTeam);
 
-    const handleFollowChange = useCallback(
-        (response: FollowToggleResponse) => {
-            if (!profile?.handle) return;
-            queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.handle], (prev) => ({
-                followerCount: response.followerCount,
-                followingCount: response.followingCount,
-                isFollowedByMe: response.following,
-                notifyNewPosts: response.notifyNewPosts,
-                blockedByMe: prev?.blockedByMe ?? false,
-                blockingMe: prev?.blockingMe ?? false,
-            }));
-        },
-        [profile?.handle, queryClient]
-    );
+    const handleFollowChange = (response: FollowToggleResponse) => {
+        if (!profile?.handle) return;
+        queryClient.setQueryData<FollowCountResponse>(['followCounts', profile.handle], (prev) => ({
+            followerCount: response.followerCount,
+            followingCount: response.followingCount,
+            isFollowedByMe: response.following,
+            notifyNewPosts: response.notifyNewPosts,
+            blockedByMe: prev?.blockedByMe ?? false,
+            blockingMe: prev?.blockingMe ?? false,
+        }));
+    };
 
     // Infinite scroll handler
     useEffect(() => {
@@ -151,6 +138,7 @@ export default function UserProfile() {
             block: 'start',
         });
     };
+    const userListModalTitle = userListModalType === 'followers' ? '팔로워' : '팔로잉';
 
     if (isProfileLoading) {
         return (
@@ -215,7 +203,7 @@ export default function UserProfile() {
     if (profileError || !profile) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-                <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+                <XCircleIcon className="h-12 w-12 text-red-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     사용자를 찾을 수 없습니다.
                 </h2>
@@ -227,7 +215,7 @@ export default function UserProfile() {
                     onClick={() => navigate(-1)}
                     className="flex items-center text-primary font-semibold hover:underline"
                 >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <ArrowLeftIcon className="w-4 h-4 mr-2" />
                     뒤로 가기
                 </button>
             </div>
@@ -244,6 +232,18 @@ export default function UserProfile() {
     const isOwnProfile = isLoggedIn && Boolean(currentUserHandle) && profile?.handle
         ? currentUserHandle === profile.handle
         : false;
+    const isBlockedRelationship = Boolean(followCounts?.blockedByMe || followCounts?.blockingMe);
+    const canMessageUser = Boolean(followCounts?.isFollowedByMe && !isBlockedRelationship);
+    const messagePath = profile.handle
+        ? `/messages/${encodeURIComponent(profile.handle.replace(/^@/, ''))}`
+        : null;
+    const messageDisabledReason = !followCounts
+        ? '메시지 가능 여부를 확인하고 있습니다.'
+        : isBlockedRelationship
+            ? '차단 관계인 사용자에게는 메시지를 보낼 수 없습니다.'
+            : canMessageUser
+                ? null
+                : '팔로우한 사용자에게만 메시지를 보낼 수 있습니다.';
 
     return (
         <div className="max-w-2xl mx-auto pb-8">
@@ -253,7 +253,7 @@ export default function UserProfile() {
                 onClick={() => navigate(-1)}
                 className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 px-4 py-4 transition-colors"
             >
-                <ArrowLeft className="w-5 h-5 mr-1" />
+                <ArrowLeftIcon className="w-5 h-5 mr-1" />
                 <span>뒤로</span>
             </button>
 
@@ -298,7 +298,7 @@ export default function UserProfile() {
                                 color: theme.accent,
                             }}
                         >
-                            <Award className="w-3.5 h-3.5 mr-1" />
+                            <DiamondIcon className="w-3.5 h-3.5 mr-1" />
                             {profile.cheerPoints?.toLocaleString() || 0} P
                         </ProfileBadge>
 
@@ -311,7 +311,7 @@ export default function UserProfile() {
                                     color: theme.contrastText,
                                 }}
                             >
-                                <Trophy className="w-3.5 h-3.5 mr-1" />
+                                <TrophyIcon className="w-3.5 h-3.5 mr-1" />
                                 {getTeamKoreanName(profile.favoriteTeam)}
                             </ProfileBadge>
                         )}
@@ -326,33 +326,33 @@ export default function UserProfile() {
                             {formatCount(totalPosts)}
                         </span>
                         <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
-                            <FileText className="w-3.5 h-3.5" />
+                            <PenSquareIcon className="w-3.5 h-3.5" />
                             게시글
                         </span>
                     </div>
                     <button
                         type="button"
                         className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
-                        onClick={() => setUserListModal({ isOpen: true, type: 'followers', title: '팔로워' })}
+                        onClick={() => setUserListModalType('followers')}
                     >
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followerCount || 0)}
                         </span>
                         <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
+                            <UsersIcon className="w-3.5 h-3.5" />
                             팔로워
                         </span>
                     </button>
                     <button
                         type="button"
                         className="text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1 rounded-lg transition-colors cursor-pointer"
-                        onClick={() => setUserListModal({ isOpen: true, type: 'following', title: '팔로잉' })}
+                        onClick={() => setUserListModalType('following')}
                     >
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followingCount || 0)}
                         </span>
                         <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
-                            <UserPlus className="w-3.5 h-3.5" />
+                            <UserIcon className="w-3.5 h-3.5" />
                             팔로잉
                         </span>
                     </button>
@@ -387,23 +387,43 @@ export default function UserProfile() {
                                 variant="outline"
                                 className="flex-1"
                                 onClick={scrollToPostsSection}
-                                data-testid="profile-posts-cta"
                             >
-                                <FileText className="w-4 h-4 mr-2" />
+                                <PenSquareIcon className="w-4 h-4 mr-2" />
                                 작성글 보기
                             </Button>
                         </div>
-                        <p className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            메시지 기능은 준비 중입니다. 지금은 작성글과 팔로우로 활동을 확인할 수 있습니다.
-                        </p>
+                        <Button
+                            variant={canMessageUser ? 'default' : 'outline'}
+                            disabled={!canMessageUser}
+                            onClick={() => {
+                                if (canMessageUser && messagePath) {
+                                    navigate(messagePath);
+                                }
+                            }}
+                            className="w-full"
+                            style={canMessageUser ? {
+                                backgroundColor: theme.primary,
+                                color: theme.contrastText,
+                            } : undefined}
+                        >
+                            <MessageCircleIcon className="w-4 h-4 mr-2" />
+                            메시지 보내기
+                        </Button>
+                        {messageDisabledReason ? (
+                            <p className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
+                                <MessageCircleIcon className="w-3.5 h-3.5" />
+                                {messageDisabledReason}
+                            </p>
+                        ) : null}
                     </div>
                 )}
 
                 {/* Bio Section */}
                 <div className="px-6 mb-6">
                     <div className="p-4 bg-gray-50 dark:bg-secondary/30 rounded-xl relative">
-                        <Quote className="absolute top-3 left-3 w-4 h-4 text-gray-300 dark:text-gray-300" />
+                        <span className="absolute top-2.5 left-3 text-lg leading-none text-gray-300 dark:text-gray-300">
+                            "
+                        </span>
                         <div className="pl-6">
                             {profile.bio ? (
                                 <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
@@ -423,7 +443,7 @@ export default function UserProfile() {
             <div ref={postsSectionRef} className="mt-6 px-4">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText className="w-5 h-5" style={{ color: theme.accent }} />
+                        <PenSquareIcon className="w-5 h-5" style={{ color: theme.accent }} />
                         작성한 게시글
                     </h2>
                     <span className="text-[16px] text-gray-500 dark:text-gray-300">
@@ -431,82 +451,33 @@ export default function UserProfile() {
                     </span>
                 </div>
 
-                {isPostsLoading ? (
-                    <div className="flex justify-center py-8 sm:py-10">
-                        <Loader2 className="h-8 w-8 animate-spin" style={{ color: theme.primary }} />
-                    </div>
-                ) : isPostsError ? (
-                    <div className="text-center py-8 sm:py-10 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-200 dark:border-border">
-                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500" />
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">
-                            게시글을 불러오지 못했습니다.
-                        </p>
-                        <Button variant="outline" onClick={() => refetchPosts()}>
-                            다시 시도
-                        </Button>
-                    </div>
-                ) : uniquePosts.length > 0 ? (
-                    <div className="space-y-4">
-                        <Suspense
-                            fallback={
-                                <div className="space-y-4">
-                                    {[0, 1].map((index) => (
-                                        <div
-                                            key={index}
-                                            className="rounded-xl border border-gray-200 bg-white p-4 dark:border-border dark:bg-card"
-                                        >
-                                            <div className="mb-4 flex items-center gap-3">
-                                                <Skeleton className="h-10 w-10 rounded-full" />
-                                                <div className="space-y-2">
-                                                    <Skeleton className="h-4 w-24" />
-                                                    <Skeleton className="h-3 w-16" />
-                                                </div>
-                                            </div>
-                                            <Skeleton className="mb-2 h-4 w-full" />
-                                            <Skeleton className="h-4 w-3/4" />
-                                        </div>
-                                    ))}
-                                </div>
-                            }
-                        >
-                            <>
-                                {uniquePosts.map((post) => (
-                                    <CheerCard key={post.id} post={post} />
-                                ))}
-                            </>
-                        </Suspense>
-                        {isFetchingNextPage && (
-                            <div className="flex justify-center py-4">
-                                <Loader2
-                                    className="h-6 w-6 animate-spin"
-                                    style={{ color: theme.primary }}
-                                />
-                            </div>
-                        )}
-                        {!hasNextPage && uniquePosts.length > 0 && <EndOfFeed />}
-                    </div>
-                ) : (
-                    <div className="text-center py-12 sm:py-14 bg-gray-50 dark:bg-card/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-border">
-                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-300" />
-                        <p className="text-gray-400 dark:text-gray-300">
-                            아직 작성한 게시글이 없습니다.
-                        </p>
-                    </div>
-                )}
+                <Suspense fallback={null}>
+                    <UserProfilePostsSection
+                        primaryColor={theme.primary}
+                        uniquePosts={uniquePosts}
+                        isPostsLoading={isPostsLoading}
+                        isPostsError={isPostsError}
+                        hasNextPage={Boolean(hasNextPage)}
+                        isFetchingNextPage={isFetchingNextPage}
+                        onRetryPosts={() => {
+                            void refetchPosts();
+                        }}
+                    />
+                </Suspense>
             </div>
 
             {/* User List Modal */}
-            {profile && (
+            {profile && userListModalType ? (
                 <Suspense fallback={null}>
                     <UserListModal
-                        isOpen={userListModal.isOpen}
-                        onClose={() => setUserListModal(prev => ({ ...prev, isOpen: false }))}
+                        isOpen
+                        onClose={() => setUserListModalType(null)}
                         userHandle={profile.handle}
-                        type={userListModal.type}
-                        title={userListModal.title}
+                        type={userListModalType}
+                        title={userListModalTitle}
                     />
                 </Suspense>
-            )}
+            ) : null}
         </div>
     );
 }

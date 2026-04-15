@@ -7,6 +7,7 @@ import {
     fetchHomeBootstrap,
     getHomeBootstrapQueryOptions,
     shouldShowHomeConnectionError,
+    type HomeLoadFailureReason,
     type HomeCoreLoadSuccessState,
     type HomeLoadState,
 } from '../api/home';
@@ -26,6 +27,7 @@ import {
 import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
+import { MANUAL_BASEBALL_DATA_REQUIRED_CODE } from '../utils/errorUtils';
 import { GameCardSkeleton, ScheduledGameCardSkeleton } from './home/GameCardSkeleton';
 import {
     ChevronLeftIcon,
@@ -86,6 +88,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isGamesError, setIsGamesError] = useState(false);
     const [connectionError, setConnectionError] = useState(false);
+    const [loadFailureReason, setLoadFailureReason] = useState<HomeLoadFailureReason | null>(null);
 
     const [activeLeagueTab, setActiveLeagueTab] = useState<LeagueTab>('regular');
     const [scheduledGames, setScheduledGames] = useState<Game[]>([]);
@@ -210,10 +213,11 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         const showConnectionError = shouldShowHomeConnectionError(snapshot.success);
 
         setIsLoading(false);
-        setIsGamesError(!snapshot.success.games);
+        setIsGamesError(!snapshot.success.games && !snapshot.loadState.timedOut);
         setIsScheduledLoading(false);
-        setIsScheduledError(!snapshot.success.scheduledGames);
+        setIsScheduledError(!snapshot.success.scheduledGames && !snapshot.loadState.timedOut);
         setConnectionError(showConnectionError);
+        setLoadFailureReason(snapshot.loadState.failureReason);
 
         console.info('[HomeLoad]', {
             event: 'home_load_completed',
@@ -253,7 +257,11 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         loadState: buildHomeLoadState('bootstrap', { timedOut }),
     });
 
-    const buildLegacyFailureSnapshot = (date: Date, timedOut: boolean): HomeLoadSnapshot => {
+    const buildLegacyFailureSnapshot = (
+        date: Date,
+        timedOut: boolean,
+        failureReason: HomeLoadFailureReason,
+    ): HomeLoadSnapshot => {
         const fallbackDates = leagueStartDates ?? fallbackLeagueStartDates;
         return {
             leagueStartDates: fallbackDates,
@@ -271,7 +279,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 games: false,
                 scheduledGames: false,
             },
-            loadState: buildHomeLoadState('legacy-fallback', { timedOut }),
+            loadState: buildHomeLoadState('legacy-fallback', { timedOut, failureReason }),
         };
     };
 
@@ -317,6 +325,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setIsScheduledLoading(true);
         setIsScheduledError(false);
         setConnectionError(false);
+        setLoadFailureReason(null);
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
         scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
@@ -331,7 +340,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 applyTransientSnapshotIfCurrent(cachedSnapshot);
                 return;
             }
-            applyTransientSnapshotIfCurrent(buildLegacyFailureSnapshot(date, timedOut));
+            applyTransientSnapshotIfCurrent(buildLegacyFailureSnapshot(date, timedOut, 'request-failed'));
         }, HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS);
 
         try {
@@ -342,17 +351,24 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 return;
             }
 
-            console.error(
-                '[HomeBootstrap] Error loading bootstrap:',
-                buildHomeRequestErrorContext(error, '/home/bootstrap', date),
-                error,
-            );
+            const errorContext = buildHomeRequestErrorContext(error, '/home/bootstrap', date);
+            if (errorContext.responseCode === MANUAL_BASEBALL_DATA_REQUIRED_CODE || errorContext.status === 409) {
+                console.warn('[HomeBootstrap] Business conflict while loading bootstrap:', errorContext);
+            } else {
+                console.error('[HomeBootstrap] Error loading bootstrap:', errorContext, error);
+            }
             const cachedSnapshot = getCachedBootstrapSnapshot(date, timedOut);
             if (cachedSnapshot) {
                 applySnapshotIfCurrent(cachedSnapshot);
                 return;
             }
-            applySnapshotIfCurrent(buildLegacyFailureSnapshot(date, timedOut));
+            applySnapshotIfCurrent(buildLegacyFailureSnapshot(
+                date,
+                timedOut,
+                errorContext.responseCode === MANUAL_BASEBALL_DATA_REQUIRED_CODE || errorContext.status === 409
+                    ? 'manual-data-required'
+                    : 'request-failed',
+            ));
         } finally {
             if (timeoutId !== null) {
                 window.clearTimeout(timeoutId);
@@ -572,7 +588,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                     <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3">
                         <WarningTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                             <p className="text-[16px] text-amber-800 dark:text-amber-300 font-bold">
-                                서버 연결에 문제가 있습니다. 백엔드 서비스 상태를 확인해주세요.
+                                {loadFailureReason === 'manual-data-required'
+                                    ? '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
+                                    : '서버 연결에 문제가 있습니다.'}
                             </p>
                             <Button
                                 variant="ghost"
@@ -693,6 +711,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                     activeLeagueTab={activeLeagueTab}
                                     isLoading={isLoading}
                                     isGamesError={isGamesError}
+                                    loadFailureReason={loadFailureReason}
                                     isScheduledLoading={isScheduledLoading}
                                     isScheduledError={isScheduledError}
                                     isSecondarySectionExpanded={isSecondarySectionExpanded}

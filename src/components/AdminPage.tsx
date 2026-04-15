@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
-
-import { Shield } from 'lucide-react';
+import { AdminShieldIcon } from './AdminIcons';
 
 const AdminPageRuntimeContent = lazy(() => import('./AdminPageRuntimeContent'));
 
@@ -31,7 +30,7 @@ export default function AdminPage() {
         <header className="mb-10 animate-fade-in-up">
           <div className="flex items-center gap-4 mb-3">
             <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25">
-              <Shield className="w-8 h-8 text-white" />
+              <AdminShieldIcon className="w-8 h-8 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-white">

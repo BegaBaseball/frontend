@@ -1,10 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-
-import { Activity, Calendar, MessageSquare, TrendingUp, Users } from 'lucide-react';
-
 import { fetchAdminStats } from '../api/admin';
 import type { AdminStats } from '../types/admin';
 import type { AdminTabValue } from './admin/adminPageTabs';
+import {
+  AdminActivityIcon,
+  AdminCalendarIcon,
+  AdminMessageSquareIcon,
+  AdminTrendingUpIcon,
+  AdminUsersIcon,
+} from './admin/AdminPanelIcons';
 import { StatCard } from './admin/StatCard';
 
 const AdminCommunityRuntime = lazy(() => import('./admin/AdminCommunityRuntime'));
@@ -76,7 +80,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
       {successMessage && (
         <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 backdrop-blur-sm animate-fade-in-up">
           <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
+            <AdminActivityIcon className="w-5 h-5" />
             {successMessage}
           </div>
         </div>
@@ -85,16 +89,16 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
       {error && (
         <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 backdrop-blur-sm animate-fade-in-up">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 rotate-180" />
+            <AdminTrendingUpIcon className="w-5 h-5 rotate-180" />
             {error}
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} color="amber" delay={100} />
-        <StatCard icon={MessageSquare} label="Total Posts" value={stats.totalPosts} color="emerald" delay={200} />
-        <StatCard icon={Calendar} label="Mate Gatherings" value={stats.totalMates} color="sky" delay={300} />
+        <StatCard icon={AdminUsersIcon} label="Total Users" value={stats.totalUsers} color="amber" delay={100} />
+        <StatCard icon={AdminMessageSquareIcon} label="Total Posts" value={stats.totalPosts} color="emerald" delay={200} />
+        <StatCard icon={AdminCalendarIcon} label="Mate Gatherings" value={stats.totalMates} color="sky" delay={300} />
       </div>
 
       {hasMountedCommunityRuntime && (

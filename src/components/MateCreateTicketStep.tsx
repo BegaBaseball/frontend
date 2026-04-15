@@ -1,6 +1,11 @@
 import type { ChangeEvent } from 'react';
-import { AlertCircle, CheckCircle, Loader2, Ticket } from 'lucide-react';
 
+import {
+  MateAlertCircleIcon,
+  MateCheckCircleIcon,
+  MateLoaderIcon,
+  MateTicketIcon,
+} from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import type { PartyFormData } from '../utils/mateCreateDraft';
@@ -70,13 +75,13 @@ export default function MateCreateTicketStep({
           >
             {isScanning ? (
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-12 w-12 animate-spin text-primary sm:h-16 sm:w-16" />
+                <MateLoaderIcon className="h-12 w-12 animate-spin text-primary sm:h-16 sm:w-16" />
                 <p className="text-base font-bold text-primary sm:text-lg">AI가 티켓을 분석 중...</p>
                 <p className="text-[16px] text-muted-foreground sm:text-base">경기 정보를 자동으로 추출합니다</p>
               </div>
             ) : isScanFailed ? (
               <div className="flex flex-col items-center gap-3">
-                <AlertCircle className="h-12 w-12 text-red-500 sm:h-16 sm:w-16" />
+                <MateAlertCircleIcon className="h-12 w-12 text-red-500 sm:h-16 sm:w-16" />
                 <p className="break-all text-base font-bold text-red-700 dark:text-red-300 sm:text-lg">
                   {ticketFile?.name}
                 </p>
@@ -87,7 +92,7 @@ export default function MateCreateTicketStep({
               </div>
             ) : ticketFile ? (
               <div className="flex flex-col items-center gap-3">
-                <CheckCircle className="h-12 w-12 text-green-500 sm:h-16 sm:w-16" />
+                <MateCheckCircleIcon className="h-12 w-12 text-green-500 sm:h-16 sm:w-16" />
                 <p className="break-all text-base font-bold text-green-700 dark:text-green-400 sm:text-lg">
                   {ticketFile.name}
                 </p>
@@ -95,7 +100,7 @@ export default function MateCreateTicketStep({
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <Ticket className="h-12 w-12 text-primary sm:h-16 sm:w-16" />
+                <MateTicketIcon className="h-12 w-12 text-primary sm:h-16 sm:w-16" />
                 <p className="text-base font-bold text-primary sm:text-lg">티켓 사진으로 자동 입력</p>
                 <p className="text-[16px] text-gray-500">JPG, PNG (최대 10MB)</p>
               </div>
@@ -127,7 +132,7 @@ export default function MateCreateTicketStep({
       </div>
 
       <Alert>
-        <AlertCircle className="w-4 h-4" />
+        <MateAlertCircleIcon className="w-4 h-4" />
         <AlertDescription>
           <ul className="list-disc list-inside space-y-1 text-[16px]">
             <li>티켓 사진을 올리면 AI가 경기 정보를 자동으로 입력합니다</li>

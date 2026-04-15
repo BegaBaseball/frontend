@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { MapPin } from 'lucide-react';
 import { DiaryEntry } from '../../types/diary';
+import { MyPageMapPinIcon } from './MyPageIcons';
 
 interface StadiumVisitListProps {
     entries: DiaryEntry[];
@@ -28,7 +28,7 @@ export default function StadiumVisitList({ entries }: StadiumVisitListProps) {
         <Card className="h-full">
             <CardHeader>
                 <CardTitle className="text-lg font-bold text-primary flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
+                    <MyPageMapPinIcon className="w-5 h-5" />
                     구장 도장 깨기
                 </CardTitle>
             </CardHeader>

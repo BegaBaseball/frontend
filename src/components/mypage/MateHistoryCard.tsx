@@ -5,7 +5,7 @@ import { Card } from '../ui/card';
 import TeamLogo from '../TeamLogo';
 import { seedMatePartyQueryData } from '../../hooks/mateList';
 import { MateParty } from '../../types/mate';
-import { buildMateRouteLocationState, formatGameDate, getStatusLabel, getStatusStyle } from '../../utils/mate';
+import { buildMateRouteLocationState, formatGameDate, getMatePartyDisplayTeamId, getStatusLabel, getStatusStyle } from '../../utils/mate';
 
 interface MateHistoryCardProps {
   party: MateParty;
@@ -29,7 +29,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
   return (
     <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={handleClick}>
       <div className="flex items-start gap-4">
-        <TeamLogo teamId={party.teamId} size="lg" />
+        <TeamLogo teamId={getMatePartyDisplayTeamId(party)} size="lg" />
 
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">

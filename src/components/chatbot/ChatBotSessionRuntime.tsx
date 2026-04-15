@@ -1,5 +1,6 @@
-import { Loader2 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
+
+import { SpinnerIcon } from '../icons/PublicShellIcons';
 
 const ChatBotSessionStateRuntime = lazy(() => import('./ChatBotSessionStateRuntime'));
 
@@ -14,7 +15,7 @@ export default function ChatBotSessionRuntime({
 }: ChatBotSessionRuntimeProps) {
   const chatBotSessionFallback = (
     <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      <SpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
       세션 패널을 불러오는 중입니다.
     </div>
   );

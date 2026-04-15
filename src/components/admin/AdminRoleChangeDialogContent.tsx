@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { UserCog } from 'lucide-react';
 
 import { AdminBadge } from './AdminPanelPrimitives';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import { Button } from '../ui/button';
+import { AdminUserCogIcon } from './AdminPanelIcons';
 
 interface PendingRoleChangeLike {
   userId: number;
@@ -37,7 +37,7 @@ export default function AdminRoleChangeDialogContent({
       onClose={() => onOpenChange(false)}
       title={(
         <span className="flex items-center gap-2 text-white">
-          <UserCog className="w-5 h-5 text-amber-400" />
+          <AdminUserCogIcon className="w-5 h-5 text-amber-400" />
           역할 변경 확인
         </span>
       )}

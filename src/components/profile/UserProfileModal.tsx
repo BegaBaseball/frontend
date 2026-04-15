@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Quote, Trophy, Users, X } from 'lucide-react';
 import { getPublicFollowCounts, type FollowCountResponse, type FollowToggleResponse } from '../../api/followPublic';
 import { fetchPublicUserProfileByHandle } from '../../api/profilePublic';
 import type { PublicUserProfile } from '../../types/profile';
@@ -8,6 +7,13 @@ import { getTeamKoreanName } from '../../utils/teamNames';
 import { useAuthStore } from '../../store/authStore';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/plain-button';
+import {
+    ProfileCloseIcon,
+    ProfileLoaderIcon,
+    ProfileQuoteIcon,
+    ProfileTrophyIcon,
+    ProfileUsersIcon,
+} from './ProfileIcons';
 
 const FollowButton = lazy(() => import('./FollowButton'));
 const BlockButton = lazy(() => import('./BlockButton'));
@@ -152,14 +158,14 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                             className="h-10 w-10 p-0 text-gray-400 hover:text-gray-500"
                             onClick={onClose}
                         >
-                            <X className="h-5 w-5" />
+                            <ProfileCloseIcon className="h-5 w-5" />
                         </Button>
                     </div>
 
                     <div className="flex flex-col items-center justify-center space-y-6 p-4">
                         {isLoading ? (
                             <div className="flex flex-col items-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <ProfileLoaderIcon className="h-8 w-8 animate-spin text-primary" />
                                 <p className="mt-2 text-[16px] text-gray-500">프로필 불러오는 중...</p>
                             </div>
                         ) : error ? (
@@ -184,7 +190,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h3>
                                     {profile.favoriteTeam ? (
                                         <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-700 dark:bg-secondary dark:text-gray-200">
-                                            <Trophy className="mr-1 h-3 w-3 text-primary" />
+                                            <ProfileTrophyIcon className="mr-1 h-3 w-3 text-primary" />
                                             {getTeamKoreanName(profile.favoriteTeam)}
                                         </span>
                                     ) : (
@@ -195,7 +201,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 {followCounts && (
                                     <div className="flex items-center justify-center gap-6 text-[16px]">
                                         <div className="flex items-center gap-1">
-                                            <Users className="h-4 w-4 text-gray-400" />
+                                            <ProfileUsersIcon className="h-4 w-4 text-gray-400" />
                                             <span className="font-semibold text-gray-900 dark:text-white">{followCounts.followerCount}</span>
                                             <span className="text-gray-500">팔로워</span>
                                         </div>
@@ -235,7 +241,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 )}
 
                                 <div className="relative mt-4 w-full rounded-xl bg-gray-50 p-5 dark:bg-secondary/70">
-                                    <Quote className="absolute left-4 top-4 h-4 w-4 text-gray-300 dark:text-gray-300" />
+                                    <ProfileQuoteIcon className="absolute left-4 top-4 h-4 w-4 text-gray-300 dark:text-gray-300" />
                                     <div className="px-4 text-center">
                                         {profile.bio ? (
                                             <p className="whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-gray-300">
