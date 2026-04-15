@@ -1,7 +1,7 @@
 // components/ranking/RankingItem.tsx
 import React from 'react';
 import { Button } from '../ui/button';
-import { X, GripVertical } from 'lucide-react';
+import { SharedCloseIcon, SharedGripVerticalIcon } from '../icons/SharedLeafIcons';
 import TeamLogo from '../TeamLogo';
 import { RankingItemProps } from '../../types/ranking';
 import { PLAYOFF_TEAMS } from '../../constants/ranking';
@@ -121,7 +121,7 @@ const RankingItem = React.memo(function RankingItem({
 
           {team ? (
             <div className="flex items-center gap-3 flex-1">
-              {!alreadySaved && <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
+              {!alreadySaved && <SharedGripVerticalIcon className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
                 <TeamLogo team={team.shortName} size={32} />
               </div>
@@ -133,7 +133,7 @@ const RankingItem = React.memo(function RankingItem({
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-secondary"
                 >
-                  <X className="w-4 h-4 text-red-500 dark:text-red-400" />
+                  <SharedCloseIcon className="w-4 h-4 text-red-500 dark:text-red-400" />
                 </Button>
               )}
             </div>
