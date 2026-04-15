@@ -1,6 +1,5 @@
 import { lazy, Suspense, useMemo } from 'react';
 import { Button } from './ui/button';
-import { Loader2 } from 'lucide-react';
 
 import {
     type CoachAnalyzeResponse,
@@ -20,6 +19,13 @@ import {
     normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
 } from '../utils/prediction';
+import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
+import {
+    normalizeStructuredInlineText,
+    normalizeStructuredInsightList,
+    normalizeStructuredMultilineText,
+} from '../utils/coachAnalysisText';
+import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
 
 const CoachAnalysisResultView = lazy(() => import('./prediction/CoachAnalysisResultView'));
 
@@ -118,7 +124,7 @@ const normalizeFocus = (values: string[]) => {
         .sort((a, b) => focusOrder.indexOf(a) - focusOrder.indexOf(b));
 };
 
-const normalizeTextBlock = (
+const normalizeLegacyTextBlock = (
     value: string,
     fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE,
 ) => normalizeCoachBriefing(
@@ -129,14 +135,6 @@ const normalizeTextBlock = (
         fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
     },
 ).displayText;
-
-const normalizeInsightList = (values?: unknown[]): string[] => (
-    Array.isArray(values)
-        ? values
-            .map((value) => (typeof value === 'string' ? normalizeTextBlock(value, '') : ''))
-            .filter((value) => Boolean(value))
-        : []
-);
 
 const deriveMetricCategory = (label: string): string => {
     if (label.includes('선발')) return '선발';
@@ -306,7 +304,7 @@ const normalizeSentiment = (value?: string): CoachAnalysisData['dashboard']['sen
     return 'neutral';
 };
 
-const getAnalysisData = ({
+export const getAnalysisData = ({
     result,
     isPastGame,
     isFutureGame,
@@ -317,6 +315,10 @@ const getAnalysisData = ({
     isFutureGame: boolean;
     gameStatusBucket?: string | null;
 }): CoachAnalysisData | null => {
+    if (result?.manual_data_request) {
+        return null;
+    }
+
     const presentation = resolveCoachAnalysisPresentation({
         isPastGame,
         isFutureGame,
@@ -353,15 +355,15 @@ const getAnalysisData = ({
         watch_points?: string[];
         uncertainty?: string[];
     }) => ({
-        summary: normalizeTextBlock(analysis?.summary || '', ''),
-        verdict: normalizeTextBlock(analysis?.verdict || '', ''),
-        strengths: normalizeInsightList(analysis?.strengths),
-        weaknesses: normalizeInsightList(analysis?.weaknesses),
+        summary: normalizeStructuredInlineText(analysis?.summary || '', ''),
+        verdict: normalizeStructuredInlineText(analysis?.verdict || '', ''),
+        strengths: normalizeStructuredInsightList(analysis?.strengths),
+        weaknesses: normalizeStructuredInsightList(analysis?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null),
-        why_it_matters: normalizeInsightList(analysis?.why_it_matters),
-        swing_factors: normalizeInsightList(analysis?.swing_factors),
-        watch_points: normalizeInsightList(analysis?.watch_points),
-        uncertainty: normalizeInsightList(analysis?.uncertainty),
+        why_it_matters: normalizeStructuredInsightList(analysis?.why_it_matters),
+        swing_factors: normalizeStructuredInsightList(analysis?.swing_factors),
+        watch_points: normalizeStructuredInsightList(analysis?.watch_points),
+        uncertainty: normalizeStructuredInsightList(analysis?.uncertainty),
     });
 
     const mapStructuredMetrics = (metrics?: Array<{
@@ -421,23 +423,29 @@ const getAnalysisData = ({
     }): CoachAnalysisData => {
         const normalizedAnalysis = normalizeAnalysisSection(analysis);
         const mappedMetrics = mapStructuredMetrics(keyMetrics);
-        const normalizedContext = normalizeDashboardContext(
-            headline || defaultAnalysisTitle,
+        const normalizedHeadline = normalizeStructuredInlineText(
+            headline || '',
+            defaultAnalysisTitle,
+        );
+        const normalizedContext = normalizeStructuredInlineText(
             normalizedAnalysis.summary
                 || normalizedAnalysis.verdict
-                || normalizeTextBlock(detailedMarkdown || coachNote || ''),
+                || detailedMarkdown
+                || coachNote
+                || '',
+            defaultAnalysisMessage,
         );
 
         return {
             dashboard: {
-                headline: normalizedContext.title,
-                context: normalizedContext.displayText,
+                headline: normalizedHeadline,
+                context: normalizedContext,
                 sentiment: normalizeSentiment(sentiment),
                 stats: mappedMetrics.stats,
             },
             metrics: mappedMetrics.metricCards,
-            detailed_analysis: normalizeTextBlock(detailedMarkdown || ''),
-            coach_note: normalizeTextBlock(
+            detailed_analysis: normalizeStructuredMultilineText(detailedMarkdown || ''),
+            coach_note: normalizeStructuredMultilineText(
                 coachNote || '',
                 '코치 노트가 제공되지 않았습니다.',
             ),
@@ -456,8 +464,11 @@ const getAnalysisData = ({
 
     const normalizeCoachAnalysisData = (data?: ParsedCoachAnalysisData): CoachAnalysisData => ({
         dashboard: {
-            headline: typeof data?.dashboard?.headline === 'string' ? data.dashboard.headline : defaultAnalysisTitle,
-            context: normalizeTextBlock(
+            headline: normalizeStructuredInlineText(
+                typeof data?.dashboard?.headline === 'string' ? data.dashboard.headline : '',
+                defaultAnalysisTitle,
+            ),
+            context: normalizeStructuredInlineText(
                 typeof data?.dashboard?.context === 'string' ? data.dashboard.context : '',
                 defaultAnalysisMessage,
             ),
@@ -514,20 +525,20 @@ const getAnalysisData = ({
                 trend: normalizeMetricTrend(typeof safeMetric.trend === 'string' ? safeMetric.trend : undefined),
             });
         }),
-        analysis_summary: normalizeTextBlock(typeof data?.analysis_summary === 'string' ? data.analysis_summary : '', ''),
-        verdict: normalizeTextBlock(typeof data?.verdict === 'string' ? data.verdict : '', ''),
-        strengths: normalizeInsightList(data?.strengths),
-        weaknesses: normalizeInsightList(data?.weaknesses),
+        analysis_summary: normalizeStructuredInlineText(typeof data?.analysis_summary === 'string' ? data.analysis_summary : '', ''),
+        verdict: normalizeStructuredInlineText(typeof data?.verdict === 'string' ? data.verdict : '', ''),
+        strengths: normalizeStructuredInsightList(data?.strengths),
+        weaknesses: normalizeStructuredInsightList(data?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(data?.risks) ? data.risks : null),
-        why_it_matters: normalizeInsightList(data?.why_it_matters),
-        swing_factors: normalizeInsightList(data?.swing_factors),
-        watch_points: normalizeInsightList(data?.watch_points),
-        uncertainty: normalizeInsightList(data?.uncertainty),
-        detailed_analysis: normalizeTextBlock(
+        why_it_matters: normalizeStructuredInsightList(data?.why_it_matters),
+        swing_factors: normalizeStructuredInsightList(data?.swing_factors),
+        watch_points: normalizeStructuredInsightList(data?.watch_points),
+        uncertainty: normalizeStructuredInsightList(data?.uncertainty),
+        detailed_analysis: normalizeStructuredMultilineText(
             typeof data?.detailed_analysis === 'string' ? data.detailed_analysis : '',
             COACH_BRIEFING_DISPLAY_MESSAGE,
         ),
-        coach_note: normalizeTextBlock(
+        coach_note: normalizeStructuredMultilineText(
             typeof data?.coach_note === 'string' ? data.coach_note : '',
             '기존 형식의 코치 노트가 없습니다.',
         ),
@@ -597,8 +608,8 @@ const getAnalysisData = ({
             stats: [] as DashboardStat[],
         },
         metrics: [] as CoachMetric[],
-        detailed_analysis: normalizeTextBlock(raw),
-        coach_note: normalizeTextBlock(
+        detailed_analysis: normalizeLegacyTextBlock(raw),
+        coach_note: normalizeLegacyTextBlock(
             '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
             '기존 형식의 데이터가 감지되었습니다. 상세 리포트를 참고해주세요.',
         ),
@@ -644,12 +655,25 @@ export default function CoachAnalysisDialogResultRuntime({
         [gameStatusBucket, isFutureGame, isPastGame, result],
     );
     const analysisDataQualityNotice = useMemo(
-        () => getCoachBriefingDataQualityNotice(
+        () => (
+            result?.manual_data_request
+                ? {
+                    message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+                    reasons: [],
+                    details: [],
+                }
+                : getCoachBriefingDataQualityNotice(
+                    result?.data_quality,
+                    result?.grounding_reasons,
+                    result?.grounding_warnings,
+                )
+        ),
+        [
             result?.data_quality,
             result?.grounding_reasons,
             result?.grounding_warnings,
-        ),
-        [result?.data_quality, result?.grounding_reasons, result?.grounding_warnings],
+            result?.manual_data_request,
+        ],
     );
     const analysisDataQualityLabel = useMemo(
         () => getCoachDataQualityLabel(result?.data_quality),
@@ -684,7 +708,7 @@ export default function CoachAnalysisDialogResultRuntime({
             {loading && !analysisData && (
                 <div className="space-y-4">
                     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                        <PredictionLoaderIcon className="h-4 w-4 animate-spin shrink-0 text-primary" />
                         <span>{analysisStep || loadingFallbackMessage}</span>
                     </div>
                     {!result && (
@@ -778,7 +802,7 @@ export default function CoachAnalysisDialogResultRuntime({
                 </div>
             )}
 
-            {result?.generation_mode && (
+            {!result?.manual_data_request && result?.generation_mode && (
                 <div
                     data-testid="coach-analysis-generation-mode"
                     data-generation-mode={result.generation_mode}

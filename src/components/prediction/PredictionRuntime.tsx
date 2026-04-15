@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Card } from '../ui/card';
@@ -9,6 +9,18 @@ const PredictionMatchRuntime = lazy(() => import('./PredictionMatchRuntime'));
 const PredictionRankingTab = lazy(() => import('./PredictionRankingTab'));
 const PredictionAnimatedSections = lazy(() => import('../PredictionAnimatedSections'));
 
+export function getPredictionTabActivationState(
+  nextTab: 'match' | 'ranking',
+  previousVisitedRankingTab: boolean,
+  previousRankingFeatureReady: boolean,
+) {
+  const activateRanking = nextTab === 'ranking';
+  return {
+    hasVisitedRankingTab: previousVisitedRankingTab || activateRanking,
+    rankingFeatureReady: previousRankingFeatureReady || activateRanking,
+  };
+}
+
 export default function PredictionRuntime() {
   const [activeTab, setActiveTab] = useState<'match' | 'ranking'>('match');
   const [hasVisitedRankingTab, setHasVisitedRankingTab] = useState(false);
@@ -16,25 +28,22 @@ export default function PredictionRuntime() {
   const { isLoggedIn } = useAuthSession();
   const { userCheerPoints = 0 } = useAuthProfileSnapshot();
 
-  useEffect(() => {
-    if (activeTab === 'ranking') {
-      setHasVisitedRankingTab(true);
+  const handleTabChange = (nextTab: 'match' | 'ranking') => {
+    setActiveTab(nextTab);
+
+    const nextState = getPredictionTabActivationState(
+      nextTab,
+      hasVisitedRankingTab,
+      rankingFeatureReady,
+    );
+
+    if (nextState.hasVisitedRankingTab !== hasVisitedRankingTab) {
+      setHasVisitedRankingTab(nextState.hasVisitedRankingTab);
     }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab !== 'ranking' || rankingFeatureReady) {
-      return;
+    if (nextState.rankingFeatureReady !== rankingFeatureReady) {
+      setRankingFeatureReady(nextState.rankingFeatureReady);
     }
-
-    const timeoutId = window.setTimeout(() => {
-      setRankingFeatureReady(true);
-    }, 180);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [activeTab, rankingFeatureReady]);
+  };
 
   const matchChildren = (
     <Suspense
@@ -123,7 +132,8 @@ export default function PredictionRuntime() {
             />
             <button
               type="button"
-              onClick={() => setActiveTab('match')}
+              onClick={() => handleTabChange('match')}
+              data-testid="prediction-tab-match"
               className={`relative z-10 min-h-10 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
                 activeTab === 'match'
                   ? 'text-white'
@@ -134,7 +144,8 @@ export default function PredictionRuntime() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('ranking')}
+              onClick={() => handleTabChange('ranking')}
+              data-testid="prediction-tab-ranking"
               className={`relative z-10 min-h-10 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
                 activeTab === 'ranking'
                   ? 'text-white'

@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Flame, Hash, Target } from 'lucide-react';
 import { Card } from '../ui/card';
 import { fetchMyPredictionStats } from '../../api/prediction';
+import {
+  PredictionCheckCircleIcon,
+  PredictionFlameIcon,
+  PredictionHashIcon,
+  PredictionTargetIcon,
+} from './PredictionShellIcons';
 
 const ACCURACY_GAUGE_CIRCUMFERENCE = 2 * Math.PI * 56;
 
@@ -35,7 +40,7 @@ export default function PredictionStatsPanel() {
       <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
         <div className="bg-slate-50/50 dark:bg-slate-950/50 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-indigo-500" />
+            <PredictionTargetIcon className="w-4 h-4 text-indigo-500" />
             <h3 className="text-[16px] font-bold text-slate-800 dark:text-slate-100">나의 예측 퍼포먼스</h3>
           </div>
         </div>
@@ -90,7 +95,7 @@ export default function PredictionStatsPanel() {
           <div className="col-span-2 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-10 sm:shrink-0">
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                <Hash className="w-3.5 h-3.5" />
+                <PredictionHashIcon className="w-3.5 h-3.5" />
                 <span className="text-[16px] sm:text-[16px] font-bold">총 예측</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
@@ -103,7 +108,7 @@ export default function PredictionStatsPanel() {
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <PredictionCheckCircleIcon className="w-3.5 h-3.5" />
                 <span className="text-[16px] sm:text-[16px] font-bold">적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
@@ -116,7 +121,7 @@ export default function PredictionStatsPanel() {
 
             <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
-                <Flame className="w-3.5 h-3.5" />
+                <PredictionFlameIcon className="w-3.5 h-3.5" />
                 <span className="text-[16px] sm:text-[16px] font-bold">연속 적중</span>
               </div>
               <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">

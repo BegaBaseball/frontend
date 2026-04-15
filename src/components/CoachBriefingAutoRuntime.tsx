@@ -8,6 +8,7 @@ import {
   isCoachAnalyzeError,
 } from '../api/coach';
 import type { Game, GameDetail } from '../types/prediction';
+import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
   buildCoachBriefingRequestDescriptor,
   type CoachRequestMode,
@@ -20,6 +21,7 @@ export interface CoachBriefingMetaState {
   generationMode?: CoachGenerationMode;
   dataQuality?: CoachDataQuality;
   cacheState?: string;
+  manualDataRequired?: boolean;
   usedEvidence: string[];
   groundingWarnings: string[];
   groundingReasons: string[];
@@ -65,6 +67,7 @@ interface CoachBriefingCachePayload {
   generationMode?: CoachGenerationMode;
   dataQuality?: CoachDataQuality;
   cacheState?: string;
+  manualDataRequired?: boolean;
   usedEvidence?: string[];
   groundingWarnings?: string[];
   groundingReasons?: string[];
@@ -136,6 +139,7 @@ const normalizeCoachBriefingMeta = (
     generationMode: payload.generationMode,
     dataQuality: payload.dataQuality,
     cacheState: payload.cacheState,
+    manualDataRequired: payload.manualDataRequired === true,
     usedEvidence,
     groundingWarnings,
     groundingReasons,
@@ -577,6 +581,7 @@ export default function CoachBriefingAutoRuntime({
         generationMode: 'evidence_fallback',
         dataQuality: 'insufficient',
         cacheState,
+        manualDataRequired: false,
         usedEvidence: [],
         groundingWarnings: [],
         groundingReasons: [],
@@ -619,11 +624,34 @@ export default function CoachBriefingAutoRuntime({
           generationMode: response.generation_mode,
           dataQuality: response.data_quality,
           cacheState,
+          manualDataRequired: response.manual_data_request != null,
           usedEvidence: response.used_evidence,
           groundingWarnings: response.grounding_warnings,
           groundingReasons: response.grounding_reasons,
           supportedFactCount: response.supported_fact_count,
         });
+
+        if (response.manual_data_request) {
+          clearRetryTimer();
+          resetRetryState();
+          const manualBriefing = normalizeBriefing(
+            MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+            MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+          );
+          aiBriefingRef.current = manualBriefing;
+          onBriefingChange(manualBriefing);
+          onMetaChange(normalizedMeta ?? normalizeCoachBriefingMeta({
+            generationMode: 'evidence_fallback',
+            dataQuality: 'insufficient',
+            cacheState,
+            manualDataRequired: true,
+            usedEvidence: [],
+            groundingWarnings: [],
+            groundingReasons: [],
+            supportedFactCount: 0,
+          }));
+          return;
+        }
 
         const scheduleRetryIfNeeded = (retryable: boolean) => {
           if (!retryable) {
@@ -680,6 +708,7 @@ export default function CoachBriefingAutoRuntime({
             generationMode: 'evidence_fallback',
             dataQuality: 'insufficient',
             cacheState,
+            manualDataRequired: false,
             usedEvidence: [],
             groundingWarnings: [],
             groundingReasons: [],

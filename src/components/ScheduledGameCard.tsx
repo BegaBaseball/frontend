@@ -1,6 +1,11 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, ArrowUpRight } from 'lucide-react';
 import { Card } from './ui/card';
+import {
+  SharedAlertTriangleIcon,
+  SharedArrowUpRightIcon,
+  SharedCalendarDaysIcon,
+  SharedClockIcon,
+} from './icons/SharedLeafIcons';
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
 
@@ -78,7 +83,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
 
         <div className="flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/90 px-2.5 py-1 text-[16px] font-bold text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200 shadow-sm">
-            <Clock3 className="w-3.5 h-3.5" />
+            <SharedClockIcon className="w-3.5 h-3.5" />
             {game.time || '시간 미정'}
           </span>
           <span
@@ -88,7 +93,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
               : 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/40'
             }`}
           >
-            {isSecondary ? <AlertTriangle className="w-3 h-3" /> : <Clock3 className="w-3 h-3" />}
+            {isSecondary ? <SharedAlertTriangleIcon className="w-3 h-3" /> : <SharedClockIcon className="w-3 h-3" />}
             {statusLabel}
           </span>
         </div>
@@ -108,7 +113,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 text-[16px] font-semibold text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-secondary px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-white/10">
-              <CalendarDays className="w-3 h-3" />
+              <SharedCalendarDaysIcon className="w-3 h-3" />
               {formatSourceDate(game.sourceDate)}
             </span>
             <span className="inline-flex items-center text-[16px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 rounded-md">
@@ -126,7 +131,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
           className="w-full h-9 text-[16px] font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-sm"
         >
           승부예측 하러가기
-          <ArrowUpRight className="w-3.5 h-3.5 ml-1.5" />
+          <SharedArrowUpRightIcon className="w-3.5 h-3.5 ml-1.5" />
         </Button>
       </div>
     </Card>

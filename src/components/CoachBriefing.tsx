@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import type { Game, GameDetail } from '../types/prediction';
 import {
@@ -7,6 +7,7 @@ import {
   type NormalizedAiBriefing,
   resolveCoachAnalysisPresentation,
 } from '../utils/prediction';
+import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import { useAuthAccessActions } from '../store/authStore';
 import { getCurrentRelativeUrl } from '../utils/loginRedirect';
 
@@ -137,8 +138,6 @@ export default function CoachBriefing({
   forceManual = false,
 }: CoachBriefingProps) {
   const { logout, requireLogin } = useAuthAccessActions();
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [displayedMessage, setDisplayedMessage] = useState('');
   const [aiBriefing, setAiBriefing] = useState<NormalizedAiBriefing | null>(null);
   const [briefingMeta, setBriefingMeta] = useState<CoachBriefingMetaState | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -165,14 +164,17 @@ export default function CoachBriefing({
   const authExpiredMessage = effectiveAutoEnabled
     ? '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.'
     : analysisPresentation.authExpiredMessage;
-  const dataQualityNotice = useMemo(
-    () => getCoachBriefingDataQualityNotice(
+  const dataQualityNotice = briefingMeta?.manualDataRequired
+    ? {
+        message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+        reasons: [],
+        details: [],
+      }
+    : getCoachBriefingDataQualityNotice(
       briefingMeta?.dataQuality,
       briefingMeta?.groundingReasons,
       briefingMeta?.groundingWarnings,
-    ),
-    [briefingMeta?.dataQuality, briefingMeta?.groundingReasons, briefingMeta?.groundingWarnings],
-  );
+    );
   const showLoginAction = isGuestBlocked || authExpired;
   const isAwaitingAutoBriefing =
     effectiveAutoEnabled
@@ -181,13 +183,14 @@ export default function CoachBriefing({
     && !isAuthCheckPending
     && !authExpired;
   const totalEvidenceCount = (briefingMeta?.usedEvidence.length ?? 0) + (briefingMeta?.supportedFactCount ?? 0);
-  const summaryPoints = useMemo(
-    () => buildCoachBriefingSummaryPoints(aiBriefing?.displayText || aiBriefing?.message || ''),
-    [aiBriefing?.displayText, aiBriefing?.message],
-  );
-  const briefingStatusMessage = useMemo(() => {
+  const summaryPoints = buildCoachBriefingSummaryPoints(aiBriefing?.displayText || aiBriefing?.message || '');
+  const briefingStatusMessage = (() => {
     if (!effectiveAutoEnabled) {
       return null;
+    }
+
+    if (briefingMeta?.manualDataRequired) {
+      return MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE;
     }
 
     if (briefingMeta?.cacheState === 'FAILED_LOCKED') {
@@ -221,13 +224,17 @@ export default function CoachBriefing({
     }
 
     return null;
-  }, [aiLoading, briefingMeta?.cacheState, briefingMeta?.dataQuality, effectiveAutoEnabled, isRefreshingBriefing]);
-  const briefingStatusTone = useMemo(() => {
+  })();
+  const briefingStatusTone = (() => {
     if (!briefingStatusMessage) {
       return null;
     }
 
     if (briefingMeta?.cacheState === 'FAILED_LOCKED') {
+      return 'warning' as const;
+    }
+
+    if (briefingMeta?.manualDataRequired) {
       return 'warning' as const;
     }
 
@@ -246,11 +253,8 @@ export default function CoachBriefing({
     }
 
     return 'info' as const;
-  }, [aiLoading, briefingMeta?.cacheState, briefingMeta?.dataQuality, briefingStatusMessage, isRefreshingBriefing]);
-  const inlineDataQualityNote = useMemo(
-    () => buildCoachBriefingInlineNote(dataQualityNotice, briefingMeta?.groundingWarnings),
-    [dataQualityNotice, briefingMeta?.groundingWarnings],
-  );
+  })();
+  const inlineDataQualityNote = buildCoachBriefingInlineNote(dataQualityNotice, briefingMeta?.groundingWarnings);
   const showSummaryPoints = effectiveAutoEnabled
     && !showLoginAction
     && !isAuthCheckPending
@@ -332,44 +336,8 @@ export default function CoachBriefing({
       : `로그인하고 ${analysisPresentation.mode === 'review' ? '경기 리뷰' : analysisPresentation.mode === 'prediction' ? '경기 예측' : '상세 분석'} 보기`;
   const analysisButtonLabel = game ? analysisPresentation.buttonLabel : '전력 분석';
 
-  useEffect(() => {
-    if (!activeMessage) {
-      setDisplayedMessage('');
-      return;
-    }
-    const prefersReduced = typeof window !== 'undefined'
-      && typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-      setDisplayedMessage(activeMessage);
-      return;
-    }
-    setDisplayedMessage('');
-    const message = activeMessage;
-    let i = 0;
-    let rafId: number;
-    let lastTime = 0;
-    const step = (time: number) => {
-      if (time - lastTime >= 50) {
-        i = Math.min(i + 2, message.length);
-        setDisplayedMessage(message.substring(0, i));
-        lastTime = time;
-      }
-      if (i < message.length) rafId = requestAnimationFrame(step);
-    };
-    rafId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafId);
-  }, [activeMessage]);
-
   return (
-    <div
-      ref={cardRef}
-      data-testid="coach-briefing-card"
-      data-debug-auto={String(effectiveAutoEnabled)}
-      data-debug-activated={String(hasActivatedAutoBriefing)}
-      data-debug-loading={String(aiLoading)}
-      data-debug-request-mode={effectiveRequestMode}
-    >
+    <>
       {effectiveAutoEnabled ? (
         <Suspense fallback={null}>
           <CoachBriefingAutoRuntime
@@ -395,7 +363,6 @@ export default function CoachBriefing({
           seasonSummary={seasonSummary}
           activeTitle={activeTitle}
           activeMessage={activeMessage}
-          displayedMessage={displayedMessage}
           briefingStatusMessage={briefingStatusMessage}
           briefingStatusTone={briefingStatusTone}
           showSummaryPoints={showSummaryPoints}
@@ -415,6 +382,6 @@ export default function CoachBriefing({
           isFutureGame={isFutureGame}
         />
       </Suspense>
-    </div>
+    </>
   );
 }

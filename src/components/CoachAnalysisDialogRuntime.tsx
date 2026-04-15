@@ -2,9 +2,6 @@ import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
-    Loader2, Zap, TrendingUp, Users, Shield, BarChart2
-} from 'lucide-react';
-import {
     analyzeTeam,
     type CoachAnalyzeResponse,
     isCoachAnalyzeError,
@@ -12,10 +9,19 @@ import {
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
 import {
+    getCoachAnalysisUnavailableMessage,
     resolveCoachAnalysisPresentation,
 } from '../utils/prediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import PlainDialog from './ui/plain-dialog';
+import {
+    PredictionBarChartIcon,
+    PredictionLoaderIcon,
+    PredictionShieldIcon,
+    PredictionTrendingUpIcon,
+    PredictionUsersIcon,
+    PredictionZapIcon,
+} from './prediction/PredictionShellIcons';
 
 const CoachAnalysisDialogResultRuntime = lazy(() => import('./CoachAnalysisDialogResultRuntime'));
 
@@ -64,9 +70,9 @@ function CoachAnalysisDialogResultRuntimeFallback({
     }
 
     return (
-            <div className="space-y-4">
+        <div className="space-y-4">
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                <PredictionLoaderIcon className="h-4 w-4 animate-spin shrink-0 text-primary" />
                 <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
             </div>
             <div className="space-y-3 px-1">
@@ -122,6 +128,10 @@ export default function CoachAnalysisDialogRuntime({
     gameStatusBucket,
 }: CoachAnalysisDialogRuntimeProps) {
     const defaultPresentation = resolveCoachAnalysisPresentation({ isPastGame, isFutureGame, gameStatusBucket });
+    const unavailableAnalysisMessage = useMemo(
+        () => getCoachAnalysisUnavailableMessage(gameStatusBucket),
+        [gameStatusBucket],
+    );
     const getInitialTeamName = (teamId?: string) => {
         if (!teamId) return getRandomTeamName();
         // Try to match ID to full name from TEAM_DATA
@@ -210,11 +220,11 @@ export default function CoachAnalysisDialogRuntime({
     }, [isOpen, initialTeam, homeTeamId, awayTeamId, gameId, homePitcher, awayPitcher]);
 
     const focusOptions = [
-        { id: 'recent_form', label: '최근 전력', icon: TrendingUp, desc: '최근 5경기 승률 및 타격감' },
-        { id: 'bullpen', label: '불펜 상태', icon: Shield, desc: '필승조 가동 가능 여부' },
-        { id: 'matchup', label: '상대 전적', icon: Users, desc: '이번 시즌 상대 승률' },
-        { id: 'starter', label: '선발 투수', icon: Zap, desc: '선발 맞대결 분석' },
-        { id: 'batting', label: '타격 생산성', icon: BarChart2, desc: 'OPS·wRC+ 등 타격 지표 분석' },
+        { id: 'recent_form', label: '최근 전력', icon: PredictionTrendingUpIcon, desc: '최근 5경기 승률 및 타격감' },
+        { id: 'bullpen', label: '불펜 상태', icon: PredictionShieldIcon, desc: '필승조 가동 가능 여부' },
+        { id: 'matchup', label: '상대 전적', icon: PredictionUsersIcon, desc: '이번 시즌 상대 승률' },
+        { id: 'starter', label: '선발 투수', icon: PredictionZapIcon, desc: '선발 맞대결 분석' },
+        { id: 'batting', label: '타격 생산성', icon: PredictionBarChartIcon, desc: 'OPS·wRC+ 등 타격 지표 분석' },
     ];
     const focusOrder = ['recent_form', 'bullpen', 'starter', 'matchup', 'batting'];
     const normalizeFocusLocal = (values: string[]) => {
@@ -262,6 +272,18 @@ export default function CoachAnalysisDialogRuntime({
     };
 
     const handleAnalyze = async () => {
+        if (unavailableAnalysisMessage) {
+            setHasMountedResultRuntime(true);
+            setLoading(false);
+            setAnalysisStep('');
+            setErrorAction(null);
+            setResult({
+                error: unavailableAnalysisMessage,
+                game_status_bucket: gameStatusBucket ?? undefined,
+            });
+            return;
+        }
+
         invalidateActiveAnalysis();
 
         const controller = new AbortController();
@@ -480,15 +502,25 @@ export default function CoachAnalysisDialogRuntime({
 
                     {/* Action Button Section */}
                     <div className="p-1">
+                        {unavailableAnalysisMessage ? (
+                            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[16px] text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                                <PredictionShieldIcon className="mt-0.5 h-5 w-5 shrink-0" />
+                                <span>{unavailableAnalysisMessage}</span>
+                            </div>
+                        ) : null}
                         <Button
                             onClick={handleAnalyze}
-                            disabled={loading}
+                            disabled={loading || Boolean(unavailableAnalysisMessage)}
                             data-testid="coach-analysis-run-button"
-                            className="w-full bg-primary hover:bg-primary-dark text-white h-12 sm:h-14 text-[16px] sm:text-base font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.99]"
+                            className={`w-full h-12 sm:h-14 text-[16px] sm:text-base font-semibold rounded-2xl transition-all active:scale-[0.99] ${
+                                unavailableAnalysisMessage
+                                    ? 'bg-gray-200 text-gray-500 shadow-none hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400'
+                                    : 'bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20'
+                            }`}
                         >
                             {loading ? (
                                 <div className="flex min-w-0 items-center gap-4">
-                                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                    <PredictionLoaderIcon className="h-6 w-6 text-white animate-spin" />
                                     <span className="min-w-0 text-[16px] font-semibold">
                                         {analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}
                                     </span>
@@ -502,9 +534,14 @@ export default function CoachAnalysisDialogRuntime({
                                         ))}
                                     </span>
                                 </div>
+                            ) : unavailableAnalysisMessage ? (
+                                <div className="flex items-center gap-3 px-4">
+                                    <PredictionShieldIcon className="w-5 h-5" />
+                                    <span>분석 불가</span>
+                                </div>
                             ) : (
                                 <div className="flex items-center gap-3 px-4">
-                                    <Zap className="w-5 h-5 text-white" />
+                                    <PredictionZapIcon className="w-5 h-5 text-white" />
                                     <span>{defaultPresentation.runButtonLabel}</span>
                                 </div>
                             )}

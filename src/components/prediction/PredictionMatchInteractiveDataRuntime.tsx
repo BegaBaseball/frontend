@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { usePredictionInteractiveData } from '../../hooks/usePredictionInteractiveData';
+import { resolvePredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
 import {
   PREDICTION_RUN_SESSION_EVENT,
   hasPredictionRunSession,
@@ -23,6 +24,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     currentDayNavigationMeta,
     votes,
     userVote,
+    userVoteResolutionState,
     setUserVote,
     currentGameDetail,
     currentGameDetailLoading,
@@ -107,6 +109,25 @@ export default function PredictionMatchInteractiveDataRuntime() {
   }, []);
 
   const currentGameId = currentGame?.gameId;
+  const currentUserVoteResolutionState = resolvePredictionUserVoteResolutionState(
+    userVoteResolutionState,
+    currentGameId,
+  );
+
+  const handleRequireLoginForVote = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent('auth-session-expired', {
+      detail: {
+        cause: 'prediction_vote_resolution_unknown_auth',
+        requestUrl: '/predictions/my-votes',
+        requestMethod: 'POST',
+        requestStatus: 403,
+      },
+    }));
+  }, []);
 
   const queueVoteAction = useCallback((team: VoteTeam, game: Game, isVoteOpen: boolean) => {
     if (pendingVoteQueueLockRef.current) {
@@ -142,6 +163,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
         currentDayNavigationMeta={currentDayNavigationMeta}
         votes={votes}
         userVote={userVote}
+        currentUserVoteResolutionState={currentUserVoteResolutionState}
         currentGameDetail={currentGameDetail}
         currentGameDetailLoading={currentGameDetailLoading}
         currentGameDetailRefreshing={currentGameDetailRefreshing}
@@ -181,6 +203,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
         currentGameId={currentGameId}
         voteControllerState={voteControllerState}
         onQueueVoteAction={queueVoteAction}
+        onRequireLoginForVote={handleRequireLoginForVote}
       />
     </Suspense>
   ), [
@@ -193,6 +216,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     currentDateIndex,
     currentDayNavigationMeta,
     currentGame,
+    currentUserVoteResolutionState,
     currentGameDetail,
     currentGameDetailError,
     currentGameDetailLoading,
@@ -225,6 +249,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     retryLoadMoreFutureMatches,
     retryLoadMorePastMatches,
     userVote,
+    handleRequireLoginForVote,
     voteStatusError,
     voteStatusLoading,
     votes,

@@ -1,10 +1,10 @@
 import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
-import { Loader2, Zap } from 'lucide-react';
 
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
 import { TEAM_DATA, TEAM_LIST, getRandomTeamName } from '../constants/teams';
 import { resolveCoachAnalysisPresentation } from '../utils/prediction';
+import { PredictionLoaderIcon, PredictionZapIcon } from './prediction/PredictionShellIcons';
 
 const CoachAnalysisDialogRuntime = lazy(() => import('./CoachAnalysisDialogRuntime'));
 
@@ -48,9 +48,9 @@ function CoachAnalysisTriggerButton({
       className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold"
     >
       {disabled ? (
-        <Loader2 className="w-4 h-4 fill-white animate-spin" />
+        <PredictionLoaderIcon className="w-4 h-4 fill-white animate-spin" />
       ) : (
-        <Zap className="w-4 h-4 fill-white" />
+        <PredictionZapIcon className="w-4 h-4 fill-white" />
       )}
       <span>AI 코치 상세 분석</span>
     </Button>
@@ -93,7 +93,7 @@ function CoachAnalysisDialogFallback({
     >
       <div className="flex min-h-[18rem] items-center justify-center bg-gray-50/60 dark:bg-black/40">
         <div className="inline-flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
           AI 코치 분석 도구를 불러오는 중입니다.
         </div>
       </div>

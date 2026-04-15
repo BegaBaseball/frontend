@@ -1,5 +1,4 @@
 import { lazy, Suspense, type ReactNode, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Clock3, Loader2 } from 'lucide-react';
 
 import TeamLogo from '../TeamLogo';
 import ViewportDeferred from '../ViewportDeferred';
@@ -11,6 +10,11 @@ import {
   getSectionHeadingTextStyle,
 } from '../../utils/advancedMatchCardStyles';
 import { VotePercentageGauge } from './VotePercentageGauge';
+import {
+  PredictionClockIcon,
+  PredictionLoaderIcon,
+  PredictionWarningTriangleIcon,
+} from './PredictionShellIcons';
 
 const AdvancedMatchCardSupplementaryRuntime = lazy(() => import('./AdvancedMatchCardSupplementaryRuntime'));
 
@@ -239,9 +243,9 @@ export default function AdvancedMatchCardContentRuntime({
         >
           <div className="flex items-start gap-2">
             {gameDetailError ? (
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
             ) : (
-              <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+              <PredictionLoaderIcon className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             )}
             <div className="min-w-0 flex-1">
               <p className="font-bold">
@@ -275,7 +279,7 @@ export default function AdvancedMatchCardContentRuntime({
           <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-[16px] text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-gray-200">
             {isPostponedOrCancelled ? (
               <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
                 <p>
                   {isCancelledStatus
                     ? '해당 경기는 취소되어 투표 및 경기 상세 정보가 제공되지 않습니다.'
@@ -284,7 +288,7 @@ export default function AdvancedMatchCardContentRuntime({
               </div>
             ) : (
               <div className="flex items-start gap-2">
-                <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                <PredictionClockIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
                 <p>스코어보드와 경기 주요 기록은 경기 시작 후 제공됩니다.</p>
               </div>
             )}

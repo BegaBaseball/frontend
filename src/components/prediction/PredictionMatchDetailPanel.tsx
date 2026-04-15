@@ -1,20 +1,46 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { fetchRankingSnapshot } from '../../api/rankings';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
 import type { RankingSnapshot } from '../../types/home';
 import type { Game, GameDetail, VoteTeam } from '../../types/prediction';
+import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
 import type { GameStatusCode } from '../../utils/predictionStatus';
 import { resolveCoachBriefingPolicy } from '../../utils/predictionCoachPolicy';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { PredictionLoaderIcon } from './PredictionShellIcons';
 
 const LazyAdvancedMatchCard = lazy(() => import('./AdvancedMatchCard'));
 const PredictionCoachBriefingRuntime = lazy(() => import('./PredictionCoachBriefingRuntime'));
 const PredictionComboAnimationRuntime = lazy(() => import('./PredictionComboAnimationRuntime'));
 const TOTAL_SEASON_GAMES = 144;
 const COACH_BRIEFING_REVEAL_DELAY_MS = 450;
+
+export function getRankingSnapshotScopeKey(
+  rankingSnapshotDate: Date | null,
+  seasonYear: number,
+): string {
+  if (!rankingSnapshotDate) {
+    return `season:${seasonYear}`;
+  }
+
+  const year = rankingSnapshotDate.getFullYear();
+  const month = String(rankingSnapshotDate.getMonth() + 1).padStart(2, '0');
+  const day = String(rankingSnapshotDate.getDate()).padStart(2, '0');
+  return `date:${year}-${month}-${day}`;
+}
+
+export function isResolvedRankingSnapshotReady(options: {
+  rankingSnapshot: RankingSnapshot | null;
+  rankingSnapshotLoading: boolean;
+  resolvedScopeKey: string | null;
+  expectedScopeKey: string;
+}): boolean {
+  return !!options.rankingSnapshot
+    && !options.rankingSnapshotLoading
+    && options.resolvedScopeKey === options.expectedScopeKey;
+}
 
 interface PredictionMatchDetailPanelProps {
   game: Game;
@@ -25,7 +51,8 @@ interface PredictionMatchDetailPanelProps {
   isDetailRetryLoading: boolean;
   reloadCurrentGameDetail: (options?: { emitRetryEvent?: boolean }) => void;
   predictionRecoveryPath: string;
-  userVote: VoteTeam | null;
+  userVote: VoteTeam | null | undefined;
+  userVoteResolutionState: PredictionUserVoteResolutionState;
   votePercentages: {
     homePercentage: number;
     awayPercentage: number;
@@ -56,6 +83,7 @@ export default function PredictionMatchDetailPanel({
   reloadCurrentGameDetail,
   predictionRecoveryPath,
   userVote,
+  userVoteResolutionState,
   votePercentages,
   isVoteOpen,
   isVoteActionLocked,
@@ -74,6 +102,8 @@ export default function PredictionMatchDetailPanel({
   const shouldRenderComboAnimation = useLeaderboardStore((state) => state.showComboAnimation);
   const hideComboAnimation = useLeaderboardStore((state) => state.hideCombo);
   const [rankingSnapshot, setRankingSnapshot] = useState<RankingSnapshot | null>(null);
+  const [rankingSnapshotLoading, setRankingSnapshotLoading] = useState(false);
+  const [resolvedRankingSnapshotScopeKey, setResolvedRankingSnapshotScopeKey] = useState<string | null>(null);
   const [shouldRenderCoachBriefing, setShouldRenderCoachBriefing] = useState(false);
 
   useEffect(() => {
@@ -94,15 +124,20 @@ export default function PredictionMatchDetailPanel({
     () => rankingSnapshotDate?.getFullYear() ?? new Date().getFullYear(),
     [rankingSnapshotDate],
   );
+  const rankingSnapshotScopeKey = useMemo(
+    () => getRankingSnapshotScopeKey(rankingSnapshotDate, seasonYear),
+    [rankingSnapshotDate, seasonYear],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    setRankingSnapshot(null);
+    setRankingSnapshotLoading(true);
 
     void fetchRankingSnapshot(rankingSnapshotDate ? { date: rankingSnapshotDate } : { seasonYear })
       .then((snapshot) => {
         if (!cancelled) {
           setRankingSnapshot(snapshot);
+          setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
         }
       })
       .catch(() => {
@@ -113,18 +148,34 @@ export default function PredictionMatchDetailPanel({
             isOffSeason: false,
             rankings: [],
           });
+          setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRankingSnapshotLoading(false);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [rankingSnapshotDate, seasonYear]);
+  }, [rankingSnapshotDate, rankingSnapshotScopeKey, seasonYear]);
+
+  const isCurrentRankingSnapshotReady = useMemo(
+    () => isResolvedRankingSnapshotReady({
+      rankingSnapshot,
+      rankingSnapshotLoading,
+      resolvedScopeKey: resolvedRankingSnapshotScopeKey,
+      expectedScopeKey: rankingSnapshotScopeKey,
+    }),
+    [rankingSnapshot, rankingSnapshotLoading, rankingSnapshotScopeKey, resolvedRankingSnapshotScopeKey],
+  );
 
   useEffect(() => {
     setShouldRenderCoachBriefing(false);
 
-    if (!rankingSnapshot) {
+    if (!isCurrentRankingSnapshotReady) {
       return undefined;
     }
 
@@ -135,7 +186,7 @@ export default function PredictionMatchDetailPanel({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [game.gameId, rankingSnapshot]);
+  }, [game.gameId, isCurrentRankingSnapshotReady]);
 
   const rankingByTeamId = useMemo(() => {
     const map = new Map<string, { rank: number; gamesBehind?: number; games: number }>();
@@ -223,7 +274,7 @@ export default function PredictionMatchDetailPanel({
         onClick={() => reloadCurrentGameDetail({ emitRetryEvent: true })}
       >
         <span className="inline-flex items-center gap-1.5">
-          {isDetailRetryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {isDetailRetryLoading ? <PredictionLoaderIcon className="h-3.5 w-3.5 animate-spin" /> : null}
           다시 시도
         </span>
       </Button>
@@ -237,12 +288,16 @@ export default function PredictionMatchDetailPanel({
   ) : null;
 
   return (
-    <div className="font-sans">
+    <div
+      className="font-sans"
+      data-testid="prediction-match-detail-root"
+      data-vote-resolution={userVoteResolutionState}
+    >
       <Suspense
         fallback={(
           <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
             <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               경기 카드를 준비하고 있습니다.
             </div>
           </Card>
@@ -256,11 +311,12 @@ export default function PredictionMatchDetailPanel({
           gameDetailRefreshing={gameDetailRefreshing}
           gameDetailError={gameDetailError}
           gameDetailActions={gameDetailActions}
-        userVote={userVote}
-        votePercentages={votePercentages}
-        isVoteOpen={isVoteOpen}
-        isVoteActionLocked={isVoteActionLocked}
-        statusLabel={statusLabel}
+          userVote={userVote}
+          userVoteResolutionState={userVoteResolutionState}
+          votePercentages={votePercentages}
+          isVoteOpen={isVoteOpen}
+          isVoteActionLocked={isVoteActionLocked}
+          statusLabel={statusLabel}
           statusCode={statusCode}
           onVote={onVote}
           onPrevDate={onPrevDate}
@@ -269,20 +325,22 @@ export default function PredictionMatchDetailPanel({
           hasNextDate={hasNextDate}
           coachBriefing={(
             shouldRenderCoachBriefing ? (
-              <Suspense fallback={null}>
-                <PredictionCoachBriefingRuntime
-                  game={game}
-                  gameDetail={gameDetail}
-                  seasonContext={seasonContext}
-                  requestMode={coachBriefingPolicy.requestMode}
-                  autoEnabled={coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief'}
-                  forceManual={coachBriefingPolicy.forceManual}
-                  isPastGame={isPastGame}
-                  isFutureGame={isFutureGame}
-                  isLoggedIn={isLoggedIn}
-                  isAuthLoading={isAuthLoading}
-                />
-              </Suspense>
+              <div data-testid="prediction-ai-coach-review">
+                <Suspense fallback={null}>
+                  <PredictionCoachBriefingRuntime
+                    game={game}
+                    gameDetail={gameDetail}
+                    seasonContext={seasonContext}
+                    requestMode={coachBriefingPolicy.requestMode}
+                    autoEnabled={coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief'}
+                    forceManual={coachBriefingPolicy.forceManual}
+                    isPastGame={isPastGame}
+                    isFutureGame={isFutureGame}
+                    isLoggedIn={isLoggedIn}
+                    isAuthLoading={isAuthLoading}
+                  />
+                </Suspense>
+              </div>
             ) : null
           )}
         />

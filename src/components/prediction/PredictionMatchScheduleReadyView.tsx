@@ -26,7 +26,6 @@ type PredictionMatchScheduleReadyViewProps = {
   goToPreviousDate: () => void;
   goToNextDate: () => void;
   goToDate: (date: string) => Promise<void> | void;
-  currentGameId?: string;
   pastRangeLoadState: RangeLoadState;
   pastRangeLoadErrorMessage: string | null;
   futureRangeLoadState: RangeLoadState;
@@ -52,7 +51,6 @@ export default function PredictionMatchScheduleReadyView({
   goToPreviousDate,
   goToNextDate,
   goToDate,
-  currentGameId,
   pastRangeLoadState,
   pastRangeLoadErrorMessage,
   futureRangeLoadState,
@@ -66,6 +64,7 @@ export default function PredictionMatchScheduleReadyView({
   const [hasEnteredMatchDetail, setHasEnteredMatchDetail] = useState(false);
   const [hasStoredRunSession, setHasStoredRunSession] = useState(false);
   const [InteractiveRuntimeComponent, setInteractiveRuntimeComponent] = useState<ComponentType | null>(null);
+  const currentGameId = currentGame?.gameId;
 
   const deepLinkGameId = useMemo(() => {
     const queryGameId = searchParams.get('gameId')?.trim() || '';

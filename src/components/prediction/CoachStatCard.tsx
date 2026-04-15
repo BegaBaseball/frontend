@@ -1,6 +1,10 @@
 import { memo } from 'react';
-import { AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { DashboardStat } from '../../api/coach';
+import {
+    PredictionArrowDownRightIcon,
+    PredictionArrowUpRightIcon,
+    PredictionWarningTriangleIcon,
+} from './PredictionShellIcons';
 
 const trendTextClass: Record<DashboardStat['trend'], string> = {
     up: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/40',
@@ -32,7 +36,7 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
                 </span>
                 {stat.is_critical && (
                     <span className={`inline-flex items-center rounded-full px-2 py-1 text-[16px] font-bold ${isCriticalClass}`}>
-                        <AlertTriangle className="w-3.5 h-3.5 mr-1" />주의
+                        <PredictionWarningTriangleIcon className="w-3.5 h-3.5 mr-1" />주의
                     </span>
                 )}
             </div>
@@ -44,8 +48,8 @@ function CoachStatCard({ stat }: { stat: DashboardStat }) {
             </div>
 
             <div className={`mt-4 inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-1.5 text-[16px] font-bold ${trendTextClass[stat.trend]}`}>
-                {stat.trend === 'up' && <ArrowUpRight className="h-3.5 w-3.5" />}
-                {stat.trend === 'down' && <ArrowDownRight className="h-3.5 w-3.5" />}
+                {stat.trend === 'up' && <PredictionArrowUpRightIcon className="h-3.5 w-3.5" />}
+                {stat.trend === 'down' && <PredictionArrowDownRightIcon className="h-3.5 w-3.5" />}
                 <span>{statusLabel}</span>
             </div>
 

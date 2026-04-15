@@ -1,9 +1,9 @@
 import React, { Fragment, ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { TrendingUp, ChevronLeft, ChevronRight, AlertTriangle, Clock3, Loader2 } from 'lucide-react';
 import TeamLogo from '../TeamLogo';
 import { useTheme } from '../../hooks/useTheme';
+import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
 import {
   Game,
   VoteTeam,
@@ -23,6 +23,14 @@ import {
   toNumericScore,
 } from '../../utils/inningScoreParser';
 import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
+import {
+  PredictionChevronLeftIcon,
+  PredictionChevronRightIcon,
+  PredictionClockIcon,
+  PredictionLoaderIcon,
+  PredictionTrendingUpIcon,
+  PredictionWarningTriangleIcon,
+} from './PredictionShellIcons';
 
 const AdvancedMatchCardContentRuntime = lazy(() => import('./AdvancedMatchCardContentRuntime'));
 
@@ -33,7 +41,8 @@ interface AdvancedMatchCardProps {
   gameDetailRefreshing?: boolean;
   gameDetailError?: string | null;
   gameDetailActions?: ReactNode;
-  userVote: 'home' | 'away' | null;
+  userVote: 'home' | 'away' | null | undefined;
+  userVoteResolutionState?: PredictionUserVoteResolutionState;
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   isVoteOpen: boolean;
   isVoteActionLocked?: boolean;
@@ -59,6 +68,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   gameDetailError = null,
   gameDetailActions,
   userVote,
+  userVoteResolutionState = 'resolved',
   votePercentages,
   isVoteOpen,
   isVoteActionLocked = false,
@@ -198,6 +208,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
       : statusLabel;
   const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
   const isScoreboardLoading = gameDetailLoading && !hasDetailedScores;
+  const isUserVoteResolutionUnknown = userVoteResolutionState === 'unknown-auth';
+  const voteButtonTitle = isUserVoteResolutionUnknown
+    ? '로그인 상태를 다시 확인한 뒤 예측을 진행해주세요.'
+    : undefined;
 
   useEffect(() => {
     if (!isVisible) return;
@@ -252,7 +266,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   };
 
   return (
-    <Card className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl">
+    <Card
+      className="overflow-hidden border border-slate-200/70 shadow-lg bg-white/90 dark:border-border dark:bg-card dark:shadow-xl transition-colors duration-300 mb-6 rounded-2xl"
+      data-vote-resolution={userVoteResolutionState}
+    >
       <div className="p-4 md:p-6">
         {isVoteOpen && (
           <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
@@ -261,6 +278,8 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               disabled={isVoteActionLocked}
               aria-pressed={userVote === 'away'}
               aria-label={`${getFullTeamName(game.awayTeam)} 승리 예측`}
+              title={voteButtonTitle}
+              data-testid="prediction-vote-away-btn"
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
                 backgroundColor: getTeamColorByAnyKey(game.awayTeam),
@@ -272,7 +291,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.awayTeam)}</span>
               {userVote === 'away' && (
                 <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
-                  <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+                  <PredictionTrendingUpIcon className="w-3 h-3 md:w-4 md:h-4" />
                 </span>
               )}
             </Button>
@@ -281,6 +300,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               disabled={isVoteActionLocked}
               aria-pressed={userVote === 'home'}
               aria-label={`${getFullTeamName(game.homeTeam)} 승리 예측`}
+              title={voteButtonTitle}
               data-testid="vote-home-btn"
               className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
               style={{
@@ -293,7 +313,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.homeTeam)}</span>
               {userVote === 'home' && (
                 <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
-                  <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+                  <PredictionTrendingUpIcon className="w-3 h-3 md:w-4 md:h-4" />
                 </span>
               )}
             </Button>
@@ -344,7 +364,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 aria-label="이전 날짜 보기"
                 className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
-                <ChevronLeft size={32} />
+                <PredictionChevronLeftIcon size={32} />
               </button>
               <button
                 type="button"
@@ -353,7 +373,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 aria-label="다음 날짜 보기"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-10"
               >
-                <ChevronRight size={32} />
+                <PredictionChevronRightIcon size={32} />
               </button>
             </div>
 
@@ -371,9 +391,9 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                   style={surfaceTransitionStyle}
                 >
                   {isPostponedOrCancelled ? (
-                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <PredictionWarningTriangleIcon className="h-3.5 w-3.5" />
                   ) : (
-                    <Clock3 className="h-3.5 w-3.5" />
+                    <PredictionClockIcon className="h-3.5 w-3.5" />
                   )}
                   {scheduledStateLabel}
                 </div>
@@ -420,7 +440,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                   <div className="flex flex-col items-center justify-center gap-1.5">
                     <span className="h-px w-8 bg-gray-300 dark:bg-gray-600" />
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                      <Clock3 className="h-3 w-3" />
+                      <PredictionClockIcon className="h-3 w-3" />
                       경기 시작 예정
                     </span>
                   </div>
@@ -466,7 +486,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <div className="px-4 py-6">
                 <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-[16px] text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-gray-300">
                   <span className="inline-flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                     경기 상세 섹션을 준비하고 있습니다.
                   </span>
                 </div>

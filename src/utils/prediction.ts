@@ -642,6 +642,21 @@ export const resolveCoachAnalysisPresentation = ({
   };
 };
 
+export const getCoachAnalysisUnavailableMessage = (
+  gameStatusBucket?: string | null,
+): string | null => {
+  const normalizedBucket = String(gameStatusBucket || '').trim().toUpperCase();
+
+  if (normalizedBucket === 'CANCELLED') {
+    return '취소된 경기는 AI 코치 분석을 제공하지 않습니다.';
+  }
+  if (normalizedBucket === 'POSTPONED') {
+    return '연기된 경기는 일정 확정 후 AI 코치 분석을 제공합니다.';
+  }
+
+  return null;
+};
+
 const serializeCoachBriefingLeagueSnapshot = (
   snapshot?: CoachBriefingLeagueSnapshot | null,
 ): string => {

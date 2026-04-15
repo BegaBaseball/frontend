@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
 import {
   calculateVotePercentages,
@@ -28,6 +29,7 @@ interface PredictionMatchTabProps {
   currentGameDetailRefreshing: boolean;
   currentGameDetailError: string | null;
   userVote: Record<string, VoteTeam | null>;
+  currentUserVoteResolutionState: PredictionUserVoteResolutionState;
   votes: Record<string, VoteStatus>;
   isLoggedIn: boolean;
   isAuthLoading: boolean;
@@ -56,6 +58,7 @@ export default function PredictionMatchTab({
   currentGameDetailRefreshing,
   currentGameDetailError,
   userVote,
+  currentUserVoteResolutionState,
   votes,
   isLoggedIn,
   isAuthLoading,
@@ -135,7 +138,8 @@ export default function PredictionMatchTab({
                 isDetailRetryLoading={isDetailRetryLoading}
                 reloadCurrentGameDetail={reloadCurrentGameDetail}
                 predictionRecoveryPath={predictionRecoveryPath}
-                userVote={userVote[currentGameId] || null}
+                userVote={currentGameId ? userVote[currentGameId] : null}
+                userVoteResolutionState={currentUserVoteResolutionState}
                 votePercentages={votePercentages}
                 isVoteOpen={gameStatus.isVoteOpen}
                 isVoteActionLocked={isVoteActionLocked}
