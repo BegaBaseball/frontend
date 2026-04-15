@@ -98,15 +98,15 @@ type UsePredictionScheduleParams = {
   searchParams: URLSearchParams;
   setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
   locationState: PredictionLocationState;
-  emitFlowEvent: PredictionFlowEmitter;
-  showPredictionErrorOverlay: PredictionOverlayController['showPredictionErrorOverlay'];
-  fetchAndCacheUserVotes: (
+  emitFlowEvent?: PredictionFlowEmitter;
+  showPredictionErrorOverlay?: PredictionOverlayController['showPredictionErrorOverlay'];
+  fetchAndCacheUserVotes?: (
     gameIds: string[],
     requestKeySuffix: string,
     requestGuard?: () => boolean
   ) => Promise<void>;
-  primeGameDetail: (gameId: string, detail: GameDetail) => void;
-  activateMatchTab: () => void;
+  primeGameDetail?: (gameId: string, detail: GameDetail) => void;
+  activateMatchTab?: () => void;
 };
 
 type MatchDayNavigationMeta = {
@@ -124,6 +124,27 @@ type LoadPredictionDayOptions = {
   requestGuard?: () => boolean;
 };
 
+const noopEmitFlowEvent: PredictionFlowEmitter = () => {};
+const noopShowPredictionErrorOverlay: PredictionOverlayController['showPredictionErrorOverlay'] = () => {};
+const noopFetchAndCacheUserVotes = async () => {};
+const noopPrimeGameDetail = () => {};
+const noopActivateMatchTab = () => {};
+const CANCELED_MATCH_DAY_RESULT: MatchDayResult = {
+  ok: false,
+  error: {
+    message: 'canceled',
+    code: 'ERR_CANCELED',
+    status: 0,
+  },
+};
+const normalizeMatchBoundsDate = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  return normalizePredictionDate(value);
+};
+
 const getPredictionRangeErrorMessage = (
   error: {
     message?: string;
@@ -134,19 +155,50 @@ const getPredictionRangeErrorMessage = (
 ) => {
   const normalizedStatus = typeof error?.status === 'number' ? error.status : null;
   const normalizedMessage = typeof error?.message === 'string' ? error.message.trim() : '';
+  const resolvedMessage = normalizedMessage || fallback;
 
-  if (normalizedStatus !== null) {
-    return getApiErrorMessage({
+  return getApiErrorMessage(normalizedStatus !== null
+    ? {
       status: normalizedStatus,
       data: {
         message: normalizedMessage || undefined,
         code: error?.code,
       },
-      message: normalizedMessage || fallback,
-    }, fallback);
-  }
+      message: resolvedMessage,
+    }
+    : new Error(resolvedMessage), fallback);
+};
 
-  return getApiErrorMessage(new Error(normalizedMessage || fallback), fallback);
+const getMatchRangeErrorType = (status: number | null): ParsedError['type'] => {
+  if (status === 401) {
+    return 'AUTH';
+  }
+  if (status === 403) {
+    return 'PERMISSION';
+  }
+  if (status === 404) {
+    return 'NOT_FOUND';
+  }
+  if (status !== null && status >= 500) {
+    return 'SERVER';
+  }
+  return 'UNKNOWN';
+};
+
+const getMatchRangeErrorFallback = (type: ParsedError['type']) => {
+  if (type === 'AUTH') {
+    return '로그인 정보를 다시 확인해주세요.';
+  }
+  if (type === 'PERMISSION') {
+    return '접근 권한이 없습니다.';
+  }
+  if (type === 'NOT_FOUND') {
+    return '요청한 정보를 찾을 수 없습니다.';
+  }
+  if (type === 'SERVER') {
+    return '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
+  }
+  return '예측 경기 목록 조회에 실패했습니다.';
 };
 
 const normalizeMatchRangeError = (error?: {
@@ -156,43 +208,12 @@ const normalizeMatchRangeError = (error?: {
 }): ParsedError => {
   const statusCode = error?.status ?? null;
   const normalizedStatus = typeof statusCode === 'number' ? statusCode : null;
+  const type = getMatchRangeErrorType(normalizedStatus);
 
-  if (normalizedStatus === 401) {
-    return {
-      type: 'AUTH',
-      responseCode: error?.code,
-      message: getPredictionRangeErrorMessage(error, '로그인 정보를 다시 확인해주세요.'),
-      statusCode: normalizedStatus,
-    };
-  }
-  if (normalizedStatus === 403) {
-    return {
-      type: 'PERMISSION',
-      responseCode: error?.code,
-      message: getPredictionRangeErrorMessage(error, '접근 권한이 없습니다.'),
-      statusCode: normalizedStatus,
-    };
-  }
-  if (normalizedStatus === 404) {
-    return {
-      type: 'NOT_FOUND',
-      responseCode: error?.code,
-      message: getPredictionRangeErrorMessage(error, '요청한 정보를 찾을 수 없습니다.'),
-      statusCode: normalizedStatus,
-    };
-  }
-  if (normalizedStatus !== null && normalizedStatus >= 500) {
-    return {
-      type: 'SERVER',
-      responseCode: error?.code,
-      message: getPredictionRangeErrorMessage(error, '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'),
-      statusCode: normalizedStatus,
-    };
-  }
   return {
-    type: 'UNKNOWN',
+    type,
     responseCode: error?.code,
-    message: getPredictionRangeErrorMessage(error, '예측 경기 목록 조회에 실패했습니다.'),
+    message: getPredictionRangeErrorMessage(error, getMatchRangeErrorFallback(type)),
     statusCode: normalizedStatus,
   };
 };
@@ -203,11 +224,11 @@ export const usePredictionSchedule = ({
   searchParams,
   setSearchParams,
   locationState,
-  emitFlowEvent,
-  showPredictionErrorOverlay,
-  fetchAndCacheUserVotes,
-  primeGameDetail,
-  activateMatchTab,
+  emitFlowEvent = noopEmitFlowEvent,
+  showPredictionErrorOverlay = noopShowPredictionErrorOverlay,
+  fetchAndCacheUserVotes = noopFetchAndCacheUserVotes,
+  primeGameDetail = noopPrimeGameDetail,
+  activateMatchTab = noopActivateMatchTab,
 }: UsePredictionScheduleParams) => {
   const [selectedGame, setSelectedGame] = useState(0);
   const [allDatesData, setAllDatesData] = useState<DateGames[]>([]);
@@ -251,8 +272,10 @@ export const usePredictionSchedule = ({
   const dayRequestInFlightRef = useRef<Map<string, Promise<MatchDayResult>>>(new Map());
   const adjacentPrefetchTimeoutRef = useRef<number | null>(null);
   const adjacentPrefetchIdleCallbackRef = useRef<number | null>(null);
+  const adjacentPrefetchPendingAnchorRef = useRef<string | null>(null);
+  const adjacentPrefetchCompletedAnchorsRef = useRef<Set<string>>(new Set());
 
-  const goToPredictionRecovery = useCallback((options?: {
+  const goToPredictionRecovery = (options?: {
     currentDate?: string | null;
     currentGameId?: string | null;
   }) => {
@@ -270,7 +293,7 @@ export const usePredictionSchedule = ({
         searchParams,
       });
     });
-  }, [searchParams, selectedGame]);
+  };
 
   useEffect(() => {
     allDatesDataRef.current = allDatesData;
@@ -340,21 +363,9 @@ export const usePredictionSchedule = ({
     setCanLoadMorePast(next);
   }, []);
 
-  const normalizeMatchBoundsDate = useCallback((value: string | null | undefined): string | null => {
-    if (!value) {
-      return null;
-    }
+  const getEarliestBoundDate = () => normalizeMatchBoundsDate(matchBoundsRef.current?.earliestGameDate);
 
-    return normalizePredictionDate(value);
-  }, []);
-
-  const getEarliestBoundDate = useCallback(() => normalizeMatchBoundsDate(
-    matchBoundsRef.current?.earliestGameDate
-  ), [normalizeMatchBoundsDate]);
-
-  const getLatestBoundDate = useCallback(() => normalizeMatchBoundsDate(
-    matchBoundsRef.current?.latestGameDate
-  ), [normalizeMatchBoundsDate]);
+  const getLatestBoundDate = () => normalizeMatchBoundsDate(matchBoundsRef.current?.latestGameDate);
 
   const hydrateMatchBounds = useCallback(async () => {
     const currentBounds = matchBoundsRef.current;
@@ -388,7 +399,7 @@ export const usePredictionSchedule = ({
 
     matchBoundsHydrationPromiseRef.current = nextHydration;
     await nextHydration;
-  }, [normalizeMatchBoundsDate]);
+  }, []);
 
   const setPastRangeEnd = useCallback((message: string = '더 이상 이전 경기가 없습니다.') => {
     setCanLoadMorePastState(false);
@@ -439,15 +450,6 @@ export const usePredictionSchedule = ({
     setPastRangeLoadErrorMessage(meta.hasPrev ? null : '더 이상 이전 경기가 없습니다.');
     setFutureRangeLoadErrorMessage(meta.hasNext ? null : '더 이상 예정 경기가 없습니다.');
   }, [setCanLoadMoreFutureState, setCanLoadMorePastState]);
-
-  const buildCanceledDayResult = useCallback((): MatchDayResult => ({
-    ok: false,
-    error: {
-      message: 'canceled',
-      code: 'ERR_CANCELED',
-      status: 0,
-    },
-  }), []);
 
   const buildCachedDayResult = useCallback((targetDate: string): MatchDayResult | null => {
     const normalizedDate = normalizeDateKey(targetDate) || targetDate;
@@ -563,7 +565,7 @@ export const usePredictionSchedule = ({
 
     const result = await requestPredictionDay(normalizedDate);
     if (isStale()) {
-      return buildCanceledDayResult();
+      return CANCELED_MATCH_DAY_RESULT;
     }
     if (!result.ok) {
       return result;
@@ -575,7 +577,7 @@ export const usePredictionSchedule = ({
       replaceExistingDates: options.replaceExistingDates,
     });
     const resultGames = Array.isArray(result.data.games) ? result.data.games : [];
-    const interactiveGames = resultGames.filter((game) => game.homeScore === null && game.awayScore === null);
+    const interactiveGames = resultGames.filter((game) => game.homeScore == null && game.awayScore == null);
     if (isLoggedIn && interactiveGames.length > 0) {
       await fetchAndCacheUserVotes(
         interactiveGames.map((game) => game.gameId).filter(Boolean),
@@ -591,7 +593,6 @@ export const usePredictionSchedule = ({
     return result;
   }, [
     buildCachedDayResult,
-    buildCanceledDayResult,
     fetchAndCacheUserVotes,
     isLoggedIn,
     mergeDayIntoState,
@@ -612,18 +613,32 @@ export const usePredictionSchedule = ({
       globalThis.clearTimeout(adjacentPrefetchTimeoutRef.current);
       adjacentPrefetchTimeoutRef.current = null;
     }
+    adjacentPrefetchPendingAnchorRef.current = null;
   }, []);
 
   const scheduleAdjacentPrefetch = useCallback((anchorDate: string) => {
     const normalizedDate = normalizeDateKey(anchorDate) || anchorDate;
-    void loadPredictionScheduleAdjacentPrefetchModule().then(({ schedulePredictionAdjacentPrefetch }) => {
-      schedulePredictionAdjacentPrefetch({
+    void loadPredictionScheduleAdjacentPrefetchModule().then((module) => {
+      if (!module.shouldSchedulePredictionAdjacentPrefetch(
+        normalizedDate,
+        adjacentPrefetchPendingAnchorRef.current,
+        adjacentPrefetchCompletedAnchorsRef.current,
+      )) {
+        return;
+      }
+
+      adjacentPrefetchPendingAnchorRef.current = normalizedDate;
+      module.schedulePredictionAdjacentPrefetch({
         anchorDate: normalizedDate,
         dayNavigationByDateRef,
         adjacentPrefetchIdleCallbackRef,
         adjacentPrefetchTimeoutRef,
         clearScheduledAdjacentPrefetch,
         loadPredictionDay,
+        onPrefetchRun: (completedAnchorDate) => {
+          adjacentPrefetchPendingAnchorRef.current = null;
+          adjacentPrefetchCompletedAnchorsRef.current.add(completedAnchorDate);
+        },
       });
     });
   }, [clearScheduledAdjacentPrefetch, loadPredictionDay]);
@@ -824,6 +839,8 @@ export const usePredictionSchedule = ({
     setPastRangeLoadErrorMessage(null);
     setFutureRangeLoadErrorMessage(null);
     setDeepLinkNotice(null);
+    clearScheduledAdjacentPrefetch();
+    adjacentPrefetchCompletedAnchorsRef.current.clear();
     matchBoundsRef.current = null;
     matchBoundsHydrationPromiseRef.current = null;
     setMatchBoundsState(null);
@@ -857,12 +874,12 @@ export const usePredictionSchedule = ({
         allDatesDataRef.current = fallbackDates;
         setCurrentDateIndex(0);
         emitFlowEvent('onListLoadFail', 'LIST', {
-          errorCode: mapPredictionErrorCode(parsedError.type),
+          errorCode: mapPredictionErrorCode(parsedError.type, parsedError.responseCode),
           recoverable: true,
           copyKey: 'network_error_message',
           stage: 'LIST_LOAD',
           retryConfig: {
-            errorCode: mapPredictionErrorCode(parsedError.type),
+            errorCode: mapPredictionErrorCode(parsedError.type, parsedError.responseCode),
             recoverable: true,
             retryEnabled: true,
             keepDraft: true,
@@ -898,12 +915,12 @@ export const usePredictionSchedule = ({
       allDatesDataRef.current = fallbackDates;
       setCurrentDateIndex(0);
       emitFlowEvent('onListLoadFail', 'LIST', {
-        errorCode: mapPredictionErrorCode(parsedError.type),
+        errorCode: mapPredictionErrorCode(parsedError.type, parsedError.responseCode),
         recoverable: true,
         copyKey: 'network_error_message',
         stage: 'LIST_LOAD',
         retryConfig: {
-          errorCode: mapPredictionErrorCode(parsedError.type),
+          errorCode: mapPredictionErrorCode(parsedError.type, parsedError.responseCode),
           recoverable: true,
           retryEnabled: true,
           keepDraft: true,
@@ -917,6 +934,7 @@ export const usePredictionSchedule = ({
       isFetchingAllGamesRef.current = false;
     }
   }, [
+    clearScheduledAdjacentPrefetch,
     deepLinkDate,
     deepLinkGameId,
     emitFlowEvent,
@@ -925,7 +943,6 @@ export const usePredictionSchedule = ({
     scheduleAdjacentPrefetch,
     setCanLoadMoreFutureState,
     setCanLoadMorePastState,
-    showPredictionErrorOverlay,
     syncRangeStateFromDates,
   ]);
 

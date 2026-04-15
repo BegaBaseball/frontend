@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "../../lib/utils";
+import { SharedChevronLeftIcon, SharedChevronRightIcon } from "../icons/SharedLeafIcons";
 import { buttonVariants } from "./button";
 
 type CalendarProps = {
@@ -149,7 +149,7 @@ function Calendar({
             )}
             aria-label="이전 달"
           >
-            <ChevronLeft className="size-4" />
+            <SharedChevronLeftIcon className="size-4" />
           </button>
             <div className={cn("text-[15px] font-semibold", classNames?.caption_label)}>
               {internalMonth.getFullYear()}년 {internalMonth.getMonth() + 1}월
@@ -165,7 +165,7 @@ function Calendar({
             )}
             aria-label="다음 달"
           >
-            <ChevronRight className="size-4" />
+            <SharedChevronRightIcon className="size-4" />
           </button>
         </div>
 
