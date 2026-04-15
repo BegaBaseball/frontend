@@ -34,6 +34,7 @@ test('normalizeMatePartySeed fills missing detail fields for MateParty placehold
     hostAverageRating: null,
     hostReviewCount: 0,
     teamId: 'LG',
+    cheeringSide: null,
     gameDate: '2026-03-09',
     gameTime: '18:30',
     stadium: '잠실',

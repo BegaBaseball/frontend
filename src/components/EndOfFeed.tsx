@@ -1,10 +1,10 @@
-import { Check } from 'lucide-react';
+import { CheckIcon } from './icons/PublicShellIcons';
 
 export default function EndOfFeed() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
-        <Check className="h-6 w-6" />
+        <CheckIcon className="h-6 w-6" />
       </div>
       <h3 className="text-[16px] font-bold text-slate-900">모든 응원을 확인했습니다</h3>
       <p className="mt-1 text-[16px] text-slate-500">
