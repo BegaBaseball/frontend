@@ -1,16 +1,15 @@
-import {
-  AlertTriangle,
-  CalendarDays,
-  ClipboardCopy,
-  RefreshCw,
-} from 'lucide-react';
-
 import type {
   AdminCoachAutoBriefOpsHealth,
   AdminCoachAutoBriefOpsWindow,
 } from '../../types/admin';
 import { Button } from '../ui/button';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
+import {
+  AdminAlertTriangleIcon,
+  AdminClipboardIcon,
+  AdminRefreshIcon,
+} from './AdminDetailIcons';
+import { AdminCalendarIcon } from './AdminPanelIcons';
 
 interface AdminCoachAutoBriefOpsPanelProps {
   health: AdminCoachAutoBriefOpsHealth | null;
@@ -97,7 +96,7 @@ export function AdminCoachAutoBriefOpsPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-            <AlertTriangle className="h-5 w-5 text-amber-300" />
+            <AdminAlertTriangleIcon className="h-5 w-5 text-amber-300" />
             Coach Auto Brief Ops
           </h3>
           <p className="mt-1 text-[14px] text-slate-400">
@@ -112,7 +111,7 @@ export function AdminCoachAutoBriefOpsPanel({
           disabled={loading}
           className="text-slate-300 hover:bg-amber-500/10 hover:text-amber-200"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <AdminRefreshIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
@@ -166,7 +165,7 @@ export function AdminCoachAutoBriefOpsPanel({
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-[14px] text-slate-400">
-              <CalendarDays className="h-4 w-4 text-amber-300" />
+              <AdminCalendarIcon className="h-4 w-4 text-amber-300" />
               {health?.date_window ?? '선택된 window를 불러오는 중입니다.'}
             </div>
           )}
@@ -273,7 +272,7 @@ export function AdminCoachAutoBriefOpsPanel({
                 disabled={!health?.recommended_command}
                 className="text-slate-300 hover:bg-amber-500/10 hover:text-amber-200"
               >
-                <ClipboardCopy className="mr-2 h-4 w-4" />
+                <AdminClipboardIcon className="mr-2 h-4 w-4" />
                 {commandCopyState === 'done' ? '복사됨' : commandCopyState === 'error' ? '복사 실패' : '명령 복사'}
               </Button>
             </div>
@@ -311,7 +310,7 @@ export function AdminCoachAutoBriefOpsPanel({
 
         <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
           <div className="flex items-center gap-2 text-white">
-            <AlertTriangle className="h-4 w-4 text-amber-300" />
+            <AdminAlertTriangleIcon className="h-4 w-4 text-amber-300" />
             <h4 className="font-semibold">최근 unresolved 경기</h4>
           </div>
           {(health?.unresolved_targets.length ?? 0) > 0 ? (

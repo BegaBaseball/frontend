@@ -1,12 +1,15 @@
-import { CalendarDays, Edit3, Link2, Trash2 } from 'lucide-react';
-
 import { AdminBadge } from './AdminPanelPrimitives';
 import { TEAM_DATA } from '../../constants/teams';
 import type { AdminOffseasonMovement } from '../../types/admin';
 import { formatDate } from '../../utils/formatters';
+import { AdminEditIcon, AdminLinkIcon } from './AdminDetailIcons';
 import TeamLogo from '../TeamLogo';
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import {
+  AdminCalendarIcon,
+  AdminTrashIcon,
+} from './AdminPanelIcons';
 
 type CsvImportReport = {
   fileName: string;
@@ -145,7 +148,7 @@ export default function OffseasonMovementAdminResultsRuntime({
               {filteredMovements.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="py-16 text-center text-slate-500">
-                    <CalendarDays className="mx-auto mb-3 h-12 w-12 opacity-30" />
+                    <AdminCalendarIcon className="mx-auto mb-3 h-12 w-12 opacity-30" />
                     {movements.length === 0
                       ? '조건에 맞는 스토브리그 이동이 없습니다.'
                       : `${activeQualityOption.label} 조건에 맞는 누락 건이 없습니다.`}
@@ -214,7 +217,7 @@ export default function OffseasonMovementAdminResultsRuntime({
                             rel="noreferrer"
                           className="inline-flex items-center gap-1 text-[14px] text-sky-300 hover:text-sky-200"
                           >
-                            <Link2 className="h-3 w-3" />
+                            <AdminLinkIcon className="h-3 w-3" />
                             원문
                           </a>
                         ) : (
@@ -232,7 +235,7 @@ export default function OffseasonMovementAdminResultsRuntime({
                           onClick={() => onOpenEditDialog(movement)}
                           className="text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-300"
                         >
-                          <Edit3 className="h-4 w-4" />
+                          <AdminEditIcon className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -241,7 +244,7 @@ export default function OffseasonMovementAdminResultsRuntime({
                           onClick={() => onDeleteTargetChange(movement)}
                           className="text-slate-400 hover:bg-red-500/10 hover:text-red-300"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <AdminTrashIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

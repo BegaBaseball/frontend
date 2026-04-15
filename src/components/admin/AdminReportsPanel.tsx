@@ -1,5 +1,3 @@
-import { Eye } from 'lucide-react';
-
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -12,6 +10,7 @@ import {
 } from '../ui/table';
 import type { AdminReport, AdminReportFilters } from '../../types/admin';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminEyeIcon } from './AdminDetailIcons';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
 type AdminReportAction =
@@ -165,7 +164,7 @@ export function AdminReportsPanel({
                           openReportDetail(report.id);
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <AdminEyeIcon className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"

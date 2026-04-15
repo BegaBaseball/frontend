@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Search, Users, Trash2, UserCog } from 'lucide-react';
 import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import TeamLogo from '../TeamLogo';
 import { TEAM_DATA } from '../../constants/teams';
 import { formatDate } from '../../utils/formatters';
+import {
+  AdminSearchIcon,
+  AdminTrashIcon,
+  AdminUserCogIcon,
+  AdminUsersIcon,
+} from './AdminPanelIcons';
 
 interface PendingRoleChange {
   userId: number;
@@ -58,7 +63,7 @@ export function UsersAdminPanel({
     <>
       <div className="mb-6">
         <div className="relative max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <AdminSearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
           <Input
             placeholder="이메일 또는 이름으로 검색..."
             data-testid="admin-users-search"
@@ -88,7 +93,7 @@ export function UsersAdminPanel({
                 {isSuperAdmin && (
                   <TableHead className="text-slate-400 font-semibold">
                     <span className="flex items-center gap-1">
-                      <UserCog className="w-4 h-4" />
+                      <AdminUserCogIcon className="w-4 h-4" />
                       역할 변경
                     </span>
                   </TableHead>
@@ -100,7 +105,7 @@ export function UsersAdminPanel({
               {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isSuperAdmin ? 9 : 8} className="text-center py-16 text-slate-500">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <AdminUsersIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     유저가 없습니다.
                   </TableCell>
                 </TableRow>
@@ -182,7 +187,7 @@ export function UsersAdminPanel({
                         disabled={user.role === 'ROLE_ADMIN'}
                         onClick={() => setPendingDeleteUser(user)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <AdminTrashIcon className="w-4 h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>

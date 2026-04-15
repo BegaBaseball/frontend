@@ -1,17 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-
-import {
-  Activity,
-  Bot,
-  ClipboardCopy,
-  Download,
-  FileSearch,
-  FolderOpen,
-  RefreshCw,
-  Save,
-  Sparkles,
-} from 'lucide-react';
-
 import {
   draftReleaseDecision,
   evaluateReleaseDecisionDraft,
@@ -38,6 +25,19 @@ import {
   decisionBadgeClass,
   evalStatusBadgeClass,
 } from './AdminPanelPrimitives';
+import {
+  AdminClipboardIcon,
+  AdminDownloadIcon,
+  AdminFileSearchIcon,
+  AdminFolderOpenIcon,
+  AdminRefreshIcon,
+  AdminSaveIcon,
+  AdminSparklesIcon,
+} from './AdminDetailIcons';
+import {
+  AdminActivityIcon,
+  AdminBotIcon,
+} from './AdminPanelIcons';
 
 interface AdminAiReleaseDecisionRuntimeProps {
   autoBriefPanel: ReactNode;
@@ -384,7 +384,7 @@ export default function AdminAiReleaseDecisionRuntime({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                <Sparkles className="h-5 w-5 text-fuchsia-300" />
+                <AdminSparklesIcon className="h-5 w-5 text-fuchsia-300" />
                 릴리즈 결정 초안 생성
               </h3>
               <p className="mt-1 text-[14px] text-slate-400">
@@ -399,7 +399,7 @@ export default function AdminAiReleaseDecisionRuntime({
               disabled={releasePresetsLoading}
               className="text-slate-300 hover:bg-fuchsia-500/10 hover:text-fuchsia-200"
             >
-              <RefreshCw
+              <AdminRefreshIcon
                 className={`h-4 w-4 ${releasePresetsLoading ? 'animate-spin' : ''}`}
               />
             </Button>
@@ -475,7 +475,7 @@ export default function AdminAiReleaseDecisionRuntime({
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
           <div className="flex items-center gap-2 text-white">
-            <FileSearch className="h-4 w-4 text-fuchsia-300" />
+            <AdminFileSearchIcon className="h-4 w-4 text-fuchsia-300" />
             <h4 className="font-semibold">현재 프리셋 문서 범위</h4>
           </div>
           {selectedReleasePreset ? (
@@ -518,7 +518,7 @@ export default function AdminAiReleaseDecisionRuntime({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h4 className="flex items-center gap-2 font-semibold text-white">
-                <Activity className="h-4 w-4 text-emerald-300" />
+                <AdminActivityIcon className="h-4 w-4 text-emerald-300" />
                 Deterministic Eval
               </h4>
               <p className="mt-1 text-[14px] text-slate-500">
@@ -533,7 +533,7 @@ export default function AdminAiReleaseDecisionRuntime({
               disabled={releaseEvalCasesLoading}
               className="text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-200"
             >
-              <RefreshCw
+              <AdminRefreshIcon
                 className={`h-4 w-4 ${releaseEvalCasesLoading ? 'animate-spin' : ''}`}
               />
             </Button>
@@ -608,7 +608,7 @@ export default function AdminAiReleaseDecisionRuntime({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h4 className="flex items-center gap-2 font-semibold text-white">
-                <Save className="h-4 w-4 text-sky-300" />
+                <AdminSaveIcon className="h-4 w-4 text-sky-300" />
                 저장된 아티팩트
               </h4>
               <p className="mt-1 text-[14px] text-slate-500">
@@ -623,7 +623,7 @@ export default function AdminAiReleaseDecisionRuntime({
               disabled={releaseArtifactsLoading}
               className="text-slate-300 hover:bg-sky-500/10 hover:text-sky-200"
             >
-              <RefreshCw
+              <AdminRefreshIcon
                 className={`h-4 w-4 ${releaseArtifactsLoading ? 'animate-spin' : ''}`}
               />
             </Button>
@@ -681,7 +681,7 @@ export default function AdminAiReleaseDecisionRuntime({
                         disabled={isBusy}
                         className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
                       >
-                        <FolderOpen className="mr-2 h-4 w-4" />
+                        <AdminFolderOpenIcon className="mr-2 h-4 w-4" />
                         {isBusy && releaseArtifactAction?.mode === 'load'
                           ? '불러오는 중...'
                           : '불러오기'}
@@ -696,7 +696,7 @@ export default function AdminAiReleaseDecisionRuntime({
                         disabled={isBusy}
                         className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
                       >
-                        <Download className="mr-2 h-4 w-4" />
+                        <AdminDownloadIcon className="mr-2 h-4 w-4" />
                         MD 다운로드
                       </Button>
                       <Button
@@ -709,7 +709,7 @@ export default function AdminAiReleaseDecisionRuntime({
                         disabled={isBusy}
                         className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
                       >
-                        <Download className="mr-2 h-4 w-4" />
+                        <AdminDownloadIcon className="mr-2 h-4 w-4" />
                         JSON 다운로드
                       </Button>
                     </div>
@@ -884,7 +884,7 @@ export default function AdminAiReleaseDecisionRuntime({
                       onClick={handleReleaseMarkdownCopy}
                       className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
                     >
-                      <ClipboardCopy className="mr-2 h-4 w-4" />
+                      <AdminClipboardIcon className="mr-2 h-4 w-4" />
                       {releaseCopyState === 'done'
                         ? '복사됨'
                         : releaseCopyState === 'error'
@@ -897,7 +897,7 @@ export default function AdminAiReleaseDecisionRuntime({
                       disabled={releaseSaveLoading}
                       className="bg-gradient-to-r from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-500/20 hover:from-sky-600 hover:to-cyan-700"
                     >
-                      <Save className="mr-2 h-4 w-4" />
+                      <AdminSaveIcon className="mr-2 h-4 w-4" />
                       {releaseSaveLoading ? '저장 중...' : '저장'}
                     </Button>
                   </div>
@@ -971,7 +971,7 @@ export default function AdminAiReleaseDecisionRuntime({
           </>
         ) : (
           <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/60 p-10 text-center">
-            <Bot className="h-12 w-12 text-fuchsia-300" />
+            <AdminBotIcon className="h-12 w-12 text-fuchsia-300" />
             <h3 className="mt-4 text-lg font-semibold text-white">
               AI 운영 초안 대기 중
             </h3>

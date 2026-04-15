@@ -1,15 +1,16 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import {
-  Bug,
-  Clock3,
-  Filter,
-  RefreshCw,
-  Search,
-} from 'lucide-react';
 import { AdminBadge } from './AdminPanelPrimitives';
+import {
+  AdminClockIcon,
+  AdminFilterIcon,
+  AdminRefreshIcon,
+} from './AdminDetailIcons';
+import {
+  AdminBugIcon,
+  AdminSearchIcon,
+} from './AdminPanelIcons';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import ViewportDeferred from '../ViewportDeferred';
 import {
@@ -116,6 +117,32 @@ function MonitoringCard({
     <div className={`rounded-2xl border p-5 ${toneClass}`}>
       <p className="text-[14px] uppercase tracking-[0.2em] text-slate-400">{label}</p>
       <p className="mt-3 text-4xl font-black">{value.toLocaleString()}</p>
+    </div>
+  );
+}
+
+function ClientErrorInsightsSkeleton({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-2">
+      {[1, 2].map((item) => (
+        <section key={item} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="animate-pulse space-y-3">
+            <div className="h-5 w-32 rounded bg-slate-800" />
+            <div className="h-4 w-56 rounded bg-slate-800" />
+            {!compact ? (
+              <div className="space-y-3 pt-2">
+                {[1, 2].map((card) => (
+                  <div key={card} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                    <div className="h-4 w-24 rounded bg-slate-800" />
+                    <div className="mt-3 h-4 w-full rounded bg-slate-800" />
+                    <div className="mt-2 h-4 w-5/6 rounded bg-slate-800" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -241,7 +268,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
         <div>
           <div className="flex items-center gap-3">
             <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300">
-              <Bug className="h-6 w-6" />
+              <AdminBugIcon className="h-6 w-6" />
             </div>
             <div>
               <h2 className="text-2xl font-black text-white">클라이언트 에러 관제</h2>
@@ -254,7 +281,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
         <div className="flex flex-wrap items-center gap-3">
           <select
-            data-testid="admin-client-errors-window-trigger"
             value={windowKey}
             onChange={(event) => setWindowKey(event.target.value as WindowKey)}
             className={`w-[150px] ${adminNativeSelectClassName}`}
@@ -267,11 +293,10 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           <Button
             type="button"
             variant="outline"
-            data-testid="admin-client-errors-refresh"
             onClick={() => void handleRefresh()}
             className="rounded-xl border-slate-700 bg-slate-800/70 text-slate-100 hover:bg-slate-700"
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <AdminRefreshIcon className="mr-2 h-4 w-4" />
             새로고침
           </Button>
         </div>
@@ -299,7 +324,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
               </p>
             </div>
             <AdminBadge className="border-slate-700 bg-slate-800 text-slate-200">
-              <Clock3 className="mr-1 h-3 w-3" />
+              <AdminClockIcon className="mr-1 h-3 w-3" />
               {dashboard?.granularity === 'day' ? 'Daily' : 'Hourly'}
             </AdminBadge>
           </div>
@@ -360,7 +385,7 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
         <div className="mb-4 flex items-center gap-3">
-          <Filter className="h-5 w-5 text-slate-400" />
+          <AdminFilterIcon className="h-5 w-5 text-slate-400" />
           <div>
             <h3 className="text-lg font-bold text-white">이벤트 탐색</h3>
             <p className="text-[14px] text-slate-400">
@@ -371,7 +396,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <select
-            data-testid="admin-client-errors-bucket-trigger"
             value={filters.bucket}
             onChange={(event) => setFilters((prev) => ({ ...prev, bucket: event.target.value as EventFilters['bucket'] }))}
             className={adminNativeSelectClassName}
@@ -382,7 +406,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </select>
 
           <select
-            data-testid="admin-client-errors-source-trigger"
             value={filters.source}
             onChange={(event) => setFilters((prev) => ({ ...prev, source: event.target.value as EventFilters['source'] }))}
             className={adminNativeSelectClassName}
@@ -394,7 +417,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </select>
 
           <select
-            data-testid="admin-client-errors-status-trigger"
             value={filters.statusGroup}
             onChange={(event) => setFilters((prev) => ({ ...prev, statusGroup: event.target.value as EventFilters['statusGroup'] }))}
             className={adminNativeSelectClassName}
@@ -406,7 +428,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           </select>
 
           <Input
-            data-testid="admin-client-errors-route-filter"
             value={filters.route}
             onChange={(event) => setFilters((prev) => ({ ...prev, route: event.target.value }))}
             placeholder="Route filter"
@@ -414,7 +435,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           />
 
           <Input
-            data-testid="admin-client-errors-fingerprint-filter"
             value={filters.fingerprint}
             onChange={(event) => setFilters((prev) => ({ ...prev, fingerprint: event.target.value }))}
             placeholder="Fingerprint"
@@ -422,9 +442,8 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
           />
 
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <AdminSearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
-              data-testid="admin-client-errors-search-filter"
               value={filters.search}
               onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
               placeholder="message / route / eventId"
@@ -485,7 +504,6 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
                       <Button
                         type="button"
                         variant="ghost"
-                        data-testid={`admin-client-errors-detail-${event.eventId}`}
                         onClick={() => void handleOpenDetail(event.eventId)}
                         className="rounded-xl text-slate-200 hover:bg-slate-800 hover:text-white"
                       >
@@ -527,70 +545,27 @@ export function ClientErrorAdminPanel({ active }: { active: boolean }) {
       </section>
 
       <ViewportDeferred
-        fallback={(
-          <div className="grid gap-6 xl:grid-cols-2">
-            {[1, 2].map((item) => (
-              <section key={item} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                <div className="animate-pulse space-y-3">
-                  <div className="h-5 w-32 rounded bg-slate-800" />
-                  <div className="h-4 w-56 rounded bg-slate-800" />
-                  <div className="space-y-3 pt-2">
-                    {[1, 2].map((card) => (
-                      <div key={card} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-                        <div className="h-4 w-24 rounded bg-slate-800" />
-                        <div className="mt-3 h-4 w-full rounded bg-slate-800" />
-                        <div className="mt-2 h-4 w-5/6 rounded bg-slate-800" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+        fallback={<ClientErrorInsightsSkeleton />}
         rootMargin="240px 0px 280px 0px"
       >
         <Suspense
-          fallback={(
-            <div className="grid gap-6 xl:grid-cols-2">
-              {[1, 2].map((item) => (
-                <section key={item} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-5 w-32 rounded bg-slate-800" />
-                    <div className="h-4 w-56 rounded bg-slate-800" />
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
+          fallback={<ClientErrorInsightsSkeleton compact />}
         >
           <ClientErrorAdminInsightsRuntime dashboard={dashboard} />
         </Suspense>
       </ViewportDeferred>
 
-      <PlainDialog
-        open={detailOpen}
-        onClose={handleCloseDetail}
-        title="Client Error Detail"
-        description="Error ID 기준 raw stack, feedback, 동일 fingerprint 최근 이벤트를 함께 봅니다."
-        contentTestId="admin-client-errors-detail-dialog"
-        className="sm:max-w-4xl border-slate-700 bg-slate-950 text-slate-100"
-        bodyClassName="max-h-[calc(85vh-5.5rem)] overflow-y-auto"
-      >
-
-          {detailLoading ? (
-            <div className="py-12 text-center text-slate-400">상세 정보를 불러오는 중입니다.</div>
-          ) : selectedEvent ? (
-            <Suspense fallback={<div className="py-12 text-center text-slate-400">상세 정보를 준비하는 중입니다.</div>}>
-              <ClientErrorAdminDetailRuntime
-                selectedEvent={selectedEvent}
-                onOpenDetail={(eventId) => void handleOpenDetail(eventId)}
-              />
-            </Suspense>
-          ) : (
-            <div className="py-12 text-center text-slate-400">선택한 이벤트를 불러오지 못했습니다.</div>
-          )}
-      </PlainDialog>
+      {detailOpen ? (
+        <Suspense fallback={null}>
+          <ClientErrorAdminDetailRuntime
+            open={detailOpen}
+            detailLoading={detailLoading}
+            selectedEvent={selectedEvent}
+            onClose={handleCloseDetail}
+            onOpenDetail={(eventId) => void handleOpenDetail(eventId)}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

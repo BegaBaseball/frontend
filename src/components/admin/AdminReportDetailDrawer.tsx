@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
 
 import type { AdminReport } from '../../types/admin';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminCloseIcon } from './AdminDetailIcons';
 import { Button } from '../ui/button';
 
 type AdminReportAction = 'TAKE_DOWN' | 'REQUIRE_MODIFICATION' | 'WARNING' | 'DISMISS' | 'RESTORE';
@@ -45,7 +45,7 @@ export default function AdminReportDetailDrawer({
             <h2 className="text-lg font-bold text-white">Case #{selectedReportId}</h2>
           </div>
           <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeReportDetail}>
-            <X className="w-5 h-5" />
+            <AdminCloseIcon className="w-5 h-5" />
           </Button>
         </div>
 

@@ -1,6 +1,6 @@
-import { Link2, Siren } from 'lucide-react';
 import type { AdminClientErrorDashboard } from '../../types/admin';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminLinkIcon, AdminSirenIcon } from './AdminDetailIcons';
 import { AdminBadge } from './AdminPanelPrimitives';
 import {
   bucketBadgeClass,
@@ -17,7 +17,7 @@ export default function ClientErrorAdminInsightsRuntime({
     <div className="grid gap-6 xl:grid-cols-2">
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
         <div className="mb-4 flex items-center gap-3">
-          <Link2 className="h-5 w-5 text-amber-300" />
+          <AdminLinkIcon className="h-5 w-5 text-amber-300" />
           <div>
             <h3 className="text-lg font-bold text-white">Recent Feedback</h3>
             <p className="text-[14px] text-slate-400">사용자가 Error ID 기준으로 전송한 최신 제보입니다.</p>
@@ -48,7 +48,7 @@ export default function ClientErrorAdminInsightsRuntime({
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
         <div className="mb-4 flex items-center gap-3">
-          <Siren className="h-5 w-5 text-rose-300" />
+          <AdminSirenIcon className="h-5 w-5 text-rose-300" />
           <div>
             <h3 className="text-lg font-bold text-white">Recent Alerts</h3>
             <p className="text-[14px] text-slate-400">백엔드가 설정된 채널로 전송한 최근 알림 결과입니다.</p>
