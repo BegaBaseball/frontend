@@ -441,7 +441,6 @@ server {
 |:---|:---|:---|
 | [Backend](https://github.com/your-username/bega-backend) | REST API 서버 | Spring Boot, JPA |
 | [AI Server](https://github.com/your-username/bega-ai) | AI 챗봇 서버 | FastAPI, LangChain |
-| [Crawler](https://github.com/your-username/bega-crawler) | KBO 데이터 크롤러 | Python, Selenium |
 
 ---
 
