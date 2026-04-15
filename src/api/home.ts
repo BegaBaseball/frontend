@@ -12,9 +12,10 @@ import {
     LeagueStartDates,
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import { publicGet } from './publicClient';
+import { PublicApiError, publicGet } from './publicClient';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
+export type HomeLoadFailureReason = 'manual-data-required' | 'request-failed';
 
 export const HOME_BOOTSTRAP_QUERY_KEY = (dateKey: string) => ['home', 'bootstrap', dateKey] as const;
 export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
@@ -23,6 +24,7 @@ export interface HomeLoadState {
     source: HomeLoadSource;
     isFallback: boolean;
     timedOut: boolean;
+    failureReason: HomeLoadFailureReason | null;
 }
 
 export interface HomeCoreLoadSuccessState {
@@ -119,16 +121,28 @@ const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotChee
 
 export const buildHomeLoadState = (
     source: HomeLoadSource,
-    options: { timedOut?: boolean } = {},
+    options: { timedOut?: boolean; failureReason?: HomeLoadFailureReason | null } = {},
 ): HomeLoadState => ({
     source,
     isFallback: source === 'legacy-fallback',
     timedOut: options.timedOut === true,
+    failureReason: options.failureReason ?? null,
 });
 
 export const shouldShowHomeConnectionError = (
     state: HomeCoreLoadSuccessState,
 ): boolean => !Object.values(state).some(Boolean);
+
+export const isHomeBootstrapBusinessConflict = (error: unknown): boolean => (
+    error instanceof PublicApiError && error.status === 409
+);
+
+export const shouldRetryHomeBootstrapQuery = (
+    failureCount: number,
+    error: unknown,
+): boolean => (
+    !isHomeBootstrapBusinessConflict(error) && failureCount < 1
+);
 
 /**
  * 특정 날짜의 경기 데이터 조회
@@ -180,6 +194,7 @@ export const getHomeBootstrapQueryOptions = (date: Date) => {
     return {
         queryKey: HOME_BOOTSTRAP_QUERY_KEY(dateKey),
         queryFn: () => fetchHomeBootstrap(date),
+        retry: shouldRetryHomeBootstrapQuery,
         staleTime: 60 * 1000,
         gcTime: 10 * 60 * 1000,
     } as const;

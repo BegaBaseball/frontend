@@ -1,8 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { ChevronLeft, Clock } from 'lucide-react';
 
 import { Card } from './ui/card';
 import type { Ranking } from '../types/home';
+import { ChevronLeftIcon, ClockIcon } from './icons/PublicFeatureIcons';
 import { OffseasonPill } from './offseason/offseasonUi';
 
 type AwardData = {
@@ -95,7 +95,7 @@ export default function OffSeasonHomePrimaryRuntime({
         className="mb-2 flex min-h-11 items-center gap-2 rounded-full border-2 border-primary px-4 py-1.5 text-[15px] text-primary transition-all hover:bg-gray-100 group dark:hover:bg-gray-800"
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10/10 transition-all group-hover:scale-110">
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeftIcon className="h-4 w-4" />
         </span>
         <span className="font-bold group-hover:underline">메인페이지로 돌아가기</span>
       </button>
@@ -126,7 +126,7 @@ export default function OffSeasonHomePrimaryRuntime({
           </div>
           <div className="relative z-10">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md md:h-20 md:w-20">
-              <Clock className="h-8 w-8 animate-pulse text-yellow-400 md:h-10 md:w-10" />
+              <ClockIcon className="h-8 w-8 animate-pulse text-yellow-400 md:h-10 md:w-10" />
             </div>
             <h3 className="mb-6 text-xl text-white md:mb-8 md:text-3xl font-black tracking-tight">
               2026 시즌 개막까지

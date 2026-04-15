@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, TrendingUp } from 'lucide-react';
 
 import TeamLogo from './TeamLogo';
+import { ChevronDownIcon, TrendingUpIcon } from './icons/PublicFeatureIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { OffseasonPill } from './offseason/offseasonUi';
@@ -39,7 +39,7 @@ export default function OffSeasonHomeNewsRuntime({
       <section>
         <div className="mb-6 flex items-center gap-3 md:mb-8">
           <div className="rounded-lg bg-primary p-1.5 md:rounded-xl md:p-2">
-            <TrendingUp className="h-5 w-5 text-white md:h-6 md:w-6" />
+            <TrendingUpIcon className="h-5 w-5 text-white md:h-6 md:w-6" />
           </div>
           <h3 className="text-xl font-black text-primary md:text-2xl">2025 주요 이적 소식</h3>
           <OffseasonPill className="ml-2 animate-pulse border-none px-2 py-1 text-[15px] text-white md:px-3 md:text-[15px]" style={{ backgroundColor: '#ef4444' }}>
@@ -65,7 +65,7 @@ export default function OffSeasonHomeNewsRuntime({
         ) : bigEvents.length === 0 ? (
           <Card className="border-none bg-white p-6 text-center ring-1 ring-black/5 sm:p-8 md:p-10 dark:bg-background dark:ring-white/10">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-card">
-              <TrendingUp className="h-8 w-8 text-gray-400 dark:text-zinc-300" />
+              <TrendingUpIcon className="h-8 w-8 text-gray-400 dark:text-zinc-300" />
             </div>
             <p className="font-semibold text-gray-500 dark:text-gray-300">아직 등록된 주요 이적 소식이 없습니다.</p>
             <p className="mt-2 text-[15px] text-gray-400 dark:text-gray-300">새로운 소식이 등록되면 여기에 표시됩니다.</p>
@@ -106,7 +106,7 @@ export default function OffSeasonHomeNewsRuntime({
           className="rounded-full border border-primary/20 bg-white px-6 py-4 text-lg font-bold text-primary shadow-lg transition-all hover:bg-primary/5 hover:shadow-xl sm:px-8 sm:py-6 dark:bg-card"
         >
           전체 이적 현황 보러가기 ({movementsCount}건)
-          <ChevronDown className="ml-2 h-5 w-5 -rotate-90" />
+          <ChevronDownIcon className="ml-2 h-5 w-5 -rotate-90" />
         </Button>
       </section>
     </>

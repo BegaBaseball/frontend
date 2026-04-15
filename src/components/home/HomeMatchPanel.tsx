@@ -13,11 +13,13 @@ import { GameCardSkeleton, ScheduledGameCardSkeleton } from './GameCardSkeleton'
 import { formatSourceDateLabel } from '../../utils/homeSeasonLogic';
 import type { Game } from '../../types/home';
 import type { LeagueTab } from '../../utils/predictionHomeLogic';
+import type { HomeLoadFailureReason } from '../../api/home';
 
 interface HomeMatchPanelProps {
   activeLeagueTab: LeagueTab;
   isLoading: boolean;
   isGamesError: boolean;
+  loadFailureReason: HomeLoadFailureReason | null;
   isScheduledLoading: boolean;
   isScheduledError: boolean;
   isSecondarySectionExpanded: boolean;
@@ -38,6 +40,7 @@ export default function HomeMatchPanel({
   activeLeagueTab,
   isLoading,
   isGamesError,
+  loadFailureReason,
   isScheduledLoading,
   isScheduledError,
   isSecondarySectionExpanded,
@@ -54,6 +57,7 @@ export default function HomeMatchPanel({
   onToggleSecondarySection,
 }: HomeMatchPanelProps) {
   const activeTabIsScheduled = activeLeagueTab === 'scheduled';
+  const isManualDataError = loadFailureReason === 'manual-data-required';
 
   if (isLoading) {
     return (
@@ -78,10 +82,12 @@ export default function HomeMatchPanel({
           <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
         </div>
         <p className="text-gray-700 dark:text-gray-200 font-bold mb-1">
-          경기 일정을 불러오지 못했습니다
+          {isManualDataError ? '야구 데이터 준비가 필요합니다' : '경기 일정을 불러오지 못했습니다'}
         </p>
         <p className="text-gray-400 dark:text-gray-400 text-[16px] font-bold mb-4">
-          네트워크 연결을 확인하고 다시 시도해주세요
+          {isManualDataError
+            ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
+            : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
         </p>
         <Button
           variant="outline"
@@ -122,10 +128,12 @@ export default function HomeMatchPanel({
             <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
         <p className="text-gray-700 dark:text-gray-200 font-bold mb-1">
-            예정 경기 일정을 불러오지 못했습니다
+            {isManualDataError ? '야구 데이터 준비가 필요합니다' : '예정 경기를 불러오지 못했습니다'}
           </p>
           <p className="text-gray-500 dark:text-gray-400 text-[16px] font-bold mt-1">
-            네트워크 연결을 확인하고 다시 시도해주세요
+            {isManualDataError
+              ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
+              : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
           </p>
           <Button
             variant="outline"
