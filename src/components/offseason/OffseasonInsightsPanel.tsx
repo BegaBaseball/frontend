@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { Building2, Newspaper } from 'lucide-react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { Card } from '../ui/card';
+import { Building2Icon, NewspaperIcon } from '../icons/PublicFeatureIcons';
 import { OffseasonMovement } from './offseasonListTypes';
 import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
 import { formatDateLabel, getMovementSummary } from './offseasonListUtils';
@@ -54,7 +54,7 @@ export function OffseasonInsightsPanel({
                     <div className="space-y-4 p-5">
                         <div className="flex items-center gap-3">
                             <div className="rounded-2xl bg-zinc-100 p-2 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                                <Building2 className="h-5 w-5" />
+                                <Building2Icon className="h-5 w-5" />
                             </div>
                             <div>
                                 <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Active Teams</p>
@@ -114,7 +114,7 @@ export function OffseasonInsightsPanel({
                     <div className="space-y-4 p-5">
                         <div className="flex items-center gap-3">
                             <div className="rounded-2xl bg-zinc-100 p-2 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                                <Newspaper className="h-5 w-5" />
+                                <NewspaperIcon className="h-5 w-5" />
                             </div>
                             <div>
                             <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Headlines</p>

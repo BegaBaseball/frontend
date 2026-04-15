@@ -1,5 +1,4 @@
-import { ArrowUpDown, Sparkles } from 'lucide-react';
-
+import { ArrowUpDownIcon, SparklesIcon } from '../icons/PublicFeatureIcons';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -57,7 +56,7 @@ export function OffseasonDesktopTable({
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Date</span>
                                     <span className="block text-[15px] font-bold">날짜</span>
                                 </span>
-                                <ArrowUpDown className={`h-4 w-4 ${sortOrder === 'latest' ? 'opacity-100' : 'opacity-40'}`} />
+                                <ArrowUpDownIcon className={`h-4 w-4 ${sortOrder === 'latest' ? 'opacity-100' : 'opacity-40'}`} />
                             </button>
                         </TableHead>
                         <TableHead className="h-auto w-[130px] px-2 py-0">
@@ -105,7 +104,7 @@ export function OffseasonDesktopTable({
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Amount</span>
                                     <span className="block text-[15px] font-bold">금액</span>
                                 </span>
-                                <ArrowUpDown className={`h-4 w-4 ${sortOrder === 'amount' ? 'opacity-100' : 'opacity-40'}`} />
+                                <ArrowUpDownIcon className={`h-4 w-4 ${sortOrder === 'amount' ? 'opacity-100' : 'opacity-40'}`} />
                             </button>
                         </TableHead>
                     </TableRow>
@@ -175,7 +174,7 @@ export function OffseasonDesktopTable({
                                             <span className="text-base font-black tracking-tight text-zinc-900 dark:text-zinc-50">{item.player}</span>
                                             {item.isBigEvent && (
                                                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400/90 text-[#173b34] shadow-sm">
-                                                    <Sparkles className="h-3.5 w-3.5" />
+                                                    <SparklesIcon className="h-3.5 w-3.5" />
                                                 </span>
                                             )}
                                         </div>
