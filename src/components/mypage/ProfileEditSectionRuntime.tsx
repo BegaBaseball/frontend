@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
-  Camera,
-  Lock,
-  Settings,
-  Ban,
-  UserRound,
-  ArrowLeft,
-} from 'lucide-react';
+  MyPageArrowLeftIcon,
+  MyPageBanIcon,
+  MyPageCameraIcon,
+  MyPageLockIcon,
+  MyPageSettingsIcon,
+  MyPageUserRoundIcon,
+} from './MyPageIcons';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import '../common/autofill-input.css';
@@ -267,7 +267,7 @@ export default function ProfileEditSection({
           <h2 className="text-xl font-bold text-primary">{sectionTitle}</h2>
           {!isDesktop && activeSection !== 'profile' && (
             <Button variant="ghost" className="h-9 px-3" onClick={handleSectionBack} disabled={isLoading}>
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              <MyPageArrowLeftIcon className="w-4 h-4 mr-1.5" />
               설정 목록
             </Button>
           )}
@@ -297,7 +297,7 @@ export default function ProfileEditSection({
                       <label
                         className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-card border-2 border-primary dark:border-primary flex items-center justify-center cursor-pointer hover:bg-secondary dark:hover:bg-primary/10 shadow-md transition-colors"
                       >
-                        <Camera className="w-5 h-5 text-primary" />
+                        <MyPageCameraIcon className="w-5 h-5 text-primary" />
                         <input
                           data-testid="profile-image-upload-input"
                           type="file"
@@ -319,7 +319,7 @@ export default function ProfileEditSection({
                       className={`w-full justify-start gap-2 ${sectionClassForButton('profile')}`}
                       disabled={isLoading}
                     >
-                      <UserRound className="w-4 h-4" />
+                      <MyPageUserRoundIcon className="w-4 h-4" />
                       <span>내 정보 수정</span>
                     </Button>
                     <Button
@@ -328,7 +328,7 @@ export default function ProfileEditSection({
                       className={`w-full justify-start gap-2 ${sectionClassForButton('accountSettings')}`}
                       disabled={isLoading}
                     >
-                      <Settings className="w-4 h-4" />
+                      <MyPageSettingsIcon className="w-4 h-4" />
                       <span>계정 설정</span>
                     </Button>
                     <Button
@@ -337,7 +337,7 @@ export default function ProfileEditSection({
                       className={`w-full justify-start gap-2 ${sectionClassForButton('blockedUsers')}`}
                       disabled={isLoading}
                     >
-                      <Ban className="w-4 h-4" />
+                      <MyPageBanIcon className="w-4 h-4" />
                       <span>차단 관리</span>
                     </Button>
                     {(!userProvider || userProvider === 'LOCAL') && onChangePassword && hasPassword && (
@@ -347,7 +347,7 @@ export default function ProfileEditSection({
                         className="w-full justify-center gap-2"
                         disabled={isLoading}
                       >
-                        <Lock className="w-4 h-4" />
+                        <MyPageLockIcon className="w-4 h-4" />
                         비밀번호 변경
                       </Button>
                     )}

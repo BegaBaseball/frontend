@@ -1,11 +1,11 @@
 import { lazy, Suspense, useState } from 'react';
 import {
-  AlertCircle,
-  CheckCircle2,
-  Lock,
-  Save,
-  Sparkles,
-} from 'lucide-react';
+  MyPageAlertCircleIcon,
+  MyPageCheckCircleIcon,
+  MyPageLockIcon,
+  MyPageSaveIcon,
+  MyPageSparklesIcon,
+} from './MyPageIcons';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
@@ -140,7 +140,7 @@ export default function ProfileEditProfileRuntime({
       <div className="space-y-6 p-1 md:p-0">
         {saveAttempted && hasValidationErrors && (
           <Alert variant="destructive" className="animate-in fade-in">
-            <AlertCircle className="h-4 w-4" />
+            <MyPageAlertCircleIcon className="h-4 w-4" />
             <AlertTitle>입력값을 확인해주세요</AlertTitle>
             <AlertDescription>필드 아래 오류 메시지를 수정한 뒤 저장해 주세요.</AlertDescription>
           </Alert>
@@ -190,7 +190,7 @@ export default function ProfileEditProfileRuntime({
                   disabled
                   readOnly
                 />
-                <Lock className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <MyPageLockIcon className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
               <span className="whitespace-nowrap text-[16px] text-muted-foreground">
                 수정 불가
@@ -273,7 +273,7 @@ export default function ProfileEditProfileRuntime({
                       title={TEAM_TEST_HINT}
                       disabled={isLoading}
                     >
-                      <Sparkles className="mr-1.5 h-4 w-4" />
+                      <MyPageSparklesIcon className="mr-1.5 h-4 w-4" />
                       구단 테스트 해보기
                     </Button>
                   </div>
@@ -309,7 +309,7 @@ export default function ProfileEditProfileRuntime({
                         title={TEAM_TEST_HINT}
                         disabled={isLoading}
                       >
-                        <Sparkles className="mr-1.5 h-4 w-4" />
+                        <MyPageSparklesIcon className="mr-1.5 h-4 w-4" />
                         구단 테스트 해보기
                       </Button>
                     </div>
@@ -341,7 +341,7 @@ export default function ProfileEditProfileRuntime({
                 className={`flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground sm:flex-1 ${!canSubmit && 'opacity-70'}`}
                 disabled={isLoading || !canSubmit || isNameChecking || hasFieldErrors}
               >
-                <Save className="h-5 w-5" />
+                <MyPageSaveIcon className="h-5 w-5" />
                 {isLoading ? '저장 중...' : '저장하기'}
               </Button>
             </div>
@@ -375,8 +375,8 @@ export default function ProfileEditProfileRuntime({
                   setShowTeamSheet(false);
                 }}
                 disabled={isLoading}
-              >
-                <span className="flex items-center gap-2">
+                >
+                  <span className="flex items-center gap-2">
                   {teamId !== '없음' && (
                     <div className="h-6 w-6">
                       <TeamLogo team={teamId} size="sm" />
@@ -384,8 +384,8 @@ export default function ProfileEditProfileRuntime({
                   )}
                   {teamId === '없음' && <div className="h-6 w-6 rounded-full bg-muted" />}
                   <span className="truncate">{TEAM_DATA[teamId].name}</span>
-                </span>
-                <CheckCircle2 className={`h-4 w-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
+                  </span>
+                <MyPageCheckCircleIcon className={`h-4 w-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
               </Button>
             ))}
           </div>

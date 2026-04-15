@@ -1,10 +1,16 @@
-import { AlertTriangle, Eye, EyeOff, Fingerprint, ShieldAlert, Trash2 } from 'lucide-react';
-
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import type { TrustedDeviceItem } from '../../types/profile';
+import {
+  MyPageAlertTriangleIcon,
+  MyPageEyeIcon,
+  MyPageEyeOffIcon,
+  MyPageFingerprintIcon,
+  MyPageShieldAlertIcon,
+  MyPageTrashIcon,
+} from './MyPageIcons';
 
 interface AccountSettingsAdvancedRuntimeProps {
   showAdvancedSettingsDialog: boolean;
@@ -83,7 +89,7 @@ export default function AccountSettingsAdvancedRuntime({
           <div className="rounded-xl border border-border bg-card/80 p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-primary" />
+                <MyPageShieldAlertIcon className="w-4 h-4 text-primary" />
                 <p className="text-[16px] font-semibold">보안 정리</p>
               </div>
               <span className="rounded-full bg-muted px-2.5 py-1 text-[16px] text-muted-foreground">
@@ -110,7 +116,7 @@ export default function AccountSettingsAdvancedRuntime({
           <div className="rounded-xl border border-border bg-card/80 p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Fingerprint className="w-4 h-4 text-primary" />
+                <MyPageFingerprintIcon className="w-4 h-4 text-primary" />
                 <p className="text-[16px] font-semibold">신뢰 기기 관리</p>
               </div>
               <span className="rounded-full bg-muted px-2.5 py-1 text-[16px] text-muted-foreground">
@@ -177,7 +183,7 @@ export default function AccountSettingsAdvancedRuntime({
           <div className="rounded-xl border border-red-200 bg-red-50/80 p-5 dark:border-red-800 dark:bg-red-900/20">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Trash2 className="h-4 w-4 text-red-700 dark:text-red-300" />
+                <MyPageTrashIcon className="h-4 w-4 text-red-700 dark:text-red-300" />
                 <p className="text-[16px] font-semibold text-red-800 dark:text-red-300">탈퇴 예약</p>
               </div>
               <span className="rounded-full bg-white/70 px-2.5 py-1 text-[16px] text-red-700 dark:bg-red-950/40 dark:text-red-300">
@@ -202,7 +208,7 @@ export default function AccountSettingsAdvancedRuntime({
               className="w-full"
               disabled={isDeletePending}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <MyPageTrashIcon className="w-4 h-4 mr-2" />
               탈퇴 예약
             </Button>
           </div>
@@ -214,7 +220,7 @@ export default function AccountSettingsAdvancedRuntime({
         onClose={onDeleteDialogClose}
         title={(
           <span className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
+            <MyPageAlertTriangleIcon className="w-5 h-5" />
             탈퇴 예약 확인
           </span>
         )}
@@ -247,7 +253,7 @@ export default function AccountSettingsAdvancedRuntime({
 
         {error && (
           <Alert variant="destructive" className="my-4">
-            <AlertTriangle className="h-4 w-4" />
+            <MyPageAlertTriangleIcon className="h-4 w-4" />
             <AlertTitle>오류</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -273,7 +279,7 @@ export default function AccountSettingsAdvancedRuntime({
                 onClick={onToggleShowPassword}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <MyPageEyeOffIcon className="w-4 h-4" /> : <MyPageEyeIcon className="w-4 h-4" />}
               </button>
             </div>
           </div>

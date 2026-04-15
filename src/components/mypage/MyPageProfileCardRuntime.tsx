@@ -1,8 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Coins, Edit, Ticket, UserPlus, Users } from 'lucide-react';
 
 import { getMyFollowCounts } from '../../api/followApi';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import {
+  MyPageBarChartIcon,
+  MyPageCoinsIcon,
+  MyPageEditIcon,
+  MyPageTicketIcon,
+  MyPageUserPlusIcon,
+  MyPageUsersIcon,
+} from './MyPageIcons';
 import TeamLogo from '../TeamLogo';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -124,7 +131,7 @@ export default function MyPageProfileCardRuntime({
                 <p className="text-[16px] md:text-[16px] font-semibold text-gray-500 dark:text-gray-300 mb-1">{email}</p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-[16px] font-semibold text-yellow-700 dark:text-yellow-400">
-                    <Coins className="w-3.5 h-3.5 fill-yellow-500 text-yellow-600 dark:text-yellow-400" />
+                    <MyPageCoinsIcon className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
                     {cheerPoints.toLocaleString()} P
                   </span>
                 </div>
@@ -140,7 +147,7 @@ export default function MyPageProfileCardRuntime({
                   {formatCount(followCounts?.followerCount || 0)}
                 </span>
                 <span className="text-[16px] font-semibold text-gray-500 dark:text-gray-300 flex items-center gap-1 whitespace-nowrap group-hover:text-primary transition-colors">
-                  <Users className="w-3.5 h-3.5" />
+                  <MyPageUsersIcon className="w-3.5 h-3.5" />
                   팔로워
                 </span>
               </button>
@@ -154,7 +161,7 @@ export default function MyPageProfileCardRuntime({
                   {formatCount(followCounts?.followingCount || 0)}
                 </span>
                 <span className="text-[16px] font-semibold text-gray-500 dark:text-gray-300 flex items-center gap-1 whitespace-nowrap group-hover:text-primary transition-colors">
-                  <UserPlus className="w-3.5 h-3.5" />
+                  <MyPageUserPlusIcon className="w-3.5 h-3.5" />
                   팔로잉
                 </span>
               </button>
@@ -164,7 +171,7 @@ export default function MyPageProfileCardRuntime({
                 onClick={onOpenMateHistory}
                 className="h-9 px-2.5 gap-1 text-[16px] font-semibold flex items-center justify-center whitespace-nowrap bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary"
               >
-                <Users className="w-4 h-4 flex-shrink-0" />
+                <MyPageUsersIcon className="w-4 h-4 flex-shrink-0" />
                 <span>메이트 내역</span>
               </Button>
               <Button
@@ -172,21 +179,21 @@ export default function MyPageProfileCardRuntime({
                 data-testid="mypage-toggle-stats"
                 className="h-9 px-2.5 gap-1 text-[16px] font-semibold flex items-center justify-center whitespace-nowrap bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary w-32"
               >
-                <BarChart3 className="w-4 h-4 flex-shrink-0" />
+                <MyPageBarChartIcon className="w-4 h-4 flex-shrink-0" />
                 <span>{isStatsView ? '다이어리 보기' : '통계 보기'}</span>
               </Button>
               <Button
                 onClick={onOpenTicketUploadModal}
                 className="h-9 px-2.5 gap-1 text-[16px] font-semibold flex items-center justify-center whitespace-nowrap bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary"
               >
-                <Ticket className="w-4 h-4 flex-shrink-0" />
+                <MyPageTicketIcon className="w-4 h-4 flex-shrink-0" />
                 <span>티켓 등록</span>
               </Button>
               <Button
                 onClick={onOpenEditProfile}
                 className="h-9 px-2.5 gap-1 text-[16px] font-semibold flex items-center justify-center whitespace-nowrap text-white bg-primary-dark hover:bg-primary"
               >
-                <Edit className="w-4 h-4 flex-shrink-0" />
+                <MyPageEditIcon className="w-4 h-4 flex-shrink-0" />
                 <span>내 정보 수정</span>
               </Button>
             </div>
@@ -223,7 +230,7 @@ export default function MyPageProfileCardRuntime({
                 <p className="text-[16px] md:text-[16px] font-semibold text-gray-500 dark:text-gray-300 mb-1">{email}</p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 text-[16px] font-semibold text-yellow-700 dark:text-yellow-400">
-                    <Coins className="w-3.5 h-3.5 fill-yellow-500 text-yellow-600 dark:text-yellow-400" />
+                    <MyPageCoinsIcon className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
                     {cheerPoints.toLocaleString()} P
                   </span>
                 </div>
@@ -240,7 +247,7 @@ export default function MyPageProfileCardRuntime({
                 {formatCount(followCounts?.followerCount || 0)}
               </span>
               <span className="text-[16px] font-semibold text-gray-500 dark:text-gray-300 flex items-center gap-1 whitespace-nowrap group-hover:text-primary transition-colors">
-                <Users className="w-3.5 h-3.5" />
+                <MyPageUsersIcon className="w-3.5 h-3.5" />
                 팔로워
               </span>
             </button>
@@ -254,7 +261,7 @@ export default function MyPageProfileCardRuntime({
                 {formatCount(followCounts?.followingCount || 0)}
               </span>
               <span className="text-[16px] font-semibold text-gray-500 dark:text-gray-300 flex items-center gap-1 whitespace-nowrap group-hover:text-primary transition-colors">
-                <UserPlus className="w-3.5 h-3.5" />
+                <MyPageUserPlusIcon className="w-3.5 h-3.5" />
                 팔로잉
               </span>
             </button>
@@ -264,7 +271,7 @@ export default function MyPageProfileCardRuntime({
               onClick={onOpenMateHistory}
               className="flex items-center justify-center gap-1.5 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 px-3 whitespace-nowrap text-[16px] font-semibold"
             >
-              <Users className="w-4 h-4 flex-shrink-0" />
+              <MyPageUsersIcon className="w-4 h-4 flex-shrink-0" />
               <span className="text-[16px] md:text-[16px] font-semibold">메이트 내역</span>
             </Button>
             <Button
@@ -272,21 +279,21 @@ export default function MyPageProfileCardRuntime({
               data-testid="mypage-toggle-stats"
               className="flex items-center justify-center gap-1.5 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 px-3 whitespace-nowrap text-[16px] font-semibold"
             >
-              <BarChart3 className="w-4 h-4 flex-shrink-0" />
+              <MyPageBarChartIcon className="w-4 h-4 flex-shrink-0" />
               <span className="text-[16px] md:text-[16px] font-semibold">{isStatsView ? '다이어리 보기' : '통계 보기'}</span>
             </Button>
             <Button
               onClick={onOpenEditProfile}
               className="flex items-center justify-center gap-1.5 text-white bg-primary-dark hover:bg-primary h-10 px-3 whitespace-nowrap col-span-2 text-[16px]"
             >
-              <Edit className="w-4 h-4 flex-shrink-0" />
+              <MyPageEditIcon className="w-4 h-4 flex-shrink-0" />
               <span className="text-[16px] md:text-[16px] font-semibold">내 정보 수정</span>
             </Button>
             <Button
               onClick={onOpenTicketUploadModal}
               className="flex items-center justify-center gap-1.5 bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary h-10 px-3 whitespace-nowrap col-span-2 text-[16px] font-semibold"
             >
-              <Ticket className="w-4 h-4 flex-shrink-0" />
+              <MyPageTicketIcon className="w-4 h-4 flex-shrink-0" />
               <span className="text-[16px] md:text-[16px] font-semibold">티켓 등록</span>
             </Button>
           </div>

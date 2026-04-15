@@ -119,6 +119,51 @@ const uploadFixtureFiles = (
     });
 };
 
+const interceptDiaryMediaUploads = () => {
+    let nextAssetId = 9100;
+
+    cy.intercept('POST', '**/api/media/uploads/init', (req) => {
+        expect(req.body.domain).to.eq('DIARY');
+        const assetId = nextAssetId++;
+        req.reply({
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    assetId,
+                    uploadUrl: `https://object.example.com/upload/diary-${assetId}`,
+                    stagingObjectKey: `media/staging/diary/123/${assetId}-${req.body.fileName}`,
+                    expiresAt: '2026-04-14T00:00:00Z',
+                    requiredHeaders: {
+                        'Content-Type': req.body.contentType || 'image/png',
+                    },
+                },
+            },
+        });
+    }).as('initDiaryMediaUpload');
+
+    cy.intercept('PUT', 'https://object.example.com/upload/diary-*', {
+        statusCode: 200,
+        body: '',
+    }).as('putDiaryMediaUpload');
+
+    cy.intercept('POST', /\/api\/media\/uploads\/\d+\/finalize$/, (req) => {
+        const match = req.url.match(/\/api\/media\/uploads\/(\d+)\/finalize$/);
+        const assetId = Number(match?.[1] || 0);
+        req.reply({
+            statusCode: 200,
+            body: {
+                success: true,
+                data: {
+                    assetId,
+                    storagePath: `media/diary/123/${assetId}.webp`,
+                    publicUrl: `https://cdn.example.com/media/diary/123/${assetId}.webp`,
+                },
+            },
+        });
+    }).as('finalizeDiaryMediaUpload');
+};
+
 const expectToast = (message: string) => {
     cy.contains('[role="status"]', message, { timeout: 10000 }).should('be.visible');
 };
@@ -266,39 +311,43 @@ describe('Personal Diary', () => {
             });
         }).as('saveDiary');
 
-        cy.intercept('POST', '**/api/diary/41/images*', {
-            statusCode: 200,
-            body: {
-                photos: [
-                    '/uploads/ticket-scan.png',
-                    '/uploads/diary-photo-1.png',
-                    '/uploads/diary-photo-2.png',
-                ],
-                candidates: [
-                    {
-                        id: 9001,
-                        storagePath: 'seat-view-1',
-                        previewUrl: '/uploads/diary-photo-1.png',
-                        sourceType: 'DIARY_UPLOAD',
-                        aiSuggestedLabel: 'SEAT_VIEW',
-                        aiConfidence: 0.93,
-                        shareEligible: true,
+        interceptDiaryMediaUploads();
+
+        cy.intercept('POST', '**/api/diary/41/seat-view-candidates', (req) => {
+            expect(req.body.storagePaths).to.have.length(3);
+            expect(req.body.sourceTypes).to.deep.equal(['TICKET_SCAN', 'DIARY_UPLOAD', 'DIARY_UPLOAD']);
+            req.reply({
+                statusCode: 200,
+                body: {
+                    data: {
+                        candidates: [
+                            {
+                                id: 9001,
+                                storagePath: req.body.storagePaths[1],
+                                previewUrl: 'https://cdn.example.com/media/diary/123/9101.webp',
+                                sourceType: 'DIARY_UPLOAD',
+                                aiSuggestedLabel: 'SEAT_VIEW',
+                                aiConfidence: 0.93,
+                                shareEligible: true,
+                            },
+                            {
+                                id: 9002,
+                                storagePath: req.body.storagePaths[0],
+                                previewUrl: 'https://cdn.example.com/media/diary/123/9100.webp',
+                                sourceType: 'TICKET_SCAN',
+                                aiSuggestedLabel: 'TICKET',
+                                aiConfidence: 0.99,
+                                shareEligible: false,
+                            },
+                        ],
                     },
-                    {
-                        id: 9002,
-                        storagePath: 'ticket-scan',
-                        previewUrl: '/uploads/ticket-scan.png',
-                        sourceType: 'TICKET_SCAN',
-                        aiSuggestedLabel: 'TICKET',
-                        aiConfidence: 0.99,
-                        shareEligible: false,
-                    },
-                ],
-            },
-        }).as('uploadImages');
+                },
+            });
+        }).as('createSeatViewCandidates');
 
         cy.intercept('POST', '**/api/diary/41/modify*', (req) => {
             expect(req.body.photos).to.have.length(3);
+            expect(req.body.photos.every((photo: string) => photo.startsWith('media/diary/123/'))).to.eq(true);
             expect(req.body.ticketVerificationToken).to.eq(undefined);
             req.reply({
                 statusCode: 200,
@@ -314,9 +363,9 @@ describe('Personal Diary', () => {
                     date: '2024-05-15',
                     memo: '티켓 스캔과 사진 업로드를 함께 테스트합니다.',
                     photos: [
-                        '/uploads/ticket-scan.png',
-                        '/uploads/diary-photo-1.png',
-                        '/uploads/diary-photo-2.png',
+                        'https://cdn.example.com/media/diary/123/9100.webp',
+                        'https://cdn.example.com/media/diary/123/9101.webp',
+                        'https://cdn.example.com/media/diary/123/9102.webp',
                     ],
                     ticketVerified: true,
                 }),
@@ -363,7 +412,16 @@ describe('Personal Diary', () => {
         cy.getBySel('save-diary-btn').click();
 
         cy.wait('@saveDiary');
-        cy.wait('@uploadImages');
+        for (let i = 0; i < 3; i += 1) {
+            cy.wait('@initDiaryMediaUpload');
+        }
+        for (let i = 0; i < 3; i += 1) {
+            cy.wait('@putDiaryMediaUpload');
+        }
+        for (let i = 0; i < 3; i += 1) {
+            cy.wait('@finalizeDiaryMediaUpload');
+        }
+        cy.wait('@createSeatViewCandidates');
         cy.wait('@updateDiaryAfterUpload');
         cy.contains('AI 추천 시야뷰 확인').should('be.visible');
         cy.getBySel('diary-seat-view-submit-button').click();
@@ -383,7 +441,7 @@ describe('Personal Diary', () => {
                     id: 51,
                     date: '2024-05-15',
                     memo: '공유는 이번에 건너뜁니다.',
-                    photos: ['/uploads/skip-share.png'],
+                    photos: ['https://cdn.example.com/media/diary/123/9100.webp'],
                     ticketVerified: false,
                 }),
             ];
@@ -393,27 +451,37 @@ describe('Personal Diary', () => {
             });
         }).as('saveDiaryWithSkip');
 
-        cy.intercept('POST', '**/api/diary/51/images*', {
-            statusCode: 200,
-            body: {
-                photos: ['/uploads/skip-share.png'],
-                candidates: [
-                    {
-                        id: 9101,
-                        storagePath: 'skip-share',
-                        previewUrl: '/uploads/skip-share.png',
-                        sourceType: 'DIARY_UPLOAD',
-                        aiSuggestedLabel: 'SEAT_VIEW',
-                        aiConfidence: 0.88,
-                        shareEligible: true,
-                    },
-                ],
-            },
-        }).as('uploadImagesForSkip');
+        interceptDiaryMediaUploads();
 
-        cy.intercept('POST', '**/api/diary/51/modify*', {
-            statusCode: 200,
-            body: { success: true },
+        cy.intercept('POST', '**/api/diary/51/seat-view-candidates', (req) => {
+            expect(req.body.storagePaths).to.have.length(1);
+            expect(req.body.sourceTypes).to.deep.equal(['DIARY_UPLOAD']);
+            req.reply({
+                statusCode: 200,
+                body: {
+                    data: {
+                        candidates: [
+                            {
+                                id: 9101,
+                                storagePath: req.body.storagePaths[0],
+                                previewUrl: 'https://cdn.example.com/media/diary/123/9100.webp',
+                                sourceType: 'DIARY_UPLOAD',
+                                aiSuggestedLabel: 'SEAT_VIEW',
+                                aiConfidence: 0.88,
+                                shareEligible: true,
+                            },
+                        ],
+                    },
+                },
+            });
+        }).as('createSeatViewCandidatesForSkip');
+
+        cy.intercept('POST', '**/api/diary/51/modify*', (req) => {
+            expect(req.body.photos).to.deep.equal(['media/diary/123/9100.webp']);
+            req.reply({
+                statusCode: 200,
+                body: { success: true },
+            });
         }).as('updateDiaryForSkip');
 
         cy.intercept('POST', '**/api/diary/51/seat-view-selections*', (req) => {
@@ -439,7 +507,10 @@ describe('Personal Diary', () => {
         cy.getBySel('save-diary-btn').click();
 
         cy.wait('@saveDiaryWithSkip');
-        cy.wait('@uploadImagesForSkip');
+        cy.wait('@initDiaryMediaUpload');
+        cy.wait('@putDiaryMediaUpload');
+        cy.wait('@finalizeDiaryMediaUpload');
+        cy.wait('@createSeatViewCandidatesForSkip');
         cy.wait('@updateDiaryForSkip');
         cy.contains('AI 추천 시야뷰 확인').should('be.visible');
         cy.getBySel('diary-seat-view-skip-button').click({ force: true });

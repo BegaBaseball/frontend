@@ -2,12 +2,17 @@ import { lazy, Suspense, useEffect, useId, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Loader2, User, X } from 'lucide-react';
 import { getMyFollowers, getMyFollowing } from '../../api/followApi';
 import { getPublicFollowers, getPublicFollowing } from '../../api/followPublic';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
+import {
+    ProfileAlertCircleIcon,
+    ProfileCloseIcon,
+    ProfileLoaderIcon,
+    ProfileUserIcon,
+} from './ProfileIcons';
 
 const FollowButton = lazy(() => import('./FollowButton'));
 
@@ -116,18 +121,18 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                             className="h-11 w-11 min-h-11 p-0 text-gray-400 hover:text-gray-500"
                             onClick={onClose}
                         >
-                            <X className="h-5 w-5" />
+                            <ProfileCloseIcon className="h-5 w-5" />
                         </Button>
                     </div>
 
                     <div className="custom-scrollbar flex-1 overflow-y-auto p-0" onScroll={handleScroll}>
                         {isLoading ? (
                             <div className="flex justify-center p-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <ProfileLoaderIcon className="h-8 w-8 animate-spin text-primary" />
                             </div>
                         ) : isError ? (
                             <div className="flex flex-col items-center justify-center px-4 py-8 text-center sm:py-10">
-                                <AlertCircle className="mb-3 h-8 w-8 text-red-500" />
+                                <ProfileAlertCircleIcon className="mb-3 h-8 w-8 text-red-500" />
                                 <p className="mb-3 font-semibold text-gray-900 dark:text-gray-100">
                                     목록을 불러오지 못했습니다.
                                 </p>
@@ -185,14 +190,14 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
 
                                 {isFetchingNextPage && (
                                     <div className="flex justify-center p-4">
-                                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                        <ProfileLoaderIcon className="h-6 w-6 animate-spin text-gray-400" />
                                     </div>
                                 )}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center px-4 py-8 text-center sm:py-10">
                                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-card">
-                                    <User className="h-6 w-6 text-gray-400" />
+                                    <ProfileUserIcon className="h-6 w-6 text-gray-400" />
                                 </div>
                                 <p className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
                                     {type === 'followers' ? '아직 팔로워가 없습니다.' : '아직 팔로잉하는 유저가 없습니다.'}

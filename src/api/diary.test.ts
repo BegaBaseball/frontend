@@ -9,6 +9,32 @@ const buildJsonResponse = (body: unknown, status = 200) =>
     status,
   });
 
+const installImageTestDoubles = (t: test.TestContext) => {
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {},
+  });
+  Object.defineProperty(globalThis, 'Image', {
+    configurable: true,
+    value: class MockImage {
+      naturalWidth = 1280;
+      naturalHeight = 720;
+      onload: null | (() => void) = null;
+      onerror: null | (() => void) = null;
+
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    },
+  });
+  t.mock.method(URL, 'createObjectURL', () => 'blob:mock-diary');
+  t.mock.method(URL, 'revokeObjectURL', () => {});
+  t.after(() => {
+    delete (globalThis as { document?: unknown }).document;
+    delete (globalThis as { Image?: unknown }).Image;
+  });
+};
+
 test('fetchGames는 인증 same-origin fetch로 날짜 쿼리를 전달한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -41,42 +67,83 @@ test('fetchGames는 인증 same-origin fetch로 날짜 쿼리를 전달한다', 
 });
 
 test('uploadDiaryImages는 multipart 결과를 photos/candidates로 정규화한다', async (t) => {
-  let requestUrl = '';
-  let requestInit: RequestInit | undefined;
+  installImageTestDoubles(t);
+  const requestUrls: string[] = [];
+  const requestInits: RequestInit[] = [];
 
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
-    requestUrl = typeof input === 'string'
+    const requestUrl = typeof input === 'string'
       ? input
       : input instanceof URL
         ? input.toString()
         : input.url;
-    requestInit = init;
+    requestUrls.push(requestUrl);
+    requestInits.push(init ?? {});
 
-    return buildJsonResponse({
-      data: {
-        photos: ['https://cdn.example.com/photo.jpg'],
-        candidates: [
-          {
-            id: 11,
-            storagePath: 'seat-view.jpg',
-            previewUrl: 'https://cdn.example.com/preview.jpg',
-            sourceType: 'DIARY_UPLOAD',
-            aiSuggestedLabel: 'SEAT_VIEW',
-            aiConfidence: 0.93,
-            shareEligible: true,
+    if (requestUrl.endsWith('/api/media/uploads/init')) {
+      return buildJsonResponse({
+        success: true,
+        data: {
+          assetId: 91,
+          uploadUrl: 'https://object.example.com/upload/diary-91',
+          stagingObjectKey: 'media/staging/diary/1/91-seat-view.jpg',
+          expiresAt: '2026-04-13T00:00:00Z',
+          requiredHeaders: {
+            'Content-Type': 'image/jpeg',
           },
-        ],
-      },
-    });
+        },
+      });
+    }
+
+    if (requestUrl === 'https://object.example.com/upload/diary-91') {
+      return new Response(null, { status: 200 });
+    }
+
+    if (requestUrl.endsWith('/api/media/uploads/91/finalize')) {
+      return buildJsonResponse({
+        success: true,
+        data: {
+          assetId: 91,
+          storagePath: 'media/diary/1/91.webp',
+          publicUrl: 'https://cdn.example.com/media/diary/1/91.webp',
+        },
+      });
+    }
+
+    if (requestUrl.endsWith('/api/diary/17/seat-view-candidates')) {
+      return buildJsonResponse({
+        data: {
+          candidates: [
+            {
+              id: 11,
+              storagePath: 'media/diary/1/91.webp',
+              previewUrl: 'https://cdn.example.com/preview.jpg',
+              sourceType: 'DIARY_UPLOAD',
+              aiSuggestedLabel: 'SEAT_VIEW',
+              aiConfidence: 0.93,
+              shareEligible: true,
+            },
+          ],
+        },
+      });
+    }
+
+    throw new Error(`Unexpected request: ${requestUrl}`);
   });
 
   const file = new File(['stub'], 'seat-view.jpg', { type: 'image/jpeg' });
   const response = await uploadDiaryImages(17, [{ file, sourceType: 'DIARY_UPLOAD' }]);
 
-  assert.match(requestUrl, /\/api\/diary\/17\/images$/);
-  assert.equal(requestInit?.method, 'POST');
-  assert.ok(requestInit?.body instanceof FormData);
-  assert.equal(response.photos[0], 'https://cdn.example.com/photo.jpg');
+  assert.deepEqual(requestUrls, [
+    '/api/media/uploads/init',
+    'https://object.example.com/upload/diary-91',
+    '/api/media/uploads/91/finalize',
+    '/api/diary/17/seat-view-candidates',
+  ]);
+  assert.equal(requestInits[0]?.method, 'POST');
+  assert.equal(requestInits[1]?.method, 'PUT');
+  assert.equal(requestInits[3]?.method, 'POST');
+  assert.equal(response.photos[0], 'media/diary/1/91.webp');
   assert.equal(response.candidates[0]?.id, 11);
 });
 

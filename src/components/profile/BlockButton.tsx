@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Ban, Loader2 } from 'lucide-react';
 import { toggleBlockByHandle, BlockToggleResponse } from '../../api/blockApi';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { Button } from '../ui/button';
+import { ProfileBanIcon, ProfileLoaderIcon } from './ProfileIcons';
 
 interface BlockButtonProps {
     handle: string;
@@ -85,10 +85,10 @@ export default function BlockButton({
                 className={`${buttonSize} border-red-500 text-red-500 hover:bg-red-50`}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <Ban className="mr-1 h-4 w-4" />
+                        <ProfileBanIcon className="mr-1 h-4 w-4" />
                         차단 해제
                     </>
                 )}
@@ -105,10 +105,10 @@ export default function BlockButton({
                 className={`${buttonSize} text-gray-500 hover:bg-red-50 hover:text-red-500`}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <Ban className="mr-1 h-4 w-4" />
+                        <ProfileBanIcon className="mr-1 h-4 w-4" />
                         차단
                     </>
                 )}
