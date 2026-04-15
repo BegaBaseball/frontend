@@ -227,6 +227,7 @@ test('seedMatePartyQueryData는 비어 있는 party detail cache에 preview를 �
     hostAverageRating: null,
     hostReviewCount: 0,
     teamId: 'LG',
+    cheeringSide: null,
     gameDate: '2026-03-28',
     gameTime: '18:30',
     stadium: '잠실',

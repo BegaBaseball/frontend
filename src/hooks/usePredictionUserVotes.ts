@@ -2,7 +2,10 @@ import { useCallback, useState } from 'react';
 import { fetchAllUserVotesBulk as fetchAllUserVotesBulkAPI } from '../api/prediction';
 import { parseError } from '../utils/errorUtils';
 import {
+  applyPredictionUserVoteResolution,
   isCancelLikeError,
+  shouldPreserveUserVoteStateOnError,
+  type PredictionUserVoteResolutionRecord,
   type UserVoteRecord,
 } from './predictionHookShared';
 
@@ -17,6 +20,7 @@ type UsePredictionUserVotesParams = {
 
 export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams) => {
   const [userVote, setUserVote] = useState<UserVoteRecord>({});
+  const [userVoteResolutionState, setUserVoteResolutionState] = useState<PredictionUserVoteResolutionRecord>({});
   const currentUserVoteKey = userId || 'anonymous';
 
   const fetchAndCacheUserVotes = useCallback(async (
@@ -51,6 +55,7 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
         });
         return nextVotes;
       });
+      setUserVoteResolutionState((prev) => applyPredictionUserVoteResolution(prev, normalizedIds, 'resolved'));
       return;
     }
 
@@ -76,6 +81,7 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
         ...prev,
         ...userVotes,
       }));
+      setUserVoteResolutionState((prev) => applyPredictionUserVoteResolution(prev, normalizedIds, 'resolved'));
     } catch (error) {
       if (isCancelLikeError(error)) {
         return;
@@ -83,6 +89,11 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
       const parsedError = parseError(error);
       console.error('[prediction] 내 투표 조회 실패', parsedError.message || error);
       if (isStale()) {
+        return;
+      }
+
+      if (shouldPreserveUserVoteStateOnError(parsedError.type)) {
+        setUserVoteResolutionState((prev) => applyPredictionUserVoteResolution(prev, normalizedIds, 'unknown-auth'));
         return;
       }
 
@@ -100,6 +111,7 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
 
   return {
     userVote,
+    userVoteResolutionState,
     setUserVote,
     fetchAndCacheUserVotes,
   };

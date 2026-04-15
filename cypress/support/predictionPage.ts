@@ -334,18 +334,18 @@ export const ensureCoachBriefingVisible = () => {
       const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
       if (hasFakeClock) {
         cy.tick(ms, { log: false });
-        cy.wait(50, { log: false });
+        cy.wait(200, { log: false });
         return;
       }
       cy.wait(ms, { log: false });
     });
   };
 
-  const probeCoachBriefing = (remainingAttempts = 10): Cypress.Chainable => {
+  const probeCoachBriefing = (remainingAttempts = 20): Cypress.Chainable => {
     return cy.get('body', { timeout: 20000 }).then(($body) => {
-      const hasCoachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').length > 0;
-      if (hasCoachBriefingCard) {
-        return;
+      const coachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').first();
+      if (coachBriefingCard.length > 0) {
+        return cy.wrap(coachBriefingCard).scrollIntoView().should('be.visible');
       }
 
       const detailButton = [...$body.find('button')].find((button) => (
@@ -367,7 +367,8 @@ export const ensureCoachBriefingVisible = () => {
 
   advanceTime(100);
   probeCoachBriefing();
-  cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
+  cy.get('body', { timeout: 20000 }).should('not.contain.text', '경기 카드를 준비하고 있습니다.');
+  return cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
 };
 
 export const waitForPredictionVoteBootstrap = () => {
