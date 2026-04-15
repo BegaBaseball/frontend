@@ -136,6 +136,34 @@ export interface AdminGameStatusMismatch {
   reasons: string[];
 }
 
+export interface AdminNonCanonicalGame {
+  gameId: string;
+  gameDate: string;
+  startTime: string | null;
+  rawStatus: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  reasons: string[];
+}
+
+export type AdminNonCanonicalCleanupTrackerStatus = 'draft' | 'requested' | 'in_progress' | 'done';
+
+export interface AdminNonCanonicalCleanupTrackerRecord {
+  ticketUrl: string;
+  assignee: string;
+  status: AdminNonCanonicalCleanupTrackerStatus;
+  note: string;
+  updatedAt: string;
+  gameIds: string[];
+}
+
+export interface AdminNonCanonicalCleanupTrackerEntry extends AdminNonCanonicalCleanupTrackerRecord {
+  startDate: string;
+  endDate: string;
+}
+
 export interface AdminGameScoreSyncResult {
   gameId: string;
   homeScore: number | null;
@@ -154,6 +182,8 @@ export interface AdminGameStatusMismatchBatchResult {
   totalGames: number;
   mismatchCount: number;
   mismatches: AdminGameStatusMismatch[];
+  nonCanonicalCount: number;
+  nonCanonicalGames: AdminNonCanonicalGame[];
 }
 
 export interface AdminGameStatusRepairBatchResult {
@@ -165,6 +195,8 @@ export interface AdminGameStatusRepairBatchResult {
   repairedCount: number;
   mismatches: AdminGameStatusMismatch[];
   repairedGames: AdminGameScoreSyncResult[];
+  nonCanonicalCount: number;
+  nonCanonicalGames: AdminNonCanonicalGame[];
 }
 
 export interface AdminClientErrorDashboardTotals {

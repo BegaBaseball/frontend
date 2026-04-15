@@ -1,5 +1,3 @@
-import { Edit3, Plus, RefreshCw } from 'lucide-react';
-
 import { AdminBadge } from './AdminPanelPrimitives';
 import { FRANCHISE_TEAM_IDS, TEAM_DATA } from '../../constants/teams';
 import type { AdminOffseasonMovement, AdminOffseasonMovementPayload } from '../../types/admin';
@@ -7,6 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import { Textarea } from '../ui/textarea';
+import { AdminEditIcon, AdminPlusIcon, AdminRefreshIcon } from './AdminDetailIcons';
 
 const NONE_VALUE = '__NONE__';
 const SECTION_OPTIONS = ['FA', '트레이드', '외국인', '방출/웨이버', '군 관련', '기타'];
@@ -89,12 +88,12 @@ export default function OffseasonMovementAdminDialogs({
             <Button type="button" data-testid="admin-offseason-dialog-submit" onClick={onSubmit} disabled={submitting} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
               {submitting ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <AdminRefreshIcon className="mr-2 h-4 w-4 animate-spin" />
                   저장 중
                 </>
               ) : (
                 <>
-                  {editingMovement ? <Edit3 className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                  {editingMovement ? <AdminEditIcon className="mr-2 h-4 w-4" /> : <AdminPlusIcon className="mr-2 h-4 w-4" />}
                   {editingMovement ? '수정 저장' : '이동 등록'}
                 </>
               )}
