@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Smile } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
@@ -8,6 +7,7 @@ import AutosizeTextarea from './ui/autosize-textarea';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
+import { SmileIcon } from './icons/CheerIcons';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';
@@ -102,15 +102,15 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
             <div className="flex gap-3 mb-6 relative">
                 <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-100 dark:bg-secondary" />
                 {postProfileImageUrl ? (
-                    <ProfileAvatar
-                        src={postProfileImageUrl}
-                        alt={post.author || '프로필'}
-                        fallbackName={post.author || '프로필'}
-                        width={40}
-                        height={40}
-                        showRing
-                        ringVariant="cheer"
-                    />
+                        <ProfileAvatar
+                            src={postProfileImageUrl}
+                            alt={post.author || '프로필'}
+                            fallbackName={post.author || '프로필'}
+                            width={40}
+                            height={40}
+                            showRing
+                        ringVariant="cheerFeed"
+                        />
                 ) : (
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/90 p-0.5 dark:bg-slate-700/80">
                         <span className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
@@ -142,7 +142,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                             width={40}
                             height={40}
                             showRing
-                            ringVariant="cheer"
+                            ringVariant="cheerFeed"
                         />
                     ) : (
                         userFavoriteTeam && userFavoriteTeam !== '없음' ? (
@@ -158,7 +158,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                 width={40}
                                 height={40}
                                 showRing
-                                ringVariant="cheer"
+                                ringVariant="cheerFeed"
                             />
                         )
                     )}
@@ -182,7 +182,7 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                     className="p-2 text-indigo-500 hover:bg-slate-100 dark:hover:bg-secondary rounded-full transition-colors"
                                 >
-                                    <Smile className="w-5 h-5" />
+                                    <SmileIcon className="w-5 h-5" />
                                 </button>
                                 {showEmojiPicker && (
                                     <div className="absolute top-full left-0 z-50 mt-2">

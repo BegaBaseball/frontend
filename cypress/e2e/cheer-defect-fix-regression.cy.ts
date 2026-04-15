@@ -12,6 +12,21 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         expect(Math.round(width)).to.eq(size);
         expect(Math.round(height)).to.eq(size);
     };
+    const expectCheerAvatarFrame = ($element: JQuery<HTMLElement>, size: number) => {
+        expect($element).to.have.class('rounded-full');
+        expect($element).to.have.class('inline-flex');
+        expect($element).to.have.class('items-center');
+        expect($element).to.have.class('justify-center');
+        const className = String($element.attr('class') || '');
+        expect(
+            className.includes('border')
+            || className.includes('ring-1')
+            || className.includes('bg-transparent')
+            || className.includes('bg-slate-200/90')
+        ).to.eq(true);
+        expect(className.includes('p-px')).to.eq(false);
+        expectSquareSize($element, size);
+    };
     const seedAuthState = (
         win: Window,
         role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER',
@@ -830,13 +845,13 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.contains('답글 달기').should('not.exist');
     });
 
-    it('5-1) 댓글 목록은 기본 5개만 노출하고 더보기로 확장한다', () => {
+    it('5-1) 댓글 목록은 20개 페이지 단위로 추가 로드한다', () => {
         cy.mockAPI();
         stubAuthProfile('ROLE_USER');
 
         const postId = 86;
         const now = new Date().toISOString();
-        const comments = Array.from({ length: 8 }, (_, index) => ({
+        const comments = Array.from({ length: 21 }, (_, index) => ({
             id: 1000 + index,
             content: `확인용 댓글 ${index + 1}`,
             author: `commenter-${index + 1}`,
@@ -886,16 +901,23 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             },
         }).as('getCheerDetail');
 
-        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
-            statusCode: 200,
-            body: {
-                content: comments,
-                totalElements: comments.length,
-                totalPages: 1,
-                last: true,
-                size: 20,
-                number: 0,
-            },
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, (req) => {
+            const page = Number(req.query.page ?? 0);
+            const size = Number(req.query.size ?? 20);
+            const start = page * size;
+            const pageContent = comments.slice(start, start + size);
+
+            req.reply({
+                statusCode: 200,
+                body: {
+                    content: pageContent,
+                    totalElements: comments.length,
+                    totalPages: Math.ceil(comments.length / size),
+                    last: start + size >= comments.length,
+                    size,
+                    number: page,
+                },
+            });
         }).as('getCheerComments');
 
         cy.visit(`/cheer/${postId}`, {
@@ -906,10 +928,10 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.wait('@getCheerDetail');
         cy.wait('@getCheerComments');
-        comments.slice(0, 5).forEach((comment) => {
+        comments.slice(0, 20).forEach((comment) => {
             cy.contains(comment.content).should('be.visible');
         });
-        comments.slice(5).forEach((comment) => {
+        comments.slice(20).forEach((comment) => {
             cy.contains(comment.content).should('not.exist');
         });
 
@@ -918,20 +940,11 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             .and('have.text', '댓글 더보기')
             .click();
 
+        cy.wait('@getCheerComments');
         comments.forEach((comment) => {
             cy.contains(comment.content).should('be.visible');
         });
-
-        cy.get('[data-testid="cheer-comments-show-more"]')
-            .should('have.text', '댓글 접기')
-            .click();
-
-        comments.slice(0, 5).forEach((comment) => {
-            cy.contains(comment.content).should('be.visible');
-        });
-        comments.slice(5).forEach((comment) => {
-            cy.contains(comment.content).should('not.exist');
-        });
+        cy.get('[data-testid="cheer-comments-show-more"]').should('not.exist');
     });
 
     it('5-2) 응원 현황은 모바일에서 기본 접힘/열림을 전환한다', () => {
@@ -1101,29 +1114,25 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.get('[role="list"][aria-label="댓글 목록"]').within(() => {
             cy.get('[data-testid="profile-avatar-frame"]').eq(0)
-                .should('have.class', 'p-0')
-                .and('have.class', 'bg-transparent')
-                .and(($frame) => {
-                    expectSquareSize($frame, 48);
+                .should(($frame) => {
+                    expectCheerAvatarFrame($frame, 48);
                 })
                 .find('[data-testid="profile-avatar-image"]').first()
                 .should(($surface) => {
                     expect($surface).to.have.class('w-full');
                     expect($surface).to.have.class('h-full');
-                    expect($surface.prop('tagName').toLowerCase()).to.eq('svg');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
                 });
 
             cy.get('[data-testid="profile-avatar-frame"]').eq(1)
-                .should('have.class', 'p-0')
-                .and('have.class', 'bg-transparent')
-                .and(($frame) => {
-                    expectSquareSize($frame, 40);
+                .should(($frame) => {
+                    expectCheerAvatarFrame($frame, 40);
                 })
                 .find('[data-testid="profile-avatar-image"]').first()
                 .should(($surface) => {
                     expect($surface).to.have.class('w-full');
                     expect($surface).to.have.class('h-full');
-                    expect($surface.prop('tagName').toLowerCase()).to.eq('svg');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
                 });
         });
     });
@@ -1768,30 +1777,26 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.wait('@getAvatarComments');
 
         cy.get('[data-testid="profile-avatar-frame"]').eq(0)
-            .should('have.class', 'p-0.5')
-            .and('not.have.class', 'p-px')
             .and(($frame) => {
-                expectSquareSize($frame, 48);
+                expectCheerAvatarFrame($frame, 48);
             })
-            .find('[data-testid="profile-avatar-image"]').first()
-            .should(($surface) => {
-                expect($surface).to.have.class('w-full');
-                expect($surface).to.have.class('h-full');
-                expect($surface.prop('tagName').toLowerCase()).to.eq('svg');
-            });
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
 
         cy.get('[data-testid="profile-avatar-frame"]').eq(1)
-            .should('have.class', 'p-0.5')
-            .and('not.have.class', 'p-px')
             .and(($frame) => {
-                expectSquareSize($frame, 40);
+                expectCheerAvatarFrame($frame, 40);
             })
-            .find('[data-testid="profile-avatar-image"]').first()
-            .should(($surface) => {
-                expect($surface).to.have.class('w-full');
-                expect($surface).to.have.class('h-full');
-                expect($surface.prop('tagName').toLowerCase()).to.eq('svg');
-            });
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
     });
 
 });

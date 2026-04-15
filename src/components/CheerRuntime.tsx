@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
-import { Bookmark, Home, PenSquare, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TEAM_DATA } from '../constants/teams';
 import { getTeamNameById } from '../api/cheerApi';
@@ -11,6 +10,14 @@ import { fetchTeamFranchiseMetadata } from '../api/teamFranchiseApi';
 import { useGamesData } from '../api/home';
 import { Game as HomeGame } from '../types/home';
 import TeamLogo from './TeamLogo';
+import {
+    BookmarkIcon,
+    HomeIcon,
+    LineChartIcon,
+    MegaphoneIcon,
+    PenSquareIcon,
+    UserIcon,
+} from './icons/PublicShellIcons';
 import {
     normalizeHexColor,
     getReadableAccent,
@@ -241,11 +248,11 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
                         <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
                             {[
-                                { id: 'home', label: '홈', icon: Home, path: '/home' },
-                                { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-                                { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                                { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
-                                { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
+                                { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
+                                { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
+                                { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
+                                { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
+                                { id: 'bookmarks', label: '북마크', icon: BookmarkIcon, path: '/cheer/bookmarks' },
                             ].map((item) => {
                                 const Icon = item.icon;
                                 const isActive = item.id === 'team';
@@ -274,7 +281,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                 className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-[18px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
                                 style={{ backgroundColor: teamAccent }}
                             >
-                                <PenSquare className="h-6 w-6" />
+                                <PenSquareIcon className="h-6 w-6" />
                                 <span className="hidden xl:inline">게시하기</span>
                             </button>
                         </aside>
@@ -439,10 +446,10 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border/70 dark:border-border z-40 safe-area-bottom">
                 <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
                     {[
-                        { id: 'home', label: '홈', icon: Home, path: '/home' },
-                        { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-                        { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-                        { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
+                        { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
+                        { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
+                        { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
+                        { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
                     ].map((item) => {
                         const Icon = item.icon;
                         const isActive = item.id === 'team';
@@ -475,7 +482,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 style={{ backgroundColor: teamColor }}
                 aria-label="글쓰기"
             >
-                <PenSquare className="mx-auto h-5 w-5" />
+                <PenSquareIcon className="mx-auto h-5 w-5" />
             </button>
 
         </div>

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { fetchComments, fetchPosts, uploadPostImages } from './cheerApi';
+import { createComment, fetchComments, fetchPosts, uploadPostImages } from './cheerApi';
 
 const resolveRequestUrl = (input: string | URL | Request): string =>
   typeof input === 'string'
@@ -93,6 +93,28 @@ test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규�
 
   assert.equal(comment?.authorHandle, '@commenter');
   assert.equal(Object.prototype.hasOwnProperty.call(comment ?? {}, 'authorEmail'), false);
+});
+
+test('createComment는 비공개 응답을 댓글 뷰 모델로 정규화한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    id: 11,
+    author: 'Writer',
+    authorHandle: '@writer',
+    content: 'created',
+    createdAt: '2026-03-10T00:00:00Z',
+    likeCount: 0,
+    likedByMe: false,
+    replies: [],
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  const comment = await createComment(1, 'created');
+
+  assert.equal(comment.authorHandle, '@writer');
+  assert.equal(comment.timeAgo.length > 0, true);
+  assert.deepEqual(comment.replies, []);
 });
 
 test('uploadPostImages는 string[]와 PostImageDto[] 응답을 모두 URL 배열로 정규화한다', async (t) => {

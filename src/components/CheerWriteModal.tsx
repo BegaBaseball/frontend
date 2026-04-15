@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, ImagePlus, Smile } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import AutosizeTextarea from './ui/autosize-textarea';
 import TeamLogo from './TeamLogo';
+import { ImagePlusIcon, SmileIcon, XIcon } from './icons/CheerIcons';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';
@@ -204,7 +204,7 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringVariant="cheer"
+                                ringVariant="cheerFeed"
                             />
                         ) : userFavoriteTeam && userFavoriteTeam !== '없음' ? (
                             <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200/90 p-0.5 flex-shrink-0 dark:bg-slate-700/80">
@@ -219,7 +219,7 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringVariant="cheer"
+                                ringVariant="cheerFeed"
                             />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
@@ -299,7 +299,7 @@ export default function CheerWriteModal({
                                                 onClick={() => handleRemoveFile(index)}
                                                 className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
                                             >
-                                                <X className="w-3 h-3" />
+                                                <XIcon className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
@@ -313,7 +313,7 @@ export default function CheerWriteModal({
                                         onClick={() => fileInputRef.current?.click()}
                                         className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
                                     >
-                                        <ImagePlus className="w-5 h-5" />
+                                        <ImagePlusIcon className="w-5 h-5" />
                                     </button>
                                     <div className="relative" ref={emojiPickerRef}>
                                         <button
@@ -321,7 +321,7 @@ export default function CheerWriteModal({
                                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                             className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
                                         >
-                                            <Smile className="w-5 h-5" />
+                                            <SmileIcon className="w-5 h-5" />
                                         </button>
                                         {showEmojiPicker && (
                                             <div className="absolute top-0 left-full z-50 ml-2 sm:left-auto sm:right-0 sm:top-full sm:mt-2">

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowUp } from 'lucide-react';
 
 import { fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts, type CheerPost } from '../api/cheerApi';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -8,6 +7,8 @@ import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
 import AdSlot from './ads/AdSlot';
 import EndOfFeed from './EndOfFeed';
 import ErrorBoundary from './common/ErrorBoundary';
+import { AlertCircleIcon } from './icons/PublicFeatureIcons';
+import { ArrowUpIcon } from './icons/PublicShellIcons';
 import CheerCard from './CheerCard';
 
 type FeedTabKey = 'all' | 'popular' | 'following';
@@ -68,10 +69,13 @@ export default function CheerFeedRuntimeContent({
             });
         },
         getNextPageParam: (lastPage, allPages) => {
-            if (!lastPage || !lastPage.content || lastPage.content.length === 0) {
+            if (!lastPage) {
                 return undefined;
             }
             if (lastPage.last) return undefined;
+            if (typeof lastPage.number === 'number') {
+                return lastPage.number + 1;
+            }
             return allPages.length;
         },
         initialPageParam: 0,
@@ -185,7 +189,7 @@ export default function CheerFeedRuntimeContent({
                         color: teamColor,
                     }}
                 >
-                    <ArrowUp className="w-4 h-4" />
+                    <ArrowUpIcon className="w-4 h-4" />
                     새 글 {newPostCount}개 보기
                 </button>
             )}
@@ -220,7 +224,7 @@ export default function CheerFeedRuntimeContent({
                 ) : queryError ? (
                     <div className="py-8 sm:py-10 px-4 sm:px-6 flex flex-col items-center justify-center gap-4">
                         <div className="flex flex-col items-center gap-3">
-                            <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400" />
+                            <AlertCircleIcon className="h-12 w-12 text-red-500 dark:text-red-400" />
                             <div className="text-center">
                                 <p className="text-[16px] font-bold text-red-500 dark:text-red-400">
                                     데이터를 불러오지 못했습니다

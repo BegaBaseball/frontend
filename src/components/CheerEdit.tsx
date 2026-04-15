@@ -1,12 +1,12 @@
 // CheerEdit.tsx
-import { ArrowLeft, Image as ImageIcon, MessageSquare, X, Upload } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getTeamNameById } from '../api/cheerApi';
+import { ArrowLeftIcon, ImageIcon, MessageSquareIcon, UploadIcon, XIcon } from './icons/CheerIcons';
+import { useAuthProfileSnapshot } from '../store/authStore';
+import { useCheerEdit } from '../hooks/useCheerEdit';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getTeamNameById } from '../api/cheerApi';
-import { useAuthProfileSnapshot } from '../store/authStore';
-import { useCheerEdit } from '../hooks/useCheerEdit';
 
 export default function CheerEdit() {
   const navigate = useNavigate();
@@ -64,7 +64,7 @@ export default function CheerEdit() {
               onClick={handleCancel}
               className="text-gray-600 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white"
             >
-              <ArrowLeft className="h-6 w-6" />
+              <ArrowLeftIcon className="h-6 w-6" />
             </button>
             <h2 className="text-primary">응원글 수정</h2>
           </div>
@@ -103,7 +103,7 @@ export default function CheerEdit() {
             {!hasAccess ? (
               <Card className="rounded-xl bg-white dark:bg-card p-12 text-center shadow-sm">
                 <div className="mx-auto w-20 rounded-full bg-red-100 p-6">
-                  <MessageSquare className="h-10 w-10 text-red-500" />
+                  <MessageSquareIcon className="h-10 w-10 text-red-500" />
                 </div>
                 <h2 className="mt-6 mb-4 text-gray-900 dark:text-white">수정 권한이 없습니다</h2>
                 <p className="mb-6 text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -176,7 +176,7 @@ export default function CheerEdit() {
                     className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-[16px] text-gray-500 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
                       }`}
                   >
-                    <Upload className="h-6 w-6" />
+                    <UploadIcon className="h-6 w-6" />
                     <span>클릭, Enter 또는 드래그하여 이미지 추가</span>
                     <input
                       type="file"
@@ -227,7 +227,7 @@ export default function CheerEdit() {
                               {deletingImageId === image.id ? (
                               <span className="text-[16px] font-semibold">삭제</span>
                               ) : (
-                                <X className="h-4 w-4" strokeWidth={3} />
+                                <XIcon className="h-4 w-4" strokeWidth={3} />
                               )}
                             </button>
                               <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/60 px-2 py-1 text-center text-[16px] text-white">
@@ -255,7 +255,7 @@ export default function CheerEdit() {
                             disabled={isSubmitting}
                             aria-label={`새 이미지 ${index + 1} 삭제`}
                           >
-                            <X className="h-4 w-4" strokeWidth={3} />
+                            <XIcon className="h-4 w-4" strokeWidth={3} />
                           </button>
                           <div className="absolute top-1.5 left-1.5 z-10 rounded bg-green-600 px-2 py-0.5 text-[16px] text-white">
                             새 이미지

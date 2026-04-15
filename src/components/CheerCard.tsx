@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Quote, Repeat2, Trash2, Undo2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { CheerPost } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
@@ -8,10 +8,20 @@ import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import EmbeddedPost from './EmbeddedPost';
+import {
+    BookmarkIcon,
+    EditIcon,
+    HeartIcon,
+    MessageCircleIcon,
+    MoreHorizontalIcon,
+    QuoteIcon,
+    RepeatIcon,
+    TrashIcon,
+    UndoIcon,
+} from './icons/CheerIcons';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import PlainMenu from './ui/plain-menu';
-import { toast } from 'sonner';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -247,11 +257,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 )}
                 <div className="flex items-center gap-4 text-[16px] font-semibold text-[#536471] dark:text-gray-300">
                     <span className="flex items-center gap-1">
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircleIcon className="h-4 w-4" />
                         <RollingNumber value={commentCount} />
                     </span>
                     <span className="flex items-center gap-1">
-                        <Heart className={`h-4 w-4 transition-all duration-200 ${likeActive
+                        <HeartIcon className={`h-4 w-4 transition-all duration-200 ${likeActive
                             ? 'fill-rose-500 text-rose-500'
                             : 'fill-transparent dark:text-gray-300'
                             }`} />
@@ -270,7 +280,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             {/* 리포스트 표시 */}
             {post.repostType && (
                 <div className="flex items-center gap-1.5 text-[16px] font-semibold text-gray-500 dark:text-gray-300 mb-2 ml-14">
-                    <Repeat2 className="w-3.5 h-3.5" />
+                    <RepeatIcon className="w-3.5 h-3.5" />
                     <span>
                         {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
                             ? '다시 언급함' // Self-Repost
@@ -388,7 +398,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         aria-expanded={isOwnerMenuOpen}
                                         aria-haspopup="menu"
                                     >
-                                        <MoreHorizontal className="h-4 w-4" />
+                                        <MoreHorizontalIcon className="h-4 w-4" />
                                     </button>
                                 )}
                             >
@@ -401,7 +411,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     }}
                                     className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
                                 >
-                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    <EditIcon className="mr-2 h-4 w-4" />
                                     수정하기
                                 </button>
                                 <button
@@ -413,7 +423,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     }}
                                     className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                 >
-                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <TrashIcon className="mr-2 h-4 w-4" />
                                     삭제하기
                                 </button>
                             </PlainMenu>
@@ -489,7 +499,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 {commentAnimating && (
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-sky-500/20 animate-like-ring" />
                                 )}
-                                <MessageCircle
+                                <MessageCircleIcon
                                     className={`h-5 w-5 ${commentAnimating ? 'animate-like-pop' : ''
                                         }`}
                                 />
@@ -523,7 +533,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         {repostAnimating && (
                                             <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
                                         )}
-                                        <Repeat2
+                                        <RepeatIcon
                                             className={`h-5 w-5 transition-all duration-200 ${repostButtonActive
                                                 ? 'text-emerald-500 scale-110'
                                                 : ''
@@ -543,7 +553,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                         >
                                             <div className="flex items-center justify-center w-5 h-5">
-                                                <Undo2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <UndoIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
                                             </div>
                                             <div>
                                                 <span className="block text-[16px] font-bold text-red-600 dark:text-red-400">
@@ -571,9 +581,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
                                                         {post.repostedByMe ? (
-                                                            <Undo2 className="w-4 h-4 text-emerald-500" />
+                                                            <UndoIcon className="w-4 h-4 text-emerald-500" />
                                                         ) : (
-                                                            <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                                            <RepeatIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div>
@@ -594,7 +604,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center justify-center w-5 h-5">
-                                                        <Quote className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                                        <QuoteIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
                                                     </div>
                                                     <div>
                                                         <span className="block text-[16px] font-bold text-gray-700 dark:text-gray-200">
@@ -629,7 +639,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 {likeAnimating && (
                                     <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
                                 )}
-                                <Heart
+                                <HeartIcon
                                     className={`h-5 w-5 transition-all duration-200 ${likeActive
                                         ? 'fill-rose-500 text-rose-500 scale-110'
                                         : 'fill-transparent'
@@ -651,7 +661,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 className={`relative rounded-full p-2 transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'
                                     }`}
                             >
-                                <Bookmark
+                                <BookmarkIcon
                                     className={`h-5 w-5 transition-all duration-200 ${bookmarkActive
                                         ? 'fill-yellow-500 text-yellow-500 scale-110'
                                         : 'fill-transparent'

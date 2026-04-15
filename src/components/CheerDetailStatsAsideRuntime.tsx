@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ChevronDown, Megaphone } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { ChevronDownIcon, MegaphoneIcon } from './icons/CheerIcons';
 
 const LazyCheerDetailStatsBody = lazy(() => import('./CheerDetailStatsBody'));
 
@@ -41,10 +41,10 @@ export default function CheerDetailStatsAsideRuntime({
                     aria-controls="cheer-detail-stats"
                 >
                     <div className="flex items-center gap-1.5 text-[16px] font-bold" style={{ color: detailAccent }}>
-                        <Megaphone className="h-3.5 w-3.5" />
+                        <MegaphoneIcon className="h-3.5 w-3.5" />
                         <span>응원 현황</span>
                     </div>
-                    <ChevronDown
+                    <ChevronDownIcon
                         className={cn(
                             'h-3.5 w-3.5 text-slate-500 transition-transform duration-200 lg:hidden',
                             isStatsOpen && 'rotate-180'
