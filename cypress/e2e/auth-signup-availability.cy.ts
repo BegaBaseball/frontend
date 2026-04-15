@@ -30,10 +30,12 @@ const fillRequiredSignUpFields = ({
   cy.get('input#name').clear().type(name);
   cy.get('input#password').clear().type('Test1234!');
   cy.get('input#confirmPassword').clear().type('Test1234!');
-  cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+  cy.get('select#favoriteTeam').select('LG 트윈스');
   cy.get('input#handle').clear().type(handle);
   cy.get('input#email').clear().type(email);
 };
+
+const getSignUpSubmitButton = () => cy.get('form').find('button[type="submit"]').first();
 
 describe('SignUp availability checks', () => {
   beforeEach(() => {
@@ -111,13 +113,13 @@ describe('SignUp availability checks', () => {
     cy.wait(500);
     cy.contains('핸들 중복 확인 중...').should('be.visible');
     cy.contains('이메일 중복 확인 중...').should('be.visible');
-    cy.get('[data-testid="signup-submit"]').should('be.disabled');
+    getSignUpSubmitButton().should('be.disabled');
 
     cy.wait('@checkHandleAvailable');
     cy.wait('@checkEmailAvailable');
     cy.contains('사용 가능한 핸들입니다.').should('be.visible');
     cy.contains('사용 가능한 이메일입니다.').should('be.visible');
-    cy.get('[data-testid="signup-submit"]').should('not.be.disabled').click();
+    getSignUpSubmitButton().should('not.be.disabled').click();
 
     cy.wait('@requiredPolicies');
     cy.wait('@signupSuccess');
@@ -234,12 +236,12 @@ describe('SignUp availability checks', () => {
 
     cy.wait('@checkHandleAvailable');
     cy.wait('@checkEmailAvailable');
-    cy.get('[data-testid="signup-submit"]').should('not.be.disabled').click();
+    getSignUpSubmitButton().should('not.be.disabled').click();
 
     cy.wait('@requiredPolicies');
     cy.wait('@signupConflict');
     cy.contains('회원가입 실패').should('be.visible');
     cy.contains('이미 사용 중인 아이디(@handle)입니다.').should('be.visible');
-    cy.get('[data-testid="signup-submit"]').should('be.disabled');
+    getSignUpSubmitButton().should('be.disabled');
   });
 });
