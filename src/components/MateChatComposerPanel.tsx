@@ -1,7 +1,12 @@
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
 
-import { ImageIcon, Info, Loader2, Send, X } from 'lucide-react';
-
+import {
+  MateCloseIcon,
+  MateImageIcon,
+  MateInfoIcon,
+  MateLoaderIcon,
+  MateSendIcon,
+} from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -45,7 +50,7 @@ export default function MateChatComposerPanel({
             <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
             {isUploadingImage ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <MateLoaderIcon className="h-6 w-6 animate-spin text-white" />
               </div>
             ) : (
               <button
@@ -53,7 +58,7 @@ export default function MateChatComposerPanel({
                 onClick={onCancelImageSelection}
                 className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
               >
-                <X className="h-3 w-3" />
+                <MateCloseIcon className="h-3 w-3" />
               </button>
             )}
           </div>
@@ -82,7 +87,7 @@ export default function MateChatComposerPanel({
             className="shrink-0"
             aria-label="이미지 업로드"
           >
-            <ImageIcon className="h-4 w-4" />
+            <MateImageIcon className="h-4 w-4" />
           </Button>
           <Input
             value={messageText}
@@ -97,16 +102,16 @@ export default function MateChatComposerPanel({
             className="shrink-0 bg-primary px-4 text-white sm:px-6"
           >
             {isUploadingImage ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <MateLoaderIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <MateSendIcon className="h-4 w-4" />
             )}
           </Button>
         </form>
       </Card>
 
       <Alert className={`mt-4 ${mateSectionCardClass}`}>
-        <Info className="h-4 w-4" />
+        <MateInfoIcon className="h-4 w-4" />
         <AlertDescription className="text-[16px]">
           <ul className="list-disc list-inside space-y-1">
             <li>경기 당일까지 채팅에서 만날 위치와 시간을 확정해두세요.</li>

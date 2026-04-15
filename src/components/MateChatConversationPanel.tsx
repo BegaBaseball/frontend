@@ -1,6 +1,11 @@
 import { lazy, Suspense, type ChangeEvent, type FormEvent, type MutableRefObject } from 'react';
-import { AlertCircle, Users, Wifi, WifiOff } from 'lucide-react';
 
+import {
+  MateAlertCircleIcon,
+  MateUsersIcon,
+  MateWifiIcon,
+  MateWifiOffIcon,
+} from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -49,7 +54,7 @@ function ChatEmptyState({
   return (
     <div className={`${mateSubtlePanelClass} flex min-h-[360px] flex-col items-center justify-center px-6 py-10 text-center`}>
       <div className="rounded-full bg-gray-100 p-4 dark:bg-secondary/80">
-        <Users className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+        <MateUsersIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
       </div>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
       <p className="mt-2 max-w-md text-[16px] leading-6 text-gray-500 dark:text-gray-300">{description}</p>
@@ -84,7 +89,7 @@ export default function MateChatConversationPanel({
     <>
       {chatLoadError && (
         <Alert className="mt-4 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
-          <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+          <MateAlertCircleIcon className="h-4 w-4 text-amber-700 dark:text-amber-300" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-amber-800 dark:text-amber-200">
             <span>{chatLoadError}</span>
             <Button
@@ -120,12 +125,12 @@ export default function MateChatConversationPanel({
           >
             {isConnected ? (
               <>
-                <Wifi className="mr-1.5 h-3.5 w-3.5" />
+                <MateWifiIcon className="mr-1.5 h-3.5 w-3.5" />
                 실시간 연결
               </>
             ) : (
               <>
-                <WifiOff className="mr-1.5 h-3.5 w-3.5" />
+                <MateWifiOffIcon className="mr-1.5 h-3.5 w-3.5" />
                 재연결 중
               </>
             )}

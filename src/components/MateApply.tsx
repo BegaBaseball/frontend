@@ -3,10 +3,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
+import {
+  MateAlertTriangleIcon,
+  MateCheckCircleIcon,
+  MateChevronLeftIcon,
+  MateLoaderIcon,
+  MateMessageSquareIcon,
+  MateShieldIcon,
+  MateTicketIcon,
+  MateWalletIcon,
+} from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Textarea } from './ui/textarea';
-import { ChevronLeft, MessageSquare, CreditCard, Shield, AlertTriangle, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 import {
   setMatePartyMyApplicationQueryData,
   updateMatePartyApplicationsQueryData,
@@ -320,7 +329,7 @@ export default function MateApply() {
           }}
           className="mb-3 -ml-2 sm:mb-4"
         >
-          <ChevronLeft className="w-4 h-4 mr-2" />
+          <MateChevronLeftIcon className="w-4 h-4 mr-2" />
           뒤로
         </Button>
 
@@ -399,7 +408,7 @@ export default function MateApply() {
         {!isSelling && (
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
             <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-5 h-5 text-primary" />
+              <MateMessageSquareIcon className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">소개 메시지</h3>
             </div>
             <p className="mb-4 text-[16px] text-gray-500 dark:text-gray-300">
@@ -425,11 +434,11 @@ export default function MateApply() {
         {!isSelling && (
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Ticket className="w-5 h-5 text-primary" />
+              <MateTicketIcon className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
               {ticketVerified && (
                 <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[16px] font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-300">
-                  <CheckCircle className="w-3.5 h-3.5" />
+                  <MateCheckCircleIcon className="w-3.5 h-3.5" />
                   인증 완료
                 </span>
               )}
@@ -442,7 +451,7 @@ export default function MateApply() {
               <div className="space-y-3">
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                   <div className="mb-2 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-green-600" />
+                    <MateShieldIcon className="w-4 h-4 text-green-600" />
                     <span className="font-semibold text-green-700 dark:text-green-400">티켓 인증 완료</span>
                   </div>
                   {ticketInfo && (
@@ -481,12 +490,12 @@ export default function MateApply() {
                 <label htmlFor="ticketVerifyFile" className={`block cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
                   {isScanning ? (
                     <div className="flex flex-col items-center gap-2">
-                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                      <MateLoaderIcon className="w-10 h-10 text-primary animate-spin" />
                       <p className="font-semibold text-primary">AI가 티켓을 분석 중...</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <Ticket className="w-10 h-10 text-primary" />
+                      <MateTicketIcon className="w-10 h-10 text-primary" />
                       <p className="font-semibold text-primary">티켓 사진 업로드</p>
                       <p className="text-[16px] text-gray-400">JPG, PNG (최대 10MB)</p>
                     </div>
@@ -499,7 +508,7 @@ export default function MateApply() {
 
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5 text-primary" />
+            <MateWalletIcon className="w-5 h-5 text-primary" />
             <h3 className="font-bold text-primary">거래 기준 금액</h3>
           </div>
 
@@ -537,7 +546,7 @@ export default function MateApply() {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className={`${insetPanelClass} p-4`}>
               <div className="mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
+                <MateShieldIcon className="w-4 h-4 text-primary" />
                 <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">정책 안내</h4>
               </div>
               <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
@@ -552,7 +561,7 @@ export default function MateApply() {
 
             <div className={`${insetPanelClass} p-4`}>
               <div className="mb-3 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-primary" />
+                <MateAlertTriangleIcon className="w-4 h-4 text-primary" />
                 <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">다음 단계</h4>
               </div>
               <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">

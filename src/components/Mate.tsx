@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { getMatePartyListQueryOptions } from '../hooks/mateQueryOptions';
@@ -14,6 +13,7 @@ import { SEAT_ICONS } from '../utils/seatIcons';
 import { KBO_STADIUMS, SEAT_CATEGORIES, type SeatCategory } from '../utils/stadiumData';
 import { buildMateRouteLocationState, getDayOfWeek } from '../utils/mate';
 import TeamLogo from './TeamLogo';
+import { MatePlusIcon, MateSearchIcon } from './MateIcons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -209,7 +209,7 @@ export default function Mate() {
               onClick={() => navigate('/mate/create')}
               className="flex-1 justify-center rounded-full bg-primary px-5 font-bold text-primary-foreground shadow-lg hover:bg-primary-hover sm:flex-none"
             >
-              <Plus className="mr-1 h-5 w-5" strokeWidth={2.5} />
+              <MatePlusIcon className="mr-1 h-5 w-5" />
               파티 만들기
             </Button>
           </div>
@@ -280,7 +280,7 @@ export default function Mate() {
 
         <div className="mb-7 flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1 md:max-w-md">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500 dark:text-zinc-500" />
+            <MateSearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500 dark:text-zinc-500" />
             <Input
               type="text"
               placeholder="팀명, 구장, 좌석으로 검색 (예: 삼성 블루존)"

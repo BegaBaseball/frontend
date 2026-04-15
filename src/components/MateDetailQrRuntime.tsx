@@ -9,7 +9,7 @@ interface MateDetailQrRuntimeProps {
   fallbackCheckInUrl: string;
   canAccessCheckIn: boolean;
   onClose: () => void;
-  onOpenCheckInPage: () => void;
+  onOpenCheckInPage: (targetUrl?: string) => void;
 }
 
 const TECHNICAL_ERROR_PATTERNS = [
@@ -53,6 +53,7 @@ export default function MateDetailQrRuntime({
 }: MateDetailQrRuntimeProps) {
   const [qrCheckInUrl, setQrCheckInUrl] = useState(fallbackCheckInUrl);
   const [qrSessionExpiresAt, setQrSessionExpiresAt] = useState<string | null>(null);
+  const [manualCode, setManualCode] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(false);
   const [qrSessionError, setQrSessionError] = useState<string | null>(null);
   const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
@@ -122,6 +123,7 @@ export default function MateDetailQrRuntime({
       const nextQrCheckInUrl = qrSession.checkinUrl || fallbackCheckInUrl;
       qrCheckInUrlRef.current = nextQrCheckInUrl;
       setQrCheckInUrl(nextQrCheckInUrl);
+      setManualCode(qrSession.manualCode ?? null);
       setQrSessionError(null);
       const expiresAt = qrSession.expiresAt ?? null;
       const parsedExpiresAtMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
@@ -135,6 +137,7 @@ export default function MateDetailQrRuntime({
       console.error('QR 세션 발급 실패:', error);
       qrCheckInUrlRef.current = fallbackCheckInUrl;
       setQrCheckInUrl(fallbackCheckInUrl);
+      setManualCode(null);
       qrSessionExpiresAtRef.current = null;
       setQrSessionError(resolveMateDetailErrorMessage(error, 'QR 세션을 발급하지 못했습니다.'));
     } finally {
@@ -159,6 +162,7 @@ export default function MateDetailQrRuntime({
 
     qrCheckInUrlRef.current = fallbackCheckInUrl;
     setQrCheckInUrl(fallbackCheckInUrl);
+    setManualCode(null);
     qrSessionExpiresAtRef.current = null;
     setQrSessionExpiresAt(null);
     setQrSessionError(null);
@@ -199,7 +203,8 @@ export default function MateDetailQrRuntime({
       qrSessionExpiresAt={qrSessionExpiresAt}
       qrSessionError={qrSessionError}
       onClose={onClose}
-      onOpenCheckInPage={onOpenCheckInPage}
+      manualCode={manualCode}
+      onOpenCheckInPage={() => onOpenCheckInPage(qrCodeValue)}
     />
   );
 }

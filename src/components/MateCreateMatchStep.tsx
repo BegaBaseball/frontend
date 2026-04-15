@@ -1,5 +1,4 @@
-import { Loader2 } from 'lucide-react';
-
+import { MateLoaderIcon } from './MateIcons';
 import TeamLogo from './TeamLogo';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -63,7 +62,7 @@ export default function MateCreateMatchStep({
             )}
             {isLoadingMatches ? (
               <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
+                <MateLoaderIcon className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
                 <p className="text-[16px] text-gray-500">경기를 불러오는 중입니다...</p>
               </div>
             ) : availableMatches.length > 0 ? (

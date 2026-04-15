@@ -12,17 +12,16 @@ import {
   useMatePartyFromRoute,
 } from '../hooks/mateDetailRoute';
 import {
-  MapPin,
-  Users,
-  Shield,
-  CheckCircle,
-  Share2,
-  ChevronLeft,
-  AlertTriangle,
-  QrCode,
-  Map as MapIcon,
-  RefreshCw,
-} from 'lucide-react';
+  MateAlertTriangleIcon,
+  MateCheckCircleIcon,
+  MateChevronLeftIcon,
+  MateMapIcon,
+  MateQrCodeIcon,
+  MateRefreshIcon,
+  MateShareIcon,
+  MateShieldIcon,
+  MateUsersIcon,
+} from './MateIcons';
 import { useAuthStore } from '../store/authStore';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
@@ -189,7 +188,7 @@ export default function MateDetailRuntime() {
       <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
           <div className="bg-red-50 dark:bg-red-900/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-500" />
+            <MateAlertTriangleIcon className="w-8 h-8 text-red-500" />
           </div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
             파티를 불러오지 못했습니다
@@ -199,10 +198,10 @@ export default function MateDetailRuntime() {
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => navigate('/mate')}>
-              <ChevronLeft className="w-4 h-4 mr-1" /> 목록으로
+              <MateChevronLeftIcon className="w-4 h-4 mr-1" /> 목록으로
             </Button>
             <Button className="bg-primary text-white" onClick={() => window.location.reload()}>
-              <RefreshCw className="w-4 h-4 mr-1" /> 다시 시도
+              <MateRefreshIcon className="w-4 h-4 mr-1" /> 다시 시도
             </Button>
           </div>
         </div>
@@ -232,10 +231,10 @@ export default function MateDetailRuntime() {
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
   const handleBrowsePartyList = () => navigate('/mate');
-  const handleCheckIn = () => {
+  const handleCheckIn = (targetUrl?: string) => {
     const fallbackPath = `/mate/${id}/checkin`;
     try {
-      const parsedUrl = new URL(fallbackCheckInUrl || fallbackPath, window.location.origin);
+      const parsedUrl = new URL(targetUrl || fallbackCheckInUrl || fallbackPath, window.location.origin);
       navigate(`${parsedUrl.pathname}${parsedUrl.search}`);
       return;
     } catch (error) {
@@ -273,10 +272,10 @@ export default function MateDetailRuntime() {
         <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
           <div className="mb-4 flex items-center justify-between gap-2">
             <Button variant="ghost" className="pl-0 text-[16px] hover:bg-transparent sm:text-base" onClick={() => navigate('/mate')}>
-              <ChevronLeft className="w-5 h-5 mr-1" /> 목록으로
+              <MateChevronLeftIcon className="w-5 h-5 mr-1" /> 목록으로
             </Button>
             <Button variant="outline" size="sm" className="shrink-0" onClick={handleShare}>
-              <Share2 className="w-4 h-4 mr-1.5" />
+              <MateShareIcon className="w-4 h-4 mr-1.5" />
               공유
             </Button>
           </div>
@@ -364,7 +363,7 @@ export default function MateDetailRuntime() {
                       className="min-h-11 text-[16px] text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary"
                       onClick={() => setShowSeatViewGuide(true)}
                     >
-                      <MapIcon className="w-3 h-3 mr-1" /> 좌석/구역 보기
+                      <MateMapIcon className="w-3 h-3 mr-1" /> 좌석/구역 보기
                     </Button>
                   </div>
                   <h2 className="mb-2 text-2xl font-black text-gray-900 dark:text-gray-100 sm:text-3xl">
@@ -372,18 +371,18 @@ export default function MateDetailRuntime() {
                   </h2>
                   <div className="flex flex-wrap items-center justify-center gap-3 text-gray-500 dark:text-gray-300 md:justify-start md:gap-4">
                     <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
+                      <MateUsersIcon className="w-4 h-4" />
                       <span>{party.currentParticipants}/{party.maxParticipants}명</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {party.ticketVerified ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <MateCheckCircleIcon className="w-4 h-4 text-green-500" />
                           <span className="font-semibold text-green-600 dark:text-green-400">티켓 인증됨</span>
                         </>
                       ) : (
                         <>
-                          <Shield className="w-4 h-4 text-amber-500" />
+                          <MateShieldIcon className="w-4 h-4 text-amber-500" />
                           <span className="font-semibold text-amber-600 dark:text-amber-300">티켓 확인 전</span>
                         </>
                       )}
@@ -394,7 +393,7 @@ export default function MateDetailRuntime() {
                 {/* QR CTA - 모바일: 중앙 정렬 / 데스크톱: 우측 구분선 포함 */}
                 <div className="mt-2 flex flex-col items-center md:mt-0 md:border-l md:border-gray-200 md:dark:border-border/80 md:pl-8">
                   <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-border/70 dark:bg-secondary/80 dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)] sm:h-[132px] sm:w-[132px]">
-                    <QrCode className="h-10 w-10 text-[#5b21b6]" />
+                    <MateQrCodeIcon className="h-10 w-10 text-[#5b21b6]" />
                   </div>
                   <p className="text-[16px] text-center text-gray-400 dark:text-gray-500 mt-1">CHECK-IN QR</p>
                   {canAccessCheckIn ? (

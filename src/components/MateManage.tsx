@@ -1,15 +1,11 @@
-import { lazy, useEffect, useState } from 'react';
+import { lazy, useEffect, useState, type ComponentType, type SVGProps } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  LucideIcon,
-  RefreshCw,
-} from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import LoadingSpinner from './LoadingSpinner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
+import { MateAlertCircleIcon, MateRefreshIcon } from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -47,6 +43,7 @@ import type {
 } from './MateManageContentRuntime';
 
 const LazyMateManageOverviewRuntime = lazy(() => import('./MateManageOverviewRuntime'));
+type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 const resolveDefaultApplicationTab = (
   pendingCount: number,
@@ -73,7 +70,7 @@ function EmptyState({
   title,
   description,
 }: {
-  icon: LucideIcon;
+  icon: MateIconComponent;
   title: string;
   description: string;
 }) {
@@ -311,7 +308,7 @@ export default function MateManage() {
         <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <MateAlertCircleIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
               <AlertDescription className="text-red-700 dark:text-red-300">
                 {partyError || '파티 정보를 찾을 수 없습니다.'}
               </AlertDescription>
@@ -449,12 +446,12 @@ export default function MateManage() {
         <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <EmptyState
-              icon={AlertCircle}
+              icon={MateAlertCircleIcon}
               title="신청 목록을 불러오지 못했습니다"
               description="네트워크 연결을 확인한 뒤 다시 시도해주세요. 목록과 상세는 유지되고 신청 관리 데이터만 다시 불러옵니다."
             />
             <Button variant="outline" className="mt-4 w-fit" onClick={() => void applicationsQuery.refetch()}>
-              <RefreshCw className="mr-1.5 h-4 w-4" />
+              <MateRefreshIcon className="mr-1.5 h-4 w-4" />
               다시 시도
             </Button>
           </Card>

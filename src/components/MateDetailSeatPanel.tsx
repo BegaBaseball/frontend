@@ -1,9 +1,8 @@
-import { Info, MapPin } from 'lucide-react';
-
 import { KBO_STADIUMS } from '../utils/stadiumData';
 import { Button } from './ui/plain-button';
 import PlainDialog from './ui/plain-dialog';
 import SeatViewGallery from './SeatViewGallery';
+import { MateInfoIcon, MateMapPinIcon } from './MateIcons';
 
 interface MateDetailSeatPanelProps {
   open: boolean;
@@ -51,7 +50,7 @@ export default function MateDetailSeatPanel({
             <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석 정보</p>
             <p className="mt-2 text-base font-semibold text-gray-900 dark:text-white">{section}</p>
             <div className="mt-2 flex items-center gap-2 text-[16px] text-gray-600 dark:text-gray-300">
-              <MapPin className="h-4 w-4 text-primary" />
+              <MateMapPinIcon className="h-4 w-4 text-primary" />
               <span>{stadium}</span>
             </div>
           </div>
@@ -68,7 +67,7 @@ export default function MateDetailSeatPanel({
         {currentZone ? (
           <div className="rounded-xl border border-gray-200/80 bg-gray-50/90 p-4 dark:border-border/70 dark:bg-secondary/70">
             <div className="flex items-center gap-2 text-[16px] font-semibold text-gray-900 dark:text-white">
-              <Info className="h-4 w-4 text-primary" />
+              <MateInfoIcon className="h-4 w-4 text-primary" />
               구역 설명
             </div>
             <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">{currentZone.description}</p>
@@ -89,7 +88,7 @@ export default function MateDetailSeatPanel({
 
         <div className="rounded-xl border border-gray-200/80 bg-white p-4 dark:border-border/70 dark:bg-card/90">
           <h3 className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-gray-900 dark:text-white">
-            <MapPin className="h-4 w-4 text-primary" />
+            <MateMapPinIcon className="h-4 w-4 text-primary" />
             좌석 시야
           </h3>
           <SeatViewGallery stadium={stadium} section={section} />
