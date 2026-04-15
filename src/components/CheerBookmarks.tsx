@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bookmark, Home, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { fetchBookmarks } from '../api/cheerApi';
 import CheerCard from './CheerCard';
+import { BookmarkIcon, HomeIcon, LineChartIcon, MegaphoneIcon, UserIcon } from './icons/PublicShellIcons';
 import { cn } from '../lib/utils';
 import { useAuthProfileSnapshot } from '../store/authStore';
 
@@ -22,11 +22,11 @@ export default function CheerBookmarks() {
   const bookmarkedPosts = data?.content ?? [];
 
   const navItems = [
-    { id: 'home', label: '홈', icon: Home, path: '/home' },
-    { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-    { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-    { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
-    { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
+    { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
+    { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
+    { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
+    { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
+    { id: 'bookmarks', label: '북마크', icon: BookmarkIcon, path: '/cheer/bookmarks' },
   ];
 
   return (
@@ -105,7 +105,7 @@ export default function CheerBookmarks() {
             ) : bookmarkedPosts.length === 0 ? (
               <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center mx-auto mb-4">
-                  <Bookmark className="h-8 w-8 text-slate-400 dark:text-gray-300" />
+                  <BookmarkIcon className="h-8 w-8 text-slate-400 dark:text-gray-300" />
                 </div>
                 <p className="text-base font-bold text-slate-700 dark:text-gray-200 mb-1">
                   아직 북마크한 게시글이 없습니다
@@ -145,11 +145,11 @@ export default function CheerBookmarks() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-[#EFF3F4] dark:border-border z-40 safe-area-bottom">
         <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
           {[
-            { id: 'home', label: '홈', icon: Home, path: '/home' },
-            { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-            { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
-            { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
+            { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
+            { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
+            { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
+            { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
+            { id: 'bookmarks', label: '북마크', icon: BookmarkIcon, path: '/cheer/bookmarks' },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || (item.id === 'team' && location.pathname.startsWith('/cheer'));

@@ -1,13 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { formatTimeAgo } from '../utils/time';
-import { Trash2 } from 'lucide-react';
 import { OptimizedImage } from './common/OptimizedImage';
+import { TrashIcon } from './icons/CheerIcons';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface EmbeddedPostProps {
     post: EmbeddedPostType;
     onClick?: () => void;
     className?: string;
+}
+
+function resolveProfileImage(imageUrl?: string) {
+    if (!imageUrl) return null;
+    if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+    return imageUrl;
 }
 
 export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostProps) {
@@ -29,7 +36,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                 className="mt-3 rounded-xl border border-dashed border-gray-200 dark:border-border bg-gray-50 dark:bg-card/50 p-4"
             >
                 <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
-                    <Trash2 className="h-4 w-4" />
+                    <TrashIcon className="h-4 w-4" />
                     <span className="text-[16px] font-semibold">삭제된 게시글입니다</span>
                 </div>
             </div>
@@ -40,6 +47,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
     const previewContent = post.content?.length > 100
         ? post.content.slice(0, 100) + '...'
         : post.content || '';
+    const authorProfileImageUrl = resolveProfileImage(post.authorProfileImageUrl);
 
     return (
         <div
@@ -53,15 +61,13 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             {/* 작성자 정보 */}
             <div className="flex items-center gap-2 mb-2">
                         <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary overflow-hidden flex-shrink-0">
-                    {post.authorProfileImageUrl ? (
-                        <OptimizedImage
-                            src={post.authorProfileImageUrl}
+                    {authorProfileImageUrl ? (
+                        <ProfileAvatar
+                            src={authorProfileImageUrl}
                             alt={post.author}
-                            className="h-full w-full object-cover block image-render-quality"
-                            loading="lazy"
+                            fallbackName={post.author}
                             width={24}
                             height={24}
-                            sizes="24px"
                         />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center text-[16px] font-semibold text-slate-500 dark:text-gray-300">

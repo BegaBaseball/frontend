@@ -1,5 +1,12 @@
-import { Bookmark, Edit2, Heart, MessageSquare, Repeat2, Undo2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { RotateCcwIcon } from './icons/PublicFeatureIcons';
+import {
+    BookmarkIcon,
+    HeartIcon,
+    MessageSquareIcon,
+    PenSquareIcon,
+    RepeatIcon,
+} from './icons/PublicShellIcons';
 import PlainMenu from './ui/plain-menu';
 
 interface CheerDetailActionBarRuntimeProps {
@@ -64,7 +71,7 @@ export default function CheerDetailActionBarRuntime({
                         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-950'
                 )}
             >
-                <Heart className={cn('h-8 w-8 flex-shrink-0', interactionLikedByMe && 'fill-current')} />
+                <HeartIcon className={cn('h-8 w-8 flex-shrink-0', interactionLikedByMe && 'fill-current')} />
                 <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
                     {interactionLikeCount.toLocaleString()}
                 </span>
@@ -76,7 +83,7 @@ export default function CheerDetailActionBarRuntime({
                 aria-label={`댓글 ${commentCount.toLocaleString()}`}
                 className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
             >
-                <MessageSquare className="h-8 w-8 flex-shrink-0" />
+                <MessageSquareIcon className="h-8 w-8 flex-shrink-0" />
                 <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
                     {commentCount.toLocaleString()}
                 </span>
@@ -114,7 +121,7 @@ export default function CheerDetailActionBarRuntime({
                         aria-expanded={isRepostMenuOpen}
                         aria-haspopup="menu"
                     >
-                        <Repeat2 className="h-8 w-8 flex-shrink-0" />
+                        <RepeatIcon className="h-8 w-8 flex-shrink-0" />
                         <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
                             {repostCount.toLocaleString()}
                         </span>
@@ -130,7 +137,7 @@ export default function CheerDetailActionBarRuntime({
                             aria-label="리포스트 삭제"
                             className="flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                         >
-                            <Undo2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                            <RotateCcwIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             <div>
                                 <span className="block text-[16px] font-bold text-red-600 dark:text-red-400">
                                     리포스트 삭제
@@ -151,9 +158,9 @@ export default function CheerDetailActionBarRuntime({
                             >
                                 <div className="flex h-5 w-5 items-center justify-center">
                                     {interactionRepostedByMe ? (
-                                        <Undo2 className="h-4 w-4 text-emerald-500" />
+                                        <RotateCcwIcon className="h-4 w-4 text-emerald-500" />
                                     ) : (
-                                        <Repeat2 className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                                        <RepeatIcon className="h-4 w-4 text-gray-500 dark:text-gray-300" />
                                     )}
                                 </div>
                                 <div>
@@ -171,7 +178,7 @@ export default function CheerDetailActionBarRuntime({
                                     className="flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                                 >
                                     <div className="flex h-5 w-5 items-center justify-center">
-                                        <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                                        <PenSquareIcon className="h-4 w-4 text-gray-500 dark:text-gray-300" />
                                     </div>
                                     <div>
                                         <span className="block text-[16px] font-bold text-gray-700 dark:text-gray-200">
@@ -200,7 +207,7 @@ export default function CheerDetailActionBarRuntime({
                         : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
                 )}
             >
-                <Bookmark className={cn('h-8 w-8 flex-shrink-0', interactionBookmarked && 'fill-current')} />
+                <BookmarkIcon className={cn('h-8 w-8 flex-shrink-0', interactionBookmarked && 'fill-current')} />
                 <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
                     {interactionBookmarkCount.toLocaleString()}
                 </span>

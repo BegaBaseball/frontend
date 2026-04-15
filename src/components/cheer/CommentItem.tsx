@@ -1,10 +1,10 @@
 // components/cheer/CommentItem.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, CornerDownRight, Send, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
+import { CornerDownRightIcon, HeartIcon, SendIcon, TrashIcon } from '../icons/CheerIcons';
 import { Comment as CheerComment } from '../../api/cheerApi';
 
 interface CommentItemProps {
@@ -73,23 +73,23 @@ function CommentItemComponent({
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
-          {isReply ? <CornerDownRight className="h-4 w-4 text-gray-300 dark:text-gray-300" /> : null}
+          {isReply ? <CornerDownRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-300" /> : null}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => {
               if (comment.authorHandle) navigate(`/profile/${comment.authorHandle}`);
             }}
           >
-            <ProfileAvatar
-              src={comment.authorProfileImageUrl}
-              alt={comment.author}
-              fallbackName={comment.author}
-              width={avatarSize}
-              height={avatarSize}
-              showRing
-              ringVariant="cheer"
-              ringClassName="p-0 bg-transparent"
-            />
+                            <ProfileAvatar
+                              src={comment.authorProfileImageUrl}
+                              alt={comment.author}
+                              fallbackName={comment.author}
+                              width={avatarSize}
+                              height={avatarSize}
+                              showRing
+                                ringVariant="cheerFeed"
+                              ringClassName="p-0 bg-transparent"
+                            />
           </div>
         </div>
         <div className="flex-1">
@@ -114,7 +114,7 @@ function CommentItemComponent({
                 className="text-gray-400 hover:text-red-500 transition-colors p-1"
                 title="삭제"
               >
-                <Trash2 className="h-4 w-4" />
+                <TrashIcon className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -133,7 +133,7 @@ function CommentItemComponent({
                 {isCommentLikeAnimating && (
                   <span className="pointer-events-none absolute inset-0 rounded-full bg-red-500/20 animate-like-ring" />
                 )}
-                <Heart
+                <HeartIcon
                   className={`h-4 w-4 ${isCommentLiked ? 'fill-red-500 text-red-500' : ''} ${isCommentLikeAnimating ? 'animate-like-pop' : ''}`}
                 />
               </span>
@@ -175,7 +175,7 @@ function CommentItemComponent({
                   }
                   className="flex items-center gap-2 text-white bg-primary"
                 >
-                  <Send className="h-4 w-4" />
+                  <SendIcon className="h-4 w-4" />
                   답글 작성
                 </Button>
               </div>
