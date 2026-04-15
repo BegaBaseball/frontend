@@ -2,15 +2,13 @@ import { lazy, Suspense, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  ChevronLeft,
-} from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import LoadingSpinner from './LoadingSpinner';
+import { MateAlertCircleIcon, MateChevronLeftIcon } from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { Input } from './ui/input';
 import {
   appendMatePartyCheckInQueryData,
   getMatePartyCheckInsQueryOptions,
@@ -45,6 +43,8 @@ export default function MateCheckIn() {
   const queryClient = useQueryClient();
 
   const [isChecking, setIsChecking] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+  const [manualCodeError, setManualCodeError] = useState<string | null>(null);
   const qrSessionId = searchParams.get('sessionId')?.trim() || undefined;
 
   const checkInsQuery = useQuery({
@@ -74,7 +74,7 @@ export default function MateCheckIn() {
         <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <MateAlertCircleIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
               <AlertDescription className="text-red-700 dark:text-red-300">
                 {resolvedError}
               </AlertDescription>
@@ -84,7 +84,7 @@ export default function MateCheckIn() {
                 variant="ghost"
                 onClick={() => navigate('/mate')}
               >
-                <ChevronLeft className="mr-2 h-4 w-4" />
+                <MateChevronLeftIcon className="mr-2 h-4 w-4" />
                 목록으로
               </Button>
             </div>
@@ -115,6 +115,13 @@ export default function MateCheckIn() {
   const progressValue = Math.min(100, Math.round((checkedInCount / totalParticipants) * 100));
 
   const handleCheckIn = async () => {
+    const trimmedManualCode = manualCode.trim();
+    if (!qrSessionId && !/^\d{4}$/.test(trimmedManualCode)) {
+      setManualCodeError('수동 체크인 코드를 4자리 숫자로 입력해주세요.');
+      return;
+    }
+
+    setManualCodeError(null);
     setIsChecking(true);
 
     try {
@@ -124,6 +131,7 @@ export default function MateCheckIn() {
         partyId: party.id,
         location: party.stadium,
         ...(qrSessionId ? { qrSessionId } : {}),
+        ...(!qrSessionId ? { manualCode: trimmedManualCode } : {}),
       });
       const nextCheckIns = appendMatePartyCheckInQueryData(queryClient, party.id, createdCheckIn);
       if (nextCheckIns.length >= party.currentParticipants) {
@@ -161,7 +169,7 @@ export default function MateCheckIn() {
           onClick={() => navigate(`/mate/${id}`)}
           className="mb-3 -ml-2 sm:mb-4"
         >
-          <ChevronLeft className="mr-2 h-4 w-4" />
+          <MateChevronLeftIcon className="mr-2 h-4 w-4" />
           뒤로
         </Button>
 
@@ -180,6 +188,50 @@ export default function MateCheckIn() {
             </Card>
           )}
         >
+          <Card className={`mb-6 p-5 sm:p-6 ${mateSectionCardClass}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                  Check-In Credential
+                </p>
+                <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">
+                  {qrSessionId ? 'QR 세션이 연결된 체크인' : '수동 체크인 코드 입력'}
+                </h2>
+                <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+                  {qrSessionId
+                    ? '현재는 QR 세션으로 체크인할 수 있습니다. 세션이 만료되면 아래 수동 코드로도 진행할 수 있습니다.'
+                    : '직접 진입한 화면입니다. 호스트가 보여준 4자리 수동 체크인 코드를 입력한 뒤 체크인을 진행하세요.'}
+                </p>
+              </div>
+              <div className="w-full max-w-sm">
+                <label htmlFor="manualCode" className="mb-2 block text-[16px] font-semibold text-gray-900 dark:text-white">
+                  수동 체크인 코드
+                </label>
+                <Input
+                  id="manualCode"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={manualCode}
+                  onChange={(event) => {
+                    const nextValue = event.target.value.replace(/\D/g, '').slice(0, 4);
+                    setManualCode(nextValue);
+                    if (manualCodeError) {
+                      setManualCodeError(null);
+                    }
+                  }}
+                  placeholder="예: 0427"
+                  className="text-base tracking-[0.35em]"
+                />
+                {manualCodeError ? (
+                  <p className="mt-2 text-[16px] text-red-600 dark:text-red-400">{manualCodeError}</p>
+                ) : (
+                  <p className="mt-2 text-[16px] text-gray-500 dark:text-gray-400">
+                    {qrSessionId ? '수동 코드는 QR 세션 장애 시 백업 수단입니다.' : 'QR 세션 없이도 수동 코드만으로 체크인할 수 있습니다.'}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
           <MateCheckInContentRuntime
             party={party}
             isHost={isHost}

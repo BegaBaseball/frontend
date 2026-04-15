@@ -1,10 +1,10 @@
 import { type ReactNode, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
+import { MateStarIcon } from './MateIcons';
 import { getApiErrorStatus } from '../api/errorStatus';
 import {
   getMatePartyApplicationsQueryOptions,
@@ -109,7 +109,7 @@ export default function MateDetailReviewsSection({
   return (
     <Card className={`p-4 ${sectionCardClass}`}>
       <h3 className="mb-3 flex items-center gap-1.5 text-[16px] font-semibold text-gray-900 dark:text-white">
-        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+        <MateStarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />
         리뷰
       </h3>
       <div className="space-y-2">
@@ -138,7 +138,7 @@ export default function MateDetailReviewsSection({
                 {myReview && (
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((num) => (
-                      <Star
+                      <MateStarIcon
                         key={num}
                         className={`w-3.5 h-3.5 ${num <= myReview.rating
                           ? 'text-yellow-500 fill-yellow-500'

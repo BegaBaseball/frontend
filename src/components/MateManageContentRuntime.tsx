@@ -1,20 +1,19 @@
-import { Suspense, lazy, type ReactNode } from 'react';
-import {
-  AlertCircle,
-  ArrowRightCircle,
-  CheckCircle,
-  Clock,
-  LucideIcon,
-  MessageSquare,
-  Pencil,
-  Shield,
-  Star,
-  Ticket,
-  Trash2,
-  Users,
-  XCircle,
-} from 'lucide-react';
+import { Suspense, lazy, type ComponentType, type ReactNode, type SVGProps } from 'react';
 
+import {
+  MateAlertCircleIcon,
+  MateArrowRightCircleIcon,
+  MateCheckCircleIcon,
+  MateClockIcon,
+  MateMessageSquareIcon,
+  MatePencilIcon,
+  MateShieldIcon,
+  MateStarIcon,
+  MateTicketIcon,
+  MateTrashIcon,
+  MateUsersIcon,
+  MateXCircleIcon,
+} from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { type Application, type BadgeType } from '../types/mate';
@@ -28,6 +27,7 @@ import {
 } from '../utils/mateFlowUi';
 
 const LazyMateManageEditPanel = lazy(() => import('./MateManageEditPanel'));
+type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type MateManageApplicationTabKey = 'pending' | 'approved' | 'rejected';
 
@@ -86,7 +86,7 @@ function EmptyState({
   title,
   description,
 }: {
-  icon: LucideIcon;
+  icon: MateIconComponent;
   title: string;
   description: string;
 }) {
@@ -131,10 +131,10 @@ const getDeadlineText = (deadline?: string) => {
 
 const getBadgeIcon = (badge: BadgeType) => {
   if (badge === 'VERIFIED') {
-    return <Shield className="h-3.5 w-3.5" />;
+    return <MateShieldIcon className="h-3.5 w-3.5" />;
   }
   if (badge === 'TRUSTED') {
-    return <Star className="h-3.5 w-3.5" />;
+    return <MateStarIcon className="h-3.5 w-3.5" />;
   }
   return null;
 };
@@ -213,7 +213,7 @@ export default function MateManageContentRuntime({
                 {app.ticketVerified && (
                   <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                     <span className="flex items-center gap-1">
-                      <Ticket className="h-3.5 w-3.5" />
+                      <MateTicketIcon className="h-3.5 w-3.5" />
                       티켓 인증
                     </span>
                   </InlineBadge>
@@ -221,16 +221,16 @@ export default function MateManageContentRuntime({
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[16px] text-gray-500 dark:text-gray-300">
                 <span className="inline-flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <MateStarIcon className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                   평점 {app.applicantRating.toFixed(1)}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
+                  <MateClockIcon className="h-3.5 w-3.5" />
                   신청 {createdAt}
                 </span>
                 {responseDeadline && tabKey === 'pending' && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[16px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <MateAlertCircleIcon className="h-3.5 w-3.5" />
                     응답 기한 {responseDeadline}
                   </span>
                 )}
@@ -275,7 +275,7 @@ export default function MateManageContentRuntime({
                   onClick={() => onApprove(app.id)}
                   className="flex-1 bg-primary text-white"
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
+                  <MateCheckCircleIcon className="mr-2 h-4 w-4" />
                   승인
                 </Button>
                 <Button
@@ -283,14 +283,14 @@ export default function MateManageContentRuntime({
                   variant="outline"
                   className="flex-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
+                  <MateXCircleIcon className="mr-2 h-4 w-4" />
                   거절
                 </Button>
               </div>
             ) : tabKey === 'approved' ? (
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <Button onClick={onOpenChat} className="flex-1 bg-primary text-white">
-                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <MateMessageSquareIcon className="mr-2 h-4 w-4" />
                   채팅방 입장
                 </Button>
                 <Button
@@ -298,7 +298,7 @@ export default function MateManageContentRuntime({
                   variant="outline"
                   className="flex-1 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30"
                 >
-                  <ArrowRightCircle className="mr-2 h-4 w-4" />
+                  <MateArrowRightCircleIcon className="mr-2 h-4 w-4" />
                   체크인 연결
                 </Button>
               </div>
@@ -387,7 +387,7 @@ export default function MateManageContentRuntime({
             {selectedApplicationTab === 'pending' && (
               pendingApplications.length === 0 ? (
                 <EmptyState
-                  icon={Users}
+                  icon={MateUsersIcon}
                   title="대기 중인 신청이 없습니다"
                   description="새 신청이 들어오면 이 탭에서 바로 검토할 수 있습니다. 상세페이지 CTA와 연결된 첫 판단 지점입니다."
                 />
@@ -399,7 +399,7 @@ export default function MateManageContentRuntime({
             {selectedApplicationTab === 'approved' && (
               approvedApplications.length === 0 ? (
                 <EmptyState
-                  icon={CheckCircle}
+                  icon={MateCheckCircleIcon}
                   title="승인된 신청이 없습니다"
                   description="참여가 확정되면 여기서 채팅과 체크인 연결 흐름을 이어갈 수 있습니다."
                 />
@@ -411,7 +411,7 @@ export default function MateManageContentRuntime({
             {selectedApplicationTab === 'rejected' && (
               rejectedApplications.length === 0 ? (
                 <EmptyState
-                  icon={XCircle}
+                  icon={MateXCircleIcon}
                   title="거절된 신청이 없습니다"
                   description="거절된 신청은 기록만 유지됩니다. 이후 다시 검토할 항목은 없습니다."
                 />
@@ -441,7 +441,7 @@ export default function MateManageContentRuntime({
             <div className="mt-4 space-y-2">
               {approvedApplications.length > 0 && (
                 <Button onClick={onOpenChat} className="w-full bg-primary text-white">
-                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <MateMessageSquareIcon className="mr-2 h-4 w-4" />
                   채팅방 입장
                 </Button>
               )}
@@ -451,7 +451,7 @@ export default function MateManageContentRuntime({
                   variant="outline"
                   className="w-full border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950/30"
                 >
-                  <ArrowRightCircle className="mr-2 h-4 w-4" />
+                  <MateArrowRightCircleIcon className="mr-2 h-4 w-4" />
                   체크인 현황
                 </Button>
               )}
@@ -461,7 +461,7 @@ export default function MateManageContentRuntime({
                   variant="outline"
                   className="w-full border-primary text-primary hover:bg-primary/10"
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
+                  <MatePencilIcon className="mr-2 h-4 w-4" />
                   정보 수정
                 </Button>
               )}
@@ -503,7 +503,7 @@ export default function MateManageContentRuntime({
                   variant="outline"
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
+                  <MatePencilIcon className="mr-2 h-4 w-4" />
                   파티 정보 수정
                 </Button>
               ) : (
@@ -517,7 +517,7 @@ export default function MateManageContentRuntime({
                 variant="outline"
                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <MateTrashIcon className="mr-2 h-4 w-4" />
                 {isDeleting ? '삭제 중...' : '파티 삭제'}
               </Button>
             </div>

@@ -1,5 +1,4 @@
-import { AlertCircle } from 'lucide-react';
-
+import { MateAlertCircleIcon } from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Textarea } from './ui/textarea';
 import { FieldLabel } from './MateCreatePrimitives';
@@ -78,7 +77,7 @@ export default function MateCreateDescriptionStep({
       </div>
 
       <Alert>
-        <AlertCircle className="w-4 h-4" />
+        <MateAlertCircleIcon className="w-4 h-4" />
         <AlertDescription>
           <ul className="list-disc list-inside space-y-1 text-[16px]">
             <li>금칙어나 비방 표현은 사용할 수 없습니다</li>

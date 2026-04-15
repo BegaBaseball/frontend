@@ -1,14 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  ChevronLeft,
-  Info,
-} from 'lucide-react';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import { Alert, AlertDescription } from './ui/alert';
+import { MateAlertCircleIcon, MateChevronLeftIcon, MateInfoIcon } from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
@@ -52,6 +48,19 @@ const loadMateValidationModule = () => {
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
 
+function MateChatStateLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className={matePageShellClass}>
+      <img
+        src={grassDecor}
+        alt=""
+        className="fixed bottom-0 left-0 h-24 w-full object-cover object-top pointer-events-none opacity-30"
+      />
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+    </div>
+  );
+}
+
 export default function MateChat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -83,6 +92,7 @@ export default function MateChat() {
       partyId: number;
       message: string;
       imageUrl?: string;
+      clientMessageId: string;
     };
     timer: ReturnType<typeof setTimeout>;
   }>>([]);
@@ -90,6 +100,11 @@ export default function MateChat() {
   const appendUniqueMessage = useCallback((base: ChatMessage[], incoming: ChatMessage): ChatMessage[] => {
     if (base.some((item) =>
       item.id === incoming.id
+      || (
+        incoming.clientMessageId
+        && item.clientMessageId
+        && item.clientMessageId === incoming.clientMessageId
+      )
       || (
         Number(item.senderId) === Number(incoming.senderId)
         && item.message === incoming.message
@@ -117,8 +132,7 @@ export default function MateChat() {
     const currentUserId = currentUserIdRef.current;
     if (currentUserId !== null && Number(message.senderId) === Number(currentUserId)) {
       const pendingIndex = pendingWsSendsRef.current.findIndex((pending) =>
-        pending.payload.message === message.message
-        && (pending.payload.imageUrl || '') === (message.imageUrl || '')
+        pending.payload.clientMessageId === message.clientMessageId
       );
       if (pendingIndex >= 0) {
         clearTimeout(pendingWsSendsRef.current[pendingIndex].timer);
@@ -311,16 +325,10 @@ export default function MateChat() {
 
   if (partyError || !party) {
     return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <MateChatStateLayout>
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <MateInfoIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
               <AlertDescription className="text-red-700 dark:text-red-300">
                 {partyError || '파티 정보를 찾을 수 없습니다.'}
               </AlertDescription>
@@ -329,24 +337,17 @@ export default function MateChat() {
               목록으로 돌아가기
             </Button>
           </Card>
-        </div>
-      </div>
+      </MateChatStateLayout>
     );
   }
 
   if (!currentUser) {
     return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <MateChatStateLayout>
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/25">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <AlertDescription className="text-red-700 dark:text-red-300">
+              <MateAlertCircleIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <AlertDescription className="text-red-700 dark:text-red-300">
                 로그인이 필요합니다. 로그인 후 이용해주세요.
               </AlertDescription>
             </Alert>
@@ -354,8 +355,7 @@ export default function MateChat() {
               로그인하기
             </Button>
           </Card>
-        </div>
-      </div>
+      </MateChatStateLayout>
     );
   }
 
@@ -372,16 +372,10 @@ export default function MateChat() {
 
   if (approvalLoadError) {
     return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <MateChatStateLayout>
           <Card className={`p-6 ${mateSectionCardClass}`}>
             <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25">
-              <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+              <MateAlertCircleIcon className="h-4 w-4 text-amber-700 dark:text-amber-300" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 {approvalLoadError}
               </AlertDescription>
@@ -395,26 +389,19 @@ export default function MateChat() {
               </Button>
             </div>
           </Card>
-        </div>
-      </div>
+      </MateChatStateLayout>
     );
   }
 
   if (!isHost && !myApplication?.isApproved) {
     return (
-      <div className={matePageShellClass}>
-        <img
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 h-24 w-full object-cover object-top opacity-30 pointer-events-none"
-        />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <MateChatStateLayout>
           <Button
             variant="ghost"
             onClick={() => navigate(`/mate/${id}`)}
             className="mb-4"
           >
-            <ChevronLeft className="mr-2 h-4 w-4" />
+            <MateChevronLeftIcon className="mr-2 h-4 w-4" />
             뒤로
           </Button>
           <Card className={`p-6 ${mateSectionCardClass}`}>
@@ -432,8 +419,7 @@ export default function MateChat() {
               상세로 돌아가기
             </Button>
           </Card>
-        </div>
-      </div>
+      </MateChatStateLayout>
     );
   }
 
@@ -523,12 +509,15 @@ export default function MateChat() {
       setIsUploadingImage(false);
     }
 
+    const clientMessageId = globalThis.crypto?.randomUUID?.()
+      ?? `mate-chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const newMessage = {
       partyId: party.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
       message: messageText.trim() || (finalImagePath ? '(사진 전송)' : ''),
       ...(finalImagePath && { imageUrl: finalImagePath }),
+      clientMessageId,
     };
 
     const persistViaHttp = async () => {
@@ -551,10 +540,13 @@ export default function MateChat() {
 
           const currentUserId = currentUserIdRef.current;
           const hasSameRecentOwnMessage = currentUserId !== null && messagesRef.current.some((item) =>
-            Number(item.senderId) === Number(currentUserId)
-            && item.message === pendingEntry.payload.message
-            && (item.imageUrl || '') === (pendingEntry.payload.imageUrl || '')
-            && Date.now() - new Date(item.createdAt).getTime() < 7000
+            item.clientMessageId === pendingEntry.payload.clientMessageId
+            || (
+              Number(item.senderId) === Number(currentUserId)
+              && item.message === pendingEntry.payload.message
+              && (item.imageUrl || '') === (pendingEntry.payload.imageUrl || '')
+              && Date.now() - new Date(item.createdAt).getTime() < 7000
+            )
           );
           if (hasSameRecentOwnMessage) {
             return;

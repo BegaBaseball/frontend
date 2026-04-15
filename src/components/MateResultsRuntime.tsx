@@ -1,23 +1,22 @@
-import {
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  Cloud,
-  CloudRain,
-  Plus,
-  RefreshCw,
-  Shield,
-  Star,
-  Sun,
-  Users,
-} from 'lucide-react';
-
 import AdSlot from './ads/AdSlot';
 import LoadingSpinner from './LoadingSpinner';
 import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import {
+  MateAlertCircleIcon,
+  MateChevronLeftIcon,
+  MateChevronRightIcon,
+  MateCloudIcon,
+  MateCloudRainIcon,
+  MatePlusIcon,
+  MateRefreshIcon,
+  MateShieldIcon,
+  MateStarIcon,
+  MateSunIcon,
+  MateUsersIcon,
+} from './MateIcons';
 import type { BadgeType, Party } from '../types/mate';
 import { KBO_STADIUMS } from '../utils/stadiumData';
 import {
@@ -65,10 +64,10 @@ const isLegacyHostAvatarUrl = (url?: string) => {
 const getWeatherIcon = (dateStr: string) => {
   const hash = dateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const weatherTypes = [
-    <Sun className="h-3.5 w-3.5 text-amber-400" />,
-    <Cloud className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-400" />,
-    <Sun className="h-3.5 w-3.5 text-amber-400" />,
-    <CloudRain className="h-3.5 w-3.5 text-blue-400" />,
+    <MateSunIcon className="h-3.5 w-3.5 text-amber-400" />,
+    <MateCloudIcon className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-400" />,
+    <MateSunIcon className="h-3.5 w-3.5 text-amber-400" />,
+    <MateCloudRainIcon className="h-3.5 w-3.5 text-blue-400" />,
   ];
   return weatherTypes[hash % 4];
 };
@@ -87,8 +86,8 @@ const getZoneName = (stadiumName: string, sectionName: string) => {
 };
 
 const getBadgeIcon = (badge: BadgeType) => {
-  if (badge === 'VERIFIED') return <Shield className="h-3.5 w-3.5 text-primary" />;
-  if (badge === 'TRUSTED') return <Star className="h-3.5 w-3.5 text-primary" />;
+  if (badge === 'VERIFIED') return <MateShieldIcon className="h-3.5 w-3.5 text-primary" />;
+  if (badge === 'TRUSTED') return <MateStarIcon className="h-3.5 w-3.5 text-primary" />;
   return null;
 };
 
@@ -112,7 +111,7 @@ export default function MateResultsRuntime({
 
     return (
       <div className="rounded-2xl border border-gray-200/70 bg-white py-20 text-center dark:border-white/5 dark:bg-[#16181c]">
-        <Users className="mx-auto mb-4 h-12 w-12 text-gray-500 dark:text-zinc-600" />
+        <MateUsersIcon className="mx-auto mb-4 h-12 w-12 text-gray-500 dark:text-zinc-600" />
         <p className="mb-2 font-bold text-gray-900 dark:text-zinc-200">
           {hasActiveFilters ? messages.withFilter : messages.withoutFilter}
         </p>
@@ -140,7 +139,7 @@ export default function MateResultsRuntime({
               className="bg-primary font-bold text-primary-foreground hover:bg-primary-hover"
               onClick={onCreateParty}
             >
-              <Plus className="mr-1 h-4 w-4" />
+              <MatePlusIcon className="mr-1 h-4 w-4" />
               파티 만들기
             </Button>
           </>
@@ -263,19 +262,19 @@ export default function MateResultsRuntime({
 
           <div className="mb-4 grid grid-cols-1 gap-x-2 gap-y-2.5 px-1 min-[360px]:grid-cols-2">
             <div className="flex items-center gap-2 text-[16px] font-semibold">
-              <Shield className={`h-4 w-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
+              <MateShieldIcon className={`h-4 w-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
               <span className={`${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'} font-bold`}>
                 {ticketTrustLabel}
               </span>
             </div>
             <div className="flex items-center gap-2 text-[16px] font-semibold">
-              <Star className={`h-4 w-4 ${hostAverageRating === null ? 'text-gray-400 dark:text-zinc-500' : 'text-primary'}`} />
+              <MateStarIcon className={`h-4 w-4 ${hostAverageRating === null ? 'text-gray-400 dark:text-zinc-500' : 'text-primary'}`} />
               <span className={`${hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300'} font-bold`}>
                 {hostReviewLabel}
               </span>
             </div>
             <div className="flex items-center gap-2 text-[16px] font-semibold">
-              <Users className="h-4 w-4 text-primary" />
+              <MateUsersIcon className="h-4 w-4 text-primary" />
               <span className="font-bold text-gray-700 dark:text-zinc-300">
                 {party.currentParticipants}
                 <span className="mx-0.5 text-gray-500 dark:text-zinc-500">/</span>
@@ -354,7 +353,7 @@ export default function MateResultsRuntime({
         disabled={queryPage === 0}
         size="sm"
       >
-        <ChevronLeft className="mr-1 h-4 w-4" />
+        <MateChevronLeftIcon className="mr-1 h-4 w-4" />
         이전
       </Button>
       <span className="text-[16px] font-bold text-gray-500 dark:text-zinc-400">
@@ -368,7 +367,7 @@ export default function MateResultsRuntime({
         size="sm"
       >
         다음
-        <ChevronRight className="ml-1 h-4 w-4" />
+        <MateChevronRightIcon className="ml-1 h-4 w-4" />
       </Button>
     </div>
   );
@@ -384,7 +383,7 @@ export default function MateResultsRuntime({
   if (fetchError) {
     return (
       <div className="rounded-2xl border border-dashed border-primary/30 bg-white py-16 text-center dark:bg-[#16181c]">
-        <AlertCircle className="mx-auto mb-3 h-10 w-10 text-primary" />
+        <MateAlertCircleIcon className="mx-auto mb-3 h-10 w-10 text-primary" />
         <p className="font-bold text-gray-900 dark:text-zinc-200">파티 목록을 불러오지 못했습니다</p>
         <p className="mt-1 text-[16px] font-bold text-gray-500 dark:text-zinc-500">
           네트워크 연결을 확인하고 다시 시도해주세요
@@ -394,7 +393,7 @@ export default function MateResultsRuntime({
           className="mt-5 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
           onClick={onRetry}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <MateRefreshIcon className="mr-2 h-4 w-4" />
           다시 시도
         </Button>
       </div>
