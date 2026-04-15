@@ -1,5 +1,3 @@
-import { MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
-
 import { Button } from '../ui/button';
 import {
   Table,
@@ -10,10 +8,15 @@ import {
   TableRow,
 } from '../ui/table';
 import type { Place } from '../../api/admin';
+import { AdminEditIcon, AdminPlusIcon } from './AdminDetailIcons';
 import {
   AdminBadge,
   adminNativeSelectClassName,
 } from './AdminPanelPrimitives';
+import {
+  AdminMapPinIcon,
+  AdminTrashIcon,
+} from './AdminPanelIcons';
 
 interface StadiumDto {
   stadiumId: string;
@@ -86,7 +89,7 @@ export function AdminStadiumsPanel({
           disabled={!selectedStadiumId}
           className="rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:from-violet-600 hover:to-purple-700"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <AdminPlusIcon className="mr-2 h-4 w-4" />
           장소 추가
         </Button>
       </div>
@@ -114,7 +117,7 @@ export function AdminStadiumsPanel({
               {places.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-16 text-center text-slate-500">
-                    <MapPin className="mx-auto mb-3 h-12 w-12 opacity-30" />
+                    <AdminMapPinIcon className="mx-auto mb-3 h-12 w-12 opacity-30" />
                     {selectedStadiumId
                       ? '등록된 장소가 없습니다.'
                       : '구장을 먼저 선택하세요.'}
@@ -168,7 +171,7 @@ export function AdminStadiumsPanel({
                           onClick={() => openEditDialog(place)}
                           className="rounded-lg text-slate-400 transition-all duration-200 hover:bg-violet-500/10 hover:text-violet-400"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <AdminEditIcon className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -177,7 +180,7 @@ export function AdminStadiumsPanel({
                           onClick={() => setDeletingPlaceId(place.id)}
                           className="rounded-lg text-slate-500 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <AdminTrashIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

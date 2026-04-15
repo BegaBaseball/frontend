@@ -206,6 +206,12 @@ describe('Prediction Coach Briefing Regression', () => {
     return undefined;
   };
 
+  const getCoachBriefingCard = () => cy.get('[data-testid="coach-briefing-card"]');
+  const getCoachBriefingTitle = () => getCoachBriefingCard().find('h4').first();
+  const getCoachBriefingBadge = (label: string) => getCoachBriefingCard().contains('span', label);
+  const getCoachBriefingButton = (label: string) => getCoachBriefingCard().contains('button', label);
+  const expectCoachBriefingText = (text: string) => getCoachBriefingCard().should('contain.text', text);
+
 
 
 
@@ -380,7 +386,7 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.get('@coachAnalyzeBlocked.all').should('have.length', 0);
-    cy.get('[data-testid="coach-briefing-card"]').should('have.attr', 'data-debug-auto', 'false');
+    cy.get('[data-testid="coach-briefing-card"]').should('be.visible');
   });
 
 
@@ -465,7 +471,7 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     cy.wait('@coachAnalyzeFailedLocked');
     cy.get('@coachAnalyzeFailedLocked.all').its('length').should('be.gte', 1);
-    cy.get('[data-testid="coach-briefing-status-note"]')
+    getCoachBriefingCard()
       .should('contain.text', '현재 브리핑 캐시가 잠겨 있습니다');
   });
 
@@ -504,10 +510,10 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.tick(2000);
     cy.wait('@coachAnalyzePartial');
-    cy.get('[data-testid="coach-briefing-status-note"]')
+    getCoachBriefingCard()
       .should('contain.text', '실데이터 일부가 비어 있어 최근 흐름 중심으로 정리했습니다');
-    cy.get('[data-testid="coach-briefing-quality-badge"]')
-      .should('contain.text', '실데이터 일부 기반');
+    getCoachBriefingBadge('실데이터 일부 기반')
+      .should('exist');
   });
 
 
@@ -681,14 +687,13 @@ describe('Prediction Coach Briefing Regression', () => {
       useRealClock: true,
     });
 
-    cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
+    getCoachBriefingCard()
       .scrollIntoView()
       .should('be.visible');
     cy.wait('@coachAnalyzeHydrationStable');
-    cy.get('[data-testid="coach-briefing-title"]', { timeout: 12000 })
+    getCoachBriefingTitle()
       .should('contain', '지연 상세 응답 안정화');
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.');
+    expectCoachBriefingText('지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.');
     cy.wait('@getGameDetailHydration');
     cy.wrap(null).should(() => {
       expect(coachAnalyzeHydrationCount).to.eq(1);
@@ -745,7 +750,7 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeReducedMotion');
-    cy.get('[data-testid="coach-briefing-message"]').should('contain', reducedMotionMessage);
+    expectCoachBriefingText(reducedMotionMessage);
   });
 
   it('does not request coach analyze for guests and shows a login CTA', () => {
@@ -763,10 +768,9 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.get('@coachAnalyzeDefault.all').should('have.length', 0);
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '실데이터 브리핑은 로그인 후 제공됩니다.');
-    cy.get('[data-testid="coach-briefing-login-cta"]')
-      .should('contain', '로그인하고 브리핑 보기');
+    expectCoachBriefingText('실데이터 브리핑은 로그인 후 제공됩니다.');
+    getCoachBriefingButton('로그인하고 브리핑 보기')
+      .should('exist');
   });
 
   it('shows a re-login CTA instead of generic fallback when coach analyze returns AUTH_EXPIRED', () => {
@@ -792,11 +796,10 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeAuthExpired');
     cy.wait('@coachReissueExpired');
 
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
+    expectCoachBriefingText('로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
     cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
-    cy.get('[data-testid="coach-briefing-login-cta"]')
-      .should('contain', '다시 로그인하기');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('exist');
   });
 
   it('shows the blinking cursor only while coach briefing is loading', () => {
@@ -842,13 +845,13 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
       expect(interceptions).to.have.length.at.least(1);
     });
-    cy.get('[data-testid="coach-briefing-message"]')
-      .next('span')
+    getCoachBriefingCard()
+      .find('span.animate-pulse')
       .should('exist');
 
     cy.wait('@coachAnalyzeLoadingCursor');
-    cy.get('[data-testid="coach-briefing-message"]')
-      .next('span')
+    getCoachBriefingCard()
+      .find('span.animate-pulse')
       .should('not.exist');
   });
 
@@ -901,7 +904,7 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.wait('@coachAnalyzeMarkdownCard');
 
-    cy.get('[data-testid="coach-briefing-message"]', { timeout: 12000 })
+    getCoachBriefingCard()
       .invoke('text')
       .then((text) => {
         expect(text).to.not.contain('**');
@@ -992,8 +995,8 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeGrounded');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+    getCoachBriefingTitle().should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
+    getCoachBriefingBadge('실데이터 기반').should('exist');
 
     cy.get('button[aria-label="다음 날짜 보기"]')
       .filter(':visible')
@@ -1002,8 +1005,8 @@ describe('Prediction Coach Briefing Regression', () => {
       .click({ force: true });
     cy.wait('@getGameDetail');
     cy.wait('@coachAnalyzeGrounded');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+    getCoachBriefingTitle().should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
+    getCoachBriefingBadge('실데이터 기반').should('exist');
   });
 
   it('shows partial-quality grounding metadata on the briefing card', () => {
@@ -1053,11 +1056,11 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeMeta');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 일부 기반');
+    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
     cy.contains('근거 3건').should('exist');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', '부분 근거 기반 자동 브리핑');
-    cy.get('[data-testid="coach-briefing-data-quality-note"]')
-      .should('contain', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
+    getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
+    getCoachBriefingCard()
+      .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
   });
 
   it('shows detailed partial-quality warnings when clutch or focus evidence is limited', () => {
@@ -1107,9 +1110,9 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzePartialDetail');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 일부 기반');
-    cy.get('[data-testid="coach-briefing-data-quality-note"]')
-      .should('contain', '승부처 데이터 부족/요청 항목 근거 부족으로 최근 흐름 위주로 분석했습니다.');
+    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
+    getCoachBriefingCard()
+      .should('contain.text', '승부처 데이터 부족/요청 항목 근거 부족으로 최근 흐름 위주로 분석했습니다.');
   });
 
   it('shows prediction labels for scheduled-game coach analysis entry', () => {

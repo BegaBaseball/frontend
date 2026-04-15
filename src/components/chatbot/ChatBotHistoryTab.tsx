@@ -1,5 +1,10 @@
-import { History, Loader2, Plus, Trash2 } from 'lucide-react';
 import type { ChatSessionSummary } from '../../types/chatbot';
+import {
+  ChatBotHistoryIcon,
+  ChatBotPlusIcon,
+  ChatBotSpinnerIcon,
+  ChatBotTrashIcon,
+} from './ChatBotIcons';
 
 interface ChatBotHistoryTabProps {
   currentSessionId: number | null;
@@ -28,14 +33,14 @@ export default function ChatBotHistoryTab({
           data-testid="chatbot-history-new-session"
           className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-[16px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <ChatBotPlusIcon className="h-3.5 w-3.5" />
           새 대화
         </button>
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto">
         {isLoadingSessions ? (
           <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             히스토리를 불러오는 중입니다.
           </div>
         ) : sessions.length === 0 ? (
@@ -63,7 +68,7 @@ export default function ChatBotHistoryTab({
                   className="min-w-0 flex-1 text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" />
+                    <ChatBotHistoryIcon className="h-4 w-4 text-primary" />
                     <p className="m-0 truncate text-[16px] font-semibold text-gray-900 dark:text-white">{session.title}</p>
                   </div>
                   <p className="mt-1 line-clamp-2 text-[16px] text-muted-foreground">
@@ -84,7 +89,7 @@ export default function ChatBotHistoryTab({
                   className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                   aria-label="세션 삭제"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <ChatBotTrashIcon className="h-4 w-4" />
                 </button>
               </div>
             </div>

@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react';
+
 import type { Game, GameDetail } from '../types/prediction';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import CoachAnalysisDialogLauncher from './CoachAnalysisDialogLauncher';
-import { AlertTriangle, Sparkles, Zap } from 'lucide-react';
+import {
+  PredictionSparklesIcon,
+  PredictionWarningTriangleIcon,
+  PredictionZapIcon,
+} from './prediction/PredictionShellIcons';
 
 interface CoachBriefingContentRuntimeProps {
   dataQuality?: string;
@@ -10,7 +16,6 @@ interface CoachBriefingContentRuntimeProps {
   seasonSummary: string | null;
   activeTitle: string;
   activeMessage: string;
-  displayedMessage: string;
   briefingStatusMessage: string | null;
   briefingStatusTone: 'info' | 'warning' | 'neutral' | null;
   showSummaryPoints: boolean;
@@ -73,7 +78,6 @@ export default function CoachBriefingContentRuntime({
   seasonSummary,
   activeTitle,
   activeMessage,
-  displayedMessage,
   briefingStatusMessage,
   briefingStatusTone,
   showSummaryPoints,
@@ -92,13 +96,58 @@ export default function CoachBriefingContentRuntime({
   isPastGame,
   isFutureGame,
 }: CoachBriefingContentRuntimeProps) {
+  const [displayedMessage, setDisplayedMessage] = useState('');
+
+  useEffect(() => {
+    if (!activeMessage) {
+      setDisplayedMessage('');
+      return;
+    }
+
+    const prefersReduced = typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReduced) {
+      setDisplayedMessage(activeMessage);
+      return;
+    }
+
+    setDisplayedMessage('');
+    const message = activeMessage;
+    let i = 0;
+    let rafId = 0;
+    let lastTime = 0;
+
+    const step = (time: number) => {
+      if (time - lastTime >= 50) {
+        i = Math.min(i + 2, message.length);
+        setDisplayedMessage(message.substring(0, i));
+        lastTime = time;
+      }
+
+      if (i < message.length) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [activeMessage]);
+
   return (
-    <Card className="relative mb-6 overflow-hidden border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-gray-100">
+    <Card
+      data-testid="coach-briefing-card"
+      className="relative mb-6 overflow-hidden border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-gray-100"
+    >
       <div className="relative z-10 p-6">
         <div className="flex gap-4 min-w-0">
           <div className="flex-shrink-0">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-100 dark:border-emerald-700/40 dark:bg-emerald-900/30">
-              <Sparkles className="h-6 w-6 text-emerald-700 dark:text-emerald-200" />
+              <PredictionSparklesIcon className="h-6 w-6 text-emerald-700 dark:text-emerald-200" />
             </div>
           </div>
 
@@ -106,7 +155,6 @@ export default function CoachBriefingContentRuntime({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {dataQuality ? (
                 <span
-                  data-testid="coach-briefing-quality-badge"
                   className={`rounded-full border px-2.5 py-0.5 text-[15px] font-semibold ${getCoachBriefingBadgeClassName(dataQuality)}`}
                 >
                   {getCoachDataQualityLabel(dataQuality)}
@@ -125,44 +173,37 @@ export default function CoachBriefingContentRuntime({
               </p>
             ) : null}
 
-            <h4
-              data-testid="coach-briefing-title"
-              className="mb-3 break-keep text-lg font-semibold leading-tight tracking-tight text-gray-900 dark:text-gray-100 md:text-xl"
-            >
+            <h4 className="mb-3 break-keep text-lg font-semibold leading-tight tracking-tight text-gray-900 dark:text-gray-100 md:text-xl">
               {activeTitle}
             </h4>
 
             {briefingStatusMessage ? (
               <div
-                data-testid="coach-briefing-status-note"
                 className={`mb-3 inline-flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-[15px] font-semibold leading-relaxed ${getCoachBriefingStatusClassName(briefingStatusTone)}`}
               >
-                <span className="break-keep">{briefingStatusMessage}</span>
+                {briefingStatusMessage}
               </div>
             ) : null}
 
             <div className="min-h-[2.5rem]">
               {showSummaryPoints ? (
-                <div>
-                  <span data-testid="coach-briefing-message" className="sr-only">
-                    {activeMessage}
-                  </span>
-                  <ul className="space-y-2 text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
-                    {summaryPoints.map((point) => (
-                      <li
-                        key={point}
-                        data-testid="coach-briefing-summary-point"
-                        className="flex items-start gap-2"
-                      >
-                        <span className="mt-[0.55rem] h-1.5 w-1.5 flex-none rounded-full bg-emerald-500/80" />
-                        <span className="break-keep">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <ul
+                  aria-label={activeMessage}
+                  className="space-y-2 text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300"
+                >
+                  {summaryPoints.map((point) => (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 break-keep"
+                    >
+                      <span className="mt-[0.55rem] h-1.5 w-1.5 flex-none rounded-full bg-emerald-500/80" />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <p className="text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-300">
-                  <span data-testid="coach-briefing-message">{displayedMessage}</span>
+                  <span>{displayedMessage}</span>
                   {aiLoading ? (
                     <span className="ml-1 inline-block h-3 w-1 animate-pulse align-middle bg-emerald-200/80" />
                   ) : null}
@@ -170,11 +211,10 @@ export default function CoachBriefingContentRuntime({
               )}
               {inlineDataQualityNote ? (
                 <div
-                  data-testid="coach-briefing-data-quality-note"
                   className="mt-4 border-t border-gray-200/80 pt-3 dark:border-border/80"
                 >
                   <div className="flex items-start gap-2 text-[16px] font-semibold text-gray-500 dark:text-gray-400">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
+                    <PredictionWarningTriangleIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
                     <p className="break-keep">{inlineDataQualityNote}</p>
                   </div>
                 </div>
@@ -187,21 +227,19 @@ export default function CoachBriefingContentRuntime({
           {showLoginAction ? (
             <Button
               type="button"
-              data-testid="coach-briefing-login-cta"
               className="h-10 w-full rounded-xl border border-emerald-700/60 bg-emerald-950 text-emerald-50 shadow-sm hover:bg-emerald-900 md:w-auto"
               onClick={onLoginAction}
             >
-              <Zap className="mr-2 h-4 w-4 text-emerald-50" />
+              <PredictionZapIcon className="mr-2 h-4 w-4 text-emerald-50" />
               <span className="text-[16px] font-semibold">{loginButtonLabel}</span>
             </Button>
           ) : isAuthCheckPending ? (
             <Button
               type="button"
               disabled
-              data-testid="coach-briefing-auth-loading"
               className="h-10 w-full rounded-xl border border-emerald-700/40 bg-emerald-950/70 text-emerald-50 shadow-sm disabled:opacity-100 md:w-auto"
             >
-              <Zap className="mr-2 h-4 w-4 text-emerald-50" />
+              <PredictionZapIcon className="mr-2 h-4 w-4 text-emerald-50" />
               <span className="text-[16px] font-semibold">로그인 확인 중...</span>
             </Button>
           ) : (

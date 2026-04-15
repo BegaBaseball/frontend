@@ -1,5 +1,4 @@
-import { CalendarDays, Info, TrendingUp } from 'lucide-react';
-
+import { CalendarDaysIcon, InfoIcon, TrendingUpIcon } from '../icons/PublicFeatureIcons';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
 import { OffseasonMovement } from './offseasonListTypes';
@@ -55,12 +54,12 @@ export function OffseasonMobileCards({
 
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                                <CalendarDays className="h-3.5 w-3.5" />
+                                <CalendarDaysIcon className="h-3.5 w-3.5" />
                                 {formatDateLabel(item.date)}
                             </span>
                             {amountLabel && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[14px] font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
-                                <TrendingUp className="h-3.5 w-3.5" />
+                                <TrendingUpIcon className="h-3.5 w-3.5" />
                                 {amountLabel}
                             </span>
                             )}
@@ -74,7 +73,7 @@ export function OffseasonMobileCards({
 
                         <div className="flex items-center justify-between text-[14px] font-semibold text-zinc-400 dark:text-zinc-500">
                             <span className="inline-flex items-center gap-1">
-                                <Info className="h-3.5 w-3.5" />
+                                <InfoIcon className="h-3.5 w-3.5" />
                                 ID #{item.id}
                             </span>
                             <span>{item.team}</span>

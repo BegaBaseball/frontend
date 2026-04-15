@@ -1,12 +1,20 @@
 import { lazy, Suspense } from 'react';
 
-import { Download, Newspaper, Plus, RefreshCw, Search, Upload } from 'lucide-react';
-
 import { FRANCHISE_TEAM_IDS, TEAM_DATA } from '../../constants/teams';
 import { cn } from '../../lib/utils';
 import type { AdminOffseasonMovement, AdminOffseasonMovementPayload } from '../../types/admin';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import {
+  AdminDownloadIcon,
+  AdminPlusIcon,
+  AdminRefreshIcon,
+  AdminUploadIcon,
+} from './AdminDetailIcons';
+import {
+  AdminNewspaperIcon,
+  AdminSearchIcon,
+} from './AdminPanelIcons';
 
 const ALL_VALUE = 'ALL';
 
@@ -151,7 +159,7 @@ export default function OffseasonMovementAdminPanelContent({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                <Newspaper className="h-5 w-5 text-emerald-300" />
+                <AdminNewspaperIcon className="h-5 w-5 text-emerald-300" />
                 스토브리그 이동 관리
               </h3>
               <p className="mt-1 text-[14px] leading-relaxed text-slate-400">
@@ -165,7 +173,7 @@ export default function OffseasonMovementAdminPanelContent({
               disabled={loading}
               className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <AdminRefreshIcon className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               새로고침
             </Button>
           </div>
@@ -211,7 +219,7 @@ export default function OffseasonMovementAdminPanelContent({
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_180px_180px_180px_180px_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <AdminSearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
               data-testid="admin-offseason-search"
               value={search}
@@ -287,7 +295,7 @@ export default function OffseasonMovementAdminPanelContent({
               onClick={onDownloadCsvTemplate}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
             >
-              <Download className="mr-2 h-4 w-4" />
+              <AdminDownloadIcon className="mr-2 h-4 w-4" />
               템플릿 CSV
             </Button>
             <Button
@@ -298,7 +306,7 @@ export default function OffseasonMovementAdminPanelContent({
               disabled={importingCsv}
               className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
             >
-              <Upload className="mr-2 h-4 w-4" />
+              <AdminUploadIcon className="mr-2 h-4 w-4" />
               {importingCsv ? '업로드 중' : 'CSV 업로드'}
             </Button>
             <Button
@@ -307,7 +315,7 @@ export default function OffseasonMovementAdminPanelContent({
               onClick={onOpenCreateDialog}
               className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 hover:from-emerald-400 hover:to-cyan-400"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <AdminPlusIcon className="mr-2 h-4 w-4" />
               이동 추가
             </Button>
           </div>

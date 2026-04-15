@@ -218,6 +218,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const errorTypeRef = useRef<MateCreateErrorType>(null);
+  const verificationTokenRef = useRef<string | null>(null);
 
   const setStep = (step: 1 | 2 | 3 | 4) => {
     setCreateStep(step);
@@ -265,9 +266,11 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
 
     try {
       const ticketInfo = await analyzeTicket(file);
+      verificationTokenRef.current = ticketInfo.verificationToken ?? null;
       updateFormData(getTicketPatch(ticketInfo));
       setStep(2);
     } catch (error) {
+      verificationTokenRef.current = null;
       setErrorType('scan');
       const fallbackMessage = '이미지 분석에 실패했습니다. 다른 파일로 다시 시도해주세요. (티켓 업로드는 필수)';
       setErrorMessage(
@@ -351,6 +354,20 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       setIsConfirming(false);
       return;
     }
+    if (!formData.cheeringSide) {
+      setErrorType('submit');
+      setSubmitErrorStatus(400);
+      setErrorMessage('응원 방향을 선택해주세요.');
+      setIsConfirming(false);
+      return;
+    }
+    if (!verificationTokenRef.current) {
+      setErrorType('submit');
+      setSubmitErrorStatus(400);
+      setErrorMessage('예매내역 인증이 만료되었습니다. 티켓을 다시 업로드해주세요.');
+      setIsConfirming(false);
+      return;
+    }
 
     setIsConfirming(false);
     setIsSubmitting(true);
@@ -359,18 +376,18 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
 
     try {
       const partyData = {
-        teamId: formData.homeTeam,
         gameDate: formData.gameDate,
         gameTime: formData.gameTime || '18:30',
         stadium: formData.stadium,
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
+        cheeringSide: formData.cheeringSide,
         section: composeSection(formData),
         maxParticipants: formData.maxParticipants,
         description: formData.description,
-        ticketImageUrl: null,
         ticketPrice: formData.ticketPrice,
         reservationNumber: formData.reservationNumber,
+        verificationToken: verificationTokenRef.current,
       };
 
       const createdParty = await createParty(partyData);
@@ -380,6 +397,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       resetForm();
 
       setCreatedPartyId(frontendParty.id ?? null);
+      verificationTokenRef.current = null;
       clearError();
     } catch (error) {
       setErrorType('submit');
@@ -418,6 +436,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
     setIsConfirming(false);
     setAvailableMatches([]);
     setCreatedPartyId(null);
+    verificationTokenRef.current = null;
     clearError();
     resetForm();
     setStep(1);

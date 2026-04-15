@@ -1,6 +1,13 @@
 import React, { type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Ticket, Flame, MapPin, Sparkles, Crown, Lock } from 'lucide-react';
+import {
+    MyPageCrownIcon,
+    MyPageFlameIcon,
+    MyPageLockIcon,
+    MyPageMapPinIcon,
+    MyPageSparklesIcon,
+    MyPageTicketIcon,
+} from './MyPageIcons';
 
 interface BadgeShowcaseProps {
     earnedBadges: string[];
@@ -15,11 +22,11 @@ interface BadgeInfo {
 }
 
 const BADGES: BadgeInfo[] = [
-    { id: 'ticket', name: '첫 직관', icon: Ticket, description: '첫 다이어리 작성', color: 'bg-blue-500' },
-    { id: 'flame', name: '불꽃 응원단', icon: Flame, description: '10경기 이상 직관', color: 'bg-red-500' },
-    { id: 'map-pin', name: '구장 마스터', icon: MapPin, description: '3개 이상 구장 방문', color: 'bg-green-500' },
-    { id: 'sparkles', name: '승리요정', icon: Sparkles, description: '승률 60% 이상 (10경기+)', color: 'bg-yellow-500' },
-    { id: 'crown', name: '레전드', icon: Crown, description: '50경기 이상 직관', color: 'bg-purple-500' },
+    { id: 'ticket', name: '첫 직관', icon: MyPageTicketIcon, description: '첫 다이어리 작성', color: 'bg-blue-500' },
+    { id: 'flame', name: '불꽃 응원단', icon: MyPageFlameIcon, description: '10경기 이상 직관', color: 'bg-red-500' },
+    { id: 'map-pin', name: '구장 마스터', icon: MyPageMapPinIcon, description: '3개 이상 구장 방문', color: 'bg-green-500' },
+    { id: 'sparkles', name: '승리요정', icon: MyPageSparklesIcon, description: '승률 60% 이상 (10경기+)', color: 'bg-yellow-500' },
+    { id: 'crown', name: '레전드', icon: MyPageCrownIcon, description: '50경기 이상 직관', color: 'bg-purple-500' },
 ];
 
 function BadgeShell({ children }: { children: ReactNode }) {
@@ -58,7 +65,7 @@ export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps)
                                     <badge.icon className="w-8 h-8" strokeWidth={1.5} />
                                     {!isEarned && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full">
-                                            <Lock className="w-4 h-4 text-muted-foreground" />
+                                            <MyPageLockIcon className="w-4 h-4 text-muted-foreground" />
                                         </div>
                                     )}
                                 </div>

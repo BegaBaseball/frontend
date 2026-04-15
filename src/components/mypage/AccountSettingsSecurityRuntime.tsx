@@ -1,5 +1,4 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Clock3, Laptop, ShieldAlert, Smartphone } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,6 +17,12 @@ import { getApiErrorMessage } from '../../utils/errorUtils';
 import { useAuthAccessActions } from '../../store/authStore';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
 import { Button } from '../ui/button';
+import {
+  MyPageClockIcon,
+  MyPageLaptopIcon,
+  MyPageShieldAlertIcon,
+  MyPageSmartphoneIcon,
+} from './MyPageIcons';
 
 interface AccountSettingsSecurityRuntimeProps {
   userProvider?: string;
@@ -30,11 +35,11 @@ const LazyAccountSettingsAdvancedRuntime = lazy(() => import('./AccountSettingsA
 const getSessionIcon = (deviceType?: string) => {
   switch ((deviceType || 'desktop').toLowerCase()) {
     case 'mobile':
-      return <Smartphone className="w-5 h-5" />;
+      return <MyPageSmartphoneIcon className="w-5 h-5" />;
     case 'tablet':
-      return <Smartphone className="w-5 h-5" />;
+      return <MyPageSmartphoneIcon className="w-5 h-5" />;
     default:
-      return <Laptop className="w-5 h-5" />;
+      return <MyPageLaptopIcon className="w-5 h-5" />;
   }
 };
 
@@ -353,7 +358,7 @@ export default function AccountSettingsSecurityRuntime({
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-foreground">
-                      <Clock3 className="w-4 h-4" />
+                      <MyPageClockIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -408,7 +413,7 @@ export default function AccountSettingsSecurityRuntime({
               className="w-full sm:w-auto sm:flex-shrink-0"
               disabled={showAdvancedSecurityDialog}
             >
-              <ShieldAlert className="mr-2 h-4 w-4" />
+              <MyPageShieldAlertIcon className="mr-2 h-4 w-4" />
               보안 확인 후 열기
             </Button>
           </div>

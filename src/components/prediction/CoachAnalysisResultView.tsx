@@ -1,15 +1,4 @@
-import { type ComponentType } from 'react';
-import {
-    AlertTriangle,
-    BarChart3,
-    CheckCircle,
-    Crosshair,
-    Eye,
-    Gavel,
-    HelpCircle,
-    Radar,
-    Trophy,
-} from 'lucide-react';
+import { type ComponentType, type SVGProps } from 'react';
 import {
     CoachAnalysisData,
     CoachMetric,
@@ -18,13 +7,24 @@ import {
 } from '../../api/coach';
 import CoachStatCard from './CoachStatCard';
 import CoachMetricCard from './CoachMetricCard';
+import {
+    PredictionBarChartIcon,
+    PredictionCheckCircleIcon,
+    PredictionCrosshairIcon,
+    PredictionEyeIcon,
+    PredictionGavelIcon,
+    PredictionHelpCircleIcon,
+    PredictionRadarIcon,
+    PredictionTrophyIcon,
+    PredictionWarningTriangleIcon,
+} from './PredictionShellIcons';
 
 interface CoachAnalysisResultViewProps {
     analysisData: CoachAnalysisData | null;
 }
 
 interface InsightSectionProps {
-    icon: ComponentType<{ className?: string }>;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
     title: string;
     items: string[];
 }
@@ -69,7 +69,7 @@ function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReview
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3">
-                <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
+                <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
                 <div>
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">리스크 관리 포인트</h4>
                     <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
@@ -126,9 +126,9 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                 <div className="mt-5 mb-8">
                     <h3 className="mb-4 flex items-center gap-3 text-xl font-bold leading-tight text-gray-900 dark:text-white sm:text-2xl">
                         {isPositive ? (
-                            <Trophy aria-hidden="true" className="h-8 w-8 shrink-0 text-emerald-500" />
+                            <PredictionTrophyIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-emerald-500" />
                         ) : (
-                            <AlertTriangle aria-hidden="true" className="h-8 w-8 shrink-0 text-red-500" />
+                            <PredictionWarningTriangleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-red-500" />
                         )}
                         <span>{analysisData.dashboard.headline}</span>
                     </h3>
@@ -149,10 +149,10 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             {(analysisData.verdict || analysisData.analysis_summary) && (
                 <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
                     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                        <div className="mb-3 flex items-center gap-3">
-                            <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                <Gavel aria-hidden="true" className="h-4 w-4" />
-                            </div>
+                            <div className="mb-3 flex items-center gap-3">
+                                <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
+                                    <PredictionGavelIcon aria-hidden="true" className="h-4 w-4" />
+                                </div>
                             <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과 진단' : '코치 판단'}</h4>
                         </div>
                         <p className="text-base font-bold leading-relaxed text-gray-900 dark:text-white">
@@ -164,7 +164,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                             <div className="mb-3 flex items-center gap-3">
                                 <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                    <Radar aria-hidden="true" className="h-4 w-4" />
+                                    <PredictionRadarIcon aria-hidden="true" className="h-4 w-4" />
                                 </div>
                                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '경기 요약' : '한 줄 요약'}</h4>
                             </div>
@@ -181,7 +181,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     {criticalFactors.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <AlertTriangle aria-hidden="true" className="h-5 w-5 text-red-500" />
+                                <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
                                 <div>
                                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과를 가른 변수' : '즉시 확인할 변수'}</h4>
                                     <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
@@ -200,7 +200,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     {strategicFactors.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <CheckCircle aria-hidden="true" className="h-5 w-5 text-emerald-500" />
+                                <PredictionCheckCircleIcon aria-hidden="true" className="h-5 w-5 text-emerald-500" />
                                 <div>
                                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과로 이어진 우위 지표' : '우위 근거 지표'}</h4>
                                     <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
@@ -220,32 +220,32 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
 
             <div className="grid gap-6 sm:grid-cols-2">
                 <InsightSection
-                    icon={BarChart3}
+                    icon={PredictionBarChartIcon}
                     title={isReviewMode ? '결과를 가른 이유' : '왜 중요한가'}
                     items={analysisData.why_it_matters}
                 />
                 <InsightSection
-                    icon={Crosshair}
+                    icon={PredictionCrosshairIcon}
                     title={isReviewMode ? '실제 전환점' : '승부 스윙 포인트'}
                     items={analysisData.swing_factors}
                 />
                 <InsightSection
-                    icon={Eye}
+                    icon={PredictionEyeIcon}
                     title={isReviewMode ? '다시 볼 장면' : '체크 포인트'}
                     items={analysisData.watch_points}
                 />
                 <InsightSection
-                    icon={HelpCircle}
+                    icon={PredictionHelpCircleIcon}
                     title="불확실성"
                     items={analysisData.uncertainty}
                 />
                 <InsightSection
-                    icon={CheckCircle}
+                    icon={PredictionCheckCircleIcon}
                     title={isReviewMode ? '잘 풀린 지점' : '강점 유지 포인트'}
                     items={analysisData.strengths}
                 />
                 <InsightSection
-                    icon={AlertTriangle}
+                    icon={PredictionWarningTriangleIcon}
                     title={isReviewMode ? '흔들린 지점' : '약점 관리 포인트'}
                     items={analysisData.weaknesses}
                 />
@@ -256,7 +256,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             {hasDetailedReport && (
                 <div className="space-y-4 pt-2">
                     <div className="flex items-center gap-3">
-                        <BarChart3 aria-hidden="true" className="h-5 w-5 text-blue-500" />
+                        <PredictionBarChartIcon aria-hidden="true" className="h-5 w-5 text-blue-500" />
                         <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">상세 리포트</h4>
                     </div>
 

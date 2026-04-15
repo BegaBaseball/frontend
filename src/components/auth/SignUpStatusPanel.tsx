@@ -9,7 +9,7 @@ interface SignUpStatusPanelProps {
 export default function SignUpStatusPanel({ error, isSuccess }: SignUpStatusPanelProps) {
   if (isSuccess) {
     return (
-      <AuthStatusPanel tone="success" data-testid="signup-status-panel" role="status">
+      <AuthStatusPanel tone="success" role="status">
         <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
         <div className="space-y-1">
           <p className="font-semibold">회원가입 성공!</p>
@@ -24,7 +24,7 @@ export default function SignUpStatusPanel({ error, isSuccess }: SignUpStatusPane
   }
 
   return (
-    <AuthStatusPanel tone="error" data-testid="signup-status-panel" role="alert">
+    <AuthStatusPanel tone="error" role="alert">
       <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
       <div className="space-y-1">
         <p className="font-semibold">회원가입 실패</p>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from '@tanstack/react-query';
 import * as cheerApi from '../api/cheerApi';
 import { FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
+import { uploadMediaFiles } from '../api/media';
 import { CHEER_KEYS } from './cheerQueryKeys';
 import {
     applyCheerLikeState,
@@ -544,15 +545,15 @@ export const useCheerMutations = () => {
 
     const createPostMutation = useMutation({
         mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
+            const uploadedImages = data.files && data.files.length > 0
+                ? (await uploadMediaFiles('CHEER', data.files)).map((asset) => asset.storagePath)
+                : [];
             const newPost = await cheerApi.createPost({
                 teamId: data.teamId,
                 content: data.content,
+                images: uploadedImages,
                 postType: data.postType,
             });
-
-            if (newPost && newPost.id && data.files && data.files.length > 0) {
-                await cheerApi.uploadPostImages(newPost.id, data.files);
-            }
             return newPost;
         },
         onSuccess: () => {
@@ -563,21 +564,18 @@ export const useCheerMutations = () => {
     const updatePostMutation = useMutation({
         mutationFn: async ({ id, data, newFiles, deletingImageIds }: {
             id: number;
-            data: { content: string };
+            data: { content: string; images?: string[] };
             newFiles?: File[];
             deletingImageIds?: number[];
         }) => {
-            await cheerApi.updatePost(id, data);
-
-            if (deletingImageIds && deletingImageIds.length > 0) {
-                for (const imgId of deletingImageIds) {
-                    await cheerApi.deleteImageById(imgId);
-                }
-            }
-
-            if (newFiles && newFiles.length > 0) {
-                await cheerApi.uploadPostImages(id, newFiles);
-            }
+            void deletingImageIds;
+            const uploadedImages = newFiles && newFiles.length > 0
+                ? (await uploadMediaFiles('CHEER', newFiles)).map((asset) => asset.storagePath)
+                : [];
+            await cheerApi.updatePost(id, {
+                ...data,
+                images: [...(data.images || []), ...uploadedImages],
+            });
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['cheer-post', variables.id] });

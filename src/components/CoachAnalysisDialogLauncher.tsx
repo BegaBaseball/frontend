@@ -1,9 +1,9 @@
 import { lazy, Suspense, useState } from 'react';
 import type { ComponentProps } from 'react';
-import { Loader2, Zap } from 'lucide-react';
 
 import { Button } from './ui/button';
 import type { CoachAnalysisDialogProps } from './CoachAnalysisDialog';
+import { PredictionLoaderIcon, PredictionZapIcon } from './prediction/PredictionShellIcons';
 
 const LazyCoachAnalysisDialog = lazy(() => import('./CoachAnalysisDialog'));
 
@@ -29,9 +29,9 @@ function CoachAnalysisTriggerButton({
       className="w-full md:w-auto h-10 bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm disabled:opacity-100"
     >
       {disabled ? (
-        <Loader2 className="w-4 h-4 mr-2 text-emerald-50 animate-spin" />
+        <PredictionLoaderIcon className="w-4 h-4 mr-2 text-emerald-50 animate-spin" />
       ) : (
-        <Zap className="w-4 h-4 mr-2 text-emerald-50" />
+        <PredictionZapIcon className="w-4 h-4 mr-2 text-emerald-50" />
       )}
       <span className="text-[16px] font-semibold">
         {disabled ? '분석 도구 준비 중...' : buttonLabel}

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Calendar, Trash2 } from 'lucide-react';
 import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { formatGameDate } from '../../utils/formatters';
+import { AdminCalendarIcon, AdminTrashIcon } from './AdminPanelIcons';
 
 interface AdminMate {
   id: number;
@@ -51,7 +51,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
             {mates.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <AdminCalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   메이트 모임이 없습니다.
                 </TableCell>
               </TableRow>
@@ -85,7 +85,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                       className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                       onClick={() => setPendingDeleteMate(mate)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <AdminTrashIcon className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

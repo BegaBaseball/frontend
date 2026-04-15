@@ -2,13 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  deleteAdminNonCanonicalCleanupTracker,
   fetchCoachAutoBriefOpsHealth,
+  fetchAdminNonCanonicalCleanupTrackers,
   fetchAdminGameStatusMismatches,
   fetchAdminPlaces,
   fetchAdminStadiums,
   fetchAdminUsers,
   repairAdminGameStatusMismatches,
   fetchReleaseDecisionPresets,
+  upsertAdminNonCanonicalCleanupTracker,
 } from './admin';
 
 const buildJsonResponse = (body: unknown, status = 200) =>
@@ -134,6 +137,7 @@ test('fetchAdminGameStatusMismatches는 날짜 범위를 same-origin fetch query
         endDate: '2026-03-29',
         totalGames: 5,
         mismatchCount: 1,
+        nonCanonicalCount: 1,
         mismatches: [
           {
             gameId: '20260329HTSK0',
@@ -150,6 +154,19 @@ test('fetchAdminGameStatusMismatches는 날짜 범위를 same-origin fetch query
             reasons: ['inning scores present'],
           },
         ],
+        nonCanonicalGames: [
+          {
+            gameId: '20260329BROKEN',
+            gameDate: '2026-03-29',
+            startTime: '12:00:00',
+            rawStatus: 'SCHEDULED',
+            homeTeam: '0LG',
+            awayTeam: '롯데0',
+            homeScore: null,
+            awayScore: null,
+            reasons: ['non_canonical_home_team', 'non_canonical_away_team'],
+          },
+        ],
       },
     });
   });
@@ -160,6 +177,7 @@ test('fetchAdminGameStatusMismatches는 날짜 범위를 same-origin fetch query
   });
 
   assert.equal(response.mismatchCount, 1);
+  assert.equal(response.nonCanonicalCount, 1);
   assert.match(requestUrl, /\/api\/admin\/games\/status-mismatches\?startDate=2026-03-29&endDate=2026-03-29$/);
   assert.equal(requestInit?.credentials, 'include');
 });
@@ -185,6 +203,7 @@ test('repairAdminGameStatusMismatches는 POST query와 빈 JSON body로 dryRun �
         totalGames: 5,
         mismatchCount: 1,
         repairedCount: 1,
+        nonCanonicalCount: 1,
         mismatches: [],
         repairedGames: [
           {
@@ -199,6 +218,19 @@ test('repairAdminGameStatusMismatches는 POST query와 빈 JSON body로 dryRun �
             winningScore: 11,
           },
         ],
+        nonCanonicalGames: [
+          {
+            gameId: '20260329BROKEN',
+            gameDate: '2026-03-29',
+            startTime: '12:00:00',
+            rawStatus: 'SCHEDULED',
+            homeTeam: '0LG',
+            awayTeam: '롯데0',
+            homeScore: null,
+            awayScore: null,
+            reasons: ['non_canonical_home_team', 'non_canonical_away_team'],
+          },
+        ],
       },
     });
   });
@@ -210,10 +242,124 @@ test('repairAdminGameStatusMismatches는 POST query와 빈 JSON body로 dryRun �
   });
 
   assert.equal(response.repairedCount, 1);
+  assert.equal(response.nonCanonicalCount, 1);
   assert.match(requestUrl, /\/api\/admin\/games\/repair-status-mismatches\?startDate=2026-03-29&endDate=2026-03-29&dryRun=false$/);
   assert.equal(requestInit?.credentials, 'include');
   assert.equal(requestInit?.method, 'POST');
   assert.equal(requestInit?.body, '{}');
+});
+
+test('fetchAdminNonCanonicalCleanupTrackers는 same-origin GET으로 tracker 목록을 조회한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return buildJsonResponse({
+      success: true,
+      data: [
+        {
+          startDate: '2026-04-14',
+          endDate: '2026-04-14',
+          ticketUrl: 'https://tickets.example.com/noncanonical-20260414',
+          assignee: 'ops-team',
+          status: 'requested',
+          note: 'raw team code cleanup requested',
+          updatedAt: '2026-04-15T10:00:00',
+          gameIds: ['20260414롯데00LG0'],
+        },
+      ],
+    });
+  });
+
+  const response = await fetchAdminNonCanonicalCleanupTrackers();
+
+  assert.equal(response[0]?.status, 'requested');
+  assert.match(requestUrl, /\/api\/admin\/games\/non-canonical-cleanup-trackers$/);
+  assert.equal(requestInit?.credentials, 'include');
+});
+
+test('upsertAdminNonCanonicalCleanupTracker는 PUT query와 tracker body를 전달한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return buildJsonResponse({
+      success: true,
+      data: {
+        startDate: '2026-04-14',
+        endDate: '2026-04-14',
+        ticketUrl: 'https://tickets.example.com/noncanonical-20260414',
+        assignee: 'ops-team',
+        status: 'requested',
+        note: 'raw team code cleanup requested',
+        updatedAt: '2026-04-15T10:00:00',
+        gameIds: ['20260414롯데00LG0'],
+      },
+    });
+  });
+
+  const response = await upsertAdminNonCanonicalCleanupTracker({
+    startDate: '2026-04-14',
+    endDate: '2026-04-14',
+    record: {
+      ticketUrl: 'https://tickets.example.com/noncanonical-20260414',
+      assignee: 'ops-team',
+      status: 'requested',
+      note: 'raw team code cleanup requested',
+      updatedAt: '2026-04-15T09:00:00',
+      gameIds: ['20260414롯데00LG0'],
+    },
+  });
+
+  assert.equal(response.assignee, 'ops-team');
+  assert.match(requestUrl, /\/api\/admin\/games\/non-canonical-cleanup-trackers\?startDate=2026-04-14&endDate=2026-04-14$/);
+  assert.equal(requestInit?.method, 'PUT');
+  assert.equal(requestInit?.body, JSON.stringify({
+    ticketUrl: 'https://tickets.example.com/noncanonical-20260414',
+    assignee: 'ops-team',
+    status: 'requested',
+    note: 'raw team code cleanup requested',
+    gameIds: ['20260414롯데00LG0'],
+  }));
+});
+
+test('deleteAdminNonCanonicalCleanupTracker는 DELETE query로 tracker를 삭제한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(null, { status: 204 });
+  });
+
+  await deleteAdminNonCanonicalCleanupTracker({
+    startDate: '2026-04-14',
+    endDate: '2026-04-14',
+  });
+
+  assert.match(requestUrl, /\/api\/admin\/games\/non-canonical-cleanup-trackers\?startDate=2026-04-14&endDate=2026-04-14$/);
+  assert.equal(requestInit?.method, 'DELETE');
+  assert.equal(requestInit?.credentials, 'include');
 });
 
 test('fetchCoachAutoBriefOpsHealth는 window/date query를 AI 운영 health endpoint로 전달한다', async (t) => {

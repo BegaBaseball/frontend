@@ -1,15 +1,15 @@
 import chatBotIcon from '../../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import {
-  X,
-  Star,
-  History,
-  MessageSquareText,
-  Loader2,
-} from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 
 import { useChatBot } from '../../hooks/useChatBot';
 import type { ChatFavoriteItem } from '../../types/chatbot';
+import {
+  ChatBotCloseIcon,
+  ChatBotHistoryIcon,
+  ChatBotMessageSquareTextIcon,
+  ChatBotSpinnerIcon,
+  ChatBotStarIcon,
+} from './ChatBotIcons';
 import type { ChatBotSessionRuntimeProps } from './ChatBotSessionRuntime';
 
 const ChatBotConversationRuntime = lazy(() => import('./ChatBotConversationRuntime'));
@@ -83,7 +83,7 @@ export default function ChatBotSessionStateRuntime({
 
   const chatbotTabFallback = (
     <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
       탭을 불러오는 중입니다.
     </div>
   );
@@ -123,7 +123,7 @@ export default function ChatBotSessionStateRuntime({
           className="text-white/80 hover:text-white bg-transparent border-none cursor-pointer p-2 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center focus:outline-none focus-visible:outline-none focus:ring-0"
           aria-label="챗봇 닫기"
         >
-          <X className="w-5 h-5" />
+          <ChatBotCloseIcon className="w-5 h-5" />
         </button>
       </div>
 
@@ -131,9 +131,9 @@ export default function ChatBotSessionStateRuntime({
         <div className="border-b border-gray-200 px-4 py-3 dark:border-white/10">
           <div className="flex w-full rounded-2xl border border-gray-200 bg-gray-100 p-1 dark:border-white/10 dark:bg-white/5">
             {[
-              { value: 'conversation', label: '대화', icon: MessageSquareText, testId: 'chatbot-tab-conversation' },
-              { value: 'history', label: '히스토리', icon: History, testId: 'chatbot-tab-history' },
-              { value: 'favorites', label: '즐겨찾기', icon: Star, testId: 'chatbot-tab-favorites' },
+              { value: 'conversation', label: '대화', icon: ChatBotMessageSquareTextIcon, testId: 'chatbot-tab-conversation' },
+              { value: 'history', label: '히스토리', icon: ChatBotHistoryIcon, testId: 'chatbot-tab-history' },
+              { value: 'favorites', label: '즐겨찾기', icon: ChatBotStarIcon, testId: 'chatbot-tab-favorites' },
             ].map(({ value, label, icon: Icon, testId }) => {
               const isActive = activeTab === value;
               return (

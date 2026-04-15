@@ -35,6 +35,24 @@ describe('Home error UX', () => {
       rankings: [],
     },
   });
+  const buildManualDataRequiredResponse = (scope: string) => ({
+    success: false,
+    code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+    message: '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.',
+    data: {
+      scope,
+      missingItems: [
+        {
+          key: 'game_date',
+          label: '경기 날짜',
+          reason: '요청한 날짜의 홈 일정 row가 없습니다.',
+          expected_format: 'YYYY-MM-DD',
+        },
+      ],
+      operatorMessage: '다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜',
+      blocking: true,
+    },
+  });
 
   beforeEach(() => {
     cy.clock(fixedNow, ['Date']);
@@ -264,6 +282,61 @@ describe('Home error UX', () => {
       expect(traces).to.have.length(1);
       expect(traces[0]?.url).to.include('/api/auth/mypage');
     });
+  });
+
+  it('renders the normal empty state for a no-game day bootstrap without retrying', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-04-13', '2026-04-12', '2026-04-14'),
+    }).as('getHomeBootstrapNoGameDay');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapNoGameDay');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
+    cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
+  });
+
+  it('warns instead of erroring when bootstrap returns manual-data-required without retrying', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 700,
+      statusCode: 409,
+      body: buildManualDataRequiredResponse('home.schedule'),
+    }).as('getHomeBootstrapManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.window().then((win) => {
+      cy.spy(win.console, 'error').as('consoleError');
+      cy.spy(win.console, 'warn').as('consoleWarn');
+    });
+
+    cy.wait('@getHomeBootstrapManualData');
+    cy.contains('야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.', { timeout: 15000 }).should('be.visible');
+
+    cy.get('@getHomeBootstrapManualData.all').should('have.length', 1);
+    cy.get('@consoleError').should('not.have.been.called');
+    cy.get('@consoleWarn').should('have.been.calledWithMatch', '[HomeBootstrap] Business conflict while loading bootstrap:');
   });
 
   it('suppresses deferred mypage retry on home during recent failure cooldown', () => {

@@ -10,7 +10,16 @@ type PredictionAdjacentPrefetchDeps = {
     targetDate: string,
     options: { preserveVisibleDate?: boolean; requestKeySuffix: string },
   ) => Promise<unknown>;
+  onPrefetchRun?: (anchorDate: string) => void;
 };
+
+export const shouldSchedulePredictionAdjacentPrefetch = (
+  anchorDate: string,
+  pendingAnchorDate: string | null,
+  completedAnchorDates: ReadonlySet<string>,
+) => Boolean(anchorDate)
+  && pendingAnchorDate !== anchorDate
+  && !completedAnchorDates.has(anchorDate);
 
 const prefetchAdjacentDays = ({
   anchorDate,
@@ -44,9 +53,11 @@ export const schedulePredictionAdjacentPrefetch = ({
   adjacentPrefetchTimeoutRef,
   clearScheduledAdjacentPrefetch,
   loadPredictionDay,
+  onPrefetchRun,
 }: PredictionAdjacentPrefetchDeps) => {
   if (typeof window === 'undefined') {
     prefetchAdjacentDays({ anchorDate, dayNavigationByDateRef, loadPredictionDay });
+    onPrefetchRun?.(anchorDate);
     return;
   }
 
@@ -61,6 +72,7 @@ export const schedulePredictionAdjacentPrefetch = ({
     adjacentPrefetchIdleCallbackRef.current = null;
     adjacentPrefetchTimeoutRef.current = null;
     prefetchAdjacentDays({ anchorDate, dayNavigationByDateRef, loadPredictionDay });
+    onPrefetchRun?.(anchorDate);
   };
 
   if ('requestIdleCallback' in window) {

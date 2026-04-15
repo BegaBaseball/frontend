@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Eye, EyeOff, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ERROR_MESSAGES } from '../../constants/validation';
 import { Button } from '../ui/button';
@@ -13,6 +12,14 @@ import { useAuthAccessActions } from '../../store/authStore';
 import { buildLoginPath } from '../../utils/loginRedirect';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { sanitizeLoginPasswordText } from '../../utils/validation';
+import {
+  MyPageAlertCircleIcon,
+  MyPageCheckCircleIcon,
+  MyPageEyeIcon,
+  MyPageEyeOffIcon,
+  MyPageLockIcon,
+  MyPageSaveIcon,
+} from './MyPageIcons';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;
@@ -88,7 +95,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
     return (
         <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <Lock className="w-6 h-6 text-primary" />
+                <MyPageLockIcon className="w-6 h-6 text-primary" />
                 <h2 className="text-xl font-bold text-primary">
                     {hasPassword ? '비밀번호 변경' : '비밀번호 설정'}
                 </h2>
@@ -96,7 +103,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
 
             {error && (
                 <Alert variant="destructive" className="mb-6">
-                    <AlertCircle className="h-4 w-4" />
+                    <MyPageAlertCircleIcon className="h-4 w-4" />
                     <AlertTitle>오류</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -127,7 +134,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
-                                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                {showCurrentPassword ? <MyPageEyeOffIcon className="w-4 h-4" /> : <MyPageEyeIcon className="w-4 h-4" />}
                             </button>
                         </div>
                     </div>
@@ -156,7 +163,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             onClick={() => setShowNewPassword(!showNewPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
-                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showNewPassword ? <MyPageEyeOffIcon className="w-4 h-4" /> : <MyPageEyeIcon className="w-4 h-4" />}
                         </button>
                     </div>
                     <p className="text-[16px] text-muted-foreground">비밀번호는 8자 이상이어야 합니다.</p>
@@ -185,12 +192,12 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
-                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showConfirmPassword ? <MyPageEyeOffIcon className="w-4 h-4" /> : <MyPageEyeIcon className="w-4 h-4" />}
                         </button>
                     </div>
                     {confirmPassword && newPassword === confirmPassword && (
                         <div className="flex items-center gap-1 text-green-600 text-[16px]">
-                            <CheckCircle className="w-3 h-3" />
+                            <MyPageCheckCircleIcon className="w-3 h-3" />
                             비밀번호가 일치합니다.
                         </div>
                     )}
@@ -212,7 +219,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                     className="flex-1 text-primary-foreground bg-primary flex items-center justify-center gap-2"
                     disabled={mutation.isPending || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
                 >
-                    <Save className="w-5 h-5" />
+                    <MyPageSaveIcon className="w-5 h-5" />
                     {mutation.isPending ? '저장 중...' : (hasPassword ? '비밀번호 변경' : '비밀번호 설정')}
                 </Button>
             </div>

@@ -1,7 +1,8 @@
-import { AlertCircle, Flame } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchHotPosts } from '../api/cheerApi';
 import CheerCard from './CheerCard';
+import { AlertCircleIcon } from './icons/PublicFeatureIcons';
+import { FlameIcon } from './icons/PublicShellIcons';
 
 export default function CheerHot() {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -17,7 +18,7 @@ export default function CheerHot() {
         return (
             <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-4">
-                    <Flame className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
+                    <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
                 </div>
                 <div className="space-y-3">
@@ -37,7 +38,7 @@ export default function CheerHot() {
         return (
             <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-3">
-                    <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <AlertCircleIcon className="w-5 h-5 text-red-500 dark:text-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
                 </div>
                 <p className="text-[16px] text-[#64748B] dark:text-gray-300">데이터를 불러오지 못했습니다.</p>
@@ -59,7 +60,7 @@ export default function CheerHot() {
         return (
             <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-4">
-                    <Flame className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
+                    <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
                 </div>
                 <p className="text-[16px] text-[#64748B] dark:text-gray-300">지금은 표시할 인기 글이 없습니다.</p>
@@ -70,7 +71,7 @@ export default function CheerHot() {
     return (
         <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
             <div className="flex items-center gap-2 mb-4">
-                <Flame className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
+                <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                 <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
             </div>
 

@@ -1,18 +1,18 @@
-import {
-  BrainCircuit,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  Loader2,
-  Send,
-  Square,
-  Star,
-  Zap,
-} from 'lucide-react';
 import { memo, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
 
 import DeferredMarkdown from '../DeferredMarkdown';
+import {
+  ChatBotBrainCircuitIcon,
+  ChatBotCheckIcon,
+  ChatBotChevronDownIcon,
+  ChatBotChevronRightIcon,
+  ChatBotCopyIcon,
+  ChatBotSendIcon,
+  ChatBotSpinnerIcon,
+  ChatBotSquareIcon,
+  ChatBotStarIcon,
+  ChatBotZapIcon,
+} from './ChatBotIcons';
 import type { Message } from '../../types/chatbot';
 
 type RateLimitCopy = {
@@ -122,13 +122,13 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
               )}
               {message.cached && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[15px] font-semibold text-amber-600 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-400">
-                  <Zap className="h-3 w-3" />
+                  <ChatBotZapIcon className="h-3 w-3" />
                   빠른 응답
                 </span>
               )}
               {message.favorite && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[15px] font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200">
-                  <Star className="h-3 w-3 fill-current" />
+                  <ChatBotStarIcon className="h-3 w-3 fill-current" />
                   즐겨찾기
                 </span>
               )}
@@ -160,7 +160,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                   onClick={() => onToggleToolCalls(index)}
                   className="flex items-center gap-1 text-[16px] font-semibold text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 >
-                  <ChevronDown
+                  <ChatBotChevronDownIcon
                     className={`h-3 w-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}
                   />
                   AI 검색 도구 {visibleTools.length}개
@@ -208,7 +208,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                   aria-label={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                   title={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                 >
-                  <Star
+                  <ChatBotStarIcon
                     className={`h-3 w-3 ${message.favorite ? 'fill-current text-amber-500' : ''}`}
                   />
                 </button>
@@ -221,9 +221,9 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                 title="복사"
               >
                 {isCopied ? (
-                  <Check className="h-3 w-3 text-green-500" />
+                  <ChatBotCheckIcon className="h-3 w-3 text-green-500" />
                 ) : (
-                  <Copy className="h-3 w-3" />
+                  <ChatBotCopyIcon className="h-3 w-3" />
                 )}
               </button>
             </div>
@@ -318,7 +318,7 @@ export default function ChatBotConversationPanel({
       >
         {isLoadingMessages ? (
           <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             대화 내용을 불러오는 중입니다.
           </div>
         ) : (
@@ -363,9 +363,9 @@ export default function ChatBotConversationPanel({
             onClick={onNavigateToPrediction}
             className="flex w-full items-center gap-1.5 text-[16px] font-semibold text-muted-foreground transition-colors hover:text-primary"
         >
-          <BrainCircuit size={13} className="shrink-0" />
+          <ChatBotBrainCircuitIcon className="h-[13px] w-[13px] shrink-0" />
           <span>팀 심층 분석 (AI 코치)</span>
-          <ChevronRight size={13} className="ml-auto shrink-0" />
+          <ChatBotChevronRightIcon className="ml-auto h-[13px] w-[13px] shrink-0" />
         </button>
       </div>
 
@@ -408,7 +408,7 @@ export default function ChatBotConversationPanel({
               aria-label="응답 취소"
               data-testid="chatbot-cancel-button"
             >
-              <Square className="h-4 w-4 fill-current" />
+              <ChatBotSquareIcon className="h-4 w-4" />
             </button>
           )}
           <button
@@ -422,7 +422,7 @@ export default function ChatBotConversationPanel({
             `}
             aria-label="메시지 전송"
           >
-            <Send className="h-4 w-4" />
+            <ChatBotSendIcon className="h-4 w-4" />
           </button>
         </div>
         {rateLimitActive && rateLimitCopy && (

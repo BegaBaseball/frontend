@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { MessageSquare, Trash2 } from 'lucide-react';
 import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import TeamLogo from '../TeamLogo';
 import { TEAM_DATA } from '../../constants/teams';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminMessageSquareIcon, AdminTrashIcon } from './AdminPanelIcons';
 
 interface AdminPost {
   id: number;
@@ -47,7 +47,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
             {posts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-16 text-slate-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <AdminMessageSquareIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   게시글이 없습니다.
                 </TableCell>
               </TableRow>
@@ -95,7 +95,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                       className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                       onClick={() => setPendingDeletePost(post)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <AdminTrashIcon className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

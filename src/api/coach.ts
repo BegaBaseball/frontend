@@ -1,4 +1,5 @@
 import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
+import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
 import { requestPrivateReissue } from './privateClient';
 import { consumeSseStream } from './sse';
@@ -178,6 +179,8 @@ export interface CoachAnalyzeResponse {
     grounding_reasons?: string[];
     supported_fact_count?: number;
     game_status_bucket?: string;
+    validation_status?: string;
+    manual_data_request?: ManualBaseballDataRequest;
 }
 
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
@@ -467,6 +470,8 @@ export async function analyzeTeam(
     let groundingReasons: string[] | undefined = undefined;
     let supportedFactCount: number | undefined = undefined;
     let gameStatusBucket: string | undefined = undefined;
+    let validationStatus: string | undefined = undefined;
+    let manualDataRequest: ManualBaseballDataRequest | undefined = undefined;
 
     if (responseBody) {
         try {
@@ -488,6 +493,7 @@ export async function analyzeTeam(
                 if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
                 if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
                 if (typeof parsed.cache_state === 'string') cacheState = parsed.cache_state;
+                if (typeof parsed.validation_status === 'string') validationStatus = parsed.validation_status;
                 if (typeof parsed.in_progress === 'boolean') inProgress = parsed.in_progress;
                 if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
                 if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
@@ -531,6 +537,9 @@ export async function analyzeTeam(
                 }
                 if (typeof parsed.game_status_bucket === 'string') {
                     gameStatusBucket = parsed.game_status_bucket;
+                }
+                if (parsed.manual_data_request && typeof parsed.manual_data_request === 'object') {
+                    manualDataRequest = parsed.manual_data_request as ManualBaseballDataRequest;
                 }
             };
 
@@ -625,5 +634,7 @@ export async function analyzeTeam(
         grounding_reasons: groundingReasons,
         supported_fact_count: supportedFactCount,
         game_status_bucket: gameStatusBucket,
+        validation_status: validationStatus,
+        manual_data_request: manualDataRequest,
     };
 }

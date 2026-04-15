@@ -1,7 +1,12 @@
-import { Award, Crown, TrendingUp, Trophy } from 'lucide-react';
 import TeamLogo from './TeamLogo';
 import { Card } from './ui/card';
 import type { Ranking } from '../types/home';
+import {
+  AwardIcon,
+  CrownIcon,
+  TrendingUpIcon,
+  TrophyIcon,
+} from './icons/PublicFeatureIcons';
 import { OffseasonPill } from './offseason/offseasonUi';
 
 interface AwardData {
@@ -27,7 +32,7 @@ export default function OffSeasonHomeHighlightsRuntime({
       <section>
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <Award className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <AwardIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <h3 className="text-xl md:text-2xl font-black text-primary">시상식 결과</h3>
         </div>
@@ -57,7 +62,7 @@ export default function OffSeasonHomeHighlightsRuntime({
       <section>
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <Trophy className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <TrophyIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <h3 className="text-xl md:text-2xl font-black text-primary">2025 포스트시즌 결과</h3>
         </div>
@@ -122,7 +127,7 @@ export default function OffSeasonHomeHighlightsRuntime({
               <div className="relative pl-8">
                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-yellow-500"></div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-4 h-4 text-yellow-500" />
+                  <CrownIcon className="w-4 h-4 text-yellow-500" />
                   <span className="text-[14px] font-bold text-yellow-600 dark:text-yellow-400">한국시리즈</span>
                 </div>
                 <div className="space-y-2">
@@ -209,7 +214,7 @@ export default function OffSeasonHomeHighlightsRuntime({
 
               <div className="flex flex-col gap-4 relative z-10 -translate-y-16">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <Crown className="w-4 h-4 text-yellow-500" />
+                  <CrownIcon className="w-4 h-4 text-yellow-500" />
                 <span className="text-[14px] font-bold text-yellow-600 dark:text-yellow-400 text-center">한국시리즈</span>
                 </div>
 
@@ -237,7 +242,7 @@ export default function OffSeasonHomeHighlightsRuntime({
       <section className="pb-10">
         <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <TrendingUpIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <h3 className="text-xl md:text-2xl font-black text-primary">최종 순위</h3>
         </div>

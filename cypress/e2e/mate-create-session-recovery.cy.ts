@@ -84,6 +84,8 @@ describe('Mate Create Session Recovery', () => {
     cy.contains('잠실야구장').click();
     cy.contains('button', '다음').click();
 
+    cy.contains('좌석 정보').should('be.visible');
+    cy.contains('button', '홈 팀 응원').click();
     cy.get('input[placeholder="예: 305"]').clear().type('305');
     cy.get('input[placeholder="예: 12"]').clear().type('12');
     cy.get('#ticketPrice').clear().type('22000');

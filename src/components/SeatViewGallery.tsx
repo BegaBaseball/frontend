@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { X, Camera } from 'lucide-react';
 import { fetchSeatViews, SeatViewPhoto } from '../api/diary';
 import { Button } from './ui/plain-button';
+import { MateCameraIcon, MateCloseIcon } from './MateIcons';
 
 interface SeatViewGalleryProps {
   stadium: string;
@@ -39,7 +39,7 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/50 py-6 px-4 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-border">
-          <Camera className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          <MateCameraIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
         </div>
         <div>
           <p className="text-[16px] font-semibold text-gray-800 dark:text-gray-100">
@@ -87,12 +87,12 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
         >
           <button
             type="button"
-            className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
-            onClick={() => setLightboxPhoto(null)}
-            aria-label="닫기"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
+          onClick={() => setLightboxPhoto(null)}
+          aria-label="닫기"
+        >
+          <MateCloseIcon className="h-5 w-5" />
+        </button>
           <img
             src={lightboxPhoto.photoUrl}
             alt="시야 사진 원본"

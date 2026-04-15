@@ -29,11 +29,11 @@ export interface UserProfileApiResponse {
 }
 
 export interface ProfileImageDto {
-  userId: number;
+  userId?: number;
   storagePath: string;
   publicUrl: string;
-  mimeType: string;
-  bytes: number;
+  mimeType?: string;
+  bytes?: number;
 }
 
 export interface ProfileUpdateData {

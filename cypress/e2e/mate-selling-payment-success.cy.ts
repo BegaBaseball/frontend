@@ -107,7 +107,7 @@ describe('Mate Selling Flow', () => {
 
     visitAsLoggedIn('/mate/777');
     cy.wait('@getParty');
-    cy.wait('@getMyApplication');
+    cy.wait('@getPartyApplications');
 
     cy.contains('button', '판매 전환').scrollIntoView().click({ force: true });
     cy.contains('티켓 판매 전환').should('be.visible');

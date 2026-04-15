@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
 
 import type { AdminSeatView } from '../../types/admin';
+import { AdminCloseIcon } from './AdminDetailIcons';
 import { Button } from '../ui/button';
 
 interface AdminSeatViewDetailDrawerProps {
@@ -45,7 +45,7 @@ export default function AdminSeatViewDetailDrawer({
             <h2 className="text-lg font-bold text-white">Seat View #{selectedSeatViewId}</h2>
           </div>
           <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeSeatViewDetail}>
-            <X className="w-5 h-5" />
+            <AdminCloseIcon className="w-5 h-5" />
           </Button>
         </div>
 

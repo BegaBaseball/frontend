@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { MapPin } from 'lucide-react';
 
 import type { PlaceFormData } from '../../api/admin';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
+import { AdminMapPinIcon } from './AdminPanelIcons';
 
 interface AdminPlaceDialogContentProps {
   open: boolean;
@@ -41,7 +41,7 @@ export default function AdminPlaceDialogContent({
       onClose={() => onOpenChange(false)}
       title={(
         <span className="flex items-center gap-2 text-white">
-          <MapPin className="w-5 h-5 text-violet-400" />
+          <AdminMapPinIcon className="w-5 h-5 text-violet-400" />
           {isCreate ? '장소 추가' : '장소 수정'}
         </span>
       )}

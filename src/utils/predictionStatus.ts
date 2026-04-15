@@ -1,4 +1,5 @@
 import type { Game, GameDetail } from '../types/prediction';
+import { hasRenderableInningScoreData } from './inningScoreParser';
 
 export type GameStatusCode = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'POSTPONED' | 'CANCELLED' | 'DRAW' | 'UNKNOWN';
 
@@ -38,22 +39,7 @@ export const hasGameDetailProgressData = (detail?: GameDetail | null): boolean =
     return true;
   }
 
-  const rawDetail = detail as unknown as Record<string, unknown>;
-  const candidateKeys = [
-    rawDetail.inningScores,
-    rawDetail.inning_scores,
-    rawDetail.inning_score,
-    rawDetail.innings,
-  ];
-
-  if (candidateKeys.some((value) => Array.isArray(value) && value.length > 0)) {
-    return true;
-  }
-
-  return (
-    (!!rawDetail.lineScore && typeof rawDetail.lineScore === 'object' && !Array.isArray(rawDetail.lineScore))
-    || (!!rawDetail.line_score && typeof rawDetail.line_score === 'object' && !Array.isArray(rawDetail.line_score))
-  );
+  return hasRenderableInningScoreData(detail);
 };
 
 export const calculateVotePercentages = (homeVotes: number, awayVotes: number) => {
@@ -215,4 +201,3 @@ export const getGameStatus = (
     canShowDetails: statusCode === 'LIVE' || statusCode === 'COMPLETED' || statusCode === 'DRAW' || hasKnownScore,
   };
 };
-

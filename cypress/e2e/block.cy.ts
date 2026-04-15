@@ -115,7 +115,26 @@ describe('Block / Unblock Feature', () => {
 
         cy.contains(/차단/).should('not.exist');
         cy.contains('작성글 보기').should('be.visible');
-        cy.contains('메시지 기능은 준비 중입니다.').should('be.visible');
+        cy.contains('button', '메시지 보내기').should('be.disabled');
+        cy.contains('팔로우한 사용자에게만 메시지를 보낼 수 있습니다.').should('be.visible');
+    });
+
+    it('disables message entry when a block relationship exists', () => {
+        cy.mockPublicFollowCounts(profileHandle, {
+            followerCount: 10,
+            followingCount: 5,
+            isFollowedByMe: true,
+            notifyNewPosts: false,
+            blockedByMe: true,
+            blockingMe: false,
+        });
+
+        visitAsLoggedIn(profileRoute);
+        cy.wait('@getProfile');
+        cy.wait('@getFollowCounts');
+
+        cy.contains('button', '메시지 보내기').should('be.disabled');
+        cy.contains('차단 관계인 사용자에게는 메시지를 보낼 수 없습니다.').should('be.visible');
     });
 
     it('opens blocked users section from mypage navigation', () => {

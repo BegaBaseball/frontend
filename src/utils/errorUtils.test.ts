@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getApiErrorMessage, getDuplicateCommentErrorMessage, parseError } from './errorUtils';
+import {
+  getApiErrorMessage,
+  getDuplicateCommentErrorMessage,
+  MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+  parseError,
+} from './errorUtils';
 
 test('parseError는 raw 500 기술 문구를 사용자 친화형 메시지로 바꾼다', () => {
   const parsed = parseError({
@@ -66,4 +71,19 @@ test('getDuplicateCommentErrorMessage는 DUPLICATE_COMMENT를 전용 문구로 �
   }, 'fallback');
 
   assert.equal(message, '이미 같은 댓글이 등록되었습니다. 잠시 후 다시 시도해주세요.');
+});
+
+test('parseError는 수동 야구 데이터 요청 코드를 일반 사용자 안내 문구로 바꾼다', () => {
+  const parsed = parseError({
+    status: 409,
+    data: {
+      code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+      message: '다음 야구 데이터가 필요합니다: 경기 날짜, 시즌/리그 구분',
+    },
+    message: 'Conflict',
+  });
+
+  assert.equal(parsed.type, 'CONFLICT');
+  assert.equal(parsed.responseCode, 'MANUAL_BASEBALL_DATA_REQUIRED');
+  assert.equal(parsed.message, MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE);
 });

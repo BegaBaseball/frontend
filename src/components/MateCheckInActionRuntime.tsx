@@ -1,7 +1,6 @@
-import { CheckCircle, Loader2 } from 'lucide-react';
-
 import { cn } from '../lib/utils';
 import { mateInsetPanelClass, mateMobileBarClass, mateSectionCardClass } from '../utils/mateFlowUi';
+import { MateCheckCircleIcon, MateLoaderIcon } from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 
@@ -71,12 +70,12 @@ export default function MateCheckInActionRuntime({
               >
                 {isChecking ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <MateLoaderIcon className="mr-2 h-4 w-4 animate-spin" />
                     처리 중...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <MateCheckCircleIcon className="mr-2 h-4 w-4" />
                     체크인하기
                   </>
                 )}

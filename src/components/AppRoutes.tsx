@@ -29,6 +29,7 @@ const MateCheckInPage = lazy(() => import('./MateCheckInPage'));
 const MateChatPage = lazy(() => import('./MateChatPage'));
 const MateManagePage = lazy(() => import('./MateManagePage'));
 const MyPage = lazy(() => import('./MyPage'));
+const DirectMessagePage = lazy(() => import('./DirectMessagePage'));
 const UserProfilePage = lazy(() => import('./profile/UserProfilePage'));
 const AdminPagePage = lazy(() => import('./AdminPagePage'));
 const RankingPredictionSharePage = lazy(() => import('./RankingPredictionSharePage'));
@@ -85,6 +86,7 @@ export default function AppRoutes() {
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/mypage/:handle" element={<MyPage />} />
+            <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
 
           <Route element={<AdminRoute />}>

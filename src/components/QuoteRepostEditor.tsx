@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
 import { CheerPost, EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import EmbeddedPost from './EmbeddedPost';
+import { LoaderIcon, XIcon } from './icons/CheerIcons';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { ProfileAvatar } from './ui/ProfileAvatar';
@@ -92,7 +92,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             disabled={quoteRepostMutation.isPending}
                         >
-                            <X className="w-5 h-5 text-gray-500" />
+                            <XIcon className="w-5 h-5 text-gray-500" />
                         </button>
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                             인용 리포스트
@@ -108,7 +108,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                         }`}
                         >
                             {quoteRepostMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <LoaderIcon className="w-4 h-4 animate-spin" />
                             ) : (
                                 '게시'
                             )}
@@ -126,7 +126,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 width={40}
                                 height={40}
                                 showRing
-                                ringVariant="cheer"
+                                ringVariant="cheerFeed"
                             />
                         </div>
 

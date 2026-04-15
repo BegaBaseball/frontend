@@ -5,6 +5,7 @@ import {
   COACH_BRIEFING_MANUAL_HINT,
   buildCoachBriefingRequestDescriptor,
   CoachRequestMode,
+  getCoachAnalysisUnavailableMessage,
   getCoachAnalysisFocusSectionNotice,
   getCoachBriefingDataQualityNotice,
   getCoachGenerationModeNotice,
@@ -99,6 +100,18 @@ test('resolveCoachAnalysisPresentation: 진행 중 경기는 기본 상세 분�
   assert.equal(presentation.title, 'AI 코치 상세 분석');
   assert.equal(presentation.buttonLabel, 'AI 코치 상세 분석');
   assert.equal(presentation.runButtonLabel, 'AI 코치 상세 분석 시작');
+});
+
+test('getCoachAnalysisUnavailableMessage: 취소/연기 경기는 분석 불가 안내를 반환한다', () => {
+  assert.equal(
+    getCoachAnalysisUnavailableMessage('CANCELLED'),
+    '취소된 경기는 AI 코치 분석을 제공하지 않습니다.',
+  );
+  assert.equal(
+    getCoachAnalysisUnavailableMessage('POSTPONED'),
+    '연기된 경기는 일정 확정 후 AI 코치 분석을 제공합니다.',
+  );
+  assert.equal(getCoachAnalysisUnavailableMessage('SCHEDULED'), null);
 });
 
 test('parseAiBriefing: markdown 문법을 텍스트로 정리한다', () => {

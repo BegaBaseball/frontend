@@ -1,18 +1,24 @@
-import type { ReactNode } from 'react';
-import { ArrowRightCircle, CheckCircle, Users, type LucideIcon } from 'lucide-react';
+import type { ComponentType, ReactNode, SVGProps } from 'react';
 
 import { cn } from '../lib/utils';
 import type { CheckIn, Party } from '../types/mate';
 import { mateSectionCardClass, mateSubtlePanelClass } from '../utils/mateFlowUi';
+import {
+  MateArrowRightCircleIcon,
+  MateCheckCircleIcon,
+  MateUsersIcon,
+} from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+
+type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 function EmptyState({
   icon: Icon,
   title,
   description,
 }: {
-  icon: LucideIcon;
+  icon: MateIconComponent;
   title: string;
   description: string;
 }) {
@@ -73,7 +79,7 @@ export default function MateCheckInRosterRuntime({
           className="w-full border-primary text-primary hover:bg-primary/10 sm:w-fit"
           onClick={onNavigateToChat}
         >
-          <ArrowRightCircle className="mr-2 h-4 w-4" />
+          <MateArrowRightCircleIcon className="mr-2 h-4 w-4" />
           채팅으로 이동
         </Button>
       </div>
@@ -87,12 +93,12 @@ export default function MateCheckInRosterRuntime({
               : 'border-gray-200 bg-white/80 dark:border-border/70 dark:bg-card/70',
           )}
         >
-          <div className="flex items-center gap-3">
-            {hostCheckedIn ? (
-              <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
-            )}
+            <div className="flex items-center gap-3">
+              {hostCheckedIn ? (
+                <MateCheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+              )}
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">{party.hostName} (호스트)</p>
               <p className="text-[16px] text-gray-500 dark:text-gray-300">
@@ -123,7 +129,7 @@ export default function MateCheckInRosterRuntime({
           >
             <div className="flex items-center gap-3">
               {isCheckedIn ? (
-                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <MateCheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
                 <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
               )}
@@ -153,7 +159,7 @@ export default function MateCheckInRosterRuntime({
             className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 dark:border-emerald-900/60 dark:bg-emerald-950/25"
           >
             <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <MateCheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white">{checkIn.userName}</p>
                 <p className="text-[16px] text-gray-500 dark:text-gray-300">
@@ -178,7 +184,7 @@ export default function MateCheckInRosterRuntime({
 
         {!hasAnyCheckIn ? (
           <EmptyState
-            icon={Users}
+            icon={MateUsersIcon}
             title="아직 체크인 기록이 없습니다"
             description="첫 체크인이 시작되면 이 영역에 참여자 상태가 순서대로 표시됩니다."
           />

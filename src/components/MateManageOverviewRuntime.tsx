@@ -1,18 +1,17 @@
-import { lazy, Suspense, type ReactNode } from 'react';
-import {
-  Calendar,
-  CheckCircle,
-  ChevronLeft,
-  Clock,
-  LucideIcon,
-  MapPin,
-  Ticket,
-  Users,
-  Wallet,
-} from 'lucide-react';
+import { lazy, Suspense, type ComponentType, type ReactNode, type SVGProps } from 'react';
 
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import TeamLogo from './TeamLogo';
+import {
+  MateCalendarIcon,
+  MateCheckCircleIcon,
+  MateChevronLeftIcon,
+  MateClockIcon,
+  MateMapPinIcon,
+  MateTicketIcon,
+  MateUsersIcon,
+  MateWalletIcon,
+} from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -30,9 +29,10 @@ import {
   matePageShellClass,
   mateSectionCardClass,
 } from '../utils/mateFlowUi';
-import { formatGameDate } from '../utils/mate';
+import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
 
 const LazyMateManageContentRuntime = lazy(() => import('./MateManageContentRuntime'));
+type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 type MateManageOverviewRuntimeProps = {
   party: Party;
@@ -45,7 +45,7 @@ type MateManageOverviewRuntimeProps = {
 };
 
 type SummaryItemProps = {
-  icon: LucideIcon;
+  icon: MateIconComponent;
   label: string;
   value: string;
   detail: string;
@@ -93,25 +93,25 @@ export default function MateManageOverviewRuntime({
   const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
   const summaryItems = [
     {
-      icon: Wallet,
+      icon: MateWalletIcon,
       label: '거래 방식',
       value: flowLabel,
       detail: '승인 후 채팅으로 전달을 조율합니다.',
     },
     {
-      icon: Ticket,
+      icon: MateTicketIcon,
       label: '티켓 상태',
       value: party.ticketVerified ? '호스트 인증 완료' : '티켓 인증 전',
       detail: party.ticketVerified ? '상세페이지와 동일한 신뢰 배지가 노출됩니다.' : '참여자에게 인증 배지가 아직 보이지 않습니다.',
     },
     {
-      icon: CheckCircle,
+      icon: MateCheckCircleIcon,
       label: '승인 완료',
       value: `${approvedApplications.length}명`,
       detail: approvedApplications.length > 0 ? '채팅방과 체크인 흐름을 바로 열 수 있습니다.' : '아직 확정된 참여자가 없습니다.',
     },
     {
-      icon: Clock,
+      icon: MateClockIcon,
       label: '응답 필요',
       value: responseSummary,
       detail: pendingApplications.length > 0 ? '빠른 승인/거절이 전환율에 직접 영향을 줍니다.' : '새 신청이 들어오면 여기서 바로 대응합니다.',
@@ -138,7 +138,7 @@ export default function MateManageOverviewRuntime({
           onClick={onNavigateBack}
           className="mb-3 -ml-2 sm:mb-4"
         >
-          <ChevronLeft className="mr-2 h-4 w-4" />
+          <MateChevronLeftIcon className="mr-2 h-4 w-4" />
           뒤로
         </Button>
 
@@ -149,7 +149,7 @@ export default function MateManageOverviewRuntime({
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3 sm:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
-                      <TeamLogo teamId={party.teamId} size="md" />
+                      <TeamLogo teamId={getMatePartyDisplayTeamId(party)} size="md" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[16px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
@@ -171,7 +171,7 @@ export default function MateManageOverviewRuntime({
                         {party.ticketVerified && (
                           <InlineBadge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300">
                             <span className="flex items-center gap-1">
-                              <Ticket className="h-3.5 w-3.5" />
+                              <MateTicketIcon className="h-3.5 w-3.5" />
                               티켓 인증
                             </span>
                           </InlineBadge>
@@ -188,7 +188,7 @@ export default function MateManageOverviewRuntime({
                   <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
                     <div className="grid gap-3 text-[16px] text-gray-600 dark:text-gray-300">
                       <div className="flex items-start gap-3">
-                        <Calendar className="mt-0.5 h-4 w-4 text-primary" />
+                        <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
                           <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
@@ -197,7 +197,7 @@ export default function MateManageOverviewRuntime({
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                        <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
                           <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
@@ -207,7 +207,7 @@ export default function MateManageOverviewRuntime({
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <Users className="mt-0.5 h-4 w-4 text-primary" />
+                        <MateUsersIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
                           <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">

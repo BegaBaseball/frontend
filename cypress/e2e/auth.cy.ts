@@ -318,11 +318,11 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.tick(500);
             cy.wait('@checkHandleAvailable');
             cy.wait('@checkEmailAvailable');
-            cy.get('[data-testid="signup-submit"]').should('be.enabled');
+            cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 
@@ -385,10 +385,10 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.wait('@checkHandleAvailableForFailure');
             cy.wait('@checkEmailAvailableForFailure');
-            cy.get('[data-testid="signup-submit"]').should('be.enabled');
+            cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 
@@ -408,17 +408,18 @@ describe('Authentication Flow', () => {
             }).as('getMeUnauthorized');
 
             cy.visit('/mypage');
-            // Instead of redirecting to /login, it shows a dialog
-            cy.contains('로그인 필요').should('be.visible');
+            cy.wait('@getMeUnauthorized');
+            cy.get('[data-testid="prediction-login-required-dialog"]').should('be.visible');
         });
 
         it('should return to the original protected page after login', () => {
             cy.fixture('user').then((user) => {
                 let profileRequestCount = 0;
+                let hasLoggedIn = false;
                 cy.intercept('GET', '**/auth/mypage*', (req) => {
                     profileRequestCount += 1;
 
-                    if (profileRequestCount === 1) {
+                    if (!hasLoggedIn) {
                         req.alias = 'getMeUnauthorizedOnce';
                         req.reply({
                             statusCode: 401,
@@ -434,15 +435,18 @@ describe('Authentication Flow', () => {
                     });
                 });
 
-                cy.intercept('POST', '**/api/auth/login', {
-                    statusCode: 200,
-                    body: {
-                        success: true,
-                        data: {
-                            ...user.testUser,
-                            cheerPoints: 5,
+                cy.intercept('POST', '**/api/auth/login', (req) => {
+                    hasLoggedIn = true;
+                    req.reply({
+                        statusCode: 200,
+                        body: {
+                            success: true,
+                            data: {
+                                ...user.testUser,
+                                cheerPoints: 5,
+                            },
                         },
-                    },
+                    });
                 }).as('loginSuccess');
 
                 cy.clearCookies();
@@ -454,7 +458,7 @@ describe('Authentication Flow', () => {
                     },
                 });
                 cy.wait('@getMeUnauthorizedOnce');
-                cy.contains('로그인 필요').should('be.visible');
+                cy.get('[data-testid="prediction-login-required-dialog"]').should('be.visible');
                 cy.contains('로그인하러 가기').click();
 
                 cy.location('pathname').should('eq', '/login');

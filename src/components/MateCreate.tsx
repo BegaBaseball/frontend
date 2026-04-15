@@ -3,9 +3,9 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
+import { MateChevronLeftIcon, MateChevronRightIcon } from './MateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import { checkSocialVerified } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
@@ -329,7 +329,7 @@ export default function MateCreate() {
             onClick={handleBack}
             className="-ml-2 mb-3 sm:mb-4 sm:ml-0"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" />
+            <MateChevronLeftIcon className="w-4 h-4 mr-2" />
             뒤로
           </Button>
           <h1 className="mb-2 text-3xl sm:text-4xl text-primary">
@@ -424,7 +424,7 @@ export default function MateCreate() {
                 className="flex-1 text-white bg-primary"
               >
                 다음
-                <ChevronRight className="w-4 h-4 ml-2" />
+                <MateChevronRightIcon className="w-4 h-4 ml-2" />
               </Button>
             ) : (
               <Button
