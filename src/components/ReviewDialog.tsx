@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Star } from 'lucide-react';
 import { createReview } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { MateStarIcon } from './MateIcons';
 
 interface ReviewDialogProps {
   isOpen: boolean;
@@ -113,7 +113,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
                       onMouseLeave={() => setHoverRating(0)}
                       className="p-1 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Star
+                      <MateStarIcon
                         className={`h-8 w-8 transition-colors ${num <= (hoverRating || rating)
                           ? 'fill-yellow-500 text-yellow-500'
                           : 'text-gray-300'

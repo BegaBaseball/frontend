@@ -12,6 +12,7 @@ interface BackendPartyDTO {
   hostAverageRating?: number | null;
   hostReviewCount?: number;
   teamId: string;
+  cheeringSide?: Party['cheeringSide'];
   gameDate: string;
   gameTime: string;
   stadium: string;
@@ -48,6 +49,7 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   hostAverageRating: backendParty.hostAverageRating ?? null,
   hostReviewCount: backendParty.hostReviewCount ?? 0,
   teamId: backendParty.teamId,
+  cheeringSide: backendParty.cheeringSide ?? null,
   gameDate: backendParty.gameDate,
   gameTime: backendParty.gameTime,
   stadium: backendParty.stadium,
@@ -107,6 +109,24 @@ export const isPartyHostedByUser = (
   user,
 );
 
+export const getMatePartyDisplayTeamId = (
+  party: Pick<Party, 'teamId' | 'cheeringSide' | 'homeTeam' | 'awayTeam'> | null | undefined,
+): string => {
+  if (!party) {
+    return '';
+  }
+  if (party.cheeringSide === 'HOME') {
+    return party.homeTeam || party.teamId;
+  }
+  if (party.cheeringSide === 'AWAY') {
+    return party.awayTeam || party.teamId;
+  }
+  if (party.cheeringSide === 'NEUTRAL') {
+    return [party.homeTeam, party.awayTeam].filter(Boolean).join('/') || party.teamId;
+  }
+  return party.teamId;
+};
+
 export const normalizeMatePartySeed = (
   party: MatePartySeed | null | undefined,
 ): Party | null => {
@@ -127,6 +147,7 @@ export const normalizeMatePartySeed = (
     hostAverageRating: null,
     hostReviewCount: 0,
     teamId: party.teamId,
+    cheeringSide: party.cheeringSide ?? null,
     gameDate: party.gameDate,
     gameTime: party.gameTime,
     stadium: party.stadium,
