@@ -209,7 +209,12 @@ export const usePredictionInteractiveData = () => {
     setPredictionErrorOverlay((current) => (current ? { ...current, isOpen: false } : current));
   }, [emitFlowEvent, predictionErrorOverlay]);
 
-  const { userVote, setUserVote, fetchAndCacheUserVotes } = usePredictionUserVotes({
+  const {
+    userVote,
+    userVoteResolutionState,
+    setUserVote,
+    fetchAndCacheUserVotes,
+  } = usePredictionUserVotes({
     userId,
   });
 
@@ -300,6 +305,7 @@ export const usePredictionInteractiveData = () => {
     isCurrentVotePartial: gameData.isCurrentVotePartial,
     currentVotePartialReason: gameData.currentVotePartialReason,
     userVote,
+    userVoteResolutionState,
     setUserVote,
     currentGameDetail: gameData.currentGameDetail,
     currentGameDetailLoading: gameData.currentGameDetailLoading,

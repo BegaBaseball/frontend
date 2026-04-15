@@ -407,15 +407,10 @@ export const fetchAllUserVotesBulk = async (
     return {};
   }
 
-  try {
-    const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
-      gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
-    });
-    return extractVotesById(response);
-  } catch (error) {
-    const parsedError = parseError(error);
-    throw new Error(parsedError.message || '배열 투표 조회에 실패했습니다.');
-  }
+  const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
+    gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
+  });
+  return extractVotesById(response);
 };
 
 /**

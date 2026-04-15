@@ -75,7 +75,10 @@ export default function PredictionMatchPreviewTab({
 
       <div className="w-full">
         {currentDateGames.length > 0 ? (
-          <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[190px] rounded-2xl">
+          <Card
+            className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[190px] rounded-2xl"
+            data-testid="prediction-match-preview-root"
+          >
             {currentGame ? (
               <>
                 <div className="mb-3">
@@ -89,6 +92,7 @@ export default function PredictionMatchPreviewTab({
                 <Button
                   type="button"
                   size="sm"
+                  data-testid="prediction-match-enter-detail-btn"
                   className="min-h-10 bg-emerald-700 hover:bg-emerald-800 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-white"
                   onClick={onEnterMatchDetail}
                 >

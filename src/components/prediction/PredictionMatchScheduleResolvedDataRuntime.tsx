@@ -1,11 +1,12 @@
-import { lazy, Suspense, useCallback } from 'react';
+import { Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 
 import { usePredictionSchedule } from '../../hooks/usePredictionSchedule';
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
 
-const PredictionLoadingView = lazy(() => import('./PredictionLoadingView'));
-const PredictionMatchesErrorView = lazy(() => import('./PredictionMatchesErrorView'));
-const PredictionMatchScheduleReadyView = lazy(() => import('./PredictionMatchScheduleReadyView'));
+type LoadableComponent<T extends ComponentType<any>> = T | LazyExoticComponent<T>;
+type PredictionLoadingViewComponent = LoadableComponent<typeof import('./PredictionLoadingView').default>;
+type PredictionMatchesErrorViewComponent = LoadableComponent<typeof import('./PredictionMatchesErrorView').default>;
+type PredictionMatchScheduleReadyViewComponent = LoadableComponent<typeof import('./PredictionMatchScheduleReadyView').default>;
 
 interface PredictionMatchScheduleResolvedDataRuntimeProps {
   isAuthLoading: boolean;
@@ -13,6 +14,9 @@ interface PredictionMatchScheduleResolvedDataRuntimeProps {
   locationState: PredictionLocationState;
   searchParams: URLSearchParams;
   setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
+  PredictionLoadingViewComponent: PredictionLoadingViewComponent;
+  PredictionMatchesErrorViewComponent: PredictionMatchesErrorViewComponent;
+  PredictionMatchScheduleReadyViewComponent: PredictionMatchScheduleReadyViewComponent;
 }
 
 export default function PredictionMatchScheduleResolvedDataRuntime({
@@ -21,24 +25,19 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
   locationState,
   searchParams,
   setSearchParams,
+  PredictionLoadingViewComponent,
+  PredictionMatchesErrorViewComponent,
+  PredictionMatchScheduleReadyViewComponent,
 }: PredictionMatchScheduleResolvedDataRuntimeProps) {
-  const emitFlowEvent = useCallback(() => {}, []);
-  const showPredictionErrorOverlay = useCallback(() => {}, []);
-  const fetchAndCacheUserVotes = useCallback(async () => {}, []);
-  const primeGameDetail = useCallback(() => {}, []);
-  const activateMatchTab = useCallback(() => {}, []);
-
+  const LoadingView = PredictionLoadingViewComponent;
+  const MatchesErrorView = PredictionMatchesErrorViewComponent;
+  const MatchScheduleReadyView = PredictionMatchScheduleReadyViewComponent;
   const schedule = usePredictionSchedule({
     isLoggedIn,
     isAuthLoading,
     searchParams,
     setSearchParams,
     locationState,
-    emitFlowEvent,
-    showPredictionErrorOverlay,
-    fetchAndCacheUserVotes,
-    primeGameDetail,
-    activateMatchTab,
   });
 
   const {
@@ -67,34 +66,18 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
     retryLoadMorePastMatches,
   } = schedule;
 
-  if (loading) {
-    return (
-      <div className="font-sans">
-        <Suspense fallback={null}>
-          <PredictionLoadingView topNotice={null} />
-        </Suspense>
-      </div>
-    );
-  }
-
-  if (matchesLoadState === 'error') {
-    return (
-      <div className="font-sans">
-        <Suspense fallback={null}>
-          <PredictionMatchesErrorView
-            matchesLoadErrorMessage={matchesLoadErrorMessage}
-            predictionRecoveryPath="/prediction"
-            onReloadMatches={reloadMatches}
-          />
-        </Suspense>
-      </div>
-    );
-  }
-
   return (
-    <div className="font-sans">
-      <Suspense fallback={null}>
-        <PredictionMatchScheduleReadyView
+    <Suspense fallback={null}>
+      {loading ? (
+        <LoadingView topNotice={null} />
+      ) : matchesLoadState === 'error' ? (
+        <MatchesErrorView
+          matchesLoadErrorMessage={matchesLoadErrorMessage}
+          predictionRecoveryPath="/prediction"
+          onReloadMatches={reloadMatches}
+        />
+      ) : (
+        <MatchScheduleReadyView
           locationState={locationState}
           searchParams={searchParams}
           setSearchParams={setSearchParams}
@@ -108,7 +91,6 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
           goToPreviousDate={goToPreviousDate}
           goToNextDate={goToNextDate}
           goToDate={goToDate}
-          currentGameId={currentGame?.gameId}
           pastRangeLoadState={pastRangeLoadState}
           pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
           futureRangeLoadState={futureRangeLoadState}
@@ -119,7 +101,7 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
           retryLoadMorePastMatches={retryLoadMorePastMatches}
           retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
         />
-      </Suspense>
-    </div>
+      )}
+    </Suspense>
   );
 }

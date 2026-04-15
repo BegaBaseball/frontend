@@ -2,6 +2,10 @@ import { lazy, Suspense, useCallback, useMemo, type ReactElement } from 'react';
 
 import type { Game, VoteTeam } from '../../types/prediction';
 import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
+import {
+  hasPredictionAdditionalPastMatches,
+  resolvePredictionNearestNavigationDate,
+} from '../../utils/predictionMatchNavigation';
 import { Card } from '../ui/card';
 import type { PredictionMatchVoteControllerRenderState } from './PredictionMatchVoteController';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
@@ -24,12 +28,6 @@ type PredictionMatchInteractiveContentRuntimeProps = Omit<
   onVote: (team: VoteTeam, game: Game, isVoteOpen: boolean) => void;
 };
 
-const normalizeBoundaryDate = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed.slice(0, 10) : null;
-};
-
 export default function PredictionMatchInteractiveContentRuntime({
   currentGame,
   currentDateGames,
@@ -37,6 +35,7 @@ export default function PredictionMatchInteractiveContentRuntime({
   currentDayNavigationMeta,
   votes,
   userVote,
+  currentUserVoteResolutionState,
   currentGameDetail,
   currentGameDetailLoading,
   currentGameDetailRefreshing,
@@ -85,48 +84,10 @@ export default function PredictionMatchInteractiveContentRuntime({
   const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
   const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
 
-  const nearestNavigationDate = useMemo(() => {
-    if (!currentDayNavigationMeta) {
-      return null;
-    }
-
-    const previousCandidate = currentDayNavigationMeta.prevDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.prevDate) || null
-      : null;
-    const nextCandidate = currentDayNavigationMeta.nextDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.nextDate) || null
-      : null;
-
-    if (previousCandidate && previousCandidate.games.length > 0) {
-      return { date: previousCandidate.date, isPast: true };
-    }
-
-    if (nextCandidate && nextCandidate.games.length > 0) {
-      return { date: nextCandidate.date, isPast: false };
-    }
-
-    const previousKnownEmpty =
-      previousCandidate !== null && previousCandidate.games.length === 0;
-    const nextKnownEmpty = nextCandidate !== null && nextCandidate.games.length === 0;
-
-    if (previousKnownEmpty && currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    if (nextKnownEmpty && currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    return null;
-  }, [allDatesData, currentDayNavigationMeta]);
+  const nearestNavigationDate = useMemo(
+    () => resolvePredictionNearestNavigationDate(allDatesData, currentDayNavigationMeta),
+    [allDatesData, currentDayNavigationMeta],
+  );
 
   const handleNearestNavigation = useCallback(() => {
     if (!nearestNavigationDate) {
@@ -136,14 +97,7 @@ export default function PredictionMatchInteractiveContentRuntime({
     void goToDate(nearestNavigationDate.date);
   }, [goToDate, nearestNavigationDate]);
 
-  const earliestBoundaryDate = normalizeBoundaryDate(matchBounds?.earliestGameDate);
-  const hasAdditionalPastMatches = Boolean(
-    matchBounds?.hasData
-      && earliestBoundaryDate
-      && allDatesData[0]?.date
-      && normalizeBoundaryDate(allDatesData[0].date)
-      && normalizeBoundaryDate(allDatesData[0].date)! > earliestBoundaryDate
-  );
+  const hasAdditionalPastMatches = hasPredictionAdditionalPastMatches(matchBounds, allDatesData);
   const hasPastNavigation = canMovePrevDate || hasAdditionalPastMatches;
   const isFutureRangeLoading = futureRangeLoadState === 'loading';
   const isFutureRangeError = futureRangeLoadState === 'error';
@@ -305,6 +259,7 @@ export default function PredictionMatchInteractiveContentRuntime({
           currentGameDetailRefreshing={currentGameDetailRefreshing}
           currentGameDetailError={currentGameDetailError}
           userVote={userVote}
+          currentUserVoteResolutionState={currentUserVoteResolutionState}
           votes={votes}
           isLoggedIn={isLoggedIn}
           isAuthLoading={isAuthLoading}

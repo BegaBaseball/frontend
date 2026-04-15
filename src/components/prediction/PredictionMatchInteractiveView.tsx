@@ -3,8 +3,9 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type {
   LoadVoteStatusOptions,
   PredictionErrorOverlayState,
+  PredictionUserVoteResolutionState,
 } from '../../hooks/predictionHookShared';
-import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
+import type { Game, GameDetail, MatchBounds, VoteStatus, VoteTeam } from '../../types/prediction';
 import type { PredRecoveryAction } from '../../types/predictionFlow';
 import { Card } from '../ui/card';
 import type { PredictionMatchVoteControllerRenderState } from './PredictionMatchVoteController';
@@ -21,6 +22,7 @@ export type PredictionMatchInteractiveViewProps = {
   currentDayNavigationMeta: { prevDate: string | null; nextDate: string | null } | null;
   votes: Record<string, VoteStatus>;
   userVote: Record<string, VoteTeam | null>;
+  currentUserVoteResolutionState: PredictionUserVoteResolutionState;
   currentGameDetail: GameDetail | null;
   currentGameDetailLoading: boolean;
   currentGameDetailRefreshing: boolean;
@@ -46,7 +48,7 @@ export type PredictionMatchInteractiveViewProps = {
   futureRangeLoadErrorMessage: string | null;
   canLoadMorePast: boolean;
   canLoadMoreFuture: boolean;
-  matchBounds: { hasData?: boolean; earliestGameDate?: string | null } | null;
+  matchBounds: MatchBounds | null;
   reloadCurrentVoteStatus: (options?: LoadVoteStatusOptions) => void;
   reloadCurrentGameDetail: () => void;
   predictionErrorOverlay: PredictionErrorOverlayState | null;
@@ -60,6 +62,7 @@ export type PredictionMatchInteractiveViewProps = {
   currentGameId?: string;
   voteControllerState?: PredictionMatchVoteControllerRenderState;
   onQueueVoteAction: (team: VoteTeam, game: Game, isVoteOpen: boolean) => void;
+  onRequireLoginForVote: () => void;
 };
 
 export default function PredictionMatchInteractiveView({
@@ -67,7 +70,9 @@ export default function PredictionMatchInteractiveView({
   isQueueVoteLocked,
   voteControllerState,
   currentGameId,
+  currentUserVoteResolutionState,
   onQueueVoteAction,
+  onRequireLoginForVote,
   ...rest
 }: PredictionMatchInteractiveViewProps) {
   const immediateVoteLockRef = useRef(false);
@@ -118,6 +123,11 @@ export default function PredictionMatchInteractiveView({
   }, [clearVoteLockReleaseTimer, currentGameId]);
 
   const handleVote = useCallback((team: VoteTeam, game: Game, isVoteOpen: boolean) => {
+    if (currentUserVoteResolutionState === 'unknown-auth') {
+      onRequireLoginForVote();
+      return;
+    }
+
     if (immediateVoteLockRef.current || effectiveVoteActionLocked) {
       return;
     }
@@ -131,7 +141,13 @@ export default function PredictionMatchInteractiveView({
     }
 
     onQueueVoteAction(team, game, isVoteOpen);
-  }, [effectiveVoteActionLocked, onQueueVoteAction, voteControllerState]);
+  }, [
+    currentUserVoteResolutionState,
+    effectiveVoteActionLocked,
+    onQueueVoteAction,
+    onRequireLoginForVote,
+    voteControllerState,
+  ]);
 
   return (
     <Suspense
@@ -147,11 +163,13 @@ export default function PredictionMatchInteractiveView({
       <PredictionMatchInteractiveContentRuntime
         {...rest}
         currentGameId={currentGameId}
+        currentUserVoteResolutionState={currentUserVoteResolutionState}
         pendingVoteAction={pendingVoteAction}
         isQueueVoteLocked={isQueueVoteLocked}
         voteControllerState={voteControllerState}
         effectiveVoteActionLocked={effectiveVoteActionLocked}
         onVote={handleVote}
+        onRequireLoginForVote={onRequireLoginForVote}
       />
     </Suspense>
   );

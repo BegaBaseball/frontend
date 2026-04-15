@@ -1165,10 +1165,10 @@ describe('Game Prediction', () => {
                                     },
                                 ],
                                 analysis: {
-                                    summary: 'SSG 랜더스의 최근 흐름이 좋지만, 불펜 운용 데이터 부족으로 인해 경기 후반 운영은 더 지켜봐야 합니다.',
-                                    verdict: 'SSG 랜더스가 최근 흐름에서 우위를 점하고 있지만, 불펜 운용 데이터 부족으로 인해 운영 판단에 변수가 존재합니다.',
-                                    strengths: ['SSG 랜더스 최근 득실 마진 우위'],
-                                    weaknesses: ['양 팀 모두 불펜 운용 데이터 부족'],
+                                    summary: '한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.',
+                                    verdict: '발표 선발 한화 이글스 발표 전 / SSG 랜더스 발표 전 뒤 첫 번째 불펜 선택이 가장 큰 변수입니다.',
+                                    strengths: ['한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.'],
+                                    weaknesses: ['SSG 랜더스는 팀 폼 점수 97.4점을 기록하며 최근 흐름이 상승세입니다.'],
                                     risks: [
                                         {
                                             area: 'bullpen',
@@ -1177,12 +1177,12 @@ describe('Game Prediction', () => {
                                         },
                                     ],
                                     why_it_matters: [],
-                                    swing_factors: ['선발 발표 후 경기 후반 운영 흐름 확인 필요'],
+                                    swing_factors: ['발표 선발 한화 이글스 발표 전 / SSG 랜더스 발표 전 뒤 첫 번째 불펜 선택이 가장 큰 변수입니다.'],
                                     watch_points: ['불펜 투입 시점과 라인업 확정 여부 확인'],
                                     uncertainty: ['선발과 라인업 확정 전까지는 보수적으로 해석해야 합니다.'],
                                 },
-                                detailed_markdown: '## 최근 전력\n- SSG 랜더스는 최근 9경기에서 7승 2패를 기록하며 한화 이글스(6승 3패)보다 높은 승률을 보여주고 있습니다. 득실 마진 역시 SSG 랜더스(+11)가 한화 이글스(+8)보다 높습니다.\n\n## 불펜 상태\n- 양 팀 모두 불펜 운용 데이터가 부족하여 접전 후반 상황에서의 팀 기량 비교가 어렵습니다. 불펜진의 실제 기량과 피로도, 투입 전략에 따라 경기 결과가 달라질 수 있습니다.',
-                                coach_note: 'SSG 랜더스의 최근 흐름이 좋지만, 불펜 운용 데이터 부족으로 인해 경기 후반 운영에 주의해야 합니다. 한화 이글스의 불펜진이 예상외의 활약을 펼칠 가능성도 배제할 수 없습니다.',
+                                detailed_markdown: '## 최근 전력\n- 한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.\n\n## 불펜 상태\n- SSG 랜더스는 불펜 소모가 적어 경기 후반 운영 여력이 남아 있습니다.',
+                                coach_note: '발표 선발 한화 이글스 발표 전 / SSG 랜더스 발표 전 뒤 첫 번째 불펜 선택이 가장 큰 변수입니다.',
                             },
                         })}`,
                         '',
@@ -1256,11 +1256,10 @@ describe('Game Prediction', () => {
             .should('contain', '한화 이글스 vs SSG 랜더스, 불펜 운용 정보 확인 필요')
             .and('contain', 'SSG 랜더스의 최근 흐름이 좋습니다')
             .and('contain', '불펜 운용 데이터 부족으로 인해 경기 후반 운영은 더 지켜봐야 합니다')
+            .and('contain', '실데이터 일부 기반')
+            .and('contain', '최근 흐름 위주로 분석했습니다.')
             .and('not.contain', '고레버리지')
             .and('not.contain', '핵심 구간를');
-        cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 일부 기반');
-        cy.get('[data-testid="coach-briefing-data-quality-note"]')
-            .should('contain', '최근 흐름 위주로 분석했습니다.');
         cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 예측').click({ force: true });
         cy.get('[data-testid="coach-analysis-run-button"]')
             .should('contain', 'AI 코치 경기 예측 시작')
@@ -1272,10 +1271,15 @@ describe('Game Prediction', () => {
             .and('contain', '근거 기반 상세 분석');
         cy.get('[data-testid="coach-analysis-data-quality-badge"]').should('contain', '실데이터 일부 기반');
         cy.get('[data-testid="coach-analysis-dialog"]')
-            .should('contain', 'SSG 랜더스가 최근 흐름에서 우위를 점하고 있지만, 불펜 운용 데이터 부족으로 인해 운영 판단에 변수가 존재합니다.')
-            .and('contain', '양 팀 모두 불펜 운용 데이터가 부족하여 접전 후반 상황에서의 팀 기량 비교가 어렵습니다.')
+            .should('contain', '한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.')
+            .and('contain', 'SSG 랜더스는 팀 폼 점수 97.4점을 기록하며 최근 흐름이 상승세입니다.')
+            .and('contain', '발표 선발 한화 이글스 발표 전 / SSG 랜더스 발표 전 뒤 첫 번째 불펜 선택이 가장 큰 변수입니다.')
+            .and('contain', 'SSG 랜더스는 불펜 소모가 적어 경기 후반 운영 여력이 남아 있습니다.')
             .and('not.contain', '고레버리지')
-            .and('not.contain', '핵심 구간를');
+            .and('not.contain', '핵심 구간를')
+            .and('not.contain', '최근 흐름 근거가 부족합니다.')
+            .and('not.contain', '팀 폼 점수 90.최근 흐름 근거가 부족합니다.')
+            .and('not.contain', '팀 폼 점수 97.최근 흐름 근거가 부족합니다.');
     });
 
     it('should keep only latest AI brief request after rapid game switch', () => {
@@ -1712,8 +1716,7 @@ describe('Game Prediction', () => {
         cy.wait(700);
         cy.wait('@coachAnalyzeAuthExpired');
         cy.wait('@coachAnalyzeReissueFailed');
-        cy.get('[data-testid="coach-briefing-login-cta"]', { timeout: 10000 })
-            .should('exist')
+        cy.contains('[data-testid="coach-briefing-card"] button', '다시 로그인하기', { timeout: 10000 })
             .scrollIntoView()
             .click({ force: true });
         cy.contains('button', '로그인하러 가기', { timeout: 10000 })

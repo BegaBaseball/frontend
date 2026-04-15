@@ -1,6 +1,10 @@
 import { memo } from 'react';
-import { AlertTriangle, CheckCircle, Minus } from 'lucide-react';
 import { CoachMetric } from '../../api/coach';
+import {
+    PredictionCheckCircleIcon,
+    PredictionMinusIcon,
+    PredictionWarningTriangleIcon,
+} from './PredictionShellIcons';
 
 const trendLabel: Record<CoachMetric['trend'], string> = {
     up: '상승',
@@ -20,7 +24,7 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
             iconColor: 'text-red-700 dark:text-red-400',
             bar: 'bg-red-500',
             dot: 'bg-red-500',
-            icon: AlertTriangle
+            icon: PredictionWarningTriangleIcon
         },
         1: {
             bg: 'bg-amber-50 dark:bg-amber-950/20',
@@ -29,7 +33,7 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
             iconColor: 'text-amber-700 dark:text-amber-300',
             bar: 'bg-amber-500',
             dot: 'bg-amber-500',
-            icon: Minus
+            icon: PredictionMinusIcon
         },
         2: {
             bg: 'bg-emerald-50 dark:bg-emerald-950/20',
@@ -38,7 +42,7 @@ function CoachMetricCard({ data }: { data: CoachMetric }) {
             iconColor: 'text-emerald-700 dark:text-emerald-300',
             bar: 'bg-emerald-500',
             dot: 'bg-emerald-500',
-            icon: CheckCircle
+            icon: PredictionCheckCircleIcon
         }
     }[risk_level];
 

@@ -148,3 +148,33 @@ test('hasGameDetailProgressData: 점수나 이닝 데이터가 있으면 true를
     awayTeam: 'LG',
   }), false);
 });
+
+test('hasGameDetailProgressData: 점수가 없는 placeholder extra inning row는 진행 데이터로 보지 않는다', () => {
+  assert.equal(hasGameDetailProgressData({
+    gameId: '1',
+    homeTeam: 'HH',
+    awayTeam: 'LG',
+    inningScores: [
+      { inning: 10, teamSide: 'away', runs: null },
+      { inning: 10, teamSide: 'home', runs: null },
+      { inning: 11, teamSide: 'away', runs: null },
+      { inning: 11, teamSide: 'home', runs: null },
+    ],
+  }), false);
+});
+
+test('hasGameDetailProgressData: 점수 미집계 경기의 0점 template inning row도 진행 데이터로 보지 않는다', () => {
+  assert.equal(hasGameDetailProgressData({
+    gameId: '1',
+    homeTeam: 'HH',
+    awayTeam: 'LG',
+    homeScore: null,
+    awayScore: null,
+    inningScores: [
+      { inning: 1, teamSide: 'away', runs: 0 },
+      { inning: 1, teamSide: 'home', runs: 0 },
+      { inning: 12, teamSide: 'away', runs: 0, isExtra: true },
+      { inning: 12, teamSide: 'home', runs: 0, isExtra: true },
+    ],
+  }), false);
+});

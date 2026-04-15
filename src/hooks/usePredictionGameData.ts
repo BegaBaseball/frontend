@@ -190,7 +190,7 @@ export const usePredictionGameData = ({
       }
 
       const parsedError = parseError(error);
-      const mappedErrorCode = mapPredictionErrorCode(parsedError.type);
+      const mappedErrorCode = mapPredictionErrorCode(parsedError.type, parsedError.responseCode);
       if (backgroundRefresh) {
         setGameDetails((prev) => {
           const previousState = prev[gameId];
