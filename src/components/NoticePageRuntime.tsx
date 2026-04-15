@@ -1,11 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Heart, Megaphone, MessageSquare, PenSquare, RotateCw } from 'lucide-react';
 
 import { fetchNoticePosts } from '../api/noticePublic';
 import type { CheerPost } from '../api/cheerApi';
 import { isAdminRole, useAuthProfileSnapshot } from '../store/authStore';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HeartIcon,
+  MegaphoneIcon,
+  MessageSquareIcon,
+  PenSquareIcon,
+  RefreshIcon,
+} from './icons/PublicFeatureIcons';
 import { Button } from './ui/button';
 
 const ITEMS_PER_PAGE = 15;
@@ -54,7 +62,7 @@ export default function NoticePageRuntime() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Megaphone className="h-7 w-7 text-primary" />
+            <MegaphoneIcon className="h-7 w-7 text-primary" />
             <h1 className="text-primary">공지사항</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -64,7 +72,7 @@ export default function NoticePageRuntime() {
               className="border-gray-300 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
               disabled={isLoading}
             >
-              <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshIcon className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               새로고침
             </Button>
             {isAdmin && (
@@ -72,7 +80,7 @@ export default function NoticePageRuntime() {
                 onClick={() => navigate('/cheer/write')}
                 className="bg-primary text-white"
               >
-                <PenSquare className="mr-2 h-4 w-4" />
+                <PenSquareIcon className="mr-2 h-4 w-4" />
                 글쓰기
               </Button>
             )}
@@ -100,7 +108,7 @@ export default function NoticePageRuntime() {
           </div>
         ) : posts.length === 0 ? (
           <div className="rounded-lg border-2 border-dashed border-gray-200 p-12 text-center text-gray-500 dark:border-white/10 dark:text-gray-400">
-            <Megaphone className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-zinc-300" />
+            <MegaphoneIcon className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-zinc-300" />
             <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">등록된 공지사항이 없습니다.</h3>
           </div>
         ) : (
@@ -113,7 +121,7 @@ export default function NoticePageRuntime() {
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
-                    <Megaphone className="h-6 w-6 text-blue-600" />
+                    <MegaphoneIcon className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-1 text-base text-zinc-900 dark:text-zinc-100">
@@ -125,11 +133,11 @@ export default function NoticePageRuntime() {
                       <span>{post.timeAgo}</span>
                       <span className="hidden sm:inline">•</span>
                       <div className="hidden items-center gap-1 sm:flex">
-                        <MessageSquare className="h-4 w-4" />
+                        <MessageSquareIcon className="h-4 w-4" />
                         <span>{post.commentCount}</span>
                       </div>
                       <div className="hidden items-center gap-1 sm:flex">
-                        <Heart className="h-4 w-4" />
+                        <HeartIcon className="h-4 w-4" />
                         <span>{post.likeCount}</span>
                       </div>
                     </div>
@@ -149,7 +157,7 @@ export default function NoticePageRuntime() {
               disabled={currentPage === 1}
               className="w-9 px-0"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeftIcon className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -179,7 +187,7 @@ export default function NoticePageRuntime() {
               disabled={currentPage === totalPages}
               className="w-9 px-0"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRightIcon className="h-4 w-4" />
             </Button>
           </div>
         )}

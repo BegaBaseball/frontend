@@ -2,7 +2,16 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import './NavigationMenu.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
-import { LogOut, ShieldAlert, Menu, X, Map, Users, Megaphone, LineChart } from 'lucide-react';
+import {
+  CloseIcon,
+  LineChartIcon,
+  LogOutIcon,
+  MapIcon,
+  MegaphoneIcon,
+  MenuIcon,
+  ShieldAlertIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -182,10 +191,10 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   };
 
   const navItems = [
-    { id: 'cheer', label: '응원석', icon: Megaphone },
-    { id: 'stadium', label: '구장가이드', icon: Map },
-    { id: 'prediction', label: '전력분석실', icon: LineChart },
-    { id: 'mate', label: '같이가요', icon: Users }
+    { id: 'cheer', label: '응원석', icon: MegaphoneIcon },
+    { id: 'stadium', label: '구장가이드', icon: MapIcon },
+    { id: 'prediction', label: '전력분석실', icon: LineChartIcon },
+    { id: 'mate', label: '같이가요', icon: UsersIcon }
   ];
 
   return (
@@ -294,9 +303,9 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         type="button"
                         onClick={() => navigate('/admin')}
                         variant="outline"
-                        className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                       >
-                        <ShieldAlert className="w-4 h-4" />
+                        <ShieldAlertIcon className="w-4 h-4" />
                         관리자
                       </Button>
                     )}
@@ -306,7 +315,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                       className="rounded-full px-2 md:px-3 lg:px-4 text-[16px] md:text-[16px] flex items-center gap-1 text-primary dark:text-primary-light border-primary dark:border-primary-light"
                       variant="outline"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOutIcon className="w-4 h-4" />
                       로그아웃
                     </Button>
                   </>
@@ -340,7 +349,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                   aria-expanded={isMenuOpen}
                   aria-controls={shouldShowMobileMenuThemeToggle ? 'mobile-menu-popup' : undefined}
                 >
-                  {isMenuOpen ? <X className="w-7 h-7 stroke-[2.5]" /> : <Menu className="w-7 h-7" />}
+                  {isMenuOpen ? <CloseIcon className="w-7 h-7 stroke-[2.5]" /> : <MenuIcon className="w-7 h-7" />}
                 </button>
               </div>
             )}
@@ -460,7 +469,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         aria-label="관리자 페이지로 이동"
                       >
                         <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                          <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <ShieldAlertIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                         </div>
                         <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
                     <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
@@ -479,7 +488,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                       className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
                       aria-label="로그아웃"
                     >
-                      <LogOut className="w-5 h-5" />
+                      <LogOutIcon className="w-5 h-5" />
                       <span>로그아웃</span>
                     </button>
                   </div>

@@ -1,4 +1,5 @@
 import { formatDateForAPI } from './home';
+import { PublicApiError } from '../api/publicClient';
 
 type AxiosLikeError = {
     isAxiosError: boolean;
@@ -12,10 +13,28 @@ type AxiosLikeError = {
     } | null;
 };
 
+type PublicApiLikeError = {
+    name?: string;
+    message?: string;
+    status: number;
+    data?: {
+        code?: string | null;
+    } | null;
+};
+
 const isAxiosLikeError = (error: unknown): error is AxiosLikeError =>
     typeof error === 'object'
     && error !== null
     && (error as { isAxiosError?: unknown }).isAxiosError === true;
+
+const isPublicApiLikeError = (error: unknown): error is PublicApiLikeError =>
+    error instanceof PublicApiError
+    || (
+        typeof error === 'object'
+        && error !== null
+        && 'status' in error
+        && typeof (error as { status?: unknown }).status === 'number'
+    );
 
 export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
     const fallback = {
@@ -27,17 +46,27 @@ export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, d
         message: error instanceof Error ? error.message : 'Unknown error',
     };
 
-    if (!isAxiosLikeError(error)) {
-        return fallback;
+    if (isPublicApiLikeError(error)) {
+        return {
+            ...fallback,
+            status: error.status,
+            responseCode: error.data?.code ?? null,
+            errorName: error.name ?? fallback.errorName,
+            message: error.message ?? fallback.message,
+        };
     }
 
-    return {
-        ...fallback,
-        status: error.response?.status ?? null,
-        responseCode: error.response?.data?.code ?? null,
-        errorName: error.name,
-        message: error.message,
-    };
+    if (isAxiosLikeError(error)) {
+        return {
+            ...fallback,
+            status: error.response?.status ?? null,
+            responseCode: error.response?.data?.code ?? null,
+            errorName: error.name ?? fallback.errorName,
+            message: error.message ?? fallback.message,
+        };
+    }
+
+    return fallback;
 };
 
 export interface HomeNavigationState {

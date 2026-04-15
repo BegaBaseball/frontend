@@ -1,18 +1,18 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-    CalendarDays,
-    ChevronLeft,
-    Filter,
-    RefreshCw,
-    Search,
-    Sparkles,
-    TrendingUp,
-    X,
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { publicGet } from '../api/publicClient';
+import {
+    CalendarDaysIcon,
+    ChevronLeftIcon,
+    FilterIcon,
+    RefreshIcon,
+    SearchIcon,
+    SparklesIcon,
+    TrendingUpIcon,
+    XIcon,
+} from './icons/PublicFeatureIcons';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getTeamKoreanName } from '../utils/teamNames';
 import {
@@ -235,7 +235,7 @@ export default function OffSeasonList() {
                       className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-400"
                     >
                         <div className="rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm transition-all group-hover:-translate-x-1 group-hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-                            <ChevronLeft className="h-5 w-5" />
+                            <ChevronLeftIcon className="h-5 w-5" />
                         </div>
                         <span className="font-bold tracking-tight">스토브리그 홈으로</span>
                     </button>
@@ -246,7 +246,7 @@ export default function OffSeasonList() {
                     <div className="relative grid gap-6 px-6 py-6 md:px-8 md:py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
                         <div className="space-y-4">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
+                                <SparklesIcon className="h-3.5 w-3.5 text-yellow-300" />
                                 <span className="text-[14px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
                             </div>
                             <div className="space-y-3">
@@ -260,12 +260,12 @@ export default function OffSeasonList() {
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-emerald-100/75">
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    <CalendarDaysIcon className="h-3.5 w-3.5" />
                                     최근 업데이트 {latestUpdate}
                                 </span>
                                 {isFetching && !isLoading && (
                                     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                        <RefreshIcon className="h-3.5 w-3.5 animate-spin" />
                                         새 데이터 확인 중
                                     </span>
                                 )}
@@ -294,13 +294,13 @@ export default function OffSeasonList() {
                 <Card className="sticky top-4 z-30 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/95 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
                     <div className="space-y-4 p-4 md:p-5">
                         <div className="flex items-center gap-2 text-[14px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-                            <Filter className="h-4 w-4" />
+                            <FilterIcon className="h-4 w-4" />
                             탐색 도구
                         </div>
 
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                                <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
                                 <Input
                                     placeholder="선수, 구단, 요약, 계약 내용 검색"
                                     className="h-12 rounded-2xl border-zinc-200 bg-zinc-50 pl-12 text-base font-semibold shadow-none focus-visible:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
@@ -366,12 +366,12 @@ export default function OffSeasonList() {
                                         : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
                                         }`}
                                 >
-                                    <TrendingUp className="h-4 w-4" />
+                                    <TrendingUpIcon className="h-4 w-4" />
                                     주요 소식만
                                 </button>
                                 {hasActiveFilters && (
                                         <Button variant="ghost" onClick={resetFilters} className="rounded-full px-4 text-[15px] font-bold">
-                                        <X className="h-4 w-4" />
+                                        <XIcon className="h-4 w-4" />
                                         초기화
                                     </Button>
                                 )}

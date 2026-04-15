@@ -386,10 +386,132 @@ const extractInningScores = (gameDetail?: GameDetail | null): InningScorePayload
   return entries;
 };
 
+const isMeaningfulInningScore = (score: InningScorePayload): boolean => {
+  const inning = getInningNumberFromPayload(score);
+  if (inning === null) {
+    return false;
+  }
+
+  const run = getInningRunsFromPayload(score);
+  const { home, away } = getInningSideRunsFromPayload(score);
+  return run !== null || home !== null || away !== null;
+};
+
+const extractMeaningfulInningScores = (gameDetail?: GameDetail | null): InningScorePayload[] => (
+  extractInningScores(gameDetail).filter(isMeaningfulInningScore)
+);
+
+export const hasMeaningfulInningScoreData = (gameDetail?: GameDetail | null): boolean => (
+  extractMeaningfulInningScores(gameDetail).length > 0
+);
+
+export const hasRenderableInningScoreData = (gameDetail?: GameDetail | null): boolean => {
+  if (!gameDetail) {
+    return false;
+  }
+
+  return Object.keys(buildInningRows({
+    gameId: gameDetail.gameId,
+    homeTeam: gameDetail.homeTeam,
+    awayTeam: gameDetail.awayTeam,
+    stadium: gameDetail.stadium ?? gameDetail.stadiumName ?? '',
+    homeScore: gameDetail.homeScore ?? undefined,
+    awayScore: gameDetail.awayScore ?? undefined,
+  }, gameDetail)).length > 0;
+};
+
+const isAllZeroTemplateRows = (rows: Record<number, InningRow>): boolean => {
+  const values = Object.values(rows);
+  if (values.length === 0) {
+    return false;
+  }
+
+  return values.every((row) => (row.home ?? 0) === 0 && (row.away ?? 0) === 0);
+};
+
+const trimRowsToFinalScore = (
+  rows: Record<number, InningRow>,
+  homeScore: number | null,
+  awayScore: number | null
+): Record<number, InningRow> => {
+  if (homeScore == null || awayScore == null || homeScore === awayScore) {
+    return rows;
+  }
+
+  const inningKeys = Object.keys(rows)
+    .map(Number)
+    .filter((inning) => Number.isFinite(inning))
+    .sort((a, b) => a - b);
+
+  let cumulativeHome = 0;
+  let cumulativeAway = 0;
+  let capInning: number | null = null;
+
+  inningKeys.forEach((inning) => {
+    const row = rows[inning];
+    cumulativeHome += row.home ?? 0;
+    cumulativeAway += row.away ?? 0;
+    if (inning >= 9 && capInning == null && cumulativeHome === homeScore && cumulativeAway === awayScore) {
+      capInning = inning;
+    }
+  });
+
+  if (capInning == null) {
+    return rows;
+  }
+
+  const resolvedCapInning = capInning;
+
+  return Object.fromEntries(
+    Object.entries(rows).filter(([inning]) => Number(inning) <= resolvedCapInning)
+  );
+};
+
+const trimRowsToDecisiveInningWithoutFinalScore = (
+  rows: Record<number, InningRow>
+): Record<number, InningRow> => {
+  const inningKeys = Object.keys(rows)
+    .map(Number)
+    .filter((inning) => Number.isFinite(inning))
+    .sort((a, b) => a - b);
+
+  if (inningKeys.length <= 9) {
+    return rows;
+  }
+
+  let cumulativeHome = 0;
+  let cumulativeAway = 0;
+
+  for (const inning of inningKeys) {
+    const row = rows[inning];
+    cumulativeHome += row.home ?? 0;
+    cumulativeAway += row.away ?? 0;
+
+    if (inning < 9 || cumulativeHome === cumulativeAway) {
+      continue;
+    }
+
+    const laterInnings = inningKeys.filter((candidate) => candidate > inning);
+    if (
+      laterInnings.length > 0
+      && laterInnings.every((candidate) => {
+        const candidateRow = rows[candidate];
+        return (candidateRow.home ?? 0) === 0 && (candidateRow.away ?? 0) === 0;
+      })
+    ) {
+      return Object.fromEntries(
+        Object.entries(rows).filter(([candidate]) => Number(candidate) <= inning)
+      );
+    }
+  }
+
+  return rows;
+};
+
 export const buildInningRows = (game: Game, gameDetail?: GameDetail | null): Record<number, InningRow> => {
   const rows: Record<number, InningRow> = {};
   const unresolved: Record<number, InningScorePayload[]> = {};
-  const inningScores = extractInningScores(gameDetail);
+  const inningScores = extractMeaningfulInningScores(gameDetail);
 
   inningScores.forEach((score) => {
     const inning = getInningNumberFromPayload(score);
@@ -478,7 +600,19 @@ export const buildInningRows = (game: Game, gameDetail?: GameDetail | null): Rec
     });
   });
 
-  return rows;
+  const resolvedHomeScore = toNumericScore(gameDetail?.homeScore ?? game.homeScore);
+  const resolvedAwayScore = toNumericScore(gameDetail?.awayScore ?? game.awayScore);
+
+  if (resolvedHomeScore == null && resolvedAwayScore == null && isAllZeroTemplateRows(rows)) {
+    return {};
+  }
+
+  const trimmedRows = trimRowsToFinalScore(rows, resolvedHomeScore, resolvedAwayScore);
+  if (resolvedHomeScore != null && resolvedAwayScore != null) {
+    return trimmedRows;
+  }
+
+  return trimRowsToDecisiveInningWithoutFinalScore(trimmedRows);
 };
 
 export const formatTime = (value?: string | null) => {
