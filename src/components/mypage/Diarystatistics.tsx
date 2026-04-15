@@ -7,8 +7,13 @@ import EmojiStatsCard from './EmojiStatsCard';
 import StadiumVisitList from './StadiumVisitList';
 import BadgeShowcase from './BadgeShowcase';
 import LoadingSpinner from '../LoadingSpinner';
-import { Trophy, TrendingUp, BarChart3, Star, Flame } from 'lucide-react';
 import ViewportDeferred from '../ViewportDeferred';
+import {
+  MyPageBarChartIcon,
+  MyPageFlameIcon,
+  MyPageTrendingUpIcon,
+  MyPageTrophyIcon,
+} from './MyPageIcons';
 
 const DiaryChartsSection = lazy(() => import('./DiaryChartsSection'));
 
@@ -55,7 +60,7 @@ export default function DiaryStatistics() {
         </div>
         <div className="lg:col-span-1">
           <Card className="h-full bg-gradient-to-br from-primary/10 to-muted/40 border-none shadow-md p-6 flex flex-col justify-center items-center text-center">
-            <Flame className="w-10 h-10 text-orange-500 mb-2 animate-pulse" />
+            <MyPageFlameIcon className="w-10 h-10 text-orange-500 mb-2 animate-pulse" />
             <h3 className="text-[16px] font-semibold text-muted-foreground">현재 연승/연패</h3>
             <div className="text-3xl font-black mt-1">
               {statistics.currentWinStreak > 0 ? (
@@ -74,7 +79,7 @@ export default function DiaryStatistics() {
       {/* 2. 대시보드 요약 카드 */}
       <Card className="p-5 md:p-8 bg-card">
         <div className="flex items-center gap-3">
-          <Trophy className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+          <MyPageTrophyIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
           <h2 className="text-lg md:text-xl font-black text-primary">
             나의 야구 기록 요약
           </h2>
@@ -103,7 +108,7 @@ export default function DiaryStatistics() {
         <div className="space-y-6">
           <Card className="p-5 md:p-8 bg-card">
             <div className="flex items-center gap-3 mb-6">
-              <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+              <MyPageTrendingUpIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
               <h2 className="text-lg md:text-xl font-black text-primary">
                 기분 분석
               </h2>
@@ -113,7 +118,7 @@ export default function DiaryStatistics() {
 
           <Card className="p-5 md:p-8 bg-card">
             <div className="flex items-center gap-3 mb-6">
-              <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+              <MyPageBarChartIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
               <h2 className="text-lg md:text-xl font-black text-primary">
                 상세 기록
               </h2>

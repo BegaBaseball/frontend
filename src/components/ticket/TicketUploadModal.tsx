@@ -2,7 +2,12 @@ import React, { cloneElement, isValidElement, useEffect, useRef, useState, type 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { analyzeTicket, TicketInfo } from '@/api/ticket';
-import { Loader2, Upload, Ticket, CheckCircle2 } from 'lucide-react';
+import {
+    SharedCheckCircleIcon,
+    SharedLoaderIcon,
+    SharedTicketIcon,
+    SharedUploadIcon,
+} from '@/components/icons/SharedLeafIcons';
 import { toast } from 'sonner';
 import PlainDialog from '@/components/ui/plain-dialog';
 
@@ -30,7 +35,7 @@ export function TicketUploadModal({
     const resolvedOpen = isControlled ? open : internalOpen;
     const defaultTrigger = (
         <Button variant="outline" className="gap-2">
-            <Ticket className="w-4 h-4" />
+            <SharedTicketIcon className="w-4 h-4" />
             티켓 등록하기
         </Button>
     );
@@ -173,7 +178,7 @@ export function TicketUploadModal({
                                 className="border-2 border-dashed rounded-lg p-12 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors cursor-pointer"
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <Upload className="w-10 h-10 mb-4 opacity-50" />
+                                <SharedUploadIcon className="w-10 h-10 mb-4 opacity-50" />
                                 <p className="text-[16px] font-semibold">티켓 이미지를 업로드하세요</p>
                                 <p className="text-[16px] text-muted-foreground mt-1">또는 클릭하여 촬영</p>
                             </div>
@@ -204,7 +209,7 @@ export function TicketUploadModal({
                     {/* Analysis Result */}
                     {isLoading && (
                         <div className="flex items-center justify-center py-8 flex-col gap-3 text-muted-foreground">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            <SharedLoaderIcon className="w-8 h-8 animate-spin text-primary" />
                             <p className="text-[16px] font-semibold animate-pulse">AI가 티켓 정보를 분석 중입니다...</p>
                         </div>
                     )}
@@ -213,7 +218,7 @@ export function TicketUploadModal({
                         <div className="bg-muted/30 rounded-lg p-4 space-y-4 border border-border">
                             <div className="flex items-center justify-between pb-2 border-b border-border/50">
                                 <div className="flex items-center gap-2 text-green-600 font-bold">
-                                    <CheckCircle2 className="w-4 h-4" />
+                                    <SharedCheckCircleIcon className="w-4 h-4" />
                                     분석 완료
                                 </div>
                                 {ticketData.gameId && (

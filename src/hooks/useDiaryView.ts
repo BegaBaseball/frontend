@@ -198,7 +198,7 @@ export const useDiaryView = () => {
           id: diaryId,
           data: {
             ...variables,
-            photos: uploadResult.photos,
+            photos: [...variables.photos, ...uploadResult.photos],
             ticketVerificationToken: undefined,
           },
         });
@@ -224,7 +224,7 @@ export const useDiaryView = () => {
         const uploadResult = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
         if (uploadResult.photos.length > 0) {
-          const allPhotos = [...(diaryForm.photos || []), ...uploadResult.photos];
+          const allPhotos = [...(diaryForm.photoStoragePaths || []), ...uploadResult.photos];
           await updateDiary({
             id: diaryId,
             data: {
@@ -314,7 +314,7 @@ export const useDiaryView = () => {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: diaryForm.photos,
+      photos: diaryForm.photoStoragePaths,
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
       section: diaryForm.section,

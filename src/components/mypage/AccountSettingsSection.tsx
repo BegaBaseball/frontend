@@ -1,5 +1,4 @@
 import { lazy, Suspense, useState, type ReactElement } from 'react';
-import { ShieldAlert, Unlink, Link } from 'lucide-react';
 import { Button } from '../ui/button';
 import '../common/autofill-input.css';
 import {
@@ -15,6 +14,11 @@ import { ACCOUNT_SETTINGS_REDIRECT_PATH } from '../../utils/authFlow';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
 import ViewportDeferred from '../ViewportDeferred';
+import {
+  MyPageLinkIcon,
+  MyPageShieldAlertIcon,
+  MyPageUnlinkIcon,
+} from './MyPageIcons';
 
 interface AccountSettingsSectionProps {
   userProvider?: string;
@@ -194,18 +198,18 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         {isConnected ? (
           disabled ? (
             <>
-              <ShieldAlert className="w-4 h-4 mr-2" />
+              <MyPageShieldAlertIcon className="w-4 h-4 mr-2" />
               현재 로그인 방식
             </>
           ) : (
             <>
-              <Unlink className="w-4 h-4 mr-2" />
+              <MyPageUnlinkIcon className="w-4 h-4 mr-2" />
               연동 해제
             </>
           )
         ) : (
           <>
-            <Link className="w-4 h-4 mr-2" />
+            <MyPageLinkIcon className="w-4 h-4 mr-2" />
             {isLinking ? '연동 중...' : '연동하기'}
           </>
         )}
@@ -252,7 +256,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
   return (
       <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
       <div className="flex items-center gap-3 mb-6">
-        <ShieldAlert className="w-6 h-6 text-primary" />
+        <MyPageShieldAlertIcon className="w-6 h-6 text-primary" />
         <h2 className="text-xl font-bold text-primary">계정 설정</h2>
       </div>
 
