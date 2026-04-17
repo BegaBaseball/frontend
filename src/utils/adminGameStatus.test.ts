@@ -3,10 +3,17 @@ import test from 'node:test';
 
 import type { AdminGameStatusMismatch, AdminNonCanonicalGame } from '../types/admin';
 import {
+  buildNonCanonicalCleanupTrackerNote,
+  buildNonCanonicalClosureCommand,
+  buildNonCanonicalClosureTrackerSyncCommand,
   buildNonCanonicalCleanupTrackerKey,
   buildNonCanonicalGameCleanupDraft,
   buildGameStatusDateRecommendations,
   clearNonCanonicalCleanupTracker,
+  extractNonCanonicalCleanupArtifactPaths,
+  extractNonCanonicalCleanupClosureSync,
+  extractNonCanonicalCleanupSystemNote,
+  extractNonCanonicalCleanupUserNote,
   formatInputDate,
   loadAllNonCanonicalCleanupTrackers,
   loadNonCanonicalCleanupTracker,
@@ -165,6 +172,139 @@ test('buildNonCanonicalGameCleanupDraft는 운영 전달용 정제 요청 텍스
   assert.match(result, /20260329BROKEN/);
   assert.match(result, /원정 롯데0 \/ 홈 0LG/);
   assert.match(result, /task\/operations\/prediction-game-status-repair-runbook\.md/);
+});
+
+test('extractNonCanonicalCleanupArtifactPaths는 tracker note에서 최신 summary와 handoff 경로를 추출한다', () => {
+  const note = [
+    '[closure-sync 2026-04-17 12:15:23 KST] compare=FAIL tracker=in_progress resolved=0 remaining=3 new=0',
+    '- summary_json: /tmp/old-summary.json',
+    '',
+    '[closure-sync 2026-04-17 17:33:09 KST] compare=FAIL tracker=in_progress resolved=0 remaining=3 new=0',
+    '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+    '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+  ].join('\n');
+
+  assert.deepEqual(extractNonCanonicalCleanupArtifactPaths(note), {
+    summaryJson: '/tmp/noncanonical-summary-2026-04-14.json',
+    handoffMd: '/tmp/noncanonical-handoff-2026-04-14.md',
+  });
+});
+
+test('extractNonCanonicalCleanupClosureSync는 tracker note에서 최신 closure-sync 상태를 추출한다', () => {
+  const note = [
+    '[closure-sync 2026-04-17 12:15:23 KST] compare=FAIL tracker=in_progress resolved=0 remaining=3 new=0',
+    '- summary_json: /tmp/old-summary.json',
+    '',
+    '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+    '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+    '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+  ].join('\n');
+
+  assert.deepEqual(extractNonCanonicalCleanupClosureSync(note), {
+    comparedAt: '2026-04-17 18:01:44 KST',
+    compareStatus: 'PASS',
+    trackerStatus: 'done',
+    resolvedCount: 3,
+    remainingCount: 0,
+    newCount: 0,
+  });
+});
+
+test('extractNonCanonicalCleanupUserNote는 closure-sync 시스템 로그를 제외한 사용자 메모만 남긴다', () => {
+  const note = [
+    'raw team code 정제 요청 전달',
+    '운영 티켓 #42 확인 필요',
+    '',
+    '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+    '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+    '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+  ].join('\n');
+
+  assert.equal(
+    extractNonCanonicalCleanupUserNote(note),
+    ['raw team code 정제 요청 전달', '운영 티켓 #42 확인 필요'].join('\n'),
+  );
+});
+
+test('extractNonCanonicalCleanupSystemNote는 closure-sync 시스템 로그 블록만 추출한다', () => {
+  const note = [
+    'raw team code 정제 요청 전달',
+    '운영 티켓 #42 확인 필요',
+    '',
+    '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+    '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+    '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+  ].join('\n');
+
+  assert.equal(
+    extractNonCanonicalCleanupSystemNote(note),
+    [
+      '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+      '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+      '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+    ].join('\n'),
+  );
+});
+
+test('buildNonCanonicalCleanupTrackerNote는 사용자 메모 저장 시 기존 system suffix를 보존한다', () => {
+  const merged = buildNonCanonicalCleanupTrackerNote({
+    userNote: 'raw team code 정제 요청 전달\n운영 티켓 #42 확인 필요',
+    existingNote: [
+      '이전 메모',
+      '',
+      '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+      '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+      '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+    ].join('\n'),
+  });
+
+  assert.equal(
+    merged,
+    [
+      'raw team code 정제 요청 전달',
+      '운영 티켓 #42 확인 필요',
+      '[closure-sync 2026-04-17 18:01:44 KST] compare=PASS tracker=done resolved=3 remaining=0 new=0',
+      '- summary_json: /tmp/noncanonical-summary-2026-04-14.json',
+      '- handoff_md: /tmp/noncanonical-handoff-2026-04-14.md',
+    ].join('\n'),
+  );
+});
+
+test('buildNonCanonicalClosureCommand는 artifact dir 기준 재검증 명령을 만든다', () => {
+  const command = buildNonCanonicalClosureCommand({
+    summaryJson: '/tmp/noncanonical-bundle-2026-04-14-live/noncanonical-summary-2026-04-14.json',
+    handoffMd: '/tmp/noncanonical-bundle-2026-04-14-live/noncanonical-handoff-2026-04-14.md',
+  });
+
+  assert.equal(command, [
+    'DATABASE_URL=<DATABASE_URL> \\',
+    'bash scripts/report_prediction_noncanonical_closure.sh \\',
+    "  --artifact-dir '/tmp/noncanonical-bundle-2026-04-14-live' \\",
+    '  --fail-on-unresolved',
+  ].join('\n'));
+});
+
+test('buildNonCanonicalClosureTrackerSyncCommand는 closure와 tracker sync 명령을 함께 만든다', () => {
+  const command = buildNonCanonicalClosureTrackerSyncCommand({
+    summaryJson: '/tmp/noncanonical-bundle-2026-04-14-live/noncanonical-summary-2026-04-14.json',
+    handoffMd: '/tmp/noncanonical-bundle-2026-04-14-live/noncanonical-handoff-2026-04-14.md',
+  });
+
+  assert.equal(command, [
+    'DATABASE_URL=<DATABASE_URL> \\',
+    'TRACKER_BASE_URL=<TRACKER_BASE_URL> \\',
+    'TRACKER_ORIGIN=<TRACKER_ORIGIN> \\',
+    'TRACKER_ADMIN_EMAIL=<ADMIN_EMAIL> \\',
+    "TRACKER_ADMIN_PASSWORD='<ADMIN_PASSWORD>' \\",
+    'bash scripts/report_prediction_noncanonical_closure.sh \\',
+    "  --artifact-dir '/tmp/noncanonical-bundle-2026-04-14-live' \\",
+    '  --fail-on-unresolved \\',
+    '  --sync-tracker \\',
+    '  --tracker-base-url "$TRACKER_BASE_URL" \\',
+    '  --tracker-origin "$TRACKER_ORIGIN" \\',
+    '  --tracker-admin-email "$TRACKER_ADMIN_EMAIL" \\',
+    '  --tracker-admin-password "$TRACKER_ADMIN_PASSWORD"',
+  ].join('\n'));
 });
 
 test('non-canonical cleanup tracker는 범위별로 저장하고 불러온다', () => {

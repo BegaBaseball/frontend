@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  checkSignUpEmailAvailability,
-  checkSignUpHandleAvailability,
-  signupUser,
-  SignUpSubmissionError,
-} from '../api/authPublic';
-import {
   createSignUpAvailabilityState,
   normalizeSignUpEmailValue,
   normalizeSignUpHandleInput,
@@ -46,6 +40,23 @@ const initialFieldErrors: FieldErrors = {
 const initialAvailabilityState: SignUpFieldAvailability = {
   state: 'idle',
   message: '',
+};
+
+let authPublicModulePromise: Promise<typeof import('../api/authPublic')> | null = null;
+
+const loadAuthPublicModule = () => {
+  authPublicModulePromise ??= import('../api/authPublic');
+  return authPublicModulePromise;
+};
+
+const checkHandleAvailability = async (value: string, signal?: AbortSignal) => {
+  const authPublic = await loadAuthPublicModule();
+  return authPublic.checkSignUpHandleAvailability(value, signal);
+};
+
+const checkEmailAvailability = async (value: string, signal?: AbortSignal) => {
+  const authPublic = await loadAuthPublicModule();
+  return authPublic.checkSignUpEmailAvailability(value, signal);
 };
 
 const useSignUpAvailabilityCheck = (
@@ -120,13 +131,13 @@ export const useSignUpForm = () => {
     'handle',
     normalizedHandle,
     validateField('handle', normalizedHandle) === '',
-    checkSignUpHandleAvailability,
+    checkHandleAvailability,
   );
   const [emailAvailability, setEmailAvailability] = useSignUpAvailabilityCheck(
     'email',
     normalizedEmail,
     validateField('email', normalizedEmail) === '',
-    checkSignUpEmailAvailability,
+    checkEmailAvailability,
   );
 
   const currentValidationErrors = validateAllFields(formData);
@@ -206,7 +217,8 @@ export const useSignUpForm = () => {
     setIsLoading(true);
 
     try {
-      await signupUser({
+      const authPublic = await loadAuthPublicModule();
+      await authPublic.signupUser({
         name: formData.name,
         handle: normalizeSignUpHandleValue(formData.handle),
         email: normalizeSignUpEmailValue(formData.email),
@@ -223,7 +235,8 @@ export const useSignUpForm = () => {
     } catch (err) {
       console.error('Sign up error:', err);
 
-      if (err instanceof SignUpSubmissionError) {
+      const authPublic = await loadAuthPublicModule();
+      if (err instanceof authPublic.SignUpSubmissionError) {
         if (err.field === 'handle') {
           setHandleAvailability(createSignUpAvailabilityState(
             'handle',

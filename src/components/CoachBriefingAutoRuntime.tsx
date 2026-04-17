@@ -286,7 +286,7 @@ export default function CoachBriefingAutoRuntime({
   const awayPitcherName = resolvePitcherName(gameDetail?.awayPitcher ?? game?.awayPitcher);
   const requestLeagueTypeCode = resolveLeagueTypeCode(game?.leagueType, game?.postSeasonSeries);
   const MAX_COACH_RETRIES = 3;
-  const RETRY_DELAYS_MS = [4000, 6000, 9000] as const;
+  const RETRY_DELAYS_MS = [2000, 4000, 6000] as const;
   const MAX_BACKOFF_MS = 16000;
   const effectiveRequestMode: CoachRequestMode = requestMode;
   const briefingLabel = autoEnabled ? '실데이터 브리핑' : 'AI 코치 분석';

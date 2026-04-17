@@ -40,6 +40,7 @@ const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
+const SchedulePage = lazy(() => import('../pages/SchedulePage'));
 
 export default function AppRoutes() {
   return (
@@ -71,6 +72,7 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
+          <Route path="/schedule" element={<SchedulePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>

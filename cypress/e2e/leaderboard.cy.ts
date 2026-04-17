@@ -150,7 +150,8 @@ describe('Leaderboard page', () => {
     cy.contains(/1,?242회/).should('be.visible');
     cy.contains('한화스타').should('be.visible');
     cy.contains('부산불').should('be.visible');
-    cy.contains('POWER-UPS').should('be.visible');
+    cy.scrollTo('bottom');
+    cy.contains('POWER-UPS', { timeout: 10000 }).should('be.visible');
     cy.contains('매직 배트').should('be.visible');
     cy.contains('x3').should('be.visible');
     cy.contains('연승 중인 플레이어').should('be.visible');

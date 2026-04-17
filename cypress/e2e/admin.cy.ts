@@ -181,6 +181,7 @@ describe('Admin page coverage', () => {
     let seatViews: SeatViewRecord[];
     let offseasonMovements: OffseasonMovementRecord[];
     let placesByStadium: Record<string, PlaceRecord[]>;
+    let nonCanonicalCleanupTrackerRequestNotes: string[];
 
     const superAdminProfile = {
         id: 3,
@@ -430,6 +431,7 @@ describe('Admin page coverage', () => {
     };
 
     beforeEach(() => {
+        nonCanonicalCleanupTrackerRequestNotes = [];
         users = [
             {
                 id: 3,
@@ -815,13 +817,23 @@ describe('Admin page coverage', () => {
         cy.intercept('PUT', '**/api/admin/games/non-canonical-cleanup-trackers*', (req) => {
             const startDate = readQuery(req.url, 'startDate') || '2026-03-29';
             const endDate = readQuery(req.url, 'endDate') || startDate;
+            const requestNote = String(req.body.note ?? '');
+            nonCanonicalCleanupTrackerRequestNotes.push(requestNote);
+            const appendedNote = /\[closure-sync /.test(requestNote)
+                ? requestNote
+                : [
+                requestNote,
+                '[closure-sync 2026-03-29 21:45:00 KST] compare=FAIL tracker=in_progress resolved=0 remaining=1 new=0',
+                '- summary_json: /tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json',
+                '- handoff_md: /tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md',
+            ].filter(Boolean).join('\n');
             const savedRecord: NonCanonicalCleanupTrackerRecord = {
                 startDate,
                 endDate,
                 ticketUrl: req.body.ticketUrl ?? '',
                 assignee: req.body.assignee ?? '',
                 status: req.body.status ?? 'draft',
-                note: req.body.note ?? '',
+                note: appendedNote,
                 updatedAt: '2026-03-29T12:45:00Z',
                 gameIds: Array.isArray(req.body.gameIds) ? req.body.gameIds : [],
             };
@@ -1358,21 +1370,70 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-game-status-ticket-saved-at').should(($el) => {
             expect($el.text().trim()).not.to.equal('-');
         });
+        cy.getBySel('admin-game-status-ticket-note').should('have.value', 'raw team code 정제 요청 전달');
+        cy.getBySel('admin-game-status-ticket-save').click({ force: true });
+        cy.wait('@upsertAdminNonCanonicalCleanupTracker');
+        cy.wrap(null).then(() => {
+            expect(nonCanonicalCleanupTrackerRequestNotes).to.have.length(2);
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('raw team code 정제 요청 전달');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('[closure-sync 2026-03-29 21:45:00 KST]');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('- summary_json: /tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('- handoff_md: /tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        });
         cy.getBySel('admin-game-status-current-tracker-summary').should('contain', '요청 완료').and('contain', 'ops-team');
         cy.getBySel('admin-game-status-current-tracker-progress')
             .should('contain', '저장된 비정상 row 1건 중 1건 남아 있습니다.');
         cy.getBySel('admin-game-status-ticket-link')
             .should('have.attr', 'href', 'https://tickets.example.com/noncanonical-20260329');
+        cy.getBySel('admin-game-status-current-artifact-summary-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json');
+        cy.getBySel('admin-game-status-current-artifact-handoff-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        cy.getBySel('admin-game-status-current-closure-compare-status').should('contain', 'FAIL');
+        cy.getBySel('admin-game-status-current-closure-tracker-status').should('contain', 'in_progress');
+        cy.getBySel('admin-game-status-current-closure-counts')
+            .should('contain', 'resolved 0 / remaining 1 / new 0');
+        cy.getBySel('admin-game-status-current-artifact-copy-handoff-path').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(2);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.eq('/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        });
+        cy.getBySel('admin-game-status-current-artifact-copy-closure-command').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(3);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include("bash scripts/report_prediction_noncanonical_closure.sh \\");
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include("  --artifact-dir '/tmp/noncanonical-bundle-2026-03-29' \\");
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --fail-on-unresolved');
+        });
+        cy.getBySel('admin-game-status-current-artifact-copy-tracker-sync-command').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(4);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('TRACKER_BASE_URL=<TRACKER_BASE_URL> \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --sync-tracker \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --tracker-admin-email "$TRACKER_ADMIN_EMAIL" \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --tracker-admin-password "$TRACKER_ADMIN_PASSWORD"');
+        });
         cy.getBySel('admin-game-status-ticket-progress')
             .should('contain', '저장된 비정상 row 1건 중 1건 남아 있습니다.');
         cy.getBySel('admin-game-status-ticket-mark-done').should('not.exist');
         cy.getBySel('admin-game-status-suggestion-2026-03-29')
             .should('contain', '요청 완료')
             .and('contain', 'ops-team');
+        cy.getBySel('admin-game-status-suggestion-closure-2026-03-29')
+            .should('contain', 'closure FAIL / remaining 1');
+        cy.getBySel('admin-game-status-suggestion-artifacts-2026-03-29')
+            .should('contain', '산출물: summary / handoff');
         cy.getBySel('admin-game-status-history-2026-03-29')
             .should('contain', '요청 완료')
             .and('contain', 'ops-team')
-            .and('contain', '20260329BROKEN');
+            .and('contain', '20260329BROKEN')
+            .and('contain', 'raw team code 정제 요청 전달')
+            .and('not.contain', '[closure-sync');
+        cy.getBySel('admin-game-status-history-artifact-2026-03-29-handoff-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        cy.getBySel('admin-game-status-history-closure-2026-03-29-compare-status').should('contain', 'FAIL');
+        cy.getBySel('admin-game-status-history-closure-2026-03-29-counts')
+            .should('contain', 'resolved 0 / remaining 1 / new 0');
         cy.getBySel('admin-game-status-load-history-2026-03-29').click({ force: true });
         cy.wait('@getAdminGameStatusMismatches');
         cy.getBySel('admin-game-status-start-date').should('have.value', '2026-03-29');

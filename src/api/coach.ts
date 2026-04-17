@@ -211,6 +211,9 @@ export const getCoachGenerationModeLabel = (value?: CoachGenerationMode): string
 
 export interface AnalyzeOptions {
     signal?: AbortSignal;
+    onPreviewChunk?: (text: string, attempt: number) => void;
+    onPreviewReset?: (attempt: number) => void;
+    onStatus?: (status: string) => void;
 }
 
 export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED';
@@ -547,7 +550,14 @@ export async function analyzeTeam(
                 timeoutMs: getCoachStreamReadTimeoutMs(requestMode),
                 signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
-                    if (event !== 'message' && event !== 'meta' && event !== 'error') {
+                    if (
+                        event !== 'message'
+                        && event !== 'meta'
+                        && event !== 'error'
+                        && event !== 'preview_chunk'
+                        && event !== 'preview_reset'
+                        && event !== 'status'
+                    ) {
                         return;
                     }
 
@@ -555,6 +565,29 @@ export async function analyzeTeam(
                     try {
                         parsed = JSON.parse(dataStr) as AiStreamMetaPayload & Record<string, unknown>;
                     } catch {
+                        return;
+                    }
+
+                    if (event === 'preview_chunk') {
+                        if (options?.onPreviewChunk && typeof parsed.text === 'string') {
+                            const attempt = typeof parsed.attempt === 'number' ? parsed.attempt : 1;
+                            options.onPreviewChunk(parsed.text, attempt);
+                        }
+                        return;
+                    }
+
+                    if (event === 'preview_reset') {
+                        if (options?.onPreviewReset) {
+                            const attempt = typeof parsed.attempt === 'number' ? parsed.attempt : 1;
+                            options.onPreviewReset(attempt);
+                        }
+                        return;
+                    }
+
+                    if (event === 'status') {
+                        if (options?.onStatus && typeof parsed.status === 'string') {
+                            options.onStatus(parsed.status);
+                        }
                         return;
                     }
 
