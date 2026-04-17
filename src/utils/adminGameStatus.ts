@@ -18,6 +18,20 @@ export interface AdminGameStatusDateRecommendation {
   effectiveStatuses: string[];
 }
 
+export interface AdminNonCanonicalCleanupArtifactPaths {
+  summaryJson: string | null;
+  handoffMd: string | null;
+}
+
+export interface AdminNonCanonicalCleanupClosureSync {
+  comparedAt: string | null;
+  compareStatus: 'PASS' | 'FAIL' | 'UNKNOWN';
+  trackerStatus: string | null;
+  resolvedCount: number | null;
+  remainingCount: number | null;
+  newCount: number | null;
+}
+
 const NON_CANONICAL_CLEANUP_TRACKER_STORAGE_KEY = 'admin-game-status-non-canonical-tracker:v1';
 
 export const formatInputDate = (date = new Date()) =>
@@ -97,6 +111,139 @@ export const parseNonCanonicalCleanupTrackerKey = (key: string) => {
     startDate,
     endDate: endDate || startDate,
   };
+};
+
+const extractLastNotePath = (note: string, fieldName: 'summary_json' | 'handoff_md') => {
+  const matches = [...note.matchAll(new RegExp(`^- ${fieldName}:\\s*(.+)$`, 'gm'))];
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const candidate = matches[matches.length - 1]?.[1]?.trim();
+  return candidate ? candidate : null;
+};
+
+export const extractNonCanonicalCleanupArtifactPaths = (note: string): AdminNonCanonicalCleanupArtifactPaths => ({
+  summaryJson: extractLastNotePath(note, 'summary_json'),
+  handoffMd: extractLastNotePath(note, 'handoff_md'),
+});
+
+const extractArtifactDir = (path: string | null) => {
+  if (!path) {
+    return null;
+  }
+
+  const normalized = path.trim();
+  const lastSlashIndex = normalized.lastIndexOf('/');
+  if (lastSlashIndex <= 0) {
+    return null;
+  }
+
+  return normalized.slice(0, lastSlashIndex);
+};
+
+const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+
+const findFirstSystemLineIndex = (lines: string[]) => lines.findIndex((line) => (
+  /^\[closure-sync /.test(line)
+  || /^- (summary_json|handoff_md):/.test(line)
+));
+
+export const buildNonCanonicalClosureCommand = (artifacts: AdminNonCanonicalCleanupArtifactPaths) => {
+  const artifactDir = extractArtifactDir(artifacts.summaryJson) ?? extractArtifactDir(artifacts.handoffMd);
+  if (!artifactDir) {
+    return null;
+  }
+
+  return [
+    'DATABASE_URL=<DATABASE_URL> \\',
+    'bash scripts/report_prediction_noncanonical_closure.sh \\',
+    `  --artifact-dir ${shellQuote(artifactDir)} \\`,
+    '  --fail-on-unresolved',
+  ].join('\n');
+};
+
+export const buildNonCanonicalClosureTrackerSyncCommand = (artifacts: AdminNonCanonicalCleanupArtifactPaths) => {
+  const artifactDir = extractArtifactDir(artifacts.summaryJson) ?? extractArtifactDir(artifacts.handoffMd);
+  if (!artifactDir) {
+    return null;
+  }
+
+  return [
+    'DATABASE_URL=<DATABASE_URL> \\',
+    'TRACKER_BASE_URL=<TRACKER_BASE_URL> \\',
+    'TRACKER_ORIGIN=<TRACKER_ORIGIN> \\',
+    'TRACKER_ADMIN_EMAIL=<ADMIN_EMAIL> \\',
+    "TRACKER_ADMIN_PASSWORD='<ADMIN_PASSWORD>' \\",
+    'bash scripts/report_prediction_noncanonical_closure.sh \\',
+    `  --artifact-dir ${shellQuote(artifactDir)} \\`,
+    '  --fail-on-unresolved \\',
+    '  --sync-tracker \\',
+    '  --tracker-base-url "$TRACKER_BASE_URL" \\',
+    '  --tracker-origin "$TRACKER_ORIGIN" \\',
+    '  --tracker-admin-email "$TRACKER_ADMIN_EMAIL" \\',
+    '  --tracker-admin-password "$TRACKER_ADMIN_PASSWORD"',
+  ].join('\n');
+};
+
+export const extractNonCanonicalCleanupClosureSync = (note: string): AdminNonCanonicalCleanupClosureSync | null => {
+  const matches = [
+    ...note.matchAll(
+      /\[closure-sync ([^\]]+)\][^\n\r]*?compare=(PASS|FAIL|UNKNOWN)\s+tracker=([^\s]+)\s+resolved=(\d+)\s+remaining=(\d+)\s+new=(\d+)/g,
+    ),
+  ];
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const latest = matches[matches.length - 1];
+  return {
+    comparedAt: latest?.[1]?.trim() || null,
+    compareStatus: (latest?.[2]?.trim() as AdminNonCanonicalCleanupClosureSync['compareStatus']) || 'UNKNOWN',
+    trackerStatus: latest?.[3]?.trim() || null,
+    resolvedCount: latest?.[4] ? Number.parseInt(latest[4], 10) : null,
+    remainingCount: latest?.[5] ? Number.parseInt(latest[5], 10) : null,
+    newCount: latest?.[6] ? Number.parseInt(latest[6], 10) : null,
+  };
+};
+
+export const extractNonCanonicalCleanupUserNote = (note: string): string => {
+  const lines = note.split(/\r?\n/);
+  const firstSystemLineIndex = findFirstSystemLineIndex(lines);
+
+  const keptLines = (firstSystemLineIndex >= 0 ? lines.slice(0, firstSystemLineIndex) : lines).slice();
+  while (keptLines.length > 0 && keptLines[keptLines.length - 1].trim() === '') {
+    keptLines.pop();
+  }
+
+  return keptLines.join('\n').trim();
+};
+
+export const extractNonCanonicalCleanupSystemNote = (note: string): string => {
+  const lines = note.split(/\r?\n/);
+  const firstSystemLineIndex = findFirstSystemLineIndex(lines);
+  if (firstSystemLineIndex < 0) {
+    return '';
+  }
+
+  return lines.slice(firstSystemLineIndex).join('\n').trim();
+};
+
+export const buildNonCanonicalCleanupTrackerNote = ({
+  userNote,
+  existingNote,
+}: {
+  userNote: string;
+  existingNote: string;
+}) => {
+  const trimmedUserNote = userNote.trim();
+  const systemNote = extractNonCanonicalCleanupSystemNote(existingNote);
+
+  if (trimmedUserNote && systemNote) {
+    return `${trimmedUserNote}\n${systemNote}`;
+  }
+
+  return trimmedUserNote || systemNote;
 };
 
 export const buildNonCanonicalGameCleanupDraft = ({

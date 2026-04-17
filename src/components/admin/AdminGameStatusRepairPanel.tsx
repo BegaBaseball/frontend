@@ -17,9 +17,15 @@ import type {
 } from '../../types/admin';
 import { cn } from '../../lib/utils';
 import {
+  buildNonCanonicalCleanupTrackerNote,
+  buildNonCanonicalClosureCommand,
+  buildNonCanonicalClosureTrackerSyncCommand,
   buildNonCanonicalCleanupTrackerKey,
   buildNonCanonicalGameCleanupDraft,
   buildGameStatusDateRecommendations,
+  extractNonCanonicalCleanupArtifactPaths,
+  extractNonCanonicalCleanupClosureSync,
+  extractNonCanonicalCleanupUserNote,
   formatInputDate,
   parseNonCanonicalCleanupTrackerKey,
   shiftInputDate,
@@ -342,12 +348,16 @@ function MismatchDateSuggestionCard({
   recommendation,
   trackerStatus,
   trackerAssignee,
+  trackerClosureSync,
+  trackerArtifacts,
   active,
   onSelect,
 }: {
   recommendation: AdminGameStatusDateRecommendation;
   trackerStatus?: AdminNonCanonicalCleanupTrackerStatus | null;
   trackerAssignee?: string | null;
+  trackerClosureSync?: ReturnType<typeof extractNonCanonicalCleanupClosureSync>;
+  trackerArtifacts?: ReturnType<typeof extractNonCanonicalCleanupArtifactPaths>;
   active: boolean;
   onSelect: (gameDate: string) => void;
 }) {
@@ -355,6 +365,10 @@ function MismatchDateSuggestionCard({
   const issueSummary = recommendation.nonCanonicalCount > 0
     ? `mismatch ${recommendation.mismatchCount}건 / 비정상 팀 코드 ${recommendation.nonCanonicalCount}건`
     : `mismatch ${recommendation.mismatchCount}건`;
+  const artifactSummary = [
+    trackerArtifacts?.summaryJson ? 'summary' : null,
+    trackerArtifacts?.handoffMd ? 'handoff' : null,
+  ].filter(Boolean).join(' / ');
 
   return (
     <button
@@ -387,6 +401,22 @@ function MismatchDateSuggestionCard({
           )}
         </div>
       )}
+      {trackerClosureSync && (
+        <p
+          data-testid={`admin-game-status-suggestion-closure-${recommendation.gameDate}`}
+          className="mt-2 text-[13px] text-slate-400"
+        >
+          closure {trackerClosureSync.compareStatus} / remaining {trackerClosureSync.remainingCount ?? '-'}
+        </p>
+      )}
+      {artifactSummary && (
+        <p
+          data-testid={`admin-game-status-suggestion-artifacts-${recommendation.gameDate}`}
+          className="mt-1 text-[13px] text-slate-500"
+        >
+          산출물: {artifactSummary}
+        </p>
+      )}
       <p className="mt-3 text-[14px] text-slate-300">
         {issueSummary}
       </p>
@@ -394,6 +424,182 @@ function MismatchDateSuggestionCard({
         예상 상태: {statusSummary || '상태 mismatch 없음'}
       </p>
     </button>
+  );
+}
+
+function CleanupArtifactPaths({
+  artifacts,
+  testIdPrefix,
+  onCopyPath,
+  onCopyClosureCommand,
+  onCopyTrackerSyncCommand,
+}: {
+  artifacts: ReturnType<typeof extractNonCanonicalCleanupArtifactPaths>;
+  testIdPrefix: string;
+  onCopyPath: (path: string, label: string) => void;
+  onCopyClosureCommand: (command: string) => void;
+  onCopyTrackerSyncCommand: (command: string) => void;
+}) {
+  const closureCommand = buildNonCanonicalClosureCommand(artifacts);
+  const trackerSyncCommand = buildNonCanonicalClosureTrackerSyncCommand(artifacts);
+
+  if (!artifacts.summaryJson && !artifacts.handoffMd && !closureCommand && !trackerSyncCommand) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">자동 산출물</p>
+      {artifacts.summaryJson && (
+        <div className="space-y-1">
+          <p className="text-[12px] text-slate-500">summary</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code
+              data-testid={`${testIdPrefix}-summary-path`}
+              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+            >
+              {artifacts.summaryJson}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              data-testid={`${testIdPrefix}-copy-summary-path`}
+              onClick={() => onCopyPath(artifacts.summaryJson!, 'summary')}
+            >
+              <AdminClipboardIcon className="h-4 w-4" />
+              경로 복사
+            </Button>
+          </div>
+        </div>
+      )}
+      {artifacts.handoffMd && (
+        <div className="space-y-1">
+          <p className="text-[12px] text-slate-500">handoff</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code
+              data-testid={`${testIdPrefix}-handoff-path`}
+              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+            >
+              {artifacts.handoffMd}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              data-testid={`${testIdPrefix}-copy-handoff-path`}
+              onClick={() => onCopyPath(artifacts.handoffMd!, 'handoff')}
+            >
+              <AdminClipboardIcon className="h-4 w-4" />
+              경로 복사
+            </Button>
+          </div>
+        </div>
+      )}
+      {closureCommand && (
+        <div className="space-y-1">
+          <p className="text-[12px] text-slate-500">closure rerun</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code
+              data-testid={`${testIdPrefix}-closure-command`}
+              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+            >
+              {closureCommand}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              data-testid={`${testIdPrefix}-copy-closure-command`}
+              onClick={() => onCopyClosureCommand(closureCommand)}
+            >
+              <AdminClipboardIcon className="h-4 w-4" />
+              명령 복사
+            </Button>
+          </div>
+        </div>
+      )}
+      {trackerSyncCommand && (
+        <div className="space-y-1">
+          <p className="text-[12px] text-slate-500">closure + tracker sync</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code
+              data-testid={`${testIdPrefix}-tracker-sync-command`}
+              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+            >
+              {trackerSyncCommand}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              data-testid={`${testIdPrefix}-copy-tracker-sync-command`}
+              onClick={() => onCopyTrackerSyncCommand(trackerSyncCommand)}
+            >
+              <AdminClipboardIcon className="h-4 w-4" />
+              명령 복사
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CleanupClosureStatus({
+  closureSync,
+  testIdPrefix,
+}: {
+  closureSync: ReturnType<typeof extractNonCanonicalCleanupClosureSync>;
+  testIdPrefix: string;
+}) {
+  if (!closureSync) {
+    return null;
+  }
+
+  const compareBadgeClassName = closureSync.compareStatus === 'PASS'
+    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+    : closureSync.compareStatus === 'FAIL'
+      ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+      : 'border-slate-700 bg-slate-900 text-slate-200';
+  const trackerBadgeClassName = closureSync.trackerStatus && closureSync.trackerStatus in cleanupStatusBadgeClassName
+    ? cleanupStatusBadgeClassName[closureSync.trackerStatus as AdminNonCanonicalCleanupTrackerStatus]
+    : 'border-slate-700 bg-slate-900 text-slate-200';
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">최신 closure</p>
+        <span
+          data-testid={`${testIdPrefix}-compare-status`}
+          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${compareBadgeClassName}`}
+        >
+          {closureSync.compareStatus}
+        </span>
+        {closureSync.trackerStatus && (
+          <span
+            data-testid={`${testIdPrefix}-tracker-status`}
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${trackerBadgeClassName}`}
+          >
+            {closureSync.trackerStatus}
+          </span>
+        )}
+      </div>
+      <p
+        data-testid={`${testIdPrefix}-counts`}
+        className="text-[13px] text-slate-300"
+      >
+        resolved {closureSync.resolvedCount ?? '-'} / remaining {closureSync.remainingCount ?? '-'} / new {closureSync.newCount ?? '-'}
+      </p>
+      {closureSync.comparedAt && (
+        <p
+          data-testid={`${testIdPrefix}-compared-at`}
+          className="text-[12px] text-slate-500"
+        >
+          비교 시각: {closureSync.comparedAt}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -580,6 +786,9 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
     )
   ), [cleanupTrackers]);
   const currentRangeCleanupTracker = allCleanupTrackers[cleanupTrackerKey] ?? null;
+  const currentRangeCleanupArtifacts = extractNonCanonicalCleanupArtifactPaths(currentRangeCleanupTracker?.note ?? '');
+  const currentRangeCleanupClosureSync = extractNonCanonicalCleanupClosureSync(currentRangeCleanupTracker?.note ?? '');
+  const currentRangeCleanupUserNote = extractNonCanonicalCleanupUserNote(currentRangeCleanupTracker?.note ?? '');
   const trackedGameIdsForSave = nonCanonicalList.length > 0
     ? nonCanonicalList.map((game) => game.gameId)
     : currentRangeCleanupTracker?.gameIds ?? [];
@@ -603,11 +812,23 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
     nonCanonicalList.some((game) => game.gameId === gameId),
   );
   const currentResolvedTrackedCount = currentTrackedGameIds.length - currentRemainingTrackedGameIds.length;
+  const currentNewTrackedCount = nonCanonicalList.filter((game) => !currentTrackedGameIds.includes(game.gameId)).length;
   const currentRangeCleanupProgressMessage = currentRangeCleanupTracker && mismatchResult && currentTrackedGameIds.length > 0
     ? currentRemainingTrackedGameIds.length === 0
       ? `재진단 결과: 저장된 비정상 row ${currentTrackedGameIds.length}건이 모두 해소되었습니다.`
       : `재진단 결과: 저장된 비정상 row ${currentTrackedGameIds.length}건 중 ${currentRemainingTrackedGameIds.length}건 남아 있습니다.`
     : null;
+  const currentRangeClosureFallback = currentRangeCleanupTracker && mismatchResult && currentTrackedGameIds.length > 0
+    ? {
+      comparedAt: null,
+      compareStatus: (currentRemainingTrackedGameIds.length === 0 && currentNewTrackedCount === 0 ? 'PASS' : 'FAIL') as const,
+      trackerStatus: currentRangeCleanupTracker.status,
+      resolvedCount: currentResolvedTrackedCount,
+      remainingCount: currentRemainingTrackedGameIds.length,
+      newCount: currentNewTrackedCount,
+    }
+    : null;
+  const currentRangeClosureDisplay = currentRangeCleanupClosureSync ?? currentRangeClosureFallback;
   const canMarkCleanupDone = Boolean(
     currentRangeCleanupTracker
     && mismatchResult
@@ -620,9 +841,9 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
     setCleanupTicketUrl(currentRangeCleanupTracker?.ticketUrl ?? '');
     setCleanupAssignee(currentRangeCleanupTracker?.assignee ?? '');
     setCleanupStatus(currentRangeCleanupTracker?.status ?? 'draft');
-    setCleanupNote(currentRangeCleanupTracker?.note ?? '');
+    setCleanupNote(currentRangeCleanupUserNote);
     setCleanupSavedAt(currentRangeCleanupTracker?.updatedAt ?? null);
-  }, [cleanupTrackerKey, currentRangeCleanupTracker]);
+  }, [cleanupTrackerKey, currentRangeCleanupTracker, currentRangeCleanupUserNote]);
 
   useEffect(() => {
     setCleanupTrackerMessage(null);
@@ -681,6 +902,42 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
     }
   };
 
+  const handleArtifactPathCopy = async (path: string, label: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(path);
+      setCleanupTrackerMessage(`${label} 경로를 복사했습니다.`);
+    } catch {
+      setCleanupTrackerMessage(`${label} 경로를 복사하지 못했습니다.`);
+    }
+  };
+
+  const handleClosureCommandCopy = async (command: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(command);
+      setCleanupTrackerMessage('closure 재검증 명령을 복사했습니다.');
+    } catch {
+      setCleanupTrackerMessage('closure 재검증 명령을 복사하지 못했습니다.');
+    }
+  };
+
+  const handleTrackerSyncCommandCopy = async (command: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(command);
+      setCleanupTrackerMessage('closure + tracker sync 명령을 복사했습니다.');
+    } catch {
+      setCleanupTrackerMessage('closure + tracker sync 명령을 복사하지 못했습니다.');
+    }
+  };
+
   const handleSuggestionSelect = (gameDate: string) => {
     setStartDate(gameDate);
     setEndDate(gameDate);
@@ -717,7 +974,10 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           ticketUrl: cleanupTicketUrl.trim(),
           assignee: cleanupAssignee.trim(),
           status: cleanupStatus,
-          note: cleanupNote.trim(),
+          note: buildNonCanonicalCleanupTrackerNote({
+            userNote: cleanupNote,
+            existingNote: currentRangeCleanupTracker?.note ?? '',
+          }),
           updatedAt: cleanupSavedAt ?? '',
           gameIds: trackedGameIdsForSave,
         },
@@ -748,7 +1008,10 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           ticketUrl: cleanupTicketUrl.trim(),
           assignee: cleanupAssignee.trim(),
           status: 'done',
-          note: cleanupNote.trim(),
+          note: buildNonCanonicalCleanupTrackerNote({
+            userNote: cleanupNote,
+            existingNote: currentRangeCleanupTracker?.note ?? '',
+          }),
           updatedAt: cleanupSavedAt ?? '',
           gameIds: currentTrackedGameIds,
         },
@@ -1006,6 +1269,21 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 {currentRangeCleanupProgressMessage}
               </p>
             )}
+            <div className="mt-3">
+              <CleanupClosureStatus
+                closureSync={currentRangeClosureDisplay}
+                testIdPrefix="admin-game-status-current-closure"
+              />
+            </div>
+            <div className="mt-3">
+              <CleanupArtifactPaths
+                artifacts={currentRangeCleanupArtifacts}
+                testIdPrefix="admin-game-status-current-artifact"
+                onCopyPath={handleArtifactPathCopy}
+                onCopyClosureCommand={handleClosureCommandCopy}
+                onCopyTrackerSyncCommand={handleTrackerSyncCommandCopy}
+              />
+            </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="space-y-2">
@@ -1160,6 +1438,8 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 recommendation={recommendation}
                 trackerStatus={allCleanupTrackers[recommendation.gameDate]?.status ?? null}
                 trackerAssignee={allCleanupTrackers[recommendation.gameDate]?.assignee ?? null}
+                trackerClosureSync={extractNonCanonicalCleanupClosureSync(allCleanupTrackers[recommendation.gameDate]?.note ?? '')}
+                trackerArtifacts={extractNonCanonicalCleanupArtifactPaths(allCleanupTrackers[recommendation.gameDate]?.note ?? '')}
                 active={selectedSingleDate === recommendation.gameDate}
                 onSelect={handleSuggestionSelect}
               />
@@ -1186,6 +1466,10 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
             {savedCleanupTrackers.map(({ key, startDate: savedStartDate, endDate: savedEndDate, record }) => {
               const trackerTestId = key.replace(/[^0-9A-Za-z_-]/g, '-');
               const isCurrentRange = key === cleanupTrackerKey;
+              const trackerArtifacts = extractNonCanonicalCleanupArtifactPaths(record.note);
+              const trackerClosureSync = extractNonCanonicalCleanupClosureSync(record.note);
+              const trackerUserNote = extractNonCanonicalCleanupUserNote(record.note);
+              const trackerClosureDisplay = trackerClosureSync ?? (isCurrentRange ? currentRangeClosureDisplay : null);
 
               return (
                 <div
@@ -1219,9 +1503,9 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                           대상 경기: {record.gameIds.join(', ')}
                         </p>
                       )}
-                      {record.note && (
+                      {trackerUserNote && (
                         <p className="text-[13px] text-slate-400">
-                          메모: {record.note}
+                          메모: {trackerUserNote}
                         </p>
                       )}
                       {record.ticketUrl && (
@@ -1234,6 +1518,17 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                           {record.ticketUrl}
                         </a>
                       )}
+                      <CleanupClosureStatus
+                        closureSync={trackerClosureDisplay}
+                        testIdPrefix={`admin-game-status-history-closure-${trackerTestId}`}
+                      />
+                      <CleanupArtifactPaths
+                        artifacts={trackerArtifacts}
+                        testIdPrefix={`admin-game-status-history-artifact-${trackerTestId}`}
+                        onCopyPath={handleArtifactPathCopy}
+                        onCopyClosureCommand={handleClosureCommandCopy}
+                        onCopyTrackerSyncCommand={handleTrackerSyncCommandCopy}
+                      />
                     </div>
 
                     <Button
