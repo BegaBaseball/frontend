@@ -169,6 +169,7 @@ export default function CoachAnalysisDialogRuntime({
     const [analysisStep, setAnalysisStep] = useState<string>('');
     const [errorAction, setErrorAction] = useState<'login' | null>(null);
     const [hasMountedResultRuntime, setHasMountedResultRuntime] = useState(false);
+    const [previewText, setPreviewText] = useState<string>('');
     const navigate = useNavigate();
     const abortControllerRef = useRef<AbortController | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -296,6 +297,7 @@ export default function CoachAnalysisDialogRuntime({
         setAnalysisStep('감독님이 헤드셋 끼고 준비 중...');
         setResult(null);
         setErrorAction(null);
+        setPreviewText('');
 
         const steps = [
             '상대팀 벤치 몰래 훔쳐보는 중...',
@@ -355,9 +357,27 @@ export default function CoachAnalysisDialogRuntime({
             }, (currentText) => {
                 if (!isActiveAnalysisRequest(requestId, controller)) return;
                 setResult({ answer: currentText });
-            }, { signal: controller.signal }).then(finalResult => {
+            }, {
+                signal: controller.signal,
+                onPreviewChunk: (text) => {
+                    if (!isActiveAnalysisRequest(requestId, controller)) return;
+                    setPreviewText((prev) => prev + text);
+                },
+                onPreviewReset: () => {
+                    if (!isActiveAnalysisRequest(requestId, controller)) return;
+                    setPreviewText('');
+                },
+                onStatus: (status) => {
+                    if (!isActiveAnalysisRequest(requestId, controller)) return;
+                    if (status === 'first_chunk_received') {
+                        clearAnalysisInterval();
+                        setAnalysisStep('LLM 응답 생성 중...');
+                    }
+                },
+            }).then(finalResult => {
                 if (!isActiveAnalysisRequest(requestId, controller)) return;
                 setResult(finalResult);
+                setPreviewText('');
             });
 
         } catch (error) {
@@ -387,6 +407,7 @@ export default function CoachAnalysisDialogRuntime({
             if (!isActiveAnalysisRequest(requestId, controller)) return;
             setLoading(false);
             setAnalysisStep('');
+            setPreviewText('');
             abortControllerRef.current = null;
             clearAnalysisInterval();
         }
@@ -547,6 +568,19 @@ export default function CoachAnalysisDialogRuntime({
                             )}
                         </Button>
                     </div>
+
+                    {loading && previewText ? (
+                        <div
+                            data-testid="coach-analysis-preview"
+                            className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 px-4 py-3 text-[13px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+                        >
+                            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+                                <span className="rounded bg-amber-200/70 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">초안</span>
+                                <span className="text-amber-700/80 dark:text-amber-200/70">근거 검증 전 생성 중 · 확정 결과로 대체됩니다</span>
+                            </div>
+                            <p className="whitespace-pre-wrap break-words text-amber-900/90 dark:text-amber-100/90">{previewText}</p>
+                        </div>
+                    ) : null}
 
                     {shouldRenderResultRuntime ? (
                         <Suspense

@@ -613,7 +613,7 @@ describe('AI Chatbot', () => {
             cy.contains(reply).should('be.visible');
         });
 
-        it('restores the active session after a page reload', () => {
+        it('reopens the saved session from history after a page reload', () => {
             const firstQuestion = '첫 번째 세션 질문입니다.';
             const secondQuestion = '두 번째 세션 질문입니다.';
             const firstReply = '첫 번째 세션 답변입니다.';
@@ -663,22 +663,34 @@ describe('AI Chatbot', () => {
             cy.contains(secondReply, { timeout: 10000 }).should('be.visible');
             cy.getBySel('chatbot-session-title').should('contain', secondQuestion);
             cy.get('[aria-label="대화 내용"]').invoke('text').should('include', secondReply);
+            const activeSessionId = nextSessionId - 1;
+            const activeSessionTitle = secondQuestion;
 
             cy.visit('/mypage', {
                 onBeforeLoad(win) {
                     seedAuthenticatedWindow(win);
+                    win.sessionStorage.setItem('chatbot_current_session_id', String(activeSessionId));
+                    win.sessionStorage.setItem('chatbot_current_session_title', activeSessionTitle);
                 },
             });
             cy.window().then((win) => {
                 seedAuthenticatedWindow(win);
+                win.sessionStorage.setItem('chatbot_current_session_id', String(activeSessionId));
+                win.sessionStorage.setItem('chatbot_current_session_title', activeSessionTitle);
             });
             cy.setCookie('Authorization', authToken);
             cy.wait('@getMeAuthenticated');
-            cy.wait('@getChatSessions');
-            cy.wait('@getChatFavorites');
 
-            openChatbot();
-            cy.get('[aria-label="대화 내용"]').invoke('text')
+            openChatbotAndWaitForGreeting();
+            openHistoryTab();
+            cy.wait('@getChatSessions');
+            cy.contains('[data-testid="chatbot-history-session"]', secondQuestion).within(() => {
+                cy.getBySel('chatbot-history-session-open').click();
+            });
+            cy.wait('@getChatMessages');
+            cy.get('[aria-label="대화 내용"]')
+                .should('be.visible')
+                .invoke('text')
                 .should('include', secondQuestion)
                 .and('include', secondReply)
                 .and('not.include', firstQuestion);
