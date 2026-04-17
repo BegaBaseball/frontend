@@ -79,6 +79,38 @@ export {
   sanitizePredictionDeepLinkParams,
 } from '../utils/predictionDeepLink';
 
+type ResolvePredictionNavigationSeedRuntimeResultOptions = {
+  stateGame: Parameters<typeof buildPredictionNavigationSeedGame>[0];
+  deepLinkGameId: string;
+  deepLinkDate: string;
+};
+
+export const resolvePredictionNavigationSeedGame = ({
+  stateGame,
+  deepLinkGameId,
+  deepLinkDate,
+}: ResolvePredictionNavigationSeedRuntimeResultOptions) => (
+  buildPredictionNavigationSeedGame(stateGame, deepLinkGameId, deepLinkDate)
+);
+
+export const resolvePredictionNavigationSeedRuntimeResult = ({
+  stateGame,
+  deepLinkGameId,
+  deepLinkDate,
+}: ResolvePredictionNavigationSeedRuntimeResultOptions) => {
+  const navigationSeedGame = resolvePredictionNavigationSeedGame({
+    stateGame,
+    deepLinkGameId,
+    deepLinkDate,
+  });
+
+  return buildPredictionNavigationSeedRuntimeResult({
+    navigationSeedGame,
+    deepLinkDate,
+    stateGame,
+  });
+};
+
 export const buildPredictionNavigationSeedRuntimeResult = ({
   navigationSeedGame,
   deepLinkDate,
