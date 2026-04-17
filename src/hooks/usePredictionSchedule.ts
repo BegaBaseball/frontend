@@ -10,6 +10,7 @@ import {
   resolveInitialPredictionDateIndex,
 } from '../utils/predictionHomeLogic';
 import {
+  buildPredictionRecoveryPath,
   type PredictionLocationState,
 } from '../utils/predictionDeepLink';
 import type { DateGames, Game, GameDetail, MatchBounds, MatchDayNavigation } from '../types/prediction';
@@ -286,12 +287,10 @@ export const usePredictionSchedule = ({
     const visibleDate = allDatesDataRef.current[currentDateIndexRef.current]?.date || null;
     const visibleGameId = allDatesDataRef.current[currentDateIndexRef.current]?.games[selectedGame]?.gameId || null;
 
-    void loadPredictionScheduleDeepLinkRuntimeModule().then(({ buildPredictionRecoveryPath }) => {
-      window.location.href = buildPredictionRecoveryPath({
-        currentDate: options?.currentDate ?? visibleDate,
-        currentGameId: options?.currentGameId ?? visibleGameId,
-        searchParams,
-      });
+    window.location.href = buildPredictionRecoveryPath({
+      currentDate: options?.currentDate ?? visibleDate,
+      currentGameId: options?.currentGameId ?? visibleGameId,
+      searchParams,
     });
   };
 
@@ -321,35 +320,35 @@ export const usePredictionSchedule = ({
   const hasNavigationSeedGame = Boolean(navigationSeedGame?.gameId && navigationSeedGame?.gameDate);
 
   useEffect(() => {
-    let canceled = false;
-
     if (!stateGame) {
       setNavigationSeedGame(null);
       setIsNavigationSeedResolving(false);
-      return () => {
-        canceled = true;
-      };
+      return;
     }
 
+    let cancelled = false;
     setIsNavigationSeedResolving(true);
-    void loadPredictionScheduleDeepLinkRuntimeModule().then(({ buildPredictionNavigationSeedPreview }) => {
-      if (canceled) {
-        return;
-      }
 
-      setNavigationSeedGame(buildPredictionNavigationSeedPreview(stateGame, deepLinkGameId, deepLinkDate));
-      setIsNavigationSeedResolving(false);
-    }).catch(() => {
-      if (canceled) {
-        return;
-      }
+    void loadPredictionScheduleDeepLinkRuntimeModule()
+      .then(({ resolvePredictionNavigationSeedGame }) => {
+        if (cancelled) {
+          return;
+        }
 
-      setNavigationSeedGame(null);
-      setIsNavigationSeedResolving(false);
-    });
+        setNavigationSeedGame(resolvePredictionNavigationSeedGame({
+          stateGame,
+          deepLinkGameId,
+          deepLinkDate,
+        }));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsNavigationSeedResolving(false);
+        }
+      });
 
     return () => {
-      canceled = true;
+      cancelled = true;
     };
   }, [deepLinkDate, deepLinkGameId, stateGame]);
 
@@ -618,27 +617,20 @@ export const usePredictionSchedule = ({
 
   const scheduleAdjacentPrefetch = useCallback((anchorDate: string) => {
     const normalizedDate = normalizeDateKey(anchorDate) || anchorDate;
-    void loadPredictionScheduleAdjacentPrefetchModule().then((module) => {
-      if (!module.shouldSchedulePredictionAdjacentPrefetch(
-        normalizedDate,
-        adjacentPrefetchPendingAnchorRef.current,
-        adjacentPrefetchCompletedAnchorsRef.current,
-      )) {
-        return;
-      }
+    if (!normalizedDate) {
+      return;
+    }
 
-      adjacentPrefetchPendingAnchorRef.current = normalizedDate;
+    void loadPredictionScheduleAdjacentPrefetchModule().then((module) => {
       module.schedulePredictionAdjacentPrefetch({
         anchorDate: normalizedDate,
-        dayNavigationByDateRef,
+        pendingAnchorDateRef: adjacentPrefetchPendingAnchorRef,
+        completedAnchorDatesRef: adjacentPrefetchCompletedAnchorsRef,
         adjacentPrefetchIdleCallbackRef,
         adjacentPrefetchTimeoutRef,
         clearScheduledAdjacentPrefetch,
+        dayNavigationByDateRef,
         loadPredictionDay,
-        onPrefetchRun: (completedAnchorDate) => {
-          adjacentPrefetchPendingAnchorRef.current = null;
-          adjacentPrefetchCompletedAnchorsRef.current.add(completedAnchorDate);
-        },
       });
     });
   }, [clearScheduledAdjacentPrefetch, loadPredictionDay]);
@@ -900,7 +892,6 @@ export const usePredictionSchedule = ({
         setCurrentDateIndex(resolveInitialPredictionDateIndex(normalizedDates, initialAnchorDate));
         syncRangeStateFromDates(normalizedDates, initialAnchorDate);
       }
-      scheduleAdjacentPrefetch(initialAnchorDate);
       void hydrateMatchBounds();
     } catch (error) {
       if (isCancelLikeError(error)) {
@@ -940,7 +931,6 @@ export const usePredictionSchedule = ({
     emitFlowEvent,
     hydrateMatchBounds,
     loadPredictionDay,
-    scheduleAdjacentPrefetch,
     setCanLoadMoreFutureState,
     setCanLoadMorePastState,
     syncRangeStateFromDates,
@@ -991,52 +981,57 @@ export const usePredictionSchedule = ({
   }, [deepLinkDate, deepLinkGameId]);
 
   useEffect(() => {
-    let canceled = false;
-
     if (!hasNavigationSeedGame || !navigationSeedGame || navigationSeedAppliedRef.current) {
-      return () => {
-        canceled = true;
-      };
+      return;
     }
 
-    void loadPredictionScheduleDeepLinkRuntimeModule().then(({ buildPredictionNavigationSeedRuntimeResult }) => {
-      if (canceled) {
-        return;
-      }
+    let cancelled = false;
 
-      const runtimeResult = buildPredictionNavigationSeedRuntimeResult({
-        navigationSeedGame,
-        deepLinkDate,
-        stateGame,
+    void loadPredictionScheduleDeepLinkRuntimeModule()
+      .then(({ buildPredictionNavigationSeedRuntimeResult }) => {
+        if (cancelled) {
+          return;
+        }
+
+        const seedRuntimeResult = buildPredictionNavigationSeedRuntimeResult({
+          navigationSeedGame,
+          deepLinkDate,
+          stateGame,
+        });
+        if (!seedRuntimeResult) {
+          return;
+        }
+
+        const {
+          seededGame,
+          seededGameDetail,
+          nextAllDatesData,
+        } = seedRuntimeResult;
+
+        setAllDatesData(nextAllDatesData);
+        allDatesDataRef.current = nextAllDatesData;
+        setCurrentDateIndex(0);
+        setSelectedGame(0);
+        matchBoundsRef.current = null;
+        matchBoundsHydrationPromiseRef.current = null;
+        setMatchBoundsState(null);
+        setLoading(false);
+        setMatchesLoadState('ready');
+        setPastRangeLoadState('ready');
+        setFutureRangeLoadState('ready');
+        setCanLoadMorePastState(true);
+        setCanLoadMoreFutureState(true);
+        deepLinkResolutionPendingRef.current = false;
+        deepLinkResolutionAttemptRef.current = 0;
+        setPastRangeLoadErrorMessage(null);
+        setFutureRangeLoadErrorMessage(null);
+        navigationSeedAppliedRef.current = true;
+        primeGameDetail(seededGame.gameId, seededGameDetail);
+        void hydrateMatchBounds();
       });
 
-      if (!runtimeResult) {
-        return;
-      }
-
-      setAllDatesData(runtimeResult.nextAllDatesData);
-      allDatesDataRef.current = runtimeResult.nextAllDatesData;
-      setCurrentDateIndex(0);
-      setSelectedGame(0);
-      matchBoundsRef.current = null;
-      matchBoundsHydrationPromiseRef.current = null;
-      setMatchBoundsState(null);
-      setLoading(false);
-      setMatchesLoadState('ready');
-      setPastRangeLoadState('ready');
-      setFutureRangeLoadState('ready');
-      setCanLoadMorePastState(true);
-      setCanLoadMoreFutureState(true);
-      deepLinkResolutionPendingRef.current = false;
-      deepLinkResolutionAttemptRef.current = 0;
-      setPastRangeLoadErrorMessage(null);
-      setFutureRangeLoadErrorMessage(null);
-      navigationSeedAppliedRef.current = true;
-      primeGameDetail(runtimeResult.seededGame.gameId, runtimeResult.seededGameDetail);
-      void hydrateMatchBounds();
-    });
     return () => {
-      canceled = true;
+      cancelled = true;
     };
   }, [
     deepLinkDate,
@@ -1050,17 +1045,17 @@ export const usePredictionSchedule = ({
   ]);
 
   useEffect(() => {
-    let canceled = false;
-
     if (!rawDeepLinkGameId && !rawDeepLinkDate) {
       setDeepLinkParamValidationNotice(null);
-      return () => {
-        canceled = true;
-      };
+      return;
     }
 
-    void loadPredictionScheduleDeepLinkRuntimeModule().then(({ sanitizePredictionDeepLinkParams }) => {
-      if (canceled) {
+    let cancelled = false;
+
+    void loadPredictionScheduleDeepLinkRuntimeModule().then(({
+      sanitizePredictionDeepLinkParams: sanitizeDeepLinkParams,
+    }) => {
+      if (cancelled) {
         return;
       }
 
@@ -1068,7 +1063,7 @@ export const usePredictionSchedule = ({
         nextSearchParams,
         hasChange,
         invalidNotice,
-      } = sanitizePredictionDeepLinkParams(searchParams, rawDeepLinkGameId, rawDeepLinkDate);
+      } = sanitizeDeepLinkParams(searchParams, rawDeepLinkGameId, rawDeepLinkDate);
 
       if (hasChange && nextSearchParams.toString() !== searchParams.toString()) {
         setSearchParams(nextSearchParams, { replace: true });
@@ -1078,7 +1073,7 @@ export const usePredictionSchedule = ({
     });
 
     return () => {
-      canceled = true;
+      cancelled = true;
     };
   }, [rawDeepLinkDate, rawDeepLinkGameId, searchParams, setSearchParams]);
 
@@ -1118,12 +1113,21 @@ export const usePredictionSchedule = ({
     void loadPredictionDay(visibleDate, {
       preserveVisibleDate: true,
       requestKeySuffix: `hydrate:current:${visibleDate}`,
-    }).then((result) => {
-      if (result.ok) {
-        scheduleAdjacentPrefetch(visibleDate);
-      }
     });
-  }, [allDatesData, currentDateIndex, loadPredictionDay, scheduleAdjacentPrefetch]);
+  }, [allDatesData, currentDateIndex, loadPredictionDay]);
+
+  useEffect(() => {
+    if (matchesLoadState !== 'ready') {
+      return;
+    }
+
+    const visibleDate = allDatesData[currentDateIndex]?.date;
+    if (!visibleDate || !dayNavigationByDateRef.current[visibleDate]) {
+      return;
+    }
+
+    scheduleAdjacentPrefetch(visibleDate);
+  }, [allDatesData, currentDateIndex, matchesLoadState, scheduleAdjacentPrefetch]);
 
   useEffect(() => clearScheduledAdjacentPrefetch, [clearScheduledAdjacentPrefetch]);
 
