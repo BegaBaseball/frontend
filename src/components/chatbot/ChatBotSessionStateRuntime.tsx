@@ -1,5 +1,5 @@
 import chatBotIcon from '../../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { useChatBot } from '../../hooks/useChatBot';
 import type { ChatFavoriteItem } from '../../types/chatbot';
@@ -21,11 +21,9 @@ export default function ChatBotSessionStateRuntime({
   onRequestClose,
 }: ChatBotSessionRuntimeProps) {
   const {
-    sessions,
     currentSessionId,
     currentSessionTitle,
     messages,
-    favorites,
     inputMessage,
     setInputMessage,
     isTyping,
@@ -34,9 +32,9 @@ export default function ChatBotSessionStateRuntime({
     rateLimitCountdown,
     rateLimitStage,
     pendingMessage,
-    isLoadingSessions,
     isLoadingMessages,
-    isLoadingFavorites,
+    sessionListVersion,
+    favoritesVersion,
     messagesEndRef,
     messagesContainerRef,
     handleSendMessage,
@@ -51,6 +49,17 @@ export default function ChatBotSessionStateRuntime({
   } = useChatBot(true);
 
   const [activeTab, setActiveTab] = useState<'conversation' | 'history' | 'favorites'>('conversation');
+  const [hasOpenedHistoryTab, setHasOpenedHistoryTab] = useState(false);
+  const [hasOpenedFavoritesTab, setHasOpenedFavoritesTab] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      setHasOpenedHistoryTab(true);
+    }
+    if (activeTab === 'favorites') {
+      setHasOpenedFavoritesTab(true);
+    }
+  }, [activeTab]);
 
   const handleClose = () => {
     if (isProcessing) {
@@ -59,8 +68,8 @@ export default function ChatBotSessionStateRuntime({
     onRequestClose();
   };
 
-  const handleOpenSession = async (sessionId: number) => {
-    await handleSelectSession(sessionId);
+  const handleOpenSession = async (sessionId: number, title?: string) => {
+    await handleSelectSession(sessionId, title);
     setActiveTab('conversation');
   };
 
@@ -70,7 +79,7 @@ export default function ChatBotSessionStateRuntime({
   };
 
   const handleFavoriteSessionClick = async (favorite: ChatFavoriteItem) => {
-    await handleOpenSession(favorite.sessionId);
+    await handleOpenSession(favorite.sessionId, favorite.sessionTitle);
   };
 
   const handleCopyMessage = async (text: string) => {
@@ -183,39 +192,38 @@ export default function ChatBotSessionStateRuntime({
           </Suspense>
         )}
 
-        {activeTab === 'history' && (
-          <div className="min-h-0 flex-1 p-4">
+        {hasOpenedHistoryTab ? (
+          <div className={activeTab === 'history' ? 'min-h-0 flex-1 p-4' : 'hidden'}>
             <Suspense fallback={chatbotTabFallback}>
               <ChatBotHistoryTab
                 currentSessionId={currentSessionId}
-                sessions={sessions}
-                isLoadingSessions={isLoadingSessions}
+                refreshKey={sessionListVersion}
                 onCreateNewSession={async () => {
-                  const sessionId = await handleCreateNewSession();
-                  if (sessionId) {
+                  const session = await handleCreateNewSession();
+                  if (session) {
                     setActiveTab('conversation');
                   }
+                  return session;
                 }}
                 onOpenSession={handleOpenSession}
                 onDeleteSession={handleDeleteSession}
               />
             </Suspense>
           </div>
-        )}
+        ) : null}
 
-        {activeTab === 'favorites' && (
-          <div className="min-h-0 flex-1 p-4">
+        {hasOpenedFavoritesTab ? (
+          <div className={activeTab === 'favorites' ? 'min-h-0 flex-1 p-4' : 'hidden'}>
             <Suspense fallback={chatbotTabFallback}>
               <ChatBotFavoritesTab
-                favorites={favorites}
-                isLoadingFavorites={isLoadingFavorites}
+                refreshKey={favoritesVersion}
                 onCopyMessage={handleCopyMessage}
                 onReaskFavorite={handleFavoritePromptClick}
                 onOpenFavoriteSession={handleFavoriteSessionClick}
               />
             </Suspense>
           </div>
-        )}
+        ) : null}
       </div>
     </>
   );

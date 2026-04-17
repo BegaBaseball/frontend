@@ -1,21 +1,49 @@
+import { useEffect, useState } from 'react';
+
+import { listChatFavorites } from '../../api/chatSessions';
 import type { ChatFavoriteItem } from '../../types/chatbot';
 import { ChatBotSpinnerIcon, ChatBotStarIcon } from './ChatBotIcons';
 
 interface ChatBotFavoritesTabProps {
-  favorites: ChatFavoriteItem[];
-  isLoadingFavorites: boolean;
+  refreshKey: number;
   onCopyMessage: (text: string, index: number) => Promise<void> | void;
   onReaskFavorite: (favorite: ChatFavoriteItem) => Promise<void> | void;
   onOpenFavoriteSession: (favorite: ChatFavoriteItem) => Promise<void> | void;
 }
 
 export default function ChatBotFavoritesTab({
-  favorites,
-  isLoadingFavorites,
+  refreshKey,
   onCopyMessage,
   onReaskFavorite,
   onOpenFavoriteSession,
 }: ChatBotFavoritesTabProps) {
+  const [favorites, setFavorites] = useState<ChatFavoriteItem[]>([]);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFavorites = async () => {
+      setIsLoadingFavorites(true);
+      try {
+        const nextFavorites = await listChatFavorites();
+        if (!cancelled) {
+          setFavorites(nextFavorites);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingFavorites(false);
+        }
+      }
+    };
+
+    void loadFavorites();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
   return (
     <div className="flex h-full flex-col">
       <p className="mb-3 text-[16px] text-muted-foreground">저장한 답변을 다시 열고, 복사하거나 같은 질문을 이어갈 수 있습니다.</p>
