@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+
+import { listChatSessions } from '../../api/chatSessions';
 import type { ChatSessionSummary } from '../../types/chatbot';
 import {
   ChatBotHistoryIcon,
@@ -8,28 +11,80 @@ import {
 
 interface ChatBotHistoryTabProps {
   currentSessionId: number | null;
-  sessions: ChatSessionSummary[];
-  isLoadingSessions: boolean;
-  onCreateNewSession: () => Promise<void> | void;
-  onOpenSession: (sessionId: number) => Promise<void> | void;
-  onDeleteSession: (sessionId: number) => Promise<void> | void;
+  refreshKey: number;
+  onCreateNewSession: () => Promise<ChatSessionSummary | null>;
+  onOpenSession: (sessionId: number, title?: string) => Promise<void> | void;
+  onDeleteSession: (sessionId: number) => Promise<boolean> | boolean;
 }
+
+const sortSessions = (items: ChatSessionSummary[]) => [...items].sort(
+  (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+);
 
 export default function ChatBotHistoryTab({
   currentSessionId,
-  sessions,
-  isLoadingSessions,
+  refreshKey,
   onCreateNewSession,
   onOpenSession,
   onDeleteSession,
 }: ChatBotHistoryTabProps) {
+  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSessions = async () => {
+      setIsLoadingSessions(true);
+      try {
+        const nextSessions = await listChatSessions();
+        if (!cancelled) {
+          setSessions(sortSessions(nextSessions));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSessions(false);
+        }
+      }
+    };
+
+    void loadSessions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
+  const handleCreateSession = async () => {
+    const created = await onCreateNewSession();
+    if (!created) {
+      return;
+    }
+
+    setSessions((prev) => sortSessions([created, ...prev.filter((session) => session.sessionId !== created.sessionId)]));
+  };
+
+  const handleDelete = async (sessionId: number) => {
+    const deleted = await onDeleteSession(sessionId);
+    if (!deleted) {
+      return;
+    }
+
+    const remainingSessions = sessions.filter((session) => session.sessionId !== sessionId);
+    setSessions(remainingSessions);
+
+    if (sessionId === currentSessionId && remainingSessions[0]) {
+      await onOpenSession(remainingSessions[0].sessionId, remainingSessions[0].title);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="m-0 text-[16px] text-muted-foreground">최근 세션을 다시 열거나 새 대화를 시작할 수 있습니다.</p>
         <button
           type="button"
-          onClick={() => { void onCreateNewSession(); }}
+          onClick={() => { void handleCreateSession(); }}
           data-testid="chatbot-history-new-session"
           className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-[16px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
         >
@@ -62,7 +117,7 @@ export default function ChatBotHistoryTab({
               <div className="flex items-start gap-3">
                 <button
                   type="button"
-                  onClick={() => { void onOpenSession(session.sessionId); }}
+                  onClick={() => { void onOpenSession(session.sessionId, session.title); }}
                   data-testid="chatbot-history-session-open"
                   data-session-id={session.sessionId}
                   className="min-w-0 flex-1 text-left"
@@ -82,7 +137,7 @@ export default function ChatBotHistoryTab({
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    void onDeleteSession(session.sessionId);
+                    void handleDelete(session.sessionId);
                   }}
                   data-testid="chatbot-history-session-delete"
                   data-session-id={session.sessionId}

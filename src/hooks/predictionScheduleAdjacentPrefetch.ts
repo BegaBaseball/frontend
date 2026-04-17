@@ -3,14 +3,19 @@ type PredictionAdjacentPrefetchDeps = {
   dayNavigationByDateRef: {
     current: Record<string, { prevDate: string | null; nextDate: string | null }>;
   };
-  adjacentPrefetchIdleCallbackRef: { current: number | null };
-  adjacentPrefetchTimeoutRef: { current: number | null };
-  clearScheduledAdjacentPrefetch: () => void;
   loadPredictionDay: (
     targetDate: string,
     options: { preserveVisibleDate?: boolean; requestKeySuffix: string },
   ) => Promise<unknown>;
   onPrefetchRun?: (anchorDate: string) => void;
+};
+
+type PredictionAdjacentPrefetchScheduleDeps = PredictionAdjacentPrefetchDeps & {
+  pendingAnchorDateRef: { current: string | null };
+  completedAnchorDatesRef: { current: Set<string> };
+  adjacentPrefetchIdleCallbackRef: { current: number | null };
+  adjacentPrefetchTimeoutRef: { current: number | null };
+  clearScheduledAdjacentPrefetch: () => void;
 };
 
 export const shouldSchedulePredictionAdjacentPrefetch = (
@@ -21,11 +26,12 @@ export const shouldSchedulePredictionAdjacentPrefetch = (
   && pendingAnchorDate !== anchorDate
   && !completedAnchorDates.has(anchorDate);
 
-const prefetchAdjacentDays = ({
+export const runPredictionAdjacentPrefetch = ({
   anchorDate,
   dayNavigationByDateRef,
   loadPredictionDay,
-}: Pick<PredictionAdjacentPrefetchDeps, 'anchorDate' | 'dayNavigationByDateRef' | 'loadPredictionDay'>) => {
+  onPrefetchRun,
+}: PredictionAdjacentPrefetchDeps) => {
   const meta = dayNavigationByDateRef.current[anchorDate];
   if (!meta) {
     return;
@@ -44,42 +50,58 @@ const prefetchAdjacentDays = ({
       requestKeySuffix: `prefetch:future:${anchorDate}`,
     });
   }
+  onPrefetchRun?.(anchorDate);
 };
 
 export const schedulePredictionAdjacentPrefetch = ({
   anchorDate,
-  dayNavigationByDateRef,
+  pendingAnchorDateRef,
+  completedAnchorDatesRef,
   adjacentPrefetchIdleCallbackRef,
   adjacentPrefetchTimeoutRef,
   clearScheduledAdjacentPrefetch,
-  loadPredictionDay,
-  onPrefetchRun,
-}: PredictionAdjacentPrefetchDeps) => {
+  ...runDeps
+}: PredictionAdjacentPrefetchScheduleDeps) => {
   if (typeof window === 'undefined') {
-    prefetchAdjacentDays({ anchorDate, dayNavigationByDateRef, loadPredictionDay });
-    onPrefetchRun?.(anchorDate);
+    return;
+  }
+
+  if (!shouldSchedulePredictionAdjacentPrefetch(
+    anchorDate,
+    pendingAnchorDateRef.current,
+    completedAnchorDatesRef.current,
+  )) {
     return;
   }
 
   clearScheduledAdjacentPrefetch();
-  let hasRun = false;
+  pendingAnchorDateRef.current = anchorDate;
 
-  const run = () => {
-    if (hasRun) {
-      return;
-    }
-    hasRun = true;
+  const runPrefetch = () => {
     adjacentPrefetchIdleCallbackRef.current = null;
     adjacentPrefetchTimeoutRef.current = null;
-    prefetchAdjacentDays({ anchorDate, dayNavigationByDateRef, loadPredictionDay });
-    onPrefetchRun?.(anchorDate);
+
+    if (pendingAnchorDateRef.current !== anchorDate || completedAnchorDatesRef.current.has(anchorDate)) {
+      return;
+    }
+
+    runPredictionAdjacentPrefetch({
+      ...runDeps,
+      anchorDate,
+      onPrefetchRun: (completedAnchorDate) => {
+        pendingAnchorDateRef.current = null;
+        completedAnchorDatesRef.current.add(completedAnchorDate);
+        runDeps.onPrefetchRun?.(completedAnchorDate);
+      },
+    });
   };
 
   if ('requestIdleCallback' in window) {
-    adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(run, {
-      timeout: 1200,
-    });
+    adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(() => {
+      runPrefetch();
+    }, { timeout: 1200 });
+    return;
   }
 
-  adjacentPrefetchTimeoutRef.current = globalThis.setTimeout(run, 650) as unknown as number;
+  adjacentPrefetchTimeoutRef.current = window.setTimeout(runPrefetch, 0);
 };

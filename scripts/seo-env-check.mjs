@@ -1,3 +1,12 @@
+import { loadEnv } from 'vite';
+
+const loadedEnv = loadEnv('production', process.cwd(), '');
+for (const [key, value] of Object.entries(loadedEnv)) {
+  if (process.env[key] == null || String(process.env[key]).trim() === '') {
+    process.env[key] = value;
+  }
+}
+
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
 
