@@ -437,11 +437,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    cy.wait(2000);
+    // First retry delay is 2000ms (RETRY_DELAYS_MS[0]); assert before boundary then after.
+    cy.wait(1000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.wait(5000);
+    cy.wait(3000);
     cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
