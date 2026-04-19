@@ -3,6 +3,8 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
+import stadiumBg from '../assets/stadium.webp';
+import StadiumSeatMap from './ui/StadiumSeatMap';
 import {
   MapPinIcon,
   RefreshIcon,
@@ -68,10 +70,26 @@ export default function StadiumGuideRuntime() {
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <MapPinIcon className="w-7 h-7" style={{ color: THEME_COLORS.primary }} />
-          <h2 className="text-2xl sm:text-3xl" style={{ color: THEME_COLORS.primary, fontWeight: 900 }}>구장 가이드</h2>
-        </div>
+        {/* Premium Hero Section */}
+        <section className="stadium-hero-container">
+          <div
+            className="stadium-hero-bg"
+            style={{ backgroundImage: `url(${stadiumBg})` }}
+          />
+          <div className="stadium-hero-overlay" />
+          <div className="relative z-10 h-full p-8 md:p-12 flex flex-col justify-end min-h-[380px]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/10 backdrop-blur-md rounded-lg">
+                <MapPinIcon className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">구장 가이드</h1>
+            </div>
+            <p className="text-lg text-white/80 max-w-xl leading-relaxed">
+              전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
+              직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
+            </p>
+          </div>
+        </section>
 
         {stadiumsStatus === 'error' && stadiumsError && (
           <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4 flex items-center justify-between gap-3">
@@ -91,10 +109,10 @@ export default function StadiumGuideRuntime() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-8">
             <div>
-              <h3 className="mb-3 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+              <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                 구장 선택
               </h3>
               <div className="relative">
@@ -102,7 +120,7 @@ export default function StadiumGuideRuntime() {
                   value={selectedStadium?.stadiumId || ''}
                   onChange={(e) => handleStadiumChange(e.target.value)}
                   disabled={stadiumControlsDisabled}
-                  className="stadium-guide-select w-full py-6 px-4 pr-12 bg-white dark:bg-card border-2 rounded-2xl text-base cursor-pointer dark:text-gray-200"
+                  className="stadium-guide-select w-full py-6 px-6 pr-12 bg-white dark:bg-card border-2 rounded-2xl text-lg font-bold shadow-sm transition-all focus:ring-2 focus:ring-primary/20 cursor-pointer dark:text-gray-200"
                   style={{
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
                   }}
@@ -122,14 +140,14 @@ export default function StadiumGuideRuntime() {
                     </option>
                   ))}
                 </select>
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <div className="absolute right-6 top-1/2 transform -translate-y-1/2 pointer-events-none">
                   <svg
                     width="28"
                     height="28"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke={isDark ? '#e5e7eb' : THEME_COLORS.primary}
-                    strokeWidth="2.5"
+                    strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
@@ -140,25 +158,27 @@ export default function StadiumGuideRuntime() {
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                  구장 위치
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                  구장 위치 & 단축 경로
                 </h3>
               </div>
 
               {selectedStadium && (
                 <div
-                  className="mb-4 p-4 rounded-xl border-2 dark:bg-card dark:border-border"
+                  className="mb-6 p-6 rounded-2xl border-2 dark:bg-card dark:border-border shadow-sm"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryBg,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
                   }}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPinIcon className="w-5 h-5" style={{ color: THEME_COLORS.primary }} />
-                        <h4 className="dark:text-white" style={{ fontWeight: 700, color: isDark ? '#fff' : THEME_COLORS.primary }}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-1.5 bg-primary/10 rounded-lg">
+                          <MapPinIcon className="w-5 h-5" style={{ color: THEME_COLORS.primary }} />
+                        </div>
+                        <h4 className="text-xl dark:text-white" style={{ fontWeight: 800, color: isDark ? '#fff' : THEME_COLORS.primary }}>
                           {selectedStadium.stadiumName}
                         </h4>
                         {isLoggedIn && selectedStadiumId && (
@@ -168,26 +188,23 @@ export default function StadiumGuideRuntime() {
                         )}
                       </div>
                       {selectedStadiumAddress && (
-                      <p className="text-[16px] text-gray-600 dark:text-gray-300 mb-1">
-                          📍 {selectedStadiumAddress}
+                      <p className="text-[17px] text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-2">
+                          <span className="opacity-60">📍</span> {selectedStadiumAddress}
                         </p>
                       )}
                       {selectedStadiumPhone && (
-                        <p className="text-[16px] text-gray-600 dark:text-gray-300">📞 {selectedStadiumPhone}</p>
-                      )}
-                      {!hasStadiumCoordinates && (
-                        <p className="text-[16px] text-amber-700 dark:text-amber-400 mt-2">
-                          좌표 정보가 없어 길찾기/지도 표시를 제공할 수 없습니다.
+                        <p className="text-[17px] text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                          <span className="opacity-60">📞</span> {selectedStadiumPhone}
                         </p>
                       )}
                     </div>
                     <Button
                       onClick={() => openKakaoMapRoute(selectedStadium.stadiumName, selectedStadium.lat, selectedStadium.lng)}
                       disabled={!hasStadiumCoordinates}
-                      className="px-6 py-3 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full md:w-auto px-8 py-4 rounded-xl text-lg font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-50"
                       style={{ backgroundColor: THEME_COLORS.primary }}
                     >
-                      길찾기
+                      카카오맵 길찾기
                     </Button>
                   </div>
                 </div>
@@ -195,7 +212,7 @@ export default function StadiumGuideRuntime() {
 
               {canRenderMap ? (
                 <div
-                  className="p-2 rounded-3xl border-2 dark:bg-card dark:border-border"
+                  className="p-3 rounded-[2.5rem] border-2 dark:bg-card dark:border-border shadow-inner"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
@@ -203,55 +220,54 @@ export default function StadiumGuideRuntime() {
                 >
                   <div
                     ref={mapContainer}
-                    className="stadium-guide-map rounded-2xl overflow-hidden"
+                    className="stadium-guide-map rounded-[2rem] overflow-hidden"
                   />
                 </div>
               ) : (
                 <Card
-                  className="stadium-guide-map-frame p-12 flex flex-col items-center justify-center rounded-3xl border-2 dark:bg-card dark:border-border"
+                  className="stadium-guide-map-frame p-12 flex flex-col items-center justify-center rounded-[2.5rem] border-2 dark:bg-card dark:border-border"
                   style={{
                     backgroundColor: isDark ? undefined : THEME_COLORS.primaryLight,
                     borderColor: isDark ? '#374151' : THEME_COLORS.primary,
                   }}
                 >
-                  <MapPinIcon className="w-16 h-16 mb-4" style={{ color: THEME_COLORS.primary }} />
-                  <h4 style={{ color: THEME_COLORS.primary, fontWeight: 700 }}>
+                  <MapPinIcon className="w-16 h-16 mb-4 opacity-20" style={{ color: THEME_COLORS.primary }} />
+                  <h4 className="text-xl" style={{ color: THEME_COLORS.primary, fontWeight: 800 }}>
                     {selectedStadium?.stadiumName || '구장을 선택하세요'}
                   </h4>
-                  <p className="text-gray-600 dark:text-gray-300 mt-2">주변 지도</p>
-                  <p className="text-[16px] text-gray-500 dark:text-gray-300 mt-4">
+                  <p className="text-[16px] text-gray-500 dark:text-gray-300 mt-4 text-center max-w-xs">
                     {!selectedStadium
-                      ? '구장을 선택하면 지도를 표시합니다.'
+                      ? '구장을 선택하면 주변 지도를 표시합니다.'
                       : !KAKAO_API_KEY
-                        ? '카카오맵 API 키를 설정해주세요.'
+                        ? '카카오맵 API 키가 설정되지 않았습니다.'
                         : !hasStadiumCoordinates
-                          ? '선택된 구장의 좌표 정보가 없어 지도를 표시할 수 없습니다.'
+                          ? '구장의 좌표 정보가 없어 지도를 표시할 수 없습니다.'
                           : mapStatus === 'loading'
-                            ? '지도를 준비하고 있습니다...'
-                            : formatOptionalText(mapError, '현재 도메인에서 지도를 사용할 수 없습니다.')}
+                            ? '지도를 로딩 중입니다...'
+                            : formatOptionalText(mapError, '지도를 불러올 수 없습니다.')}
                   </p>
-                  {selectedStadium && KAKAO_API_KEY && hasStadiumCoordinates && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                    className="mt-4"
-                    onClick={retryMap}
-                  >
-                      <RefreshIcon className="w-3.5 h-3.5 mr-1" />
-                      지도 다시 시도
-                    </Button>
-                  )}
                 </Card>
               )}
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-10">
+            {/* Interactive Seat Map Section */}
             <div>
-              <h3 className="mb-3 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                카테고리
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                  좌석 배치도 (Concept)
+                </h3>
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-bold">INTERACTIVE</span>
+              </div>
+              <StadiumSeatMap />
+            </div>
+
+            <div>
+              <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                주변 정보 카테고리
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {Object.values(CATEGORY_CONFIGS).map((config) => {
                   const Icon = getCategoryIcon(config.iconKey);
                   const isSelected = selectedCategory === config.key;
@@ -262,7 +278,7 @@ export default function StadiumGuideRuntime() {
                       key={config.key}
                       onClick={() => { setSelectedCategory(config.key); }}
                       disabled={stadiumControlsDisabled}
-                      className="py-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 dark:bg-card"
+                      className="py-8 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 dark:bg-card shadow-sm hover:translate-y--1"
                       style={{
                         backgroundColor: isSelected
                           ? (isDark ? `${config.color}22` : config.bgColor)
@@ -276,8 +292,10 @@ export default function StadiumGuideRuntime() {
                         opacity: stadiumControlsDisabled ? 0.5 : 1,
                       }}
                     >
-                      <Icon className="w-6 h-6" />
-                        <span className="text-[16px]" style={{ fontWeight: isSelected ? 700 : 400 }}>
+                      <div className={`p-3 rounded-full ${isSelected ? '' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                        <Icon className="w-8 h-8" />
+                      </div>
+                      <span className="text-[17px] font-bold">
                         {config.label}
                       </span>
                     </button>
@@ -285,19 +303,6 @@ export default function StadiumGuideRuntime() {
                 })}
               </div>
             </div>
-
-            {selectedStadium && (
-              <Suspense fallback={null}>
-                <StadiumGuideAdSlot
-                  slotId="stadium_partner_1"
-                  pageType="stadium"
-                  contentId={selectedStadiumId}
-                  creativeType="sponsor_card"
-                  loggedIn={isLoggedIn}
-                  minHeight={176}
-                />
-              </Suspense>
-            )}
 
             <div>
               <Suspense fallback={null}>

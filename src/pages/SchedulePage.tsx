@@ -1,15 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
-import { fetchGamesData } from '@/api/home';
+import { fetchGamesRangeData } from '@/api/home';
 import { formatDateForAPI } from '@/utils/home';
 import { normalizePredictionDate } from '@/utils/predictionHomeLogic';
+import { isManualBaseballDataRequiredCode, parseError } from '@/utils/errorUtils';
 import type { Game } from '@/types/home';
 
-function daysInMonth(year: number, month: number): Date[] {
-  const last = new Date(year, month + 1, 0).getDate();
-  return Array.from({ length: last }, (_, i) => new Date(year, month, i + 1));
+function getMonthRange(cursor: Date) {
+  const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+  return {
+    startDate: formatDateForAPI(start),
+    endDate: formatDateForAPI(end),
+  };
 }
 
 export default function SchedulePage() {
@@ -19,30 +24,36 @@ export default function SchedulePage() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const days = useMemo(
-    () => daysInMonth(cursor.getFullYear(), cursor.getMonth()),
+  const monthRange = useMemo(
+    () => getMonthRange(cursor),
     [cursor],
   );
 
-  const queries = useQueries({
-    queries: days.map((d) => ({
-      queryKey: ['games', formatDateForAPI(d)],
-      queryFn: () => fetchGamesData(d),
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-    })),
+  const monthQuery = useQuery({
+    queryKey: ['games', 'month', monthRange.startDate, monthRange.endDate],
+    queryFn: () => fetchGamesRangeData(monthRange.startDate, monthRange.endDate),
+    retry: (failureCount, error) => {
+      const parsed = parseError(error);
+      return !isManualBaseballDataRequiredCode(parsed.responseCode) && failureCount < 1;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  const games = useMemo<Game[]>(() => {
-    const merged: Game[] = [];
-    queries.forEach((q) => {
-      if (Array.isArray(q.data)) merged.push(...q.data);
-    });
-    return merged;
-  }, [queries]);
+  const games = useMemo<Game[]>(
+    () => monthQuery.data ?? [],
+    [monthQuery.data],
+  );
+  const isLoading = monthQuery.isLoading;
+  const hasError = monthQuery.isError;
+  const errorMessage = useMemo(() => {
+    if (!monthQuery.error) {
+      return '경기 정보를 불러오지 못했습니다.';
+    }
 
-  const isLoading = queries.some((q) => q.isLoading);
-  const hasError = queries.some((q) => q.isError);
+    const parsed = parseError(monthQuery.error);
+    return parsed.message || '경기 정보를 불러오지 못했습니다.';
+  }, [monthQuery.error]);
 
   const handleMonthChange = (ym: string) => {
     const [y, m] = ym.split('-').map(Number);
@@ -80,23 +91,12 @@ export default function SchedulePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {isLoading && (
-        <div className="mx-auto max-w-5xl px-3 pt-4 sm:px-6">
-          <div className="rounded-md bg-white/80 px-3 py-2 text-xs text-slate-500 shadow-sm sm:text-sm">
-            경기 일정을 불러오는 중…
-          </div>
-        </div>
-      )}
-      {hasError && !isLoading && (
-        <div className="mx-auto max-w-5xl px-3 pt-4 sm:px-6">
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 sm:text-sm">
-            일부 날짜의 경기 정보를 불러오지 못했습니다.
-          </div>
-        </div>
-      )}
       <ScheduleCalendar
         games={games}
         initialMonth={cursor}
+        isLoading={isLoading}
+        isError={hasError && !isLoading}
+        errorMessage={errorMessage}
         onMonthChange={handleMonthChange}
         onSelectPrediction={handleSelectPrediction}
       />

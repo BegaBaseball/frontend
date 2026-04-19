@@ -27,7 +27,10 @@ import {
 import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
-import { MANUAL_BASEBALL_DATA_REQUIRED_CODE } from '../utils/errorUtils';
+import {
+    MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+    MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+} from '../utils/errorUtils';
 import { GameCardSkeleton, ScheduledGameCardSkeleton } from './home/GameCardSkeleton';
 import {
     ChevronLeftIcon,
@@ -397,6 +400,15 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
 
     const selectedDateKey = useMemo(() => formatDateForAPI(selectedDate), [selectedDate]);
 
+    const handleNavigateToPredictionForDate = () => {
+        navigate(`/prediction?date=${selectedDateKey}`, {
+            state: {
+                sourcePage: 'home',
+                date: selectedDateKey,
+            },
+        });
+    };
+
     useEffect(() => {
         const dateKey = selectedDateKey;
         if (lastBootstrapDateKeyRef.current === dateKey) {
@@ -585,20 +597,34 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
             {connectionError && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-                    <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3">
-                        <WarningTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                            <p className="text-[16px] text-amber-800 dark:text-amber-300 font-bold">
-                                {loadFailureReason === 'manual-data-required'
-                                    ? '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
-                                    : '서버 연결에 문제가 있습니다.'}
-                            </p>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
-                                className="ml-auto shrink-0 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 font-bold"
-                            >
-                            <RefreshIcon className="w-4 h-4 mr-1" /> 재시도
+                    <div
+                        data-testid="home-global-recovery"
+                        className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 sm:flex-row sm:items-center"
+                    >
+                        <div className="flex min-w-0 items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+                                <WarningTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[16px] text-amber-900 dark:text-amber-200 font-black">
+                                    {loadFailureReason === 'manual-data-required'
+                                        ? '운영자 데이터가 필요합니다'
+                                        : '서비스 연결을 확인하지 못했습니다'}
+                                </p>
+                                <p className="mt-1 text-[16px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
+                                    {loadFailureReason === 'manual-data-required'
+                                        ? MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE
+                                        : '경기, 예정 경기, 홈 위젯을 한 번에 다시 불러올 수 있습니다.'}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="touch"
+                            onClick={() => { setConnectionError(false); void loadHomeBootstrap(selectedDate); }}
+                            className="w-full shrink-0 border-amber-300 bg-white text-amber-800 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-900/40 sm:ml-auto sm:w-auto"
+                        >
+                            <RefreshIcon className="w-4 h-4 mr-1" /> 전체 다시 시도
                         </Button>
                     </div>
                 </div>
@@ -618,17 +644,18 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                         </p>
                     </div>
                     <div>
-                        <Button variant="outline" onClick={() => navigate('/offseason')} className="border-emerald-600/20 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
+                        <Button variant="outline" size="touch" onClick={() => navigate('/offseason')} className="border-emerald-600/20 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
                             <FlameIcon className="w-4 h-4 mr-2 text-orange-500" /> 스토브리그
                         </Button>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-6 bg-white dark:bg-card/70 py-3 px-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/15 w-full md:w-fit mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 dark:border-white/15 dark:bg-card/70 sm:flex-row sm:items-center sm:justify-center sm:px-6 md:w-fit md:mx-auto">
+                  <div className="flex items-center justify-center gap-4 sm:gap-6">
                     <Button
                       data-testid="home-date-prev"
                       variant="ghost"
-                      size="icon"
+                      size="iconTouch"
                       onClick={() => changeDate('prev')}
                       disabled={!navInfo.hasPrev}
                       aria-label="이전 날짜"
@@ -648,7 +675,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 setShouldMountSecondaryPanels(true);
                                 setShowCalendar(true);
                             }}
-                            className="text-[16px] text-primary dark:text-emerald-400 h-auto p-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity"
+                            className="text-[16px] text-primary dark:text-emerald-400 min-h-11 px-2 py-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity"
                         >
                             날짜 변경
                         </Button>
@@ -657,7 +684,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                     <Button
                       data-testid="home-date-next"
                       variant="ghost"
-                      size="icon"
+                      size="iconTouch"
                       onClick={() => changeDate('next')}
                       disabled={!navInfo.hasNext}
                       aria-label="다음 날짜"
@@ -665,6 +692,15 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                     >
                         <ChevronRightIcon className="w-6 h-6" />
                     </Button>
+                  </div>
+                  <Button
+                    data-testid="home-primary-prediction-cta"
+                    size="touchLg"
+                    onClick={handleNavigateToPredictionForDate}
+                    className="w-full rounded-xl bg-primary font-black text-primary-foreground hover:bg-primary-hover sm:w-auto"
+                  >
+                    오늘 경기 예측하기
+                  </Button>
                 </div>
 
                 <div className="flex flex-col gap-3 mt-3">
@@ -685,7 +721,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                             aria-selected={isActive}
                                             aria-controls={`home-tabpanel-${tab.value}`}
                                             id={`home-tab-${tab.value}`}
-                                            className={`rounded-lg px-2 py-2 text-[16px] font-bold transition-all ${
+                                            className={`min-h-11 rounded-lg px-2 py-2 text-[16px] font-bold transition-all ${
                                                 isActive
                                                     ? 'bg-primary text-white shadow-md'
                                                     : 'text-foreground dark:text-muted-foreground'
@@ -714,6 +750,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                     loadFailureReason={loadFailureReason}
                                     isScheduledLoading={isScheduledLoading}
                                     isScheduledError={isScheduledError}
+                                    suppressRecoveryActions={connectionError}
                                     isSecondarySectionExpanded={isSecondarySectionExpanded}
                                     loadingMatchCardCount={loadingMatchCardCount}
                                     matchSectionMinHeightStyle={matchSectionMinHeightStyle}
@@ -742,6 +779,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             calendarDialogTitleId={calendarDialogTitleId}
                             loggedIn={isLoggedIn}
                             userId={authUserId ? String(authUserId) : null}
+                            suppressRecoveryActions={connectionError}
                             onNavigateToCheer={() => navigate('/cheer')}
                             onNavigateToMate={() => navigate('/mate')}
                             onNavigateToCheerPost={(postId) => navigate(`/cheer?postId=${postId}`)}

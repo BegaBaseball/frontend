@@ -161,6 +161,29 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     }
 };
 
+export const fetchGamesRangeData = async (startDate: string, endDate: string): Promise<Game[]> => {
+    const data = await publicGet<unknown>('/matches/range', {
+        params: {
+            startDate,
+            endDate,
+            page: 0,
+            size: 500,
+            includePast: true,
+            withMeta: true,
+        },
+    });
+
+    if (Array.isArray(data)) {
+        return data as Game[];
+    }
+
+    if (data && typeof data === 'object' && Array.isArray((data as { content?: unknown }).content)) {
+        return (data as { content: Game[] }).content;
+    }
+
+    return [];
+};
+
 /**
  * 리그 시작 날짜 조회 
  */

@@ -9,11 +9,11 @@ import { getRankingDisplayName } from '../../utils/homeTeamNameResolution';
 const HomeSecondaryPanels = lazy(() => import('./HomeSecondaryPanels'));
 
 const HOME_DASHBOARD_TEAM_COUNT = 10;
-const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = 'h-[260px]';
+const HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS = 'min-h-[238px]';
 const HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS = 'lg:h-[529px]';
 const HOME_DASHBOARD_RANKING_ROW_CLASS = 'lg:h-[52px] lg:min-h-[52px]';
 const HOME_DASHBOARD_CARD_HEIGHT_CLASS = `${HOME_DASHBOARD_MOBILE_CARD_HEIGHT_CLASS} ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`;
-const TEAM_RANKING_CARD_HEIGHT_CLASS = HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS;
+const TEAM_RANKING_CARD_HEIGHT_CLASS = `min-h-[320px] ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`;
 
 interface HomeSecondaryPanelsContainerProps {
   selectedDate: Date;
@@ -23,6 +23,7 @@ interface HomeSecondaryPanelsContainerProps {
   calendarDialogTitleId: string;
   loggedIn: boolean;
   userId: string | null;
+  suppressRecoveryActions?: boolean;
   onNavigateToCheer: () => void;
   onNavigateToMate: () => void;
   onNavigateToCheerPost: (postId: number) => void;
@@ -39,6 +40,7 @@ export default function HomeSecondaryPanelsContainer({
   calendarDialogTitleId,
   loggedIn,
   userId,
+  suppressRecoveryActions = false,
   onNavigateToCheer,
   onNavigateToMate,
   onNavigateToCheerPost,
@@ -55,18 +57,18 @@ export default function HomeSecondaryPanelsContainer({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">실시간 인기 응원글</h3>
-              <div className="h-[260px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
+              <div className="min-h-[238px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
             </section>
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">직관 메이트 찾기</h3>
-              <div className="h-[260px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
+              <div className="min-h-[238px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
             </section>
           </div>
         </div>
         <div className="flex flex-col gap-4 lg:col-span-4">
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
-            <div className="h-[529px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70" />
+            <div className="min-h-[320px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 lg:h-[529px]" />
           </section>
         </div>
       </div>
@@ -151,6 +153,7 @@ export default function HomeSecondaryPanelsContainer({
         calendarDialogTitleId={calendarDialogTitleId}
         loggedIn={loggedIn}
         userId={userId}
+        suppressRecoveryActions={suppressRecoveryActions}
         currentYear={currentYear}
         isHotCheerLoading={isHotCheerLoading}
         hotCheerError={hotCheerError}
