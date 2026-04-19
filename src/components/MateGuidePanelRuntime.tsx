@@ -12,7 +12,7 @@ export default function MateGuidePanelRuntime({ onClose }: MateGuidePanelRuntime
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
-            <MateCheckCircleIcon className="h-4 w-4 text-primary" />
+            <MateCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-primary" />
             안전한 직관을 위한 체크포인트
           </h3>
           <ul className="space-y-2 text-[16px] font-bold text-gray-500 dark:text-zinc-400">
@@ -33,10 +33,11 @@ export default function MateGuidePanelRuntime({ onClose }: MateGuidePanelRuntime
         <Button
           variant="ghost"
           size="icon"
-          className="text-gray-500 hover:bg-primary/15 hover:text-gray-900 dark:text-zinc-500 dark:hover:text-white"
+          aria-label="이용 가이드 닫기"
+          className="text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-zinc-400 dark:hover:bg-primary/15 dark:hover:text-primary"
           onClick={onClose}
         >
-          <MateCloseIcon className="h-5 w-5" />
+          <MateCloseIcon aria-hidden="true" className="h-5 w-5" />
         </Button>
       </div>
     </Card>

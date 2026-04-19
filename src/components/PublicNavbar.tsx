@@ -29,7 +29,7 @@ export default function PublicNavbar() {
   const shouldShowTopThemeToggle = isDesktop;
   const shouldShowDesktopNotificationButton = isLoggedIn && isDesktop;
   const shouldShowMobileNotificationButton = isLoggedIn && !isDesktop && !shouldRenderMobileMenu;
-  const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
+  const navIconButtonClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
   const navIconSizeClass = 'h-6 w-6';
   const prefetchPredictionPage = () => {

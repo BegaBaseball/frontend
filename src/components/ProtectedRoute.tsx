@@ -18,7 +18,7 @@ export default function ProtectedRoute() {
     }
   }, [isAuthLoading, isLoggedIn, location.hash, location.pathname, location.search, requireLogin]);
 
-  if (isAuthLoading) {
+  if (isAuthLoading && !isLoggedIn) {
     traceAuthEvent(`ProtectedRoute: show loading for ${location.pathname}`);
     return (
       <LoadingSpinner

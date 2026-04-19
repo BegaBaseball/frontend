@@ -42,9 +42,10 @@ describe('SignUp availability checks', () => {
     cy.mockAPI();
   });
 
-  it('checks only valid handle and email values, keeps submit disabled while checking, and submits canonical values', () => {
+  it('checks only valid handle values, keeps submit disabled while checking, and submits canonical values', () => {
+    // [Security Fix - Critical #3] 이메일 availability 사전 확인 엔드포인트가 제거되었으므로
+    // 이메일 중복 검증은 signup 응답(DUPLICATE_EMAIL)에서만 확인한다.
     let handleCheckCount = 0;
-    let emailCheckCount = 0;
 
     cy.intercept('GET', '**/api/auth/check-handle*', (req) => {
       handleCheckCount += 1;
@@ -57,22 +58,6 @@ describe('SignUp availability checks', () => {
           data: {
             available: true,
             normalized: '@fresh_slug',
-          },
-        },
-      });
-    });
-
-    cy.intercept('GET', '**/api/auth/check-email*', (req) => {
-      emailCheckCount += 1;
-      req.alias = 'checkEmailAvailable';
-      req.reply({
-        delay: 1200,
-        statusCode: 200,
-        body: {
-          success: true,
-          data: {
-            available: true,
-            normalized: 'fresh.user@example.com',
           },
         },
       });
@@ -100,7 +85,6 @@ describe('SignUp availability checks', () => {
     cy.wait(650);
     cy.then(() => {
       expect(handleCheckCount).to.eq(0);
-      expect(emailCheckCount).to.eq(0);
     });
 
     fillRequiredSignUpFields({
@@ -112,13 +96,10 @@ describe('SignUp availability checks', () => {
 
     cy.wait(500);
     cy.contains('핸들 중복 확인 중...').should('be.visible');
-    cy.contains('이메일 중복 확인 중...').should('be.visible');
     getSignUpSubmitButton().should('be.disabled');
 
     cy.wait('@checkHandleAvailable');
-    cy.wait('@checkEmailAvailable');
     cy.contains('사용 가능한 핸들입니다.').should('be.visible');
-    cy.contains('사용 가능한 이메일입니다.').should('be.visible');
     getSignUpSubmitButton().should('not.be.disabled').click();
 
     cy.wait('@requiredPolicies');
@@ -202,17 +183,6 @@ describe('SignUp availability checks', () => {
       },
     }).as('checkHandleAvailable');
 
-    cy.intercept('GET', '**/api/auth/check-email*', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: {
-          available: true,
-          normalized: 'takenlater@example.com',
-        },
-      },
-    }).as('checkEmailAvailable');
-
     stubRequiredPolicies();
 
     cy.intercept('POST', '**/api/auth/signup', {
@@ -235,7 +205,6 @@ describe('SignUp availability checks', () => {
     });
 
     cy.wait('@checkHandleAvailable');
-    cy.wait('@checkEmailAvailable');
     getSignUpSubmitButton().should('not.be.disabled').click();
 
     cy.wait('@requiredPolicies');
