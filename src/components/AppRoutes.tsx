@@ -73,12 +73,12 @@ export default function AppRoutes() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
           <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/mate" element={<MatePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>
           <Route element={<ProtectedRoute />}>
             <Route path="/mate/:id" element={<MateDetail />} />
-            <Route path="/mate" element={<MatePage />} />
             <Route path="/cheer/bookmarks" element={<CheerBookmarksPage />} />
             <Route path="/cheer/edit/:postId" element={<CheerEditPage />} />
             <Route path="/mate/create" element={<MateCreatePage />} />
