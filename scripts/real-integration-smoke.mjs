@@ -88,8 +88,8 @@ const HEALTH_URLS = (() => {
     const basePath = parsed.pathname.replace(/\/+$/, '');
     const servicePath = basePath.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
     const candidates = [
-      `${parsed.origin}${servicePath || ''}/actuator/health`,
-      `${parsed.origin}${basePath || ''}/actuator/health`,
+      `${parsed.origin}${servicePath || ''}/actuator/health/readiness`,
+      `${parsed.origin}${basePath || ''}/actuator/health/readiness`,
     ];
 
     return [...new Set(candidates)];
@@ -157,7 +157,6 @@ const signupIdentity = {
   favoriteTeam: 'LG',
 };
 const normalizedSignupHandle = normalizeHandleForExpectation(signupIdentity.handle);
-const normalizedSignupEmail = normalizeEmailForExpectation(signupIdentity.email);
 let activeLoginEmail = signupIdentity.email;
 let activeLoginPassword = signupIdentity.password;
 let samplePartyId = null;
@@ -387,7 +386,7 @@ const requestHealth = async (options = {}) => {
 
   const candidates = HEALTH_URLS.length > 0
     ? HEALTH_URLS
-    : [`${API_BASE}/actuator/health`];
+    : [`${API_BASE}/actuator/health/readiness`];
 
   let lastError = null;
   for (const candidateUrl of candidates) {
@@ -522,8 +521,8 @@ const main = async () => {
       wrappedError.diagnostics = buildDiagnostics(error, {
         step: 'backend-health',
         method: 'GET',
-        path: '/actuator/health',
-        url: HEALTH_URLS[0] || `${API_BASE}/actuator/health`,
+        path: '/actuator/health/readiness',
+        url: HEALTH_URLS[0] || `${API_BASE}/actuator/health/readiness`,
       });
       throw wrappedError;
     }
@@ -546,22 +545,15 @@ const main = async () => {
       };
     }
 
+    // [Security Fix - Critical #3] /auth/check-email 엔드포인트 제거 (User Enumeration 방어).
+    // 이메일 사전 확인 단계는 제거하고 handle pre-check만 남긴다.
     const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
-    const emailQuery = signupIdentity.email.toUpperCase();
     const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
-    const emailPath = `/auth/check-email?${new URLSearchParams({ email: emailQuery }).toString()}`;
 
     let handleResponse;
-    let emailResponse;
     try {
-      [handleResponse, emailResponse] = await Promise.all([
-        requestJson(handlePath, { expectedStatuses: [200] }),
-        requestJson(emailPath, { expectedStatuses: [200] }),
-      ]);
+      handleResponse = await requestJson(handlePath, { expectedStatuses: [200] });
     } catch (error) {
-      if (String(error?.diagnostics?.path || '').includes('/auth/check-email')) {
-        throw withPublicAuthHint('check-email', error);
-      }
       if (String(error?.diagnostics?.path || '').includes('/auth/check-handle')) {
         throw withPublicAuthHint('check-handle', error);
       }
@@ -576,19 +568,9 @@ const main = async () => {
       throw new Error(`signup handle precheck normalized mismatch: ${handleResponse.data?.data?.normalized}`);
     }
 
-    if (emailResponse.data?.success !== true || emailResponse.data?.data?.available !== true) {
-      throw new Error(emailResponse.data?.message || 'signup email precheck 응답이 유효하지 않습니다.');
-    }
-
-    if (emailResponse.data?.data?.normalized !== normalizedSignupEmail) {
-      throw new Error(`signup email precheck normalized mismatch: ${emailResponse.data?.data?.normalized}`);
-    }
-
     return {
       handleQuery,
       handleNormalized: handleResponse.data.data.normalized,
-      emailQuery,
-      emailNormalized: emailResponse.data.data.normalized,
     };
   });
 
@@ -649,15 +631,11 @@ const main = async () => {
       };
     }
 
+    // [Security Fix - Critical #3] /auth/check-email 제거로 이메일 postcheck 단계도 handle 전용으로 축소.
     const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
-    const emailQuery = signupIdentity.email.toUpperCase();
     const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
-    const emailPath = `/auth/check-email?${new URLSearchParams({ email: emailQuery }).toString()}`;
 
-    const [handleResponse, emailResponse] = await Promise.all([
-      requestJson(handlePath, { expectedStatuses: [409] }),
-      requestJson(emailPath, { expectedStatuses: [409] }),
-    ]);
+    const handleResponse = await requestJson(handlePath, { expectedStatuses: [409] });
 
     if (handleResponse.data?.code !== 'HANDLE_UNAVAILABLE' || handleResponse.data?.data?.available !== false) {
       throw new Error(handleResponse.data?.message || 'signup handle postcheck 응답이 유효하지 않습니다.');
@@ -667,19 +645,9 @@ const main = async () => {
       throw new Error(`signup handle postcheck normalized mismatch: ${handleResponse.data?.data?.normalized}`);
     }
 
-    if (emailResponse.data?.code !== 'DUPLICATE_EMAIL' || emailResponse.data?.data?.available !== false) {
-      throw new Error(emailResponse.data?.message || 'signup email postcheck 응답이 유효하지 않습니다.');
-    }
-
-    if (emailResponse.data?.data?.normalized !== normalizedSignupEmail) {
-      throw new Error(`signup email postcheck normalized mismatch: ${emailResponse.data?.data?.normalized}`);
-    }
-
     return {
       handleCode: handleResponse.data.code,
       handleNormalized: handleResponse.data.data.normalized,
-      emailCode: emailResponse.data.code,
-      emailNormalized: emailResponse.data.data.normalized,
     };
   });
 
