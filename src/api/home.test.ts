@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildHomeLoadState,
   fetchGamesData,
+  fetchGamesRangeData,
   fetchHomeBootstrap,
   fetchHomeWidgets,
   fetchLeagueStartDates,
@@ -139,6 +140,55 @@ test('home bootstrap query는 비즈니스 409를 재시도하지 않는다', ()
     getHomeBootstrapQueryOptions(new Date('2026-03-16T12:00:00')).retry(0, manualDataConflict),
     false,
   );
+});
+
+test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으로 조회한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+    return buildJsonResponse({
+      content: [{
+        gameId: '20260402LTHH',
+        time: '18:30',
+        stadium: '대전',
+        gameStatus: 'SCHEDULED',
+        gameStatusKr: '예정',
+        gameInfo: '롯데 vs 한화',
+        leagueType: 'REGULAR',
+        homeTeam: 'HH',
+        homeTeamFull: '한화 이글스',
+        awayTeam: 'LT',
+        awayTeamFull: '롯데 자이언츠',
+        gameDate: '2026-04-02',
+      }],
+      page: 0,
+      size: 500,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+  });
+
+  const response = await fetchGamesRangeData('2026-04-01', '2026-04-30');
+
+  assert.equal(response[0]?.gameId, '20260402LTHH');
+  assert.match(requestUrl, /\/api\/matches\/range\?/);
+  assert.ok(requestUrl.includes('startDate=2026-04-01'));
+  assert.ok(requestUrl.includes('endDate=2026-04-30'));
+  assert.ok(requestUrl.includes('page=0'));
+  assert.ok(requestUrl.includes('size=500'));
+  assert.ok(requestUrl.includes('includePast=true'));
+  assert.ok(requestUrl.includes('withMeta=true'));
+  assert.equal(requestInit?.credentials, 'include');
+  assert.deepEqual(requestInit?.headers, { Accept: 'application/json' });
 });
 
 test('공개 홈 보조 데이터 요청은 same-origin fetch를 사용한다', async (t) => {

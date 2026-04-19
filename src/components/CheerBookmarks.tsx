@@ -5,6 +5,7 @@ import CheerCard from './CheerCard';
 import { BookmarkIcon, HomeIcon, LineChartIcon, MegaphoneIcon, UserIcon } from './icons/PublicShellIcons';
 import { cn } from '../lib/utils';
 import { useAuthProfileSnapshot } from '../store/authStore';
+import CheerMobileBottomNav from './CheerMobileBottomNav';
 
 export default function CheerBookmarks() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function CheerBookmarks() {
   });
 
   const bookmarkedPosts = data?.content ?? [];
+  const handleWriteClick = () => navigate('/cheer/write');
 
   const navItems = [
     { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
@@ -30,7 +32,7 @@ export default function CheerBookmarks() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
+    <div className="min-h-screen bg-[#f7f9f9] pb-[calc(5.75rem+env(safe-area-inset-bottom))] dark:bg-background lg:pb-0">
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 py-6 sm:py-8">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
           <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
@@ -141,37 +143,11 @@ export default function CheerBookmarks() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-[#EFF3F4] dark:border-border z-40 safe-area-bottom">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
-          {[
-            { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
-            { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
-            { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
-            { id: 'bookmarks', label: '북마크', icon: BookmarkIcon, path: '/cheer/bookmarks' },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.id === 'team' && location.pathname.startsWith('/cheer'));
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-gray-400 dark:text-gray-300'
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[16px] font-bold">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <CheerMobileBottomNav
+        activeItem="bookmarks"
+        userProfilePath={userProfilePath}
+        onWriteClick={handleWriteClick}
+      />
     </div>
   );
 }

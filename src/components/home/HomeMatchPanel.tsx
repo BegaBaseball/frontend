@@ -22,6 +22,7 @@ interface HomeMatchPanelProps {
   loadFailureReason: HomeLoadFailureReason | null;
   isScheduledLoading: boolean;
   isScheduledError: boolean;
+  suppressRecoveryActions?: boolean;
   isSecondarySectionExpanded: boolean;
   loadingMatchCardCount: number;
   matchSectionMinHeightStyle: CSSProperties;
@@ -43,6 +44,7 @@ export default function HomeMatchPanel({
   loadFailureReason,
   isScheduledLoading,
   isScheduledError,
+  suppressRecoveryActions = false,
   isSecondarySectionExpanded,
   loadingMatchCardCount,
   matchSectionMinHeightStyle,
@@ -89,15 +91,21 @@ export default function HomeMatchPanel({
             ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
             : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRetry}
-          className="border-primary/30 text-primary hover:bg-primary/5 font-bold"
-        >
-          <RefreshIcon className="w-4 h-4 mr-1.5" />
-          다시 시도
-        </Button>
+        {suppressRecoveryActions ? (
+          <p className="text-[16px] font-bold text-gray-500 dark:text-gray-400">
+            위의 전체 다시 시도 버튼으로 한 번에 확인하세요.
+          </p>
+        ) : (
+          <Button
+            variant="outline"
+            size="touch"
+            onClick={onRetry}
+            className="border-primary/30 text-primary hover:bg-primary/5 font-bold"
+          >
+            <RefreshIcon className="w-4 h-4 mr-1.5" />
+            다시 시도
+          </Button>
+        )}
       </div>
     );
   }
@@ -135,15 +143,21 @@ export default function HomeMatchPanel({
               ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
               : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            className="border-primary/30 text-primary hover:bg-primary/5 mt-3 font-bold"
-          >
-            <RefreshIcon className="w-4 h-4 mr-1.5" />
-            다시 시도
-          </Button>
+          {suppressRecoveryActions ? (
+            <p className="mt-3 text-[16px] font-bold text-gray-500 dark:text-gray-400">
+              위의 전체 다시 시도 버튼으로 한 번에 확인하세요.
+            </p>
+          ) : (
+            <Button
+              variant="outline"
+              size="touch"
+              onClick={onRetry}
+              className="border-primary/30 text-primary hover:bg-primary/5 mt-3 font-bold"
+            >
+              <RefreshIcon className="w-4 h-4 mr-1.5" />
+              다시 시도
+            </Button>
+          )}
         </div>
       );
     }
@@ -202,7 +216,7 @@ export default function HomeMatchPanel({
                 <button
                   type="button"
                   data-testid="home-scheduled-secondary-toggle"
-                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[16px] font-bold text-gray-600 hover:bg-gray-50 dark:border-border dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary/70"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1 text-[16px] font-bold text-gray-600 hover:bg-gray-50 dark:border-border dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary/70"
                   aria-expanded={isSecondarySectionExpanded}
                   onClick={onToggleSecondarySection}
                 >
