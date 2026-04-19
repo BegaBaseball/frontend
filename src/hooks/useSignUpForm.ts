@@ -54,10 +54,8 @@ const checkHandleAvailability = async (value: string, signal?: AbortSignal) => {
   return authPublic.checkSignUpHandleAvailability(value, signal);
 };
 
-const checkEmailAvailability = async (value: string, signal?: AbortSignal) => {
-  const authPublic = await loadAuthPublicModule();
-  return authPublic.checkSignUpEmailAvailability(value, signal);
-};
+// [Security Fix - Critical #3] 이메일 사전 중복 확인은 제거되었다 (User Enumeration 차단).
+// 이메일 중복 여부는 회원가입 제출 시 서버의 DUPLICATE_EMAIL 응답으로만 확인된다.
 
 const useSignUpAvailabilityCheck = (
   field: 'handle' | 'email',
@@ -126,24 +124,19 @@ export const useSignUpForm = () => {
   }, []);
 
   const normalizedHandle = normalizeSignUpHandleValue(formData.handle);
-  const normalizedEmail = normalizeSignUpEmailValue(formData.email);
   const [handleAvailability, setHandleAvailability] = useSignUpAvailabilityCheck(
     'handle',
     normalizedHandle,
     validateField('handle', normalizedHandle) === '',
     checkHandleAvailability,
   );
-  const [emailAvailability, setEmailAvailability] = useSignUpAvailabilityCheck(
-    'email',
-    normalizedEmail,
-    validateField('email', normalizedEmail) === '',
-    checkEmailAvailability,
-  );
+  // 이메일 availability는 서버 제출 시 충돌 응답으로만 결정된다.
+  const [emailAvailability, setEmailAvailability] = useState<SignUpFieldAvailability>(initialAvailabilityState);
 
   const currentValidationErrors = validateAllFields(formData);
   const hasLocalValidationErrors = Object.values(currentValidationErrors).some((value) => value !== '');
-  const isAvailabilityChecking = handleAvailability.state === 'checking' || emailAvailability.state === 'checking';
-  const isAvailabilityReady = handleAvailability.state === 'available' && emailAvailability.state === 'available';
+  const isAvailabilityChecking = handleAvailability.state === 'checking';
+  const isAvailabilityReady = handleAvailability.state === 'available';
   const isSubmitDisabled = isLoading || isSuccess || hasLocalValidationErrors || isAvailabilityChecking || !isAvailabilityReady;
 
   const sanitizeFieldValue = (fieldName: FieldName, value: string) => {
@@ -205,12 +198,12 @@ export const useSignUpForm = () => {
     }
 
     if (isAvailabilityChecking) {
-      setError('핸들과 이메일 사용 가능 여부 확인이 끝날 때까지 기다려주세요.');
+      setError('핸들 사용 가능 여부 확인이 끝날 때까지 기다려주세요.');
       return;
     }
 
     if (!isAvailabilityReady) {
-      setError('핸들과 이메일 중복 확인을 완료해 주세요.');
+      setError('핸들 중복 확인을 완료해 주세요.');
       return;
     }
 
