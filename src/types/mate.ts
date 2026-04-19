@@ -37,6 +37,9 @@ export type PartyStatus =
   | 'CHECKED_IN'
   | 'COMPLETED';
 
+export type MatePartySortBy = 'createdAt' | 'gameDate' | 'currentParticipants';
+export type MatePartySortDir = 'asc' | 'desc';
+
 export interface Application {
   id: number;
   partyId: number;

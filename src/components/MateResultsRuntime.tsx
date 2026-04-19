@@ -98,7 +98,7 @@ export default function MateResultsRuntime({
   };
 
   const renderPartyGrid = (items: Party[]) => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 min-[1500px]:grid-cols-3 xl:gap-5">
       {items.flatMap((party, index) => [
         <MatePartyCard
           key={party.id}
@@ -153,7 +153,7 @@ export default function MateResultsRuntime({
   if (isLoading) {
     return (
       <div role="status" aria-live="polite" aria-label="메이트 파티 목록 불러오는 중">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 min-[1500px]:grid-cols-3 xl:gap-5">
           {Array.from({ length: 6 }, (_, index) => (
             <div
               key={index}

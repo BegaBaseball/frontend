@@ -151,13 +151,13 @@ export default function MatePartyCard({
   const priceLabel = formatTicketAmount(party);
 
   const statusBadge = (
-    <div className={`flex items-center rounded-md border ${statusConfig.border} ${statusConfig.bg} px-2.5 py-1`}>
+    <div className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-md border ${statusConfig.border} ${statusConfig.bg} px-2.5 py-1`}>
       {dDayLabel ? (
-        <span className={`mr-1.5 border-r border-current/30 pr-1.5 text-[15px] font-bold ${statusConfig.text}`}>
+        <span className={`mr-1.5 shrink-0 whitespace-nowrap border-r border-current/30 pr-1.5 text-[15px] font-bold ${statusConfig.text}`}>
           {dDayLabel}
         </span>
       ) : null}
-      <span className={`text-[15px] font-bold ${statusConfig.text}`}>{statusConfig.label}</span>
+      <span className={`shrink-0 whitespace-nowrap text-[15px] font-bold ${statusConfig.text}`}>{statusConfig.label}</span>
     </div>
   );
 
@@ -247,7 +247,7 @@ export default function MatePartyCard({
       onClick={() => onClick(party)}
     >
       <div className="flex flex-1 flex-col p-4">
-        <div className="mb-4 flex flex-col gap-2 min-[1180px]:flex-row min-[1180px]:items-start min-[1180px]:justify-between min-[1180px]:gap-3">
+        <div className="mb-4 flex flex-col gap-2 min-[1440px]:flex-row min-[1440px]:items-start min-[1440px]:justify-between min-[1440px]:gap-3">
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-gray-700 dark:border-white/10 dark:text-zinc-300">
               <span className="font-mono text-[15px]">{formatGameDate(party.gameDate)}</span>
@@ -318,7 +318,7 @@ export default function MatePartyCard({
           </div>
         </div>
 
-        <div className="mt-auto flex flex-col gap-3 border-t border-gray-200 pt-3 dark:border-white/5 min-[1180px]:flex-row min-[1180px]:items-center min-[1180px]:justify-between">
+        <div className="mt-auto flex flex-col gap-3 border-t border-gray-200 pt-3 dark:border-white/5 min-[1440px]:flex-row min-[1440px]:items-center min-[1440px]:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <ProfileAvatar
               src={hostAvatarSrc}
@@ -339,9 +339,9 @@ export default function MatePartyCard({
             </div>
           </div>
 
-          <div className="w-full shrink-0 min-[1180px]:w-20">
-            <div className="mb-1.5 flex items-center justify-between text-[15px] font-bold text-primary min-[1180px]:justify-end">
-              <span className="text-gray-500 dark:text-zinc-400 min-[1180px]:hidden">모집 진행</span>
+          <div className="w-full shrink-0 min-[1440px]:w-20">
+            <div className="mb-1.5 flex items-center justify-between text-[15px] font-bold text-primary min-[1440px]:justify-end">
+              <span className="text-gray-500 dark:text-zinc-400 min-[1440px]:hidden">모집 진행</span>
               {progressPercent}%
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-black/50">
