@@ -24,15 +24,6 @@ import './StadiumGuide.css';
 const AuthenticatedStadiumFavoriteToggle = lazy(() => import('./AuthenticatedStadiumFavoriteToggle'));
 const StadiumGuideAdSlot = lazy(() => import('./ads/AdSlot'));
 const StadiumGuidePlacesRuntime = lazy(() => import('./StadiumGuidePlacesRuntime'));
-const JamsilSeatMap = lazy(() => import('./jamsil/JamsilSeatMap'));
-const IncheonSeatMap = lazy(() => import('./incheon/IncheonSeatMap'));
-const GocheokSeatMap = lazy(() => import('./gocheok/GocheokSeatMap'));
-const GwangjuSeatMap = lazy(() => import('./gwangju/GwangjuSeatMap'));
-const ChangwonSeatMap = lazy(() => import('./changwon/ChangwonSeatMap'));
-const DaejeonSeatMap = lazy(() => import('./daejeon/DaejeonSeatMap'));
-const DaeguSeatMap = lazy(() => import('./daegu/DaeguSeatMap'));
-const SuwonSeatMap = lazy(() => import('./suwon/SuwonSeatMap'));
-const SajikSeatMap = lazy(() => import('./sajik/SajikSeatMap'));
 
 function StadiumGuideCategorySelector({
   selectedCategory,
@@ -131,19 +122,7 @@ export default function StadiumGuideRuntime() {
   const { isLoggedIn } = useAuthSession();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
   const seatMapPresetMeta = resolveStadiumSeatMapPresetMeta(selectedStadiumId, selectedStadium?.stadiumName);
-  const isJamsil = seatMapPresetMeta.id === 'jamsil';
-  const isIncheon = seatMapPresetMeta.id === 'incheon';
-  const isGocheok = seatMapPresetMeta.id === 'gocheok';
-  const isGwangju = seatMapPresetMeta.id === 'gwangju';
-  const isChangwon = seatMapPresetMeta.id === 'changwon';
-  const isDaejeon = seatMapPresetMeta.id === 'daejeon';
-  const isDaegu = seatMapPresetMeta.id === 'daegu';
-  const isSuwon = seatMapPresetMeta.id === 'suwon';
-  const isSajik = seatMapPresetMeta.id === 'sajik';
-  const usesOfficialImageSeatMap = isJamsil || isIncheon || isGocheok || isGwangju || isChangwon || isDaejeon || isDaegu || isSuwon || isSajik;
-  const seatMapBadgeLabel = seatMapPresetMeta.isDefault
-    ? '공통 안내도'
-    : (isIncheon ? '인천 SSG 공식 좌석도' : isGocheok ? '고척 키움 공식 좌석도' : isGwangju ? '광주 KIA 공식 좌석도' : isChangwon ? '창원 NC 공식 좌석도' : isDaejeon ? '대전 한화 공식 좌석도' : isDaegu ? '대구 삼성 공식 좌석도' : isSuwon ? '수원 kt 위즈 파크 공식 좌석도' : isSajik ? '사직 롯데 공식 좌석도' : seatMapPresetMeta.label);
+  const seatMapBadgeLabel = seatMapPresetMeta.label;
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
@@ -157,83 +136,9 @@ export default function StadiumGuideRuntime() {
   const canRenderMap = Boolean(selectedStadium && KAKAO_API_KEY && isMapReady && mapStatus === 'success' && hasStadiumCoordinates);
   const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
   const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
-  const renderSeatMap = () => {
-    const fallback = <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />;
-
-    if (isJamsil) {
-      return (
-        <Suspense fallback={fallback}>
-          <JamsilSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isIncheon) {
-      return (
-        <Suspense fallback={fallback}>
-          <IncheonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGocheok) {
-      return (
-        <Suspense fallback={fallback}>
-          <GocheokSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGwangju) {
-      return (
-        <Suspense fallback={fallback}>
-          <GwangjuSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isChangwon) {
-      return (
-        <Suspense fallback={fallback}>
-          <ChangwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isDaejeon) {
-      return (
-        <Suspense fallback={fallback}>
-          <DaejeonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isDaegu) {
-      return (
-        <Suspense fallback={fallback}>
-          <DaeguSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSuwon) {
-      return (
-        <Suspense fallback={fallback}>
-          <SuwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSajik) {
-      return (
-        <Suspense fallback={fallback}>
-          <SajikSeatMap />
-        </Suspense>
-      );
-    }
-
-    return fallback;
-  };
+  const renderSeatMap = () => (
+    <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -518,41 +423,6 @@ export default function StadiumGuideRuntime() {
             </div>
           </div>
 
-          {usesOfficialImageSeatMap && (
-            <div className="hidden self-start lg:block">
-              <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                주변 정보 카테고리
-              </h3>
-              <StadiumGuideCategorySelector
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                disabled={stadiumControlsDisabled}
-                isDark={isDark}
-                columns="four"
-                compact
-              />
-              <div className="mt-6">
-                <Suspense fallback={null}>
-                  <StadiumGuidePlacesRuntime
-                    selectedStadiumId={selectedStadiumId}
-                    selectedStadiumName={selectedStadium?.stadiumName ?? null}
-                    selectedCategory={selectedCategory}
-                    places={places}
-                    selectedPlace={selectedPlace}
-                    listStatus={listStatus}
-                    listError={listError}
-                    retryPlaces={retryPlaces}
-                    handlePlaceClick={handlePlaceClick}
-                    listControlsDisabled={listControlsDisabled}
-                    isDark={isDark}
-                    isNearbyCategory={isNearbyCategory}
-                  />
-                </Suspense>
-              </div>
-            </div>
-          )}
-
-          {!usesOfficialImageSeatMap && (
           <div className="hidden space-y-8 sm:space-y-10 lg:block">
             {/* Interactive Seat Map Section */}
             <div>
@@ -598,25 +468,7 @@ export default function StadiumGuideRuntime() {
               </Suspense>
             </div>
           </div>
-          )}
         </div>
-
-        {/* Full-width official image seat map layout — rendered outside the 2-col grid */}
-        {usesOfficialImageSeatMap && (
-          <div className="mt-8 hidden space-y-10 lg:block">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
-                  좌석 배치도
-                </h3>
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-bold">
-                  {seatMapBadgeLabel}
-                </span>
-              </div>
-              {renderSeatMap()}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
