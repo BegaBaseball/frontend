@@ -277,6 +277,28 @@ describe('Mate Page Accuracy', () => {
     cy.contains('대구 삼성 라이온즈파크').should('be.visible');
   });
 
+  it('keeps desktop search and primary actions in the same toolbar row', () => {
+    cy.viewport(1440, 1000);
+    cy.visit('/mate');
+    cy.wait('@getPartiesPage0');
+
+    cy.get('#mate-search').should('be.visible').then(($search) => {
+      const searchRect = $search[0].getBoundingClientRect();
+      expect(searchRect.width, 'desktop search width').to.be.greaterThan(640);
+
+      cy.get('button:visible').contains('이용 가이드').then(($guideButton) => {
+        const guideRect = $guideButton[0].getBoundingClientRect();
+        expect(Math.abs(guideRect.top - searchRect.top), 'guide aligned with search').to.be.lessThan(8);
+        expect(guideRect.left, 'guide follows search').to.be.greaterThan(searchRect.right);
+      });
+
+      cy.get('button:visible').contains('파티 만들기').then(($createButton) => {
+        const createRect = $createButton[0].getBoundingClientRect();
+        expect(Math.abs(createRect.top - searchRect.top), 'create aligned with search').to.be.lessThan(8);
+      });
+    });
+  });
+
   it('surfaces decision-first signals on cards and detail summary', () => {
     cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,

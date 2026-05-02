@@ -54,25 +54,28 @@ export default function MateResultsRuntime({
 }: MateResultsRuntimeProps) {
   const isRichCardLayout = useMediaQuery('(min-width: 1024px)');
   const partyCardVariant = isRichCardLayout ? 'rich' : 'compact';
+  const skeletonCardHeight = isRichCardLayout ? 'min-h-[508px]' : 'min-h-[304px]';
 
   const renderEmptyState = (tabKey: MateResultsTabKey) => {
     const messages = EMPTY_MESSAGES_BY_TAB[tabKey];
 
     return (
-      <div className="rounded-2xl border border-gray-200/70 bg-white py-20 text-center dark:border-white/5 dark:bg-[#16181c]">
-        <MateUsersIcon className="mx-auto mb-4 h-12 w-12 text-gray-500 dark:text-zinc-600" />
-        <p className="mb-2 font-bold text-gray-900 dark:text-zinc-200">
+      <div className="rounded-[24px] border border-gray-200/80 bg-gradient-to-br from-white via-white to-primary/5 px-5 py-16 text-center shadow-sm dark:border-white/15 dark:from-[#16181c] dark:via-[#16181c] dark:to-primary/10">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
+          <MateUsersIcon className="h-7 w-7" />
+        </div>
+        <p className="mb-2 text-xl font-black tracking-tight text-gray-950 dark:text-white">
           {hasActiveFilters ? messages.withFilter : messages.withoutFilter}
         </p>
         {hasActiveFilters ? (
           <>
-            <p className="mb-6 text-[16px] font-bold text-gray-500 dark:text-zinc-500">
-              검색어나 날짜 필터를 변경해보세요
+            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-zinc-300">
+              검색어를 줄이거나 날짜, 팀, 좌석 조건을 초기화하면 더 많은 파티를 볼 수 있습니다.
             </p>
             <Button
               variant="outline"
               size="touch"
-              className="border-primary/25 bg-primary/10 text-primary hover:bg-primary/15"
+              className="rounded-xl border-primary/25 bg-primary/10 px-5 font-black text-primary hover:bg-primary/15"
               onClick={onResetFilters}
             >
               필터 초기화
@@ -80,12 +83,12 @@ export default function MateResultsRuntime({
           </>
         ) : (
           <>
-            <p className="mb-6 text-[16px] font-bold text-gray-500 dark:text-zinc-500">
-              첫 번째 파티를 만들어보세요!
+            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-zinc-300">
+              원하는 경기와 좌석 조건으로 첫 번째 직관 메이트를 모집해보세요.
             </p>
             <Button
               size="touch"
-              className="bg-primary font-bold text-primary-foreground hover:bg-primary-hover"
+              className="rounded-xl bg-primary px-5 font-black text-primary-foreground hover:bg-primary-hover"
               onClick={onCreateParty}
             >
               <MatePlusIcon className="mr-1 h-4 w-4" />
@@ -98,7 +101,7 @@ export default function MateResultsRuntime({
   };
 
   const renderPartyGrid = (items: Party[]) => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
       {items.flatMap((party, index) => [
         <MatePartyCard
           key={party.id}
@@ -126,7 +129,7 @@ export default function MateResultsRuntime({
     <div className="mb-8 mt-10 flex items-center justify-center gap-2 sm:gap-4">
       <Button
         variant="outline"
-        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/10 dark:bg-[#16181c] dark:text-zinc-300 dark:hover:bg-primary/15 dark:hover:text-primary"
+        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary"
         onClick={() => onPageChange(Math.max(0, queryPage - 1))}
         disabled={queryPage === 0}
         size="touch"
@@ -134,12 +137,12 @@ export default function MateResultsRuntime({
         <MateChevronLeftIcon className="mr-1 h-4 w-4" />
         이전
       </Button>
-      <span className="text-[16px] font-bold text-gray-500 dark:text-zinc-400">
+      <span className="rounded-full bg-gray-100 px-3 py-2 text-[16px] font-bold text-gray-600 dark:bg-white/5 dark:text-zinc-300">
         {`${queryPage + 1} / ${totalPages}`}
       </span>
       <Button
         variant="outline"
-        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/10 dark:bg-[#16181c] dark:text-zinc-300 dark:hover:bg-primary/15 dark:hover:text-primary"
+        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary"
         onClick={() => onPageChange(Math.min(totalPages - 1, queryPage + 1))}
         disabled={queryPage >= totalPages - 1}
         size="touch"
@@ -153,13 +156,21 @@ export default function MateResultsRuntime({
   if (isLoading) {
     return (
       <div role="status" aria-live="polite" aria-label="메이트 파티 목록 불러오는 중">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
           {Array.from({ length: 6 }, (_, index) => (
             <div
               key={index}
               aria-hidden="true"
-              className="h-[360px] animate-pulse rounded-[24px] border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#16181c]"
-            />
+              className={`${skeletonCardHeight} flex animate-pulse flex-col rounded-[24px] border border-gray-200/80 bg-white p-4 dark:border-white/15 dark:bg-[#16181c]`}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="h-8 w-40 rounded-lg bg-gray-200 dark:bg-white/10" />
+                <div className="h-8 w-24 rounded-lg bg-primary/15" />
+              </div>
+              <div className="mb-5 h-12 rounded-xl bg-gray-100 dark:bg-white/5" />
+              <div className="mb-5 h-24 rounded-2xl bg-gray-100 dark:bg-black/30" />
+              <div className="mt-auto h-12 rounded-full bg-gray-100 dark:bg-white/5" />
+            </div>
           ))}
         </div>
       </div>
@@ -168,16 +179,20 @@ export default function MateResultsRuntime({
 
   if (fetchError) {
     return (
-      <div role="alert" className="rounded-2xl border border-dashed border-red-300 bg-red-50 px-4 py-16 text-center dark:border-red-900/60 dark:bg-red-950/30">
-        <MateAlertCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-600 dark:text-red-300" />
-        <p className="font-bold text-red-950 dark:text-red-100">파티 목록을 불러오지 못했습니다</p>
-        <p className="mt-1 text-[16px] font-bold text-red-700 dark:text-red-200">
-          네트워크 연결을 확인하고 다시 시도해주세요
+      <div role="alert" className="rounded-[24px] border border-red-300 bg-red-50 px-5 py-14 text-center shadow-sm dark:border-red-900/70 dark:bg-red-950/30">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-red-300 bg-white text-red-600 shadow-sm dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
+          <MateAlertCircleIcon className="h-7 w-7" />
+        </div>
+        <p className="text-xl font-black tracking-tight text-red-950 dark:text-red-50">
+          파티 목록을 불러오지 못했습니다
+        </p>
+        <p className="mx-auto mt-2 max-w-md text-[16px] font-bold leading-6 text-red-700 dark:text-red-100">
+          일시적인 연결 문제일 수 있습니다. 잠시 후 다시 시도하거나 네트워크 상태를 확인해주세요.
         </p>
         <Button
           variant="outline"
           size="touch"
-          className="mt-5 border-red-300 bg-white text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-200 dark:hover:bg-red-900/30"
+          className="mt-6 rounded-xl border-red-300 bg-white px-5 font-black text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/20 dark:text-red-100 dark:hover:bg-red-900/30"
           onClick={onRetry}
         >
           <MateRefreshIcon className="mr-2 h-4 w-4" />

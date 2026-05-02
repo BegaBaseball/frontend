@@ -121,8 +121,10 @@ export default function MateDetailContentRuntime({
   });
   const applications = hostApplicationsQuery.data ?? [];
 
-  const approvedApplications = applications.filter((application) => application.isApproved);
-  const pendingApplications = applications.filter((application) => !application.isApproved && !application.isRejected);
+  const [approvedApplications, pendingApplications] = useMemo(() => [
+    applications.filter((application) => application.isApproved),
+    applications.filter((application) => !application.isApproved && !application.isRejected),
+  ], [applications]);
 
   const canCancelApplication = useMemo(() => {
     if (!myApplication) return false;
