@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import lgSeatMapImage from '../../assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png';
 import doosanOverviewImage from '../../assets/stadiums/doosan/jamsil-doosan-stadium-overview.png';
 import doosanFloor1Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-1f.jpg';
@@ -216,6 +216,25 @@ function SourceTabs({
   );
 }
 
+function OfficialSourceToolbar({
+  value,
+  onChange,
+  mode,
+  controls,
+}: {
+  value: OfficialSourceId;
+  onChange: (value: OfficialSourceId) => void;
+  mode: 'light' | 'dark';
+  controls?: ReactNode;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <SourceTabs value={value} onChange={onChange} mode={mode} />
+      {controls}
+    </div>
+  );
+}
+
 function DoosanInfoList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
@@ -351,7 +370,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
   ];
 
   return (
-    <div className="relative rounded-xl bg-slate-50 px-3 pb-3 pt-14 dark:bg-slate-950">
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950">
       <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -1027,17 +1046,15 @@ export default function JamsilSeatMapSvg({
   if (officialSource === 'DOOSAN') {
     return (
       <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#050810]">
-        <div className="mb-2">
-          <SourceTabs
-            value={officialSource}
-            onChange={(value) => {
-              setSelected(null);
-              setHover(null);
-              onOfficialSourceChange(value);
-            }}
-            mode={mode}
-          />
-        </div>
+        <OfficialSourceToolbar
+          value={officialSource}
+          onChange={(value) => {
+            setSelected(null);
+            setHover(null);
+            onOfficialSourceChange(value);
+          }}
+          mode={mode}
+        />
         <DoosanOfficialGuide mode={mode} />
       </div>
     );
@@ -1045,20 +1062,18 @@ export default function JamsilSeatMapSvg({
 
   return (
     <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#050810]">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <SourceTabs
-          value={officialSource}
-          onChange={(value) => {
-            if (value === 'DOOSAN') {
-              setSelected(null);
-              setHover(null);
-            }
-            onOfficialSourceChange(value);
-          }}
-          mode={mode}
-        />
-        {zoomControls}
-      </div>
+      <OfficialSourceToolbar
+        value={officialSource}
+        onChange={(value) => {
+          if (value === 'DOOSAN') {
+            setSelected(null);
+            setHover(null);
+          }
+          onOfficialSourceChange(value);
+        }}
+        mode={mode}
+        controls={zoomControls}
+      />
       <div
         ref={viewportRef}
         data-testid="jamsil-seatmap-viewport"
