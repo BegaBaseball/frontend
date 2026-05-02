@@ -135,6 +135,7 @@ export default function JamsilSeatMap() {
   const hoveredSection = !isDoosanGuideActive && hover ? (JAMSIL_BLOCKS.find(b => b.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? JAMSIL_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#1F5C4A';
+  const doosanReference = JAMSIL_OFFICIAL_REFERENCES.find((reference) => reference.id === 'DOOSAN');
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <JamsilSeatMapSvg
@@ -163,29 +164,49 @@ export default function JamsilSeatMap() {
 
   const attribution = (
     <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-      좌석 배치 기준: {JAMSIL_SEATMAP_IMAGE.sourceLabel}
-      <a
-        href={JAMSIL_SEATMAP_IMAGE.sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-      >
-        출처
-      </a>
-      <span className="mx-1">·</span>
-      보조 참고: {JAMSIL_OFFICIAL_REFERENCES.find((reference) => reference.id === 'DOOSAN')?.sourceLabel}
-      <a
-        href={JAMSIL_OFFICIAL_REFERENCES.find((reference) => reference.id === 'DOOSAN')?.sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-      >
-        출처
-      </a>
-      {JAMSIL_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
+      {isDoosanGuideActive ? (
+        <>
+          구장 안내 기준: {doosanReference?.sourceLabel ?? '두산 베어스 공식 자료'}
+          {doosanReference?.sourceUrl && (
+            <a
+              href={doosanReference.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
+            >
+              출처
+            </a>
+          )}
+        </>
+      ) : (
+        <>
+          좌석 배치 기준: {JAMSIL_SEATMAP_IMAGE.sourceLabel}
+          <a
+            href={JAMSIL_SEATMAP_IMAGE.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
+          >
+            출처
+          </a>
+          <span className="mx-1">·</span>
+          보조 참고: {doosanReference?.sourceLabel}
+          {doosanReference?.sourceUrl && (
+            <a
+              href={doosanReference.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
+            >
+              출처
+            </a>
+          )}
+          {JAMSIL_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
+            <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
+              MANUAL_BASEBALL_DATA_REQUIRED
+            </span>
+          )}
+        </>
       )}
     </div>
   );
