@@ -68,3 +68,20 @@ export const normalizeStructuredInsightList = (values?: unknown[]): string[] => 
             .filter((value) => Boolean(value))
         : []
 );
+
+export const sanitizeMarkdown = (value: string, fallback = ''): string => {
+    const source = String(value || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+        .replace(/<\/?[^>]+>/g, '')
+        .replace(/```[\s\S]*?```/g, (block) =>
+            block
+                .replace(/^```[a-zA-Z0-9_-]*\n?/, '')
+                .replace(/```$/, ''),
+        )
+        .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    return source || fallback;
+};

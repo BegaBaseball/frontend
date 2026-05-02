@@ -326,8 +326,8 @@ export default function CoachBriefing({
                   : (aiBriefing?.displayText ?? aiBriefing?.message))
               || '실데이터 브리핑을 준비하지 못했습니다.')
             : (forceManual || isFutureGame)
-              ? `예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 ${analysisPresentation.title}에서 확인할 수 있습니다.`
-            : `자동 브리핑은 핵심 경기만 제공합니다. 현재 매치업의 해석은 ${analysisPresentation.title}에서 확인할 수 있습니다.`;
+              ? `현재 매치업의 승부처는 ${analysisPresentation.title}에서 확인할 수 있습니다.`
+              : `현재 매치업의 해석은 ${analysisPresentation.title}에서 확인할 수 있습니다.`;
   const seasonSummary = getSeasonSummary();
   const loginButtonLabel = authExpired
     ? '다시 로그인하기'

@@ -3,6 +3,7 @@ import {
   normalizePredictionDate,
   resolveDeepLinkSelection,
   type DeepLinkSelection,
+  type DeepLinkSelectionOptions,
 } from './predictionHomeLogic';
 
 export const PREDICTION_GAME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -26,7 +27,43 @@ export type PredictionNavigationSeedGame = {
   gameDate?: string;
 };
 
+export type PredictionHandoffSourcePage = 'home' | 'schedule';
+
+export type PredictionMatchHandoffGame = {
+  gameId?: string | null;
+  homeTeam?: string | null;
+  homeTeamFull?: string | null;
+  awayTeam?: string | null;
+  awayTeamFull?: string | null;
+  time?: string | null;
+  stadium?: string | null;
+  gameStatus?: string | null;
+  gameStatusKr?: string | null;
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
+  winner?: string | null;
+  leagueType?: string | null;
+  sourceDate?: string | null;
+  date?: string | null;
+  gameDate?: string | null;
+};
+
+export type PredictionMatchHandoffState = {
+  sourcePage: PredictionHandoffSourcePage;
+  gameId: string;
+  date: string;
+  game: PredictionNavigationSeedGame;
+};
+
+export type PredictionMatchHandoff = {
+  path: string;
+  date: string;
+  gameId: string;
+  state: PredictionMatchHandoffState;
+};
+
 export type PredictionLocationState = {
+  sourcePage?: PredictionHandoffSourcePage;
   game?: PredictionNavigationSeedGame;
   gameId?: string;
   date?: string;
@@ -227,6 +264,86 @@ export const buildPredictionRecoveryPath = ({
   return query ? `/prediction?${query}` : '/prediction';
 };
 
+export const resolvePredictionHandoffDate = (
+  ...candidateDates: Array<string | null | undefined>
+): string | null => {
+  for (const candidateDate of candidateDates) {
+    if (typeof candidateDate !== 'string') {
+      continue;
+    }
+
+    const normalizedDate = normalizePredictionDate(candidateDate);
+    if (normalizedDate) {
+      return normalizedDate;
+    }
+  }
+
+  return null;
+};
+
+const toOptionalSeedString = (value?: string | null): string | undefined => {
+  const normalized = value?.trim();
+  return normalized || undefined;
+};
+
+export const buildPredictionMatchHandoff = ({
+  sourcePage,
+  game,
+  fallbackDate,
+}: {
+  sourcePage: PredictionHandoffSourcePage;
+  game: PredictionMatchHandoffGame;
+  fallbackDate?: string | null;
+}): PredictionMatchHandoff => {
+  const gameId = `${game.gameId ?? ''}`.trim();
+  const targetDate = resolvePredictionHandoffDate(
+    game.sourceDate,
+    game.date,
+    game.gameDate,
+    fallbackDate,
+  ) || '';
+  const predictionParams = new URLSearchParams();
+
+  if (targetDate) {
+    predictionParams.set('date', targetDate);
+  }
+  if (gameId) {
+    predictionParams.set('gameId', gameId);
+  }
+
+  const query = predictionParams.toString();
+  const seedGame: PredictionNavigationSeedGame = {
+    gameId,
+    homeTeam: toOptionalSeedString(game.homeTeam),
+    homeTeamFull: toOptionalSeedString(game.homeTeamFull),
+    awayTeam: toOptionalSeedString(game.awayTeam),
+    awayTeamFull: toOptionalSeedString(game.awayTeamFull),
+    time: toOptionalSeedString(game.time),
+    stadium: toOptionalSeedString(game.stadium),
+    gameStatus: toOptionalSeedString(game.gameStatus),
+    gameStatusKr: toOptionalSeedString(game.gameStatusKr),
+    homeScore: game.homeScore,
+    awayScore: game.awayScore,
+    winner: game.winner ?? null,
+    leagueType: toOptionalSeedString(game.leagueType),
+    sourceDate: targetDate,
+    date: targetDate,
+    gameDate: targetDate,
+  };
+
+  return {
+    path: query ? `/prediction?${query}` : '/prediction',
+    date: targetDate,
+    gameId,
+    state: {
+      sourcePage,
+      gameId,
+      date: targetDate,
+      game: seedGame,
+    },
+  };
+};
+
 export const buildPredictionNavigationSeedGame = (
   stateGame: PredictionNavigationSeedGame | undefined,
   deepLinkGameId: string,
@@ -286,15 +403,21 @@ export const buildDeepLinkNotFoundMessage = (
     messages.push(`날짜(${deepLinkDate})`);
   }
 
-  return messages.length
-    ? `요청하신 ${messages.join(', ')} 경기는 현재 목록에서 찾을 수 없습니다. 기본 화면으로 이동합니다.`
-    : '요청한 경기를 현재 목록에서 찾을 수 없어 기본 화면으로 이동합니다.';
+  if (messages.length) {
+    const actionMessage = deepLinkGameId
+      ? '경기 목록에서 다시 선택해주세요.'
+      : '기본 화면으로 이동합니다.';
+    return `요청하신 ${messages.join(', ')} 경기는 현재 목록에서 찾을 수 없습니다. ${actionMessage}`;
+  }
+
+  return '요청한 경기를 현재 목록에서 찾을 수 없어 기본 화면으로 이동합니다.';
 };
 
 export const resolvePredictionDeepLinkSelection = (
   allDatesData: Parameters<typeof resolveDeepLinkSelection>[0],
   gameId: string,
-  date: string
+  date: string,
+  options?: DeepLinkSelectionOptions
 ): DeepLinkSelection | null => {
-  return resolveDeepLinkSelection(allDatesData, gameId, date);
+  return resolveDeepLinkSelection(allDatesData, gameId, date, options);
 };
