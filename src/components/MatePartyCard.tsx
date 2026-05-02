@@ -168,7 +168,7 @@ export default function MatePartyCard({
         type="button"
         aria-label={`${zoneName} ${party.stadium} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
         className={cn(
-          'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white text-left transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-white/10 dark:bg-[#16181c] dark:hover:border-white/20 dark:focus-visible:ring-offset-[#0a0a0a]',
+          'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white text-left transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:focus-visible:ring-offset-[#0a0a0a]',
           className,
         )}
         onClick={() => onClick(party)}
@@ -183,7 +183,7 @@ export default function MatePartyCard({
           </div>
 
           <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h3 className="line-clamp-1 text-[19px] font-black tracking-tight text-gray-900 dark:text-white">
                 {zoneName}
               </h3>
@@ -191,7 +191,7 @@ export default function MatePartyCard({
                 {party.stadium} · {party.section}
               </p>
             </div>
-            <span className="shrink-0 text-[18px] font-black text-gray-900 dark:text-white">
+            <span className="shrink-0 text-right text-[18px] font-black text-gray-900 dark:text-white">
               {priceLabel}
             </span>
           </div>
@@ -218,8 +218,8 @@ export default function MatePartyCard({
                 src={hostAvatarSrc}
                 alt={party.hostName}
                 fallbackName={party.hostName}
-                width={30}
-                height={30}
+                width={32}
+                height={32}
                 className="ring-1 ring-gray-200 dark:ring-white/10"
               />
               <span className="flex min-w-0 items-center gap-1.5 text-[14px] font-bold text-gray-900 dark:text-zinc-200">
@@ -242,37 +242,42 @@ export default function MatePartyCard({
       type="button"
       aria-label={`${zoneName} ${party.stadium} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
       className={cn(
-        'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[22px] border border-gray-200/80 bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-white/10 dark:bg-[#16181c] dark:hover:border-white/20 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] dark:focus-visible:ring-offset-[#0a0a0a]',
+        'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[22px] border border-gray-200/80 bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] dark:focus-visible:ring-offset-[#0a0a0a]',
         className,
       )}
       onClick={() => onClick(party)}
     >
       <div className="flex flex-1 flex-col p-4">
-        <div className="mb-4 flex max-w-full flex-col items-start gap-2">
-          <div className="flex max-w-full flex-wrap gap-2">
+        <div className="mb-4 flex max-w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 max-w-full flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-gray-700 dark:border-white/10 dark:text-zinc-300">
               <span className="font-mono text-[15px]">{formatGameDate(party.gameDate)}</span>
               {getWeatherIcon(party.gameDate)}
             </span>
-            <span className="inline-flex max-w-full truncate rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[15px] font-semibold text-gray-700 dark:border-white/10 dark:text-zinc-300">
-              {party.stadium}
+            <span className="inline-flex max-w-full min-w-0 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[15px] font-semibold text-gray-700 dark:border-white/10 dark:text-zinc-300">
+              <span className="truncate">{party.stadium}</span>
             </span>
           </div>
-          {statusBadge}
+          <div className="shrink-0">{statusBadge}</div>
         </div>
 
-        <div className="mb-5">
-          <div className="mb-1 flex items-start justify-between gap-4">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <h3 className="line-clamp-1 text-[21px] font-black tracking-tight text-gray-900 dark:text-white">
               {zoneName}
             </h3>
-            <span className="shrink-0 text-xl font-black text-gray-900 dark:text-white">
+            <p className="mt-1 line-clamp-1 text-[15px] font-bold text-gray-500 dark:text-zinc-400">
+              {party.section}
+            </p>
+          </div>
+          <div className="shrink-0 rounded-xl border border-gray-200/80 bg-gray-50 px-3 py-2 text-right dark:border-white/10 dark:bg-black/20">
+            <span className="block text-[12px] font-black uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-500">
+              {party.status === 'SELLING' ? '판매가' : '참여비'}
+            </span>
+            <span className="block text-xl font-black leading-tight text-gray-900 dark:text-white">
               {priceLabel}
             </span>
           </div>
-          <p className="line-clamp-1 text-[15px] font-bold text-gray-500 dark:text-zinc-400">
-            {party.section}
-          </p>
         </div>
 
         <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-gray-200 bg-gray-100 p-3 dark:border-white/5 dark:bg-black/30">
@@ -291,30 +296,32 @@ export default function MatePartyCard({
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-x-2 gap-y-2.5 px-1">
-          <div className="flex items-center gap-2 text-[15px] font-semibold">
+        <div className="mb-4 grid grid-cols-2 gap-2 px-1">
+          <div className="flex min-w-0 items-center gap-2 rounded-lg bg-gray-100/70 px-2.5 py-2 text-[15px] font-semibold dark:bg-black/20">
             <MateShieldIcon className={`h-4 w-4 ${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'}`} />
-            <span className={`${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'} font-bold`}>
+            <span className={`${party.ticketVerified ? 'text-primary' : 'text-gray-500 dark:text-zinc-500'} min-w-0 truncate font-bold`}>
               {ticketTrustLabel}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[15px] font-semibold">
+          <div className="flex min-w-0 items-center gap-2 rounded-lg bg-gray-100/70 px-2.5 py-2 text-[15px] font-semibold dark:bg-black/20">
             <MateStarIcon className={`h-4 w-4 ${hostAverageRating === null ? 'text-gray-400 dark:text-zinc-500' : 'text-primary'}`} />
-            <span className={`${hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300'} font-bold`}>
+            <span className={`${hostAverageRating === null ? 'text-gray-500 dark:text-zinc-500' : 'text-gray-700 dark:text-zinc-300'} min-w-0 truncate font-bold`}>
               {hostReviewLabel}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[15px] font-semibold">
+          <div className="flex min-w-0 items-center gap-2 rounded-lg bg-gray-100/70 px-2.5 py-2 text-[15px] font-semibold dark:bg-black/20">
             <MateUsersIcon className="h-4 w-4 text-primary" />
-            <span className="font-bold text-gray-700 dark:text-zinc-300">
+            <span className="min-w-0 truncate font-bold text-gray-700 dark:text-zinc-300">
               {party.currentParticipants}
               <span className="mx-0.5 text-gray-500 dark:text-zinc-500">/</span>
               {party.maxParticipants}명
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[15px] font-semibold">
-            <span className="inline-flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[15px] font-bold text-primary">
-              {flowLabel}
+          <div className="flex min-w-0 items-center gap-2 rounded-lg bg-gray-100/70 px-2.5 py-2 text-[15px] font-semibold dark:bg-black/20">
+            <span className="inline-flex min-w-0 max-w-full items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[15px] font-bold text-primary">
+              <span className="truncate">
+                {flowLabel}
+              </span>
             </span>
           </div>
         </div>

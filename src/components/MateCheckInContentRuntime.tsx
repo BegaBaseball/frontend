@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType, type ReactNode, type SVGProps } from 'react';
+import { lazy, Suspense, useMemo, type ComponentType, type ReactNode, type SVGProps } from 'react';
 import TeamLogo from './TeamLogo';
 import {
   MateCalendarIcon,
@@ -170,13 +170,16 @@ export default function MateCheckInContentRuntime({
       detail: qrSessionId ? '상세페이지 QR 링크를 통해 연결되었습니다.' : '직접 진입한 체크인 화면입니다.',
     },
   ];
-  const otherCheckIns = checkInStatus.filter((checkIn) => !hasSameMateUserIdentity(
-    { handle: checkIn.userHandle },
-    { handle: currentUserHandle },
-  ) && !hasSameMateUserIdentity(
-    { handle: checkIn.userHandle },
-    { handle: party.hostHandle },
-  ));
+  const otherCheckIns = useMemo(
+    () => checkInStatus.filter((checkIn) => !hasSameMateUserIdentity(
+      { handle: checkIn.userHandle },
+      { handle: currentUserHandle },
+    ) && !hasSameMateUserIdentity(
+      { handle: checkIn.userHandle },
+      { handle: party.hostHandle },
+    )),
+    [checkInStatus, currentUserHandle, party.hostHandle],
+  );
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
