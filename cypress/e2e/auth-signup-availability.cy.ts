@@ -37,13 +37,21 @@ const fillRequiredSignUpFields = ({
 
 const getSignUpSubmitButton = () => cy.get('form').find('button[type="submit"]').first();
 
+const setEmailInputValue = (value: string) => {
+  cy.get('input#email').then(($input) => {
+    const input = $input[0] as HTMLInputElement;
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    nativeValueSetter?.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+};
+
 describe('SignUp availability checks', () => {
   beforeEach(() => {
     cy.mockAPI();
   });
 
   it('checks only valid handle values, keeps submit disabled while checking, and submits canonical values', () => {
-    // [Security Fix - Critical #3] 이메일 availability 사전 확인 엔드포인트가 제거되었으므로
     // 이메일 중복 검증은 signup 응답(DUPLICATE_EMAIL)에서만 확인한다.
     let handleCheckCount = 0;
 
@@ -212,5 +220,78 @@ describe('SignUp availability checks', () => {
     cy.contains('회원가입 실패').should('be.visible');
     cy.contains('이미 사용 중인 아이디(@handle)입니다.').should('be.visible');
     getSignUpSubmitButton().should('be.disabled');
+  });
+
+  it('keeps duplicate email submissions blocked until the normalized email changes', () => {
+    cy.intercept('GET', '**/api/auth/check-handle*', {
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          available: true,
+          normalized: '@emailtaken',
+        },
+      },
+    }).as('checkHandleAvailableForEmailConflict');
+
+    stubRequiredPolicies();
+
+    let signupRequestCount = 0;
+    cy.intercept('POST', '**/api/auth/signup', (req) => {
+      signupRequestCount += 1;
+      req.alias = signupRequestCount === 1 ? 'signupEmailConflict' : 'signupRetryAfterEmailChange';
+
+      if (signupRequestCount === 1) {
+        expect(req.body.email).to.eq('taken@example.com');
+        req.reply({
+          statusCode: 409,
+          body: {
+            success: false,
+            code: 'DUPLICATE_EMAIL',
+            message: '이미 사용 중인 이메일입니다.',
+            data: {
+              email: 'taken@example.com',
+            },
+          },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 201,
+        body: {
+          success: true,
+          message: '회원가입이 완료되었습니다.',
+        },
+      });
+    });
+
+    cy.visit('/signup');
+
+    fillRequiredSignUpFields({
+      handle: 'EmailTaken',
+      email: 'Taken@Example.com',
+    });
+
+    cy.wait('@checkHandleAvailableForEmailConflict');
+    getSignUpSubmitButton().should('not.be.disabled').click();
+
+    cy.wait('@requiredPolicies');
+    cy.wait('@signupEmailConflict');
+    cy.contains('회원가입 실패').should('be.visible');
+    cy.contains('이미 사용 중인 이메일입니다.').should('be.visible');
+    getSignUpSubmitButton().should('be.disabled');
+
+    setEmailInputValue('TAKEN@EXAMPLE.COM');
+    cy.get('input#email').should('have.value', 'TAKEN@EXAMPLE.COM');
+    cy.contains('이미 사용 중인 이메일입니다.').should('be.visible');
+    getSignUpSubmitButton().should('be.disabled');
+    cy.then(() => {
+      expect(signupRequestCount).to.eq(1);
+    });
+
+    cy.get('input#email').clear().type('fresh.email@example.com');
+    cy.contains('이미 사용 중인 이메일입니다.').should('not.exist');
+    getSignUpSubmitButton().should('not.be.disabled');
   });
 });

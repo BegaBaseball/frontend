@@ -54,7 +54,6 @@ const checkHandleAvailability = async (value: string, signal?: AbortSignal) => {
   return authPublic.checkSignUpHandleAvailability(value, signal);
 };
 
-// [Security Fix - Critical #3] 이메일 사전 중복 확인은 제거되었다 (User Enumeration 차단).
 // 이메일 중복 여부는 회원가입 제출 시 서버의 DUPLICATE_EMAIL 응답으로만 확인된다.
 
 const useSignUpAvailabilityCheck = (
@@ -130,14 +129,23 @@ export const useSignUpForm = () => {
     validateField('handle', normalizedHandle) === '',
     checkHandleAvailability,
   );
-  // 이메일 availability는 서버 제출 시 충돌 응답으로만 결정된다.
+  // 이메일 중복은 사전 조회 없이 최종 signup 충돌 응답으로만 확정한다.
   const [emailAvailability, setEmailAvailability] = useState<SignUpFieldAvailability>(initialAvailabilityState);
+  const normalizedEmail = normalizeSignUpEmailValue(formData.email);
 
   const currentValidationErrors = validateAllFields(formData);
   const hasLocalValidationErrors = Object.values(currentValidationErrors).some((value) => value !== '');
   const isAvailabilityChecking = handleAvailability.state === 'checking';
   const isAvailabilityReady = handleAvailability.state === 'available';
-  const isSubmitDisabled = isLoading || isSuccess || hasLocalValidationErrors || isAvailabilityChecking || !isAvailabilityReady;
+  const hasCurrentEmailConflict = emailAvailability.state === 'taken' && emailAvailability.normalized === normalizedEmail;
+  const isSubmitDisabled = (
+    isLoading
+    || isSuccess
+    || hasLocalValidationErrors
+    || isAvailabilityChecking
+    || !isAvailabilityReady
+    || hasCurrentEmailConflict
+  );
 
   const sanitizeFieldValue = (fieldName: FieldName, value: string) => {
     if (fieldName === 'handle') {
@@ -166,7 +174,10 @@ export const useSignUpForm = () => {
     }
 
     if (fieldName === 'email') {
-      setEmailAvailability(initialAvailabilityState);
+      const nextNormalizedEmail = normalizeSignUpEmailValue(nextValue);
+      if (emailAvailability.state !== 'taken' || emailAvailability.normalized !== nextNormalizedEmail) {
+        setEmailAvailability(initialAvailabilityState);
+      }
     }
   };
 
@@ -204,6 +215,11 @@ export const useSignUpForm = () => {
 
     if (!isAvailabilityReady) {
       setError('핸들 중복 확인을 완료해 주세요.');
+      return;
+    }
+
+    if (hasCurrentEmailConflict) {
+      setError(emailAvailability.message || '이미 사용 중인 이메일입니다.');
       return;
     }
 
