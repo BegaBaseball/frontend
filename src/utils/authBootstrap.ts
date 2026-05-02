@@ -16,6 +16,7 @@ const AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS = new Set([
   '/',
   '/home',
   '/prediction',
+  '/mate',
 ]);
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;

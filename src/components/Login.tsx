@@ -98,7 +98,7 @@ export default function Login() {
                 value={formData.password}
                 onChange={(event) => handleFieldChange('password', sanitizeLoginPasswordText(event.target.value))}
                 onBlur={() => handleFieldBlur('password')}
-                className={`auth-input login-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
+                className={`auth-input login-autofill-input pr-14 ${fieldErrors.password ? 'auth-input-error' : ''}`}
                 placeholder="비밀번호를 입력하세요"
                 disabled={isLoading}
                 data-testid="login-password"
@@ -106,7 +106,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 disabled={isLoading}
                 aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                 data-testid="login-password-visibility"
@@ -117,11 +117,11 @@ export default function Login() {
             {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}
 
             <div className="auth-support-row">
-              <label htmlFor="remember-email" className="inline-flex items-center gap-2 text-[16px] text-muted-foreground">
+              <label htmlFor="remember-email" className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-[16px] text-muted-foreground">
                 <input
                   id="remember-email"
                   type="checkbox"
-                  className="auth-checkbox"
+                  className="auth-checkbox h-5 w-5 shrink-0"
                   checked={rememberEmail}
                   onChange={(event) => handleRememberEmailChange(event.target.checked)}
                   disabled={isLoading}

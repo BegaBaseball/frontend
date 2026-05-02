@@ -26,7 +26,8 @@ export default function RankingPredictionShare() {
               index={index}
               alreadySaved={true} // 공유된 예측은 수정 불가
               onRemove={() => {}} // 동작 안함
-              onMove={() => {}}   // 동작 안함
+              onMoveTeamToIndex={() => {}} // 동작 안함
+              onMoveTeamByStep={() => {}} // 동작 안함
             />
           ))}
         </div>

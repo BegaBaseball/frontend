@@ -74,10 +74,26 @@ export function SharedChevronLeftIcon(props: IconProps) {
   );
 }
 
+export function SharedChevronUpIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m18 15-6-6-6 6" />
+    </BaseIcon>
+  );
+}
+
 export function SharedChevronRightIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
       <path d="m9 18 6-6-6-6" />
+    </BaseIcon>
+  );
+}
+
+export function SharedChevronDownIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m6 9 6 6 6-6" />
     </BaseIcon>
   );
 }

@@ -84,11 +84,11 @@ const buildHealthUrls = (apiBase) => {
     const basePath = parsed.pathname.replace(/\/+$/, '');
     const servicePath = basePath.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
     return [...new Set([
-      `${parsed.origin}${servicePath || ''}/actuator/health`,
-      `${parsed.origin}${basePath || ''}/actuator/health`,
+      `${parsed.origin}${servicePath || ''}/actuator/health/readiness`,
+      `${parsed.origin}${basePath || ''}/actuator/health/readiness`,
     ])];
   } catch {
-    return [`${apiBase}/actuator/health`];
+    return [`${apiBase}/actuator/health/readiness`];
   }
 };
 
@@ -98,9 +98,7 @@ const timeoutMs = Number.parseInt(args.timeoutMs, 10);
 const reportPath = resolve(process.cwd(), args.reportPath);
 const randomSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const handleQuery = `Smoke${randomSuffix.slice(-6)}`.toUpperCase();
-const emailQuery = `Smoke_${randomSuffix}@Example.com`.toUpperCase();
 const expectedHandleNormalized = `@${handleQuery.toLowerCase()}`;
-const expectedEmailNormalized = emailQuery.toLowerCase();
 
 const report = {
   ok: false,
@@ -256,32 +254,8 @@ const main = async () => {
     };
   });
 
-  await run('check-email-public', async () => {
-    const url = `${apiBase}/auth/check-email?${new URLSearchParams({ email: emailQuery }).toString()}`;
-    let response;
-    try {
-      response = await request(url, {
-        expectedStatuses: [200],
-        includeOrigin: true,
-      });
-    } catch (error) {
-      throw withPublicAuthHint('check-email', error);
-    }
-
-    if (response.data?.success !== true || response.data?.data?.available !== true) {
-      throw new Error(`unexpected availability payload: ${response.rawText}`);
-    }
-
-    if (response.data?.data?.normalized !== expectedEmailNormalized) {
-      throw new Error(`normalized email mismatch: ${response.data?.data?.normalized}`);
-    }
-
-    return {
-      url,
-      status: response.status,
-      normalized: response.data.data.normalized,
-    };
-  });
+  // [Security Fix - Critical #3] /auth/check-email 엔드포인트 제거 (User Enumeration 방지).
+  // 이메일 중복 여부는 signup 시 DUPLICATE_EMAIL 응답으로만 확인 가능하므로 별도 스모크 단계 제거.
 
   const ok = report.failures.length === 0;
   finalize(ok);

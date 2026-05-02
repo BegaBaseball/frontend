@@ -17,7 +17,7 @@ const parseArgs = () => {
   const args = process.argv.slice(2);
   const result = {
     host: '127.0.0.1',
-    port: '4173',
+    port: '5177',
     noServer: false,
     outDir: resolve(projectRoot, 'output/landing-qa'),
   };

@@ -8,7 +8,6 @@ import {
     DEFAULT_STREAM_TIMEOUT_MS,
     getStreamRetryDelayMs,
     CHATBOT_STREAM_INCOMPLETE_ERROR,
-    CHATBOT_STREAM_TIMEOUT_ERROR,
     isStreamAbortError,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
@@ -58,6 +57,8 @@ export type CoachRequestMode = 'auto_brief' | 'manual_detail';
 export type CoachGenerationMode = 'deterministic_auto' | 'llm_manual' | 'evidence_fallback';
 export type CoachDataQuality = 'grounded' | 'partial' | 'insufficient';
 export const COACH_MANUAL_STREAM_TIMEOUT_MS = 90000;
+export const COACH_STREAM_CONNECT_TIMEOUT_MESSAGE = 'AI 코치 분석 준비가 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+export const COACH_STREAM_IDLE_TIMEOUT_MESSAGE = 'AI 코치 분석 응답이 일정 시간 이상 멈췄습니다. 잠시 후 다시 시도해주세요.';
 
 export interface AnalyzeRequestBase {
     request_mode: CoachRequestMode;
@@ -203,9 +204,9 @@ export const getCoachGenerationModeLabel = (value?: CoachGenerationMode): string
         case 'llm_manual':
             return '근거 기반 상세 분석';
         case 'evidence_fallback':
-            return '근거 기반 보수 생성';
+            return '확인 근거 기반';
         default:
-            return '생성 방식 확인 중';
+            return '확인 중';
     }
 };
 
@@ -216,7 +217,7 @@ export interface AnalyzeOptions {
     onStatus?: (status: string) => void;
 }
 
-export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED';
+export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED' | 'STREAM_TIMEOUT';
 
 export class CoachAnalyzeError extends Error {
     code: CoachAnalyzeErrorCode;
@@ -235,6 +236,10 @@ export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError 
 
 const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
     new CoachAnalyzeError('REQUEST_FAILED', message);
+
+const createCoachStreamTimeoutError = (
+    message = COACH_STREAM_CONNECT_TIMEOUT_MESSAGE,
+): CoachAnalyzeError => new CoachAnalyzeError('STREAM_TIMEOUT', message);
 
 interface ParsedCoachErrorPayload {
     code?: string;
@@ -293,6 +298,10 @@ const normalizeQuestionOverride = (questionOverride: AnalyzeRequest['question_ov
 };
 
 export const getCoachStreamReadTimeoutMs = (requestMode: CoachRequestMode): number => (
+    requestMode === 'manual_detail' ? COACH_MANUAL_STREAM_TIMEOUT_MS : DEFAULT_STREAM_TIMEOUT_MS
+);
+
+export const getCoachStreamRequestTimeoutMs = (requestMode: CoachRequestMode): number => (
     requestMode === 'manual_detail' ? COACH_MANUAL_STREAM_TIMEOUT_MS : DEFAULT_STREAM_TIMEOUT_MS
 );
 
@@ -357,7 +366,7 @@ export async function analyzeTeam(
         try {
             const request = await requestStream(COACH_ANALYZE_ENDPOINT, {
                 ...requestInit,
-                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                timeoutMs: getCoachStreamRequestTimeoutMs(requestMode),
             });
 
             if (request.status === 401) {
@@ -397,7 +406,7 @@ export async function analyzeTeam(
 
             if (attempt >= MAX_RETRIES) {
                 if (isStreamRequestTimeoutError(error)) {
-                    throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                    throw createCoachStreamTimeoutError(COACH_STREAM_CONNECT_TIMEOUT_MESSAGE);
                 }
                 throw error instanceof Error ? error : new Error(String(error));
             }
@@ -426,20 +435,17 @@ export async function analyzeTeam(
                 401,
             );
         }
-        const errorText = await response.text();
+        const errorPayload = await readCoachErrorPayload(response);
         let errorDetail = 'coach_internal_error';
         if (response.status < 500) {
-            errorDetail = errorText;
-            try {
-                const parsed = JSON.parse(errorText);
-                if (parsed?.detail) {
-                    errorDetail = String(parsed.detail);
-                }
-            } catch {
-                // keep raw text for 4xx
-            }
+            errorDetail = errorPayload.detail || errorPayload.message || errorPayload.rawText;
         }
         if (response.status >= 500) {
+            if (response.status === 504 || errorPayload.code === 'AI_UPSTREAM_TIMEOUT') {
+                throw createCoachStreamTimeoutError(
+                    errorPayload.message || 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+                );
+            }
             throw new CoachAnalyzeError(
                 'REQUEST_FAILED',
                 '분석 중 오류가 발생했습니다.',
@@ -624,7 +630,7 @@ export async function analyzeTeam(
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
-                throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                throw createCoachStreamTimeoutError(COACH_STREAM_IDLE_TIMEOUT_MESSAGE);
             }
             if (error instanceof Error && error.message === CHATBOT_STREAM_INCOMPLETE_ERROR) {
                 throw createCoachRequestFailedError();

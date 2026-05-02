@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  getPredictionDetailRetryButtonLabel,
   getRankingSnapshotScopeKey,
   isResolvedRankingSnapshotReady,
 } from './PredictionMatchDetailPanel';
@@ -63,4 +64,13 @@ test('isResolvedRankingSnapshotReady는 현재 selection용 snapshot이 resolve�
     }),
     false,
   );
+});
+
+test('getPredictionDetailRetryButtonLabel는 수동 야구 데이터 계약에서 재확인 문구를 사용한다', () => {
+  assert.equal(
+    getPredictionDetailRetryButtonLabel('MANUAL_BASEBALL_DATA_REQUIRED'),
+    '데이터 다시 확인',
+  );
+
+  assert.equal(getPredictionDetailRetryButtonLabel('SERVER'), '다시 시도');
 });

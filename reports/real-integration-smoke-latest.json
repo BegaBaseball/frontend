@@ -1,20 +1,20 @@
 {
   "status": "failed",
-  "runStartedAt": "2026-04-17T07:51:33.021Z",
-  "runFinishedAt": "2026-04-17T07:51:33.302Z",
-  "apiBase": "http://localhost:18080/api",
+  "runStartedAt": "2026-04-22T14:43:59.050Z",
+  "runFinishedAt": "2026-04-22T14:44:16.761Z",
+  "apiBase": "https://api.begabaseball.xyz/api",
   "signupIdentity": {
-    "name": "smoke_user_021598",
-    "handle": "@Smoke021598",
-    "email": "Smoke_1776412293021598@Example.com"
+    "name": "smoke_user_050113",
+    "handle": "@Smoke050113",
+    "email": "Smoke_1776869039050113@Example.com"
   },
   "steps": [
     {
       "name": "backend-health",
       "status": "passed",
-      "startedAt": "2026-04-17T07:51:33.025Z",
-      "finishedAt": "2026-04-17T07:51:33.192Z",
-      "durationMs": 167,
+      "startedAt": "2026-04-22T14:43:59.056Z",
+      "finishedAt": "2026-04-22T14:43:59.253Z",
+      "durationMs": 197,
       "result": {
         "status": "ok"
       },
@@ -23,9 +23,9 @@
     {
       "name": "required-policies",
       "status": "passed",
-      "startedAt": "2026-04-17T07:51:33.192Z",
-      "finishedAt": "2026-04-17T07:51:33.252Z",
-      "durationMs": 60,
+      "startedAt": "2026-04-22T14:43:59.253Z",
+      "finishedAt": "2026-04-22T14:44:01.758Z",
+      "durationMs": 2505,
       "result": {
         "status": 200,
         "data": {
@@ -67,32 +67,32 @@
     {
       "name": "signup-availability-precheck",
       "status": "failed",
-      "startedAt": "2026-04-17T07:51:33.252Z",
-      "finishedAt": "2026-04-17T07:51:33.302Z",
-      "durationMs": 50,
-      "error": "check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated.",
+      "startedAt": "2026-04-22T14:44:01.758Z",
+      "finishedAt": "2026-04-22T14:44:16.760Z",
+      "durationMs": 15002,
+      "error": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)",
       "diagnostics": {
-        "kind": "http",
+        "kind": "timeout",
         "step": "signup-availability-precheck",
         "method": "GET",
-        "path": "/auth/check-email?email=SMOKE_1776412293021598%40EXAMPLE.COM",
-        "url": "http://localhost:18080/api/auth/check-email?email=SMOKE_1776412293021598%40EXAMPLE.COM",
-        "status": 401,
+        "path": "/auth/check-handle?handle=SMOKE050113",
+        "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113",
+        "status": null,
         "attempts": null,
-        "message": "check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated."
+        "message": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)"
       }
     }
   ],
   "warnings": [],
-  "fatalError": "check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated.",
+  "fatalError": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)",
   "fatalErrorDetails": {
-    "kind": "http",
+    "kind": "timeout",
     "step": "signup-availability-precheck",
     "method": "GET",
-    "path": "/auth/check-email?email=SMOKE_1776412293021598%40EXAMPLE.COM",
-    "url": "http://localhost:18080/api/auth/check-email?email=SMOKE_1776412293021598%40EXAMPLE.COM",
-    "status": 401,
+    "path": "/auth/check-handle?handle=SMOKE050113",
+    "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113",
+    "status": null,
     "attempts": null,
-    "message": "check-email is not publicly accessible on the deployed backend (status 401). The auth availability endpoint deployment is likely missing or outdated."
+    "message": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)"
   }
 }

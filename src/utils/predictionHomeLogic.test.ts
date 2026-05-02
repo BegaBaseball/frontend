@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { DateGames } from '../types/prediction';
 import {
+  normalizePredictionDate,
   partitionScheduledGames,
   resolveDeepLinkSelection,
   resolveInitialPredictionDateIndex,
@@ -11,6 +12,12 @@ import {
 const toDateGames = (date: string, gameIds: string[]): DateGames => ({
   date,
   games: gameIds.map((gameId) => ({ gameId } as DateGames['games'][number])),
+});
+
+test('normalizePredictionDate는 시간 포함 날짜를 yyyy-mm-dd로 정규화한다', () => {
+  assert.equal(normalizePredictionDate('2026-04-29T18:30:00'), '2026-04-29');
+  assert.equal(normalizePredictionDate('2026/4/9 18:30'), '2026-04-09');
+  assert.equal(normalizePredictionDate('2026-02-31'), null);
 });
 
 test('partitionScheduledGames 분류 규칙', () => {
@@ -107,4 +114,26 @@ test('resolveDeepLinkSelection gameId 우선, 이후 date fallback', () => {
 
   const noMatch = resolveDeepLinkSelection(allDatesData, 'UNKNOWN', '2026-02-20');
   assert.equal(noMatch, null);
+});
+
+test('resolveDeepLinkSelection strict gameId는 같은 날짜 첫 경기로 fallback하지 않는다', () => {
+  const allDatesData: DateGames[] = [
+    toDateGames('2026-02-10', ['G1', 'G2']),
+    toDateGames('2026-02-11', ['G3', 'G4']),
+  ];
+
+  const secondGame = resolveDeepLinkSelection(allDatesData, 'G4', '2026-02-11', {
+    allowDateFallback: false,
+  });
+  assert.deepEqual(secondGame, { dateIndex: 1, gameIndex: 1, reason: 'gameId' });
+
+  const missingGame = resolveDeepLinkSelection(allDatesData, 'UNKNOWN', '2026-02-11', {
+    allowDateFallback: false,
+  });
+  assert.equal(missingGame, null);
+
+  const dateOnly = resolveDeepLinkSelection(allDatesData, '', '2026-02-11', {
+    allowDateFallback: false,
+  });
+  assert.deepEqual(dateOnly, { dateIndex: 1, gameIndex: 0, reason: 'date' });
 });

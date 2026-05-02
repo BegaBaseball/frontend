@@ -40,6 +40,7 @@ interface AdvancedMatchCardProps {
   gameDetailLoading?: boolean;
   gameDetailRefreshing?: boolean;
   gameDetailError?: string | null;
+  gameDetailErrorCode?: string | null;
   gameDetailActions?: ReactNode;
   userVote: 'home' | 'away' | null | undefined;
   userVoteResolutionState?: PredictionUserVoteResolutionState;
@@ -66,6 +67,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   gameDetailLoading = false,
   gameDetailRefreshing = false,
   gameDetailError = null,
+  gameDetailErrorCode = null,
   gameDetailActions,
   userVote,
   userVoteResolutionState = 'resolved',
@@ -244,6 +246,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     gameDetailLoading,
     gameDetailRefreshing,
     gameDetailError,
+    gameDetailErrorCode,
     gameDetailActions,
     coachBriefing,
     awayColor,

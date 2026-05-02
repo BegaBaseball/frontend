@@ -274,8 +274,9 @@ export const useAuthStore = create<AuthStore>()(
           const pathname = normalizeAuthBootstrapPathname(
             typeof window !== 'undefined' ? window.location.pathname : '/',
           );
+          const hasInMemoryUser = isLoggedInUser(get().user);
           const authBootstrapMode = resolveAuthBootstrapMode(pathname, {
-            isLoggedIn: isLoggedInUser(get().user),
+            isLoggedIn: hasInMemoryUser,
             hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
             authBootstrapMeta: getPersistedAuthBootstrapMeta(),
           });
@@ -286,7 +287,7 @@ export const useAuthStore = create<AuthStore>()(
 
           const now = Date.now();
           const lastAttemptAt = getPublicOptionalBootstrapAttemptStore()[pathname] ?? 0;
-          if (now - lastAttemptAt <= PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS) {
+          if (hasInMemoryUser && now - lastAttemptAt <= PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS) {
             return false;
           }
           getPublicOptionalBootstrapAttemptStore()[pathname] = now;

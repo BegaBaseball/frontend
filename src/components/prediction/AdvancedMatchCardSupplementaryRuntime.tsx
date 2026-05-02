@@ -1,6 +1,10 @@
-import type { GameSummary } from '../../types/prediction';
+import type { GameRelayEvent, GameSummary } from '../../types/prediction';
 import { getSectionHeadingTextStyle } from '../../utils/advancedMatchCardStyles';
+import { MANUAL_BASEBALL_DATA_REQUIRED_CODE } from '../../utils/errorUtils';
+import { PREDICTION_MANUAL_TIMELINE_MESSAGE } from '../../utils/predictionManualDataCopy';
 import { GameSummaryTimeline } from './GameSummaryTimeline';
+import { LiveRelayTimeline } from './LiveRelayTimeline';
+import { PredictionWarningTriangleIcon } from './PredictionShellIcons';
 
 interface TimelineEntry {
   type: string;
@@ -24,6 +28,9 @@ interface AdvancedMatchCardSupplementaryRuntimeProps {
   gameTimeLabel: string | null;
   shouldShowMatchEnvironmentLoading: boolean;
   isDarkMode: boolean;
+  isManualBaseballDataRequired?: boolean;
+  liveEvents?: GameRelayEvent[];
+  liveRelayError?: string | null;
 }
 
 export default function AdvancedMatchCardSupplementaryRuntime({
@@ -39,9 +46,20 @@ export default function AdvancedMatchCardSupplementaryRuntime({
   gameTimeLabel,
   shouldShowMatchEnvironmentLoading,
   isDarkMode,
+  isManualBaseballDataRequired = false,
+  liveEvents = [],
+  liveRelayError = null,
 }: AdvancedMatchCardSupplementaryRuntimeProps) {
   const headingTextStyle = getSectionHeadingTextStyle(isDarkMode);
-  const shouldShowEmptyState = !gameDetailLoading && !shouldHideResultSections && inningRowCount === 0 && timelineEntries.length === 0;
+  const shouldShowEmptyState = !gameDetailLoading
+    && !shouldHideResultSections
+    && inningRowCount === 0
+    && timelineEntries.length === 0
+    && !isManualBaseballDataRequired;
+  const shouldShowManualTimelineState = !gameDetailLoading
+    && !shouldHideResultSections
+    && timelineEntries.length === 0
+    && isManualBaseballDataRequired;
   const refereeSummary = !gameDetailLoading && !shouldHideResultSections
     ? summaryGroups['심판']?.[0] || null
     : null;
@@ -51,6 +69,10 @@ export default function AdvancedMatchCardSupplementaryRuntime({
 
   return (
     <div className="space-y-6">
+      {liveEvents.length > 0 || liveRelayError ? (
+        <LiveRelayTimeline events={liveEvents} errorMessage={liveRelayError} />
+      ) : null}
+
       {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 ? (
         <GameSummaryTimeline
           timelineEntries={timelineEntries}
@@ -61,6 +83,30 @@ export default function AdvancedMatchCardSupplementaryRuntime({
 
       {shouldShowEmptyState ? (
         <div className="text-center text-[16px] text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
+      ) : null}
+
+      {shouldShowManualTimelineState ? (
+        <section data-testid="prediction-game-timeline-manual-required">
+          <div
+            className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100"
+            style={headingTextStyle}
+          >
+            <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
+            경기 주요 기록
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-4 text-[16px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100">
+            <div className="flex items-start gap-2">
+              <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-bold">경기 주요 기록 입력이 필요합니다.</p>
+                <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_TIMELINE_MESSAGE}</p>
+                <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-[13px] text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
+                  {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {refereeSummary ? (

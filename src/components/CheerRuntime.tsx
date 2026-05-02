@@ -25,6 +25,7 @@ import {
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import CheerMobileBottomNav from './CheerMobileBottomNav';
 
 const LazyCheerComposerRuntime = lazy(() => import('./CheerComposerRuntime'));
 const LazyCheerSidebarPanels = lazy(() => import('./CheerSidebarPanels'));
@@ -242,8 +243,8 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
     return (
-        <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
-            <div className="px-4 sm:px-6 py-6 sm:py-8">
+        <div className="min-h-screen bg-[#f7f9f9] pb-[calc(5.75rem+env(safe-area-inset-bottom))] dark:bg-background lg:pb-0">
+            <div className="px-4 pt-0 pb-6 sm:px-6 sm:pt-0 sm:pb-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
                         <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
@@ -287,8 +288,8 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                         </aside>
 
                         <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-card">
-                            <nav className="flex items-center border-b border-border/70 dark:border-border px-4 py-3 bg-white/80 dark:bg-card">
-                                <div className="flex items-center gap-1 rounded-full bg-slate-100/90 p-1 dark:bg-secondary dark:border dark:border-border">
+                            <nav className="flex items-center border-b border-border/70 bg-white/80 px-4 py-1 dark:border-border dark:bg-card">
+                                <div className="flex items-center gap-0.5 rounded-full bg-slate-100/90 p-0.5 dark:border dark:border-border dark:bg-secondary">
                                     {feedTabs.map((tab) => {
                                         const isActive = activeFeedTab === tab.key;
                                         return (
@@ -297,7 +298,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
                                                 className={cn(
-                                                    'relative px-4 py-2 min-h-11 flex items-center text-[16px] font-bold rounded-full transition-all duration-200',
+                                                    'relative flex h-9 items-center rounded-full px-3 py-0 text-[14px] font-bold transition-all duration-200 sm:px-3.5 sm:text-[15px]',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-gray-100'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
@@ -305,7 +306,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 style={isActive ? { color: teamAccent } : undefined}
                                             >
                                                 {isActive && (
-                                                    <span className="absolute inset-0 rounded-full bg-white dark:bg-card shadow-sm border border-black/5 dark:border-border" />
+                                                    <span className="absolute inset-0 rounded-full bg-white shadow-sm border border-black/5 dark:border-border dark:bg-card" />
                                                 )}
                                                 <span className="relative z-10">{tab.label}</span>
                                             </button>
@@ -391,6 +392,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     teamColor={teamColor}
                                     authUserId={authUserId}
                                     onRequireLogin={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
+                                    onWriteClick={handleWriteClick}
                                 />
                             </Suspense>
                         </main>
@@ -442,48 +444,12 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 </div>
             </div>
 
-            {/* Mobile Bottom Navigation */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border/70 dark:border-border z-40 safe-area-bottom">
-                <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
-                    {[
-                        { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
-                        { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
-                        { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
-                        { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
-                    ].map((item) => {
-                        const Icon = item.icon;
-                        const isActive = item.id === 'team';
-                        return (
-                            <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => navigate(item.path)}
-                                className={cn(
-                                    'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
-                                    isActive
-                                        ? 'text-primary'
-                                        : 'text-gray-400 dark:text-gray-300'
-                                )}
-                                style={isActive ? { color: teamAccent } : undefined}
-                            >
-                                <Icon className="h-5 w-5" />
-                                  <span className="text-[16px] font-bold">{item.label}</span>
-                                </button>
-                            );
-                        })}
-                </div>
-            </nav>
-
-            {/* FAB Write Button - adjusted for mobile nav */}
-            <button
-                type="button"
-                onClick={handleWriteClick}
-                className="fixed bottom-20 right-4 h-12 w-12 rounded-full text-white shadow-[0_8px_24px_rgba(0,0,0,0.15)] transition-transform hover:scale-105 lg:hidden lg:bottom-8 lg:right-8"
-                style={{ backgroundColor: teamColor }}
-                aria-label="글쓰기"
-            >
-                <PenSquareIcon className="mx-auto h-5 w-5" />
-            </button>
+            <CheerMobileBottomNav
+                activeItem="team"
+                userProfilePath={userProfilePath}
+                onWriteClick={handleWriteClick}
+                teamAccent={teamAccent}
+            />
 
         </div>
     );

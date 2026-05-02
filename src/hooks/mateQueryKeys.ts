@@ -1,4 +1,4 @@
-import type { PartyStatus } from '../types/mate';
+import type { MatePartySortBy, MatePartySortDir, PartyStatus } from '../types/mate';
 
 export interface MatePartyListKeyParams {
   teamId?: string;
@@ -8,6 +8,8 @@ export interface MatePartyListKeyParams {
   status?: PartyStatus | 'all';
   searchQuery?: string;
   gameDate?: string;
+  sortBy?: MatePartySortBy;
+  sortDir?: MatePartySortDir;
 }
 
 const mateAllKey = ['mate'] as const;
@@ -33,6 +35,8 @@ const normalizePartyListKey = (params: MatePartyListKeyParams) => ({
   status: params.status ?? 'all',
   searchQuery: normalizeOptionalText(params.searchQuery),
   gameDate: normalizeOptionalText(params.gameDate),
+  sortBy: params.sortBy ?? 'createdAt',
+  sortDir: params.sortDir ?? 'desc',
 });
 
 export const MATE_KEYS = {

@@ -1,5 +1,5 @@
 describe('Security surface real smoke', () => {
-  const fallbackLoginPassword = 'Test1234!';
+  const fallbackLoginPassword = 'TestPass1234!';
   const fallbackFavoriteTeam = 'LG';
   type EnvVars = Record<string, unknown>;
 
@@ -101,7 +101,7 @@ describe('Security surface real smoke', () => {
       return cy.wrap(backendBaseUrl, { log: false });
     });
 
-  const isBackendHealthResponse = (response: Cypress.Response<unknown>) => {
+  const isBackendReadinessResponse = (response: Cypress.Response<unknown>) => {
     if (![200, 503].includes(response.status)) {
       return false;
     }
@@ -129,15 +129,20 @@ describe('Security surface real smoke', () => {
           return;
         }
 
-        const healthUrl = buildBackendUrl(backendBaseUrl, '/actuator/health');
+        const readinessUrl = buildBackendUrl(backendBaseUrl, '/actuator/health/readiness');
         return cy.request({
           method: 'GET',
-          url: healthUrl,
+          url: readinessUrl,
           failOnStatusCode: false,
         }).then((response) => {
-          if (!isBackendHealthResponse(response)) {
+          if (!isBackendReadinessResponse(response)) {
             const contentType = String(response.headers['content-type'] || 'unknown');
-            throw new Error(`backend health endpoint did not return JSON payload (status=${response.status}, content-type=${contentType}, url=${healthUrl})`);
+            throw new Error(`backend readiness endpoint did not return JSON payload (status=${response.status}, content-type=${contentType}, url=${readinessUrl})`);
+          }
+
+          const status = (response.body as { status?: unknown }).status;
+          if (response.status !== 200 || status !== 'UP') {
+            throw new Error(`backend readiness endpoint is not UP (http=${response.status}, status=${String(status || 'empty')}, url=${readinessUrl})`);
           }
         });
       });
@@ -235,6 +240,54 @@ describe('Security surface real smoke', () => {
       });
   };
 
+  const createAccount = (email: string, password: string, handle: string) => {
+    return resolveRequiredPolicyConsents()
+      .then((policyConsents) => resolveBackendBaseUrl().then((backendBaseUrl) => {
+        if (!backendBaseUrl) return;
+        return cy.request({
+          method: 'POST',
+          url: buildBackendUrl(backendBaseUrl, '/api/auth/signup'),
+          failOnStatusCode: false,
+          body: {
+            name: 'Security Surface E2E',
+            handle,
+            email,
+            password,
+            confirmPassword: password,
+            favoriteTeam: fallbackFavoriteTeam,
+            policyConsents,
+          },
+        });
+      }))
+      .then((signupResponse: any) => {
+        if (!signupResponse || !signupResponse.status) return undefined;
+        if (signupResponse.status === 429) {
+          return undefined;
+        }
+
+        expect(signupResponse.status).to.eq(201);
+        return { email, password };
+      });
+  };
+
+  const resolveUiLoginCredentials = (): Cypress.Chainable<{ email: string; password: string } | undefined> => {
+    return getConfiguredEnvVars().then((envVars) => {
+      const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
+      const configuredPassword = getEnvString(envVars, 'SMOKE_LOGIN_PASSWORD');
+
+      if (configuredEmail && configuredPassword) {
+        return { email: configuredEmail, password: configuredPassword };
+      }
+
+      const uniqueSuffix = Date.now().toString().slice(-8);
+      return createAccount(
+        `it_ui_security_${uniqueSuffix}@example.com`,
+        fallbackLoginPassword,
+        `itui${uniqueSuffix}`,
+      );
+    }) as unknown as Cypress.Chainable<{ email: string; password: string } | undefined>;
+  };
+
   const loginAsNormalUser = (): Cypress.Chainable<boolean | undefined> => {
     return getConfiguredEnvVars().then((envVars) => {
       const configuredEmail = getEnvString(envVars, 'SMOKE_LOGIN_EMAIL');
@@ -298,6 +351,53 @@ describe('Security surface real smoke', () => {
         failOnStatusCode: false,
       }).then((response) => {
         expect([401, 403]).to.include(response.status);
+      });
+    });
+  });
+
+  it('does not persist auth tokens in browser storage after UI login', function () {
+    resolveUiLoginCredentials().then(function (credentials) {
+      if (!credentials) {
+        this.skip();
+        return;
+      }
+
+      cy.visit('/login');
+      cy.get('[data-testid="login-email"]').should('be.visible').clear().type(credentials.email);
+      cy.get('[data-testid="login-password"]').clear().type(credentials.password, { log: false });
+      cy.get('[data-testid="login-submit"]').click();
+
+      cy.location('pathname', { timeout: 15000 }).should('not.eq', '/login');
+
+      cy.window().then((win) => {
+        const readStorage = (storage: Storage) =>
+          Object.fromEntries(
+            Array.from({ length: storage.length }, (_, index) => {
+              const key = storage.key(index);
+              return key ? [key, storage.getItem(key)] : null;
+            }).filter((entry): entry is [string, string | null] => Boolean(entry))
+          );
+
+        const localEntries = readStorage(win.localStorage);
+        const sessionEntries = readStorage(win.sessionStorage);
+        const tokenPattern = /(eyJ[a-zA-Z0-9_-]+\.)|access[_-]?token|refresh[_-]?token|auth[_-]?token|bearer/i;
+        const tokenHits = [
+          ...Object.entries(localEntries).flatMap(([key, value]) =>
+            tokenPattern.test(key) || tokenPattern.test(String(value ?? ''))
+              ? [{ scope: 'localStorage', key }]
+              : []
+          ),
+          ...Object.entries(sessionEntries).flatMap(([key, value]) =>
+            tokenPattern.test(key) || tokenPattern.test(String(value ?? ''))
+              ? [{ scope: 'sessionStorage', key }]
+              : []
+          ),
+        ];
+
+        expect(
+          tokenHits,
+          `unexpected token-like entries; localKeys=${Object.keys(localEntries).join(',')} sessionKeys=${Object.keys(sessionEntries).join(',')}`,
+        ).to.deep.equal([]);
       });
     });
   });

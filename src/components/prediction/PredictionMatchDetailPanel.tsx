@@ -6,6 +6,7 @@ import type { RankingSnapshot } from '../../types/home';
 import type { Game, GameDetail, VoteTeam } from '../../types/prediction';
 import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
 import type { GameStatusCode } from '../../utils/predictionStatus';
+import { isManualBaseballDataRequiredCode } from '../../utils/errorUtils';
 import { resolveCoachBriefingPolicy } from '../../utils/predictionCoachPolicy';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -42,12 +43,19 @@ export function isResolvedRankingSnapshotReady(options: {
     && options.resolvedScopeKey === options.expectedScopeKey;
 }
 
+export function getPredictionDetailRetryButtonLabel(errorCode?: string | null): string {
+  return isManualBaseballDataRequiredCode(errorCode)
+    ? '데이터 다시 확인'
+    : '다시 시도';
+}
+
 interface PredictionMatchDetailPanelProps {
   game: Game;
   gameDetail: GameDetail | null;
   gameDetailLoading: boolean;
   gameDetailRefreshing: boolean;
   gameDetailError: string | null;
+  gameDetailErrorCode: string | null;
   isDetailRetryLoading: boolean;
   reloadCurrentGameDetail: (options?: { emitRetryEvent?: boolean }) => void;
   predictionRecoveryPath: string;
@@ -79,6 +87,7 @@ export default function PredictionMatchDetailPanel({
   gameDetailLoading,
   gameDetailRefreshing,
   gameDetailError,
+  gameDetailErrorCode,
   isDetailRetryLoading,
   reloadCurrentGameDetail,
   predictionRecoveryPath,
@@ -225,15 +234,16 @@ export default function PredictionMatchDetailPanel({
   const seasonContext = useMemo(() => {
     const homeSeasonContext = buildTeamContext(game.homeTeam);
     const awaySeasonContext = buildTeamContext(game.awayTeam);
-    const canCallAI = !!homeSeasonContext && !!awaySeasonContext;
-    const maxGamesBehind = canCallAI
+    const canCallAI = Boolean(game.homeTeam && game.awayTeam);
+    const hasSeasonRankingContext = !!homeSeasonContext && !!awaySeasonContext;
+    const maxGamesBehind = hasSeasonRankingContext
       ? Math.max(homeSeasonContext.gamesBehind, awaySeasonContext.gamesBehind)
       : null;
-    const minRemainingGames = canCallAI
+    const minRemainingGames = hasSeasonRankingContext
       ? Math.min(homeSeasonContext.remainingGames, awaySeasonContext.remainingGames)
       : null;
     const isPostseasonGame = game.leagueType === 'POST';
-    const isMeaningfulGame = !!canCallAI
+    const isMeaningfulGame = hasSeasonRankingContext
       && (
         (maxGamesBehind != null && maxGamesBehind <= 2)
         || (minRemainingGames != null && minRemainingGames <= 20)
@@ -263,6 +273,7 @@ export default function PredictionMatchDetailPanel({
     [seasonContext.canCallAI, seasonContext.isMeaningfulGame, seasonContext.isPostseasonGame, statusCode],
   );
 
+  const detailRetryButtonLabel = getPredictionDetailRetryButtonLabel(gameDetailErrorCode);
   const gameDetailActions = gameDetailError ? (
     <>
       <Button
@@ -275,7 +286,7 @@ export default function PredictionMatchDetailPanel({
       >
         <span className="inline-flex items-center gap-1.5">
           {isDetailRetryLoading ? <PredictionLoaderIcon className="h-3.5 w-3.5 animate-spin" /> : null}
-          다시 시도
+          {detailRetryButtonLabel}
         </span>
       </Button>
       <Link
@@ -310,6 +321,7 @@ export default function PredictionMatchDetailPanel({
           gameDetailLoading={gameDetailLoading}
           gameDetailRefreshing={gameDetailRefreshing}
           gameDetailError={gameDetailError}
+          gameDetailErrorCode={gameDetailErrorCode}
           gameDetailActions={gameDetailActions}
           userVote={userVote}
           userVoteResolutionState={userVoteResolutionState}

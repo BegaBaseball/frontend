@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -14,7 +14,9 @@ const RankingPredictionCompletionPanel = lazy(() => import('./RankingPredictionC
 
 export default function RankingPrediction() {
   const navigate = useNavigate();
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [draggedTeamId, setDraggedTeamId] = useState<string | null>(null);
+  const [lastMovedTeamId, setLastMovedTeamId] = useState<string | null>(null);
+  const [reorderFeedback, setReorderFeedback] = useState<string | null>(null);
   const {
     showSaveDialog,
     setShowSaveDialog,
@@ -41,6 +43,52 @@ export default function RankingPrediction() {
     handleShare,
     retryInitialize,
   } = useRankingPrediction();
+
+  useEffect(() => {
+    if (!lastMovedTeamId && !reorderFeedback) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLastMovedTeamId(null);
+      setReorderFeedback(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [lastMovedTeamId, reorderFeedback]);
+
+  const handleMoveTeamToIndex = useCallback((teamId: string, hoverIndex: number) => {
+    const fromIndex = rankings.findIndex((rankingTeam) => rankingTeam?.id === teamId);
+    if (fromIndex < 0 || fromIndex === hoverIndex) {
+      return;
+    }
+
+    const team = rankings[fromIndex];
+    if (!team) {
+      return;
+    }
+
+    moveTeam(fromIndex, hoverIndex);
+    setLastMovedTeamId(team.id);
+    setReorderFeedback(`${team.name} ${hoverIndex + 1}위로 이동했습니다.`);
+  }, [rankings, moveTeam]);
+
+  const handleMoveTeamByStep = useCallback((teamId: string, direction: -1 | 1) => {
+    const fromIndex = rankings.findIndex((rankingTeam) => rankingTeam?.id === teamId);
+    if (fromIndex < 0) {
+      return;
+    }
+
+    const nextIndex = Math.min(rankings.length - 1, Math.max(0, fromIndex + direction));
+    handleMoveTeamToIndex(teamId, nextIndex);
+  }, [rankings, handleMoveTeamToIndex]);
+
+  const handleResetRankings = useCallback(() => {
+    setDraggedTeamId(null);
+    setLastMovedTeamId(null);
+    setReorderFeedback(null);
+    resetRankings();
+  }, [resetRankings]);
 
   if (isAuthLoading || isLoading) {
     return (
@@ -130,7 +178,7 @@ export default function RankingPrediction() {
             <h2 className="text-primary font-bold text-lg">예상 순위</h2>
             {!alreadySaved && (
               <Button
-                onClick={resetRankings}
+                onClick={handleResetRankings}
                 data-testid="ranking-reset-btn"
                 className="flex items-center gap-2 border-2 border-primary text-primary dark:border-primary dark:text-primary dark:bg-transparent hover:bg-primary/10 dark:hover:bg-primary/20"
                 variant="outline"
@@ -141,17 +189,31 @@ export default function RankingPrediction() {
             )}
           </div>
 
-          <div className="space-y-2">
+          <div
+            aria-live="polite"
+            className="mb-3 min-h-6"
+            data-testid="ranking-reorder-feedback"
+          >
+            {reorderFeedback ? (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[15px] font-bold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                {reorderFeedback}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2" data-testid="ranking-list">
             {rankings.map((team, index) => (
               <RankingItem
-                key={index}
+                key={team ? `ranking-team-${team.id}` : `ranking-empty-${index}`}
                 team={team}
                 index={index}
                 alreadySaved={alreadySaved}
                 onRemove={handleRemoveTeam}
-                onMove={moveTeam}
-                draggedIndex={draggedIndex}
-                onDragIndexChange={setDraggedIndex}
+                onMoveTeamToIndex={handleMoveTeamToIndex}
+                onMoveTeamByStep={handleMoveTeamByStep}
+                draggedTeamId={draggedTeamId}
+                lastMovedTeamId={lastMovedTeamId}
+                onDragTeamChange={setDraggedTeamId}
               />
             ))}
           </div>

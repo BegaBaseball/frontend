@@ -17,6 +17,8 @@ const PredictionMatchInteractiveContentRuntime = lazy(
 
 export type PredictionMatchInteractiveViewProps = {
   currentGame: Game | null;
+  selectedGame: number;
+  onSelectGame: (gameIndex: number) => void;
   currentDateGames: Game[];
   currentDate: string;
   currentDayNavigationMeta: { prevDate: string | null; nextDate: string | null } | null;
@@ -30,6 +32,7 @@ export type PredictionMatchInteractiveViewProps = {
   allDatesData: Array<{ date: string; games: Game[] }>;
   currentDateIndex: number;
   currentGameDetailError: string | null;
+  currentGameDetailErrorCode: string | null;
   deepLinkNotice: string | null;
   voteStatusError: string | null;
   voteStatusLoading: boolean;
@@ -42,6 +45,7 @@ export type PredictionMatchInteractiveViewProps = {
   isLoggedIn: boolean;
   matchesLoadState: 'idle' | 'ready' | 'error';
   matchesLoadErrorMessage: string | null;
+  matchesLoadErrorCode: string | null;
   pastRangeLoadState: 'idle' | 'loading' | 'ready' | 'error' | 'end';
   pastRangeLoadErrorMessage: string | null;
   futureRangeLoadState: 'idle' | 'loading' | 'ready' | 'error' | 'end';

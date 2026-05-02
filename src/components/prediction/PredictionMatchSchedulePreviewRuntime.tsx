@@ -32,7 +32,7 @@ type PredictionMatchSchedulePreviewRuntimeProps = {
   matchBounds: MatchBounds | null;
   retryLoadMorePastMatches: () => void;
   retryLoadMoreFutureMatches: () => void;
-  onEnterMatchDetail: () => void;
+  onEnterMatchDetail: (game: Game) => void;
 };
 
 export default function PredictionMatchSchedulePreviewRuntime({
@@ -80,6 +80,10 @@ export default function PredictionMatchSchedulePreviewRuntime({
   const isFutureRangeError = futureRangeLoadState === 'error';
 
   const topNoticeKind = useMemo<PredictionTopNoticeKind | null>(() => {
+    if (deepLinkNotice) {
+      return 'INFO';
+    }
+
     if (isFutureRangeLoading || isFutureRangeError) {
       return 'FUTURE';
     }
@@ -103,10 +107,6 @@ export default function PredictionMatchSchedulePreviewRuntime({
       && futureRangeLoadState === 'end'
     ) {
       return 'END';
-    }
-
-    if (deepLinkNotice) {
-      return 'INFO';
     }
 
     return null;
@@ -150,14 +150,10 @@ export default function PredictionMatchSchedulePreviewRuntime({
       <PredictionMatchPreviewTab
         currentDateGames={currentDateGames}
         currentDate={currentDate}
-        currentGame={currentGame}
-        canMovePrevDate={canMovePrevDate}
-        canMoveNextDate={canMoveNextDate}
         nearestNavigationDate={nearestNavigationDate}
         isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
         onEnterMatchDetail={onEnterMatchDetail}
-        onPrevDate={goToPreviousDate}
-        onNextDate={goToNextDate}
+        onGoToDate={goToDate}
         onNearestNavigation={handleNearestNavigation}
       />
     </div>

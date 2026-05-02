@@ -16,6 +16,8 @@ import type {
   CreatePartyRequest,
   CreateReviewRequest,
   Party,
+  MatePartySortBy,
+  MatePartySortDir,
   PartyReview,
   PartyStatus,
   UpdatePartyRequest,
@@ -69,6 +71,8 @@ export interface FetchMatePartiesPageParams {
   status?: PartyStatus;
   searchQuery?: string;
   gameDate?: string;
+  sortBy?: MatePartySortBy;
+  sortDir?: MatePartySortDir;
   signal?: AbortSignal;
 }
 
@@ -168,6 +172,8 @@ export async function fetchMatePartiesPage(
       status: params.status,
       searchQuery: params.searchQuery,
       date: params.gameDate,
+      sortBy: params.sortBy,
+      sortDir: params.sortDir,
     },
     signal: params.signal,
   });

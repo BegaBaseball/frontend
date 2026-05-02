@@ -21,6 +21,8 @@ test('mate query options는 mate query key를 일관되게 구성한다', () => 
       status: 'PENDING',
       searchQuery: '잠실',
       gameDate: '2026-03-28',
+      sortBy: 'gameDate',
+      sortDir: 'asc',
     }).queryKey,
     ['mate', 'parties', 'list', {
       teamId: 'LG',
@@ -30,6 +32,8 @@ test('mate query options는 mate query key를 일관되게 구성한다', () => 
       status: 'PENDING',
       searchQuery: '잠실',
       gameDate: '2026-03-28',
+      sortBy: 'gameDate',
+      sortDir: 'asc',
     }],
   );
   assert.deepEqual(

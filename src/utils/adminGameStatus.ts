@@ -142,7 +142,7 @@ const extractArtifactDir = (path: string | null) => {
   return normalized.slice(0, lastSlashIndex);
 };
 
-const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
 
 const findFirstSystemLineIndex = (lines: string[]) => lines.findIndex((line) => (
   /^\[closure-sync /.test(line)

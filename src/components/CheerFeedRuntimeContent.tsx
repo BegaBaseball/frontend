@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts, type CheerPost } from '../api/cheerApi';
+import { fetchHotPosts, fetchPostChanges, fetchPosts, fetchFollowingPosts } from '../api/cheerApi';
+import type { CheerPost } from '../api/cheerApi';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
 import AdSlot from './ads/AdSlot';
@@ -12,6 +14,8 @@ import { ArrowUpIcon } from './icons/PublicShellIcons';
 import CheerCard from './CheerCard';
 
 type FeedTabKey = 'all' | 'popular' | 'following';
+type FeedItem = { type: 'post'; post: CheerPost } | { type: 'ad' };
+const NEXT_PAGE_LOADER_MIN_MS = 350;
 
 interface CheerFeedRuntimeContentProps {
     activeFeedTab: FeedTabKey;
@@ -21,6 +25,7 @@ interface CheerFeedRuntimeContentProps {
     teamColor: string;
     authUserId: number | null;
     onRequireLogin: () => void;
+    onWriteClick: () => void;
 }
 
 export default function CheerFeedRuntimeContent({
@@ -31,12 +36,24 @@ export default function CheerFeedRuntimeContent({
     teamColor,
     authUserId,
     onRequireLogin,
+    onWriteClick,
 }: CheerFeedRuntimeContentProps) {
     const queryClient = useQueryClient();
     const [newPostCount, setNewPostCount] = useState(0);
+    const [showNextPageLoader, setShowNextPageLoader] = useState(false);
+    const [isSentinelIntersecting, setIsSentinelIntersecting] = useState(false);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
-    const observerRef = useRef<IntersectionObserver | null>(null);
-    const retryCount = useRef(0);
+    const listRef = useRef<HTMLDivElement | null>(null);
+
+    const newPostBannerStyle = useMemo(() => ({
+        backgroundColor: `${teamColor}1A`,
+        borderColor: `${teamColor}40`,
+        color: teamColor,
+    }), [teamColor]);
+
+    const solidButtonStyle = useMemo(() => ({
+        backgroundColor: teamColor,
+    }), [teamColor]);
 
     const {
         data,
@@ -83,6 +100,11 @@ export default function CheerFeedRuntimeContent({
         gcTime: 5 * 60 * 1000,
         enabled: activeFeedTab !== 'following' || isLoggedIn,
     });
+    const hasNextPageRef = useRef(false);
+    const isFetchingNextPageRef = useRef(false);
+    const nextPageRequestInFlightRef = useRef(false);
+    const fetchNextPageRef = useRef<typeof fetchNextPage | null>(null);
+    const isNextPageRequestActive = isFetchingNextPage || nextPageRequestInFlightRef.current;
 
     const currentPosts = useMemo(() => {
         if (!data?.pages) return [];
@@ -95,6 +117,24 @@ export default function CheerFeedRuntimeContent({
             return true;
         });
     }, [data]);
+    const showNextPageError = Boolean(queryError && currentPosts.length > 0 && !showNextPageLoader);
+
+    const feedItems = useMemo<FeedItem[]>(() => {
+        const items: FeedItem[] = [];
+        for (let i = 0; i < currentPosts.length; i++) {
+            const post = currentPosts[i];
+            if (post) items.push({ type: 'post', post });
+            if (i === 3) items.push({ type: 'ad' });
+        }
+        return items;
+    }, [currentPosts]);
+
+    const virtualizer = useWindowVirtualizer({
+        count: feedItems.length,
+        estimateSize: () => 180,
+        overscan: 5,
+        scrollMargin: listRef.current?.offsetTop ?? 0,
+    });
 
     const latestVisiblePostId = useMemo(
         () => resolveLatestVisiblePostId(currentPosts),
@@ -116,59 +156,81 @@ export default function CheerFeedRuntimeContent({
     }, [polledChanges]);
 
     useEffect(() => {
-        try {
-            if (!isFetchingNextPage && hasNextPage && data?.pages) {
-                const lastPage = data.pages[data.pages.length - 1];
+        hasNextPageRef.current = Boolean(hasNextPage);
+        isFetchingNextPageRef.current = isFetchingNextPage || nextPageRequestInFlightRef.current;
+        fetchNextPageRef.current = fetchNextPage;
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-                if (lastPage?.content?.length > 0) {
-                    const lastPageIds = new Set(
-                        (lastPage.content as CheerPost[])
-                            .filter((post) => post && typeof post.id === 'number')
-                            .map((post) => post.id)
-                    );
+    useEffect(() => {
+        let hideLoaderTimer: ReturnType<typeof setTimeout> | undefined;
 
-                    const previousPagesContent = data.pages.slice(0, -1).flatMap((page) => page.content ?? []);
-                    const previousIds = new Set(
-                        (previousPagesContent as CheerPost[])
-                            .filter((post) => post && typeof post.id === 'number')
-                            .map((post) => post.id)
-                    );
-
-                    const newUniqueItems = [...lastPageIds].filter((id) => !previousIds.has(id)).length;
-
-                    if (newUniqueItems === 0 && retryCount.current < 5) {
-                        retryCount.current += 1;
-                        fetchNextPage();
-                    } else if (newUniqueItems > 0) {
-                        retryCount.current = 0;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Smart Retry Logic Error:', error);
+        if (isNextPageRequestActive) {
+            setShowNextPageLoader(true);
+            return undefined;
         }
-    }, [data, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+        if (showNextPageLoader) {
+            hideLoaderTimer = setTimeout(() => {
+                setShowNextPageLoader(false);
+            }, NEXT_PAGE_LOADER_MIN_MS);
+        }
+
+        return () => {
+            if (hideLoaderTimer) {
+                clearTimeout(hideLoaderTimer);
+            }
+        };
+    }, [isNextPageRequestActive, showNextPageLoader]);
+
+    const requestNextPage = useCallback(() => {
+        if (isFetchingNextPageRef.current || !hasNextPageRef.current || !fetchNextPageRef.current) {
+            return;
+        }
+
+        nextPageRequestInFlightRef.current = true;
+        isFetchingNextPageRef.current = true;
+        setShowNextPageLoader(true);
+        void fetchNextPageRef.current()
+            .catch((error) => {
+                console.error('Cheer feed pagination error:', error);
+            })
+            .finally(() => {
+                nextPageRequestInFlightRef.current = false;
+                isFetchingNextPageRef.current = false;
+            });
+    }, []);
 
     useEffect(() => {
         if (!sentinelRef.current) return;
-        if (observerRef.current) observerRef.current.disconnect();
 
-        observerRef.current = new IntersectionObserver(
+        const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
-                if (!entry?.isIntersecting) return;
-                if (isFetchingNextPage || !hasNextPage) return;
-                fetchNextPage();
+                const nextIsIntersecting = Boolean(entry?.isIntersecting);
+                setIsSentinelIntersecting((current) => (
+                    current === nextIsIntersecting ? current : nextIsIntersecting
+                ));
+                if (nextIsIntersecting) {
+                    requestNextPage();
+                }
             },
             { rootMargin: '200px' }
         );
 
-        observerRef.current.observe(sentinelRef.current);
+        observer.observe(sentinelRef.current);
 
         return () => {
-            observerRef.current?.disconnect();
+            observer.disconnect();
         };
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    }, [requestNextPage]);
+
+    useEffect(() => {
+        if (!isSentinelIntersecting || isNextPageRequestActive || !hasNextPage) {
+            return;
+        }
+
+        requestNextPage();
+    }, [hasNextPage, isNextPageRequestActive, isSentinelIntersecting, requestNextPage]);
 
     const handleNewPostsClick = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -178,23 +240,21 @@ export default function CheerFeedRuntimeContent({
 
     return (
         <>
-            {newPostCount > 0 && (
-                <button
-                    type="button"
-                    onClick={handleNewPostsClick}
-                    className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-[16px] font-bold transition-colors flex items-center justify-center gap-2 border-b"
-                    style={{
-                        backgroundColor: `${teamColor}1A`,
-                        borderColor: `${teamColor}40`,
-                        color: teamColor,
-                    }}
-                >
-                    <ArrowUpIcon className="w-4 h-4" />
-                    새 글 {newPostCount}개 보기
-                </button>
-            )}
+            <div className="contents" data-testid="cheer-new-post-banner-slot">
+                {newPostCount > 0 && (
+                    <button
+                        type="button"
+                        onClick={handleNewPostsClick}
+                        className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-[16px] font-bold transition-colors flex items-center justify-center gap-2 border-b"
+                        style={newPostBannerStyle}
+                    >
+                        <ArrowUpIcon className="w-4 h-4" />
+                        새 글 {newPostCount}개 보기
+                    </button>
+                )}
+            </div>
 
-            <section className="mt-4">
+            <section className="mt-3" data-testid="cheer-feed-section">
                 {isLoading && currentPosts.length === 0 ? (
                     <div className="divide-y divide-border/70 dark:divide-border/70">
                         {[1, 2, 3].map((index) => (
@@ -237,7 +297,7 @@ export default function CheerFeedRuntimeContent({
                         <button
                             type="button"
                             onClick={() => queryClient.invalidateQueries({ queryKey: ['cheer-posts', activeFeedTab] })}
-                            className="rounded-full bg-slate-100 dark:bg-secondary px-6 py-2.5 text-[16px] font-bold text-slate-700 dark:text-gray-200 hover:bg-slate-200 dark:hover:bg-secondary transition-colors"
+                            className="min-h-11 rounded-full bg-slate-100 px-6 py-2.5 text-[16px] font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:bg-secondary dark:text-gray-200 dark:hover:bg-secondary"
                         >
                             다시 시도
                         </button>
@@ -249,8 +309,8 @@ export default function CheerFeedRuntimeContent({
                         <button
                             type="button"
                             onClick={onRequireLogin}
-                            className="mt-4 rounded-full px-6 py-2 text-[16px] font-bold text-white"
-                            style={{ backgroundColor: teamColor }}
+                            className="mt-4 min-h-11 rounded-full px-6 py-2 text-[16px] font-bold text-white"
+                            style={solidButtonStyle}
                         >
                             로그인하기
                         </button>
@@ -266,59 +326,90 @@ export default function CheerFeedRuntimeContent({
                             <>
                                 <p className="text-[#64748B] font-bold dark:text-gray-300">아직 작성된 응원글이 없습니다.</p>
                                 <p className="mt-1 text-[16px] font-bold text-slate-400 dark:text-gray-300">첫 번째 응원글을 남겨보세요!</p>
+                                <button
+                                    type="button"
+                                    onClick={onWriteClick}
+                                    className="mt-4 min-h-11 rounded-full px-6 py-2 text-[16px] font-bold text-white shadow-sm transition-transform active:scale-[0.98]"
+                                    style={solidButtonStyle}
+                                >
+                                    첫 글 작성하기
+                                </button>
                             </>
                         )}
                     </div>
                 ) : (
-                    <div className="px-4 py-4 space-y-4">
-                        {currentPosts.flatMap((post, index) => [
-                            <ErrorBoundary
-                                key={post.id}
-                                fallback={(
-                                <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-                                        일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
-                                    </article>
-                                )}
-                            >
-                                <CheerCard post={post} />
-                            </ErrorBoundary>,
-                            index === 3 ? (
-                                <AdSlot
-                                    key="cheer-feed-1"
-                                    slotId="cheer_feed_1"
-                                    pageType="cheer_feed"
-                                    listIndex={4}
-                                    creativeType="native_card"
-                                    loggedIn={Boolean(authUserId)}
-                                    userId={authUserId ? String(authUserId) : null}
-                                    minHeight={156}
-                                />
-                            ) : null,
-                        ])}
+                    <div
+                        ref={listRef}
+                        className="relative"
+                        style={{ height: `${virtualizer.getTotalSize()}px` }}
+                    >
+                        {virtualizer.getVirtualItems().map((virtualItem) => {
+                            const item = feedItems[virtualItem.index];
+                            if (!item) return null;
+                            return (
+                                <div
+                                    key={virtualItem.key}
+                                    data-index={virtualItem.index}
+                                    ref={virtualizer.measureElement}
+                                    className="absolute inset-x-0 top-0 px-4 pb-4"
+                                    style={{
+                                        transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)`,
+                                    }}
+                                >
+                                    {item.type === 'ad' ? (
+                                        <AdSlot
+                                            slotId="cheer_feed_1"
+                                            pageType="cheer_feed"
+                                            listIndex={4}
+                                            creativeType="native_card"
+                                            loggedIn={Boolean(authUserId)}
+                                            userId={authUserId ? String(authUserId) : null}
+                                            minHeight={156}
+                                        />
+                                    ) : (
+                                        <ErrorBoundary
+                                            fallback={(
+                                                <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                    일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
+                                                </article>
+                                            )}
+                                        >
+                                            <CheerCard post={item.post} />
+                                        </ErrorBoundary>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
-                <div ref={sentinelRef} className="flex min-h-[120px] items-center justify-center">
-                    {queryError && currentPosts.length > 0 ? (
+                <div ref={sentinelRef} className="relative flex min-h-[120px] items-center justify-center">
+                    {showNextPageError ? (
                         <div className="flex flex-col items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-gray-300">
-                                <span className="font-bold">데이터를 불러오지 못했습니다.</span>
+                            <span className="font-bold">데이터를 불러오지 못했습니다.</span>
                             <p className="text-[16px] font-bold text-slate-400 dark:text-slate-300">
                                 네트워크 상태를 확인하고 다시 시도해 주세요
                             </p>
                             <button
                                 type="button"
-                                onClick={() => fetchNextPage()}
-                                className="rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-[16px] font-bold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
+                                onClick={requestNextPage}
+                                className="min-h-11 rounded-full border border-slate-200 px-4 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
                             >
                                 다시 시도
                             </button>
                         </div>
-                    ) : isFetchingNextPage ? (
+                    ) : null}
+                    <div
+                        aria-hidden={!showNextPageLoader}
+                        aria-live={showNextPageLoader ? 'polite' : 'off'}
+                        data-testid="cheer-feed-next-loader"
+                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${showNextPageLoader ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+                    >
                         <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-gray-300">
                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             <span className="font-bold">불러오는 중...</span>
                         </div>
-                    ) : null}
-                    {!hasNextPage && currentPosts.length > 0 && !isFetchingNextPage && (
+                    </div>
+                    {!hasNextPage && currentPosts.length > 0 && !showNextPageLoader && !showNextPageError && (
                         <EndOfFeed />
                     )}
                 </div>

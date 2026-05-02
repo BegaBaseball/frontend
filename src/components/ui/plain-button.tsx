@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 type ButtonVariant = 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link';
-type ButtonSize = 'default' | 'sm' | 'icon';
+type ButtonSize = 'default' | 'sm' | 'icon' | 'iconTouch';
 
 interface PlainButtonProps extends React.ComponentProps<'button'> {
   variant?: ButtonVariant;
@@ -22,6 +22,7 @@ const sizeClasses: Record<ButtonSize, string> = {
   default: 'h-9 px-4 py-2',
   sm: 'h-8 rounded-md px-3 text-[15px]',
   icon: 'h-9 w-9 rounded-md p-0',
+  iconTouch: 'h-11 w-11 rounded-xl p-0',
 };
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>

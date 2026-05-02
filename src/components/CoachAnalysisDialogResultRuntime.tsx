@@ -5,7 +5,6 @@ import {
     type CoachAnalyzeResponse,
     type CoachAnalysisData,
     type CoachDataQuality,
-    type CoachGenerationMode,
     type CoachMetric,
     type CoachRiskItem,
     type DashboardStat,
@@ -15,7 +14,6 @@ import {
     COACH_BRIEFING_MANUAL_HINT,
     getCoachAnalysisFocusSectionNotice,
     getCoachBriefingDataQualityNotice,
-    getCoachGenerationModeNotice,
     normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
 } from '../utils/prediction';
@@ -23,7 +21,7 @@ import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
     normalizeStructuredInlineText,
     normalizeStructuredInsightList,
-    normalizeStructuredMultilineText,
+    sanitizeMarkdown,
 } from '../utils/coachAnalysisText';
 import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
 
@@ -95,19 +93,6 @@ const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
             return '데이터 부족';
         default:
             return '근거 확인 중';
-    }
-};
-
-const getCoachGenerationModeLabel = (value?: CoachGenerationMode): string => {
-    switch (value) {
-        case 'deterministic_auto':
-            return '규칙 기반 자동 브리핑';
-        case 'llm_manual':
-            return '근거 기반 상세 분석';
-        case 'evidence_fallback':
-            return '근거 기반 보수 생성';
-        default:
-            return '생성 방식 확인 중';
     }
 };
 
@@ -444,8 +429,8 @@ export const getAnalysisData = ({
                 stats: mappedMetrics.stats,
             },
             metrics: mappedMetrics.metricCards,
-            detailed_analysis: normalizeStructuredMultilineText(detailedMarkdown || ''),
-            coach_note: normalizeStructuredMultilineText(
+            detailed_analysis: sanitizeMarkdown(detailedMarkdown || ''),
+            coach_note: sanitizeMarkdown(
                 coachNote || '',
                 '코치 노트가 제공되지 않았습니다.',
             ),
@@ -534,11 +519,11 @@ export const getAnalysisData = ({
         swing_factors: normalizeStructuredInsightList(data?.swing_factors),
         watch_points: normalizeStructuredInsightList(data?.watch_points),
         uncertainty: normalizeStructuredInsightList(data?.uncertainty),
-        detailed_analysis: normalizeStructuredMultilineText(
+        detailed_analysis: sanitizeMarkdown(
             typeof data?.detailed_analysis === 'string' ? data.detailed_analysis : '',
             COACH_BRIEFING_DISPLAY_MESSAGE,
         ),
-        coach_note: normalizeStructuredMultilineText(
+        coach_note: sanitizeMarkdown(
             typeof data?.coach_note === 'string' ? data.coach_note : '',
             '기존 형식의 코치 노트가 없습니다.',
         ),
@@ -679,17 +664,9 @@ export default function CoachAnalysisDialogResultRuntime({
         () => getCoachDataQualityLabel(result?.data_quality),
         [result?.data_quality],
     );
-    const generationModeLabel = useMemo(
-        () => getCoachGenerationModeLabel(result?.generation_mode),
-        [result?.generation_mode],
-    );
     const focusSectionNotice = useMemo(
         () => getCoachAnalysisFocusSectionNotice(result?.missing_focus_sections),
         [result?.missing_focus_sections],
-    );
-    const generationModeNotice = useMemo(
-        () => getCoachGenerationModeNotice(result?.generation_mode, result?.data_quality),
-        [result?.data_quality, result?.generation_mode],
     );
     const selectedFocusNormalized = useMemo(
         () => normalizeFocus(selectedFocus),
@@ -798,38 +775,6 @@ export default function CoachAnalysisDialogResultRuntime({
                                 </p>
                             ))}
                         </div>
-                    )}
-                </div>
-            )}
-
-            {!result?.manual_data_request && result?.generation_mode && (
-                <div
-                    data-testid="coach-analysis-generation-mode"
-                    data-generation-mode={result.generation_mode}
-                    className={`rounded-2xl border p-4 ${
-                        result.generation_mode === 'llm_manual'
-                            ? 'border-emerald-200/70 bg-emerald-50/80 text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-100'
-                            : 'border-slate-200/80 bg-white/80 text-slate-800 dark:border-slate-700/60 dark:bg-slate-900/50 dark:text-slate-100'
-                    }`}
-                >
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[16px] font-semibold ${
-                                result.generation_mode === 'llm_manual'
-                                    ? 'border-emerald-300/70 bg-white/80 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-100'
-                                    : 'border-slate-300/70 bg-white/80 text-slate-700 dark:border-slate-600/70 dark:bg-slate-800/60 dark:text-slate-100'
-                            }`}
-                        >
-                            생성 방식
-                        </span>
-                        <p className="text-[16px] font-semibold">
-                            {generationModeLabel}
-                        </p>
-                    </div>
-                        {result.generation_mode === 'evidence_fallback' && generationModeNotice && (
-                        <p className="mt-3 text-[16px] font-semibold leading-relaxed">
-                            {generationModeNotice}
-                        </p>
                     )}
                 </div>
             )}

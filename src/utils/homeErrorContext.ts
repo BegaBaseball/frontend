@@ -1,5 +1,6 @@
 import { formatDateForAPI } from './home';
 import { PublicApiError } from '../api/publicClient';
+import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 
 type AxiosLikeError = {
     isAxiosError: boolean;
@@ -9,6 +10,7 @@ type AxiosLikeError = {
         status?: number | null;
         data?: {
             code?: string | null;
+            data?: unknown;
         } | null;
     } | null;
 };
@@ -19,6 +21,7 @@ type PublicApiLikeError = {
     status: number;
     data?: {
         code?: string | null;
+        data?: unknown;
     } | null;
 };
 
@@ -36,6 +39,38 @@ const isPublicApiLikeError = (error: unknown): error is PublicApiLikeError =>
         && typeof (error as { status?: unknown }).status === 'number'
     );
 
+const isManualBaseballDataRequest = (value: unknown): value is ManualBaseballDataRequest => {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    const candidate = value as Partial<ManualBaseballDataRequest>;
+    return typeof candidate.scope === 'string'
+        && Array.isArray(candidate.missingItems)
+        && typeof candidate.operatorMessage === 'string'
+        && typeof candidate.blocking === 'boolean';
+};
+
+const extractManualBaseballDataRequest = (data: unknown): ManualBaseballDataRequest | null => {
+    if (!data || typeof data !== 'object') {
+        return null;
+    }
+
+    const envelope = data as { code?: unknown; data?: unknown };
+    if (isManualBaseballDataRequest(envelope.data)) {
+        return {
+            ...envelope.data,
+            code: typeof envelope.code === 'string' ? envelope.code : envelope.data.code,
+        };
+    }
+
+    if (isManualBaseballDataRequest(data)) {
+        return data;
+    }
+
+    return null;
+};
+
 export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, date: Date) => {
     const fallback = {
         endpoint,
@@ -44,6 +79,7 @@ export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, d
         responseCode: null as string | null,
         errorName: error instanceof Error ? error.name : 'UnknownError',
         message: error instanceof Error ? error.message : 'Unknown error',
+        manualDataRequest: null as ManualBaseballDataRequest | null,
     };
 
     if (isPublicApiLikeError(error)) {
@@ -53,6 +89,7 @@ export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, d
             responseCode: error.data?.code ?? null,
             errorName: error.name ?? fallback.errorName,
             message: error.message ?? fallback.message,
+            manualDataRequest: extractManualBaseballDataRequest(error.data),
         };
     }
 
@@ -63,6 +100,7 @@ export const buildHomeRequestErrorContext = (error: unknown, endpoint: string, d
             responseCode: error.response?.data?.code ?? null,
             errorName: error.name ?? fallback.errorName,
             message: error.message ?? fallback.message,
+            manualDataRequest: extractManualBaseballDataRequest(error.response?.data),
         };
     }
 
