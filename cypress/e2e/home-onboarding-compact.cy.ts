@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const fixedNow = new Date('2026-03-16T12:00:00').getTime();
 
 const buildBootstrapResponse = () => ({

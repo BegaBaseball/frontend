@@ -8,23 +8,30 @@ import {
     Game,
     HomeBootstrapResponse,
     HomeRankingSnapshot,
+    HomeScopedNavigationResponse,
     HomeWidgetsResponse,
     LeagueStartDates,
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { PublicApiError, publicGet } from './publicClient';
+import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 export type HomeLoadFailureReason = 'manual-data-required' | 'request-failed';
+export type HomeNavigationScope = 'regular' | 'postseason' | 'koreanseries' | 'scheduled';
 
 export const HOME_BOOTSTRAP_QUERY_KEY = (dateKey: string) => ['home', 'bootstrap', dateKey] as const;
 export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
+export const HOME_SCOPED_NAVIGATION_QUERY_KEY = (dateKey: string, scope: HomeNavigationScope, seasonYear?: number) => (
+    ['home', 'navigation', dateKey, scope, seasonYear ?? 'auto'] as const
+);
 
 export interface HomeLoadState {
     source: HomeLoadSource;
     isFallback: boolean;
     timedOut: boolean;
     failureReason: HomeLoadFailureReason | null;
+    manualDataRequest: ManualBaseballDataRequest | null;
 }
 
 export interface HomeCoreLoadSuccessState {
@@ -119,14 +126,29 @@ const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotChee
         && isRankingSnapshot(candidate.rankingSnapshot);
 };
 
+const isScopedNavigationResponse = (value: unknown): value is HomeScopedNavigationResponse => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return typeof candidate.hasPrev === 'boolean'
+        && typeof candidate.hasNext === 'boolean';
+};
+
 export const buildHomeLoadState = (
     source: HomeLoadSource,
-    options: { timedOut?: boolean; failureReason?: HomeLoadFailureReason | null } = {},
+    options: {
+        timedOut?: boolean;
+        failureReason?: HomeLoadFailureReason | null;
+        manualDataRequest?: ManualBaseballDataRequest | null;
+    } = {},
 ): HomeLoadState => ({
     source,
     isFallback: source === 'legacy-fallback',
     timedOut: options.timedOut === true,
     failureReason: options.failureReason ?? null,
+    manualDataRequest: options.manualDataRequest ?? null,
 });
 
 export const shouldShowHomeConnectionError = (
@@ -218,6 +240,39 @@ export const getHomeBootstrapQueryOptions = (date: Date) => {
         queryKey: HOME_BOOTSTRAP_QUERY_KEY(dateKey),
         queryFn: () => fetchHomeBootstrap(date),
         retry: shouldRetryHomeBootstrapQuery,
+        staleTime: 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+    } as const;
+};
+
+export const fetchHomeScopedNavigation = async (
+    date: Date,
+    scope: HomeNavigationScope,
+    seasonYear?: number,
+): Promise<HomeScopedNavigationResponse> => {
+    const apiDate = formatDateForAPI(date);
+    const data = await publicGet<unknown>('/home/navigation', {
+        params: seasonYear == null
+            ? { date: apiDate, scope }
+            : { date: apiDate, scope, seasonYear },
+    });
+
+    if (!isScopedNavigationResponse(data)) {
+        throw new Error('Invalid home scoped navigation response');
+    }
+
+    return data;
+};
+
+export const getHomeScopedNavigationQueryOptions = (
+    date: Date,
+    scope: HomeNavigationScope,
+    seasonYear?: number,
+) => {
+    const dateKey = formatDateForAPI(date);
+    return {
+        queryKey: HOME_SCOPED_NAVIGATION_QUERY_KEY(dateKey, scope, seasonYear),
+        queryFn: () => fetchHomeScopedNavigation(date, scope, seasonYear),
         staleTime: 60 * 1000,
         gcTime: 10 * 60 * 1000,
     } as const;

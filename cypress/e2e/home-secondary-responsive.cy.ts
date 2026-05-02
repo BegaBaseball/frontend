@@ -120,7 +120,7 @@ const visitResponsiveHome = () => {
 };
 
 describe('Home secondary panels responsive layout', () => {
-  it('uses a horizontal snap pager on mobile instead of vertically stacking panels', () => {
+  it('puts rankings first and keeps cheer/mate panels in a mobile snap pager', () => {
     cy.viewport(375, 900);
     visitResponsiveHome();
 
@@ -129,15 +129,18 @@ describe('Home secondary panels responsive layout', () => {
       const pager = $pager[0];
       expect(pager.scrollWidth).to.be.greaterThan(pager.clientWidth + 80);
     });
+    cy.get('[data-testid="home-secondary-panels"] .snap-x section').should(($sections) => {
+      expect($sections.length).to.eq(2);
+      const rects = [...$sections].map((section) => section.getBoundingClientRect());
+      expect(Math.abs(rects[1].top - rects[0].top)).to.be.lessThan(4);
+      expect(rects[1].left).to.be.greaterThan(rects[0].left);
+    });
     cy.get('[data-testid="home-secondary-panels"] section').should(($sections) => {
       expect($sections.length).to.eq(3);
       const rects = [...$sections].map((section) => section.getBoundingClientRect());
-      const firstTop = rects[0].top;
-      rects.forEach((rect) => {
-        expect(Math.abs(rect.top - firstTop)).to.be.lessThan(4);
-      });
-      expect(rects[1].left).to.be.greaterThan(rects[0].left);
-      expect(rects[2].left).to.be.greaterThan(rects[1].left);
+      expect(rects[0].top).to.be.lessThan(rects[1].top - 16);
+      expect(Math.abs(rects[2].top - rects[1].top)).to.be.lessThan(4);
+      expect(rects[0].width).to.be.greaterThan(rects[1].width);
     });
     cy.contains(/최근\s*5경기|스파크라인|W\/L/).should('not.exist');
   });

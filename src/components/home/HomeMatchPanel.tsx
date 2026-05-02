@@ -2,14 +2,13 @@ import type { CSSProperties } from 'react';
 
 import { Button } from '../ui/button';
 import GameCard from '../GameCard';
-import ScheduledGameCard from '../ScheduledGameCard';
 import {
   ChevronDownIcon,
   ClockIcon,
   RefreshIcon,
   WarningTriangleIcon,
 } from '../icons/PublicShellIcons';
-import { GameCardSkeleton, ScheduledGameCardSkeleton } from './GameCardSkeleton';
+import { GameCardSkeleton } from './GameCardSkeleton';
 import { formatSourceDateLabel } from '../../utils/homeSeasonLogic';
 import type { Game } from '../../types/home';
 import type { LeagueTab } from '../../utils/predictionHomeLogic';
@@ -60,6 +59,7 @@ export default function HomeMatchPanel({
 }: HomeMatchPanelProps) {
   const activeTabIsScheduled = activeLeagueTab === 'scheduled';
   const isManualDataError = loadFailureReason === 'manual-data-required';
+  const firstScheduledPrimaryDate = scheduledPrimaryGamesBySourceDate[0]?.[0];
 
   if (isLoading) {
     return (
@@ -115,11 +115,11 @@ export default function HomeMatchPanel({
       return (
         <div
           className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
-          style={matchSectionMinHeightStyle}
-        >
+        style={matchSectionMinHeightStyle}
+      >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
             {Array.from({ length: loadingMatchCardCount }, (_, index) => (
-              <ScheduledGameCardSkeleton key={`scheduled-skeleton-${index}`} />
+              <GameCardSkeleton key={`scheduled-skeleton-${index}`} />
             ))}
           </div>
         </div>
@@ -171,28 +171,35 @@ export default function HomeMatchPanel({
     }
 
     return (
-      <div className="space-y-8 rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
+      <div className="space-y-6 rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
         {scheduledPrimaryGames.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
-              <div className="flex items-center gap-2 text-[16px] font-bold text-gray-700 dark:text-gray-100">
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-100/90 px-3 py-2 dark:border-border dark:bg-secondary/80">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[15px] font-bold text-gray-700 dark:text-gray-100">
                 <ClockIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
-                곧 열리는 경기
+                <span>곧 열리는 경기</span>
+                <span className="text-gray-400 dark:text-gray-500">·</span>
+                <span className="text-emerald-700 dark:text-emerald-300">{scheduledPrimaryGames.length}건</span>
               </div>
-              <span className="inline-flex min-w-10 justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[16px] font-bold text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300">
-                {scheduledPrimaryGames.length}건
-              </span>
+              {firstScheduledPrimaryDate && (
+                <span className="inline-flex rounded-full border border-gray-200 bg-white/80 px-2.5 py-1 text-[14px] font-bold text-gray-600 dark:border-border dark:bg-background/30 dark:text-gray-200">
+                  {formatSourceDateLabel(firstScheduledPrimaryDate)}
+                </span>
+              )}
             </div>
             {scheduledPrimaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
               <div key={`scheduled-primary-${sourceDate}`} className="space-y-3">
-                <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-bold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
-                  {formatSourceDateLabel(sourceDate)}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                {sourceDate !== firstScheduledPrimaryDate && (
+                  <h4 className="px-1 text-[14px] font-bold text-gray-500 dark:text-gray-300">
+                    {formatSourceDateLabel(sourceDate)}
+                  </h4>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
                   {groupedGames.map((game, index) => (
-                    <ScheduledGameCard
+                    <GameCard
                       key={`${game.gameId}-${sourceDate}-${index}`}
                       game={game}
+                      variant="home"
                       onSelectPrediction={() => onSelectPrediction(game)}
                     />
                   ))}
@@ -228,14 +235,15 @@ export default function HomeMatchPanel({
             {isSecondarySectionExpanded ? (
               scheduledSecondaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
                 <div key={`scheduled-secondary-${sourceDate}`} className="space-y-3">
-                  <h4 className="sticky top-2 z-10 rounded-lg border border-gray-200/80 bg-gray-100/90 px-3 py-2 text-[16px] font-bold text-gray-600 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-gray-100/80 dark:border-border dark:bg-secondary/90 dark:text-gray-200">
+                  <h4 className="px-1 text-[14px] font-bold text-gray-500 dark:text-gray-300">
                     {formatSourceDateLabel(sourceDate)}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
                     {groupedGames.map((game, index) => (
-                      <ScheduledGameCard
+                      <GameCard
                         key={`${game.gameId}-${sourceDate}-${index}`}
                         game={game}
+                        variant="home"
                         onSelectPrediction={() => onSelectPrediction(game)}
                       />
                     ))}
@@ -272,11 +280,12 @@ export default function HomeMatchPanel({
 
   return (
     <div className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
         {activeStandardGames.map((game, index) => (
           <GameCard
             key={`${game.gameId}-${index}`}
             game={game}
+            variant="home"
             onSelectPrediction={() => onSelectPrediction(game)}
           />
         ))}
