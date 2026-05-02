@@ -99,7 +99,7 @@ export default function CheerBookmarks() {
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="mt-3 rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-[16px] font-bold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
+                  className="mt-3 min-h-11 rounded-full border border-slate-200 px-4 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
                 >
                   다시 시도
                 </button>
@@ -118,7 +118,7 @@ export default function CheerBookmarks() {
                 <button
                   type="button"
                   onClick={() => navigate('/cheer')}
-                  className="rounded-full bg-primary px-5 py-2 text-[16px] font-bold text-white hover:opacity-90 transition-opacity"
+                  className="min-h-11 rounded-full bg-primary px-5 py-2 text-[16px] font-bold text-white transition-opacity hover:opacity-90"
                 >
                   응원 게시판으로 이동
                 </button>

@@ -80,6 +80,19 @@ const pageResponse = (content: unknown[]) => ({
   number: 0,
 });
 
+const assertMinTarget = (
+  subject: JQuery<HTMLElement>,
+  label: string,
+  options: { minWidth?: number; minHeight?: number } = {},
+) => {
+  const rect = subject[0].getBoundingClientRect();
+  const minWidth = options.minWidth ?? 44;
+  const minHeight = options.minHeight ?? 44;
+
+  expect(rect.width, `${label} width`).to.be.at.least(minWidth);
+  expect(rect.height, `${label} height`).to.be.at.least(minHeight);
+};
+
 describe('Cheer mobile bottom navigation', () => {
   beforeEach(() => {
     cy.viewport(390, 844);
@@ -108,13 +121,23 @@ describe('Cheer mobile bottom navigation', () => {
 
     cy.get('[data-testid="cheer-mobile-bottom-nav"]').should('be.visible');
     cy.get('button[aria-label="글쓰기"]').should('have.length', 1);
+    cy.document().its('documentElement.scrollWidth').should('be.lte', 390);
+    cy.get('[data-testid="cheer-bottom-nav-home"]').should(($button) => assertMinTarget($button, 'home nav'));
     cy.get('[data-testid="cheer-bottom-nav-team"]')
       .should('have.attr', 'aria-current', 'page')
-      .and(($button) => {
-        const rect = $button[0].getBoundingClientRect();
-
-        expect(rect.height, 'team nav target height').to.be.at.least(44);
-      });
+      .and(($button) => assertMinTarget($button, 'team nav'));
+    cy.get('[data-testid="cheer-bottom-nav-write"]').should(($button) => assertMinTarget($button, 'write nav'));
+    cy.get('[data-testid="cheer-bottom-nav-bookmarks"]').should(($button) => assertMinTarget($button, 'bookmarks nav'));
+    cy.get('[data-testid="cheer-bottom-nav-profile"]').should(($button) => assertMinTarget($button, 'profile nav'));
+    cy.contains('button', '전체').should(($button) => assertMinTarget($button, 'feed tab', { minHeight: 36 }));
+    cy.get('button[aria-label="이미지 첨부"]').should(($button) => assertMinTarget($button, 'image attach'));
+    cy.get('[data-testid="write-post-btn"]').should(($button) => assertMinTarget($button, 'inline write button'));
+    cy.get('[data-testid="cheer-post-card"]').first().within(() => {
+      cy.get('button[aria-label="게시글 옵션"]').should(($button) => assertMinTarget($button, 'post options'));
+      cy.get('button[aria-label*="댓글"]').first().should(($button) => assertMinTarget($button, 'comment action'));
+      cy.get('button[aria-label*="좋아요"]').first().should(($button) => assertMinTarget($button, 'like action'));
+      cy.get('button[aria-label="북마크"]').first().should(($button) => assertMinTarget($button, 'bookmark action'));
+    });
   });
 
   it('keeps the same nav and only marks bookmarks active on the bookmarks page', () => {
@@ -126,6 +149,7 @@ describe('Cheer mobile bottom navigation', () => {
     cy.get('[data-testid="cheer-mobile-bottom-nav"]').should('be.visible');
     cy.get('[data-testid="cheer-bottom-nav-bookmarks"]').should('have.attr', 'aria-current', 'page');
     cy.get('[data-testid="cheer-bottom-nav-team"]').should('not.have.attr', 'aria-current');
+    cy.get('[data-testid="cheer-bottom-nav-write"]').should(($button) => assertMinTarget($button, 'bookmarks write nav'));
     cy.get('button[aria-label="글쓰기"]').click();
     cy.location('pathname').should('eq', '/cheer/write');
   });
