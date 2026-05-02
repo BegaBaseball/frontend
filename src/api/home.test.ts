@@ -6,6 +6,7 @@ import {
   fetchGamesData,
   fetchGamesRangeData,
   fetchHomeBootstrap,
+  fetchHomeScopedNavigation,
   fetchHomeWidgets,
   fetchLeagueStartDates,
   getHomeBootstrapQueryOptions,
@@ -107,6 +108,34 @@ test('fetchHomeWidgets은 공개 위젯 요청으로 seasonYear를 전달한다'
   assert.equal(response.rankingSnapshot.rankingSeasonYear, 2025);
   assert.match(requestUrl, /\/api\/home\/widgets\?date=2026-03-16&seasonYear=2025$/);
   assert.equal(requestInit?.credentials, 'include');
+});
+
+test('fetchHomeScopedNavigation은 scoped navigation 요청으로 same-origin fetch를 사용한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+    return buildJsonResponse({
+      resolvedDate: '2026-04-28',
+      prevGameDate: '2026-04-26',
+      nextGameDate: '2026-04-28',
+      hasPrev: true,
+      hasNext: true,
+    });
+  });
+
+  const response = await fetchHomeScopedNavigation(new Date('2026-04-27T12:00:00'), 'regular', 2026);
+
+  assert.equal(response.resolvedDate, '2026-04-28');
+  assert.match(requestUrl, /\/api\/home\/navigation\?date=2026-04-27&scope=regular&seasonYear=2026$/);
+  assert.equal(requestInit?.credentials, 'include');
+  assert.deepEqual(requestInit?.headers, { Accept: 'application/json' });
 });
 
 test('getHomeWidgetsQueryOptions는 auto와 explicit seasonYear를 서로 다른 캐시 키로 분리한다', () => {
@@ -236,6 +265,7 @@ test('buildHomeLoadState는 레거시 폴백 timeout 상태를 구조화한다',
     isFallback: true,
     timedOut: true,
     failureReason: null,
+    manualDataRequest: null,
   });
 });
 

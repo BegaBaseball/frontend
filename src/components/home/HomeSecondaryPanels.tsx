@@ -220,10 +220,36 @@ export default function HomeSecondaryPanels({
   onSelectCalendarDate,
 }: HomeSecondaryPanelsProps) {
   const panelCardClassName = `border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-card ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
-  const rankingCardClassName = `overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-card ${teamRankingCardHeightClass} max-h-[380px] lg:max-h-none lg:overflow-y-auto`;
+  const rankingCardClassName = `overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-card ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
+  const compactRankingRows = [
+    ...displayedRankings.map((team) => ({
+      key: team.teamId,
+      node: <TeamRankRow team={team} variant="compact" rowClassName="lg:h-[65px] lg:min-h-[65px] lg:px-4 lg:py-0 xl:h-auto xl:min-h-0" />,
+    })),
+    ...Array.from({ length: rankingPlaceholderRows }).map((_, index) => ({
+      key: `team-rank-placeholder-${index}`,
+      node: (
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200/80 px-3 py-3 opacity-45 last:border-b-0 dark:border-zinc-800/80 lg:h-[65px] lg:min-h-[65px] lg:px-4 lg:py-0 xl:h-auto xl:min-h-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="w-5 shrink-0 text-center text-[15px] font-black text-zinc-400 dark:text-zinc-500">
+              {displayedRankings.length + index + 1}
+            </span>
+            <div className="h-8 w-8 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800/80" />
+            <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
+          </div>
+          <span className="block h-4 w-16 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+        </div>
+      ),
+    })),
+  ];
+  const compactRankingSplitIndex = Math.ceil(compactRankingRows.length / 2);
+  const compactRankingColumns = [
+    compactRankingRows.slice(0, compactRankingSplitIndex),
+    compactRankingRows.slice(compactRankingSplitIndex),
+  ];
 
   const renderHotCheerPanel = () => (
-    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:col-span-4 lg:w-auto">
+    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:order-1 lg:col-span-4 lg:w-auto">
       <PanelHeader
         title="실시간 인기 응원글"
         icon={<FlameIcon className="h-5 w-5 text-red-500" />}
@@ -297,7 +323,7 @@ export default function HomeSecondaryPanels({
   );
 
   const renderFeaturedMatePanel = () => (
-    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:col-span-4 lg:w-auto">
+    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:order-2 lg:col-span-4 lg:w-auto">
       <PanelHeader
         title="직관 메이트 찾기"
         icon={<UsersIcon className="h-5 w-5 text-blue-500" />}
@@ -376,7 +402,7 @@ export default function HomeSecondaryPanels({
   );
 
   const renderRankingPanel = () => (
-    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:col-span-4 lg:w-auto">
+    <section className="w-full space-y-3 lg:order-3 lg:col-span-4 lg:w-auto">
       <PanelHeader
         title="팀 순위"
         icon={<TrophyIcon className="h-5 w-5 text-[#2ecc71]" />}
@@ -430,32 +456,48 @@ export default function HomeSecondaryPanels({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col">
-            {displayedRankings.map((team) => (
-              <div key={team.teamId}>
-                <div className="lg:hidden">
-                  <TeamRankRow team={team} variant="compact" />
+          <div>
+            <div className="md:hidden lg:block xl:hidden">
+              {compactRankingRows.map((row) => (
+                <div key={row.key}>{row.node}</div>
+              ))}
+            </div>
+
+            <div className="hidden gap-x-4 md:grid md:grid-cols-2 lg:hidden">
+              {compactRankingColumns.map((column, columnIndex) => (
+                <div key={`ranking-column-${columnIndex}`} className="min-w-0">
+                  {column.map((row) => (
+                    <div key={row.key}>{row.node}</div>
+                  ))}
                 </div>
-                <div className="hidden lg:block">
-                  <TeamRankRow team={team} variant="rich" rowClassName={homeDashboardRankingRowClass} />
+              ))}
+            </div>
+
+            <div className="hidden xl:flex xl:flex-col">
+              {displayedRankings.map((team) => (
+                <TeamRankRow
+                  key={team.teamId}
+                  team={team}
+                  variant="rich"
+                  rowClassName={homeDashboardRankingRowClass}
+                />
+              ))}
+              {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (
+                <div
+                  key={`team-rank-placeholder-${index}`}
+                  className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200/80 px-3 py-3 opacity-45 last:border-b-0 dark:border-zinc-800/80 ${homeDashboardRankingRowClass}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="w-5 shrink-0 text-center text-[15px] font-black text-zinc-400 dark:text-zinc-500">
+                      {displayedRankings.length + index + 1}
+                    </span>
+                    <div className="h-9 w-9 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800/80" />
+                    <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
+                  </div>
+                  <span className="block h-4 w-16 rounded bg-zinc-100 dark:bg-zinc-700/70" />
                 </div>
-              </div>
-            ))}
-            {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (
-              <div
-                key={`team-rank-placeholder-${index}`}
-                className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200/80 px-3 py-3 opacity-45 last:border-b-0 dark:border-zinc-800/80 ${homeDashboardRankingRowClass}`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="w-5 shrink-0 text-center text-[15px] font-black text-zinc-400 dark:text-zinc-500">
-                    {displayedRankings.length + index + 1}
-                  </span>
-                  <div className="h-9 w-9 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800/80" />
-                  <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
-                </div>
-                <span className="block h-4 w-16 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </Card>
@@ -480,12 +522,12 @@ export default function HomeSecondaryPanels({
           minHeight={156}
         />
 
-        <div className="mt-4 lg:grid lg:grid-cols-12 lg:gap-4">
+        <div className="mt-4 space-y-4 lg:grid lg:grid-cols-12 lg:gap-4 lg:space-y-0">
+          {renderRankingPanel()}
           <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
             <div className="flex snap-x snap-mandatory gap-4 lg:contents">
               {renderHotCheerPanel()}
               {renderFeaturedMatePanel()}
-              {renderRankingPanel()}
             </div>
           </div>
         </div>

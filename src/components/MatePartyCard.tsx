@@ -76,6 +76,7 @@ const getGameDayLabel = (gameDate: string) => {
 
   if (diff === 0) return 'D-Day';
   if (diff < 0) return '';
+  if (diff > 999) return '예정';
   return `D-${diff}`;
 };
 
@@ -151,7 +152,7 @@ export default function MatePartyCard({
   const priceLabel = formatTicketAmount(party);
 
   const statusBadge = (
-    <div className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-md border ${statusConfig.border} ${statusConfig.bg} px-2.5 py-1`}>
+    <div className={`inline-flex max-w-full shrink-0 items-center whitespace-nowrap rounded-md border ${statusConfig.border} ${statusConfig.bg} px-2.5 py-1`}>
       {dDayLabel ? (
         <span className={`mr-1.5 shrink-0 whitespace-nowrap border-r border-current/30 pr-1.5 text-[15px] font-bold ${statusConfig.text}`}>
           {dDayLabel}
@@ -247,13 +248,13 @@ export default function MatePartyCard({
       onClick={() => onClick(party)}
     >
       <div className="flex flex-1 flex-col p-4">
-        <div className="mb-4 flex flex-col gap-2 min-[1440px]:flex-row min-[1440px]:items-start min-[1440px]:justify-between min-[1440px]:gap-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-4 flex max-w-full flex-col items-start gap-2">
+          <div className="flex max-w-full flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-gray-700 dark:border-white/10 dark:text-zinc-300">
               <span className="font-mono text-[15px]">{formatGameDate(party.gameDate)}</span>
               {getWeatherIcon(party.gameDate)}
             </span>
-            <span className="inline-flex rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[15px] font-semibold text-gray-700 dark:border-white/10 dark:text-zinc-300">
+            <span className="inline-flex max-w-full truncate rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[15px] font-semibold text-gray-700 dark:border-white/10 dark:text-zinc-300">
               {party.stadium}
             </span>
           </div>

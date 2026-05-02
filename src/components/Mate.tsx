@@ -172,6 +172,7 @@ export default function Mate() {
       sortBy: activeSortOption.sortBy,
       sortDir: activeSortOption.sortDir,
     }),
+    refetchOnMount: 'always',
   });
   const parties = partyListQuery.data?.content ?? [];
   const totalPages = partyListQuery.data?.totalPages ?? 0;
@@ -282,13 +283,16 @@ export default function Mate() {
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             const quickLabel = idx === 0 ? '오늘' : idx === 1 ? '내일' : getDayOfWeek(dateString);
             const dateButtonLabel = `${date.getMonth() + 1}월 ${date.getDate()}일 ${getDayOfWeek(dateString)}요일`;
+            const dateFilterLabel = isRail
+              ? `${dateButtonLabel} 날짜 필터${isSelected ? ', 선택됨' : ''}`
+              : `${dateButtonLabel} 필터${isSelected ? ', 선택됨' : ''}`;
 
             return (
               <button
                 key={dateString}
                 type="button"
                 onClick={() => handleDateSelect(date)}
-                aria-label={dateButtonLabel}
+                aria-label={dateFilterLabel}
                 aria-pressed={Boolean(isSelected)}
                 className={`flex h-12 ${isRail ? '' : 'min-w-[62px]'} flex-col items-center justify-center rounded-xl border px-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
                   isSelected

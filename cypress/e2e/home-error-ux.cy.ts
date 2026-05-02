@@ -331,7 +331,7 @@ describe('Home error UX', () => {
     cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
   });
 
-  it('warns instead of erroring when bootstrap returns manual-data-required without retrying', () => {
+  it('warns without exposing manual-data-required details to anonymous users', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       delay: 700,
       statusCode: 409,
@@ -355,11 +355,44 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeBootstrapManualData');
-    cy.contains('야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜').should('not.exist');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
+    cy.contains('button', /^다시 시도$/).should('be.visible');
 
     cy.get('@getHomeBootstrapManualData.all').should('have.length', 1);
     cy.get('@consoleError').should('not.have.been.called');
     cy.get('@consoleWarn').should('have.been.calledWithMatch', '[HomeBootstrap] Business conflict while loading bootstrap:');
+  });
+
+  it('shows manual-data-required details only to admin users', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 700,
+      statusCode: 409,
+      body: buildManualDataRequiredResponse('home.schedule'),
+    }).as('getHomeBootstrapManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: true,
+      resetStorage: true,
+      user: {
+        role: 'ROLE_ADMIN',
+      },
+    });
+
+    cy.wait('@getHomeBootstrapManualData');
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 15000 }).should('be.visible');
+    cy.contains('운영자 데이터가 필요합니다').should('be.visible');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜').should('be.visible');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('be.visible');
+    cy.contains('button', /^다시 시도$/).should('not.exist');
   });
 
   it('suppresses deferred mypage retry on home during recent failure cooldown', () => {
