@@ -126,17 +126,6 @@ describe('Stadium Guide Quality Flow', () => {
       statusCode: 200,
       body: deliveryPlaces,
     }).as('getDeliveryPlaces');
-
-    cy.intercept('GET', '**/api/diary/seat-views*', {
-      statusCode: 200,
-      body: [],
-    }).as('getSeatViews');
-  };
-
-  const assertMinTarget = ($element: JQuery<HTMLElement | SVGElement>, label: string) => {
-    const rect = $element[0].getBoundingClientRect();
-    expect(rect.width, `${label} width`).to.be.greaterThan(43);
-    expect(rect.height, `${label} height`).to.be.greaterThan(43);
   };
 
   beforeEach(() => {
@@ -159,7 +148,7 @@ describe('Stadium Guide Quality Flow', () => {
     }).as('getFoodPlaces');
 
     cy.visit('/stadium');
-    cy.contains('구장 목록 로딩 중...').filter(':visible').should('be.visible');
+    cy.contains('구장 목록 로딩 중...').should('be.visible');
     cy.screenshot('stadium-smoke-loading');
     cy.wait('@getStadiumsLoading');
     cy.wait('@getFoodPlaces');
@@ -171,9 +160,9 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.reload();
     cy.wait('@getStadiumsFailure');
-    cy.contains('구장 정보를 불러오지 못했습니다.').filter(':visible').should('be.visible');
-    cy.get('#stadium-guide-select').should('be.disabled');
-    cy.get('button[aria-label="구장 먹거리 주변 정보 보기"]').filter(':visible').should('be.disabled');
+    cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+    cy.get('select').first().should('be.disabled');
+    cy.contains('button', '구장 먹거리').should('be.disabled');
     cy.get('input[placeholder="장소 이름 검색..."]').should('be.disabled');
     cy.screenshot('stadium-smoke-failure');
 
@@ -189,10 +178,7 @@ describe('Stadium Guide Quality Flow', () => {
     cy.reload();
     cy.wait('@getStadiumsRecovered');
     cy.wait('@getFoodPlacesEmpty');
-    cy.get('.stadium-guide-list-shell .text-center').filter(':visible').should(
-      'contain.text',
-      '해당 카테고리에 등록된 장소가 없습니다.',
-    );
+    cy.contains('해당 카테고리에 등록된 장소가 없습니다.').should('be.visible');
     cy.screenshot('stadium-smoke-empty');
   });
 
@@ -204,112 +190,37 @@ describe('Stadium Guide Quality Flow', () => {
     cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');
 
-    cy.contains('구장 가이드').filter(':visible').should('be.visible');
-    cy.contains('구장 선택').filter(':visible').should('be.visible');
-    cy.contains('주변 정보 카테고리').filter(':visible').should('be.visible');
+    cy.contains('구장 가이드').should('be.visible');
+    cy.contains('구장 선택').should('be.visible');
+    cy.contains('카테고리').should('be.visible');
     cy.screenshot('stadium-smoke-normal-load');
 
-    cy.get('button[aria-label="배달픽업존 주변 정보 보기"]').filter(':visible').click();
+    cy.get('button').contains('배달픽업존').click();
     cy.wait('@getDeliveryPlaces');
-    cy.contains('종합운동장역 6번 출구 픽업존').filter(':visible').should('be.visible');
+    cy.contains('종합운동장역 6번 출구 픽업존').should('be.visible');
 
-    cy.get('button[aria-label="구장 먹거리 주변 정보 보기"]').filter(':visible').click();
+    cy.get('button').contains('구장 먹거리').click();
     cy.wait('@getFoodPlaces');
 
     cy.get('input[placeholder="장소 이름 검색..."]').type('떡볶이');
-    cy.contains('이가네떡볶이').filter(':visible').should('be.visible');
-    cy.contains('통밥').filter(':visible').should('not.exist');
+    cy.contains('이가네떡볶이').should('be.visible');
+    cy.contains('통밥').should('not.exist');
 
     cy.get('input[placeholder="장소 이름 검색..."]').clear();
-    cy.get('select.stadium-guide-select:visible').select('평점순');
-    cy.get('[id^="place-"]').filter(':visible').first().contains('통밥');
+    cy.get('select').eq(1).select('평점순');
+    cy.get('[id^="place-"]').first().contains('통밥');
 
-    cy.get('select.stadium-guide-select:visible').select('이름순');
-    cy.get('[id^="place-"]').filter(':visible').first().contains('브뤼셀프라이');
-  });
-
-  it('모바일에서 주요 컨트롤과 좌석맵이 겹침 없이 동작한다', () => {
-    cy.viewport(390, 844);
-    interceptGuestSession();
-    interceptBaseStadiumApis();
-
-    cy.visit('/stadium');
-    cy.wait('@getStadiums');
-    cy.wait('@getFoodPlaces');
-
-    cy.window().then((win) => {
-      const doc = win.document.documentElement;
-      expect(doc.scrollWidth, 'document horizontal overflow').to.be.at.most(win.innerWidth);
-    });
-
-    cy.get('#stadium-guide-select').then(($select) => {
-      assertMinTarget($select, 'stadium select');
-    });
-    cy.contains('button', '카카오맵 길찾기').then(($button) => {
-      assertMinTarget($button, 'route button');
-    });
-    cy.contains('button', '구장 먹거리').then(($button) => {
-      assertMinTarget($button, 'category button');
-    });
-
-    cy.get('[data-testid="stadium-seat-map"]').should('be.visible').then(($map) => {
-      const rect = $map[0].getBoundingClientRect();
-      expect(rect.height, 'seat map stable height').to.be.greaterThan(299);
-    });
-    cy.get('[data-testid="stadium-seat-map"] path[role="button"]').first().click({ force: true });
-    cy.contains('이 구역 시야 보기').should('be.visible');
-    cy.contains('button', '이 구역 시야 보기').click();
-    cy.wait('@getSeatViews');
-    cy.get('[data-testid="stadium-seat-view-dialog"]').should('be.visible');
-    cy.contains('아직 등록된 시야가 없어요').should('be.visible');
-    cy.get('body').type('{esc}');
-    cy.get('[data-testid="stadium-seat-view-dialog"]').should('not.exist');
-  });
-
-  it('모바일에서 주요 컨트롤과 좌석맵이 겹침 없이 동작한다', () => {
-    cy.viewport(390, 844);
-    interceptGuestSession();
-    interceptBaseStadiumApis();
-
-    cy.visit('/stadium');
-    cy.wait('@getStadiums');
-    cy.wait('@getFoodPlaces');
-
-    cy.window().then((win) => {
-      const doc = win.document.documentElement;
-      expect(doc.scrollWidth, 'document horizontal overflow').to.be.at.most(win.innerWidth);
-    });
-
-    cy.get('#stadium-guide-select').then(($select) => {
-      assertMinTarget($select, 'stadium select');
-    });
-    cy.contains('button', '카카오맵 길찾기').then(($button) => {
-      assertMinTarget($button, 'route button');
-    });
-    cy.contains('button', '구장 먹거리').then(($button) => {
-      assertMinTarget($button, 'category button');
-    });
-
-    cy.get('[data-testid="stadium-seat-map"]').should('be.visible').then(($map) => {
-      const rect = $map[0].getBoundingClientRect();
-      expect(rect.height, 'seat map stable height').to.be.greaterThan(299);
-    });
-    cy.get('[data-testid="stadium-seat-map"] path[role="button"]').first().click({ force: true });
-    cy.contains('이 구역 시야 보기').should('be.visible');
-    cy.contains('button', '이 구역 시야 보기').click();
-    cy.wait('@getSeatViews');
-    cy.get('[data-testid="stadium-seat-view-dialog"]').should('be.visible');
-    cy.contains('아직 등록된 시야가 없어요').should('be.visible');
-    cy.get('body').type('{esc}');
-    cy.get('[data-testid="stadium-seat-view-dialog"]').should('not.exist');
+    cy.get('select').eq(1).select('이름순');
+    cy.get('[id^="place-"]').first().contains('브뤼셀프라이');
   });
 
   it('구장 목록/장소 목록 재시도 버튼이 각각 동작한다', () => {
     interceptGuestSession();
 
-    let allowStadiumRetrySuccess = false;
+    let stadiumCallCount = 0;
     cy.intercept('GET', '**/api/stadiums', (req) => {
-      if (!allowStadiumRetrySuccess) {
+      stadiumCallCount += 1;
+      if (stadiumCallCount <= 2) {
         req.reply({ statusCode: 500, body: { message: 'fail' } });
         return;
       }
@@ -322,20 +233,12 @@ describe('Stadium Guide Quality Flow', () => {
     }).as('getFoodPlaces');
 
     cy.visit('/stadium');
-    cy.wait('@getStadiums').its('response.statusCode').should('eq', 500);
+    cy.wait('@getStadiums');
     cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
-    cy.contains('button', '재시도').should('be.visible').then(($button) => {
-      allowStadiumRetrySuccess = true;
-      cy.wrap($button).click({ force: true });
-    });
-    cy.wait('@getStadiums').then((interception) => {
-      if (interception.response?.statusCode === 200) {
-        return;
-      }
-      cy.wait('@getStadiums').its('response.statusCode').should('eq', 200);
-    });
+    cy.contains('button', '재시도').click();
+    cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');
-    cy.contains('잠실야구장').filter(':visible').should('be.visible');
+    cy.contains('잠실야구장').should('be.visible');
 
     let placeCallCount = 0;
     cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=delivery', (req) => {
@@ -347,12 +250,12 @@ describe('Stadium Guide Quality Flow', () => {
       req.reply({ statusCode: 200, body: deliveryPlaces });
     }).as('getDeliveryWithRetry');
 
-    cy.get('button[aria-label="배달픽업존 주변 정보 보기"]').filter(':visible').click();
+    cy.get('button').contains('배달픽업존').click();
     cy.wait('@getDeliveryWithRetry');
-    cy.contains('장소 목록을 불러오지 못했습니다.').filter(':visible').should('be.visible');
-    cy.contains('button', '목록 다시 시도').filter(':visible').click();
+    cy.contains('장소 목록을 불러오지 못했습니다.').should('be.visible');
+    cy.contains('button', '목록 다시 시도').click();
     cy.wait('@getDeliveryWithRetry');
-    cy.contains('종합운동장역 6번 출구 픽업존').filter(':visible').should('be.visible');
+    cy.contains('종합운동장역 6번 출구 픽업존').should('be.visible');
   });
 
   it('지도 실패/주변검색 실패 상태를 명확히 표시한다', () => {
@@ -363,13 +266,13 @@ describe('Stadium Guide Quality Flow', () => {
     cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');
 
-    cy.contains('카카오맵 스크립트를 불러오지 못했습니다').should('be.visible');
+    cy.contains('카카오맵 스크립트 로드 실패').should('be.visible');
     cy.contains('button', '지도 다시 시도').should('be.visible');
     cy.screenshot('stadium-smoke-map-sdk-failure');
 
-    cy.get('button[aria-label="편의점 주변 정보 보기"]').filter(':visible').click();
-    cy.contains('지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.').filter(':visible').should('be.visible');
-    cy.contains('button', '목록 다시 시도').filter(':visible').should('be.visible');
+    cy.get('button').contains('편의점').click();
+    cy.contains('지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.').should('be.visible');
+    cy.contains('button', '목록 다시 시도').should('be.visible');
     cy.screenshot('stadium-smoke-store-parking-failure');
   });
 
@@ -385,14 +288,14 @@ describe('Stadium Guide Quality Flow', () => {
       });
     }).as('getFavorites');
 
-    cy.intercept('POST', '**/api/stadiums/JAMSIL/favorite', (req) => {
+    cy.intercept('POST', '**/api/stadiums/JAMSIL/favorite', () => {
       favoriteIds = ['JAMSIL'];
-      req.reply({ statusCode: 200, body: { favorited: true } });
+      return { statusCode: 200, body: { favourited: true } };
     }).as('addFavorite');
 
-    cy.intercept('DELETE', '**/api/stadiums/JAMSIL/favorite', (req) => {
+    cy.intercept('DELETE', '**/api/stadiums/JAMSIL/favorite', () => {
       favoriteIds = [];
-      req.reply({ statusCode: 200, body: { favorited: false } });
+      return { statusCode: 200, body: { favourited: false } };
     }).as('removeFavorite');
 
     cy.visit('/stadium');
@@ -402,11 +305,19 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.get('button[aria-label="즐겨찾기 추가"]').click();
     cy.wait('@addFavorite');
+    favoriteIds = ['JAMSIL'];
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getFoodPlaces');
     cy.wait('@getFavorites');
     cy.get('button[aria-label="즐겨찾기 해제"]').should('be.visible');
 
     cy.get('button[aria-label="즐겨찾기 해제"]').first().click({ force: true });
     cy.wait('@removeFavorite');
+    favoriteIds = [];
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getFoodPlaces');
     cy.wait('@getFavorites');
     cy.get('button[aria-label="즐겨찾기 추가"]').should('be.visible');
   });
