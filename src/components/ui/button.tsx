@@ -20,6 +20,7 @@ const BUTTON_SIZE_CLASSES = {
   sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
   lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
   icon: "size-9 rounded-md",
+  iconTouch: "size-11 rounded-xl p-0",
   touch: "h-11 rounded-xl px-4 text-[15px] has-[>svg]:px-3",
   touchLg: "h-12 rounded-xl px-6 text-base has-[>svg]:px-4",
 } as const;

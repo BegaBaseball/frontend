@@ -30,6 +30,8 @@ type PredictionMatchInteractiveContentRuntimeProps = Omit<
 
 export default function PredictionMatchInteractiveContentRuntime({
   currentGame,
+  selectedGame,
+  onSelectGame,
   currentDateGames,
   currentDate,
   currentDayNavigationMeta,
@@ -43,6 +45,7 @@ export default function PredictionMatchInteractiveContentRuntime({
   allDatesData,
   currentDateIndex,
   currentGameDetailError,
+  currentGameDetailErrorCode,
   deepLinkNotice,
   voteStatusError,
   voteStatusLoading,
@@ -55,6 +58,7 @@ export default function PredictionMatchInteractiveContentRuntime({
   isLoggedIn,
   matchesLoadState,
   matchesLoadErrorMessage,
+  matchesLoadErrorCode,
   pastRangeLoadState,
   pastRangeLoadErrorMessage,
   futureRangeLoadState,
@@ -111,6 +115,10 @@ export default function PredictionMatchInteractiveContentRuntime({
       return 'RUN';
     }
 
+    if (deepLinkNotice) {
+      return 'INFO';
+    }
+
     if (isFutureRangeLoading || isFutureRangeError) {
       return 'FUTURE';
     }
@@ -142,10 +150,6 @@ export default function PredictionMatchInteractiveContentRuntime({
       && futureRangeLoadState === 'end'
     ) {
       return 'END';
-    }
-
-    if (deepLinkNotice) {
-      return 'INFO';
     }
 
     return null;
@@ -225,6 +229,7 @@ export default function PredictionMatchInteractiveContentRuntime({
       <Suspense fallback={null}>
         <PredictionMatchesErrorView
           matchesLoadErrorMessage={matchesLoadErrorMessage}
+          matchesLoadErrorCode={matchesLoadErrorCode}
           predictionRecoveryPath={predictionRecoveryPath}
           onReloadMatches={reloadMatches}
         />
@@ -251,6 +256,7 @@ export default function PredictionMatchInteractiveContentRuntime({
       >
         <PredictionMatchTab
           currentDateGames={currentDateGames}
+          selectedGame={selectedGame}
           currentDate={currentDate}
           currentGame={currentGame}
           currentGameId={currentGameId}
@@ -258,6 +264,7 @@ export default function PredictionMatchInteractiveContentRuntime({
           currentGameDetailLoading={currentGameDetailLoading}
           currentGameDetailRefreshing={currentGameDetailRefreshing}
           currentGameDetailError={currentGameDetailError}
+          currentGameDetailErrorCode={currentGameDetailErrorCode}
           userVote={userVote}
           currentUserVoteResolutionState={currentUserVoteResolutionState}
           votes={votes}
@@ -277,6 +284,7 @@ export default function PredictionMatchInteractiveContentRuntime({
           onPrevDate={goToPreviousDate}
           onNextDate={goToNextDate}
           onNearestNavigation={handleNearestNavigation}
+          onSelectGame={onSelectGame}
           reloadCurrentGameDetail={reloadCurrentGameDetail}
         />
       </Suspense>

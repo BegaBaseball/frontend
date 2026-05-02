@@ -206,6 +206,26 @@ describe('Prediction Coach Briefing Regression', () => {
     return undefined;
   };
 
+  const parseCoachRequestBody = (rawBody: unknown): Record<string, unknown> => {
+    if (rawBody == null) {
+      return {};
+    }
+
+    if (typeof rawBody === 'string') {
+      try {
+        return JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    }
+
+    if (typeof rawBody === 'object') {
+      return rawBody as Record<string, unknown>;
+    }
+
+    return {};
+  };
+
   const getCoachBriefingCard = () => cy.get('[data-testid="coach-briefing-card"]');
   const getCoachBriefingTitle = () => getCoachBriefingCard().find('h4').first();
   const getCoachBriefingBadge = (label: string) => getCoachBriefingCard().contains('span', label);
@@ -356,7 +376,7 @@ describe('Prediction Coach Briefing Regression', () => {
   });
 
 
-  it('does not auto-call coach brief for non-meaningful regular games', () => {
+  it('auto-calls coach brief for non-meaningful regular games', () => {
     setScheduleData([
       {
         gameId: '20260401LGKT0',
@@ -377,16 +397,58 @@ describe('Prediction Coach Briefing Regression', () => {
         { teamId: 'LG', teamName: 'LG 트윈스', rank: 8, wins: 40, losses: 60, draws: 0, winRate: '0.400', games: 100, gamesBehind: 10.0 },
         { teamId: 'KT', teamName: 'KT 위즈', rank: 9, wins: 39, losses: 61, draws: 0, winRate: '0.390', games: 100, gamesBehind: 9.0 },
       ],
-    }).as('getRankingsCoach');
+    }).as('getRankingsNonMeaningful');
 
-    cy.intercept('POST', '**/coach/analyze*').as('coachAnalyzeBlocked');
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            game_status_bucket: 'SCHEDULED',
+            structured_response: {
+              headline: '비핵심 정규시즌 자동 브리핑',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '비핵심 정규시즌도 자동 브리핑을 제공합니다.',
+              coach_note: '비핵심 정규시즌 자동 브리핑입니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeNonMeaningful');
 
     openPredictionPage({
       path: '/prediction?gameId=20260401LGKT0&date=2026-04-01',
+      reducedMotion: true,
     });
 
-    cy.get('@coachAnalyzeBlocked.all').should('have.length', 0);
+    cy.wait('@getRankingsNonMeaningful');
+    cy.wait('@coachAnalyzeNonMeaningful').then((interception) => {
+      const body = parseCoachRequestBody(interception.request.body);
+      expect(body.request_mode).to.eq('auto_brief');
+      expect(extractCoachGameId(body)).to.eq('20260401LGKT0');
+    });
     cy.get('[data-testid="coach-briefing-card"]').should('be.visible');
+    cy.get('[data-testid="coach-briefing-card"]')
+      .should('contain.text', '비핵심 정규시즌도 자동 브리핑을 제공합니다.')
+      .and('not.contain.text', '자동 브리핑은 핵심 경기만 제공합니다');
   });
 
 
@@ -437,11 +499,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    cy.wait(2000);
+    // First retry delay is 2000ms (RETRY_DELAYS_MS[0]); assert before boundary then after.
+    cy.wait(1000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.wait(5000);
+    cy.wait(3000);
     cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });

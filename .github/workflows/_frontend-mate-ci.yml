@@ -236,18 +236,26 @@ jobs:
         shell: bash
         run: |
           should_fail=0
+          run_route_outcome="${{ steps.route_regression.outcome || 'skipped' }}"
+          run_create_outcome="${{ steps.create_regression.outcome || 'skipped' }}"
+          run_extended_outcome="${{ steps.extended_regression.outcome || 'skipped' }}"
 
-          if [[ "${RUN_ROUTE}" == "true" && "${{ steps.route_regression.outcome }}" != "success" ]]; then
+          if [[ "${RUN_ROUTE}" == "true" && "${run_route_outcome}" != "success" ]]; then
             should_fail=1
           fi
 
-          if [[ "${RUN_CREATE}" == "true" && "${{ steps.create_regression.outcome }}" != "success" ]]; then
+          if [[ "${RUN_CREATE}" == "true" && "${run_create_outcome}" != "success" ]]; then
             should_fail=1
           fi
 
-          if [[ "${RUN_EXTENDED}" == "true" && "${{ steps.extended_regression.outcome }}" != "success" ]]; then
+          if [[ "${RUN_EXTENDED}" == "true" && "${run_extended_outcome}" != "success" ]]; then
             should_fail=1
           fi
+
+          echo "route_outcome=${run_route_outcome}"
+          echo "create_outcome=${run_create_outcome}"
+          echo "extended_outcome=${run_extended_outcome}"
+          echo "should_fail=${should_fail}"
 
           if [[ "${should_fail}" == "1" ]]; then
             exit 1

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 
 import type { CheerPost } from '../../api/cheerApi';
 import type { FeaturedMateCard } from '../../types/home';
@@ -18,6 +18,7 @@ import {
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
+import TeamRankRow from './TeamRankRow';
 
 const LazyWelcomeGuide = lazy(() => import('../WelcomeGuide'));
 const LazyCalendarComponent = lazy(async () => {
@@ -43,6 +44,7 @@ interface HomeSecondaryPanelsProps {
   calendarDialogTitleId: string;
   loggedIn: boolean;
   userId: string | null;
+  suppressRecoveryActions?: boolean;
   currentYear: number;
   isHotCheerLoading: boolean;
   hotCheerError: string | null;
@@ -72,6 +74,115 @@ interface HomeSecondaryPanelsProps {
   onSelectCalendarDate: (date: Date) => void;
 }
 
+interface PanelHeaderProps {
+  title: string;
+  icon: ReactNode;
+  onMore?: () => void;
+  moreLabel?: string;
+  children?: ReactNode;
+}
+
+function PanelHeader({
+  title,
+  icon,
+  onMore,
+  moreLabel = '더보기',
+  children,
+}: PanelHeaderProps) {
+  return (
+    <div className="flex min-h-11 items-center justify-between gap-3">
+      <h3 className="flex min-w-0 items-center gap-2 text-lg font-bold text-gray-900 dark:text-zinc-100">
+        {icon}
+        <span className="truncate">{title}</span>
+      </h3>
+      {children ?? (
+        onMore ? (
+          <Button
+            variant="ghost"
+            size="touch"
+            onClick={onMore}
+            className="rounded-full px-3 text-[15px] font-bold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/40 dark:hover:text-zinc-100"
+          >
+            {moreLabel} <ChevronRightIcon className="h-4 w-4" />
+          </Button>
+        ) : null
+      )}
+    </div>
+  );
+}
+
+function LoadingRows({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="flex h-full flex-col justify-center space-y-3">
+      {Array.from({ length: rows }, (_, index) => (
+        <Skeleton key={index} className="h-16 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800/50" />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[180px] items-center justify-center px-4 text-center font-bold text-zinc-500 dark:text-zinc-400">
+      {children}
+    </div>
+  );
+}
+
+function WidgetErrorState({
+  message,
+  suppressRecoveryActions,
+  onRetry,
+}: {
+  message: string;
+  suppressRecoveryActions: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex min-h-[190px] flex-col items-center justify-center px-4 text-center text-zinc-500 dark:text-zinc-400">
+      <p className="text-lg font-bold text-zinc-700 dark:text-zinc-200">{message}</p>
+      {suppressRecoveryActions ? (
+        <p className="mt-3 text-[15px] font-bold text-zinc-500 dark:text-zinc-400">
+          상단 복구 버튼으로 다시 불러오세요.
+        </p>
+      ) : (
+        <Button
+          variant="outline"
+          size="touch"
+          onClick={onRetry}
+          className="mt-4"
+        >
+          <RefreshIcon className="mr-1.5 h-4 w-4" />
+          다시 시도
+        </Button>
+      )}
+    </div>
+  );
+}
+
+const getMateGameDateLabel = (gameDateValue: string) => {
+  const gameDate = new Date(`${gameDateValue}T12:00:00`);
+  return Number.isNaN(gameDate.getTime())
+    ? gameDateValue
+    : gameDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
+};
+
+const getTicketLabel = (ticketPrice?: number | null) => {
+  if (ticketPrice == null) return '가격 협의';
+  if (ticketPrice === 0) return '무료';
+  return `${ticketPrice.toLocaleString()}원`;
+};
+
+const getTicketClassName = (ticketPrice?: number | null) => {
+  if (ticketPrice == null) {
+    return 'bg-zinc-100 text-zinc-700 ring-zinc-200 dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-zinc-600';
+  }
+  if (ticketPrice === 0) {
+    return 'bg-emerald-50 text-emerald-700 ring-emerald-300/70 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/35';
+  }
+  return 'bg-amber-50 text-amber-800 ring-amber-300/70 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-400/35';
+};
+
 export default function HomeSecondaryPanels({
   selectedDate,
   showCalendar,
@@ -79,6 +190,7 @@ export default function HomeSecondaryPanels({
   calendarDialogTitleId,
   loggedIn,
   userId,
+  suppressRecoveryActions = false,
   currentYear,
   isHotCheerLoading,
   hotCheerError,
@@ -107,6 +219,291 @@ export default function HomeSecondaryPanels({
   onCloseCalendar,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsProps) {
+  const panelCardClassName = `border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-card ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
+  const rankingCardClassName = `overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-card ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
+  const compactRankingRows = [
+    ...displayedRankings.map((team) => ({
+      key: team.teamId,
+      node: <TeamRankRow team={team} variant="compact" rowClassName="lg:h-[65px] lg:min-h-[65px] lg:px-4 lg:py-0 xl:h-auto xl:min-h-0" />,
+    })),
+    ...Array.from({ length: rankingPlaceholderRows }).map((_, index) => ({
+      key: `team-rank-placeholder-${index}`,
+      node: (
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200/80 px-3 py-3 opacity-45 last:border-b-0 dark:border-zinc-800/80 lg:h-[65px] lg:min-h-[65px] lg:px-4 lg:py-0 xl:h-auto xl:min-h-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="w-5 shrink-0 text-center text-[15px] font-black text-zinc-400 dark:text-zinc-500">
+              {displayedRankings.length + index + 1}
+            </span>
+            <div className="h-8 w-8 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800/80" />
+            <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
+          </div>
+          <span className="block h-4 w-16 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+        </div>
+      ),
+    })),
+  ];
+  const compactRankingSplitIndex = Math.ceil(compactRankingRows.length / 2);
+  const compactRankingColumns = [
+    compactRankingRows.slice(0, compactRankingSplitIndex),
+    compactRankingRows.slice(compactRankingSplitIndex),
+  ];
+
+  const renderHotCheerPanel = () => (
+    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:order-1 lg:col-span-4 lg:w-auto">
+      <PanelHeader
+        title="실시간 인기 응원글"
+        icon={<FlameIcon className="h-5 w-5 text-red-500" />}
+        onMore={onNavigateToCheer}
+      />
+      <Card className={panelCardClassName}>
+        {isHotCheerLoading ? (
+          <LoadingRows />
+        ) : hotCheerError ? (
+          <WidgetErrorState
+            message={hotCheerError}
+            suppressRecoveryActions={suppressRecoveryActions}
+            onRetry={onRetryWidgets}
+          />
+        ) : hotCheerPosts.length === 0 ? (
+          <EmptyState>인기 응원글이 없습니다.</EmptyState>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {hotCheerPosts.map((post) => {
+              const thumbnailUrl = post.imageUrls?.[0];
+
+              return (
+                <button
+                  type="button"
+                  key={post.id}
+                  onClick={() => onNavigateToCheerPost(post.id)}
+                  className="group w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                >
+                  <div className="flex gap-3">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                        <TeamLogo team={post.team} size={30} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <span className="min-w-0 truncate text-[14px] font-bold text-zinc-600 dark:text-zinc-400">
+                          {post.author || '익명'}
+                        </span>
+                        <span className="shrink-0 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                          {formatTimeAgo(post.createdAt)}
+                        </span>
+                      </div>
+                      <p className="line-clamp-2 text-[15px] font-black leading-snug text-gray-900 dark:text-zinc-100">
+                        {post.content}
+                      </p>
+                      <div className="mt-2 flex gap-3">
+                        <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
+                          <FlameIcon className="h-3.5 w-3.5" /> {post.likeCount}
+                        </span>
+                        <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                          <MessageSquareIcon className="h-3.5 w-3.5" /> {post.commentCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+
+  const renderFeaturedMatePanel = () => (
+    <section className="w-[86vw] shrink-0 snap-start space-y-3 sm:w-[420px] lg:order-2 lg:col-span-4 lg:w-auto">
+      <PanelHeader
+        title="직관 메이트 찾기"
+        icon={<UsersIcon className="h-5 w-5 text-blue-500" />}
+        onMore={onNavigateToMate}
+      />
+      <Card className={panelCardClassName}>
+        {isFeaturedMatesLoading ? (
+          <LoadingRows />
+        ) : featuredMatesError ? (
+          <WidgetErrorState
+            message={featuredMatesError}
+            suppressRecoveryActions={suppressRecoveryActions}
+            onRetry={onRetryWidgets}
+          />
+        ) : featuredMates.length === 0 ? (
+          <EmptyState>모집 중인 팟이 없습니다.</EmptyState>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {featuredMates.map((mate) => {
+              const gameDateLabel = getMateGameDateLabel(mate.gameDate);
+              const ticketLabel = getTicketLabel(mate.ticketPrice);
+              const homeTeamLabel = getMateTeamDisplayName(mate.homeTeam);
+              const awayTeamLabel = getMateTeamDisplayName(mate.awayTeam);
+              const progressPercent = mate.maxParticipants > 0
+                ? Math.min(100, Math.max(0, Math.round(((mate.currentParticipants || 0) / mate.maxParticipants) * 100)))
+                : 0;
+
+              return (
+                <button
+                  type="button"
+                  key={mate.id}
+                  onClick={() => onSelectFeaturedMate(mate)}
+                  className="w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-[14px] font-bold text-zinc-500 dark:text-zinc-400">
+                      {gameDateLabel} {mate.gameTime} · {mate.stadium}
+                    </p>
+                    <p className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-[13px] font-black ring-1 ${getTicketClassName(mate.ticketPrice)}`}>
+                      {ticketLabel}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl bg-zinc-50 px-2.5 py-2 dark:bg-zinc-900/45">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <TeamLogo teamId={mate.homeTeam} size={24} className="shrink-0" />
+                      <span className="truncate text-[14px] font-black text-zinc-900 dark:text-zinc-100">
+                        {homeTeamLabel}
+                      </span>
+                    </div>
+                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[12px] font-black text-primary">VS</span>
+                    <div className="flex min-w-0 items-center justify-end gap-2">
+                      <span className="truncate text-right text-[14px] font-black text-zinc-900 dark:text-zinc-100">
+                        {awayTeamLabel}
+                      </span>
+                      <TeamLogo teamId={mate.awayTeam} size={24} className="shrink-0" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                      {mate.section}
+                    </p>
+                    <p className="shrink-0 text-[13px] font-black text-primary">
+                      {mate.currentParticipants || 0}/{mate.maxParticipants}명
+                    </p>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+
+  const renderRankingPanel = () => (
+    <section className="w-full space-y-3 lg:order-3 lg:col-span-4 lg:w-auto">
+      <PanelHeader
+        title="팀 순위"
+        icon={<TrophyIcon className="h-5 w-5 text-[#2ecc71]" />}
+      >
+        <div className="flex items-center rounded-full border border-zinc-200 bg-slate-100 p-0.5 shadow-sm dark:border-zinc-800 dark:bg-card">
+          <Button
+            aria-label={`${rankingSeasonYear - 1}시즌 팀 순위 보기`}
+            variant="ghost"
+            size="iconTouch"
+            onClick={onLoadPreviousRankingSeason}
+            className="rounded-md text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-white"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+          </Button>
+          <span className="w-12 text-center text-[15px] font-bold text-zinc-900 dark:text-zinc-200">
+            {rankingSeasonYear}
+          </span>
+          <Button
+            aria-label={`${rankingSeasonYear + 1}시즌 팀 순위 보기`}
+            variant="ghost"
+            size="iconTouch"
+            onClick={onLoadNextRankingSeason}
+            disabled={rankingSeasonYear >= currentYear}
+            className="rounded-md text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-white"
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </PanelHeader>
+
+      <Card className={rankingCardClassName}>
+        {isRankingsLoading ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-14 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800/50" />
+            <Skeleton className="h-14 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800/50" />
+            <Skeleton className="h-14 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800/50" />
+          </div>
+        ) : rankingsError ? (
+          <WidgetErrorState
+            message="팀 순위를 불러오는 중 문제가 발생했습니다."
+            suppressRecoveryActions={suppressRecoveryActions}
+            onRetry={onRetryRanking}
+          />
+        ) : displayedRankings.length === 0 ? (
+          <div className="flex min-h-[240px] flex-col items-center justify-center px-4 py-16 text-center">
+            <p className="mb-2 font-bold text-zinc-900 dark:text-zinc-200">
+              {rankingDataVisibilityMessage}
+            </p>
+            <p className="text-[15px] font-bold text-zinc-500 dark:text-zinc-500">
+              {rankingStatusHintMessage}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="md:hidden lg:block xl:hidden">
+              {compactRankingRows.map((row) => (
+                <div key={row.key}>{row.node}</div>
+              ))}
+            </div>
+
+            <div className="hidden gap-x-4 md:grid md:grid-cols-2 lg:hidden">
+              {compactRankingColumns.map((column, columnIndex) => (
+                <div key={`ranking-column-${columnIndex}`} className="min-w-0">
+                  {column.map((row) => (
+                    <div key={row.key}>{row.node}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden xl:flex xl:flex-col">
+              {displayedRankings.map((team) => (
+                <TeamRankRow
+                  key={team.teamId}
+                  team={team}
+                  variant="rich"
+                  rowClassName={homeDashboardRankingRowClass}
+                />
+              ))}
+              {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (
+                <div
+                  key={`team-rank-placeholder-${index}`}
+                  className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200/80 px-3 py-3 opacity-45 last:border-b-0 dark:border-zinc-800/80 ${homeDashboardRankingRowClass}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="w-5 shrink-0 text-center text-[15px] font-black text-zinc-400 dark:text-zinc-500">
+                      {displayedRankings.length + index + 1}
+                    </span>
+                    <div className="h-9 w-9 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800/80" />
+                    <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
+                  </div>
+                  <span className="block h-4 w-16 rounded bg-zinc-100 dark:bg-zinc-700/70" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+
   return (
     <>
       {shouldMountWelcomeGuide ? (
@@ -125,310 +522,13 @@ export default function HomeSecondaryPanels({
           minHeight={156}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
-          <div className="lg:col-span-8 flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-0">
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
-                    <FlameIcon className="w-5 h-5 text-red-500" />
-                    실시간 인기 응원글
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onNavigateToCheer}
-                  className="text-[16px] font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
-                  >
-                    더보기 <ChevronRightIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${homeDashboardCardHeightClass} overflow-y-auto relative`}>
-                  {isHotCheerLoading ? (
-                    <div className="space-y-4 flex flex-col justify-center h-full">
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                    </div>
-                  ) : hotCheerError ? (
-                    <div className="flex h-full flex-col items-center justify-center text-center text-zinc-500 dark:text-zinc-400">
-                      <p className="text-lg font-bold text-zinc-700 dark:text-zinc-200">{hotCheerError}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onRetryWidgets}
-                        className="mt-4"
-                      >
-                        <RefreshIcon className="mr-1.5 h-4 w-4" />
-                        다시 시도
-                      </Button>
-                    </div>
-                  ) : hotCheerPosts.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-bold">
-                      인기 응원글이 없습니다.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800/60">
-                      {hotCheerPosts.map((post) => (
-                        <button
-                          type="button"
-                          key={post.id}
-                          onClick={() => onNavigateToCheerPost(post.id)}
-                          className="text-left w-full px-2.5 py-2.5 rounded-md transition-colors group hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
-                        >
-                          <div className="flex gap-3">
-                            <TeamLogo team={post.team} size={26} />
-                            <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="flex flex-col min-w-0">
-                              <span className="text-[16px] text-zinc-700 dark:text-zinc-500 font-bold">{post.author || '익명'}</span>
-                                  <p className="text-[16px] text-gray-900 dark:text-zinc-100 font-bold leading-snug mt-0.5 line-clamp-2">
-                                    {post.content}
-                                  </p>
-                                </div>
-                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 shrink-0 font-bold">{formatTimeAgo(post.createdAt)}</span>
-                              </div>
-                              <div className="flex gap-2.5 mt-1.5">
-                                <span className="text-[16px] font-bold text-rose-300 flex items-center gap-1.5"><FlameIcon className="w-3 h-3 text-rose-400" /> {post.likeCount}</span>
-                                <span className="text-[16px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-bold"><MessageSquareIcon className="w-3 h-3 text-zinc-500 dark:text-zinc-400" /> {post.commentCount}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-              </section>
-
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
-                    <UsersIcon className="w-5 h-5 text-blue-500" />
-                    직관 메이트 찾기
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onNavigateToMate}
-                    className="text-[16px] font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
-                  >
-                    더보기 <ChevronRightIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-                <Card className={`p-4 bg-white dark:bg-card border border-zinc-200 dark:border-zinc-800 shadow-sm ${homeDashboardCardHeightClass} overflow-y-auto relative`}>
-                  {isFeaturedMatesLoading ? (
-                    <div className="space-y-4 flex flex-col justify-center h-full">
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                      <Skeleton className="h-16 w-full bg-zinc-200 dark:bg-zinc-800/50" />
-                    </div>
-                  ) : featuredMatesError ? (
-                    <div className="flex h-full flex-col items-center justify-center text-center text-zinc-500 dark:text-zinc-400">
-                      <p className="text-lg font-bold text-zinc-700 dark:text-zinc-200">{featuredMatesError}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onRetryWidgets}
-                        className="mt-4"
-                      >
-                        <RefreshIcon className="mr-1.5 h-4 w-4" />
-                        다시 시도
-                      </Button>
-                    </div>
-                  ) : featuredMates.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 font-bold">
-                      모집 중인 팟이 없습니다.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800/60">
-                      {featuredMates.map((mate) => {
-                        const gameDate = new Date(`${mate.gameDate}T12:00:00`);
-                        const gameDateLabel = Number.isNaN(gameDate.getTime())
-                          ? mate.gameDate
-                          : gameDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
-                        const ticketLabel = mate.ticketPrice == null
-                          ? '가격 협의'
-                          : mate.ticketPrice === 0
-                            ? '무료'
-                            : `${mate.ticketPrice.toLocaleString()}원`;
-                        const homeTeamLabel = getMateTeamDisplayName(mate.homeTeam);
-                        const awayTeamLabel = getMateTeamDisplayName(mate.awayTeam);
-
-                        return (
-                          <button
-                            type="button"
-                            key={mate.id}
-                            onClick={() => onSelectFeaturedMate(mate)}
-                            className="text-left w-full px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/35 last:pb-0 overflow-hidden"
-                          >
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="text-[16px] font-bold text-zinc-500 dark:text-zinc-500">
-                                {gameDateLabel} {mate.gameTime}
-                              </p>
-                              <p className="inline-flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-1.5 py-0.5 text-[16px] leading-none text-zinc-500 dark:text-zinc-400">
-                                모집 <span className="ml-1 font-bold text-zinc-900 dark:text-zinc-100">{mate.currentParticipants || 0}/{mate.maxParticipants}명</span>
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-[16px] sm:text-[16px] font-black text-zinc-900 dark:text-zinc-100 leading-tight truncate">
-                                {homeTeamLabel} vs {awayTeamLabel}
-                              </p>
-                              <p className={`inline-flex w-fit items-baseline rounded-full px-1.5 py-0.75 text-[16px] sm:text-[16px] font-black ring-1 ${mate.ticketPrice == null
-                                ? 'text-zinc-700 dark:text-zinc-200 ring-zinc-200 dark:ring-zinc-600 bg-zinc-100/90 dark:bg-zinc-800/90'
-                                : mate.ticketPrice === 0
-                                  ? 'text-emerald-700 dark:text-emerald-200 bg-gradient-to-r from-emerald-100/70 to-emerald-100/45 dark:from-emerald-500/15 dark:to-emerald-500/20 ring-emerald-300/70 dark:ring-emerald-400/35'
-                                  : 'text-amber-800 dark:text-amber-100 bg-gradient-to-r from-amber-100/80 to-amber-100/55 dark:from-amber-500/20 dark:to-amber-500/15 ring-amber-300/70 dark:ring-amber-400/35'
-                              }`}>
-                                {mate.ticketPrice == null ? '협의' : ticketLabel}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </Card>
-              </section>
+        <div className="mt-4 space-y-4 lg:grid lg:grid-cols-12 lg:gap-4 lg:space-y-0">
+          {renderRankingPanel()}
+          <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+            <div className="flex snap-x snap-mandatory gap-4 lg:contents">
+              {renderHotCheerPanel()}
+              {renderFeaturedMatePanel()}
             </div>
-          </div>
-
-          <div className="lg:col-span-4 flex flex-col gap-4">
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <TrophyIcon className="w-5 h-5 text-[#2ecc71]" />
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">팀 순위</h2>
-                </div>
-                <div className="flex items-center bg-slate-100 dark:bg-card border border-zinc-200 dark:border-zinc-800 rounded-full p-0.5 shadow-sm">
-                  <Button
-                    aria-label={`${rankingSeasonYear - 1}시즌 팀 순위 보기`}
-                    variant="ghost"
-                    size="icon"
-                    onClick={onLoadPreviousRankingSeason}
-                    className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60"
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                  </Button>
-                  <span className="text-[16px] font-bold w-12 text-center text-zinc-900 dark:text-zinc-200">
-                    {rankingSeasonYear}
-                  </span>
-                  <Button
-                    aria-label={`${rankingSeasonYear + 1}시즌 팀 순위 보기`}
-                    variant="ghost"
-                    size="icon"
-                    onClick={onLoadNextRankingSeason}
-                    disabled={rankingSeasonYear >= currentYear}
-                    className="h-7 w-7 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent"
-                  >
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <Card className={`overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-card rounded-2xl ${teamRankingCardHeightClass} lg:overflow-y-auto`}>
-                {isRankingsLoading ? (
-                  <div className="p-8 space-y-4">
-                    <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
-                    <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
-                    <Skeleton className="h-12 w-full bg-zinc-200 dark:bg-zinc-800/50 rounded-lg" />
-                  </div>
-                ) : rankingsError ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <p className="text-zinc-700 dark:text-zinc-300 font-bold mb-4">
-                      팀 순위를 불러오는 중 문제가 발생했습니다.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onRetryRanking}
-                      className="border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-white bg-transparent font-bold"
-                    >
-                      <RefreshIcon className="w-4 h-4 mr-2" />
-                      다시 시도
-                    </Button>
-                  </div>
-                ) : displayedRankings.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                    <p className="text-zinc-900 dark:text-zinc-200 font-bold mb-2">
-                      {rankingDataVisibilityMessage}
-                    </p>
-                    <p className="text-zinc-500 dark:text-zinc-500 text-[16px] font-bold">
-                      {rankingStatusHintMessage}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col h-full">
-                    {displayedRankings.map((team) => {
-                      const isTopThree = team.rank <= 3;
-                      return (
-                        <div
-                          key={team.teamId}
-                          className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 hover:bg-slate-100 dark:hover:bg-zinc-800/40 transition-colors ${homeDashboardRankingRowClass} ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}
-                        >
-                          <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
-                            <span className={`w-5 text-center text-[16px] font-black flex-shrink-0 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-zinc-500'}`}>
-                                {team.rank}
-                            </span>
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <div className="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-white rounded-full p-1.25 shadow-sm flex-shrink-0">
-                                <TeamLogo team={team.displayName} teamId={team.teamId} size={28} className="object-contain" />
-                              </div>
-                              <span className="font-bold text-[16px] sm:text-[16px] leading-tight min-w-0 truncate text-gray-900 dark:text-zinc-100">
-                                {team.displayName}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="shrink-0 flex items-center gap-2 sm:gap-3 whitespace-nowrap text-right">
-                            <span className="font-bold text-gray-900 dark:text-white text-[16px] sm:text-[16px] leading-none tracking-tight tabular-nums">
-                              {team.winRate}
-                            </span>
-                            {team.gamesBehind != null && (
-                              <span className="text-[16px] text-zinc-500 dark:text-zinc-400 tabular-nums w-7 text-center font-bold">
-                                {team.rank === 1 ? '-' : team.gamesBehind % 1 === 0 ? team.gamesBehind.toFixed(0) : team.gamesBehind.toFixed(1)}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1.5 text-[16px] font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap tabular-nums">
-                                <span className="text-zinc-900 dark:text-zinc-200 font-bold">{team.wins}승</span>
-                                <span className="text-zinc-500 dark:text-zinc-300 font-bold">·</span>
-                                <span className="text-zinc-700 dark:text-zinc-300 font-bold">{team.draws}무</span>
-                                <span className="text-zinc-500 dark:text-zinc-300 font-bold">·</span>
-                                <span className="text-zinc-700 dark:text-zinc-300 font-bold">{team.losses}패</span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (
-                      <div
-                        key={`team-rank-placeholder-${index}`}
-                        className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 ${homeDashboardRankingRowClass} opacity-45`}
-                      >
-                        <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
-                          <span className="w-5 text-center text-[16px] font-black flex-shrink-0 text-zinc-400 dark:text-zinc-500">
-                            {displayedRankings.length + index + 1}
-                          </span>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/80 rounded-full p-1.25 shadow-sm flex-shrink-0">
-                              <span className="block h-2 w-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                            </div>
-                            <span className="block h-4 w-20 rounded bg-zinc-100 dark:bg-zinc-700/80" />
-                          </div>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-2 sm:gap-3 whitespace-nowrap text-right">
-                          <span className="block h-4 w-12 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-                          <span className="flex items-center gap-1.5 text-[16px] font-bold text-zinc-400 dark:text-zinc-500 whitespace-nowrap tabular-nums">
-                            <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-                            <span className="block h-4 w-3 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-                            <span className="block h-4 w-8 rounded bg-zinc-100 dark:bg-zinc-700/70" />
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </section>
           </div>
         </div>
       </div>
@@ -447,12 +547,12 @@ export default function HomeSecondaryPanels({
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-3">
-                <h2 id={calendarDialogTitleId} className="text-lg leading-none font-bold">
+                <h2 id={calendarDialogTitleId} className="text-lg font-bold leading-none">
                   날짜 선택
                 </h2>
-                  <button
+                <button
                   type="button"
-                  className="rounded-md px-2 py-1 text-[16px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                  className="min-h-11 rounded-md px-3 py-1 text-[16px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
                   onClick={onCloseCalendar}
                 >
                   닫기
@@ -484,7 +584,7 @@ export default function HomeSecondaryPanels({
                     nextDate.setHours(12, 0, 0, 0);
                     onSelectCalendarDate(nextDate);
                   }}
-                  className="rounded-md border mx-auto"
+                  className="mx-auto rounded-md border"
                 />
               </Suspense>
             </div>

@@ -81,6 +81,9 @@ export default function PredictionMatchScheduleReadyView({
 
     return currentGameId === deepLinkGameId;
   }, [currentGameId, deepLinkGameId]);
+  const isDeepLinkGameMismatch = Boolean(
+    !hasEnteredMatchDetail && deepLinkGameId && currentGameId && currentGameId !== deepLinkGameId
+  );
 
   useEffect(() => {
     if (isDeepLinkMatchSelection) {
@@ -121,20 +124,23 @@ export default function PredictionMatchScheduleReadyView({
     };
   }, []);
 
-  const handleEnterMatchDetail = useCallback(() => {
-    if (currentGameId) {
+  const handleEnterMatchDetail = useCallback((targetGame: Game) => {
+    if (targetGame.gameId) {
       const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.set('gameId', currentGameId);
-      if (currentDate) {
-        nextSearchParams.set('date', currentDate);
+      nextSearchParams.set('gameId', targetGame.gameId);
+      const targetDate = targetGame.gameDate || currentDate;
+      if (targetDate) {
+        nextSearchParams.set('date', targetDate);
       }
       setSearchParams(nextSearchParams, { replace: true });
     }
     setHasEnteredMatchDetail(true);
-  }, [currentDate, currentGameId, searchParams, setSearchParams]);
+  }, [currentDate, searchParams, setSearchParams]);
 
   const shouldRenderMatchCard =
-    (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession) && Boolean(currentGameId);
+    !isDeepLinkGameMismatch
+    && (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession)
+    && Boolean(currentGameId);
 
   useEffect(() => {
     let canceled = false;

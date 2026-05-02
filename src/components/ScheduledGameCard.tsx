@@ -8,6 +8,7 @@ import {
 } from './icons/SharedLeafIcons';
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
+import { normalizePredictionDate } from '../utils/predictionHomeLogic';
 
 const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -33,8 +34,10 @@ interface ScheduledGameCardProps {
 
 const formatSourceDate = (sourceDate?: string) => {
   if (!sourceDate) return '날짜 미정';
-  const date = new Date(`${sourceDate}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return sourceDate;
+  const normalizedDate = normalizePredictionDate(sourceDate);
+  if (!normalizedDate) return sourceDate;
+  const date = new Date(`${normalizedDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return normalizedDate;
 
   const year = date.getFullYear();
   const month = date.getMonth() + 1;

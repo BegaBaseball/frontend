@@ -1,9 +1,9 @@
 export interface Pitcher {
   name: string;
-  era: string;
-  win: number;
-  loss: number;
-  imgUrl?: string;
+  era?: string | null;
+  win?: number | null;
+  loss?: number | null;
+  imgUrl?: string | null;
 }
 
 export interface GameSummary {
@@ -11,6 +11,68 @@ export interface GameSummary {
   playerId?: number | null;
   playerName?: string | null;
   detail?: string | null;
+}
+
+export interface GameLiveEvent {
+  eventSeq: number | null;
+  inning?: number | null;
+  inningHalf?: string | null;
+  outs?: number | null;
+  batterName?: string | null;
+  pitcherName?: string | null;
+  description?: string | null;
+  eventType?: string | null;
+  resultCode?: string | null;
+  rbi?: number | null;
+  basesBefore?: string | null;
+  basesAfter?: string | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  wpa?: number | null;
+  winExpectancyBefore?: number | null;
+  winExpectancyAfter?: number | null;
+  updatedAt?: string | null;
+}
+
+export interface GameLiveSnapshot {
+  gameId: string;
+  gameStatus?: string | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  currentInning?: number | null;
+  currentInningHalf?: string | null;
+  lastEventSeq?: number | null;
+  lastUpdatedAt?: string | null;
+  events: GameLiveEvent[];
+}
+
+export interface GameLiveSummary {
+  gameId: string;
+  gameStatus?: string | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  lastEventSeq?: number | null;
+  lastUpdatedAt?: string | null;
+}
+
+export interface GameRelayEvent {
+  relayId: number | null;
+  inning?: number | null;
+  inningHalf?: string | null;
+  pitcherName?: string | null;
+  batterName?: string | null;
+  playDescription?: string | null;
+  eventType?: string | null;
+  result?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface GameRelaySnapshot {
+  gameId: string;
+  lastRelayId?: number | null;
+  lastUpdatedAt?: string | null;
+  events: GameRelayEvent[];
 }
 
 export interface RawGameInningScore {
@@ -89,6 +151,14 @@ export interface GameDetail {
   line_score?: unknown;
   innings?: RawGameInningScore[];
   summary?: GameSummary[];
+  liveEvents?: GameLiveEvent[];
+  liveRelayEvents?: GameRelayEvent[];
+  liveLastEventSeq?: number | null;
+  liveLastRelayId?: number | null;
+  liveLastUpdatedAt?: string | null;
+  liveRelayLastUpdatedAt?: string | null;
+  liveRelayError?: string | null;
+  liveStatusError?: string | null;
 }
 
 export interface Game {
@@ -98,14 +168,14 @@ export interface Game {
   awayTeam: string;
   stadium: string;
   startTime?: string | null;
-  homeScore?: number;
-  awayScore?: number;
+  homeScore?: number | null;
+  awayScore?: number | null;
   winner?: string | null;
   gameStatus?: string | null;
   // 고도화를 위한 추가 필드
-  homePitcher?: Pitcher;
-  awayPitcher?: Pitcher;
-  aiSummary?: string;
+  homePitcher?: Pitcher | null;
+  awayPitcher?: Pitcher | null;
+  aiSummary?: string | null;
   winProbability?: {
     home: number;
     away: number;
@@ -114,6 +184,8 @@ export interface Game {
   leagueType?: string; // 'REGULAR', 'POST', 'PRE'
   postSeasonSeries?: string;
   seriesGameNo?: number;
+  liveLastEventSeq?: number | null;
+  liveLastUpdatedAt?: string | null;
 }
 
 export interface DateGames {

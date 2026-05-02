@@ -20,6 +20,7 @@ interface GameCardProps {
     winner?: string;
   };
   featured?: boolean;
+  variant?: 'default' | 'home';
   onSelectPrediction?: () => void;
 }
 
@@ -48,7 +49,7 @@ const resolveGameStatus = (status?: string): NormalizedGameStatus => {
     return 'COMPLETED';
   }
 
-  if (normalized === 'IN_PROGRESS' || normalized === 'LIVE' || normalized === 'PLAYING') {
+  if (normalized === 'IN_PROGRESS' || normalized === 'INPROGRESS' || normalized === 'LIVE' || normalized === 'PLAYING') {
     return 'LIVE';
   }
 
@@ -64,19 +65,21 @@ const resolveGameStatus = (status?: string): NormalizedGameStatus => {
     return 'DRAW';
   }
 
-  if (
-    normalized === 'SCHEDULED'
-    || normalized === 'READY'
-    || normalized === 'UPCOMING'
-    || normalized === 'NOT_STARTED'
-  ) {
-    return 'SCHEDULED';
-  }
+    if (
+      normalized === 'SCHEDULED'
+      || normalized === 'READY'
+      || normalized === 'UPCOMING'
+      || normalized === 'NOT_STARTED'
+      || normalized === 'PRE_GAME'
+      || normalized === 'BEFORE_GAME'
+    ) {
+      return 'SCHEDULED';
+    }
 
   return 'UNKNOWN';
 };
 
-export default function GameCard({ game, featured = false, onSelectPrediction }: GameCardProps) {
+export default function GameCard({ game, featured = false, variant = 'default', onSelectPrediction }: GameCardProps) {
   // 경기 상태에 따른 뱃지 스타일
   const getStatusBadgeStyle = (status: NormalizedGameStatus) => {
     switch (status) {
@@ -190,12 +193,14 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
       onSelectPrediction();
     }
   };
+  const isHomeVariant = variant === 'home';
 
     return (
     <Card
       className={`group relative overflow-hidden transition-all duration-200
         ${isCardSelectable ? 'cursor-pointer hover:bg-accent/60' : ''}
         ${featured ? 'ring-1 ring-emerald-400/30' : ''}
+        ${isHomeVariant ? 'h-full' : ''}
         rounded-2xl border border-border bg-card/95 text-card-foreground flex flex-col`}
       role={isCardSelectable ? 'button' : undefined}
       tabIndex={isCardSelectable ? 0 : undefined}
@@ -203,21 +208,21 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
       onKeyDown={isCardSelectable ? handleCardKeyDown : undefined}
       aria-label={isCardSelectable ? `${game.awayTeamFull} 대 ${game.homeTeamFull} 승부예측으로 이동` : undefined}
     >
-      <div className="p-4 sm:p-5 flex flex-col relative z-10">
+      <div className={`${isHomeVariant ? 'p-3 sm:p-4' : 'p-4 sm:p-5'} flex flex-col relative z-10`}>
         {/* Header: 구장 & 시간 & 상태 */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <span className="bg-muted px-2 py-1 rounded border border-border/80 text-[16px] font-semibold text-muted-foreground">
+        <div className={`flex min-w-0 items-center justify-between gap-2 ${isHomeVariant ? 'mb-4' : 'mb-5'}`}>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={`min-w-0 truncate bg-muted px-2 py-1 rounded border border-border/80 font-semibold text-muted-foreground ${isHomeVariant ? 'text-[14px] sm:text-[15px]' : 'text-[16px]'}`}>
               {(game.stadium ?? '').replace('구장', '')}
             </span>
-            <span className="font-mono text-[16px] text-muted-foreground">
+            <span className={`shrink-0 font-mono text-muted-foreground ${isHomeVariant ? 'text-[14px] sm:text-[15px]' : 'text-[16px]'}`}>
               {game.time}
             </span>
           </div>
 
           {statusStyle && (
             <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-[16px] font-semibold border
+              className={`inline-flex shrink-0 items-center rounded-full ${isHomeVariant ? 'px-2.5 py-1 text-[14px] sm:text-[15px]' : 'px-3 py-1 text-[16px]'} font-semibold border
               ${statusCode === 'COMPLETED' ? 'text-[#2ecc71] border-[#2ecc71]/40 bg-[#2ecc71]/10' :
                 statusCode === 'LIVE' ? 'text-rose-400 border-rose-900 bg-rose-950/30' :
                   'text-muted-foreground border-border bg-secondary'}`}
@@ -228,13 +233,13 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
         </div>
 
         {/* Main Content: 팀 로고 & 점수 */}
-        <div className="flex items-center justify-between px-1">
+        <div className={`flex items-center justify-between ${isHomeVariant ? 'px-0' : 'px-1'}`}>
           {/* Away Team */}
-          <div className="flex flex-col items-center gap-2.5 w-20">
-            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
+          <div className={`flex flex-col items-center gap-2.5 ${isHomeVariant ? 'w-20 sm:w-28 lg:w-24' : 'w-20'}`}>
+            <div className={`${isHomeVariant ? 'w-16 h-16 sm:w-20 sm:h-20 lg:w-[4.5rem] lg:h-[4.5rem] xl:w-20 xl:h-20' : 'w-16 h-16'} flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80`}>
               <TeamLogo team={game.awayTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-[16px] tracking-tight text-foreground">
+            <span className={`font-bold tracking-tight text-foreground ${isHomeVariant ? 'text-[15px] sm:text-[17px]' : 'text-[16px]'}`}>
               {(game.awayTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
@@ -278,27 +283,27 @@ export default function GameCard({ game, featured = false, onSelectPrediction }:
                 </div>
               </>
             ) : (
-              <span className="text-3xl font-black text-zinc-600 tracking-widest">
+              <span className={`${isHomeVariant ? 'text-2xl sm:text-3xl' : 'text-3xl'} font-black text-zinc-600 tracking-widest`}>
                 VS
               </span>
             )}
           </div>
 
           {/* Home Team */}
-          <div className="flex flex-col items-center gap-2.5 w-20">
-            <div className="w-16 h-16 flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80">
+          <div className={`flex flex-col items-center gap-2.5 ${isHomeVariant ? 'w-20 sm:w-28 lg:w-24' : 'w-20'}`}>
+            <div className={`${isHomeVariant ? 'w-16 h-16 sm:w-20 sm:h-20 lg:w-[4.5rem] lg:h-[4.5rem] xl:w-20 xl:h-20' : 'w-16 h-16'} flex items-center justify-center p-2 rounded-[1rem] bg-secondary border border-border/80`}>
               <TeamLogo team={game.homeTeam} size="full" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-[16px] tracking-tight text-foreground">
+            <span className={`font-bold tracking-tight text-foreground ${isHomeVariant ? 'text-[15px] sm:text-[17px]' : 'text-[16px]'}`}>
               {(game.homeTeamFull ?? '').split(' ')[0]}
             </span>
           </div>
         </div>
 
         {/* Footer: 경기 정보 */}
-        <div className="flex justify-center mt-5">
+        <div className={`flex justify-center ${isHomeVariant ? 'mt-4' : 'mt-5'}`}>
           {game.gameInfo ? (
-            <span className="text-[16px] font-semibold text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-secondary">
+            <span className={`${isHomeVariant ? 'text-[14px] sm:text-[15px]' : 'text-[16px]'} font-semibold text-muted-foreground px-3 py-1.5 rounded-md border border-border bg-secondary`}>
               {game.gameInfo}
             </span>
           ) : null}

@@ -33,6 +33,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     allDatesData,
     currentDateIndex,
     currentGameDetailError,
+    currentGameDetailErrorCode,
     deepLinkNotice,
     voteStatusError,
     voteStatusLoading,
@@ -45,6 +46,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     isLoggedIn,
     matchesLoadState,
     matchesLoadErrorMessage,
+    matchesLoadErrorCode,
     pastRangeLoadState,
     pastRangeLoadErrorMessage,
     futureRangeLoadState,
@@ -64,6 +66,8 @@ export default function PredictionMatchInteractiveDataRuntime() {
     emitFlowEvent,
     showPredictionErrorOverlay,
     confirm,
+    selectedGame,
+    selectGame,
   } = usePredictionInteractiveData();
 
   const pendingVoteActionIdRef = useRef(0);
@@ -158,6 +162,8 @@ export default function PredictionMatchInteractiveDataRuntime() {
     <Suspense fallback={null}>
       <PredictionMatchInteractiveView
         currentGame={currentGame}
+        selectedGame={selectedGame}
+        onSelectGame={selectGame}
         currentDateGames={currentDateGames}
         currentDate={currentDate}
         currentDayNavigationMeta={currentDayNavigationMeta}
@@ -171,6 +177,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
         allDatesData={allDatesData}
         currentDateIndex={currentDateIndex}
         currentGameDetailError={currentGameDetailError}
+        currentGameDetailErrorCode={currentGameDetailErrorCode}
         deepLinkNotice={deepLinkNotice}
         voteStatusError={voteStatusError}
         voteStatusLoading={voteStatusLoading}
@@ -183,6 +190,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
         isLoggedIn={isLoggedIn}
         matchesLoadState={matchesLoadState}
         matchesLoadErrorMessage={matchesLoadErrorMessage}
+        matchesLoadErrorCode={matchesLoadErrorCode}
         pastRangeLoadState={pastRangeLoadState}
         pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
         futureRangeLoadState={futureRangeLoadState}
@@ -216,9 +224,12 @@ export default function PredictionMatchInteractiveDataRuntime() {
     currentDateIndex,
     currentDayNavigationMeta,
     currentGame,
+    selectedGame,
+    selectGame,
     currentUserVoteResolutionState,
     currentGameDetail,
     currentGameDetailError,
+    currentGameDetailErrorCode,
     currentGameDetailLoading,
     currentGameDetailRefreshing,
     currentGameId,
@@ -235,6 +246,7 @@ export default function PredictionMatchInteractiveDataRuntime() {
     isLoggedIn,
     loading,
     matchBounds,
+    matchesLoadErrorCode,
     matchesLoadErrorMessage,
     matchesLoadState,
     pastRangeLoadErrorMessage,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { fetchGameDetail, fetchVoteStatus } from '../api/prediction';
+import { fetchGameDetail, fetchGameLiveRelaySnapshot, fetchGameLiveSnapshot, fetchVoteStatus } from '../api/prediction';
 import { buildPredictionRecoveryPath } from '../utils/predictionDeepLink';
 import {
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
@@ -12,7 +12,17 @@ import {
   type PredictionRetryActionKey,
 } from '../utils/predictionRecovery';
 import { parseError } from '../utils/errorUtils';
-import type { DateGames, GameDetail, VoteStatus } from '../types/prediction';
+import type { DateGames, Game, GameDetail, VoteStatus } from '../types/prediction';
+import {
+  LIVE_GAME_EVENT_LIMIT,
+  LIVE_GAME_POLL_INTERVAL_MS,
+  LIVE_RELAY_EVENT_LIMIT,
+  mergeGameDetailLiveStatusError,
+  mergeGameDetailRelayError,
+  mergeGameDetailWithRelaySnapshot,
+  mergeGameDetailWithLiveSnapshot,
+  shouldPollPredictionLiveGame,
+} from '../utils/liveGame';
 import {
   PREDICTION_OFFLINE_TOAST_MESSAGE,
   PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING,
@@ -36,6 +46,7 @@ type UsePredictionGameDataParams = {
   selectedGame: number;
   emitFlowEvent: PredictionFlowEmitter;
   showPredictionErrorOverlay: PredictionOverlayController['showPredictionErrorOverlay'];
+  shouldLoadCurrentGameData?: boolean;
 };
 
 const isOfflineNow = (): boolean => {
@@ -57,6 +68,7 @@ export const usePredictionGameData = ({
   selectedGame,
   emitFlowEvent,
   showPredictionErrorOverlay,
+  shouldLoadCurrentGameData = true,
 }: UsePredictionGameDataParams) => {
   const [votes, setVotes] = useState<{ [key: string]: VoteStatus }>({});
   const [voteStatusState, setVoteStatusState] = useState<{ [key: string]: VoteRequestState }>({});
@@ -67,25 +79,42 @@ export const usePredictionGameData = ({
   const voteStatusAbortRef = useRef<AbortController | null>(null);
   const detailRequestRef = useRef(0);
   const detailAbortRef = useRef<AbortController | null>(null);
+  const liveSnapshotInFlightRef = useRef(false);
+  const liveSnapshotAbortRef = useRef<AbortController | null>(null);
+  const liveRelayInFlightRef = useRef(false);
+  const liveRelayAbortRef = useRef<AbortController | null>(null);
   const retryAttemptRef = useRef(createPredictionRetryAttemptState());
+  const gameDetailsRef = useRef(gameDetails);
   const offlineToastShownRef = useRef<Record<PredictionRetryActionKey, boolean>>({
     submitVote: false,
     cancelVote: false,
     voteStatus: false,
   });
 
-  const currentGameId = allDatesData[currentDateIndex]?.games[selectedGame]?.gameId || null;
+  const currentGame = allDatesData[currentDateIndex]?.games[selectedGame] || null;
+  const currentGameRef = useRef<Game | null>(currentGame);
+  const currentGameId = currentGame?.gameId || null;
   const currentGameDetailState = currentGameId ? gameDetails[currentGameId] : null;
   const currentGameDetail = currentGameDetailState?.data ?? null;
+  const shouldPollCurrentLiveGame = shouldPollPredictionLiveGame(currentGame, currentGameDetail);
   const currentGameDetailLoading = currentGameDetailState?.status === 'loading';
   const currentGameDetailRefreshing = currentGameDetailState?.isBackgroundRefreshing === true;
   const currentGameDetailHasRenderableData = hasRenderableGameDetail(currentGameDetailState);
   const currentGameDetailError = currentGameDetailState?.error || null;
+  const currentGameDetailErrorCode = currentGameDetailState?.errorCode || null;
   const currentDateVoteState = currentGameId ? voteStatusState[currentGameId] : null;
   const voteStatusError = currentDateVoteState?.error || null;
   const voteStatusLoading = currentDateVoteState?.status === 'loading';
   const currentVotePartialReason = currentGameId ? partialReasonsByGameId[currentGameId] ?? null : null;
   const isCurrentVotePartial = Boolean(currentVotePartialReason);
+
+  useEffect(() => {
+    gameDetailsRef.current = gameDetails;
+  }, [gameDetails]);
+
+  useEffect(() => {
+    currentGameRef.current = currentGame;
+  }, [currentGame]);
 
   const getCurrentGameId = useCallback(() => {
     const nextDateGames = allDatesData[currentDateIndex]?.games || [];
@@ -145,6 +174,7 @@ export const usePredictionGameData = ({
             ...previousState,
             status: 'ready',
             error: undefined,
+            errorCode: undefined,
             isSeeded: false,
             isBackgroundRefreshing: true,
             hasRenderableData: true,
@@ -158,6 +188,7 @@ export const usePredictionGameData = ({
           status: 'loading',
           data: previousState?.data ?? null,
           error: undefined,
+          errorCode: undefined,
           isSeeded: false,
           isBackgroundRefreshing: false,
           hasRenderableData: hasRenderableGameDetail(previousState),
@@ -176,6 +207,7 @@ export const usePredictionGameData = ({
           status: 'ready',
           data: detail,
           error: undefined,
+          errorCode: undefined,
           isSeeded: false,
           isBackgroundRefreshing: false,
           hasRenderableData: true,
@@ -201,6 +233,7 @@ export const usePredictionGameData = ({
                 ...previousState,
                 status: 'ready',
                 error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
+                errorCode: parsedError.responseCode,
                 isSeeded: false,
                 isBackgroundRefreshing: false,
                 hasRenderableData: true,
@@ -215,6 +248,7 @@ export const usePredictionGameData = ({
               status: 'error',
               data: previousState?.data ?? null,
               error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
+              errorCode: parsedError.responseCode,
               isSeeded: false,
               isBackgroundRefreshing: false,
               hasRenderableData: hasRenderableGameDetail(previousState),
@@ -230,6 +264,7 @@ export const usePredictionGameData = ({
           status: 'error',
           data: prev[gameId]?.data ?? null,
           error: parsedError.message || '경기 상세를 불러오지 못했습니다.',
+          errorCode: parsedError.responseCode,
           isBackgroundRefreshing: false,
           hasRenderableData: hasRenderableGameDetail(prev[gameId]),
         },
@@ -256,6 +291,156 @@ export const usePredictionGameData = ({
       toast.error(parsedError.message || '경기 상세를 불러오지 못했습니다.');
     }
   }, [emitFlowEvent]);
+
+  const loadLiveSnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null) => {
+    if (liveSnapshotInFlightRef.current) {
+      return;
+    }
+
+    liveSnapshotInFlightRef.current = true;
+    const abortController = new AbortController();
+    liveSnapshotAbortRef.current = abortController;
+    const previousDetail = gameDetailsRef.current[gameId]?.data ?? null;
+    try {
+      const snapshot = await fetchGameLiveSnapshot(gameId, {
+        afterSeq: previousDetail?.liveLastEventSeq ?? null,
+        limit: LIVE_GAME_EVENT_LIMIT,
+        signal: abortController.signal,
+      });
+      setGameDetails((prev) => {
+        const previousState = prev[gameId];
+        const mergedDetail = mergeGameDetailWithLiveSnapshot(
+          previousState?.data ?? null,
+          snapshot,
+          fallbackGame ?? currentGameRef.current,
+        );
+        const status = previousState?.status === 'loading' && previousState.data == null
+          ? 'loading'
+          : 'ready';
+        return {
+          ...prev,
+          [gameId]: {
+            status,
+            data: mergedDetail,
+            error: previousState?.error,
+            errorCode: previousState?.errorCode,
+            isSeeded: previousState?.isSeeded ?? false,
+            isBackgroundRefreshing: previousState?.isBackgroundRefreshing ?? false,
+            hasRenderableData: true,
+          },
+        };
+      });
+    } catch (error) {
+      if (isCancelLikeError(error)) {
+        return;
+      }
+      const parsedError = parseError(error);
+      const liveErrorMessage = parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
+        ? '실시간 점수 데이터 준비가 필요합니다.'
+        : '실시간 점수 갱신에 실패했습니다.';
+      setGameDetails((prev) => {
+        const previousState = prev[gameId];
+        const mergedDetail = mergeGameDetailLiveStatusError(
+          previousState?.data ?? null,
+          liveErrorMessage,
+          fallbackGame ?? currentGameRef.current,
+        );
+        if (!mergedDetail) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [gameId]: {
+            status: previousState?.status ?? 'ready',
+            data: mergedDetail,
+            error: previousState?.error,
+            errorCode: previousState?.errorCode,
+            isSeeded: previousState?.isSeeded ?? false,
+            isBackgroundRefreshing: previousState?.isBackgroundRefreshing ?? false,
+            hasRenderableData: true,
+          },
+        };
+      });
+    } finally {
+      if (liveSnapshotAbortRef.current === abortController) {
+        liveSnapshotAbortRef.current = null;
+      }
+      liveSnapshotInFlightRef.current = false;
+    }
+  }, []);
+
+  const loadLiveRelaySnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null) => {
+    if (liveRelayInFlightRef.current) {
+      return;
+    }
+
+    liveRelayInFlightRef.current = true;
+    const abortController = new AbortController();
+    liveRelayAbortRef.current = abortController;
+    const previousDetail = gameDetailsRef.current[gameId]?.data ?? null;
+    try {
+      const snapshot = await fetchGameLiveRelaySnapshot(gameId, {
+        afterId: previousDetail?.liveLastRelayId ?? null,
+        limit: LIVE_RELAY_EVENT_LIMIT,
+        signal: abortController.signal,
+      });
+      setGameDetails((prev) => {
+        const previousState = prev[gameId];
+        const mergedDetail = mergeGameDetailWithRelaySnapshot(
+          previousState?.data ?? null,
+          snapshot,
+          fallbackGame ?? currentGameRef.current,
+        );
+        const status = previousState?.status === 'loading' && previousState.data == null
+          ? 'loading'
+          : 'ready';
+        return {
+          ...prev,
+          [gameId]: {
+            status,
+            data: mergedDetail,
+            error: previousState?.error,
+            errorCode: previousState?.errorCode,
+            isSeeded: previousState?.isSeeded ?? false,
+            isBackgroundRefreshing: previousState?.isBackgroundRefreshing ?? false,
+            hasRenderableData: true,
+          },
+        };
+      });
+    } catch (error) {
+      if (isCancelLikeError(error)) {
+        return;
+      }
+      setGameDetails((prev) => {
+        const previousState = prev[gameId];
+        const mergedDetail = mergeGameDetailRelayError(
+          previousState?.data ?? null,
+          '문자중계 갱신에 실패했습니다.',
+          fallbackGame ?? currentGameRef.current,
+        );
+        if (!mergedDetail) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [gameId]: {
+            status: previousState?.status ?? 'ready',
+            data: mergedDetail,
+            error: previousState?.error,
+            errorCode: previousState?.errorCode,
+            isSeeded: previousState?.isSeeded ?? false,
+            isBackgroundRefreshing: previousState?.isBackgroundRefreshing ?? false,
+            hasRenderableData: true,
+          },
+        };
+      });
+    } finally {
+      if (liveRelayAbortRef.current === abortController) {
+        liveRelayAbortRef.current = null;
+      }
+      liveRelayInFlightRef.current = false;
+    }
+  }, []);
 
   const loadVoteStatus = useCallback(async (
     gameId: string,
@@ -726,6 +911,7 @@ export const usePredictionGameData = ({
         status: hasExistingData ? 'ready' : 'idle',
         data: prev[nextCurrentGameId]?.data ?? null,
         error: undefined,
+        errorCode: undefined,
         isSeeded: false,
         isBackgroundRefreshing: hasExistingData,
         hasRenderableData: hasRenderableGameDetail(prev[nextCurrentGameId]),
@@ -749,6 +935,7 @@ export const usePredictionGameData = ({
         status: 'ready',
         data: detail,
         error: undefined,
+        errorCode: undefined,
         isSeeded: true,
         isBackgroundRefreshing: false,
         hasRenderableData: true,
@@ -757,7 +944,7 @@ export const usePredictionGameData = ({
   }, []);
 
   useEffect(() => {
-    if (!currentGameId) {
+    if (!currentGameId || !shouldLoadCurrentGameData) {
       return;
     }
 
@@ -765,10 +952,10 @@ export const usePredictionGameData = ({
     if (!activeState || activeState.status === 'idle') {
       void loadVoteStatus(currentGameId);
     }
-  }, [currentGameId, loadVoteStatus, voteStatusState]);
+  }, [currentGameId, loadVoteStatus, shouldLoadCurrentGameData, voteStatusState]);
 
   useEffect(() => {
-    if (!currentGameId) {
+    if (!currentGameId || !shouldLoadCurrentGameData) {
       return;
     }
 
@@ -791,7 +978,58 @@ export const usePredictionGameData = ({
     void loadGameDetail(currentGameId, requestId, abortController.signal, {
       backgroundRefresh: isSeededReady,
     });
-  }, [currentGameId, gameDetails, loadGameDetail]);
+  }, [currentGameId, gameDetails, loadGameDetail, shouldLoadCurrentGameData]);
+
+  useEffect(() => {
+    if (!currentGameId || !shouldLoadCurrentGameData) {
+      return;
+    }
+    if (!shouldPollCurrentLiveGame) {
+      return;
+    }
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    let disposed = false;
+    const tick = () => {
+      if (disposed || document.visibilityState === 'hidden') {
+        return;
+      }
+      void loadLiveSnapshot(currentGameId, currentGameRef.current);
+      void loadLiveRelaySnapshot(currentGameId, currentGameRef.current);
+    };
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'hidden') {
+        liveSnapshotAbortRef.current?.abort();
+        liveRelayAbortRef.current?.abort();
+        return;
+      }
+      if (document.visibilityState !== 'hidden') {
+        tick();
+      }
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, LIVE_GAME_POLL_INTERVAL_MS);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      disposed = true;
+      liveSnapshotAbortRef.current?.abort();
+      liveRelayAbortRef.current?.abort();
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [
+    currentGameId,
+    loadLiveRelaySnapshot,
+    loadLiveSnapshot,
+    shouldLoadCurrentGameData,
+    shouldPollCurrentLiveGame,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -802,6 +1040,14 @@ export const usePredictionGameData = ({
       if (detailAbortRef.current) {
         detailAbortRef.current.abort();
         detailAbortRef.current = null;
+      }
+      if (liveSnapshotAbortRef.current) {
+        liveSnapshotAbortRef.current.abort();
+        liveSnapshotAbortRef.current = null;
+      }
+      if (liveRelayAbortRef.current) {
+        liveRelayAbortRef.current.abort();
+        liveRelayAbortRef.current = null;
       }
     };
   }, []);
@@ -819,6 +1065,7 @@ export const usePredictionGameData = ({
     currentGameDetailRefreshing,
     currentGameDetailHasRenderableData,
     currentGameDetailError,
+    currentGameDetailErrorCode,
     loadVoteStatus,
     reloadVoteStatus,
     reloadCurrentVoteStatus,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthSession } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import {
@@ -40,18 +41,26 @@ export const useRankingPrediction = () => {
   const [initErrorMessage, setInitErrorMessage] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
 
-  const rankings = usePredictionStore((state) => state.rankings);
-  const availableTeams = usePredictionStore((state) => state.availableTeams);
-  const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
-  const allTeams = usePredictionStore((state) => state.allTeams);
+  const { rankings, availableTeams, isPredictionSaved, allTeams } = usePredictionStore(
+    useShallow((state) => ({
+      rankings: state.rankings,
+      availableTeams: state.availableTeams,
+      isPredictionSaved: state.isPredictionSaved,
+      allTeams: state.allTeams,
+    }))
+  );
 
-  const addTeamToRanking = usePredictionStore((state) => state.addTeamToRanking);
-  const removeTeamFromRanking = usePredictionStore((state) => state.removeTeamFromRanking);
-  const moveTeam = usePredictionStore((state) => state.moveTeam);
-  const resetRankings = usePredictionStore((state) => state.resetRankings);
-  const completePrediction = usePredictionStore((state) => state.completePrediction);
-  const setRankings = usePredictionStore((state) => state.setRankings);
-  const setIsPredictionSaved = usePredictionStore((state) => state.setIsPredictionSaved);
+  const { addTeamToRanking, removeTeamFromRanking, moveTeam, resetRankings, completePrediction, setRankings, setIsPredictionSaved } = usePredictionStore(
+    useShallow((state) => ({
+      addTeamToRanking: state.addTeamToRanking,
+      removeTeamFromRanking: state.removeTeamFromRanking,
+      moveTeam: state.moveTeam,
+      resetRankings: state.resetRankings,
+      completePrediction: state.completePrediction,
+      setRankings: state.setRankings,
+      setIsPredictionSaved: state.setIsPredictionSaved,
+    }))
+  );
 
   useEffect(() => {
     void initializeKakaoSDK(KAKAO_APP_KEY);

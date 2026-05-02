@@ -52,6 +52,7 @@ type ResolvePredictionScheduleDeepLinkOutcomeOptions = {
   deepLinkGameId: string;
   deepLinkDate: string;
   deepLinkParamValidationNotice: string | null;
+  allowDateFallback?: boolean;
   canResolveMorePast: boolean;
   canResolveMoreFuture: boolean;
   deepLinkResolutionAttempt: number;
@@ -153,6 +154,7 @@ export const resolvePredictionScheduleDeepLinkOutcome = ({
   deepLinkGameId,
   deepLinkDate,
   deepLinkParamValidationNotice,
+  allowDateFallback = !deepLinkGameId,
   canResolveMorePast,
   canResolveMoreFuture,
   deepLinkResolutionAttempt,
@@ -174,7 +176,9 @@ export const resolvePredictionScheduleDeepLinkOutcome = ({
     };
   }
 
-  const selection = resolvePredictionDeepLinkSelection(allDatesData, deepLinkGameId, deepLinkDate);
+  const selection = resolvePredictionDeepLinkSelection(allDatesData, deepLinkGameId, deepLinkDate, {
+    allowDateFallback,
+  });
   if (selection) {
     return {
       type: 'resolved',

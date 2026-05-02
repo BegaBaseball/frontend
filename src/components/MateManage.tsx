@@ -1,4 +1,4 @@
-import { lazy, useEffect, useState, type ComponentType, type SVGProps } from 'react';
+import { lazy, useEffect, useMemo, useState, type ComponentType, type SVGProps } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -133,9 +133,11 @@ export default function MateManage() {
   const isLoading = applicationsQuery.isPending;
   const isHostAccessDenied = getApiErrorStatus(applicationsQuery.error) === 403;
   const fetchError = Boolean(applicationsQuery.error) && !isHostAccessDenied;
-  const pendingApplications = applications.filter((app) => !app.isApproved && !app.isRejected);
-  const approvedApplications = applications.filter((app) => app.isApproved);
-  const rejectedApplications = applications.filter((app) => app.isRejected);
+  const [pendingApplications, approvedApplications, rejectedApplications] = useMemo(() => [
+    applications.filter((app) => !app.isApproved && !app.isRejected),
+    applications.filter((app) => app.isApproved),
+    applications.filter((app) => app.isRejected),
+  ], [applications]);
   const defaultApplicationTab = resolveDefaultApplicationTab(
     pendingApplications.length,
     approvedApplications.length,

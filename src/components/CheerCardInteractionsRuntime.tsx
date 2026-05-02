@@ -219,14 +219,14 @@ export default function CheerCardInteractionsRuntime({
     };
 
     return (
-        <div className="mt-1.5 flex items-center justify-between max-w-[420px] text-[16px] font-semibold text-[#536471] dark:text-gray-300">
+        <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-gray-300">
             <button
                 type="button"
-                className="group/comment flex items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
+                className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
                 onClick={handleCommentClick}
                 aria-label={`댓글 ${commentCount}개`}
             >
-                <span className="relative rounded-full p-2 transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
+                <span className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
                     {commentAnimating && (
                         <span className="pointer-events-none absolute inset-0 rounded-full bg-sky-500/20 animate-like-ring" />
                     )}
@@ -245,7 +245,7 @@ export default function CheerCardInteractionsRuntime({
                 trigger={(
                     <button
                         type="button"
-                        className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${repostButtonActive ? 'text-emerald-500' : 'hover:text-emerald-500'}`}
+                        className={`group/repost flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors ${repostButtonActive ? 'text-emerald-500' : 'hover:text-emerald-500'}`}
                         onClick={(event) => {
                             event.stopPropagation();
                             setIsRepostMenuOpen((prev) => !prev);
@@ -256,7 +256,7 @@ export default function CheerCardInteractionsRuntime({
                         aria-haspopup="menu"
                     >
                         <span
-                            className={`relative rounded-full p-2 transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'}`}
+                            className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'}`}
                         >
                             {repostAnimating && (
                                 <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
@@ -354,13 +354,13 @@ export default function CheerCardInteractionsRuntime({
 
             <button
                 type="button"
-                className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${likeActive ? 'text-rose-500' : 'hover:text-rose-500'}`}
+                className={`group/like flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors ${likeActive ? 'text-rose-500' : 'hover:text-rose-500'}`}
                 onClick={handleLikeClick}
                 aria-label={likeActive ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
                 aria-pressed={likeActive}
             >
                 <span
-                    className={`relative rounded-full p-2 transition-all duration-200 ${likeActive ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'}`}
+                    className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${likeActive ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'}`}
                 >
                     {likeAnimating && (
                         <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
@@ -377,13 +377,13 @@ export default function CheerCardInteractionsRuntime({
 
             <button
                 type="button"
-                className={`group/bookmark flex items-center gap-1.5 rounded-full transition-colors ${bookmarkActive ? 'text-yellow-500' : 'hover:text-yellow-500'}`}
+                className={`group/bookmark flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors ${bookmarkActive ? 'text-yellow-500' : 'hover:text-yellow-500'}`}
                 onClick={handleBookmarkClick}
                 aria-label={bookmarkActive ? '북마크 취소' : '북마크'}
                 aria-pressed={bookmarkActive}
             >
                 <span
-                    className={`relative rounded-full p-2 transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'}`}
+                    className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'}`}
                 >
                     <BookmarkIcon
                         className={`h-5 w-5 transition-all duration-200 ${bookmarkActive

@@ -274,16 +274,6 @@ describe('Authentication Flow', () => {
                 },
             }).as('checkHandleAvailable');
 
-            cy.intercept('GET', '**/api/auth/check-email*', {
-                statusCode: 200,
-                body: {
-                    data: {
-                        available: true,
-                        normalized: 'redirect_signup_user@example.com',
-                    },
-                },
-            }).as('checkEmailAvailable');
-
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
                 body: {
@@ -321,7 +311,6 @@ describe('Authentication Flow', () => {
             cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.tick(500);
             cy.wait('@checkHandleAvailable');
-            cy.wait('@checkEmailAvailable');
             cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();
@@ -345,16 +334,6 @@ describe('Authentication Flow', () => {
                     },
                 },
             }).as('checkHandleAvailableForFailure');
-
-            cy.intercept('GET', '**/api/auth/check-email*', {
-                statusCode: 200,
-                body: {
-                    data: {
-                        available: true,
-                        normalized: 'signup_failure_user@example.com',
-                    },
-                },
-            }).as('checkEmailAvailableForFailure');
 
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
@@ -387,7 +366,6 @@ describe('Authentication Flow', () => {
 
             cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.wait('@checkHandleAvailableForFailure');
-            cy.wait('@checkEmailAvailableForFailure');
             cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();

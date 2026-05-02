@@ -1,3 +1,5 @@
+import { getTodayString } from '../utils/predictionDates';
+
 type PredictionAdjacentPrefetchDeps = {
   anchorDate: string;
   dayNavigationByDateRef: {
@@ -26,6 +28,11 @@ export const shouldSchedulePredictionAdjacentPrefetch = (
   && pendingAnchorDate !== anchorDate
   && !completedAnchorDates.has(anchorDate);
 
+export const shouldPrefetchPredictionDate = (
+  targetDate: string | null,
+  todayDate = getTodayString(),
+): boolean => Boolean(targetDate) && String(targetDate) >= todayDate;
+
 export const runPredictionAdjacentPrefetch = ({
   anchorDate,
   dayNavigationByDateRef,
@@ -37,15 +44,17 @@ export const runPredictionAdjacentPrefetch = ({
     return;
   }
 
-  if (meta.prevDate) {
-    void loadPredictionDay(meta.prevDate, {
+  const previousDate = meta.prevDate;
+  if (previousDate && shouldPrefetchPredictionDate(previousDate)) {
+    void loadPredictionDay(previousDate, {
       preserveVisibleDate: true,
       requestKeySuffix: `prefetch:past:${anchorDate}`,
     });
   }
 
-  if (meta.nextDate) {
-    void loadPredictionDay(meta.nextDate, {
+  const nextDate = meta.nextDate;
+  if (nextDate && shouldPrefetchPredictionDate(nextDate)) {
+    void loadPredictionDay(nextDate, {
       preserveVisibleDate: true,
       requestKeySuffix: `prefetch:future:${anchorDate}`,
     });
@@ -96,8 +105,12 @@ export const schedulePredictionAdjacentPrefetch = ({
     });
   };
 
-  if ('requestIdleCallback' in window) {
-    adjacentPrefetchIdleCallbackRef.current = window.requestIdleCallback(() => {
+  const requestIdleCallback = 'requestIdleCallback' in window
+    ? window.requestIdleCallback.bind(window)
+    : null;
+
+  if (requestIdleCallback) {
+    adjacentPrefetchIdleCallbackRef.current = requestIdleCallback(() => {
       runPrefetch();
     }, { timeout: 1200 });
     return;

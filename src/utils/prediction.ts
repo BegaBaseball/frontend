@@ -823,15 +823,9 @@ export const getCoachGenerationModeNotice = (
   generationMode?: string | null,
   dataQuality?: string | null,
 ): string | null => {
-  if (generationMode !== 'evidence_fallback') {
-    return null;
-  }
-
-  if (dataQuality === 'partial' || dataQuality === 'insufficient') {
-    return '이번 응답은 실패가 아니라, 확인 가능한 근거만으로 보수 생성된 결과입니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.';
-  }
-
-  return '이번 응답은 확인 가능한 근거만으로 보수 생성되었습니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.';
+  void generationMode;
+  void dataQuality;
+  return null;
 };
 
 export type GameStatusCode = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'POSTPONED' | 'CANCELLED' | 'DRAW' | 'UNKNOWN';

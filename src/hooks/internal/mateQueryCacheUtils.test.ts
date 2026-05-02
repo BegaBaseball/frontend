@@ -154,6 +154,8 @@ test('extractMatePartyListParams는 list key만 파싱한다', () => {
     status: 'all',
     searchQuery: '잠실',
     gameDate: 'all',
+    sortBy: 'createdAt',
+    sortDir: 'desc',
   });
   assert.equal(extractMatePartyListParams(MATE_KEYS.party(3)), null);
 });

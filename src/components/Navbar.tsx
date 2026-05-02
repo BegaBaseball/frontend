@@ -51,8 +51,9 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const shouldShowTopThemeToggle = isDesktop;
   const shouldShowDesktopNotificationButton = authenticatedShell && isDesktop;
   const shouldShowMobileNotificationButton = authenticatedShell && !isDesktop && !shouldShowMobileMenuThemeToggle;
-  const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
-  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
+  const navIconButtonClass = 'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2 transition-colors duration-200 focus:outline-none';
+  const menuToggleButtonClass = 'relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0 transition-colors duration-200 focus:outline-none';
+  const navIconToggleClass = `${navIconButtonClass} focus-visible:ring-2 focus-visible:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
   const navIconSizeClass = 'h-6 w-6';
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
@@ -340,7 +341,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 <button
                   type="button"
                   ref={menuToggleButtonRef}
-                  className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
+                  className={`${menuToggleButtonClass} focus-visible:ring-2 focus-visible:ring-primary/50 ${isMenuOpen
                     ? 'text-gray-900 dark:text-white'
                     : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
                     }`}

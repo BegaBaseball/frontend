@@ -31,7 +31,9 @@ export interface RankingItemProps {
   index: number;
   alreadySaved: boolean;
   onRemove: (index: number) => void;
-  onMove: (dragIndex: number, hoverIndex: number) => void;
-  draggedIndex?: number | null;
-  onDragIndexChange?: (index: number | null) => void;
+  onMoveTeamToIndex: (teamId: string, hoverIndex: number) => void;
+  onMoveTeamByStep: (teamId: string, direction: -1 | 1) => void;
+  draggedTeamId?: string | null;
+  lastMovedTeamId?: string | null;
+  onDragTeamChange?: (teamId: string | null) => void;
 }

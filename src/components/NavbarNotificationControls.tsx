@@ -15,10 +15,11 @@ export default function NavbarNotificationControls({
 }: NavbarNotificationControlsProps) {
   const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
   const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
-  const notifications = useNotificationStore((state) => state.notifications);
-  const unreadCount = notifications.reduce(
-    (count, notification) => (!notification.isRead ? count + 1 : count),
-    0,
+  const unreadCount = useNotificationStore(
+    (state) => state.notifications.reduce(
+      (count, notification) => (!notification.isRead ? count + 1 : count),
+      0,
+    ),
   );
 
   return (

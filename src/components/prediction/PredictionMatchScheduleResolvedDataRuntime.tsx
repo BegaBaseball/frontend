@@ -55,6 +55,7 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
     reloadMatches,
     matchesLoadState,
     matchesLoadErrorMessage,
+    matchesLoadErrorCode,
     pastRangeLoadState,
     pastRangeLoadErrorMessage,
     futureRangeLoadState,
@@ -64,6 +65,7 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
     matchBounds,
     retryLoadMoreFutureMatches,
     retryLoadMorePastMatches,
+    setProgrammaticSearchParams,
   } = schedule;
 
   return (
@@ -73,6 +75,7 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
       ) : matchesLoadState === 'error' ? (
         <MatchesErrorView
           matchesLoadErrorMessage={matchesLoadErrorMessage}
+          matchesLoadErrorCode={matchesLoadErrorCode}
           predictionRecoveryPath="/prediction"
           onReloadMatches={reloadMatches}
         />
@@ -80,7 +83,7 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
         <MatchScheduleReadyView
           locationState={locationState}
           searchParams={searchParams}
-          setSearchParams={setSearchParams}
+          setSearchParams={setProgrammaticSearchParams}
           currentGame={currentGame}
           currentDateGames={currentDateGames}
           currentDate={currentDate}

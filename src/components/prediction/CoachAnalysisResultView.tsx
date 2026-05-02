@@ -7,6 +7,7 @@ import {
 } from '../../api/coach';
 import CoachStatCard from './CoachStatCard';
 import CoachMetricCard from './CoachMetricCard';
+import CoachMarkdown from '../common/CoachMarkdown';
 import {
     PredictionBarChartIcon,
     PredictionCheckCircleIcon,
@@ -27,26 +28,40 @@ interface InsightSectionProps {
     icon: ComponentType<SVGProps<SVGSVGElement>>;
     title: string;
     items: string[];
+    tone?: 'default' | 'warning';
 }
 
-function InsightSection({ icon: Icon, title, items }: InsightSectionProps) {
+function InsightSection({ icon: Icon, title, items, tone = 'default' }: InsightSectionProps) {
     if (items.length === 0) {
         return null;
     }
 
+    const toneClassName = tone === 'warning'
+        ? 'border-amber-200 bg-amber-50/80 dark:border-amber-900/50 dark:bg-amber-950/20'
+        : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800';
+    const iconClassName = tone === 'warning'
+        ? 'text-amber-600 dark:text-amber-300'
+        : 'text-gray-600 dark:text-gray-300';
+    const textClassName = tone === 'warning'
+        ? 'text-amber-900 dark:text-amber-100'
+        : 'text-gray-700 dark:text-gray-300';
+
     return (
-        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div className={`space-y-3 rounded-2xl border p-5 ${toneClassName}`}>
             <div className="flex items-center gap-2">
-                <Icon aria-hidden="true" className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                <Icon aria-hidden="true" className={`h-4 w-4 ${iconClassName}`} />
                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h4>
             </div>
-            <div className="space-y-2">
+            <ul className="space-y-2">
                 {items.map((item, idx) => (
-                    <p key={`${title}-${idx}`} className="text-[16px] leading-relaxed text-gray-700 dark:text-gray-300">
-                        {item}
-                    </p>
+                    <li key={`${title}-${idx}`} className={`flex gap-2 text-[16px] leading-relaxed ${textClassName}`}>
+                        <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
+                        <span>
+                            {item}
+                        </span>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </div>
     );
 }
@@ -97,6 +112,16 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
 
     const isReviewMode = analysisData.game_status_bucket === 'COMPLETED';
     const isPositive = analysisData.dashboard.sentiment === 'positive';
+    const toneLabel = isPositive
+        ? isReviewMode ? '리뷰 결과 · 우세 근거' : '우세 근거'
+        : isReviewMode ? '리뷰 결과 · 주의 변수' : '주의 변수';
+    const toneDescription = isPositive
+        ? isReviewMode
+            ? '실제 승패에 유리하게 작용한 근거를 요약했습니다.'
+            : '경기 전 유리하게 볼 수 있는 근거를 요약했습니다.'
+        : isReviewMode
+            ? '실제 경기에서 흐름을 흔든 위험 요인을 요약했습니다.'
+            : '경기 중 우선 확인해야 할 위험 요인을 요약했습니다.';
     const criticalFactors = analysisData.metrics.filter((metric: CoachMetric) => metric.risk_level === 0);
     const strategicFactors = analysisData.metrics.filter((metric: CoachMetric) => metric.risk_level !== 0);
     const hasAnyMetric = criticalFactors.length > 0 || strategicFactors.length > 0;
@@ -108,37 +133,42 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
             className="space-y-8 pb-10"
         >
             <div
-                className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${
+                className={`rounded-2xl border p-5 shadow-sm sm:p-7 ${
                     isPositive
                         ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20'
                         : 'border-red-200/80 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/20'
                 }`}
             >
-                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[16px] font-bold ${
-                    isPositive
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-                }`}>
-                    <span aria-hidden="true" className={`h-2 w-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {isPositive ? '우세 신호' : '주의 신호'}
-                </span>
+                <div className="flex flex-col gap-2">
+                    <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[16px] font-bold ${
+                        isPositive
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
+                    }`}>
+                        <span aria-hidden="true" className={`h-2 w-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                        {toneLabel}
+                    </span>
+                    <p className="max-w-3xl text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-200">
+                        {toneDescription}
+                    </p>
+                </div>
 
                 <div className="mt-5 mb-8">
-                    <h3 className="mb-4 flex items-center gap-3 text-xl font-bold leading-tight text-gray-900 dark:text-white sm:text-2xl">
+                    <h3 className="mb-4 flex items-start gap-3 break-keep text-xl font-bold leading-tight text-gray-900 dark:text-white sm:text-2xl">
                         {isPositive ? (
-                            <PredictionTrophyIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-emerald-500" />
+                            <PredictionTrophyIcon aria-hidden="true" className="mt-0.5 h-7 w-7 shrink-0 text-emerald-500 sm:h-8 sm:w-8" />
                         ) : (
-                            <PredictionWarningTriangleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-red-500" />
+                            <PredictionWarningTriangleIcon aria-hidden="true" className="mt-0.5 h-7 w-7 shrink-0 text-red-500 sm:h-8 sm:w-8" />
                         )}
                         <span>{analysisData.dashboard.headline}</span>
                     </h3>
-                    <p className="text-[16px] font-bold leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
+                    <p className="break-keep text-[16px] font-bold leading-relaxed text-gray-700 dark:text-gray-200 sm:text-base">
                         {analysisData.dashboard.context}
                     </p>
                 </div>
 
                 {analysisData.dashboard.stats.length > 0 && (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                         {analysisData.dashboard.stats.map((stat: DashboardStat, idx: number) => (
                             <CoachStatCard key={idx} stat={stat} />
                         ))}
@@ -238,6 +268,7 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                     icon={PredictionHelpCircleIcon}
                     title="불확실성"
                     items={analysisData.uncertainty}
+                    tone="warning"
                 />
                 <InsightSection
                     icon={PredictionCheckCircleIcon}
@@ -262,18 +293,14 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
 
                     {analysisData.detailed_analysis && (
                         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <p className="whitespace-pre-line text-[16px] leading-relaxed text-gray-700 dark:text-gray-300">
-                                {analysisData.detailed_analysis}
-                            </p>
+                            <CoachMarkdown>{analysisData.detailed_analysis}</CoachMarkdown>
                         </div>
                     )}
 
                     {analysisData.coach_note && (
                         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <p className="mb-1 text-[16px] font-bold text-gray-900 dark:text-gray-100">코치의 한마디</p>
-                            <p className="whitespace-pre-line text-[16px] leading-relaxed text-gray-700 dark:text-gray-300">
-                                {analysisData.coach_note}
-                            </p>
+                            <p className="mb-2 text-[16px] font-bold text-gray-900 dark:text-gray-100">코치의 한마디</p>
+                            <CoachMarkdown>{analysisData.coach_note}</CoachMarkdown>
                         </div>
                     )}
                 </div>

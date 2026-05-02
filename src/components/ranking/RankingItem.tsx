@@ -1,7 +1,12 @@
 // components/ranking/RankingItem.tsx
 import React from 'react';
 import { Button } from '../ui/button';
-import { SharedCloseIcon, SharedGripVerticalIcon } from '../icons/SharedLeafIcons';
+import {
+  SharedChevronDownIcon,
+  SharedChevronUpIcon,
+  SharedCloseIcon,
+  SharedGripVerticalIcon,
+} from '../icons/SharedLeafIcons';
 import TeamLogo from '../TeamLogo';
 import { RankingItemProps } from '../../types/ranking';
 import { PLAYOFF_TEAMS } from '../../constants/ranking';
@@ -11,40 +16,49 @@ const RankingItem = React.memo(function RankingItem({
   index,
   alreadySaved,
   onRemove,
-  onMove,
-  draggedIndex = null,
-  onDragIndexChange,
+  onMoveTeamToIndex,
+  onMoveTeamByStep,
+  draggedTeamId = null,
+  lastMovedTeamId = null,
+  onDragTeamChange,
 }: RankingItemProps) {
   const canReorder = team !== null && !alreadySaved;
-  const isDragging = canReorder && draggedIndex === index;
+  const teamId = team?.id ?? null;
+  const isDragging = canReorder && teamId !== null && draggedTeamId === teamId;
+  const isRecentlyMoved = teamId !== null && lastMovedTeamId === teamId;
 
   const isPlayoffTeam = index < PLAYOFF_TEAMS;
   const badgeClassName = isPlayoffTeam
     ? 'bg-primary ring-2 ring-primary/25 dark:ring-primary/40'
     : 'bg-gray-400 dark:bg-secondary';
+  const movementStateClassName = isDragging
+    ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 dark:ring-primary/40'
+    : isRecentlyMoved
+      ? 'border-emerald-500 bg-emerald-50 shadow-md ring-2 ring-emerald-200 dark:border-emerald-500/80 dark:bg-emerald-950/30 dark:ring-emerald-500/30'
+      : '';
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!canReorder) {
+    if (!team || !canReorder) {
       return;
     }
 
-    onDragIndexChange?.(index);
+    onDragTeamChange?.(team.id);
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', String(index));
+    event.dataTransfer.setData('text/plain', team.id);
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (alreadySaved || draggedIndex === null || draggedIndex === index) {
+    if (alreadySaved || draggedTeamId === null || draggedTeamId === teamId) {
       return;
     }
 
     event.preventDefault();
-    onMove(draggedIndex, index);
-    onDragIndexChange?.(index);
+    event.dataTransfer.dropEffect = 'move';
+    onMoveTeamToIndex(draggedTeamId, index);
   };
 
   const handleDragEnd = () => {
-    onDragIndexChange?.(null);
+    onDragTeamChange?.(null);
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -53,25 +67,25 @@ const RankingItem = React.memo(function RankingItem({
     }
 
     event.preventDefault();
-    onDragIndexChange?.(null);
+    onDragTeamChange?.(null);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!canReorder) {
+    if (!team || !canReorder) {
       return;
     }
 
     if (event.ctrlKey || event.metaKey) {
       if (event.key === 'ArrowUp' && index > 0) {
         event.preventDefault();
-        onMove(index, index - 1);
+        onMoveTeamByStep(team.id, -1);
         setTimeout(() => {
           const items = document.querySelectorAll('[data-ranking-item]');
           (items[index - 1] as HTMLElement | undefined)?.focus();
         }, 0);
       } else if (event.key === 'ArrowDown' && index < 9) {
         event.preventDefault();
-        onMove(index, index + 1);
+        onMoveTeamByStep(team.id, 1);
         setTimeout(() => {
           const items = document.querySelectorAll('[data-ranking-item]');
           (items[index + 1] as HTMLElement | undefined)?.focus();
@@ -80,12 +94,21 @@ const RankingItem = React.memo(function RankingItem({
     }
   };
 
+  const handleMoveButtonClick = (direction: -1 | 1) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!team) {
+      return;
+    }
+
+    onMoveTeamByStep(team.id, direction);
+  };
+
   return (
     <>
       {index === PLAYOFF_TEAMS && (
         <div className="my-4 flex items-center gap-4 opacity-80">
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
-            <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[16px] font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
+          <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[16px] font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
             가을야구 진출 (PS)
           </span>
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
@@ -94,6 +117,8 @@ const RankingItem = React.memo(function RankingItem({
 
       <div
         data-ranking-item
+        data-team-id={teamId ?? undefined}
+        data-testid={team ? `ranking-row-${team.id}` : `ranking-empty-slot-${index}`}
         tabIndex={canReorder ? 0 : -1}
         draggable={canReorder}
         onDragStart={handleDragStart}
@@ -103,16 +128,16 @@ const RankingItem = React.memo(function RankingItem({
         onKeyDown={handleKeyDown}
         aria-label={
           team
-            ? `${index + 1}위: ${team.name}${canReorder ? '. Ctrl+화살표로 순위 변경' : ''}`
+            ? `${index + 1}위: ${team.name}${canReorder ? '. 위아래 버튼 또는 Ctrl+화살표로 순위 변경' : ''}`
             : `${index + 1}위: 팀 미선택`
         }
-        className={`border rounded-xl p-3 transition-all ${
+        className={`border rounded-xl p-3 transition-[background-color,border-color,box-shadow] duration-150 ${
           team
-            ? `${isPlayoffTeam ? 'border-primary/30 dark:border-primary/50' : 'border-gray-200 dark:border-border'} bg-white dark:bg-card shadow-sm ${!alreadySaved && 'cursor-move'}`
+            ? `${isPlayoffTeam ? 'border-primary/30 dark:border-primary/50' : 'border-gray-200 dark:border-border'} bg-white dark:bg-card shadow-sm ${!alreadySaved && 'cursor-grab active:cursor-grabbing'}`
             : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/40'
-        } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+        } ${movementStateClassName} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 font-black text-lg ${badgeClassName}`}
           >
@@ -120,23 +145,51 @@ const RankingItem = React.memo(function RankingItem({
           </div>
 
           {team ? (
-            <div className="flex items-center gap-3 flex-1">
-              {!alreadySaved && <SharedGripVerticalIcon className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
-                <TeamLogo team={team.shortName} size={32} />
+            <>
+              <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                {!alreadySaved && <SharedGripVerticalIcon className="hidden w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0 sm:block" />}
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
+                  <TeamLogo team={team.shortName} size={32} />
+                </div>
+                <span style={{ fontWeight: 700 }} className={`min-w-0 flex-1 truncate ${isPlayoffTeam ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>{team.name}</span>
               </div>
-              <span style={{ fontWeight: 700 }} className={`flex-1 ${isPlayoffTeam ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>{team.name}</span>
               {!alreadySaved && (
-                <Button
-                  onClick={() => onRemove(index)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-secondary"
-                >
-                  <SharedCloseIcon className="w-4 h-4 text-red-500 dark:text-red-400" />
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    onClick={handleMoveButtonClick(-1)}
+                    variant="ghost"
+                    size="iconTouch"
+                    disabled={index === 0}
+                    aria-label={`${team.name} 순위 올리기`}
+                    data-testid={`ranking-move-up-${team.id}`}
+                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-gray-300 dark:hover:bg-primary/20"
+                  >
+                    <SharedChevronUpIcon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={handleMoveButtonClick(1)}
+                    variant="ghost"
+                    size="iconTouch"
+                    disabled={index >= 9}
+                    aria-label={`${team.name} 순위 내리기`}
+                    data-testid={`ranking-move-down-${team.id}`}
+                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-gray-300 dark:hover:bg-primary/20"
+                  >
+                    <SharedChevronDownIcon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => onRemove(index)}
+                    variant="ghost"
+                    size="iconTouch"
+                    aria-label={`${team.name} 순위에서 제거`}
+                    data-testid={`ranking-remove-${team.id}`}
+                    className="rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-secondary"
+                  >
+                    <SharedCloseIcon className="w-4 h-4" />
+                  </Button>
+                </div>
               )}
-            </div>
+            </>
           ) : (
             <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-[16px]">
               팀을 선택하세요

@@ -1799,4 +1799,109 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
                 });
     });
 
+    it('11) 추가 로딩 중 새 글 polling 배너가 떠도 하단 로더를 remount하지 않는다', () => {
+        cy.clock(Date.now());
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const now = '2026-04-29T00:00:00.000Z';
+        const buildFeedPost = (id: number) => ({
+            id,
+            content: `무한스크롤 피드 ${id}`,
+            author: `writer${id}`,
+            authorId: id,
+            authorHandle: `writer${id}`,
+            teamId: 'HH',
+            team: 'HH',
+            teamColor: 'HH',
+            createdAt: now,
+            updatedAt: now,
+            comments: 0,
+            likes: 0,
+            likeCount: 0,
+            commentCount: 0,
+            bookmarkCount: 0,
+            repostCount: 0,
+            views: 0,
+            liked: false,
+            likedByUser: false,
+            bookmarked: false,
+            isBookmarked: false,
+            repostedByMe: false,
+            repostType: undefined,
+            postType: 'NORMAL',
+            isOwner: false,
+            isHot: false,
+            images: [],
+            imageUrls: [],
+        });
+        const buildFeedPage = (pageNumber: number, last: boolean) => ({
+            content: Array.from({ length: 20 }, (_, index) => buildFeedPost(pageNumber * 20 + index + 1)),
+            last,
+            totalPages: 2,
+            totalElements: 40,
+            size: 20,
+            number: pageNumber,
+        });
+
+        cy.intercept('GET', /\/api\/cheer\/posts(?:\?|$)/, (req) => {
+            const url = new URL(req.url);
+            const pageNumber = Number(url.searchParams.get('page') || '0');
+            req.alias = `getCheerPostsPage${pageNumber}`;
+            req.reply({
+                delay: pageNumber === 1 ? 30000 : 0,
+                statusCode: 200,
+                body: buildFeedPage(pageNumber, pageNumber >= 1),
+            });
+        });
+
+        let postChangesCalls = 0;
+        cy.intercept('GET', '**/api/cheer/posts/changes*', (req) => {
+            postChangesCalls += 1;
+            req.alias = postChangesCalls === 1 ? 'getInitialPostChanges' : 'getPollingPostChanges';
+            req.reply({
+                statusCode: 200,
+                body: {
+                    newCount: postChangesCalls === 1 ? 0 : 3,
+                    latestId: 99,
+                },
+            });
+        });
+
+        cy.visit('/cheer', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerPostsPage0');
+        cy.wait('@getInitialPostChanges');
+        cy.contains('무한스크롤 피드 1').should('be.visible');
+
+        cy.scrollTo('bottom');
+        cy.get('[data-testid="cheer-feed-next-loader"]')
+            .should('be.visible')
+            .then(($loader) => {
+                $loader[0].dataset.stableNode = 'loader';
+            });
+        cy.get('[data-testid="cheer-feed-section"]').then(($section) => {
+            $section[0].dataset.stableNode = 'section';
+        });
+
+        cy.tick(15000);
+        cy.wait('@getPollingPostChanges');
+        cy.get('[data-testid="cheer-new-post-banner-slot"]').contains('새 글 3개 보기').should('exist');
+        cy.get('[data-testid="cheer-feed-section"]').should(($section) => {
+            expect($section[0].dataset.stableNode).to.eq('section');
+        });
+        cy.get('[data-testid="cheer-feed-next-loader"]')
+            .should('be.visible')
+            .should(($loader) => {
+                expect($loader[0].dataset.stableNode).to.eq('loader');
+            });
+
+        cy.tick(30000);
+        cy.wait('@getCheerPostsPage1');
+    });
+
 });

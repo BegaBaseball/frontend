@@ -201,6 +201,14 @@ export default function PredictionTopNotice({
   }
 
   if (kind === 'INFO') {
+    if (deepLinkNotice) {
+      return (
+        <Card className={`${noticeCardBaseClass} border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-700/40 dark:bg-amber-900/30 dark:text-amber-100`}>
+          <div className="text-[16px]">{deepLinkNotice}</div>
+        </Card>
+      );
+    }
+
     if (currentDateIndex === 0 && pastRangeLoadState === 'loading') {
       return (
         <Card className={`${noticeCardBaseClass} border border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-700/40 dark:bg-sky-900/30 dark:text-sky-100`}>
@@ -242,11 +250,7 @@ export default function PredictionTopNotice({
       );
     }
 
-    return (
-      <Card className={`${noticeCardBaseClass} border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-700/40 dark:bg-amber-900/30 dark:text-amber-100`}>
-        <div className="text-[16px]">{deepLinkNotice}</div>
-      </Card>
-    );
+    return null;
   }
 
   return null;

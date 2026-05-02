@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
@@ -35,7 +35,10 @@ export default function NotificationPanel() {
   const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
-  const unreadCount = notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
+  const unreadCount = useMemo(
+    () => notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0),
+    [notifications],
+  );
 
   // 패널이 열릴 때 1회 fetch (WebSocket push가 이후 업데이트를 담당)
   useEffect(() => {
@@ -174,12 +177,12 @@ export default function NotificationPanel() {
   };
 
   // Filter and then Group
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = useMemo(() => notifications.filter(n => {
     if (activeTab === 'ALL') return true;
     if (activeTab === 'MATE') return ['APPLICATION_RECEIVED', 'APPLICATION_APPROVED', 'APPLICATION_REJECTED', 'PARTY_EXPIRED', 'PARTY_AUTO_COMPLETED', 'GAME_TOMORROW_REMINDER', 'GAME_DAY_REMINDER', 'HOST_RESPONSE_NUDGE', 'REVIEW_REQUEST'].includes(n.type);
     if (activeTab === 'CHEER') return ['POST_COMMENT', 'COMMENT_REPLY', 'POST_LIKE', 'POST_REPOST', 'NEW_FOLLOWER', 'FOLLOWING_NEW_POST'].includes(n.type);
     return true;
-  });
+  }), [notifications, activeTab]);
 
   const groupedNotifications = groupNotifications(filteredNotifications);
 
