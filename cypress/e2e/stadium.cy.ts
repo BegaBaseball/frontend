@@ -304,6 +304,44 @@ describe('Stadium Guide Quality Flow', () => {
     cy.get('[data-testid="stadium-seat-view-dialog"]').should('not.exist');
   });
 
+  it('모바일에서 주요 컨트롤과 좌석맵이 겹침 없이 동작한다', () => {
+    cy.viewport(390, 844);
+    interceptGuestSession();
+    interceptBaseStadiumApis();
+
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getFoodPlaces');
+
+    cy.window().then((win) => {
+      const doc = win.document.documentElement;
+      expect(doc.scrollWidth, 'document horizontal overflow').to.be.at.most(win.innerWidth);
+    });
+
+    cy.get('#stadium-guide-select').then(($select) => {
+      assertMinTarget($select, 'stadium select');
+    });
+    cy.contains('button', '카카오맵 길찾기').then(($button) => {
+      assertMinTarget($button, 'route button');
+    });
+    cy.contains('button', '구장 먹거리').then(($button) => {
+      assertMinTarget($button, 'category button');
+    });
+
+    cy.get('[data-testid="stadium-seat-map"]').should('be.visible').then(($map) => {
+      const rect = $map[0].getBoundingClientRect();
+      expect(rect.height, 'seat map stable height').to.be.greaterThan(299);
+    });
+    cy.get('[data-testid="stadium-seat-map"] path[role="button"]').first().click({ force: true });
+    cy.contains('이 구역 시야 보기').should('be.visible');
+    cy.contains('button', '이 구역 시야 보기').click();
+    cy.wait('@getSeatViews');
+    cy.get('[data-testid="stadium-seat-view-dialog"]').should('be.visible');
+    cy.contains('아직 등록된 시야가 없어요').should('be.visible');
+    cy.get('body').type('{esc}');
+    cy.get('[data-testid="stadium-seat-view-dialog"]').should('not.exist');
+  });
+
   it('구장 목록/장소 목록 재시도 버튼이 각각 동작한다', () => {
     interceptGuestSession();
 
