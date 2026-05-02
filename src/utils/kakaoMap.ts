@@ -15,57 +15,93 @@ const isValidCoordinate = (value: number | null | undefined): value is number =>
 const hasPlaceCoordinates = (place: Place): place is Place & { lat: number; lng: number } =>
   isValidCoordinate(place.lat) && isValidCoordinate(place.lng);
 
+let kakaoMapScriptPromise: Promise<void> | null = null;
+
+const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"], script[src*="dapi.kakao.com/v2/maps/sdk.js"]';
+
+const getKakaoMapLoadErrorMessage = () => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return '네트워크 연결이 없어 카카오맵을 불러올 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
+  }
+
+  return '카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.';
+};
+
+const waitForKakaoMapSdkReady = () => new Promise<void>((resolve, reject) => {
+  if (!window.kakao || !window.kakao.maps) {
+    reject(new Error(getKakaoMapLoadErrorMessage()));
+    return;
+  }
+
+  let isResolved = false;
+  const timeoutId = window.setTimeout(() => {
+    if (!isResolved) {
+      isResolved = true;
+      reject(new Error('지도를 초기화하지 못했습니다. 카카오맵 API 키와 도메인 허용 설정을 확인해주세요.'));
+    }
+  }, 5000);
+
+  window.kakao.maps.load(() => {
+    if (isResolved) {
+      return;
+    }
+
+    isResolved = true;
+    window.clearTimeout(timeoutId);
+    resolve();
+  });
+});
+
 export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: string) => void) => {
   if (!KAKAO_API_KEY) {
-    console.error('카카오 API 키가 없습니다');
-    onError?.('카카오맵 API 키가 없습니다.');
+    onError?.('카카오맵 API 키가 없습니다. 운영 환경의 VITE_KAKAO_MAP_KEY 설정을 확인해주세요.');
     return;
   }
-
-  const handleError = () => {
-    console.error('카카오맵 스크립트 로드 실패');
-    onError?.('카카오맵 스크립트 로드 실패');
-  };
-
-  const handleReady = () => {
-    if (window.kakao && window.kakao.maps) {
-      let isResolved = false;
-      const timeoutId = window.setTimeout(() => {
-        if (!isResolved) {
-          console.error('카카오맵 SDK 초기화 타임아웃');
-          onError?.('지도를 초기화하지 못했습니다. 카카오맵 도메인 허용 설정을 확인해주세요.');
-        }
-      }, 5000);
-
-      window.kakao.maps.load(() => {
-        isResolved = true;
-        window.clearTimeout(timeoutId);
-        onLoad?.();
-      });
-    }
-  };
 
   if (window.kakao && window.kakao.maps) {
-    handleReady();
+    waitForKakaoMapSdkReady()
+      .then(() => onLoad?.())
+      .catch((error) => onError?.(error instanceof Error ? error.message : getKakaoMapLoadErrorMessage()));
     return;
   }
 
-  const existingScript = document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]') as HTMLScriptElement | null;
-  if (existingScript) {
-    existingScript.addEventListener('load', handleReady, { once: true });
-    existingScript.addEventListener('error', handleError, { once: true });
-    return;
+  if (!kakaoMapScriptPromise) {
+    kakaoMapScriptPromise = new Promise<void>((resolve, reject) => {
+      const handleReady = () => {
+        waitForKakaoMapSdkReady().then(resolve).catch(reject);
+      };
+
+      const handleError = () => {
+        const message = getKakaoMapLoadErrorMessage();
+        console.error('카카오맵 스크립트 로드 실패:', message);
+        reject(new Error(message));
+      };
+
+      const existingScript = document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR) as HTMLScriptElement | null;
+      if (existingScript) {
+        existingScript.addEventListener('load', handleReady, { once: true });
+        existingScript.addEventListener('error', handleError, { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
+      script.async = true;
+      script.dataset.kakaoMapSdk = 'true';
+      script.onload = handleReady;
+      script.onerror = handleError;
+
+      document.head.appendChild(script);
+    }).catch((error) => {
+      kakaoMapScriptPromise = null;
+      throw error;
+    });
   }
 
-  const script = document.createElement('script');
-  script.type = 'text/javascript';
-  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
-  script.async = true;
-  
-  script.onload = handleReady;
-  script.onerror = handleError;
-  
-  document.head.appendChild(script);
+  kakaoMapScriptPromise
+    .then(() => onLoad?.())
+    .catch((error) => onError?.(error instanceof Error ? error.message : getKakaoMapLoadErrorMessage()));
 };
 
 export const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
