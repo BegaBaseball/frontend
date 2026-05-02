@@ -85,8 +85,13 @@ export default function AppQueryProvider() {
   }, [requireLogin]);
 
   useEffect(() => {
-    if (isLoggedIn && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    if (
+      isLoggedIn
+      && 'Notification' in window
+      && Notification.permission === 'default'
+      && typeof Notification.requestPermission === 'function'
+    ) {
+      void Promise.resolve(Notification.requestPermission()).catch(() => undefined);
     }
   }, [isLoggedIn]);
 
