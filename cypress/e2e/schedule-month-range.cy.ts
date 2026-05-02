@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const fixedNow = new Date('2026-04-15T12:00:00').getTime();
 
 const buildRangeResponse = (startDate: string) => ({
