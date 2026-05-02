@@ -5,6 +5,7 @@ import {
     normalizeStructuredInlineText,
     normalizeStructuredInsightList,
     normalizeStructuredMultilineText,
+    sanitizeMarkdown,
 } from './coachAnalysisText';
 
 test('normalizeStructuredInlineText는 clean structured 문장을 그대로 유지한다', () => {
@@ -45,4 +46,26 @@ test('normalizeStructuredInsightList는 scheduled swing factor 문구를 훼손�
         normalizeStructuredInsightList([swingFactor, '', null]),
         [swingFactor],
     );
+});
+
+test('sanitizeMarkdown은 마크다운 구조를 그대로 보존한다', () => {
+    const markdown = [
+        '## 경기 전 스냅샷',
+        '- **한화 이글스**: 최근 **5승 2패**, 정규시즌 OPS **0.742**',
+        '- **SSG 랜더스**: 최근 표본 부족',
+        '',
+        '## 코치 판단',
+        '- 초반 선발 운영이 흐름을 좌우합니다.',
+    ].join('\n');
+
+    const result = sanitizeMarkdown(markdown);
+    assert.match(result, /^## 경기 전 스냅샷/);
+    assert.match(result, /- \*\*한화 이글스\*\*/);
+    assert.match(result, /OPS \*\*0\.742\*\*/);
+});
+
+test('sanitizeMarkdown은 HTML 태그와 제어 문자를 제거하고 빈 입력에 fallback을 쓴다', () => {
+    assert.equal(sanitizeMarkdown('<script>alert(1)</script>안녕\u0000'), '안녕');
+    assert.equal(sanitizeMarkdown('', '기본 메시지'), '기본 메시지');
+    assert.equal(sanitizeMarkdown('   \n\n\n  ', '기본 메시지'), '기본 메시지');
 });

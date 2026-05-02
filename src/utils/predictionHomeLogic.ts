@@ -27,13 +27,17 @@ export interface DeepLinkSelection {
   reason: 'gameId' | 'date';
 }
 
+export interface DeepLinkSelectionOptions {
+  allowDateFallback?: boolean;
+}
+
 export const normalizePredictionDate = (value: string): string | null => {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
   }
 
-  const normalized = trimmed.match(/^\s*(\d{4})(?:[.\-/])(\d{1,2})(?:[.\-/])(\d{1,2})\s*$/);
+  const normalized = trimmed.match(/^\s*(\d{4})(?:[.\-/])(\d{1,2})(?:[.\-/])(\d{1,2})(?:[T\s].*)?\s*$/);
   const candidate = normalized
     ? `${normalized[1]}-${normalized[2].padStart(2, '0')}-${normalized[3].padStart(2, '0')}`
     : trimmed;
@@ -44,6 +48,15 @@ export const normalizePredictionDate = (value: string): string | null => {
 
   const parsedDate = new Date(`${candidate}T00:00:00.000`);
   if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  const [year, month, day] = candidate.split('-').map(Number);
+  if (
+    parsedDate.getFullYear() !== year
+    || parsedDate.getMonth() + 1 !== month
+    || parsedDate.getDate() !== day
+  ) {
     return null;
   }
 
@@ -189,10 +202,12 @@ export const resolveInitialPredictionDateIndex = (allDatesData: DateGames[], tod
 export const resolveDeepLinkSelection = (
   allDatesData: DateGames[],
   gameId: string,
-  date: string
+  date: string,
+  options: DeepLinkSelectionOptions = {}
 ): DeepLinkSelection | null => {
   const targetGameId = gameId.trim();
   const normalizedDate = normalizePredictionDate(date) || date.trim();
+  const allowDateFallback = options.allowDateFallback ?? true;
 
   if (targetGameId) {
     for (let dateIndex = 0; dateIndex < allDatesData.length; dateIndex += 1) {
@@ -203,7 +218,7 @@ export const resolveDeepLinkSelection = (
     }
   }
 
-  if (normalizedDate) {
+  if (normalizedDate && (!targetGameId || allowDateFallback)) {
     const dateIndex = allDatesData.findIndex((entry) => entry.date === normalizedDate);
     if (dateIndex !== -1) {
       return { dateIndex, gameIndex: 0, reason: 'date' };

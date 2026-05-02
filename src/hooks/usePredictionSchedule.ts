@@ -7,9 +7,11 @@ import { getTodayString } from '../utils/predictionDates';
 import { getApiErrorMessage, parseError, type ParsedError } from '../utils/errorUtils';
 import {
   normalizePredictionDate,
+  resolveDeepLinkSelection,
   resolveInitialPredictionDateIndex,
 } from '../utils/predictionHomeLogic';
 import {
+  buildDeepLinkNotFoundMessage,
   buildPredictionRecoveryPath,
   type PredictionLocationState,
 } from '../utils/predictionDeepLink';
@@ -238,6 +240,7 @@ export const usePredictionSchedule = ({
   const [loading, setLoading] = useState(true);
   const [matchesLoadState, setMatchesLoadState] = useState<'idle' | 'ready' | 'error'>('idle');
   const [matchesLoadErrorMessage, setMatchesLoadErrorMessage] = useState<string | null>(null);
+  const [matchesLoadErrorCode, setMatchesLoadErrorCode] = useState<string | null>(null);
   const [pastRangeLoadState, setPastRangeLoadState] = useState<RangeLoadState>('idle');
   const [pastRangeLoadErrorMessage, setPastRangeLoadErrorMessage] = useState<string | null>(null);
   const [futureRangeLoadState, setFutureRangeLoadState] = useState<RangeLoadState>('idle');
@@ -275,6 +278,8 @@ export const usePredictionSchedule = ({
   const adjacentPrefetchIdleCallbackRef = useRef<number | null>(null);
   const adjacentPrefetchPendingAnchorRef = useRef<string | null>(null);
   const adjacentPrefetchCompletedAnchorsRef = useRef<Set<string>>(new Set());
+  const programmaticSearchSignatureRef = useRef('');
+  const suppressNextProgrammaticSearchLoadRef = useRef(false);
 
   const goToPredictionRecovery = (options?: {
     currentDate?: string | null;
@@ -318,6 +323,18 @@ export const usePredictionSchedule = ({
   const deepLinkDate = rawDeepLinkDate ? normalizePredictionDate(rawDeepLinkDate) || '' : '';
   const hasStateNavigationSeed = Boolean(stateGame);
   const hasNavigationSeedGame = Boolean(navigationSeedGame?.gameId && navigationSeedGame?.gameDate);
+
+  const setProgrammaticSearchParams = useCallback((
+    nextSearchParams: URLSearchParams,
+    navigateOptions?: { replace?: boolean },
+  ) => {
+    const nextGameId = toPredictionGameId(nextSearchParams.get('gameId')?.trim() || '') || '';
+    const nextDate = normalizePredictionDate(nextSearchParams.get('date')?.trim() || '') || '';
+
+    programmaticSearchSignatureRef.current = `${nextGameId}|${nextDate}`;
+    suppressNextProgrammaticSearchLoadRef.current = true;
+    setSearchParams(nextSearchParams, navigateOptions);
+  }, [setSearchParams]);
 
   useEffect(() => {
     if (!stateGame) {
@@ -828,8 +845,15 @@ export const usePredictionSchedule = ({
     setPastRangeLoadState('idle');
     setFutureRangeLoadState('idle');
     setMatchesLoadErrorMessage(null);
+    setMatchesLoadErrorCode(null);
     setPastRangeLoadErrorMessage(null);
     setFutureRangeLoadErrorMessage(null);
+    const hasDeepLinkSeed = Boolean(deepLinkGameId || deepLinkDate);
+    if (hasDeepLinkSeed) {
+      deepLinkResolutionPendingRef.current = true;
+      deepLinkResolutionAttemptRef.current = 0;
+      deepLinkResolutionDirectionRef.current = 'future';
+    }
     setDeepLinkNotice(null);
     clearScheduledAdjacentPrefetch();
     adjacentPrefetchCompletedAnchorsRef.current.clear();
@@ -843,7 +867,6 @@ export const usePredictionSchedule = ({
 
     try {
       const today = getTodayString();
-      const hasDeepLinkSeed = Boolean(deepLinkGameId || deepLinkDate);
       const initialAnchorDate = deepLinkDate || today;
 
       const firstDayResult = await loadPredictionDay(initialAnchorDate, {
@@ -861,6 +884,7 @@ export const usePredictionSchedule = ({
         const parsedError = normalizeMatchRangeError(firstDayResult.error);
         setMatchesLoadState('error');
         setMatchesLoadErrorMessage(parsedError.message || '예측 경기 목록 조회에 실패했습니다.');
+        setMatchesLoadErrorCode(parsedError.responseCode ?? null);
         const fallbackDates = [{ date: initialAnchorDate, games: [] }];
         setAllDatesData(fallbackDates);
         allDatesDataRef.current = fallbackDates;
@@ -883,13 +907,51 @@ export const usePredictionSchedule = ({
 
       setMatchesLoadState('ready');
       setMatchesLoadErrorMessage(null);
+      setMatchesLoadErrorCode(null);
       emitFlowEvent('onListLoad', 'LIST', {
         toastKey: 'list_load_success',
         stage: 'LIST_LOAD',
       });
       const normalizedDates = allDatesDataRef.current;
       if (normalizedDates.length > 0) {
-        setCurrentDateIndex(resolveInitialPredictionDateIndex(normalizedDates, initialAnchorDate));
+        const deepLinkSelection = deepLinkGameId
+          ? resolveDeepLinkSelection(normalizedDates, deepLinkGameId, deepLinkDate, {
+            allowDateFallback: false,
+          })
+          : null;
+
+        if (deepLinkSelection) {
+          skipDateResetRef.current = true;
+          setCurrentDateIndex(deepLinkSelection.dateIndex);
+          setSelectedGame(deepLinkSelection.gameIndex);
+          deepLinkResolutionPendingRef.current = false;
+          deepLinkResolutionAttemptRef.current = 0;
+        } else {
+          setCurrentDateIndex(resolveInitialPredictionDateIndex(normalizedDates, initialAnchorDate));
+          if (deepLinkGameId && deepLinkDate && normalizedDates.some((entry) => entry.date === deepLinkDate)) {
+            deepLinkResolutionPendingRef.current = false;
+            deepLinkResolutionAttemptRef.current = 0;
+            setDeepLinkNotice(buildDeepLinkNotFoundMessage(
+              deepLinkGameId,
+              deepLinkDate,
+              deepLinkParamValidationNotice,
+            ));
+            emitFlowEvent('onErrorOverlayFallback', 'ERROR', {
+              gameId: normalizedDates[0]?.games[0]?.gameId,
+              errorCode: 'PARTIAL_DATA',
+              recoverable: true,
+              copyKey: 'network_error_message',
+              recoveryAction: 'GO_LIST',
+              retryConfig: {
+                errorCode: 'PARTIAL_DATA',
+                recoverable: true,
+                retryEnabled: true,
+                keepDraft: true,
+                actionPriorityOrder: ['GO_LIST'],
+              },
+            });
+          }
+        }
         syncRangeStateFromDates(normalizedDates, initialAnchorDate);
       }
       void hydrateMatchBounds();
@@ -901,6 +963,7 @@ export const usePredictionSchedule = ({
       const parsedError = parseError(error);
       setMatchesLoadState('error');
       setMatchesLoadErrorMessage(parsedError.message || '예측 경기 목록 조회에 실패했습니다.');
+      setMatchesLoadErrorCode(parsedError.responseCode ?? null);
       const fallbackDates = [{ date: fallbackDate, games: [] }];
       setAllDatesData(fallbackDates);
       allDatesDataRef.current = fallbackDates;
@@ -928,6 +991,7 @@ export const usePredictionSchedule = ({
     clearScheduledAdjacentPrefetch,
     deepLinkDate,
     deepLinkGameId,
+    deepLinkParamValidationNotice,
     emitFlowEvent,
     hydrateMatchBounds,
     loadPredictionDay,
@@ -973,7 +1037,15 @@ export const usePredictionSchedule = ({
     }
 
     previousDeepLinkSignatureRef.current = nextSignature;
-    deepLinkResolutionPendingRef.current = Boolean(nextSignature);
+    if (programmaticSearchSignatureRef.current === nextSignature) {
+      deepLinkResolutionPendingRef.current = false;
+      deepLinkResolutionAttemptRef.current = 0;
+      deepLinkResolutionDirectionRef.current = 'future';
+      setDeepLinkNotice(null);
+      return;
+    }
+
+    deepLinkResolutionPendingRef.current = Boolean(deepLinkGameId || deepLinkDate);
     navigationSeedAppliedRef.current = false;
     deepLinkResolutionAttemptRef.current = 0;
     deepLinkResolutionDirectionRef.current = 'future';
@@ -1017,12 +1089,12 @@ export const usePredictionSchedule = ({
         setMatchBoundsState(null);
         setLoading(false);
         setMatchesLoadState('ready');
+        setMatchesLoadErrorMessage(null);
+        setMatchesLoadErrorCode(null);
         setPastRangeLoadState('ready');
         setFutureRangeLoadState('ready');
         setCanLoadMorePastState(true);
         setCanLoadMoreFutureState(true);
-        deepLinkResolutionPendingRef.current = false;
-        deepLinkResolutionAttemptRef.current = 0;
         setPastRangeLoadErrorMessage(null);
         setFutureRangeLoadErrorMessage(null);
         navigationSeedAppliedRef.current = true;
@@ -1082,6 +1154,11 @@ export const usePredictionSchedule = ({
       return;
     }
     if (!isAuthLoading) {
+      if (suppressNextProgrammaticSearchLoadRef.current) {
+        suppressNextProgrammaticSearchLoadRef.current = false;
+        return;
+      }
+
       setMatchesLoadState('idle');
       void fetchAllGames(false, { silent: hasNavigationSeedGame });
     }
@@ -1143,12 +1220,11 @@ export const usePredictionSchedule = ({
   useEffect(() => {
     let canceled = false;
 
-    if (hasNavigationSeedGame && navigationSeedAppliedRef.current) {
-      if (deepLinkResolutionPendingRef.current) {
-        deepLinkResolutionPendingRef.current = false;
-        deepLinkResolutionAttemptRef.current = 0;
-        deepLinkResolutionDirectionRef.current = 'future';
-      }
+    if (
+      hasNavigationSeedGame
+      && navigationSeedAppliedRef.current
+      && (isAuthLoading || isFetchingAllGamesRef.current)
+    ) {
       return;
     }
 
@@ -1183,6 +1259,7 @@ export const usePredictionSchedule = ({
         deepLinkGameId,
         deepLinkDate,
         deepLinkParamValidationNotice,
+        allowDateFallback: !deepLinkGameId,
         canResolveMorePast: canLoadMorePastRef.current,
         canResolveMoreFuture: canLoadMoreFutureRef.current,
         deepLinkResolutionAttempt: deepLinkResolutionAttemptRef.current,
@@ -1252,32 +1329,45 @@ export const usePredictionSchedule = ({
     deepLinkParamValidationNotice,
     emitFlowEvent,
     hasNavigationSeedGame,
+    isAuthLoading,
     loadMoreFutureMatches,
     loadMorePastMatches,
     loadSingleDateForDeepLink,
   ]);
 
+  const resetNavigationDeepLinkResolution = useCallback(() => {
+    deepLinkResolutionPendingRef.current = false;
+    deepLinkResolutionAttemptRef.current = 0;
+    deepLinkResolutionDirectionRef.current = 'future';
+  }, []);
+
   const goToPreviousDate = useCallback(() => {
     if (currentDateIndex > 0) {
-      setCurrentDateIndex(currentDateIndex - 1);
+      const previousIndex = currentDateIndex - 1;
+      resetNavigationDeepLinkResolution();
+      setCurrentDateIndex(previousIndex);
       return;
     }
 
     if (canLoadMorePastRef.current) {
+      resetNavigationDeepLinkResolution();
       void loadMorePastMatches(false, true);
     }
-  }, [allDatesData.length, currentDateIndex, loadMorePastMatches]);
+  }, [currentDateIndex, loadMorePastMatches, resetNavigationDeepLinkResolution]);
 
   const goToNextDate = useCallback(() => {
     if (currentDateIndex < allDatesData.length - 1) {
-      setCurrentDateIndex(currentDateIndex + 1);
+      const nextIndex = currentDateIndex + 1;
+      resetNavigationDeepLinkResolution();
+      setCurrentDateIndex(nextIndex);
       return;
     }
 
     if (canLoadMoreFutureRef.current) {
+      resetNavigationDeepLinkResolution();
       void loadMoreFutureMatches(false, true);
     }
-  }, [allDatesData.length, currentDateIndex, loadMoreFutureMatches]);
+  }, [allDatesData.length, currentDateIndex, loadMoreFutureMatches, resetNavigationDeepLinkResolution]);
 
   const goToDate = useCallback((targetDate: string) => {
     const normalizedDate = normalizePredictionDate(targetDate);
@@ -1287,16 +1377,18 @@ export const usePredictionSchedule = ({
 
     const loadedIndex = allDatesDataRef.current.findIndex((entry) => entry.date === normalizedDate);
     if (loadedIndex !== -1) {
+      resetNavigationDeepLinkResolution();
       setCurrentDateIndex(loadedIndex);
       return;
     }
 
+    resetNavigationDeepLinkResolution();
     void loadPredictionDay(normalizedDate, {
       moveToLoadedDate: true,
       preserveVisibleDate: false,
       requestKeySuffix: `jump:${normalizedDate}`,
     });
-  }, [loadPredictionDay]);
+  }, [loadPredictionDay, resetNavigationDeepLinkResolution]);
 
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
@@ -1315,6 +1407,7 @@ export const usePredictionSchedule = ({
     loading,
     matchesLoadState,
     matchesLoadErrorMessage,
+    matchesLoadErrorCode,
     pastRangeLoadState,
     pastRangeLoadErrorMessage,
     futureRangeLoadState,
@@ -1330,5 +1423,6 @@ export const usePredictionSchedule = ({
     goToPreviousDate,
     goToNextDate,
     goToDate,
+    setProgrammaticSearchParams,
   };
 };

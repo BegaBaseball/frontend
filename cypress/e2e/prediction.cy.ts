@@ -19,6 +19,7 @@ describe('Game Prediction', () => {
         homeTeam: string;
         awayTeam: string;
         stadium: string;
+        startTime?: string | null;
         homeScore: number | null;
         awayScore: number | null;
         winner: string | null;
@@ -501,7 +502,7 @@ describe('Game Prediction', () => {
         });
     });
 
-    it('should send automatic AI brief request only for meaningful game with auto payload', () => {
+    it('should send automatic AI brief request for selected game with auto payload', () => {
         const autoCoachResponse = [
             'event: message',
             'data: {"delta":"{\"headline\":\"테스트\",\"coach_note\":\"요약 테스트\"}"}',
@@ -794,7 +795,7 @@ describe('Game Prediction', () => {
             });
         }).as('coachAnalyzeManual');
 
-        openPredictionPage();
+        openPredictionPage({ waitForScheduleRange: false });
         cy.wait('@getRankingsMeaningfulManual');
         cy.wait('@getGameDetail');
         waitForPredictionVoteBootstrap();
@@ -856,28 +857,49 @@ describe('Game Prediction', () => {
             '',
         ].join('\n');
 
-        openPredictionPage();
-        cy.wait('@getRankingsAbortCoach');
-        cy.wait('@getGameDetail');
-        waitForPredictionVoteBootstrap();
-        ensureCoachBriefingVisible();
-        cy.window().then((win) => {
-            cy.spy(win.console, 'error').as('consoleError');
-        });
-        cy.tick(1000);
-        cy.tick(300);
-        cy.wait(700);
-
         let coachAnalyzeCallCount = 0;
+
         cy.intercept('POST', '**/coach/analyze*', (req) => {
+            const body = parseCoachRequestBody(req.body);
+            if (body.request_mode === 'auto_brief') {
+                req.alias = 'coachAnalyzeAbortAutoSeed';
+                req.reply({
+                    statusCode: 200,
+                    headers: { 'content-type': 'text/event-stream' },
+                    body: [
+                        'event: meta',
+                        'data: {"validation_status":"success","resolved_focus":["recent_form"],"focus_signature":"recent_form","question_signature":"auto","cache_key_version":"v3","request_mode":"auto_brief","cached":false,"cache_state":"MISS_GENERATE","in_progress":false,"structured_response":{"headline":"자동 브리핑","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"자동 브리핑 본문","coach_note":"자동 브리핑 메모"}}',
+                        '',
+                        'event: done',
+                        'data: [DONE]',
+                        '',
+                    ].join('\n'),
+                });
+                return;
+            }
+
             coachAnalyzeCallCount += 1;
+            req.alias = 'coachAnalyzeAbortOnClose';
             req.reply({
                 delay: coachAnalyzeCallCount === 1 ? 3000 : 1800,
                 statusCode: 200,
                 headers: { 'content-type': 'text/event-stream' },
                 body: coachAnalyzeCallCount === 1 ? firstCoachResponse : secondCoachResponse,
             });
-        }).as('coachAnalyzeAbortOnClose');
+        });
+
+        openPredictionPage();
+        cy.wait('@getRankingsAbortCoach');
+        cy.wait('@getGameDetail');
+        waitForPredictionVoteBootstrap();
+        ensureCoachBriefingVisible();
+        cy.wait('@coachAnalyzeAbortAutoSeed');
+        cy.window().then((win) => {
+            cy.spy(win.console, 'error').as('consoleError');
+        });
+        cy.tick(1000);
+        cy.tick(300);
+        cy.wait(700);
 
         cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
             .should('be.visible')
@@ -943,19 +965,40 @@ describe('Game Prediction', () => {
         ].join('\n');
 
         cy.intercept('POST', '**/coach/analyze*', (req) => {
+            const body = parseCoachRequestBody(req.body);
+
+            if (body.request_mode === 'auto_brief') {
+                req.alias = 'coachAnalyzeMobileAutoSeed';
+                req.reply({
+                    statusCode: 200,
+                    headers: { 'content-type': 'text/event-stream' },
+                    body: [
+                        'event: meta',
+                        'data: {"validation_status":"success","resolved_focus":["recent_form"],"focus_signature":"recent_form","question_signature":"auto","cache_key_version":"v4","request_mode":"auto_brief","cached":false,"cache_state":"MISS_GENERATE","in_progress":false,"generation_mode":"deterministic_auto","game_status_bucket":"PREVIEW","structured_response":{"headline":"자동 브리핑","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"자동 브리핑 본문","coach_note":"자동 브리핑 메모"}}',
+                        '',
+                        'event: done',
+                        'data: [DONE]',
+                        '',
+                    ].join('\n'),
+                });
+                return;
+            }
+
+            req.alias = 'coachAnalyzeMobileResult';
             req.reply({
                 delay: 1800,
                 statusCode: 200,
                 headers: { 'content-type': 'text/event-stream' },
                 body: manualCoachResponse,
             });
-        }).as('coachAnalyzeMobileResult');
+        });
 
         openPredictionPage();
         cy.wait('@getRankingsMobileAnalysis');
         cy.wait('@getGameDetail');
         waitForPredictionVoteBootstrap();
         ensureCoachBriefingVisible();
+        cy.wait('@coachAnalyzeMobileAutoSeed');
         cy.tick(1000);
         cy.wait(700);
 
@@ -978,16 +1021,16 @@ describe('Game Prediction', () => {
 
         cy.wait('@coachAnalyzeMobileResult');
         cy.contains('한화 우세, 후반 불펜 관리가 핵심', { timeout: 12000 }).should('exist');
-        cy.get('[data-testid="coach-analysis-generation-mode"]')
-            .should('have.attr', 'data-generation-mode', 'llm_manual')
-            .and('contain', '근거 기반 상세 분석');
+        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
         cy.get('[role="article"]').should('exist');
         cy.get('[role="article"] [aria-hidden="true"]').its('length').should('be.gte', 7);
         cy.contains('span', '0.812 vs 0.744')
             .invoke('attr', 'class')
-            .should('include', 'text-xl')
+            .should('include', 'text-[22px]')
             .and('include', 'sm:text-2xl')
-            .and('include', 'truncate');
+            .and('include', 'font-black')
+            .and('include', 'break-keep')
+            .and('not.include', 'truncate');
     });
 
     it('should show partial-data reasons in the manual analysis dialog when evidence is limited', () => {
@@ -1048,10 +1091,7 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="coach-analysis-data-quality-note"]', { timeout: 10000 })
             .should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
         cy.get('[data-testid="coach-analysis-data-quality-badge"]').should('contain', '실데이터 일부 기반');
-        cy.get('[data-testid="coach-analysis-generation-mode"]')
-            .should('have.attr', 'data-generation-mode', 'evidence_fallback')
-            .and('contain', '근거 기반 보수 생성')
-            .and('contain', '다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.');
+        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
         cy.get('[data-testid="coach-analysis-grounding-reason"]').then(($chips) => {
             const labels = [...$chips].map((chip) => chip.textContent?.trim());
             expect(labels).to.deep.equal(['승부처 데이터 부족', '요청 항목 근거 부족']);
@@ -1266,9 +1306,7 @@ describe('Game Prediction', () => {
             .click({ force: true });
 
         cy.wait('@coachAnalyzeScheduledManualCopy');
-        cy.get('[data-testid="coach-analysis-generation-mode"]')
-            .should('have.attr', 'data-generation-mode', 'llm_manual')
-            .and('contain', '근거 기반 상세 분석');
+        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
         cy.get('[data-testid="coach-analysis-data-quality-badge"]').should('contain', '실데이터 일부 기반');
         cy.get('[data-testid="coach-analysis-dialog"]')
             .should('contain', '한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.')
@@ -1691,6 +1729,62 @@ describe('Game Prediction', () => {
         cy.location('pathname').should('eq', '/prediction');
         cy.location('search').should('include', 'date=2026-02-04');
         cy.location('search').should('include', 'gameId=20240510LGLK0');
+    });
+
+    it('should expose manual baseball data contract on the visible match card when completed-game records are missing', () => {
+        rangeSchedulePayload = [
+            {
+                gameId: '20260419HHLT0',
+                gameDate: '2026-02-03',
+                homeTeam: 'LT',
+                awayTeam: 'HH',
+                stadium: '사직',
+                homeScore: 4,
+                awayScore: 2,
+                winner: 'home',
+                gameStatus: 'COMPLETED',
+                gameStatusKr: '경기 종료',
+            },
+        ];
+
+        cy.intercept('GET', '**/api/matches/20260419HHLT0*', {
+            statusCode: 409,
+            body: {
+                success: false,
+                code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+                message: '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.',
+                data: {
+                    scope: 'prediction.game_detail.summary',
+                    missingItems: [
+                        {
+                            key: 'game_summary',
+                            label: '경기 주요 기록',
+                            reason: '완료 경기의 주요 기록 row가 없습니다.',
+                            expected_format: 'game_summary.summary_type, player_name, detail_text',
+                        },
+                    ],
+                    operatorMessage: '다음 야구 데이터가 필요합니다: 경기 ID=20260419HHLT0, 경기 주요 기록',
+                    blocking: true,
+                },
+            },
+        }).as('getManualDataRequiredDetail');
+
+        openPredictionPage({ path: '/prediction?gameId=20260419HHLT0&date=2026-02-03' });
+        cy.wait('@getManualDataRequiredDetail');
+
+        cy.get('[data-testid="prediction-detail-error-banner"]')
+            .should('be.visible')
+            .and('have.attr', 'data-error-code', 'MANUAL_BASEBALL_DATA_REQUIRED');
+        cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('be.visible');
+        cy.contains('경기 주요 기록 입력이 필요합니다.').should('be.visible');
+        cy.contains('임의로 채우지 않습니다').should('be.visible');
+        cy.contains('스코어보드 상세 입력 대기').should('be.visible');
+        cy.contains('최종 스코어만 표시 중입니다.').should('be.visible');
+        cy.contains('AI 코치 상세 분석은 수동 데이터 입력 후 제공됩니다.').should('be.visible');
+        cy.contains('button', '수동 데이터 필요').should('be.disabled');
+        cy.contains('button', '데이터 다시 확인').should('be.visible');
+        cy.contains('상세 요약을 확인 중입니다.').should('not.exist');
+        cy.get('[data-testid="coach-analysis-open"]').should('not.exist');
     });
 
     it('should show login CTA when coach analysis auth expires', () => {

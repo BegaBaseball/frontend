@@ -3,6 +3,9 @@ import test from 'node:test';
 
 import {
   fetchAllUserVotesBulk,
+  fetchGameLiveRelaySnapshot,
+  fetchGameLiveSnapshot,
+  fetchGameLiveSummaries,
   fetchMatchesByDay,
   fetchMyPredictionStats,
   fetchVoteStatus,
@@ -176,6 +179,157 @@ test('fetchVoteStatus는 다양한 응답 키를 표준 구조로 정규화한�
       totalVotes: 20,
     });
   }
+});
+
+test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답을 정규화한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(JSON.stringify({
+      game_id: 'GAME-1',
+      game_status: 'IN_PROGRESS',
+      home_score: '3',
+      away_score: 2,
+      current_inning: '7',
+      current_inning_half: 'BOTTOM',
+      last_event_seq: '42',
+      last_updated_at: '2026-04-29T19:45:00',
+      events: [{
+        event_seq: '42',
+        inning: '7',
+        inning_half: 'BOTTOM',
+        outs: '1',
+        batter_name: '홍길동',
+        pitcher_name: '김투수',
+        description: '좌전 안타',
+        event_type: 'HIT',
+        result_code: 'SINGLE',
+        rbi: '1',
+        bases_before: '100',
+        bases_after: '010',
+        home_score: '3',
+        away_score: 2,
+        wpa: '0.12',
+        win_expectancy_before: '0.55',
+        win_expectancy_after: '0.67',
+        updated_at: '2026-04-29T19:45:00',
+      }],
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const snapshot = await fetchGameLiveSnapshot('GAME-1', { afterSeq: 7, limit: 50 });
+  const parsedUrl = new URL(requestUrl, 'http://localhost');
+
+  assert.equal(parsedUrl.pathname, '/api/matches/GAME-1/live');
+  assert.equal(parsedUrl.searchParams.get('afterSeq'), '7');
+  assert.equal(parsedUrl.searchParams.get('limit'), '50');
+  assert.equal(requestInit?.credentials, 'include');
+  assert.equal(requestInit?.method, 'GET');
+  assert.equal(snapshot.gameStatus, 'IN_PROGRESS');
+  assert.equal(snapshot.homeScore, 3);
+  assert.equal(snapshot.lastEventSeq, 42);
+  assert.equal(snapshot.events[0].eventSeq, 42);
+  assert.equal(snapshot.events[0].wpa, 0.12);
+});
+
+test('fetchGameLiveRelaySnapshot은 원문 문자중계 delta 응답을 정규화한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(JSON.stringify({
+      game_id: 'GAME-1',
+      last_relay_id: '15',
+      last_updated_at: '2026-04-29T20:15:00',
+      events: [{
+        relay_id: '15',
+        inning: '7',
+        inning_half: 'BOTTOM',
+        pitcher_name: '김투수',
+        batter_name: '김도영',
+        play_description: '김도영 : 좌익수 왼쪽 2루타',
+        event_type: 'PLAY',
+        result: '2루타',
+        created_at: '2026-04-29T20:14:50',
+        updated_at: '2026-04-29T20:15:00',
+      }],
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const snapshot = await fetchGameLiveRelaySnapshot('GAME-1', { afterId: 7, limit: 50 });
+  const parsedUrl = new URL(requestUrl, 'http://localhost');
+
+  assert.equal(parsedUrl.pathname, '/api/matches/GAME-1/live-relay');
+  assert.equal(parsedUrl.searchParams.get('afterId'), '7');
+  assert.equal(parsedUrl.searchParams.get('limit'), '50');
+  assert.equal(requestInit?.credentials, 'include');
+  assert.equal(requestInit?.method, 'GET');
+  assert.equal(snapshot.gameId, 'GAME-1');
+  assert.equal(snapshot.lastRelayId, 15);
+  assert.equal(snapshot.events[0].relayId, 15);
+  assert.equal(snapshot.events[0].playDescription, '김도영 : 좌익수 왼쪽 2루타');
+});
+
+test('fetchGameLiveSummaries는 gameId 중복을 제거하고 홈 카드 응답을 정규화한다', async (t) => {
+  let requestUrl = '';
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    return new Response(JSON.stringify([{
+      game_id: 'GAME-1',
+      game_status: 'LIVE',
+      home_score: '4',
+      away_score: '3',
+      last_event_seq: '12',
+      last_updated_at: '2026-04-29T20:00:00',
+    }, {
+      gameId: '',
+      gameStatus: 'LIVE',
+    }]), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const summaries = await fetchGameLiveSummaries(['GAME-1', 'GAME-1', '', 'GAME-2']);
+  const parsedUrl = new URL(requestUrl, 'http://localhost');
+
+  assert.equal(parsedUrl.pathname, '/api/matches/live');
+  assert.equal(parsedUrl.searchParams.get('gameIds'), 'GAME-1,GAME-2');
+  assert.deepEqual(summaries, [{
+    gameId: 'GAME-1',
+    gameStatus: 'LIVE',
+    homeScore: 4,
+    awayScore: 3,
+    lastEventSeq: 12,
+    lastUpdatedAt: '2026-04-29T20:00:00',
+  }]);
 });
 
 test('fetchMyPredictionStats는 인증 통계 응답의 data를 반환한다', async (t) => {

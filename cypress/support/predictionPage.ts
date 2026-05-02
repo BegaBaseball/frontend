@@ -118,9 +118,14 @@ const seedPredictionAuthState = (
   token: string,
   persistedAuthHint: boolean,
   authBootstrapMeta?: PredictionAuthBootstrapMetaSeed | null,
+  skipPublicAuthBootstrap = false,
 ) => {
   (win as PredictionWindowWithAuthProfile).__BEGA_TEST_AUTH_PROFILE__ = defaultPredictionAuthProfile;
-  win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  if (skipPublicAuthBootstrap) {
+    win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  } else {
+    win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+  }
   win.localStorage.setItem('auth-storage', JSON.stringify(defaultPredictionAuthState));
   win.localStorage.setItem('accessToken', token);
   if (persistedAuthHint) {
@@ -248,7 +253,7 @@ export const visitPredictionPage = ({
       }
 
       if (authenticated) {
-        seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta);
+        seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
       } else {
         seedPredictionGuestState(win, clearAuthState, persistedAuthHint, skipPublicAuthBootstrap, authBootstrapMeta);
       }
@@ -266,7 +271,7 @@ export const visitPredictionPage = ({
 
   if (authenticated) {
     cy.window().then((win) => {
-      seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta);
+      seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
     });
     cy.setCookie('Authorization', token);
     return;

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -57,7 +57,7 @@ export default function RankingPrediction() {
     return () => window.clearTimeout(timeoutId);
   }, [lastMovedTeamId, reorderFeedback]);
 
-  const handleMoveTeamToIndex = (teamId: string, hoverIndex: number) => {
+  const handleMoveTeamToIndex = useCallback((teamId: string, hoverIndex: number) => {
     const fromIndex = rankings.findIndex((rankingTeam) => rankingTeam?.id === teamId);
     if (fromIndex < 0 || fromIndex === hoverIndex) {
       return;
@@ -71,9 +71,9 @@ export default function RankingPrediction() {
     moveTeam(fromIndex, hoverIndex);
     setLastMovedTeamId(team.id);
     setReorderFeedback(`${team.name} ${hoverIndex + 1}위로 이동했습니다.`);
-  };
+  }, [rankings, moveTeam]);
 
-  const handleMoveTeamByStep = (teamId: string, direction: -1 | 1) => {
+  const handleMoveTeamByStep = useCallback((teamId: string, direction: -1 | 1) => {
     const fromIndex = rankings.findIndex((rankingTeam) => rankingTeam?.id === teamId);
     if (fromIndex < 0) {
       return;
@@ -81,14 +81,14 @@ export default function RankingPrediction() {
 
     const nextIndex = Math.min(rankings.length - 1, Math.max(0, fromIndex + direction));
     handleMoveTeamToIndex(teamId, nextIndex);
-  };
+  }, [rankings, handleMoveTeamToIndex]);
 
-  const handleResetRankings = () => {
+  const handleResetRankings = useCallback(() => {
     setDraggedTeamId(null);
     setLastMovedTeamId(null);
     setReorderFeedback(null);
     resetRankings();
-  };
+  }, [resetRankings]);
 
   if (isAuthLoading || isLoading) {
     return (

@@ -173,7 +173,6 @@ describe('Prediction Range Recovery', () => {
 
         openPredictionPage();
         cy.get('@getUserVote.all').should('have.length', 0);
-        cy.wait('@getMatchDay');
         cy.contains('KT 위즈').should('not.exist');
         cy.contains('조회 실패').should('not.exist');
         cy.contains('이전 경기 조회 실패').should('not.exist');

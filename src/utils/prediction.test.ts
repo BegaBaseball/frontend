@@ -350,11 +350,8 @@ test('getCoachAnalysisFocusSectionNotice: 누락 focus를 사용자 문구로 �
   );
 });
 
-test('getCoachGenerationModeNotice: evidence_fallback partial은 오류가 아닌 보수 생성으로 안내한다', () => {
-  assert.equal(
-    getCoachGenerationModeNotice('evidence_fallback', 'partial'),
-    '이번 응답은 실패가 아니라, 확인 가능한 근거만으로 보수 생성된 결과입니다. 다음 상세 분석 요청에서는 AI 재생성을 다시 시도합니다.',
-  );
+test('getCoachGenerationModeNotice: generation mode 안내 문구를 노출하지 않는다', () => {
+  assert.equal(getCoachGenerationModeNotice('evidence_fallback', 'partial'), null);
   assert.equal(getCoachGenerationModeNotice('llm_manual', 'partial'), null);
 });
 
@@ -377,9 +374,20 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
     isMeaningfulGame: false,
   });
 
-  assert.equal(scheduledNonMeaningful.autoEnabled, false);
-  assert.equal(scheduledNonMeaningful.forceManual, true);
-  assert.equal(scheduledNonMeaningful.requestMode, 'manual_detail');
+  assert.equal(scheduledNonMeaningful.autoEnabled, true);
+  assert.equal(scheduledNonMeaningful.forceManual, false);
+  assert.equal(scheduledNonMeaningful.requestMode, 'auto_brief');
+
+  const completedNonMeaningful = resolveCoachBriefingPolicy({
+    canCallAI: true,
+    isScheduledGame: false,
+    isPostseasonGame: false,
+    isMeaningfulGame: false,
+  });
+
+  assert.equal(completedNonMeaningful.autoEnabled, true);
+  assert.equal(completedNonMeaningful.forceManual, false);
+  assert.equal(completedNonMeaningful.requestMode, 'auto_brief');
 
   const meaningfulPolicy = resolveCoachBriefingPolicy({
     canCallAI: true,
@@ -403,4 +411,16 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(noSelectionPolicy.autoEnabled, false);
   assert.equal(noSelectionPolicy.forceManual, true);
   assert.equal(noSelectionPolicy.requestMode, 'manual_detail');
+
+  const unsupportedStatePolicy = resolveCoachBriefingPolicy({
+    canCallAI: true,
+    isScheduledGame: false,
+    isCoachStateEnabledForAuto: false,
+    isPostseasonGame: false,
+    isMeaningfulGame: false,
+  });
+
+  assert.equal(unsupportedStatePolicy.autoEnabled, false);
+  assert.equal(unsupportedStatePolicy.forceManual, false);
+  assert.equal(unsupportedStatePolicy.requestMode, 'manual_detail');
 });

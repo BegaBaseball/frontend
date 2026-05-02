@@ -32,6 +32,7 @@ export type GameDetailRequestState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
   data: GameDetail | null;
   error?: string;
+  errorCode?: string;
   isSeeded?: boolean;
   isBackgroundRefreshing?: boolean;
   hasRenderableData?: boolean;

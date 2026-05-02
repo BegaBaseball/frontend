@@ -158,13 +158,17 @@ describe('Prediction Ranking Deferred', () => {
     it('defers ranking chunks and stats query until the first ranking tab entry', () => {
         openPredictionPage();
 
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="prediction-match-detail-root"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.wait(1200);
         assertChunkCounts((counts) => {
             expect(counts.rankingTab).to.equal(0);
             expect(counts.rankingPrediction).to.equal(0);
             expect(counts.statsPanel).to.equal(0);
-            expect(counts.matchCard).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
         });
         cy.get('@getDeferredPredictionStats.all').should('have.length', 0);
         cy.contains('나의 예측 퍼포먼스').should('not.exist');
@@ -174,7 +178,7 @@ describe('Prediction Ranking Deferred', () => {
         assertChunkCounts((counts) => {
             expect(counts.rankingTab).to.be.greaterThan(0);
             expect(counts.rankingPrediction).to.be.greaterThan(0);
-            expect(counts.matchCard).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
         });
     });
 });

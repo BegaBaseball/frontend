@@ -5,6 +5,7 @@ import {
   analyzeTeam,
   CoachAnalyzeError,
   getCoachGenerationModeLabel,
+  getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
 } from './coach';
 
@@ -239,7 +240,7 @@ test('analyzeTeam은 generation_mode를 파싱해 manual 상세 분석 여부를
 test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 누락 focus 메타를 파싱한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
-    'data: {"request_mode":"manual_detail","generation_mode":"evidence_fallback","data_quality":"partial","focus_section_missing":true,"missing_focus_sections":["bullpen"],"structured_response":{"headline":"보수 생성 헤드라인","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"축약 리포트","coach_note":"축약 노트"}}\n',
+    'data: {"request_mode":"manual_detail","generation_mode":"evidence_fallback","data_quality":"partial","focus_section_missing":true,"missing_focus_sections":["bullpen"],"structured_response":{"headline":"제한 근거 헤드라인","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"축약 리포트","coach_note":"축약 노트"}}\n',
     '\n',
     'event: done\n',
     'data: [DONE]\n',
@@ -252,17 +253,22 @@ test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 
   assert.equal(response.data_quality, 'partial');
   assert.equal(response.focus_section_missing, true);
   assert.deepEqual(response.missing_focus_sections, ['bullpen']);
-  assert.equal(response.structuredData?.headline, '보수 생성 헤드라인');
+  assert.equal(response.structuredData?.headline, '제한 근거 헤드라인');
 });
 
 test('getCoachGenerationModeLabel은 generation_mode를 사용자 문구로 변환한다', () => {
   assert.equal(getCoachGenerationModeLabel('llm_manual'), '근거 기반 상세 분석');
-  assert.equal(getCoachGenerationModeLabel('evidence_fallback'), '근거 기반 보수 생성');
+  assert.equal(getCoachGenerationModeLabel('evidence_fallback'), '확인 근거 기반');
 });
 
 test('getCoachStreamReadTimeoutMs는 manual_detail에 더 긴 read timeout을 사용한다', () => {
   assert.equal(getCoachStreamReadTimeoutMs('auto_brief'), 30000);
   assert.equal(getCoachStreamReadTimeoutMs('manual_detail'), 90000);
+});
+
+test('getCoachStreamRequestTimeoutMs는 manual_detail 연결 대기에도 긴 timeout을 사용한다', () => {
+  assert.equal(getCoachStreamRequestTimeoutMs('auto_brief'), 30000);
+  assert.equal(getCoachStreamRequestTimeoutMs('manual_detail'), 90000);
 });
 
 test('analyzeTeam은 AI 메타의 tool_calls와 data_sources를 정규화한다', async (t) => {

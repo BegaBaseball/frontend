@@ -19,15 +19,12 @@ export const resolveCoachBriefingPolicy = ({
   hasSelectedGame = true,
   canCallAI,
   isScheduledGame,
-  isPostseasonGame,
-  isMeaningfulGame,
   isCoachStateEnabledForAuto = true,
 }: CoachBriefingPolicyInput): CoachBriefingPolicy => {
   const autoEnabled = Boolean(
     hasSelectedGame
     && canCallAI
     && isCoachStateEnabledForAuto
-    && (isPostseasonGame || isMeaningfulGame),
   );
 
   return {
