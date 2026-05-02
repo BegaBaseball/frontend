@@ -1,5 +1,3 @@
-import { Eye } from 'lucide-react';
-
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -11,6 +9,7 @@ import {
   TableRow,
 } from '../ui/table';
 import type { AdminSeatView, AdminSeatViewFilters } from '../../types/admin';
+import { AdminEyeIcon } from './AdminDetailIcons';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
 type SeatViewModerationPayload = {
@@ -139,7 +138,7 @@ export function AdminSeatViewsPanel({
                   className="cursor-pointer border-slate-800 transition-colors duration-200 hover:bg-slate-800/30"
                   onClick={() => openSeatViewDetail(seatView.id)}
                 >
-                  <TableCell className="font-mono text-sm text-slate-300">{seatView.id}</TableCell>
+                  <TableCell className="font-mono text-[14px] text-slate-300">{seatView.id}</TableCell>
                   <TableCell>
                     <img
                       src={seatView.photoUrl}
@@ -147,13 +146,13 @@ export function AdminSeatViewsPanel({
                       className="h-14 w-14 rounded-lg border border-slate-800 object-cover"
                     />
                   </TableCell>
-                  <TableCell className="text-sm text-slate-300">
+                  <TableCell className="text-[14px] text-slate-300">
                     <div>{seatView.stadium}</div>
                     <div className="text-slate-500">
                       {[seatView.section, seatView.block, seatView.seatRow, seatView.seatNumber].filter(Boolean).join(' / ') || '-'}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-300">
+                  <TableCell className="text-[14px] text-slate-300">
                     <div>{seatView.aiSuggestedLabel || '-'}</div>
                     <div className="text-slate-500">
                       {seatView.aiConfidence != null ? `${Math.round(seatView.aiConfidence * 100)}%` : '미분류'}
@@ -189,7 +188,7 @@ export function AdminSeatViewsPanel({
                           openSeatViewDetail(seatView.id);
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <AdminEyeIcon className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"

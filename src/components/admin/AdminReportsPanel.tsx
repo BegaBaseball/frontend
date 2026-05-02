@@ -1,5 +1,3 @@
-import { Eye } from 'lucide-react';
-
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -12,6 +10,7 @@ import {
 } from '../ui/table';
 import type { AdminReport, AdminReportFilters } from '../../types/admin';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminEyeIcon } from './AdminDetailIcons';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
 type AdminReportAction =
@@ -143,7 +142,7 @@ export function AdminReportsPanel({
                   className="cursor-pointer border-slate-800 transition-colors duration-200 hover:bg-slate-800/30"
                   onClick={() => openReportDetail(report.id)}
                 >
-                  <TableCell className="font-mono text-sm text-slate-300">{report.id}</TableCell>
+                  <TableCell className="font-mono text-[14px] text-slate-300">{report.id}</TableCell>
                   <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
                   <TableCell>
                     <AdminBadge className={reportStatusClass[report.status || ''] || 'bg-slate-700 text-slate-300 border-0'}>
@@ -152,7 +151,7 @@ export function AdminReportsPanel({
                   </TableCell>
                   <TableCell className="max-w-[260px] truncate text-slate-300">{report.postPreview || '-'}</TableCell>
                   <TableCell className="text-slate-300">{report.reporterHandle || '-'}</TableCell>
-                  <TableCell className="text-sm text-slate-400">{getTimeAgo(report.createdAt)}</TableCell>
+                  <TableCell className="text-[14px] text-slate-400">{getTimeAgo(report.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
@@ -165,7 +164,7 @@ export function AdminReportsPanel({
                           openReportDetail(report.id);
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <AdminEyeIcon className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"

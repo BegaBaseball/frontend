@@ -5,6 +5,8 @@ describe('Mate Chat Image Upload', () => {
   });
 
   it('채팅 이미지 업로드 버튼이 활성화되고 업로드 요청이 호출된다', () => {
+    const uploadedChatPath = 'media/chat/123/51.webp';
+
     cy.intercept('GET', '**/api/parties/999', {
       statusCode: 200,
       body: {
@@ -39,15 +41,58 @@ describe('Mate Chat Image Upload', () => {
       body: { success: true },
     }).as('markChatRead');
 
-    cy.intercept('POST', '**/api/storage/image', {
+    cy.intercept('POST', '**/api/media/uploads/init', (req) => {
+      expect(req.body.domain).to.eq('CHAT');
+      req.reply({
+        statusCode: 200,
+        body: {
+          success: true,
+          data: {
+            assetId: 51,
+            uploadUrl: 'https://object.example.com/upload/chat-51',
+            stagingObjectKey: 'media/staging/chat/123/51-chat.png',
+            expiresAt: '2026-04-14T00:00:00Z',
+            requiredHeaders: {
+              'Content-Type': 'image/png',
+            },
+          },
+        },
+      });
+    }).as('initChatImageUpload');
+
+    cy.intercept('PUT', 'https://object.example.com/upload/chat-51', {
+      statusCode: 200,
+      body: '',
+    }).as('putChatImageUpload');
+
+    cy.intercept('POST', '**/api/media/uploads/51/finalize', {
       statusCode: 200,
       body: {
         success: true,
         data: {
-          path: 'https://example.com/chat-upload.png',
+          assetId: 51,
+          storagePath: uploadedChatPath,
+          publicUrl: 'https://cdn.example.com/media/chat/123/51.webp',
         },
       },
-    }).as('uploadChatImage');
+    }).as('finalizeChatImageUpload');
+
+    cy.intercept('POST', '**/api/chat/messages', (req) => {
+      expect(req.body.partyId).to.eq(999);
+      expect(req.body.imageUrl).to.eq(uploadedChatPath);
+      req.reply({
+        statusCode: 200,
+        body: {
+          id: 7001,
+          partyId: 999,
+          senderId: 123,
+          senderName: 'TestUser',
+          message: '(사진 전송)',
+          imageUrl: uploadedChatPath,
+          createdAt: '2026-04-14T12:00:00Z',
+        },
+      });
+    }).as('sendChatMessage');
 
     cy.visit('/mate/999/chat');
     cy.wait('@getMatchedParty');
@@ -62,19 +107,24 @@ describe('Mate Chat Image Upload', () => {
 
     cy.get('button[aria-label="이미지 업로드"]').should('be.enabled');
 
-    cy.get('#mate-chat-image-upload').selectFile(
-      {
-        contents: Cypress.Buffer.from('fake-chat-image'),
-        fileName: 'chat.png',
-        mimeType: 'image/png',
-      },
-      { force: true }
-    );
+    cy.fixture('tiny-image.base64').then((base64) => {
+      cy.get('#mate-chat-image-upload').selectFile(
+        {
+          contents: Cypress.Buffer.from(base64, 'base64'),
+          fileName: 'chat.png',
+          mimeType: 'image/png',
+        },
+        { force: true }
+      );
+    });
 
     cy.get('img[alt="Preview"]').should('be.visible');
     cy.get('button[type="submit"]').should('be.enabled').click();
 
-    cy.wait('@uploadChatImage');
-    cy.get('img[alt="Preview"]').should('be.visible');
+    cy.wait('@initChatImageUpload');
+    cy.wait('@putChatImageUpload');
+    cy.wait('@finalizeChatImageUpload');
+    cy.wait('@sendChatMessage');
+    cy.get('img[alt="Preview"]').should('not.exist');
   });
 });

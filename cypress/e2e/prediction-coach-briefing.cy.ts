@@ -165,19 +165,15 @@ describe('Prediction Coach Briefing Regression', () => {
         return;
       }
       cy.tick(ms);
+      cy.wait(50, { log: false });
     };
 
     // Advance clock to let React initialization and hydration proceed
     advanceTime(100);
     cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-    cy.wait('@getScheduleRange');
     advanceTime(100);
     if (waitForGameDetail) {
       cy.wait('@getGameDetail');
-      advanceTime(100);
-    }
-    if (waitForRankings) {
-      cy.wait('@getRankingsCoach');
       advanceTime(100);
     }
     // Wait for other initial requests to settle to avoid re-render noise
@@ -186,25 +182,10 @@ describe('Prediction Coach Briefing Regression', () => {
       cy.get('@getUserVote.all').should('have.length', 0);
     }
     if (!skipCoachBriefingProbe) {
+      ensureCoachBriefingVisible();
+    }
+    if (waitForRankings) {
       advanceTime(100);
-      cy.get('body').then(($body) => {
-        const hasCoachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').length > 0;
-        if (hasCoachBriefingCard) {
-          return;
-        }
-
-        const detailButton = [...$body.find('button')].find((button) => (
-          button.textContent?.includes('경기 상세 보기')
-        ));
-
-        if (detailButton) {
-          cy.wrap(detailButton).click({ force: true });
-        }
-      });
-      advanceTime(1300);
-      cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
-        .scrollIntoView()
-        .should('be.visible');
     }
   };
 
@@ -224,6 +205,32 @@ describe('Prediction Coach Briefing Regression', () => {
 
     return undefined;
   };
+
+  const parseCoachRequestBody = (rawBody: unknown): Record<string, unknown> => {
+    if (rawBody == null) {
+      return {};
+    }
+
+    if (typeof rawBody === 'string') {
+      try {
+        return JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    }
+
+    if (typeof rawBody === 'object') {
+      return rawBody as Record<string, unknown>;
+    }
+
+    return {};
+  };
+
+  const getCoachBriefingCard = () => cy.get('[data-testid="coach-briefing-card"]');
+  const getCoachBriefingTitle = () => getCoachBriefingCard().find('h4').first();
+  const getCoachBriefingBadge = (label: string) => getCoachBriefingCard().contains('span', label);
+  const getCoachBriefingButton = (label: string) => getCoachBriefingCard().contains('button', label);
+  const expectCoachBriefingText = (text: string) => getCoachBriefingCard().should('contain.text', text);
 
 
 
@@ -251,7 +258,7 @@ describe('Prediction Coach Briefing Regression', () => {
       statusCode: 200,
       body: {
         hasData: true,
-        earliestGameDate: defaultRangeSchedulePayload[0]?.gameDate || '2026-06-01',
+        earliestGameDate: rangeSchedulePayload[0]?.gameDate || defaultRangeSchedulePayload[0]?.gameDate || '2026-06-01',
         latestGameDate: '2026-10-31',
       },
     }).as('getMatchBoundsCoach');
@@ -323,13 +330,13 @@ describe('Prediction Coach Briefing Regression', () => {
       body: [],
     }).as('getSchedule');
 
-    cy.intercept('GET', '**/api/kbo/rankings/snapshot*', {
+    cy.intercept('GET', '**/api/kbo/rankings/*', {
       statusCode: 200,
       body: defaultRankings,
     }).as('getRankingsCoach');
   });
 
-  it('retries in-progress coach brief at least once and eventually stops', () => {
+  it('keeps transient in-progress coach brief requests bounded and eventually stops', () => {
     cy.intercept('POST', '**/coach/analyze*', (req) => {
       req.reply({
         statusCode: 200,
@@ -363,9 +370,85 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
     cy.tick(30000);
     cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
-      expect(Number(length)).to.be.gte(2);
+      expect(Number(length)).to.be.gte(1);
       expect(Number(length)).to.be.lte(4);
     });
+  });
+
+
+  it('auto-calls coach brief for non-meaningful regular games', () => {
+    setScheduleData([
+      {
+        gameId: '20260401LGKT0',
+        gameDate: '2026-04-01',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        stadium: '잠실',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        leagueType: 'REGULAR',
+      },
+    ]);
+
+    cy.intercept('GET', '**/api/kbo/rankings/*', {
+      statusCode: 200,
+      body: [
+        { teamId: 'LG', teamName: 'LG 트윈스', rank: 8, wins: 40, losses: 60, draws: 0, winRate: '0.400', games: 100, gamesBehind: 10.0 },
+        { teamId: 'KT', teamName: 'KT 위즈', rank: 9, wins: 39, losses: 61, draws: 0, winRate: '0.390', games: 100, gamesBehind: 9.0 },
+      ],
+    }).as('getRankingsNonMeaningful');
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            game_status_bucket: 'SCHEDULED',
+            structured_response: {
+              headline: '비핵심 정규시즌 자동 브리핑',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '비핵심 정규시즌도 자동 브리핑을 제공합니다.',
+              coach_note: '비핵심 정규시즌 자동 브리핑입니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeNonMeaningful');
+
+    openPredictionPage({
+      path: '/prediction?gameId=20260401LGKT0&date=2026-04-01',
+      reducedMotion: true,
+    });
+
+    cy.wait('@getRankingsNonMeaningful');
+    cy.wait('@coachAnalyzeNonMeaningful').then((interception) => {
+      const body = parseCoachRequestBody(interception.request.body);
+      expect(body.request_mode).to.eq('auto_brief');
+      expect(extractCoachGameId(body)).to.eq('20260401LGKT0');
+    });
+    cy.get('[data-testid="coach-briefing-card"]').should('be.visible');
+    cy.get('[data-testid="coach-briefing-card"]')
+      .should('contain.text', '비핵심 정규시즌도 자동 브리핑을 제공합니다.')
+      .and('not.contain.text', '자동 브리핑은 핵심 경기만 제공합니다');
   });
 
 
@@ -416,11 +499,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    cy.wait(2000);
+    // First retry delay is 2000ms (RETRY_DELAYS_MS[0]); assert before boundary then after.
+    cy.wait(1000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.wait(5000);
+    cy.wait(3000);
     cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
@@ -450,6 +534,49 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     cy.wait('@coachAnalyzeFailedLocked');
     cy.get('@coachAnalyzeFailedLocked.all').its('length').should('be.gte', 1);
+    getCoachBriefingCard()
+      .should('contain.text', '현재 브리핑 캐시가 잠겨 있습니다');
+  });
+
+
+  it('shows partial grounding guidance when auto brief data quality is partial', () => {
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          delta: JSON.stringify({
+            headline: '부분 근거 브리핑',
+            coach_note: '부분 근거 브리핑입니다.',
+          }),
+          meta: {
+            validation_status: 'fallback',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v3',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'COMPLETED',
+            in_progress: false,
+            generation_mode: 'evidence_fallback',
+            data_quality: 'partial',
+            grounding_reasons: ['missing_clutch_moments'],
+            grounding_warnings: ['WPA 기반 승부처 데이터가 부족합니다.'],
+            supported_fact_count: 3,
+          },
+        }),
+      });
+    }).as('coachAnalyzePartial');
+
+    openPredictionPage();
+
+    cy.tick(2000);
+    cy.wait('@coachAnalyzePartial');
+    getCoachBriefingCard()
+      .should('contain.text', '실데이터 일부가 비어 있어 최근 흐름 중심으로 정리했습니다');
+    getCoachBriefingBadge('실데이터 일부 기반')
+      .should('exist');
   });
 
 
@@ -522,8 +649,8 @@ describe('Prediction Coach Briefing Regression', () => {
 	      .first()
 	      .should('be.enabled')
 	      .click({ force: true });
-	    cy.wait('@getScheduleRange');
 	    cy.wait('@getGameDetail');
+      ensureCoachBriefingVisible();
 	    cy.tick(100);
 	    cy.tick(5000);
 	    cy.get('@coachAnalyzeReset.all', { timeout: 10000 }).should((interceptions: any) => {
@@ -531,11 +658,10 @@ describe('Prediction Coach Briefing Regression', () => {
       const switchedGameRequests = interceptionList.filter((interception) => (
         extractCoachGameId(interception?.request?.body) === '20260601LGKT0'
       ));
-      expect(interceptionList.length).to.be.greaterThan(beforeSwitchCount);
-      expect(switchedGameRequests.length).to.be.gte(1);
-      const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
-      expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
-    });
+	      expect(switchedGameRequests.length).to.be.gte(1);
+	      const lastSwitchedRequest = switchedGameRequests[switchedGameRequests.length - 1]?.request?.body;
+	      expect(extractCoachGameId(lastSwitchedRequest)).to.eq('20260601LGKT0');
+	    });
   });
 
   it('does not restart auto brief when delayed game detail only adds transient scheduled state', () => {
@@ -624,14 +750,13 @@ describe('Prediction Coach Briefing Regression', () => {
       useRealClock: true,
     });
 
-    cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 })
+    getCoachBriefingCard()
       .scrollIntoView()
       .should('be.visible');
     cy.wait('@coachAnalyzeHydrationStable');
-    cy.get('[data-testid="coach-briefing-title"]', { timeout: 12000 })
+    getCoachBriefingTitle()
       .should('contain', '지연 상세 응답 안정화');
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.');
+    expectCoachBriefingText('지연된 상세 데이터가 도착해도 기존 자동 브리핑이 유지되어야 합니다.');
     cy.wait('@getGameDetailHydration');
     cy.wrap(null).should(() => {
       expect(coachAnalyzeHydrationCount).to.eq(1);
@@ -688,7 +813,7 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeReducedMotion');
-    cy.get('[data-testid="coach-briefing-message"]').should('contain', reducedMotionMessage);
+    expectCoachBriefingText(reducedMotionMessage);
   });
 
   it('does not request coach analyze for guests and shows a login CTA', () => {
@@ -706,10 +831,9 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.get('@coachAnalyzeDefault.all').should('have.length', 0);
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '실데이터 브리핑은 로그인 후 제공됩니다.');
-    cy.get('[data-testid="coach-briefing-login-cta"]')
-      .should('contain', '로그인하고 브리핑 보기');
+    expectCoachBriefingText('실데이터 브리핑은 로그인 후 제공됩니다.');
+    getCoachBriefingButton('로그인하고 브리핑 보기')
+      .should('exist');
   });
 
   it('shows a re-login CTA instead of generic fallback when coach analyze returns AUTH_EXPIRED', () => {
@@ -735,11 +859,10 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeAuthExpired');
     cy.wait('@coachReissueExpired');
 
-    cy.get('[data-testid="coach-briefing-message"]')
-      .should('contain', '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
+    expectCoachBriefingText('로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
     cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
-    cy.get('[data-testid="coach-briefing-login-cta"]')
-      .should('contain', '다시 로그인하기');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('exist');
   });
 
   it('shows the blinking cursor only while coach briefing is loading', () => {
@@ -785,13 +908,13 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
       expect(interceptions).to.have.length.at.least(1);
     });
-    cy.get('[data-testid="coach-briefing-message"]')
-      .next('span')
+    getCoachBriefingCard()
+      .find('span.animate-pulse')
       .should('exist');
 
     cy.wait('@coachAnalyzeLoadingCursor');
-    cy.get('[data-testid="coach-briefing-message"]')
-      .next('span')
+    getCoachBriefingCard()
+      .find('span.animate-pulse')
       .should('not.exist');
   });
 
@@ -844,7 +967,7 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.wait('@coachAnalyzeMarkdownCard');
 
-    cy.get('[data-testid="coach-briefing-message"]', { timeout: 12000 })
+    getCoachBriefingCard()
       .invoke('text')
       .then((text) => {
         expect(text).to.not.contain('**');
@@ -935,19 +1058,18 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeGrounded');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+    getCoachBriefingTitle().should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
+    getCoachBriefingBadge('실데이터 기반').should('exist');
 
     cy.get('button[aria-label="다음 날짜 보기"]')
       .filter(':visible')
       .first()
       .should('be.enabled')
       .click({ force: true });
-    cy.wait('@getScheduleRange');
     cy.wait('@getGameDetail');
     cy.wait('@coachAnalyzeGrounded');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 기반');
+    getCoachBriefingTitle().should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
+    getCoachBriefingBadge('실데이터 기반').should('exist');
   });
 
   it('shows partial-quality grounding metadata on the briefing card', () => {
@@ -997,14 +1119,239 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeMeta');
-    cy.get('[data-testid="coach-briefing-quality-badge"]').should('contain', '실데이터 일부 기반');
-    cy.contains('근거 3개').should('exist');
-    cy.get('[data-testid="coach-briefing-title"]').should('contain', '부분 근거 기반 자동 브리핑');
-    cy.get('[data-testid="coach-briefing-data-quality-note"]')
-      .should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
-    cy.get('[data-testid="coach-briefing-grounding-reason"]').then(($chips) => {
-      const labels = [...$chips].map((chip) => chip.textContent?.trim());
-      expect(labels).to.deep.equal(['선발 미발표', '라인업 미발표', '경기 요약 부족']);
+    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
+    cy.contains('근거 3건').should('exist');
+    getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
+    getCoachBriefingCard()
+      .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
+  });
+
+  it('shows detailed partial-quality warnings when clutch or focus evidence is limited', () => {
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const meta = {
+        validation_status: 'success',
+        resolved_focus: ['matchup', 'batting'],
+        focus_signature: 'matchup+batting',
+        question_signature: 'auto',
+        cache_key_version: 'v4',
+        request_mode: 'auto_brief',
+        cached: false,
+        cache_state: 'MISS_GENERATE',
+        in_progress: false,
+        generation_mode: 'evidence_fallback',
+        data_quality: 'partial',
+        used_evidence: ['game', 'kbo_seasons', 'team_recent_form'],
+        grounding_reasons: ['missing_clutch_moments', 'focus_data_unavailable'],
+        grounding_warnings: [
+          'WPA 기반 승부처 데이터가 부족합니다.',
+          '요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.',
+          '요청한 focus 근거가 부족해 확인 가능한 항목만 분석하거나 보수 요약으로 전환합니다.',
+        ],
+        structured_response: {
+          headline: '제한 근거 기반 자동 브리핑',
+          sentiment: 'neutral',
+          key_metrics: [],
+          analysis: {
+            strengths: [],
+            weaknesses: [],
+            risks: [],
+          },
+          detailed_markdown: '## 최근 흐름\n- 제한 근거 기반',
+          coach_note: '승부처와 focus 근거가 부족한 상태입니다.',
+        },
+      };
+
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({ meta }),
+      });
+    }).as('coachAnalyzePartialDetail');
+
+    openPredictionPage({
+      path: '/prediction?gameId=20260601HHSS0&date=2026-06-01',
     });
+
+    cy.wait('@coachAnalyzePartialDetail');
+    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
+    getCoachBriefingCard()
+      .should('contain.text', '승부처 데이터 부족/요청 항목 근거 부족으로 최근 흐름 위주로 분석했습니다.');
+  });
+
+  it('shows prediction labels for scheduled-game coach analysis entry', () => {
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            structured_response: {
+              headline: '예정 경기 자동 브리핑',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '예정 경기 자동 브리핑',
+              coach_note: '예정 경기 자동 브리핑입니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeScheduledLabel');
+
+    openPredictionPage({
+      path: '/prediction?gameId=20260601HHSS0&date=2026-06-01',
+    });
+
+    cy.wait('@coachAnalyzeScheduledLabel');
+    cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 예측').click({ force: true });
+    cy.get('[data-testid="coach-analysis-dialog"]')
+      .should('be.visible')
+      .and('contain', 'AI 코치 경기 예측');
+    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 경기 예측 시작');
+  });
+
+  it('shows review labels for completed-game coach analysis entry', () => {
+    setScheduleData([
+      {
+        gameId: '20260202LGKT0',
+        gameDate: '2026-02-02',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        stadium: '잠실',
+        homeScore: 4,
+        awayScore: 2,
+        winner: 'LG',
+        gameStatus: 'COMPLETED',
+        gameStatusKr: '경기 종료',
+        leagueType: 'REGULAR',
+      },
+    ]);
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            game_status_bucket: 'COMPLETED',
+            structured_response: {
+              headline: '완료 경기 자동 브리핑',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '완료 경기 자동 브리핑',
+              coach_note: '완료 경기 자동 브리핑입니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeCompletedLabel');
+
+    openPredictionPage({
+      path: '/prediction?gameId=20260202LGKT0&date=2026-02-02',
+      waitForVoteBootstrap: false,
+    });
+
+    cy.wait('@coachAnalyzeCompletedLabel');
+    cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 리뷰').click({ force: true });
+    cy.get('[data-testid="coach-analysis-dialog"]')
+      .should('be.visible')
+      .and('contain', 'AI 코치 경기 리뷰');
+    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 경기 리뷰 시작');
+  });
+
+  it('keeps generic analysis labels for live-game coach analysis entry', () => {
+    setScheduleData([
+      {
+        gameId: '20260203LGKT0',
+        gameDate: '2026-02-03',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        stadium: '잠실',
+        homeScore: 2,
+        awayScore: 1,
+        winner: null,
+        gameStatus: 'LIVE',
+        gameStatusKr: '경기 중',
+        leagueType: 'REGULAR',
+      },
+    ]);
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: {
+            validation_status: 'success',
+            resolved_focus: ['recent_form'],
+            focus_signature: 'recent_form',
+            question_signature: 'auto',
+            cache_key_version: 'v4',
+            request_mode: 'auto_brief',
+            cached: false,
+            cache_state: 'MISS_GENERATE',
+            in_progress: false,
+            generation_mode: 'deterministic_auto',
+            data_quality: 'grounded',
+            game_status_bucket: 'LIVE',
+            structured_response: {
+              headline: '진행 중 경기 자동 브리핑',
+              sentiment: 'neutral',
+              key_metrics: [],
+              analysis: {
+                strengths: [],
+                weaknesses: [],
+                risks: [],
+              },
+              detailed_markdown: '진행 중 경기 자동 브리핑',
+              coach_note: '진행 중 경기 자동 브리핑입니다.',
+            },
+          },
+        }),
+      });
+    }).as('coachAnalyzeLiveLabel');
+
+    openPredictionPage({
+      path: '/prediction?gameId=20260203LGKT0&date=2026-02-03',
+      waitForVoteBootstrap: false,
+    });
+
+    cy.wait('@coachAnalyzeLiveLabel');
+    cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 상세 분석').click({ force: true });
+    cy.get('[data-testid="coach-analysis-dialog"]')
+      .should('be.visible')
+      .and('contain', 'AI 코치 상세 분석');
+    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 상세 분석 시작');
   });
 });

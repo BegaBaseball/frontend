@@ -10,6 +10,7 @@ export interface Party {
   hostAverageRating: number | null;
   hostReviewCount: number;
   teamId: string;
+  cheeringSide?: CheeringSide | null;
   gameDate: string;
   gameTime: string;
   stadium: string;
@@ -35,6 +36,9 @@ export type PartyStatus =
   | 'SOLD'
   | 'CHECKED_IN'
   | 'COMPLETED';
+
+export type MatePartySortBy = 'createdAt' | 'gameDate' | 'currentParticipants';
+export type MatePartySortDir = 'asc' | 'desc';
 
 export interface Application {
   id: number;
@@ -84,10 +88,12 @@ export interface ChatMessage {
   senderName: string;
   message: string;
   imageUrl?: string;
+  clientMessageId?: string;
   createdAt: string;
 }
 
 export type BadgeType = 'NEW' | 'VERIFIED' | 'TRUSTED';
+export type CheeringSide = 'HOME' | 'AWAY' | 'NEUTRAL';
 
 // MateParty: 히스토리/목록용 간소화 타입 (Party의 서브셋)
 export interface MateParty {
@@ -95,6 +101,7 @@ export interface MateParty {
   hostId?: number;
   hostHandle?: string;
   teamId: string;
+  cheeringSide?: CheeringSide | null;
   stadium: string;
   gameDate: string;
   gameTime: string;
@@ -124,18 +131,18 @@ export type MateHistoryTab = 'all' | 'completed' | 'ongoing';
 // --- Request Types (matching backend DTOs) ---
 
 export interface CreatePartyRequest {
-  teamId: string;
   gameDate: string;
   gameTime: string;
   stadium: string;
   homeTeam: string;
   awayTeam: string;
+  cheeringSide: CheeringSide;
   section: string;
   maxParticipants: number;
   description: string;
-  ticketImageUrl?: string | null;
   ticketPrice?: number;
   reservationNumber?: string;
+  verificationToken: string;
 }
 
 export interface UpdatePartyRequest {

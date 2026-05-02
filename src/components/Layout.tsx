@@ -57,7 +57,7 @@ export default function Layout({ authenticated = true }: LayoutProps) {
       ) : (
         <PublicNavbar />
       )}
-      <main className="min-h-screen bg-background text-foreground transition-colors duration-200">
+      <main className="min-h-screen bg-background text-base font-sans leading-relaxed text-foreground antialiased transition-colors duration-200">
         <Outlet /> {/* 자식 라우트 컴포넌트가 렌더링될 위치 */}
       </main>
       {isFooterRequested ? (

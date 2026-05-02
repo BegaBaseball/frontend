@@ -91,9 +91,10 @@ describe('My Page (User Profile)', () => {
         }).as('getMeInitial');
 
         visitMyPage();
-        cy.wait('@getMeInitial');
-        cy.wait(300);
-        // Wait for profile readiness
+        // Note: getMeInitial alias may not fire when commands.ts mockAPI registers
+        // an overlapping `**/auth/mypage*` intercept first; LIFO matching prefers the
+        // later (test-local) intercept but its alias is occasionally not bound in time.
+        // Content-based readiness wait below is sufficient and more robust.
         cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
     });
 
@@ -143,7 +144,16 @@ describe('My Page (User Profile)', () => {
         });
 
         it('should apply uploaded image immediately after save', () => {
-            const updatedProfileImage = uploadedProfileImage;
+            const updatedProfileImage = '/mock/profile-avatar.svg';
+            const uploadedProfileStoragePath = 'media/profile/123/31.webp';
+
+            cy.intercept('GET', updatedProfileImage, {
+                statusCode: 200,
+                headers: {
+                    'content-type': 'image/svg+xml',
+                },
+                body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#16a34a"/></svg>',
+            }).as('getUpdatedProfileImage');
 
             cy.intercept('GET', '**/api/auth/mypage*', {
                 statusCode: 200,
@@ -161,22 +171,44 @@ describe('My Page (User Profile)', () => {
                 },
             }).as('getMeWithUpdatedImage');
 
-            cy.intercept('POST', '**/api/profile/image', {
+            cy.intercept('POST', '**/api/media/uploads/init', (req) => {
+                expect(req.body.domain).to.eq('PROFILE');
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        success: true,
+                        data: {
+                            assetId: 31,
+                            uploadUrl: 'https://object.example.com/upload/profile-31',
+                            stagingObjectKey: 'media/staging/profile/123/31-avatar.png',
+                            expiresAt: '2026-04-14T00:00:00Z',
+                            requiredHeaders: {
+                                'Content-Type': 'image/png',
+                            },
+                        },
+                    },
+                });
+            }).as('initProfileUpload');
+
+            cy.intercept('PUT', 'https://object.example.com/upload/profile-31', {
+                statusCode: 200,
+                body: '',
+            }).as('putProfileUpload');
+
+            cy.intercept('POST', '**/api/media/uploads/31/finalize', {
                 statusCode: 200,
                 body: {
                     success: true,
                     data: {
-                        userId: 1,
-                        storagePath: 'users/avatars/test-profile.png',
+                        assetId: 31,
+                        storagePath: uploadedProfileStoragePath,
                         publicUrl: updatedProfileImage,
-                        mimeType: 'image/png',
-                        bytes: 1234,
                     },
                 },
-            }).as('uploadProfileImage');
+            }).as('finalizeProfileUpload');
 
             cy.intercept('PUT', '**/api/auth/mypage', (req) => {
-                expect(req.body.profileImageUrl).to.eq(updatedProfileImage);
+                expect(req.body.profileImageUrl).to.eq(uploadedProfileStoragePath);
                 req.reply({
                     statusCode: 200,
                     body: {
@@ -196,21 +228,33 @@ describe('My Page (User Profile)', () => {
             cy.contains('내 정보 수정').click();
             cy.url().should('include', 'view=editProfile');
 
-            cy.get('input[type="file"]').selectFile({
-                contents: Cypress.Buffer.from('avatar image'),
-                fileName: 'avatar.png',
-                mimeType: 'image/png',
-            }, { force: true });
+            cy.fixture('tiny-image.base64').then((base64) => {
+                cy.get('[data-testid="profile-image-upload-input"]').selectFile({
+                    contents: Cypress.Buffer.from(base64, 'base64'),
+                    fileName: 'avatar.png',
+                    mimeType: 'image/png',
+                }, { force: true });
+            });
 
-            cy.contains('button', '저장하기').click();
+            cy.contains('이미지가 선택되었습니다. 저장 버튼을 눌러주세요.').should('be.visible');
+            cy.contains('저장되지 않은 변경사항이 있습니다.').should('be.visible');
+            cy.get('[data-testid="profile-avatar-image"]')
+                .should('have.attr', 'src')
+                .and('include', 'blob:');
+            cy.contains('button', '저장하기').should('not.be.disabled').click();
 
-            cy.wait('@uploadProfileImage');
+            cy.wait('@initProfileUpload');
+            cy.wait('@putProfileUpload');
+            cy.wait('@finalizeProfileUpload');
             cy.wait('@updateProfile');
             cy.wait('@getMeWithUpdatedImage');
 
             cy.contains('변경사항이 적용되었습니다').should('be.visible');
             cy.url().should('include', '/mypage');
-            cy.get('[data-testid="profile-avatar-image"]').should('have.attr', 'src', updatedProfileImage);
+            cy.url().should('not.include', 'view=editProfile');
+            cy.contains('button', '메이트 내역').should('be.visible');
+            cy.wait('@getUpdatedProfileImage');
+            cy.get('[data-testid="profile-avatar-image"]', { timeout: 20000 }).should('have.attr', 'src', updatedProfileImage);
         });
 
         it('should not send profileImageUrl when image is not changed', () => {

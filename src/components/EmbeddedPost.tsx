@@ -1,13 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { formatTimeAgo } from '../utils/time';
-import { Trash2 } from 'lucide-react';
 import { OptimizedImage } from './common/OptimizedImage';
+import { TrashIcon } from './icons/CheerIcons';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface EmbeddedPostProps {
     post: EmbeddedPostType;
     onClick?: () => void;
     className?: string;
+}
+
+function resolveProfileImage(imageUrl?: string) {
+    if (!imageUrl) return null;
+    if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
+    return imageUrl;
 }
 
 export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostProps) {
@@ -29,8 +36,8 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                 className="mt-3 rounded-xl border border-dashed border-gray-200 dark:border-border bg-gray-50 dark:bg-card/50 p-4"
             >
                 <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
-                    <Trash2 className="h-4 w-4" />
-                    <span className="text-sm">삭제된 게시글입니다</span>
+                    <TrashIcon className="h-4 w-4" />
+                    <span className="text-[16px] font-semibold">삭제된 게시글입니다</span>
                 </div>
             </div>
         );
@@ -40,6 +47,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
     const previewContent = post.content?.length > 100
         ? post.content.slice(0, 100) + '...'
         : post.content || '';
+    const authorProfileImageUrl = resolveProfileImage(post.authorProfileImageUrl);
 
     return (
         <div
@@ -52,24 +60,22 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
         >
             {/* 작성자 정보 */}
             <div className="flex items-center gap-2 mb-2">
-                <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary overflow-hidden flex-shrink-0">
-                    {post.authorProfileImageUrl ? (
-                        <OptimizedImage
-                            src={post.authorProfileImageUrl}
+                        <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-secondary overflow-hidden flex-shrink-0">
+                    {authorProfileImageUrl ? (
+                        <ProfileAvatar
+                            src={authorProfileImageUrl}
                             alt={post.author}
-                            className="h-full w-full object-cover block image-render-quality"
-                            loading="lazy"
+                            fallbackName={post.author}
                             width={24}
                             height={24}
-                            sizes="24px"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center text-xs font-medium text-slate-500 dark:text-gray-300">
+                        <div className="h-full w-full flex items-center justify-center text-[16px] font-semibold text-slate-500 dark:text-gray-300">
                             {post.author?.slice(0, 1) || '?'}
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-1.5 text-sm min-w-0">
+                    <div className="flex items-center gap-1.5 text-[16px] font-semibold min-w-0">
                     <span className="font-semibold text-gray-900 dark:text-white truncate">
                         {post.author}
                     </span>
@@ -81,7 +87,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
 
             {/* 본문 미리보기 */}
             {previewContent && (
-                <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                <p className="text-[16px] font-semibold text-gray-600 dark:text-gray-300 line-clamp-2">
                     {previewContent}
                 </p>
             )}
@@ -99,8 +105,8 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                         sizes="(max-width: 1024px) 100vw, 320px"
                     />
                     {post.imageUrls.length > 1 && (
-                        <div className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                            +{post.imageUrls.length - 1}
+                        <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[16px] px-1.5 py-0.5 rounded">
+                          +{post.imageUrls.length - 1}
                         </div>
                     )}
                 </div>

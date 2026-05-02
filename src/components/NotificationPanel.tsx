@@ -1,11 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Bell, MessageCircle, MessageSquare, Heart, UserPlus, FileText, Repeat2, Trash2, CheckCheck, Clock, Calendar, AlertTriangle, Star, ShieldAlert } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthSession } from '../store/authStore';
 import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
 import { NotificationData as Notification, NotificationType } from '../types/notification';
+import {
+  NotificationAlertTriangleIcon,
+  NotificationBellIcon,
+  NotificationCalendarIcon,
+  NotificationCheckCheckIcon,
+  NotificationCheckIcon,
+  NotificationClockIcon,
+  NotificationCloseIcon,
+  NotificationFileTextIcon,
+  NotificationHeartIcon,
+  NotificationMessageCircleIcon,
+  NotificationMessageSquareIcon,
+  NotificationRepeatIcon,
+  NotificationShieldAlertIcon,
+  NotificationStarIcon,
+  NotificationTrashIcon,
+  NotificationUserPlusIcon,
+} from './NotificationIcons';
 
 type TabType = 'ALL' | 'MATE' | 'CHEER';
 
@@ -18,7 +35,10 @@ export default function NotificationPanel() {
   const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
-  const unreadCount = notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0);
+  const unreadCount = useMemo(
+    () => notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0),
+    [notifications],
+  );
 
   // 패널이 열릴 때 1회 fetch (WebSocket push가 이후 업데이트를 담당)
   useEffect(() => {
@@ -84,23 +104,23 @@ export default function NotificationPanel() {
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
-      case 'APPLICATION_RECEIVED': return <Bell className="w-5 h-5 text-blue-500" />;
-      case 'APPLICATION_APPROVED': return <Check className="w-5 h-5 text-green-500" />;
-      case 'APPLICATION_REJECTED': return <X className="w-5 h-5 text-red-500" />;
-      case 'PARTY_EXPIRED': return <AlertTriangle className="w-5 h-5 text-orange-500" />;
-      case 'PARTY_AUTO_COMPLETED': return <Check className="w-5 h-5 text-gray-500" />;
-      case 'GAME_TOMORROW_REMINDER': return <Calendar className="w-5 h-5 text-blue-500" />;
-      case 'GAME_DAY_REMINDER': return <Calendar className="w-5 h-5 text-green-500" />;
-      case 'HOST_RESPONSE_NUDGE': return <Clock className="w-5 h-5 text-orange-500" />;
-      case 'REVIEW_REQUEST': return <Star className="w-5 h-5 text-yellow-500" />;
-      case 'POST_COMMENT': return <MessageCircle className="w-5 h-5 text-blue-500" />;
-      case 'COMMENT_REPLY': return <MessageSquare className="w-5 h-5 text-purple-500" />;
-      case 'POST_LIKE': return <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />;
-      case 'POST_REPOST': return <Repeat2 className="w-5 h-5 text-emerald-500" />;
-      case 'NEW_FOLLOWER': return <UserPlus className="w-5 h-5 text-green-500" />;
-      case 'FOLLOWING_NEW_POST': return <FileText className="w-5 h-5 text-blue-500" />;
-      case 'NEW_DEVICE_LOGIN': return <ShieldAlert className="w-5 h-5 text-red-500" />;
-      default: return <Bell className="w-5 h-5 text-gray-500" />;
+      case 'APPLICATION_RECEIVED': return <NotificationBellIcon className="w-5 h-5 text-blue-500" />;
+      case 'APPLICATION_APPROVED': return <NotificationCheckIcon className="w-5 h-5 text-green-500" />;
+      case 'APPLICATION_REJECTED': return <NotificationCloseIcon className="w-5 h-5 text-red-500" />;
+      case 'PARTY_EXPIRED': return <NotificationAlertTriangleIcon className="w-5 h-5 text-orange-500" />;
+      case 'PARTY_AUTO_COMPLETED': return <NotificationCheckIcon className="w-5 h-5 text-gray-500" />;
+      case 'GAME_TOMORROW_REMINDER': return <NotificationCalendarIcon className="w-5 h-5 text-blue-500" />;
+      case 'GAME_DAY_REMINDER': return <NotificationCalendarIcon className="w-5 h-5 text-green-500" />;
+      case 'HOST_RESPONSE_NUDGE': return <NotificationClockIcon className="w-5 h-5 text-orange-500" />;
+      case 'REVIEW_REQUEST': return <NotificationStarIcon className="w-5 h-5 text-yellow-500" />;
+      case 'POST_COMMENT': return <NotificationMessageCircleIcon className="w-5 h-5 text-blue-500" />;
+      case 'COMMENT_REPLY': return <NotificationMessageSquareIcon className="w-5 h-5 text-purple-500" />;
+      case 'POST_LIKE': return <NotificationHeartIcon className="w-5 h-5 text-pink-500 fill-pink-500" />;
+      case 'POST_REPOST': return <NotificationRepeatIcon className="w-5 h-5 text-emerald-500" />;
+      case 'NEW_FOLLOWER': return <NotificationUserPlusIcon className="w-5 h-5 text-green-500" />;
+      case 'FOLLOWING_NEW_POST': return <NotificationFileTextIcon className="w-5 h-5 text-blue-500" />;
+      case 'NEW_DEVICE_LOGIN': return <NotificationShieldAlertIcon className="w-5 h-5 text-red-500" />;
+      default: return <NotificationBellIcon className="w-5 h-5 text-gray-500" />;
     }
   };
 
@@ -157,12 +177,12 @@ export default function NotificationPanel() {
   };
 
   // Filter and then Group
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = useMemo(() => notifications.filter(n => {
     if (activeTab === 'ALL') return true;
     if (activeTab === 'MATE') return ['APPLICATION_RECEIVED', 'APPLICATION_APPROVED', 'APPLICATION_REJECTED', 'PARTY_EXPIRED', 'PARTY_AUTO_COMPLETED', 'GAME_TOMORROW_REMINDER', 'GAME_DAY_REMINDER', 'HOST_RESPONSE_NUDGE', 'REVIEW_REQUEST'].includes(n.type);
     if (activeTab === 'CHEER') return ['POST_COMMENT', 'COMMENT_REPLY', 'POST_LIKE', 'POST_REPOST', 'NEW_FOLLOWER', 'FOLLOWING_NEW_POST'].includes(n.type);
     return true;
-  });
+  }), [notifications, activeTab]);
 
   const groupedNotifications = groupNotifications(filteredNotifications);
 
@@ -177,7 +197,7 @@ export default function NotificationPanel() {
                 type="button"
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-xs font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
+                className={`text-[16px] font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -190,9 +210,9 @@ export default function NotificationPanel() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
+                className="flex items-center gap-1 text-[16px] text-gray-400 hover:text-primary transition-colors"
               >
-              <CheckCheck className="w-3 h-3" />
+              <NotificationCheckCheckIcon className="w-3 h-3" />
               모두 읽음
             </button>
           )}
@@ -203,12 +223,12 @@ export default function NotificationPanel() {
         {filteredNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="bg-gray-100 dark:bg-secondary p-6 rounded-full mb-4">
-              <Bell className="w-8 h-8 text-gray-400 dark:text-gray-300" />
+              <NotificationBellIcon className="w-8 h-8 text-gray-400 dark:text-gray-300" />
             </div>
             <p className="text-gray-900 dark:text-gray-100 font-bold mb-1">
               새로운 알림이 없습니다
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-300">
+            <p className="text-[16px] text-gray-500 dark:text-gray-300">
               {activeTab === 'ALL' ? '새로운 소식이 도착하면 알려드릴게요!' : '해당 카테고리의 알림이 없습니다.'}
             </p>
           </div>
@@ -217,7 +237,7 @@ export default function NotificationPanel() {
             {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
               groupNotifs.length > 0 && (
                 <div key={groupName}>
-                  <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[16px] font-bold text-gray-400 uppercase tracking-wider">
                     {groupName}
                   </div>
                   {groupNotifs.map((notification) => (
@@ -241,14 +261,14 @@ export default function NotificationPanel() {
                           {/* Content Area */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
-                              <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate pr-2">
+                              <h4 className="text-[16px] font-bold text-gray-900 dark:text-gray-100 truncate pr-2">
                                 {notification.title}
                               </h4>
-                              <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
+                                <span className="text-[16px] text-gray-400 whitespace-nowrap flex-shrink-0">
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                            <p className="text-[16px] text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
                               {renderMessageWithBold(notification.message)}
                             </p>
                           </div>
@@ -265,7 +285,7 @@ export default function NotificationPanel() {
                 className="absolute bottom-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200"
                 title="알림 삭제"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <NotificationTrashIcon className="w-4 h-4" />
                           </button>
                         </div>
                     </div>

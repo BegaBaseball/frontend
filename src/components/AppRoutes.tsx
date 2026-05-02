@@ -9,6 +9,7 @@ const AdminRoute = lazy(() => import('./AdminRoute'));
 const Home = lazy(() => import('./Home'));
 const OffSeasonHomePage = lazy(() => import('./OffSeasonHomePage'));
 const OffSeasonListPage = lazy(() => import('./OffSeasonListPage'));
+const PublicOnlyAuthRoute = lazy(() => import('./PublicOnlyAuthRoute'));
 const Login = lazy(() => import('./Login'));
 const SignUp = lazy(() => import('./SignUp'));
 const PasswordReset = lazy(() => import('./PasswordReset'));
@@ -28,6 +29,7 @@ const MateCheckInPage = lazy(() => import('./MateCheckInPage'));
 const MateChatPage = lazy(() => import('./MateChatPage'));
 const MateManagePage = lazy(() => import('./MateManagePage'));
 const MyPage = lazy(() => import('./MyPage'));
+const DirectMessagePage = lazy(() => import('./DirectMessagePage'));
 const UserProfilePage = lazy(() => import('./profile/UserProfilePage'));
 const AdminPagePage = lazy(() => import('./AdminPagePage'));
 const RankingPredictionSharePage = lazy(() => import('./RankingPredictionSharePage'));
@@ -38,15 +40,18 @@ const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
+const SchedulePage = lazy(() => import('../pages/SchedulePage'));
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/password/reset" element={<PasswordReset />} />
-      <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
-      <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
+      <Route element={<PublicOnlyAuthRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/password/reset" element={<PasswordReset />} />
+        <Route path="/password/reset/confirm" element={<PasswordResetConfirm />} />
+        <Route path="/account/deletion/recovery" element={<AccountDeletionRecovery />} />
+      </Route>
       <Route path="/oauth/callback" element={<OAuthCallback />} />
 
       <Route path="/" element={<RootEntryRoute />} />
@@ -67,12 +72,13 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/mate" element={<MatePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>
           <Route element={<ProtectedRoute />}>
             <Route path="/mate/:id" element={<MateDetail />} />
-            <Route path="/mate" element={<MatePage />} />
             <Route path="/cheer/bookmarks" element={<CheerBookmarksPage />} />
             <Route path="/cheer/edit/:postId" element={<CheerEditPage />} />
             <Route path="/mate/create" element={<MateCreatePage />} />
@@ -82,6 +88,7 @@ export default function AppRoutes() {
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/mypage/:handle" element={<MyPage />} />
+            <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
 
           <Route element={<AdminRoute />}>

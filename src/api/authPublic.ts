@@ -59,7 +59,6 @@ const SIGNUP_SUBMIT_TIMEOUT_MS = 20_000;
 const SIGNUP_POLICY_TIMEOUT_MESSAGE = '필수 정책 정보를 불러오는 중 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
 const SIGNUP_SUBMIT_TIMEOUT_MESSAGE = '회원가입 요청 처리에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요. 같은 이메일이 이미 가입되었는지도 확인해주세요.';
 const SIGNUP_HANDLE_CHECK_ERROR_MESSAGE = '핸들 중복 확인에 실패했습니다.';
-const SIGNUP_EMAIL_CHECK_ERROR_MESSAGE = '이메일 중복 확인에 실패했습니다.';
 
 export class SignUpSubmissionError extends Error {
   field?: SignUpConflictField;
@@ -267,16 +266,8 @@ export const checkSignUpHandleAvailability = async (
   SIGNUP_HANDLE_CHECK_ERROR_MESSAGE,
 );
 
-export const checkSignUpEmailAvailability = async (
-  email: string,
-  signal?: AbortSignal,
-): Promise<SignUpAvailabilityResponse> => checkSignUpAvailability(
-  '/auth/check-email',
-  'email',
-  email,
-  signal,
-  SIGNUP_EMAIL_CHECK_ERROR_MESSAGE,
-);
+// [Security Fix - Critical #3] User Enumeration 방지를 위해 /auth/check-email 엔드포인트가 제거되었다.
+// 이메일 중복 여부는 회원가입 요청 시 백엔드의 DUPLICATE_EMAIL 응답으로만 확인한다.
 
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {

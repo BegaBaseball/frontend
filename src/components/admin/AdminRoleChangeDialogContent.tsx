@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { ReactNode } from 'react';
-import { UserCog } from 'lucide-react';
 
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import { Button } from '../ui/button';
+import { AdminUserCogIcon } from './AdminPanelIcons';
 
 interface PendingRoleChangeLike {
   userId: number;
@@ -23,14 +23,6 @@ interface AdminRoleChangeDialogContentProps {
   onConfirm: () => Promise<void> | void;
 }
 
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
-}
-
 export default function AdminRoleChangeDialogContent({
   open,
   pendingRoleChange,
@@ -45,26 +37,26 @@ export default function AdminRoleChangeDialogContent({
       onClose={() => onOpenChange(false)}
       title={(
         <span className="flex items-center gap-2 text-white">
-          <UserCog className="w-5 h-5 text-amber-400" />
+          <AdminUserCogIcon className="w-5 h-5 text-amber-400" />
           역할 변경 확인
         </span>
       )}
       description={(
         <span className="space-y-2 text-slate-400">
           <span className="block">
-            <span className="text-slate-200 font-medium">{pendingRoleChange?.userName}</span>
+            <span className="text-slate-200 font-semibold">{pendingRoleChange?.userName}</span>
             {' '}({pendingRoleChange?.userEmail}) 의 역할을 변경합니다.
           </span>
-          <span className="flex items-center gap-2 text-sm">
-            <AdminBadge className="bg-slate-700 text-slate-300 border-0 text-xs">
+          <span className="flex items-center gap-2 text-[14px]">
+            <AdminBadge className="bg-slate-700 text-slate-300 border-0">
               {pendingRoleChange?.currentRole === 'ROLE_ADMIN' ? '관리자' : '일반 사용자'}
             </AdminBadge>
             <span className="text-slate-500">→</span>
             <AdminBadge
               className={
                 pendingRoleChange?.targetRole === 'ROLE_ADMIN'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs'
-                  : 'bg-slate-700 text-slate-300 border-0 text-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0'
+                  : 'bg-slate-700 text-slate-300 border-0'
               }
             >
               {pendingRoleChange?.targetRole === 'ROLE_ADMIN' ? '관리자' : '일반 사용자'}
@@ -98,7 +90,7 @@ export default function AdminRoleChangeDialogContent({
       )}
     >
       <div className="px-1 pb-2">
-          <label className="block text-sm text-slate-400 mb-1">변경 사유 (선택)</label>
+          <label className="block text-[14px] text-slate-400 mb-1">변경 사유 (선택)</label>
           <Input
             data-testid="admin-role-change-reason"
             placeholder="역할 변경 사유를 입력하세요..."

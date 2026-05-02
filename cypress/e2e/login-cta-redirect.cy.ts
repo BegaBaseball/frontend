@@ -42,6 +42,17 @@ describe('Login CTA redirect preservation', () => {
         cy.location('search').should('eq', '?redirect=%2Fterms');
     });
 
+    it('shows inline mate login entry and preserves mate redirect', () => {
+        cy.viewport(390, 844);
+        visitAsGuest('/mate');
+
+        cy.get('[data-testid="mate-logged-out-entry"]').should('be.visible');
+        cy.contains('로그인 필요').should('not.exist');
+        cy.get('[data-testid="mate-login-cta"]').click();
+        cy.location('pathname').should('eq', '/login');
+        cy.location('search').should('eq', '?redirect=%2Fmate');
+    });
+
     it('stores the current mate chat page as the pending redirect on a protected route', () => {
         visitAsGuest('/mate/888/chat');
 

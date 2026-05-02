@@ -54,7 +54,6 @@ test('fetchUserPostsByHandle는 공개 유저 게시글 경로를 same-origin fe
 
   assert.equal(response.content[0]?.authorHandle, '@slug');
   assert.equal(response.content[0]?.authorId, undefined);
-  assert.match(requestUrl, /\/api\/cheer\/user\/%40slug\/posts\?page=0&size=20$/);
+  assert.match(requestUrl, /\/api\/cheer\/user\/slug\/posts\?page=0&size=20$/);
   assert.equal(requestInit?.credentials, 'include');
 });
-

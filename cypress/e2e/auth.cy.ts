@@ -85,6 +85,43 @@ describe('Authentication Flow', () => {
             });
         });
 
+        it('should replace login history after successful login so back does not reopen login', () => {
+            cy.fixture('user').then((user) => {
+                cy.visit('/home');
+                cy.contains('button', '로그인').first().click();
+                cy.location('pathname').should('eq', '/login');
+
+                cy.intercept('POST', '**/api/auth/login', {
+                    statusCode: 200,
+                    body: {
+                        success: true,
+                        data: {
+                            accessToken: 'fake-jwt-token',
+                            refreshToken: 'fake-refresh-token',
+                            ...user.testUser,
+                        },
+                    },
+                }).as('loginSuccessHistoryReplace');
+
+                cy.intercept('GET', '**/auth/mypage*', {
+                    statusCode: 200,
+                    body: { success: true, data: user.testUser },
+                }).as('getMeAfterHistoryReplace');
+
+                cy.get('input[type="email"], input[name="email"]').type(user.testUser.email);
+                cy.get('input[type="password"], input[name="password"]').type(user.testUser.password);
+                cy.get('button[type="submit"]').click();
+
+                cy.wait('@loginSuccessHistoryReplace');
+                cy.wait('@getMeAfterHistoryReplace');
+                cy.location('pathname').should('eq', '/home');
+
+                cy.go('back');
+                cy.location('pathname').should('eq', '/home');
+                cy.get('input[type="email"], input[name="email"]').should('not.exist');
+            });
+        });
+
         it('should keep the user signed in after reloading a protected page while bootstrap reissues the session', () => {
             cy.fixture('user').then((user) => {
                 let profileRequestCount = 0;
@@ -189,6 +226,25 @@ describe('Authentication Flow', () => {
             });
         });
 
+        it('should redirect authenticated auth-page entry to the redirect target on direct visit', () => {
+            cy.visit('/login?redirect=%2Fmypage', {
+                onBeforeLoad(win) {
+                    win.localStorage.setItem('auth-bootstrap-hint', '1');
+                    win.localStorage.setItem('auth-bootstrap-meta', JSON.stringify({
+                        version: 1,
+                        lastSuccessAt: 10_000,
+                        lastFailureAt: null,
+                    }));
+                    win.sessionStorage.setItem('pendingLoginRedirect', '/prediction?date=2026-03-12');
+                },
+            });
+
+            cy.wait('@getMe');
+            cy.location('pathname').should('eq', '/mypage');
+            cy.location('search').should('eq', '');
+            cy.window().its('sessionStorage').invoke('getItem', 'pendingLoginRedirect').should('eq', null);
+        });
+
         it('should preserve redirect when navigating to password reset', () => {
             cy.visit('/login?redirect=%2Fprediction%3Fdate%3D2026-03-12');
 
@@ -217,16 +273,6 @@ describe('Authentication Flow', () => {
                     },
                 },
             }).as('checkHandleAvailable');
-
-            cy.intercept('GET', '**/api/auth/check-email*', {
-                statusCode: 200,
-                body: {
-                    data: {
-                        available: true,
-                        normalized: 'redirect_signup_user@example.com',
-                    },
-                },
-            }).as('checkEmailAvailable');
 
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
@@ -262,11 +308,10 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.tick(500);
             cy.wait('@checkHandleAvailable');
-            cy.wait('@checkEmailAvailable');
-            cy.get('[data-testid="signup-submit"]').should('be.enabled');
+            cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 
@@ -289,16 +334,6 @@ describe('Authentication Flow', () => {
                     },
                 },
             }).as('checkHandleAvailableForFailure');
-
-            cy.intercept('GET', '**/api/auth/check-email*', {
-                statusCode: 200,
-                body: {
-                    data: {
-                        available: true,
-                        normalized: 'signup_failure_user@example.com',
-                    },
-                },
-            }).as('checkEmailAvailableForFailure');
 
             cy.intercept('GET', '**/api/auth/policies/required', {
                 statusCode: 200,
@@ -329,10 +364,9 @@ describe('Authentication Flow', () => {
             cy.get('input#password').type('Test1234!');
             cy.get('input#confirmPassword').type('Test1234!');
 
-            cy.get('[data-testid="signup-favorite-team"]').select('LG 트윈스');
+            cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.wait('@checkHandleAvailableForFailure');
-            cy.wait('@checkEmailAvailableForFailure');
-            cy.get('[data-testid="signup-submit"]').should('be.enabled');
+            cy.get('form').find('button[type="submit"]').first().should('be.enabled');
 
             cy.contains('button', '회원가입').click();
 
@@ -352,17 +386,18 @@ describe('Authentication Flow', () => {
             }).as('getMeUnauthorized');
 
             cy.visit('/mypage');
-            // Instead of redirecting to /login, it shows a dialog
-            cy.contains('로그인 필요').should('be.visible');
+            cy.wait('@getMeUnauthorized');
+            cy.get('[data-testid="prediction-login-required-dialog"]').should('be.visible');
         });
 
         it('should return to the original protected page after login', () => {
             cy.fixture('user').then((user) => {
                 let profileRequestCount = 0;
+                let hasLoggedIn = false;
                 cy.intercept('GET', '**/auth/mypage*', (req) => {
                     profileRequestCount += 1;
 
-                    if (profileRequestCount === 1) {
+                    if (!hasLoggedIn) {
                         req.alias = 'getMeUnauthorizedOnce';
                         req.reply({
                             statusCode: 401,
@@ -378,15 +413,18 @@ describe('Authentication Flow', () => {
                     });
                 });
 
-                cy.intercept('POST', '**/api/auth/login', {
-                    statusCode: 200,
-                    body: {
-                        success: true,
-                        data: {
-                            ...user.testUser,
-                            cheerPoints: 5,
+                cy.intercept('POST', '**/api/auth/login', (req) => {
+                    hasLoggedIn = true;
+                    req.reply({
+                        statusCode: 200,
+                        body: {
+                            success: true,
+                            data: {
+                                ...user.testUser,
+                                cheerPoints: 5,
+                            },
                         },
-                    },
+                    });
                 }).as('loginSuccess');
 
                 cy.clearCookies();
@@ -398,7 +436,7 @@ describe('Authentication Flow', () => {
                     },
                 });
                 cy.wait('@getMeUnauthorizedOnce');
-                cy.contains('로그인 필요').should('be.visible');
+                cy.get('[data-testid="prediction-login-required-dialog"]').should('be.visible');
                 cy.contains('로그인하러 가기').click();
 
                 cy.location('pathname').should('eq', '/login');

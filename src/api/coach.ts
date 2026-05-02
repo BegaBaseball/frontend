@@ -1,4 +1,5 @@
 import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
+import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
 import { requestPrivateReissue } from './privateClient';
 import { consumeSseStream } from './sse';
@@ -7,7 +8,6 @@ import {
     DEFAULT_STREAM_TIMEOUT_MS,
     getStreamRetryDelayMs,
     CHATBOT_STREAM_INCOMPLETE_ERROR,
-    CHATBOT_STREAM_TIMEOUT_ERROR,
     isStreamAbortError,
     isStreamReadTimeoutError,
     isStreamRequestTimeoutError,
@@ -56,6 +56,9 @@ export interface AnalyzeRequest {
 export type CoachRequestMode = 'auto_brief' | 'manual_detail';
 export type CoachGenerationMode = 'deterministic_auto' | 'llm_manual' | 'evidence_fallback';
 export type CoachDataQuality = 'grounded' | 'partial' | 'insufficient';
+export const COACH_MANUAL_STREAM_TIMEOUT_MS = 90000;
+export const COACH_STREAM_CONNECT_TIMEOUT_MESSAGE = 'AI 코치 분석 준비가 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+export const COACH_STREAM_IDLE_TIMEOUT_MESSAGE = 'AI 코치 분석 응답이 일정 시간 이상 멈췄습니다. 잠시 후 다시 시도해주세요.';
 
 export interface AnalyzeRequestBase {
     request_mode: CoachRequestMode;
@@ -177,6 +180,8 @@ export interface CoachAnalyzeResponse {
     grounding_reasons?: string[];
     supported_fact_count?: number;
     game_status_bucket?: string;
+    validation_status?: string;
+    manual_data_request?: ManualBaseballDataRequest;
 }
 
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
@@ -199,17 +204,20 @@ export const getCoachGenerationModeLabel = (value?: CoachGenerationMode): string
         case 'llm_manual':
             return '근거 기반 상세 분석';
         case 'evidence_fallback':
-            return '근거 기반 보수 생성';
+            return '확인 근거 기반';
         default:
-            return '생성 방식 확인 중';
+            return '확인 중';
     }
 };
 
 export interface AnalyzeOptions {
     signal?: AbortSignal;
+    onPreviewChunk?: (text: string, attempt: number) => void;
+    onPreviewReset?: (attempt: number) => void;
+    onStatus?: (status: string) => void;
 }
 
-export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED';
+export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED' | 'STREAM_TIMEOUT';
 
 export class CoachAnalyzeError extends Error {
     code: CoachAnalyzeErrorCode;
@@ -228,6 +236,41 @@ export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError 
 
 const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
     new CoachAnalyzeError('REQUEST_FAILED', message);
+
+const createCoachStreamTimeoutError = (
+    message = COACH_STREAM_CONNECT_TIMEOUT_MESSAGE,
+): CoachAnalyzeError => new CoachAnalyzeError('STREAM_TIMEOUT', message);
+
+interface ParsedCoachErrorPayload {
+    code?: string;
+    detail?: string;
+    message?: string;
+    rawText: string;
+}
+
+const readCoachErrorPayload = async (response: Response): Promise<ParsedCoachErrorPayload> => {
+    const clone = response.clone();
+    const rawText = await clone.text();
+    if (!rawText) {
+        return { rawText };
+    }
+
+    try {
+        const parsed = JSON.parse(rawText) as {
+            code?: unknown;
+            detail?: unknown;
+            message?: unknown;
+        };
+        return {
+            code: typeof parsed.code === 'string' ? parsed.code : undefined,
+            detail: typeof parsed.detail === 'string' ? parsed.detail : undefined,
+            message: typeof parsed.message === 'string' ? parsed.message : undefined,
+            rawText,
+        };
+    } catch {
+        return { rawText };
+    }
+};
 
 const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
     requestMode === 'auto_brief' || requestMode === 'manual_detail'
@@ -253,6 +296,14 @@ const normalizeQuestionOverride = (questionOverride: AnalyzeRequest['question_ov
     }
     return trimmed;
 };
+
+export const getCoachStreamReadTimeoutMs = (requestMode: CoachRequestMode): number => (
+    requestMode === 'manual_detail' ? COACH_MANUAL_STREAM_TIMEOUT_MS : DEFAULT_STREAM_TIMEOUT_MS
+);
+
+export const getCoachStreamRequestTimeoutMs = (requestMode: CoachRequestMode): number => (
+    requestMode === 'manual_detail' ? COACH_MANUAL_STREAM_TIMEOUT_MS : DEFAULT_STREAM_TIMEOUT_MS
+);
 
 const buildCoachAnalyzePayload = (
     requestMode: CoachRequestMode,
@@ -307,6 +358,7 @@ export async function analyzeTeam(
     const MAX_RETRIES = COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS;
     let attempt = 0;
     let response: Response | null = null;
+    let lastUnauthorizedPayload: ParsedCoachErrorPayload | null = null;
 
     while (true) {
         attempt++;
@@ -314,10 +366,16 @@ export async function analyzeTeam(
         try {
             const request = await requestStream(COACH_ANALYZE_ENDPOINT, {
                 ...requestInit,
-                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                timeoutMs: getCoachStreamRequestTimeoutMs(requestMode),
             });
 
             if (request.status === 401) {
+                lastUnauthorizedPayload = await readCoachErrorPayload(request);
+                if (lastUnauthorizedPayload.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                    response = request;
+                    break;
+                }
+
                 try {
                     const refreshSucceeded = await requestPrivateReissue();
                     if (refreshSucceeded) {
@@ -348,7 +406,7 @@ export async function analyzeTeam(
 
             if (attempt >= MAX_RETRIES) {
                 if (isStreamRequestTimeoutError(error)) {
-                    throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                    throw createCoachStreamTimeoutError(COACH_STREAM_CONNECT_TIMEOUT_MESSAGE);
                 }
                 throw error instanceof Error ? error : new Error(String(error));
             }
@@ -368,26 +426,26 @@ export async function analyzeTeam(
             throw new Error('Failed to connect to coach stream');
         }
         if (response.status === 401) {
+            if (lastUnauthorizedPayload?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                throw createCoachRequestFailedError();
+            }
             throw new CoachAnalyzeError(
                 'AUTH_EXPIRED',
                 '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.',
                 401,
             );
         }
-        const errorText = await response.text();
+        const errorPayload = await readCoachErrorPayload(response);
         let errorDetail = 'coach_internal_error';
         if (response.status < 500) {
-            errorDetail = errorText;
-            try {
-                const parsed = JSON.parse(errorText);
-                if (parsed?.detail) {
-                    errorDetail = String(parsed.detail);
-                }
-            } catch {
-                // keep raw text for 4xx
-            }
+            errorDetail = errorPayload.detail || errorPayload.message || errorPayload.rawText;
         }
         if (response.status >= 500) {
+            if (response.status === 504 || errorPayload.code === 'AI_UPSTREAM_TIMEOUT') {
+                throw createCoachStreamTimeoutError(
+                    errorPayload.message || 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+                );
+            }
             throw new CoachAnalyzeError(
                 'REQUEST_FAILED',
                 '분석 중 오류가 발생했습니다.',
@@ -421,6 +479,8 @@ export async function analyzeTeam(
     let groundingReasons: string[] | undefined = undefined;
     let supportedFactCount: number | undefined = undefined;
     let gameStatusBucket: string | undefined = undefined;
+    let validationStatus: string | undefined = undefined;
+    let manualDataRequest: ManualBaseballDataRequest | undefined = undefined;
 
     if (responseBody) {
         try {
@@ -442,6 +502,7 @@ export async function analyzeTeam(
                 if (typeof parsed.question_signature === 'string') questionSignature = parsed.question_signature;
                 if (typeof parsed.cache_key_version === 'string') cacheKeyVersion = parsed.cache_key_version;
                 if (typeof parsed.cache_state === 'string') cacheState = parsed.cache_state;
+                if (typeof parsed.validation_status === 'string') validationStatus = parsed.validation_status;
                 if (typeof parsed.in_progress === 'boolean') inProgress = parsed.in_progress;
                 if (parsed.cached !== undefined) cached = Boolean(parsed.cached);
                 if (parsed.focus_section_missing !== undefined) focusSectionMissing = Boolean(parsed.focus_section_missing);
@@ -486,13 +547,23 @@ export async function analyzeTeam(
                 if (typeof parsed.game_status_bucket === 'string') {
                     gameStatusBucket = parsed.game_status_bucket;
                 }
+                if (parsed.manual_data_request && typeof parsed.manual_data_request === 'object') {
+                    manualDataRequest = parsed.manual_data_request as ManualBaseballDataRequest;
+                }
             };
 
             const { sawDone } = await consumeSseStream(responseBody, {
-                timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+                timeoutMs: getCoachStreamReadTimeoutMs(requestMode),
                 signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
-                    if (event !== 'message' && event !== 'meta' && event !== 'error') {
+                    if (
+                        event !== 'message'
+                        && event !== 'meta'
+                        && event !== 'error'
+                        && event !== 'preview_chunk'
+                        && event !== 'preview_reset'
+                        && event !== 'status'
+                    ) {
                         return;
                     }
 
@@ -500,6 +571,29 @@ export async function analyzeTeam(
                     try {
                         parsed = JSON.parse(dataStr) as AiStreamMetaPayload & Record<string, unknown>;
                     } catch {
+                        return;
+                    }
+
+                    if (event === 'preview_chunk') {
+                        if (options?.onPreviewChunk && typeof parsed.text === 'string') {
+                            const attempt = typeof parsed.attempt === 'number' ? parsed.attempt : 1;
+                            options.onPreviewChunk(parsed.text, attempt);
+                        }
+                        return;
+                    }
+
+                    if (event === 'preview_reset') {
+                        if (options?.onPreviewReset) {
+                            const attempt = typeof parsed.attempt === 'number' ? parsed.attempt : 1;
+                            options.onPreviewReset(attempt);
+                        }
+                        return;
+                    }
+
+                    if (event === 'status') {
+                        if (options?.onStatus && typeof parsed.status === 'string') {
+                            options.onStatus(parsed.status);
+                        }
                         return;
                     }
 
@@ -523,12 +617,20 @@ export async function analyzeTeam(
                 },
             });
 
-            if (!sawDone) {
+            const hasRecoverableTerminalState = Boolean(structuredData) && inProgress !== true;
+            if (!sawDone && !hasRecoverableTerminalState) {
                 throw new Error(CHATBOT_STREAM_INCOMPLETE_ERROR);
+            }
+            if (!sawDone && hasRecoverableTerminalState) {
+                console.warn('Coach stream closed without done event after terminal meta.', {
+                    requestMode: requestModeFromMeta,
+                    cacheState,
+                    gameStatusBucket,
+                });
             }
         } catch (error) {
             if (isStreamReadTimeoutError(error)) {
-                throw new Error(CHATBOT_STREAM_TIMEOUT_ERROR);
+                throw createCoachStreamTimeoutError(COACH_STREAM_IDLE_TIMEOUT_MESSAGE);
             }
             if (error instanceof Error && error.message === CHATBOT_STREAM_INCOMPLETE_ERROR) {
                 throw createCoachRequestFailedError();
@@ -571,5 +673,7 @@ export async function analyzeTeam(
         grounding_reasons: groundingReasons,
         supported_fact_count: supportedFactCount,
         game_status_bucket: gameStatusBucket,
+        validation_status: validationStatus,
+        manual_data_request: manualDataRequest,
     };
 }

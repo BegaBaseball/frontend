@@ -1,11 +1,12 @@
-import { useState, type ReactNode } from 'react';
-import { MessageSquare, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import TeamLogo from '../TeamLogo';
 import { TEAM_DATA } from '../../constants/teams';
 import { getTimeAgo } from '../../utils/formatters';
+import { AdminMessageSquareIcon, AdminTrashIcon } from './AdminPanelIcons';
 
 interface AdminPost {
   id: number;
@@ -21,14 +22,6 @@ interface AdminPost {
 interface PostsAdminPanelProps {
   posts: AdminPost[];
   handleDeletePost: (postId: number) => void;
-}
-
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
 }
 
 export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProps) {
@@ -54,7 +47,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
             {posts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-16 text-slate-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <AdminMessageSquareIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   게시글이 없습니다.
                 </TableCell>
               </TableRow>
@@ -65,7 +58,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                   className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <TableCell className="text-slate-300 font-mono text-sm">{post.id}</TableCell>
+                  <TableCell className="text-slate-300 font-mono text-[14px]">{post.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <TeamLogo team={post.team} size={24} />
@@ -76,14 +69,14 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     <div className="flex items-center gap-2">
                       <span className="text-slate-200">{post.content?.slice(0, 40) || '-'}</span>
                       {post.isHot && (
-                        <AdminBadge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] px-1.5 py-0 border-0 animate-pulse">
+                        <AdminBadge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[11px] px-1.5 py-0 border-0 animate-pulse">
                           HOT
                         </AdminBadge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-300">{post.author}</TableCell>
-                  <TableCell className="text-slate-400 text-sm">{getTimeAgo(post.createdAt)}</TableCell>
+                  <TableCell className="text-slate-400 text-[14px]">{getTimeAgo(post.createdAt)}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1 text-rose-400">
                       <span className="text-lg">♥</span>
@@ -91,7 +84,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-emerald-400 font-semibold text-sm">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-emerald-400 font-semibold text-[14px]">
                       {post.commentCount}
                     </span>
                   </TableCell>
@@ -102,7 +95,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                       className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                       onClick={() => setPendingDeletePost(post)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <AdminTrashIcon className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -137,7 +130,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
         )}
       >
         {pendingDeletePost ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-[14px] text-slate-400">
             <span className="font-semibold text-slate-200">#{pendingDeletePost.id}</span> 게시글을 삭제합니다.
           </p>
         ) : null}

@@ -25,14 +25,18 @@ const parseSourceFile = (filePath: string) => ts.createSourceFile(
 );
 
 const hasExportModifier = (node: ts.Node) =>
-  node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+  ts.canHaveModifiers(node)
+    ? (ts.getModifiers(node)?.some((modifier: ts.Modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false)
+    : false;
 
 const collectBindingNames = (name: ts.BindingName): string[] => {
   if (ts.isIdentifier(name)) {
     return [name.text];
   }
 
-  return name.elements.flatMap((element) => collectBindingNames(element.name));
+  return name.elements.flatMap((element) => (
+    ts.isBindingElement(element) ? collectBindingNames(element.name) : []
+  ));
 };
 
 const collectShimExports = (filePath: string) => {

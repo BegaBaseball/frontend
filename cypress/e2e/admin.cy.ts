@@ -75,6 +75,29 @@ type GameStatusMismatchRecord = {
     reasons: string[];
 };
 
+type NonCanonicalGameRecord = {
+    gameId: string;
+    gameDate: string;
+    startTime: string | null;
+    rawStatus: string | null;
+    homeTeam: string | null;
+    awayTeam: string | null;
+    homeScore: number | null;
+    awayScore: number | null;
+    reasons: string[];
+};
+
+type NonCanonicalCleanupTrackerRecord = {
+    startDate: string;
+    endDate: string;
+    ticketUrl: string;
+    assignee: string;
+    status: 'draft' | 'requested' | 'in_progress' | 'done';
+    note: string;
+    updatedAt: string;
+    gameIds: string[];
+};
+
 type GameScoreSyncRecord = {
     gameId: string;
     homeScore: number | null;
@@ -142,6 +165,9 @@ const selectOption = (testId: string, optionText: string) => {
     });
 };
 
+const getClientErrorPanel = () => cy.contains('h2', '클라이언트 에러 관제').closest('div.space-y-6');
+const getClientErrorFilterSection = () => getClientErrorPanel().contains('h3', '이벤트 탐색').closest('section');
+
 const visibleAlertDialog = () => cy.get('[role="alertdialog"], [role="dialog"]').filter(':visible').last();
 
 const visibleDialog = () => cy.get('[role="dialog"]').filter(':visible').last();
@@ -155,6 +181,7 @@ describe('Admin page coverage', () => {
     let seatViews: SeatViewRecord[];
     let offseasonMovements: OffseasonMovementRecord[];
     let placesByStadium: Record<string, PlaceRecord[]>;
+    let nonCanonicalCleanupTrackerRequestNotes: string[];
 
     const superAdminProfile = {
         id: 3,
@@ -332,7 +359,79 @@ describe('Admin page coverage', () => {
         },
     };
 
+    const coachAutoBriefOpsHealth = {
+        window: 'today',
+        date_window: '2026-04-08',
+        generated_at_utc: '2026-04-08T09:00:00Z',
+        runbook_path: 'task/operations/coach-auto-brief-prewarm-runbook.md',
+        recommended_command:
+            './.venv/bin/python scripts/batch_coach_auto_brief.py --years 2026 --date-window 2026-04-08 --eligible-only --prioritize-unresolved --quality-report reports/coach_auto_brief_prewarm_2026-04-08.json',
+        summary: {
+            loaded_target_count: 12,
+            selected_target_count: 2,
+            generated_success_count: 0,
+            cache_hit_count: 1,
+            in_progress_count: 1,
+            failed_count: 1,
+            unresolved_count: 2,
+            completed_count: 0,
+            cache_state_breakdown: {
+                FAILED_LOCKED: 1,
+                PENDING_WAIT: 1,
+            },
+            data_quality_breakdown: {
+                insufficient: 1,
+                partial: 1,
+            },
+        },
+        unresolved_targets: [
+            {
+                game_id: '20260408KTLG0',
+                game_date: '2026-04-08',
+                away_team_id: 'KT',
+                home_team_id: 'LG',
+                stage_label: 'REGULAR',
+                game_status_bucket: 'SCHEDULED',
+                cache_key: 'cache-locked',
+                cache_state: 'FAILED_LOCKED',
+                data_quality: 'insufficient',
+                headline: '근거 부족으로 운영 갱신이 필요합니다.',
+                reason: 'failed_locked',
+            },
+            {
+                game_id: '20260408HHSK0',
+                game_date: '2026-04-08',
+                away_team_id: 'HH',
+                home_team_id: 'SK',
+                stage_label: 'REGULAR',
+                game_status_bucket: 'SCHEDULED',
+                cache_key: 'cache-pending',
+                cache_state: 'PENDING_WAIT',
+                data_quality: 'partial',
+                headline: '최신 브리핑 준비 중입니다.',
+                reason: 'pending_wait',
+            },
+        ],
+        latest_report: {
+            path: 'reports/coach_auto_brief_prewarm_2026-04-08.json',
+            run_started_at: '2026-04-08T08:55:00Z',
+            run_finished_at: '2026-04-08T09:00:00Z',
+            date_window: '2026-04-08',
+            unresolved_count: 2,
+            completed_count: 0,
+            cache_state_breakdown: {
+                FAILED_LOCKED: 1,
+                PENDING_WAIT: 1,
+            },
+            data_quality_breakdown: {
+                insufficient: 1,
+                partial: 1,
+            },
+        },
+    };
+
     beforeEach(() => {
+        nonCanonicalCleanupTrackerRequestNotes = [];
         users = [
             {
                 id: 3,
@@ -488,6 +587,20 @@ describe('Admin page coverage', () => {
                 reasons: ['inning scores present', 'known final score'],
             },
         ];
+        const nonCanonicalGames: NonCanonicalGameRecord[] = [
+            {
+                gameId: '20260329BROKEN',
+                gameDate: '2026-03-29',
+                startTime: '12:00:00',
+                rawStatus: 'SCHEDULED',
+                homeTeam: '0LG',
+                awayTeam: '롯데0',
+                homeScore: null,
+                awayScore: null,
+                reasons: ['non_canonical_home_team', 'non_canonical_away_team'],
+            },
+        ];
+        let nonCanonicalCleanupTrackers: NonCanonicalCleanupTrackerRecord[] = [];
 
         const repairedGames: GameScoreSyncRecord[] = [
             {
@@ -659,6 +772,8 @@ describe('Admin page coverage', () => {
                     totalGames: 5,
                     mismatchCount: gameStatusMismatches.length,
                     mismatches: gameStatusMismatches,
+                    nonCanonicalCount: nonCanonicalGames.length,
+                    nonCanonicalGames,
                 }),
             });
         }).as('getAdminGameStatusMismatches');
@@ -684,9 +799,69 @@ describe('Admin page coverage', () => {
                     repairedCount: currentMismatches.length,
                     mismatches: currentMismatches,
                     repairedGames: dryRun ? [] : repairedGames,
+                    nonCanonicalCount: nonCanonicalGames.length,
+                    nonCanonicalGames,
                 }),
             });
         }).as('repairAdminGameStatusMismatches');
+
+        cy.intercept('GET', '**/api/admin/games/non-canonical-cleanup-trackers*', (req) => {
+            req.reply({
+                statusCode: 200,
+                body: ok([...nonCanonicalCleanupTrackers].sort((left, right) => (
+                    right.updatedAt.localeCompare(left.updatedAt)
+                ))),
+            });
+        }).as('getAdminNonCanonicalCleanupTrackers');
+
+        cy.intercept('PUT', '**/api/admin/games/non-canonical-cleanup-trackers*', (req) => {
+            const startDate = readQuery(req.url, 'startDate') || '2026-03-29';
+            const endDate = readQuery(req.url, 'endDate') || startDate;
+            const requestNote = String(req.body.note ?? '');
+            nonCanonicalCleanupTrackerRequestNotes.push(requestNote);
+            const appendedNote = /\[closure-sync /.test(requestNote)
+                ? requestNote
+                : [
+                requestNote,
+                '[closure-sync 2026-03-29 21:45:00 KST] compare=FAIL tracker=in_progress resolved=0 remaining=1 new=0',
+                '- summary_json: /tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json',
+                '- handoff_md: /tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md',
+            ].filter(Boolean).join('\n');
+            const savedRecord: NonCanonicalCleanupTrackerRecord = {
+                startDate,
+                endDate,
+                ticketUrl: req.body.ticketUrl ?? '',
+                assignee: req.body.assignee ?? '',
+                status: req.body.status ?? 'draft',
+                note: appendedNote,
+                updatedAt: '2026-03-29T12:45:00Z',
+                gameIds: Array.isArray(req.body.gameIds) ? req.body.gameIds : [],
+            };
+
+            nonCanonicalCleanupTrackers = [
+                savedRecord,
+                ...nonCanonicalCleanupTrackers.filter((record) => !(
+                    record.startDate === startDate && record.endDate === endDate
+                )),
+            ];
+
+            req.reply({
+                statusCode: 200,
+                body: ok(savedRecord),
+            });
+        }).as('upsertAdminNonCanonicalCleanupTracker');
+
+        cy.intercept('DELETE', '**/api/admin/games/non-canonical-cleanup-trackers*', (req) => {
+            const startDate = readQuery(req.url, 'startDate') || '2026-03-29';
+            const endDate = readQuery(req.url, 'endDate') || startDate;
+            nonCanonicalCleanupTrackers = nonCanonicalCleanupTrackers.filter((record) => !(
+                record.startDate === startDate && record.endDate === endDate
+            ));
+            req.reply({
+                statusCode: 204,
+                body: null,
+            });
+        }).as('deleteAdminNonCanonicalCleanupTracker');
 
         cy.intercept('GET', '**/api/admin/client-errors/dashboard*', {
             statusCode: 200,
@@ -1054,6 +1229,11 @@ describe('Admin page coverage', () => {
             body: releasePresets,
         }).as('getReleasePresets');
 
+        cy.intercept('GET', '**/api/ai/coach/auto-brief/ops/health*', {
+            statusCode: 200,
+            body: coachAutoBriefOpsHealth,
+        }).as('getCoachAutoBriefOpsHealth');
+
         cy.intercept('POST', '**/api/ai/release-decision/draft', (req) => {
             req.reply({
                 statusCode: 200,
@@ -1137,33 +1317,133 @@ describe('Admin page coverage', () => {
 
     it('covers game status mismatch diagnosis and repair workflow', () => {
         let createObjectUrlStub: sinon.SinonStub;
+        let clipboardWriteTextStub: sinon.SinonStub;
 
         cy.window().then((win) => {
             createObjectUrlStub = cy.stub(win.URL, 'createObjectURL').returns('blob:game-status-export');
+            if (!win.navigator.clipboard) {
+                Object.defineProperty(win.navigator, 'clipboard', {
+                    configurable: true,
+                    value: {
+                        writeText: () => Promise.resolve(),
+                    },
+                });
+            }
+            clipboardWriteTextStub = cy.stub(win.navigator.clipboard, 'writeText').resolves();
         });
 
         cy.getBySel('admin-tab-game-status').click({ force: true });
         cy.wait('@getAdminGameStatusMismatches');
         cy.wait('@getAdminGameStatusRecommendationWindow');
+        cy.wait('@getAdminNonCanonicalCleanupTrackers');
         cy.contains('경기 상태 mismatch 진단 및 복구').should('be.visible');
+        cy.contains('runbook:').should('be.visible');
+        cy.contains('task/operations/prediction-game-status-repair-runbook.md').should('be.visible');
         cy.getBySel('admin-game-status-mismatch-20260329HTSK0').should('be.visible');
+        cy.getBySel('admin-game-status-non-canonical-20260329BROKEN').should('be.visible');
         cy.contains('inning scores present').should('be.visible');
         cy.getBySel('admin-game-status-suggestion-2026-03-29').should('be.visible').click({ force: true });
         cy.wait('@getAdminGameStatusMismatches');
         cy.getBySel('admin-game-status-start-date').should('have.value', '2026-03-29');
         cy.getBySel('admin-game-status-end-date').should('have.value', '2026-03-29');
-        cy.contains('불일치 1건을 찾았습니다.').should('be.visible');
+        cy.contains('불일치 1건, 비정상 팀 코드 1건을 찾았습니다.').should('be.visible');
 
         cy.getBySel('admin-game-status-diagnose').click({ force: true });
         cy.wait('@getAdminGameStatusMismatches');
-        cy.contains('불일치 1건을 찾았습니다.').should('be.visible');
+        cy.contains('불일치 1건, 비정상 팀 코드 1건을 찾았습니다.').should('be.visible');
         cy.getBySel('admin-game-status-download-mismatches').click({ force: true });
+        cy.getBySel('admin-game-status-download-non-canonical').click({ force: true });
+        cy.getBySel('admin-game-status-copy-non-canonical-template').click({ force: true });
+        cy.getBySel('admin-game-status-copy-non-canonical-template').should('contain', '복사됨');
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(1);
+            expect(clipboardWriteTextStub.firstCall.args[0]).to.include('20260329BROKEN');
+            expect(clipboardWriteTextStub.firstCall.args[0]).to.include('task/operations/prediction-game-status-repair-runbook.md');
+        });
+        cy.getBySel('admin-game-status-ticket-url').type('https://tickets.example.com/noncanonical-20260329');
+        cy.getBySel('admin-game-status-ticket-assignee').type('ops-team');
+        cy.getBySel('admin-game-status-ticket-status').select('요청 완료');
+        cy.getBySel('admin-game-status-ticket-note').type('raw team code 정제 요청 전달');
+        cy.getBySel('admin-game-status-ticket-save').click({ force: true });
+        cy.wait('@upsertAdminNonCanonicalCleanupTracker');
+        cy.getBySel('admin-game-status-ticket-message').should('contain', '정제 티켓 메모를 저장했습니다.');
+        cy.getBySel('admin-game-status-ticket-saved-at').should(($el) => {
+            expect($el.text().trim()).not.to.equal('-');
+        });
+        cy.getBySel('admin-game-status-ticket-note').should('have.value', 'raw team code 정제 요청 전달');
+        cy.getBySel('admin-game-status-ticket-save').click({ force: true });
+        cy.wait('@upsertAdminNonCanonicalCleanupTracker');
+        cy.wrap(null).then(() => {
+            expect(nonCanonicalCleanupTrackerRequestNotes).to.have.length(2);
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('raw team code 정제 요청 전달');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('[closure-sync 2026-03-29 21:45:00 KST]');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('- summary_json: /tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json');
+            expect(nonCanonicalCleanupTrackerRequestNotes[1]).to.include('- handoff_md: /tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        });
+        cy.getBySel('admin-game-status-current-tracker-summary').should('contain', '요청 완료').and('contain', 'ops-team');
+        cy.getBySel('admin-game-status-current-tracker-progress')
+            .should('contain', '저장된 비정상 row 1건 중 1건 남아 있습니다.');
+        cy.getBySel('admin-game-status-ticket-link')
+            .should('have.attr', 'href', 'https://tickets.example.com/noncanonical-20260329');
+        cy.getBySel('admin-game-status-current-artifact-summary-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-summary-2026-03-29.json');
+        cy.getBySel('admin-game-status-current-artifact-handoff-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        cy.getBySel('admin-game-status-current-closure-compare-status').should('contain', 'FAIL');
+        cy.getBySel('admin-game-status-current-closure-tracker-status').should('contain', 'in_progress');
+        cy.getBySel('admin-game-status-current-closure-counts')
+            .should('contain', 'resolved 0 / remaining 1 / new 0');
+        cy.getBySel('admin-game-status-current-artifact-copy-handoff-path').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(2);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.eq('/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        });
+        cy.getBySel('admin-game-status-current-artifact-copy-closure-command').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(3);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include("bash scripts/report_prediction_noncanonical_closure.sh \\");
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include("  --artifact-dir '/tmp/noncanonical-bundle-2026-03-29' \\");
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --fail-on-unresolved');
+        });
+        cy.getBySel('admin-game-status-current-artifact-copy-tracker-sync-command').click({ force: true });
+        cy.wrap(null).then(() => {
+            expect(clipboardWriteTextStub.callCount).to.eq(4);
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('TRACKER_BASE_URL=<TRACKER_BASE_URL> \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --sync-tracker \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --tracker-admin-email "$TRACKER_ADMIN_EMAIL" \\');
+            expect(clipboardWriteTextStub.lastCall.args[0]).to.include('  --tracker-admin-password "$TRACKER_ADMIN_PASSWORD"');
+        });
+        cy.getBySel('admin-game-status-ticket-progress')
+            .should('contain', '저장된 비정상 row 1건 중 1건 남아 있습니다.');
+        cy.getBySel('admin-game-status-ticket-mark-done').should('not.exist');
+        cy.getBySel('admin-game-status-suggestion-2026-03-29')
+            .should('contain', '요청 완료')
+            .and('contain', 'ops-team');
+        cy.getBySel('admin-game-status-suggestion-closure-2026-03-29')
+            .should('contain', 'closure FAIL / remaining 1');
+        cy.getBySel('admin-game-status-suggestion-artifacts-2026-03-29')
+            .should('contain', '산출물: summary / handoff');
+        cy.getBySel('admin-game-status-history-2026-03-29')
+            .should('contain', '요청 완료')
+            .and('contain', 'ops-team')
+            .and('contain', '20260329BROKEN')
+            .and('contain', 'raw team code 정제 요청 전달')
+            .and('not.contain', '[closure-sync');
+        cy.getBySel('admin-game-status-history-artifact-2026-03-29-handoff-path')
+            .should('contain', '/tmp/noncanonical-bundle-2026-03-29/noncanonical-handoff-2026-03-29.md');
+        cy.getBySel('admin-game-status-history-closure-2026-03-29-compare-status').should('contain', 'FAIL');
+        cy.getBySel('admin-game-status-history-closure-2026-03-29-counts')
+            .should('contain', 'resolved 0 / remaining 1 / new 0');
+        cy.getBySel('admin-game-status-load-history-2026-03-29').click({ force: true });
+        cy.wait('@getAdminGameStatusMismatches');
+        cy.getBySel('admin-game-status-start-date').should('have.value', '2026-03-29');
+        cy.getBySel('admin-game-status-end-date').should('have.value', '2026-03-29');
 
-        cy.getBySel('admin-game-status-dry-run').click({ force: true });
+        cy.getBySel('admin-game-status-dry-run').should('not.be.disabled').click({ force: true });
         cy.wait('@repairAdminGameStatusMismatches');
-        cy.contains('dry-run 완료: mismatch 1건, 예상 복구 1건').should('be.visible');
+        cy.contains('dry-run 완료: mismatch 1건, 비정상 팀 코드 1건, 예상 복구 1건').should('be.visible');
 
-        cy.getBySel('admin-game-status-apply').click({ force: true });
+        cy.getBySel('admin-game-status-apply').should('not.be.disabled').click({ force: true });
         visibleAlertDialog().within(() => {
             cy.contains('button', '복구 실행').click({ force: true });
         });
@@ -1171,13 +1451,15 @@ describe('Admin page coverage', () => {
         cy.wait('@repairAdminGameStatusMismatches');
         cy.wait('@getAdminGameStatusMismatches');
         cy.wait('@getAdminGameStatusRecommendationWindow');
-        cy.contains('실제 복구 완료: 1건 반영').should('be.visible');
-        cy.contains('선택한 날짜 범위에서 경기 상태 불일치가 없습니다.').should('be.visible');
-        cy.contains('최근 14일 범위에서 추천할 mismatch 날짜가 없습니다.').should('be.visible');
+        cy.contains('실제 복구 완료: 1건 반영, 비정상 팀 코드 1건은 별도 정제가 필요합니다.').should('be.visible');
+        cy.contains('상태 mismatch는 없고 비정상 팀 코드 row만 존재합니다.').should('be.visible');
+        cy.getBySel('admin-game-status-non-canonical-20260329BROKEN').should('be.visible');
+        cy.contains('최근 이슈 날짜 추천').should('be.visible');
+        cy.contains('상태 mismatch 없음').should('be.visible');
         cy.getBySel('admin-game-status-repaired-20260329HTSK0').should('be.visible');
         cy.getBySel('admin-game-status-download-repairs').click({ force: true });
         cy.wrap(null).then(() => {
-            expect(createObjectUrlStub.callCount).to.eq(2);
+            expect(createObjectUrlStub.callCount).to.eq(3);
         });
     });
 
@@ -1209,24 +1491,24 @@ describe('Admin page coverage', () => {
         cy.wait('@getClientErrorEvents');
         cy.contains('클라이언트 에러 관제').should('be.visible');
 
-        selectOption('admin-client-errors-window-trigger', '최근 1시간');
+        getClientErrorPanel().find('select').first().select('최근 1시간', { force: true });
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
 
-        selectOption('admin-client-errors-bucket-trigger', 'API');
+        getClientErrorFilterSection().find('select').first().select('API', { force: true });
         cy.wait('@getClientErrorEvents');
-        cy.getBySel('admin-client-errors-route-filter').type('/admin', { force: true });
+        getClientErrorFilterSection().find('input[placeholder="Route filter"]').type('/admin', { force: true });
         cy.wait('@getClientErrorEvents');
-        cy.getBySel('admin-client-errors-search-filter').type('Gateway', { force: true });
+        getClientErrorFilterSection().find('input[placeholder="message / route / eventId"]').type('Gateway', { force: true });
         cy.wait('@getClientErrorEvents');
 
-        cy.getBySel('admin-client-errors-refresh').click({ force: true });
+        getClientErrorPanel().contains('button', '새로고침').click({ force: true });
         cy.wait('@getClientErrorDashboard');
         cy.wait('@getClientErrorEvents');
 
-        cy.getBySel('admin-client-errors-detail-evt-api-1').click({ force: true });
+        cy.contains('Gateway timeout in admin users API').closest('tr').contains('button', '열기').click({ force: true });
         cy.wait('@getClientErrorDetail');
-        cy.getBySel('admin-client-errors-detail-dialog').should('be.visible');
+        cy.contains('Client Error Detail').should('be.visible');
         cy.contains('Gateway timeout in admin users API').should('be.visible');
         cy.contains('TypeError: Gateway timeout').should('be.visible');
     });
@@ -1340,9 +1622,14 @@ describe('Admin page coverage', () => {
         });
 
         cy.getBySel('admin-tab-ai').click();
+        cy.wait('@getCoachAutoBriefOpsHealth');
         cy.wait('@getReleasePresets');
         cy.wait('@getReleaseEvalCases');
         cy.wait('@getReleaseArtifacts');
+        cy.contains('Coach Auto Brief Ops').should('be.visible');
+        cy.contains('FAILED_LOCKED').should('be.visible');
+        cy.getBySel('admin-ai-auto-brief-unresolved-20260408KTLG0').should('be.visible');
+        cy.contains('reports/coach_auto_brief_prewarm_2026-04-08.json').should('be.visible');
         cy.contains('릴리즈 결정 초안 생성').should('be.visible');
 
         cy.getBySel('admin-ai-refresh-presets').click();

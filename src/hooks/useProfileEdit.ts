@@ -383,11 +383,11 @@ export const useProfileEdit = ({
 
     try {
       setSaveMessage('저장 중...');
-      let finalImageUrl: string | null | undefined = undefined;
+      let finalImageStoragePath: string | null | undefined = undefined;
 
       if (newProfileImageFile) {
         const uploadResult = await imageUploadMutation.mutateAsync(newProfileImageFile);
-        finalImageUrl = uploadResult.publicUrl;
+        finalImageStoragePath = uploadResult.storagePath;
       }
 
       const normalizedFavoriteTeam = normalizeFavoriteTeam(editingFavoriteTeam);
@@ -398,8 +398,8 @@ export const useProfileEdit = ({
         bio: bio.trim() || undefined,
       };
 
-      if (finalImageUrl) {
-        updatedProfile.profileImageUrl = finalImageUrl;
+      if (finalImageStoragePath) {
+        updatedProfile.profileImageUrl = finalImageStoragePath;
       }
 
       await updateMutation.mutateAsync(updatedProfile);

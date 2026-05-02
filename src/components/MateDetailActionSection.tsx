@@ -1,7 +1,6 @@
-import { Clock } from 'lucide-react';
-
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
+import { MateClockIcon } from './MateIcons';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
 
 export interface MateDetailActionContext {
@@ -50,13 +49,13 @@ export default function MateDetailActionSection({
     <>
       <div className="space-y-4">
         <Card className={`sticky top-6 p-5 ${sectionCardClass}`}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+          <p className="text-[16px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
             {actionContext.eyebrow}
           </p>
           <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">
             {actionContext.title}
           </h3>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
             {actionContext.detail}
           </p>
 
@@ -64,10 +63,10 @@ export default function MateDetailActionSection({
             {isAwaitingApproval && (
               <div
                 data-testid="mate-pending-status"
-                className={`${insetPanelClass} flex items-start gap-3 p-4 text-sm text-gray-600 dark:text-gray-300`}
+                className={`${insetPanelClass} flex items-start gap-3 p-4 text-[16px] text-gray-600 dark:text-gray-300`}
               >
                 <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-600 dark:bg-amber-400/15 dark:text-amber-200">
-                  <Clock className="h-4 w-4" />
+                  <MateClockIcon className="h-4 w-4" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white">
@@ -90,7 +89,7 @@ export default function MateDetailActionSection({
                 {action.label}
               </Button>
             )) : (
-              <div className={`${insetPanelClass} p-4 text-sm text-gray-600 dark:text-gray-300`}>
+              <div className={`${insetPanelClass} p-4 text-[16px] text-gray-600 dark:text-gray-300`}>
                 현재 바로 실행할 수 있는 액션은 없습니다. 상태 변화를 기다리거나 목록으로 돌아가세요.
               </div>
             )}
@@ -102,10 +101,10 @@ export default function MateDetailActionSection({
         <div data-testid="mate-mobile-action-bar" className={`${mateMobileBarClass} lg:hidden`}>
           <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2">
             <div className="min-w-0 flex-[1_1_100%] sm:flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
                 {actionContext.eyebrow}
               </p>
-              <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">
+              <p className="mt-1 truncate text-[16px] font-semibold text-gray-900 dark:text-white">
                 {actionButtons[0]?.disabled ? actionButtons[0].label : actionContext.title}
               </p>
             </div>

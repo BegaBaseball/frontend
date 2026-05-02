@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  checkSignUpEmailAvailability,
-  checkSignUpHandleAvailability,
-  signupUser,
-  SignUpSubmissionError,
-} from '../api/authPublic';
-import {
   createSignUpAvailabilityState,
   normalizeSignUpEmailValue,
   normalizeSignUpHandleInput,
   normalizeSignUpHandleValue,
+  sanitizeLoginPasswordText,
+  sanitizeLoginText,
   SIGNUP_AVAILABILITY_DEBOUNCE_MS,
   validateAllFields,
   validateField,
@@ -45,6 +41,20 @@ const initialAvailabilityState: SignUpFieldAvailability = {
   state: 'idle',
   message: '',
 };
+
+let authPublicModulePromise: Promise<typeof import('../api/authPublic')> | null = null;
+
+const loadAuthPublicModule = () => {
+  authPublicModulePromise ??= import('../api/authPublic');
+  return authPublicModulePromise;
+};
+
+const checkHandleAvailability = async (value: string, signal?: AbortSignal) => {
+  const authPublic = await loadAuthPublicModule();
+  return authPublic.checkSignUpHandleAvailability(value, signal);
+};
+
+// 이메일 중복 여부는 회원가입 제출 시 서버의 DUPLICATE_EMAIL 응답으로만 확인된다.
 
 const useSignUpAvailabilityCheck = (
   field: 'handle' | 'email',
@@ -113,28 +123,45 @@ export const useSignUpForm = () => {
   }, []);
 
   const normalizedHandle = normalizeSignUpHandleValue(formData.handle);
-  const normalizedEmail = normalizeSignUpEmailValue(formData.email);
   const [handleAvailability, setHandleAvailability] = useSignUpAvailabilityCheck(
     'handle',
     normalizedHandle,
     validateField('handle', normalizedHandle) === '',
-    checkSignUpHandleAvailability,
+    checkHandleAvailability,
   );
-  const [emailAvailability, setEmailAvailability] = useSignUpAvailabilityCheck(
-    'email',
-    normalizedEmail,
-    validateField('email', normalizedEmail) === '',
-    checkSignUpEmailAvailability,
-  );
+  // 이메일 중복은 사전 조회 없이 최종 signup 충돌 응답으로만 확정한다.
+  const [emailAvailability, setEmailAvailability] = useState<SignUpFieldAvailability>(initialAvailabilityState);
+  const normalizedEmail = normalizeSignUpEmailValue(formData.email);
 
   const currentValidationErrors = validateAllFields(formData);
   const hasLocalValidationErrors = Object.values(currentValidationErrors).some((value) => value !== '');
-  const isAvailabilityChecking = handleAvailability.state === 'checking' || emailAvailability.state === 'checking';
-  const isAvailabilityReady = handleAvailability.state === 'available' && emailAvailability.state === 'available';
-  const isSubmitDisabled = isLoading || isSuccess || hasLocalValidationErrors || isAvailabilityChecking || !isAvailabilityReady;
+  const isAvailabilityChecking = handleAvailability.state === 'checking';
+  const isAvailabilityReady = handleAvailability.state === 'available';
+  const hasCurrentEmailConflict = emailAvailability.state === 'taken' && emailAvailability.normalized === normalizedEmail;
+  const isSubmitDisabled = (
+    isLoading
+    || isSuccess
+    || hasLocalValidationErrors
+    || isAvailabilityChecking
+    || !isAvailabilityReady
+    || hasCurrentEmailConflict
+  );
+
+  const sanitizeFieldValue = (fieldName: FieldName, value: string) => {
+    if (fieldName === 'handle') {
+      return normalizeSignUpHandleInput(value);
+    }
+    if (fieldName === 'email') {
+      return sanitizeLoginText(value);
+    }
+    if (fieldName === 'password' || fieldName === 'confirmPassword') {
+      return sanitizeLoginPasswordText(value);
+    }
+    return value;
+  };
 
   const handleFieldChange = (fieldName: FieldName, value: string) => {
-    const nextValue = fieldName === 'handle' ? normalizeSignUpHandleInput(value) : value;
+    const nextValue = sanitizeFieldValue(fieldName, value);
     setFormData((prev) => ({ ...prev, [fieldName]: nextValue }));
     setError(null);
 
@@ -147,17 +174,18 @@ export const useSignUpForm = () => {
     }
 
     if (fieldName === 'email') {
-      setEmailAvailability(initialAvailabilityState);
+      const nextNormalizedEmail = normalizeSignUpEmailValue(nextValue);
+      if (emailAvailability.state !== 'taken' || emailAvailability.normalized !== nextNormalizedEmail) {
+        setEmailAvailability(initialAvailabilityState);
+      }
     }
   };
 
   const handleFieldBlur = (fieldName: FieldName) => {
     const value = formData[fieldName];
-    const normalizedValue = fieldName === 'handle'
-      ? normalizeSignUpHandleInput(value)
-      : value;
-    const nextFormData = fieldName === 'handle'
-      ? { ...formData, handle: normalizedValue }
+    const normalizedValue = sanitizeFieldValue(fieldName, value);
+    const nextFormData = ['handle', 'email', 'password', 'confirmPassword'].includes(fieldName)
+      ? { ...formData, [fieldName]: normalizedValue }
       : formData;
     const errorMessage = validateField(fieldName, normalizedValue, nextFormData);
     setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMessage }));
@@ -181,19 +209,25 @@ export const useSignUpForm = () => {
     }
 
     if (isAvailabilityChecking) {
-      setError('핸들과 이메일 사용 가능 여부 확인이 끝날 때까지 기다려주세요.');
+      setError('핸들 사용 가능 여부 확인이 끝날 때까지 기다려주세요.');
       return;
     }
 
     if (!isAvailabilityReady) {
-      setError('핸들과 이메일 중복 확인을 완료해 주세요.');
+      setError('핸들 중복 확인을 완료해 주세요.');
+      return;
+    }
+
+    if (hasCurrentEmailConflict) {
+      setError(emailAvailability.message || '이미 사용 중인 이메일입니다.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await signupUser({
+      const authPublic = await loadAuthPublicModule();
+      await authPublic.signupUser({
         name: formData.name,
         handle: normalizeSignUpHandleValue(formData.handle),
         email: normalizeSignUpEmailValue(formData.email),
@@ -210,7 +244,8 @@ export const useSignUpForm = () => {
     } catch (err) {
       console.error('Sign up error:', err);
 
-      if (err instanceof SignUpSubmissionError) {
+      const authPublic = await loadAuthPublicModule();
+      if (err instanceof authPublic.SignUpSubmissionError) {
         if (err.field === 'handle') {
           setHandleAvailability(createSignUpAvailabilityState(
             'handle',

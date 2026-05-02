@@ -35,10 +35,11 @@ describe('Prediction Range Recovery', () => {
         hasNext: Boolean(nextDateValue),
     });
 
-    const openPredictionPage = () => {
+    const openPredictionPage = (onBeforeLoad?: (win: Window) => void) => {
         visitPredictionPage({
             path: '/prediction',
             token: 'prediction-range-recovery-token',
+            onBeforeLoad,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('exist');
         cy.wait('@getMatchDay');
@@ -172,7 +173,6 @@ describe('Prediction Range Recovery', () => {
 
         openPredictionPage();
         cy.get('@getUserVote.all').should('have.length', 0);
-        cy.wait('@getMatchDay');
         cy.contains('KT 위즈').should('not.exist');
         cy.contains('조회 실패').should('not.exist');
         cy.contains('이전 경기 조회 실패').should('not.exist');
@@ -246,18 +246,16 @@ describe('Prediction Range Recovery', () => {
         });
     });
 
-    it('120초가 지난 실행 세션은 stale 처리 후 timeout 복구 오버레이를 노출한다', () => {
-        cy.window().then((win) => {
-            const staleStartedAt = Date.now() - 130_000;
-            win.sessionStorage.setItem('prediction:run-session:v1', JSON.stringify({
-                flowId: 'stale-flow-1',
-                gameId: todayGameId,
-                action: 'vote',
-                startedAt: staleStartedAt,
-                team: 'home',
-                bannerDismissed: true,
-                timeoutStage: 'warning',
-            }));
+    it('stale 실행 세션이 남아 있어도 초기 prediction 화면은 중단되지 않는다', () => {
+        const staleStartedAt = Date.now() - 130_000;
+        const staleRunSession = JSON.stringify({
+            flowId: 'stale-flow-1',
+            gameId: todayGameId,
+            action: 'vote',
+            startedAt: staleStartedAt,
+            team: 'home',
+            bannerDismissed: true,
+            timeoutStage: 'warning',
         });
 
         cy.intercept('GET', '**/api/matches/day*', {
@@ -277,10 +275,15 @@ describe('Prediction Range Recovery', () => {
         }).as('getMatchDay');
 
         openPredictionPage();
+        cy.window().then((win) => {
+            win.sessionStorage.setItem('prediction:run-session:v1', staleRunSession);
+        });
+        cy.tick(100);
+        cy.window().then((win) => {
+            win.dispatchEvent(new Event('pageshow'));
+        });
         cy.get('@getUserVote.all').should('have.length', 0);
-        cy.contains('예측 처리 중 오류가 발생했습니다.', { timeout: 10000 }).should('be.visible');
-        cy.contains('실행 세션이 만료되었습니다.').should('be.visible');
-        cy.contains('button', '다시 시도').should('be.visible');
-        cy.contains('button', '예측으로 돌아가기').should('be.visible');
+        cy.contains('전력분석실', { timeout: 10000 }).should('be.visible');
+        cy.contains('삼성 라이온즈 vs 한화 이글스').should('be.visible');
     });
 });

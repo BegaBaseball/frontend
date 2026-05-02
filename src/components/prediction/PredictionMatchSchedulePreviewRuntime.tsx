@@ -1,14 +1,15 @@
-import { lazy, Suspense, useCallback, useMemo, type ReactElement } from 'react';
+import { lazy, Suspense, useCallback, useMemo } from 'react';
 
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
-import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
+import {
+  hasPredictionAdditionalPastMatches,
+  resolvePredictionNearestNavigationDate,
+} from '../../utils/predictionMatchNavigation';
+import type { PredictionTopNoticeKind } from './PredictionTopNotice';
 
 const PredictionMatchPreviewTab = lazy(() => import('./PredictionMatchPreviewTab'));
-const PredictionTopNotice = lazy(() => import('./PredictionTopNotice'));
-
-type TopNoticeKind = 'RUN' | 'FUTURE' | 'ERROR' | 'END' | 'INFO';
-type TopNotice = { kind: TopNoticeKind; content: ReactElement };
+const PredictionMatchScheduleTopNoticeRuntime = lazy(() => import('./PredictionMatchScheduleTopNoticeRuntime'));
 
 type PredictionMatchSchedulePreviewRuntimeProps = {
   currentGame: Game | null;
@@ -31,7 +32,7 @@ type PredictionMatchSchedulePreviewRuntimeProps = {
   matchBounds: MatchBounds | null;
   retryLoadMorePastMatches: () => void;
   retryLoadMoreFutureMatches: () => void;
-  onEnterMatchDetail: () => void;
+  onEnterMatchDetail: (game: Game) => void;
 };
 
 export default function PredictionMatchSchedulePreviewRuntime({
@@ -57,84 +58,13 @@ export default function PredictionMatchSchedulePreviewRuntime({
   retryLoadMoreFutureMatches,
   onEnterMatchDetail,
 }: PredictionMatchSchedulePreviewRuntimeProps) {
-  const predictionRecoveryPath = buildPredictionRecoveryPath({
-    currentDate,
-    currentGameId,
-  });
-
-  const shellPastRangeErrorMessage = useMemo(() => {
-    if (!pastRangeLoadErrorMessage) {
-      return null;
-    }
-
-    if (pastRangeLoadState !== 'error') {
-      return pastRangeLoadErrorMessage;
-    }
-
-    return pastRangeLoadErrorMessage.includes('이전 경기 조회')
-      ? pastRangeLoadErrorMessage
-      : `이전 경기 조회 실패: ${pastRangeLoadErrorMessage}`;
-  }, [pastRangeLoadErrorMessage, pastRangeLoadState]);
-
-  const shellFutureRangeErrorMessage = useMemo(() => {
-    if (!futureRangeLoadErrorMessage) {
-      return null;
-    }
-
-    if (futureRangeLoadState !== 'error') {
-      return futureRangeLoadErrorMessage;
-    }
-
-    return futureRangeLoadErrorMessage.includes('미래 구간 조회')
-      ? futureRangeLoadErrorMessage
-      : `미래 구간 조회 실패: ${futureRangeLoadErrorMessage}`;
-  }, [futureRangeLoadErrorMessage, futureRangeLoadState]);
-
   const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
   const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
 
-  const nearestNavigationDate = useMemo(() => {
-    if (!currentDayNavigationMeta) {
-      return null;
-    }
-
-    const previousCandidate = currentDayNavigationMeta.prevDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.prevDate) || null
-      : null;
-    const nextCandidate = currentDayNavigationMeta.nextDate
-      ? allDatesData.find((entry) => entry.date === currentDayNavigationMeta.nextDate) || null
-      : null;
-
-    if (previousCandidate && previousCandidate.games.length > 0) {
-      return { date: previousCandidate.date, isPast: true };
-    }
-
-    if (nextCandidate && nextCandidate.games.length > 0) {
-      return { date: nextCandidate.date, isPast: false };
-    }
-
-    const previousKnownEmpty =
-      previousCandidate !== null && previousCandidate.games.length === 0;
-    const nextKnownEmpty = nextCandidate !== null && nextCandidate.games.length === 0;
-
-    if (previousKnownEmpty && currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    if (nextKnownEmpty && currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.prevDate) {
-      return { date: currentDayNavigationMeta.prevDate, isPast: true };
-    }
-
-    if (currentDayNavigationMeta.nextDate) {
-      return { date: currentDayNavigationMeta.nextDate, isPast: false };
-    }
-
-    return null;
-  }, [allDatesData, currentDayNavigationMeta]);
+  const nearestNavigationDate = useMemo(
+    () => resolvePredictionNearestNavigationDate(allDatesData, currentDayNavigationMeta),
+    [allDatesData, currentDayNavigationMeta],
+  );
 
   const handleNearestNavigation = useCallback(() => {
     if (!nearestNavigationDate) {
@@ -144,25 +74,16 @@ export default function PredictionMatchSchedulePreviewRuntime({
     void goToDate(nearestNavigationDate.date);
   }, [goToDate, nearestNavigationDate]);
 
-  const normalizeBoundaryDate = (value: string | null | undefined): string | null => {
-    if (!value) return null;
-    const trimmed = value.trim();
-    return trimmed ? trimmed.slice(0, 10) : null;
-  };
-
-  const earliestBoundaryDate = normalizeBoundaryDate(matchBounds?.earliestGameDate);
-  const hasAdditionalPastMatches = Boolean(
-    matchBounds?.hasData
-      && earliestBoundaryDate
-      && allDatesData[0]?.date
-      && normalizeBoundaryDate(allDatesData[0].date)
-      && normalizeBoundaryDate(allDatesData[0].date)! > earliestBoundaryDate
-  );
+  const hasAdditionalPastMatches = hasPredictionAdditionalPastMatches(matchBounds, allDatesData);
   const hasPastNavigation = canMovePrevDate || hasAdditionalPastMatches;
   const isFutureRangeLoading = futureRangeLoadState === 'loading';
   const isFutureRangeError = futureRangeLoadState === 'error';
 
-  const topNoticeKind = useMemo<TopNoticeKind | null>(() => {
+  const topNoticeKind = useMemo<PredictionTopNoticeKind | null>(() => {
+    if (deepLinkNotice) {
+      return 'INFO';
+    }
+
     if (isFutureRangeLoading || isFutureRangeError) {
       return 'FUTURE';
     }
@@ -188,10 +109,6 @@ export default function PredictionMatchSchedulePreviewRuntime({
       return 'END';
     }
 
-    if (deepLinkNotice) {
-      return 'INFO';
-    }
-
     return null;
   }, [
     allDatesData.length,
@@ -206,60 +123,37 @@ export default function PredictionMatchSchedulePreviewRuntime({
     pastRangeLoadState,
   ]);
 
-  const sharedTopNotice: TopNotice | null = topNoticeKind
-    ? {
-        kind: topNoticeKind,
-        content: (
+  return (
+    <div className="relative font-sans">
+      {topNoticeKind ? (
+        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
           <Suspense fallback={null}>
-            <PredictionTopNotice
+            <PredictionMatchScheduleTopNoticeRuntime
               kind={topNoticeKind}
               currentDateIndex={currentDateIndex}
+              currentDate={currentDate}
+              currentGameId={currentGameId}
               pastRangeLoadState={pastRangeLoadState}
-              pastRangeLoadErrorMessage={shellPastRangeErrorMessage}
+              pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
               futureRangeLoadState={futureRangeLoadState}
-              futureRangeLoadErrorMessage={shellFutureRangeErrorMessage}
+              futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
               canLoadMorePast={canLoadMorePast}
               canLoadMoreFuture={canLoadMoreFuture}
               hasPastNavigation={hasPastNavigation}
-              isCurrentVotePartial={false}
-              currentVotePartialReason={null}
-              voteStatusError={null}
-              isVoteRetryLoading={false}
-              isRunInProgress={false}
-              isRunBannerDismissed={false}
-              runProgressMessage={null}
               deepLinkNotice={deepLinkNotice}
-              predictionRecoveryPath={predictionRecoveryPath}
               onRetryLoadMorePastMatches={retryLoadMorePastMatches}
               onRetryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-              onRetryVoteStatus={() => {}}
-              onRetryPartialVoteStatus={() => {}}
-              onDismissRunProgressBanner={() => {}}
-              onResumeRunProgressBanner={() => {}}
             />
           </Suspense>
-        ),
-      }
-    : null;
-
-  return (
-    <div className="relative">
-      {sharedTopNotice ? (
-        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
-          {sharedTopNotice.content}
         </div>
       ) : null}
       <PredictionMatchPreviewTab
         currentDateGames={currentDateGames}
         currentDate={currentDate}
-        currentGame={currentGame}
-        canMovePrevDate={canMovePrevDate}
-        canMoveNextDate={canMoveNextDate}
         nearestNavigationDate={nearestNavigationDate}
         isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
         onEnterMatchDetail={onEnterMatchDetail}
-        onPrevDate={goToPreviousDate}
-        onNextDate={goToNextDate}
+        onGoToDate={goToDate}
         onNearestNavigation={handleNearestNavigation}
       />
     </div>

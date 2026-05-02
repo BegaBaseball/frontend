@@ -19,6 +19,9 @@ const enableSelfHeal = rawArgs.includes('--self-heal')
 const allowGlobalFallback = useGlobalCache || process.env.CYPRESS_ALLOW_GLOBAL_FALLBACK === '1';
 const requestTopLevelVersion = rawArgs.includes('--version') || rawArgs.includes('-v');
 const commandMode = isOpen ? 'open' : 'run';
+const preferDocker = commandMode === 'run'
+  && (rawArgs.includes('--prefer-docker') || process.env.CYPRESS_PREFER_DOCKER === '1');
+const dockerExecutionRequested = commandMode === 'run' && (forceDocker || preferDocker || autoDocker);
 const hasExplicitSpecArg = rawArgs.some((arg) => arg === '--spec' || arg.startsWith('--spec='));
 const hasExplicitBrowserArg = rawArgs.some((arg) => arg === '--browser' || arg.startsWith('--browser='));
 const excludedDefaultSpecs = new Set([
@@ -81,9 +84,10 @@ const stripExplicitSpecArgs = (args) => {
 };
 
 const explicitSpecs = collectExplicitSpecArgs(rawArgs);
-const autoChromeForMateRegressionSpecs = !hasExplicitBrowserArg
+const autoBrowserForMateRegressionSpecs = !hasExplicitBrowserArg
   && hasExplicitSpecArg
   && explicitSpecs.some((spec) => chromeMateRegressionSpecs.has(spec));
+const mateRegressionBrowser = dockerExecutionRequested ? 'electron' : 'chrome';
 const shouldRunMateSpecsSequentially = commandMode === 'run'
   && explicitSpecs.length > 1
   && explicitSpecs.every((spec) => sequentialMateRegressionSpecs.has(spec));
@@ -128,6 +132,7 @@ const resolveDefaultSpecList = () => {
 const cypressArgs = rawArgs
   .filter((arg) => arg !== '--docker')
   .filter((arg) => arg !== '--auto-docker')
+  .filter((arg) => arg !== '--prefer-docker')
   .filter((arg) => arg !== '--open')
   .filter((arg) => arg !== '--skip-verify')
   .filter((arg) => arg !== '--self-heal')
@@ -138,8 +143,8 @@ if (defaultSpecList) {
   cypressArgs.push('--spec', defaultSpecList);
 }
 
-if (autoChromeForMateRegressionSpecs) {
-  cypressArgs.push('--browser', 'chrome');
+if (autoBrowserForMateRegressionSpecs) {
+  cypressArgs.push('--browser', mateRegressionBrowser);
 }
 
 const cypressArgsWithoutSpec = stripExplicitSpecArgs(cypressArgs);
@@ -353,6 +358,17 @@ const hasDocker = () => {
   return runCommandStatus('docker', ['info'], { ...envWithCache }, 'ignore') === 0;
 };
 
+const printDockerUnavailableGuidance = () => {
+  console.log('\nDocker is not available. Re-run after installing Docker Desktop or starting Docker.');
+  console.log('For targeted browser checks, Playwright smoke scripts remain available.');
+  console.log('  - npm run qa:mobile:smoke');
+  console.log('    runs prediction and mate smoke in sequence');
+  console.log('  - npm run qa:prediction:mobile:smoke');
+  console.log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
+  console.log('  - npm run qa:mate:mobile:smoke');
+  console.log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
+};
+
 const getExpectedBinaryVersion = (environment = envWithCache) => {
   const cachePath = environment.CYPRESS_CACHE_FOLDER || cacheDir;
   if (!installedCypressVersion) {
@@ -387,7 +403,14 @@ const runLocal = (environment = envWithCache) => {
   return status ?? 1;
 };
 
+const withCypressSkipVerifyEnv = (environment = envWithCache) => ({
+  ...environment,
+  CYPRESS_SKIP_VERIFY: 'true',
+});
+
 const runLocalWithoutVerify = (environment = envWithCache) => {
+  const skipVerifyEnvironment = withCypressSkipVerifyEnv(environment);
+
   if (shouldRunMateSpecsSequentially) {
     console.log('\n[local] direct sequential run without prior verify');
 
@@ -396,7 +419,7 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
       const status = runCommandStatus(
         'npx',
         ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
-        environment,
+        skipVerifyEnvironment,
       );
       if (status !== 0) {
         return status ?? 1;
@@ -412,7 +435,7 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
     return 1;
   }
 
-  const status = runCommandStatus('npx', ['cypress', commandMode, ...cypressArgs], environment);
+  const status = runCommandStatus('npx', ['cypress', commandMode, ...cypressArgs], skipVerifyEnvironment);
   return status ?? 1;
 };
 
@@ -543,10 +566,15 @@ const rewriteArgsForDocker = (args, hostUrl, dockerBackendUrl) => {
   return rewrittenArgs;
 };
 
-const runDocker = () => {
+const runDocker = (statusLabel = '[local failed] fallback to Docker image') => {
   const image = process.env.CYPRESS_DOCKER_IMAGE
     || (installedCypressVersion ? `cypress/included:${installedCypressVersion}` : 'cypress/included:15.9.0');
-  const hostUrl = normalizeDockerReachableUrl(process.env.CYPRESS_DOCKER_BASE_URL || 'http://host.docker.internal:5176')
+  const hostUrl = normalizeDockerReachableUrl(
+    process.env.CYPRESS_DOCKER_BASE_URL
+      || process.env.CYPRESS_FRONTEND_BASE_URL
+      || process.env.CYPRESS_BASE_URL
+      || 'http://host.docker.internal:5176',
+  )
     || 'http://host.docker.internal:5176';
   const dockerBackendUrl = normalizeDockerReachableUrl(
     process.env.CYPRESS_DOCKER_BACKEND_BASE_URL
@@ -591,7 +619,7 @@ const runDocker = () => {
       `baseUrl=${hostUrl}`,
     ];
 
-  console.log(`\n[local failed] fallback to Docker image: ${image}`);
+  console.log(`\n${statusLabel}: ${image}`);
   console.log(`         host target: ${hostUrl}`);
   const status = runCommandStatus('docker', argsWithHostBaseUrl, envWithCache);
   return status ?? 1;
@@ -600,27 +628,35 @@ const runDocker = () => {
 console.log('Cypress orchestrator');
 console.log(`- cacheDir: ${cacheDir}`);
 console.log(`- useGlobalCache: ${useGlobalCache ? 'true' : 'false'}`);
-if (autoChromeForMateRegressionSpecs) {
-  console.log('- browser override: chrome (mate regression spec)');
+if (autoBrowserForMateRegressionSpecs) {
+  console.log(`- browser override: ${mateRegressionBrowser} (mate regression spec)`);
 }
 if (shouldRunMateSpecsSequentially) {
   console.log('- execution mode: sequential spec runs (mate regression spec)');
 }
+if (preferDocker) {
+  console.log('- execution preference: Docker first');
+}
 
-if (forceDocker) {
+if (forceDocker || preferDocker) {
   if (commandMode !== 'run') {
     console.log('\nDocker mode supports run mode only.');
     process.exit(1);
   }
   if (!hasDocker()) {
-    console.log('\nDocker is not available. Re-run after installing Docker Desktop.');
+    printDockerUnavailableGuidance();
     process.exit(1);
   }
-  process.exit(runDocker());
+  process.exit(runDocker('[docker] running Docker image'));
 }
 
 if (skipVerify) {
-  process.exit(runLocal());
+  const skipVerifyStatus = runLocalWithoutVerify(envWithCache);
+  if (skipVerifyStatus === 0) {
+    process.exit(0);
+  }
+
+  console.log('\nDirect run with verification disabled failed.');
 }
 
 if (requestTopLevelVersion) {
@@ -628,17 +664,21 @@ if (requestTopLevelVersion) {
   process.exit(status ?? 1);
 }
 
-const primaryVerify = enableSelfHeal
-  ? isVerifySuccessfulWithSelfHeal(envWithCache)
-  : isVerifySuccessful(envWithCache);
+const primaryVerify = skipVerify
+  ? false
+  : enableSelfHeal
+    ? isVerifySuccessfulWithSelfHeal(envWithCache)
+    : isVerifySuccessful(envWithCache);
 
 if (primaryVerify) {
   process.exit(runLocal());
 }
 
-console.log('\nLocal Cypress verify failed.');
+if (!skipVerify) {
+  console.log('\nLocal Cypress verify failed.');
+}
 
-if (commandMode === 'run') {
+if (!skipVerify && commandMode === 'run') {
   const localHasExpectedBinary = hasExpectedLocalBinary();
   if (localHasExpectedBinary && isBinaryVersionCompatible(envWithCache)) {
     console.log('\nTrying local direct run without global cache fallback.');
@@ -662,17 +702,7 @@ if (!useGlobalCache && allowGlobalFallback) {
       CYPRESS_CACHE_FOLDER: fallbackCacheDir,
     };
 
-    const fallbackVerify = enableSelfHeal
-      ? isVerifySuccessfulWithSelfHeal(fallbackEnv)
-      : isVerifySuccessful(fallbackEnv);
-    if (fallbackVerify) {
-      console.log('Fallback cache verification succeeded.');
-      process.exit(runLocal(fallbackEnv));
-    }
-
-    console.log('Fallback cache verification failed.');
-
-if (commandMode === 'run') {
+    if (skipVerify) {
       const fallbackHasExpectedBinary = getExpectedBinaryVersion(fallbackEnv);
       if (fallbackHasExpectedBinary && isBinaryVersionCompatible(fallbackEnv)) {
         const fallbackNoVerifyStatus = runLocalWithoutVerify(fallbackEnv);
@@ -680,11 +710,37 @@ if (commandMode === 'run') {
           process.exit(0);
         }
 
-        console.log('\nFallback cache verification skip verify run also failed.');
+        console.log('\nFallback cache direct run with verification disabled also failed.');
       } else if (fallbackHasExpectedBinary) {
         console.log(`\nFallback cache contains Cypress path ${installedCypressVersion} but binary version check failed.`);
       } else {
         console.log(`\nFallback cache does not contain Cypress ${installedCypressVersion}.`);
+      }
+    } else {
+      const fallbackVerify = enableSelfHeal
+        ? isVerifySuccessfulWithSelfHeal(fallbackEnv)
+        : isVerifySuccessful(fallbackEnv);
+      if (fallbackVerify) {
+        console.log('Fallback cache verification succeeded.');
+        process.exit(runLocal(fallbackEnv));
+      }
+
+      console.log('Fallback cache verification failed.');
+
+      if (commandMode === 'run') {
+        const fallbackHasExpectedBinary = getExpectedBinaryVersion(fallbackEnv);
+        if (fallbackHasExpectedBinary && isBinaryVersionCompatible(fallbackEnv)) {
+          const fallbackNoVerifyStatus = runLocalWithoutVerify(fallbackEnv);
+          if (fallbackNoVerifyStatus === 0) {
+            process.exit(0);
+          }
+
+          console.log('\nFallback cache verification skip verify run also failed.');
+        } else if (fallbackHasExpectedBinary) {
+          console.log(`\nFallback cache contains Cypress path ${installedCypressVersion} but binary version check failed.`);
+        } else {
+          console.log(`\nFallback cache does not contain Cypress ${installedCypressVersion}.`);
+        }
       }
     }
   }
@@ -694,7 +750,7 @@ if (!useGlobalCache && !allowGlobalFallback) {
   console.log('\nSkipping global Cypress cache fallback. Set CYPRESS_ALLOW_GLOBAL_FALLBACK=1 to re-enable it.');
 }
 
-if (commandMode === 'run') {
+if (!skipVerify && commandMode === 'run') {
   const defaultHasExpectedBinary = getExpectedBinaryVersion();
   if (defaultHasExpectedBinary && isBinaryVersionCompatible()) {
     const directNoVerifyStatus = runLocalWithoutVerify();
@@ -716,6 +772,7 @@ if (commandMode === 'open') {
 }
 
 if (!forceDocker && !autoDocker) {
+  console.log('Run `npm run cy:doctor` for local runtime diagnostics.');
   console.log('Set CYPRESS_USE_DOCKER=1 or run `npm run cy:run:docker -- [args]` to use Docker fallback.');
   console.log('If local verification is unstable, run with --auto-docker.');
   process.exit(1);
@@ -727,7 +784,8 @@ if (autoDocker && !forceDocker && commandMode !== 'run') {
 }
 
 if (!hasDocker()) {
-  console.log('\nDocker is not available. Re-run after installing Docker Desktop.');
+  console.log('Run `npm run cy:doctor` for local runtime diagnostics.');
+  printDockerUnavailableGuidance();
   process.exit(1);
 }
 

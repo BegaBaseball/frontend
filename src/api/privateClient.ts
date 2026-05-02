@@ -158,7 +158,6 @@ const privateRequest = async <T>(
       body: requestBody,
       signal: controller.signal,
     });
-
     const responseBody = await parseResponseBody(response);
 
     if (response.status === 401 && !hasRetried && !options.skipAuthSessionHandling) {

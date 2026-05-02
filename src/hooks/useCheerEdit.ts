@@ -113,7 +113,10 @@ export const useCheerEdit = (postId: number, favoriteTeam: string | null) => {
         try {
             await updatePostMutation.mutateAsync({
                 id: postId,
-                data: { content },
+                data: {
+                    content,
+                    images: existingImages.map((image) => image.storagePath),
+                },
                 newFiles,
                 deletingImageIds: deletedImageIds,
             });

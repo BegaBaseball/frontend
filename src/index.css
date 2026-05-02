@@ -224,9 +224,7 @@
 
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: hsl(var(--background));
@@ -236,13 +234,23 @@
   input,
   textarea,
   select {
+    font-family: inherit;
     color: rgb(17 24 39);
   }
 
   .dark input,
   .dark textarea,
   .dark select {
+    font-family: inherit;
     color: rgb(243 244 246);
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  .dark button {
+    font-family: inherit;
   }
 }
 
@@ -263,8 +271,22 @@
   /* Improved image rendering for downscaled images */
   .image-render-quality {
     image-rendering: auto;
-    transform: translateZ(0); /* Triggers GPU compositing for smoother rendering */
-    backface-visibility: hidden; /* Helps with antialiasing in some browsers */
+  }
+
+  .avatar-edge-smooth {
+    display: block;
+    image-rendering: auto;
+  }
+
+  .avatar-circle-mask {
+    -webkit-mask-image: radial-gradient(circle, #000 98%, transparent 100%);
+    mask-image: radial-gradient(circle, #000 98%, transparent 100%);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
   }
 }
 

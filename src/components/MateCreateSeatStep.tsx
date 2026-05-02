@@ -84,10 +84,10 @@ export default function MateCreateSeatStep({
             <div className="mb-2">
               <TeamLogo teamId={homeTeamId} size={34} />
             </div>
-            <span className="text-center text-sm font-bold leading-tight sm:text-lg">
+            <span className="text-center text-[16px] font-bold leading-tight sm:text-lg">
               {TEAMS.find((team) => team.id === homeTeamId)?.name || '홈팀'}
             </span>
-            <div className="mt-1 text-[10px] font-medium opacity-80 sm:text-[11px]">홈 팀 응원</div>
+            <div className="mt-1 text-[16px] font-semibold opacity-80">홈 팀 응원</div>
           </button>
 
           <button
@@ -99,8 +99,8 @@ export default function MateCreateSeatStep({
               }`}
           >
             <span className="mb-1 text-2xl sm:text-3xl">😐</span>
-            <span className="text-sm font-bold sm:text-lg">상관없음</span>
-            <div className="mt-1 text-[10px] font-medium opacity-80 sm:text-[11px]">중립</div>
+            <span className="text-[16px] font-bold sm:text-lg">상관없음</span>
+            <div className="mt-1 text-[16px] font-semibold opacity-80">중립</div>
           </button>
 
           <button
@@ -120,10 +120,10 @@ export default function MateCreateSeatStep({
             <div className="mb-2">
               <TeamLogo teamId={awayTeamId} size={34} />
             </div>
-            <span className="text-center text-sm font-bold leading-tight sm:text-lg">
+            <span className="text-center text-[16px] font-bold leading-tight sm:text-lg">
               {TEAMS.find((team) => team.id === awayTeamId)?.name || '원정팀'}
             </span>
-            <div className="mt-1 text-[10px] font-medium opacity-80 sm:text-[11px]">원정 팀 응원</div>
+            <div className="mt-1 text-[16px] font-semibold opacity-80">원정 팀 응원</div>
           </button>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function MateCreateSeatStep({
                     <div className={`font-bold ${isSelected ? 'text-primary' : 'text-gray-900 dark:text-gray-100'}`}>
                       {value.label}
                     </div>
-                    <div className="mt-1 text-[11px] leading-snug text-gray-500 sm:text-xs">
+                    <div className="mt-1 text-[16px] leading-snug text-gray-500">
                       {seatDescriptions[value.label] || '편안한 관람'}
                     </div>
                   </div>
@@ -167,7 +167,7 @@ export default function MateCreateSeatStep({
         <FieldLabel className="text-base font-bold sm:text-lg" htmlFor="seatDetail">좌석 상세 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">구역/블록</label>
+            <label className="text-[16px] text-gray-500 mb-1 block">구역/블록</label>
             <div className="relative">
               <Input
                 placeholder="예: 305"
@@ -181,11 +181,11 @@ export default function MateCreateSeatStep({
                 }}
                 className="pr-12"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">블록</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">블록</span>
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">열</label>
+            <label className="text-[16px] text-gray-500 mb-1 block">열</label>
             <div className="relative">
               <Input
                 placeholder="예: 12"
@@ -199,11 +199,11 @@ export default function MateCreateSeatStep({
                 }}
                 className="pr-10"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">열</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">열</span>
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">번 (선택)</label>
+            <label className="text-[16px] text-gray-500 mb-1 block">번 (선택)</label>
             <div className="relative">
               <Input
                 placeholder="예: 15"
@@ -217,15 +217,15 @@ export default function MateCreateSeatStep({
                 }}
                 className="pr-10"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">번</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">번</span>
             </div>
           </div>
         </div>
 
         {(formData.cheeringSide || formData.seatCategory || formData.seatDetail) && (
           <div className="mt-4 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 dark:bg-card sm:flex-row sm:items-center sm:justify-between sm:p-4">
-            <span className="text-sm text-gray-500">미리보기</span>
-            <span className="break-words text-sm font-bold text-gray-700 dark:text-gray-300 sm:text-right">
+            <span className="text-[16px] text-gray-500">미리보기</span>
+            <span className="break-words text-[16px] font-bold text-gray-700 dark:text-gray-300 sm:text-right">
               {[
                 formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
                 formData.seatCategory,
@@ -242,7 +242,7 @@ export default function MateCreateSeatStep({
           id="maxParticipants"
           value={formData.maxParticipants.toString()}
           onChange={(event) => updateFormData({ maxParticipants: parseInt(event.target.value, 10) })}
-          className="h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-border dark:bg-input/30"
+          className="h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-[16px] dark:border-border dark:bg-input/30"
         >
           <option value="2">2명 (본인 포함)</option>
           <option value="3">3명 (본인 포함)</option>
@@ -267,12 +267,12 @@ export default function MateCreateSeatStep({
             원
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-2 px-1">
+        <p className="text-[16px] text-gray-500 mt-2 px-1">
           * 선택하신 <span className="font-bold text-primary">{formData.seatCategory}</span> 기준 예상 가격입니다. 실제 예매 가격과 다를 수 있습니다.
         </p>
         {formData.ticketPrice > 0 && (
           <Alert>
-            <AlertDescription className="text-sm">
+            <AlertDescription className="text-[16px]">
               참여자는 호스트 승인 후 채팅에서 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> 기준으로 직거래를 조율합니다.
             </AlertDescription>
           </Alert>

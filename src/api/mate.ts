@@ -1,7 +1,7 @@
 import { getApiErrorStatus } from './errorStatus';
 import { privateDelete, privateGet, privatePatch, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
-import { compressImage } from '../utils/imageCompression';
+import { uploadMediaFile } from './media';
 import { mapBackendPartyToFrontend } from '../utils/mate';
 import type {
   Application,
@@ -16,6 +16,8 @@ import type {
   CreatePartyRequest,
   CreateReviewRequest,
   Party,
+  MatePartySortBy,
+  MatePartySortDir,
   PartyReview,
   PartyStatus,
   UpdatePartyRequest,
@@ -69,6 +71,8 @@ export interface FetchMatePartiesPageParams {
   status?: PartyStatus;
   searchQuery?: string;
   gameDate?: string;
+  sortBy?: MatePartySortBy;
+  sortDir?: MatePartySortDir;
   signal?: AbortSignal;
 }
 
@@ -113,7 +117,7 @@ export async function fetchPartyById(
   partyId: number | string,
   options?: FetchPartyByIdOptions,
 ): Promise<Party> {
-  const response = await publicGet<BackendPartyDTO>(`/parties/${partyId}`, {
+  const response = await privateGet<BackendPartyDTO>(`/parties/${partyId}`, {
     signal: options?.signal,
   });
   return normalizeMateParty(response);
@@ -122,7 +126,7 @@ export async function fetchPartyById(
 export async function fetchPartyReviews(
   partyId: number | string,
 ): Promise<PartyReview[]> {
-  return publicGet<PartyReview[]>(`/reviews/party/${Number(partyId)}`);
+  return privateGet<PartyReview[]>(`/reviews/party/${Number(partyId)}`);
 }
 
 export async function fetchPartyApplications(
@@ -168,6 +172,8 @@ export async function fetchMatePartiesPage(
       status: params.status,
       searchQuery: params.searchQuery,
       date: params.gameDate,
+      sortBy: params.sortBy,
+      sortDir: params.sortDir,
     },
     signal: params.signal,
   });
@@ -279,43 +285,17 @@ export async function sendChatMessage(data: {
   partyId: number | string;
   message: string;
   imageUrl?: string;
+  clientMessageId: string;
 }): Promise<ChatMessage> {
   return privatePost<ChatMessage, typeof data>('/chat/messages', data);
 }
 
 export async function uploadChatImage(file: File): Promise<{ path: string; url?: string }> {
-  let fileToUpload = file;
-  try {
-    fileToUpload = await compressImage(file, {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1920,
-      initialQuality: 0.82,
-      useWebWorker: true,
-    });
-  } catch (compressionError) {
-    console.warn('채팅 이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
-    fileToUpload = file;
-  }
-
-  const formData = new FormData();
-  formData.append('file', fileToUpload);
-
-  const response = await privatePost<ApiEnvelope<{ path?: string; url?: string; publicUrl?: string } | string>, FormData>(
-    '/storage/image',
-    formData,
-  );
-
-  const payload = response.data;
-  const resolvedPath = typeof payload === 'string'
-    ? payload
-    : payload?.path || payload?.url || payload?.publicUrl;
-
-  if (response.success && resolvedPath) {
-    const resolvedUrl = typeof payload === 'string' ? undefined : payload?.url || payload?.publicUrl;
-    return resolvedUrl ? { path: resolvedPath, url: resolvedUrl } : { path: resolvedPath };
-  }
-
-  throw new Error(response.message || '사진 업로드에 실패했습니다.');
+  const response = await uploadMediaFile('CHAT', file);
+  return {
+    path: response.storagePath,
+    url: response.publicUrl,
+  };
 }
 
 export async function updateChatReadTimestamp(partyId: number | string): Promise<void> {

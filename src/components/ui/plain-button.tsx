@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 type ButtonVariant = 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'link';
-type ButtonSize = 'default' | 'sm' | 'icon';
+type ButtonSize = 'default' | 'sm' | 'icon' | 'iconTouch';
 
 interface PlainButtonProps extends React.ComponentProps<'button'> {
   variant?: ButtonVariant;
@@ -20,8 +20,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 const sizeClasses: Record<ButtonSize, string> = {
   default: 'h-9 px-4 py-2',
-  sm: 'h-8 rounded-md px-3 text-sm',
+  sm: 'h-8 rounded-md px-3 text-[15px]',
   icon: 'h-9 w-9 rounded-md p-0',
+  iconTouch: 'h-11 w-11 rounded-xl p-0',
 };
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
@@ -54,7 +55,7 @@ const Button = React.forwardRef<HTMLButtonElement, PlainButtonProps>(({
   ...props
 }, ref) => {
   const resolvedClassName = joinClassNames(
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-[15px] font-semibold transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
     variantClasses[variant],
     sizeClasses[size],
     className,

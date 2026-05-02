@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bookmark, Home, UserRound, Megaphone, LineChart } from 'lucide-react';
 import { fetchBookmarks } from '../api/cheerApi';
 import CheerCard from './CheerCard';
+import { BookmarkIcon, HomeIcon, LineChartIcon, MegaphoneIcon, UserIcon } from './icons/PublicShellIcons';
 import { cn } from '../lib/utils';
 import { useAuthProfileSnapshot } from '../store/authStore';
+import CheerMobileBottomNav from './CheerMobileBottomNav';
 
 export default function CheerBookmarks() {
   const navigate = useNavigate();
@@ -20,17 +21,18 @@ export default function CheerBookmarks() {
   });
 
   const bookmarkedPosts = data?.content ?? [];
+  const handleWriteClick = () => navigate('/cheer/write');
 
   const navItems = [
-    { id: 'home', label: '홈', icon: Home, path: '/home' },
-    { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-    { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-    { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
-    { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
+    { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
+    { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
+    { id: 'live', label: '전력분석실', icon: LineChartIcon, path: '/prediction' },
+    { id: 'profile', label: '프로필', icon: UserIcon, path: userProfilePath },
+    { id: 'bookmarks', label: '북마크', icon: BookmarkIcon, path: '/cheer/bookmarks' },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f9f9] dark:bg-background">
+    <div className="min-h-screen bg-[#f7f9f9] pb-[calc(5.75rem+env(safe-area-inset-bottom))] dark:bg-background lg:pb-0">
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 py-6 sm:py-8">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-[72px_1fr_320px] xl:grid-cols-[200px_1fr_320px]">
           <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-6 self-start px-2 xl:px-3">
@@ -43,7 +45,7 @@ export default function CheerBookmarks() {
                   type="button"
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-semibold transition-colors',
+                    'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-bold transition-colors',
                     isActive
                       ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
                       : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-gray-300 dark:hover:bg-secondary'
@@ -59,7 +61,7 @@ export default function CheerBookmarks() {
           <main className="flex w-full flex-col gap-0 bg-white dark:bg-card border-x border-[#EFF3F4] dark:border-border">
             <div className="border-b border-[#EFF3F4] dark:border-border px-4 py-4">
               <h1 className="text-lg font-bold text-[#0F172A] dark:text-white">북마크</h1>
-              <p className="text-sm text-slate-500 dark:text-gray-300">저장해둔 게시글을 모아볼 수 있어요.</p>
+              <p className="text-[16px] text-slate-500 dark:text-gray-300">저장해둔 게시글을 모아볼 수 있어요.</p>
             </div>
 
             {isLoading ? (
@@ -93,11 +95,11 @@ export default function CheerBookmarks() {
               </div>
             ) : isError ? (
               <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
-                <p className="text-sm text-slate-500 dark:text-gray-300">북마크를 불러오지 못했습니다.</p>
+                <p className="text-[16px] text-slate-500 dark:text-gray-300">북마크를 불러오지 못했습니다.</p>
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="mt-3 rounded-full border border-slate-200 dark:border-border px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-secondary"
+                  className="mt-3 min-h-11 rounded-full border border-slate-200 px-4 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
                 >
                   다시 시도
                 </button>
@@ -105,18 +107,18 @@ export default function CheerBookmarks() {
             ) : bookmarkedPosts.length === 0 ? (
               <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center mx-auto mb-4">
-                  <Bookmark className="h-8 w-8 text-slate-400 dark:text-gray-300" />
+                  <BookmarkIcon className="h-8 w-8 text-slate-400 dark:text-gray-300" />
                 </div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-gray-200 mb-1">
+                <p className="text-base font-bold text-slate-700 dark:text-gray-200 mb-1">
                   아직 북마크한 게시글이 없습니다
                 </p>
-                <p className="text-xs text-slate-400 dark:text-gray-400 mb-5">
+                <p className="text-[16px] text-slate-400 dark:text-gray-400 mb-5">
                   응원 게시판에서 마음에 드는 게시글을 북마크해보세요
                 </p>
                 <button
                   type="button"
                   onClick={() => navigate('/cheer')}
-                  className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                  className="min-h-11 rounded-full bg-primary px-5 py-2 text-[16px] font-bold text-white transition-opacity hover:opacity-90"
                 >
                   응원 게시판으로 이동
                 </button>
@@ -132,8 +134,8 @@ export default function CheerBookmarks() {
 
           <aside className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start lg:ml-4">
             <div className="rounded-2xl border border-[#E5E7EB] dark:border-border p-4 bg-white dark:bg-card">
-              <p className="text-sm font-semibold text-[#0F172A] dark:text-white">북마크 팁</p>
-              <p className="mt-2 text-sm text-[#64748B] dark:text-gray-300 leading-relaxed">
+              <p className="text-base font-bold text-[#0F172A] dark:text-white">북마크 팁</p>
+              <p className="mt-2 text-[16px] text-[#64748B] dark:text-gray-300 leading-relaxed">
                 게시글 상세에서 북마크를 눌러 저장해보세요. 자주 보는 응원글을 빠르게 찾을 수 있어요.
               </p>
             </div>
@@ -141,37 +143,11 @@ export default function CheerBookmarks() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-[#EFF3F4] dark:border-border z-40 safe-area-bottom">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
-          {[
-            { id: 'home', label: '홈', icon: Home, path: '/home' },
-            { id: 'team', label: '응원석', icon: Megaphone, path: '/cheer' },
-            { id: 'live', label: '전력분석실', icon: LineChart, path: '/prediction' },
-            { id: 'profile', label: '프로필', icon: UserRound, path: userProfilePath },
-            { id: 'bookmarks', label: '북마크', icon: Bookmark, path: '/cheer/bookmarks' },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.id === 'team' && location.pathname.startsWith('/cheer'));
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-gray-400 dark:text-gray-300'
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <CheerMobileBottomNav
+        activeItem="bookmarks"
+        userProfilePath={userProfilePath}
+        onWriteClick={handleWriteClick}
+      />
     </div>
   );
 }

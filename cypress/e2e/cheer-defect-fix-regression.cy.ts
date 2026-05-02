@@ -3,7 +3,35 @@
 describe('Cheer 커뮤니티 결함 해결 검증', () => {
     const authToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3RVc2VyIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-    const seedAuthState = (win: Window, role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER') => {
+    const actualAvatarUrl = 'https://avatars.test/cheer-user.svg';
+    const actualAvatarSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1d4ed8"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="640" height="640" fill="url(#bg)"/><circle cx="320" cy="250" r="120" fill="#f8fafc" fill-opacity="0.92"/><circle cx="278" cy="226" r="16" fill="#0f172a"/><circle cx="362" cy="226" r="16" fill="#0f172a"/><path d="M258 308c18 24 42 36 62 36s44-12 62-36" fill="none" stroke="#0f172a" stroke-width="18" stroke-linecap="round"/><path d="M164 536c28-96 102-152 156-152s128 56 156 152" fill="#e2e8f0" fill-opacity="0.92"/></svg>';
+    const expectSquareSize = ($element: JQuery<HTMLElement>, size: number) => {
+        const { width, height } = $element[0].getBoundingClientRect();
+
+        expect(Math.round(width)).to.eq(size);
+        expect(Math.round(height)).to.eq(size);
+    };
+    const expectCheerAvatarFrame = ($element: JQuery<HTMLElement>, size: number) => {
+        expect($element).to.have.class('rounded-full');
+        expect($element).to.have.class('inline-flex');
+        expect($element).to.have.class('items-center');
+        expect($element).to.have.class('justify-center');
+        const className = String($element.attr('class') || '');
+        expect(
+            className.includes('border')
+            || className.includes('ring-1')
+            || className.includes('bg-transparent')
+            || className.includes('bg-slate-200/90')
+        ).to.eq(true);
+        expect(className.includes('p-px')).to.eq(false);
+        expectSquareSize($element, size);
+    };
+    const seedAuthState = (
+        win: Window,
+        role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER',
+        profileImageUrl: string | null = null,
+    ) => {
         const isAdmin = role === 'ROLE_ADMIN';
         const id = isAdmin ? 2 : 123;
         const name = isAdmin ? 'AdminUser' : 'TestUser';
@@ -22,7 +50,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
                         favoriteTeam: 'HH',
                         role,
                         isAdmin,
-                        profileImageUrl: null,
+                        profileImageUrl,
                         hasPassword: true,
                         policyConsentRequired: false,
                         policyConsentNoticeRequired: false,
@@ -38,7 +66,20 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         win.localStorage.setItem('bega_has_visited', 'true');
         win.localStorage.setItem('bega_dont_show_guide', 'true');
     };
-    const stubAuthProfile = (role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER') => {
+    const stubAvatarAsset = (avatarUrl: string = actualAvatarUrl, avatarSvg: string = actualAvatarSvg) => {
+        cy.intercept('GET', avatarUrl, {
+            statusCode: 200,
+            headers: {
+                'content-type': 'image/svg+xml',
+                'cache-control': 'public, max-age=3600',
+            },
+            body: avatarSvg,
+        }).as('getStubAvatarAsset');
+    };
+    const stubAuthProfile = (
+        role: 'ROLE_USER' | 'ROLE_ADMIN' = 'ROLE_USER',
+        profileImageUrl: string | null = null,
+    ) => {
         const isAdmin = role === 'ROLE_ADMIN';
         cy.intercept('GET', '**/auth/mypage*', {
             statusCode: 200,
@@ -51,7 +92,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
                     handle: isAdmin ? 'admin' : 'testuser',
                     favoriteTeam: 'HH',
                     role,
-                    profileImageUrl: null,
+                    profileImageUrl,
                     hasPassword: true,
                     policyConsentRequired: false,
                     policyConsentNoticeRequired: false,
@@ -508,7 +549,222 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             .should('include', `/api/cheer/posts/${originalPostId}/repost`);
     });
 
-    it('5) 댓글 답글 CTA를 숨기고 섹션 상태 안내만 노출한다', () => {
+    it('4-1) 일반 상세 좋아요는 현재 글 id로 요청되고 같은 글 카운트만 갱신한다', () => {
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const postId = 213;
+        const now = new Date().toISOString();
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: {
+                id: postId,
+                content: '상세 좋아요 대상 글',
+                author: 'writer',
+                authorId: 55,
+                authorHandle: 'writer',
+                teamId: 'HH',
+                team: 'HH',
+                teamColor: 'HH',
+                createdAt: now,
+                updatedAt: now,
+                comments: 0,
+                commentCount: 0,
+                likes: 0,
+                likeCount: 0,
+                bookmarkCount: 0,
+                repostCount: 0,
+                views: 10,
+                liked: false,
+                likedByUser: false,
+                bookmarked: false,
+                isBookmarked: false,
+                repostedByMe: false,
+                repostType: undefined,
+                postType: 'NORMAL',
+                isOwner: false,
+                isHot: false,
+                images: [],
+                imageUrls: [],
+            },
+        }).as('getCheerDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [],
+                totalElements: 0,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getCheerComments');
+
+        cy.intercept('POST', `**/api/cheer/posts/${postId}/like`, (req) => {
+            req.alias = 'toggleLikeDetail';
+            req.reply({
+                statusCode: 200,
+                body: { liked: true, likes: 1 },
+            });
+        });
+
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerDetail');
+        cy.wait('@getCheerComments');
+        cy.get('button[aria-label^="좋아요"]').first().as('likeButton');
+
+        cy.get('@likeButton').should('contain', '0');
+        cy.get('@likeButton').click();
+        cy.wait('@toggleLikeDetail')
+            .its('request.url')
+            .should('include', `/api/cheer/posts/${postId}/like`);
+        cy.get('@likeButton')
+            .should('have.class', 'bg-rose-50')
+            .and('contain', '1')
+            .invoke('attr', 'aria-label')
+            .should('include', '1');
+    });
+
+    it('4-2) 이미지 카드 좋아요는 현재 카드만 갱신하고 아래 카드 카운트는 유지한다', () => {
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const imageDataUrl = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+        const now = new Date().toISOString();
+
+        cy.intercept('GET', '**/api/cheer/posts/hot*', {
+            statusCode: 200,
+            body: {
+                content: [],
+                last: true,
+                totalPages: 1,
+                totalElements: 0,
+                size: 20,
+                number: 0,
+            },
+        }).as('getHotPosts');
+
+        cy.intercept('GET', '**/api/cheer/posts*', {
+            statusCode: 200,
+            body: {
+                content: [
+                    {
+                        id: 213,
+                        content: '이미지 대상 게시글',
+                        author: 'writer',
+                        authorId: 55,
+                        authorHandle: 'writer',
+                        teamId: 'HH',
+                        team: 'HH',
+                        teamColor: 'HH',
+                        createdAt: now,
+                        updatedAt: now,
+                        comments: 0,
+                        commentCount: 0,
+                        likes: 0,
+                        likeCount: 0,
+                        bookmarkCount: 0,
+                        repostCount: 0,
+                        views: 10,
+                        liked: false,
+                        likedByUser: false,
+                        bookmarked: false,
+                        isBookmarked: false,
+                        repostedByMe: false,
+                        repostType: undefined,
+                        postType: 'NORMAL',
+                        isOwner: false,
+                        isHot: false,
+                        images: [],
+                        imageUrls: [imageDataUrl],
+                    },
+                    {
+                        id: 212,
+                        content: '아래 카드 카운트 유지',
+                        author: 'writer2',
+                        authorId: 56,
+                        authorHandle: 'writer2',
+                        teamId: 'HH',
+                        team: 'HH',
+                        teamColor: 'HH',
+                        createdAt: now,
+                        updatedAt: now,
+                        comments: 0,
+                        commentCount: 0,
+                        likes: 6,
+                        likeCount: 6,
+                        bookmarkCount: 0,
+                        repostCount: 0,
+                        views: 12,
+                        liked: false,
+                        likedByUser: false,
+                        bookmarked: false,
+                        isBookmarked: false,
+                        repostedByMe: false,
+                        repostType: undefined,
+                        postType: 'NORMAL',
+                        isOwner: false,
+                        isHot: false,
+                        images: [],
+                        imageUrls: [],
+                    },
+                ],
+                last: true,
+                totalPages: 1,
+                totalElements: 2,
+                size: 20,
+                number: 0,
+            },
+        }).as('getCheerPosts');
+
+        cy.intercept('POST', '**/api/cheer/posts/213/like', (req) => {
+            req.alias = 'toggleImagePostLike';
+            req.reply({
+                statusCode: 200,
+                body: { liked: true, likes: 1 },
+            });
+        });
+
+        cy.visit('/cheer', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerPosts');
+        cy.wait('@getHotPosts');
+
+        cy.contains('이미지 대상 게시글').closest('div.group').as('imageCard');
+        cy.contains('아래 카드 카운트 유지').closest('div.group').as('neighborCard');
+
+        cy.get('@imageCard').find('button[aria-label*="좋아요"]').first().as('imageLikeButton');
+        cy.get('@neighborCard').find('button[aria-label*="좋아요"]').first().as('neighborLikeButton');
+
+        cy.get('@imageLikeButton').invoke('attr', 'aria-label').should('include', '0');
+        cy.get('@neighborLikeButton').invoke('attr', 'aria-label').should('include', '6');
+
+        cy.get('@imageLikeButton').click();
+        cy.wait('@toggleImagePostLike')
+            .its('request.url')
+            .should('include', '/api/cheer/posts/213/like');
+
+        cy.get('@imageLikeButton')
+            .should('have.attr', 'aria-pressed', 'true')
+            .invoke('attr', 'aria-label')
+            .should('include', '1');
+        cy.get('@neighborLikeButton')
+            .invoke('attr', 'aria-label')
+            .should('include', '6');
+    });
+
+    it('5) 댓글 답글 CTA를 숨긴 상태를 점검한다', () => {
         cy.mockAPI();
         stubAuthProfile('ROLE_USER');
 
@@ -585,11 +841,300 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.wait('@getCheerDetail');
         cy.wait('@getCheerComments');
 
-        cy.get('[data-testid="cheer-reply-status"]')
-            .should('be.visible')
-            .and('contain.text', '답글 기능은 준비 중입니다.');
         cy.contains('첫 댓글입니다.').should('be.visible');
         cy.contains('답글 달기').should('not.exist');
+    });
+
+    it('5-1) 댓글 목록은 20개 페이지 단위로 추가 로드한다', () => {
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const postId = 86;
+        const now = new Date().toISOString();
+        const comments = Array.from({ length: 21 }, (_, index) => ({
+            id: 1000 + index,
+            content: `확인용 댓글 ${index + 1}`,
+            author: `commenter-${index + 1}`,
+            authorId: 200 + index,
+            authorHandle: `commenter-${index + 1}`,
+            authorProfileImageUrl: null,
+            createdAt: now,
+            updatedAt: now,
+            timeAgo: '방금 전',
+            likeCount: 0,
+            likes: 0,
+            likedByMe: false,
+            replies: [],
+        }));
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: {
+                id: postId,
+                content: '댓글 더보기 점검용 본문',
+                author: 'writer',
+                authorId: 55,
+                authorHandle: 'writer',
+                teamId: 'HH',
+                team: 'HH',
+                teamColor: 'HH',
+                createdAt: now,
+                updatedAt: now,
+                comments: comments.length,
+                commentCount: comments.length,
+                likes: 3,
+                likeCount: 3,
+                bookmarkCount: 0,
+                repostCount: 0,
+                views: 10,
+                liked: false,
+                likedByMe: false,
+                bookmarked: false,
+                isBookmarked: false,
+                repostedByMe: false,
+                repostType: undefined,
+                postType: 'NORMAL',
+                isOwner: false,
+                isHot: false,
+                images: [],
+                imageUrls: [],
+            },
+        }).as('getCheerDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, (req) => {
+            const page = Number(req.query.page ?? 0);
+            const size = Number(req.query.size ?? 20);
+            const start = page * size;
+            const pageContent = comments.slice(start, start + size);
+
+            req.reply({
+                statusCode: 200,
+                body: {
+                    content: pageContent,
+                    totalElements: comments.length,
+                    totalPages: Math.ceil(comments.length / size),
+                    last: start + size >= comments.length,
+                    size,
+                    number: page,
+                },
+            });
+        }).as('getCheerComments');
+
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerDetail');
+        cy.wait('@getCheerComments');
+        comments.slice(0, 20).forEach((comment) => {
+            cy.contains(comment.content).should('be.visible');
+        });
+        comments.slice(20).forEach((comment) => {
+            cy.contains(comment.content).should('not.exist');
+        });
+
+        cy.get('[data-testid="cheer-comments-show-more"]')
+            .should('be.visible')
+            .and('have.text', '댓글 더보기')
+            .click();
+
+        cy.wait('@getCheerComments');
+        comments.forEach((comment) => {
+            cy.contains(comment.content).should('be.visible');
+        });
+        cy.get('[data-testid="cheer-comments-show-more"]').should('not.exist');
+    });
+
+    it('5-2) 응원 현황은 모바일에서 기본 접힘/열림을 전환한다', () => {
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const postId = 87;
+        const now = new Date().toISOString();
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: {
+                id: postId,
+                content: '응원 현황 토글 점검용 본문',
+                author: 'writer',
+                authorId: 55,
+                authorHandle: 'writer',
+                teamId: 'HH',
+                team: 'HH',
+                teamColor: 'HH',
+                createdAt: now,
+                updatedAt: now,
+                comments: 0,
+                commentCount: 0,
+                likes: 3,
+                likeCount: 3,
+                bookmarkCount: 0,
+                repostCount: 0,
+                views: 10,
+                liked: false,
+                likedByMe: false,
+                bookmarked: false,
+                isBookmarked: false,
+                repostedByMe: false,
+                repostType: undefined,
+                postType: 'NORMAL',
+                isOwner: false,
+                isHot: false,
+                images: [],
+                imageUrls: [],
+            },
+        }).as('getCheerDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [],
+                totalElements: 0,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getCheerComments');
+
+        cy.viewport('iphone-6');
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerDetail');
+        cy.wait('@getCheerComments');
+        cy.get('button[aria-label="응원 현황 토글"]').as('statsToggle');
+        cy.get('#cheer-detail-stats').should('not.be.visible');
+        cy.get('@statsToggle').click();
+        cy.get('#cheer-detail-stats').should('be.visible');
+        cy.get('@statsToggle').click();
+        cy.get('#cheer-detail-stats').should('not.be.visible');
+    });
+
+    it('5-3) 댓글 목록 아바타는 본문/답글 모두 SVG 렌더 경로를 유지한다', () => {
+        cy.mockAPI();
+        stubAvatarAsset();
+        stubAuthProfile('ROLE_USER', actualAvatarUrl);
+
+        const postId = 88;
+        const now = new Date().toISOString();
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: {
+                id: postId,
+                content: '댓글 아바타 렌더 경로 점검용 본문',
+                author: 'writer',
+                authorId: 55,
+                authorHandle: 'writer',
+                authorProfileImageUrl: actualAvatarUrl,
+                teamId: 'HH',
+                team: 'HH',
+                teamColor: 'HH',
+                createdAt: now,
+                updatedAt: now,
+                comments: 2,
+                commentCount: 2,
+                likes: 3,
+                likeCount: 3,
+                bookmarkCount: 0,
+                repostCount: 0,
+                views: 10,
+                liked: false,
+                likedByUser: false,
+                bookmarked: false,
+                isBookmarked: false,
+                repostedByMe: false,
+                repostType: undefined,
+                postType: 'NORMAL',
+                isOwner: false,
+                isHot: false,
+                images: [],
+                imageUrls: [],
+            },
+        }).as('getCommentAvatarDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [
+                    {
+                        id: 701,
+                        content: '실제 이미지가 있는 본문 댓글입니다.',
+                        author: 'commenter',
+                        authorId: 88,
+                        authorHandle: 'commenter',
+                        authorProfileImageUrl: actualAvatarUrl,
+                        createdAt: now,
+                        updatedAt: now,
+                        timeAgo: '방금 전',
+                        likeCount: 2,
+                        likedByMe: false,
+                        replies: [
+                            {
+                                id: 702,
+                                content: '실제 이미지가 있는 답글입니다.',
+                                author: 'replier',
+                                authorId: 89,
+                                authorHandle: 'replier',
+                                authorProfileImageUrl: actualAvatarUrl,
+                                createdAt: now,
+                                updatedAt: now,
+                                timeAgo: '방금 전',
+                                likeCount: 0,
+                                likedByMe: false,
+                                replies: [],
+                            },
+                        ],
+                    },
+                ],
+                totalElements: 2,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getCommentAvatarComments');
+
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER', actualAvatarUrl);
+            },
+        });
+
+        cy.wait('@getMeAnyPath');
+        cy.wait('@getCommentAvatarDetail');
+        cy.wait('@getCommentAvatarComments');
+
+        cy.get('[role="list"][aria-label="댓글 목록"]').within(() => {
+            cy.get('[data-testid="profile-avatar-frame"]').eq(0)
+                .should(($frame) => {
+                    expectCheerAvatarFrame($frame, 48);
+                })
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
+
+            cy.get('[data-testid="profile-avatar-frame"]').eq(1)
+                .should(($frame) => {
+                    expectCheerAvatarFrame($frame, 40);
+                })
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
+        });
     });
 
     it('6) 공지/인기/팔로우 탭 회귀 동작을 점검한다', () => {
@@ -921,7 +1466,8 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.wait('@getGuestCheerDetail');
         cy.wait('@getGuestCheerComments');
-        cy.contains('댓글, 좋아요, 답글 참여는 로그인 후 이용할 수 있습니다.').should('be.visible');
+        cy.get('#cheer-comments-section').scrollIntoView();
+        cy.contains('댓글과 좋아요는 로그인 후 이용할 수 있습니다.').should('be.visible');
         cy.contains('button', '로그인하고 참여하기').click();
         cy.location('pathname').should('eq', '/login');
         cy.location('search').should('eq', `?redirect=%2Fcheer%2F${postId}`);
@@ -1164,4 +1710,198 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         cy.location('pathname').should('eq', '/login');
         cy.location('search').should('eq', '?redirect=%2Fcheer%2Fwrite%3Ftab%3Dpopular');
     });
+
+    it('10-2) 상세 아바타 프레임과 댓글 입력 아바타 크기가 cheer 규격을 유지한다', () => {
+        cy.mockAPI();
+        stubAvatarAsset();
+        stubAuthProfile('ROLE_USER', actualAvatarUrl);
+
+        const postId = 135;
+        const now = new Date().toISOString();
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}`, {
+            statusCode: 200,
+            body: {
+                id: postId,
+                content: '아바타 프레임 회귀 점검용 본문',
+                author: 'writer',
+                authorId: 55,
+                authorHandle: 'writer',
+                authorProfileImageUrl: actualAvatarUrl,
+                teamId: 'HH',
+                team: 'HH',
+                teamColor: 'HH',
+                createdAt: now,
+                updatedAt: now,
+                comments: 0,
+                commentCount: 0,
+                likes: 3,
+                likeCount: 3,
+                bookmarkCount: 0,
+                repostCount: 0,
+                views: 10,
+                liked: false,
+                likedByUser: false,
+                bookmarked: false,
+                isBookmarked: false,
+                repostedByMe: false,
+                repostType: undefined,
+                postType: 'NORMAL',
+                isOwner: false,
+                isHot: false,
+                images: [],
+                imageUrls: [],
+            },
+        }).as('getAvatarDetail');
+
+        cy.intercept('GET', `**/api/cheer/posts/${postId}/comments*`, {
+            statusCode: 200,
+            body: {
+                content: [],
+                totalElements: 0,
+                totalPages: 1,
+                last: true,
+                size: 20,
+                number: 0,
+            },
+        }).as('getAvatarComments');
+
+        cy.visit(`/cheer/${postId}`, {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER', actualAvatarUrl);
+            },
+        });
+
+        cy.wait('@getMeAnyPath');
+        cy.wait('@getAvatarDetail');
+        cy.wait('@getAvatarComments');
+
+        cy.get('[data-testid="profile-avatar-frame"]').eq(0)
+            .and(($frame) => {
+                expectCheerAvatarFrame($frame, 48);
+            })
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
+
+        cy.get('[data-testid="profile-avatar-frame"]').eq(1)
+            .and(($frame) => {
+                expectCheerAvatarFrame($frame, 40);
+            })
+                .find('[data-testid="profile-avatar-image"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+                    expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                });
+    });
+
+    it('11) 추가 로딩 중 새 글 polling 배너가 떠도 하단 로더를 remount하지 않는다', () => {
+        cy.clock(Date.now());
+        cy.mockAPI();
+        stubAuthProfile('ROLE_USER');
+
+        const now = '2026-04-29T00:00:00.000Z';
+        const buildFeedPost = (id: number) => ({
+            id,
+            content: `무한스크롤 피드 ${id}`,
+            author: `writer${id}`,
+            authorId: id,
+            authorHandle: `writer${id}`,
+            teamId: 'HH',
+            team: 'HH',
+            teamColor: 'HH',
+            createdAt: now,
+            updatedAt: now,
+            comments: 0,
+            likes: 0,
+            likeCount: 0,
+            commentCount: 0,
+            bookmarkCount: 0,
+            repostCount: 0,
+            views: 0,
+            liked: false,
+            likedByUser: false,
+            bookmarked: false,
+            isBookmarked: false,
+            repostedByMe: false,
+            repostType: undefined,
+            postType: 'NORMAL',
+            isOwner: false,
+            isHot: false,
+            images: [],
+            imageUrls: [],
+        });
+        const buildFeedPage = (pageNumber: number, last: boolean) => ({
+            content: Array.from({ length: 20 }, (_, index) => buildFeedPost(pageNumber * 20 + index + 1)),
+            last,
+            totalPages: 2,
+            totalElements: 40,
+            size: 20,
+            number: pageNumber,
+        });
+
+        cy.intercept('GET', /\/api\/cheer\/posts(?:\?|$)/, (req) => {
+            const url = new URL(req.url);
+            const pageNumber = Number(url.searchParams.get('page') || '0');
+            req.alias = `getCheerPostsPage${pageNumber}`;
+            req.reply({
+                delay: pageNumber === 1 ? 30000 : 0,
+                statusCode: 200,
+                body: buildFeedPage(pageNumber, pageNumber >= 1),
+            });
+        });
+
+        let postChangesCalls = 0;
+        cy.intercept('GET', '**/api/cheer/posts/changes*', (req) => {
+            postChangesCalls += 1;
+            req.alias = postChangesCalls === 1 ? 'getInitialPostChanges' : 'getPollingPostChanges';
+            req.reply({
+                statusCode: 200,
+                body: {
+                    newCount: postChangesCalls === 1 ? 0 : 3,
+                    latestId: 99,
+                },
+            });
+        });
+
+        cy.visit('/cheer', {
+            onBeforeLoad: (win) => {
+                seedAuthState(win, 'ROLE_USER');
+            },
+        });
+
+        cy.wait('@getCheerPostsPage0');
+        cy.wait('@getInitialPostChanges');
+        cy.contains('무한스크롤 피드 1').should('be.visible');
+
+        cy.scrollTo('bottom');
+        cy.get('[data-testid="cheer-feed-next-loader"]')
+            .should('be.visible')
+            .then(($loader) => {
+                $loader[0].dataset.stableNode = 'loader';
+            });
+        cy.get('[data-testid="cheer-feed-section"]').then(($section) => {
+            $section[0].dataset.stableNode = 'section';
+        });
+
+        cy.tick(15000);
+        cy.wait('@getPollingPostChanges');
+        cy.get('[data-testid="cheer-new-post-banner-slot"]').contains('새 글 3개 보기').should('exist');
+        cy.get('[data-testid="cheer-feed-section"]').should(($section) => {
+            expect($section[0].dataset.stableNode).to.eq('section');
+        });
+        cy.get('[data-testid="cheer-feed-next-loader"]')
+            .should('be.visible')
+            .should(($loader) => {
+                expect($loader[0].dataset.stableNode).to.eq('loader');
+            });
+
+        cy.tick(30000);
+        cy.wait('@getCheerPostsPage1');
+    });
+
 });

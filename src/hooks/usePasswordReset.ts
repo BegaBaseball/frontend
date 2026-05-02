@@ -1,7 +1,7 @@
 // hooks/usePasswordReset.ts
 import { useState } from 'react';
 import { requestPasswordReset } from '../api/authPublic';
-import { validateLoginField } from '../utils/validation';
+import { sanitizeLoginText, validateLoginField } from '../utils/validation';
 
 export const usePasswordReset = (redirectPath?: string | null) => {
   const defaultSuccessMessage = '입력한 이메일로 가입된 계정이 있다면 비밀번호 재설정 안내를 발송했습니다.';
@@ -13,7 +13,7 @@ export const usePasswordReset = (redirectPath?: string | null) => {
   const [successMessage, setSuccessMessage] = useState(defaultSuccessMessage);
 
   const handleEmailChange = (value: string) => {
-    setEmail(value);
+    setEmail(sanitizeLoginText(value));
     
     // 에러 초기화
     if (emailError) {

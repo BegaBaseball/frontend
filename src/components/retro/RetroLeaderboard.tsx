@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import LeaderboardRow, { LeaderboardEntry } from './LeaderboardRow';
 import NewsTicker, { TickerMessage } from './NewsTicker';
-import PowerUpInventory from './PowerUpInventory';
+import ViewportDeferred from '../ViewportDeferred';
 import type {
   UserLeaderboardStats,
   PowerupInventory as PowerupInventoryState,
 } from '../../api/leaderboard';
 
 import mascotRight from '../../assets/images/mascot_v3.webp';
-import stadiumBg from '../../assets/images/stadium_bg.webp';
+const RetroLeaderboardFooterPanels = lazy(() => import('./RetroLeaderboardFooterPanels'));
+const RetroLeaderboardRulesOverlay = lazy(() => import('./RetroLeaderboardRulesOverlay'));
+const RetroLeaderboardDecorations = lazy(() => import('./RetroLeaderboardDecorations'));
 
 const retroDisplay = "'Press Start 2P', monospace";
 const retroText = "'Galmuri11', 'Galmuri9', sans-serif";
@@ -157,6 +159,7 @@ export default function RetroLeaderboard({
   currentUserHandle,
 }: RetroLeaderboardProps) {
   const [showRules, setShowRules] = useState(false);
+  const [showDecorations, setShowDecorations] = useState(false);
 
   const hasPredictionStats = !!(
     userStats &&
@@ -181,6 +184,28 @@ export default function RetroLeaderboard({
 
   const displayLeaderboard = leaderboard ?? [];
 
+  useEffect(() => {
+    let frameId: number | null = null;
+    let nextFrameId: number | null = null;
+
+    frameId = window.requestAnimationFrame(() => {
+      nextFrameId = window.requestAnimationFrame(() => {
+        setShowDecorations(true);
+        nextFrameId = null;
+      });
+      frameId = null;
+    });
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      if (nextFrameId !== null) {
+        window.cancelAnimationFrame(nextFrameId);
+      }
+    };
+  }, []);
+
   return (
     <div
       style={{
@@ -191,14 +216,17 @@ export default function RetroLeaderboard({
         flexDirection: 'column',
         alignItems: 'center',
         fontFamily: retroText,
-        backgroundImage: `url(${stadiumBg})`,
-        backgroundPosition: 'center',
-        backgroundSize: 'cover',
-        backgroundAttachment: 'fixed',
+        backgroundColor: '#1a1a2e',
         imageRendering: 'pixelated',
       }}
     >
       <style>{retroLeaderboardStyles}</style>
+
+      {showDecorations && (
+        <Suspense fallback={null}>
+          <RetroLeaderboardDecorations />
+        </Suspense>
+      )}
 
       <div
         style={{
@@ -229,7 +257,9 @@ export default function RetroLeaderboard({
             야구경기 예측 결과
           </h1>
           <div className="retro-leaderboard-character-frame">
-            <img className="retro-leaderboard-character-sprite" src={mascotRight} alt="Mascot" />
+            {showDecorations && (
+              <img className="retro-leaderboard-character-sprite" src={mascotRight} alt="Mascot" />
+            )}
           </div>
         </div>
 
@@ -318,86 +348,9 @@ export default function RetroLeaderboard({
               }}
             >
               {showRules && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 50,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <h2
-                    style={{
-                      color: '#ffd700',
-                      fontFamily: retroText,
-                      margin: '0 0 20px',
-                      textShadow: '2px 2px 0 #000',
-                    }}
-                  >
-                    점수 산정 규칙
-                  </h2>
-                  <table
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      color: '#fff',
-                      fontFamily: retroText,
-                      fontSize: '14px',
-                      marginBottom: '20px',
-                    }}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center', background: '#333', color: '#ffd700' }}>항목</th>
-                        <th style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center', background: '#333', color: '#ffd700' }}>점수</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        ['승리팀 적중', '+100점'],
-                        ['연승 보너스', '기본점수 × 연승'],
-                        ['이변 예측 (UPSET)', '+50점'],
-                        ['퍼펙트 데이', '+200점'],
-                        ['📸 좌석 시야 공유', '+50점 (첫 기여 +100점)'],
-                      ].map(([label, value]) => (
-                        <tr key={label}>
-                          <td style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center' }}>{label}</td>
-                          <td style={{ border: '2px solid #fff', padding: '10px', textAlign: 'center' }}>{value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p
-                    style={{
-                      color: '#aaa',
-                      fontSize: '12px',
-                      fontFamily: retroText,
-                      margin: '0 0 20px',
-                      textAlign: 'center',
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    * 연승이 끊기면 연승 보너스는 초기화됩니다.
-                    <br />
-                    * 파워업 아이템 사용 시 추가 배율이 적용됩니다.
-                    <br />
-                    * 다이어리에서 좌석 시야 사진을 올리면 포인트를 획득합니다.
-                  </p>
-                  <button
-                    type="button"
-                    className="retro-leaderboard-action-button"
-                    onClick={() => setShowRules(false)}
-                    style={{ background: 'red' }}
-                  >
-                    닫기
-                  </button>
-                </div>
+                <Suspense fallback={null}>
+                  <RetroLeaderboardRulesOverlay onClose={() => setShowRules(false)} />
+                </Suspense>
               )}
 
               <div
@@ -535,66 +488,28 @@ export default function RetroLeaderboard({
           </div>
         </div>
 
-        {hotStreaks.length > 0 && (
-          <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 0' }}>
+        <ViewportDeferred
+          fallback={(
             <div
+              aria-hidden="true"
               style={{
-                background: 'rgba(0,0,0,0.7)',
-                border: '3px solid #ff6600',
-                borderRadius: '8px',
-                padding: '16px 20px',
-                boxShadow: '0 0 14px rgba(255, 102, 0, 0.2)',
+                width: '90%',
+                maxWidth: '800px',
+                minHeight: '220px',
+                margin: '20px auto 40px',
               }}
-            >
-              <div
-                style={{
-                  fontFamily: retroText,
-                  fontSize: '11px',
-                  color: '#ff6600',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  imageRendering: 'pixelated',
-                }}
-              >
-                🔥 연승 중인 플레이어
-              </div>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                {hotStreaks.map((entry) => (
-                  <div
-                    key={entry.handle ?? entry.userName}
-                    style={{
-                      background: 'rgba(255, 102, 0, 0.1)',
-                      border: '2px solid #ff6600',
-                      borderRadius: '6px',
-                      padding: '8px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <span style={{ fontSize: '16px' }}>🔥</span>
-                    <span style={{ fontFamily: retroText, fontSize: '12px', color: '#fff' }}>
-                      {entry.userName}
-                    </span>
-                    <span style={{ fontFamily: retroDisplay, fontSize: '14px', color: '#ff6600' }}>
-                      {entry.streak}연승
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div style={{ width: '90%', maxWidth: '800px', margin: '20px auto 40px' }}>
-          <PowerUpInventory
-            powerups={powerups as unknown as Record<string, number>}
-            activePowerups={activePowerups}
-            onUsePowerup={onUsePowerup}
-          />
-        </div>
+            />
+          )}
+        >
+          <Suspense fallback={null}>
+            <RetroLeaderboardFooterPanels
+              hotStreaks={hotStreaks}
+              powerups={powerups}
+              activePowerups={activePowerups}
+              onUsePowerup={onUsePowerup}
+            />
+          </Suspense>
+        </ViewportDeferred>
       </div>
     </div>
   );

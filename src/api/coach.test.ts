@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { analyzeTeam, CoachAnalyzeError } from './coach';
+import {
+  analyzeTeam,
+  CoachAnalyzeError,
+  getCoachGenerationModeLabel,
+  getCoachStreamRequestTimeoutMs,
+  getCoachStreamReadTimeoutMs,
+} from './coach';
 
 const baseRequest = {
   home_team_id: 'HH',
@@ -82,6 +88,34 @@ test('analyzeTeam은 reissue 요청이 401로 실패해도 auth 전용 에러를
   assert.equal(requestCount, 2);
 });
 
+test('analyzeTeam은 AI upstream 401을 auth 만료로 오인하지 않는다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(JSON.stringify({
+      code: 'AI_UPSTREAM_UNAUTHORIZED',
+      message: 'AI 서비스 인증에 실패했습니다.',
+    }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.equal(error.statusCode, null);
+      assert.equal(error.message, '분석 중 오류가 발생했습니다.');
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 1);
+});
+
 test('analyzeTeam은 5xx에서 generic 분석 실패 에러를 던진다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => (
     new Response('server exploded', {
@@ -120,13 +154,35 @@ test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 �
   assert.deepEqual(response.resolved_focus, ['recent_form']);
 });
 
+test('analyzeTeam은 SSE keepalive comment를 무시하고 완료한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    ': ping\n',
+    '\n',
+    'event: message\n',
+    'data: {"delta":"응답"}\n',
+    '\n',
+    ': ping\n',
+    '\n',
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail"}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.answer, '응답');
+});
+
 test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
     'data: {"request_mode":"manual_detail"}\n',
     '\n',
     'event: error\n',
-    'data: {"code":"coach_internal_error","message":"분석 중 오류가 발생했습니다."}\n',
+    'data: {"code":"coach_data_insufficient","message":"분석에 필요한 데이터가 충분하지 않습니다."}\n',
     '\n',
     'event: done\n',
     'data: [DONE]\n',
@@ -138,7 +194,7 @@ test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', asyn
     (error) => {
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'REQUEST_FAILED');
-      assert.equal(error.message, '분석 중 오류가 발생했습니다.');
+      assert.equal(error.message, '분석에 필요한 데이터가 충분하지 않습니다.');
       return true;
     },
   );
@@ -164,6 +220,55 @@ test('analyzeTeam은 trailing newline 없는 마지막 done 이벤트도 파싱�
   assert.equal(response.game_status_bucket, 'COMPLETED');
   assert.deepEqual(response.grounding_warnings, ['근거 주의']);
   assert.deepEqual(response.resolved_focus, ['recent_form']);
+});
+
+test('analyzeTeam은 generation_mode를 파싱해 manual 상세 분석 여부를 유지한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail","generation_mode":"llm_manual","structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.generation_mode, 'llm_manual');
+});
+
+test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 누락 focus 메타를 파싱한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail","generation_mode":"evidence_fallback","data_quality":"partial","focus_section_missing":true,"missing_focus_sections":["bullpen"],"structured_response":{"headline":"제한 근거 헤드라인","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"축약 리포트","coach_note":"축약 노트"}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.generation_mode, 'evidence_fallback');
+  assert.equal(response.data_quality, 'partial');
+  assert.equal(response.focus_section_missing, true);
+  assert.deepEqual(response.missing_focus_sections, ['bullpen']);
+  assert.equal(response.structuredData?.headline, '제한 근거 헤드라인');
+});
+
+test('getCoachGenerationModeLabel은 generation_mode를 사용자 문구로 변환한다', () => {
+  assert.equal(getCoachGenerationModeLabel('llm_manual'), '근거 기반 상세 분석');
+  assert.equal(getCoachGenerationModeLabel('evidence_fallback'), '확인 근거 기반');
+});
+
+test('getCoachStreamReadTimeoutMs는 manual_detail에 더 긴 read timeout을 사용한다', () => {
+  assert.equal(getCoachStreamReadTimeoutMs('auto_brief'), 30000);
+  assert.equal(getCoachStreamReadTimeoutMs('manual_detail'), 90000);
+});
+
+test('getCoachStreamRequestTimeoutMs는 manual_detail 연결 대기에도 긴 timeout을 사용한다', () => {
+  assert.equal(getCoachStreamRequestTimeoutMs('auto_brief'), 30000);
+  assert.equal(getCoachStreamRequestTimeoutMs('manual_detail'), 90000);
 });
 
 test('analyzeTeam은 AI 메타의 tool_calls와 data_sources를 정규화한다', async (t) => {
@@ -202,6 +307,23 @@ test('analyzeTeam은 DONE 없이 종료된 스트림을 분석 실패로 처리�
       return true;
     },
   );
+});
+
+test('analyzeTeam은 terminal meta 이후 done 이벤트가 유실돼도 성공으로 복구한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: message\n',
+    'data: {"delta":"부분 응답"}\n',
+    '\n',
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail","cache_state":"HIT","in_progress":false,"structured_response":{"headline":"복구 헤드라인","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"복구 리포트","coach_note":"복구 노트"}}\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.answer, '부분 응답');
+  assert.equal(response.structuredData?.headline, '복구 헤드라인');
+  assert.equal(response.cache_state, 'HIT');
 });
 
 test('analyzeTeam은 message delta를 누적하고 done으로 종료한다', async (t) => {

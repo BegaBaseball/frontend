@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { SharedSearchIcon } from './icons/SharedLeafIcons';
 
 const RECENT_EMOJI_STORAGE_KEY = 'bega_recent_emojis';
 const MAX_RECENT_EMOJIS = 18;
@@ -174,12 +174,12 @@ export default function LazyEmojiPicker({
               : 'border-slate-200 bg-slate-50 text-slate-500'
           }`}
         >
-          <Search className="h-4 w-4" />
+          <SharedSearchIcon className="h-4 w-4" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="이모지 검색..."
-            className="w-full bg-transparent text-sm outline-none placeholder:text-inherit"
+            className="w-full bg-transparent text-[16px] outline-none placeholder:text-inherit"
           />
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function LazyEmojiPicker({
                 setQuery('');
                 setActiveGroupId(group.id);
               }}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[16px] font-semibold transition-colors ${
                 isActive
                   ? isDarkMode
                     ? 'bg-primary/20 text-primary'
@@ -232,7 +232,7 @@ export default function LazyEmojiPicker({
           </div>
         ) : (
           <div
-            className={`flex h-full items-center justify-center rounded-xl text-sm ${
+            className={`flex h-full items-center justify-center rounded-xl text-[16px] ${
               isDarkMode ? 'text-slate-400' : 'text-slate-500'
             }`}
           >

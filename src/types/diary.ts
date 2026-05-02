@@ -37,6 +37,7 @@ export interface DiaryEntry {
   gameId: number;
   memo: string;
   photos: string[];
+  photoStoragePaths?: string[];
   team: string;
   stadium: string;
   section?: string;
@@ -54,6 +55,7 @@ export interface DiaryFormData {
   gameId: number;
   memo: string;
   photos: string[];
+  photoStoragePaths: string[];
   photoFiles: DiaryPhotoFile[];
   section?: string;
   block?: string;

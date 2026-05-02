@@ -504,7 +504,7 @@ export const runLoadMoreFutureMatches = async ({
         }
       }
 
-      const interactiveFutureGames = nextMatches.filter((game) => game.homeScore === null && game.awayScore === null);
+      const interactiveFutureGames = nextMatches.filter((game) => game.homeScore == null && game.awayScore == null);
       if (isLoggedIn && interactiveFutureGames.length > 0) {
         await fetchAndCacheUserVotes(
           interactiveFutureGames.map((game) => game.gameId).filter(Boolean),
@@ -795,7 +795,7 @@ export const runLoadMorePastMatches = async ({
         }
       }
 
-      const interactivePastGames = nextMatches.filter((game) => game.homeScore === null && game.awayScore === null);
+      const interactivePastGames = nextMatches.filter((game) => game.homeScore == null && game.awayScore == null);
       if (isLoggedIn && interactivePastGames.length > 0) {
         await fetchAndCacheUserVotes(
           interactivePastGames.map((game) => game.gameId).filter(Boolean),

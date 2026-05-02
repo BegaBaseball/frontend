@@ -1,5 +1,8 @@
 export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
+export const MANUAL_BASEBALL_DATA_REQUIRED_CODE = 'MANUAL_BASEBALL_DATA_REQUIRED';
+export const MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE = '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.';
+
 export interface ParsedError {
     type: ErrorType;
     responseCode?: string;
@@ -57,6 +60,10 @@ const normalizeErrorText = (value: unknown): string | null => {
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
 };
+
+export const isManualBaseballDataRequiredCode = (value?: string | null): boolean => (
+    value === MANUAL_BASEBALL_DATA_REQUIRED_CODE
+);
 
 const isTechnicalErrorMessage = (message: string): boolean =>
     TECHNICAL_MESSAGE_PATTERNS.some((pattern) => pattern.test(message));
@@ -173,11 +180,20 @@ export const parseError = (error: unknown): ParsedError => {
             };
         }
 
-        if (code === 409) {
+    if (code === 409) {
+        if (isManualBaseballDataRequiredCode(responseCode)) {
             return {
                 type: 'CONFLICT',
                 responseCode,
-                message: resolveUserFacingMessage('CONFLICT', 409, rawMessage),
+                message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+                rawMessage,
+                statusCode: 409,
+            };
+        }
+        return {
+            type: 'CONFLICT',
+            responseCode,
+            message: resolveUserFacingMessage('CONFLICT', 409, rawMessage),
                 rawMessage,
                 statusCode: 409,
             };
@@ -264,6 +280,15 @@ export const parseError = (error: unknown): ParsedError => {
         }
 
         if (code === 409) {
+            if (isManualBaseballDataRequiredCode(responseCode)) {
+                return {
+                    type: 'CONFLICT',
+                    responseCode,
+                    message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+                    rawMessage,
+                    statusCode: 409,
+                };
+            }
             return {
                 type: 'CONFLICT',
                 responseCode,

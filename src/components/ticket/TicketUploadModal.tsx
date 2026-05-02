@@ -2,7 +2,12 @@ import React, { cloneElement, isValidElement, useEffect, useRef, useState, type 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { analyzeTicket, TicketInfo } from '@/api/ticket';
-import { Loader2, Upload, Ticket, CheckCircle2 } from 'lucide-react';
+import {
+    SharedCheckCircleIcon,
+    SharedLoaderIcon,
+    SharedTicketIcon,
+    SharedUploadIcon,
+} from '@/components/icons/SharedLeafIcons';
 import { toast } from 'sonner';
 import PlainDialog from '@/components/ui/plain-dialog';
 
@@ -30,7 +35,7 @@ export function TicketUploadModal({
     const resolvedOpen = isControlled ? open : internalOpen;
     const defaultTrigger = (
         <Button variant="outline" className="gap-2">
-            <Ticket className="w-4 h-4" />
+            <SharedTicketIcon className="w-4 h-4" />
             티켓 등록하기
         </Button>
     );
@@ -173,9 +178,9 @@ export function TicketUploadModal({
                                 className="border-2 border-dashed rounded-lg p-12 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors cursor-pointer"
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <Upload className="w-10 h-10 mb-4 opacity-50" />
-                                <p className="text-sm font-medium">티켓 이미지를 업로드하세요</p>
-                                <p className="text-xs text-muted-foreground mt-1">또는 클릭하여 촬영</p>
+                                <SharedUploadIcon className="w-10 h-10 mb-4 opacity-50" />
+                                <p className="text-[16px] font-semibold">티켓 이미지를 업로드하세요</p>
+                                <p className="text-[16px] text-muted-foreground mt-1">또는 클릭하여 촬영</p>
                             </div>
                         ) : (
                             <div className="relative rounded-lg overflow-hidden border border-border aspect-video bg-black/5">
@@ -204,20 +209,20 @@ export function TicketUploadModal({
                     {/* Analysis Result */}
                     {isLoading && (
                         <div className="flex items-center justify-center py-8 flex-col gap-3 text-muted-foreground">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                            <p className="text-sm font-medium animate-pulse">AI가 티켓 정보를 분석 중입니다...</p>
+                            <SharedLoaderIcon className="w-8 h-8 animate-spin text-primary" />
+                            <p className="text-[16px] font-semibold animate-pulse">AI가 티켓 정보를 분석 중입니다...</p>
                         </div>
                     )}
 
                     {!isLoading && ticketData && (
                         <div className="bg-muted/30 rounded-lg p-4 space-y-4 border border-border">
                             <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                                <div className="flex items-center gap-2 text-green-600 font-medium font-bold">
-                                    <CheckCircle2 className="w-4 h-4" />
+                                <div className="flex items-center gap-2 text-green-600 font-bold">
+                                    <SharedCheckCircleIcon className="w-4 h-4" />
                                     분석 완료
                                 </div>
                                 {ticketData.gameId && (
-                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                                        <span className="text-[16px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
                                         경기 일정 매칭됨
                                     </span>
                                 )}
@@ -225,61 +230,61 @@ export function TicketUploadModal({
 
                             <div className="grid gap-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <label htmlFor="date" className="text-right text-xs">날짜</label>
+                                    <label htmlFor="date" className="text-right text-[16px]">날짜</label>
                                     <Input
                                         id="date"
                                         value={ticketData.date || ''}
                                         onChange={(e) => handleFieldChange('date', e.target.value)}
-                                        className="col-span-3 h-8 text-sm"
+                                        className="col-span-3 h-8 text-[16px]"
                                         placeholder="YYYY-MM-DD"
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <label htmlFor="stadium" className="text-right text-xs">구장</label>
+                                    <label htmlFor="stadium" className="text-right text-[16px]">구장</label>
                                     <Input
                                         id="stadium"
                                         value={ticketData.stadium || ''}
                                         onChange={(e) => handleFieldChange('stadium', e.target.value)}
-                                        className="col-span-3 h-8 text-sm"
+                                        className="col-span-3 h-8 text-[16px]"
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <label htmlFor="matchup" className="text-right text-xs">매치업</label>
+                                    <label htmlFor="matchup" className="text-right text-[16px]">매치업</label>
                                     <div className="col-span-3 flex items-center gap-2">
                                         <Input
                                             value={ticketData.awayTeam || ''}
                                             onChange={(e) => handleFieldChange('awayTeam', e.target.value)}
-                                            className="h-8 text-sm"
+                                            className="h-8 text-[16px]"
                                             placeholder="원정"
                                         />
-                                        <span className="text-xs">vs</span>
+                                        <span className="text-[16px]">vs</span>
                                         <Input
                                             value={ticketData.homeTeam || ''}
                                             onChange={(e) => handleFieldChange('homeTeam', e.target.value)}
-                                            className="h-8 text-sm"
+                                            className="h-8 text-[16px]"
                                             placeholder="홈"
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <label htmlFor="seat" className="text-right text-xs">좌석</label>
+                                    <label htmlFor="seat" className="text-right text-[16px]">좌석</label>
                                     <div className="col-span-3 grid grid-cols-3 gap-2">
                                         <Input
                                             value={ticketData.section || ''}
                                             onChange={(e) => handleFieldChange('section', e.target.value)}
-                                            className="h-8 text-sm px-2"
+                                            className="h-8 text-[16px] px-2"
                                             placeholder="구역"
                                         />
                                         <Input
                                             value={ticketData.row || ''}
                                             onChange={(e) => handleFieldChange('row', e.target.value)}
-                                            className="h-8 text-sm px-2"
+                                            className="h-8 text-[16px] px-2"
                                             placeholder="열"
                                         />
                                         <Input
                                             value={ticketData.seat || ''}
                                             onChange={(e) => handleFieldChange('seat', e.target.value)}
-                                            className="h-8 text-sm px-2"
+                                            className="h-8 text-[16px] px-2"
                                             placeholder="번호"
                                         />
                                     </div>

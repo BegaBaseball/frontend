@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Search, Users, Trash2, UserCog } from 'lucide-react';
+import { useState } from 'react';
+import { AdminBadge } from './AdminPanelPrimitives';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
@@ -7,6 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import TeamLogo from '../TeamLogo';
 import { TEAM_DATA } from '../../constants/teams';
 import { formatDate } from '../../utils/formatters';
+import {
+  AdminSearchIcon,
+  AdminTrashIcon,
+  AdminUserCogIcon,
+  AdminUsersIcon,
+} from './AdminPanelIcons';
 
 interface PendingRoleChange {
   userId: number;
@@ -38,15 +44,7 @@ interface UsersAdminPanelProps {
   setRoleChangeReason: (reason: string) => void;
 }
 
-function AdminBadge({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${className}`}>
-      {children}
-    </span>
-  );
-}
-
-const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
+const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[14px] text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 export function UsersAdminPanel({
   searchTerm,
@@ -65,7 +63,7 @@ export function UsersAdminPanel({
     <>
       <div className="mb-6">
         <div className="relative max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <AdminSearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
           <Input
             placeholder="이메일 또는 이름으로 검색..."
             data-testid="admin-users-search"
@@ -95,7 +93,7 @@ export function UsersAdminPanel({
                 {isSuperAdmin && (
                   <TableHead className="text-slate-400 font-semibold">
                     <span className="flex items-center gap-1">
-                      <UserCog className="w-4 h-4" />
+                      <AdminUserCogIcon className="w-4 h-4" />
                       역할 변경
                     </span>
                   </TableHead>
@@ -107,7 +105,7 @@ export function UsersAdminPanel({
               {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isSuperAdmin ? 9 : 8} className="text-center py-16 text-slate-500">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <AdminUsersIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     유저가 없습니다.
                   </TableCell>
                 </TableRow>
@@ -118,9 +116,9 @@ export function UsersAdminPanel({
                     className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <TableCell className="text-slate-300 font-mono text-sm">{user.id}</TableCell>
+                    <TableCell className="text-slate-300 font-mono text-[14px]">{user.id}</TableCell>
                     <TableCell className="text-slate-200">{user.email}</TableCell>
-                    <TableCell className="text-slate-200 font-medium">{user.name}</TableCell>
+                    <TableCell className="text-slate-200 font-semibold">{user.name}</TableCell>
                     <TableCell>
                       {user.favoriteTeam ? (
                         <div className="flex items-center gap-2">
@@ -131,9 +129,9 @@ export function UsersAdminPanel({
                         <span className="text-slate-600">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-slate-400 text-sm">{formatDate(user.createdAt)}</TableCell>
+                    <TableCell className="text-slate-400 text-[14px]">{formatDate(user.createdAt)}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-amber-400 font-semibold text-sm">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-amber-400 font-semibold text-[14px]">
                         {user.postCount}
                       </span>
                     </TableCell>
@@ -156,7 +154,7 @@ export function UsersAdminPanel({
                       <TableCell>
                         {/* SUPER_ADMIN 자신의 역할은 변경 불가 */}
                         {user.id === currentUserId || user.role === 'ROLE_SUPER_ADMIN' ? (
-                          <span className="text-slate-600 text-xs">변경 불가</span>
+                          <span className="text-slate-600 text-[14px]">변경 불가</span>
                         ) : (
                           <select
                             data-testid={`admin-user-role-trigger-${user.id}`}
@@ -189,7 +187,7 @@ export function UsersAdminPanel({
                         disabled={user.role === 'ROLE_ADMIN'}
                         onClick={() => setPendingDeleteUser(user)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <AdminTrashIcon className="w-4 h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -225,7 +223,7 @@ export function UsersAdminPanel({
         )}
       >
         {pendingDeleteUser ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-[14px] text-slate-400">
             <span className="font-semibold text-slate-200">{pendingDeleteUser.name}</span> 계정을 삭제합니다.
           </p>
         ) : null}

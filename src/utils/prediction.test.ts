@@ -5,9 +5,13 @@ import {
   COACH_BRIEFING_MANUAL_HINT,
   buildCoachBriefingRequestDescriptor,
   CoachRequestMode,
+  getCoachAnalysisUnavailableMessage,
+  getCoachAnalysisFocusSectionNotice,
   getCoachBriefingDataQualityNotice,
+  getCoachGenerationModeNotice,
   getCoachBriefingGroundingReasonLabels,
   parseAiBriefing,
+  resolveCoachAnalysisPresentation,
   resolveCoachBriefingPolicy,
 } from './prediction';
 import type { Game } from '../types/prediction';
@@ -60,6 +64,54 @@ test('CoachRequestMode는 auto_brief/manual_detail 두 값만 허용한다', () 
   assert.equal(supportedModes.length, 2);
   assert.equal(supportedModes.includes('auto_brief' as CoachRequestMode), true);
   assert.equal(supportedModes.includes('manual_detail' as CoachRequestMode), true);
+});
+
+test('resolveCoachAnalysisPresentation: 지난 경기는 경기 리뷰 라벨을 사용한다', () => {
+  const presentation = resolveCoachAnalysisPresentation({ isPastGame: true });
+
+  assert.equal(presentation.mode, 'review');
+  assert.equal(presentation.title, 'AI 코치 경기 리뷰');
+  assert.equal(presentation.buttonLabel, 'AI 코치 경기 리뷰');
+  assert.equal(presentation.runButtonLabel, 'AI 코치 경기 리뷰 시작');
+});
+
+test('resolveCoachAnalysisPresentation: 예정 경기는 경기 예측 라벨을 사용한다', () => {
+  const presentation = resolveCoachAnalysisPresentation({ isFutureGame: true });
+
+  assert.equal(presentation.mode, 'prediction');
+  assert.equal(presentation.title, 'AI 코치 경기 예측');
+  assert.equal(presentation.buttonLabel, 'AI 코치 경기 예측');
+  assert.equal(presentation.runButtonLabel, 'AI 코치 경기 예측 시작');
+});
+
+test('resolveCoachAnalysisPresentation: 같은 날 예정 경기여도 SCHEDULED 상태면 경기 예측 라벨을 사용한다', () => {
+  const presentation = resolveCoachAnalysisPresentation({ gameStatusBucket: 'SCHEDULED' });
+
+  assert.equal(presentation.mode, 'prediction');
+  assert.equal(presentation.title, 'AI 코치 경기 예측');
+  assert.equal(presentation.buttonLabel, 'AI 코치 경기 예측');
+  assert.equal(presentation.runButtonLabel, 'AI 코치 경기 예측 시작');
+});
+
+test('resolveCoachAnalysisPresentation: 진행 중 경기는 기본 상세 분석 라벨을 유지한다', () => {
+  const presentation = resolveCoachAnalysisPresentation({ gameStatusBucket: 'LIVE' });
+
+  assert.equal(presentation.mode, 'analysis');
+  assert.equal(presentation.title, 'AI 코치 상세 분석');
+  assert.equal(presentation.buttonLabel, 'AI 코치 상세 분석');
+  assert.equal(presentation.runButtonLabel, 'AI 코치 상세 분석 시작');
+});
+
+test('getCoachAnalysisUnavailableMessage: 취소/연기 경기는 분석 불가 안내를 반환한다', () => {
+  assert.equal(
+    getCoachAnalysisUnavailableMessage('CANCELLED'),
+    '취소된 경기는 AI 코치 분석을 제공하지 않습니다.',
+  );
+  assert.equal(
+    getCoachAnalysisUnavailableMessage('POSTPONED'),
+    '연기된 경기는 일정 확정 후 AI 코치 분석을 제공합니다.',
+  );
+  assert.equal(getCoachAnalysisUnavailableMessage('SCHEDULED'), null);
 });
 
 test('parseAiBriefing: markdown 문법을 텍스트로 정리한다', () => {
@@ -243,8 +295,10 @@ test('getCoachBriefingGroundingReasonLabels: 지원되는 코드만 지정 순�
   const labels = getCoachBriefingGroundingReasonLabels([
     'missing_summary',
     'missing_starters',
+    'focus_data_unavailable',
     'unknown_reason',
     'missing_lineups',
+    'missing_clutch_moments',
     'missing_summary',
   ]);
 
@@ -252,6 +306,8 @@ test('getCoachBriefingGroundingReasonLabels: 지원되는 코드만 지정 순�
     '선발 미발표',
     '라인업 미발표',
     '경기 요약 부족',
+    '승부처 데이터 부족',
+    '요청 항목 근거 부족',
   ]);
 });
 
@@ -261,7 +317,42 @@ test('getCoachBriefingDataQualityNotice: 알 수 없는 코드만 있으면 gene
   assert.deepEqual(notice, {
     message: '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.',
     reasons: ['실데이터 근거가 제한적입니다.'],
+    details: [],
   });
+});
+
+test('getCoachBriefingDataQualityNotice: 중복 기본 경고는 숨기고 구체 경고만 상세 노출한다', () => {
+  const notice = getCoachBriefingDataQualityNotice(
+    'partial',
+    ['missing_clutch_moments', 'focus_data_unavailable'],
+    [
+      'WPA 기반 승부처 데이터가 부족합니다.',
+      '요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.',
+      '요청한 focus 근거가 부족해 확인 가능한 항목만 분석하거나 보수 요약으로 전환합니다.',
+    ],
+  );
+
+  assert.deepEqual(notice, {
+    message: '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.',
+    reasons: ['승부처 데이터 부족', '요청 항목 근거 부족'],
+    details: ['요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.'],
+  });
+});
+
+test('getCoachAnalysisFocusSectionNotice: 누락 focus를 사용자 문구로 변환한다', () => {
+  assert.equal(
+    getCoachAnalysisFocusSectionNotice(['bullpen']),
+    '불펜 상태 섹션은 실데이터 부족으로 축약되었습니다.',
+  );
+  assert.equal(
+    getCoachAnalysisFocusSectionNotice(['bullpen', 'recent_form']),
+    '불펜 상태, 최근 전력 섹션은 실데이터 부족으로 축약되었습니다.',
+  );
+});
+
+test('getCoachGenerationModeNotice: generation mode 안내 문구를 노출하지 않는다', () => {
+  assert.equal(getCoachGenerationModeNotice('evidence_fallback', 'partial'), null);
+  assert.equal(getCoachGenerationModeNotice('llm_manual', 'partial'), null);
 });
 
 test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 반환한다', () => {
@@ -287,6 +378,17 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(scheduledNonMeaningful.forceManual, false);
   assert.equal(scheduledNonMeaningful.requestMode, 'auto_brief');
 
+  const completedNonMeaningful = resolveCoachBriefingPolicy({
+    canCallAI: true,
+    isScheduledGame: false,
+    isPostseasonGame: false,
+    isMeaningfulGame: false,
+  });
+
+  assert.equal(completedNonMeaningful.autoEnabled, true);
+  assert.equal(completedNonMeaningful.forceManual, false);
+  assert.equal(completedNonMeaningful.requestMode, 'auto_brief');
+
   const meaningfulPolicy = resolveCoachBriefingPolicy({
     canCallAI: true,
     isScheduledGame: true,
@@ -309,4 +411,16 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(noSelectionPolicy.autoEnabled, false);
   assert.equal(noSelectionPolicy.forceManual, true);
   assert.equal(noSelectionPolicy.requestMode, 'manual_detail');
+
+  const unsupportedStatePolicy = resolveCoachBriefingPolicy({
+    canCallAI: true,
+    isScheduledGame: false,
+    isCoachStateEnabledForAuto: false,
+    isPostseasonGame: false,
+    isMeaningfulGame: false,
+  });
+
+  assert.equal(unsupportedStatePolicy.autoEnabled, false);
+  assert.equal(unsupportedStatePolicy.forceManual, false);
+  assert.equal(unsupportedStatePolicy.requestMode, 'manual_detail');
 });

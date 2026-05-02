@@ -13,8 +13,10 @@ import type { GameDetail } from '../types/prediction';
 import { emitPredictionFlowEvent } from '../utils/predictionFlowTelemetry';
 import {
   buildPredictionRecoveryPath,
+  toPredictionGameId,
   type PredictionLocationState,
 } from '../utils/predictionDeepLink';
+import { normalizePredictionDate } from '../utils/predictionHomeLogic';
 import {
   buildRecoveryState,
   getPredictionCopyKey,
@@ -209,7 +211,12 @@ export const usePredictionInteractiveData = () => {
     setPredictionErrorOverlay((current) => (current ? { ...current, isOpen: false } : current));
   }, [emitFlowEvent, predictionErrorOverlay]);
 
-  const { userVote, setUserVote, fetchAndCacheUserVotes } = usePredictionUserVotes({
+  const {
+    userVote,
+    userVoteResolutionState,
+    setUserVote,
+    fetchAndCacheUserVotes,
+  } = usePredictionUserVotes({
     userId,
   });
 
@@ -217,12 +224,20 @@ export const usePredictionInteractiveData = () => {
     setPendingSeedDetail({ gameId, detail });
   }, []);
 
+  const locationState = location.state as PredictionLocationState;
+  const requestedDeepLinkGameId = toPredictionGameId(
+    searchParams.get('gameId')
+      || locationState?.gameId
+      || locationState?.game?.gameId
+      || ''
+  ) || '';
+
   const schedule = usePredictionSchedule({
     isLoggedIn,
     isAuthLoading,
     searchParams,
     setSearchParams,
-    locationState: location.state as PredictionLocationState,
+    locationState,
     emitFlowEvent,
     showPredictionErrorOverlay,
     fetchAndCacheUserVotes,
@@ -235,6 +250,91 @@ export const usePredictionInteractiveData = () => {
   const currentGameId = schedule.currentGame?.gameId || null;
   currentGameIdRef.current = currentGameId;
   currentDateRef.current = schedule.currentDate || null;
+  const hasLoadedRequestedDeepLinkGame = Boolean(
+    requestedDeepLinkGameId
+    && schedule.allDatesData.some((entry) => (
+      entry.games.some((game) => game.gameId === requestedDeepLinkGameId)
+    ))
+  );
+
+  const selectGame = useCallback((gameIndex: number) => {
+    const nextGame = schedule.currentDateGames[gameIndex];
+    if (!nextGame?.gameId) {
+      return;
+    }
+
+    schedule.setSelectedGame(gameIndex);
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('gameId', nextGame.gameId);
+    if (schedule.currentDate) {
+      nextSearchParams.set('date', schedule.currentDate);
+    }
+    schedule.setProgrammaticSearchParams(nextSearchParams, { replace: true });
+  }, [
+    schedule.currentDate,
+    schedule.currentDateGames,
+    schedule.setProgrammaticSearchParams,
+    schedule.setSelectedGame,
+    searchParams,
+  ]);
+
+  const syncPredictionDateSearchParams = useCallback((targetDate: string, targetGameId?: string | null) => {
+    const normalizedDate = normalizePredictionDate(targetDate);
+    if (!normalizedDate) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('date', normalizedDate);
+    if (targetGameId) {
+      nextSearchParams.set('gameId', targetGameId);
+    } else {
+      nextSearchParams.delete('gameId');
+    }
+    schedule.setProgrammaticSearchParams(nextSearchParams, { replace: true });
+  }, [schedule.setProgrammaticSearchParams, searchParams]);
+
+  const goToPreviousDate = useCallback(() => {
+    const previousDateEntry = schedule.allDatesData[schedule.currentDateIndex - 1];
+    if (previousDateEntry) {
+      syncPredictionDateSearchParams(previousDateEntry.date, previousDateEntry.games[0]?.gameId || null);
+    }
+    schedule.goToPreviousDate();
+  }, [
+    schedule.allDatesData,
+    schedule.currentDateIndex,
+    schedule.goToPreviousDate,
+    syncPredictionDateSearchParams,
+  ]);
+
+  const goToNextDate = useCallback(() => {
+    const nextDateEntry = schedule.allDatesData[schedule.currentDateIndex + 1];
+    if (nextDateEntry) {
+      syncPredictionDateSearchParams(nextDateEntry.date, nextDateEntry.games[0]?.gameId || null);
+    }
+    schedule.goToNextDate();
+  }, [
+    schedule.allDatesData,
+    schedule.currentDateIndex,
+    schedule.goToNextDate,
+    syncPredictionDateSearchParams,
+  ]);
+
+  const goToDate = useCallback((targetDate: string) => {
+    const normalizedDate = normalizePredictionDate(targetDate);
+    if (!normalizedDate) {
+      return;
+    }
+
+    const targetDateEntry = schedule.allDatesData.find((entry) => entry.date === normalizedDate);
+    syncPredictionDateSearchParams(normalizedDate, targetDateEntry?.games[0]?.gameId || null);
+    schedule.goToDate(normalizedDate);
+  }, [
+    schedule.allDatesData,
+    schedule.goToDate,
+    syncPredictionDateSearchParams,
+  ]);
 
   const gameData = usePredictionGameData({
     allDatesData: schedule.allDatesData,
@@ -242,6 +342,11 @@ export const usePredictionInteractiveData = () => {
     selectedGame: schedule.selectedGame,
     emitFlowEvent,
     showPredictionErrorOverlay,
+    shouldLoadCurrentGameData: (
+      !requestedDeepLinkGameId
+      || currentGameId === requestedDeepLinkGameId
+      || hasLoadedRequestedDeepLinkGame
+    ),
   });
 
   useEffect(() => {
@@ -276,6 +381,7 @@ export const usePredictionInteractiveData = () => {
   return {
     selectedGame: schedule.selectedGame,
     setSelectedGame: schedule.setSelectedGame,
+    selectGame,
     allDatesData: schedule.allDatesData,
     currentDateIndex: schedule.currentDateIndex,
     currentDateGames: schedule.currentDateGames,
@@ -285,6 +391,7 @@ export const usePredictionInteractiveData = () => {
     currentDayNavigationMeta: schedule.currentDayNavigationMeta,
     matchesLoadState: schedule.matchesLoadState,
     matchesLoadErrorMessage: schedule.matchesLoadErrorMessage,
+    matchesLoadErrorCode: schedule.matchesLoadErrorCode,
     deepLinkNotice: schedule.deepLinkNotice,
     reloadMatches: schedule.reloadMatches,
     pastRangeLoadState: schedule.pastRangeLoadState,
@@ -300,12 +407,14 @@ export const usePredictionInteractiveData = () => {
     isCurrentVotePartial: gameData.isCurrentVotePartial,
     currentVotePartialReason: gameData.currentVotePartialReason,
     userVote,
+    userVoteResolutionState,
     setUserVote,
     currentGameDetail: gameData.currentGameDetail,
     currentGameDetailLoading: gameData.currentGameDetailLoading,
     currentGameDetailRefreshing: gameData.currentGameDetailRefreshing,
     currentGameDetailHasRenderableData: gameData.currentGameDetailHasRenderableData,
     currentGameDetailError: gameData.currentGameDetailError,
+    currentGameDetailErrorCode: gameData.currentGameDetailErrorCode,
     loadVoteStatus: gameData.loadVoteStatus,
     reloadCurrentVoteStatus: gameData.reloadCurrentVoteStatus,
     reloadVoteStatus: gameData.reloadVoteStatus,
@@ -319,11 +428,9 @@ export const usePredictionInteractiveData = () => {
     loadMoreFutureMatches: schedule.loadMoreFutureMatches,
     retryLoadMoreFutureMatches: schedule.retryLoadMoreFutureMatches,
     retryLoadMorePastMatches: schedule.retryLoadMorePastMatches,
-    goToPreviousDate: schedule.goToPreviousDate,
-    goToNextDate: schedule.goToNextDate,
-    goToDate: schedule.goToDate,
-    formatDate: schedule.formatDate,
-    getTomorrowString: schedule.getTomorrowString,
+    goToPreviousDate,
+    goToNextDate,
+    goToDate,
     emitFlowEvent,
     showPredictionErrorOverlay,
     confirm,

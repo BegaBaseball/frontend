@@ -3,6 +3,75 @@
 describe('Cheer Board', () => {
     const authToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3RVc2VyIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const uploadCheerFixtureImage = (selector: string) => {
+        cy.fixture('tiny-image.base64').then((base64) => {
+            cy.get(selector).selectFile({
+                contents: Cypress.Buffer.from(base64, 'base64'),
+                fileName: 'cheer-image.png',
+                mimeType: 'image/png',
+            }, { force: true });
+        });
+    };
+    const interceptCheerMediaUploads = () => {
+        let nextAssetId = 8100;
+
+        cy.intercept('POST', '**/api/media/uploads/init', (req) => {
+            expect(req.body.domain).to.eq('CHEER');
+            const assetId = nextAssetId++;
+            req.reply({
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        assetId,
+                        uploadUrl: `https://object.example.com/upload/cheer-${assetId}`,
+                        stagingObjectKey: `media/staging/cheer/123/${assetId}-${req.body.fileName}`,
+                        expiresAt: '2026-04-14T00:00:00Z',
+                        requiredHeaders: {
+                            'Content-Type': req.body.contentType || 'image/png',
+                        },
+                    },
+                },
+            });
+        }).as('initCheerMediaUpload');
+
+        cy.intercept('PUT', 'https://object.example.com/upload/cheer-*', {
+            statusCode: 200,
+            body: '',
+        }).as('putCheerMediaUpload');
+
+        cy.intercept('POST', /\/api\/media\/uploads\/\d+\/finalize$/, (req) => {
+            const match = req.url.match(/\/api\/media\/uploads\/(\d+)\/finalize$/);
+            const assetId = Number(match?.[1] || 0);
+            req.reply({
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: {
+                        assetId,
+                        storagePath: `media/cheer/123/${assetId}.webp`,
+                        publicUrl: `https://cdn.example.com/media/cheer/123/${assetId}.webp`,
+                    },
+                },
+            });
+        }).as('finalizeCheerMediaUpload');
+    };
+    const expectSquareSize = ($element: JQuery<HTMLElement>, size: number) => {
+        const { width, height } = $element[0].getBoundingClientRect();
+
+        expect(Math.round(width)).to.eq(size);
+        expect(Math.round(height)).to.eq(size);
+    };
+    const expectCheerAvatarFrame = ($element: JQuery<HTMLElement>, size: number) => {
+        expect($element).to.have.class('rounded-full');
+        expect($element).to.have.class('inline-flex');
+        expect($element).to.have.class('items-center');
+        expect($element).to.have.class('justify-center');
+        expect($element).to.have.class('ring-1');
+        expect($element).to.have.class('ring-inset');
+        expect($element).not.to.have.class('p-px');
+        expectSquareSize($element, size);
+    };
     const seedLoggedInUser = (win: Window) => {
         win.localStorage.setItem(
             'auth-storage',
@@ -208,6 +277,76 @@ describe('Cheer Board', () => {
             cy.wait('@getPopularPosts');
             cy.contains('Popular post 1').should('be.visible');
         });
+
+        it('should render cheer avatar frames and composer ring with stable sizing', () => {
+            getOwnedPostCard().find('[data-testid="profile-avatar-frame"]').first()
+                .and(($frame) => {
+                    expectCheerAvatarFrame($frame, 40);
+                })
+                .find('[data-testid="profile-avatar-image"], [data-testid="profile-avatar-fallback"]').first()
+                .should(($surface) => {
+                    expect($surface).to.have.class('w-full');
+                    expect($surface).to.have.class('h-full');
+
+                    if ($surface.attr('data-testid') === 'profile-avatar-image') {
+                        expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                        expect($surface).to.have.class('block');
+                    } else {
+                        expect($surface).to.have.class('rounded-full');
+                        expect($surface).to.have.class('flex');
+                    }
+                });
+
+            cy.get('textarea[placeholder*="응원"]').first()
+                .closest('div.flex-1')
+                .prev()
+                .as('composerAvatarSlot');
+
+            cy.get('@composerAvatarSlot').should(($slot) => {
+                expectSquareSize($slot, 40);
+                });
+
+            cy.get('@composerAvatarSlot').find('[data-testid="profile-avatar-frame"]').first()
+                .and(($frame) => {
+                    expectSquareSize($frame, 40);
+
+                    if ($frame.hasClass('rounded-full')) {
+                        expectCheerAvatarFrame($frame, 40);
+                    } else {
+                        expect($frame).to.have.class('inline-flex');
+                        expect($frame).to.have.class('items-center');
+                        expect($frame).to.have.class('justify-center');
+                    }
+                });
+
+            cy.get('@composerAvatarSlot').find('[data-testid="profile-avatar-frame"]').first()
+                .then(($frame) => {
+                    const avatarSurface = $frame.find('[data-testid="profile-avatar-image"], [data-testid="profile-avatar-fallback"]').first();
+
+                    if (avatarSurface.length > 0) {
+                        cy.wrap(avatarSurface).should(($surface) => {
+                            expect($surface).to.have.class('w-full');
+                            expect($surface).to.have.class('h-full');
+
+                            if ($surface.attr('data-testid') === 'profile-avatar-image') {
+                                expect(['svg', 'img']).to.include($surface.prop('tagName').toLowerCase());
+                                expect($surface).to.have.class('block');
+                            } else {
+                                expect($surface).to.have.class('rounded-full');
+                                expect($surface).to.have.class('flex');
+                            }
+                        });
+                        return;
+                    }
+
+                    cy.wrap($frame).children().first().should(($surface) => {
+                        expect($surface).to.have.class('avatar-edge-smooth');
+                        expect($surface).to.have.class('h-full');
+                        expect($surface).to.have.class('w-full');
+                        expect($surface).to.have.class('border');
+                    });
+                });
+        });
     });
 
     describe('Interactions (Requires Login)', () => {
@@ -233,6 +372,44 @@ describe('Cheer Board', () => {
             cy.wait('@createPost');
 
             // Check for the new post - it should appear via optimistic update or refetch
+            cy.contains(content, { timeout: 10000 }).should('be.visible');
+        });
+
+        it('should create a new post with uploaded images', () => {
+            const content = 'Winning post with image!';
+            interceptCheerMediaUploads();
+
+            cy.intercept('POST', '**/api/cheer/posts', (req) => {
+                expect(req.body.content).to.eq(content);
+                expect(req.body.images).to.deep.equal(['media/cheer/123/8100.webp']);
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        id: 30,
+                        content,
+                        author: 'TestUser',
+                        authorId: 123,
+                        authorHandle: 'testuser',
+                        teamId: 'HH',
+                        team: 'HH',
+                        authorTeamId: 'HH',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        postType: 'NORMAL',
+                        images: ['media/cheer/123/8100.webp'],
+                        imageUrls: ['https://cdn.example.com/media/cheer/123/8100.webp'],
+                    },
+                });
+            }).as('createPostWithImage');
+
+            cy.get('textarea[placeholder*="응원"]').first().type(content);
+            uploadCheerFixtureImage('input[type="file"]');
+            cy.get('button[data-testid="write-post-btn"]').click();
+
+            cy.wait('@initCheerMediaUpload');
+            cy.wait('@putCheerMediaUpload');
+            cy.wait('@finalizeCheerMediaUpload');
+            cy.wait('@createPostWithImage');
             cy.contains(content, { timeout: 10000 }).should('be.visible');
         });
 
@@ -348,6 +525,107 @@ describe('Cheer Board', () => {
                 .should('include', '/api/cheer/posts/1');
         });
 
+        it('should update an owned post with a newly uploaded image', () => {
+            const updatedContent = 'This is an edited test post with image.';
+            interceptCheerMediaUploads();
+
+            cy.intercept('GET', '**/api/cheer/posts/1', {
+                statusCode: 200,
+                body: {
+                    id: 1,
+                    content: 'This is a test post content.',
+                    author: 'TestUser',
+                    authorId: 123,
+                    authorHandle: 'testuser',
+                    teamId: 'HH',
+                    team: 'HH',
+                    authorTeamId: 'HH',
+                    timeAgo: '방금 전',
+                    comments: 2,
+                    likes: 5,
+                    likeCount: 5,
+                    commentCount: 2,
+                    bookmarkCount: 0,
+                    repostCount: 0,
+                    views: 100,
+                    liked: false,
+                    likedByUser: false,
+                    bookmarked: false,
+                    isBookmarked: false,
+                    repostedByMe: false,
+                    postType: 'NORMAL',
+                    isOwner: true,
+                    isHot: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    images: [],
+                    imageUrls: [],
+                },
+            }).as('getPostForEditWithNewImage');
+
+            cy.intercept('GET', '**/api/cheer/posts/1/images', {
+                statusCode: 200,
+                body: [],
+            }).as('getPostImagesForNewImage');
+
+            cy.intercept('PUT', '**/api/cheer/posts/1', (req) => {
+                expect(req.body.content).to.eq(updatedContent);
+                expect(req.body.images).to.deep.equal(['media/cheer/123/8100.webp']);
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        id: 1,
+                        content: updatedContent,
+                        author: 'TestUser',
+                        authorId: 123,
+                        authorHandle: 'testuser',
+                        teamId: 'HH',
+                        team: 'HH',
+                        authorTeamId: 'HH',
+                        timeAgo: '방금 전',
+                        comments: 2,
+                        likes: 5,
+                        likeCount: 5,
+                        commentCount: 2,
+                        bookmarkCount: 0,
+                        repostCount: 0,
+                        views: 100,
+                        liked: false,
+                        likedByUser: false,
+                        bookmarked: false,
+                        isBookmarked: false,
+                        repostedByMe: false,
+                        postType: 'NORMAL',
+                        isOwner: true,
+                        isHot: false,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        images: ['media/cheer/123/8100.webp'],
+                        imageUrls: ['https://cdn.example.com/media/cheer/123/8100.webp'],
+                    },
+                });
+            }).as('updatePostWithImage');
+
+            cy.get('button[aria-label="게시글 옵션"]').should('have.length', 1);
+            getOwnedPostCard().find('button[aria-label="게시글 옵션"]').click();
+            cy.contains('수정하기').click();
+
+            cy.url().should('include', '/cheer/edit/1');
+            cy.wait('@getPostForEditWithNewImage');
+            cy.wait('@getPostImagesForNewImage');
+
+            cy.get('textarea:visible').first().clear().type(updatedContent);
+            uploadCheerFixtureImage('input[aria-label="이미지 파일 선택"]');
+            cy.get('button').contains('수정 완료').click();
+
+            cy.wait('@initCheerMediaUpload');
+            cy.wait('@putCheerMediaUpload');
+            cy.wait('@finalizeCheerMediaUpload');
+            cy.wait('@updatePostWithImage')
+                .its('request.url')
+                .should('include', '/api/cheer/posts/1');
+        });
+
         it('should delete an owned post', () => {
             cy.intercept('DELETE', '**/api/cheer/posts/1', {
                 statusCode: 200
@@ -383,7 +661,8 @@ describe('Cheer Board', () => {
 
             getNonOwnedPostCard().find('button[aria-label*="리포스트"]').click();
             cy.get('[role="menu"], [role="dialog"]').should('be.visible');
-            cy.get('[role="menu"], [role="dialog"]').contains('button', /^리포스트$/).first().click();
+            // 메뉴 버튼이 sticky navbar에 가려지는 케이스를 회피한다.
+            cy.get('[role="menu"], [role="dialog"]').contains('button', /^리포스트$/).first().click({ force: true });
             cy.wait('@toggleRepost')
                 .its('request.url')
                 .should('include', '/api/cheer/posts/2/repost');

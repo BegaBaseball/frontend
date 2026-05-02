@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthSession } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import {
   fetchCurrentSeason,
   fetchSavedPrediction,
-  saveRankingPrediction
+  saveRankingPrediction,
 } from '../api/ranking';
 import {
   restoreTeamsFromIds,
@@ -14,11 +15,15 @@ import {
   extractTeamIds,
   generateRankingText,
   isKakaoSDKReady,
-  initializeKakaoSDK
+  initializeKakaoSDK,
 } from '../utils/ranking';
 import { KAKAO_APP_KEY } from '../constants/ranking';
 import { getApiErrorMessage, parseError } from '../utils/errorUtils';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import {
+  resolveRankingPredictionInitFailure,
+  type RankingPredictionInitState,
+} from '../utils/rankingPredictionState';
 
 export const useRankingPrediction = () => {
   const navigate = useNavigate();
@@ -28,95 +33,126 @@ export const useRankingPrediction = () => {
     navigate(buildLoginPath(getCurrentRelativeUrl()), { replace });
   };
 
-  // Local state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [alreadySaved, setAlreadySaved] = useState(false);
   const [currentSeason, setCurrentSeason] = useState<number | null>(null);
-  const [isPredictionPeriod, setIsPredictionPeriod] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [initState, setInitState] = useState<RankingPredictionInitState>('loading');
+  const [initErrorMessage, setInitErrorMessage] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
 
-  // Zustand store
-  const rankings = usePredictionStore((state) => state.rankings);
-  const availableTeams = usePredictionStore((state) => state.availableTeams);
-  const isPredictionSaved = usePredictionStore((state) => state.isPredictionSaved);
-  const allTeams = usePredictionStore((state) => state.allTeams);
+  const { rankings, availableTeams, isPredictionSaved, allTeams } = usePredictionStore(
+    useShallow((state) => ({
+      rankings: state.rankings,
+      availableTeams: state.availableTeams,
+      isPredictionSaved: state.isPredictionSaved,
+      allTeams: state.allTeams,
+    }))
+  );
 
-  const addTeamToRanking = usePredictionStore((state) => state.addTeamToRanking);
-  const removeTeamFromRanking = usePredictionStore((state) => state.removeTeamFromRanking);
-  const moveTeam = usePredictionStore((state) => state.moveTeam);
-  const resetRankings = usePredictionStore((state) => state.resetRankings);
-  const completePrediction = usePredictionStore((state) => state.completePrediction);
-  const setRankings = usePredictionStore((state) => state.setRankings);
+  const { addTeamToRanking, removeTeamFromRanking, moveTeam, resetRankings, completePrediction, setRankings, setIsPredictionSaved } = usePredictionStore(
+    useShallow((state) => ({
+      addTeamToRanking: state.addTeamToRanking,
+      removeTeamFromRanking: state.removeTeamFromRanking,
+      moveTeam: state.moveTeam,
+      resetRankings: state.resetRankings,
+      completePrediction: state.completePrediction,
+      setRankings: state.setRankings,
+      setIsPredictionSaved: state.setIsPredictionSaved,
+    }))
+  );
 
-  // Kakao SDK 초기화
   useEffect(() => {
     void initializeKakaoSDK(KAKAO_APP_KEY);
   }, []);
 
-  // 로그인 체크
   useEffect(() => {
     if (!isAuthLoading && !isLoggedIn) {
       redirectToLogin(true);
     }
   }, [isLoggedIn, isAuthLoading, navigate]);
 
-  // 페이지 초기화 (시즌 & 저장된 예측 로드)
   useEffect(() => {
     if (isLoggedIn) {
-      initializePage();
+      void initializePage();
     }
   }, [isLoggedIn]);
 
   const initializePage = async () => {
-    setIsLoading(true);
+    setInitState('loading');
+    setInitErrorMessage(null);
 
     try {
-      // 1. 현재 시즌 조회
       const seasonData = await fetchCurrentSeason();
       setCurrentSeason(seasonData.seasonYear);
-      setIsPredictionPeriod(true);
 
-      // 2. 저장된 예측 조회 (없으면 null 반환)
-      const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+      try {
+        const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
 
-      if (savedPrediction) {
-        setAlreadySaved(true);
-        setShareId(savedPrediction.shareId);
+        if (savedPrediction) {
+          setAlreadySaved(true);
+          setIsPredictionSaved(true);
+          setShareId(savedPrediction.shareId);
 
-        // 저장된 예측 복원
-        const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
-        if (setRankings) {
+          const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
           setRankings(restoredRankings);
+          toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
+        } else {
+          setAlreadySaved(false);
+          setShareId(null);
+          resetRankings();
+          setIsPredictionSaved(false);
+        }
+      } catch (error: unknown) {
+        const failure = resolveRankingPredictionInitFailure(error);
+        if (failure === 'redirect-auth') {
+          redirectToLogin(true);
+          return;
         }
 
-        toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
-      } else {
-        // 저장된 예측이 없으면 초기화
-        setShareId(null);
-        resetRankings();
-      }
+        if (failure === 'closed') {
+          setAlreadySaved(false);
+          setShareId(null);
+          setInitState('closed');
+          return;
+        }
 
+        const errorMessage = getApiErrorMessage(error, '저장된 예측을 불러오지 못했습니다.');
+        setAlreadySaved(false);
+        setShareId(null);
+        setInitErrorMessage(errorMessage);
+        setInitState('error');
+        toast.error(errorMessage);
+        return;
+      }
     } catch (error: unknown) {
       setShareId(null);
-      const parsedError = parseError(error);
-      if (parsedError.type === 'AUTH') {
+
+      const failure = resolveRankingPredictionInitFailure(error);
+      if (failure === 'redirect-auth') {
         redirectToLogin(true);
-      } else {
-        const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
-        setIsPredictionPeriod(false);
-        toast.error(errorMessage);
+        return;
       }
-    } finally {
-      setIsLoading(false);
+
+      if (failure === 'closed') {
+        setAlreadySaved(false);
+        setInitState('closed');
+        return;
+      }
+
+      const errorMessage = getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.');
+      setAlreadySaved(false);
+      setInitErrorMessage(errorMessage);
+      setInitState('error');
+      toast.error(errorMessage);
+      return;
     }
+
+    setInitState('ready');
   };
 
-  // Computed
   const isComplete = isRankingComplete(rankings);
 
-  // 팀 추가
   const handleTeamClick = (team: Team) => {
     if (alreadySaved) {
       toast.warning('이미 저장된 예측은 수정할 수 없습니다.');
@@ -125,7 +161,6 @@ export const useRankingPrediction = () => {
     addTeamToRanking(team);
   };
 
-  // 팀 제거
   const handleRemoveTeam = (index: number) => {
     if (alreadySaved) {
       toast.warning('이미 저장된 예측은 수정할 수 없습니다.');
@@ -134,7 +169,6 @@ export const useRankingPrediction = () => {
     removeTeamFromRanking(index);
   };
 
-  // 예측 완료
   const handleCompletePrediction = () => {
     if (isComplete) {
       completePrediction();
@@ -142,7 +176,6 @@ export const useRankingPrediction = () => {
     }
   };
 
-  // 저장 버튼 클릭
   const handleSave = () => {
     if (alreadySaved) {
       toast.error('이미 순위 예측을 저장하셨습니다.');
@@ -151,7 +184,6 @@ export const useRankingPrediction = () => {
     setShowSaveDialog(true);
   };
 
-  // 저장 확인
   const confirmSave = async () => {
     if (isSaving || alreadySaved || !currentSeason) return;
     if (!isRankingComplete(rankings)) {
@@ -166,14 +198,14 @@ export const useRankingPrediction = () => {
 
       const savedPrediction = await saveRankingPrediction({
         seasonYear: currentSeason,
-        teamIdsInOrder: teamIds
+        teamIdsInOrder: teamIds,
       });
 
       toast.success(`${currentSeason} 시즌 예측이 저장되었습니다!`);
       setShowSaveDialog(false);
       setAlreadySaved(true);
+      setIsPredictionSaved(true);
       setShareId(savedPrediction.shareId);
-
     } catch (error: unknown) {
       const parsedError = parseError(error);
       if (parsedError.type === 'AUTH') {
@@ -182,17 +214,27 @@ export const useRankingPrediction = () => {
         return;
       }
 
-      const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
-      if (errorMessage.includes('이미')) {
-        setAlreadySaved(true);
+      if (parsedError.responseCode === 'RANKING_PREDICTION_ALREADY_EXISTS') {
+        setShowSaveDialog(false);
+        await initializePage();
+        toast.error(parsedError.message || '이미 저장된 예측입니다.');
+        return;
       }
+
+      if (parsedError.responseCode === 'RANKING_PREDICTION_CLOSED') {
+        setShowSaveDialog(false);
+        setInitState('closed');
+        toast.error(parsedError.message || '현재는 순위 예측 기간이 아닙니다.');
+        return;
+      }
+
+      const errorMessage = getApiErrorMessage(error, '저장에 실패했습니다.');
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // 카카오톡 공유
   const handleShare = async () => {
     const sdkReady = isKakaoSDKReady() || await initializeKakaoSDK(KAKAO_APP_KEY);
     if (!sdkReady) {
@@ -218,12 +260,10 @@ export const useRankingPrediction = () => {
 
     try {
       const rankingText = generateRankingText(rankings);
-
       const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const shareUrl = `${baseUrl}/predictions/ranking/share/${shareId}/${currentSeason}`;
 
-
-      kakaoShare.sendDefault({
+      window.Kakao?.Share?.sendDefault({
         objectType: 'feed',
         content: {
           title: `${currentSeason} KBO 시즌 순위 예측`,
@@ -253,37 +293,31 @@ export const useRankingPrediction = () => {
   };
 
   return {
-    // State
     showSaveDialog,
     setShowSaveDialog,
     isSaving,
     alreadySaved,
     currentSeason,
-    isPredictionPeriod,
-    isLoading,
+    isPredictionPeriod: initState !== 'closed',
+    isLoading: initState === 'loading',
+    initState,
+    initErrorMessage,
     isAuthLoading,
     isLoggedIn,
     shareId,
-
-    // Store state
     rankings,
     availableTeams,
     isPredictionSaved,
     allTeams,
-
-    // Store actions
     moveTeam,
     resetRankings,
-
-    // Computed
     isComplete,
-
-    // Handlers
     handleTeamClick,
     handleRemoveTeam,
     handleCompletePrediction,
     handleSave,
     confirmSave,
     handleShare,
+    retryInitialize: initializePage,
   };
 };

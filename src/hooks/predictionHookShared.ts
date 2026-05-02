@@ -1,5 +1,7 @@
 import type { ParsedError } from '../utils/errorUtils';
+import { isManualBaseballDataRequiredCode } from '../utils/errorUtils';
 import type { DateGames, Game, GameDetail, VoteTeam } from '../types/prediction';
+import { hasRenderableInningScoreData } from '../utils/inningScoreParser';
 import type {
   PredRecoveryAction,
   PredictionErrorCode,
@@ -15,6 +17,12 @@ export type UserVoteRecord = {
   [key: string]: VoteTeam | null;
 };
 
+export type PredictionUserVoteResolutionState = 'resolved' | 'unknown-auth';
+
+export type PredictionUserVoteResolutionRecord = {
+  [key: string]: PredictionUserVoteResolutionState;
+};
+
 export type VoteRequestState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
   error?: string;
@@ -24,6 +32,7 @@ export type GameDetailRequestState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
   data: GameDetail | null;
   error?: string;
+  errorCode?: string;
   isSeeded?: boolean;
   isBackgroundRefreshing?: boolean;
   hasRenderableData?: boolean;
@@ -250,6 +259,40 @@ export const shouldShowPredictionDetailFallback = (options: {
   hasCurrentGame: boolean;
 }): boolean => Boolean(options.detailError && !options.hasRenderableData && !options.hasCurrentGame);
 
+export const shouldPreserveUserVoteStateOnError = (
+  parsedType: ParsedError['type']
+): boolean => parsedType === 'AUTH' || parsedType === 'PERMISSION';
+
+export const applyPredictionUserVoteResolution = (
+  current: PredictionUserVoteResolutionRecord,
+  gameIds: string[],
+  nextState: PredictionUserVoteResolutionState,
+): PredictionUserVoteResolutionRecord => {
+  if (!gameIds.length) {
+    return current;
+  }
+
+  const next = { ...current };
+  gameIds.forEach((gameId) => {
+    if (!gameId) {
+      return;
+    }
+    next[gameId] = nextState;
+  });
+  return next;
+};
+
+export const resolvePredictionUserVoteResolutionState = (
+  current: PredictionUserVoteResolutionRecord,
+  gameId?: string | null,
+): PredictionUserVoteResolutionState => {
+  if (!gameId) {
+    return 'resolved';
+  }
+
+  return current[gameId] ?? 'resolved';
+};
+
 export const isRangeResultCanceled = (error?: {
   message?: string;
   status?: number | null;
@@ -277,25 +320,7 @@ export const hasInningScoreData = (detail?: GameDetail | null): boolean => {
   if (!detail) {
     return false;
   }
-
-  const rawDetail = detail as unknown as Record<string, unknown>;
-  const candidateKeys = [
-    rawDetail.inningScores,
-    rawDetail.inning_scores,
-    rawDetail.inning_score,
-    rawDetail.innings,
-    rawDetail.line_score,
-    rawDetail.scoreByInning,
-    rawDetail.scoreByInningDetail,
-    rawDetail.scoreByInnings,
-    rawDetail.inningScore,
-  ];
-
-  if (candidateKeys.some((value) => Array.isArray(value) && value.length > 0)) {
-    return true;
-  }
-
-  return !!rawDetail.lineScore && typeof rawDetail.lineScore === 'object' && !Array.isArray(rawDetail.lineScore);
+  return hasRenderableInningScoreData(detail);
 };
 
 export const getFlowPlatform = (): 'mobile' | 'desktop' => {
@@ -323,8 +348,12 @@ export const resolveFlowScreen = (state: PredictionFlowState): string => {
 };
 
 export const mapPredictionErrorCode = (
-  parsedType: ParsedError['type']
+  parsedType: ParsedError['type'],
+  responseCode?: string
 ): PredictionErrorCode => {
+  if (isManualBaseballDataRequiredCode(responseCode)) {
+    return 'PARTIAL_DATA';
+  }
   if (parsedType === 'NETWORK') {
     return 'NETWORK';
   }

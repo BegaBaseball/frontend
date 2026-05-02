@@ -1,7 +1,18 @@
 import { privateDelete, privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
 import { parseError } from '../utils/errorUtils';
-import { Game, GameDetail, MatchBounds, MatchDayNavigation, UserPredictionStat } from '../types/prediction';
+import {
+  Game,
+  GameDetail,
+  GameLiveEvent,
+  GameLiveSnapshot,
+  GameLiveSummary,
+  GameRelayEvent,
+  GameRelaySnapshot,
+  MatchBounds,
+  MatchDayNavigation,
+  UserPredictionStat,
+} from '../types/prediction';
 
 export interface MyVotesRequest {
   gameIds: string[];
@@ -236,6 +247,134 @@ export interface FetchOptions {
   signal?: AbortSignal;
 }
 
+export interface LiveSnapshotFetchOptions extends FetchOptions {
+  afterSeq?: number | null;
+  limit?: number;
+}
+
+export interface LiveRelayFetchOptions extends FetchOptions {
+  afterId?: number | null;
+  limit?: number;
+}
+
+const toNullableNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toNullableString = (value: unknown): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const text = `${value}`.trim();
+  return text ? text : null;
+};
+
+const toLiveEvent = (value: unknown): GameLiveEvent | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const source = value as Record<string, unknown>;
+  return {
+    eventSeq: toNullableNumber(source.eventSeq ?? source.event_seq),
+    inning: toNullableNumber(source.inning),
+    inningHalf: toNullableString(source.inningHalf ?? source.inning_half),
+    outs: toNullableNumber(source.outs),
+    batterName: toNullableString(source.batterName ?? source.batter_name),
+    pitcherName: toNullableString(source.pitcherName ?? source.pitcher_name),
+    description: toNullableString(source.description),
+    eventType: toNullableString(source.eventType ?? source.event_type),
+    resultCode: toNullableString(source.resultCode ?? source.result_code),
+    rbi: toNullableNumber(source.rbi),
+    basesBefore: toNullableString(source.basesBefore ?? source.bases_before),
+    basesAfter: toNullableString(source.basesAfter ?? source.bases_after),
+    homeScore: toNullableNumber(source.homeScore ?? source.home_score),
+    awayScore: toNullableNumber(source.awayScore ?? source.away_score),
+    wpa: toNullableNumber(source.wpa),
+    winExpectancyBefore: toNullableNumber(source.winExpectancyBefore ?? source.win_expectancy_before),
+    winExpectancyAfter: toNullableNumber(source.winExpectancyAfter ?? source.win_expectancy_after),
+    updatedAt: toNullableString(source.updatedAt ?? source.updated_at),
+  };
+};
+
+const toLiveSnapshot = (value: unknown, fallbackGameId: string): GameLiveSnapshot => {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const events = Array.isArray(source.events)
+    ? source.events.map(toLiveEvent).filter((event): event is GameLiveEvent => Boolean(event))
+    : [];
+
+  return {
+    gameId: toNullableString(source.gameId ?? source.game_id) || fallbackGameId,
+    gameStatus: toNullableString(source.gameStatus ?? source.game_status),
+    homeScore: toNullableNumber(source.homeScore ?? source.home_score),
+    awayScore: toNullableNumber(source.awayScore ?? source.away_score),
+    currentInning: toNullableNumber(source.currentInning ?? source.current_inning),
+    currentInningHalf: toNullableString(source.currentInningHalf ?? source.current_inning_half),
+    lastEventSeq: toNullableNumber(source.lastEventSeq ?? source.last_event_seq),
+    lastUpdatedAt: toNullableString(source.lastUpdatedAt ?? source.last_updated_at),
+    events,
+  };
+};
+
+const toRelayEvent = (value: unknown): GameRelayEvent | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const source = value as Record<string, unknown>;
+  return {
+    relayId: toNullableNumber(source.relayId ?? source.relay_id ?? source.id),
+    inning: toNullableNumber(source.inning),
+    inningHalf: toNullableString(source.inningHalf ?? source.inning_half),
+    pitcherName: toNullableString(source.pitcherName ?? source.pitcher_name),
+    batterName: toNullableString(source.batterName ?? source.batter_name),
+    playDescription: toNullableString(source.playDescription ?? source.play_description),
+    eventType: toNullableString(source.eventType ?? source.event_type),
+    result: toNullableString(source.result),
+    createdAt: toNullableString(source.createdAt ?? source.created_at),
+    updatedAt: toNullableString(source.updatedAt ?? source.updated_at),
+  };
+};
+
+const toRelaySnapshot = (value: unknown, fallbackGameId: string): GameRelaySnapshot => {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const events = Array.isArray(source.events)
+    ? source.events.map(toRelayEvent).filter((event): event is GameRelayEvent => Boolean(event))
+    : [];
+
+  return {
+    gameId: toNullableString(source.gameId ?? source.game_id) || fallbackGameId,
+    lastRelayId: toNullableNumber(source.lastRelayId ?? source.last_relay_id),
+    lastUpdatedAt: toNullableString(source.lastUpdatedAt ?? source.last_updated_at),
+    events,
+  };
+};
+
+const toLiveSummary = (value: unknown): GameLiveSummary | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const source = value as Record<string, unknown>;
+  const gameId = toNullableString(source.gameId ?? source.game_id);
+  if (!gameId) {
+    return null;
+  }
+  return {
+    gameId,
+    gameStatus: toNullableString(source.gameStatus ?? source.game_status),
+    homeScore: toNullableNumber(source.homeScore ?? source.home_score),
+    awayScore: toNullableNumber(source.awayScore ?? source.away_score),
+    lastEventSeq: toNullableNumber(source.lastEventSeq ?? source.last_event_seq),
+    lastUpdatedAt: toNullableString(source.lastUpdatedAt ?? source.last_updated_at),
+  };
+};
+
 export const fetchMatchesByDay = async (
   date: string,
   options: FetchOptions = {}
@@ -382,6 +521,57 @@ export const fetchGameDetailResult = async (
   }
 };
 
+export const fetchGameLiveSnapshot = async (
+  gameId: string,
+  options: LiveSnapshotFetchOptions = {},
+): Promise<GameLiveSnapshot> => {
+  const normalizedGameId = gameId.trim();
+  const data = await publicGet<unknown>(`/matches/${normalizedGameId}/live`, {
+    params: {
+      afterSeq: options.afterSeq == null ? undefined : Math.max(0, options.afterSeq),
+      limit: options.limit,
+    },
+    signal: options.signal,
+  });
+  return toLiveSnapshot(data, normalizedGameId);
+};
+
+export const fetchGameLiveRelaySnapshot = async (
+  gameId: string,
+  options: LiveRelayFetchOptions = {},
+): Promise<GameRelaySnapshot> => {
+  const normalizedGameId = gameId.trim();
+  const data = await publicGet<unknown>(`/matches/${normalizedGameId}/live-relay`, {
+    params: {
+      afterId: options.afterId == null ? undefined : Math.max(0, options.afterId),
+      limit: options.limit,
+    },
+    signal: options.signal,
+  });
+  return toRelaySnapshot(data, normalizedGameId);
+};
+
+export const fetchGameLiveSummaries = async (
+  gameIds: string[],
+  options: FetchOptions = {},
+): Promise<GameLiveSummary[]> => {
+  const normalizedGameIds = Array.from(new Set(gameIds.map((gameId) => gameId.trim()).filter(Boolean)));
+  if (normalizedGameIds.length === 0) {
+    return [];
+  }
+
+  const data = await publicGet<unknown>('/matches/live', {
+    params: {
+      gameIds: normalizedGameIds.join(','),
+    },
+    signal: options.signal,
+  });
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data.map(toLiveSummary).filter((summary): summary is GameLiveSummary => Boolean(summary));
+};
+
 /**
  * 특정 경기의 사용자 투표 조회
  */
@@ -407,15 +597,10 @@ export const fetchAllUserVotesBulk = async (
     return {};
   }
 
-  try {
-    const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
-      gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
-    });
-    return extractVotesById(response);
-  } catch (error) {
-    const parsedError = parseError(error);
-    throw new Error(parsedError.message || '배열 투표 조회에 실패했습니다.');
-  }
+  const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
+    gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
+  });
+  return extractVotesById(response);
 };
 
 /**

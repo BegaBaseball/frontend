@@ -2,22 +2,6 @@ import { startTransition, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { normalizeAiDataSources, normalizeAiToolCalls } from '../api/aiMeta';
 import {
-  addChatFavorite,
-  createChatSession,
-  deleteChatSession,
-  getChatSessionMessages,
-  listChatFavorites,
-  listChatSessions,
-  removeChatFavorite,
-  saveAssistantChatMessage,
-  saveUserChatMessage,
-} from '../api/chatSessions';
-import {
-  ChatStreamEventError,
-  RateLimitError,
-  sendChatMessageStream,
-} from '../api/chatbot';
-import {
   CHATBOT_STATUS_RATE_LIMIT,
   CHATBOT_STATUS_SERVICE_UNAVAILABLE,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
@@ -39,6 +23,7 @@ import { appendTextToBotMessage, buildHistoryPayload } from '../utils/chatbot';
 
 const GREETING_TEXT = '안녕하세요! 야구 가이드 BEGA입니다. 무엇을 도와드릴까요?';
 const CURRENT_SESSION_STORAGE_KEY = 'chatbot_current_session_id';
+const CURRENT_SESSION_TITLE_STORAGE_KEY = 'chatbot_current_session_title';
 const PENDING_MESSAGE_STORAGE_KEY = 'last_pending_msg';
 const DEFAULT_RETRY_SECONDS = 10;
 const MAX_BACKOFF_SECONDS = 40;
@@ -53,6 +38,40 @@ type QueuedMessage = {
   historyPayload: Array<{ role: string; content: string }> | null;
   userMessage: Message;
 };
+
+type RateLimitLikeError = Error & {
+  retryAfterSeconds?: number;
+};
+
+type ChatStreamEventLikeError = Error & {
+  detail?: string;
+  eventCode?: string;
+};
+
+let chatSessionsModulePromise: Promise<typeof import('../api/chatSessions')> | null = null;
+let chatBotStreamModulePromise: Promise<typeof import('../api/chatbot')> | null = null;
+
+const loadChatSessionsModule = () => {
+  if (!chatSessionsModulePromise) {
+    chatSessionsModulePromise = import('../api/chatSessions');
+  }
+  return chatSessionsModulePromise;
+};
+
+const loadChatBotStreamModule = () => {
+  if (!chatBotStreamModulePromise) {
+    chatBotStreamModulePromise = import('../api/chatbot');
+  }
+  return chatBotStreamModulePromise;
+};
+
+const isRateLimitLikeError = (error: unknown): error is RateLimitLikeError =>
+  error instanceof Error
+  && error.name === 'RateLimitError'
+  && typeof (error as RateLimitLikeError).retryAfterSeconds === 'number';
+
+const isChatStreamEventLikeError = (error: unknown): error is ChatStreamEventLikeError =>
+  error instanceof Error && error.name === 'ChatStreamEventError';
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -72,13 +91,24 @@ const readStoredSessionId = (): number | null => {
   }
 };
 
-const persistSessionId = (sessionId: number | null): void => {
+const readStoredSessionTitle = (): string => {
+  try {
+    const raw = sessionStorage.getItem(CURRENT_SESSION_TITLE_STORAGE_KEY);
+    return raw && raw.trim().length > 0 ? raw : AiChatSessionTitleFallback;
+  } catch {
+    return AiChatSessionTitleFallback;
+  }
+};
+
+const persistSessionState = (sessionId: number | null, title: string): void => {
   try {
     if (sessionId === null) {
       sessionStorage.removeItem(CURRENT_SESSION_STORAGE_KEY);
+      sessionStorage.removeItem(CURRENT_SESSION_TITLE_STORAGE_KEY);
       return;
     }
     sessionStorage.setItem(CURRENT_SESSION_STORAGE_KEY, String(sessionId));
+    sessionStorage.setItem(CURRENT_SESSION_TITLE_STORAGE_KEY, title);
   } catch {
     // sessionStorage 사용 실패 시 무시
   }
@@ -87,6 +117,7 @@ const persistSessionId = (sessionId: number | null): void => {
 const clearStoredChatUiState = (): void => {
   try {
     sessionStorage.removeItem(CURRENT_SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(CURRENT_SESSION_TITLE_STORAGE_KEY);
     sessionStorage.removeItem(PENDING_MESSAGE_STORAGE_KEY);
   } catch {
     // storage 사용 실패 시 무시
@@ -199,7 +230,7 @@ const buildAssistantPersistencePayload = (
 });
 
 const buildFailureText = (error: unknown): string => {
-  if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
+  if (isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
     return '요청이 많아 잠시 후 다시 시도해주세요.';
   }
   if (isChatStreamStatusError(error, CHATBOT_STATUS_SERVICE_UNAVAILABLE)) {
@@ -211,8 +242,8 @@ const buildFailureText = (error: unknown): string => {
   if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
     return '응답이 중단되었습니다. 다시 시도해주세요.';
   }
-  if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
-    return error instanceof ChatStreamEventError
+  if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
+    return isChatStreamEventLikeError(error)
       ? error.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
       : '일시적인 오류가 발생했습니다. 다시 시도해주세요.';
   }
@@ -224,10 +255,9 @@ export const useChatBot = (initialOpen = false) => {
   const prevLoggedInRef = useRef(isLoggedIn);
 
   const [isOpen, setIsOpen] = useState(initialOpen);
-  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(() => readStoredSessionId());
+  const [currentSessionTitle, setCurrentSessionTitle] = useState<string>(() => readStoredSessionTitle());
   const [messages, setMessages] = useState<Message[]>([]);
-  const [favorites, setFavorites] = useState<ChatFavoriteItem[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -237,20 +267,20 @@ export const useChatBot = (initialOpen = false) => {
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
   const [failureCount, setFailureCount] = useState(0);
   const [pendingMessage, setPendingMessage] = useState('');
-  const [isLoadingSessions, setIsLoadingSessions] = useState(isLoggedIn);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(isLoggedIn);
-  const [isLoadingFavorites, setIsLoadingFavorites] = useState(isLoggedIn);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(() => readStoredSessionId() !== null);
+  const [sessionListVersion, setSessionListVersion] = useState(0);
+  const [favoritesVersion, setFavoritesVersion] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const currentSessionIdRef = useRef<number | null>(currentSessionId);
+  const currentSessionTitleRef = useRef<string>(currentSessionTitle);
   const activeStreamAbortControllerRef = useRef<AbortController | null>(null);
   const activeBotMessageIdRef = useRef<string | null>(null);
   const activeBotMessageIndexRef = useRef<number | null>(null);
   const activeRequestSeqRef = useRef(0);
   const streamingBuffer = useRef('');
   const streamingFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const currentSessionTitle = sessions.find((session) => session.sessionId === currentSessionId)?.title ?? AiChatSessionTitleFallback;
 
   const updateBotMessageById = (
     botMessageId: string | null | undefined,
@@ -336,6 +366,14 @@ export const useChatBot = (initialOpen = false) => {
   }, []);
 
   useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    currentSessionTitleRef.current = currentSessionTitle;
+  }, [currentSessionTitle]);
+
+  useEffect(() => {
     if (isOpen && !isLoadingMessages && messages.length === 0) {
       setMessages([createSystemGreeting()]);
       streamingBuffer.current += GREETING_TEXT;
@@ -368,13 +406,12 @@ export const useChatBot = (initialOpen = false) => {
       activeBotMessageIndexRef.current = null;
       clearScheduledStreamingFlush();
       streamingBuffer.current = '';
-      setIsLoadingSessions(false);
       setIsLoadingMessages(false);
-      setIsLoadingFavorites(false);
-      setSessions([]);
       setMessages([]);
-      setFavorites([]);
       setCurrentSessionId(null);
+      setCurrentSessionTitle(AiChatSessionTitleFallback);
+      currentSessionIdRef.current = null;
+      currentSessionTitleRef.current = AiChatSessionTitleFallback;
       setMessageQueue([]);
       setPendingMessage('');
       setInputMessage('');
@@ -392,57 +429,40 @@ export const useChatBot = (initialOpen = false) => {
   }, []);
 
   useEffect(() => {
-    persistSessionId(currentSessionId);
-  }, [currentSessionId]);
+    persistSessionState(currentSessionId, currentSessionTitle);
+  }, [currentSessionId, currentSessionTitle]);
 
   useEffect(() => {
-    const bootstrapChatData = async () => {
+    const bootstrapChatMessages = async () => {
       if (!isLoggedIn) {
-        setIsLoadingSessions(false);
-        setIsLoadingFavorites(false);
         setIsLoadingMessages(false);
         return;
       }
 
-      setIsLoadingSessions(true);
-      setIsLoadingFavorites(true);
+      if (currentSessionId === null) {
+        setIsLoadingMessages(false);
+        return;
+      }
+
+      setIsLoadingMessages(true);
 
       try {
-        const [nextSessions, nextFavorites] = await Promise.all([
-          listChatSessions(),
-          listChatFavorites(),
-        ]);
-        const sortedSessions = sortSessions(nextSessions);
-        setSessions(sortedSessions);
-        setFavorites(nextFavorites);
-
-        const storedSessionId = readStoredSessionId();
-        const selectedSessionId = (
-          storedSessionId !== null && sortedSessions.some((session) => session.sessionId === storedSessionId)
-            ? storedSessionId
-            : sortedSessions[0]?.sessionId ?? null
-        );
-
-        setCurrentSessionId(selectedSessionId);
-
-        if (selectedSessionId !== null) {
-          setIsLoadingMessages(true);
-          const storedMessages = await getChatSessionMessages(selectedSessionId);
-          setMessages(storedMessages.map(normalizeStoredMessage));
-          setIsLoadingMessages(false);
-        } else {
-          setMessages([]);
-        }
+        const chatSessionsApi = await loadChatSessionsModule();
+        const storedMessages = await chatSessionsApi.getChatSessionMessages(currentSessionId);
+        setMessages(storedMessages.map(normalizeStoredMessage));
       } catch {
-        toast.error('대화 기록을 불러오지 못했습니다.');
+        setMessages([]);
+        setCurrentSessionId(null);
+        setCurrentSessionTitle(AiChatSessionTitleFallback);
+        currentSessionIdRef.current = null;
+        currentSessionTitleRef.current = AiChatSessionTitleFallback;
+        toast.error('대화 내용을 불러오지 못했습니다.');
       } finally {
-        setIsLoadingSessions(false);
-        setIsLoadingFavorites(false);
         setIsLoadingMessages(false);
       }
     };
 
-    void bootstrapChatData();
+    void bootstrapChatMessages();
   }, [isLoggedIn]);
 
   const scrollToBottom = () => {
@@ -456,28 +476,6 @@ export const useChatBot = (initialOpen = false) => {
       scrollToBottom();
     }
   }, [messages, isOpen]);
-
-  const updateSessionsAfterMessage = (sessionId: number, content: string, createdAt: Date) => {
-    setSessions((prev) => {
-      const next = prev.map((session) => {
-        if (session.sessionId !== sessionId) {
-          return session;
-        }
-        const nextMessageCount = (session.messageCount ?? 0) + 1;
-        return {
-          ...session,
-          title: session.title === '새 대화' && (session.messageCount ?? 0) === 0
-            ? buildSessionTitle(content)
-            : session.title,
-          messageCount: nextMessageCount,
-          latestMessagePreview: buildSessionPreview(content),
-          updatedAt: createdAt.toISOString(),
-          lastMessageAt: createdAt.toISOString(),
-        };
-      });
-      return sortSessions(next);
-    });
-  };
 
   const replacePlaceholderWithStoredMessage = (placeholderId: string, storedMessage: StoredChatMessage) => {
     const normalized = normalizeStoredMessage(storedMessage);
@@ -498,6 +496,22 @@ export const useChatBot = (initialOpen = false) => {
     });
   };
 
+  const syncCurrentSessionTitleFromContent = (sessionId: number, content: string) => {
+    if (sessionId !== currentSessionIdRef.current) {
+      return;
+    }
+
+    setCurrentSessionTitle((prev) => {
+      if (prev !== AiChatSessionTitleFallback) {
+        return prev;
+      }
+
+      const nextTitle = buildSessionTitle(content);
+      currentSessionTitleRef.current = nextTitle;
+      return nextTitle;
+    });
+  };
+
   const persistAssistantOutcome = async (
     sessionId: number,
     placeholderId: string,
@@ -506,20 +520,26 @@ export const useChatBot = (initialOpen = false) => {
     meta: ChatMeta | null,
     overrides?: Partial<{ cancelled: boolean; errorCode: string | null }>,
   ) => {
+    const { saveAssistantChatMessage } = await loadChatSessionsModule();
     const stored = await saveAssistantChatMessage(
       sessionId,
       buildAssistantPersistencePayload(content, status, meta, overrides),
     );
     replacePlaceholderWithStoredMessage(placeholderId, stored);
-    updateSessionsAfterMessage(sessionId, stored.content, new Date(stored.createdAt));
+    syncCurrentSessionTitleFromContent(sessionId, stored.content);
+    setSessionListVersion((prev) => prev + 1);
   };
 
-  const loadSessionMessages = async (sessionId: number) => {
+  const loadSessionMessages = async (sessionId: number, title?: string) => {
     setIsLoadingMessages(true);
     try {
+      const { getChatSessionMessages } = await loadChatSessionsModule();
       const storedMessages = await getChatSessionMessages(sessionId);
       setMessages(storedMessages.map(normalizeStoredMessage));
+      currentSessionIdRef.current = sessionId;
+      currentSessionTitleRef.current = title && title.trim().length > 0 ? title : AiChatSessionTitleFallback;
       setCurrentSessionId(sessionId);
+      setCurrentSessionTitle(title && title.trim().length > 0 ? title : AiChatSessionTitleFallback);
       activeBotMessageIdRef.current = null;
       activeBotMessageIndexRef.current = null;
       clearScheduledStreamingFlush();
@@ -583,6 +603,7 @@ export const useChatBot = (initialOpen = false) => {
         return next;
       });
 
+      const { sendChatMessageStream } = await loadChatBotStreamModule();
       await sendChatMessageStream(
         { question: userMessage.text, history: historyPayload },
         (delta) => {
@@ -660,18 +681,20 @@ export const useChatBot = (initialOpen = false) => {
         }
       } else {
         const failureText = buildFailureText(error);
-        const errorCode = error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)
+        const errorCode = isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)
           ? 'rate_limit'
-          : error instanceof ChatStreamEventError
+          : isChatStreamEventLikeError(error)
             ? error.eventCode || 'temporary_error'
             : error instanceof Error
               ? error.message
               : 'chat_stream_error';
 
-        if (error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
+        if (isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
           const nextFailureCount = Math.min(failureCount + 1, 3);
           const backoffSeconds = Math.min(DEFAULT_RETRY_SECONDS * Math.pow(2, nextFailureCount - 1), MAX_BACKOFF_SECONDS);
-          const retryAfterSeconds = error instanceof RateLimitError ? error.retryAfterSeconds : DEFAULT_RETRY_SECONDS;
+          const retryAfterSeconds = isRateLimitLikeError(error)
+            ? error.retryAfterSeconds ?? DEFAULT_RETRY_SECONDS
+            : DEFAULT_RETRY_SECONDS;
           const jitterSeconds = Math.floor(Math.random() * (JITTER_MAX_SECONDS - JITTER_MIN_SECONDS + 1)) + JITTER_MIN_SECONDS;
           const waitSeconds = Math.min(MAX_BACKOFF_SECONDS, Math.max(retryAfterSeconds, backoffSeconds) + jitterSeconds);
 
@@ -684,7 +707,7 @@ export const useChatBot = (initialOpen = false) => {
           toast.error('응답 시간이 초과되었습니다.');
         } else if (isChatStreamStatusError(error, CHATBOT_STREAM_INCOMPLETE_ERROR)) {
           toast.error('응답이 중단되었습니다. 다시 시도해주세요.');
-        } else if (error instanceof ChatStreamEventError || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
+        } else if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
           toast.error(failureText);
         } else {
           toast.error('응답 중 오류가 발생했습니다.');
@@ -705,7 +728,7 @@ export const useChatBot = (initialOpen = false) => {
           }));
         }
 
-        if (!(error instanceof RateLimitError || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
+        if (!(isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT))) {
           setInputMessage(pendingMessage);
         }
       }
@@ -730,21 +753,30 @@ export const useChatBot = (initialOpen = false) => {
   }, [messageQueue, isProcessing]);
 
   const ensureActiveSession = async (): Promise<ChatSessionSummary> => {
-    if (currentSessionId !== null) {
-      const existing = sessions.find((session) => session.sessionId === currentSessionId);
-      if (existing) {
-        return existing;
-      }
+    if (currentSessionIdRef.current !== null) {
+      return {
+        sessionId: currentSessionIdRef.current,
+        title: currentSessionTitleRef.current,
+        messageCount: 0,
+        latestMessagePreview: null,
+        createdAt: '',
+        updatedAt: '',
+        lastMessageAt: '',
+      };
     }
 
+    const { createChatSession } = await loadChatSessionsModule();
     const created = await createChatSession();
-    setSessions((prev) => sortSessions([created, ...prev]));
+    currentSessionIdRef.current = created.sessionId;
+    currentSessionTitleRef.current = created.title || AiChatSessionTitleFallback;
     setCurrentSessionId(created.sessionId);
+    setCurrentSessionTitle(created.title || AiChatSessionTitleFallback);
     setMessages([]);
     activeBotMessageIdRef.current = null;
     activeBotMessageIndexRef.current = null;
     clearScheduledStreamingFlush();
     streamingBuffer.current = '';
+    setSessionListVersion((prev) => prev + 1);
     return created;
   };
 
@@ -762,11 +794,12 @@ export const useChatBot = (initialOpen = false) => {
     try {
       const activeSession = await ensureActiveSession();
       const historyPayload = buildHistoryPayload(messages);
+      const { saveUserChatMessage } = await loadChatSessionsModule();
       const storedUserMessage = await saveUserChatMessage(activeSession.sessionId, trimmedInput);
       const normalizedUserMessage = createOptimisticUserMessage(storedUserMessage);
 
       setMessages((prev) => [...prev.filter((message) => !message.isSystem), normalizedUserMessage]);
-      updateSessionsAfterMessage(activeSession.sessionId, trimmedInput, new Date(storedUserMessage.createdAt));
+      syncCurrentSessionTitleFromContent(activeSession.sessionId, trimmedInput);
       setMessageQueue((prev) => [...prev, {
         sessionId: activeSession.sessionId,
         historyPayload,
@@ -819,62 +852,61 @@ export const useChatBot = (initialOpen = false) => {
     }
     setMessageQueue([]);
     try {
+      const { createChatSession } = await loadChatSessionsModule();
       const session = await createChatSession();
-      setSessions((prev) => sortSessions([session, ...prev]));
+      currentSessionIdRef.current = session.sessionId;
+      currentSessionTitleRef.current = session.title || AiChatSessionTitleFallback;
       setCurrentSessionId(session.sessionId);
+      setCurrentSessionTitle(session.title || AiChatSessionTitleFallback);
       setMessages([]);
       activeBotMessageIdRef.current = null;
       activeBotMessageIndexRef.current = null;
       clearScheduledStreamingFlush();
       streamingBuffer.current = '';
-      return session.sessionId;
+      setSessionListVersion((prev) => prev + 1);
+      return session;
     } catch {
       toast.error('새 대화를 시작하지 못했습니다.');
       return null;
     }
   };
 
-  const handleSelectSession = async (sessionId: number) => {
+  const handleSelectSession = async (sessionId: number, title?: string) => {
     if (!isLoggedIn) return;
-    if (sessionId === currentSessionId) return;
+    if (sessionId === currentSessionIdRef.current) return;
     if (isProcessing) {
       abortActiveStream();
     }
     setMessageQueue([]);
-    await loadSessionMessages(sessionId);
+    await loadSessionMessages(sessionId, title);
   };
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) return false;
     if (isProcessing && sessionId === currentSessionId) {
       abortActiveStream();
     }
 
     try {
+      const { deleteChatSession } = await loadChatSessionsModule();
       await deleteChatSession(sessionId);
-      setFavorites((prev) => prev.filter((item) => item.sessionId !== sessionId));
-      setSessions((prev) => {
-        const filtered = prev.filter((session) => session.sessionId !== sessionId);
-        if (sessionId === currentSessionId) {
-          const nextSessionId = filtered[0]?.sessionId ?? null;
-          setCurrentSessionId(nextSessionId);
-          if (nextSessionId === null) {
-            setMessages([]);
-          } else {
-            void loadSessionMessages(nextSessionId);
-          }
-        }
-        return filtered;
-      });
-      if (sessionId === currentSessionId && sessions.length <= 1) {
+      if (sessionId === currentSessionIdRef.current) {
+        currentSessionIdRef.current = null;
+        currentSessionTitleRef.current = AiChatSessionTitleFallback;
+        setCurrentSessionId(null);
+        setCurrentSessionTitle(AiChatSessionTitleFallback);
         setMessages([]);
         activeBotMessageIdRef.current = null;
         activeBotMessageIndexRef.current = null;
         clearScheduledStreamingFlush();
         streamingBuffer.current = '';
       }
+      setSessionListVersion((prev) => prev + 1);
+      setFavoritesVersion((prev) => prev + 1);
+      return true;
     } catch {
       toast.error('대화를 삭제하지 못했습니다.');
+      return false;
     }
   };
 
@@ -885,19 +917,21 @@ export const useChatBot = (initialOpen = false) => {
 
     try {
       if (message.favorite) {
+        const { removeChatFavorite } = await loadChatSessionsModule();
         await removeChatFavorite(message.serverId);
-        setFavorites((prev) => prev.filter((item) => item.messageId !== message.serverId));
         setMessages((prev) => prev.map((item) => (
           item.serverId === message.serverId ? { ...item, favorite: false } : item
         )));
+        setFavoritesVersion((prev) => prev + 1);
         return;
       }
 
-      const favorite = await addChatFavorite(message.serverId);
-      setFavorites((prev) => [favorite, ...prev.filter((item) => item.messageId !== favorite.messageId)]);
+      const { addChatFavorite } = await loadChatSessionsModule();
+      await addChatFavorite(message.serverId);
       setMessages((prev) => prev.map((item) => (
         item.serverId === message.serverId ? { ...item, favorite: true } : item
       )));
+      setFavoritesVersion((prev) => prev + 1);
     } catch {
       toast.error('즐겨찾기를 변경하지 못했습니다.');
     }
@@ -917,11 +951,9 @@ export const useChatBot = (initialOpen = false) => {
   return {
     isOpen,
     setIsOpen,
-    sessions,
     currentSessionId,
     currentSessionTitle,
     messages,
-    favorites,
     inputMessage,
     setInputMessage,
     isTyping,
@@ -930,9 +962,9 @@ export const useChatBot = (initialOpen = false) => {
     rateLimitCountdown,
     rateLimitStage: Math.min(Math.max(failureCount, 1), 3),
     pendingMessage,
-    isLoadingSessions,
     isLoadingMessages,
-    isLoadingFavorites,
+    sessionListVersion,
+    favoritesVersion,
     messagesEndRef,
     messagesContainerRef,
     handleSendMessage,

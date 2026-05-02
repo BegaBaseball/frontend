@@ -1,7 +1,6 @@
 import { useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Shield, ShieldCheck } from 'lucide-react';
 import { Button } from "./ui/button";
 
 interface VerificationRequiredDialogProps {
@@ -29,6 +28,59 @@ const SECURITY_DEFAULT_INSTRUCTION = (
         본인 확인을 완료한 뒤 진행해 주세요.
     </>
 );
+
+function VerificationLockIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+        </svg>
+    );
+}
+
+function VerificationShieldIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M12 3 5 6v5c0 5 3.3 8.7 7 10 3.7-1.3 7-5 7-10V6l-7-3Z" />
+        </svg>
+    );
+}
+
+function VerificationShieldCheckIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M12 3 5 6v5c0 5 3.3 8.7 7 10 3.7-1.3 7-5 7-10V6l-7-3Z" />
+            <path d="m9.5 12 2 2 3-4" />
+        </svg>
+    );
+}
 
 export default function VerificationRequiredDialog({
     isOpen,
@@ -104,22 +156,22 @@ export default function VerificationRequiredDialog({
                         <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${isSecurityMode ? 'bg-amber-400/20' : 'bg-red-100'}`}>
                             {isSecurityMode ? (
                                 <div className="relative">
-                                    <ShieldCheck className="h-7 w-7 text-amber-200" />
-                                    <Lock className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-full bg-amber-500/90 p-0.5 text-amber-100" />
+                                    <VerificationShieldCheckIcon className="h-7 w-7 text-amber-200" />
+                                    <VerificationLockIcon className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-full bg-amber-500/90 p-0.5 text-amber-100" />
                                 </div>
                             ) : (
-                                <Shield className="h-6 w-6 text-red-600" />
+                                <VerificationShieldIcon className="h-6 w-6 text-red-600" />
                             )}
                         </div>
                         <h2 id={titleId} className={`text-xl font-bold ${isSecurityMode ? 'text-white' : 'text-foreground'}`}>
                             {dialogTitle}
                         </h2>
-                        <div id={descriptionId} className={`pt-2 text-sm ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
+                        <div id={descriptionId} className={`pt-2 text-[16px] ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
                             {dialogDescription}
                         </div>
                     </div>
-                    <div className={`my-4 rounded-lg p-4 text-sm ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
-                        <p className={`mb-1 font-medium ${isSecurityMode ? 'text-white' : 'text-gray-900'}`}>
+                    <div className={`my-4 rounded-lg p-4 text-[16px] ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
+                        <p className={`mb-1 font-semibold ${isSecurityMode ? 'text-white' : 'text-gray-900'}`}>
                             {isSecurityMode ? '보안 조치 안내' : '왜 필요한가요?'}
                         </p>
                         <ul className="list-disc list-inside space-y-1">

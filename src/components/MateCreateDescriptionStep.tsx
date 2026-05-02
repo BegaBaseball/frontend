@@ -1,5 +1,4 @@
-import { AlertCircle } from 'lucide-react';
-
+import { MateAlertCircleIcon } from './MateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Textarea } from './ui/textarea';
 import { FieldLabel } from './MateCreatePrimitives';
@@ -42,7 +41,7 @@ export default function MateCreateDescriptionStep({
             <button
               type="button"
               key={tag}
-              className="text-xs px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
+              className="text-[16px] px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
               onClick={() => {
                 if (!formData.description.includes(tag)) {
                   onDescriptionChange(`${formData.description} ${tag}`.trim());
@@ -53,7 +52,7 @@ export default function MateCreateDescriptionStep({
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1 text-[16px] sm:flex-row sm:items-center sm:justify-between">
           <span
             id="description-hint"
             className={formErrors.description ? 'text-red-500' : 'text-gray-500'}
@@ -78,9 +77,9 @@ export default function MateCreateDescriptionStep({
       </div>
 
       <Alert>
-        <AlertCircle className="w-4 h-4" />
+        <MateAlertCircleIcon className="w-4 h-4" />
         <AlertDescription>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-[16px]">
             <li>금칙어나 비방 표현은 사용할 수 없습니다</li>
             <li>전화번호, 이메일 등 연락처는 입력할 수 없습니다</li>
             <li>매칭 후 채팅을 통해 소통할 수 있습니다</li>

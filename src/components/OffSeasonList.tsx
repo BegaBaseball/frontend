@@ -1,26 +1,20 @@
-import { lazy, startTransition, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-    CalendarDays,
-    ChevronLeft,
-    Filter,
-    RefreshCw,
-    Search,
-    Sparkles,
-    TrendingUp,
-    X,
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { publicGet } from '../api/publicClient';
+import {
+    CalendarDaysIcon,
+    ChevronLeftIcon,
+    FilterIcon,
+    RefreshIcon,
+    SearchIcon,
+    SparklesIcon,
+    TrendingUpIcon,
+    XIcon,
+} from './icons/PublicFeatureIcons';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getTeamKoreanName } from '../utils/teamNames';
-import ViewportDeferred from './ViewportDeferred';
-import {
-    OffseasonEmptyState,
-    OffseasonErrorState,
-    OffseasonListSkeleton,
-} from './offseason/OffseasonListStates';
 import {
     OffseasonMovement,
     SectionFilter,
@@ -36,17 +30,8 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 
-const OffseasonDesktopTable = lazy(() =>
-    import('./offseason/OffseasonDesktopTable').then((module) => ({ default: module.OffseasonDesktopTable })),
-);
-const OffseasonInsightsPanel = lazy(() =>
-    import('./offseason/OffseasonInsightsPanel').then((module) => ({ default: module.OffseasonInsightsPanel })),
-);
-const OffseasonMobileCards = lazy(() =>
-    import('./offseason/OffseasonMobileCards').then((module) => ({ default: module.OffseasonMobileCards })),
-);
-const OffseasonMovementDetailPanel = lazy(() =>
-    import('./offseason/OffseasonMovementDetailPanel').then((module) => ({ default: module.OffseasonMovementDetailPanel })),
+const OffseasonListContentRuntime = lazy(() =>
+    import('./offseason/OffseasonListContentRuntime').then((module) => ({ default: module.OffseasonListContentRuntime })),
 );
 
 const fetchMovements = async (): Promise<OffseasonMovement[]> => {
@@ -57,25 +42,20 @@ const fetchMovements = async (): Promise<OffseasonMovement[]> => {
     }
 };
 
-function OffseasonInsightsFallback() {
+function OffseasonListContentFallback() {
     return (
-        <Card className="rounded-3xl border border-zinc-200 bg-white/80 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80">
-            <div className="space-y-3 animate-pulse">
-                <div className="h-4 w-32 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                <div className="h-8 w-64 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                <div className="grid gap-3 xl:grid-cols-3">
-                    {Array.from({ length: 3 }, (_, index) => (
-                        <div key={index} className="h-44 rounded-3xl bg-zinc-100 dark:bg-zinc-950/70" />
-                    ))}
+        <div className="space-y-4">
+            <div className="rounded-3xl border border-zinc-200 bg-white/80 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80">
+                <div className="space-y-3 animate-pulse">
+                    <div className="h-4 w-32 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="h-8 w-64 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="grid gap-3 xl:grid-cols-3">
+                        {Array.from({ length: 3 }, (_, index) => (
+                            <div key={`insight-${index}`} className="h-44 rounded-3xl bg-zinc-100 dark:bg-zinc-950/70" />
+                        ))}
+                    </div>
                 </div>
             </div>
-        </Card>
-    );
-}
-
-function OffseasonListLeafFallback() {
-    return (
-        <div className="space-y-3 px-4 pb-4 pt-2 md:px-5 md:pb-5">
             <div className="animate-pulse rounded-[28px] border border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="h-4 w-40 rounded-full bg-zinc-200 dark:bg-zinc-800" />
                 <div className="mt-3 h-3 w-28 rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -102,7 +82,6 @@ export default function OffSeasonList() {
     const [selectedTeam, setSelectedTeam] = useState(TEAM_FILTER_ALL);
     const [selectedSection, setSelectedSection] = useState<SectionFilter>('ALL');
     const [bigOnly, setBigOnly] = useState(false);
-    const [selectedMovement, setSelectedMovement] = useState<OffseasonMovement | null>(null);
     const deferredSearchTerm = useDeferredValue(searchTerm);
     const normalizedSearchTerm = deferredSearchTerm.trim().toLowerCase();
     const {
@@ -246,20 +225,6 @@ export default function OffSeasonList() {
         setBigOnly(false);
     };
 
-    const openMovementDetail = (movement: OffseasonMovement) => {
-        startTransition(() => {
-            setSelectedMovement(movement);
-        });
-    };
-
-    const handleDetailOpenChange = (open: boolean) => {
-        if (!open) {
-            startTransition(() => {
-                setSelectedMovement(null);
-            });
-        }
-    };
-
     return (
         <div className="min-h-screen bg-[#f4f7f5] pb-24 transition-colors dark:bg-[#09090b]">
             <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 md:gap-8 md:py-10">
@@ -270,7 +235,7 @@ export default function OffSeasonList() {
                       className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-400"
                     >
                         <div className="rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm transition-all group-hover:-translate-x-1 group-hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-                            <ChevronLeft className="h-5 w-5" />
+                            <ChevronLeftIcon className="h-5 w-5" />
                         </div>
                         <span className="font-bold tracking-tight">스토브리그 홈으로</span>
                     </button>
@@ -281,26 +246,26 @@ export default function OffSeasonList() {
                     <div className="relative grid gap-6 px-6 py-6 md:px-8 md:py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
                         <div className="space-y-4">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
-                                <span className="text-[11px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
+                                <SparklesIcon className="h-3.5 w-3.5 text-yellow-300" />
+                                <span className="text-[14px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-3xl font-black leading-none tracking-tight text-white md:text-4xl">
                                     KBO 스토브리그
                                     <br className="sm:hidden" /> 전체 이적 현황
                                 </h1>
-                                <p className="max-w-2xl text-sm font-medium leading-relaxed text-emerald-100/80 md:text-base">
+                                <p className="max-w-2xl text-[15px] font-semibold leading-relaxed text-emerald-100/80 md:text-base">
                                     검색, 팀 필터, 구분 필터를 한 번에 묶어 원하는 선수 이동을 빠르게 좁혀볼 수 있게 정리했습니다.
                                 </p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-emerald-100/75">
+                            <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-emerald-100/75">
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    <CalendarDaysIcon className="h-3.5 w-3.5" />
                                     최근 업데이트 {latestUpdate}
                                 </span>
                                 {isFetching && !isLoading && (
                                     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
-                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                        <RefreshIcon className="h-3.5 w-3.5 animate-spin" />
                                         새 데이터 확인 중
                                     </span>
                                 )}
@@ -318,7 +283,7 @@ export default function OffSeasonList() {
                                     key={stat.label}
                                     className="rounded-3xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm"
                                 >
-                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
+                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
                                     <p className={`mt-2 text-3xl font-black tracking-tight ${stat.accent}`}>{stat.value}</p>
                                 </div>
                             ))}
@@ -328,17 +293,17 @@ export default function OffSeasonList() {
 
                 <Card className="sticky top-4 z-30 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/95 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
                     <div className="space-y-4 p-4 md:p-5">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
-                            <Filter className="h-4 w-4" />
+                        <div className="flex items-center gap-2 text-[14px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                            <FilterIcon className="h-4 w-4" />
                             탐색 도구
                         </div>
 
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                                <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
                                 <Input
                                     placeholder="선수, 구단, 요약, 계약 내용 검색"
-                                    className="h-12 rounded-2xl border-zinc-200 bg-zinc-50 pl-12 text-base font-medium shadow-none focus-visible:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                    className="h-12 rounded-2xl border-zinc-200 bg-zinc-50 pl-12 text-base font-semibold shadow-none focus-visible:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
                                 />
@@ -346,7 +311,7 @@ export default function OffSeasonList() {
 
                             <select
                                 aria-label="팀 필터"
-                                className="h-12 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                className="h-12 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-[15px] font-semibold shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
                                 value={selectedTeam}
                                 onChange={(event) => setSelectedTeam(event.target.value)}
                             >
@@ -364,7 +329,7 @@ export default function OffSeasonList() {
                                         key={option.value}
                                         type="button"
                                         onClick={() => setSortOrder(option.value)}
-                                        className={`rounded-2xl px-3 py-3 text-sm font-bold transition-colors ${sortOrder === option.value
+                                        className={`rounded-2xl px-3 py-3 text-[15px] font-bold transition-colors ${sortOrder === option.value
                                             ? 'bg-primary text-white shadow-sm'
                                             : 'border border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
                                             }`}
@@ -382,7 +347,7 @@ export default function OffSeasonList() {
                                         key={option.value}
                                         type="button"
                                         onClick={() => setSelectedSection(option.value)}
-                                        className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${selectedSection === option.value
+                                        className={`rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${selectedSection === option.value
                                             ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
                                             : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
                                             }`}
@@ -396,17 +361,17 @@ export default function OffSeasonList() {
                                 <button
                                     type="button"
                                     onClick={() => setBigOnly((prev) => !prev)}
-                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-colors ${bigOnly
+                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${bigOnly
                                         ? 'bg-yellow-400 text-[#1a3c34]'
                                         : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
                                         }`}
                                 >
-                                    <TrendingUp className="h-4 w-4" />
+                                    <TrendingUpIcon className="h-4 w-4" />
                                     주요 소식만
                                 </button>
                                 {hasActiveFilters && (
-                                    <Button variant="ghost" onClick={resetFilters} className="rounded-full px-4 text-sm font-bold">
-                                        <X className="h-4 w-4" />
+                                        <Button variant="ghost" onClick={resetFilters} className="rounded-full px-4 text-[15px] font-bold">
+                                        <XIcon className="h-4 w-4" />
                                         초기화
                                     </Button>
                                 )}
@@ -414,13 +379,13 @@ export default function OffSeasonList() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                                 전체 {movements.length}건 중 {filteredList.length}건 표시
                             </span>
                             {activeFilters.map((label) => (
                                 <OffseasonPill
                                     key={label}
-                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                                 >
                                     {label}
                                 </OffseasonPill>
@@ -429,87 +394,22 @@ export default function OffSeasonList() {
                     </div>
                 </Card>
 
-                {!isLoading && !isError && filteredList.length > 0 && (
-                    <ViewportDeferred fallback={<OffseasonInsightsFallback />}>
-                        <Suspense fallback={<OffseasonInsightsFallback />}>
-                            <OffseasonInsightsPanel movements={filteredList} onSelect={openMovementDetail} />
-                        </Suspense>
-                    </ViewportDeferred>
-                )}
-
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <div>
-                            <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">이적 타임라인</h2>
-                            <p className="mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-300">
-                                {isMobile ? '모바일 카드 보기' : '데스크톱 테이블 보기'}로 현재 필터 결과를 확인하세요.
-                            </p>
-                        </div>
-                        {!isMobile && (
-                            <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                                {sortOrder === 'headline' ? '주요 소식 우선 정렬' : SORT_OPTIONS.find((option) => option.value === sortOrder)?.label}
-                            </span>
-                        )}
-                    </div>
-
-                    {isLoading ? (
-                        <OffseasonListSkeleton />
-                    ) : isError ? (
-                        <OffseasonErrorState error={error} onRetry={() => void refetch()} />
-                    ) : filteredList.length === 0 ? (
-                        <OffseasonEmptyState
-                            hasSearchTerm={Boolean(searchTerm.trim())}
-                            hasActiveFilters={hasActiveFilters}
-                            onReset={resetFilters}
-                        />
-                    ) : (
-                        <Card className="overflow-visible rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:overflow-hidden">
-                            <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-black tracking-tight text-zinc-900 dark:text-zinc-50">
-                                        현재 조건에 맞는 이적 {filteredList.length}건
-                                    </p>
-                                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-300">
-                                        선수, 팀, 계약 내용을 같은 구조로 보여주도록 목록을 정리했습니다.
-                                    </p>
-                                </div>
-                                {bigOnly && (
-                                    <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-[11px] font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
-                                        주요 소식 필터 적용
-                                    </OffseasonPill>
-                                )}
-                            </div>
-
-                            <Suspense fallback={<OffseasonListLeafFallback />}>
-                                {isMobile ? (
-                                    <OffseasonMobileCards movements={filteredList} onSelect={openMovementDetail} />
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <div className="min-w-[860px]">
-                                            <OffseasonDesktopTable
-                                                movements={filteredList}
-                                                sortOrder={sortOrder}
-                                                onSortChange={setSortOrder}
-                                                onSelect={openMovementDetail}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </Suspense>
-                        </Card>
-                    )}
-                </section>
-
-                {selectedMovement && (
-                    <Suspense fallback={null}>
-                        <OffseasonMovementDetailPanel
-                            movement={selectedMovement}
-                            isMobile={isMobile}
-                            open
-                            onOpenChange={handleDetailOpenChange}
-                        />
-                    </Suspense>
-                )}
+                <Suspense fallback={<OffseasonListContentFallback />}>
+                    <OffseasonListContentRuntime
+                        filteredList={filteredList}
+                        isLoading={isLoading}
+                        isError={isError}
+                        error={error}
+                        onRetry={() => void refetch()}
+                        isMobile={isMobile}
+                        hasSearchTerm={Boolean(searchTerm.trim())}
+                        hasActiveFilters={hasActiveFilters}
+                        onReset={resetFilters}
+                        bigOnly={bigOnly}
+                        sortOrder={sortOrder}
+                        onSortChange={setSortOrder}
+                    />
+                </Suspense>
             </div>
         </div>
     );

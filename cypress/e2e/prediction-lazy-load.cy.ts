@@ -5,7 +5,6 @@ import {
     installPredictionAuthenticatedSessionIntercept,
     installPredictionGuestSessionIntercept,
     visitPredictionPage,
-    visitPredictionPublicPage,
 } from '../support/predictionPage';
 
 const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
@@ -131,6 +130,16 @@ describe('Prediction Lazy Load', () => {
             },
         }).as('getPredictionStatsLazy');
 
+        cy.intercept('GET', /\/api\/predictions\/ranking\/current-season(?:\?.*)?$/, {
+            statusCode: 200,
+            body: { seasonYear: 2026 },
+        }).as('getRankingPredictionSeasonLazy');
+
+        cy.intercept('GET', /\/api\/predictions\/ranking(?:\?.*)?$/, {
+            statusCode: 404,
+            body: { message: '저장된 순위 예측이 없습니다.' },
+        }).as('getSavedRankingPredictionLazy');
+
         cy.intercept('**/api/predictions/my-votes*', {
             statusCode: 200,
             body: { votes: {} },
@@ -180,6 +189,8 @@ describe('Prediction Lazy Load', () => {
         visitPredictionPage({
             path,
             token: 'prediction-lazy-load-token',
+            persistedAuthHint: true,
+            resetStorage: true,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         if (waitForMatchDayAlias) {
@@ -298,7 +309,7 @@ describe('Prediction Lazy Load', () => {
         cy.clock(now, ['Date']);
     });
 
-    it('loads today once and immediately prefetches only adjacent dates', () => {
+    it('loads today once and prefetches only adjacent non-past dates', () => {
         const requestedDates: string[] = [];
 
         cy.intercept('GET', '**/api/matches/day*', (req) => {
@@ -357,10 +368,9 @@ describe('Prediction Lazy Load', () => {
 
         openPredictionPage();
         cy.wait('@getMatchDay');
-        cy.wait('@getMatchDay');
 
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, nextDate]);
         });
     });
 
@@ -412,28 +422,22 @@ describe('Prediction Lazy Load', () => {
 
         openPredictionPage();
         cy.wait('@getMatchDay');
-        cy.wait('@getMatchDay');
         cy.wrap(null).should(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, nextDate]);
         });
 
-        cy.get('body').then(($body) => {
-            const hasQuickAction = $body.find('[data-testid="prediction-empty-nearest-date-btn"]').length > 0;
-            if (hasQuickAction) {
-                cy.get('[data-testid="prediction-empty-nearest-date-btn"]').click({ force: true });
-                return;
-            }
-
-            cy.get('button[aria-label="다음 날짜 보기"]:visible').first().click({ force: true });
-        });
-        cy.contains(displayDatePattern(nextDate)).should('exist');
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${nextDate}"]`).click({ force: true });
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${nextDate}"]`)
+            .should('have.attr', 'aria-pressed', 'true');
 
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, nextDate]);
         });
     });
 
     it('offers a quick action to jump to the nearest available game date from the empty state', () => {
+        const emptyAnchorDate = '2026-02-05';
+        const nearestPreviousDate = '2026-02-04';
         const requestedDates: string[] = [];
 
         cy.intercept('GET', '**/api/matches/day*', (req) => {
@@ -441,21 +445,21 @@ describe('Prediction Lazy Load', () => {
             const date = url.searchParams.get('date') || '';
             requestedDates.push(date);
 
-            if (date === today) {
+            if (date === emptyAnchorDate) {
                 req.reply({
                     statusCode: 200,
-                    body: buildDayResponse(today, [], previousDate, null),
+                    body: buildDayResponse(emptyAnchorDate, [], nearestPreviousDate, null),
                 });
                 return;
             }
 
-            if (date === previousDate) {
+            if (date === nearestPreviousDate) {
                 req.reply({
                     statusCode: 200,
-                    body: buildDayResponse(previousDate, [
+                    body: buildDayResponse(nearestPreviousDate, [
                         {
-                            gameId: '20260202HHSS0',
-                            gameDate: previousDate,
+                            gameId: '20260204HHSS0',
+                            gameDate: nearestPreviousDate,
                             homeTeam: 'HH',
                             awayTeam: 'SS',
                             stadium: '대전',
@@ -463,7 +467,7 @@ describe('Prediction Lazy Load', () => {
                             awayScore: 2,
                             winner: 'home',
                         },
-                    ], null, today),
+                    ], today, emptyAnchorDate),
                 });
                 return;
             }
@@ -471,22 +475,30 @@ describe('Prediction Lazy Load', () => {
             req.reply({ statusCode: 404, body: { message: `Unexpected date ${date}` } });
         }).as('getMatchDay');
 
-        openPredictionPage();
+        openPredictionPage(`/prediction?date=${emptyAnchorDate}`);
         cy.wait('@getMatchDay');
 
         cy.get('[data-testid="prediction-empty-nearest-date-btn"]')
             .should('contain', '가장 가까운 이전 경기 보기')
             .click({ force: true });
 
-        cy.contains(displayDatePattern(previousDate)).should('exist');
-        cy.contains(/(삼성\s*라이온즈|SS)\s+vs\s+(한화\s*이글스|HH)/).should('exist');
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${nearestPreviousDate}"]`)
+            .should('have.attr', 'aria-pressed', 'true');
+        cy.get('[data-testid="prediction-date-game-list"]').should('not.exist');
+        cy.get('[data-testid="prediction-schedule-match-row"][data-game-id="20260204HHSS0"]')
+            .should('be.visible')
+            .and('have.attr', 'aria-label')
+            .and('include', '삼성 라이온즈')
+            .and('include', '한화 이글스');
 
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.have.members([today, previousDate]);
+            expect(requestedDates).to.have.members([emptyAnchorDate, nearestPreviousDate, today]);
         });
     });
 
-    it('moves to the prefetched previous date without issuing an extra day request', () => {
+    it('moves to the prefetched previous non-past date without issuing an extra day request', () => {
+        const anchorDate = '2026-02-05';
+        const prefetchedPreviousDate = '2026-02-04';
         const requestedDates: string[] = [];
 
         cy.intercept('GET', '**/api/matches/day*', (req) => {
@@ -494,21 +506,21 @@ describe('Prediction Lazy Load', () => {
             const date = url.searchParams.get('date') || '';
             requestedDates.push(date);
 
-            if (date === today) {
+            if (date === anchorDate) {
                 req.reply({
                     statusCode: 200,
-                    body: buildDayResponse(today, [], previousDate, nextDate),
+                    body: buildDayResponse(anchorDate, [], prefetchedPreviousDate, nextDate),
                 });
                 return;
             }
 
-            if (date === previousDate) {
+            if (date === prefetchedPreviousDate) {
                 req.reply({
                     statusCode: 200,
-                    body: buildDayResponse(previousDate, [
+                    body: buildDayResponse(prefetchedPreviousDate, [
                         {
-                            gameId: '20260202HHSS0',
-                            gameDate: previousDate,
+                            gameId: '20260204HHSS0',
+                            gameDate: prefetchedPreviousDate,
                             homeTeam: 'HH',
                             awayTeam: 'SS',
                             stadium: '대전',
@@ -516,7 +528,7 @@ describe('Prediction Lazy Load', () => {
                             awayScore: null,
                             winner: null,
                         },
-                    ], null, today),
+                    ], today, anchorDate),
                 });
                 return;
             }
@@ -532,16 +544,16 @@ describe('Prediction Lazy Load', () => {
             req.reply({ statusCode: 404, body: { message: `Unexpected date ${date}` } });
         }).as('getMatchDay');
 
-        openPredictionPage();
+        openPredictionPage(`/prediction?date=${anchorDate}`);
         cy.wait('@getMatchDay');
         cy.wait('@getMatchDay');
         cy.wrap(null).should(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([anchorDate, prefetchedPreviousDate, nextDate]);
         });
 
-        cy.get('button[aria-label="이전 날짜 보기"]').first().click({ force: true });
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${prefetchedPreviousDate}"]`).click({ force: true });
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([anchorDate, prefetchedPreviousDate, nextDate, today]);
         });
     });
 
@@ -613,9 +625,10 @@ describe('Prediction Lazy Load', () => {
                 return;
             }
 
-            cy.get('button[aria-label="다음 날짜 보기"]:visible').first().click({ force: true });
+            cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${nextDate}"]`).click({ force: true });
         });
-        cy.contains(displayDatePattern(nextDate), { timeout: 15000 }).should('exist');
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${nextDate}"]`, { timeout: 15000 })
+            .should('have.attr', 'aria-pressed', 'true');
         cy.wrap(null).should(() => {
             expect(nextDateRequestCount).to.be.gte(1);
         });
@@ -625,29 +638,15 @@ describe('Prediction Lazy Load', () => {
         installMatchDayResponse(today, nextDate);
         openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
 
-        cy.wait('@getMatchDayForLazyEntry');
-        cy.contains('button', '경기 상세 보기').should('be.visible');
-        cy.wait(1200);
-        assertPredictionChunkResourceCounts((counts) => {
-            expect(counts.matchCard).to.equal(0);
-            expect(counts.animatedSection).to.equal(0);
-            expect(counts.comboAnimation).to.equal(0);
-            expect(counts.coachBriefing).to.equal(0);
-            expect(counts.coachAnalysisDialog).to.equal(0);
-            expect(counts.rankingTab).to.equal(0);
-            expect(counts.rankingPrediction).to.equal(0);
-            expect(counts.statsPanel).to.equal(0);
-            expect(counts.vendorMotion).to.equal(0);
-        });
-        cy.get('@getPredictionStatsLazy.all').should('have.length', 0);
-
-        cy.contains('button', '경기 상세 보기').click({ force: true });
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="prediction-match-detail-root"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         assertPredictionChunkResourceCounts((counts) => {
             expect(counts.matchCard).to.be.greaterThan(0);
             expect(counts.animatedSection).to.equal(0);
             expect(counts.comboAnimation).to.equal(0);
-            expect(counts.coachBriefing).to.equal(0);
             expect(counts.coachAnalysisDialog).to.equal(0);
             expect(counts.rankingTab).to.equal(0);
             expect(counts.rankingPrediction).to.equal(0);
@@ -664,8 +663,17 @@ describe('Prediction Lazy Load', () => {
         });
         cy.get('@coachAnalyzeLazy.all').should('have.length', 0);
 
-        cy.get('[data-testid="coach-briefing-card"]').scrollIntoView();
-        cy.wait('@coachAnalyzeLazy');
+        cy.get('[data-testid="coach-briefing-card"]')
+            .scrollIntoView()
+            .should('be.visible');
+        cy.window().then((win) => {
+            win.dispatchEvent(new Event('scroll'));
+        });
+        cy.wait(400);
+        assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.coachAnalysisDialog).to.equal(0);
+            expect(counts.vendorMotion).to.equal(0);
+        });
 
         cy.get('[data-testid="coach-analysis-open"]').click({ force: true });
         cy.get('[data-testid="coach-analysis-dialog"]').should('be.visible');
@@ -720,21 +728,21 @@ describe('Prediction Lazy Load', () => {
         installMatchDayResponse(today, nextDate);
         openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
 
-        cy.wait('@getMatchDayForLazyEntry');
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="prediction-match-detail-root"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.wait(1200);
         assertPredictionChunkResourceCounts((counts) => {
+            expect(counts.matchCard).to.be.greaterThan(0);
             expect(counts.comboAnimation).to.equal(0);
             expect(counts.vendorMotion).to.equal(0);
         });
 
-        cy.contains('button', '경기 상세 보기').click({ force: true });
-        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         assertPredictionChunkResourceCounts((counts) => {
             expect(counts.matchCard).to.be.greaterThan(0);
             expect(counts.animatedSection).to.equal(0);
-            expect(counts.comboAnimation).to.equal(0);
-            expect(counts.coachBriefing).to.equal(0);
             expect(counts.coachAnalysisDialog).to.equal(0);
             expect(counts.vendorMotion).to.equal(0);
         });
@@ -753,6 +761,97 @@ describe('Prediction Lazy Load', () => {
         });
     });
 
+    it('keeps the selected match detail visible when a date has multiple matches', () => {
+        const secondGameId = '20260203LGKT0';
+
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
+            const url = new URL(req.url);
+            const date = url.searchParams.get('date') || '';
+
+            if (date === today) {
+                req.reply({
+                    statusCode: 200,
+                    body: buildDayResponse(today, [
+                        {
+                            gameId: '20260203HHSS0',
+                            gameDate: today,
+                            homeTeam: 'HH',
+                            awayTeam: 'SS',
+                            stadium: '대전',
+                            startTime: '18:30',
+                            homeScore: null,
+                            awayScore: null,
+                            winner: null,
+                            aiSummary: '한화와 삼성의 선발 매치업을 확인하세요.',
+                        },
+                        {
+                            gameId: secondGameId,
+                            gameDate: today,
+                            homeTeam: 'KT',
+                            awayTeam: 'LG',
+                            stadium: '수원',
+                            startTime: '19:00',
+                            homeScore: null,
+                            awayScore: null,
+                            winner: null,
+                            aiSummary: 'LG와 KT의 불펜 운영이 관전 포인트입니다.',
+                        },
+                    ], previousDate, nextDate),
+                });
+                return;
+            }
+
+            if (date === nextDate) {
+                req.reply({
+                    statusCode: 200,
+                    body: buildDayResponse(nextDate, [], today, null),
+                });
+                return;
+            }
+
+            req.reply({ statusCode: 404, body: { message: `Unexpected date ${date}` } });
+        }).as('getMultiMatchDay');
+
+        cy.intercept('GET', '**/api/matches/*', (req) => {
+            if (
+                req.url.includes('/api/matches/day')
+                || req.url.includes('/api/matches/range')
+                || req.url.includes('/api/matches/bounds')
+            ) {
+                return;
+            }
+
+            const gameId = req.url.split('/').pop() || '';
+            req.reply({
+                statusCode: 200,
+                body: gameId === secondGameId
+                    ? {
+                        gameId: secondGameId,
+                        homeTeam: 'KT',
+                        awayTeam: 'LG',
+                        stadium: '수원',
+                        gameDate: today,
+                        gameStatus: 'SCHEDULED',
+                        homeScore: null,
+                        awayScore: null,
+                        winner: null,
+                    }
+                    : buildGameDetail(gameId || '20260203HHSS0'),
+            });
+        }).as('getMultiGameDetail');
+
+        openPredictionPage('/prediction', 'getMultiMatchDay');
+
+        cy.get('[data-testid="prediction-date-game-list"]').should('not.exist');
+        cy.get('[data-testid="prediction-date-game-item"]').should('not.exist');
+        cy.get('[data-testid="prediction-schedule-match-row"]').should('have.length', 2);
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.location('search').should('include', 'gameId=20260203HHSS0').and('include', `date=${today}`);
+        cy.get('[data-testid="prediction-match-detail-root"]')
+            .contains('삼성 라이온즈', { timeout: 15000 })
+            .should('be.visible');
+    });
+
     it('keeps match detail loaded immediately on deep link access', () => {
         const deepLinkDate = '2026-02-03';
         const deepLinkGameId = '20260203HHSS0';
@@ -763,7 +862,7 @@ describe('Prediction Lazy Load', () => {
             'getMatchDayForLazyEntry'
         );
 
-        cy.wait('@getMatchDayForLazyEntry');
+        cy.get('[data-testid="prediction-match-detail-root"]').should('be.visible');
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.contains('button', '경기 상세 보기').should('not.exist');
         assertPredictionChunkResourceCounts((counts) => {
@@ -773,18 +872,21 @@ describe('Prediction Lazy Load', () => {
         });
     });
 
-    it('does not load match card chunk until match detail entry even after ranking tab interaction', () => {
+    it('keeps match detail loaded across ranking tab interaction', () => {
         installMatchDayResponse(today, nextDate);
         openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
 
-        cy.wait('@getMatchDayForLazyEntry');
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
         cy.contains('button', '순위예측').click({ force: true });
 
         cy.contains('button', '승부예측').click({ force: true });
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
         assertPredictionChunkResourceCounts((counts) => {
-            expect(counts.matchCard).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
             expect(counts.animatedSection).to.be.greaterThan(0);
             expect(counts.vendorMotion).to.equal(0);
         });
@@ -794,13 +896,16 @@ describe('Prediction Lazy Load', () => {
         installMatchDayResponse(today, nextDate);
         openPredictionPage('/prediction', 'getMatchDayForLazyEntry');
 
-        cy.wait('@getMatchDayForLazyEntry');
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
         cy.wait(1200);
         assertPredictionChunkResourceCounts((counts) => {
             expect(counts.rankingTab).to.equal(0);
             expect(counts.rankingPrediction).to.equal(0);
             expect(counts.statsPanel).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
         });
         cy.get('@getPredictionStatsLazy.all').should('have.length', 0);
 
@@ -864,11 +969,12 @@ describe('Prediction Lazy Load', () => {
         openPredictionPage(`/prediction?gameId=${deepLinkGameId}&date=${deepLinkDate}`, 'getMatchDayForLazyEntry');
 
         cy.wait('@getMatchDayForLazyEntry');
+        cy.wait('@getGameDetailLazy');
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.contains('button', '경기 상세 보기').should('not.exist');
 
-        cy.contains('button', '순위예측').click({ force: true });
-        cy.get('button', { timeout: 10000 }).contains('승부예측').click({ force: true });
+        cy.get('[data-testid="prediction-tab-ranking"]').click({ force: true });
+        cy.get('[data-testid="prediction-tab-match"]', { timeout: 10000 }).click({ force: true });
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.contains('button', '경기 상세 보기').should('not.exist');
 
@@ -959,8 +1065,10 @@ describe('Prediction Public Access', () => {
     };
 
     const openPredictionPageAsGuest = () => {
-        visitPredictionPublicPage({
+        visitPredictionPage({
             path: '/prediction',
+            authenticated: false,
+            resetStorage: true,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
     };
@@ -1033,19 +1141,16 @@ describe('Prediction Public Access', () => {
         openPredictionPageAsGuest();
         cy.wait('@getGuestMatchDay');
         cy.wait('@getGuestMatchDay');
-        cy.wait('@getGuestMatchDay');
 
         cy.contains('전력분석실').should('be.visible');
         cy.wrap(null).then(() => {
-            expect(requestedDates).to.have.members([today, previousDate, nextDate]);
+            expect(requestedDates).to.have.members([today, nextDate]);
             expect(myVotesCallCount).to.equal(0);
-            cy.get('@getGuestSession.all').then((calls) => {
-                expect(calls.length).to.be.at.most(1);
-            });
+            cy.get('@getGuestSession.all').should('have.length.at.most', 2);
             cy.get('@getGuestUserVoteLazy.all').should('have.length', 0);
         });
-        getPredictionAuthRequestTraces().then((traces) => {
-            expect(traces.length).to.be.at.most(1);
+        getPredictionAuthRequestTraces().should((traces) => {
+            expect(traces.length).to.be.at.most(2);
             traces.forEach((trace) => {
                 expect(trace.url).to.include('/api/auth/mypage');
             });

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import { LaptopMockupProps } from '../types/landing';
+import type { LaptopMockupProps } from '../types/landing';
 
 export default function LaptopMockup({
   activeFeature,
