@@ -64,6 +64,7 @@ const defaultHost = process.env.CYPRESS_TEST_HOST || resolvedFrontendTarget?.hos
 const defaultPort = process.env.CYPRESS_TEST_PORT || resolvedFrontendTarget?.port || '5176';
 const devServerEnvPrefix = 'VITE_SUPPRESS_CYPRESS_PROXY_ERRORS=true';
 const attachExistingServer = process.env.CYPRESS_ATTACH_EXISTING_SERVER === '1';
+const preferDocker = process.env.CYPRESS_PREFER_DOCKER === '1';
 const shouldPreferManagedLocalServer = !resolvedFrontendTarget && !attachExistingServer;
 
 let startCommand = `${devServerEnvPrefix} npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
@@ -369,6 +370,10 @@ const runDirectCypressAndExit = (executionPlan, { useDocker = false, useAutoDock
     process.exit(0);
   }
 
+  if (preferDocker) {
+    process.exit(status);
+  }
+
   if (!useDocker && !useAutoDocker) {
     console.log('\nPrimary Cypress execution failed.');
     console.log('Attempting auto-docker fallback (if Docker is available).');
@@ -490,7 +495,7 @@ const showUsage = () => {
   console.log('  npm run test:e2e:prediction:rescue');
   console.log('  npm run test:e2e -- --docker');
   console.log('  npm run test:e2e -- --auto-docker');
-  console.log('  npm run test:e2e -- --host 127.0.0.1 --port 4173 --spec cypress/e2e/mypage.cy.ts');
+  console.log('  npm run test:e2e -- --host 127.0.0.1 --port 5176 --spec cypress/e2e/mypage.cy.ts');
   console.log('  npm run test:e2e -- --no-server --spec cypress/e2e/mypage.cy.ts');
 };
 
@@ -587,6 +592,14 @@ try {
       if (fallbackStatus === 0) {
         process.exit(0);
       }
+
+      if (preferDocker) {
+        process.exit(fallbackStatus);
+      }
+    }
+
+    if (preferDocker) {
+      process.exit(status ?? 1);
     }
 
     if (!useDocker && !useAutoDocker) {

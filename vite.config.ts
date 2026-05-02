@@ -87,6 +87,9 @@ export default defineConfig(({ mode, command }) => {
             ) {
               return 'vendor-router';
             }
+            if (id.includes('/@tanstack/react-virtual')) {
+              return 'vendor-virtual';
+            }
             if (id.includes('/@tanstack/')) {
               return 'vendor-query';
             }

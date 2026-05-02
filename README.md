@@ -225,7 +225,7 @@ npm run dev
 ```bash
 # 이미지 빌드 및 실행
 docker build -t bega-frontend .
-docker run -p 5173:5173 bega-frontend
+docker run -p 5176:3000 bega-frontend
 
 # 또는 docker-compose 사용
 docker-compose up -d
@@ -255,7 +255,7 @@ npm run test:e2e:coverage:dev
 ```bash
 # 빠른 로컬 smoke
 npm run test:mate:smoke
-VITE_SITE_URL=http://localhost:5173 VITE_API_BASE_URL=http://localhost:8080 npm run build
+VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build
 npm run test:e2e:mate:smoke
 
 # 전체 mate regression
@@ -318,7 +318,7 @@ npm run qa:mobile:smoke
 npm run qa:mobile:smoke:attached
 
 # 다른 포트 프론트에 attach
-AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:mobile:smoke:attached
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:mobile:smoke:attached
 ```
 
 - `qa:mobile:smoke`는 prediction smoke와 mate smoke를 순서대로 실행합니다.
@@ -339,7 +339,7 @@ npm run qa:prediction:mobile
 npm run qa:prediction:mobile:smoke:attached
 
 # 다른 포트 프론트에 attach
-AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:prediction:mobile:smoke:attached
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:prediction:mobile:smoke:attached
 ```
 
 - `smoke`는 `match`, `ranking`, `ranking-save-dialog`, `ranking-saved`, `detail-error`를 대상으로 PR 검증용으로 사용합니다.
@@ -361,7 +361,7 @@ npm run qa:mate:mobile
 npm run qa:mate:mobile:smoke:attached
 
 # 다른 포트 프론트에 attach
-AUDIT_BASE_URL=http://127.0.0.1:4273 npm run qa:mate:mobile:smoke:attached
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:mate:mobile:smoke:attached
 ```
 
 - `smoke`는 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 그 서버를 재사용하고, 없으면 자체 dev server를 띄웁니다. mate 검증의 기본 명령으로 사용합니다.
