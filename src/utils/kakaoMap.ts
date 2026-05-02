@@ -31,10 +31,10 @@ const getKakaoMapScriptLoadState = (script: HTMLScriptElement | null) => script?
 
 const getKakaoMapLoadErrorMessage = () => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return '네트워크 연결이 없어 카카오맵을 불러올 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
+    return '카카오맵 스크립트 로드 실패: 네트워크 연결이 없어 카카오맵을 불러올 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
   }
 
-  return '카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.';
+  return '카카오맵 스크립트 로드 실패: 카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.';
 };
 
 const waitForKakaoMapSdkReady = () => new Promise<void>((resolve, reject) => {
