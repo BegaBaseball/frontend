@@ -1,7 +1,5 @@
 // Jamsil stadium seat data. Keep this static: do not add runtime crawling or web-search data collection.
 
-export type SunMode = 'afternoon' | 'evening' | 'night';
-export type LayerMode = 'rating' | 'shade';
 export type JamsilSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type JamsilFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type JamsilLevel = '1F' | '2F' | '3F' | 'OUTFIELD';
@@ -107,7 +105,6 @@ export interface JamsilCategory {
 export interface JamsilViewInfo {
   photos: number;
   rating: number | null;
-  sun?: string;
   distance?: string;
   notes?: string;
   tags?: string[];
@@ -427,15 +424,19 @@ const CATEGORY_TIER: Record<string, 1 | 2 | 3> = {
 };
 
 function sectionAliases(name: string, categoryLabel: string, sideLabel: string, blocks: string[]) {
+  const blockAliases = blocks.flatMap((block) => [
+    block,
+    block + '블록',
+    '잠실 ' + block,
+    '잠실 ' + block + '블록',
+  ]);
+
   return Array.from(new Set([
+    ...blockAliases,
     name,
+    sideLabel + ' ' + categoryLabel,
     categoryLabel,
     sideLabel,
-    ...blocks,
-    ...blocks.map((block) => block + '블록'),
-    ...blocks.map((block) => '잠실 ' + block),
-    ...blocks.map((block) => '잠실 ' + block + '블록'),
-    sideLabel + ' ' + categoryLabel,
   ]));
 }
 
@@ -664,81 +665,6 @@ export const JAMSIL_REVIEWS: Record<string, JamsilReview[]> = {};
 
 // Detailed ratings are disabled until they can be backed by real data.
 export const JAMSIL_DETAILED_RATINGS: Record<string, DetailedRatings> = {};
-
-// ===== Shade scores (0=full sun, 1=full shade) =====
-function shadeBlocks(blocks: string[], score: number): Record<string, number> {
-  return Object.fromEntries(blocks.map((block) => ['block-' + block, score]));
-}
-
-function buildShadeScore(entries: Array<[string[], number]>, extras: Record<string, number>): Record<string, number> {
-  return {
-    ...Object.assign({}, ...entries.map(([blocks, score]) => shadeBlocks(blocks, score))),
-    ...extras,
-  };
-}
-
-export const JAMSIL_SHADE_SCORE: Record<SunMode, Record<string, number>> = {
-  afternoon: buildShadeScore(
-    [
-      [[...rangeBlocks(112, 113), ...rangeBlocks(214, 215)], 0.35],
-      [[...rangeBlocks(110, 111), ...rangeBlocks(212, 213)], 0.75],
-      [[...rangeBlocks(114, 116), ...rangeBlocks(216, 218)], 0.30],
-      [[...rangeBlocks(107, 109), ...rangeBlocks(209, 211)], 0.75],
-      [rangeBlocks(219, 222), 0.35],
-      [rangeBlocks(205, 208), 0.80],
-      [[...rangeBlocks(117, 122), ...rangeBlocks(223, 226)], 0.35],
-      [[...rangeBlocks(101, 106), ...rangeBlocks(201, 204)], 0.80],
-      [rangeBlocks(325, 334), 0.40],
-      [rangeBlocks(311, 324), 0.65],
-      [rangeBlocks(301, 310), 0.85],
-      [rangeBlocks(412, 422), 0.25],
-      [rangeBlocks(409, 411), 0.35],
-      [rangeBlocks(405, 408), 0.45],
-      [rangeBlocks(401, 404), 0.75],
-    ],
-    {
-      'premium-center': 0.70,
-      'exciting-third': 0.35,
-      'exciting-first': 0.80,
-      'accessible-third': 0.35,
-      'accessible-first': 0.80,
-    },
-  ),
-  evening: buildShadeScore(
-    [
-      [[...rangeBlocks(112, 113), ...rangeBlocks(214, 215)], 0.65],
-      [[...rangeBlocks(110, 111), ...rangeBlocks(212, 213)], 0.95],
-      [[...rangeBlocks(114, 116), ...rangeBlocks(216, 218)], 0.55],
-      [[...rangeBlocks(107, 109), ...rangeBlocks(209, 211)], 0.95],
-      [rangeBlocks(219, 222), 0.60],
-      [rangeBlocks(205, 208), 1.00],
-      [[...rangeBlocks(117, 122), ...rangeBlocks(223, 226)], 0.60],
-      [[...rangeBlocks(101, 106), ...rangeBlocks(201, 204)], 1.00],
-      [rangeBlocks(325, 334), 0.70],
-      [rangeBlocks(311, 324), 0.90],
-      [rangeBlocks(301, 310), 1.00],
-      [rangeBlocks(412, 422), 0.55],
-      [rangeBlocks(409, 411), 0.65],
-      [rangeBlocks(405, 408), 0.75],
-      [rangeBlocks(401, 404), 0.95],
-    ],
-    {
-      'premium-center': 0.85,
-      'exciting-third': 0.60,
-      'exciting-first': 1.00,
-      'accessible-third': 0.60,
-      'accessible-first': 1.00,
-    },
-  ),
-  night: {},
-};
-
-// ===== Sun direction =====
-export const JAMSIL_SUN_DIRECTION: Record<SunMode, { angle: number | null; label: string }> = {
-  afternoon: { angle: 250, label: '오후 햇빛 (서쪽)' },
-  evening:   { angle: 280, label: '저녁 햇빛 (서북서)' },
-  night:     { angle: null, label: '야간 (조명)' },
-};
 
 // ===== Category filter groups =====
 export const JAMSIL_CATEGORY_GROUPS: CategoryGroup[] = [

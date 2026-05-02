@@ -6,7 +6,6 @@ import {
   JAMSIL_OFFICIAL_REFERENCES,
   JAMSIL_SEATMAP_IMAGE,
   type JamsilBlock,
-  type SunMode,
 } from '../../data/jamsilSeatData';
 import JamsilSeatMapSvg from './JamsilSeatMapSvg';
 import JamsilSidePanelV2 from './JamsilSidePanelV2';
@@ -61,7 +60,6 @@ export default function JamsilSeatMap() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [filterId, setFilterId] = useState('all');
-  const sunMode: SunMode = 'afternoon';
   const [officialSource, setOfficialSource] = useState<'LG' | 'DOOSAN'>('LG');
   const [uploadFor, setUploadFor] = useState<JamsilBlock | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -140,7 +138,6 @@ export default function JamsilSeatMap() {
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <JamsilSeatMapSvg
       mode={mode}
-      sunMode={sunMode}
       granularity="high"
       officialSource={officialSource}
       onOfficialSourceChange={handleOfficialSourceChange}
@@ -149,7 +146,6 @@ export default function JamsilSeatMap() {
       hover={hover}
       setHover={setHover}
       filterId={filterId}
-      layer="rating"
       zoom={zoom}
       pan={pan}
       onPanChange={setPan}
@@ -262,7 +258,6 @@ export default function JamsilSeatMap() {
             <JamsilBottomSheet
               section={selected}
               mode={mode}
-              sunMode={sunMode}
               onClose={() => setSelected(null)}
               onUpload={() => setUploadFor(selected)}
             />
@@ -313,7 +308,6 @@ export default function JamsilSeatMap() {
               <JamsilSidePanelV2
                 section={displaySection}
                 mode={mode}
-                sunMode={sunMode}
                 onClose={() => setSelected(null)}
                 onUpload={() => setUploadFor(displaySection)}
               />

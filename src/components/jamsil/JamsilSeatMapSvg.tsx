@@ -12,10 +12,7 @@ import {
   JAMSIL_CATEGORY_GROUPS,
   JAMSIL_DOOSAN_STADIUM_GUIDE,
   JAMSIL_SEATMAP_IMAGE,
-  JAMSIL_SHADE_SCORE,
   type JamsilBlock,
-  type SunMode,
-  type LayerMode,
 } from '../../data/jamsilSeatData';
 
 const OFFICIAL_SOURCE_OPTIONS = [
@@ -37,7 +34,6 @@ type DoosanGuideImageWithSrc = typeof DOOSAN_GUIDE_IMAGES[number];
 
 interface Props {
   mode: 'light' | 'dark';
-  sunMode: SunMode;
   granularity: 'low' | 'medium' | 'high';
   officialSource: OfficialSourceId;
   onOfficialSourceChange: (value: OfficialSourceId) => void;
@@ -46,7 +42,6 @@ interface Props {
   hover: string | null;
   setHover: (id: string | null) => void;
   filterId: string;
-  layer: LayerMode;
   zoom: number;
   pan: SeatMapPan;
   onPanChange: (pan: SeatMapPan) => void;
@@ -144,13 +139,6 @@ function panForZoomAtPoint(
     x: pointDeltaX - (contentDeltaX * nextZoom),
     y: pointDeltaY - (contentDeltaY * nextZoom),
   }, nextZoom, viewport);
-}
-
-function shadeColor(shade: number, mode: 'light' | 'dark') {
-  if (shade > 0.7) return mode === 'dark' ? '#60A5FA' : '#1E40AF';
-  if (shade > 0.5) return '#3B82F6';
-  if (shade > 0.3) return '#F59E0B';
-  return '#EF4444';
 }
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
@@ -555,10 +543,10 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
 }
 
 export default function JamsilSeatMapSvg({
-  mode, sunMode, granularity,
+  mode, granularity,
   officialSource, onOfficialSourceChange,
   selected, setSelected, hover, setHover,
-  filterId, layer, zoom, pan, onPanChange, onZoom,
+  filterId, zoom, pan, onPanChange, onZoom,
   minZoom, maxZoom, zoomStep,
   enableAutoCenter = true, onFullscreen,
 }: Props) {
@@ -590,7 +578,6 @@ export default function JamsilSeatMapSvg({
   } | null>(null);
   const filterGroup = JAMSIL_CATEGORY_GROUPS.find(g => g.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
-  const shadeMap = JAMSIL_SHADE_SCORE[sunMode] ?? {};
   const { imageWidth, imageHeight } = JAMSIL_SEATMAP_IMAGE;
   const seatMapImageUrl = JAMSIL_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' ? lgSeatMapImage : null;
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('jamsilDebug') === '1';
@@ -994,13 +981,13 @@ export default function JamsilSeatMapSvg({
   const zoomControls = (
     <div className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <button
-        data-testid="jamsil-seatmap-zoom-in"
+        data-testid="jamsil-seatmap-zoom-out"
         className={zoomBtnCls}
-        onClick={() => updateZoomFromControls(zoom + zoomStep)}
-        disabled={zoom >= maxZoom}
-        aria-label="잠실 좌석도 확대"
+        onClick={() => updateZoomFromControls(zoom - zoomStep)}
+        disabled={zoom <= minZoom}
+        aria-label="잠실 좌석도 축소"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
       </button>
       <button
         data-testid="jamsil-seatmap-zoom-reset"
@@ -1012,13 +999,13 @@ export default function JamsilSeatMapSvg({
         {zoom.toFixed(1)}x
       </button>
       <button
-        data-testid="jamsil-seatmap-zoom-out"
+        data-testid="jamsil-seatmap-zoom-in"
         className={zoomBtnCls}
-        onClick={() => updateZoomFromControls(zoom - zoomStep)}
-        disabled={zoom <= minZoom}
-        aria-label="잠실 좌석도 축소"
+        onClick={() => updateZoomFromControls(zoom + zoomStep)}
+        disabled={zoom >= maxZoom}
+        aria-label="잠실 좌석도 확대"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       {onFullscreen && (
         <button
@@ -1173,12 +1160,7 @@ export default function JamsilSeatMapSvg({
               let strokeOpacity = isActive ? 0.95 : 0;
               let strokeWidth = isActive ? 4 : 2;
 
-              if (layer === 'shade') {
-                const shade = sunMode === 'night' ? 0.65 : (shadeMap[b.id] ?? 0.5);
-                fill = sunMode === 'night' ? (mode === 'dark' ? '#64748B' : '#94A3B8') : shadeColor(shade, mode);
-                fillOpacity = isFiltered ? 0.06 : 0.34;
-                strokeOpacity = isActive ? 0.95 : 0.28;
-              } else if (isActive) {
+              if (isActive) {
                 fillOpacity = 0.34;
               }
 
@@ -1254,19 +1236,6 @@ export default function JamsilSeatMapSvg({
             )}
           </svg>
         </div>
-
-        {layer === 'shade' && (
-          <div className="absolute left-3 bottom-3 rounded-lg bg-white/90 px-3 py-2 shadow-sm ring-1 ring-slate-200 dark:bg-slate-950/90 dark:ring-slate-700">
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-              {sunMode === 'night' ? '야간 조명 기준' : '햇빛 / 그늘 참고'}
-            </div>
-            <div className="mt-1 h-1.5 w-28 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-blue-700" />
-            <div className="mt-1 flex justify-between text-[9px] font-semibold text-slate-400">
-              <span>햇빛</span>
-              <span>그늘</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

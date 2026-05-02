@@ -2,9 +2,7 @@ import { useState } from 'react';
 import {
   GWANGJU_BLOCKS,
   GWANGJU_CATEGORIES,
-  GWANGJU_COORDINATE_TRACE_STATUS,
   GWANGJU_NON_SELECTABLE_MARKER_ZONES,
-  GWANGJU_PENDING_OPERATOR_SECTIONS,
   GWANGJU_SELECTABLE_BLOCKS_READY,
   GWANGJU_SEATMAP_IMAGE,
   GWANGJU_SEATMAP_VIEWPORT,
@@ -77,7 +75,6 @@ export default function GwangjuSeatMapSvg({
   const showDebug = debugMode === '1' || debugMode === 'hit';
   const showHitAreaDebug = debugMode === 'hit';
   const shouldRenderHitAreas = GWANGJU_SELECTABLE_BLOCKS_READY;
-  const isRetracingCoordinates = GWANGJU_COORDINATE_TRACE_STATUS === 'RETRACE_IN_PROGRESS';
   const { cropX, cropWidth } = GWANGJU_SEATMAP_VIEWPORT;
   const croppedImageWidthPercent = (imageWidth / cropWidth) * 100;
   const croppedImageLeftPercent = -(cropX / cropWidth) * 100;
@@ -274,19 +271,6 @@ export default function GwangjuSeatMapSvg({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V3h4M21 7V3h-4M3 17v4h4M21 17v4h-4" /></svg>
         </button>
       </div>
-      {isRetracingCoordinates && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 rounded-xl border border-amber-200 bg-white/92 px-4 py-3 text-left shadow-sm backdrop-blur-sm dark:border-amber-700/70 dark:bg-slate-900/90">
-          <div
-            data-testid="gwangju-seatmap-coordinate-pending"
-            className="text-xs font-black text-amber-700 dark:text-amber-300"
-          >
-            좌표 보정 중
-          </div>
-          <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-            공식 이미지 기준으로 블록 polygon을 재검수 중입니다. 보정 전까지 좌석 선택을 비활성화합니다. {GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ')}은 운영자 제공 polygon 확인 후 추가합니다.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

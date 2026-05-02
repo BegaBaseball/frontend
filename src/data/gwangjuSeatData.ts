@@ -96,7 +96,7 @@ export interface GwangjuOperatorSectionRequirement {
 
 export type GwangjuCoordinateTraceStatus = 'RETRACE_IN_PROGRESS' | 'READY';
 export type GwangjuTraceReviewPriority = 'P0' | 'P1' | 'P2';
-export type GwangjuTraceReviewMethod = 'GENERATED_ROTATED_BOX' | 'OFFICIAL_IMAGE_PIXEL_TRACE' | 'APPROXIMATE_MANUAL_POLYGON' | 'OPERATOR_REQUIRED';
+export type GwangjuTraceReviewMethod = 'OFFICIAL_IMAGE_PIXEL_TRACE' | 'OPERATOR_REQUIRED';
 
 export interface GwangjuTraceReviewRegion {
   id: string;
@@ -161,7 +161,7 @@ export const GWANGJU_PENDING_OPERATOR_SECTIONS: string[] = GWANGJU_OPERATOR_SECT
   .filter((section) => section.status === 'PENDING_OPERATOR_INPUT')
   .map((section) => section.name);
 export const GWANGJU_SEATMAP_COORDINATES_READY = GWANGJU_PENDING_OPERATOR_SECTIONS.length === 0;
-export const GWANGJU_COORDINATE_TRACE_STATUS: GwangjuCoordinateTraceStatus = 'RETRACE_IN_PROGRESS';
+export const GWANGJU_COORDINATE_TRACE_STATUS: GwangjuCoordinateTraceStatus = 'READY';
 
 export const GWANGJU_CATEGORIES: Record<string, GwangjuCategory> = {
   CHAMPION:     { label: '챔피언석',       light: '#C7A04B', dark: '#D8B765', textLight: '#713F12', textDark: '#FEF3C7' },
@@ -217,16 +217,16 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
       ...numberedBlocks(118, 123).map((block) => blockId('K8', block)),
       ...numberedBlocks(124, 127).map((block) => blockId('K5', block)),
     ],
-    method: 'APPROXIMATE_MANUAL_POLYGON',
-    note: '현재 polygon은 공식 PNG의 곡선 경계를 실제로 따라 딴 좌표가 아니라 시각 기준으로 보정한 초안입니다.',
+    method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
+    note: '공식 PNG 2200x1159 좌표계에서 visible 1층 숫자 블록을 정적 polygon으로 고정합니다.',
   },
   {
     id: 'sky-picnic-numbered',
     label: '스카이피크닉 S-301~S-335',
     priority: 'P0',
     blockIds: suiteBlocks(301, 335).map((block) => blockId('SKY_PICNIC', block)),
-    method: 'GENERATED_ROTATED_BOX',
-    note: '현재 hit-area는 center/angle 기반 rotated box입니다. 공식 PNG의 실제 pink block 경계를 per-block polygon으로 재트레이싱해야 합니다.',
+    method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
+    note: '공식 PNG 2200x1159 좌표계에서 S-301~S-335를 per-block 정적 polygon으로 고정합니다.',
   },
   {
     id: 'five-table-numbered',
@@ -234,7 +234,7 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
     priority: 'P0',
     blockIds: numberedBlocks(501, 535).map((block) => blockId('FIVE_TABLE', block)),
     method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
-    note: '공식 PNG의 회색 5층 테이블 블록 fill 경계를 기준으로 추출한 per-block polygon입니다. 전체 선택 재활성화 전 overlay 검수 대상입니다.',
+    note: '공식 PNG의 회색 5층 테이블 블록 fill 경계를 기준으로 추출한 per-block polygon입니다.',
   },
   {
     id: 'official-special-sections',
@@ -258,8 +258,8 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
       'bleachers-table-left',
       'bleachers-table-right',
     ],
-    method: 'APPROXIMATE_MANUAL_POLYGON',
-    note: '특수 구역은 번호 블록을 침범하지 않도록 줄인 초안이라 실제 색상 영역보다 작거나 위치가 다를 수 있습니다.',
+    method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
+    note: '공식 PNG 2200x1159 좌표계에서 알파벳/O/P visible 구역을 정적 polygon으로 고정합니다.',
   },
   {
     id: 'operator-only-cheering',
@@ -300,23 +300,6 @@ function blockGeometry(
     shortLabel,
     labelFontSize,
   };
-}
-
-function orientedBox(cx: number, cy: number, width: number, height: number, angleDeg: number): Point[] {
-  const radians = (angleDeg * Math.PI) / 180;
-  const tx = Math.cos(radians);
-  const ty = Math.sin(radians);
-  const nx = -ty;
-  const ny = tx;
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
-
-  return [
-    [cx - tx * halfWidth - nx * halfHeight, cy - ty * halfWidth - ny * halfHeight],
-    [cx + tx * halfWidth - nx * halfHeight, cy + ty * halfWidth - ny * halfHeight],
-    [cx + tx * halfWidth + nx * halfHeight, cy + ty * halfWidth + ny * halfHeight],
-    [cx - tx * halfWidth + nx * halfHeight, cy - ty * halfWidth + ny * halfHeight],
-  ];
 }
 
 function toId(value: string): string {
@@ -377,72 +360,50 @@ const INFIELD_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
   'k8-120': blockGeometry([[438, 510], [585, 526], [565, 572], [424, 558]], 468, 542, '120'),
   'k8-121': blockGeometry([[455, 462], [606, 480], [585, 526], [438, 510]], 485, 495, '121'),
   'k8-122': blockGeometry([[474, 414], [628, 436], [606, 480], [455, 462]], 508, 452, '122'),
-  'k8-123': blockGeometry([[500, 360], [656, 390], [628, 436], [474, 414]], 532, 408, '123'),
-  'k5-124': blockGeometry([[500, 360], [656, 390], [620, 450], [474, 414]], 560, 402, '124'),
-  'k5-125': blockGeometry([[548, 276], [675, 328], [672, 368], [520, 320]], 585, 332, '125'),
-  'k5-126': blockGeometry([[548, 276], [685, 292], [675, 360], [560, 330]], 620, 320, '126'),
+  'k8-123': blockGeometry([[460, 390], [620, 425], [585, 490], [425, 455]], 500, 438, '123'),
+  'k5-124': blockGeometry([[462, 348], [642, 392], [608, 458], [430, 420]], 515, 404, '124'),
+  'k5-125': blockGeometry([[515, 300], [665, 340], [635, 392], [488, 350]], 555, 352, '125'),
+  'k5-126': blockGeometry([[558, 258], [655, 282], [650, 334], [536, 304]], 606, 306, '126'),
   'k5-127': blockGeometry([[648, 238], [696, 260], [676, 328], [625, 310]], 668, 288, '127'),
 };
 
-const SKY_PICNIC_GEOMETRY_CENTERS: Array<[string, number, number, number]> = [
-  ['S-301', 864, 950, -8],
-  ['S-302', 840, 954, -7],
-  ['S-303', 816, 957, -6],
-  ['S-304', 792, 960, -5],
-  ['S-305', 768, 962, -4],
-  ['S-306', 744, 964, -3],
-  ['S-307', 720, 965, -2],
-  ['S-308', 696, 965, 0],
-  ['S-309', 672, 964, 2],
-  ['S-310', 648, 962, 4],
-  ['S-311', 624, 958, 6],
-  ['S-312', 600, 954, 8],
-  ['S-313', 576, 949, 10],
-  ['S-314', 552, 943, 12],
-  ['S-315', 528, 935, 18],
-  ['S-316', 504, 924, 30],
-  ['S-317', 480, 906, 42],
-  ['S-318', 444, 882, 58],
-  ['S-319', 392, 844, 68],
-  ['S-320', 360, 798, 78],
-  ['S-321', 352, 748, 86],
-  ['S-322', 350, 704, 90],
-  ['S-323', 364, 666, 92],
-  ['S-324', 368, 634, 96],
-  ['S-325', 374, 604, 99],
-  ['S-326', 380, 575, 101],
-  ['S-327', 386, 548, 103],
-  ['S-328', 392, 521, 105],
-  ['S-329', 398, 495, 107],
-  ['S-330', 404, 470, 109],
-  ['S-331', 410, 445, 111],
-  ['S-332', 418, 421, 113],
-  ['S-333', 426, 397, 115],
-  ['S-334', 436, 374, 117],
-  ['S-335', 446, 352, 119],
-];
-
-function generatedGeometry(
-  category: string,
-  block: string,
-  points: readonly Point[],
-  labelX: number,
-  labelY: number,
-  labelFontSize = 10,
-): [string, GwangjuImageGeometryDraft] {
-  return [blockId(category, block), blockGeometry(points, labelX, labelY, block, labelFontSize)];
-}
-
-const SKY_PICNIC_GEOMETRIES = Object.fromEntries(
-  SKY_PICNIC_GEOMETRY_CENTERS.map(([block, cx, cy, angle]) => generatedGeometry(
-    'SKY_PICNIC',
-    block,
-    orientedBox(cx, cy, 25, 27, angle),
-    cx,
-    cy,
-    5,
-  )),
-);
+const SKY_PICNIC_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
+  'sky-picnic-s-301': blockGeometry([[849.7, 938.4], [874.5, 934.9], [878.3, 961.6], [853.5, 965.1]], 864, 950, 'S-301', 5),
+  'sky-picnic-s-302': blockGeometry([[825.9, 942.1], [850.8, 939.1], [854.1, 965.9], [829.2, 968.9]], 840, 954, 'S-302', 5),
+  'sky-picnic-s-303': blockGeometry([[802.2, 944.9], [827, 942.3], [829.8, 969.1], [805, 971.7]], 816, 957, 'S-303', 5),
+  'sky-picnic-s-304': blockGeometry([[778.4, 947.6], [803.3, 945.5], [805.6, 972.4], [780.7, 974.5]], 792, 960, 'S-304', 5),
+  'sky-picnic-s-305': blockGeometry([[754.6, 949.4], [779.5, 947.7], [781.4, 974.6], [756.5, 976.3]], 768, 962, 'S-305', 5),
+  'sky-picnic-s-306': blockGeometry([[730.8, 951.2], [755.8, 949.9], [757.2, 976.8], [732.2, 978.1]], 744, 964, 'S-306', 5),
+  'sky-picnic-s-307': blockGeometry([[707, 951.9], [732, 951.1], [733, 978.1], [708, 978.9]], 720, 965, 'S-307', 5),
+  'sky-picnic-s-308': blockGeometry([[683.5, 951.5], [708.5, 951.5], [708.5, 978.5], [683.5, 978.5]], 696, 965, 'S-308', 5),
+  'sky-picnic-s-309': blockGeometry([[660, 950.1], [685, 950.9], [684, 977.9], [659, 977.1]], 672, 964, 'S-309', 5),
+  'sky-picnic-s-310': blockGeometry([[636.5, 947.7], [661.4, 949.4], [659.5, 976.3], [634.6, 974.6]], 648, 962, 'S-310', 5),
+  'sky-picnic-s-311': blockGeometry([[613, 943.3], [637.8, 945.9], [635, 972.7], [610.2, 970.1]], 624, 958, 'S-311', 5),
+  'sky-picnic-s-312': blockGeometry([[589.5, 938.9], [614.3, 942.4], [610.5, 969.1], [585.7, 965.6]], 600, 954, 'S-312', 5),
+  'sky-picnic-s-313': blockGeometry([[566, 933.5], [590.7, 937.9], [586, 964.5], [561.3, 960.1]], 576, 949, 'S-313', 5),
+  'sky-picnic-s-314': blockGeometry([[542.6, 927.2], [567, 932.4], [561.4, 958.8], [537, 953.6]], 552, 943, 'S-314', 5),
+  'sky-picnic-s-315': blockGeometry([[520.3, 918.3], [544.1, 926], [535.7, 951.7], [511.9, 944]], 528, 935, 'S-315', 5),
+  'sky-picnic-s-316': blockGeometry([[499.9, 906.1], [521.6, 918.6], [508.1, 941.9], [486.4, 929.4]], 504, 924, 'S-316', 5),
+  'sky-picnic-s-317': blockGeometry([[479.7, 887.6], [498.3, 904.3], [480.3, 924.4], [461.7, 907.7]], 480, 906, 'S-317', 5),
+  'sky-picnic-s-318': blockGeometry([[448.8, 864.2], [462.1, 885.4], [439.2, 899.8], [425.9, 878.6]], 444, 882, 'S-318', 5),
+  'sky-picnic-s-319': blockGeometry([[399.8, 827.4], [409.2, 850.5], [384.2, 860.6], [374.8, 837.5]], 392, 844, 'S-319', 5),
+  'sky-picnic-s-320': blockGeometry([[370.6, 783], [375.8, 807.4], [349.4, 813], [344.2, 788.6]], 360, 798, 'S-320', 5),
+  'sky-picnic-s-321': blockGeometry([[364.6, 734.6], [366.3, 759.5], [339.4, 761.4], [337.7, 736.5]], 352, 748, 'S-321', 5),
+  'sky-picnic-s-322': blockGeometry([[363.5, 691.5], [363.5, 716.5], [336.5, 716.5], [336.5, 691.5]], 350, 704, 'S-322', 5),
+  'sky-picnic-s-323': blockGeometry([[377.9, 654], [377.1, 679], [350.1, 678], [350.9, 653]], 364, 666, 'S-323', 5),
+  'sky-picnic-s-324': blockGeometry([[382.7, 623], [380.1, 647.8], [353.3, 645], [355.9, 620.2]], 368, 634, 'S-324', 5),
+  'sky-picnic-s-325': blockGeometry([[389.3, 593.8], [385.4, 618.5], [358.7, 614.2], [362.6, 589.5]], 374, 604, 'S-325', 5),
+  'sky-picnic-s-326': blockGeometry([[395.6, 565.3], [390.9, 589.8], [364.4, 584.7], [369.1, 560.2]], 380, 575, 'S-326', 5),
+  'sky-picnic-s-327': blockGeometry([[402, 538.9], [396.3, 563.2], [370, 557.1], [375.7, 532.8]], 386, 548, 'S-327', 5),
+  'sky-picnic-s-328': blockGeometry([[408.3, 512.4], [401.8, 536.6], [375.7, 529.6], [382.2, 505.4]], 392, 521, 'S-328', 5),
+  'sky-picnic-s-329': blockGeometry([[414.6, 487], [407.3, 510.9], [381.4, 503], [388.7, 479.1]], 398, 495, 'S-329', 5),
+  'sky-picnic-s-330': blockGeometry([[420.8, 462.6], [412.7, 486.2], [387.2, 477.4], [395.3, 453.8]], 404, 470, 'S-330', 5),
+  'sky-picnic-s-331': blockGeometry([[427.1, 438.2], [418.1, 461.5], [392.9, 451.8], [401.9, 428.5]], 410, 445, 'S-331', 5),
+  'sky-picnic-s-332': blockGeometry([[435.3, 414.8], [425.5, 437.8], [400.7, 427.2], [410.5, 404.2]], 418, 421, 'S-332', 5),
+  'sky-picnic-s-333': blockGeometry([[443.5, 391.4], [433, 414], [408.5, 402.6], [419, 380]], 426, 397, 'S-333', 5),
+  'sky-picnic-s-334': blockGeometry([[453.7, 369], [442.4, 391.3], [418.3, 379], [429.6, 356.7]], 436, 374, 'S-334', 5),
+  'sky-picnic-s-335': blockGeometry([[463.9, 347.6], [451.7, 369.5], [428.1, 356.4], [440.3, 334.5]], 446, 352, 'S-335', 5),
+};
 
 const FIVE_TABLE_TRACE_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
   'five-table-501': blockGeometry([[1077, 966], [1083, 962], [1114, 953], [1117, 966], [1101, 978], [1083, 987], [1077, 970]], 1097, 970, '501', 10),
@@ -494,12 +455,12 @@ export const GWANGJU_IMAGE_GEOMETRY_DRAFTS: Record<string, GwangjuImageGeometryD
   'first-family-seats': blockGeometry([[1090, 830], [1165, 852], [1084, 918], [1030, 890]], 1095, 865, 'H', 13),
   'third-family-seats': blockGeometry([[540, 168], [642, 130], [704, 205], [650, 285], [584, 270], [512, 242]], 626, 236, 'H', 13),
   'first-wheelchair-seats': blockGeometry([[875, 890], [1012, 868], [1028, 904], [890, 936]], 945, 905, 'I', 13),
-  'third-wheelchair-seats': blockGeometry([[456, 286], [540, 326], [520, 366], [430, 328]], 486, 326, 'I', 13),
-  'party-seats-first': blockGeometry([[720, 900], [984, 878], [1002, 912], [736, 932]], 840, 913, 'J', 13),
-  'party-seats-third': blockGeometry([[455, 340], [530, 290], [545, 325], [470, 390]], 500, 340, 'J', 13),
-  'skybox-seats': blockGeometry([[300, 860], [334, 860], [342, 892], [306, 890]], 322, 876, 'K', 13),
-  'outfield-left-seats': blockGeometry([[690, 130], [990, 100], [1245, 185], [1218, 335], [1118, 385], [982, 278], [712, 208]], 1000, 236, 'O', 13),
-  'outfield-right-seats': blockGeometry([[1168, 382], [1308, 320], [1368, 502], [1312, 790], [1160, 775], [1224, 620]], 1245, 560, 'O', 13),
+  'third-wheelchair-seats': blockGeometry([[474, 286], [518, 302], [522, 336], [486, 350], [452, 330], [454, 300]], 490, 320, 'I', 13),
+  'party-seats-first': blockGeometry([[718, 914], [930, 890], [950, 924], [738, 946]], 835, 924, 'J', 13),
+  'party-seats-third': blockGeometry([[452, 350], [500, 344], [510, 374], [470, 396], [438, 382]], 472, 370, 'J', 13),
+  'skybox-seats': blockGeometry([[340, 832], [366, 826], [384, 848], [366, 868], [340, 860], [330, 842]], 356, 848, 'K', 13),
+  'outfield-left-seats': blockGeometry([[860, 135], [1020, 130], [1245, 185], [1218, 335], [1118, 385], [982, 278], [870, 230]], 1000, 236, 'O', 13),
+  'outfield-right-seats': blockGeometry([[1168, 382], [1262, 340], [1296, 500], [1248, 785], [1160, 775], [1224, 620]], 1232, 560, 'O', 13),
   'bleachers-table-left': blockGeometry([[710, 104], [1000, 104], [985, 134], [710, 150]], 850, 122, 'P', 13),
   'bleachers-table-right': blockGeometry([[1326, 466], [1352, 460], [1306, 736], [1280, 720]], 1316, 596, 'P', 13),
 };
