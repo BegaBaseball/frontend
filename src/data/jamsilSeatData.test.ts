@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { buildSeatViewSectionQueries, dedupeSeatViewPhotos } from '../components/SeatViewGallery';
 import {
   JAMSIL_BLOCKS,
   JAMSIL_CATEGORIES,
@@ -143,4 +145,54 @@ test('잠실 데이터는 공식 이미지의 번호 블록을 블록 단위로 
   assert.ok(officialBlocks.has('테라존'));
   assert.ok(officialBlocks.has('1루 익사이팅존'));
   assert.ok(officialBlocks.has('3루 익사이팅존'));
+});
+
+test('잠실 seat-view alias는 정확한 블록명부터 조회하도록 정렬한다', () => {
+  const block205 = JAMSIL_BLOCKS.find((block) => block.id === 'block-205');
+
+  assert.ok(block205);
+  assert.deepEqual(
+    block205.seatViewSections.slice(0, 5),
+    ['205', '205블록', '잠실 205', '잠실 205블록', '205 블록 1루 오렌지석'],
+  );
+});
+
+test('SeatViewGallery alias helper는 조회 순서와 사진 중복 제거를 보장한다', () => {
+  assert.deepEqual(
+    buildSeatViewSectionQueries('205 블록 1루 오렌지석', ['205', '205블록', '잠실 205', '205']),
+    ['205 블록 1루 오렌지석', '205', '205블록', '잠실 205'],
+  );
+
+  const photos = dedupeSeatViewPhotos([
+    [
+      { photoUrl: '/a.jpg', stadium: 'JAMSIL', section: '205', block: '205', diaryDate: '2026-05-02' },
+      { photoUrl: '/b.jpg', stadium: 'JAMSIL', section: '205', block: '205', diaryDate: '2026-05-02' },
+    ],
+    [
+      { photoUrl: '/a.jpg', stadium: 'JAMSIL', section: '205블록', block: '205', diaryDate: '2026-05-02' },
+    ],
+  ]);
+
+  assert.deepEqual(photos.map((photo) => photo.photoUrl), ['/a.jpg', '/b.jpg']);
+});
+
+test('잠실 일반 좌석도 UI에는 햇빛/날씨 레이어 잔여 코드가 없다', () => {
+  const files = [
+    '../components/jamsil/JamsilSeatMap.tsx',
+    '../components/jamsil/JamsilSeatMapSvg.tsx',
+    '../components/jamsil/JamsilSidePanelV2.tsx',
+    '../components/jamsil/JamsilBottomSheet.tsx',
+    '../components/jamsil/JamsilUploadFlowModal.tsx',
+    './jamsilSeatData.ts',
+  ];
+
+  files.forEach((file) => {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.ok(!source.includes('sunMode'), `${file} should not use sunMode`);
+    assert.ok(!source.includes('JAMSIL_SHADE_SCORE'), `${file} should not use shade score`);
+    assert.ok(!source.includes('JAMSIL_SUN_DIRECTION'), `${file} should not use sun direction`);
+    assert.ok(!source.includes('햇빛'), `${file} should not expose sun copy`);
+    assert.ok(!source.includes('그늘'), `${file} should not expose shade copy`);
+    assert.ok(!source.includes('야간 조명'), `${file} should not expose night-light copy`);
+  });
 });

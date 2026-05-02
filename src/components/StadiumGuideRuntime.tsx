@@ -53,13 +53,13 @@ function StadiumGuideCategorySelector({
     ? 'grid grid-cols-4 gap-2'
     : `grid grid-cols-2 gap-3 sm:gap-4 ${columns === 'four' ? 'lg:grid-cols-4' : ''}`;
   const buttonClass = compact
-    ? 'flex h-[76px] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border px-2 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:hover:translate-y-0 dark:bg-card'
+    ? 'flex h-[86px] flex-col items-center justify-center gap-2.5 overflow-hidden rounded-xl border px-2 py-3 shadow-sm transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:hover:translate-y-0 dark:bg-card'
     : 'flex min-h-[108px] flex-col items-center justify-center gap-2.5 rounded-2xl border-2 px-3 py-5 shadow-sm transition-all hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:hover:translate-y-0 dark:bg-card sm:min-h-[132px] sm:gap-3 sm:py-8';
   const iconWrapClass = compact
-    ? 'rounded-full p-2'
+    ? 'rounded-full p-2.5'
     : 'rounded-full p-2.5 sm:p-3';
-  const iconClass = compact ? 'h-5 w-5' : 'h-6 w-6 sm:h-8 sm:w-8';
-  const labelClass = compact ? 'text-[13px] font-black leading-tight' : 'text-sm font-bold sm:text-[17px]';
+  const iconClass = compact ? 'h-6 w-6' : 'h-6 w-6 sm:h-8 sm:w-8';
+  const labelClass = compact ? 'text-sm font-black leading-tight' : 'text-sm font-bold sm:text-[17px]';
 
   return (
     <div className={gridClass}>
@@ -253,15 +253,22 @@ export default function StadiumGuideRuntime() {
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Premium Hero Section */}
-        <section className="stadium-hero-container">
-          <div className="relative z-10 h-full p-6 sm:p-8 md:p-12 flex flex-col justify-end min-h-[300px] sm:min-h-[380px]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-white/10 backdrop-blur-md rounded-lg">
-                <MapPinIcon className="w-8 h-8 text-white" />
+        <section
+          className="stadium-hero-container rounded-2xl border border-primary/30 px-5 py-5 sm:px-6 sm:py-6"
+          style={{
+            backgroundColor: isDark ? 'rgba(45, 95, 79, 0.18)' : THEME_COLORS.primaryBg,
+          }}
+        >
+          <div className="relative z-10 flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <MapPinIcon className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="font-black text-white tracking-tight">구장 가이드</h1>
+              <h1 className="font-bold text-xl tracking-tight text-primary sm:text-2xl">
+                구장 가이드
+              </h1>
             </div>
-            <p className="text-lg text-white/80 max-w-xl leading-relaxed">
+            <p className="max-w-xl text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
               전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
               직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
             </p>
@@ -492,7 +499,6 @@ export default function StadiumGuideRuntime() {
                   setSelectedCategory={setSelectedCategory}
                   disabled={stadiumControlsDisabled}
                   isDark={isDark}
-                  columns="four"
                   compact
                 />
               </div>
@@ -540,6 +546,7 @@ export default function StadiumGuideRuntime() {
                 setSelectedCategory={setSelectedCategory}
                 disabled={stadiumControlsDisabled}
                 isDark={isDark}
+                compact
               />
             </div>
 

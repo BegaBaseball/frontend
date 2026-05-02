@@ -6,7 +6,6 @@ interface UploadData {
   seat: string;
   rating: number;
   hoverRating: number;
-  sun: string;
   tags: string[];
   comment: string;
   hasPhoto: boolean;
@@ -19,10 +18,9 @@ interface Props {
   onSubmit: (data: UploadData) => void;
 }
 
-const TAG_OPTIONS = ['시야 좋음', '편안함', '응원 뜨거움', '햇빛 강함', '비 안 맞음', '음식 OK', '가성비', '접근성 좋음', '도루 정면', '홈런볼'];
+const TAG_OPTIONS = ['시야 좋음', '편안함', '응원 뜨거움', '음식 OK', '가성비', '접근성 좋음', '도루 정면', '홈런볼'];
 const ROW_OPTIONS  = ['1열', '2열', '3-5열', '6-10열', '11-15열', '16-20열', '21열+'];
 const SEAT_OPTIONS = ['1-10번', '11-20번', '21-30번', '31-40번', '41번+'];
-const SUN_OPTIONS  = ['그늘', '부분 그늘', '햇빛 강함', '야간 (조명)'];
 
 const TOTAL_STEPS = 4;
 
@@ -55,7 +53,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
   const [step, setStep] = useState(1);
   const [data, setData] = useState<UploadData>({
     row: '', seat: '', rating: 0, hoverRating: 0,
-    sun: '', tags: [], comment: '', hasPhoto: false,
+    tags: [], comment: '', hasPhoto: false,
   });
 
   const cat    = JAMSIL_CATEGORIES[section.category];
@@ -173,13 +171,6 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                   ))}
                 </div>
               </Field>
-              <Field label="햇빛 노출">
-                <div className="flex flex-wrap gap-1.5">
-                  {SUN_OPTIONS.map(s => (
-                    <ChipBtn key={s} active={data.sun === s} accent={accent} onClick={() => setData(d => ({ ...d, sun: s }))}>{s}</ChipBtn>
-                  ))}
-                </div>
-              </Field>
             </div>
           )}
 
@@ -234,7 +225,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                 <div className="font-bold mb-1.5" style={{ color: accent }}>제출 미리보기</div>
                 <div className="text-slate-600 dark:text-slate-300">
                   📍 블록 {section.block} · {data.row || '-'} · {data.seat || '-'}<br/>
-                  ⭐ {data.rating}/5 · {data.sun || '-'}<br/>
+                  ⭐ {data.rating}/5<br/>
                   🏷️ {data.tags.length > 0 ? data.tags.join(', ') : '태그 없음'}<br/>
                   📷 사진 {data.hasPhoto ? 1 : 0}장
                 </div>

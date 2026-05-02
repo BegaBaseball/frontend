@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   JAMSIL_CATEGORIES,
-  JAMSIL_SHADE_SCORE,
-  JAMSIL_VIEW_INFO,
   getJamsilSideLabel,
   getJamsilSourceLabel,
   type JamsilBlock,
-  type SunMode,
 } from '../../data/jamsilSeatData';
 import SeatViewGallery from '../SeatViewGallery';
 
@@ -15,12 +12,11 @@ type Snap = 'peek' | 'half' | 'full';
 interface BottomSheetProps {
   section: JamsilBlock | null;
   mode: 'light' | 'dark';
-  sunMode: SunMode;
   onClose: () => void;
   onUpload: () => void;
 }
 
-export default function JamsilBottomSheet({ section, mode, sunMode, onClose, onUpload }: BottomSheetProps) {
+export default function JamsilBottomSheet({ section, mode, onClose, onUpload }: BottomSheetProps) {
   const [snap, setSnap] = useState<Snap>('peek');
   const startY = useRef(0);
 
@@ -61,13 +57,6 @@ export default function JamsilBottomSheet({ section, mode, sunMode, onClose, onU
 
   const cat = JAMSIL_CATEGORIES[section.category];
   const accent = mode === 'dark' ? cat.dark : cat.light;
-  const info = JAMSIL_VIEW_INFO[section.id] ?? JAMSIL_VIEW_INFO.default;
-  const shadeMap = JAMSIL_SHADE_SCORE[sunMode] ?? {};
-  const shade = shadeMap[section.id];
-  const shadeLabel =
-    sunMode === 'night' ? '야간' :
-      shade === undefined ? (info.sun ?? '-') :
-        shade > 0.75 ? '그늘' : shade > 0.45 ? '부분 그늘' : '햇빛';
 
   return (
     <div
@@ -99,7 +88,7 @@ export default function JamsilBottomSheet({ section, mode, sunMode, onClose, onU
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-black text-slate-800 dark:text-white">{section.name}</div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-            {cat.label} · {getJamsilSideLabel(section.side)} · {shadeLabel}
+            {cat.label} · {getJamsilSideLabel(section.side)} · {getJamsilSourceLabel(section.sourceConfidence)}
           </div>
         </div>
         <button

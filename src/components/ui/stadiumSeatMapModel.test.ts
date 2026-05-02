@@ -6,6 +6,7 @@ import {
   resolveStadiumSeatMapPreset,
   resolveStadiumSeatMapPresetMeta,
 } from './stadiumSeatMapModel';
+import { KBO_STADIUMS } from '../../utils/stadiumData';
 
 const homeSideCases = [
   { stadiumId: 'JAMSIL', stadiumName: '잠실야구장', expectedSide: 'left', expectedLabel: '잠실 블록 단위 안내도' },
@@ -119,4 +120,24 @@ test('대구 좌석도 공통 모델은 전용 공식 이미지 컴포넌트 로
   assert.equal(layout.id, 'daegu');
   assert.equal(layout.isFallback, true);
   assert.equal(layout.label, '라이온즈파크형 안내도 (개략)');
+});
+
+test('구장 설정 데이터 기준 모든 구장 선택이 좌석도 매핑에 일관된다', () => {
+  const entries = Object.values(KBO_STADIUMS);
+
+  assert.ok(entries.length > 0);
+
+  entries.forEach((stadium) => {
+    const metaById = resolveStadiumSeatMapPresetMeta(stadium.id, '');
+    const metaByName = resolveStadiumSeatMapPresetMeta('', stadium.name);
+    const metaByBoth = resolveStadiumSeatMapPresetMeta(stadium.id, stadium.name);
+    const layoutByBoth = resolveStadiumLayout(stadium.id, stadium.name);
+
+    assert.equal(metaById.id, metaByBoth.id, `${stadium.name} ID/병합 입력 매핑 불일치`);
+    assert.equal(metaByName.id, metaByBoth.id, `${stadium.name} 이름/병합 입력 매핑 불일치`);
+    assert.notEqual(metaByBoth.id, 'default', `${stadium.name} 좌석도 기본값 매핑`);
+    assert.equal(metaByBoth.id, layoutByBoth.presetId, `${stadium.name} 프리셋 메타와 레이아웃 매핑 불일치`);
+    assert.ok(metaByBoth.label.includes('안내도'), `${stadium.name} 좌석도 라벨 누락`);
+    assert.ok(layoutByBoth.sections.length > 0, `${stadium.name} 좌석도 섹션 없음`);
+  });
 });

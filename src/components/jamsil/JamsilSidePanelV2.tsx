@@ -1,18 +1,15 @@
 import {
   JAMSIL_CATEGORIES,
-  JAMSIL_SHADE_SCORE,
   JAMSIL_VIEW_INFO,
   getJamsilSideLabel,
   getJamsilSourceLabel,
   type JamsilBlock,
-  type SunMode,
 } from '../../data/jamsilSeatData';
 import SeatViewGallery from '../SeatViewGallery';
 
 interface Props {
   section: JamsilBlock | null;
   mode: 'light' | 'dark';
-  sunMode: SunMode;
   onClose: () => void;
   onUpload: () => void;
 }
@@ -58,7 +55,13 @@ function SourceBadge({ section, accent }: { section: JamsilBlock; accent: string
   );
 }
 
-export default function JamsilSidePanelV2({ section, mode, sunMode, onClose, onUpload }: Props) {
+function getFanRoleLabel(section: JamsilBlock) {
+  if (section.fanRole === 'HOME') return '홈 응원';
+  if (section.fanRole === 'AWAY') return '원정 응원';
+  return '중립 표기';
+}
+
+export default function JamsilSidePanelV2({ section, mode, onClose, onUpload }: Props) {
   if (!section) {
     return (
       <div className="sticky top-4 overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={{ maxHeight: 'calc(100vh - 32px)', minHeight: 220 }}>
@@ -70,13 +73,6 @@ export default function JamsilSidePanelV2({ section, mode, sunMode, onClose, onU
   const cat = JAMSIL_CATEGORIES[section.category];
   const info = JAMSIL_VIEW_INFO[section.id] ?? JAMSIL_VIEW_INFO.default;
   const accent = mode === 'dark' ? cat.dark : cat.light;
-  const shadeMap = JAMSIL_SHADE_SCORE[sunMode] ?? {};
-  const shade = shadeMap[section.id];
-  const shadeLabel =
-    sunMode === 'night' ? '야간 (조명)' :
-      shade === undefined ? (info.sun ?? '-') :
-        shade > 0.75 ? '그늘' :
-          shade > 0.45 ? '부분 그늘' : '햇빛';
   const sideLabel = getJamsilSideLabel(section.side);
 
   return (
@@ -116,9 +112,9 @@ export default function JamsilSidePanelV2({ section, mode, sunMode, onClose, onU
 
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <InfoTile label="위치" value={sideLabel} />
-        <InfoTile label="햇빛" value={shadeLabel} />
+        <InfoTile label="공식 확인" value={getJamsilSourceLabel(section.sourceConfidence)} />
         <InfoTile label="시야 거리" value={info.distance ?? '-'} />
-        <InfoTile label="팬 구분" value="중립 표기" />
+        <InfoTile label="팬 구분" value={getFanRoleLabel(section)} />
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">

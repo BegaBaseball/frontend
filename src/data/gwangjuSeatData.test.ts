@@ -168,7 +168,8 @@ test('광주 정상 좌석도는 운영자 pending 안내 배너를 노출하지
   assert.equal(source.includes('hasPendingOperatorSections'), false);
   assert.equal(source.includes('GWANGJU_SEATMAP_COORDINATES_READY'), false);
   assert.ok(source.includes('GWANGJU_NON_SELECTABLE_MARKER_ZONES'), 'marker-only zones should be blocked above seat polygons');
-  assert.ok(source.includes('좌표 보정 중'), 'retrace-only coordinate notice should remain available');
+  assert.equal(source.includes('좌표 보정 중'), false);
+  assert.equal(source.includes('gwangju-seatmap-coordinate-pending'), false);
 });
 
 test('광주 블록 데이터는 중복 id와 중복 공식 블록을 갖지 않는다', () => {
@@ -249,27 +250,29 @@ test('광주 블록 geometry는 정적 공식 이미지 좌표 map에서만 공�
   assert.equal(source.includes('lerpPoint'), false);
   assert.equal(source.includes('StripEntry'), false);
   assert.equal(source.includes('entriesFor'), false);
+  assert.equal(source.includes('orientedBox'), false);
+  assert.equal(source.includes('SKY_PICNIC_GEOMETRY_CENTERS'), false);
+  assert.equal(source.includes('GENERATED_ROTATED_BOX'), false);
+  assert.equal(source.includes('APPROXIMATE_MANUAL_POLYGON'), false);
 });
 
-test('광주 좌석도는 rotated box 초안이 남아 있으면 선택 활성화를 막고 재트레이싱 상태로 유지한다', () => {
+test('광주 좌석도는 정적 공식 이미지 polygon 상태에서 선택을 활성화한다', () => {
   const source = readFileSync(new URL('./gwangjuSeatData.ts', import.meta.url), 'utf8');
-  const hasGeneratedRotatedBoxes = source.includes('orientedBox(');
   const fiveTableReviewRegion = GWANGJU_TRACE_REVIEW_REGIONS.find((region) => region.id === 'five-table-numbered');
 
-  if (hasGeneratedRotatedBoxes) {
-    assert.equal(GWANGJU_COORDINATE_TRACE_STATUS, 'RETRACE_IN_PROGRESS');
-    assert.equal(GWANGJU_SELECTABLE_BLOCKS_READY, false);
-  }
-
+  assert.equal(GWANGJU_COORDINATE_TRACE_STATUS, 'READY');
+  assert.equal(GWANGJU_SELECTABLE_BLOCKS_READY, true);
   assert.equal(fiveTableReviewRegion?.method, 'OFFICIAL_IMAGE_PIXEL_TRACE');
   assert.equal(source.includes('FIVE_TABLE_GEOMETRY_CENTERS'), false);
-  assert.equal(source.includes('orientedBox(cx, cy, 52, 76'), false);
+  assert.equal(source.includes('orientedBox('), false);
+  assert.equal(source.includes('SKY_PICNIC_GEOMETRY_CENTERS'), false);
 });
 
 test('광주 재트레이싱 manifest 대상은 active block과 운영자 대기 구역을 모두 설명한다', () => {
   assert.ok(GWANGJU_TRACE_REVIEW_REGIONS.length > 0);
-  assert.ok(GWANGJU_TRACE_REVIEW_REGIONS.some((region) => region.method === 'GENERATED_ROTATED_BOX'));
-  assert.ok(GWANGJU_TRACE_REVIEW_REGIONS.some((region) => region.method === 'OFFICIAL_IMAGE_PIXEL_TRACE'));
+  assert.ok(GWANGJU_TRACE_REVIEW_REGIONS.every((region) => (
+    region.method === 'OFFICIAL_IMAGE_PIXEL_TRACE' || region.method === 'OPERATOR_REQUIRED'
+  )));
   assert.ok(GWANGJU_TRACE_REVIEW_REGIONS.some((region) => region.method === 'OPERATOR_REQUIRED'));
 
   const activeBlockIds = new Set(GWANGJU_BLOCKS.map((block) => block.id));
@@ -333,6 +336,30 @@ test('광주 특수석 hit-area는 번호 블록 label 중심을 침범하지 �
       .map((numberedBlock) => numberedBlock.block);
 
     assert.deepEqual(swallowedLabels, [], `${specialBlock.id} should not cover numbered label centers`);
+  });
+});
+
+test('광주 외야석 hit-area는 외야테이블석 label을 삼키지 않는다', () => {
+  const blockById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const pairs = [
+    ['outfield-left-seats', 'bleachers-table-left'],
+    ['outfield-right-seats', 'bleachers-table-right'],
+  ];
+
+  pairs.forEach(([outfieldId, tableId]) => {
+    const outfield = blockById.get(outfieldId);
+    const table = blockById.get(tableId);
+    assert.ok(outfield, `${outfieldId} should exist`);
+    assert.ok(table, `${tableId} should exist`);
+
+    assert.equal(
+      pointInPolygon(
+        [table.imageGeometry.labelX, table.imageGeometry.labelY],
+        parsePolygonPoints(outfield.imageGeometry.d),
+      ),
+      false,
+      `${outfieldId} should not create an O/P nested hit area`,
+    );
   });
 });
 

@@ -8,18 +8,47 @@ import { MateCameraIcon, MateCloseIcon } from './MateIcons';
 interface SeatViewGalleryProps {
   stadium: string;
   section: string;
+  sectionAliases?: string[];
   compact?: boolean;
 }
 
-export default function SeatViewGallery({ stadium, section, compact = false }: SeatViewGalleryProps) {
+export function buildSeatViewSectionQueries(section: string, sectionAliases: string[] = []): string[] {
+  return Array.from(new Set(
+    [section, ...sectionAliases]
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ));
+}
+
+export function dedupeSeatViewPhotos(photoGroups: SeatViewPhoto[][]): SeatViewPhoto[] {
+  const seen = new Set<string>();
+  const photos: SeatViewPhoto[] = [];
+
+  photoGroups.flat().forEach((photo) => {
+    const key = photo.photoUrl || `${photo.stadium}:${photo.section ?? ''}:${photo.block ?? ''}:${photo.diaryDate}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    photos.push(photo);
+  });
+
+  return photos;
+}
+
+export default function SeatViewGallery({ stadium, section, sectionAliases = [], compact = false }: SeatViewGalleryProps) {
   const [lightboxPhoto, setLightboxPhoto] = useState<SeatViewPhoto | null>(null);
+  const sectionQueries = buildSeatViewSectionQueries(section, sectionAliases);
 
   const { data: photos = [], isLoading } = useQuery({
-    queryKey: ['seat-views', stadium, section],
-    queryFn: () => fetchSeatViews(stadium, section),
+    queryKey: ['seat-views', stadium, sectionQueries],
+    queryFn: async () => {
+      const results = await Promise.all(
+        sectionQueries.map((sectionName) => fetchSeatViews(stadium, sectionName)),
+      );
+      return dedupeSeatViewPhotos(results).slice(0, 9);
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    enabled: Boolean(stadium),
+    enabled: Boolean(stadium && sectionQueries.length > 0),
   });
 
   if (isLoading) {
@@ -87,12 +116,12 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
         >
           <button
             type="button"
-          className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
-          onClick={() => setLightboxPhoto(null)}
-          aria-label="닫기"
-        >
-          <MateCloseIcon className="h-5 w-5" />
-        </button>
+            className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
+            onClick={() => setLightboxPhoto(null)}
+            aria-label="닫기"
+          >
+            <MateCloseIcon className="h-5 w-5" />
+          </button>
           <img
             src={lightboxPhoto.photoUrl}
             alt="시야 사진 원본"

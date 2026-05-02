@@ -61,7 +61,7 @@ const blockRows = GWANGJU_BLOCKS.map((block) => {
     fanRole: block.fanRole,
     reviewRegionId: region?.id ?? 'UNASSIGNED',
     tracePriority: region?.priority ?? 'P0',
-    traceMethod: region?.method ?? 'APPROXIMATE_MANUAL_POLYGON',
+    traceMethod: region?.method ?? 'UNASSIGNED',
     traceNote: region?.note ?? '',
     labelX: block.imageGeometry.labelX,
     labelY: block.imageGeometry.labelY,
@@ -133,9 +133,8 @@ const markdown = [
   '',
   '1. `npm run qa:stadium:gwangju:trace-review`를 실행해 debug overlay screenshot과 CSV를 생성합니다.',
   '2. `/stadium?gwangjuDebug=hit`에서 공식 PNG와 polygon을 같은 2200x1159 좌표계로 비교합니다.',
-  '3. `GENERATED_ROTATED_BOX` 대상은 center/angle 박스를 제거하고 실제 블록 경계의 per-block polygon으로 교체합니다.',
-  '4. `APPROXIMATE_MANUAL_POLYGON` 대상은 번호/알파벳 영역 중앙이 아니라 실제 색상 경계를 따라 꼭짓점을 재배치합니다.',
-  '5. K7석/원정응원석은 운영자 제공 polygon이 들어오기 전까지 hit-area를 만들지 않습니다.',
+  '3. active block은 모두 `OFFICIAL_IMAGE_PIXEL_TRACE`로 유지하고, 신규 블록은 같은 좌표계의 정적 polygon으로만 추가합니다.',
+  '4. K7석/원정응원석은 운영자 제공 polygon이 들어오기 전까지 hit-area를 만들지 않습니다.',
   '',
 ].join('\n');
 

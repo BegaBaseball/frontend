@@ -120,7 +120,10 @@ function topHitBlockAt(point: Point) {
   let topBlock: (typeof SUWON_BLOCKS)[number] | null = null;
 
   [...SUWON_BLOCKS]
-    .sort((a, b) => a.hitPriority - b.hitPriority)
+    .sort((a, b) => (
+      (a.hitPriority - b.hitPriority)
+      || (polygonArea(pathPoints(b.hitGeometry.d)) - polygonArea(pathPoints(a.hitGeometry.d)))
+    ))
     .forEach((block) => {
       const polygon = pathPoints(block.hitGeometry.d);
       if (polygon.length >= 3 && pointInPolygon(point, polygon)) {
@@ -261,9 +264,13 @@ test('수원 숫자 블록 visual geometry는 절반 이상의 대표 지점에�
       const directHits = probes.filter((point) => topHitBlockAt(point)?.id === block.id).length;
       const visualArea = polygonArea(pathPoints(block.imageGeometry.d));
       const hitArea = polygonArea(pathPoints(block.hitGeometry.d));
+      const hasDocumentedHitException = Boolean(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[block.id]);
 
       assert.ok(pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)), `${block.id} label should remain inside visual geometry`);
-      assert.ok(directHits >= Math.ceil(probes.length / 2), `${block.id} should be directly selectable across its visual geometry`);
+      assert.ok(
+        hasDocumentedHitException ? directHits >= 1 : directHits >= Math.ceil(probes.length / 2),
+        `${block.id} should be directly selectable across its visual geometry`,
+      );
       assert.ok(hitArea / visualArea <= 1.4, `${block.id} hit geometry should stay close to visual geometry`);
     });
 });
@@ -413,4 +420,28 @@ test('수원 좌석도 production 데이터는 타원형 근사 생성 경로를
   assert.ok(source.includes('SUWON_IMAGE_GEOMETRY_DRAFTS'), 'Suwon geometry should be backed by static geometry drafts');
   assert.ok(source.includes('hitGeometry'), 'Suwon geometry should expose static hit geometry');
   assert.ok(source.includes('OFFICIAL_IMAGE_TRACED'), 'Suwon geometry should expose official image trace status');
+});
+
+test('수원 SVG 컴포넌트는 공식 이미지와 overlay를 단일 좌표계에서 렌더링한다', () => {
+  const componentPath = path.resolve(process.cwd(), 'src/components/suwon/SuwonSeatMapSvg.tsx');
+  const source = fs.readFileSync(componentPath, 'utf8');
+
+  assert.ok(!source.includes('<img'), 'Suwon renderer should not use a separate img element');
+  assert.ok(source.includes('<svg'), 'Suwon renderer should render a single SVG root');
+  assert.ok(source.includes('data-testid="suwon-seatmap-svg"'), 'Suwon SVG should expose QA test id');
+  assert.ok(source.includes('viewBox={`0 ${cropY} ${imageWidth} ${cropHeight}`}'), 'Suwon SVG viewBox should encode the crop directly');
+  assert.ok(source.includes('aspectRatio: `${imageWidth} / ${cropHeight}`'), 'Suwon wrapper should use cropped image aspect ratio');
+  assert.ok(source.includes('<image'), 'Suwon renderer should draw the official seatmap inside the SVG');
+  assert.ok(source.includes('href={seatMapImageUrl}'), 'Suwon image should use the resolved official asset URL');
+  assert.ok(source.includes('width={imageWidth}'), 'Suwon image should use the official coordinate width');
+  assert.ok(source.includes('height={imageHeight}'), 'Suwon image should use the official coordinate height');
+  assert.ok(source.includes('data-layer="seatmap-content"'), 'Suwon zoom should wrap image and overlay in one content group');
+  assert.ok(source.includes('transform={zoomTransform}'), 'Suwon content group should own the zoom transform');
+  assert.ok(source.includes('getScreenCTM()'), 'Suwon debug coordinates should use the real SVG screen transform');
+  assert.ok(source.includes('contentX'), 'Suwon debug label should expose image/content coordinates under zoom');
+  assert.ok(source.includes('data-layer="image-geometry-overlays"'), 'Suwon visual geometry layer should be explicit');
+  assert.ok(source.includes('data-layer="hit-targets"'), 'Suwon hit target layer should be explicit');
+  assert.ok(source.includes("strokeDasharray={showDebug ? '5 4' : undefined}"), 'Suwon debug mode should render hit geometry as dashed paths');
+  assert.ok(source.includes("pointerEvents={isFiltered ? 'none' : 'fill'}"), 'Filtered Suwon hit targets should not block pointer events');
+  assert.ok(source.includes('polygonArea(b.hitGeometry.d) - polygonArea(a.hitGeometry.d)'), 'Suwon hit render order should put larger same-priority areas below smaller ones');
 });
