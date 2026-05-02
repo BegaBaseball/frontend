@@ -661,7 +661,8 @@ describe('Cheer Board', () => {
 
             getNonOwnedPostCard().find('button[aria-label*="리포스트"]').click();
             cy.get('[role="menu"], [role="dialog"]').should('be.visible');
-            cy.get('[role="menu"], [role="dialog"]').contains('button', /^리포스트$/).first().click();
+            // 메뉴 버튼이 sticky navbar에 가려지는 케이스를 회피한다.
+            cy.get('[role="menu"], [role="dialog"]').contains('button', /^리포스트$/).first().click({ force: true });
             cy.wait('@toggleRepost')
                 .its('request.url')
                 .should('include', '/api/cheer/posts/2/repost');

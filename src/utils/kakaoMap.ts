@@ -19,22 +19,12 @@ let kakaoMapScriptPromise: Promise<void> | null = null;
 
 const KAKAO_MAP_SCRIPT_SELECTOR = 'script[data-kakao-map-sdk="true"], script[src*="dapi.kakao.com/v2/maps/sdk.js"]';
 
-const getKakaoMapScriptElement = () => document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR) as HTMLScriptElement | null;
-
-const setKakaoMapScriptLoadState = (script: HTMLScriptElement | null, state: 'ready' | 'error') => {
-  if (script) {
-    script.dataset.kakaoMapLoadState = state;
-  }
-};
-
-const getKakaoMapScriptLoadState = (script: HTMLScriptElement | null) => script?.dataset?.kakaoMapLoadState;
-
 const getKakaoMapLoadErrorMessage = () => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return '카카오맵 스크립트 로드 실패: 네트워크 연결이 없어 카카오맵을 불러올 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
+    return '네트워크 연결이 없어 카카오맵을 불러올 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
   }
 
-  return '카카오맵 스크립트 로드 실패: 카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.';
+  return '카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.';
 };
 
 const waitForKakaoMapSdkReady = () => new Promise<void>((resolve, reject) => {
@@ -78,26 +68,16 @@ export const loadKakaoMapScript = (onLoad?: () => void, onError?: (message?: str
   if (!kakaoMapScriptPromise) {
     kakaoMapScriptPromise = new Promise<void>((resolve, reject) => {
       const handleReady = () => {
-        const loadedScript = getKakaoMapScriptElement();
-        setKakaoMapScriptLoadState(loadedScript, 'ready');
         waitForKakaoMapSdkReady().then(resolve).catch(reject);
       };
 
       const handleError = () => {
         const message = getKakaoMapLoadErrorMessage();
         console.error('카카오맵 스크립트 로드 실패:', message);
-        setKakaoMapScriptLoadState(getKakaoMapScriptElement(), 'error');
         reject(new Error(message));
       };
 
-      const existingScript = getKakaoMapScriptElement();
-      const existingScriptLoadState = getKakaoMapScriptLoadState(existingScript);
-
-      if (existingScriptLoadState === 'error') {
-        handleError();
-        return;
-      }
-
+      const existingScript = document.querySelector(KAKAO_MAP_SCRIPT_SELECTOR) as HTMLScriptElement | null;
       if (existingScript) {
         existingScript.addEventListener('load', handleReady, { once: true });
         existingScript.addEventListener('error', handleError, { once: true });
