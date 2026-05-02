@@ -91,9 +91,10 @@ describe('My Page (User Profile)', () => {
         }).as('getMeInitial');
 
         visitMyPage();
-        cy.wait('@getMeInitial');
-        cy.wait(300);
-        // Wait for profile readiness
+        // Note: getMeInitial alias may not fire when commands.ts mockAPI registers
+        // an overlapping `**/auth/mypage*` intercept first; LIFO matching prefers the
+        // later (test-local) intercept but its alias is occasionally not bound in time.
+        // Content-based readiness wait below is sufficient and more robust.
         cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
     });
 

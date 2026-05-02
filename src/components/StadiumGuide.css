@@ -17,6 +17,14 @@
   min-height: 380px;
 }
 
+@media (max-width: 639px) {
+  .stadium-hero-container {
+    border-radius: 1.25rem;
+    margin-bottom: 2rem;
+    min-height: 300px;
+  }
+}
+
 .stadium-hero-bg {
   position: absolute;
   inset: 0;
