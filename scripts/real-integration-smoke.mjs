@@ -157,6 +157,7 @@ const signupIdentity = {
   favoriteTeam: 'LG',
 };
 const normalizedSignupHandle = normalizeHandleForExpectation(signupIdentity.handle);
+const normalizedSignupEmail = normalizeEmailForExpectation(signupIdentity.email);
 let activeLoginEmail = signupIdentity.email;
 let activeLoginPassword = signupIdentity.password;
 let samplePartyId = null;
@@ -545,8 +546,7 @@ const main = async () => {
       };
     }
 
-    // [Security Fix - Critical #3] /auth/check-email 엔드포인트 제거 (User Enumeration 방어).
-    // 이메일 사전 확인 단계는 제거하고 handle pre-check만 남긴다.
+    // 이메일 사전 중복 확인은 제공하지 않고 handle pre-check만 수행한다.
     const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
     const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
 
@@ -631,7 +631,7 @@ const main = async () => {
       };
     }
 
-    // [Security Fix - Critical #3] /auth/check-email 제거로 이메일 postcheck 단계도 handle 전용으로 축소.
+    // 이메일 중복은 별도 signup 충돌 계약에서 확인한다.
     const handleQuery = signupIdentity.handle.replace(/^@/, '').toUpperCase();
     const handlePath = `/auth/check-handle?${new URLSearchParams({ handle: handleQuery }).toString()}`;
 
@@ -648,6 +648,38 @@ const main = async () => {
     return {
       handleCode: handleResponse.data.code,
       handleNormalized: handleResponse.data.data.normalized,
+    };
+  });
+
+  await runStep('signup-email-conflict-postcheck', async () => {
+    if (!didCreateSignupUser) {
+      return {
+        status: 'skipped',
+        reason: 'signup user not created in this run',
+      };
+    }
+
+    const duplicateEmailHandle = `@email${randomSuffix.slice(-6)}`;
+    const response = await requestJson('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...signupIdentity,
+        handle: duplicateEmailHandle,
+        confirmPassword: signupIdentity.password,
+        policyConsents,
+      }),
+      expectedStatuses: [409],
+    });
+
+    if (response.data?.code !== 'DUPLICATE_EMAIL') {
+      throw new Error(response.data?.message || 'signup email duplicate contract 응답이 유효하지 않습니다.');
+    }
+
+    return {
+      emailCode: response.data.code,
+      emailNormalized: normalizedSignupEmail,
+      attemptedHandle: normalizeHandleForExpectation(duplicateEmailHandle),
     };
   });
 

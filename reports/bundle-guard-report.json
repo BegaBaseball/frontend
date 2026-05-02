@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-19T14:16:42.953Z",
+  "generatedAt": "2026-05-02T09:37:33.554Z",
   "clientAssetsDirectory": "dist/assets",
   "workerAssetsDirectory": null,
   "forbiddenChunkPrefixes": [
@@ -24,24 +24,24 @@
   "budgetResults": [
     {
       "label": "vendor-react-core",
-      "file": "dist/assets/vendor-react-core-ChFnQd4w.js",
+      "file": "dist/assets/vendor-react-core-Cj5ZBSKm.js",
       "maxBytes": 170000,
       "ok": true,
-      "sizeBytes": 145478
+      "sizeBytes": 145486
     },
     {
       "label": "vendor-router",
-      "file": "dist/assets/vendor-router-1TYHUYG6.js",
+      "file": "dist/assets/vendor-router-DP_zSlHK.js",
       "maxBytes": 50000,
       "ok": true,
       "sizeBytes": 36434
     },
     {
       "label": "vendor-query",
-      "file": "dist/assets/vendor-query-DiS2Z5rK.js",
-      "maxBytes": 45000,
+      "file": "dist/assets/vendor-query-DQMXd8h4.js",
+      "maxBytes": 60000,
       "ok": true,
-      "sizeBytes": 36422
+      "sizeBytes": 55084
     },
     {
       "label": "vendor-realtime",
@@ -51,1012 +51,991 @@
       "sizeBytes": 22119
     },
     {
+      "label": "vendor-virtual",
+      "file": "dist/assets/vendor-virtual-Cqqq0jtw.js",
+      "maxBytes": 20000,
+      "ok": true,
+      "sizeBytes": 665
+    },
+    {
       "label": "Prediction route",
-      "file": "dist/assets/Prediction-DwdxayWd.js",
+      "file": "dist/assets/Prediction-D3PkcUrx.js",
       "maxBytes": 105000,
       "ok": true,
       "sizeBytes": 7062
     },
     {
       "label": "RankingPrediction route",
-      "file": "dist/assets/RankingPrediction-CwCjE7bK.js",
+      "file": "dist/assets/RankingPrediction-BMO6q7IY.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 11597
+      "sizeBytes": 11927
     },
     {
       "label": "PredictionMatchRuntime shell",
-      "file": "dist/assets/PredictionMatchRuntimeContent-CcmnzM_4.js",
+      "file": "dist/assets/PredictionMatchRuntimeContent-BYgVwjw6.js",
       "maxBytes": 5000,
       "ok": true,
       "sizeBytes": 1007
     },
     {
-      "label": "PredictionMatchSchedule shell",
-      "file": "dist/assets/PredictionMatchScheduleRuntime-CjkoB4FI.js",
-      "maxBytes": 5000,
-      "ok": true,
-      "sizeBytes": 837
-    },
-    {
-      "label": "PredictionMatchSchedule data runtime",
-      "file": "dist/assets/PredictionMatchScheduleDataRuntime-CtIbG-5K.js",
-      "maxBytes": 38000,
-      "ok": true,
-      "sizeBytes": 952
-    },
-    {
-      "label": "PredictionMatchSchedule resolved shell",
-      "file": "dist/assets/PredictionMatchScheduleResolvedRuntime-Cik9yN2_.js",
-      "maxBytes": 5000,
-      "ok": true,
-      "sizeBytes": 1790
-    },
-    {
-      "label": "PredictionMatchSchedule resolved data runtime",
-      "file": "dist/assets/PredictionMatchScheduleResolvedDataRuntime-BAxiueC6.js",
-      "maxBytes": 29000,
-      "ok": true,
-      "sizeBytes": 1870
-    },
-    {
       "label": "PredictionMatchInteractive shell",
-      "file": "dist/assets/PredictionMatchInteractiveRuntime-DlQ_za_e.js",
+      "file": "dist/assets/PredictionMatchInteractiveRuntime-D2v-haMc.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 1784
+      "sizeBytes": 1741
     },
     {
       "label": "PredictionMatchInteractive data runtime",
-      "file": "dist/assets/PredictionMatchInteractiveDataRuntime-Ddq-Cx69.js",
-      "maxBytes": 28000,
+      "file": "dist/assets/PredictionMatchInteractiveDataRuntime-DKVFym-i.js",
+      "maxBytes": 56000,
       "ok": true,
-      "sizeBytes": 21314
+      "sizeBytes": 25932
     },
     {
       "label": "PredictionMatchInteractive view shell",
-      "file": "dist/assets/PredictionMatchInteractiveView-D2HI-BBy.js",
+      "file": "dist/assets/PredictionMatchInteractiveView-CLjAgpkx.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 2152
+      "sizeBytes": 2109
     },
     {
       "label": "PredictionMatchInteractive content runtime",
-      "file": "dist/assets/PredictionMatchInteractiveContentRuntime-Dq6Q9Mep.js",
+      "file": "dist/assets/PredictionMatchInteractiveContentRuntime-Bh6GyAx7.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 5447
+      "sizeBytes": 5614
     },
     {
       "label": "PredictionMatchVoteController shell",
-      "file": "dist/assets/PredictionMatchVoteController-Bfp5L3oJ.js",
+      "file": "dist/assets/PredictionMatchVoteController-tZdRCpqM.js",
       "maxBytes": 4000,
       "ok": true,
-      "sizeBytes": 1308
+      "sizeBytes": 1232
     },
     {
       "label": "PredictionMatchVoteController runtime",
-      "file": "dist/assets/PredictionMatchVoteControllerRuntime-BVMI-X8R.js",
+      "file": "dist/assets/PredictionMatchVoteControllerRuntime-CG1L1jKv.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 16541
+      "sizeBytes": 16469
     },
     {
       "label": "PredictionMatchTab route",
-      "file": "dist/assets/PredictionMatchTab-C8RPH2AM.js",
-      "maxBytes": 10000,
+      "file": "dist/assets/PredictionMatchTab-COSDFa5Z.js",
+      "maxBytes": 13000,
       "ok": true,
-      "sizeBytes": 6806
+      "sizeBytes": 5845
     },
     {
       "label": "PredictionMatchDetailPanel route",
-      "file": "dist/assets/PredictionMatchDetailPanel-C4V6unak.js",
+      "file": "dist/assets/PredictionMatchDetailPanel-JMnqaDtE.js",
       "maxBytes": 9000,
       "ok": true,
-      "sizeBytes": 6509
+      "sizeBytes": 6662
     },
     {
       "label": "AdvancedMatchCard shell",
-      "file": "dist/assets/AdvancedMatchCard-DAwUf5Dv.js",
+      "file": "dist/assets/AdvancedMatchCard-D8ZUUbZM.js",
       "maxBytes": 19000,
       "ok": true,
-      "sizeBytes": 13241
+      "sizeBytes": 13150
     },
     {
       "label": "AdvancedMatchCard content runtime",
-      "file": "dist/assets/AdvancedMatchCardContentRuntime-CkPAvK8B.js",
+      "file": "dist/assets/AdvancedMatchCardContentRuntime-Brq0uv5n.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 15674
+      "sizeBytes": 20000
     },
     {
       "label": "PredictionStatsPanel route",
-      "file": "dist/assets/PredictionStatsPanel-5QuxNkrT.js",
+      "file": "dist/assets/PredictionStatsPanel-DlJ-vZHc.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 5438
+      "sizeBytes": 5408
     },
     {
       "label": "Home route",
-      "file": "dist/assets/Home-BY-J_rrj.js",
+      "file": "dist/assets/Home-902Dm8OU.js",
       "maxBytes": 40000,
       "ok": true,
-      "sizeBytes": 1596
+      "sizeBytes": 1669
     },
     {
       "label": "LeaderboardPage route",
-      "file": "dist/assets/LeaderboardPage-D7s2NNAn.js",
+      "file": "dist/assets/LeaderboardPage-mszpUMkN.js",
       "maxBytes": 35000,
       "ok": true,
-      "sizeBytes": 1158
+      "sizeBytes": 1126
     },
     {
       "label": "OffSeasonHome page shell",
-      "file": "dist/assets/OffSeasonHomePage-D--9NpSL.js",
+      "file": "dist/assets/OffSeasonHomePage-DrtcF63i.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1585
+      "sizeBytes": 1553
     },
     {
       "label": "OffSeasonList page shell",
-      "file": "dist/assets/OffSeasonListPage-6Xau3aKr.js",
+      "file": "dist/assets/OffSeasonListPage-CM8bDwBB.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1882
+      "sizeBytes": 1850
     },
     {
       "label": "OffSeasonHome runtime",
-      "file": "dist/assets/OffSeasonHome-CSzWocFl.js",
+      "file": "dist/assets/OffSeasonHome-DN5Uo4sy.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 3197
+      "sizeBytes": 3167
     },
     {
       "label": "OffSeasonHome primary runtime",
-      "file": "dist/assets/OffSeasonHomePrimaryRuntime-DkmJnWOf.js",
+      "file": "dist/assets/OffSeasonHomePrimaryRuntime-v-Jp2Bs8.js",
       "maxBytes": 20000,
       "ok": true,
       "sizeBytes": 5830
     },
     {
       "label": "OffSeasonHome highlights runtime",
-      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-B6RnO8tl.js",
+      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-BNMiSvrv.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 16291
+      "sizeBytes": 16286
     },
     {
       "label": "StadiumGuide route",
-      "file": "dist/assets/StadiumGuide-kI70y8Fe.js",
+      "file": "dist/assets/StadiumGuide-Dmpb7Kks.js",
       "maxBytes": 26000,
       "ok": true,
-      "sizeBytes": 1488
+      "sizeBytes": 1706
     },
     {
       "label": "AuthenticatedStadiumFavoriteToggle route",
-      "file": "dist/assets/AuthenticatedStadiumFavoriteToggle-7rw8aAAc.js",
+      "file": "dist/assets/AuthenticatedStadiumFavoriteToggle-Ff56fPB7.js",
       "maxBytes": 4000,
       "ok": true,
-      "sizeBytes": 1247
+      "sizeBytes": 1245
     },
     {
       "label": "AccountDeletionRecovery route",
-      "file": "dist/assets/AccountDeletionRecovery-D5tF0XCA.js",
+      "file": "dist/assets/AccountDeletionRecovery-CHFpsI5E.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 4860
+      "sizeBytes": 4830
     },
     {
       "label": "Login route",
-      "file": "dist/assets/Login-Dda0r-9s.js",
+      "file": "dist/assets/Login-C4uD0x4F.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 10795
+      "sizeBytes": 10765
     },
     {
       "label": "SignUp route",
-      "file": "dist/assets/SignUp-CzxH0HHY.js",
+      "file": "dist/assets/SignUp-BnlB4cg_.js",
       "maxBytes": 13000,
       "ok": true,
-      "sizeBytes": 12217
+      "sizeBytes": 12369
     },
     {
       "label": "PasswordReset route",
-      "file": "dist/assets/PasswordReset-CF9MUyme.js",
+      "file": "dist/assets/PasswordReset-Bqkc6qUg.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 4189
+      "sizeBytes": 4159
     },
     {
       "label": "PasswordResetConfirm route",
-      "file": "dist/assets/PasswordResetConfirm-De_zfD6Z.js",
+      "file": "dist/assets/PasswordResetConfirm-BK47m-Ro.js",
       "maxBytes": 9000,
       "ok": true,
-      "sizeBytes": 7108
+      "sizeBytes": 7078
     },
     {
       "label": "OAuthCallback route",
-      "file": "dist/assets/OAuthCallback-DnEcbbyT.js",
+      "file": "dist/assets/OAuthCallback-t3z9ej_Z.js",
       "maxBytes": 4000,
       "ok": true,
-      "sizeBytes": 2006
+      "sizeBytes": 1976
     },
     {
       "label": "NoticePage route",
-      "file": "dist/assets/NoticePage-rmNjAcK3.js",
+      "file": "dist/assets/NoticePage-CBdDYTXN.js",
       "maxBytes": 9000,
       "ok": true,
-      "sizeBytes": 1325
+      "sizeBytes": 1293
     },
     {
       "label": "MyPage page shell",
-      "file": "dist/assets/MyPage-BA9QnJqO.js",
+      "file": "dist/assets/MyPage-Bve4MEx5.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1392
+      "sizeBytes": 1395
     },
     {
       "label": "MyPage runtime",
-      "file": "dist/assets/MyPageRuntime-CsLhZxXa.js",
+      "file": "dist/assets/MyPageRuntime-lnsoRZwY.js",
       "maxBytes": 14000,
       "ok": true,
-      "sizeBytes": 11965
+      "sizeBytes": 11813
     },
     {
       "label": "MyPage profile card runtime",
-      "file": "dist/assets/MyPageProfileCardRuntime-BrR3rXLz.js",
+      "file": "dist/assets/MyPageProfileCardRuntime-_yIeb2vY.js",
       "maxBytes": 13000,
       "ok": true,
-      "sizeBytes": 10852
+      "sizeBytes": 10845
     },
     {
       "label": "MyPage view runtime",
-      "file": "dist/assets/MyPageViewRuntime-PumAo4sm.js",
+      "file": "dist/assets/MyPageViewRuntime-C3yDPq3v.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 3255
+      "sizeBytes": 3252
     },
     {
       "label": "UserProfile page shell",
-      "file": "dist/assets/UserProfilePage-BuheWhqo.js",
+      "file": "dist/assets/UserProfilePage-CikDdD1y.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 2269
+      "sizeBytes": 2237
     },
     {
       "label": "UserProfile runtime",
-      "file": "dist/assets/UserProfile-Doh4E8GJ.js",
+      "file": "dist/assets/UserProfile-C5eL1x8R.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 13392
+      "sizeBytes": 13327
     },
     {
       "label": "UserProfileModal route",
-      "file": "dist/assets/UserProfileModal-CHousDEo.js",
+      "file": "dist/assets/UserProfileModal-D7AeKV6R.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 6786
+      "sizeBytes": 6721
     },
     {
       "label": "UserListModal route",
-      "file": "dist/assets/UserListModal-D-qzPMAF.js",
+      "file": "dist/assets/UserListModal-hAlqs7-q.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 5754
+      "sizeBytes": 5692
     },
     {
       "label": "ProfileEditSection shell",
-      "file": "dist/assets/ProfileEditSection-CA_sswte.js",
+      "file": "dist/assets/ProfileEditSection-Ci7lTzDi.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1525
+      "sizeBytes": 1528
     },
     {
       "label": "ProfileEditSection runtime",
-      "file": "dist/assets/ProfileEditSectionRuntime-DBQQcvxp.js",
+      "file": "dist/assets/ProfileEditSectionRuntime-DXsLni1t.js",
       "maxBytes": 17000,
       "ok": true,
-      "sizeBytes": 15684
+      "sizeBytes": 15687
     },
     {
       "label": "ProfileEdit profile runtime",
-      "file": "dist/assets/ProfileEditProfileRuntime-B02ZMLzD.js",
+      "file": "dist/assets/ProfileEditProfileRuntime-DQgMxxY8.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 10487
+      "sizeBytes": 10482
     },
     {
       "label": "Diaryform shell",
-      "file": "dist/assets/Diaryform-_B9AyCXM.js",
+      "file": "dist/assets/Diaryform-CuaZtIx7.js",
       "maxBytes": 4500,
       "ok": true,
-      "sizeBytes": 1480
+      "sizeBytes": 1258
     },
     {
       "label": "Diaryform runtime",
-      "file": "dist/assets/DiaryformRuntime-Dxicwrq5.js",
+      "file": "dist/assets/DiaryformRuntime-CLPViEDY.js",
       "maxBytes": 25000,
       "ok": true,
-      "sizeBytes": 18924
+      "sizeBytes": 19015
     },
     {
       "label": "DiaryEditMode runtime",
-      "file": "dist/assets/DiaryEditModeRuntime-CqhVpxgB.js",
+      "file": "dist/assets/DiaryEditModeRuntime-hu63Y6QY.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 13018
+      "sizeBytes": 13016
     },
     {
       "label": "AccountSettingsSection route",
-      "file": "dist/assets/AccountSettingsSection-C_uShcKX.js",
+      "file": "dist/assets/AccountSettingsSection-HcPohYn6.js",
       "maxBytes": 10000,
       "ok": true,
-      "sizeBytes": 7848
+      "sizeBytes": 7854
     },
     {
       "label": "AccountSettings security runtime",
-      "file": "dist/assets/AccountSettingsSecurityRuntime-Cnhd8Nm-.js",
+      "file": "dist/assets/AccountSettingsSecurityRuntime-C4K8Yg6d.js",
       "maxBytes": 13000,
       "ok": true,
-      "sizeBytes": 10963
+      "sizeBytes": 10966
     },
     {
       "label": "AccountSettings advanced runtime",
-      "file": "dist/assets/AccountSettingsAdvancedRuntime-2SyBVQ_v.js",
+      "file": "dist/assets/AccountSettingsAdvancedRuntime-Dqr52Fyy.js",
       "maxBytes": 12000,
       "ok": true,
       "sizeBytes": 8891
     },
     {
       "label": "Mate page shell",
-      "file": "dist/assets/MatePage-2YCHgQsb.js",
+      "file": "dist/assets/MatePage-CAmQdC8s.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 4079
+      "sizeBytes": 4047
     },
     {
       "label": "Mate runtime",
-      "file": "dist/assets/Mate-CeH_ZnLm.js",
+      "file": "dist/assets/Mate-Dd4P9Tar.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 15903
+      "sizeBytes": 15650
     },
     {
       "label": "Mate results runtime",
-      "file": "dist/assets/MateResultsRuntime-CeYBzbdc.js",
+      "file": "dist/assets/MateResultsRuntime-BXQ7fcnF.js",
       "maxBytes": 19000,
       "ok": true,
-      "sizeBytes": 15859
+      "sizeBytes": 18085
     },
     {
       "label": "Mate guide runtime",
-      "file": "dist/assets/MateGuidePanelRuntime-CAlXc7Ak.js",
+      "file": "dist/assets/MateGuidePanelRuntime-3VzlJ_Iu.js",
       "maxBytes": 4000,
       "ok": true,
       "sizeBytes": 1788
     },
     {
       "label": "MateCreate page shell",
-      "file": "dist/assets/MateCreatePage-WDMROgOf.js",
+      "file": "dist/assets/MateCreatePage-BXjod0IF.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1952
+      "sizeBytes": 1920
     },
     {
       "label": "MateCreate runtime",
-      "file": "dist/assets/MateCreate-C6vrOLHS.js",
+      "file": "dist/assets/MateCreate-K4lacJ4-.js",
       "maxBytes": 35000,
       "ok": true,
-      "sizeBytes": 16868
+      "sizeBytes": 16838
     },
     {
       "label": "MateCreate ticket step",
-      "file": "dist/assets/MateCreateTicketStep-GHKSHjXa.js",
+      "file": "dist/assets/MateCreateTicketStep-CjmIEDMY.js",
       "maxBytes": 6000,
       "ok": true,
       "sizeBytes": 4336
     },
     {
       "label": "MateCreate match step",
-      "file": "dist/assets/MateCreateMatchStep-BghlPvAD.js",
+      "file": "dist/assets/MateCreateMatchStep-BMRisz1_.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 5526
+      "sizeBytes": 5521
     },
     {
       "label": "MateCreate seat step",
-      "file": "dist/assets/MateCreateSeatStep-BiWU8KeO.js",
+      "file": "dist/assets/MateCreateSeatStep-Dce8TwxW.js",
       "maxBytes": 11000,
       "ok": true,
-      "sizeBytes": 9507
+      "sizeBytes": 9502
     },
     {
       "label": "MateCreate description step",
-      "file": "dist/assets/MateCreateDescriptionStep-DxE1tfjZ.js",
+      "file": "dist/assets/MateCreateDescriptionStep-CY7ogu3v.js",
       "maxBytes": 4000,
       "ok": true,
       "sizeBytes": 2396
     },
     {
       "label": "MateCreate confirm dialog",
-      "file": "dist/assets/MateCreateConfirmDialog-Dvs-kDKs.js",
+      "file": "dist/assets/MateCreateConfirmDialog-Bqv3tSoS.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 4389
+      "sizeBytes": 4384
     },
     {
       "label": "MateApply page shell",
-      "file": "dist/assets/MateApplyPage-BhTPJYpf.js",
+      "file": "dist/assets/MateApplyPage-DxtOPXWW.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 2081
+      "sizeBytes": 2049
     },
     {
       "label": "MateApply runtime",
-      "file": "dist/assets/MateApply-_eF7MHqm.js",
+      "file": "dist/assets/MateApply-BdzaBSt9.js",
       "maxBytes": 22000,
       "ok": true,
-      "sizeBytes": 18957
+      "sizeBytes": 18922
     },
     {
       "label": "MateDetailRuntime route",
-      "file": "dist/assets/MateDetailRuntime-DJ7Q7l9p.js",
+      "file": "dist/assets/MateDetailRuntime-DsdNAvvt.js",
       "maxBytes": 35000,
       "ok": true,
       "sizeBytes": 15417
     },
     {
       "label": "MateDetail overview section",
-      "file": "dist/assets/MateDetailOverviewSection-BJQO-dEI.js",
+      "file": "dist/assets/MateDetailOverviewSection-B1SrpUV9.js",
       "maxBytes": 6000,
       "ok": true,
       "sizeBytes": 1964
     },
     {
       "label": "MateDetail action section",
-      "file": "dist/assets/MateDetailActionSection-DxKvIYVc.js",
+      "file": "dist/assets/MateDetailActionSection-By2cxoqz.js",
       "maxBytes": 5000,
       "ok": true,
       "sizeBytes": 3230
     },
     {
       "label": "MateDetail reviews section",
-      "file": "dist/assets/MateDetailReviewsSection-ivNawaVK.js",
+      "file": "dist/assets/MateDetailReviewsSection-D-txHUe8.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 2952
+      "sizeBytes": 2950
     },
     {
       "label": "MateDetail QR runtime",
-      "file": "dist/assets/MateDetailQrRuntime-RX-ogPlV.js",
+      "file": "dist/assets/MateDetailQrRuntime-dpd9dfWq.js",
       "maxBytes": 19000,
       "ok": true,
-      "sizeBytes": 17265
+      "sizeBytes": 17263
     },
     {
       "label": "MateManage page shell",
-      "file": "dist/assets/MateManagePage-Tbm1SNGE.js",
+      "file": "dist/assets/MateManagePage-xNLEcNTl.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1947
+      "sizeBytes": 1915
     },
     {
       "label": "MateManage runtime",
-      "file": "dist/assets/MateManage-BOSd3TxJ.js",
+      "file": "dist/assets/MateManage-DPTsr2pR.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 9780
+      "sizeBytes": 9773
     },
     {
       "label": "MateManage overview runtime",
-      "file": "dist/assets/MateManageOverviewRuntime-DOSHmnEZ.js",
+      "file": "dist/assets/MateManageOverviewRuntime-BVWMM_rM.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 7971
+      "sizeBytes": 7966
     },
     {
       "label": "MateManage content runtime",
-      "file": "dist/assets/MateManageContentRuntime-D3DIx_ly.js",
+      "file": "dist/assets/MateManageContentRuntime-BJCf-Pi-.js",
       "maxBytes": 18000,
       "ok": true,
       "sizeBytes": 14913
     },
     {
       "label": "MateChat page shell",
-      "file": "dist/assets/MateChatPage-DgaLblnt.js",
+      "file": "dist/assets/MateChatPage-iZIlglO1.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1613
+      "sizeBytes": 1581
     },
     {
       "label": "MateChat runtime",
-      "file": "dist/assets/MateChat-CmNP1Or-.js",
+      "file": "dist/assets/MateChat-CngM7fgK.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 6297
+      "sizeBytes": 6233
     },
     {
       "label": "MateChat view runtime",
-      "file": "dist/assets/MateChatViewRuntime-CW0s274q.js",
+      "file": "dist/assets/MateChatViewRuntime-C3ML4Y-1.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 9354
+      "sizeBytes": 9349
     },
     {
       "label": "MateChat composer panel",
-      "file": "dist/assets/MateChatComposerPanel-BMOHJanU.js",
+      "file": "dist/assets/MateChatComposerPanel-DGLhSK-4.js",
       "maxBytes": 6000,
       "ok": true,
       "sizeBytes": 2611
     },
     {
       "label": "MateCheckIn page shell",
-      "file": "dist/assets/MateCheckInPage-D0SN8WSA.js",
+      "file": "dist/assets/MateCheckInPage-B4T3dBnB.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1843
+      "sizeBytes": 1811
     },
     {
       "label": "MateCheckIn runtime",
-      "file": "dist/assets/MateCheckIn-DEmcb1wB.js",
+      "file": "dist/assets/MateCheckIn-C69zaLRN.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 7119
+      "sizeBytes": 7089
     },
     {
       "label": "MateCheckIn content runtime",
-      "file": "dist/assets/MateCheckInContentRuntime-B9NDaUm9.js",
+      "file": "dist/assets/MateCheckInContentRuntime-CbE8DcQ1.js",
       "maxBytes": 14000,
       "ok": true,
-      "sizeBytes": 10025
+      "sizeBytes": 10054
     },
     {
       "label": "MateCheckIn roster runtime",
-      "file": "dist/assets/MateCheckInRosterRuntime-DaqPIDM-.js",
+      "file": "dist/assets/MateCheckInRosterRuntime-pMTUwXgR.js",
       "maxBytes": 14000,
       "ok": true,
       "sizeBytes": 5484
     },
     {
       "label": "MateCheckIn action runtime",
-      "file": "dist/assets/MateCheckInActionRuntime-CApCrbbg.js",
+      "file": "dist/assets/MateCheckInActionRuntime-bK4Fd6Nu.js",
       "maxBytes": 14000,
       "ok": true,
       "sizeBytes": 4011
     },
     {
       "label": "MateCheckIn status runtime",
-      "file": "dist/assets/MateCheckInStatusRuntime-C_AyCsEG.js",
+      "file": "dist/assets/MateCheckInStatusRuntime-B2kuToEu.js",
       "maxBytes": 14000,
       "ok": true,
       "sizeBytes": 7139
     },
     {
       "label": "ReviewDialog route",
-      "file": "dist/assets/ReviewDialog-sefTQcTj.js",
+      "file": "dist/assets/ReviewDialog-THR6GhbO.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 4211
+      "sizeBytes": 4209
     },
     {
       "label": "TicketUploadModal route",
-      "file": "dist/assets/TicketUploadModal-BQBRHyjl.js",
+      "file": "dist/assets/TicketUploadModal-DKFsUqRJ.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 6003
+      "sizeBytes": 6001
     },
     {
       "label": "CheerRuntime route",
-      "file": "dist/assets/CheerRuntime-Chxjnorr.js",
+      "file": "dist/assets/CheerRuntime-DVRsEgUo.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 12792
+      "sizeBytes": 12813
     },
     {
       "label": "Cheer composer runtime",
-      "file": "dist/assets/CheerComposerRuntime-Ce37-jlC.js",
+      "file": "dist/assets/CheerComposerRuntime-BUQsIOTU.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 10572
+      "sizeBytes": 10539
     },
     {
       "label": "Cheer feed runtime",
-      "file": "dist/assets/CheerFeedRuntimeContent-BW9w4XtO.js",
+      "file": "dist/assets/CheerFeedRuntimeContent-bHGnYxFi.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 8491
+      "sizeBytes": 9792
     },
     {
       "label": "CheerDetail page shell",
-      "file": "dist/assets/CheerDetailPage-DYCfUv6d.js",
+      "file": "dist/assets/CheerDetailPage-Dbc4eFmr.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1589
+      "sizeBytes": 1557
     },
     {
       "label": "CheerDetail runtime",
-      "file": "dist/assets/CheerDetail-BonMfYdN.js",
+      "file": "dist/assets/CheerDetail-BMGRZ95a.js",
       "maxBytes": 10000,
       "ok": true,
-      "sizeBytes": 7172
+      "sizeBytes": 7142
     },
     {
       "label": "CheerDetail content runtime",
-      "file": "dist/assets/CheerDetailContent-CWomGBhm.js",
+      "file": "dist/assets/CheerDetailContent-CcWSZpzk.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 8856
+      "sizeBytes": 8823
     },
     {
       "label": "CheerDetail article runtime",
-      "file": "dist/assets/CheerDetailArticleRuntime-DUNH1UGF.js",
+      "file": "dist/assets/CheerDetailArticleRuntime-1LW7izss.js",
       "maxBytes": 22000,
       "ok": true,
-      "sizeBytes": 14636
+      "sizeBytes": 14601
     },
     {
       "label": "CheerCard route",
-      "file": "dist/assets/CheerCard-BtkQRRv2.js",
+      "file": "dist/assets/CheerCard-CRqQf9Gy.js",
       "maxBytes": 20000,
       "ok": true,
-      "sizeBytes": 14437
+      "sizeBytes": 15201
     },
     {
       "label": "CommentModal route",
-      "file": "dist/assets/CommentModal-BrDYLLrD.js",
+      "file": "dist/assets/CommentModal-B_8u0IEy.js",
       "maxBytes": 7000,
       "ok": true,
-      "sizeBytes": 5470
+      "sizeBytes": 5435
     },
     {
       "label": "ReportModal route",
-      "file": "dist/assets/ReportModal-knqJr4dH.js",
+      "file": "dist/assets/ReportModal-B1OB8YuJ.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 4453
+      "sizeBytes": 4451
     },
     {
       "label": "QuoteRepostEditor route",
-      "file": "dist/assets/QuoteRepostEditor-kxVM74HE.js",
+      "file": "dist/assets/QuoteRepostEditor-AZRclkuv.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 4096
+      "sizeBytes": 4066
     },
     {
       "label": "CheerBookmarks page shell",
-      "file": "dist/assets/CheerBookmarksPage-Da7khkHT.js",
+      "file": "dist/assets/CheerBookmarksPage-5rO9zrGb.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1970
+      "sizeBytes": 1938
     },
     {
       "label": "CheerBookmarks runtime",
-      "file": "dist/assets/CheerBookmarks-23BT5MvB.js",
+      "file": "dist/assets/CheerBookmarks-hAeGl4ri.js",
       "maxBytes": 9000,
       "ok": true,
-      "sizeBytes": 6337
+      "sizeBytes": 6323
     },
     {
       "label": "CheerEdit page shell",
-      "file": "dist/assets/CheerEditPage-COsxAnYd.js",
+      "file": "dist/assets/CheerEditPage-BKkthXIV.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1679
+      "sizeBytes": 1647
     },
     {
       "label": "CheerEdit runtime",
-      "file": "dist/assets/CheerEdit-BpLup04N.js",
+      "file": "dist/assets/CheerEdit-X3dvNl4M.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 9334
+      "sizeBytes": 9304
     },
     {
       "label": "NotificationPanel route",
-      "file": "dist/assets/NotificationPanel-DQpBIuYO.js",
+      "file": "dist/assets/NotificationPanel-5cmFd5Um.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 13725
+      "sizeBytes": 13735
     },
     {
       "label": "CoachBriefing shell",
-      "file": "dist/assets/CoachBriefing-CLUDwz2r.js",
+      "file": "dist/assets/CoachBriefing-D-iRqUht.js",
       "maxBytes": 18300,
       "ok": true,
-      "sizeBytes": 17416
+      "sizeBytes": 16849
     },
     {
       "label": "CoachBriefing content runtime",
-      "file": "dist/assets/CoachBriefingContentRuntime-C22n_1r9.js",
+      "file": "dist/assets/CoachBriefingContentRuntime-D6ZW03RG.js",
       "maxBytes": 8000,
       "ok": true,
       "sizeBytes": 7174
     },
     {
       "label": "CoachBriefing auto runtime",
-      "file": "dist/assets/CoachBriefingAutoRuntime-D0JTDhNW.js",
+      "file": "dist/assets/CoachBriefingAutoRuntime-aan2Bd96.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 9675
+      "sizeBytes": 9645
     },
     {
       "label": "CoachAnalysisDialog shell",
-      "file": "dist/assets/CoachAnalysisDialog-CeI2Yljo.js",
+      "file": "dist/assets/CoachAnalysisDialog-DrIYibRJ.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 3739
+      "sizeBytes": 3707
     },
     {
       "label": "CoachAnalysisDialog runtime",
-      "file": "dist/assets/CoachAnalysisDialogRuntime-BZWhAXfu.js",
+      "file": "dist/assets/CoachAnalysisDialogRuntime-BtpJ31oE.js",
       "maxBytes": 24000,
       "ok": true,
-      "sizeBytes": 13180
+      "sizeBytes": 13293
     },
     {
       "label": "CoachAnalysisDialog result runtime",
-      "file": "dist/assets/CoachAnalysisDialogResultRuntime-aXIGiiU1.js",
+      "file": "dist/assets/CoachAnalysisDialogResultRuntime-BGnTmU27.js",
       "maxBytes": 22000,
       "ok": true,
-      "sizeBytes": 16095
+      "sizeBytes": 14597
     },
     {
       "label": "FollowButton route",
-      "file": "dist/assets/FollowButton-DMOIvUG2.js",
+      "file": "dist/assets/FollowButton-cl9x4KTj.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 3603
+      "sizeBytes": 3573
     },
     {
       "label": "BlockButton route",
-      "file": "dist/assets/BlockButton-D5gBNgnB.js",
+      "file": "dist/assets/BlockButton-BUUP2-KE.js",
       "maxBytes": 5000,
       "ok": true,
       "sizeBytes": 3580
     },
     {
       "label": "BlockedUsersSection route",
-      "file": "dist/assets/BlockedUsersSection-DifNEi7d.js",
+      "file": "dist/assets/BlockedUsersSection-DaXYnzzJ.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 3709
+      "sizeBytes": 3679
     },
     {
       "label": "RankingPredictionShare page shell",
-      "file": "dist/assets/RankingPredictionSharePage-ChnTvSci.js",
+      "file": "dist/assets/RankingPredictionSharePage-VJZTThRl.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1093
+      "sizeBytes": 1061
     },
     {
       "label": "RankingPredictionShare runtime",
-      "file": "dist/assets/RankingPredictionShare-Bl55h4o3.js",
+      "file": "dist/assets/RankingPredictionShare-B4ZSAEps.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1818
+      "sizeBytes": 1823
     },
     {
       "label": "AdminPage page shell",
-      "file": "dist/assets/AdminPagePage-BC7DbBNr.js",
+      "file": "dist/assets/AdminPagePage-DWRZLHbo.js",
       "maxBytes": 5000,
       "ok": true,
       "sizeBytes": 853
     },
     {
       "label": "AdminPage shell",
-      "file": "dist/assets/AdminPage-BtyQYIKB.js",
+      "file": "dist/assets/AdminPage-CxUcgEvR.js",
       "maxBytes": 6000,
       "ok": true,
       "sizeBytes": 3222
     },
     {
       "label": "AdminPage runtime",
-      "file": "dist/assets/AdminPageRuntimeContent-6XVG5gLI.js",
+      "file": "dist/assets/AdminPageRuntimeContent-DmSo2oDT.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 6736
+      "sizeBytes": 6705
     },
     {
       "label": "AdminPage data runtime",
-      "file": "dist/assets/AdminPageDataRuntime-pEuX7vZ8.js",
+      "file": "dist/assets/AdminPageDataRuntime-DO8rh61x.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 15368
+      "sizeBytes": 15327
     },
     {
       "label": "Admin community runtime",
-      "file": "dist/assets/AdminCommunityRuntime-CLVlPX7-.js",
+      "file": "dist/assets/AdminCommunityRuntime-DTB3eCzp.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 5486
+      "sizeBytes": 5456
     },
     {
       "label": "Admin moderation runtime",
-      "file": "dist/assets/AdminModerationRuntime-MF_9bctq.js",
+      "file": "dist/assets/AdminModerationRuntime-CBKEHTbf.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 7804
+      "sizeBytes": 7736
     },
     {
       "label": "AdminStadiums runtime",
-      "file": "dist/assets/AdminStadiumsRuntime-BlXDSo5I.js",
+      "file": "dist/assets/AdminStadiumsRuntime-BFH7vqG1.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 3430
+      "sizeBytes": 3400
     },
     {
       "label": "AdminAiOperations runtime",
-      "file": "dist/assets/AdminAiOperationsRuntime-D_FNwGa8.js",
+      "file": "dist/assets/AdminAiOperationsRuntime-CyND8AOk.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 2196
+      "sizeBytes": 2166
     },
     {
       "label": "AdminAiOperations panel runtime",
-      "file": "dist/assets/AdminAiOperationsPanelRuntime-B4guYQgu.js",
+      "file": "dist/assets/AdminAiOperationsPanelRuntime-CzX1wmpP.js",
       "maxBytes": 4000,
       "ok": true,
-      "sizeBytes": 1729
+      "sizeBytes": 1697
     },
     {
       "label": "AdminCoachAutoBriefOps panel runtime",
-      "file": "dist/assets/AdminCoachAutoBriefOpsPanelRuntime-DixbjsPk.js",
+      "file": "dist/assets/AdminCoachAutoBriefOpsPanelRuntime-Be-6Ajd-.js",
       "maxBytes": 13000,
       "ok": true,
       "sizeBytes": 11495
     },
     {
       "label": "AdminAiReleaseDecision runtime",
-      "file": "dist/assets/AdminAiReleaseDecisionRuntime--L67cuRv.js",
+      "file": "dist/assets/AdminAiReleaseDecisionRuntime-CKf510Yb.js",
       "maxBytes": 24000,
       "ok": true,
-      "sizeBytes": 21830
+      "sizeBytes": 21800
     },
     {
       "label": "UsersAdminPanel route",
-      "file": "dist/assets/UsersAdminPanel-CSDhuuYs.js",
+      "file": "dist/assets/UsersAdminPanel-06khuJoF.js",
       "maxBytes": 8000,
       "ok": true,
-      "sizeBytes": 5938
+      "sizeBytes": 5933
     },
     {
       "label": "PostsAdminPanel route",
-      "file": "dist/assets/PostsAdminPanel-CJjwERIf.js",
+      "file": "dist/assets/PostsAdminPanel-Ro-ZuPQr.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 4107
+      "sizeBytes": 4102
     },
     {
       "label": "MatesAdminPanel route",
-      "file": "dist/assets/MatesAdminPanel-DTXvnrdd.js",
+      "file": "dist/assets/MatesAdminPanel-DEiUAoqI.js",
       "maxBytes": 6000,
       "ok": true,
       "sizeBytes": 3988
     },
     {
       "label": "AdminReportsPanel route",
-      "file": "dist/assets/AdminReportsPanel-DCpdbR3u.js",
+      "file": "dist/assets/AdminReportsPanel-Psv4BOBX.js",
       "maxBytes": 7000,
       "ok": true,
       "sizeBytes": 5048
     },
     {
       "label": "ClientErrorAdminPanel route",
-      "file": "dist/assets/ClientErrorAdminPanel-DQVd-RXU.js",
+      "file": "dist/assets/ClientErrorAdminPanel-wR0RN5fP.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 16086
+      "sizeBytes": 16051
     },
     {
       "label": "ClientErrorAdmin insights runtime",
-      "file": "dist/assets/ClientErrorAdminInsightsRuntime-CeJM4RjP.js",
+      "file": "dist/assets/ClientErrorAdminInsightsRuntime-jmaFiQcB.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 3984
+      "sizeBytes": 3954
     },
     {
       "label": "ClientErrorAdmin detail runtime",
-      "file": "dist/assets/ClientErrorAdminDetailRuntime-CMbz53y1.js",
+      "file": "dist/assets/ClientErrorAdminDetailRuntime-DjuyKgm3.js",
       "maxBytes": 16000,
       "ok": true,
-      "sizeBytes": 5110
+      "sizeBytes": 5080
     },
     {
       "label": "OffseasonMovementAdminPanel route",
-      "file": "dist/assets/OffseasonMovementAdminPanel-wS2oN75d.js",
+      "file": "dist/assets/OffseasonMovementAdminPanel-Dqbu1BSB.js",
       "maxBytes": 18000,
       "ok": true,
-      "sizeBytes": 10574
+      "sizeBytes": 10544
     },
     {
       "label": "OffseasonMovementAdminPanel content",
-      "file": "dist/assets/OffseasonMovementAdminPanelContent-D4mP-CCe.js",
+      "file": "dist/assets/OffseasonMovementAdminPanelContent-PvWRnrzd.js",
       "maxBytes": 25000,
       "ok": true,
       "sizeBytes": 11103
     },
     {
       "label": "OffSeasonList runtime",
-      "file": "dist/assets/OffSeasonList-dRYTiHxS.js",
+      "file": "dist/assets/OffSeasonList-CvEAlPM1.js",
       "maxBytes": 37000,
       "ok": true,
-      "sizeBytes": 12263
+      "sizeBytes": 12231
     },
     {
       "label": "OffseasonDesktopTable route",
-      "file": "dist/assets/OffseasonDesktopTable-l7y1IUe2.js",
+      "file": "dist/assets/OffseasonDesktopTable-hTEcrQ9z.js",
       "maxBytes": 22000,
       "ok": true,
-      "sizeBytes": 10315
+      "sizeBytes": 10280
     },
     {
       "label": "OffseasonMobileCards route",
-      "file": "dist/assets/OffseasonMobileCards-BaLyRVog.js",
+      "file": "dist/assets/OffseasonMobileCards-D4Dp4Bag.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 2723
+      "sizeBytes": 2718
     },
     {
       "label": "OffseasonInsightsPanel route",
-      "file": "dist/assets/OffseasonInsightsPanel-rHE0IuRF.js",
+      "file": "dist/assets/OffseasonInsightsPanel-B3TUQs0H.js",
       "maxBytes": 10000,
       "ok": true,
       "sizeBytes": 5859
     },
     {
       "label": "OffseasonMovementDetailPanel route",
-      "file": "dist/assets/OffseasonMovementDetailPanel-D32PMQiA.js",
+      "file": "dist/assets/OffseasonMovementDetailPanel-BOJoI9IQ.js",
       "maxBytes": 12000,
       "ok": true,
-      "sizeBytes": 8666
+      "sizeBytes": 8661
     },
     {
       "label": "ChatBot shell",
-      "file": "dist/assets/ChatBot-DpuPLI91.js",
+      "file": "dist/assets/ChatBot-kEWtbWDK.js",
       "maxBytes": 5000,
       "ok": true,
-      "sizeBytes": 1304
+      "sizeBytes": 1272
     },
     {
       "label": "ChatBot runtime",
-      "file": "dist/assets/ChatBotRuntime-DKFlYo50.js",
+      "file": "dist/assets/ChatBotRuntime-tXkQud7k.js",
       "maxBytes": 10000,
       "ok": true,
-      "sizeBytes": 7719
+      "sizeBytes": 7689
     },
     {
       "label": "ChatBot authenticated panel",
-      "file": "dist/assets/ChatBotAuthenticatedPanel-DUQTdMwq.js",
+      "file": "dist/assets/ChatBotAuthenticatedPanel-ClQDeaKt.js",
       "maxBytes": 8000,
       "ok": true,
       "sizeBytes": 1656
     },
     {
       "label": "ChatBot session runtime",
-      "file": "dist/assets/ChatBotSessionRuntime-DdFmI5MJ.js",
+      "file": "dist/assets/ChatBotSessionRuntime-Bc2A2Di5.js",
       "maxBytes": 6000,
       "ok": true,
-      "sizeBytes": 1121
+      "sizeBytes": 1089
     },
     {
       "label": "ChatBot session state runtime",
-      "file": "dist/assets/ChatBotSessionStateRuntime-aum6dkd1.js",
+      "file": "dist/assets/ChatBotSessionStateRuntime-DNwaI24W.js",
       "maxBytes": 24000,
       "ok": true,
-      "sizeBytes": 22392
+      "sizeBytes": 22362
     },
     {
       "label": "ChatBot conversation runtime",
-      "file": "dist/assets/ChatBotConversationRuntime-D_Zt0WO3.js",
+      "file": "dist/assets/ChatBotConversationRuntime-CpRszOua.js",
       "maxBytes": 9000,
       "ok": true,
-      "sizeBytes": 7052
+      "sizeBytes": 6990
     },
     {
       "label": "auth session chunk",
-      "file": "dist/assets/auth-BfhlhdaM.js",
+      "file": "dist/assets/auth-RlO-FBg_.js",
       "maxBytes": 3000,
       "ok": true,
-      "sizeBytes": 1751
+      "sizeBytes": 1789
     },
     {
       "label": "worker entry",
@@ -1069,7 +1048,7 @@
   "dependencyGuardResults": [
     {
       "label": "Home direct deps",
-      "file": "dist/assets/Home-BY-J_rrj.js",
+      "file": "dist/assets/Home-902Dm8OU.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-network-",
@@ -1079,7 +1058,7 @@
     },
     {
       "label": "Home secondary panels direct deps",
-      "file": "dist/assets/HomeSecondaryPanelsContainer-Br5AtmAw.js",
+      "file": "dist/assets/HomeSecondaryPanelsContainer-BAOyEZeS.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-network-",
@@ -1089,7 +1068,7 @@
     },
     {
       "label": "OffSeasonHome page shell direct deps",
-      "file": "dist/assets/OffSeasonHomePage-D--9NpSL.js",
+      "file": "dist/assets/OffSeasonHomePage-DrtcF63i.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-query-",
@@ -1100,7 +1079,7 @@
     },
     {
       "label": "OffSeasonHome runtime direct deps",
-      "file": "dist/assets/OffSeasonHome-CSzWocFl.js",
+      "file": "dist/assets/OffSeasonHome-DN5Uo4sy.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-network-",
@@ -1110,7 +1089,7 @@
     },
     {
       "label": "OffSeasonHome primary runtime direct deps",
-      "file": "dist/assets/OffSeasonHomePrimaryRuntime-DkmJnWOf.js",
+      "file": "dist/assets/OffSeasonHomePrimaryRuntime-v-Jp2Bs8.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-query-",
@@ -1121,7 +1100,7 @@
     },
     {
       "label": "OffSeasonHome highlights runtime direct deps",
-      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-B6RnO8tl.js",
+      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-BNMiSvrv.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-query-",
@@ -1132,7 +1111,7 @@
     },
     {
       "label": "OffSeasonList page shell direct deps",
-      "file": "dist/assets/OffSeasonListPage-6Xau3aKr.js",
+      "file": "dist/assets/OffSeasonListPage-CM8bDwBB.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-query-",
@@ -1143,7 +1122,7 @@
     },
     {
       "label": "RankingPredictionShare direct deps",
-      "file": "dist/assets/RankingPredictionShare-Bl55h4o3.js",
+      "file": "dist/assets/RankingPredictionShare-B4ZSAEps.js",
       "ok": true,
       "forbiddenSubstrings": [
         "./vendor-network-",
@@ -1155,7 +1134,7 @@
   "manifestImportGuardResults": [
     {
       "label": "OffSeasonHome page shell manifest imports",
-      "file": "dist/assets/OffSeasonHomePage-D--9NpSL.js",
+      "file": "dist/assets/OffSeasonHomePage-DrtcF63i.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1166,7 +1145,7 @@
     },
     {
       "label": "OffSeasonHome runtime manifest imports",
-      "file": "dist/assets/OffSeasonHome-CSzWocFl.js",
+      "file": "dist/assets/OffSeasonHome-DN5Uo4sy.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1176,7 +1155,7 @@
     },
     {
       "label": "OffSeasonHome primary runtime manifest imports",
-      "file": "dist/assets/OffSeasonHomePrimaryRuntime-DkmJnWOf.js",
+      "file": "dist/assets/OffSeasonHomePrimaryRuntime-v-Jp2Bs8.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1187,7 +1166,7 @@
     },
     {
       "label": "OffSeasonHome highlights runtime manifest imports",
-      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-B6RnO8tl.js",
+      "file": "dist/assets/OffSeasonHomeHighlightsRuntime-BNMiSvrv.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1198,7 +1177,7 @@
     },
     {
       "label": "OffSeasonList page shell manifest imports",
-      "file": "dist/assets/OffSeasonListPage-6Xau3aKr.js",
+      "file": "dist/assets/OffSeasonListPage-CM8bDwBB.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1209,7 +1188,7 @@
     },
     {
       "label": "OffSeasonList runtime manifest imports",
-      "file": "dist/assets/OffSeasonList-dRYTiHxS.js",
+      "file": "dist/assets/OffSeasonList-CvEAlPM1.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1219,7 +1198,7 @@
     },
     {
       "label": "AdminPage page shell manifest imports",
-      "file": "dist/assets/AdminPagePage-BC7DbBNr.js",
+      "file": "dist/assets/AdminPagePage-DWRZLHbo.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1230,7 +1209,7 @@
     },
     {
       "label": "AdminPage shell manifest imports",
-      "file": "dist/assets/AdminPage-BtyQYIKB.js",
+      "file": "dist/assets/AdminPage-CxUcgEvR.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1241,7 +1220,7 @@
     },
     {
       "label": "AdminPage runtime manifest imports",
-      "file": "dist/assets/AdminPageRuntimeContent-6XVG5gLI.js",
+      "file": "dist/assets/AdminPageRuntimeContent-DmSo2oDT.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1251,7 +1230,7 @@
     },
     {
       "label": "AdminPage data runtime manifest imports",
-      "file": "dist/assets/AdminPageDataRuntime-pEuX7vZ8.js",
+      "file": "dist/assets/AdminPageDataRuntime-DO8rh61x.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1261,7 +1240,7 @@
     },
     {
       "label": "Admin community runtime manifest imports",
-      "file": "dist/assets/AdminCommunityRuntime-CLVlPX7-.js",
+      "file": "dist/assets/AdminCommunityRuntime-DTB3eCzp.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1271,7 +1250,7 @@
     },
     {
       "label": "Admin moderation runtime manifest imports",
-      "file": "dist/assets/AdminModerationRuntime-MF_9bctq.js",
+      "file": "dist/assets/AdminModerationRuntime-CBKEHTbf.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1281,7 +1260,7 @@
     },
     {
       "label": "AdminStadiums runtime manifest imports",
-      "file": "dist/assets/AdminStadiumsRuntime-BlXDSo5I.js",
+      "file": "dist/assets/AdminStadiumsRuntime-BFH7vqG1.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1291,7 +1270,7 @@
     },
     {
       "label": "AdminAiOperations runtime manifest imports",
-      "file": "dist/assets/AdminAiOperationsRuntime-D_FNwGa8.js",
+      "file": "dist/assets/AdminAiOperationsRuntime-CyND8AOk.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1301,7 +1280,7 @@
     },
     {
       "label": "UsersAdminPanel manifest imports",
-      "file": "dist/assets/UsersAdminPanel-CSDhuuYs.js",
+      "file": "dist/assets/UsersAdminPanel-06khuJoF.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1311,7 +1290,7 @@
     },
     {
       "label": "PostsAdminPanel manifest imports",
-      "file": "dist/assets/PostsAdminPanel-CJjwERIf.js",
+      "file": "dist/assets/PostsAdminPanel-Ro-ZuPQr.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1321,7 +1300,7 @@
     },
     {
       "label": "MatesAdminPanel manifest imports",
-      "file": "dist/assets/MatesAdminPanel-DTXvnrdd.js",
+      "file": "dist/assets/MatesAdminPanel-DEiUAoqI.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1331,7 +1310,7 @@
     },
     {
       "label": "AdminReportsPanel manifest imports",
-      "file": "dist/assets/AdminReportsPanel-DCpdbR3u.js",
+      "file": "dist/assets/AdminReportsPanel-Psv4BOBX.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1341,7 +1320,7 @@
     },
     {
       "label": "ClientErrorAdminPanel manifest imports",
-      "file": "dist/assets/ClientErrorAdminPanel-DQVd-RXU.js",
+      "file": "dist/assets/ClientErrorAdminPanel-wR0RN5fP.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1351,7 +1330,7 @@
     },
     {
       "label": "ClientErrorAdmin insights runtime manifest imports",
-      "file": "dist/assets/ClientErrorAdminInsightsRuntime-CeJM4RjP.js",
+      "file": "dist/assets/ClientErrorAdminInsightsRuntime-jmaFiQcB.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1361,7 +1340,7 @@
     },
     {
       "label": "ClientErrorAdmin detail runtime manifest imports",
-      "file": "dist/assets/ClientErrorAdminDetailRuntime-CMbz53y1.js",
+      "file": "dist/assets/ClientErrorAdminDetailRuntime-DjuyKgm3.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1371,7 +1350,7 @@
     },
     {
       "label": "OffseasonMovementAdminPanel manifest imports",
-      "file": "dist/assets/OffseasonMovementAdminPanel-wS2oN75d.js",
+      "file": "dist/assets/OffseasonMovementAdminPanel-Dqbu1BSB.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1381,7 +1360,7 @@
     },
     {
       "label": "OffseasonMovementAdminPanel content manifest imports",
-      "file": "dist/assets/OffseasonMovementAdminPanelContent-D4mP-CCe.js",
+      "file": "dist/assets/OffseasonMovementAdminPanelContent-PvWRnrzd.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1393,7 +1372,7 @@
     },
     {
       "label": "OffseasonDesktopTable manifest imports",
-      "file": "dist/assets/OffseasonDesktopTable-l7y1IUe2.js",
+      "file": "dist/assets/OffseasonDesktopTable-hTEcrQ9z.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1403,7 +1382,7 @@
     },
     {
       "label": "OffseasonMobileCards manifest imports",
-      "file": "dist/assets/OffseasonMobileCards-BaLyRVog.js",
+      "file": "dist/assets/OffseasonMobileCards-D4Dp4Bag.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1413,7 +1392,7 @@
     },
     {
       "label": "OffseasonInsightsPanel manifest imports",
-      "file": "dist/assets/OffseasonInsightsPanel-rHE0IuRF.js",
+      "file": "dist/assets/OffseasonInsightsPanel-B3TUQs0H.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1423,7 +1402,7 @@
     },
     {
       "label": "OffseasonMovementDetailPanel manifest imports",
-      "file": "dist/assets/OffseasonMovementDetailPanel-D32PMQiA.js",
+      "file": "dist/assets/OffseasonMovementDetailPanel-BOJoI9IQ.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1433,7 +1412,7 @@
     },
     {
       "label": "RankingPrediction manifest imports",
-      "file": "dist/assets/RankingPrediction-CwCjE7bK.js",
+      "file": "dist/assets/RankingPrediction-BMO6q7IY.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1443,7 +1422,7 @@
     },
     {
       "label": "PredictionMatchTab manifest imports",
-      "file": "dist/assets/PredictionMatchTab-C8RPH2AM.js",
+      "file": "dist/assets/PredictionMatchTab-COSDFa5Z.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1453,31 +1432,10 @@
     },
     {
       "label": "PredictionMatchRuntime shell manifest imports",
-      "file": "dist/assets/PredictionMatchRuntimeContent-CcmnzM_4.js",
+      "file": "dist/assets/PredictionMatchRuntimeContent-BYgVwjw6.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
-        "vendor-network-",
-        "_axios-"
-      ],
-      "violations": []
-    },
-    {
-      "label": "PredictionMatchSchedule shell manifest imports",
-      "file": "dist/assets/PredictionMatchScheduleRuntime-CjkoB4FI.js",
-      "ok": true,
-      "forbiddenImportSubstrings": [
-        "vendor-query-",
-        "vendor-network-",
-        "_axios-"
-      ],
-      "violations": []
-    },
-    {
-      "label": "PredictionMatchSchedule data runtime manifest imports",
-      "file": "dist/assets/PredictionMatchScheduleDataRuntime-CtIbG-5K.js",
-      "ok": true,
-      "forbiddenImportSubstrings": [
         "vendor-network-",
         "_axios-"
       ],
@@ -1485,7 +1443,7 @@
     },
     {
       "label": "PredictionMatchDetailPanel manifest imports",
-      "file": "dist/assets/PredictionMatchDetailPanel-C4V6unak.js",
+      "file": "dist/assets/PredictionMatchDetailPanel-JMnqaDtE.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1495,7 +1453,7 @@
     },
     {
       "label": "PredictionStatsPanel manifest imports",
-      "file": "dist/assets/PredictionStatsPanel-5QuxNkrT.js",
+      "file": "dist/assets/PredictionStatsPanel-DlJ-vZHc.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1505,7 +1463,7 @@
     },
     {
       "label": "LeaderboardPage manifest imports",
-      "file": "dist/assets/LeaderboardPage-D7s2NNAn.js",
+      "file": "dist/assets/LeaderboardPage-mszpUMkN.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1515,7 +1473,7 @@
     },
     {
       "label": "StadiumGuide manifest imports",
-      "file": "dist/assets/StadiumGuide-kI70y8Fe.js",
+      "file": "dist/assets/StadiumGuide-Dmpb7Kks.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1525,7 +1483,7 @@
     },
     {
       "label": "AuthenticatedStadiumFavoriteToggle manifest imports",
-      "file": "dist/assets/AuthenticatedStadiumFavoriteToggle-7rw8aAAc.js",
+      "file": "dist/assets/AuthenticatedStadiumFavoriteToggle-Ff56fPB7.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1535,7 +1493,7 @@
     },
     {
       "label": "AccountDeletionRecovery manifest imports",
-      "file": "dist/assets/AccountDeletionRecovery-D5tF0XCA.js",
+      "file": "dist/assets/AccountDeletionRecovery-CHFpsI5E.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1545,7 +1503,7 @@
     },
     {
       "label": "Login manifest imports",
-      "file": "dist/assets/Login-Dda0r-9s.js",
+      "file": "dist/assets/Login-C4uD0x4F.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1555,7 +1513,7 @@
     },
     {
       "label": "SignUp manifest imports",
-      "file": "dist/assets/SignUp-CzxH0HHY.js",
+      "file": "dist/assets/SignUp-BnlB4cg_.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1565,7 +1523,7 @@
     },
     {
       "label": "PasswordReset manifest imports",
-      "file": "dist/assets/PasswordReset-CF9MUyme.js",
+      "file": "dist/assets/PasswordReset-Bqkc6qUg.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1575,7 +1533,7 @@
     },
     {
       "label": "PasswordResetConfirm manifest imports",
-      "file": "dist/assets/PasswordResetConfirm-De_zfD6Z.js",
+      "file": "dist/assets/PasswordResetConfirm-BK47m-Ro.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1585,7 +1543,7 @@
     },
     {
       "label": "OAuthCallback manifest imports",
-      "file": "dist/assets/OAuthCallback-DnEcbbyT.js",
+      "file": "dist/assets/OAuthCallback-t3z9ej_Z.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1595,7 +1553,7 @@
     },
     {
       "label": "NoticePage manifest imports",
-      "file": "dist/assets/NoticePage-rmNjAcK3.js",
+      "file": "dist/assets/NoticePage-CBdDYTXN.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1605,7 +1563,7 @@
     },
     {
       "label": "MyPage page shell manifest imports",
-      "file": "dist/assets/MyPage-BA9QnJqO.js",
+      "file": "dist/assets/MyPage-Bve4MEx5.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1616,7 +1574,7 @@
     },
     {
       "label": "MyPage view runtime manifest imports",
-      "file": "dist/assets/MyPageViewRuntime-PumAo4sm.js",
+      "file": "dist/assets/MyPageViewRuntime-C3yDPq3v.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1626,7 +1584,7 @@
     },
     {
       "label": "UserProfile page shell manifest imports",
-      "file": "dist/assets/UserProfilePage-BuheWhqo.js",
+      "file": "dist/assets/UserProfilePage-CikDdD1y.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1637,7 +1595,7 @@
     },
     {
       "label": "UserProfile runtime manifest imports",
-      "file": "dist/assets/UserProfile-Doh4E8GJ.js",
+      "file": "dist/assets/UserProfile-C5eL1x8R.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1647,7 +1605,7 @@
     },
     {
       "label": "UserProfileModal manifest imports",
-      "file": "dist/assets/UserProfileModal-CHousDEo.js",
+      "file": "dist/assets/UserProfileModal-D7AeKV6R.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1657,7 +1615,7 @@
     },
     {
       "label": "UserListModal manifest imports",
-      "file": "dist/assets/UserListModal-D-qzPMAF.js",
+      "file": "dist/assets/UserListModal-hAlqs7-q.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1667,7 +1625,7 @@
     },
     {
       "label": "ProfileEditSection shell manifest imports",
-      "file": "dist/assets/ProfileEditSection-CA_sswte.js",
+      "file": "dist/assets/ProfileEditSection-Ci7lTzDi.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1678,7 +1636,7 @@
     },
     {
       "label": "ProfileEditSection runtime manifest imports",
-      "file": "dist/assets/ProfileEditSectionRuntime-DBQQcvxp.js",
+      "file": "dist/assets/ProfileEditSectionRuntime-DXsLni1t.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1688,7 +1646,7 @@
     },
     {
       "label": "ProfileEdit profile runtime manifest imports",
-      "file": "dist/assets/ProfileEditProfileRuntime-B02ZMLzD.js",
+      "file": "dist/assets/ProfileEditProfileRuntime-DQgMxxY8.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1699,7 +1657,7 @@
     },
     {
       "label": "Diaryform shell manifest imports",
-      "file": "dist/assets/Diaryform-_B9AyCXM.js",
+      "file": "dist/assets/Diaryform-CuaZtIx7.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1710,7 +1668,7 @@
     },
     {
       "label": "Diaryform runtime manifest imports",
-      "file": "dist/assets/DiaryformRuntime-Dxicwrq5.js",
+      "file": "dist/assets/DiaryformRuntime-CLPViEDY.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1720,7 +1678,7 @@
     },
     {
       "label": "DiaryEditMode runtime manifest imports",
-      "file": "dist/assets/DiaryEditModeRuntime-CqhVpxgB.js",
+      "file": "dist/assets/DiaryEditModeRuntime-hu63Y6QY.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1731,7 +1689,7 @@
     },
     {
       "label": "AccountSettingsSection manifest imports",
-      "file": "dist/assets/AccountSettingsSection-C_uShcKX.js",
+      "file": "dist/assets/AccountSettingsSection-HcPohYn6.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1741,7 +1699,7 @@
     },
     {
       "label": "AccountSettings security runtime manifest imports",
-      "file": "dist/assets/AccountSettingsSecurityRuntime-Cnhd8Nm-.js",
+      "file": "dist/assets/AccountSettingsSecurityRuntime-C4K8Yg6d.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1751,7 +1709,7 @@
     },
     {
       "label": "AccountSettings advanced runtime manifest imports",
-      "file": "dist/assets/AccountSettingsAdvancedRuntime-2SyBVQ_v.js",
+      "file": "dist/assets/AccountSettingsAdvancedRuntime-Dqr52Fyy.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1762,7 +1720,7 @@
     },
     {
       "label": "Mate page shell manifest imports",
-      "file": "dist/assets/MatePage-2YCHgQsb.js",
+      "file": "dist/assets/MatePage-CAmQdC8s.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1773,7 +1731,7 @@
     },
     {
       "label": "MateCreate page shell manifest imports",
-      "file": "dist/assets/MateCreatePage-WDMROgOf.js",
+      "file": "dist/assets/MateCreatePage-BXjod0IF.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1784,7 +1742,7 @@
     },
     {
       "label": "MateCreate runtime manifest imports",
-      "file": "dist/assets/MateCreate-C6vrOLHS.js",
+      "file": "dist/assets/MateCreate-K4lacJ4-.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1794,7 +1752,7 @@
     },
     {
       "label": "MateCreate ticket step manifest imports",
-      "file": "dist/assets/MateCreateTicketStep-GHKSHjXa.js",
+      "file": "dist/assets/MateCreateTicketStep-CjmIEDMY.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1804,7 +1762,7 @@
     },
     {
       "label": "MateCreate match step manifest imports",
-      "file": "dist/assets/MateCreateMatchStep-BghlPvAD.js",
+      "file": "dist/assets/MateCreateMatchStep-BMRisz1_.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1814,7 +1772,7 @@
     },
     {
       "label": "MateCreate seat step manifest imports",
-      "file": "dist/assets/MateCreateSeatStep-BiWU8KeO.js",
+      "file": "dist/assets/MateCreateSeatStep-Dce8TwxW.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1824,7 +1782,7 @@
     },
     {
       "label": "MateCreate description step manifest imports",
-      "file": "dist/assets/MateCreateDescriptionStep-DxE1tfjZ.js",
+      "file": "dist/assets/MateCreateDescriptionStep-CY7ogu3v.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1834,7 +1792,7 @@
     },
     {
       "label": "MateCreate confirm dialog manifest imports",
-      "file": "dist/assets/MateCreateConfirmDialog-Dvs-kDKs.js",
+      "file": "dist/assets/MateCreateConfirmDialog-Bqv3tSoS.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1844,7 +1802,7 @@
     },
     {
       "label": "Mate runtime manifest imports",
-      "file": "dist/assets/Mate-CeH_ZnLm.js",
+      "file": "dist/assets/Mate-Dd4P9Tar.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1854,7 +1812,7 @@
     },
     {
       "label": "Mate results runtime manifest imports",
-      "file": "dist/assets/MateResultsRuntime-CeYBzbdc.js",
+      "file": "dist/assets/MateResultsRuntime-BXQ7fcnF.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1864,7 +1822,7 @@
     },
     {
       "label": "Mate guide runtime manifest imports",
-      "file": "dist/assets/MateGuidePanelRuntime-CAlXc7Ak.js",
+      "file": "dist/assets/MateGuidePanelRuntime-3VzlJ_Iu.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1874,7 +1832,7 @@
     },
     {
       "label": "MateApply page shell manifest imports",
-      "file": "dist/assets/MateApplyPage-BhTPJYpf.js",
+      "file": "dist/assets/MateApplyPage-DxtOPXWW.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1885,7 +1843,7 @@
     },
     {
       "label": "MateApply runtime manifest imports",
-      "file": "dist/assets/MateApply-_eF7MHqm.js",
+      "file": "dist/assets/MateApply-BdzaBSt9.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1895,7 +1853,7 @@
     },
     {
       "label": "MateDetailRuntime manifest imports",
-      "file": "dist/assets/MateDetailRuntime-DJ7Q7l9p.js",
+      "file": "dist/assets/MateDetailRuntime-DsdNAvvt.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1905,7 +1863,7 @@
     },
     {
       "label": "MateDetail overview section manifest imports",
-      "file": "dist/assets/MateDetailOverviewSection-BJQO-dEI.js",
+      "file": "dist/assets/MateDetailOverviewSection-B1SrpUV9.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1915,7 +1873,7 @@
     },
     {
       "label": "MateDetail action section manifest imports",
-      "file": "dist/assets/MateDetailActionSection-DxKvIYVc.js",
+      "file": "dist/assets/MateDetailActionSection-By2cxoqz.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1925,7 +1883,7 @@
     },
     {
       "label": "MateDetail reviews section manifest imports",
-      "file": "dist/assets/MateDetailReviewsSection-ivNawaVK.js",
+      "file": "dist/assets/MateDetailReviewsSection-D-txHUe8.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1935,7 +1893,7 @@
     },
     {
       "label": "MateDetail QR runtime manifest imports",
-      "file": "dist/assets/MateDetailQrRuntime-RX-ogPlV.js",
+      "file": "dist/assets/MateDetailQrRuntime-dpd9dfWq.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1945,7 +1903,7 @@
     },
     {
       "label": "MateManage page shell manifest imports",
-      "file": "dist/assets/MateManagePage-Tbm1SNGE.js",
+      "file": "dist/assets/MateManagePage-xNLEcNTl.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1956,7 +1914,7 @@
     },
     {
       "label": "MateManage runtime manifest imports",
-      "file": "dist/assets/MateManage-BOSd3TxJ.js",
+      "file": "dist/assets/MateManage-DPTsr2pR.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -1966,7 +1924,7 @@
     },
     {
       "label": "MateManage overview runtime manifest imports",
-      "file": "dist/assets/MateManageOverviewRuntime-DOSHmnEZ.js",
+      "file": "dist/assets/MateManageOverviewRuntime-BVWMM_rM.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1977,7 +1935,7 @@
     },
     {
       "label": "MateManage content runtime manifest imports",
-      "file": "dist/assets/MateManageContentRuntime-D3DIx_ly.js",
+      "file": "dist/assets/MateManageContentRuntime-BJCf-Pi-.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1988,7 +1946,7 @@
     },
     {
       "label": "MateChat page shell manifest imports",
-      "file": "dist/assets/MateChatPage-DgaLblnt.js",
+      "file": "dist/assets/MateChatPage-iZIlglO1.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -1999,7 +1957,7 @@
     },
     {
       "label": "MateChat runtime manifest imports",
-      "file": "dist/assets/MateChat-CmNP1Or-.js",
+      "file": "dist/assets/MateChat-CngM7fgK.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2009,7 +1967,7 @@
     },
     {
       "label": "MateChat view runtime manifest imports",
-      "file": "dist/assets/MateChatViewRuntime-CW0s274q.js",
+      "file": "dist/assets/MateChatViewRuntime-C3ML4Y-1.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2020,7 +1978,7 @@
     },
     {
       "label": "MateChat composer panel manifest imports",
-      "file": "dist/assets/MateChatComposerPanel-BMOHJanU.js",
+      "file": "dist/assets/MateChatComposerPanel-DGLhSK-4.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2031,7 +1989,7 @@
     },
     {
       "label": "MateCheckIn page shell manifest imports",
-      "file": "dist/assets/MateCheckInPage-D0SN8WSA.js",
+      "file": "dist/assets/MateCheckInPage-B4T3dBnB.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2042,7 +2000,7 @@
     },
     {
       "label": "MateCheckIn runtime manifest imports",
-      "file": "dist/assets/MateCheckIn-DEmcb1wB.js",
+      "file": "dist/assets/MateCheckIn-C69zaLRN.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2052,7 +2010,7 @@
     },
     {
       "label": "MateCheckIn content runtime manifest imports",
-      "file": "dist/assets/MateCheckInContentRuntime-B9NDaUm9.js",
+      "file": "dist/assets/MateCheckInContentRuntime-CbE8DcQ1.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2063,7 +2021,7 @@
     },
     {
       "label": "MateCheckIn roster runtime manifest imports",
-      "file": "dist/assets/MateCheckInRosterRuntime-DaqPIDM-.js",
+      "file": "dist/assets/MateCheckInRosterRuntime-pMTUwXgR.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2075,7 +2033,7 @@
     },
     {
       "label": "MateCheckIn action runtime manifest imports",
-      "file": "dist/assets/MateCheckInActionRuntime-CApCrbbg.js",
+      "file": "dist/assets/MateCheckInActionRuntime-bK4Fd6Nu.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2085,7 +2043,7 @@
     },
     {
       "label": "MateCheckIn status runtime manifest imports",
-      "file": "dist/assets/MateCheckInStatusRuntime-C_AyCsEG.js",
+      "file": "dist/assets/MateCheckInStatusRuntime-B2kuToEu.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2095,7 +2053,7 @@
     },
     {
       "label": "ReviewDialog manifest imports",
-      "file": "dist/assets/ReviewDialog-sefTQcTj.js",
+      "file": "dist/assets/ReviewDialog-THR6GhbO.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2105,7 +2063,7 @@
     },
     {
       "label": "TicketUploadModal manifest imports",
-      "file": "dist/assets/TicketUploadModal-BQBRHyjl.js",
+      "file": "dist/assets/TicketUploadModal-DKFsUqRJ.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2115,7 +2073,7 @@
     },
     {
       "label": "CheerRuntime manifest imports",
-      "file": "dist/assets/CheerRuntime-Chxjnorr.js",
+      "file": "dist/assets/CheerRuntime-DVRsEgUo.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2127,7 +2085,7 @@
     },
     {
       "label": "Cheer composer runtime manifest imports",
-      "file": "dist/assets/CheerComposerRuntime-Ce37-jlC.js",
+      "file": "dist/assets/CheerComposerRuntime-BUQsIOTU.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2137,7 +2095,7 @@
     },
     {
       "label": "Cheer feed runtime manifest imports",
-      "file": "dist/assets/CheerFeedRuntimeContent-BW9w4XtO.js",
+      "file": "dist/assets/CheerFeedRuntimeContent-bHGnYxFi.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2147,7 +2105,7 @@
     },
     {
       "label": "CheerDetail page shell manifest imports",
-      "file": "dist/assets/CheerDetailPage-DYCfUv6d.js",
+      "file": "dist/assets/CheerDetailPage-Dbc4eFmr.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2158,7 +2116,7 @@
     },
     {
       "label": "CheerDetail runtime manifest imports",
-      "file": "dist/assets/CheerDetail-BonMfYdN.js",
+      "file": "dist/assets/CheerDetail-BMGRZ95a.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2168,7 +2126,7 @@
     },
     {
       "label": "CheerDetail content runtime manifest imports",
-      "file": "dist/assets/CheerDetailContent-CWomGBhm.js",
+      "file": "dist/assets/CheerDetailContent-CcWSZpzk.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2178,7 +2136,7 @@
     },
     {
       "label": "CheerDetail article runtime manifest imports",
-      "file": "dist/assets/CheerDetailArticleRuntime-DUNH1UGF.js",
+      "file": "dist/assets/CheerDetailArticleRuntime-1LW7izss.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2188,7 +2146,7 @@
     },
     {
       "label": "CheerCard manifest imports",
-      "file": "dist/assets/CheerCard-BtkQRRv2.js",
+      "file": "dist/assets/CheerCard-CRqQf9Gy.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2198,7 +2156,7 @@
     },
     {
       "label": "CommentModal manifest imports",
-      "file": "dist/assets/CommentModal-BrDYLLrD.js",
+      "file": "dist/assets/CommentModal-B_8u0IEy.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2208,7 +2166,7 @@
     },
     {
       "label": "ReportModal manifest imports",
-      "file": "dist/assets/ReportModal-knqJr4dH.js",
+      "file": "dist/assets/ReportModal-B1OB8YuJ.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2218,7 +2176,7 @@
     },
     {
       "label": "QuoteRepostEditor manifest imports",
-      "file": "dist/assets/QuoteRepostEditor-kxVM74HE.js",
+      "file": "dist/assets/QuoteRepostEditor-AZRclkuv.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2228,7 +2186,7 @@
     },
     {
       "label": "CheerBookmarks page shell manifest imports",
-      "file": "dist/assets/CheerBookmarksPage-Da7khkHT.js",
+      "file": "dist/assets/CheerBookmarksPage-5rO9zrGb.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2239,7 +2197,7 @@
     },
     {
       "label": "CheerBookmarks runtime manifest imports",
-      "file": "dist/assets/CheerBookmarks-23BT5MvB.js",
+      "file": "dist/assets/CheerBookmarks-hAeGl4ri.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2249,7 +2207,7 @@
     },
     {
       "label": "CheerEdit page shell manifest imports",
-      "file": "dist/assets/CheerEditPage-COsxAnYd.js",
+      "file": "dist/assets/CheerEditPage-BKkthXIV.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2260,7 +2218,7 @@
     },
     {
       "label": "CheerEdit runtime manifest imports",
-      "file": "dist/assets/CheerEdit-BpLup04N.js",
+      "file": "dist/assets/CheerEdit-X3dvNl4M.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2270,7 +2228,7 @@
     },
     {
       "label": "NotificationPanel manifest imports",
-      "file": "dist/assets/NotificationPanel-DQpBIuYO.js",
+      "file": "dist/assets/NotificationPanel-5cmFd5Um.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2280,7 +2238,7 @@
     },
     {
       "label": "CoachBriefing shell manifest imports",
-      "file": "dist/assets/CoachBriefing-CLUDwz2r.js",
+      "file": "dist/assets/CoachBriefing-D-iRqUht.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2292,7 +2250,7 @@
     },
     {
       "label": "CoachBriefing content runtime manifest imports",
-      "file": "dist/assets/CoachBriefingContentRuntime-C22n_1r9.js",
+      "file": "dist/assets/CoachBriefingContentRuntime-D6ZW03RG.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2304,7 +2262,7 @@
     },
     {
       "label": "CoachBriefing auto runtime manifest imports",
-      "file": "dist/assets/CoachBriefingAutoRuntime-D0JTDhNW.js",
+      "file": "dist/assets/CoachBriefingAutoRuntime-aan2Bd96.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2314,7 +2272,7 @@
     },
     {
       "label": "CoachAnalysisDialog shell manifest imports",
-      "file": "dist/assets/CoachAnalysisDialog-CeI2Yljo.js",
+      "file": "dist/assets/CoachAnalysisDialog-DrIYibRJ.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2326,7 +2284,7 @@
     },
     {
       "label": "CoachAnalysisDialog runtime manifest imports",
-      "file": "dist/assets/CoachAnalysisDialogRuntime-BZWhAXfu.js",
+      "file": "dist/assets/CoachAnalysisDialogRuntime-BtpJ31oE.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2336,7 +2294,7 @@
     },
     {
       "label": "CoachAnalysisDialog result runtime manifest imports",
-      "file": "dist/assets/CoachAnalysisDialogResultRuntime-aXIGiiU1.js",
+      "file": "dist/assets/CoachAnalysisDialogResultRuntime-BGnTmU27.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2348,7 +2306,7 @@
     },
     {
       "label": "PredictionMatchInteractive shell manifest imports",
-      "file": "dist/assets/PredictionMatchInteractiveRuntime-DlQ_za_e.js",
+      "file": "dist/assets/PredictionMatchInteractiveRuntime-D2v-haMc.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2359,28 +2317,8 @@
       "violations": []
     },
     {
-      "label": "PredictionMatchSchedule resolved shell manifest imports",
-      "file": "dist/assets/PredictionMatchScheduleResolvedRuntime-Cik9yN2_.js",
-      "ok": true,
-      "forbiddenImportSubstrings": [
-        "vendor-network-",
-        "_axios-"
-      ],
-      "violations": []
-    },
-    {
-      "label": "PredictionMatchSchedule resolved data runtime manifest imports",
-      "file": "dist/assets/PredictionMatchScheduleResolvedDataRuntime-BAxiueC6.js",
-      "ok": true,
-      "forbiddenImportSubstrings": [
-        "vendor-network-",
-        "_axios-"
-      ],
-      "violations": []
-    },
-    {
       "label": "PredictionMatchInteractive data runtime manifest imports",
-      "file": "dist/assets/PredictionMatchInteractiveDataRuntime-Ddq-Cx69.js",
+      "file": "dist/assets/PredictionMatchInteractiveDataRuntime-DKVFym-i.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2390,7 +2328,7 @@
     },
     {
       "label": "PredictionMatchInteractive view shell manifest imports",
-      "file": "dist/assets/PredictionMatchInteractiveView-D2HI-BBy.js",
+      "file": "dist/assets/PredictionMatchInteractiveView-CLjAgpkx.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2400,7 +2338,7 @@
     },
     {
       "label": "PredictionMatchInteractive content runtime manifest imports",
-      "file": "dist/assets/PredictionMatchInteractiveContentRuntime-Dq6Q9Mep.js",
+      "file": "dist/assets/PredictionMatchInteractiveContentRuntime-Bh6GyAx7.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2410,7 +2348,7 @@
     },
     {
       "label": "PredictionMatchVoteController shell manifest imports",
-      "file": "dist/assets/PredictionMatchVoteController-Bfp5L3oJ.js",
+      "file": "dist/assets/PredictionMatchVoteController-tZdRCpqM.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2420,7 +2358,7 @@
     },
     {
       "label": "PredictionMatchVoteController runtime manifest imports",
-      "file": "dist/assets/PredictionMatchVoteControllerRuntime-BVMI-X8R.js",
+      "file": "dist/assets/PredictionMatchVoteControllerRuntime-CG1L1jKv.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2430,7 +2368,7 @@
     },
     {
       "label": "AdvancedMatchCard shell manifest imports",
-      "file": "dist/assets/AdvancedMatchCard-DAwUf5Dv.js",
+      "file": "dist/assets/AdvancedMatchCard-D8ZUUbZM.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2440,7 +2378,7 @@
     },
     {
       "label": "AdvancedMatchCard content runtime manifest imports",
-      "file": "dist/assets/AdvancedMatchCardContentRuntime-CkPAvK8B.js",
+      "file": "dist/assets/AdvancedMatchCardContentRuntime-Brq0uv5n.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2450,7 +2388,7 @@
     },
     {
       "label": "RankingPredictionShare page shell manifest imports",
-      "file": "dist/assets/RankingPredictionSharePage-ChnTvSci.js",
+      "file": "dist/assets/RankingPredictionSharePage-VJZTThRl.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-query-",
@@ -2461,7 +2399,7 @@
     },
     {
       "label": "RankingPredictionShare runtime manifest imports",
-      "file": "dist/assets/RankingPredictionShare-Bl55h4o3.js",
+      "file": "dist/assets/RankingPredictionShare-B4ZSAEps.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2471,7 +2409,7 @@
     },
     {
       "label": "ChatBot shell manifest imports",
-      "file": "dist/assets/ChatBot-DpuPLI91.js",
+      "file": "dist/assets/ChatBot-kEWtbWDK.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2483,7 +2421,7 @@
     },
     {
       "label": "ChatBot runtime manifest imports",
-      "file": "dist/assets/ChatBotRuntime-DKFlYo50.js",
+      "file": "dist/assets/ChatBotRuntime-tXkQud7k.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2495,7 +2433,7 @@
     },
     {
       "label": "AdminAiOperations runtime manifest imports",
-      "file": "dist/assets/AdminAiOperationsRuntime-D_FNwGa8.js",
+      "file": "dist/assets/AdminAiOperationsRuntime-CyND8AOk.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2505,7 +2443,7 @@
     },
     {
       "label": "AdminAiOperations panel runtime manifest imports",
-      "file": "dist/assets/AdminAiOperationsPanelRuntime-B4guYQgu.js",
+      "file": "dist/assets/AdminAiOperationsPanelRuntime-CzX1wmpP.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2517,7 +2455,7 @@
     },
     {
       "label": "ChatBot authenticated panel manifest imports",
-      "file": "dist/assets/ChatBotAuthenticatedPanel-DUQTdMwq.js",
+      "file": "dist/assets/ChatBotAuthenticatedPanel-ClQDeaKt.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2529,7 +2467,7 @@
     },
     {
       "label": "ChatBot session runtime manifest imports",
-      "file": "dist/assets/ChatBotSessionRuntime-DdFmI5MJ.js",
+      "file": "dist/assets/ChatBotSessionRuntime-Bc2A2Di5.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2539,7 +2477,7 @@
     },
     {
       "label": "ChatBot session state runtime manifest imports",
-      "file": "dist/assets/ChatBotSessionStateRuntime-aum6dkd1.js",
+      "file": "dist/assets/ChatBotSessionStateRuntime-DNwaI24W.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2549,7 +2487,7 @@
     },
     {
       "label": "ChatBot conversation runtime manifest imports",
-      "file": "dist/assets/ChatBotConversationRuntime-D_Zt0WO3.js",
+      "file": "dist/assets/ChatBotConversationRuntime-CpRszOua.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2561,7 +2499,7 @@
     },
     {
       "label": "auth session manifest imports",
-      "file": "dist/assets/auth-BfhlhdaM.js",
+      "file": "dist/assets/auth-RlO-FBg_.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2571,7 +2509,7 @@
     },
     {
       "label": "FollowButton manifest imports",
-      "file": "dist/assets/FollowButton-DMOIvUG2.js",
+      "file": "dist/assets/FollowButton-cl9x4KTj.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2581,7 +2519,7 @@
     },
     {
       "label": "BlockButton manifest imports",
-      "file": "dist/assets/BlockButton-D5gBNgnB.js",
+      "file": "dist/assets/BlockButton-BUUP2-KE.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
@@ -2591,7 +2529,7 @@
     },
     {
       "label": "BlockedUsersSection manifest imports",
-      "file": "dist/assets/BlockedUsersSection-DifNEi7d.js",
+      "file": "dist/assets/BlockedUsersSection-DaXYnzzJ.js",
       "ok": true,
       "forbiddenImportSubstrings": [
         "vendor-network-",
