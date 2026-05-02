@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import GameCard from '@/components/GameCard';
 import ScheduledGameCard from '@/components/ScheduledGameCard';
+import { isManualBaseballDataRequiredCode, MANUAL_BASEBALL_DATA_REQUIRED_CODE } from '@/utils/errorUtils';
+import { normalizePredictionDate } from '@/utils/predictionHomeLogic';
 import {
   buildScheduleMonthDates,
   formatScheduleDateKey,
@@ -34,7 +36,10 @@ function buildMonthGrid(cursor: Date): Date[] {
   });
 }
 
-const gameDateKey = (g: Game): string | null => g.gameDate ?? g.sourceDate ?? null;
+const gameDateKey = (g: Game): string | null => (
+  normalizePredictionDate(g.sourceDate || '')
+  || normalizePredictionDate(g.gameDate || '')
+);
 
 const isScheduledLike = (status: string) => {
   const s = (status || '').toUpperCase();
@@ -56,6 +61,7 @@ interface Props {
   isLoading?: boolean;
   isError?: boolean;
   errorMessage?: string;
+  errorCode?: string | null;
   onMonthChange?: (ym: string) => void;
   onSelectPrediction?: (game: Game) => void;
 }
@@ -66,6 +72,7 @@ export default function ScheduleCalendar({
   isLoading = false,
   isError = false,
   errorMessage,
+  errorCode,
   onMonthChange,
   onSelectPrediction,
 }: Props) {
@@ -119,11 +126,12 @@ export default function ScheduleCalendar({
     (count, dateKey) => count + (byDate.get(dateKey)?.length ?? 0),
     0,
   );
+  const isManualDataRequired = isManualBaseballDataRequiredCode(errorCode);
   const selectedDateLabel = formatSelectedDateLabel(selectedDateKey);
   const statusSummary = isLoading
     ? '일정을 확인 중입니다'
     : isError
-    ? '일정을 불러오지 못했습니다'
+    ? isManualDataRequired ? '야구 데이터 준비가 필요합니다' : '일정을 불러오지 못했습니다'
     : `이번 달 ${monthlyGameCount}경기 · 선택한 날 ${selectedGames.length}경기`;
 
   useEffect(() => {
@@ -165,8 +173,23 @@ export default function ScheduleCalendar({
 
     if (isError) {
       return (
-        <Card className="border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {errorMessage || '경기 정보를 불러오지 못했습니다.'}
+        <Card className={`p-4 text-sm ${
+          isManualDataRequired
+            ? 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'border-red-200 bg-red-50 text-red-700'
+        }`}
+        >
+          <p className="font-semibold">
+            {isManualDataRequired ? '야구 데이터 준비가 필요합니다' : '경기 정보를 불러오지 못했습니다.'}
+          </p>
+          <p className="mt-1">
+            {errorMessage || '경기 정보를 불러오지 못했습니다.'}
+          </p>
+          {isManualDataRequired ? (
+            <p className="mt-3 inline-flex rounded-md border border-amber-200 bg-white/70 px-2 py-1 font-mono text-xs font-bold text-amber-800">
+              {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+            </p>
+          ) : null}
         </Card>
       );
     }

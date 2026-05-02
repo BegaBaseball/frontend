@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import { fetchGamesRangeData } from '@/api/home';
 import { formatDateForAPI } from '@/utils/home';
-import { normalizePredictionDate } from '@/utils/predictionHomeLogic';
+import { buildPredictionMatchHandoff } from '@/utils/predictionDeepLink';
 import { isManualBaseballDataRequiredCode, parseError } from '@/utils/errorUtils';
 import type { Game } from '@/types/home';
 
@@ -46,14 +46,15 @@ export default function SchedulePage() {
   );
   const isLoading = monthQuery.isLoading;
   const hasError = monthQuery.isError;
-  const errorMessage = useMemo(() => {
+  const parsedError = useMemo(() => {
     if (!monthQuery.error) {
-      return '경기 정보를 불러오지 못했습니다.';
+      return null;
     }
 
-    const parsed = parseError(monthQuery.error);
-    return parsed.message || '경기 정보를 불러오지 못했습니다.';
+    return parseError(monthQuery.error);
   }, [monthQuery.error]);
+  const errorMessage = parsedError?.message || '경기 정보를 불러오지 못했습니다.';
+  const errorCode = parsedError?.responseCode ?? null;
 
   const handleMonthChange = (ym: string) => {
     const [y, m] = ym.split('-').map(Number);
@@ -66,26 +67,14 @@ export default function SchedulePage() {
   };
 
   const handleSelectPrediction = (game: Game) => {
-    const targetDate = normalizePredictionDate(
-      game.sourceDate || game.gameDate || formatDateForAPI(cursor),
-    );
-    navigate('/prediction', {
-      state: {
-        sourcePage: 'schedule',
-        gameId: game.gameId,
-        date: targetDate,
-        game: {
-          gameId: game.gameId,
-          homeTeam: game.homeTeam,
-          homeTeamFull: game.homeTeamFull,
-          awayTeam: game.awayTeam,
-          awayTeamFull: game.awayTeamFull,
-          homeScore: game.homeScore,
-          awayScore: game.awayScore,
-          sourceDate: game.sourceDate,
-          date: targetDate,
-        },
-      },
+    const handoff = buildPredictionMatchHandoff({
+      sourcePage: 'schedule',
+      game,
+      fallbackDate: formatDateForAPI(cursor),
+    });
+
+    navigate(handoff.path, {
+      state: handoff.state,
     });
   };
 
@@ -97,6 +86,7 @@ export default function SchedulePage() {
         isLoading={isLoading}
         isError={hasError && !isLoading}
         errorMessage={errorMessage}
+        errorCode={errorCode}
         onMonthChange={handleMonthChange}
         onSelectPrediction={handleSelectPrediction}
       />
