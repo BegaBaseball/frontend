@@ -24,6 +24,7 @@ import './StadiumGuide.css';
 const AuthenticatedStadiumFavoriteToggle = lazy(() => import('./AuthenticatedStadiumFavoriteToggle'));
 const StadiumGuideAdSlot = lazy(() => import('./ads/AdSlot'));
 const StadiumGuidePlacesRuntime = lazy(() => import('./StadiumGuidePlacesRuntime'));
+const SuwonSeatMap = lazy(() => import('./suwon/SuwonSeatMap'));
 
 function StadiumGuideCategorySelector({
   selectedCategory,
@@ -122,7 +123,8 @@ export default function StadiumGuideRuntime() {
   const { isLoggedIn } = useAuthSession();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
   const seatMapPresetMeta = resolveStadiumSeatMapPresetMeta(selectedStadiumId, selectedStadium?.stadiumName);
-  const seatMapBadgeLabel = seatMapPresetMeta.label;
+  const isSuwonSeatMap = seatMapPresetMeta.id === 'suwon';
+  const seatMapBadgeLabel = isSuwonSeatMap ? '수원 kt 위즈 파크 공식 좌석도' : seatMapPresetMeta.label;
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
@@ -136,9 +138,17 @@ export default function StadiumGuideRuntime() {
   const canRenderMap = Boolean(selectedStadium && KAKAO_API_KEY && isMapReady && mapStatus === 'success' && hasStadiumCoordinates);
   const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
   const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
-  const renderSeatMap = () => (
-    <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />
-  );
+  const renderSeatMap = () => {
+    if (isSuwonSeatMap) {
+      return (
+        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
+          <SuwonSeatMap />
+        </Suspense>
+      );
+    }
+
+    return <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />;
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-background transition-colors duration-200">
@@ -434,7 +444,7 @@ export default function StadiumGuideRuntime() {
                   {seatMapBadgeLabel}
                 </span>
               </div>
-              <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />
+              {renderSeatMap()}
             </div>
 
             <div>
