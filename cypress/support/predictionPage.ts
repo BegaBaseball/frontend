@@ -16,6 +16,7 @@ interface PredictionVisitOptions {
   clearAuthState?: boolean;
   persistedAuthHint?: boolean;
   authBootstrapMeta?: PredictionAuthBootstrapMetaSeed | null;
+  skipPublicAuthBootstrap?: boolean;
   resetStorage?: boolean;
   onBeforeLoad?: (win: Window) => void;
 }
@@ -117,9 +118,14 @@ const seedPredictionAuthState = (
   token: string,
   persistedAuthHint: boolean,
   authBootstrapMeta?: PredictionAuthBootstrapMetaSeed | null,
+  skipPublicAuthBootstrap = false,
 ) => {
   (win as PredictionWindowWithAuthProfile).__BEGA_TEST_AUTH_PROFILE__ = defaultPredictionAuthProfile;
-  win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  if (skipPublicAuthBootstrap) {
+    win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  } else {
+    win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+  }
   win.localStorage.setItem('auth-storage', JSON.stringify(defaultPredictionAuthState));
   win.localStorage.setItem('accessToken', token);
   if (persistedAuthHint) {
@@ -136,13 +142,18 @@ const seedPredictionGuestState = (
   win: Window,
   clearAuthState: boolean,
   persistedAuthHint: boolean,
+  skipPublicAuthBootstrap: boolean,
   authBootstrapMeta?: PredictionAuthBootstrapMetaSeed | null,
 ) => {
   if (clearAuthState) {
     win.sessionStorage.clear();
   }
   delete (win as PredictionWindowWithAuthProfile).__BEGA_TEST_AUTH_PROFILE__;
-  win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+  if (skipPublicAuthBootstrap) {
+    win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  } else {
+    win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+  }
   win.localStorage.removeItem('auth-storage');
   win.localStorage.removeItem('accessToken');
   if (persistedAuthHint) {
@@ -230,6 +241,7 @@ export const visitPredictionPage = ({
   clearAuthState = false,
   persistedAuthHint = false,
   authBootstrapMeta = null,
+  skipPublicAuthBootstrap = false,
   resetStorage = false,
   onBeforeLoad,
 }: PredictionVisitOptions = {}) => {
@@ -241,9 +253,9 @@ export const visitPredictionPage = ({
       }
 
       if (authenticated) {
-        seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta);
+        seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
       } else {
-        seedPredictionGuestState(win, clearAuthState, persistedAuthHint, authBootstrapMeta);
+        seedPredictionGuestState(win, clearAuthState, persistedAuthHint, skipPublicAuthBootstrap, authBootstrapMeta);
       }
 
       installPredictionAuthRequestTrace(win);
@@ -259,14 +271,14 @@ export const visitPredictionPage = ({
 
   if (authenticated) {
     cy.window().then((win) => {
-      seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta);
+      seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
     });
     cy.setCookie('Authorization', token);
     return;
   }
 
   cy.window().then((win) => {
-    seedPredictionGuestState(win, clearAuthState, persistedAuthHint, authBootstrapMeta);
+    seedPredictionGuestState(win, clearAuthState, persistedAuthHint, skipPublicAuthBootstrap, authBootstrapMeta);
   });
 };
 
@@ -274,6 +286,7 @@ export const visitPredictionPublicPage = ({
   path = '/prediction',
   persistedAuthHint = false,
   authBootstrapMeta = null,
+  skipPublicAuthBootstrap = false,
   resetStorage = false,
   onBeforeLoad,
 }: Omit<PredictionVisitOptions, 'authenticated' | 'clearAuthState' | 'token'> = {}) => (
@@ -283,6 +296,7 @@ export const visitPredictionPublicPage = ({
     clearAuthState: true,
     persistedAuthHint,
     authBootstrapMeta,
+    skipPublicAuthBootstrap,
     resetStorage,
     onBeforeLoad,
   })
@@ -320,34 +334,49 @@ export const getPredictionAuthRequestTraces = () => (
 );
 
 export const ensureCoachBriefingVisible = () => {
-  cy.window().then((win) => {
-    const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
-    if (hasFakeClock) {
-      cy.tick(100);
-    }
-  });
+  const advanceTime = (ms: number) => {
+    cy.window().then((win) => {
+      const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
+      if (hasFakeClock) {
+        cy.tick(ms, { log: false });
+        cy.wait(200, { log: false });
+        return;
+      }
+      cy.wait(ms, { log: false });
+    });
+  };
 
-  cy.get('body', { timeout: 20000 }).then(($body) => {
-    const hasCoachBriefing = $body.find('[data-testid="coach-briefing-card"]').length > 0;
-    if (hasCoachBriefing) {
-      return;
-    }
+  const probeCoachBriefing = (remainingAttempts = 20): Cypress.Chainable => {
+    return cy.get('body', { timeout: 20000 }).then(($body) => {
+      const coachBriefingCard = $body.find('[data-testid="coach-briefing-card"]').first();
+      if (coachBriefingCard.length > 0) {
+        return cy.wrap(coachBriefingCard).scrollIntoView().should('be.visible');
+      }
 
-    const detailButton = [...$body.find('button')].find((button) => (
-      button.textContent?.includes('경기 상세 보기')
-    ));
+      const detailButton = [...$body.find('button')].find((button) => (
+        button.textContent?.includes('경기 상세 보기')
+      ));
 
-    if (detailButton) {
-      cy.wrap(detailButton).click({ force: true });
-    }
-  });
+      if (detailButton) {
+        cy.wrap(detailButton).click({ force: true });
+      }
 
-  cy.window().then((win) => {
-    const hasFakeClock = Boolean((win.setTimeout as typeof win.setTimeout & { clock?: unknown }).clock);
-    if (hasFakeClock) {
-      cy.tick(1300);
-    }
-  });
+      if (remainingAttempts <= 0) {
+        return;
+      }
 
-  cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
+      advanceTime(detailButton ? 1800 : 1000);
+      return probeCoachBriefing(remainingAttempts - 1);
+    });
+  };
+
+  advanceTime(100);
+  probeCoachBriefing();
+  cy.get('body', { timeout: 20000 }).should('not.contain.text', '경기 카드를 준비하고 있습니다.');
+  return cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
+};
+
+export const waitForPredictionVoteBootstrap = () => {
+  cy.wait(['@getVoteStatus', '@getUserVotes']);
+  cy.get('@getUserVote.all').should('have.length', 0);
 };

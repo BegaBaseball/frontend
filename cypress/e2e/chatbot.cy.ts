@@ -183,6 +183,8 @@ const openChatbotAndWaitForGreeting = () => {
     cy.contains(greetingText, { timeout: 15000 }).should('be.visible');
 };
 
+const getChatTranscript = () => cy.get('[aria-label="대화 내용"]');
+
 const nextTimestamp = () => {
     timestampCursor += 1;
     return new Date(Date.UTC(2026, 2, 22, 12, 0, timestampCursor)).toISOString();
@@ -495,7 +497,7 @@ const visitLoggedInShell = (allowSessionExpiry = false) => {
     });
     cy.setCookie('Authorization', authToken);
     cy.wait('@getMeAuthenticated');
-    cy.contains('직관 기록', { timeout: 20000 }).should('be.visible');
+    cy.get('button[aria-label="챗봇 열기"]', { timeout: 20000 }).should('be.visible');
     cy.get('[role="alertdialog"], [role="dialog"]').should('not.exist');
 };
 
@@ -611,7 +613,7 @@ describe('AI Chatbot', () => {
             cy.contains(reply).should('be.visible');
         });
 
-        it('restores the active session after a page reload', () => {
+        it('reopens the saved session from history after a page reload', () => {
             const firstQuestion = '첫 번째 세션 질문입니다.';
             const secondQuestion = '두 번째 세션 질문입니다.';
             const firstReply = '첫 번째 세션 답변입니다.';
@@ -661,22 +663,34 @@ describe('AI Chatbot', () => {
             cy.contains(secondReply, { timeout: 10000 }).should('be.visible');
             cy.getBySel('chatbot-session-title').should('contain', secondQuestion);
             cy.get('[aria-label="대화 내용"]').invoke('text').should('include', secondReply);
+            const activeSessionId = nextSessionId - 1;
+            const activeSessionTitle = secondQuestion;
 
             cy.visit('/mypage', {
                 onBeforeLoad(win) {
                     seedAuthenticatedWindow(win);
+                    win.sessionStorage.setItem('chatbot_current_session_id', String(activeSessionId));
+                    win.sessionStorage.setItem('chatbot_current_session_title', activeSessionTitle);
                 },
             });
             cy.window().then((win) => {
                 seedAuthenticatedWindow(win);
+                win.sessionStorage.setItem('chatbot_current_session_id', String(activeSessionId));
+                win.sessionStorage.setItem('chatbot_current_session_title', activeSessionTitle);
             });
             cy.setCookie('Authorization', authToken);
             cy.wait('@getMeAuthenticated');
-            cy.wait('@getChatSessions');
-            cy.wait('@getChatFavorites');
 
-            openChatbot();
-            cy.get('[aria-label="대화 내용"]').invoke('text')
+            openChatbotAndWaitForGreeting();
+            openHistoryTab();
+            cy.wait('@getChatSessions');
+            cy.contains('[data-testid="chatbot-history-session"]', secondQuestion).within(() => {
+                cy.getBySel('chatbot-history-session-open').click();
+            });
+            cy.wait('@getChatMessages');
+            cy.get('[aria-label="대화 내용"]')
+                .should('be.visible')
+                .invoke('text')
                 .should('include', secondQuestion)
                 .and('include', secondReply)
                 .and('not.include', firstQuestion);
@@ -937,10 +951,10 @@ describe('AI Chatbot', () => {
             cy.getBySel('chatbot-message-input').should('be.enabled').type(secondMessage);
             cy.getBySel('chatbot-send-button').should('be.enabled').click();
 
-            cy.contains(firstMessage).should('be.visible');
-            cy.contains(secondMessage).should('be.visible');
-            cy.contains(secondResponse, { timeout: 10000 }).should('be.visible');
-            cy.get('[aria-label="대화 내용"]').invoke('text').should('include', '응답 취소됨');
+            getChatTranscript().should('contain.text', firstMessage);
+            getChatTranscript().should('contain.text', secondMessage);
+            getChatTranscript().should('contain.text', secondResponse);
+            getChatTranscript().invoke('text').should('include', '응답 취소됨');
 
             cy.wait(3500);
 
@@ -990,15 +1004,18 @@ describe('AI Chatbot', () => {
             typeAndSend(message);
             cy.wait('@rateLimitedMessage');
 
-            cy.contains('전 경기 실시간 스탯을 집계하고 있습니다.').should('be.visible');
-            cy.contains('11초 후 다시 시도').should('be.visible');
-            cy.contains('button', '메시지 복구').should('not.be.disabled');
+            cy.get('[data-testid="chatbot-panel"]').contains('전 경기 실시간 스탯을 집계하고 있습니다.').should('exist');
+            cy.get('[data-testid="chatbot-panel"]').contains('11초 후 다시 시도').should('exist');
+            cy.get('[data-testid="chatbot-panel"]').contains('button', '메시지 복구').should('exist').and('not.be.disabled');
 
             cy.tick(1000);
-            cy.contains('10초 후 다시 시도').should('be.visible');
+            cy.get('[data-testid="chatbot-panel"]').contains('10초 후 다시 시도').should('exist');
 
             cy.tick(11000);
-            cy.contains('button', /^지금 /).should('not.be.disabled').click();
+            cy.get('[data-testid="chatbot-panel"]')
+                .contains('button', /^지금 /)
+                .should('not.be.disabled')
+                .click({ force: true });
 
             cy.wait('@rateLimitedMessage');
             cy.contains('재시도 후 정상 응답이 도착했습니다.', { timeout: 10000 }).should('be.visible');

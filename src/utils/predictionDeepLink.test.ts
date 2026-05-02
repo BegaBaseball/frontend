@@ -3,9 +3,11 @@ import test from 'node:test';
 import type { DateGames } from '../types/prediction';
 import {
   buildDeepLinkNotFoundMessage,
+  buildPredictionMatchHandoff,
   buildPredictionRecoveryPath,
   buildPredictionNavigationSeedGame,
   extractPredictionLocationSeed,
+  resolvePredictionHandoffDate,
   resolvePredictionDeepLinkSelection,
   sanitizePredictionDeepLinkParams,
 } from './predictionDeepLink';
@@ -88,6 +90,37 @@ test('buildPredictionRecoveryPath uses existing query params before default pred
   assert.equal(recoveryPathWithoutQuery, '/prediction');
 });
 
+test('resolvePredictionHandoffDate normalizes timestamp payloads', () => {
+  assert.equal(resolvePredictionHandoffDate(null, '2026-03-07T18:30:00'), '2026-03-07');
+});
+
+test('buildPredictionMatchHandoff creates one URL and location state contract', () => {
+  const handoff = buildPredictionMatchHandoff({
+    sourcePage: 'schedule',
+    fallbackDate: '2026-03-01',
+    game: {
+      gameId: ' GAME-1 ',
+      homeTeam: 'LG',
+      homeTeamFull: 'LG 트윈스',
+      awayTeam: 'HH',
+      awayTeamFull: '한화 이글스',
+      stadium: '잠실',
+      gameStatus: 'SCHEDULED',
+      sourceDate: '2026-03-07T18:30:00',
+    },
+  });
+
+  assert.equal(handoff.path, '/prediction?date=2026-03-07&gameId=GAME-1');
+  assert.equal(handoff.date, '2026-03-07');
+  assert.equal(handoff.gameId, 'GAME-1');
+  assert.equal(handoff.state.sourcePage, 'schedule');
+  assert.equal(handoff.state.gameId, 'GAME-1');
+  assert.equal(handoff.state.date, '2026-03-07');
+  assert.equal(handoff.state.game.gameDate, '2026-03-07');
+  assert.equal(handoff.state.game.sourceDate, '2026-03-07');
+  assert.equal(handoff.state.game.stadium, '잠실');
+});
+
 test('buildDeepLinkNotFoundMessage includes validation and targets', () => {
   const message = buildDeepLinkNotFoundMessage(
     'GAME-1',
@@ -135,4 +168,27 @@ test('resolvePredictionDeepLinkSelection finds gameId before date fallback', () 
     gameIndex: 0,
     reason: 'gameId',
   });
+});
+
+test('resolvePredictionDeepLinkSelection strict gameId avoids date fallback', () => {
+  const allDatesData: DateGames[] = [
+    {
+      date: '2026-03-07',
+      games: [
+        {
+          gameId: 'GAME-1',
+          homeTeam: '두산',
+          awayTeam: 'LG',
+          stadium: '잠실',
+          gameDate: '2026-03-07',
+        },
+      ],
+    },
+  ];
+
+  const selection = resolvePredictionDeepLinkSelection(allDatesData, 'GAME-2', '2026-03-07', {
+    allowDateFallback: false,
+  });
+
+  assert.equal(selection, null);
 });

@@ -35,6 +35,24 @@ describe('Home error UX', () => {
       rankings: [],
     },
   });
+  const buildManualDataRequiredResponse = (scope: string) => ({
+    success: false,
+    code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+    message: '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.',
+    data: {
+      scope,
+      missingItems: [
+        {
+          key: 'game_date',
+          label: '경기 날짜',
+          reason: '요청한 날짜의 홈 일정 row가 없습니다.',
+          expected_format: 'YYYY-MM-DD',
+        },
+      ],
+      operatorMessage: '다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜',
+      blocking: true,
+    },
+  });
 
   beforeEach(() => {
     cy.clock(fixedNow, ['Date']);
@@ -91,6 +109,29 @@ describe('Home error UX', () => {
     getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
+  it('opens prediction for the selected home date from the primary CTA', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.get('[data-testid="home-primary-prediction-cta"]').should('be.visible').click();
+    cy.location('pathname').should('eq', '/prediction');
+    cy.location('search').should('include', 'date=2026-03-16');
+  });
+
   it('allows a single deferred mypage attempt on home when auth bootstrap hint is fresh', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
@@ -122,6 +163,236 @@ describe('Home error UX', () => {
       expect(traces).to.have.length(1);
       expect(traces[0]?.url).to.include('/api/auth/mypage');
     });
+  });
+
+  it('recovers public auth controls after home refresh when deferred bootstrap succeeds', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          id: 123,
+          email: 'test@example.com',
+          name: 'TestUser',
+          handle: 'testuser',
+          favoriteTeam: 'HH',
+          role: 'ROLE_USER',
+          hasPassword: true,
+          profileImageUrl: null,
+        },
+      },
+    }).as('getMeRecovered');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeRecovered');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('not.exist');
+    cy.contains('button', '로그아웃').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('returns to the normal login button after home refresh when deferred bootstrap returns 401', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 401,
+      body: {
+        success: false,
+        code: 'UNAUTHORIZED',
+        message: '인증이 필요합니다.',
+        error: 'Unauthorized',
+      },
+    }).as('getMeUnauthorized');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeUnauthorized');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('returns to the normal login button after home refresh when deferred bootstrap returns 503', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrap');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/auth/mypage*', {
+      delay: 900,
+      statusCode: 503,
+      body: {
+        success: false,
+        code: 'UPSTREAM_TIMEOUT',
+        message: 'Unavailable',
+      },
+    }).as('getMeServerError');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+      persistedAuthHint: true,
+      authBootstrapMeta: {
+        lastSuccessAt: fixedNow - 30_000,
+        lastFailureAt: null,
+      },
+    });
+
+    cy.wait('@getHomeBootstrap');
+    cy.wait('@getHomeWidgets');
+    cy.wait('@getMeServerError');
+
+    cy.contains('button', '로그인 확인 중...').should('not.exist');
+    cy.contains('button', '로그인').should('be.visible');
+    getHomeAuthRequestTraces().should((traces) => {
+      expect(traces).to.have.length(1);
+      expect(traces[0]?.url).to.include('/api/auth/mypage');
+    });
+  });
+
+  it('renders the normal empty state for a no-game day bootstrap without retrying', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-04-13', '2026-04-12', '2026-04-14'),
+    }).as('getHomeBootstrapNoGameDay');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapNoGameDay');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
+    cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
+  });
+
+  it('warns without exposing manual-data-required details to anonymous users', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 700,
+      statusCode: 409,
+      body: buildManualDataRequiredResponse('home.schedule'),
+    }).as('getHomeBootstrapManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.window().then((win) => {
+      cy.spy(win.console, 'error').as('consoleError');
+      cy.spy(win.console, 'warn').as('consoleWarn');
+    });
+
+    cy.wait('@getHomeBootstrapManualData');
+    cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜').should('not.exist');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
+    cy.contains('button', /^다시 시도$/).should('be.visible');
+
+    cy.get('@getHomeBootstrapManualData.all').should('have.length', 1);
+    cy.get('@consoleError').should('not.have.been.called');
+    cy.get('@consoleWarn').should('have.been.calledWithMatch', '[HomeBootstrap] Business conflict while loading bootstrap:');
+  });
+
+  it('shows manual-data-required details only to admin users', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 700,
+      statusCode: 409,
+      body: buildManualDataRequiredResponse('home.schedule'),
+    }).as('getHomeBootstrapManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: true,
+      resetStorage: true,
+      user: {
+        role: 'ROLE_ADMIN',
+      },
+    });
+
+    cy.wait('@getHomeBootstrapManualData');
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 15000 }).should('be.visible');
+    cy.contains('운영자 데이터가 필요합니다').should('be.visible');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜').should('be.visible');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('be.visible');
+    cy.contains('button', /^다시 시도$/).should('not.exist');
   });
 
   it('suppresses deferred mypage retry on home during recent failure cooldown', () => {
@@ -202,8 +473,11 @@ describe('Home error UX', () => {
 
     cy.wait('@getHomeBootstrapFailure');
     cy.wait('@getHomeWidgets');
-    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 15000 }).should('be.visible');
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 15000 }).should('be.visible');
+    cy.contains('서비스 연결을 확인하지 못했습니다').should('be.visible');
+    cy.contains('button', '전체 다시 시도').should('be.visible');
     cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
+    cy.contains('button', /^다시 시도$/).should('not.exist');
 
     cy.wait(300);
     cy.get('@getHomeBootstrapFailure.all').then((requests) => {
@@ -264,14 +538,15 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeWidgets');
-    cy.contains('서버 연결에 문제가 있습니다.', { timeout: 4500 }).should('be.visible');
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 4500 }).should('be.visible');
+    cy.contains('서비스 연결을 확인하지 못했습니다').should('be.visible');
     cy.contains('경기가 없는 날입니다.').should('be.visible');
     cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
     cy.get('@getLegacyNavigation.all').should('have.length', 0);
     cy.get('@getLegacyScheduleDelayed.all').should('have.length', 0);
     cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
     cy.wait('@getHomeBootstrapDelayed');
-    cy.contains('서버 연결에 문제가 있습니다.').should('not.exist');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
     cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
   });
 

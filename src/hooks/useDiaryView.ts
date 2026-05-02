@@ -57,6 +57,7 @@ export const useDiaryView = () => {
   const pendingDraft = useDiaryStore((state) => state.pendingDraft);
   const clearPendingDraft = useDiaryStore((state) => state.clearPendingDraft);
   const seatViewDialogResolverRef = useRef<(() => void) | null>(null);
+  const appliedDraftKeyRef = useRef<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -106,9 +107,20 @@ export const useDiaryView = () => {
     updateForm({
       gameId: pendingDraft.gameId ?? existingEntry?.gameId ?? 0,
       section: pendingDraft.section ?? existingEntry?.section ?? '',
+      block: pendingDraft.block ?? existingEntry?.block ?? '',
       seatRow: pendingDraft.seatRow ?? existingEntry?.seatRow ?? '',
       seatNumber: pendingDraft.seatNumber ?? existingEntry?.seatNumber ?? '',
     });
+    const draftKey = `${pendingDraft.stadium ?? ''}:${pendingDraft.date}:${pendingDraft.section ?? ''}:${pendingDraft.block ?? ''}`;
+    const stadiumDraftToastLabels: Record<string, string> = {
+      DAEJEON: '대전',
+      SAJIK: '사직',
+    };
+    const stadiumDraftToastLabel = pendingDraft.stadium ? stadiumDraftToastLabels[pendingDraft.stadium] : null;
+    if (stadiumDraftToastLabel && appliedDraftKeyRef.current !== draftKey) {
+      appliedDraftKeyRef.current = draftKey;
+      toast.success(`${stadiumDraftToastLabel} 좌석 정보가 반영되었습니다`);
+    }
     clearPendingDraft();
   }, [clearPendingDraft, diaryEntries, pendingDraft, resetForm, updateForm]);
 
@@ -198,7 +210,7 @@ export const useDiaryView = () => {
           id: diaryId,
           data: {
             ...variables,
-            photos: uploadResult.photos,
+            photos: [...variables.photos, ...uploadResult.photos],
             ticketVerificationToken: undefined,
           },
         });
@@ -224,7 +236,7 @@ export const useDiaryView = () => {
         const uploadResult = await handleImageUpload(diaryId, diaryForm.photoFiles);
 
         if (uploadResult.photos.length > 0) {
-          const allPhotos = [...(diaryForm.photos || []), ...uploadResult.photos];
+          const allPhotos = [...(diaryForm.photoStoragePaths || []), ...uploadResult.photos];
           await updateDiary({
             id: diaryId,
             data: {
@@ -314,7 +326,7 @@ export const useDiaryView = () => {
       winningName: diaryForm.winningName,
       gameId: diaryForm.gameId,
       memo: diaryForm.memo,
-      photos: diaryForm.photos,
+      photos: diaryForm.photoStoragePaths,
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
       section: diaryForm.section,

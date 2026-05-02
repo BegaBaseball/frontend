@@ -136,6 +136,34 @@ export interface AdminGameStatusMismatch {
   reasons: string[];
 }
 
+export interface AdminNonCanonicalGame {
+  gameId: string;
+  gameDate: string;
+  startTime: string | null;
+  rawStatus: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  reasons: string[];
+}
+
+export type AdminNonCanonicalCleanupTrackerStatus = 'draft' | 'requested' | 'in_progress' | 'done';
+
+export interface AdminNonCanonicalCleanupTrackerRecord {
+  ticketUrl: string;
+  assignee: string;
+  status: AdminNonCanonicalCleanupTrackerStatus;
+  note: string;
+  updatedAt: string;
+  gameIds: string[];
+}
+
+export interface AdminNonCanonicalCleanupTrackerEntry extends AdminNonCanonicalCleanupTrackerRecord {
+  startDate: string;
+  endDate: string;
+}
+
 export interface AdminGameScoreSyncResult {
   gameId: string;
   homeScore: number | null;
@@ -154,6 +182,8 @@ export interface AdminGameStatusMismatchBatchResult {
   totalGames: number;
   mismatchCount: number;
   mismatches: AdminGameStatusMismatch[];
+  nonCanonicalCount: number;
+  nonCanonicalGames: AdminNonCanonicalGame[];
 }
 
 export interface AdminGameStatusRepairBatchResult {
@@ -165,6 +195,8 @@ export interface AdminGameStatusRepairBatchResult {
   repairedCount: number;
   mismatches: AdminGameStatusMismatch[];
   repairedGames: AdminGameScoreSyncResult[];
+  nonCanonicalCount: number;
+  nonCanonicalGames: AdminNonCanonicalGame[];
 }
 
 export interface AdminClientErrorDashboardTotals {
@@ -312,6 +344,82 @@ export interface AdminOffseasonMovementPayload {
   sourceLabel?: string;
   sourceUrl?: string;
   announcedAt?: string;
+}
+
+export type AdminCoachAutoBriefOpsWindow = 'today' | 'tomorrow' | 'custom';
+
+export interface AdminCoachAutoBriefOpsSummary {
+  loaded_target_count: number;
+  selected_target_count: number;
+  generated_success_count: number;
+  cache_hit_count: number;
+  in_progress_count: number;
+  failed_count: number;
+  unresolved_count: number;
+  completed_count: number;
+  cache_state_breakdown: Record<string, number>;
+  data_quality_breakdown: Record<string, number>;
+}
+
+export interface AdminCoachAutoBriefOpsGateThresholds {
+  max_unresolved: number;
+  max_failed_locked: number;
+  max_pending_wait?: number | null;
+  max_insufficient_ratio?: number | null;
+  min_selected_targets: number;
+  fail_on_missing_report: boolean;
+}
+
+export interface AdminCoachAutoBriefOpsGateChecks {
+  failed: string[];
+  warnings: string[];
+}
+
+export interface AdminCoachAutoBriefOpsGate {
+  verdict: 'PASS' | 'WARN' | 'FAIL';
+  thresholds: AdminCoachAutoBriefOpsGateThresholds;
+  failed_locked_count: number;
+  pending_wait_count: number;
+  insufficient_count: number;
+  insufficient_ratio: number;
+  checks: AdminCoachAutoBriefOpsGateChecks;
+}
+
+export interface AdminCoachAutoBriefOpsLatestReport {
+  path: string;
+  run_started_at?: string | null;
+  run_finished_at?: string | null;
+  date_window?: string | null;
+  unresolved_count: number;
+  completed_count: number;
+  cache_state_breakdown: Record<string, number>;
+  data_quality_breakdown: Record<string, number>;
+}
+
+export interface AdminCoachAutoBriefOpsTargetSample {
+  game_id: string;
+  game_date: string;
+  away_team_id: string;
+  home_team_id: string;
+  stage_label: string;
+  game_status_bucket: string;
+  cache_key: string;
+  cache_state: string;
+  data_quality: string;
+  headline?: string | null;
+  reason?: string | null;
+}
+
+export interface AdminCoachAutoBriefOpsHealth {
+  window: AdminCoachAutoBriefOpsWindow;
+  date_window: string;
+  generated_at_utc: string;
+  runbook_path: string;
+  recommended_command: string;
+  summary: AdminCoachAutoBriefOpsSummary;
+  gate: AdminCoachAutoBriefOpsGate;
+  unresolved_targets: AdminCoachAutoBriefOpsTargetSample[];
+  latest_report?: AdminCoachAutoBriefOpsLatestReport | null;
 }
 
 export interface ReleaseDecisionPreset {

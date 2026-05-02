@@ -2,6 +2,10 @@
 
 describe('Mate Visual QA', () => {
   const fakeToken = 'visual-qa-token';
+  const revealDeferredMateDetailContent = () => {
+    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.scrollTo(0, 900);
+  };
   const testUser = {
     id: 1,
     email: 'test@example.com',
@@ -330,6 +334,7 @@ describe('Mate Visual QA', () => {
     cy.viewport(1440, 900);
     visitWithTheme('/mate/777', 'dark');
     cy.wait('@getMateDetailParty');
+    revealDeferredMateDetailContent();
     cy.contains('거래 방식').should('be.visible');
     cy.contains('Host Trust').should('be.visible');
     cy.contains('비용 안내').should('be.visible');
@@ -341,6 +346,7 @@ describe('Mate Visual QA', () => {
     visitWithTheme('/mate/777', 'dark');
     cy.wait('@getMateDetailParty');
     cy.viewport(390, 844);
+    revealDeferredMateDetailContent();
     cy.contains('거래 방식').should('be.visible');
     cy.contains('취소 규칙').should('be.visible');
     cy.contains('비용 안내').should('be.visible');

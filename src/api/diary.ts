@@ -6,6 +6,7 @@ import {
   SaveDiaryRequest,
   SeatViewCandidate,
 } from '../types/diary';
+import { uploadMediaFiles } from './media';
 import { privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
 
@@ -69,23 +70,37 @@ interface UploadDiaryImagesApiResponse {
   };
 }
 
+interface CreateSeatViewCandidatesRequest {
+  storagePaths: string[];
+  sourceTypes: string[];
+}
+
 export async function uploadDiaryImages(
   diaryId: number,
   files: DiaryPhotoFile[],
 ): Promise<UploadDiaryImagesResponse> {
-  const formData = new FormData();
-  files.forEach(({ file, sourceType }) => {
-    formData.append('images', file);
-    formData.append('sourceTypes', sourceType);
-  });
+  const uploads = await uploadMediaFiles(
+    'DIARY',
+    files.map(({ file }) => file),
+  );
+  const storagePaths = uploads.map((upload) => upload.storagePath);
+  if (storagePaths.length === 0) {
+    return {
+      photos: [],
+      candidates: [],
+    };
+  }
 
-  const result = await privatePost<UploadDiaryImagesApiResponse, FormData>(
-    `/diary/${diaryId}/images`,
-    formData,
+  const result = await privatePost<UploadDiaryImagesApiResponse, CreateSeatViewCandidatesRequest>(
+    `/diary/${diaryId}/seat-view-candidates`,
+    {
+      storagePaths,
+      sourceTypes: files.map(({ sourceType }) => sourceType),
+    },
   );
 
   return {
-    photos: result.photos || result.data?.photos || [],
+    photos: storagePaths,
     candidates: result.candidates || result.data?.candidates || [],
   };
 }

@@ -190,13 +190,14 @@ describe('Mate Create Flow', () => {
           hostBadge: 'NEW',
           hostAverageRating: null,
           hostReviewCount: 0,
-          teamId: 'lg',
+          teamId: 'kt',
+          cheeringSide: 'AWAY',
           gameDate: '2026-05-21',
           gameTime: '18:30',
           stadium: '잠실야구장',
           homeTeam: 'lg',
           awayTeam: 'kt',
-          section: '[홈응원] 일반/시야 305블록 12열',
+          section: '[원정응원] 일반/시야 305블록 12열',
           maxParticipants: 2,
           currentParticipants: 1,
           description: '함께 안전하게 관람해요!',
@@ -225,6 +226,7 @@ describe('Mate Create Flow', () => {
     cy.contains('button', '다음').click();
 
     cy.contains('좌석 정보').should('be.visible');
+    cy.contains('button', '원정 팀 응원').click();
     cy.get('input[placeholder="예: 305"]').clear().type('305');
     cy.get('input[placeholder="예: 12"]').clear().type('12');
     cy.get('#ticketPrice').clear().type('22000');
@@ -251,7 +253,15 @@ describe('Mate Create Flow', () => {
 
     cy.contains('button', '파티 만들기').click();
     cy.contains('button', '확인').click();
-    cy.wait('@createParty');
+    cy.wait('@createParty').then(({ request }) => {
+      expect(request.body).to.include({
+        cheeringSide: 'AWAY',
+        verificationToken: 'verification-token',
+        reservationNumber: 'R-123456',
+      });
+      expect(request.body).to.not.have.property('ticketImageUrl');
+      expect(request.body).to.not.have.property('teamId');
+    });
     cy.url().should('include', '/mate/999');
     cy.contains('잠실야구장').should('be.visible');
   });

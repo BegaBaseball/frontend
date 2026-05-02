@@ -1,10 +1,11 @@
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { getSocialLoginUrl } from '../api/authPublic';
 import { useLoginForm } from '../hooks/useLoginForm';
 import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
+import { sanitizeLoginPasswordText, sanitizeLoginText } from '../utils/validation';
 import AuthLayout from './auth/AuthLayout';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './icons/PublicShellIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -35,7 +36,6 @@ export default function Login() {
   const redirectPath = new URLSearchParams(location.search).get('redirect');
   const signUpPath = buildSignUpPath(redirectPath);
   const passwordResetPath = buildPasswordResetPath(redirectPath);
-  const sanitizeLoginText = (value: string) => value.replace(/[^\x20-\x7E]/g, '');
 
   const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
@@ -55,14 +55,14 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
         {error ? (
           <AuthStatusPanel tone="error" data-testid="login-status-panel" role="alert">
-            <p className="text-sm font-medium">{error}</p>
+            <p className="text-[16px] font-semibold">{error}</p>
           </AuthStatusPanel>
         ) : null}
 
         <AuthFieldGroup>
           <div className="space-y-2">
             <label htmlFor="email" className="flex items-center gap-2 text-foreground">
-              <Mail className="h-4 w-4 text-primary" />
+              <MailIcon className="h-4 w-4 text-primary" />
               E-mail
             </label>
             <Input
@@ -86,7 +86,7 @@ export default function Login() {
 
           <div className="space-y-2">
             <label htmlFor="password" className="flex items-center gap-2 text-foreground">
-              <Lock className="h-4 w-4 text-primary" />
+              <LockIcon className="h-4 w-4 text-primary" />
               Password
             </label>
             <div className="relative">
@@ -96,9 +96,9 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={formData.password}
-                onChange={(event) => handleFieldChange('password', sanitizeLoginText(event.target.value).replace(/\s/g, ''))}
+                onChange={(event) => handleFieldChange('password', sanitizeLoginPasswordText(event.target.value))}
                 onBlur={() => handleFieldBlur('password')}
-                className={`auth-input login-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
+                className={`auth-input login-autofill-input pr-14 ${fieldErrors.password ? 'auth-input-error' : ''}`}
                 placeholder="비밀번호를 입력하세요"
                 disabled={isLoading}
                 data-testid="login-password"
@@ -106,22 +106,22 @@ export default function Login() {
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 disabled={isLoading}
                 aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                 data-testid="login-password-visibility"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
               </button>
             </div>
             {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}
 
             <div className="auth-support-row">
-              <label htmlFor="remember-email" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <label htmlFor="remember-email" className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-[16px] text-muted-foreground">
                 <input
                   id="remember-email"
                   type="checkbox"
-                  className="auth-checkbox"
+                  className="auth-checkbox h-5 w-5 shrink-0"
                   checked={rememberEmail}
                   onChange={(event) => handleRememberEmailChange(event.target.checked)}
                   disabled={isLoading}
@@ -132,7 +132,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate(passwordResetPath)}
-                className="auth-link text-sm"
+                className="auth-link text-[16px]"
                 disabled={isLoading}
                 data-testid="login-password-reset-link"
               >
@@ -183,7 +183,7 @@ export default function Login() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-card px-4 text-sm text-muted-foreground">또는</span>
+          <span className="bg-card px-4 text-[16px] text-muted-foreground">또는</span>
         </div>
       </div>
 

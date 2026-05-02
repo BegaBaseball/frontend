@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  checkSignUpEmailAvailability,
   checkSignUpHandleAvailability,
   getSocialLoginUrl,
   loginUser,
@@ -119,28 +118,8 @@ test('checkSignUpHandleAvailability는 성공 응답의 handle 사용 가능 결
   });
 });
 
-test('checkSignUpEmailAvailability는 409 응답을 사용 불가 결과로 변환한다', async (t) => {
-  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
-    success: false,
-    code: 'DUPLICATE_EMAIL',
-    message: '이미 사용 중인 이메일입니다.',
-    data: {
-      available: false,
-      normalized: 'slugger@example.com',
-    },
-  }), {
-    headers: { 'content-type': 'application/json' },
-    status: 409,
-  }));
-
-  const response = await checkSignUpEmailAvailability('Slugger@Example.com');
-
-  assert.deepEqual(response, {
-    available: false,
-    message: '이미 사용 중인 이메일입니다.',
-    normalized: 'slugger@example.com',
-  });
-});
+// [Security Fix - Critical #3] /auth/check-email 엔드포인트 제거에 따라 관련 단위 테스트 제거.
+// 이메일 중복 여부는 signupUser 요청의 DUPLICATE_EMAIL 응답 경로로만 검증된다.
 
 test('signupUser는 최종 handle 충돌을 SignUpSubmissionError로 변환한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {

@@ -44,8 +44,8 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
                         return (
                             <div key={entry.team} className="space-y-1.5">
                                 <div className="flex items-center justify-between gap-3">
-                                    <span className="truncate text-sm font-semibold text-foreground">{entry.team}</span>
-                                    <span className="shrink-0 text-sm font-bold" style={{ color: barColor }}>
+                                    <span className="truncate text-[16px] font-semibold text-foreground">{entry.team}</span>
+                                    <span className="shrink-0 text-[16px] font-bold" style={{ color: barColor }}>
                                         {entry.winRate}%
                                     </span>
                                 </div>
@@ -56,7 +56,7 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
                                         title={`${entry.team} ${entry.winRate}% (${entry.wins}승 / ${entry.games}경기)`}
                                     />
                                 </div>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-[16px] text-muted-foreground">
                                     {entry.wins}승 / {entry.games}경기
                                 </p>
                             </div>

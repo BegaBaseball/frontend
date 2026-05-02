@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
 import { CheerPost, EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import EmbeddedPost from './EmbeddedPost';
+import { LoaderIcon, XIcon } from './icons/CheerIcons';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { ProfileAvatar } from './ui/ProfileAvatar';
@@ -92,7 +92,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             className="p-1 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             disabled={quoteRepostMutation.isPending}
                         >
-                            <X className="w-5 h-5 text-gray-500" />
+                            <XIcon className="w-5 h-5 text-gray-500" />
                         </button>
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                             인용 리포스트
@@ -101,14 +101,14 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                             type="button"
                             onClick={handleSubmit}
                             disabled={!canSubmit}
-                            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                        className={`px-4 py-1.5 text-[16px] font-semibold rounded-full transition-colors ${
                             canSubmit
                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                                 : 'bg-gray-200 dark:bg-secondary text-gray-400 cursor-not-allowed'
                         }`}
                         >
                             {quoteRepostMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <LoaderIcon className="w-4 h-4 animate-spin" />
                             ) : (
                                 '게시'
                             )}
@@ -126,12 +126,12 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-black/5 dark:bg-white/10"
+                                ringVariant="cheerFeed"
                             />
                         </div>
 
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 text-sm mb-2">
+                                <div className="flex items-center gap-1.5 text-[16px] mb-2">
                                     <span className="font-semibold text-gray-900 dark:text-white">
                                     {userName}
                                     </span>
@@ -157,7 +157,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                 <div className="px-4 py-3 border-t border-gray-100 dark:border-border flex-shrink-0">
                     <div className="flex justify-end">
                         <span
-                            className={`text-sm ${
+                            className={`text-[16px] ${
                                 isOverLimit
                                     ? 'text-red-500'
                                     : remainingChars <= 50

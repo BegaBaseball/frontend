@@ -1,20 +1,27 @@
-import { LineChart, LogOut, Map, Megaphone, ShieldAlert, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import {
+  LineChartIcon,
+  LogOutIcon,
+  MapIcon,
+  MegaphoneIcon,
+  ShieldAlertIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { Button } from './ui/button';
 import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbarNavItems';
 
-const navIconToggleClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary';
+const navIconToggleClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary';
 const navIconSizeClass = 'h-6 w-6';
 
-const navItemIconMap: Record<PublicNavbarNavItemId, typeof Megaphone> = {
-  cheer: Megaphone,
-  stadium: Map,
-  prediction: LineChart,
-  mate: Users,
+const navItemIconMap: Record<PublicNavbarNavItemId, typeof MegaphoneIcon> = {
+  cheer: MegaphoneIcon,
+  stadium: MapIcon,
+  prediction: LineChartIcon,
+  mate: UsersIcon,
 };
 
 interface PublicNavbarMenuPanelProps {
@@ -57,7 +64,7 @@ export default function PublicNavbarMenuPanel({
         <div className="mb-4 flex items-center justify-between gap-2 px-4">
           <p
             id="mobile-menu-title"
-            className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
+            className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
           >
             메뉴
           </p>
@@ -99,7 +106,7 @@ export default function PublicNavbarMenuPanel({
       </div>
 
       <div className="px-6 pb-6" data-mobile-menu-section="account">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+        <p className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
           계정
         </p>
         {isLoggedIn ? (
@@ -120,7 +127,7 @@ export default function PublicNavbarMenuPanel({
                 <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {userName || '회원'} 님
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-300">
+                <p className="text-[16px] text-gray-500 dark:text-gray-300">
                   내 프로필 보기 →
                 </p>
               </div>
@@ -134,10 +141,10 @@ export default function PublicNavbarMenuPanel({
                 aria-label="관리자 페이지로 이동"
               >
                 <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                  <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  <ShieldAlertIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
-                <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
                   ADMIN
                 </span>
               </button>
@@ -149,7 +156,7 @@ export default function PublicNavbarMenuPanel({
               className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-semibold"
               aria-label="로그아웃"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOutIcon className="w-5 h-5" />
               <span>로그아웃</span>
             </button>
           </div>

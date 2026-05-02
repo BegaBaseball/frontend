@@ -1,10 +1,27 @@
 import { useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
 import { Button } from './plain-button';
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ');
+
+function PlainDialogCloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m6 6 12 12" />
+      <path d="m18 6-12 12" />
+    </svg>
+  );
+}
 
 interface PlainDialogProps {
   open: boolean;
@@ -96,7 +113,7 @@ export default function PlainDialog({
                   </h2>
                 ) : null}
                 {description ? (
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  <p className="mt-1 text-[15px] text-gray-600 dark:text-gray-300">
                     {description}
                   </p>
                 ) : null}
@@ -108,7 +125,7 @@ export default function PlainDialog({
                   className="h-10 w-10 p-0 text-gray-400 hover:text-gray-500"
                   onClick={onClose}
                 >
-                  <X className="h-5 w-5" />
+                  <PlainDialogCloseIcon className="h-5 w-5" />
                 </Button>
               )}
             </div>

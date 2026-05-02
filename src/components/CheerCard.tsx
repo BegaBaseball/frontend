@@ -1,23 +1,30 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Quote, Repeat2, Trash2, Undo2 } from 'lucide-react';
-import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { CheerPost } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import EmbeddedPost from './EmbeddedPost';
+import {
+    BookmarkIcon,
+    EditIcon,
+    HeartIcon,
+    MessageCircleIcon,
+    MoreHorizontalIcon,
+    RepeatIcon,
+    TrashIcon,
+} from './icons/CheerIcons';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import PlainMenu from './ui/plain-menu';
-import { toast } from 'sonner';
-import { getRepostPolicyDecision } from '../utils/repostPolicy';
-import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
-import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { resolveCheerLikeDisplayCount } from '../utils/cheerLikeState';
+import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 
-const LazyCommentModal = lazy(() => import('./CommentModal'));
-const LazyQuoteRepostEditor = lazy(() => import('./QuoteRepostEditor'));
+const LazyCheerCardInteractionsRuntime = lazy(() => import('./CheerCardInteractionsRuntime'));
+
+const normalizeContent = (text: string): string =>
+    text.replace(/\n{3,}/g, '\n\n').trim();
 
 interface CheerCardProps {
     post: CheerPost;
@@ -26,19 +33,11 @@ interface CheerCardProps {
 
 function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     const navigate = useNavigate();
-    const { toggleLikeMutation, toggleBookmarkMutation, deletePostMutation, repostMutation, cancelRepostMutation } = useCheerMutations();
+    const { deletePostMutation } = useCheerMutations();
     const { confirm } = useConfirmDialog();
-    const {
-        userId: currentUserId,
-        userHandle: currentUserHandle,
-    } = useAuthProfileSnapshot();
-    const { isLoggedIn } = useAuthSession();
-    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-    const [isQuoteEditorOpen, setIsQuoteEditorOpen] = useState(false);
-    const [isRepostMenuOpen, setIsRepostMenuOpen] = useState(false);
     const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
-    const [hasMountedCommentModal, setHasMountedCommentModal] = useState(false);
-    const [hasMountedQuoteEditor, setHasMountedQuoteEditor] = useState(false);
+    const [shouldLoadInteractions, setShouldLoadInteractions] = useState(false);
+    const [pendingInteraction, setPendingInteraction] = useState<'like' | 'bookmark' | 'comment' | 'repost' | null>(null);
 
     const contentText = post.content?.trim() || '';
     const resolveProfileImage = (imageUrl?: string) => {
@@ -47,107 +46,29 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         return imageUrl;
     };
 
-    const redirectToLogin = () => {
-        navigate(buildLoginPath(getCurrentRelativeUrl()));
-    };
-
-    // Use a ref-like derived value OR helper function defined inside the component
-    const normalizeContent = (text: string) => {
-        return text.replace(/\n{3,}/g, '\n\n').trim();
-    };
-
     const [isExpanded, setIsExpanded] = useState(false);
-    const normalizedContent = normalizeContent(contentText);
+    const normalizedContent = useMemo(() => normalizeContent(contentText), [contentText]);
     const MAX_LENGTH = 192;
     const shouldShowMore = normalizedContent.length > MAX_LENGTH;
-    const displayContent = !isExpanded && shouldShowMore
-        ? normalizedContent.slice(0, MAX_LENGTH) + '...'
-        : normalizedContent;
+    const displayContent = useMemo(
+        () => (!isExpanded && shouldShowMore ? normalizedContent.slice(0, MAX_LENGTH) + '...' : normalizedContent),
+        [normalizedContent, isExpanded, shouldShowMore],
+    );
 
     const statsSource = (post.repostType === 'SIMPLE' && post.originalPost)
         ? post.originalPost
         : post;
-    const resolveActionPostId = () => {
-        if (post.repostOfId) return post.repostOfId;
-        if (post.originalPost?.id) return post.originalPost.id;
-        return post.id;
-    };
     const commentCount = statsSource.commentCount ?? 0;
-    const likeCount = statsSource.likeCount ?? 0;
+    const likeCount = resolveCheerLikeDisplayCount(post);
     const repostCount = statsSource.repostCount ?? post.repostCount ?? 0;
     const bookmarkCount = post.bookmarkCount ?? 0;
-    const actionPostId = resolveActionPostId();
     const isRepost = Boolean(post.repostType);
-    const repostTargetAuthorHandle = isRepost ? post.originalPost?.authorHandle : post.authorHandle;
     const avatarSource = isRepost && post.originalPost ? post.originalPost : post;
     const avatarProfileImage = resolveProfileImage(avatarSource.authorProfileImageUrl);
     const avatarAuthor = avatarSource.author || '프로필';
-    const repostPolicy = getRepostPolicyDecision({
-        isPostOwner: post.isOwner,
-        isRepostTarget: isRepost,
-        targetAuthorHandle: repostTargetAuthorHandle,
-        currentUserId,
-        currentUserHandle,
-    });
-    const canSimpleRepost = repostPolicy.canSimpleRepost;
-    const canQuoteRepost = repostPolicy.canQuoteRepost;
-    const canCancelRepost = isRepost && post.isOwner;
-    const repostUnavailableMessage = repostPolicy.repostSimpleUnavailableMessage;
-    const quoteUnavailableMessage = repostPolicy.repostQuoteUnavailableMessage;
-    const repostButtonActive = canCancelRepost ? true : post.repostedByMe;
     const likeActive = Boolean(post.liked);
     const bookmarkActive = Boolean(post.bookmarked);
-
-    const [likeAnimating, setLikeAnimating] = useState(false);
-    const [commentAnimating, setCommentAnimating] = useState(false);
-    const [repostAnimating, setRepostAnimating] = useState(false);
-    const likeTimerRef = useRef<number | null>(null);
-    const commentTimerRef = useRef<number | null>(null);
-    const repostTimerRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (likeTimerRef.current) window.clearTimeout(likeTimerRef.current);
-            if (commentTimerRef.current) window.clearTimeout(commentTimerRef.current);
-            if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (isCommentModalOpen) {
-            setHasMountedCommentModal(true);
-        }
-    }, [isCommentModalOpen]);
-
-    useEffect(() => {
-        if (isQuoteEditorOpen) {
-            setHasMountedQuoteEditor(true);
-        }
-    }, [isQuoteEditorOpen]);
-
-    const handleLikeClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        setLikeAnimating(true);
-        // toggleLike(post.id);
-        toggleLikeMutation.mutate(actionPostId);
-        if (likeTimerRef.current) window.clearTimeout(likeTimerRef.current);
-        likeTimerRef.current = window.setTimeout(() => {
-            setLikeAnimating(false);
-        }, 450);
-    };
-
-    const handleBookmarkClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        toggleBookmarkMutation.mutate(actionPostId);
-    };
+    const repostButtonActive = Boolean(post.repostedByMe);
 
     const handleEdit = (event: React.MouseEvent) => {
         event.stopPropagation();
@@ -158,64 +79,19 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         event.stopPropagation();
         const confirmed = await confirm({ title: '게시글 삭제', description: '정말 삭제하시겠습니까?', confirmLabel: '삭제', variant: 'destructive' });
         if (!confirmed) return;
+        setIsOwnerMenuOpen(false);
         deletePostMutation.mutate(post.id);
     };
 
-    const handleCommentClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        setCommentAnimating(true);
-        setIsCommentModalOpen(true);
-        if (commentTimerRef.current) window.clearTimeout(commentTimerRef.current);
-        commentTimerRef.current = window.setTimeout(() => {
-            setCommentAnimating(false);
-        }, 450);
-    };
+    const preloadInteractions = useCallback(() => {
+        void import('./CheerCardInteractionsRuntime');
+    }, []);
 
-    const handleSimpleRepost = () => {
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        if (!canSimpleRepost) {
-            toast.error(repostUnavailableMessage);
-            return;
-        }
-
-        const targetPostId = resolveActionPostId();
-        setRepostAnimating(true);
-        repostMutation.mutate(targetPostId);
-        setIsRepostMenuOpen(false);
-        if (repostTimerRef.current) window.clearTimeout(repostTimerRef.current);
-        repostTimerRef.current = window.setTimeout(() => {
-            setRepostAnimating(false);
-        }, 450);
-    };
-
-    const handleQuoteRepost = () => {
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        if (!canQuoteRepost) {
-            toast.error(quoteUnavailableMessage);
-            return;
-        }
-        setIsRepostMenuOpen(false);
-        setIsQuoteEditorOpen(true);
-    };
-
-    const handleCancelRepost = () => {
-        if (!isLoggedIn) {
-            redirectToLogin();
-            return;
-        }
-        setIsRepostMenuOpen(false);
-        cancelRepostMutation.mutate(post.id);
-    };
+    const openInteractions = useCallback((interaction: 'like' | 'bookmark' | 'comment' | 'repost') => {
+        preloadInteractions();
+        setPendingInteraction(interaction);
+        setShouldLoadInteractions(true);
+    }, [preloadInteractions]);
 
     // Hot Topic List Item Style
     if (isHotItem) {
@@ -224,11 +100,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 onClick={() => navigate(`/cheer/${post.id}`)}
                 className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-secondary rounded-lg dark:bg-card dark:border dark:border-border"
             >
-                <div className="flex items-center justify-between mb-2 text-xs text-[#536471] dark:text-gray-300">
-                    <span className="font-semibold">{post.team}</span>
+                <div className="flex items-center justify-between mb-2 text-[16px] font-semibold text-[#536471] dark:text-gray-300">
+                    <span className="font-bold">{post.team}</span>
                     <span>{post.timeAgo}</span>
                 </div>
-                <div className="text-sm text-[#0f1419] dark:text-gray-100 leading-relaxed mb-3">
+                <div className="text-[16px] font-bold text-[#0f1419] dark:text-gray-100 leading-relaxed mb-3">
                     {displayContent.split('\n').map((line, i) => (
                         <React.Fragment key={i}>
                             {line}
@@ -243,18 +119,19 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             e.stopPropagation();
                             setIsExpanded(!isExpanded);
                         }}
-                        className="mb-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        className="mb-3 inline-flex min-h-11 items-center rounded-full pr-3 text-[16px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                        aria-expanded={isExpanded}
                     >
                         {isExpanded ? '접기' : '더보기'}
                     </button>
                 )}
-                <div className="flex items-center gap-4 text-xs text-[#536471] dark:text-gray-300">
+                <div className="flex items-center gap-4 text-[16px] font-semibold text-[#536471] dark:text-gray-300">
                     <span className="flex items-center gap-1">
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircleIcon className="h-4 w-4" />
                         <RollingNumber value={commentCount} />
                     </span>
                     <span className="flex items-center gap-1">
-                        <Heart className={`h-4 w-4 transition-all duration-200 ${likeActive
+                        <HeartIcon className={`h-4 w-4 transition-all duration-200 ${likeActive
                             ? 'fill-rose-500 text-rose-500'
                             : 'fill-transparent dark:text-gray-300'
                             }`} />
@@ -268,12 +145,13 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // Main Feed Tweet Style
     return (
         <div
-            className="group rounded-2xl border border-border/70 dark:border-border bg-white dark:bg-card px-4 py-2.5 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-[#cbd5e1] dark:hover:border-[#64748b] transition-all duration-200 cursor-pointer"
+            className="group rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#cbd5e1] hover:shadow-lg dark:border-border dark:bg-card dark:hover:border-[#64748b]"
+            data-testid="cheer-post-card"
         >
             {/* 리포스트 표시 */}
             {post.repostType && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-300 mb-2 ml-14">
-                    <Repeat2 className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1.5 text-[16px] font-semibold text-gray-500 dark:text-gray-300 mb-2 ml-14">
+                    <RepeatIcon className="w-3.5 h-3.5" />
                     <span>
                         {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
                             ? '다시 언급함' // Self-Repost
@@ -283,7 +161,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             )}
 
             {post.shareMode?.startsWith('EXTERNAL_') && post.sourceInfo?.url && (
-                <div className="mb-2 ml-14 text-xs text-sky-600 dark:text-sky-300 truncate">
+                <div className="mb-2 ml-14 text-[16px] font-semibold text-sky-600 dark:text-sky-300 truncate">
                     출처: {post.sourceInfo.url}
                 </div>
             )}
@@ -304,9 +182,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 }}
                 className="flex gap-3"
             >
-                <div className="relative h-10 w-10 flex-shrink-0">
+                <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center">
                     <div
-                        className="h-full w-full"
+                        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full"
                         onClick={(e) => {
                             e.stopPropagation();
                             const targetHandle = isRepost
@@ -325,7 +203,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             width={40}
                             height={40}
                             showRing
-                            ringClassName="p-px bg-black/5 dark:bg-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                            ringVariant="cheerFeed"
                         />
                     </div>
                     {/* Team Logo: Use Original's team if Simple Repost */}
@@ -344,7 +222,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1.5 text-[13px]">
+                    <div className="flex items-center justify-between gap-1.5 text-[16px] font-semibold">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <span
                                 className="font-bold text-[#0f1419] dark:text-white truncate cursor-pointer hover:underline"
@@ -361,14 +239,14 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             >
                                 {(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.author : post.author}
                             </span>
-                            <span className="text-[#536471] dark:text-gray-300 truncate">
+                            <span className="text-[16px] font-bold text-[#536471] dark:text-gray-300 truncate">
                                 {(post.repostType === 'SIMPLE' && post.originalPost)
                                     ? (post.originalPost.authorHandle || '')
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
                                 · {post.timeAgo}
                             </span>
                             {((post.repostType === 'SIMPLE' && post.originalPost && post.isHot) || (!post.repostType && post.isHot)) && (
-                                <span className="text-[11px] font-semibold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
+                                <span className="text-[16px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
                                 </span>
                             )}
@@ -386,12 +264,12 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                             event.stopPropagation();
                                             setIsOwnerMenuOpen((prev) => !prev);
                                         }}
-                                        className="rounded-full p-1 text-[#64748B] dark:text-gray-300 transition-colors hover:bg-slate-100 dark:hover:bg-secondary hover:text-[#0f1419] dark:hover:text-white"
+                                        className="flex h-11 w-11 items-center justify-center rounded-full text-[#64748B] transition-colors hover:bg-slate-100 hover:text-[#0f1419] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white"
                                         aria-label="게시글 옵션"
                                         aria-expanded={isOwnerMenuOpen}
                                         aria-haspopup="menu"
                                     >
-                                        <MoreHorizontal className="h-4 w-4" />
+                                        <MoreHorizontalIcon className="h-5 w-5" />
                                     </button>
                                 )}
                             >
@@ -402,9 +280,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         setIsOwnerMenuOpen(false);
                                         handleEdit(event);
                                     }}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
                                 >
-                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    <EditIcon className="mr-2 h-4 w-4" />
                                     수정하기
                                 </button>
                                 <button
@@ -414,9 +292,9 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         setIsOwnerMenuOpen(false);
                                         void handleDelete(event);
                                     }}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                 >
-                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <TrashIcon className="mr-2 h-4 w-4" />
                                     삭제하기
                                 </button>
                             </PlainMenu>
@@ -425,7 +303,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                     {/* Title Display Removed */}
                     <div
-                        className="mt-1 text-[13px] leading-[20px] text-[#0f1419] dark:text-gray-100 transition-all duration-300"
+                        className="mt-1 text-[16px] font-bold leading-7 text-[#0f1419] dark:text-gray-100 transition-all duration-300"
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost)
                             ? (post.originalPost.content ? post.originalPost.content.split('\n').map((line, i) => (
@@ -450,7 +328,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 e.stopPropagation();
                                 setIsExpanded(!isExpanded);
                             }}
-                            className="mt-0.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                            className="mt-0.5 inline-flex min-h-11 items-center rounded-full pr-3 text-[16px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                            aria-expanded={isExpanded}
                         >
                             {isExpanded ? '접기' : '더보기'}
                         </button>
@@ -474,232 +353,132 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         <div className="relative mt-2">
                             <ImageGrid images={(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.imageUrls : post.imageUrls!} />
                             {post.imageUploadFailed && (
-                                <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-xs font-semibold text-white">
-                                    업로드 실패
-                                </span>
+                                    <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-[16px] font-bold text-white">
+                                        업로드 실패
+                                    </span>
                             )}
                         </div>
                     ) : null}
 
-                    <div className="mt-1.5 flex items-center justify-between max-w-[420px] text-[12px] text-[#536471] dark:text-gray-300">
-                        <button
-                            type="button"
-                            className="group/comment flex items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
-                            onClick={handleCommentClick}
-                            aria-label={`댓글 ${commentCount}개`}
-                        >
-                            <span className="relative rounded-full p-2 transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
-                                {commentAnimating && (
-                                    <span className="pointer-events-none absolute inset-0 rounded-full bg-sky-500/20 animate-like-ring" />
+                    <div
+                        className="mt-1.5"
+                        onPointerEnter={preloadInteractions}
+                        onFocusCapture={preloadInteractions}
+                        onTouchStart={preloadInteractions}
+                    >
+                        {shouldLoadInteractions ? (
+                            <Suspense
+                                fallback={(
+                                    <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-gray-300">
+                                        <button type="button" className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full" aria-label={`댓글 ${commentCount}개`}>
+                                            <span className="relative flex h-11 w-11 items-center justify-center rounded-full">
+                                                <RepeatIcon className="h-5 w-5 opacity-0" />
+                                            </span>
+                                            <RollingNumber value={commentCount} />
+                                        </button>
+                                        <button type="button" className="group/repost flex min-h-11 min-w-11 items-center gap-1.5 rounded-full" aria-label={`리포스트 (현재 ${repostCount}회)`}>
+                                            <span className="relative flex h-11 w-11 items-center justify-center rounded-full">
+                                                <RepeatIcon className="h-5 w-5 opacity-0" />
+                                            </span>
+                                            <RollingNumber value={repostCount} />
+                                        </button>
+                                        <button type="button" className="group/like flex min-h-11 min-w-11 items-center gap-1.5 rounded-full" aria-label={`좋아요 (현재 ${likeCount}개)`}>
+                                            <span className="relative flex h-11 w-11 items-center justify-center rounded-full">
+                                                <RepeatIcon className="h-5 w-5 opacity-0" />
+                                            </span>
+                                            <RollingNumber value={likeCount} />
+                                        </button>
+                                        <button type="button" className="group/bookmark flex min-h-11 min-w-11 items-center gap-1.5 rounded-full" aria-label={`북마크 (현재 ${bookmarkCount}개)`}>
+                                            <span className="relative flex h-11 w-11 items-center justify-center rounded-full">
+                                                <RepeatIcon className="h-5 w-5 opacity-0" />
+                                            </span>
+                                            <RollingNumber value={bookmarkCount} />
+                                        </button>
+                                    </div>
                                 )}
-                                <MessageCircle
-                                    className={`h-[18px] w-[18px] ${commentAnimating ? 'animate-like-pop' : ''
-                                        }`}
+                            >
+                                <LazyCheerCardInteractionsRuntime
+                                    post={post}
+                                    initialInteractionIntent={pendingInteraction}
+                                    onInitialInteractionHandled={() => setPendingInteraction(null)}
                                 />
-                            </span>
-                            <RollingNumber value={commentCount} />
-                        </button>
-
-                        <PlainMenu
-                            open={isRepostMenuOpen}
-                            onOpenChange={setIsRepostMenuOpen}
-                            align="start"
-                            panelClassName="w-48 overflow-hidden p-0"
-                            trigger={(
+                            </Suspense>
+                        ) : (
+                            <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-gray-300">
                                 <button
                                     type="button"
-                                    className={`group/repost flex items-center gap-1.5 rounded-full transition-colors ${repostButtonActive ? 'text-emerald-500' : 'hover:text-emerald-500'
-                                        }`}
+                                    className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
                                     onClick={(event) => {
                                         event.stopPropagation();
-                                        setIsRepostMenuOpen((prev) => !prev);
+                                        openInteractions('comment');
                                     }}
-                                    aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
+                                    aria-label={`댓글 ${commentCount}개`}
+                                >
+                                    <span className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors group-hover/comment:bg-sky-50 dark:group-hover/comment:bg-sky-500/20">
+                                        <MessageCircleIcon className="h-5 w-5" />
+                                    </span>
+                                    <RollingNumber value={commentCount} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="group/repost flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-emerald-500"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        openInteractions('repost');
+                                    }}
+                                    aria-label={`리포스트 (현재 ${repostCount}회)`}
                                     aria-pressed={repostButtonActive}
-                                    aria-expanded={isRepostMenuOpen}
-                                    aria-haspopup="menu"
                                 >
                                     <span
-                                        className={`relative rounded-full p-2 transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'
-                                            }`}
+                                        className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'}`}
                                     >
-                                        {repostAnimating && (
-                                            <span className="pointer-events-none absolute inset-0 rounded-full bg-emerald-500/30 animate-like-ring" />
-                                        )}
-                                        <Repeat2
-                                            className={`h-[18px] w-[18px] transition-all duration-200 ${repostButtonActive
-                                                ? 'text-emerald-500 scale-110'
-                                                : ''
-                                                } ${repostAnimating ? 'animate-like-pop' : ''}`}
+                                        <RepeatIcon
+                                            className={`h-5 w-5 transition-all duration-200 ${repostButtonActive ? 'text-emerald-500 scale-110' : ''}`}
                                         />
                                     </span>
                                     <RollingNumber value={repostCount} />
                                 </button>
-                            )}
-                        >
-                                <div className="flex flex-col py-1">
-                                    {canCancelRepost ? (
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={handleCancelRepost}
-                                            className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                        >
-                                            <div className="flex items-center justify-center w-5 h-5">
-                                                <Undo2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                            </div>
-                                            <div>
-                                                <span className="block text-sm font-medium text-red-600 dark:text-red-400">
-                                                    리포스트 삭제
-                                                </span>
-                                                <span className="text-[11px] text-red-500/80 dark:text-red-400/80">
-                                                    내 프로필에서 제거됩니다
-                                                </span>
-                                            </div>
-                                        </button>
-                                    ) : !canSimpleRepost && !canQuoteRepost ? (
-                                        <div className="px-4 py-3 text-center">
-                                            <p className="text-sm text-gray-500 dark:text-gray-300">
-                                                {repostUnavailableMessage}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {canSimpleRepost ? (
-                                                <button
-                                                    type="button"
-                                                    role="menuitem"
-                                                    onClick={handleSimpleRepost}
-                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                                >
-                                                    <div className="flex items-center justify-center w-5 h-5">
-                                                        {post.repostedByMe ? (
-                                                            <Undo2 className="w-4 h-4 text-emerald-500" />
-                                                        ) : (
-                                                            <Repeat2 className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <span className={`block text-sm font-medium ${post.repostedByMe
-                                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                                            : 'text-gray-700 dark:text-gray-200'}`}
-                                                        >
-                                                            {post.repostedByMe ? '리포스트 취소' : '리포스트'}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ) : null}
-                                            {canQuoteRepost ? (
-                                                <button
-                                                    type="button"
-                                                    role="menuitem"
-                                                    onClick={handleQuoteRepost}
-                                                    className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                                >
-                                                    <div className="flex items-center justify-center w-5 h-5">
-                                                        <Quote className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                            인용하기
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ) : isRepost ? (
-                                                <div className="px-4 py-3 text-center">
-                                                    <p className="text-sm text-gray-500 dark:text-gray-300">
-                                                        {repostUnavailableMessage}
-                                                    </p>
-                                                </div>
-                                            ) : null}
-                                        </>
-                                    )}
-                                </div>
-                        </PlainMenu>
-
-                        <button
-                            type="button"
-                            className={`group/like flex items-center gap-1.5 rounded-full transition-colors ${likeActive ? 'text-rose-500' : 'hover:text-rose-500'
-                                }`}
-                            onClick={handleLikeClick}
-                            aria-label={likeActive ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
-                            aria-pressed={likeActive}
-                        >
-                            <span
-                                className={`relative rounded-full p-2 transition-all duration-200 ${likeActive ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'
-                                    }`}
-                            >
-                                {likeAnimating && (
-                                    <span className="pointer-events-none absolute inset-0 rounded-full bg-rose-500/30 animate-like-ring" />
-                                )}
-                                <Heart
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${likeActive
-                                        ? 'fill-rose-500 text-rose-500 scale-110'
-                                        : 'fill-transparent'
-                                        } ${likeAnimating ? 'animate-like-pop' : ''}`}
-                                />
-                            </span>
-                            <RollingNumber value={likeCount} />
-                        </button>
-
-                        <button
-                            type="button"
-                            className={`group/bookmark flex items-center gap-1.5 rounded-full transition-colors ${bookmarkActive ? 'text-yellow-500' : 'hover:text-yellow-500'
-                                }`}
-                            onClick={handleBookmarkClick}
-                            aria-label={bookmarkActive ? '북마크 취소' : '북마크'}
-                            aria-pressed={bookmarkActive}
-                        >
-                            <span
-                                className={`relative rounded-full p-2 transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'
-                                    }`}
-                            >
-                                <Bookmark
-                                    className={`h-[18px] w-[18px] transition-all duration-200 ${bookmarkActive
-                                        ? 'fill-yellow-500 text-yellow-500 scale-110'
-                                        : 'fill-transparent'
-                                        }`}
-                                />
-                            </span>
-                            <RollingNumber value={bookmarkCount} />
-                        </button>
+                                <button
+                                    type="button"
+                                    className={`group/like flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors ${likeActive ? 'text-rose-500' : 'hover:text-rose-500'}`}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        openInteractions('like');
+                                    }}
+                                    aria-label={likeActive ? `좋아요 취소 (현재 ${likeCount}개)` : `좋아요 (현재 ${likeCount}개)`}
+                                    aria-pressed={likeActive}
+                                >
+                                    <span
+                                        className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${likeActive ? 'bg-rose-50 dark:bg-rose-500/20' : 'group-hover/like:bg-rose-50 dark:group-hover/like:bg-rose-500/20'}`}
+                                    >
+                                        <HeartIcon
+                                            className={`h-5 w-5 transition-all duration-200 ${likeActive ? 'fill-rose-500 text-rose-500 scale-110' : 'fill-transparent'}`}
+                                        />
+                                    </span>
+                                    <RollingNumber value={likeCount} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`group/bookmark flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors ${bookmarkActive ? 'text-yellow-500' : 'hover:text-yellow-500'}`}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        openInteractions('bookmark');
+                                    }}
+                                    aria-label={bookmarkActive ? '북마크 취소' : '북마크'}
+                                    aria-pressed={bookmarkActive}
+                                >
+                                    <span
+                                        className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${bookmarkActive ? 'bg-yellow-50 dark:bg-yellow-500/20' : 'group-hover/bookmark:bg-yellow-50 dark:group-hover/bookmark:bg-yellow-500/20'}`}
+                                    >
+                                        <BookmarkIcon
+                                            className={`h-5 w-5 transition-all duration-200 ${bookmarkActive ? 'fill-yellow-500 text-yellow-500 scale-110' : 'fill-transparent'}`}
+                                        />
+                                    </span>
+                                    <RollingNumber value={bookmarkCount} />
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </div>
-
-                {/* Portal Bubbling 방지를 위한 래퍼 */}
-                <div onClick={(e) => e.stopPropagation()}>
-                    {hasMountedCommentModal && (
-                        <Suspense
-                            fallback={isCommentModalOpen ? (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
-                                    댓글 모달을 불러오는 중...
-                                </div>
-                            ) : null}
-                        >
-                            <LazyCommentModal
-                                isOpen={isCommentModalOpen}
-                                onClose={() => setIsCommentModalOpen(false)}
-                                post={post}
-                                targetPostId={actionPostId}
-                            />
-                        </Suspense>
-                    )}
-
-                    {hasMountedQuoteEditor && (
-                        <Suspense
-                            fallback={isQuoteEditorOpen ? (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-sm font-semibold text-white">
-                                    인용 작성기를 불러오는 중...
-                                </div>
-                            ) : null}
-                        >
-                            <LazyQuoteRepostEditor
-                                isOpen={isQuoteEditorOpen}
-                                onClose={() => setIsQuoteEditorOpen(false)}
-                                post={post}
-                            />
-                        </Suspense>
-                    )}
                 </div>
             </div>
         </div>

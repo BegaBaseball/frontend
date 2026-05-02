@@ -1,20 +1,20 @@
 {
   "status": "failed",
-  "runStartedAt": "2026-04-04T12:44:44.075Z",
-  "runFinishedAt": "2026-04-04T12:44:44.823Z",
+  "runStartedAt": "2026-04-22T14:43:59.050Z",
+  "runFinishedAt": "2026-04-22T14:44:16.761Z",
   "apiBase": "https://api.begabaseball.xyz/api",
   "signupIdentity": {
-    "name": "smoke_user_075204",
-    "handle": "@Smoke075204",
-    "email": "Smoke_1775306684075204@Example.com"
+    "name": "smoke_user_050113",
+    "handle": "@Smoke050113",
+    "email": "Smoke_1776869039050113@Example.com"
   },
   "steps": [
     {
       "name": "backend-health",
       "status": "passed",
-      "startedAt": "2026-04-04T12:44:44.086Z",
-      "finishedAt": "2026-04-04T12:44:44.359Z",
-      "durationMs": 273,
+      "startedAt": "2026-04-22T14:43:59.056Z",
+      "finishedAt": "2026-04-22T14:43:59.253Z",
+      "durationMs": 197,
       "result": {
         "status": "ok"
       },
@@ -23,9 +23,9 @@
     {
       "name": "required-policies",
       "status": "passed",
-      "startedAt": "2026-04-04T12:44:44.359Z",
-      "finishedAt": "2026-04-04T12:44:44.734Z",
-      "durationMs": 375,
+      "startedAt": "2026-04-22T14:43:59.253Z",
+      "finishedAt": "2026-04-22T14:44:01.758Z",
+      "durationMs": 2505,
       "result": {
         "status": 200,
         "data": {
@@ -67,32 +67,32 @@
     {
       "name": "signup-availability-precheck",
       "status": "failed",
-      "startedAt": "2026-04-04T12:44:44.734Z",
-      "finishedAt": "2026-04-04T12:44:44.823Z",
-      "durationMs": 89,
-      "error": "GET /auth/check-handle?handle=SMOKE075204 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+      "startedAt": "2026-04-22T14:44:01.758Z",
+      "finishedAt": "2026-04-22T14:44:16.760Z",
+      "durationMs": 15002,
+      "error": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)",
       "diagnostics": {
-        "kind": "http",
+        "kind": "timeout",
         "step": "signup-availability-precheck",
         "method": "GET",
-        "path": "/auth/check-handle?handle=SMOKE075204",
-        "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE075204",
-        "status": 401,
+        "path": "/auth/check-handle?handle=SMOKE050113",
+        "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113",
+        "status": null,
         "attempts": null,
-        "message": "GET /auth/check-handle?handle=SMOKE075204 상태코드 401 (기대: 200) - 인증이 필요합니다."
+        "message": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)"
       }
     }
   ],
   "warnings": [],
-  "fatalError": "GET /auth/check-handle?handle=SMOKE075204 상태코드 401 (기대: 200) - 인증이 필요합니다.",
+  "fatalError": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)",
   "fatalErrorDetails": {
-    "kind": "http",
+    "kind": "timeout",
     "step": "signup-availability-precheck",
     "method": "GET",
-    "path": "/auth/check-handle?handle=SMOKE075204",
-    "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE075204",
-    "status": 401,
+    "path": "/auth/check-handle?handle=SMOKE050113",
+    "url": "https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113",
+    "status": null,
     "attempts": null,
-    "message": "GET /auth/check-handle?handle=SMOKE075204 상태코드 401 (기대: 200) - 인증이 필요합니다."
+    "message": "GET https://api.begabaseball.xyz/api/auth/check-handle?handle=SMOKE050113 요청 타임아웃(15000ms)"
   }
 }

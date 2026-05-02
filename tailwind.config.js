@@ -16,6 +16,7 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ['"Pretendard Variable"', '"Pretendard"', 'sans-serif'],
         retro: ['"Press Start 2P"', 'monospace'],
       },
       colors: {

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface ProfileImageProps {
@@ -21,9 +20,9 @@ const SIZE_CLASS_MAP: Record<NonNullable<ProfileImageProps['size']>, string> = {
 };
 
 const FALLBACK_TEXT_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, string> = {
-  xs: 'text-[10px]',
-  sm: 'text-xs',
-  md: 'text-sm',
+  xs: 'text-[16px]',
+  sm: 'text-[16px]',
+  md: 'text-[16px]',
   lg: 'text-base',
   xl: 'text-lg',
 };
@@ -35,6 +34,32 @@ const ICON_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, number> = {
   lg: 22,
   xl: 28,
 };
+
+function ProfileImageFallbackIcon({
+  size,
+  className,
+}: {
+  size: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
 
 /**
  * 레거시 storage URL 또는 로컬 에셋 경로를 감지하여 null을 반환합니다.
@@ -115,7 +140,7 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
           {initial ? (
             <span className={fallbackTextClass}>{initial}</span>
           ) : (
-            <User size={iconSize} className="text-slate-400 dark:text-gray-500" />
+            <ProfileImageFallbackIcon size={iconSize} className="text-slate-400 dark:text-gray-500" />
           )}
         </div>
       )}

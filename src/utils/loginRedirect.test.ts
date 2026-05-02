@@ -110,6 +110,16 @@ test('resolvePostLoginRedirect는 query, storage, fallback 순으로 결정한�
   assert.equal(resolvePostLoginRedirect('/login', null), '/home');
 });
 
+test('resolvePostLoginRedirect는 인증 경로 redirect와 손상된 storage 값을 건너뛴다', () => {
+  const sessionStorage = createStorage();
+  setWindowSessionStorage(sessionStorage);
+
+  sessionStorage.setItem('pendingLoginRedirect', '/signup');
+
+  assert.equal(resolvePostLoginRedirect('/login', '/mypage'), '/mypage');
+  assert.equal(resolvePostLoginRedirect('/signup', null), '/home');
+});
+
 test('getCurrentRelativeUrl은 현재 location을 상대 경로로 정규화한다', () => {
   const sessionStorage = createStorage();
   setWindowSessionStorage(sessionStorage, {

@@ -93,7 +93,7 @@ export default function ClientErrorTrendChart({
                   y={y + 4}
                   textAnchor="end"
                   fill="#94a3b8"
-                  fontSize="11"
+                  fontSize="12"
                 >
                   {tick}
                 </text>
@@ -127,21 +127,21 @@ export default function ClientErrorTrendChart({
 
         <g>
           {chartData.map((point, index) => (
-            <text
-              key={point.label}
-              x={xForIndex(index)}
-              y={CHART_HEIGHT - 10}
-              textAnchor="middle"
-              fill="#94a3b8"
-              fontSize="11"
-            >
-              {point.label}
-            </text>
+              <text
+                key={point.label}
+                x={xForIndex(index)}
+                y={CHART_HEIGHT - 10}
+                textAnchor="middle"
+                fill="#94a3b8"
+                fontSize="12"
+              >
+                {point.label}
+              </text>
           ))}
         </g>
       </svg>
 
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-300">
+      <div className="mt-3 flex flex-wrap gap-3 text-[14px] text-slate-300">
         {SERIES.map((series) => (
           <div key={series.key} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: series.stroke }} />

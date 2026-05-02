@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { toast } from 'sonner';
-import { Bell, BellOff, Loader2, UserMinus, UserPlus } from 'lucide-react';
 import {
     toggleFollowByHandle,
     updateFollowNotifyByHandle,
@@ -8,6 +7,13 @@ import {
 } from '../../api/followApi';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { Button } from '../ui/button';
+import {
+    ProfileBellIcon,
+    ProfileBellOffIcon,
+    ProfileLoaderIcon,
+    ProfileUserMinusIcon,
+    ProfileUserPlusIcon,
+} from './ProfileIcons';
 
 interface FollowButtonProps {
     handle: string;
@@ -122,7 +128,7 @@ export default function FollowButton({
         }
     }, [handle, isLoading, isFollowing, notifyNewPosts, onFollowChange]);
 
-    const buttonSize = size === 'sm' ? 'h-8 px-3 text-xs' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
+    const buttonSize = size === 'sm' ? 'h-8 px-3 text-[16px]' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 
     if (!isFollowing) {
         return (
@@ -133,10 +139,10 @@ export default function FollowButton({
                 style={style}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <UserPlus className="mr-1 h-4 w-4" />
+                        <ProfileUserPlusIcon className="mr-1 h-4 w-4" />
                         팔로우
                     </>
                 )}
@@ -154,10 +160,10 @@ export default function FollowButton({
                 style={style}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <UserMinus className="mr-1 h-4 w-4" />
+                        <ProfileUserMinusIcon className="mr-1 h-4 w-4" />
                         팔로잉
                     </>
                 )}
@@ -176,10 +182,10 @@ export default function FollowButton({
                 aria-haspopup="menu"
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <UserMinus className="mr-1 h-4 w-4" />
+                        <ProfileUserMinusIcon className="mr-1 h-4 w-4" />
                         팔로잉
                     </>
                 )}
@@ -194,16 +200,16 @@ export default function FollowButton({
                         type="button"
                         role="menuitem"
                         onClick={handleToggleNotify}
-                        className="flex w-full items-center rounded-sm px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
                     >
                         {notifyNewPosts ? (
                             <>
-                                <BellOff className="mr-2 h-4 w-4" />
+                                <ProfileBellOffIcon className="mr-2 h-4 w-4" />
                                 알림 끄기
                             </>
                         ) : (
                             <>
-                                <Bell className="mr-2 h-4 w-4" />
+                                <ProfileBellIcon className="mr-2 h-4 w-4" />
                                 새 글 알림 받기
                             </>
                         )}
@@ -212,9 +218,9 @@ export default function FollowButton({
                         type="button"
                         role="menuitem"
                         onClick={handleToggleFollow}
-                        className="flex w-full items-center rounded-sm px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
-                        <UserMinus className="mr-2 h-4 w-4" />
+                        <ProfileUserMinusIcon className="mr-2 h-4 w-4" />
                         언팔로우
                     </button>
                 </div>

@@ -10,8 +10,8 @@ import {
   UserProfileApiResponse,
   UserProviderDto,
 } from '../types/profile';
-import { compressImage } from '../utils/imageCompression';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { uploadMediaFile } from './media';
 import { getApiErrorStatus } from './errorStatus';
 import {
   PrivateApiError,
@@ -90,31 +90,12 @@ export async function fetchUserProfile(): Promise<UserProfile> {
  * 프로필 이미지 업로드
  */
 export async function uploadProfileImage(file: File): Promise<ProfileImageDto> {
-  let fileToUpload = file;
-
   try {
-    fileToUpload = await compressImage(file, {
-      maxSizeMB: 0.8,
-      maxWidthOrHeight: 1536,
-      initialQuality: 0.88,
-      useWebWorker: true,
-    });
-  } catch (compressionError) {
-    console.warn('프로필 이미지 선압축에 실패하여 원본 업로드를 진행합니다.', compressionError);
-    fileToUpload = file;
-  }
-
-  const formData = new FormData();
-  formData.append('file', fileToUpload);
-
-  try {
-    const response = await privatePost<ApiEnvelope<ProfileImageDto>, FormData>('/profile/image', formData);
-
-    if (!response.success || !response.data) {
-      throw new Error(response.message || '프로필 이미지 업로드에 실패했습니다.');
-    }
-
-    return response.data;
+    const response = await uploadMediaFile('PROFILE', file);
+    return {
+      storagePath: response.storagePath,
+      publicUrl: response.publicUrl,
+    };
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, '프로필 이미지 업로드에 실패했습니다.'));
   }

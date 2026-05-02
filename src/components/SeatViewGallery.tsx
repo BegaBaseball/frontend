@@ -1,25 +1,54 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { X, Camera } from 'lucide-react';
 import { fetchSeatViews, SeatViewPhoto } from '../api/diary';
 import { Button } from './ui/plain-button';
+import { MateCameraIcon, MateCloseIcon } from './MateIcons';
 
 interface SeatViewGalleryProps {
   stadium: string;
   section: string;
+  sectionAliases?: string[];
   compact?: boolean;
 }
 
-export default function SeatViewGallery({ stadium, section, compact = false }: SeatViewGalleryProps) {
+export function buildSeatViewSectionQueries(section: string, sectionAliases: string[] = []): string[] {
+  return Array.from(new Set(
+    [section, ...sectionAliases]
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ));
+}
+
+export function dedupeSeatViewPhotos(photoGroups: SeatViewPhoto[][]): SeatViewPhoto[] {
+  const seen = new Set<string>();
+  const photos: SeatViewPhoto[] = [];
+
+  photoGroups.flat().forEach((photo) => {
+    const key = photo.photoUrl || `${photo.stadium}:${photo.section ?? ''}:${photo.block ?? ''}:${photo.diaryDate}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    photos.push(photo);
+  });
+
+  return photos;
+}
+
+export default function SeatViewGallery({ stadium, section, sectionAliases = [], compact = false }: SeatViewGalleryProps) {
   const [lightboxPhoto, setLightboxPhoto] = useState<SeatViewPhoto | null>(null);
+  const sectionQueries = buildSeatViewSectionQueries(section, sectionAliases);
 
   const { data: photos = [], isLoading } = useQuery({
-    queryKey: ['seat-views', stadium, section],
-    queryFn: () => fetchSeatViews(stadium, section),
+    queryKey: ['seat-views', stadium, sectionQueries],
+    queryFn: async () => {
+      const results = await Promise.all(
+        sectionQueries.map((sectionName) => fetchSeatViews(stadium, sectionName)),
+      );
+      return dedupeSeatViewPhotos(results).slice(0, 9);
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    enabled: Boolean(stadium),
+    enabled: Boolean(stadium && sectionQueries.length > 0),
   });
 
   if (isLoading) {
@@ -39,18 +68,18 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/50 py-6 px-4 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-border">
-          <Camera className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          <MateCameraIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+          <p className="text-[16px] font-semibold text-gray-800 dark:text-gray-100">
             아직 등록된 시야가 없어요
           </p>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
             직관 후 다이어리에 사진을 올리면{' '}
             <span className="font-bold text-primary">+50 포인트</span>를 받아요!
           </p>
         </div>
-        <Button asChild size="sm" variant="outline" className="rounded-full text-xs min-h-9">
+        <Button asChild size="sm" variant="outline" className="rounded-full text-[16px] min-h-9">
           <Link to="/mypage">다이어리에서 공유하기</Link>
         </Button>
       </div>
@@ -91,7 +120,7 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
             onClick={() => setLightboxPhoto(null)}
             aria-label="닫기"
           >
-            <X className="h-5 w-5" />
+            <MateCloseIcon className="h-5 w-5" />
           </button>
           <img
             src={lightboxPhoto.photoUrl}
@@ -100,7 +129,7 @@ export default function SeatViewGallery({ stadium, section, compact = false }: S
             onClick={(e) => e.stopPropagation()}
           />
           {(lightboxPhoto.section || lightboxPhoto.diaryDate) && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-xs text-white backdrop-blur-sm">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-[16px] text-white backdrop-blur-sm">
               {lightboxPhoto.section && <span>{lightboxPhoto.section} </span>}
               {lightboxPhoto.diaryDate && <span>· {lightboxPhoto.diaryDate}</span>}
             </div>

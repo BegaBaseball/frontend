@@ -1,13 +1,31 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from '@tanstack/react-query';
 import * as cheerApi from '../api/cheerApi';
 import { FetchPostsParams, SearchPostsParams, PageResponse, CheerPost } from '../api/cheerApi';
+import { uploadMediaFiles } from '../api/media';
 import { CHEER_KEYS } from './cheerQueryKeys';
+import {
+    applyCheerLikeState,
+    applyCheerLikeStateToContentPage,
+    applyCheerLikeStateToInfiniteData,
+    buildOptimisticCheerLikeState,
+    buildOptimisticCheerLikeStateInContentPage,
+    buildOptimisticCheerLikeStateInInfiniteData,
+    isCheerLikeTargetMatch,
+    isEmbeddedCheerLikeTargetMatch,
+} from '../utils/cheerLikeState';
 import { parseError } from '../utils/errorUtils';
 import { toast } from 'sonner';
 import { getRepostErrorMessageFromCode } from '../utils/repostPolicy';
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
+type CheerContentPage = { content: CheerPost[] };
 type QuerySnapshot<T> = Array<[readonly unknown[], T | undefined]>;
+
+type LikeMutationContext = {
+    previousPostDetails?: QuerySnapshot<CheerPost>;
+    previousPostLists?: InfiniteQueriesSnapshot;
+    previousContentPages?: ContentPageQueriesSnapshot;
+};
 
 type RepostMutationContext = {
     previousPost?: CheerPost;
@@ -30,12 +48,19 @@ type QuoteRepostContext = {
 };
 
 type InfiniteQueriesSnapshot = Array<[readonly unknown[], CheerInfiniteData | undefined]>;
+type ContentPageQueriesSnapshot = Array<[readonly unknown[], CheerContentPage | undefined]>;
 
 const REPOST_LIST_QUERY_PREFIXES = [
     ['cheer', 'posts'],
     ['cheer', 'search'],
     ['cheer-posts'],
     ['userPosts'],
+] as const;
+
+const LIKE_CONTENT_PAGE_QUERY_PREFIXES = [
+    ['cheer-hot'],
+    ['cheer', 'hot'],
+    ['cheer-bookmarks'],
 ] as const;
 
 const getRepostListQueries = (
@@ -54,12 +79,37 @@ const getRepostListQueries = (
 const cancelRepostListQueries = (queryClient: ReturnType<typeof useQueryClient>): Promise<void[]> =>
     Promise.all(REPOST_LIST_QUERY_PREFIXES.map((queryKey) => queryClient.cancelQueries({ queryKey })));
 
+const getLikeContentPageQueries = (
+    queryClient: ReturnType<typeof useQueryClient>
+): ContentPageQueriesSnapshot => {
+    const snapshots = LIKE_CONTENT_PAGE_QUERY_PREFIXES.flatMap((queryKey) =>
+        queryClient.getQueriesData<CheerContentPage>({ queryKey })
+    );
+    const uniq = new Map<string, [readonly unknown[], CheerContentPage | undefined]>();
+    snapshots.forEach(([queryKey, data]) => {
+        uniq.set(JSON.stringify(queryKey), [queryKey, data]);
+    });
+    return Array.from(uniq.values());
+};
+
+const cancelLikeContentPageQueries = (queryClient: ReturnType<typeof useQueryClient>): Promise<void[]> =>
+    Promise.all(LIKE_CONTENT_PAGE_QUERY_PREFIXES.map((queryKey) => queryClient.cancelQueries({ queryKey })));
+
 const updateRepostListQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
     updater: (old: CheerInfiniteData | undefined) => CheerInfiniteData | undefined
 ) => {
     REPOST_LIST_QUERY_PREFIXES.forEach((queryKey) => {
         queryClient.setQueriesData<CheerInfiniteData>({ queryKey }, updater);
+    });
+};
+
+const updateLikeContentPageQueries = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    updater: (old: CheerContentPage | undefined) => CheerContentPage | undefined
+) => {
+    LIKE_CONTENT_PAGE_QUERY_PREFIXES.forEach((queryKey) => {
+        queryClient.setQueriesData<CheerContentPage>({ queryKey }, updater);
     });
 };
 
@@ -78,6 +128,15 @@ const restoreInfiniteQueries = (
     });
 };
 
+const restoreContentPageQueries = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    snapshots?: ContentPageQueriesSnapshot
+) => {
+    snapshots?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData<CheerContentPage>(queryKey, data);
+    });
+};
+
 const restoreQuerySnapshots = <T>(
     queryClient: ReturnType<typeof useQueryClient>,
     snapshots?: QuerySnapshot<T>
@@ -87,84 +146,13 @@ const restoreQuerySnapshots = <T>(
     });
 };
 
-const isRepostTargetMatch = (post: CheerPost, targetPostId: number): boolean => {
-    if (post.id === targetPostId) {
-        return true;
-    }
-    if (post.repostOfId === targetPostId) {
-        return true;
-    }
-    if (post.originalPost?.id === targetPostId) {
-        return true;
-    }
-    return false;
-};
-
-const isEmbeddedRepostTargetMatch = (post: CheerPost, targetPostId: number): boolean => {
-    if (post.originalPost?.id === targetPostId) {
-        return true;
-    }
-    if (post.repostOfId === targetPostId) {
-        return true;
-    }
-    return false;
-};
-
-const syncLikeActionState = (
-    post: CheerPost,
-    targetPostId: number,
-    liked: boolean,
-    likeCount: number
-) => {
-    if (post.id === targetPostId) {
-        return {
-            ...post,
-            likes: likeCount,
-            likeCount,
-            liked,
-            likedByUser: liked,
-        };
-    }
-
-    if (isEmbeddedRepostTargetMatch(post, targetPostId)) {
-        return {
-            ...post,
-            likes: likeCount,
-            likeCount,
-            liked,
-            likedByUser: liked,
-            originalPost: post.originalPost
-                ? {
-                    ...post.originalPost,
-                    likeCount,
-                }
-                : post.originalPost,
-        };
-    }
-
-    return post;
-};
-
 const syncLikeActionStateInInfinitePages = (
     data: CheerInfiniteData | undefined,
     targetPostId: number,
     liked: boolean,
     likeCount: number
 ) => {
-    if (!data?.pages) return data;
-
-    return {
-        ...data,
-        pages: data.pages.map((page) => ({
-            ...page,
-            content: page.content.map((post) => {
-                if (!isRepostTargetMatch(post, targetPostId)) {
-                    return post;
-                }
-                return syncLikeActionState(post, targetPostId, liked, likeCount);
-            }),
-        })),
-    };
+    return applyCheerLikeStateToInfiniteData(data, targetPostId, liked, likeCount);
 };
 
 const syncLikeActionStateInPostDetails = (
@@ -176,9 +164,20 @@ const syncLikeActionStateInPostDetails = (
     const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
     detailQueries.forEach(([queryKey, post]) => {
         if (!post) return;
-        if (!isRepostTargetMatch(post, targetPostId)) return;
-        queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncLikeActionState(post, targetPostId, liked, likeCount));
+        if (!isCheerLikeTargetMatch(post, targetPostId)) return;
+        queryClient.setQueryData<cheerApi.CheerPost>(queryKey, applyCheerLikeState(post, targetPostId, liked, likeCount));
     });
+};
+
+const syncLikeActionStateInContentPages = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    targetPostId: number,
+    liked: boolean,
+    likeCount: number
+) => {
+    updateLikeContentPageQueries(queryClient, (old) =>
+        applyCheerLikeStateToContentPage(old, targetPostId, liked, likeCount)
+    );
 };
 
 const syncBookmarkActionState = (
@@ -187,7 +186,7 @@ const syncBookmarkActionState = (
     bookmarked: boolean,
     bookmarkCount: number
 ) => {
-    if (post.id === targetPostId || isEmbeddedRepostTargetMatch(post, targetPostId)) {
+    if (post.id === targetPostId || isEmbeddedCheerLikeTargetMatch(post, targetPostId)) {
         return {
             ...post,
             isBookmarked: bookmarked,
@@ -212,7 +211,7 @@ const syncBookmarkActionStateInInfinitePages = (
         pages: data.pages.map((page) => ({
             ...page,
             content: page.content.map((post) => {
-                if (!isRepostTargetMatch(post, targetPostId)) {
+                if (!isCheerLikeTargetMatch(post, targetPostId)) {
                     return post;
                 }
                 return syncBookmarkActionState(post, targetPostId, bookmarked, bookmarkCount);
@@ -230,7 +229,7 @@ const syncBookmarkActionStateInPostDetails = (
     const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
     detailQueries.forEach(([queryKey, post]) => {
         if (!post) return;
-        if (!isRepostTargetMatch(post, targetPostId)) return;
+        if (!isCheerLikeTargetMatch(post, targetPostId)) return;
         queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncBookmarkActionState(post, targetPostId, bookmarked, bookmarkCount));
     });
 };
@@ -275,7 +274,7 @@ const syncRepostActionStateInInfinitePages = (
         pages: data.pages.map((page) => ({
             ...page,
             content: page.content.map((post) => {
-                if (!isRepostTargetMatch(post, targetPostId)) {
+                if (!isCheerLikeTargetMatch(post, targetPostId)) {
                     return post;
                 }
                 return syncRepostActionState(post, targetPostId, reposted, repostCount);
@@ -310,7 +309,7 @@ const syncRepostActionStateInPostDetails = (
     const detailQueries = queryClient.getQueriesData<cheerApi.CheerPost>({ queryKey: ['cheer-post'] });
     detailQueries.forEach(([queryKey, post]) => {
         if (!post) return;
-        if (!isRepostTargetMatch(post, targetPostId)) return;
+        if (!isCheerLikeTargetMatch(post, targetPostId)) return;
         queryClient.setQueryData<cheerApi.CheerPost>(queryKey, syncRepostActionState(post, targetPostId, reposted, repostCount));
     });
 };
@@ -372,56 +371,40 @@ export const useCheerHotPosts = () => {
 export const useCheerMutations = () => {
     const queryClient = useQueryClient();
 
-    const toggleLikeMutation = useMutation({
+    const toggleLikeMutation = useMutation<cheerApi.LikeToggleResponse, unknown, number, LikeMutationContext>({
         mutationFn: cheerApi.toggleLike,
         onMutate: async (postId) => {
-            await queryClient.cancelQueries({ queryKey: ['cheer-post', postId] });
+            await queryClient.cancelQueries({ queryKey: ['cheer-post'] });
             await cancelRepostListQueries(queryClient);
+            await cancelLikeContentPageQueries(queryClient);
 
-            const previousPost = queryClient.getQueryData<cheerApi.CheerPost>(['cheer-post', postId]);
-            const currentLiked = (post: CheerPost | cheerApi.CheerPost) => post.liked || false;
-            const nextCount = (post: CheerPost | cheerApi.CheerPost, liked: boolean) => {
-                const current = post.likeCount ?? 0;
-                return Math.max(0, liked ? current + 1 : current - 1);
-            };
+            const previousPostDetails = queryClient.getQueriesData<CheerPost>({ queryKey: ['cheer-post'] });
+            const previousPostLists = getRepostListQueries(queryClient);
+            const previousContentPages = getLikeContentPageQueries(queryClient);
 
-            // Optimistically update single post
-            if (previousPost) {
-                const optimisticLiked = !currentLiked(previousPost);
-                queryClient.setQueryData<cheerApi.CheerPost>(['cheer-post', postId], {
-                    ...previousPost,
-                    likeCount: nextCount(previousPost, optimisticLiked),
-                    liked: optimisticLiked,
-                });
-            }
-
-            // Optimistically update lists
-            updateRepostListQueries(queryClient, (old) => {
-                if (!old?.pages) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                        ...page,
-                        content: page.content.map((post) => {
-                            if (!isRepostTargetMatch(post, postId)) return post;
-                            const optimisticLiked = !currentLiked(post);
-                            const currentLikeCount = post.originalPost?.id === postId
-                                ? (post.originalPost.likeCount ?? post.likeCount ?? 0)
-                                : (post.likeCount ?? 0);
-                            const optimisticLikeCount = Math.max(0, currentLikeCount + (optimisticLiked ? 1 : -1));
-                            return syncLikeActionState(post, postId, optimisticLiked, optimisticLikeCount);
-                        }),
-                    })),
-                };
+            previousPostDetails.forEach(([queryKey, post]) => {
+                if (!post || !isCheerLikeTargetMatch(post, postId)) {
+                    return;
+                }
+                queryClient.setQueryData<cheerApi.CheerPost>(queryKey, buildOptimisticCheerLikeState(post, postId));
             });
+            updateRepostListQueries(queryClient, (old) =>
+                buildOptimisticCheerLikeStateInInfiniteData(old, postId)
+            );
+            updateLikeContentPageQueries(queryClient, (old) =>
+                buildOptimisticCheerLikeStateInContentPage(old, postId)
+            );
 
-            return { previousPost };
+            return {
+                previousPostDetails,
+                previousPostLists,
+                previousContentPages,
+            };
         },
         onError: (_err, postId, context) => {
-            if (context?.previousPost) {
-                queryClient.setQueryData(['cheer-post', postId], context.previousPost);
-            }
-            invalidateRepostListQueries(queryClient);
+            restoreQuerySnapshots(queryClient, context?.previousPostDetails);
+            restoreInfiniteQueries(queryClient, context?.previousPostLists);
+            restoreContentPageQueries(queryClient, context?.previousContentPages);
             const parsed = parseError(_err);
             toast.error(parsed.message || '좋아요 처리에 실패했습니다.');
         },
@@ -430,6 +413,12 @@ export const useCheerMutations = () => {
             updateRepostListQueries(queryClient, (old) =>
                 syncLikeActionStateInInfinitePages(old, postId, data.liked, data.likes)
             );
+            syncLikeActionStateInContentPages(queryClient, postId, data.liked, data.likes);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['cheer-posts', 'popular'] });
+            queryClient.invalidateQueries({ queryKey: ['cheer-hot'] });
+            queryClient.invalidateQueries({ queryKey: ['cheer', 'hot'] });
         },
     });
 
@@ -451,7 +440,7 @@ export const useCheerMutations = () => {
                     pages: old.pages.map((page) => ({
                         ...page,
                         content: page.content.map((post) => {
-                            if (!isRepostTargetMatch(post, postId)) return post;
+                            if (!isCheerLikeTargetMatch(post, postId)) return post;
                             const currentBookmarked = post.bookmarked ?? false;
                             const nextBookmarked = !currentBookmarked;
                             const nextBookmarkCount = Math.max(
@@ -556,15 +545,15 @@ export const useCheerMutations = () => {
 
     const createPostMutation = useMutation({
         mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
+            const uploadedImages = data.files && data.files.length > 0
+                ? (await uploadMediaFiles('CHEER', data.files)).map((asset) => asset.storagePath)
+                : [];
             const newPost = await cheerApi.createPost({
                 teamId: data.teamId,
                 content: data.content,
+                images: uploadedImages,
                 postType: data.postType,
             });
-
-            if (newPost && newPost.id && data.files && data.files.length > 0) {
-                await cheerApi.uploadPostImages(newPost.id, data.files);
-            }
             return newPost;
         },
         onSuccess: () => {
@@ -575,21 +564,18 @@ export const useCheerMutations = () => {
     const updatePostMutation = useMutation({
         mutationFn: async ({ id, data, newFiles, deletingImageIds }: {
             id: number;
-            data: { content: string };
+            data: { content: string; images?: string[] };
             newFiles?: File[];
             deletingImageIds?: number[];
         }) => {
-            await cheerApi.updatePost(id, data);
-
-            if (deletingImageIds && deletingImageIds.length > 0) {
-                for (const imgId of deletingImageIds) {
-                    await cheerApi.deleteImageById(imgId);
-                }
-            }
-
-            if (newFiles && newFiles.length > 0) {
-                await cheerApi.uploadPostImages(id, newFiles);
-            }
+            void deletingImageIds;
+            const uploadedImages = newFiles && newFiles.length > 0
+                ? (await uploadMediaFiles('CHEER', newFiles)).map((asset) => asset.storagePath)
+                : [];
+            await cheerApi.updatePost(id, {
+                ...data,
+                images: [...(data.images || []), ...uploadedImages],
+            });
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['cheer-post', variables.id] });

@@ -29,7 +29,7 @@ export default function PublicNavbar() {
   const shouldShowTopThemeToggle = isDesktop;
   const shouldShowDesktopNotificationButton = isLoggedIn && isDesktop;
   const shouldShowMobileNotificationButton = isLoggedIn && !isDesktop && !shouldRenderMobileMenu;
-  const navIconButtonClass = 'relative h-10 w-10 p-2 rounded-full transition-all duration-200 focus:outline-none';
+  const navIconButtonClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
   const navIconSizeClass = 'h-6 w-6';
   const prefetchPredictionPage = () => {
@@ -105,7 +105,7 @@ export default function PublicNavbar() {
               <h1 className="font-black text-xl tracking-widest text-primary dark:text-primary-light leading-none">
                 BEGA
               </h1>
-              <p className="text-[10px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
+              <p className="text-[16px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
                 BASEBALL GUIDE
               </p>
             </div>
@@ -123,8 +123,8 @@ export default function PublicNavbar() {
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                    className={`
-                      relative px-1 py-1 text-sm lg:text-base font-bold transition-all duration-200
+                      className={`
+                      relative px-1 py-1 text-[16px] lg:text-[16px] font-bold transition-all duration-200
                       ${location.pathname === `/${item.id}`
                         ? 'text-primary dark:text-primary-light'
                         : 'text-muted-foreground dark:text-gray-300 hover:text-primary dark:hover:text-primary-light'

@@ -8,6 +8,18 @@
   display: none;
 }
 
+.stadium-hero-container {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 639px) {
+  .stadium-hero-container {
+    margin-bottom: 1rem;
+  }
+}
+
 .stadium-guide-map {
   width: 100%;
   height: 500px;

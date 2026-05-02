@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, ImagePlus, Smile } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import AutosizeTextarea from './ui/autosize-textarea';
 import TeamLogo from './TeamLogo';
+import { ImagePlusIcon, SmileIcon, XIcon } from './icons/CheerIcons';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';
@@ -204,10 +204,10 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                                ringVariant="cheerFeed"
                             />
                         ) : userFavoriteTeam && userFavoriteTeam !== '없음' ? (
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-secondary p-px flex-shrink-0 overflow-hidden">
+                            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200/90 p-0.5 flex-shrink-0 dark:bg-slate-700/80">
                                 <div className="h-full w-full rounded-full bg-slate-100 dark:bg-secondary flex items-center justify-center overflow-hidden">
                                     <TeamLogo teamId={teamId} team={teamLabel} size={40} />
                                 </div>
@@ -219,7 +219,7 @@ export default function CheerWriteModal({
                                 width={40}
                                 height={40}
                                 showRing
-                                ringClassName="p-px bg-slate-100 dark:bg-secondary"
+                                ringVariant="cheerFeed"
                             />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
@@ -227,7 +227,7 @@ export default function CheerWriteModal({
                                 <select
                                     value={shareMode}
                                     onChange={(e) => setShareMode(e.target.value as ShareMode)}
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 >
                                     <option value="INTERNAL_REPOST">내부 공유</option>
                                     <option value="INTERNAL_QUOTE">내부 인용</option>
@@ -240,43 +240,43 @@ export default function CheerWriteModal({
                                     value={sourceUrl}
                                     onChange={(e) => setSourceUrl(e.target.value)}
                                     placeholder="출처 URL (외부 모드 필수)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceTitle}
                                     onChange={(e) => setSourceTitle(e.target.value)}
                                     placeholder="원문 제목 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceAuthor}
                                     onChange={(e) => setSourceAuthor(e.target.value)}
                                     placeholder="작성자/권리자 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceLicense}
                                     onChange={(e) => setSourceLicense(e.target.value)}
                                     placeholder="라이선스 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceLicenseUrl}
                                     onChange={(e) => setSourceLicenseUrl(e.target.value)}
                                     placeholder="라이선스 URL (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceChangedNote}
                                     onChange={(e) => setSourceChangedNote(e.target.value)}
                                     placeholder="변경사항 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                                 <input
                                     value={sourceSnapshotType}
                                     onChange={(e) => setSourceSnapshotType(e.target.value)}
                                     placeholder="스냅샷 유형 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-sm"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
                                 />
                             </div>
                             <AutosizeTextarea
@@ -299,7 +299,7 @@ export default function CheerWriteModal({
                                                 onClick={() => handleRemoveFile(index)}
                                                 className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
                                             >
-                                                <X className="w-3 h-3" />
+                                                <XIcon className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
@@ -313,7 +313,7 @@ export default function CheerWriteModal({
                                         onClick={() => fileInputRef.current?.click()}
                                         className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
                                     >
-                                        <ImagePlus className="w-5 h-5" />
+                                        <ImagePlusIcon className="w-5 h-5" />
                                     </button>
                                     <div className="relative" ref={emojiPickerRef}>
                                         <button
@@ -321,7 +321,7 @@ export default function CheerWriteModal({
                                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                             className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
                                         >
-                                            <Smile className="w-5 h-5" />
+                                            <SmileIcon className="w-5 h-5" />
                                         </button>
                                         {showEmojiPicker && (
                                             <div className="absolute top-0 left-full z-50 ml-2 sm:left-auto sm:right-0 sm:top-full sm:mt-2">

@@ -83,11 +83,11 @@ const publicRequest = async <T>(
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const timeoutHandle = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  const url = buildPublicApiUrl(endpoint, options.params);
 
   const abortSignal = options.signal;
   const abortListener = () => controller.abort();
   abortSignal?.addEventListener('abort', abortListener);
-
   try {
     const headers: Record<string, string> = {
       Accept: 'application/json',
@@ -99,14 +99,13 @@ const publicRequest = async <T>(
       headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(buildPublicApiUrl(endpoint, options.params), {
+    const response = await fetch(url, {
       credentials: 'include',
       method,
       headers,
       body: requestBody,
       signal: controller.signal,
     });
-
     const responseBody = await parseResponseBody(response);
 
     if (!response.ok) {

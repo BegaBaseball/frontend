@@ -120,9 +120,9 @@ const transformPostPage = (data: PostPageResponse): PageResponse<CheerPost> => (
 });
 
 export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20): Promise<PageResponse<CheerPost>> {
-  const response = await publicGet<PostPageResponse>(`/cheer/user/${encodeURIComponent(handle)}/posts`, {
+  const routeHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+  const response = await publicGet<PostPageResponse>(`/cheer/user/${encodeURIComponent(routeHandle)}/posts`, {
     params: { page, size },
   });
   return transformPostPage(response);
 }
-

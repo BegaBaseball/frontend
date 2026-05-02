@@ -12,6 +12,7 @@ const getInitialFormData = (): DiaryFormData => ({
   gameId: 0,
   memo: '',
   photos: [],
+  photoStoragePaths: [],
   photoFiles: [],
   section: '',
   block: '',
@@ -35,6 +36,7 @@ export const useDiaryForm = () => {
         gameId: entry.gameId || 0,
         memo: entry.memo || '',
         photos: entry.photos || [],
+        photoStoragePaths: entry.photoStoragePaths || [],
         // file: ... (existing code)
         photoFiles: [],
         section: entry.section || '',
@@ -98,6 +100,7 @@ export const useDiaryForm = () => {
         return {
           ...prev,
           photos: prev.photos.filter((_, i) => i !== index),
+          photoStoragePaths: prev.photoStoragePaths.filter((_, i) => i !== index),
         };
       } else {
         // 새 사진 삭제 (File 객체)

@@ -99,7 +99,7 @@ describe('WebSocket real integration smoke', () => {
     return `${backendBaseUrl}${safePath}`;
   };
 
-  const isBackendHealthResponse = (response: Cypress.Response<unknown>) => {
+  const isBackendReadinessResponse = (response: Cypress.Response<unknown>) => {
     if (![200, 503].includes(response.status)) {
       return false;
     }
@@ -131,17 +131,21 @@ describe('WebSocket real integration smoke', () => {
         return asPromiseLike(
           cy.request({
             method: 'GET',
-            url: `${backendBaseUrl}/actuator/health`,
+            url: `${backendBaseUrl}/actuator/health/readiness`,
             failOnStatusCode: false,
           })
         ).then((response) => {
-          if (!isBackendHealthResponse(response)) {
-            cy.log('Skipping websocket-real: /actuator/health did not return backend JSON payload.');
-            this.skip();
+          if (!isBackendReadinessResponse(response)) {
+            const contentType = String(response.headers['content-type'] || 'unknown');
+            throw new Error(`websocket-real backend readiness did not return JSON payload (status=${response.status}, content-type=${contentType})`);
+          }
+
+          const status = (response.body as { status?: unknown }).status;
+          if (response.status !== 200 || status !== 'UP') {
+            throw new Error(`websocket-real backend readiness is not UP (http=${response.status}, status=${String(status || 'empty')})`);
           }
         }, (error: Error) => {
-          cy.log(`Skipping websocket-real: backend health check failed (${error.message}).`);
-          this.skip();
+          throw new Error(`websocket-real backend readiness check failed (${error.message})`);
         });
       });
   });

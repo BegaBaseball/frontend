@@ -1,5 +1,10 @@
 /// <reference types="cypress" />
 
+import {
+    installPredictionAuthenticatedSessionIntercept,
+    visitPredictionPage,
+} from '../support/predictionPage';
+
 describe('Prediction Ranking Deferred', () => {
     const today = '2026-02-03';
     const nextDate = '2026-02-06';
@@ -44,41 +49,10 @@ describe('Prediction Ranking Deferred', () => {
     };
 
     const openPredictionPage = () => {
-        const fakeToken = 'prediction-ranking-deferred-token';
-        const authState = {
-            state: {
-                user: {
-                    id: 123,
-                    email: 'test@example.com',
-                    name: 'TestUser',
-                    handle: 'testuser',
-                    favoriteTeam: 'HH',
-                    role: 'ROLE_USER',
-                    hasPassword: true,
-                    profileImageUrl: null,
-                },
-                isLoggedIn: true,
-                isAdmin: false,
-            },
-            version: 0,
-        };
-        const seedAuthState = (win: Window) => {
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('auth-bootstrap-hint', '1');
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
-
-        cy.visit('/prediction', {
-            onBeforeLoad(win) {
-                seedAuthState(win);
-            },
+        visitPredictionPage({
+            path: '/prediction',
+            token: 'prediction-ranking-deferred-token',
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
-        });
-        cy.setCookie('Authorization', fakeToken);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getDeferredMatchDay');
         cy.get('@getDeferredUserVoteLegacy.all').should('have.length', 0);
@@ -90,6 +64,7 @@ describe('Prediction Ranking Deferred', () => {
         cy.clearAllLocalStorage();
         cy.mockAPI({ skipRankings: true });
         cy.clock(new Date('2026-02-03T12:00:00').getTime(), ['Date']);
+        installPredictionAuthenticatedSessionIntercept('getDeferredSession');
 
         cy.intercept('GET', '**/api/matches/bounds*', {
             statusCode: 200,
@@ -183,13 +158,17 @@ describe('Prediction Ranking Deferred', () => {
     it('defers ranking chunks and stats query until the first ranking tab entry', () => {
         openPredictionPage();
 
-        cy.contains('button', '경기 상세 보기').should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-enter-detail-btn"]').first().click({ force: true });
+        cy.get('[data-testid="prediction-match-detail-root"]').should('be.visible');
+        cy.contains('button', '경기 상세 보기').should('not.exist');
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.wait(1200);
         assertChunkCounts((counts) => {
             expect(counts.rankingTab).to.equal(0);
             expect(counts.rankingPrediction).to.equal(0);
             expect(counts.statsPanel).to.equal(0);
-            expect(counts.matchCard).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
         });
         cy.get('@getDeferredPredictionStats.all').should('have.length', 0);
         cy.contains('나의 예측 퍼포먼스').should('not.exist');
@@ -199,7 +178,7 @@ describe('Prediction Ranking Deferred', () => {
         assertChunkCounts((counts) => {
             expect(counts.rankingTab).to.be.greaterThan(0);
             expect(counts.rankingPrediction).to.be.greaterThan(0);
-            expect(counts.matchCard).to.equal(0);
+            expect(counts.matchCard).to.be.greaterThan(0);
         });
     });
 });

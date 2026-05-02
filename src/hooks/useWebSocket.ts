@@ -8,6 +8,7 @@ type OutboundChatMessage = {
   partyId: string | number;
   message: string;
   imageUrl?: string;
+  clientMessageId: string;
 };
 
 interface UseWebSocketProps {

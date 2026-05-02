@@ -9,6 +9,7 @@ interface MateDetailQrPanelProps {
   isQrLoading: boolean;
   qrSessionExpiresAt: string | null;
   qrSessionError: string | null;
+  manualCode: string | null;
   onClose: () => void;
   onOpenCheckInPage: () => void;
 }
@@ -19,6 +20,7 @@ export default function MateDetailQrPanel({
   isQrLoading,
   qrSessionExpiresAt,
   qrSessionError,
+  manualCode,
   onClose,
   onOpenCheckInPage,
 }: MateDetailQrPanelProps) {
@@ -50,19 +52,28 @@ export default function MateDetailQrPanel({
             level="Q"
           />
         </div>
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+        <p className="text-[16px] text-center text-gray-500 dark:text-gray-400">
           체크인 QR은 열려 있는 동안만 갱신됩니다.
         </p>
         {isQrLoading ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400">체크인 QR을 새로 불러오는 중입니다.</p>
+          <p className="text-[16px] text-gray-500 dark:text-gray-400">체크인 QR을 새로 불러오는 중입니다.</p>
         ) : null}
         {qrSessionExpiresAt ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-[16px] text-gray-500 dark:text-gray-400">
             유효: {new Date(qrSessionExpiresAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
           </p>
         ) : null}
+        {manualCode ? (
+          <div className="w-full rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-center">
+            <p className="text-[16px] font-semibold text-gray-900 dark:text-white">수동 체크인 코드</p>
+            <p className="mt-2 text-2xl font-black tracking-[0.4em] text-primary">{manualCode}</p>
+            <p className="mt-2 text-[16px] text-gray-500 dark:text-gray-400">
+              세션이 끊겨도 체크인 페이지에서 이 코드를 입력하면 계속 진행할 수 있습니다.
+            </p>
+          </div>
+        ) : null}
         {qrSessionError ? (
-          <p className="text-xs text-center text-red-500">{qrSessionError}</p>
+          <p className="text-[16px] text-center text-red-500">{qrSessionError}</p>
         ) : null}
       </div>
     </PlainDialog>

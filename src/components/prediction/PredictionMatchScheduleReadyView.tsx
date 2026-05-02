@@ -1,12 +1,15 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import {
+  PREDICTION_RUN_SESSION_EVENT,
+  hasPredictionRunSession,
+} from '../../utils/predictionRecovery';
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
 import { Card } from '../ui/card';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
 
-const PredictionMatchInteractiveRuntime = lazy(() => import('./PredictionMatchInteractiveRuntime'));
 const PredictionMatchSchedulePreviewRuntime = lazy(() => import('./PredictionMatchSchedulePreviewRuntime'));
 
 type PredictionMatchScheduleReadyViewProps = {
@@ -23,7 +26,6 @@ type PredictionMatchScheduleReadyViewProps = {
   goToPreviousDate: () => void;
   goToNextDate: () => void;
   goToDate: (date: string) => Promise<void> | void;
-  currentGameId?: string;
   pastRangeLoadState: RangeLoadState;
   pastRangeLoadErrorMessage: string | null;
   futureRangeLoadState: RangeLoadState;
@@ -49,7 +51,6 @@ export default function PredictionMatchScheduleReadyView({
   goToPreviousDate,
   goToNextDate,
   goToDate,
-  currentGameId,
   pastRangeLoadState,
   pastRangeLoadErrorMessage,
   futureRangeLoadState,
@@ -62,6 +63,8 @@ export default function PredictionMatchScheduleReadyView({
 }: PredictionMatchScheduleReadyViewProps) {
   const [hasEnteredMatchDetail, setHasEnteredMatchDetail] = useState(false);
   const [hasStoredRunSession, setHasStoredRunSession] = useState(false);
+  const [InteractiveRuntimeComponent, setInteractiveRuntimeComponent] = useState<ComponentType | null>(null);
+  const currentGameId = currentGame?.gameId;
 
   const deepLinkGameId = useMemo(() => {
     const queryGameId = searchParams.get('gameId')?.trim() || '';
@@ -78,6 +81,9 @@ export default function PredictionMatchScheduleReadyView({
 
     return currentGameId === deepLinkGameId;
   }, [currentGameId, deepLinkGameId]);
+  const isDeepLinkGameMismatch = Boolean(
+    !hasEnteredMatchDetail && deepLinkGameId && currentGameId && currentGameId !== deepLinkGameId
+  );
 
   useEffect(() => {
     if (isDeepLinkMatchSelection) {
@@ -91,11 +97,7 @@ export default function PredictionMatchScheduleReadyView({
     }
 
     const syncStoredRunSession = () => {
-      const hasPendingRunSession = Boolean(
-        window.sessionStorage.getItem('prediction:run-session:v1')
-        || window.sessionStorage.getItem('prediction:run-session')
-      );
-      setHasStoredRunSession(hasPendingRunSession);
+      setHasStoredRunSession(hasPredictionRunSession());
     };
 
     const handlePageShow = () => {
@@ -106,70 +108,111 @@ export default function PredictionMatchScheduleReadyView({
         syncStoredRunSession();
       }
     };
+    const handleRunSessionUpdated = () => {
+      syncStoredRunSession();
+    };
 
     syncStoredRunSession();
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener(PREDICTION_RUN_SESSION_EVENT, handleRunSessionUpdated);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
-  const handleEnterMatchDetail = useCallback(() => {
-    if (currentGameId) {
+  const handleEnterMatchDetail = useCallback((targetGame: Game) => {
+    if (targetGame.gameId) {
       const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.set('gameId', currentGameId);
-      if (currentDate) {
-        nextSearchParams.set('date', currentDate);
+      nextSearchParams.set('gameId', targetGame.gameId);
+      const targetDate = targetGame.gameDate || currentDate;
+      if (targetDate) {
+        nextSearchParams.set('date', targetDate);
       }
       setSearchParams(nextSearchParams, { replace: true });
     }
     setHasEnteredMatchDetail(true);
-  }, [currentDate, currentGameId, searchParams, setSearchParams]);
+  }, [currentDate, searchParams, setSearchParams]);
 
   const shouldRenderMatchCard =
-    (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession) && Boolean(currentGameId);
+    !isDeepLinkGameMismatch
+    && (hasEnteredMatchDetail || isDeepLinkMatchSelection || hasStoredRunSession)
+    && Boolean(currentGameId);
+
+  useEffect(() => {
+    let canceled = false;
+
+    if (!shouldRenderMatchCard || InteractiveRuntimeComponent) {
+      return () => {
+        canceled = true;
+      };
+    }
+
+    void import('./PredictionMatchInteractiveRuntime').then((module) => {
+      if (canceled) {
+        return;
+      }
+
+      setInteractiveRuntimeComponent(() => module.default);
+    });
+
+    return () => {
+      canceled = true;
+    };
+  }, [InteractiveRuntimeComponent, shouldRenderMatchCard]);
 
   return (
-    <Suspense
-      fallback={(
-        <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-          <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-gray-300">
-            <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
-            경기 화면을 준비하고 있습니다.
-          </div>
-        </Card>
-      )}
-    >
-      {shouldRenderMatchCard ? (
-        <PredictionMatchInteractiveRuntime />
-      ) : (
-        <PredictionMatchSchedulePreviewRuntime
-          currentGame={currentGame}
-          currentDateGames={currentDateGames}
-          currentDate={currentDate}
-          currentDayNavigationMeta={currentDayNavigationMeta}
-          allDatesData={allDatesData}
-          currentDateIndex={currentDateIndex}
-          deepLinkNotice={deepLinkNotice}
-          goToPreviousDate={goToPreviousDate}
-          goToNextDate={goToNextDate}
-          goToDate={goToDate}
-          currentGameId={currentGameId}
-          pastRangeLoadState={pastRangeLoadState}
-          pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
-          futureRangeLoadState={futureRangeLoadState}
-          futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
-          canLoadMorePast={canLoadMorePast}
-          canLoadMoreFuture={canLoadMoreFuture}
-          matchBounds={matchBounds}
-          retryLoadMorePastMatches={retryLoadMorePastMatches}
-          retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-          onEnterMatchDetail={handleEnterMatchDetail}
-        />
-      )}
-    </Suspense>
+    <div className="font-sans">
+      <Suspense
+        fallback={(
+          <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+              <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+              경기 화면을 준비하고 있습니다.
+            </div>
+          </Card>
+        )}
+      >
+        {shouldRenderMatchCard ? (
+          InteractiveRuntimeComponent ? (
+            <InteractiveRuntimeComponent />
+          ) : (
+            <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+              <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+                경기 화면을 준비하고 있습니다.
+              </div>
+            </Card>
+          )
+        ) : (
+          <PredictionMatchSchedulePreviewRuntime
+            currentGame={currentGame}
+            currentDateGames={currentDateGames}
+            currentDate={currentDate}
+            currentDayNavigationMeta={currentDayNavigationMeta}
+            allDatesData={allDatesData}
+            currentDateIndex={currentDateIndex}
+            deepLinkNotice={deepLinkNotice}
+            goToPreviousDate={goToPreviousDate}
+            goToNextDate={goToNextDate}
+            goToDate={goToDate}
+            currentGameId={currentGameId}
+            pastRangeLoadState={pastRangeLoadState}
+            pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
+            futureRangeLoadState={futureRangeLoadState}
+            futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
+            canLoadMorePast={canLoadMorePast}
+            canLoadMoreFuture={canLoadMoreFuture}
+            matchBounds={matchBounds}
+            retryLoadMorePastMatches={retryLoadMorePastMatches}
+            retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
+            onEnterMatchDetail={handleEnterMatchDetail}
+          />
+        )}
+      </Suspense>
+    </div>
   );
 }

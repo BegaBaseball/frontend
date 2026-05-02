@@ -19,6 +19,8 @@ export interface Game {
     awayScore?: number | string;
     sourceDate?: string;
     leagueBadge?: string;
+    liveLastEventSeq?: number | null;
+    liveLastUpdatedAt?: string | null;
 }
 
 export interface Ranking {
@@ -36,11 +38,19 @@ export interface Ranking {
 
 export interface LeagueStartDates {
     regularSeasonStart: string;
-    postseasonStart: string;
-    koreanSeriesStart: string;
+    postseasonStart?: string | null;
+    koreanSeriesStart?: string | null;
 }
 
 export interface ScheduleNavigation {
+    prevGameDate?: string | null;
+    nextGameDate?: string | null;
+    hasPrev: boolean;
+    hasNext: boolean;
+}
+
+export interface HomeScopedNavigationResponse {
+    resolvedDate?: string | null;
     prevGameDate?: string | null;
     nextGameDate?: string | null;
     hasPrev: boolean;

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
 import TeamLogo from './TeamLogo';
@@ -7,6 +6,7 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import { TeamRecommendationTestProps } from '../types/teamTest';
 import { useTeamTest } from '../hooks/useTeamTest';
 import { FRANCHISE_TEAM_IDS, TEAM_DATA, getTeamDescription } from '../constants/teams';
+import { SharedChevronLeftIcon, SharedChevronRightIcon, SharedCloseIcon } from './icons/SharedLeafIcons';
 
 const TEAM_TIE_BREAK_RANK = FRANCHISE_TEAM_IDS.reduce<Record<string, number>>((acc, teamId, index) => {
   acc[teamId] = index;
@@ -81,7 +81,7 @@ export default function TeamRecommendationTest({
           className="absolute right-0 top-0 rounded-full p-2 text-gray-400 transition hover:bg-black/5 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-200"
           aria-label="테스트 닫기"
         >
-          <X className="h-5 w-5" />
+          <SharedCloseIcon className="h-5 w-5" />
         </button>
 
         {!showResult ? (
@@ -94,7 +94,7 @@ export default function TeamRecommendationTest({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-primary">나와 딱 맞는 팀 찾기</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  <p className="text-[16px] text-gray-600 dark:text-gray-300 mt-1">
                     {currentQuestion + 1}번째 질문 / 총 {totalQuestions}문항
                   </p>
                 </div>
@@ -125,7 +125,7 @@ export default function TeamRecommendationTest({
                       {currentQuestionData.question}
                     </h4>
                     {currentQuestionData.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                      <p className="text-[16px] text-gray-600 dark:text-gray-300">
                         {currentQuestionData.description}
                       </p>
                     )}
@@ -150,8 +150,8 @@ export default function TeamRecommendationTest({
                           <div className="flex items-center gap-2">
                             {/* Option Letter */}
                             <div
-                              className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all flex-shrink-0
+                                className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-[16px] transition-all flex-shrink-0
                                 ${
                                   selectedAnswer === index
                                     ? 'text-white shadow-lg bg-primary'
@@ -162,13 +162,13 @@ export default function TeamRecommendationTest({
                               {String.fromCharCode(65 + index)}
                             </div>
 
-                            <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">
+                            <span className="flex-1 text-[16px] text-gray-900 dark:text-gray-100">
                               {answer.label}
                             </span>
 
                             {selectedAnswer === index && (
                               <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-primary">
-                                <ChevronRight className="w-4 h-4 text-white" />
+                                <SharedChevronRightIcon className="w-4 h-4 text-white" />
                               </div>
                             )}
                           </div>
@@ -187,7 +187,7 @@ export default function TeamRecommendationTest({
                 disabled={!canGoPrevious || selectedAnswer !== null}
                 className="flex items-center gap-2 rounded-full px-4 py-2 dark:border-border dark:bg-card dark:text-gray-100 dark:hover:bg-secondary"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <SharedChevronLeftIcon className="w-4 h-4" />
                 이전
               </Button>
               <Button
@@ -215,7 +215,7 @@ export default function TeamRecommendationTest({
                 <div
                   className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-primary/25 dark:to-emerald-900/30 border-2 border-primary"
                 >
-                  <span className="text-sm text-primary">
+                  <span className="text-[16px] text-primary">
                     테스트 완료!
                   </span>
                 </div>
@@ -243,14 +243,14 @@ export default function TeamRecommendationTest({
               <div
                 className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-primary/15 dark:to-emerald-900/20 rounded-xl p-4 mb-4 text-left border-2 border-primary"
               >
-                <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+                <p className="text-[16px] text-gray-700 dark:text-gray-200 leading-relaxed">
                   {getTeamDescription(recommendedTeam)}
                 </p>
               </div>
 
               {/* Scores Summary */}
               <div className="mb-4">
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">팀별 점수</p>
+                <p className="text-[16px] text-gray-600 dark:text-gray-300 mb-2">팀별 점수</p>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto px-1">
                   {sortedTeamScores.map(([team, score]) => {
                     const teamLabel = getTeamDisplayName(team);
@@ -271,10 +271,10 @@ export default function TeamRecommendationTest({
                           <div className="w-7 h-7 flex-shrink-0">
                             <TeamLogo team={team} size="sm" />
                           </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100">{teamLabel}</span>
+                          <span className="text-[16px] text-gray-900 dark:text-gray-100">{teamLabel}</span>
                         </div>
                         <span
-                          className={`text-sm ${
+                          className={`text-[16px] ${
                             team === recommendedTeam
                               ? 'text-primary'
                               : 'text-gray-500 dark:text-gray-300'

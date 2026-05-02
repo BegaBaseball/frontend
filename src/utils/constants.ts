@@ -1,6 +1,5 @@
 // src/utils/constants.ts 생성
-import { Utensils, Truck, ShoppingBag, ParkingCircle } from 'lucide-react';
-import { CategoryConfig, CategoryType } from '../types/stadium';
+import type { CategoryConfig, CategoryType } from '../types/stadium';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 
 export const KAKAO_API_KEY = (import.meta.env.VITE_KAKAO_MAP_KEY || import.meta.env.VITE_KAKAO_API_KEY || '') as string;
@@ -25,7 +24,7 @@ export const CATEGORY_CONFIGS: Record<CategoryType, CategoryConfig> = {
   food: {
     key: 'food',
     label: '구장 먹거리',
-    icon: Utensils,
+    iconKey: 'utensils',
     color: '#ff9500',
     bgColor: '#fff5e6',
     borderColor: '#ff9500',
@@ -33,7 +32,7 @@ export const CATEGORY_CONFIGS: Record<CategoryType, CategoryConfig> = {
   delivery: {
     key: 'delivery',
     label: '배달픽업존',
-    icon: Truck,
+    iconKey: 'truck',
     color: '#2196f3',
     bgColor: '#e3f2fd',
     borderColor: '#2196f3',
@@ -41,7 +40,7 @@ export const CATEGORY_CONFIGS: Record<CategoryType, CategoryConfig> = {
   store: {
     key: 'store',
     label: '편의점',
-    icon: ShoppingBag,
+    iconKey: 'shoppingBag',
     color: '#2d5f4f',
     bgColor: '#e8f5f0',
     borderColor: '#2d5f4f',
@@ -49,7 +48,7 @@ export const CATEGORY_CONFIGS: Record<CategoryType, CategoryConfig> = {
   parking: {
     key: 'parking',
     label: '주차장',
-    icon: ParkingCircle,
+    iconKey: 'parkingCircle',
     color: '#2d5f4f',
     bgColor: '#e8f5f0',
     borderColor: '#2d5f4f',

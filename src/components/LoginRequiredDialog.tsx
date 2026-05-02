@@ -40,6 +40,7 @@ export const LoginRequiredDialog = ({
     <PlainDialog
       open={open}
       onClose={handleCancel}
+      contentTestId="prediction-login-required-dialog"
       title="로그인 필요"
       hideCloseButton={true}
       className="max-w-md"

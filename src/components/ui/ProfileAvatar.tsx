@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
 
+const RING_CLASS_MAP = {
+  default: 'p-px bg-black/5 dark:bg-white/10',
+  cheer: 'p-0.5 bg-slate-200/90 dark:bg-slate-700/80',
+  cheerFeed: 'ring-1 ring-inset ring-slate-200/90 dark:ring-slate-700/80',
+} as const;
+
+type RingVariant = keyof typeof RING_CLASS_MAP;
+
 interface ProfileAvatarProps {
   src?: string | null | undefined;
   alt: string;
@@ -12,6 +20,7 @@ interface ProfileAvatarProps {
   className?: string;
   showRing?: boolean;
   ringClassName?: string;
+  ringVariant?: RingVariant;
 }
 
 export function ProfileAvatar({
@@ -26,6 +35,7 @@ export function ProfileAvatar({
   className = '',
   showRing = false,
   ringClassName,
+  ringVariant = 'default',
 }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -69,39 +79,53 @@ export function ProfileAvatar({
   const resolvedWidth = width ?? height;
   const resolvedHeight = height ?? width;
   const hasFixedSize = resolvedWidth != null && resolvedHeight != null;
-  const resolvedSize = hasFixedSize ? resolvedWidth : undefined;
+  const resolvedSize = hasFixedSize && resolvedWidth === resolvedHeight ? resolvedWidth : undefined;
   const resolvedSizes = sizes ?? (resolvedSize ? `${resolvedSize}px` : undefined);
   const sizeStyle = hasFixedSize
     ? {
-      width: `${resolvedSize}px`,
-      height: `${resolvedSize}px`,
+      width: `${resolvedWidth}px`,
+      height: `${resolvedHeight}px`,
     }
     : undefined;
-  const imageStyle = {
-    objectFit: 'cover' as const,
-    display: 'block',
-    imageRendering: 'auto' as const,
-    ...(showRing ? {} : (sizeStyle || {})),
-  };
+  const imageStyle = hasFixedSize || showRing
+    ? {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover' as const,
+      objectPosition: 'center' as const,
+      display: 'block',
+      imageRendering: 'auto' as const,
+    }
+    : {
+      objectFit: 'cover' as const,
+      objectPosition: 'center' as const,
+      display: 'block',
+      imageRendering: 'auto' as const,
+    };
+  const imageWidthAttr = hasFixedSize ? resolvedWidth : undefined;
+  const imageHeightAttr = hasFixedSize ? resolvedHeight : undefined;
   const containerClass = hasFixedSize ? '' : sizeClasses[size];
   const iconSizeClass = hasFixedSize
-    ? (resolvedSize! >= 48 ? iconSizes.lg : resolvedSize! >= 40 ? iconSizes.md : iconSizes.sm)
+    ? (Math.max(resolvedWidth!, resolvedHeight!) >= 48
+      ? iconSizes.lg
+      : Math.max(resolvedWidth!, resolvedHeight!) >= 40
+        ? iconSizes.md
+        : iconSizes.sm)
     : iconSizes[size];
-  const ringClass = ringClassName || 'p-px bg-black/5 dark:bg-white/10';
+  const ringClass = ringClassName || RING_CLASS_MAP[ringVariant];
   const innerSizeClass = hasFixedSize || showRing ? 'w-full h-full' : containerClass;
-  const imageClassName = `${innerSizeClass} rounded-full object-cover block bg-gray-100 dark:bg-card image-render-quality ${className}`.trim();
+  const imageClassName = `${innerSizeClass} avatar-edge-smooth object-cover object-center block rounded-full ${className}`.trim();
   const fallbackClassName = `${innerSizeClass} rounded-full ${fallbackClassByName} text-white font-semibold flex items-center justify-center ${className}`.trim();
-  const ringWrapperClassName = `${ringClass} rounded-full inline-flex items-center justify-center overflow-hidden ${!hasFixedSize ? containerClass : ''}`.trim();
-
-  if (src && !imageError) {
-    const imageElement = (
-        <img
-          src={src}
-          srcSet={srcSet}
-          sizes={resolvedSizes}
-          alt={alt}
-          width={resolvedSize}
-          height={resolvedSize}
+  const ringWrapperClassName = `${ringClass} rounded-full inline-flex items-center justify-center ${!hasFixedSize ? containerClass : ''}`.trim();
+  const imageElement = src && !imageError
+    ? (
+      <img
+        src={src}
+        srcSet={srcSet}
+        sizes={resolvedSizes}
+        alt={alt}
+        width={hasFixedSize ? imageWidthAttr : undefined}
+        height={hasFixedSize ? imageHeightAttr : undefined}
         style={imageStyle}
         decoding="async"
         loading="lazy"
@@ -109,18 +133,8 @@ export function ProfileAvatar({
         className={imageClassName}
         onError={() => setImageError(true)}
       />
-    );
-
-    if (!showRing) {
-      return imageElement;
-    }
-
-    return (
-      <span className={ringWrapperClassName} style={sizeStyle}>
-        {imageElement}
-      </span>
-    );
-  }
+    )
+    : null;
 
   const fallbackElement = (
     <div
@@ -134,13 +148,21 @@ export function ProfileAvatar({
     </div>
   );
 
+  const contentElement = imageElement || fallbackElement;
+
   if (!showRing) {
-    return fallbackElement;
+    return contentElement;
   }
 
   return (
-    <span className={ringWrapperClassName} style={sizeStyle}>
-      {fallbackElement}
+    <span
+      data-testid="profile-avatar-frame"
+      className={ringWrapperClassName}
+      style={sizeStyle}
+    >
+      <span className="inline-flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+        {contentElement}
+      </span>
     </span>
   );
 }

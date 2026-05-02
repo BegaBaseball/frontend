@@ -1,17 +1,11 @@
-
-import { useMemo } from 'react';
-import { Card } from './ui/card';
-import { Search, ChevronRight, ChevronLeft, Calculator, Trophy, Medal, Crown, TrendingUp, Loader2, Info, ChevronDown, Clock, Award } from 'lucide-react';
-import TeamLogo from './TeamLogo';
+import { lazy, Suspense, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
 import { getTeamKoreanName } from '../utils/teamNames';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { publicGet } from '../api/publicClient';
 import { fetchRankingSnapshot } from '../api/rankings';
 import type { Ranking } from '../types/home';
-import { OffseasonPill } from './offseason/offseasonUi';
 
 interface OffSeasonHomeProps {
   selectedDate: Date;
@@ -54,6 +48,7 @@ const defaultOffseasonHomeData: OffseasonHomeData = {
   awards: [],
   rankings: [],
 };
+const OffSeasonHomePrimaryRuntime = lazy(() => import('./OffSeasonHomePrimaryRuntime'));
 
 const fetchOffseasonHomeData = async (): Promise<OffseasonHomeData> => {
   const [movementsResponse, metadataResponse, rankingsResponse] = await Promise.allSettled([
@@ -130,427 +125,37 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
     return getTeamKoreanName(code);
   };
 
-  return (
-    <div className="space-y-8 md:space-y-12 min-h-screen bg-gray-50 dark:bg-background transition-colors px-4 sm:px-6 py-6 md:py-8 md:px-6">
-      <button
-        type="button"
-        onClick={() => navigate('/home')}
-        className="text-sm mb-2 flex items-center gap-2 group transition-all border-2 border-primary text-primary px-4 py-1.5 min-h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-      >
-        <span className="w-6 h-6 rounded-full bg-primary/10/10 flex items-center justify-center transition-all group-hover:scale-110">
-          <ChevronLeft className="w-4 h-4" />
-        </span>
-        <span className="group-hover:underline font-bold">메인페이지로 돌아가기</span>
-      </button>
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl border-none bg-primary">
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center"></div>
-        <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-sm font-bold text-gray-900 dark:text-zinc-900 md:mb-4">2025-26 스토브리그</OffseasonPill>
-              <h2 className="text-white text-2xl md:text-4xl mb-2" style={{ fontWeight: 900 }}>스토브리그 하이라이트</h2>
-              <p className="text-emerald-100/80 text-base md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
-            </div>
-            <div className="text-white md:text-right bg-black/20 p-3 md:p-4 rounded-xl md:rounded-2xl backdrop-blur-sm border border-white/10 w-fit">
-              <div className="text-[10px] md:text-xs text-white/60 mb-1 uppercase tracking-wider font-bold">OFF-SEASON STATUS</div>
-              <div className="text-lg md:text-2xl font-black">
-                {new Date().toLocaleDateString()} 기준
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Countdown Card */}
-      <Card className="overflow-hidden shadow-2xl bg-white dark:bg-background border-none rounded-2xl md:rounded-3xl">
-        <div className="text-center py-8 sm:py-10 md:py-12 px-4 sm:px-6 relative overflow-hidden bg-gradient-to-br from-[#1a3c34] to-primary">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-white rounded-full blur-3xl"></div>
-          </div>
-          <div className="relative z-10">
-            <div className="bg-white/10 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
-              <Clock className="w-8 h-8 md:w-10 md:h-10 text-yellow-400 animate-pulse" />
-            </div>
-            <h3 className="text-xl md:text-3xl mb-6 md:mb-8 text-white font-black tracking-tight">
-              2026 시즌 개막까지
-            </h3>
-            <div className="inline-block px-6 py-3 sm:px-8 sm:py-4 md:px-12 md:py-8 rounded-[30px] md:rounded-[40px] mb-6 md:mb-8 shadow-2xl border border-white/20" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-              <div className="text-5xl md:text-8xl text-white font-black tracking-tighter">
-                D-{daysUntilOpening}
-              </div>
-            </div>
-            <p className="text-emerald-100/90 text-base md:text-xl font-medium">2026년 3월 28일 개막 예정 ⚾</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Stove League Highlight Section */}
-      <section>
-        <div className="flex items-center gap-3 mb-6 md:mb-8">
-          <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-primary">2025 주요 이적 소식</h3>
-          <OffseasonPill className="ml-2 animate-pulse border-none px-2 py-1 text-[10px] text-white md:px-3 md:text-xs" style={{ backgroundColor: '#ef4444' }}>Breaking</OffseasonPill>
-        </div>
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="p-4 md:p-6 border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10 animate-pulse">
-                <div className="flex items-start gap-4 md:gap-5">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-secondary"></div>
-                  <div className="flex-1 space-y-3">
-                    <div className="h-4 bg-gray-200 dark:bg-secondary rounded w-1/4"></div>
-                    <div className="h-5 bg-gray-200 dark:bg-secondary rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-secondary rounded w-1/2"></div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : bigEvents.length === 0 ? (
-          <Card className="p-6 sm:p-8 md:p-10 text-center border-none bg-white dark:bg-background ring-1 ring-black/5 dark:ring-white/10">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-gray-400 dark:text-zinc-300" />
-            </div>
-            <p className="text-gray-500 dark:text-gray-300 font-medium">아직 등록된 주요 이적 소식이 없습니다.</p>
-            <p className="text-sm text-gray-400 dark:text-gray-300 mt-2">새로운 소식이 등록되면 여기에 표시됩니다.</p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {bigEvents.map((news, index) => (
-              <Card key={news.id} className="p-4 md:p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border-none bg-white dark:bg-background group ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
-                {/* Highlight Background Effect */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-400/10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-
-                <div className="flex items-start gap-4 md:gap-5 relative z-10">
-                  <div className="flex-shrink-0">
-                    <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 dark:bg-card dark:border-border shadow-sm">
-                      <TeamLogo team={getTeamName(news.team)} size={36} className="md:w-11 md:h-11" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 md:mb-2">
-                      <OffseasonPill className="bg-primary px-2 py-0.5 text-[10px] font-bold text-white">{news.section}</OffseasonPill>
-                      <span className="text-[10px] text-gray-400 dark:text-zinc-300 font-medium">{news.date}</span>
-                    </div>
-                    <p className="text-gray-900 dark:text-white text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
-                      {news.player} ({getTeamName(news.team)})
-                    </p>
-                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-1">
-                      {formatRemarks(news.remarks)}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Button to Open List Page */}
-      <section className="flex justify-center pb-10">
-        <Button
-          onClick={() => navigate('/offseason/list')}
-          className="bg-white dark:bg-card text-primary border border-primary/20 hover:bg-primary/5 rounded-full px-6 py-4 sm:px-8 sm:py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-        >
-          전체 이적 현황 보러가기 ({movements.length}건)
-          <ChevronDown className="w-5 h-5 ml-2 -rotate-90" />
-        </Button>
-      </section>
-
-      {/* Awards Section (Static) */}
-      <section>
-        <div className="flex items-center gap-3 mb-6 md:mb-8">
-          <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <Award className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-primary">시상식 결과</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {awards.map((award, index) => (
-            <Card key={index} className="overflow-hidden hover:shadow-xl transition-all border-none bg-white dark:bg-background group ring-1 ring-black/5 dark:ring-white/10">
-              <div className="p-5 md:p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-gray-50 dark:bg-card border border-gray-100 dark:border-border shadow-sm transition-transform group-hover:rotate-6">
-                    <TeamLogo team={award.team} size={36} className="md:w-11 md:h-11" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-[10px] md:text-xs font-black text-primary uppercase tracking-wider mb-0.5 md:mb-1">{award.award}</h4>
-                    <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{award.playerName}</p>
-                  </div>
-                </div>
-                <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-border">
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">{award.stats}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* PostSeason Bracket Section */}
-      <section>
-        <div className="flex items-center gap-3 mb-6 md:mb-8">
-          <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <Trophy className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-primary">2025 포스트시즌 결과</h3>
-        </div>
-
-        <Card className="p-4 md:p-10 overflow-x-auto bg-white dark:bg-card border border-gray-200 dark:border-border shadow-xl rounded-2xl md:rounded-3xl">
-          {!isLargeScreen ? (
-            /* Mobile/Tablet: Vertical Timeline Layout */
-            <div className="flex flex-col gap-4 py-2">
-              {/* 와일드카드 */}
-              <div className="relative pl-8 pb-4 border-l-2 border-gray-300 dark:border-border">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-gray-300 dark:bg-border"></div>
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">와일드카드</span>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">5위</span>
-                    <TeamLogo team="NC" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">NC</span>
-                  </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-xs font-bold text-primary w-6">4위</span>
-                    <TeamLogo team="삼성" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                  </div>
-                </div>
-              </div>
-
-              {/* 준플레이오프 */}
-              <div className="relative pl-8 pb-4 border-l-2 border-primary">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">준플레이오프</span>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">3위</span>
-                    <TeamLogo team="SSG" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">SSG</span>
-                  </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-xs font-bold text-primary w-6">WC</span>
-                    <TeamLogo team="삼성" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                  </div>
-                </div>
-              </div>
-
-              {/* 플레이오프 */}
-              <div className="relative pl-8 pb-4 border-l-2 border-primary">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary"></div>
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 mb-2 block">플레이오프</span>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary">
-                    <span className="text-xs font-bold text-primary w-6">2위</span>
-                    <TeamLogo team="한화" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                  </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border">
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">준PO</span>
-                    <TeamLogo team="삼성" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">삼성</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 한국시리즈 */}
-              <div className="relative pl-8">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-yellow-500"></div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">한국시리즈</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg">
-                    <span className="text-xs font-bold text-emerald-200 w-6">1위</span>
-                    <TeamLogo team="LG" size={24} />
-                    <span className="font-bold text-white">LG</span>
-                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[10px] text-black">V3</OffseasonPill>
-                  </div>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border opacity-70">
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-300 w-6">PO</span>
-                    <TeamLogo team="한화" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">한화</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Desktop: Original Horizontal Bracket Layout */
-            <div className="min-w-[680px] sm:min-w-[760px] md:min-w-[800px] flex items-center justify-center relative h-[340px] sm:h-[380px] md:h-[400px] gap-6 sm:gap-9 md:gap-12">
-
-              {/* WC Stage (Left - Lowest) */}
-              <div className="flex flex-col gap-4 relative z-10 translate-y-20">
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">와일드카드</span>
-                  <div className="flex flex-col gap-3 relative">
-                    {/* Connector Line for WC: Goes UP to Semi */}
-                    <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
-                    <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
-
-                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-44">
-                      <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">5위</span>
-                      <TeamLogo team="NC" size={24} />
-                      <span className="font-bold text-gray-900 dark:text-white">NC</span>
-                    </div>
-                    <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary w-44 relative z-10">
-                      <span className="text-sm font-bold text-primary w-8">4위</span>
-                      <TeamLogo team="삼성" size={24} />
-                      <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                      <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Semi-PO Stage (Step Up) */}
-              <div className="flex flex-col gap-4 relative z-10 translate-y-8">
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">준플레이오프</span>
-                <div className="flex flex-col gap-8 relative">
-                  {/* Incoming Connector from WC */}
-                  <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-primary"></div>
-
-                  {/* Outgoing Connector to PO */}
-                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
-                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
-
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-48">
-                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">3위</span>
-                    <TeamLogo team="SSG" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">SSG</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary w-48">
-                    <span className="text-sm font-bold text-primary w-8">WC</span>
-                    <TeamLogo team="삼성" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                  </div>
-                </div>
-              </div>
-
-              {/* PO Stage (Step Up) */}
-              <div className="flex flex-col gap-4 relative z-10 -translate-y-4">
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-300 text-center">플레이오프</span>
-                <div className="flex flex-col gap-8 relative">
-                  {/* Incoming Connector from Semi */}
-                  <div className="absolute left-[-48px] bottom-[26px] w-[48px] h-[2px] bg-primary"></div>
-
-                  {/* Outgoing Connector to KS */}
-                  <div className="absolute right-[-48px] top-1/2 -translate-y-[1px] w-[48px] h-[2px] bg-gray-300 dark:bg-border"></div>
-                  <div className="absolute right-[-48px] top-[-46px] bottom-[50%] w-[2px] bg-gray-300 dark:bg-border"></div>
-
-
-                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-2 border-primary w-52">
-                    <span className="text-sm font-bold text-primary w-8">2위</span>
-                    <TeamLogo team="한화" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                    <OffseasonPill className="ml-auto border-none bg-primary px-2 py-0.5 text-[10px] text-white">승</OffseasonPill>
-                  </div>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-52">
-                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">준PO</span>
-                    <TeamLogo team="삼성" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">삼성</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* KS Stage (Highest) */}
-              <div className="flex flex-col gap-4 relative z-10 -translate-y-16">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 text-center">한국시리즈</span>
-                </div>
-
-                <div className="flex flex-col gap-8 relative">
-                  {/* Incoming Connector from PO */}
-                  <div className="absolute left-[-48px] bottom-[30px] w-[48px] h-[2px] bg-primary"></div>
-
-                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary to-[#1a3c34] rounded-xl shadow-lg shadow-emerald-900/20 border-none w-60 sm:scale-110">
-                    <span className="text-sm font-bold text-emerald-200 w-8">1위</span>
-                    <TeamLogo team="LG" size={32} />
-                    <span className="font-bold text-white text-lg">LG</span>
-                    <OffseasonPill className="ml-auto border-none bg-yellow-400 px-2 py-0.5 text-[10px] text-black">V3</OffseasonPill>
-                  </div>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-card rounded-lg border border-gray-200 dark:border-border w-60 opacity-70">
-                    <span className="text-sm font-bold text-gray-500 dark:text-zinc-300 w-8">PO</span>
-                    <TeamLogo team="한화" size={24} />
-                    <span className="font-bold text-gray-900 dark:text-white">한화</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Final Rankings (Static) */}
-      <section className="pb-10">
-        <div className="flex items-center gap-3 mb-6 md:mb-8">
-          <div className="bg-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
-            <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-primary">최종 순위</h3>
-        </div>
-
-        <Card className="overflow-hidden shadow-2xl border border-gray-200 dark:border-border bg-white dark:bg-card rounded-2xl md:rounded-3xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-100 dark:bg-secondary text-gray-600 dark:text-gray-200 uppercase border-b border-gray-200 dark:border-border">
-                <tr>
-                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs">순위</th>
-                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs">팀명</th>
-                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center hidden sm:table-cell">경기</th>
-                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center">승/패</th>
-                  <th className="py-4 px-4 md:px-6 font-bold text-[10px] md:text-xs text-center">승률</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankings.map((team: Ranking) => (
-                  <tr
-                    key={team.rank}
-                    className={`group border-b border-gray-100 dark:border-border/70 last:border-b-0 transition-colors odd:bg-white even:bg-gray-50/70 dark:odd:bg-card dark:even:bg-secondary/40 hover:bg-emerald-50/50 dark:hover:bg-secondary/70 dark:text-gray-100 ${team.rank <= 3 ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}`}
-                  >
-                    <td className="py-4 px-4 md:px-6">
-                      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-white shadow-md font-black text-xs md:text-base ${team.rank <= 3 ? 'bg-primary scale-105' : 'bg-gray-400 dark:bg-secondary'}`}>
-                        {team.rank}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 md:px-6">
-                      <div className="flex items-center gap-2 md:gap-4">
-                        <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white dark:bg-card border border-gray-100 dark:border-border shadow-sm flex-shrink-0">
-                          <TeamLogo team={team.teamId} size={24} className="md:w-7 md:h-7" />
-                        </div>
-                        <span className="text-gray-900 dark:text-gray-100 font-bold text-xs md:text-base truncate max-w-[70px] md:max-w-none">
-                          {team.teamName}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 md:px-6 text-center text-gray-600 dark:text-gray-200 text-xs hidden sm:table-cell">{team.games}</td>
-                    <td className="py-4 px-4 md:px-6 text-center">
-                      <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1.5">
-                        <span className="text-emerald-600 font-bold text-xs md:text-sm">{team.wins}승</span>
-                        <span className="text-rose-600 dark:text-rose-400 font-bold text-xs md:text-sm">{team.losses}패</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 md:px-6 text-center font-black text-gray-900 dark:text-gray-100 text-xs md:text-lg tabular-nums">{team.winRate}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </section>
+  const primaryFallback = (
+    <div className="min-h-screen space-y-6 bg-gray-50 px-4 py-6 transition-colors sm:px-6 md:px-6 md:py-8 dark:bg-background">
+      <div className="h-11 w-48 animate-pulse rounded-full bg-white ring-1 ring-black/5 dark:bg-card dark:ring-white/10" />
+      <div className="h-44 animate-pulse rounded-3xl bg-primary/20" />
+      <div className="h-64 animate-pulse rounded-3xl bg-white ring-1 ring-black/5 dark:bg-card dark:ring-white/10" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {[0, 1].map((index) => (
+          <div
+            key={`offseason-home-primary-fallback-${index}`}
+            className="h-36 animate-pulse rounded-2xl bg-white ring-1 ring-black/5 dark:bg-card dark:ring-white/10"
+          />
+        ))}
+      </div>
     </div>
+  );
+
+  return (
+    <Suspense fallback={primaryFallback}>
+      <OffSeasonHomePrimaryRuntime
+        isLoading={isLoading}
+        daysUntilOpening={daysUntilOpening}
+        movementsCount={movements.length}
+        bigEvents={bigEvents}
+        awards={awards}
+        rankings={rankings}
+        isLargeScreen={isLargeScreen}
+        getTeamName={getTeamName}
+        formatRemarks={formatRemarks}
+        onNavigateHome={() => navigate('/home')}
+        onNavigateList={() => navigate('/offseason/list')}
+      />
+    </Suspense>
   );
 }

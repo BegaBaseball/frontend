@@ -225,7 +225,7 @@ npm run dev
 ```bash
 # 이미지 빌드 및 실행
 docker build -t bega-frontend .
-docker run -p 5173:5173 bega-frontend
+docker run -p 5176:3000 bega-frontend
 
 # 또는 docker-compose 사용
 docker-compose up -d
@@ -255,7 +255,7 @@ npm run test:e2e:coverage:dev
 ```bash
 # 빠른 로컬 smoke
 npm run test:mate:smoke
-VITE_SITE_URL=http://localhost:5173 VITE_API_BASE_URL=http://localhost:8080 npm run build
+VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build
 npm run test:e2e:mate:smoke
 
 # 전체 mate regression
@@ -265,12 +265,12 @@ npm run test:e2e:mate:full
 npm run qa:mate:regression:label -- bega_frontend/src/components/MateDetail.tsx
 ```
 
-- `Frontend Mate Smoke` workflow는 mate 관련 경로와 공용 의존성 변경 PR에서 자동 실행됩니다.
-- `Frontend Mate Regression` workflow는 매일 03:00 KST에 실행되고, 수동 실행도 가능합니다.
+- `Frontend Mate` workflow는 mate 관련 경로와 공용 의존성 변경 PR에서 smoke를 자동 실행합니다.
+- 같은 `Frontend Mate` workflow는 매일 03:00 KST에 regression을 실행하고, 수동 실행도 가능합니다.
 - mate 핵심 경로 변경 PR에는 `full-mate-regression` 라벨이 자동으로 붙고, 필요하면 수동으로도 추가해 workflow를 실행할 수 있습니다.
 - 수동 실행 시 `suite_scope`로 `all / route / create / extended`를 고를 수 있고, `upload_visual_artifacts`로 `mate-visual` 스크린샷 업로드를 요청할 수 있습니다.
-- 두 workflow 모두 `reports/mate-ci/*.json`과 raw log를 artifact로 올려 machine-readable 결과를 남깁니다.
-- pull request에서는 두 workflow가 sticky comment를 업데이트해서 stage별 결과와 artifact 이름을 바로 보여줍니다.
+- 이 workflow는 `reports/mate-ci/*.json`과 raw log를 artifact로 올려 machine-readable 결과를 남깁니다.
+- pull request에서는 이 workflow가 sticky comment를 업데이트해서 stage별 결과와 artifact 이름을 바로 보여줍니다.
 - `npm run qa:mate:regression:label -- <changed-file...>` 로 auto-label 기준을 로컬에서 미리 확인할 수 있습니다.
 
 ### Real AI 챗봇 smoke 실행
@@ -285,33 +285,87 @@ SMOKE_LOGIN_PASSWORD=Test1234! \
 npm run test:e2e:ai:real
 ```
 
+### DM authenticated smoke 실행
+```bash
+BASE_URL=http://127.0.0.1:18080 \
+CLIENT_ORIGIN=https://www.begabaseball.xyz \
+DM_SENDER_EMAIL=sender@example.com \
+DM_SENDER_PASSWORD='***' \
+DM_TARGET_EMAIL=target@example.com \
+DM_TARGET_PASSWORD='***' \
+DM_TARGET_HANDLE=@target \
+./scripts/dm_authenticated_smoke.sh
+```
+
+- `BASE_URL`가 `:18080`이면 script는 `CLIENT_ORIGIN`이 비어 있을 때 자동으로 `https://www.begabaseball.xyz`를 사용합니다.
+- credential fallback 순서는 `DM_* -> SMOKE_LOGIN_* / SMOKE_TARGET_* -> repo-local .env TEST_*` 입니다.
+- GitHub Actions에서는 [frontend-postdeploy-smoke.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-postdeploy-smoke.yml)을 `suite=dm`으로 `workflow_dispatch` 실행하면 되고, 아래 secrets가 필요합니다.
+  - sender: `FRONTEND_REAL_SMOKE_LOGIN_EMAIL`, `FRONTEND_REAL_SMOKE_LOGIN_PASSWORD`
+  - target: `FRONTEND_REAL_DM_TARGET_EMAIL`, `FRONTEND_REAL_DM_TARGET_PASSWORD`, `FRONTEND_REAL_DM_TARGET_HANDLE`
+- 같은 [frontend-postdeploy-smoke.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-postdeploy-smoke.yml)에서 `suite=real`, `run_dm_smoke=true`로 실행하면 같은 sender/target secrets를 사용해 DM smoke까지 이어서 수행합니다.
+- [frontend-postdeploy-smoke.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-postdeploy-smoke.yml)은 `suite=auth`, `run_dm_smoke=true`도 지원하므로, auth 공개 smoke와 DM smoke를 한 번에 돌릴 수 있습니다.
+
 ---
 
 ## 🧪 QA
 
+### 모바일 fallback smoke
+```bash
+# Cypress가 막힌 로컬의 기본 대체 경로
+npm run qa:mobile:smoke
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:mobile:smoke:attached
+```
+
+- `qa:mobile:smoke`는 prediction smoke와 mate smoke를 순서대로 실행합니다.
+- 기본적으로 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 재사용하고, 없으면 각 runner가 필요한 dev server를 자체 기동합니다.
+- `qa:mobile:smoke:attached`는 두 smoke 모두 attach-only로 실행합니다.
+- combined 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/mobile-playwright-smoke-summary.md`에 저장됩니다.
+- GitHub Actions에서 같은 흐름을 수동 실행하려면 [frontend-mobile-qa.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-mobile-qa.yml)을 `suite=combined`로 `workflow_dispatch` 실행하면 됩니다.
+
 ### Prediction 모바일 회귀
 ```bash
-# 대표 smoke 세트
+# 팀 기본 smoke
 npm run qa:prediction:mobile:smoke
 
 # 전체 상태 회귀
 npm run qa:prediction:mobile
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:prediction:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:prediction:mobile:smoke:attached
 ```
 
 - `smoke`는 `match`, `ranking`, `ranking-save-dialog`, `ranking-saved`, `detail-error`를 대상으로 PR 검증용으로 사용합니다.
+- `smoke`는 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 그 서버를 재사용하고, 없으면 자체 dev server를 띄웁니다. prediction 검증의 팀 기본 명령으로 사용합니다.
 - `full`은 `ranking-ready`, `ranking-ended`, `empty`까지 포함한 8개 상태를 검증합니다.
+- `attached`는 기존 Vite 서버만 사용하고 새 dev server를 띄우지 않습니다. 다른 포트에 붙이거나 attach-only 동작이 필요할 때만 사용합니다.
 - 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile-regression-summary.md`에, 상세 캡처는 `/Users/mac/project/KBO_platform/output/playwright/prediction-mobile/`에 저장됩니다.
-- GitHub Actions smoke workflow는 [frontend-prediction-mobile-qa.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-prediction-mobile-qa.yml)을 사용합니다.
+- GitHub Actions smoke workflow는 [frontend-mobile-qa.yml](/Users/mac/project/KBO_platform/.github/workflows/frontend-mobile-qa.yml)을 `suite=prediction`으로 사용합니다.
 
 ### Mate 모바일 회귀
 ```bash
-# 대표 smoke 세트
+# 팀 기본 smoke
 npm run qa:mate:mobile:smoke
 
 # 전체 mate 모바일 회귀
 npm run qa:mate:mobile
+
+# 이미 떠 있는 127.0.0.1:5176 프론트에만 명시적으로 attach
+npm run qa:mate:mobile:smoke:attached
+
+# 다른 포트 프론트에 attach
+AUDIT_BASE_URL=http://127.0.0.1:5177 npm run qa:mate:mobile:smoke:attached
 ```
 
+- `smoke`는 로컬 `127.0.0.1:5176` 프론트가 이미 떠 있으면 그 서버를 재사용하고, 없으면 자체 dev server를 띄웁니다. mate 검증의 기본 명령으로 사용합니다.
+- `attached`는 기존 Vite 서버만 사용하고 새 dev server를 띄우지 않습니다. 다른 포트에 붙이거나 attach-only 동작이 필요할 때만 사용합니다.
 - 결과 요약은 `/Users/mac/project/KBO_platform/output/playwright/mate-mobile-regression-summary.md`에 저장됩니다.
 
 ---
@@ -407,7 +461,6 @@ server {
 |:---|:---|:---|
 | [Backend](https://github.com/your-username/bega-backend) | REST API 서버 | Spring Boot, JPA |
 | [AI Server](https://github.com/your-username/bega-ai) | AI 챗봇 서버 | FastAPI, LangChain |
-| [Crawler](https://github.com/your-username/bega-crawler) | KBO 데이터 크롤러 | Python, Selenium |
 
 ---
 

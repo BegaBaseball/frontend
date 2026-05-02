@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Ban, Loader2 } from 'lucide-react';
 import { toggleBlockByHandle, BlockToggleResponse } from '../../api/blockApi';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { Button } from '../ui/button';
+import { ProfileBanIcon, ProfileLoaderIcon } from './ProfileIcons';
 
 interface BlockButtonProps {
     handle: string;
@@ -74,7 +74,7 @@ export default function BlockButton({
         }
     }, [handle, isLoading, onBlockChange]);
 
-    const buttonSize = size === 'sm' ? 'h-8 px-3 text-xs' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
+    const buttonSize = size === 'sm' ? 'h-8 px-3 text-[16px]' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 
     if (isBlocked) {
         return (
@@ -85,10 +85,10 @@ export default function BlockButton({
                 className={`${buttonSize} border-red-500 text-red-500 hover:bg-red-50`}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <Ban className="mr-1 h-4 w-4" />
+                        <ProfileBanIcon className="mr-1 h-4 w-4" />
                         차단 해제
                     </>
                 )}
@@ -105,10 +105,10 @@ export default function BlockButton({
                 className={`${buttonSize} text-gray-500 hover:bg-red-50 hover:text-red-500`}
             >
                 {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ProfileLoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        <Ban className="mr-1 h-4 w-4" />
+                        <ProfileBanIcon className="mr-1 h-4 w-4" />
                         차단
                     </>
                 )}
@@ -130,7 +130,7 @@ export default function BlockButton({
                                 <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white">
                                     사용자 차단
                                 </h2>
-                                <div id={descriptionId} className="text-sm text-gray-600 dark:text-gray-300">
+                                <div id={descriptionId} className="text-[16px] text-gray-600 dark:text-gray-300">
                                     <p>{userName}를 차단하시겠습니까?</p>
                                     <ul className="mt-3 list-inside list-disc space-y-1">
                                         <li>상대방의 게시글이 피드에서 숨겨집니다</li>

@@ -1,5 +1,5 @@
-import { Repeat2, Quote, Undo2 } from 'lucide-react';
 import { CheerPost } from '../api/cheerApi';
+import { QuoteIcon, RepeatIcon, UndoIcon } from './icons/CheerIcons';
 import PlainDialog from './ui/plain-dialog';
 import {
     getRepostPolicyDecision,
@@ -72,13 +72,13 @@ export default function RepostModal({
                                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
                                 <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                    <Undo2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                    <UndoIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
                                 </div>
                                 <div className="flex-1 text-left">
-                                    <p className="font-medium text-red-600 dark:text-red-400">
+                                    <p className="font-semibold text-red-600 dark:text-red-400">
                                         리포스트 삭제
                                     </p>
-                                    <p className="text-xs text-red-500/70 dark:text-red-400/70">
+                                    <p className="text-[16px] font-semibold text-red-500/70 dark:text-red-400/70">
                                         내 프로필에서 제거됩니다
                                     </p>
                                 </div>
@@ -86,9 +86,9 @@ export default function RepostModal({
                         ) : (
                                 <div className="px-4 py-6 text-center">
                                 <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
-                                    <Repeat2 className="w-6 h-6 text-gray-400" />
+                                    <RepeatIcon className="w-6 h-6 text-gray-400" />
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-300">
+                                        <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                     {repostUnavailableMessage}
                                 </p>
                             </div>
@@ -106,19 +106,19 @@ export default function RepostModal({
                                         : 'bg-gray-100 dark:bg-card'
                                         }`}>
                                         {isRepostedByMe ? (
-                                            <Undo2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                            <UndoIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                         ) : (
-                                            <Repeat2 className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                            <RepeatIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                         )}
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <p className={`font-medium ${isRepostedByMe
+                                        <p className={`font-semibold ${isRepostedByMe
                                             ? 'text-emerald-600 dark:text-emerald-400'
                                             : 'text-gray-900 dark:text-white'
                                             }`}>
                                             {isRepostedByMe ? '리포스트 취소' : '리포스트'}
                                         </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                                    <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                             {isRepostedByMe
                                                 ? '내 프로필에서 제거됩니다'
                                                 : '내 프로필에 바로 공유됩니다'}
@@ -134,13 +134,13 @@ export default function RepostModal({
                                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                             >
                                     <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-card flex items-center justify-center">
-                                        <Quote className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                        <QuoteIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <p className="font-medium text-gray-900 dark:text-white">
+                                        <p className="font-semibold text-gray-900 dark:text-white">
                                             인용하기
                                         </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                                        <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                             내 의견을 덧붙여 공유합니다
                                         </p>
                                     </div>
@@ -148,9 +148,9 @@ export default function RepostModal({
                             ) : isRepost ? (
                                 <div className="px-4 py-6 text-center">
                                     <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
-                                        <Quote className="w-6 h-6 text-gray-400" />
+                                        <QuoteIcon className="w-6 h-6 text-gray-400" />
                                     </div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                         {repostUnavailableMessage}
                                     </p>
                                 </div>
@@ -159,9 +159,9 @@ export default function RepostModal({
                     ) : (
                         <div className="px-4 py-6 text-center">
                             <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-card mx-auto mb-3 flex items-center justify-center">
-                                <Repeat2 className="w-6 h-6 text-gray-400" />
+                                <RepeatIcon className="w-6 h-6 text-gray-400" />
                             </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                            <p className="text-[16px] font-semibold text-gray-500 dark:text-gray-300">
                                 {repostUnavailableMessage}
                             </p>
                         </div>
@@ -173,7 +173,7 @@ export default function RepostModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-full py-2.5 text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        className="w-full py-2.5 text-[16px] font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                         취소
                     </button>

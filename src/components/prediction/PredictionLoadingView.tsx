@@ -7,7 +7,7 @@ interface PredictionLoadingViewProps {
 
 export default function PredictionLoadingView({ topNotice }: PredictionLoadingViewProps) {
   return (
-    <div className="min-h-screen bg-white transition-colors duration-200 dark:bg-background">
+    <div className="min-h-screen bg-white font-sans transition-colors duration-200 dark:bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center gap-3">
           <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200 p-2 dark:bg-card" />

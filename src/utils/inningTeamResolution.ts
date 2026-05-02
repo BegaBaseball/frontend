@@ -70,12 +70,3 @@ export const matchesTeamCode = (
     candidate.includes(normalizedCode) || normalizedCode.includes(candidate)
   ));
 };
-
-export const isDoosanTeam = (team: string): boolean => {
-  const normalizedCode = normalizeTeamCode(team);
-  const normalizedText = normalizeTeamText(team);
-  return normalizedCode === 'DB'
-    || normalizedCode === 'DO'
-    || normalizedCode === 'OB'
-    || normalizedText.includes('두산');
-};
