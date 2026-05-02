@@ -29,6 +29,7 @@ import {
   formatInputDate,
   parseNonCanonicalCleanupTrackerKey,
   shiftInputDate,
+  type AdminNonCanonicalCleanupClosureSync,
   type AdminNonCanonicalCleanupTrackerStatus,
   type AdminGameStatusDateRecommendation,
 } from '../../utils/adminGameStatus';
@@ -818,10 +819,10 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
       ? `재진단 결과: 저장된 비정상 row ${currentTrackedGameIds.length}건이 모두 해소되었습니다.`
       : `재진단 결과: 저장된 비정상 row ${currentTrackedGameIds.length}건 중 ${currentRemainingTrackedGameIds.length}건 남아 있습니다.`
     : null;
-  const currentRangeClosureFallback = currentRangeCleanupTracker && mismatchResult && currentTrackedGameIds.length > 0
+  const currentRangeClosureFallback: AdminNonCanonicalCleanupClosureSync | null = currentRangeCleanupTracker && mismatchResult && currentTrackedGameIds.length > 0
     ? {
       comparedAt: null,
-      compareStatus: (currentRemainingTrackedGameIds.length === 0 && currentNewTrackedCount === 0 ? 'PASS' : 'FAIL') as const,
+      compareStatus: currentRemainingTrackedGameIds.length === 0 && currentNewTrackedCount === 0 ? 'PASS' : 'FAIL',
       trackerStatus: currentRangeCleanupTracker.status,
       resolvedCount: currentResolvedTrackedCount,
       remainingCount: currentRemainingTrackedGameIds.length,
