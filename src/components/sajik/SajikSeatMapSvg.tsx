@@ -136,7 +136,7 @@ export default function SajikSeatMapSvg({
               ))}
             </g>
           )}
-          {SAJIK_BLOCKS.map((block) => {
+          {SAJIK_BLOCKS.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE').map((block) => {
             const cat = SAJIK_CATEGORIES[block.category];
             if (!cat) return null;
 
@@ -159,6 +159,7 @@ export default function SajikSeatMapSvg({
                   data-label-y={block.imageGeometry.labelY}
                   data-trace-method={block.imageGeometry.traceMethod}
                   data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                  data-map-interaction-status={block.mapInteractionStatus}
                   data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={`${block.name} ${block.block}`}

@@ -10,6 +10,7 @@ export type SajikTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE';
 export type SajikTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';
 export type SajikTraceVersion = 'manual-polygon-v2';
 export type SajikPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRED';
+export type SajikMapInteractionStatus = 'MAP_SELECTABLE' | 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
 export type SajikSeatMapPoint = [number, number];
 
 export interface SajikImageGeometry {
@@ -70,6 +71,7 @@ export interface SajikBlock {
   traceStatus: SajikTraceStatus;
   reviewNote: string;
   displayPriority: number;
+  mapInteractionStatus: SajikMapInteractionStatus;
   sourceConfidence: SajikSourceConfidence;
   sourceNote: string;
   seatViewSections: string[];
@@ -101,7 +103,7 @@ export interface SajikCategoryGroup {
 
 type SajikBlockDefinition = Omit<
   SajikBlock,
-  'sourceConfidence' | 'sourceNote' | 'seatViewSections' | 'traceStatus' | 'reviewNote' | 'imageGeometry'
+  'sourceConfidence' | 'sourceNote' | 'seatViewSections' | 'traceStatus' | 'reviewNote' | 'imageGeometry' | 'mapInteractionStatus'
 > & {
   imageGeometry: Omit<SajikImageGeometry, 'traceMethod' | 'traceSource' | 'traceVersion' | 'manualReviewed' | 'pixelAlignmentStatus' | 'manualReviewNote'> & Partial<Pick<SajikImageGeometry, 'traceMethod' | 'traceSource' | 'traceVersion' | 'manualReviewed' | 'pixelAlignmentStatus' | 'manualReviewNote'>>;
   seatViewSections?: string[];
@@ -112,6 +114,8 @@ type SajikBlockDefinition = Omit<
 
 export interface SajikTraceReviewSummary {
   totalBlocks: number;
+  mapSelectable: number;
+  aliasOnlyOfficialPngBlockNotVisible: number;
   officialImageTraced: number;
   needsOperatorReview: number;
   directOfficialTrace: number;
@@ -209,12 +213,31 @@ export const SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = [
   '011',
   '903',
 ] as const;
+export const SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS;
 export const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS = [
   '011',
   '903',
 ] as const;
+export const SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS = [
+  '121',
+  '122',
+  '123',
+  '124',
+  '125',
+  '131',
+  '132',
+  '133',
+  '134',
+  '135',
+  '142',
+  '143',
+] as const;
+export const SAJIK_THIN_ALIGNMENT_DILATION_TOLERANCE_PX = 1.5;
+export const SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO = 0.025;
+export const SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX = 3;
 
 const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
+const SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCK_SET = new Set<string>(SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS);
 
 function blockAliases(block: SajikBlockDefinition) {
   const categoryLabel = SAJIK_CATEGORIES[block.category]?.label;
@@ -241,8 +264,12 @@ function createSajikBlock(block: SajikBlockDefinition): SajikBlock {
   const { parentLabel: _parentLabel, ...publicBlock } = block;
   const pixelAlignmentStatus = block.imageGeometry.pixelAlignmentStatus
     ?? (SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET.has(block.block) ? 'MANUAL_REVIEW_REQUIRED' : 'PIXEL_ALIGNED');
+  const mapInteractionStatus = SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCK_SET.has(block.block)
+    ? 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE'
+    : 'MAP_SELECTABLE';
   return {
     ...publicBlock,
+    mapInteractionStatus,
     imageGeometry: {
       ...block.imageGeometry,
       traceMethod: block.imageGeometry.traceMethod ?? 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
@@ -1766,9 +1793,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 79,
     imageGeometry: {
-      d: 'M 779 473 L 798 463 L 806 459 L 812 462 L 812 464 L 811 465 L 796 475 L 786 481 L 781 476 Z',
-      labelX: 796,
-      labelY: 467,
+      d: 'M 779 473 L 805 459 L 807 458 L 812 462 L 813 463 L 811 465 L 793 477 L 788 480 L 786 481 L 780 475 Z',
+      labelX: 795,
+      labelY: 470,
       labelRotate: -14,
       labelFontSize: 9,
       shortLabel: '143',
@@ -2052,7 +2079,7 @@ export const SAJIK_OFFICIAL_TRACE_REFERENCE: Record<string, SajikOfficialTraceRe
   '137': { numberAnchor: { x: 895, y: 342 }, expectedBounds: { minX: 880, minY: 329, maxX: 910, maxY: 355 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 558 },
   '041': { numberAnchor: { x: 640, y: 499 }, expectedBounds: { minX: 600, minY: 494, maxX: 704, maxY: 503 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 841 },
   '142': { numberAnchor: { x: 725, y: 506 }, expectedBounds: { minX: 671, minY: 476, maxX: 781, maxY: 522 }, expectedSubpathCount: 1, expectedPointCount: 18, expectedArea: 1919 },
-  '143': { numberAnchor: { x: 796, y: 467 }, expectedBounds: { minX: 779, minY: 459, maxX: 812, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 9, expectedArea: 293 },
+  '143': { numberAnchor: { x: 795, y: 470 }, expectedBounds: { minX: 779, minY: 458, maxX: 813, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 306 },
   '914': { numberAnchor: { x: 862, y: 280 }, expectedBounds: { minX: 846, minY: 268, maxX: 884, maxY: 291 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 676 },
   '913': { numberAnchor: { x: 861, y: 298 }, expectedBounds: { minX: 847, minY: 286, maxX: 885, maxY: 307 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 586 },
   '912': { numberAnchor: { x: 879, y: 302 }, expectedBounds: { minX: 861, minY: 285, maxX: 886, maxY: 305 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 360.5 },
@@ -2068,6 +2095,11 @@ export const SAJIK_OFFICIAL_TRACE_REFERENCE: Record<string, SajikOfficialTraceRe
 function createSajikTraceReviewSummary(blocks: SajikBlock[]): SajikTraceReviewSummary {
   return blocks.reduce<SajikTraceReviewSummary>((summary, block) => {
     summary.totalBlocks += 1;
+    if (block.mapInteractionStatus === 'MAP_SELECTABLE') {
+      summary.mapSelectable += 1;
+    } else {
+      summary.aliasOnlyOfficialPngBlockNotVisible += 1;
+    }
     if (block.traceStatus === 'OFFICIAL_IMAGE_TRACED') {
       summary.officialImageTraced += 1;
     } else {
@@ -2089,6 +2121,8 @@ function createSajikTraceReviewSummary(blocks: SajikBlock[]): SajikTraceReviewSu
     return summary;
   }, {
     totalBlocks: 0,
+    mapSelectable: 0,
+    aliasOnlyOfficialPngBlockNotVisible: 0,
     officialImageTraced: 0,
     needsOperatorReview: 0,
     directOfficialTrace: 0,

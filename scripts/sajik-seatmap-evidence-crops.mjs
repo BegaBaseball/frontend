@@ -160,19 +160,21 @@ const buildOverlaySvg = (tier, tierBlocks, viewport = {
     .label { font: 900 9px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #020617; stroke: #ffffff; stroke-width: 2.6px; paint-order: stroke; }
     .tier-label { font: 900 10px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #7c2d12; stroke: #ffffff; stroke-width: 2.8px; paint-order: stroke; }
     .candidate { fill: none; stroke: #06b6d4; stroke-width: 1.6px; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+    .alias-only { fill: #f59e0b; fill-opacity: 0.16; stroke: #f59e0b; stroke-width: 2.6px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
   </style>
   <rect x="${viewport.minX + 1}" y="${viewport.minY + 1}" width="${viewport.viewWidth - 2}" height="${viewport.viewHeight - 2}" fill="none" stroke="#0f172a" stroke-opacity="0.5" stroke-width="2" />
   ${blocksWithMetrics.map((block) => {
     const isTierBlock = tierBlockKeys.has(block.block) && (tier === 'FOCUS' || block.reviewTier === tier);
     const isAlignmentFailure = isTierBlock && block.alignment?.alignmentClass === 'RETRACE_REQUIRED';
     const isNotVisibleException = isTierBlock && block.alignment?.alignmentClass === 'OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
+    const isAliasOnly = block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
     const category = SAJIK_CATEGORIES[block.category];
     const fill = category?.light ?? '#38bdf8';
     const stroke = isAlignmentFailure ? '#dc2626' : isNotVisibleException ? '#f59e0b' : isTierBlock ? '#ea580c' : '#64748b';
     const strokeWidth = isAlignmentFailure ? '3.2' : isTierBlock ? '2.2' : '1';
 
     return `
-  <path d="${xmlEscape(block.imageGeometry.d)}" fill="${fill}" fill-opacity="${isTierBlock ? '0.45' : '0.03'}" stroke="${stroke}" stroke-opacity="${isTierBlock ? '0.92' : '0.18'}" stroke-width="${strokeWidth}" vector-effect="non-scaling-stroke">
+  <path class="${isAliasOnly && isTierBlock ? 'alias-only' : ''}" d="${xmlEscape(block.imageGeometry.d)}" fill="${fill}" fill-opacity="${isTierBlock ? '0.45' : '0.03'}" stroke="${stroke}" stroke-opacity="${isTierBlock ? '0.92' : '0.18'}" stroke-width="${strokeWidth}" vector-effect="non-scaling-stroke">
     <title>${xmlEscape(`${block.block} ${block.name} ${block.pointCount}pt ${block.imageGeometry.traceVersion} ${block.alignment?.alignmentClass ?? 'alignment-not-run'}`)}</title>
   </path>
   ${isTierBlock && block.alignment?.candidateOuterBoundaryPath ? `<path class="candidate" d="${xmlEscape(block.alignment.candidateOuterBoundaryPath)}" />` : ''}
@@ -218,6 +220,7 @@ const renderTierPanel = async (tier, tierBlocks) => {
       id: block.id,
       block: block.block,
       name: block.name,
+      mapInteractionStatus: block.mapInteractionStatus,
       alignmentClass: block.alignment?.alignmentClass ?? 'NOT_RUN',
       componentInsidePathRatio: block.alignment?.componentInsidePathRatio ?? null,
       pathColorCoverageRatio: block.alignment?.pathColorCoverageRatio ?? null,
@@ -233,7 +236,7 @@ const renderTierPanel = async (tier, tierBlocks) => {
 const focusCrops = [
   {
     id: 'p0-thin-first-base',
-    title: 'P0 thin first-base and 041 correction',
+    title: 'P0 thin first-base, 143 strict lock, and 041 correction',
     left: 600,
     top: 320,
     width: 340,
@@ -251,7 +254,7 @@ const focusCrops = [
   },
   {
     id: 'p0-central-lower-011-review',
-    title: 'P0 central lower - 011 manual review',
+    title: 'P0 central lower - 011 alias-only review',
     left: 470,
     top: 390,
     width: 230,
@@ -313,6 +316,7 @@ const renderFocusPanel = async (focus) => {
     refinedCount: focusBlocks.filter((block) => block.pointCount > 4).length,
     blocks: focusBlocks.map((block) => ({
       block: block.block,
+      mapInteractionStatus: block.mapInteractionStatus,
       alignmentClass: block.alignment?.alignmentClass ?? 'NOT_RUN',
       componentInsidePathRatio: block.alignment?.componentInsidePathRatio ?? null,
       pathColorCoverageRatio: block.alignment?.pathColorCoverageRatio ?? null,
@@ -376,6 +380,8 @@ const report = {
     totalBlocks: blocksWithMetrics.length,
     refinedPolygons: blocksWithMetrics.filter((block) => block.pointCount > 4).length,
     manualReviewRequired: blocksWithMetrics.filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED').length,
+    mapSelectable: blocksWithMetrics.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE').length,
+    aliasOnlyOfficialPngBlockNotVisible: blocksWithMetrics.filter((block) => block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE').length,
     manualReviewBlocks: blocksWithMetrics
       .filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED')
       .map((block) => block.block),
@@ -403,6 +409,8 @@ const markdown = [
   `- Total blocks: ${report.summary.totalBlocks}`,
   `- Refined polygons (>4 points): ${report.summary.refinedPolygons}`,
   `- Manual review required: ${report.summary.manualReviewRequired} (${report.summary.manualReviewBlocks.join(', ') || 'none'})`,
+  `- Map selectable: ${report.summary.mapSelectable}`,
+  `- Alias-only official PNG block not visible: ${report.summary.aliasOnlyOfficialPngBlockNotVisible}`,
   `- Alignment locked verified: ${report.summary.alignmentLockedVerified ?? 'not-run'}`,
   `- Official PNG block not visible: ${report.summary.officialPngBlockNotVisible ?? 'not-run'}`,
   `- Alignment failures: ${report.summary.alignmentFailures ?? 'not-run'}`,
