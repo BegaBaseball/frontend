@@ -3,20 +3,33 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
+  SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO,
+  SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO,
   SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
   SAJIK_CATEGORY_GROUPS,
+  SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS,
+  SAJIK_OFFICIAL_TRACE_REFERENCE,
+  SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS,
   SAJIK_REFERENCE_URL,
   SAJIK_REQUIRED_OFFICIAL_SECTIONS,
   SAJIK_SEATMAP_IMAGE,
+  SAJIK_TRACE_ANCHOR_TOLERANCE_PX,
+  SAJIK_TRACE_AREA_TOLERANCE_PX2,
+  SAJIK_TRACE_BOUNDS_TOLERANCE_PX,
   SAJIK_TRACE_REVIEW_SUMMARY,
+  SAJIK_TRACE_SOURCE,
+  SAJIK_TRACE_VERSION,
   getSajikFanRoleLabel,
+  getSajikGuideMatches,
   getSajikSeatViewAliases,
   getSajikSideLabel,
   getSajikSourceLabel,
   getSajikTraceStatusLabel,
   type SajikBlock,
 } from './sajikSeatData';
+
+const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
 
 function pathToPoints(d: string): Array<[number, number]> {
   const numbers = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
@@ -27,6 +40,36 @@ function pathToPoints(d: string): Array<[number, number]> {
   }
 
   return points;
+}
+
+function pathSubpathCount(d: string): number {
+  return (d.match(/(?:^|\s)M\s/g) ?? []).length || 1;
+}
+
+function pathBounds(d: string) {
+  const points = pathToPoints(d);
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+
+  return {
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+    maxX: Math.max(...xs),
+    maxY: Math.max(...ys),
+  };
+}
+
+function polygonArea(points: Array<[number, number]>): number {
+  const signedArea = points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return area + ((point[0] * next[1]) - (next[0] * point[1]));
+  }, 0);
+
+  return Math.abs(signedArea / 2);
+}
+
+function assertWithinTolerance(actual: number, expected: number, tolerance: number, message: string) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: expected ${expected}, actual ${actual}, tolerance ${tolerance}`);
 }
 
 function isPointInsidePolygon(x: number, y: number, points: Array<[number, number]>): boolean {
@@ -64,6 +107,46 @@ function distanceToPolygon(px: number, py: number, points: Array<[number, number
     const next = points[(index + 1) % points.length];
     return Math.min(minimum, distanceToSegment(px, py, point[0], point[1], next[0], next[1]));
   }, Number.POSITIVE_INFINITY);
+}
+
+function orientation(a: [number, number], b: [number, number], c: [number, number]): number {
+  return ((b[0] - a[0]) * (c[1] - a[1])) - ((b[1] - a[1]) * (c[0] - a[0]));
+}
+
+function isPointOnSegment(point: [number, number], start: [number, number], end: [number, number]): boolean {
+  const epsilon = 0.0001;
+  if (Math.abs(orientation(start, end, point)) > epsilon) {
+    return false;
+  }
+
+  return point[0] >= Math.min(start[0], end[0]) - epsilon
+    && point[0] <= Math.max(start[0], end[0]) + epsilon
+    && point[1] >= Math.min(start[1], end[1]) - epsilon
+    && point[1] <= Math.max(start[1], end[1]) + epsilon;
+}
+
+function segmentsIntersect(
+  firstStart: [number, number],
+  firstEnd: [number, number],
+  secondStart: [number, number],
+  secondEnd: [number, number],
+): boolean {
+  const firstOrientation = orientation(firstStart, firstEnd, secondStart);
+  const secondOrientation = orientation(firstStart, firstEnd, secondEnd);
+  const thirdOrientation = orientation(secondStart, secondEnd, firstStart);
+  const fourthOrientation = orientation(secondStart, secondEnd, firstEnd);
+
+  if (
+    ((firstOrientation > 0 && secondOrientation < 0) || (firstOrientation < 0 && secondOrientation > 0))
+    && ((thirdOrientation > 0 && fourthOrientation < 0) || (thirdOrientation < 0 && fourthOrientation > 0))
+  ) {
+    return true;
+  }
+
+  return isPointOnSegment(secondStart, firstStart, firstEnd)
+    || isPointOnSegment(secondEnd, firstStart, firstEnd)
+    || isPointOnSegment(firstStart, secondStart, secondEnd)
+    || isPointOnSegment(firstEnd, secondStart, secondEnd);
 }
 
 test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
@@ -140,6 +223,16 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.officialBlocks.length > 0, `${block.id} official blocks should exist`);
     assert.ok(block.seatViewSections.length > 0, `${block.id} seat view aliases should exist`);
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
+    assert.equal(block.imageGeometry.traceMethod, 'PATH_TRACED_FROM_OFFICIAL_IMAGE', `${block.id} should use direct official-image path tracing`);
+    assert.equal(block.imageGeometry.traceSource, SAJIK_TRACE_SOURCE, `${block.id} should use the official PNG manual polygon source`);
+    assert.equal(block.imageGeometry.traceVersion, SAJIK_TRACE_VERSION, `${block.id} should use the v2 precision trace version`);
+    assert.equal(block.imageGeometry.manualReviewed, true, `${block.id} precision trace should be manually reviewed`);
+    assert.equal(
+      block.imageGeometry.pixelAlignmentStatus,
+      SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET.has(block.block) ? 'MANUAL_REVIEW_REQUIRED' : 'PIXEL_ALIGNED',
+      `${block.id} should keep the current pixel alignment review state`,
+    );
+    assert.ok(block.imageGeometry.manualReviewNote, `${block.id} should keep a manual review note`);
     assert.ok(block.imageGeometry.shortLabel, `${block.id} image label should exist`);
     assert.ok(block.imageGeometry.labelX >= 0 && block.imageGeometry.labelX <= SAJIK_SEATMAP_IMAGE.imageWidth, `${block.id} label x should fit image bounds`);
     assert.ok(block.imageGeometry.labelY >= 0 && block.imageGeometry.labelY <= SAJIK_SEATMAP_IMAGE.imageHeight, `${block.id} label y should fit image bounds`);
@@ -157,6 +250,65 @@ test('사직 trace review summary는 모든 블럭의 수동 polygon trace 완�
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.totalBlocks, 89);
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.officialImageTraced, 89);
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.needsOperatorReview, 0);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.directOfficialTrace, 89);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.manualReviewed, 89);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.unreviewedBlocks, 0);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.pixelAligned, 87);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.manualReviewRequired, 2);
+});
+
+test('사직 alignment audit 기준값과 041 정정 alias를 고정한다', () => {
+  assert.equal(SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO, 0.9);
+  assert.equal(SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO, 0.75);
+  assert.deepEqual(
+    SAJIK_BLOCKS
+      .filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED')
+      .map((block) => block.block),
+    [...SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS],
+  );
+  assert.deepEqual([...SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS], ['011', '903']);
+
+  const officialPngNotVisibleBlock = SAJIK_BLOCKS.find((block) => block.block === '011');
+  assert.ok(officialPngNotVisibleBlock, '011 compatibility block should remain explicit');
+  assert.equal(officialPngNotVisibleBlock.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED');
+  assert.match(officialPngNotVisibleBlock.imageGeometry.manualReviewNote ?? '', /공식 PNG/);
+
+  const everyTimeCompatibilityBlock = SAJIK_BLOCKS.find((block) => block.block === '903');
+  assert.ok(everyTimeCompatibilityBlock, '903 compatibility block should remain explicit');
+  assert.equal(everyTimeCompatibilityBlock.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED');
+  assert.match(everyTimeCompatibilityBlock.imageGeometry.manualReviewNote ?? '', /공식 PNG/);
+
+  const central041 = SAJIK_BLOCKS.find((block) => block.block === '041');
+  assert.ok(central041, '041 block should exist from official PNG');
+  assert.equal(central041.category, 'CENTRAL_TABLE');
+  assert.deepEqual(central041.officialBlocks, ['041']);
+  assert.ok(central041.seatViewSections.includes('141'));
+  assert.ok(central041.seatViewSections.includes('141블록'));
+  assert.equal(SAJIK_BLOCKS.some((block) => block.block === '141'), false);
+});
+
+test('사직 official trace reference는 전 블럭의 anchor와 bbox를 독립 기준으로 고정한다', () => {
+  const expectedBlocks = SAJIK_BLOCKS.map((block) => block.block).sort();
+  const actualReferenceBlocks = Object.keys(SAJIK_OFFICIAL_TRACE_REFERENCE).sort();
+
+  assert.deepEqual(actualReferenceBlocks, expectedBlocks);
+
+  SAJIK_BLOCKS.forEach((block) => {
+    const reference = SAJIK_OFFICIAL_TRACE_REFERENCE[block.block];
+    const points = pathToPoints(block.imageGeometry.d);
+    const bounds = pathBounds(block.imageGeometry.d);
+
+    assert.ok(reference, `${block.id} trace reference should exist`);
+    assert.equal(pathSubpathCount(block.imageGeometry.d), reference.expectedSubpathCount, `${block.id} subpath count should match reference`);
+    assert.equal(points.length, reference.expectedPointCount, `${block.id} point count should match reference`);
+    assertWithinTolerance(polygonArea(points), reference.expectedArea, SAJIK_TRACE_AREA_TOLERANCE_PX2, `${block.id} polygon area should match reference`);
+    assertWithinTolerance(block.imageGeometry.labelX, reference.numberAnchor.x, SAJIK_TRACE_ANCHOR_TOLERANCE_PX, `${block.id} label x should match official number anchor`);
+    assertWithinTolerance(block.imageGeometry.labelY, reference.numberAnchor.y, SAJIK_TRACE_ANCHOR_TOLERANCE_PX, `${block.id} label y should match official number anchor`);
+    assertWithinTolerance(bounds.minX, reference.expectedBounds.minX, SAJIK_TRACE_BOUNDS_TOLERANCE_PX, `${block.id} minX should match reference bbox`);
+    assertWithinTolerance(bounds.minY, reference.expectedBounds.minY, SAJIK_TRACE_BOUNDS_TOLERANCE_PX, `${block.id} minY should match reference bbox`);
+    assertWithinTolerance(bounds.maxX, reference.expectedBounds.maxX, SAJIK_TRACE_BOUNDS_TOLERANCE_PX, `${block.id} maxX should match reference bbox`);
+    assertWithinTolerance(bounds.maxY, reference.expectedBounds.maxY, SAJIK_TRACE_BOUNDS_TOLERANCE_PX, `${block.id} maxY should match reference bbox`);
+  });
 });
 
 test('사직 label 좌표는 자기 polygon 내부 또는 허용 오차 안에 있다', () => {
@@ -168,6 +320,66 @@ test('사직 label 좌표는 자기 polygon 내부 또는 허용 오차 안에 �
     const distance = distanceToPolygon(block.imageGeometry.labelX, block.imageGeometry.labelY, points);
     assert.ok(isInside || distance <= 1, `${block.id} label should be inside its polygon or within tolerance`);
   });
+});
+
+test('사직 polygon은 단일 폐합 path이고 자기 교차가 없다', () => {
+  SAJIK_BLOCKS.forEach((block) => {
+    assert.match(
+      block.imageGeometry.d,
+      /^M\s-?\d+(?:\.\d+)?\s-?\d+(?:\.\d+)?(?:\sL\s-?\d+(?:\.\d+)?\s-?\d+(?:\.\d+)?)+\sZ$/,
+      `${block.id} should be a single closed M/L/Z polygon`,
+    );
+
+    const points = pathToPoints(block.imageGeometry.d);
+    points.forEach((point, edgeIndex) => {
+      const nextPoint = points[(edgeIndex + 1) % points.length];
+
+      for (let compareIndex = edgeIndex + 1; compareIndex < points.length; compareIndex += 1) {
+        const isAdjacent = Math.abs(edgeIndex - compareIndex) <= 1
+          || (edgeIndex === 0 && compareIndex === points.length - 1);
+        if (isAdjacent) {
+          continue;
+        }
+
+        const comparePoint = points[compareIndex];
+        const compareNextPoint = points[(compareIndex + 1) % points.length];
+        assert.equal(
+          segmentsIntersect(point, nextPoint, comparePoint, compareNextPoint),
+          false,
+          `${block.id} polygon edges ${edgeIndex} and ${compareIndex} should not intersect`,
+        );
+      }
+    });
+  });
+});
+
+test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다', () => {
+  const sortedBlocks = [...SAJIK_BLOCKS].sort((left, right) => left.displayPriority - right.displayPriority);
+
+  sortedBlocks.forEach((block) => {
+    const hits = sortedBlocks.filter((candidate) => (
+      isPointInsidePolygon(
+        block.imageGeometry.labelX,
+        block.imageGeometry.labelY,
+        pathToPoints(candidate.imageGeometry.d),
+      )
+    ));
+
+    assert.ok(hits.length > 0, `${block.id} label should hit at least one polygon`);
+    assert.equal(hits.at(-1)?.id, block.id, `${block.id} label should not be covered by a later-rendered polygon`);
+  });
+});
+
+test('사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다', () => {
+  const refinedBlocks = SAJIK_BLOCKS.filter((block) => pathToPoints(block.imageGeometry.d).length > 4);
+  const thinFirstBaseBlocks = new Set(['121', '122', '123', '124', '131', '132', '134', '135', '142', '143']);
+
+  assert.ok(refinedBlocks.length >= 45, 'at least 45 Sajik blocks should use refined polygons with more than 4 points');
+  SAJIK_BLOCKS
+    .filter((block) => thinFirstBaseBlocks.has(block.block))
+    .forEach((block) => {
+      assert.ok(pathToPoints(block.imageGeometry.d).length >= 6, `${block.block} should keep a refined thin-block polygon`);
+    });
 });
 
 test('사직 대표 블럭은 홈/원정/외야/휠체어/중앙 계열을 포함한다', () => {
@@ -206,7 +418,18 @@ test('사직 시야 갤러리 alias에는 구장/팀/블록/좌석등급명이 �
     sourceConfidence: 'OFFICIAL',
     sourceNote: 'test',
     seatViewSections: ['1루 필드석'],
-    imageGeometry: { d: 'M 0 0 L 10 0 L 10 10 Z', labelX: 5, labelY: 5, shortLabel: '101' },
+    imageGeometry: {
+      d: 'M 0 0 L 10 0 L 10 10 Z',
+      labelX: 5,
+      labelY: 5,
+      shortLabel: '101',
+      traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
+      traceSource: SAJIK_TRACE_SOURCE,
+      traceVersion: SAJIK_TRACE_VERSION,
+      manualReviewed: true,
+      pixelAlignmentStatus: 'PIXEL_ALIGNED',
+      manualReviewNote: 'test',
+    },
   };
 
   const aliases = getSajikSeatViewAliases(block);
@@ -215,4 +438,33 @@ test('사직 시야 갤러리 alias에는 구장/팀/블록/좌석등급명이 �
     assert.ok(aliases.includes(alias), `${alias} alias should be included`);
   });
   assert.equal(new Set(aliases).size, aliases.length);
+});
+
+test('사직 처음 가이드 추천 모드는 기존 블록 필드에서 매칭 결과를 만든다', () => {
+  const homeMatches = getSajikGuideMatches('home_cheer', '', SAJIK_BLOCKS);
+  const awayThirdMatches = getSajikGuideMatches('away_third', '', SAJIK_BLOCKS);
+  const tableMatches = getSajikGuideMatches('center_table', '', SAJIK_BLOCKS);
+  const outfieldMatches = getSajikGuideMatches('outfield', '', SAJIK_BLOCKS);
+  const accessibleMatches = getSajikGuideMatches('accessible', '', SAJIK_BLOCKS);
+
+  assert.ok(homeMatches.length > 0, 'home cheer matches should exist');
+  assert.ok(homeMatches.every((match) => match.block.fanRole === 'HOME'));
+  assert.ok(awayThirdMatches.length > 0, 'away/third matches should exist');
+  assert.ok(awayThirdMatches.every((match) => match.block.fanRole === 'AWAY' || match.block.side === 'THIRD_BASE'));
+  assert.ok(tableMatches.some((match) => match.block.category === 'CENTRAL_TABLE'));
+  assert.ok(outfieldMatches.every((match) => match.block.level === 'OUTFIELD' || match.block.side === 'OUTFIELD' || match.block.category.startsWith('OUTFIELD') || match.block.category === 'CAMPING'));
+  assert.equal(accessibleMatches.length, 3);
+  assert.ok(accessibleMatches.every((match) => match.block.category === 'ACCESSIBLE'));
+});
+
+test('사직 처음 가이드 검색은 블록 번호와 좌석명과 접근성 별칭을 찾는다', () => {
+  const blockMatches = getSajikGuideMatches('all', '111', SAJIK_BLOCKS);
+  const centralTableMatches = getSajikGuideMatches('all', '중앙탁자석', SAJIK_BLOCKS);
+  const accessibleMatches = getSajikGuideMatches('all', '휠체어', SAJIK_BLOCKS);
+
+  assert.equal(blockMatches[0]?.block.block, '111');
+  assert.ok(centralTableMatches.length > 0);
+  assert.ok(centralTableMatches.every((match) => match.block.category === 'CENTRAL_TABLE' || match.block.seatViewSections.some((alias) => alias.includes('중앙탁자석'))));
+  assert.equal(accessibleMatches.length, 3);
+  assert.ok(accessibleMatches.every((match) => match.block.category === 'ACCESSIBLE'));
 });

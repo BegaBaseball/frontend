@@ -6,6 +6,10 @@ export type SajikLevel = '1F' | '2F' | '3F' | 'OUTFIELD';
 export type SajikSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
 export type SajikSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
 export type SajikTraceStatus = 'OFFICIAL_IMAGE_TRACED' | 'NEEDS_OPERATOR_REVIEW';
+export type SajikTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE';
+export type SajikTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';
+export type SajikTraceVersion = 'manual-polygon-v2';
+export type SajikPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRED';
 export type SajikSeatMapPoint = [number, number];
 
 export interface SajikImageGeometry {
@@ -15,6 +19,33 @@ export interface SajikImageGeometry {
   labelRotate?: number;
   labelFontSize?: number;
   shortLabel: string;
+  alignmentSeedPoint?: SajikTracePoint;
+  traceMethod: SajikTraceMethod;
+  traceSource: SajikTraceSource;
+  traceVersion: SajikTraceVersion;
+  manualReviewed: boolean;
+  pixelAlignmentStatus: SajikPixelAlignmentStatus;
+  manualReviewNote: string;
+}
+
+export interface SajikTracePoint {
+  x: number;
+  y: number;
+}
+
+export interface SajikTraceBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export interface SajikOfficialTraceReference {
+  numberAnchor: SajikTracePoint;
+  expectedBounds: SajikTraceBounds;
+  expectedSubpathCount: number;
+  expectedPointCount: number;
+  expectedArea: number;
 }
 
 export interface SajikSeatMapImage {
@@ -70,8 +101,9 @@ export interface SajikCategoryGroup {
 
 type SajikBlockDefinition = Omit<
   SajikBlock,
-  'sourceConfidence' | 'sourceNote' | 'seatViewSections' | 'traceStatus' | 'reviewNote'
+  'sourceConfidence' | 'sourceNote' | 'seatViewSections' | 'traceStatus' | 'reviewNote' | 'imageGeometry'
 > & {
+  imageGeometry: Omit<SajikImageGeometry, 'traceMethod' | 'traceSource' | 'traceVersion' | 'manualReviewed' | 'pixelAlignmentStatus' | 'manualReviewNote'> & Partial<Pick<SajikImageGeometry, 'traceMethod' | 'traceSource' | 'traceVersion' | 'manualReviewed' | 'pixelAlignmentStatus' | 'manualReviewNote'>>;
   seatViewSections?: string[];
   parentLabel?: string;
   traceStatus?: SajikTraceStatus;
@@ -82,6 +114,25 @@ export interface SajikTraceReviewSummary {
   totalBlocks: number;
   officialImageTraced: number;
   needsOperatorReview: number;
+  directOfficialTrace: number;
+  manualReviewed: number;
+  unreviewedBlocks: number;
+  pixelAligned: number;
+  manualReviewRequired: number;
+}
+
+export type SajikGuideIntent =
+  | 'all'
+  | 'home_cheer'
+  | 'away_third'
+  | 'center_table'
+  | 'outfield'
+  | 'accessible';
+
+export interface SajikBlockMatch {
+  block: SajikBlock;
+  reasons: string[];
+  score: number;
 }
 
 export const SAJIK_REFERENCE_URL = 'https://www.giantsclub.com/html/?pcode=340';
@@ -146,6 +197,24 @@ export const SAJIK_REQUIRED_OFFICIAL_SECTIONS = [
 
 const OFFICIAL_SOURCE_NOTE = '롯데자이언츠 공식 좌석안내 2026 시즌 사직야구장 구역별 안내 이미지에서 수동 trace한 블럭입니다.';
 const MANUAL_POLYGON_TRACE_REVIEW_NOTE = '공식 좌석도 원본 이미지(960x640)의 블럭 색상 영역을 기준으로 수동 polygon trace한 hit-area입니다.';
+const PIXEL_ALIGNMENT_REVIEW_REQUIRED_NOTE = '공식 PNG에서 대응되는 좌석 색상 블럭이 확인되지 않아 운영 데이터 호환용 hit-area로만 보존한 블럭입니다.';
+export const SAJIK_TRACE_SOURCE: SajikTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';
+export const SAJIK_TRACE_VERSION: SajikTraceVersion = 'manual-polygon-v2';
+export const SAJIK_TRACE_ANCHOR_TOLERANCE_PX = 2;
+export const SAJIK_TRACE_BOUNDS_TOLERANCE_PX = 0;
+export const SAJIK_TRACE_AREA_TOLERANCE_PX2 = 0.05;
+export const SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO = 0.9;
+export const SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO = 0.75;
+export const SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = [
+  '011',
+  '903',
+] as const;
+export const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS = [
+  '011',
+  '903',
+] as const;
+
+const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
 
 function blockAliases(block: SajikBlockDefinition) {
   const categoryLabel = SAJIK_CATEGORIES[block.category]?.label;
@@ -170,8 +239,20 @@ function blockAliases(block: SajikBlockDefinition) {
 
 function createSajikBlock(block: SajikBlockDefinition): SajikBlock {
   const { parentLabel: _parentLabel, ...publicBlock } = block;
+  const pixelAlignmentStatus = block.imageGeometry.pixelAlignmentStatus
+    ?? (SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET.has(block.block) ? 'MANUAL_REVIEW_REQUIRED' : 'PIXEL_ALIGNED');
   return {
     ...publicBlock,
+    imageGeometry: {
+      ...block.imageGeometry,
+      traceMethod: block.imageGeometry.traceMethod ?? 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
+      traceSource: block.imageGeometry.traceSource ?? SAJIK_TRACE_SOURCE,
+      traceVersion: block.imageGeometry.traceVersion ?? SAJIK_TRACE_VERSION,
+      manualReviewed: block.imageGeometry.manualReviewed ?? true,
+      pixelAlignmentStatus,
+      manualReviewNote: block.imageGeometry.manualReviewNote
+        ?? (pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED' ? PIXEL_ALIGNMENT_REVIEW_REQUIRED_NOTE : MANUAL_POLYGON_TRACE_REVIEW_NOTE),
+    },
     traceStatus: block.traceStatus ?? 'OFFICIAL_IMAGE_TRACED',
     reviewNote: block.reviewNote ?? MANUAL_POLYGON_TRACE_REVIEW_NOTE,
     sourceConfidence: 'OFFICIAL',
@@ -182,23 +263,25 @@ function createSajikBlock(block: SajikBlockDefinition): SajikBlock {
 
 const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
   {
-    id: 'sajik-outfield-3b-738',
+    id: 'sajik-camping-338',
     level: 'OUTFIELD',
-    category: 'OUTFIELD_3B',
-    name: '3루 외야석 738블록',
-    block: '738',
-    officialBlocks: ['738'],
+    category: 'CAMPING',
+    name: '로노존 (외야 클램핑존) 338블록',
+    block: '338',
+    officialBlocks: ['338'],
     side: 'THIRD_BASE',
-    fanRole: 'HOME',
+    fanRole: 'NEUTRAL',
     displayPriority: 1,
     imageGeometry: {
-      d: 'M 464.9 140.8 L 500.5 124.9 L 513.1 153.2 L 477.5 169.1 Z',
-      labelX: 489,
-      labelY: 147,
+      d: 'M 485 148 L 498 138 L 515 126 L 526 127 L 529 133 L 525 155 L 506 166 L 484 158 Z',
+      labelX: 506,
+      labelY: 148,
       labelRotate: -24,
       labelFontSize: 9,
-      shortLabel: '738',
+      shortLabel: '338',
+      alignmentSeedPoint: { x: 500, y: 142 },
     },
+    seatViewSections: ['738', '738블록', '3루 외야석 738블록'],
   },
   {
     id: 'sajik-outfield-3b-732',
@@ -211,7 +294,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 2,
     imageGeometry: {
-      d: 'M 539.3 111.1 L 580.8 105.2 L 584.7 132.9 L 543.2 138.8 Z',
+      d: 'M 536 117 L 585 99 L 593 129 L 549 144 L 535 119 Z',
       labelX: 562,
       labelY: 122,
       labelRotate: -8,
@@ -230,7 +313,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 3,
     imageGeometry: {
-      d: 'M 592 101.5 L 642 101.5 L 642 130.5 L 592 130.5 Z',
+      d: 'M 590 97 L 640 89 L 643 120 L 597 127 L 589 101 Z',
       labelX: 617,
       labelY: 116,
       labelRotate: 0,
@@ -249,7 +332,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 4,
     imageGeometry: {
-      d: 'M 651.7 99 L 701.4 104.2 L 698.3 133 L 648.6 127.8 Z',
+      d: 'M 645 89 L 650 88 L 694 89 L 695 90 L 693 119 L 647 120 Z',
       labelX: 675,
       labelY: 116,
       labelRotate: 6,
@@ -268,9 +351,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 5,
     imageGeometry: {
-      d: 'M 500.5 150 L 541.3 136.7 L 551.5 168 L 510.7 181.3 Z',
-      labelX: 526,
-      labelY: 159,
+      d: 'M 507 176 L 510 173 L 522 164 L 531 158 L 536 155 L 545 150 L 547 149 L 549 152 L 558 168 L 559 170 L 559 171 L 558 172 L 525 194 L 523 194 L 507 177 Z',
+      labelX: 534,
+      labelY: 172,
       labelRotate: -18,
       labelFontSize: 9,
       shortLabel: '721',
@@ -287,7 +370,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 6,
     imageGeometry: {
-      d: 'M 551.1 136.7 L 594.6 130.6 L 598.9 161.3 L 555.4 167.4 Z',
+      d: 'M 552 147 L 568 140 L 594 132 L 601 157 L 564 170 L 552 150 Z',
       labelX: 575,
       labelY: 149,
       labelRotate: -8,
@@ -306,7 +389,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 7,
     imageGeometry: {
-      d: 'M 602 130 L 648 130 L 648 160 L 602 160 Z',
+      d: 'M 598 131 L 635 124 L 644 124 L 645 149 L 605 156 Z',
       labelX: 625,
       labelY: 145,
       labelRotate: 0,
@@ -325,7 +408,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 8,
     imageGeometry: {
-      d: 'M 657 127.3 L 711.5 135 L 707 166.7 L 652.5 159 Z',
+      d: 'M 648 123 L 695 123 L 727 128 L 727 144 L 724 154 L 650 149 L 649 148 L 647 125 Z',
       labelX: 682,
       labelY: 147,
       labelRotate: 8,
@@ -344,7 +427,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 9,
     imageGeometry: {
-      d: 'M 797 156.5 L 828.8 173.4 L 817 195.5 L 785.2 178.6 Z',
+      d: 'M 780 174 L 793 156 L 798 157 L 820 174 L 804 192 L 801 192 L 780 177 Z',
       labelX: 807,
       labelY: 176,
       labelRotate: 28,
@@ -363,7 +446,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 10,
     imageGeometry: {
-      d: 'M 811.3 123.1 L 843.5 143.2 L 828.7 166.9 L 796.5 146.8 Z',
+      d: 'M 812 128 L 815 128 L 839 144 L 843 149 L 824 170 L 821 170 L 796 152 Z',
       labelX: 820,
       labelY: 145,
       labelRotate: 32,
@@ -382,7 +465,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 11,
     imageGeometry: {
-      d: 'M 819.4 183.7 L 850.3 200.2 L 838.6 222.3 L 807.7 205.8 Z',
+      d: 'M 806 194 L 822 177 L 825 177 L 850 205 L 830 221 L 806 196 Z',
       labelX: 829,
       labelY: 203,
       labelRotate: 28,
@@ -401,7 +484,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 12,
     imageGeometry: {
-      d: 'M 838.9 159.2 L 871.5 178.8 L 857.1 202.8 L 824.5 183.2 Z',
+      d: 'M 826 172 L 845 151 L 847 151 L 876 182 L 876 184 L 853 202 L 826 174 Z',
       labelX: 848,
       labelY: 181,
       labelRotate: 31,
@@ -420,7 +503,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 13,
     imageGeometry: {
-      d: 'M 837.1 218.1 L 869.8 230.6 L 860.9 253.9 L 828.2 241.4 Z',
+      d: 'M 839 218 L 853 208 L 870 233 L 873 242 L 851 253 L 833 225 Z',
       labelX: 849,
       labelY: 236,
       labelRotate: 21,
@@ -439,7 +522,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 14,
     imageGeometry: {
-      d: 'M 861 194.7 L 897.6 211 L 885 239.3 L 848.4 223 Z',
+      d: 'M 857 205 L 880 187 L 896 211 L 902 226 L 879 239 L 877 239 L 857 207 Z',
       labelX: 873,
       labelY: 217,
       labelRotate: 24,
@@ -458,9 +541,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 15,
     imageGeometry: {
-      d: 'M 847.7 256.5 L 881.1 263 L 876.3 287.5 L 842.9 281 Z',
-      labelX: 862,
-      labelY: 272,
+      d: 'M 853 256 L 860 252 L 868 248 L 875 248 L 876 249 L 877 251 L 879 257 L 880 262 L 878 264 L 862 271 L 859 272 L 858 272 L 857 270 L 853 258 Z',
+      labelX: 860,
+      labelY: 269,
       labelRotate: 11,
       labelFontSize: 9,
       shortLabel: '922',
@@ -477,7 +560,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 16,
     imageGeometry: {
-      d: 'M 872.7 238.8 L 907.8 246.9 L 901.3 275.2 L 866.2 267.1 Z',
+      d: 'M 881 241 L 902 230 L 905 231 L 910 247 L 910 251 L 888 261 L 885 261 L 879 244 Z',
       labelX: 887,
       labelY: 257,
       labelRotate: 13,
@@ -496,7 +579,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 17,
     imageGeometry: {
-      d: 'M 870.5 295 L 907.5 295 L 907.5 325 L 870.5 325 Z',
+      d: 'M 889 305 L 915 300 L 912 325 L 887 327 Z',
       labelX: 899,
       labelY: 310,
       labelRotate: 0,
@@ -515,7 +598,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 18,
     imageGeometry: {
-      d: 'M 443.6 171.9 L 477.4 154.7 L 492.4 184.1 L 458.6 201.3 Z',
+      d: 'M 438 203 L 455 180 L 481 155 L 501 177 L 465 217 L 457 217 L 438 206 Z',
       labelX: 468,
       labelY: 178,
       labelRotate: -27,
@@ -534,7 +617,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 19,
     imageGeometry: {
-      d: 'M 467.4 208.5 L 501.2 193.4 L 514.6 223.5 L 480.8 238.6 Z',
+      d: 'M 468 218 L 484 197 L 504 179 L 521 197 L 521 199 L 490 235 L 487 235 L 467 223 Z',
       labelX: 491,
       labelY: 216,
       labelRotate: -24,
@@ -553,7 +636,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 20,
     imageGeometry: {
-      d: 'M 413.9 223.8 L 443.8 209.9 L 456.1 236.2 L 426.2 250.1 Z',
+      d: 'M 435 209 L 441 211 L 461 223 L 450 248 L 423 234 Z',
       labelX: 435,
       labelY: 230,
       labelRotate: -25,
@@ -572,7 +655,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 21,
     imageGeometry: {
-      d: 'M 449.8 239.6 L 478.9 229 L 488.2 254.4 L 459.1 265 Z',
+      d: 'M 457 240 L 464 226 L 487 239 L 478 260 L 454 250 Z',
       labelX: 469,
       labelY: 247,
       labelRotate: -20,
@@ -591,28 +674,28 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 22,
     imageGeometry: {
-      d: 'M 402.3 259.1 L 433.6 252.5 L 439.7 280.9 L 408.4 287.5 Z',
+      d: 'M 402 292 L 403 287 L 406 276 L 408 270 L 409 269 L 411 269 L 415 270 L 437 277 L 440 278 L 441 279 L 441 282 L 440 293 L 439 303 L 408 297 L 404 296 L 402 295 Z',
       labelX: 421,
-      labelY: 270,
+      labelY: 286,
       labelRotate: -12,
       labelFontSize: 9,
       shortLabel: '335',
     },
   },
   {
-    id: 'sajik-infield-upper-3a-325',
-    level: '3F',
-    category: 'INFIELD_UPPER_3A',
-    name: '3루 내야상단석A 325블록',
+    id: 'sajik-infield-field-3a-325',
+    level: '1F',
+    category: 'INFIELD_FIELD_3A',
+    name: '3루 내야필드석A 325블록',
     block: '325',
     officialBlocks: ['325'],
     side: 'THIRD_BASE',
     fanRole: 'HOME',
     displayPriority: 23,
     imageGeometry: {
-      d: 'M 433.5 264.8 L 466.1 259.6 L 470.5 287.2 L 437.9 292.4 Z',
-      labelX: 442,
-      labelY: 276,
+      d: 'M 442 276 L 447 269 L 450 258 L 451 255 L 457 255 L 473 262 L 475 263 L 475 265 L 474 269 L 471 280 L 470 282 L 468 282 L 453 278 Z',
+      labelX: 446.5,
+      labelY: 274,
       labelRotate: -9,
       labelFontSize: 9,
       shortLabel: '325',
@@ -629,7 +712,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 24,
     imageGeometry: {
-      d: 'M 395.8 292.9 L 427.7 290.2 L 430.2 319.1 L 398.3 321.8 Z',
+      d: 'M 398 322 L 399 311 L 400 304 L 401 300 L 404 300 L 419 303 L 421 304 L 432 356 L 432 357 L 399 357 L 398 354 Z',
       labelX: 413,
       labelY: 306,
       labelRotate: -5,
@@ -648,7 +731,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 25,
     imageGeometry: {
-      d: 'M 431.8 291.8 L 462.7 290.2 L 464.2 318.2 L 433.3 319.8 Z',
+      d: 'M 444 288 L 450 282 L 470 287 L 469 309 L 444 305 Z',
       labelX: 448,
       labelY: 305,
       labelRotate: -3,
@@ -667,7 +750,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 26,
     imageGeometry: {
-      d: 'M 396.8 321.1 L 430.7 322.9 L 429.2 350.9 L 395.3 349.1 Z',
+      d: 'M 400 307 L 422 307 L 433 358 L 399 358 L 398 354 Z',
       labelX: 413,
       labelY: 336,
       labelRotate: 3,
@@ -686,7 +769,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 27,
     imageGeometry: {
-      d: 'M 433.3 320.2 L 466.2 321.9 L 464.7 349.8 L 431.8 348.1 Z',
+      d: 'M 444 308 L 469 313 L 477 357 L 473 358 L 454 358 L 448 339 L 444 316 Z',
       labelX: 449,
       labelY: 335,
       labelRotate: 3,
@@ -705,7 +788,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 28,
     imageGeometry: {
-      d: 'M 404.4 356 L 440.8 362.4 L 435.6 392 L 399.2 385.6 Z',
+      d: 'M 399 361 L 409 361 L 434 362 L 447 388 L 448 411 L 412 411 L 411 410 L 410 408 L 407 400 L 405 394 L 404 390 L 401 377 L 399 363 Z',
       labelX: 420,
       labelY: 374,
       labelRotate: 10,
@@ -724,12 +807,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 29,
     imageGeometry: {
-      d: 'M 444.1 356.5 L 477.5 363 L 471.9 391.5 L 438.5 385 Z',
-      labelX: 458,
-      labelY: 374,
+      d: 'M 457 362 L 468 361 L 478 361 L 487 379 L 487 381 L 475 384 L 470 385 L 468 385 L 464 379 L 458 367 L 457 364 Z',
+      labelX: 465,
+      labelY: 377,
       labelRotate: 11,
       labelFontSize: 9,
       shortLabel: '332',
+      alignmentSeedPoint: { x: 465, y: 378 },
     },
   },
   {
@@ -743,12 +827,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 30,
     imageGeometry: {
-      d: 'M 477.3 382.1 L 508.8 394.9 L 498.7 419.9 L 467.2 407.1 Z',
-      labelX: 488,
-      labelY: 401,
+      d: 'M 441 395 L 446 394 L 451 394 L 467 415 L 467 416 L 466 419 L 465 419 L 460 418 L 451 409 L 443 399 L 441 396 Z',
+      labelX: 450,
+      labelY: 407,
       labelRotate: 22,
       labelFontSize: 9,
       shortLabel: '331',
+      alignmentSeedPoint: { x: 450, y: 407 },
     },
   },
   {
@@ -762,12 +847,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 31,
     imageGeometry: {
-      d: 'M 506.4 375.5 L 537.2 387.3 L 527.6 412.5 L 496.8 400.7 Z',
-      labelX: 520,
-      labelY: 385,
+      d: 'M 471 389 L 492 385 L 506 403 L 490 409 L 486 409 L 471 391 Z',
+      labelX: 488,
+      labelY: 401,
       labelRotate: 21,
       labelFontSize: 9,
       shortLabel: '321',
+      alignmentSeedPoint: { x: 488, y: 403 },
     },
   },
   {
@@ -781,7 +867,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 32,
     imageGeometry: {
-      d: 'M 483.6 236.2 L 513.7 228.7 L 520.4 255.8 L 490.3 263.3 Z',
+      d: 'M 483 255 L 500 225 L 505 221 L 512 239 L 516 274 L 496 268 L 481 262 Z',
       labelX: 502,
       labelY: 246,
       labelRotate: -14,
@@ -800,7 +886,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 33,
     imageGeometry: {
-      d: 'M 473.6 265.8 L 504.3 261.5 L 508.4 290.2 L 477.7 294.5 Z',
+      d: 'M 479 265 L 517 279 L 519 295 L 474 284 Z',
       labelX: 491,
       labelY: 278,
       labelRotate: -8,
@@ -819,7 +905,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 34,
     imageGeometry: {
-      d: 'M 471.3 295.4 L 503.2 293.7 L 504.7 322.6 L 472.8 324.3 Z',
+      d: 'M 473 289 L 476 288 L 520 299 L 520 317 L 473 310 L 472 309 Z',
       labelX: 488,
       labelY: 309,
       labelRotate: -3,
@@ -838,7 +924,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 35,
     imageGeometry: {
-      d: 'M 475.3 326.2 L 508.3 327.9 L 506.7 357.8 L 473.7 356.1 Z',
+      d: 'M 472 313 L 523 321 L 524 327 L 524 352 L 481 357 L 475 338 L 472 320 Z',
       labelX: 491,
       labelY: 342,
       labelRotate: 3,
@@ -857,7 +943,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 36,
     imageGeometry: {
-      d: 'M 487.5 356.1 L 519.9 362.4 L 514.5 389.9 L 482.1 383.6 Z',
+      d: 'M 483 360 L 528 356 L 529 371 L 497 380 L 492 380 L 483 362 Z',
       labelX: 501,
       labelY: 373,
       labelRotate: 11,
@@ -876,12 +962,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 37,
     imageGeometry: {
-      d: 'M 504.5 380.1 L 535.9 390.3 L 527.5 415.9 L 496.1 405.7 Z',
-      labelX: 516,
-      labelY: 398,
+      d: 'M 496 383 L 530 375 L 532 393 L 510 402 L 496 386 Z',
+      labelX: 520,
+      labelY: 392,
       labelRotate: 18,
       labelFontSize: 9,
       shortLabel: '311',
+      alignmentSeedPoint: { x: 520, y: 392 },
     },
   },
   {
@@ -895,7 +982,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 38,
     imageGeometry: {
-      d: 'M 435.2 411.5 L 474.5 419.1 L 468.8 448.5 L 429.5 440.9 Z',
+      d: 'M 421 425 L 458 421 L 476 439 L 439 449 L 421 428 Z',
       labelX: 452,
       labelY: 430,
       labelRotate: 11,
@@ -914,7 +1001,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 39,
     imageGeometry: {
-      d: 'M 469.9 438.1 L 512.9 451.2 L 504.1 479.9 L 461.1 466.8 Z',
+      d: 'M 447 451 L 481 442 L 507 460 L 506 462 L 475 479 L 472 479 L 447 458 Z',
       labelX: 487,
       labelY: 459,
       labelRotate: 17,
@@ -933,9 +1020,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 40,
     imageGeometry: {
-      d: 'M 503.3 461.6 L 549.9 473.3 L 542.7 502.4 L 496.1 490.7 Z',
-      labelX: 523,
-      labelY: 482,
+      d: 'M 477 481 L 495 471 L 506 465 L 508 464 L 513 464 L 521 468 L 521 478 L 501 494 L 498 494 L 494 492 L 487 488 L 482 485 L 479 483 Z',
+      labelX: 486,
+      labelY: 484,
       labelRotate: 14,
       labelFontSize: 9,
       shortLabel: '055',
@@ -952,9 +1039,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 41,
     imageGeometry: {
-      d: 'M 544.8 480 L 589.4 486.3 L 585.2 516 L 540.6 509.7 Z',
-      labelX: 565,
-      labelY: 498,
+      d: 'M 505 496 L 520 484 L 524 481 L 548 481 L 551 482 L 567 488 L 565 491 L 549 511 L 548 512 L 544 512 L 523 505 L 513 501 L 506 498 L 505 497 Z',
+      labelX: 532,
+      labelY: 496,
       labelRotate: 8,
       labelFontSize: 9,
       shortLabel: '054',
@@ -971,9 +1058,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 42,
     imageGeometry: {
-      d: 'M 588 487.7 L 633 489.3 L 632 518.3 L 587 516.7 Z',
-      labelX: 610,
-      labelY: 503,
+      d: 'M 553 513 L 555 510 L 567 495 L 568 494 L 586 494 L 590 495 L 592 496 L 584 514 L 581 520 L 579 520 L 564 517 L 556 515 L 553 514 Z',
+      labelX: 575,
+      labelY: 508,
       labelRotate: 2,
       labelFontSize: 9,
       shortLabel: '053',
@@ -990,9 +1077,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 43,
     imageGeometry: {
-      d: 'M 634.5 488 L 679.5 488 L 679.5 516 L 634.5 516 Z',
-      labelX: 657,
-      labelY: 502,
+      d: 'M 586 520 L 588 515 L 595 499 L 607 499 L 630 503 L 634 504 L 634 510 L 632 524 L 631 525 L 617 525 L 607 524 L 598 523 L 591 522 L 586 521 Z',
+      labelX: 612,
+      labelY: 513,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '052',
@@ -1009,9 +1096,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 44,
     imageGeometry: {
-      d: 'M 680.5 484.1 L 725.4 481 L 727.5 509.9 L 682.6 513 Z',
-      labelX: 704,
-      labelY: 497,
+      d: 'M 636 525 L 638 511 L 639 505 L 640 504 L 641 504 L 656 505 L 666 506 L 666 523 L 662 524 L 652 525 Z',
+      labelX: 651,
+      labelY: 512,
       labelRotate: -4,
       labelFontSize: 9,
       shortLabel: '051',
@@ -1028,9 +1115,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 45,
     imageGeometry: {
-      d: 'M 478.4 401.9 L 510.2 411 L 503.6 434.1 L 471.8 425 Z',
-      labelX: 491,
-      labelY: 418,
+      d: 'M 454 414 L 484 420 L 500 447 L 469 440 Z',
+      labelX: 465,
+      labelY: 421,
       labelRotate: 16,
       labelFontSize: 9,
       shortLabel: '044',
@@ -1047,9 +1134,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 46,
     imageGeometry: {
-      d: 'M 509.9 419.4 L 541.9 427.3 L 536.1 450.6 L 504.1 442.7 Z',
-      labelX: 523,
-      labelY: 435,
+      d: 'M 490 412 L 509 406 L 546 437 L 545 444 L 539 450 L 533 448 L 503 426 Z',
+      labelX: 500.5,
+      labelY: 415,
       labelRotate: 14,
       labelFontSize: 9,
       shortLabel: '034',
@@ -1066,12 +1153,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 47,
     imageGeometry: {
-      d: 'M 542.7 418.5 L 572.5 422.7 L 569.3 445.5 L 539.5 441.3 Z',
-      labelX: 556,
+      d: 'M 501 409 L 502 408 L 508 406 L 544 435 L 545 436 L 544 443 L 538 449 L 536 449 L 528 444 L 525 442 L 518 437 L 514 434 L 503 425 L 501 423 Z',
+      labelX: 535,
       labelY: 432,
       labelRotate: 8,
       labelFontSize: 9,
       shortLabel: '024',
+      alignmentSeedPoint: { x: 535, y: 432 },
     },
   },
   {
@@ -1085,9 +1173,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 48,
     imageGeometry: {
-      d: 'M 514.9 444.6 L 542.2 450.9 L 537.1 473.4 L 509.8 467.1 Z',
-      labelX: 526,
-      labelY: 459,
+      d: 'M 500 439 L 506 433 L 512 437 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 Z',
+      labelX: 525,
+      labelY: 455,
       labelRotate: 13,
       labelFontSize: 9,
       shortLabel: '033',
@@ -1123,9 +1211,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 50,
     imageGeometry: {
-      d: 'M 614.5 473.5 L 645.5 473.5 L 645.5 496.5 L 614.5 496.5 Z',
-      labelX: 630,
-      labelY: 485,
+      d: 'M 600 484 L 637 484 L 665 486 L 665 492 L 656 492 L 642 491 L 600 490 Z',
+      labelX: 636,
+      labelY: 488,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '031',
@@ -1142,7 +1230,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 51,
     imageGeometry: {
-      d: 'M 544.7 441.7 L 572.5 445.6 L 569.3 468.3 L 541.5 464.4 Z',
+      d: 'M 542 451 L 548 445 L 550 445 L 570 456 L 570 458 L 566 463 L 560 462 L 542 453 Z',
       labelX: 557,
       labelY: 455,
       labelRotate: 8,
@@ -1161,7 +1249,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 52,
     imageGeometry: {
-      d: 'M 575.3 449.5 L 604.3 451.5 L 602.7 474.5 L 573.7 472.5 Z',
+      d: 'M 577 453 L 585 455 L 600 465 L 596 473 L 588 472 L 569 465 Z',
       labelX: 589,
       labelY: 462,
       labelRotate: 4,
@@ -1180,9 +1268,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 53,
     imageGeometry: {
-      d: 'M 616 452 L 650 452 L 650 476 L 616 476 Z',
-      labelX: 633,
-      labelY: 464,
+      d: 'M 600 472 L 603 466 L 625 465 L 665 469 L 665 481 L 661 482 L 642 481 L 619 478 L 608 476 L 600 474 Z',
+      labelX: 636,
+      labelY: 474,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '021',
@@ -1199,12 +1287,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 54,
     imageGeometry: {
-      d: 'M 548.2 400.2 L 574.9 404 L 571.8 425.8 L 545.1 422 Z',
-      labelX: 560,
-      labelY: 413,
+      d: 'M 546 438 L 552 431 L 579 438 L 585 445 L 577 452 L 554 449 L 546 443 Z',
+      labelX: 562,
+      labelY: 442,
       labelRotate: 8,
       labelFontSize: 9,
       shortLabel: '013',
+      alignmentSeedPoint: { x: 552, y: 438 },
     },
   },
   {
@@ -1218,12 +1307,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 55,
     imageGeometry: {
-      d: 'M 578 404.8 L 605.9 407.3 L 604 429.2 L 576.1 426.7 Z',
-      labelX: 591,
-      labelY: 417,
+      d: 'M 590 450 L 611 447 L 642 455 L 644 459 L 636 464 L 616 467 L 590 459 Z',
+      labelX: 616,
+      labelY: 456,
       labelRotate: 5,
       labelFontSize: 9,
       shortLabel: '012',
+      alignmentSeedPoint: { x: 615, y: 459 },
     },
   },
   {
@@ -1256,9 +1346,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 57,
     imageGeometry: {
-      d: 'M 670.8 414.5 L 707.8 412.6 L 709.2 439.5 L 672.2 441.4 Z',
-      labelX: 690,
-      labelY: 427,
+      d: 'M 669 447 L 678 443 L 685 440 L 690 438 L 692 446 L 694 455 L 695 460 L 695 462 L 691 463 L 680 464 L 670 464 L 669 457 Z',
+      labelX: 682,
+      labelY: 453,
       labelRotate: -3,
       labelFontSize: 9,
       shortLabel: '111',
@@ -1275,9 +1365,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 58,
     imageGeometry: {
-      d: 'M 713.6 425.9 L 757.4 421.3 L 760.4 450.1 L 716.6 454.7 Z',
-      labelX: 737,
-      labelY: 438,
+      d: 'M 695 436 L 707 430 L 730 419 L 733 422 L 751 446 L 751 448 L 749 449 L 744 451 L 732 455 L 716 459 L 706 461 L 700 461 L 699 458 L 698 454 L 696 445 L 695 440 Z',
+      labelX: 721,
+      labelY: 442,
       labelRotate: -6,
       labelFontSize: 9,
       shortLabel: '112',
@@ -1294,9 +1384,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 59,
     imageGeometry: {
-      d: 'M 757.6 418.1 L 799.7 405.2 L 808.4 433.9 L 766.3 446.8 Z',
-      labelX: 783,
-      labelY: 426,
+      d: 'M 735 417 L 748 410 L 768 400 L 770 400 L 772 401 L 797 416 L 800 418 L 801 419 L 797 422 L 788 428 L 778 434 L 771 438 L 760 444 L 758 445 L 756 445 L 754 443 L 750 438 L 738 422 Z',
+      labelX: 766,
+      labelY: 421,
       labelRotate: -17,
       labelFontSize: 9,
       shortLabel: '113',
@@ -1313,9 +1403,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 60,
     imageGeometry: {
-      d: 'M 795.4 397.6 L 825.4 381.7 L 838.6 406.4 L 808.6 422.3 Z',
-      labelX: 817,
-      labelY: 402,
+      d: 'M 774 397 L 775 396 L 786 390 L 790 388 L 792 388 L 799 391 L 815 398 L 819 400 L 820 401 L 806 415 L 804 415 L 800 413 L 780 401 Z',
+      labelX: 798,
+      labelY: 401,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '114',
@@ -1332,9 +1422,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 61,
     imageGeometry: {
-      d: 'M 808 372.4 L 835.3 357.8 L 848 381.6 L 820.7 396.2 Z',
-      labelX: 828,
-      labelY: 377,
+      d: 'M 796 385 L 797 384 L 811 376 L 815 374 L 816 374 L 835 380 L 835 381 L 833 385 L 828 392 L 824 397 L 823 397 L 807 390 L 798 386 Z',
+      labelX: 817,
+      labelY: 385,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '115',
@@ -1351,9 +1441,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 62,
     imageGeometry: {
-      d: 'M 807.6 349.8 L 833.9 337.5 L 844.4 360.2 L 818.1 372.5 Z',
-      labelX: 826,
-      labelY: 355,
+      d: 'M 822 370 L 827 367 L 833 364 L 845 360 L 846 360 L 844 365 L 840 373 L 838 376 L 837 376 L 830 374 L 824 372 L 822 371 Z',
+      labelX: 835,
+      labelY: 369,
       labelRotate: -25,
       labelFontSize: 9,
       shortLabel: '116',
@@ -1362,17 +1452,17 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
   {
     id: 'sajik-infield-upper-1b-121',
     level: '3F',
-    category: 'INFIELD_UPPER_1B',
-    name: '1루 내야상단석 121블록',
+    category: 'CHEER_TABLE',
+    name: '네이버 클립존 (응원탁자석) 121블록',
     block: '121',
     officialBlocks: ['121'],
     side: 'FIRST_BASE',
     fanRole: 'AWAY',
     displayPriority: 63,
     imageGeometry: {
-      d: 'M 690.1 441.6 L 725 440.4 L 725.9 466.4 L 691 467.6 Z',
-      labelX: 708,
-      labelY: 454,
+      d: 'M 670 469 L 677 468 L 691 467 L 696 467 L 697 468 L 699 477 L 699 479 L 698 480 L 688 481 L 670 481 Z',
+      labelX: 684,
+      labelY: 475,
       labelRotate: -2,
       labelFontSize: 9,
       shortLabel: '121',
@@ -1389,9 +1479,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 64,
     imageGeometry: {
-      d: 'M 726.7 453 L 762.5 449.2 L 765.3 475 L 729.5 478.8 Z',
-      labelX: 746,
-      labelY: 464,
+      d: 'M 701 466 L 753 452 L 755 452 L 757 454 L 760 464 L 756 466 L 741 471 L 734 473 L 726 475 L 716 477 L 713 477 L 702 472 L 701 467 Z',
+      labelX: 733,
+      labelY: 465,
       labelRotate: -6,
       labelFontSize: 9,
       shortLabel: '122',
@@ -1408,9 +1498,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 65,
     imageGeometry: {
-      d: 'M 765.2 452.8 L 798.1 444 L 804.8 469.2 L 771.9 478 Z',
-      labelX: 785,
-      labelY: 461,
+      d: 'M 760 449 L 761 448 L 804 422 L 807 422 L 810 424 L 811 425 L 814 434 L 813 435 L 807 439 L 793 448 L 771 459 L 770 459 L 761 452 L 760 450 Z',
+      labelX: 789,
+      labelY: 441,
       labelRotate: -15,
       labelFontSize: 9,
       shortLabel: '123',
@@ -1427,9 +1517,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 66,
     imageGeometry: {
-      d: 'M 800.3 426.8 L 825.9 413.2 L 837.7 435.2 L 812.1 448.8 Z',
-      labelX: 819,
-      labelY: 431,
+      d: 'M 809 418 L 811 416 L 825 403 L 826 403 L 832 405 L 842 409 L 842 410 L 833 419 L 826 425 L 823 426 L 812 420 Z',
+      labelX: 816,
+      labelY: 418,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '124',
@@ -1446,9 +1536,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 67,
     imageGeometry: {
-      d: 'M 822.3 388.8 L 847.9 375.2 L 859.7 397.2 L 834.1 410.8 Z',
-      labelX: 841,
-      labelY: 393,
+      d: 'M 829 398 L 833 392 L 840 382 L 843 382 L 852 384 L 859 386 L 859 387 L 856 392 L 851 399 L 847 404 L 846 405 L 844 405 L 841 404 L 833 401 L 829 399 Z',
+      labelX: 842,
+      labelY: 394,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '125',
@@ -1465,9 +1555,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 68,
     imageGeometry: {
-      d: 'M 839.1 350.2 L 866.4 340.3 L 874.9 363.8 L 847.6 373.7 Z',
+      d: 'M 843 377 L 852 359 L 867 359 L 872 360 L 872 361 L 871 364 L 866 374 L 856 380 L 855 380 L 845 378 Z',
       labelX: 857,
-      labelY: 357,
+      labelY: 371,
       labelRotate: -20,
       labelFontSize: 9,
       shortLabel: '126',
@@ -1484,9 +1574,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 69,
     imageGeometry: {
-      d: 'M 855 326 L 883 326 L 883 350 L 855 350 Z',
-      labelX: 869,
-      labelY: 338,
+      d: 'M 836 335 L 870 332 L 880 333 L 878 345 L 867 354 L 856 354 L 837 353 Z',
+      labelX: 858,
+      labelY: 344,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '127',
@@ -1495,17 +1585,17 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
   {
     id: 'sajik-infield-upper-1b-131',
     level: '3F',
-    category: 'INFIELD_UPPER_1B',
-    name: '1루 내야상단석 131블록',
+    category: 'CHEER_TABLE',
+    name: '네이버 클립존 (응원탁자석) 131블록',
     block: '131',
     officialBlocks: ['131'],
     side: 'FIRST_BASE',
     fanRole: 'AWAY',
     displayPriority: 70,
     imageGeometry: {
-      d: 'M 682.6 466.1 L 716.6 464.9 L 717.4 489.9 L 683.4 491.1 Z',
-      labelX: 700,
-      labelY: 478,
+      d: 'M 666 484 L 694 483 L 703 484 L 704 491 L 700 493 L 674 493 L 666 491 Z',
+      labelX: 683,
+      labelY: 489,
       labelRotate: -2,
       labelFontSize: 9,
       shortLabel: '131',
@@ -1522,9 +1612,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 71,
     imageGeometry: {
-      d: 'M 725.6 481.1 L 759.6 479.9 L 760.4 504.9 L 726.4 506.1 Z',
-      labelX: 734,
-      labelY: 493,
+      d: 'M 705 483 L 732 478 L 733 479 L 733 481 L 732 483 L 722 487 L 718 488 L 712 489 L 706 489 L 705 485 Z',
+      labelX: 713,
+      labelY: 485,
       labelRotate: -2,
       labelFontSize: 9,
       shortLabel: '132',
@@ -1541,9 +1631,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 72,
     imageGeometry: {
-      d: 'M 768.3 483.5 L 798.7 477 L 803.7 500.5 L 773.3 507 Z',
-      labelX: 786,
-      labelY: 492,
+      d: 'M 772 464 L 781 459 L 792 453 L 793 453 L 803 454 L 803 455 L 789 463 L 777 469 L 776 469 L 772 465 Z',
+      labelX: 787,
+      labelY: 462,
       labelRotate: -12,
       labelFontSize: 9,
       shortLabel: '133',
@@ -1560,9 +1650,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 73,
     imageGeometry: {
-      d: 'M 817 468 L 841.7 454.8 L 853 476 L 828.3 489.2 Z',
-      labelX: 835,
-      labelY: 472,
+      d: 'M 810 456 L 811 455 L 834 438 L 835 438 L 837 439 L 840 441 L 835 446 L 828 452 L 823 456 L 819 459 L 817 460 L 812 460 L 810 457 Z',
+      labelX: 826,
+      labelY: 448,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '134',
@@ -1579,9 +1669,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 74,
     imageGeometry: {
-      d: 'M 843.4 402.7 L 867.3 390.1 L 878.6 411.3 L 854.7 423.9 Z',
-      labelX: 861,
-      labelY: 407,
+      d: 'M 856 400 L 857 398 L 863 389 L 865 387 L 867 387 L 879 389 L 884 390 L 880 396 L 874 404 L 870 409 L 867 412 L 865 412 L 859 410 Z',
+      labelX: 869,
+      labelY: 400,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '135',
@@ -1598,9 +1688,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 75,
     imageGeometry: {
-      d: 'M 861.2 363.3 L 888.2 355.6 L 894.8 378.7 L 867.8 386.4 Z',
-      labelX: 878,
-      labelY: 371,
+      d: 'M 868 382 L 869 379 L 876 364 L 878 360 L 900 360 L 900 361 L 897 368 L 896 370 L 891 379 L 888 384 L 887 385 L 883 385 L 871 383 Z',
+      labelX: 884,
+      labelY: 372,
       labelRotate: -16,
       labelFontSize: 9,
       shortLabel: '136',
@@ -1617,31 +1707,33 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 76,
     imageGeometry: {
-      d: 'M 885 326 L 913 326 L 913 350 L 885 350 Z',
-      labelX: 899,
-      labelY: 338,
+      d: 'M 880 354 L 886 332 L 888 331 L 897 330 L 907 329 L 910 329 L 910 331 L 908 339 L 905 348 L 894 355 L 883 355 Z',
+      labelX: 895,
+      labelY: 342,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '137',
     },
   },
   {
-    id: 'sajik-infield-upper-1b-141',
-    level: '3F',
-    category: 'INFIELD_UPPER_1B',
-    name: '1루 내야상단석 141블록',
-    block: '141',
-    officialBlocks: ['141'],
-    side: 'FIRST_BASE',
-    fanRole: 'AWAY',
+    id: 'sajik-central-table-041',
+    level: '1F',
+    category: 'CENTRAL_TABLE',
+    name: '중앙탁자석 041블록',
+    block: '041',
+    officialBlocks: ['041'],
+    side: 'CENTER',
+    fanRole: 'NEUTRAL',
     displayPriority: 77,
+    seatViewSections: ['141', '141블록'],
+    parentLabel: '141',
     imageGeometry: {
-      d: 'M 721.7 465.3 L 748.7 465.7 L 748.3 488.7 L 721.3 488.3 Z',
-      labelX: 735,
-      labelY: 477,
+      d: 'M 600 494 L 668 494 L 704 497 L 704 503 L 641 503 L 600 501 Z',
+      labelX: 640,
+      labelY: 499,
       labelRotate: 1,
       labelFontSize: 9,
-      shortLabel: '141',
+      shortLabel: '041',
     },
   },
   {
@@ -1655,9 +1747,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 78,
     imageGeometry: {
-      d: 'M 733.4 481.2 L 761.4 479.8 L 762.6 502.8 L 734.6 504.2 Z',
-      labelX: 748,
-      labelY: 492,
+      d: 'M 671 506 L 708 494 L 772 476 L 775 476 L 776 477 L 781 483 L 781 484 L 776 487 L 760 495 L 751 499 L 744 502 L 734 506 L 713 513 L 698 517 L 690 519 L 680 521 L 674 522 L 671 522 Z',
+      labelX: 725,
+      labelY: 506,
       labelRotate: -3,
       labelFontSize: 9,
       shortLabel: '142',
@@ -1674,9 +1766,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 79,
     imageGeometry: {
-      d: 'M 778.1 498.1 L 804.3 491.6 L 809.9 513.9 L 783.7 520.4 Z',
-      labelX: 794,
-      labelY: 506,
+      d: 'M 779 473 L 798 463 L 806 459 L 812 462 L 812 464 L 811 465 L 796 475 L 786 481 L 781 476 Z',
+      labelX: 796,
+      labelY: 467,
       labelRotate: -14,
       labelFontSize: 9,
       shortLabel: '143',
@@ -1693,12 +1785,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 80,
     imageGeometry: {
-      d: 'M 863.8 242.8 L 888.4 247.6 L 884.2 269.2 L 859.6 264.4 Z',
-      labelX: 874,
-      labelY: 256,
-      labelRotate: 11,
+      d: 'M 850 272 L 883 268 L 884 286 L 846 291 L 846 278 Z',
+      labelX: 862,
+      labelY: 280,
+      labelRotate: 6,
       labelFontSize: 9,
       shortLabel: '914',
+      alignmentSeedPoint: { x: 862, y: 280 },
     },
   },
   {
@@ -1712,9 +1805,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 81,
     imageGeometry: {
-      d: 'M 865.9 260.6 L 890.7 263.6 L 888.1 285.4 L 863.3 282.4 Z',
-      labelX: 877,
-      labelY: 273,
+      d: 'M 847 291 L 884 286 L 885 302 L 850 307 Z',
+      labelX: 861,
+      labelY: 298,
       labelRotate: 7,
       labelFontSize: 9,
       shortLabel: '913',
@@ -1731,9 +1824,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 82,
     imageGeometry: {
-      d: 'M 864.1 278.4 L 889.1 279.7 L 887.9 301.6 L 862.9 300.3 Z',
-      labelX: 876,
-      labelY: 290,
+      d: 'M 861 293 L 885 285 L 886 288 L 886 301 L 868 305 L 862 305 Z',
+      labelX: 879,
+      labelY: 302,
       labelRotate: 3,
       labelFontSize: 9,
       shortLabel: '912',
@@ -1750,9 +1843,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 83,
     imageGeometry: {
-      d: 'M 864.5 295 L 889.5 295 L 889.5 317 L 864.5 317 Z',
-      labelX: 877,
-      labelY: 306,
+      d: 'M 861 293 L 863 292 L 871 289 L 882 286 L 884 286 L 885 292 L 885 300 L 882 301 L 865 304 L 862 304 L 861 294 Z',
+      labelX: 874,
+      labelY: 296,
       labelRotate: 0,
       labelFontSize: 9,
       shortLabel: '911',
@@ -1769,12 +1862,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 84,
     imageGeometry: {
-      d: 'M 891.9 244.3 L 915.6 248 L 912.1 269.7 L 888.4 266 Z',
-      labelX: 902,
-      labelY: 257,
+      d: 'M 886 266 L 888 264 L 899 259 L 909 255 L 911 255 L 912 258 L 913 264 L 913 271 L 912 272 L 894 278 L 888 278 L 887 274 L 886 269 Z',
+      labelX: 899,
+      labelY: 259,
       labelRotate: 9,
       labelFontSize: 9,
       shortLabel: '903',
+      alignmentSeedPoint: { x: 895, y: 262 },
     },
   },
   {
@@ -1788,7 +1882,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 85,
     imageGeometry: {
-      d: 'M 892.2 261.8 L 916.1 264.3 L 913.8 286.2 L 889.9 283.7 Z',
+      d: 'M 886 265 L 909 255 L 912 255 L 914 264 L 914 273 L 892 280 L 888 280 Z',
       labelX: 903,
       labelY: 274,
       labelRotate: 6,
@@ -1807,7 +1901,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 86,
     imageGeometry: {
-      d: 'M 891.4 279.6 L 915.4 280.4 L 914.6 302.4 L 890.6 301.6 Z',
+      d: 'M 888 284 L 911 276 L 915 276 L 916 296 L 889 301 Z',
       labelX: 903,
       labelY: 291,
       labelRotate: 2,
@@ -1826,7 +1920,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 87,
     imageGeometry: {
-      d: 'M 443 265 L 465 265 L 465 287 L 443 287 Z',
+      d: 'M 452 253 L 476 263 L 471 283 L 467 283 L 446 276 Z',
       labelX: 454,
       labelY: 276,
       labelRotate: 0,
@@ -1846,7 +1940,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 88,
     imageGeometry: {
-      d: 'M 519 396 L 541 396 L 541 418 L 519 418 Z',
+      d: 'M 513 404 L 530 397 L 533 397 L 534 404 L 529 418 L 524 416 L 513 406 Z',
       labelX: 530,
       labelY: 407,
       labelRotate: 0,
@@ -1866,7 +1960,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 89,
     imageGeometry: {
-      d: 'M 822 532 L 844 532 L 844 554 L 822 554 Z',
+      d: 'M 826 539 L 828 537 L 833 536 L 838 539 L 839 546 L 836 550 L 827 549 L 825 545 Z',
       labelX: 833,
       labelY: 543,
       labelRotate: 0,
@@ -1879,6 +1973,98 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
 
 export const SAJIK_BLOCKS: SajikBlock[] = SAJIK_BLOCK_DEFINITIONS.map(createSajikBlock);
 
+export const SAJIK_OFFICIAL_TRACE_REFERENCE: Record<string, SajikOfficialTraceReference> = {
+  '338': { numberAnchor: { x: 506, y: 148 }, expectedBounds: { minX: 484, minY: 126, maxX: 529, maxY: 166 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 1152 },
+  '732': { numberAnchor: { x: 562, y: 122 }, expectedBounds: { minX: 535, minY: 99, maxX: 593, maxY: 144 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1525 },
+  '733': { numberAnchor: { x: 617, y: 116 }, expectedBounds: { minX: 589, minY: 89, maxX: 643, maxY: 127 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1530.5 },
+  '734': { numberAnchor: { x: 675, y: 116 }, expectedBounds: { minX: 645, minY: 88, maxX: 695, maxY: 120 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 1489 },
+  '721': { numberAnchor: { x: 534, y: 172 }, expectedBounds: { minX: 507, minY: 149, maxX: 559, maxY: 194 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 1208 },
+  '722': { numberAnchor: { x: 575, y: 149 }, expectedBounds: { minX: 552, minY: 132, maxX: 601, maxY: 170 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 1126 },
+  '723': { numberAnchor: { x: 625, y: 145 }, expectedBounds: { minX: 598, minY: 124, maxX: 645, maxY: 156 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1134.5 },
+  '724': { numberAnchor: { x: 682, y: 147 }, expectedBounds: { minX: 647, minY: 123, maxX: 727, maxY: 154 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 2158.5 },
+  '925': { numberAnchor: { x: 807, y: 176 }, expectedBounds: { minX: 780, minY: 156, maxX: 820, maxY: 192 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 810 },
+  '935': { numberAnchor: { x: 820, y: 145 }, expectedBounds: { minX: 796, minY: 128, maxX: 843, maxY: 170 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1091.5 },
+  '924': { numberAnchor: { x: 829, y: 203 }, expectedBounds: { minX: 806, minY: 177, maxX: 850, maxY: 221 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 990 },
+  '934': { numberAnchor: { x: 848, y: 181 }, expectedBounds: { minX: 826, minY: 151, maxX: 876, maxY: 202 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1316 },
+  '923': { numberAnchor: { x: 849, y: 236 }, expectedBounds: { minX: 833, minY: 208, maxX: 873, maxY: 253 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 975 },
+  '933': { numberAnchor: { x: 873, y: 217 }, expectedBounds: { minX: 857, minY: 187, maxX: 902, maxY: 239 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1282.5 },
+  '922': { numberAnchor: { x: 862, y: 268 }, expectedBounds: { minX: 853, minY: 248, maxX: 880, maxY: 272 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 439.5 },
+  '932': { numberAnchor: { x: 887, y: 257 }, expectedBounds: { minX: 879, minY: 230, maxX: 910, maxY: 261 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 613 },
+  '931': { numberAnchor: { x: 899, y: 310 }, expectedBounds: { minX: 887, minY: 300, maxX: 915, maxY: 327 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 590.5 },
+  '337': { numberAnchor: { x: 468, y: 178 }, expectedBounds: { minX: 438, minY: 155, maxX: 501, maxY: 217 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1916 },
+  '327': { numberAnchor: { x: 491, y: 216 }, expectedBounds: { minX: 467, minY: 179, maxX: 521, maxY: 235 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 1515.5 },
+  '336': { numberAnchor: { x: 435, y: 230 }, expectedBounds: { minX: 423, minY: 209, maxX: 461, maxY: 248 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 839.5 },
+  '326': { numberAnchor: { x: 469, y: 247 }, expectedBounds: { minX: 454, minY: 226, maxX: 487, maxY: 260 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 652 },
+  '335': { numberAnchor: { x: 421, y: 286 }, expectedBounds: { minX: 402, minY: 269, maxX: 441, maxY: 303 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 969 },
+  '325': { numberAnchor: { x: 446.5, y: 274 }, expectedBounds: { minX: 442, minY: 255, maxX: 475, maxY: 282 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 582 },
+  '334': { numberAnchor: { x: 413, y: 306 }, expectedBounds: { minX: 398, minY: 300, maxX: 432, maxY: 357 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 1551 },
+  '324': { numberAnchor: { x: 448, y: 305 }, expectedBounds: { minX: 444, minY: 282, maxX: 470, maxY: 309 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 573 },
+  '343': { numberAnchor: { x: 413, y: 336 }, expectedBounds: { minX: 398, minY: 307, maxX: 433, maxY: 358 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1455.5 },
+  '333': { numberAnchor: { x: 449, y: 335 }, expectedBounds: { minX: 444, minY: 308, maxX: 477, maxY: 358 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1190.5 },
+  '342': { numberAnchor: { x: 420, y: 374 }, expectedBounds: { minX: 399, minY: 361, maxX: 448, maxY: 411 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 1982 },
+  '332': { numberAnchor: { x: 465, y: 377 }, expectedBounds: { minX: 457, minY: 361, maxX: 487, maxY: 385 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 497.5 },
+  '331': { numberAnchor: { x: 450, y: 407 }, expectedBounds: { minX: 441, minY: 394, maxX: 467, maxY: 419 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 263 },
+  '321': { numberAnchor: { x: 488, y: 401 }, expectedBounds: { minX: 471, minY: 385, maxX: 506, maxY: 409 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 489 },
+  '316': { numberAnchor: { x: 502, y: 246 }, expectedBounds: { minX: 481, minY: 221, maxX: 516, maxY: 274 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1047 },
+  '315': { numberAnchor: { x: 491, y: 278 }, expectedBounds: { minX: 474, minY: 265, maxX: 519, maxY: 295 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 745 },
+  '314': { numberAnchor: { x: 488, y: 309 }, expectedBounds: { minX: 472, minY: 288, maxX: 520, maxY: 317 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 965.5 },
+  '313': { numberAnchor: { x: 491, y: 342 }, expectedBounds: { minX: 472, minY: 313, maxX: 524, maxY: 357 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1824.5 },
+  '312': { numberAnchor: { x: 501, y: 373 }, expectedBounds: { minX: 483, minY: 356, maxX: 529, maxY: 380 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 781.5 },
+  '311': { numberAnchor: { x: 520, y: 392 }, expectedBounds: { minX: 496, minY: 375, maxX: 532, maxY: 402 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 607 },
+  '057': { numberAnchor: { x: 452, y: 430 }, expectedBounds: { minX: 421, minY: 421, maxX: 476, maxY: 449 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 930 },
+  '056': { numberAnchor: { x: 487, y: 459 }, expectedBounds: { minX: 447, minY: 442, maxX: 507, maxY: 479 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1289 },
+  '055': { numberAnchor: { x: 486, y: 484 }, expectedBounds: { minX: 477, minY: 464, maxX: 521, maxY: 494 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 759.5 },
+  '054': { numberAnchor: { x: 532, y: 496 }, expectedBounds: { minX: 505, minY: 481, maxX: 567, maxY: 512 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 1228.5 },
+  '053': { numberAnchor: { x: 575, y: 508 }, expectedBounds: { minX: 553, minY: 494, maxX: 592, maxY: 520 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 671.5 },
+  '052': { numberAnchor: { x: 612, y: 513 }, expectedBounds: { minX: 586, minY: 499, maxX: 634, maxY: 525 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 1021 },
+  '051': { numberAnchor: { x: 651, y: 512 }, expectedBounds: { minX: 636, minY: 504, maxX: 666, maxY: 525 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 564 },
+  '044': { numberAnchor: { x: 465, y: 421 }, expectedBounds: { minX: 454, minY: 414, maxX: 500, maxY: 447 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 707.5 },
+  '034': { numberAnchor: { x: 500.5, y: 415 }, expectedBounds: { minX: 490, minY: 406, maxX: 546, maxY: 450 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1007 },
+  '024': { numberAnchor: { x: 535, y: 432 }, expectedBounds: { minX: 501, minY: 406, maxX: 545, maxY: 449 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 881.5 },
+  '033': { numberAnchor: { x: 525, y: 455 }, expectedBounds: { minX: 500, minY: 433, maxX: 534, maxY: 458 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 310 },
+  '032': { numberAnchor: { x: 588, y: 480 }, expectedBounds: { minX: 571.3, minY: 466.4, maxX: 604.7, maxY: 493.6 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 746.76 },
+  '031': { numberAnchor: { x: 636, y: 488 }, expectedBounds: { minX: 600, minY: 484, maxX: 665, maxY: 492 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 422 },
+  '023': { numberAnchor: { x: 557, y: 455 }, expectedBounds: { minX: 542, minY: 445, maxX: 570, maxY: 463 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 264 },
+  '022': { numberAnchor: { x: 589, y: 462 }, expectedBounds: { minX: 569, minY: 453, maxX: 600, maxY: 473 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 353.5 },
+  '021': { numberAnchor: { x: 636, y: 474 }, expectedBounds: { minX: 600, minY: 465, maxX: 665, maxY: 482 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 822 },
+  '013': { numberAnchor: { x: 562, y: 442 }, expectedBounds: { minX: 546, minY: 431, maxX: 585, maxY: 452 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 530 },
+  '012': { numberAnchor: { x: 616, y: 456 }, expectedBounds: { minX: 590, minY: 447, maxX: 644, maxY: 467 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 726.5 },
+  '011': { numberAnchor: { x: 653, y: 420 }, expectedBounds: { minX: 635, minY: 408.5, maxX: 671, maxY: 431.5 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 828 },
+  '111': { numberAnchor: { x: 682, y: 453 }, expectedBounds: { minX: 669, minY: 438, maxX: 695, maxY: 464 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 516 },
+  '112': { numberAnchor: { x: 721, y: 442 }, expectedBounds: { minX: 695, minY: 419, maxX: 751, maxY: 461 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 1485 },
+  '113': { numberAnchor: { x: 766, y: 421 }, expectedBounds: { minX: 735, minY: 400, maxX: 801, maxY: 445 }, expectedSubpathCount: 1, expectedPointCount: 18, expectedArea: 1609 },
+  '114': { numberAnchor: { x: 798, y: 401 }, expectedBounds: { minX: 774, minY: 388, maxX: 820, maxY: 415 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 645.5 },
+  '115': { numberAnchor: { x: 817, y: 385 }, expectedBounds: { minX: 796, minY: 374, maxX: 835, maxY: 397 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 501 },
+  '116': { numberAnchor: { x: 835, y: 369 }, expectedBounds: { minX: 822, minY: 360, maxX: 846, maxY: 376 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 192.5 },
+  '121': { numberAnchor: { x: 684, y: 475 }, expectedBounds: { minX: 670, minY: 467, maxX: 699, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 370.5 },
+  '122': { numberAnchor: { x: 733, y: 465 }, expectedBounds: { minX: 701, minY: 452, maxX: 760, maxY: 477 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 808.5 },
+  '123': { numberAnchor: { x: 789, y: 441 }, expectedBounds: { minX: 760, minY: 422, maxX: 814, maxY: 459 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 850.5 },
+  '124': { numberAnchor: { x: 816, y: 418 }, expectedBounds: { minX: 809, minY: 403, maxX: 842, maxY: 426 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 407 },
+  '125': { numberAnchor: { x: 842, y: 394 }, expectedBounds: { minX: 829, minY: 382, maxX: 859, maxY: 405 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 423 },
+  '126': { numberAnchor: { x: 857, y: 371 }, expectedBounds: { minX: 843, minY: 359, maxX: 872, maxY: 380 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 408 },
+  '127': { numberAnchor: { x: 858, y: 344 }, expectedBounds: { minX: 836, minY: 332, maxX: 880, maxY: 354 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 813 },
+  '131': { numberAnchor: { x: 683, y: 489 }, expectedBounds: { minX: 666, minY: 483, maxX: 704, maxY: 493 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 345 },
+  '132': { numberAnchor: { x: 713, y: 485 }, expectedBounds: { minX: 705, minY: 478, maxX: 733, maxY: 489 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 182 },
+  '133': { numberAnchor: { x: 787, y: 462 }, expectedBounds: { minX: 772, minY: 453, maxX: 803, maxY: 469 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 197.5 },
+  '134': { numberAnchor: { x: 826, y: 448 }, expectedBounds: { minX: 810, minY: 438, maxX: 840, maxY: 460 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 236.5 },
+  '135': { numberAnchor: { x: 869, y: 400 }, expectedBounds: { minX: 856, minY: 387, maxX: 884, maxY: 412 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 421 },
+  '136': { numberAnchor: { x: 884, y: 372 }, expectedBounds: { minX: 868, minY: 360, maxX: 900, maxY: 385 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 534.5 },
+  '137': { numberAnchor: { x: 895, y: 342 }, expectedBounds: { minX: 880, minY: 329, maxX: 910, maxY: 355 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 558 },
+  '041': { numberAnchor: { x: 640, y: 499 }, expectedBounds: { minX: 600, minY: 494, maxX: 704, maxY: 503 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 841 },
+  '142': { numberAnchor: { x: 725, y: 506 }, expectedBounds: { minX: 671, minY: 476, maxX: 781, maxY: 522 }, expectedSubpathCount: 1, expectedPointCount: 18, expectedArea: 1919 },
+  '143': { numberAnchor: { x: 796, y: 467 }, expectedBounds: { minX: 779, minY: 459, maxX: 812, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 9, expectedArea: 293 },
+  '914': { numberAnchor: { x: 862, y: 280 }, expectedBounds: { minX: 846, minY: 268, maxX: 884, maxY: 291 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 676 },
+  '913': { numberAnchor: { x: 861, y: 298 }, expectedBounds: { minX: 847, minY: 286, maxX: 885, maxY: 307 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 586 },
+  '912': { numberAnchor: { x: 879, y: 302 }, expectedBounds: { minX: 861, minY: 285, maxX: 886, maxY: 305 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 360.5 },
+  '911': { numberAnchor: { x: 874, y: 296 }, expectedBounds: { minX: 861, minY: 286, maxX: 885, maxY: 304 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 322.5 },
+  '903': { numberAnchor: { x: 899, y: 259 }, expectedBounds: { minX: 886, minY: 255, maxX: 913, maxY: 278 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 433 },
+  '902': { numberAnchor: { x: 903, y: 274 }, expectedBounds: { minX: 886, minY: 255, maxX: 914, maxY: 280 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 484 },
+  '901': { numberAnchor: { x: 903, y: 291 }, expectedBounds: { minX: 888, minY: 276, maxX: 916, maxY: 301 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 522 },
+  '휠체어석-3루': { numberAnchor: { x: 454, y: 276 }, expectedBounds: { minX: 446, minY: 253, maxX: 476, maxY: 283 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 587.5 },
+  '휠체어석-중앙': { numberAnchor: { x: 530, y: 407 }, expectedBounds: { minX: 513, minY: 397, maxX: 534, maxY: 418 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 261 },
+  '휠체어석-1루': { numberAnchor: { x: 833, y: 543 }, expectedBounds: { minX: 825, minY: 536, maxX: 839, maxY: 550 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 153 },
+};
+
 function createSajikTraceReviewSummary(blocks: SajikBlock[]): SajikTraceReviewSummary {
   return blocks.reduce<SajikTraceReviewSummary>((summary, block) => {
     summary.totalBlocks += 1;
@@ -1887,8 +2073,30 @@ function createSajikTraceReviewSummary(blocks: SajikBlock[]): SajikTraceReviewSu
     } else {
       summary.needsOperatorReview += 1;
     }
+    if (block.imageGeometry.traceMethod === 'PATH_TRACED_FROM_OFFICIAL_IMAGE') {
+      summary.directOfficialTrace += 1;
+    }
+    if (block.imageGeometry.manualReviewed) {
+      summary.manualReviewed += 1;
+    } else {
+      summary.unreviewedBlocks += 1;
+    }
+    if (block.imageGeometry.pixelAlignmentStatus === 'PIXEL_ALIGNED') {
+      summary.pixelAligned += 1;
+    } else {
+      summary.manualReviewRequired += 1;
+    }
     return summary;
-  }, { totalBlocks: 0, officialImageTraced: 0, needsOperatorReview: 0 });
+  }, {
+    totalBlocks: 0,
+    officialImageTraced: 0,
+    needsOperatorReview: 0,
+    directOfficialTrace: 0,
+    manualReviewed: 0,
+    unreviewedBlocks: 0,
+    pixelAligned: 0,
+    manualReviewRequired: 0,
+  });
 }
 
 export const SAJIK_TRACE_REVIEW_SUMMARY = createSajikTraceReviewSummary(SAJIK_BLOCKS);
@@ -1954,4 +2162,127 @@ export function getSajikSeatViewAliases(block: SajikBlock): string[] {
       .map((alias) => alias?.trim())
       .filter((alias): alias is string => Boolean(alias)),
   ));
+}
+
+function normalizeSajikGuideSearch(value: string): string {
+  return value.toLowerCase().replace(/[\s\-_/()·.]/g, '');
+}
+
+function getSajikGuideSearchAliases(block: SajikBlock): string[] {
+  const categoryLabel = SAJIK_CATEGORIES[block.category]?.label;
+  return getSajikSeatViewAliases(block).concat([
+    block.id,
+    block.name,
+    block.block,
+    categoryLabel ?? '',
+    getSajikSideLabel(block.side),
+    getSajikFanRoleLabel(block.fanRole),
+    block.level,
+  ]);
+}
+
+function getSajikGuideIntentReasons(intent: SajikGuideIntent, block: SajikBlock): string[] {
+  const category = SAJIK_CATEGORIES[block.category];
+  const reasons: string[] = [];
+
+  if (intent === 'all') {
+    reasons.push('전체');
+  }
+  if (intent === 'home_cheer' && block.fanRole === 'HOME') {
+    reasons.push('홈 응원');
+  }
+  if (intent === 'away_third' && (block.fanRole === 'AWAY' || block.side === 'THIRD_BASE')) {
+    reasons.push(block.fanRole === 'AWAY' ? '원정 응원' : '3루');
+  }
+  if (
+    intent === 'center_table'
+    && (
+      block.side === 'CENTER'
+      || block.category.includes('TABLE')
+      || Boolean(category?.label.includes('탁자'))
+    )
+  ) {
+    reasons.push(block.side === 'CENTER' ? '중앙' : '탁자석');
+  }
+  if (
+    intent === 'outfield'
+    && (
+      block.level === 'OUTFIELD'
+      || block.side === 'OUTFIELD'
+      || block.category.startsWith('OUTFIELD')
+      || block.category === 'CAMPING'
+    )
+  ) {
+    reasons.push('외야');
+  }
+  if (intent === 'accessible' && (block.category === 'ACCESSIBLE' || Boolean(block.accessibilityNote))) {
+    reasons.push('휠체어석');
+  }
+
+  return Array.from(new Set(reasons));
+}
+
+function getSajikGuideSearchScore(block: SajikBlock, normalizedQuery: string): number {
+  if (!normalizedQuery) {
+    return 0;
+  }
+
+  const aliases = getSajikGuideSearchAliases(block)
+    .map(normalizeSajikGuideSearch)
+    .filter(Boolean);
+
+  if (!aliases.some((alias) => alias.includes(normalizedQuery))) {
+    return -1;
+  }
+
+  if (normalizeSajikGuideSearch(block.block) === normalizedQuery) {
+    return 30;
+  }
+  if (block.officialBlocks.some((officialBlock) => normalizeSajikGuideSearch(officialBlock) === normalizedQuery)) {
+    return 26;
+  }
+  if (aliases.some((alias) => alias === normalizedQuery)) {
+    return 22;
+  }
+  return 12;
+}
+
+export function getSajikGuideMatches(
+  intent: SajikGuideIntent,
+  query: string,
+  blocks: SajikBlock[] = SAJIK_BLOCKS,
+): SajikBlockMatch[] {
+  const normalizedQuery = normalizeSajikGuideSearch(query.trim());
+
+  return blocks
+    .map((block) => {
+      const intentReasons = getSajikGuideIntentReasons(intent, block);
+      const matchesIntent = intent === 'all' || intentReasons.length > 0;
+      if (!matchesIntent) {
+        return null;
+      }
+
+      const searchScore = getSajikGuideSearchScore(block, normalizedQuery);
+      if (searchScore < 0) {
+        return null;
+      }
+
+      const reasons = intentReasons.length > 0 ? intentReasons : ['검색'];
+      if (normalizedQuery) {
+        reasons.push('검색 일치');
+      }
+
+      return {
+        block,
+        reasons: Array.from(new Set(reasons)),
+        score: (intent === 'all' ? 0 : 40) + searchScore + Math.max(0, 120 - block.displayPriority) / 100,
+      };
+    })
+    .filter((match): match is SajikBlockMatch => Boolean(match))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return left.block.displayPriority - right.block.displayPriority;
+    });
 }
