@@ -1,14 +1,23 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
-import StadiumSeatMap, { resolveStadiumSeatMapPresetMeta } from './ui/StadiumSeatMap';
 import {
+  INCHEON_VISIT_QUICK_ACTIONS,
+  isIncheonStadium,
+  type IncheonVisitQuickAction,
+} from '../data/incheonVisitGuide';
+import {
+  ArrowRightIcon,
+  MapIcon,
   MapPinIcon,
   RefreshIcon,
   WarningTriangleIcon,
 } from './icons/PublicShellIcons';
+import { resolveStadiumSeatMapEntry } from './stadiumSeatMapRegistry';
+import { StadiumSeatMapManualRequired } from './StadiumSeatMapStates';
+import { SeatMapRuntimeShell } from './stadiumSeatMap/SeatMapRuntimeShell';
 import { getCategoryIcon } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
@@ -22,16 +31,6 @@ import type { CategoryType } from '../types/stadium';
 import './StadiumGuide.css';
 
 const AuthenticatedStadiumFavoriteToggle = lazy(() => import('./AuthenticatedStadiumFavoriteToggle'));
-const JamsilSeatMap = lazy(() => import('./jamsil/JamsilSeatMap'));
-const IncheonSeatMap = lazy(() => import('./incheon/IncheonSeatMap'));
-const DaeguSeatMap = lazy(() => import('./daegu/DaeguSeatMap'));
-const DaejeonSeatMap = lazy(() => import('./daejeon/DaejeonSeatMap'));
-const GocheokSeatMap = lazy(() => import('./gocheok/GocheokSeatMap'));
-const GwangjuSeatMap = lazy(() => import('./gwangju/GwangjuSeatMap'));
-const ChangwonSeatMap = lazy(() => import('./changwon/ChangwonSeatMap'));
-const SajikSeatMap = lazy(() => import('./sajik/SajikSeatMap'));
-const SuwonSeatMap = lazy(() => import('./suwon/SuwonSeatMap'));
-const StadiumGuideAdSlot = lazy(() => import('./ads/AdSlot'));
 const StadiumGuidePlacesRuntime = lazy(() => import('./StadiumGuidePlacesRuntime'));
 
 function StadiumGuideCategorySelector({
@@ -102,6 +101,102 @@ function StadiumGuideCategorySelector({
   );
 }
 
+function IncheonVisitQuickActions({
+  selectedCategory,
+  onCategorySelect,
+  onSeatMapFocus,
+  isDark,
+}: {
+  selectedCategory: CategoryType;
+  onCategorySelect: (category: CategoryType) => void;
+  onSeatMapFocus: () => void;
+  isDark: boolean;
+}) {
+  const renderActionIcon = (action: IncheonVisitQuickAction) => {
+    if (action.kind === 'category' && action.category) {
+      const config = CATEGORY_CONFIGS[action.category];
+      const Icon = getCategoryIcon(config.iconKey);
+      return <Icon className="h-5 w-5" />;
+    }
+
+    return <MapIcon className="h-5 w-5" />;
+  };
+
+  return (
+    <section
+      data-testid="incheon-visit-quick-actions"
+      className="mb-6 rounded-2xl border-2 bg-white p-4 shadow-sm dark:bg-card sm:p-5"
+      style={{
+        borderColor: isDark ? '#374151' : '#C8102E33',
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h4 className="text-base font-black text-slate-900 dark:text-white">처음 인천 동선</h4>
+          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            좌석, 먹거리, 픽업, 편의점, 주차 동선
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-black text-[#C8102E] dark:bg-red-950/30 dark:text-red-200">
+          SSG
+        </span>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {INCHEON_VISIT_QUICK_ACTIONS.map((action) => {
+          const categoryConfig = action.category ? CATEGORY_CONFIGS[action.category] : null;
+          const isSelected = Boolean(action.category && selectedCategory === action.category);
+          const accent = categoryConfig?.color ?? '#C8102E';
+
+          return (
+            <button
+              key={action.id}
+              type="button"
+              data-testid={`incheon-visit-action-${action.id}`}
+              onClick={() => {
+                if (action.kind === 'seatmap') {
+                  onSeatMapFocus();
+                  return;
+                }
+                if (action.category) {
+                  onCategorySelect(action.category);
+                }
+              }}
+              className="flex min-h-[92px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              style={{
+                backgroundColor: isSelected
+                  ? (isDark ? `${accent}22` : `${accent}12`)
+                  : (isDark ? '#111827' : '#f8fafc'),
+                borderColor: isSelected ? accent : (isDark ? '#374151' : '#e2e8f0'),
+              }}
+            >
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: isDark ? `${accent}22` : `${accent}14`,
+                  color: accent,
+                }}
+              >
+                {renderActionIcon(action)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-black text-slate-900 dark:text-white">{action.label}</span>
+                <span className="mt-0.5 block text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                  {action.description}
+                </span>
+                <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-black" style={{ color: accent }}>
+                  {action.actionLabel}
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function StadiumGuideRuntime() {
   const { theme, resolvedTheme } = useTheme();
   const {
@@ -130,35 +225,9 @@ export default function StadiumGuideRuntime() {
 
   const { isLoggedIn } = useAuthSession();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
-  const seatMapPresetMeta = resolveStadiumSeatMapPresetMeta(selectedStadiumId, selectedStadium?.stadiumName);
-  const isJamsilSeatMap = seatMapPresetMeta.id === 'jamsil';
-  const isIncheonSeatMap = seatMapPresetMeta.id === 'incheon';
-  const isDaejeonSeatMap = seatMapPresetMeta.id === 'daejeon';
-  const isDaeguSeatMap = seatMapPresetMeta.id === 'daegu';
-  const isGocheokSeatMap = seatMapPresetMeta.id === 'gocheok';
-  const isGwangjuSeatMap = seatMapPresetMeta.id === 'gwangju';
-  const isChangwonSeatMap = seatMapPresetMeta.id === 'changwon';
-  const isSajikSeatMap = seatMapPresetMeta.id === 'sajik';
-  const isSuwonSeatMap = seatMapPresetMeta.id === 'suwon';
-  const seatMapBadgeLabel = isJamsilSeatMap
-    ? '잠실 블록 단위 안내도'
-    : isIncheonSeatMap
-      ? '인천 SSG 공식 좌석도'
-      : isDaejeonSeatMap
-        ? '대전 한화 공식 좌석도'
-        : isDaeguSeatMap
-          ? '대구 삼성 공식 좌석도'
-          : isGocheokSeatMap
-            ? '고척 키움 공식 좌석도'
-            : isGwangjuSeatMap
-              ? '광주 KIA 공식 좌석도'
-              : isChangwonSeatMap
-                ? '창원 NC 공식 좌석도'
-                : isSajikSeatMap
-                  ? '사직 롯데 공식 좌석도'
-                  : isSuwonSeatMap
-                    ? '수원 kt 위즈 파크 공식 좌석도'
-                    : seatMapPresetMeta.label;
+  const seatMapEntry = resolveStadiumSeatMapEntry(selectedStadiumId, selectedStadium?.stadiumName);
+  const seatMapBadgeLabel = seatMapEntry?.badgeLabel ?? '좌석도 준비 필요';
+  const showIncheonVisitQuickActions = isIncheonStadium(selectedStadiumId, selectedStadium?.stadiumName);
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
@@ -173,80 +242,52 @@ export default function StadiumGuideRuntime() {
   const canShowMapFallbackActions = Boolean(selectedStadium && hasStadiumCoordinates && !canRenderMap);
   const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
   const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
+  const scrollToStadiumGuidePanel = useCallback((testId: string) => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.querySelector(`[data-testid="${testId}"]`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
+  const handleIncheonSeatMapFocus = useCallback(() => {
+    scrollToStadiumGuidePanel('stadium-seat-map');
+  }, [scrollToStadiumGuidePanel]);
+  const handleIncheonCategorySelect = useCallback((category: CategoryType) => {
+    setSelectedCategory(category);
+    window.setTimeout(() => scrollToStadiumGuidePanel('stadium-guide-places-panel'), 0);
+  }, [scrollToStadiumGuidePanel, setSelectedCategory]);
   const renderSeatMap = () => {
-    if (isJamsilSeatMap) {
+    if (!seatMapEntry) {
       return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <JamsilSeatMap />
-        </Suspense>
+        <div data-testid="stadium-seat-map">
+          <StadiumSeatMapManualRequired stadiumName={selectedStadium?.stadiumName} />
+        </div>
       );
     }
 
-    if (isIncheonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <IncheonSeatMap />
-        </Suspense>
-      );
-    }
+    const SeatMapComponent = seatMapEntry.Component;
+    const seatMapResetKey = [
+      seatMapEntry.id,
+      selectedStadiumId,
+      selectedStadium?.stadiumName,
+    ].filter(Boolean).join(':');
+    const shouldUseJamsilTemplateShell = seatMapEntry.isNonCoordinateMap && seatMapEntry.shellTemplate === 'jamsil-template';
+    const templateResetKey = shouldUseJamsilTemplateShell ? `template-${seatMapResetKey}` : seatMapResetKey;
 
-    if (isDaeguSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <DaeguSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isDaejeonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <DaejeonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGocheokSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <GocheokSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGwangjuSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <GwangjuSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isChangwonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <ChangwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSajikSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <SajikSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSuwonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <SuwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    return <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />;
+    return (
+      <SeatMapRuntimeShell
+        template={seatMapEntry.shellTemplate}
+        usesCoordinateGeometry={seatMapEntry.usesCoordinateGeometry}
+        badgeLabel={seatMapEntry.badgeLabel}
+        stadiumName={selectedStadium?.stadiumName}
+        resetKey={templateResetKey}
+      >
+        <SeatMapComponent />
+      </SeatMapRuntimeShell>
+    );
   };
 
   return (
@@ -398,6 +439,15 @@ export default function StadiumGuideRuntime() {
                 </div>
               )}
 
+              {showIncheonVisitQuickActions && (
+                <IncheonVisitQuickActions
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleIncheonCategorySelect}
+                  onSeatMapFocus={handleIncheonSeatMapFocus}
+                  isDark={isDark}
+                />
+              )}
+
               {canRenderMap ? (
                 <div
                   className="rounded-[1.75rem] border-2 p-2 shadow-inner dark:bg-card dark:border-border sm:rounded-[2.5rem] sm:p-3"
@@ -489,7 +539,7 @@ export default function StadiumGuideRuntime() {
               )}
             </div>
 
-            <div className="space-y-8 lg:hidden">
+            <div className="space-y-8 lg:hidden" data-testid="stadium-guide-mobile-panels">
               <div>
                 <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                   주변 정보 카테고리
@@ -536,7 +586,7 @@ export default function StadiumGuideRuntime() {
             </div>
           </div>
 
-          <div className="hidden space-y-8 sm:space-y-10 lg:block">
+          <div className="hidden space-y-8 sm:space-y-10 lg:block" data-testid="stadium-guide-desktop-panels">
             <div>
               <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                 주변 정보 카테고리

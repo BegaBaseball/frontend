@@ -11,6 +11,7 @@ import {
   getDaejeonTraceStatusLabel,
   getDaejeonViewInfo,
   getDaejeonZoneGroupLabel,
+  isDaejeonSelectableSeatBlock,
   type DaejeonBlock,
 } from '../../data/daejeonSeatData';
 import SeatViewGallery from '../SeatViewGallery';
@@ -107,6 +108,7 @@ export default function DaejeonBottomSheet({ section, mode, preferFull = false, 
   const zoneLabel = getDaejeonZoneGroupLabel(section.zoneGroup);
   const coverage = findDaejeonSectionCoverageByBlock(section.id);
   const parentGroup = findDaejeonParentBlockGroup(section.parentId);
+  const isPendingReview = !isDaejeonSelectableSeatBlock(section);
 
   return (
     <div
@@ -264,11 +266,12 @@ export default function DaejeonBottomSheet({ section, mode, preferFull = false, 
         <button
           type="button"
           onClick={onUpload}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 py-3 text-sm font-bold text-white"
-          style={{ background: accent }}
+          disabled={isPendingReview}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ background: isPendingReview ? '#94a3b8' : accent }}
         >
           <BookOpen className="h-4 w-4" />
-          다이어리에서 시야 사진 공유하기
+          {isPendingReview ? '좌표 검수 후 공유 가능' : '다이어리에서 시야 사진 공유하기'}
         </button>
       </div>
     </div>

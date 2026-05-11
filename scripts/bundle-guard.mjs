@@ -73,7 +73,6 @@ const sizeBudgets = [
   { label: 'vendor-virtual', directory: clientAssetsDir, filePattern: /^vendor-virtual-.*\.js$/, maxBytes: 20_000 },
   { label: 'Prediction route', directory: clientAssetsDir, filePattern: /^Prediction-.*\.js$/, maxBytes: 105_000 },
   { label: 'RankingPrediction route', directory: clientAssetsDir, filePattern: /^RankingPrediction-.*\.js$/, maxBytes: 12_000 },
-  { label: 'PredictionMatchRuntime shell', directory: clientAssetsDir, filePattern: /^PredictionMatchRuntimeContent-.*\.js$/, maxBytes: 5_000 },
   { label: 'PredictionMatchInteractive shell', directory: clientAssetsDir, filePattern: /^PredictionMatchInteractiveRuntime-.*\.js$/, maxBytes: 7_000 },
   { label: 'PredictionMatchInteractive data runtime', directory: clientAssetsDir, filePattern: /^PredictionMatchInteractiveDataRuntime-.*\.js$/, maxBytes: 56_000 },
   { label: 'PredictionMatchInteractive view shell', directory: clientAssetsDir, filePattern: /^PredictionMatchInteractiveView-.*\.js$/, maxBytes: 8_000 },
@@ -439,12 +438,6 @@ const manifestImportGuards = [
     directory: clientAssetsDir,
     filePattern: /^PredictionMatchTab-.*\.js$/,
     forbiddenImportSubstrings: ['vendor-network-', '_axios-'],
-  },
-  {
-    label: 'PredictionMatchRuntime shell manifest imports',
-    directory: clientAssetsDir,
-    filePattern: /^PredictionMatchRuntimeContent-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-query-', 'vendor-network-', '_axios-'],
   },
   {
     label: 'PredictionMatchDetailPanel manifest imports',

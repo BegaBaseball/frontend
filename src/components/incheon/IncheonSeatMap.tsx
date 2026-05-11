@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Minus, Plus, X } from 'lucide-react';
+import { ExternalLink, Minus, Plus } from 'lucide-react';
 import {
   INCHEON_BLOCKS,
   INCHEON_CATEGORIES,
@@ -8,9 +8,13 @@ import {
   INCHEON_SEATMAP_VIEWPORT,
   INCHEON_VIEW_INFO,
   getIncheonFanRoleLabel,
+  getIncheonGuideMatches,
+  getIncheonSeatViewAliases,
   getIncheonSideLabel,
   getIncheonSourceLabel,
   type IncheonBlock,
+  type IncheonBlockMatch,
+  type IncheonGuideIntent,
 } from '../../data/incheonSeatData';
 import { useTheme } from '../../hooks/useTheme';
 import SeatViewGallery from '../SeatViewGallery';
@@ -18,10 +22,23 @@ import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import IncheonBottomSheet from './IncheonBottomSheet';
 import IncheonSeatMapSvg from './IncheonSeatMapSvg';
 import IncheonUploadFlowModal from './IncheonUploadFlowModal';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
+const GUIDE_FOCUS_ZOOM = 1.45;
+const GUIDE_RESULT_LIMIT = 10;
+
+const INCHEON_GUIDE_INTENTS: Array<{ id: IncheonGuideIntent; label: string }> = [
+  { id: 'all', label: '전체' },
+  { id: 'home_cheer', label: '홈 응원' },
+  { id: 'away_third', label: '원정/3루' },
+  { id: 'center_table', label: '중앙/테이블' },
+  { id: 'outfield', label: '외야' },
+  { id: 'accessible', label: '휠체어석' },
+];
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
@@ -41,6 +58,8 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
           <button
             key={group.id}
             type="button"
+            data-testid={`incheon-filter-${group.id}`}
+            aria-pressed={active}
             onClick={() => onChange(group.id)}
             className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
             style={{
@@ -54,6 +73,117 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
         );
       })}
     </div>
+  );
+}
+
+function IncheonFirstVisitGuide({
+  intent,
+  query,
+  matches,
+  active,
+  mode,
+  onIntentChange,
+  onQueryChange,
+  onSelectBlock,
+}: {
+  intent: IncheonGuideIntent;
+  query: string;
+  matches: IncheonBlockMatch[];
+  active: boolean;
+  mode: 'light' | 'dark';
+  onIntentChange: (value: IncheonGuideIntent) => void;
+  onQueryChange: (value: string) => void;
+  onSelectBlock: (block: IncheonBlock) => void;
+}) {
+  const visibleMatches = active ? matches.slice(0, GUIDE_RESULT_LIMIT) : [];
+  const isDark = mode === 'dark';
+
+  return (
+    <section
+      data-testid="incheon-first-visit-guide"
+      className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-4"
+    >
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 인천 가이드</h3>
+          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+            {active ? `${matches.length}개 블록` : '탐색 대기'}
+          </div>
+        </div>
+        <input
+          data-testid="incheon-guide-search"
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="블록/좌석 검색"
+          className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-slate-500 sm:w-56"
+        />
+      </div>
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {INCHEON_GUIDE_INTENTS.map((option) => {
+          const selectedIntent = intent === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              data-testid={`incheon-guide-intent-${option.id}`}
+              onClick={() => onIntentChange(option.id)}
+              aria-pressed={selectedIntent}
+              className="shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition-all"
+              style={{
+                background: selectedIntent ? '#C8102E' : 'transparent',
+                borderColor: selectedIntent ? '#C8102E' : (isDark ? '#334155' : '#e2e8f0'),
+                color: selectedIntent ? '#fff' : (isDark ? '#cbd5e1' : '#334155'),
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+        {!active ? (
+          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            목적을 선택하거나 블록을 검색하세요
+          </div>
+        ) : visibleMatches.length > 0 ? (
+          visibleMatches.map(({ block, reasons }) => {
+            const cat = INCHEON_CATEGORIES[block.category];
+            const accent = mode === 'dark' ? cat?.dark : cat?.light;
+
+            return (
+              <button
+                key={block.id}
+                type="button"
+                data-testid={`incheon-guide-result-${block.id}`}
+                onClick={() => onSelectBlock(block)}
+                className="shrink-0 cursor-pointer rounded-xl border px-3 py-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700"
+                style={{
+                  borderColor: accent ? `${accent}66` : undefined,
+                  background: isDark ? '#020617' : '#f8fafc',
+                }}
+              >
+                <div className="text-xs font-black text-slate-900 dark:text-white">
+                  {block.block}
+                  <span className="ml-1 font-semibold text-slate-500 dark:text-slate-400">
+                    {cat?.label ?? block.name}
+                  </span>
+                </div>
+                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                  {reasons.slice(0, 2).join(' · ')}
+                </div>
+              </button>
+            );
+          })
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            검색 결과 없음
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -79,14 +209,14 @@ function ZoomControls({
     <div className="flex shrink-0 items-center gap-1.5">
       <button
         type="button"
-        data-testid="incheon-seatmap-zoom-out"
-        aria-label="인천 좌석도 축소"
-        onClick={onZoomOut}
-        disabled={zoom <= MIN_ZOOM}
+        data-testid="incheon-seatmap-zoom-in"
+        aria-label="인천 좌석도 확대"
+        onClick={onZoomIn}
+        disabled={zoom >= MAX_ZOOM}
         className={buttonClass}
         style={{ borderColor }}
       >
-        <Minus className="h-4 w-4" />
+        <Plus className="h-4 w-4" />
       </button>
       <button
         type="button"
@@ -101,14 +231,14 @@ function ZoomControls({
       </button>
       <button
         type="button"
-        data-testid="incheon-seatmap-zoom-in"
-        aria-label="인천 좌석도 확대"
-        onClick={onZoomIn}
-        disabled={zoom >= MAX_ZOOM}
+        data-testid="incheon-seatmap-zoom-out"
+        aria-label="인천 좌석도 축소"
+        onClick={onZoomOut}
+        disabled={zoom <= MIN_ZOOM}
         className={buttonClass}
         style={{ borderColor }}
       >
-        <Plus className="h-4 w-4" />
+        <Minus className="h-4 w-4" />
       </button>
       {onFullscreen && (
         <button
@@ -208,7 +338,7 @@ function DetailPanel({
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
         <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
-        <SeatViewGallery stadium="INCHEON" section={section.name} sectionAliases={section.seatViewSections} compact />
+        <SeatViewGallery stadium="INCHEON" section={section.name} sectionAliases={getIncheonSeatViewAliases(section)} compact />
       </div>
       <div className="sticky bottom-0 border-t border-slate-100 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
         <button
@@ -232,24 +362,32 @@ export default function IncheonSeatMap() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [filterId, setFilterId] = useState('all');
-  const [isMobile, setIsMobile] = useState(false);
+  const [guideIntent, setGuideIntent] = useState<IncheonGuideIntent>('all');
+  const [guideQuery, setGuideQuery] = useState('');
   const [uploadFor, setUploadFor] = useState<IncheonBlock | null>(null);
-  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const {
+    isMobile,
+    isFullscreenOpen,
+    openFullscreen,
+    closeFullscreen,
+  } = useSeatMapTemplateShellState();
   const filterGroup = INCHEON_CATEGORY_GROUPS.find((group) => group.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
   const hasOfficialBlocks = INCHEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && INCHEON_BLOCKS.length > 0;
+  const guideMatches = useMemo(
+    () => (hasOfficialBlocks ? getIncheonGuideMatches(guideIntent, guideQuery, INCHEON_BLOCKS) : []),
+    [guideIntent, guideQuery, hasOfficialBlocks],
+  );
+  const guideActive = hasOfficialBlocks && (guideIntent !== 'all' || guideQuery.trim().length > 0);
+  const guideMatchedBlockIds = useMemo(
+    () => (guideActive ? guideMatches.map((match) => match.block.id) : []),
+    [guideActive, guideMatches],
+  );
   const hoveredSection = hover ? (INCHEON_BLOCKS.find((block) => block.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? INCHEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#C8102E';
   const usedCategories = useMemo(() => [...new Set(INCHEON_BLOCKS.map((block) => block.category))], []);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -258,23 +396,19 @@ export default function IncheonSeatMap() {
   }, [pan.x, pan.y, zoom]);
 
   useEffect(() => {
-    if (!isFullscreenOpen) return undefined;
+    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
+      return;
+    }
+    setSelected(null);
+  }, [filterCats, selected]);
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFullscreenOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isFullscreenOpen]);
+  useEffect(() => {
+    if (!hover) return;
+    const hoveredBlock = INCHEON_BLOCKS.find((block) => block.id === hover);
+    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
+      setHover(null);
+    }
+  }, [filterCats, hover]);
 
   const handleZoomIn = useCallback(() => {
     setZoom((value) => clampZoom(value + ZOOM_STEP));
@@ -303,6 +437,23 @@ export default function IncheonSeatMap() {
     }
   }, []);
 
+  const handleGuideIntentChange = useCallback((nextIntent: IncheonGuideIntent) => {
+    setGuideIntent(nextIntent);
+    setFilterId('all');
+  }, []);
+
+  const handleGuideQueryChange = useCallback((nextQuery: string) => {
+    setGuideQuery(nextQuery);
+    setFilterId('all');
+  }, []);
+
+  const handleGuideBlockSelect = useCallback((block: IncheonBlock) => {
+    setFilterId('all');
+    setSelected(block);
+    setHover(block.id);
+    setZoom((currentZoom) => (currentZoom < GUIDE_FOCUS_ZOOM ? GUIDE_FOCUS_ZOOM : currentZoom));
+  }, []);
+
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
     setUploadFor(null);
@@ -325,9 +476,33 @@ export default function IncheonSeatMap() {
       minZoom={MIN_ZOOM}
       maxZoom={MAX_ZOOM}
       enableAutoCenter={enableAutoCenter}
+      guideMatchedBlockIds={guideMatchedBlockIds}
+      guideActive={guideActive}
     />
   );
   const fullscreenMapMaxWidth = `calc((100vh - 144px) * ${INCHEON_SEATMAP_IMAGE.imageWidth / INCHEON_SEATMAP_VIEWPORT.cropHeight})`;
+
+  const guidePanel = hasOfficialBlocks ? (
+    <IncheonFirstVisitGuide
+      intent={guideIntent}
+      query={guideQuery}
+      matches={guideMatches}
+      active={guideActive}
+      mode={mode}
+      onIntentChange={handleGuideIntentChange}
+      onQueryChange={handleGuideQueryChange}
+      onSelectBlock={handleGuideBlockSelect}
+    />
+  ) : null;
+
+  const detailPanel = hasOfficialBlocks ? (
+    <DetailPanel
+      section={selected}
+      mode={mode}
+      onClose={() => setSelected(null)}
+      onUpload={() => selected && setUploadFor(selected)}
+    />
+  ) : null;
 
   const attribution = (
     <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
@@ -368,136 +543,107 @@ export default function IncheonSeatMap() {
 
   return (
     <>
-    <div className={isMobile && hasOfficialBlocks ? 'pb-80' : undefined}>
-      {hasOfficialBlocks && (
-        <div className="mb-2.5 overflow-x-auto">
-          <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
-        </div>
-      )}
-      <div
-        data-testid="stadium-seat-map"
-        className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-3.5"
-      >
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
-          <div className="text-sm font-black text-slate-800 dark:text-white">
-            인천SSG랜더스필드
-            <span className="ml-2 text-[11px] font-semibold" style={{ color: '#C8102E' }}>
-              인천 SSG 공식 좌석도
-            </span>
+      <SeatMapTemplateShell
+        mode={mode}
+        title="인천SSG랜더스필드"
+        subtitle="인천 SSG 공식 좌석도"
+        titleAccentColor="#C8102E"
+        isMobile={isMobile}
+        isDoosanGuideActive={false}
+        filterBar={hasOfficialBlocks ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined}
+        mobileFilterBar={hasOfficialBlocks ? (
+          <div className="space-y-2.5">
+            {guidePanel}
+            <div className="overflow-x-auto">
+              <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
+            </div>
           </div>
-          {hasOfficialBlocks && (
-            <ZoomControls
-              zoom={zoom}
-              onZoomIn={handleZoomIn}
-              onZoomOut={handleZoomOut}
-              onReset={handleZoomReset}
-              onFullscreen={() => setIsFullscreenOpen(true)}
-              mode={mode}
+        ) : undefined}
+        desktopFilterBar={hasOfficialBlocks ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined}
+        mapContent={(
+          <div className="relative">
+            {renderMapSvg(!isFullscreenOpen)}
+            {hasOfficialBlocks && (
+              <div className="absolute right-3 top-3 z-20 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
+                <ZoomControls
+                  zoom={zoom}
+                  onZoomIn={handleZoomIn}
+                  onZoomOut={handleZoomOut}
+                  onReset={handleZoomReset}
+                  onFullscreen={hasOfficialBlocks ? openFullscreen : undefined}
+                  mode={mode}
+                />
+              </div>
+            )}
+            <SeatMapHoverPreview
+              visible={Boolean(hoveredSection && hoveredCategory)}
+              title={hoveredSection?.name}
+              subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+              badgeLabel={hoveredCategory?.label}
+              accentColor={hoveredAccent}
+              description={hoveredSection ? `${getIncheonSideLabel(hoveredSection.side)} · ${getIncheonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
             />
-          )}
-        </div>
-        <div className="relative">
-          {renderMapSvg(!isFullscreenOpen)}
-          <SeatMapHoverPreview
-            visible={Boolean(hoveredSection && hoveredCategory)}
-            title={hoveredSection?.name}
-            subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-            badgeLabel={hoveredCategory?.label}
-            accentColor={hoveredAccent}
-            description={hoveredSection ? `${getIncheonSideLabel(hoveredSection.side)} · ${getIncheonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
-          />
-        </div>
-        {attribution}
-        {hasOfficialBlocks && legend}
-      </div>
-      {!isMobile && hasOfficialBlocks && (
-        <div className="mt-4">
-          <DetailPanel
+          </div>
+        )}
+        attribution={attribution}
+        legend={hasOfficialBlocks ? legend : undefined}
+        mobileBottomSheet={hasOfficialBlocks && selected && (
+          <IncheonBottomSheet
             section={selected}
             mode={mode}
             onClose={() => setSelected(null)}
             onUpload={() => selected && setUploadFor(selected)}
           />
-        </div>
-      )}
-      {isMobile && hasOfficialBlocks && (
-        <IncheonBottomSheet
-          section={selected}
-          mode={mode}
-          onClose={() => setSelected(null)}
-          onUpload={() => selected && setUploadFor(selected)}
-        />
-      )}
-    </div>
-    {uploadFor && (
-      <IncheonUploadFlowModal
-        section={uploadFor}
-        mode={mode}
-        onClose={() => setUploadFor(null)}
-        onSubmit={handleUploadSubmit}
-      />
-    )}
-    {toast && (
-      <div
-        className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-bold shadow-xl"
-        style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}
-      >
-        {toast}
-      </div>
-    )}
-    {isFullscreenOpen && hasOfficialBlocks && (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="인천 SSG 좌석도 전체화면"
-        data-testid="incheon-seatmap-fullscreen"
-        className="fixed inset-0 z-[220] bg-slate-950/95 p-3 text-white sm:p-5"
-      >
-        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5">
-            <div>
-              <div className="text-sm font-black text-white">인천SSG랜더스필드</div>
-              <div className="text-[11px] font-semibold text-slate-400">공식 좌석도 전체화면</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <ZoomControls
-                zoom={zoom}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onReset={handleZoomReset}
-                mode="dark"
-              />
-              <button
-                type="button"
-                data-testid="incheon-seatmap-fullscreen-close"
-                aria-label="인천 좌석도 전체화면 닫기"
-                onClick={() => setIsFullscreenOpen(false)}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-700 text-slate-200 transition-colors hover:bg-slate-800"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+        )}
+        mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
+        desktopSidePanel={hasOfficialBlocks ? (
+          <div className="space-y-3">
+            {guidePanel}
+            {detailPanel}
           </div>
-          <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-4 sm:py-4">
-            <div className="mx-auto flex h-full w-full items-center justify-center" style={{ maxWidth: fullscreenMapMaxWidth }}>
-              <div className="w-full">
-                <div className="relative">
-                  {renderMapSvg(true)}
-                  <SeatMapHoverPreview
-                    visible={Boolean(hoveredSection && hoveredCategory)}
-                    title={hoveredSection?.name}
-                    subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-                    badgeLabel={hoveredCategory?.label}
-                    accentColor={hoveredAccent}
-                    description={hoveredSection ? `${getIncheonSideLabel(hoveredSection.side)} · ${getIncheonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+        ) : null}
+        toast={toast}
+        isFullscreenOpen={isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={(
+          <div className="w-full">
+            <div className="mx-auto h-full w-full" style={{ maxWidth: fullscreenMapMaxWidth }}>
+              <div className="relative">
+                <div className="absolute right-3 top-3 z-20 rounded-xl border border-slate-700 bg-slate-950/80 p-1 shadow-sm">
+                  <ZoomControls
+                    zoom={zoom}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onReset={handleZoomReset}
+                    mode="dark"
                   />
                 </div>
+                {renderMapSvg(true)}
+                <SeatMapHoverPreview
+                  visible={Boolean(hoveredSection && hoveredCategory)}
+                  title={hoveredSection?.name}
+                  subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+                  badgeLabel={hoveredCategory?.label}
+                  accentColor={hoveredAccent}
+                  description={hoveredSection ? `${getIncheonSideLabel(hoveredSection.side)} · ${getIncheonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+                />
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    )}
+        )}
+        fullscreenDialogTestId="incheon-seatmap-fullscreen"
+        fullscreenCloseTestId="incheon-seatmap-fullscreen-close"
+        fullscreenTitle="인천SSG랜더스필드"
+        fullscreenSubtitle="인천 SSG 공식 좌석도 전체화면"
+      />
+      {uploadFor && (
+        <IncheonUploadFlowModal
+          section={uploadFor}
+          mode={mode}
+          onClose={() => setUploadFor(null)}
+          onSubmit={handleUploadSubmit}
+        />
+      )}
     </>
   );
 }

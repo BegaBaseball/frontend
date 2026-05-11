@@ -192,7 +192,7 @@ export default function DaeguBottomSheet({ section, mode, onClose, onUpload }: B
           className="w-full cursor-pointer rounded-xl border-0 py-3 text-sm font-bold text-white"
           style={{ background: accent }}
         >
-          + 시야 사진 올리기
+          다이어리에서 시야 사진 공유하기
         </button>
       </div>
     </div>
