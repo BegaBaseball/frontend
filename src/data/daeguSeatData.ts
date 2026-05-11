@@ -328,12 +328,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "원정"
     ],
     imageGeometry: {
-      "d": "M 978.6 861.6 L 978.6 864.5 L 978.6 867.5 L 978.6 870.4 L 988.8 873.3 L 988.8 876.3 L 988.8 879.2 L 988.8 882.1 L 988.8 884.3 L 1048 884.3 L 1048 882.1 L 1048 879.2 L 1048 876.3 L 1048 873.3 L 1048 870.4 L 1048 867.5 L 1048 864.5 L 1048 861.6 Z",
-      "labelX": 1015.9,
-      "labelY": 873.3,
+      "d": "M 989 885 L 989 871 L 979 871 L 979 857 L 1049 857 L 1049 885 Z",
+      "labelX": 1015.6,
+      "labelY": 870,
       "labelFontSize": 9,
       "shortLabel": "1-2"
     },
+    traceStatus: "NEEDS_OPERATOR_REVIEW",
+    traceMethod: "PIXEL_COMPONENT_CANDIDATE",
   },
   {
     id: "daegu-away-cheering-1-1",
@@ -364,12 +366,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "원정"
     ],
     imageGeometry: {
-      "d": "M 991 923.1 L 991 927.5 L 991 931.8 L 991 936.2 L 991 940.6 L 991 945 L 991 949.4 L 991 953.8 L 991 956.7 L 1048.8 956.7 L 1048.8 953.8 L 1048.8 949.4 L 1048.8 945 L 1048.8 940.6 L 1048.8 936.2 L 1048.8 931.8 L 1048.8 927.5 L 1048.8 923.1 Z",
-      "labelX": 1020.3,
-      "labelY": 940.6,
+      "d": "M 991 890 L 1049 890 L 1049 903 L 1020 903 L 991 903 L 991 896 Z",
+      "labelX": 1020,
+      "labelY": 896,
       "labelFontSize": 9,
       "shortLabel": "1-1"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T01:35:00.000Z.",
   },
   {
     id: "daegu-first-infield-1-12",
@@ -802,12 +809,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "테이블석"
     ],
     imageGeometry: {
-      "d": "M 991 923.8 L 991 928.2 L 991 932.6 L 991 937 L 991 941.3 L 991 945.7 L 991 950.1 L 991 954.5 L 991 956.7 L 1048.8 956.7 L 1048.8 954.5 L 1048.8 950.1 L 1048.8 945.7 L 1048.8 941.3 L 1048.8 937 L 1048.8 932.6 L 1048.8 928.2 L 1048.8 923.8 Z",
+      "d": "M 991 923 L 1049 923 L 1049 957 L 1020 957 L 991 957 L 991 940 Z",
       "labelX": 1020.3,
       "labelY": 941.3,
       "labelFontSize": 9,
       "shortLabel": "T1-3"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T01:35:00.000Z.",
   },
   {
     id: "daegu-first-table-t1-2",
@@ -1020,12 +1032,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "테이블석"
     ],
     imageGeometry: {
-      "d": "M 961 1045.9 L 953 1054 L 944.9 1062 L 942 1070.1 L 942 1078.1 L 948.6 1086.2 L 956.6 1094.2 L 964.7 1102.3 L 972.7 1110.3 L 1012.2 1110.3 L 1020.3 1102.3 L 1026.1 1094.2 L 1024.6 1086.2 L 1016.6 1078.1 L 1008.5 1070.1 L 1000.5 1062 L 992.5 1054 L 984.4 1045.9 Z",
-      "labelX": 981.5,
-      "labelY": 1078.1,
+      "d": "M 977 1034 L 981 1030 L 983 1030 L 989 1032 L 1035 1050 L 1058 1060 L 1044 1074 L 1031 1087 L 1030 1087 L 1004 1061 Z",
+      "labelX": 1020,
+      "labelY": 1058,
       "labelFontSize": 9,
       "shortLabel": "TC-1"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T17:09:07.000Z.",
   },
   {
     id: "daegu-central-table-tc-2",
@@ -1056,12 +1073,15 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "테이블석"
     ],
     imageGeometry: {
-      "d": "M 1056.8 1130.1 L 1049.5 1136.6 L 1042.9 1143.2 L 1036.3 1149.8 L 1029.8 1156.4 L 1023.2 1163 L 1016.6 1169.6 L 1010 1176.1 L 1010 1179.8 L 1060.5 1179.8 L 1060.5 1176.1 L 1060.5 1169.6 L 1060.5 1163 L 1060.5 1156.4 L 1060.5 1149.8 L 1060.5 1143.2 L 1060.5 1136.6 L 1060.5 1130.1 Z",
-      "labelX": 1045.8,
-      "labelY": 1156.4,
+      "d": "M 940 1072 L 948 1063 L 972 1039 L 974 1039 L 1000 1065 L 1026 1092 L 1010 1109 L 993 1125 L 991 1125 L 966 1100 L 940 1073 Z",
+      "labelX": 984,
+      "labelY": 1083,
       "labelFontSize": 9,
       "shortLabel": "TC-2"
     },
+    traceStatus: "NEEDS_OPERATOR_REVIEW",
+    traceMethod: "PIXEL_COMPONENT_CANDIDATE",
+    reviewNote: "TC-2 corrected geometry is staged, but duplicate-boundary 검수 with T3-2 must be resolved before official lock.",
   },
   {
     id: "daegu-central-table-tc-3",
@@ -1092,12 +1112,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "테이블석"
     ],
     imageGeometry: {
-      "d": "M 1001.2 1184.9 L 993.9 1192.2 L 986.6 1199.5 L 982.2 1206.9 L 983.7 1214.2 L 986.6 1221.5 L 989.5 1228.8 L 992.5 1236.1 L 994.7 1241.2 L 999.8 1241.2 L 1004.9 1236.1 L 1012.2 1228.8 L 1019.5 1221.5 L 1022.4 1214.2 L 1022.4 1206.9 L 1022.4 1199.5 L 1022.4 1192.2 L 1022.4 1184.9 Z",
-      "labelX": 1003.4,
-      "labelY": 1214.2,
+      "d": "M 930 1081 L 934 1077 L 936 1077 L 962 1103 L 988 1130 L 975 1144 L 961 1157 L 960 1157 L 952 1138 L 931 1084 Z",
+      "labelX": 958,
+      "labelY": 1119,
       "labelFontSize": 9,
       "shortLabel": "TC-3"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T17:09:07.000Z.",
   },
   {
     id: "daegu-third-infield-3-11",
@@ -1129,12 +1154,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "daegu-blue-zone"
     ],
     imageGeometry: {
-      "d": "M 427.8 859.4 L 427.8 863.1 L 427.8 866.7 L 427.8 870.4 L 427.8 874.1 L 427.8 877.7 L 427.8 881.4 L 427.8 885 L 427.8 888.7 L 427.8 890.1 L 452.7 890.1 L 452.7 888.7 L 452.7 885 L 452.7 881.4 L 452.7 877.7 L 452.7 874.1 L 452.7 870.4 L 452.7 866.7 L 452.7 863.1 L 452.7 859.4 Z",
+      "d": "M 428 831 L 441 831 L 454 831 L 454 861 L 454 891 L 441 891 L 428 891 L 428 861 Z",
       "labelX": 440.3,
       "labelY": 875.5,
       "labelFontSize": 9,
       "shortLabel": "3-11"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-12T00:20:00.000Z.",
   },
   {
     id: "daegu-third-infield-3-10",
@@ -1387,12 +1417,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "삼성 응원석"
     ],
     imageGeometry: {
-      "d": "M 659.7 1048.1 L 652.4 1055.5 L 645.1 1062.8 L 639.9 1070.1 L 639.9 1077.4 L 639.9 1084.7 L 639.9 1092 L 639.9 1099.3 L 639.9 1106.7 L 639.9 1107.4 L 643.6 1107.4 L 644.3 1106.7 L 651.6 1099.3 L 659 1092 L 666.3 1084.7 L 673.6 1077.4 L 680.9 1070.1 L 680.9 1062.8 L 675 1055.5 L 667.7 1048.1 Z",
-      "labelX": 653.8,
-      "labelY": 1080.3,
+      "d": "M 611 1100 L 663 1048 L 664 1048 L 681 1066 L 625 1122 L 623 1122 L 611 1110 Z",
+      "labelX": 644.5,
+      "labelY": 1084.7,
       "labelFontSize": 9,
       "shortLabel": "3-4"
     },
+    traceStatus: "NEEDS_OPERATOR_REVIEW",
+    traceMethod: "PIXEL_COMPONENT_CANDIDATE",
   },
   {
     id: "daegu-blue-zone-3-3",
@@ -1461,12 +1493,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "삼성 응원석"
     ],
     imageGeometry: {
-      "d": "M 757 1078.1 L 757 1081.8 L 757 1085.4 L 757 1089.1 L 757 1092.8 L 757 1096.4 L 757 1100.1 L 757 1103.7 L 757 1107.4 L 757 1108.1 L 784.8 1108.1 L 784.8 1107.4 L 784.8 1103.7 L 784.8 1100.1 L 784.8 1096.4 L 784.8 1092.8 L 784.8 1089.1 L 770.9 1085.4 L 770.9 1081.8 L 770.9 1078.1 Z",
-      "labelX": 768.7,
-      "labelY": 1094.2,
+      "d": "M 757 1138 L 757 1078 L 771 1078 L 771 1088 L 785 1088 L 785 1138 Z",
+      "labelX": 769.9,
+      "labelY": 1109.8,
       "labelFontSize": 9,
       "shortLabel": "3-2"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-blue-zone-3-1",
@@ -1503,6 +1537,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "3-1"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-third-exciting-3e-3",
@@ -1646,6 +1682,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "T3-4"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-third-table-t3-3",
@@ -1682,6 +1720,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "T3-3"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-third-table-t3-2",
@@ -1713,8 +1753,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
     ],
     imageGeometry: {
       "d": "M 960.3 1045.9 L 950.8 1056.2 L 950.8 1066.4 L 950.8 1076.7 L 950.8 1086.9 L 958.1 1097.1 L 968.3 1107.4 L 978.6 1117.6 L 986.6 1125.7 L 998.3 1125.7 L 1006.4 1117.6 L 1016.6 1107.4 L 1026.8 1097.1 L 1026.8 1086.9 L 1016.6 1076.7 L 1006.4 1066.4 L 996.1 1056.2 L 985.9 1045.9 Z",
-      "labelX": 985.1,
-      "labelY": 1086.9,
+      "labelX": 958,
+      "labelY": 1097,
       "labelFontSize": 9,
       "shortLabel": "T3-2"
     },
@@ -1748,12 +1788,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "테이블석"
     ],
     imageGeometry: {
-      "d": "M 757 1117.6 L 757 1122 L 757 1126.4 L 757 1130.8 L 757 1135.2 L 757 1139.6 L 757 1144 L 757 1148.3 L 757 1152.7 L 757 1153.5 L 784.8 1153.5 L 784.8 1152.7 L 784.8 1148.3 L 784.8 1144 L 784.8 1139.6 L 784.8 1135.2 L 784.8 1130.8 L 784.8 1126.4 L 784.8 1122 L 784.8 1117.6 Z",
-      "labelX": 770.9,
-      "labelY": 1137.4,
+      "d": "M 913 1092 L 923 1086 L 933 1108 L 946 1138 L 956 1164 L 916 1164 L 913 1130 L 908 1100 Z",
+      "labelX": 931,
+      "labelY": 1144,
       "labelFontSize": 9,
       "shortLabel": "T3-1"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T03:20:00.000Z.",
   },
   {
     id: "daegu-sweetbox-s1",
@@ -1783,12 +1828,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "4층"
     ],
     imageGeometry: {
-      "d": "M 1105.8 945.7 L 1122.6 945.7 L 1139.5 945.7 L 1139.5 955.2 L 1139.5 964.8 L 1122.6 964.8 L 1105.8 964.8 L 1105.8 955.2 Z",
-      "labelX": 1122.6,
-      "labelY": 955.2,
+      "d": "M 1106 946 L 1123 946 L 1140 946 L 1140 956 L 1140 966 L 1123 966 L 1106 966 L 1106 956 Z",
+      "labelX": 1123,
+      "labelY": 956,
       "labelFontSize": 9,
       "shortLabel": "S1"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sweetbox-s2",
@@ -1818,12 +1865,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "4층"
     ],
     imageGeometry: {
-      "d": "M 1105.8 967.7 L 1122.6 967.7 L 1139.5 967.7 L 1139.5 977.9 L 1139.5 987.4 L 1122.6 987.4 L 1105.8 987.4 L 1105.8 977.9 Z",
-      "labelX": 1122.6,
-      "labelY": 977.9,
+      "d": "M 1106 968 L 1123 968 L 1140 968 L 1140 978 L 1140 988 L 1123 988 L 1106 988 L 1106 978 Z",
+      "labelX": 1123,
+      "labelY": 978,
       "labelFontSize": 9,
       "shortLabel": "S2"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sweetbox-s3",
@@ -1853,12 +1902,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "4층"
     ],
     imageGeometry: {
-      "d": "M 1105.8 990.4 L 1122.6 990.4 L 1139.5 990.4 L 1139.5 999.9 L 1139.5 1009.4 L 1122.6 1009.4 L 1105.8 1009.4 L 1105.8 999.9 Z",
-      "labelX": 1122.6,
-      "labelY": 999.9,
+      "d": "M 1106 990 L 1123 990 L 1140 990 L 1140 1000 L 1140 1010 L 1123 1010 L 1106 1010 L 1106 1000 Z",
+      "labelX": 1123,
+      "labelY": 1000,
       "labelFontSize": 9,
       "shortLabel": "S3"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sweetbox-s4",
@@ -1888,12 +1939,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "4층"
     ],
     imageGeometry: {
-      "d": "M 1105.8 1012.3 L 1122.6 1012.3 L 1139.5 1012.3 L 1139.5 1022.5 L 1139.5 1032 L 1122.6 1032 L 1105.8 1032 L 1105.8 1022.5 Z",
-      "labelX": 1122.6,
-      "labelY": 1022.5,
+      "d": "M 1106 1013 L 1123 1013 L 1140 1013 L 1140 1023 L 1140 1033 L 1123 1033 L 1106 1033 L 1106 1023 Z",
+      "labelX": 1123,
+      "labelY": 1023,
       "labelFontSize": 9,
       "shortLabel": "S4"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sweetbox-s5",
@@ -1923,12 +1976,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "4층"
     ],
     imageGeometry: {
-      "d": "M 1105.8 1035 L 1122.6 1035 L 1139.5 1035 L 1139.5 1045.2 L 1139.5 1054.7 L 1122.6 1054.7 L 1105.8 1054.7 L 1105.8 1045.2 Z",
-      "labelX": 1122.6,
-      "labelY": 1045.2,
+      "d": "M 1106 1035 L 1140 1035 L 1140 1055 L 1122 1055 L 1122 1041 L 1106 1041 Z",
+      "labelX": 1124,
+      "labelY": 1045,
       "labelFontSize": 9,
       "shortLabel": "S5"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T01:05:00.000Z.",
   },
   {
     id: "daegu-sweetbox-s6",
@@ -2042,12 +2100,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 619.5 1208.3 L 639.2 1208.3 L 658.2 1208.3 L 658.2 1225.9 L 658.2 1242.7 L 639.2 1242.7 L 619.5 1242.7 L 619.5 1225.9 Z",
-      "labelX": 639.2,
-      "labelY": 1225.9,
+      "d": "M 620 1209 L 639.5 1209 L 659 1209 L 659 1226 L 659 1243 L 639.5 1243 L 620 1243 L 620 1226 Z",
+      "labelX": 639.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S21"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s20",
@@ -2082,12 +2142,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 661.2 1208.3 L 680.9 1208.3 L 700.6 1208.3 L 700.6 1225.9 L 700.6 1242.7 L 680.9 1242.7 L 661.2 1242.7 L 661.2 1225.9 Z",
-      "labelX": 680.9,
-      "labelY": 1225.9,
+      "d": "M 661 1209 L 670.5 1209 L 680 1209 L 680 1226 L 680 1243 L 670.5 1243 L 661 1243 L 661 1226 Z",
+      "labelX": 670.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S20"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s19",
@@ -2122,12 +2184,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 703.6 1208.3 L 713.1 1208.3 L 721.9 1208.3 L 721.9 1225.9 L 721.9 1242.7 L 713.1 1242.7 L 703.6 1242.7 L 703.6 1225.9 Z",
-      "labelX": 713.1,
-      "labelY": 1225.9,
+      "d": "M 704 1209 L 713 1209 L 722 1209 L 722 1226 L 722 1243 L 713 1243 L 704 1243 L 704 1226 Z",
+      "labelX": 713,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S19"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s18",
@@ -2162,12 +2226,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 724 1208.3 L 733.6 1208.3 L 742.3 1208.3 L 742.3 1225.9 L 742.3 1242.7 L 733.6 1242.7 L 724 1242.7 L 724 1225.9 Z",
-      "labelX": 733.6,
-      "labelY": 1225.9,
+      "d": "M 725 1209 L 734 1209 L 743 1209 L 743 1226 L 743 1243 L 734 1243 L 725 1243 L 725 1226 Z",
+      "labelX": 734,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S18"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s17",
@@ -2202,12 +2268,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 745.3 1208.3 L 754.8 1208.3 L 763.5 1208.3 L 763.5 1225.9 L 763.5 1242.7 L 754.8 1242.7 L 745.3 1242.7 L 745.3 1225.9 Z",
-      "labelX": 754.8,
-      "labelY": 1225.9,
+      "d": "M 746 1209 L 755 1209 L 764 1209 L 764 1226 L 764 1243 L 755 1243 L 746 1243 L 746 1226 Z",
+      "labelX": 755,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S17"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s16",
@@ -2242,12 +2310,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 766.5 1208.3 L 776 1208.3 L 784.8 1208.3 L 784.8 1225.9 L 784.8 1242.7 L 776 1242.7 L 766.5 1242.7 L 766.5 1225.9 Z",
+      "d": "M 767 1209 L 776 1209 L 785 1209 L 785 1226 L 785 1243 L 776 1243 L 767 1243 L 767 1226 Z",
       "labelX": 776,
-      "labelY": 1225.9,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S16"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s15",
@@ -2282,12 +2352,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 787.7 1208.3 L 797.2 1208.3 L 806 1208.3 L 806 1225.9 L 806 1242.7 L 797.2 1242.7 L 787.7 1242.7 L 787.7 1225.9 Z",
-      "labelX": 797.2,
-      "labelY": 1225.9,
+      "d": "M 788 1209 L 797 1209 L 806 1209 L 806 1226 L 806 1243 L 797 1243 L 788 1243 L 788 1226 Z",
+      "labelX": 797,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S15"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s14",
@@ -2322,12 +2394,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 808.9 1208.3 L 818.4 1208.3 L 827.2 1208.3 L 827.2 1225.9 L 827.2 1242.7 L 818.4 1242.7 L 808.9 1242.7 L 808.9 1225.9 Z",
-      "labelX": 818.4,
-      "labelY": 1225.9,
+      "d": "M 809 1209 L 818 1209 L 827 1209 L 827 1226 L 827 1243 L 818 1243 L 809 1243 L 809 1226 Z",
+      "labelX": 818,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S14"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s13",
@@ -2362,12 +2436,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 829.4 1208.3 L 838.9 1208.3 L 847.6 1208.3 L 847.6 1225.9 L 847.6 1242.7 L 838.9 1242.7 L 829.4 1242.7 L 829.4 1225.9 Z",
-      "labelX": 838.9,
-      "labelY": 1225.9,
+      "d": "M 830 1209 L 839 1209 L 848 1209 L 848 1226 L 848 1243 L 839 1243 L 830 1243 L 830 1226 Z",
+      "labelX": 839,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S13"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s12",
@@ -2402,12 +2478,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 850.6 1208.3 L 860.1 1208.3 L 868.9 1208.3 L 868.9 1225.9 L 868.9 1242.7 L 860.1 1242.7 L 850.6 1242.7 L 850.6 1225.9 Z",
-      "labelX": 860.1,
-      "labelY": 1225.9,
+      "d": "M 851 1209 L 860.5 1209 L 870 1209 L 870 1226 L 870 1243 L 860.5 1243 L 851 1243 L 851 1226 Z",
+      "labelX": 860.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S12"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s11",
@@ -2442,12 +2520,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 871.8 1208.3 L 881.3 1208.3 L 890.1 1208.3 L 890.1 1225.9 L 890.1 1242.7 L 881.3 1242.7 L 871.8 1242.7 L 871.8 1225.9 Z",
-      "labelX": 881.3,
-      "labelY": 1225.9,
+      "d": "M 872 1209 L 881.5 1209 L 891 1209 L 891 1226 L 891 1243 L 881.5 1243 L 872 1243 L 872 1226 Z",
+      "labelX": 881.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S11"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s10",
@@ -2482,12 +2562,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 893 1208.3 L 902.5 1208.3 L 911.3 1208.3 L 911.3 1225.9 L 911.3 1242.7 L 902.5 1242.7 L 893 1242.7 L 893 1225.9 Z",
+      "d": "M 893 1209 L 902.5 1209 L 912 1209 L 912 1226 L 912 1243 L 902.5 1243 L 893 1243 L 893 1226 Z",
       "labelX": 902.5,
-      "labelY": 1225.9,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S10"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s9",
@@ -2522,12 +2604,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 914.2 1208.3 L 923.7 1208.3 L 932.5 1208.3 L 932.5 1225.9 L 932.5 1242.7 L 923.7 1242.7 L 914.2 1242.7 L 914.2 1225.9 Z",
-      "labelX": 923.7,
-      "labelY": 1225.9,
+      "d": "M 914 1209 L 923.5 1209 L 933 1209 L 933 1226 L 933 1243 L 923.5 1243 L 914 1243 L 914 1226 Z",
+      "labelX": 923.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S9"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s8",
@@ -2562,12 +2646,14 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 935.4 1208.3 L 953.7 1208.3 L 972 1208.3 L 972 1225.9 L 972 1242.7 L 953.7 1242.7 L 935.4 1242.7 L 935.4 1225.9 Z",
-      "labelX": 953.7,
-      "labelY": 1225.9,
+      "d": "M 935 1209 L 944.5 1209 L 954 1209 L 954 1226 L 954 1243 L 944.5 1243 L 935 1243 L 935 1226 Z",
+      "labelX": 944.5,
+      "labelY": 1226,
       "labelFontSize": 9,
       "shortLabel": "S8"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-sky-lower-s7",
@@ -3053,12 +3139,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1177.5 789.2 L 1184.1 789.2 L 1190.7 789.2 L 1190.7 807.5 L 1190.7 825.1 L 1184.1 825.1 L 1177.5 825.1 L 1177.5 807.5 Z",
-      "labelX": 1184.1,
-      "labelY": 807.5,
+      "d": "M 1178 790 L 1191 790 L 1191 826 L 1188 826 L 1188 825 L 1185 825 L 1185 826 L 1178 826 Z",
+      "labelX": 1184,
+      "labelY": 807.3,
       "labelFontSize": 9,
       "shortLabel": "U2"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T02:15:00.000Z.",
   },
   {
     id: "daegu-sky-lower-u3",
@@ -3094,12 +3185,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1177.5 831.6 L 1184.1 831.6 L 1190.7 831.6 L 1190.7 849.9 L 1190.7 867.5 L 1184.1 867.5 L 1177.5 867.5 L 1177.5 849.9 Z",
-      "labelX": 1184.1,
-      "labelY": 849.9,
+      "d": "M 1178 832 L 1191 832 L 1191 868 L 1188 868 L 1188 867 L 1181 867 L 1181 868 L 1178 868 Z",
+      "labelX": 1184,
+      "labelY": 849.5,
       "labelFontSize": 9,
       "shortLabel": "U3"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T02:15:00.000Z.",
   },
   {
     id: "daegu-sky-lower-u4",
@@ -3135,12 +3231,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1177.5 874.1 L 1184.1 874.1 L 1190.7 874.1 L 1190.7 891.6 L 1190.7 909.2 L 1184.1 909.2 L 1177.5 909.2 L 1177.5 891.6 Z",
+      "d": "M 1178 874 L 1191 874 L 1191 910 L 1188 910 L 1188 909 L 1181 909 L 1181 910 L 1178 910 Z",
       "labelX": 1184.1,
-      "labelY": 891.6,
+      "labelY": 891.4,
       "labelFontSize": 9,
       "shortLabel": "U4"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T02:15:00.000Z.",
   },
   {
     id: "daegu-sky-lower-u5",
@@ -3176,12 +3277,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1177.5 916.5 L 1184.1 916.5 L 1190.7 916.5 L 1190.7 934 L 1190.7 951.6 L 1184.1 951.6 L 1177.5 951.6 L 1177.5 934 Z",
+      "d": "M 1178 916 L 1191 916 L 1191 952 L 1188 952 L 1188 951 L 1181 951 L 1181 952 L 1178 952 Z",
       "labelX": 1184.1,
-      "labelY": 934,
+      "labelY": 933.4,
       "labelFontSize": 9,
       "shortLabel": "U5"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T02:15:00.000Z.",
   },
   {
     id: "daegu-sky-lower-u6",
@@ -3217,12 +3323,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1177.5 958.2 L 1184.1 958.2 L 1190.7 958.2 L 1190.7 976.5 L 1190.7 994 L 1184.1 994 L 1177.5 994 L 1177.5 976.5 Z",
-      "labelX": 1184.1,
-      "labelY": 976.5,
+      "d": "M 1178 959 L 1191 959 L 1191 994 L 1188 994 L 1188 993 L 1181 993 L 1181 994 L 1178 994 Z",
+      "labelX": 1184,
+      "labelY": 975.9,
       "labelFontSize": 9,
       "shortLabel": "U6"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T02:15:00.000Z.",
   },
   {
     id: "daegu-sky-lower-u7",
@@ -3587,12 +3698,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 570.5 1299 L 594.6 1299 L 618 1299 L 618 1327.5 L 618 1355.3 L 594.6 1355.3 L 570.5 1355.3 L 570.5 1327.5 Z",
-      "labelX": 594.6,
-      "labelY": 1327.5,
+      "d": "M 570 1356 L 570 1348 L 575 1330 L 580 1315 L 589 1299 L 647 1299 L 647 1356 Z",
+      "labelX": 604,
+      "labelY": 1331,
       "labelFontSize": 9,
       "shortLabel": "U24"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T03:35:00.000Z.",
   },
   {
     id: "daegu-sky-blue-zone-u23",
@@ -4326,12 +4442,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1210.4 771.7 L 1210.4 784.1 L 1210.4 796.5 L 1210.4 809 L 1210.4 821.4 L 1210.4 833.8 L 1210.4 846.3 L 1210.4 858.7 L 1210.4 871.1 L 1210.4 872.6 L 1255 872.6 L 1255 871.1 L 1255 858.7 L 1255 846.3 L 1255 833.8 L 1255 821.4 L 1255 809 L 1255 796.5 L 1255 784.1 L 1255 771.7 Z",
+      "d": "M 1200 743 L 1256 743 L 1256 902 L 1200 902 L 1200 864 L 1225 864 L 1225 847 L 1200 847 L 1200 776 L 1225 776 L 1225 759 L 1200 759 Z",
       "labelX": 1233.1,
       "labelY": 826.5,
       "labelFontSize": 9,
       "shortLabel": "02"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-12T00:35:00.000Z.",
   },
   {
     id: "daegu-sky-first-upper-03",
@@ -4367,12 +4488,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1210.4 885 L 1210.4 897.5 L 1210.4 909.9 L 1210.4 922.3 L 1210.4 934.8 L 1210.4 947.2 L 1210.4 959.6 L 1210.4 972.1 L 1210.4 984.5 L 1210.4 986 L 1255 986 L 1255 984.5 L 1255 972.1 L 1255 959.6 L 1255 947.2 L 1255 934.8 L 1255 922.3 L 1255 909.9 L 1255 897.5 L 1255 885 Z",
+      "d": "M 1225 857 L 1256 857 L 1256 1015 L 1200 1015 L 1200 951 L 1225 951 L 1225 935 L 1200 935 L 1200 864 L 1225 864 Z",
       "labelX": 1233.1,
       "labelY": 939.9,
       "labelFontSize": 9,
       "shortLabel": "03"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-12T00:50:00.000Z.",
   },
   {
     id: "daegu-sky-first-upper-04",
@@ -4408,12 +4534,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1210.4 998.4 L 1210.4 1010.8 L 1210.4 1023.3 L 1210.4 1035.7 L 1210.4 1048.1 L 1210.4 1060.6 L 1210.4 1073 L 1210.4 1085.4 L 1210.4 1097.9 L 1210.4 1099.3 L 1255 1099.3 L 1255 1097.9 L 1255 1085.4 L 1255 1073 L 1255 1060.6 L 1255 1048.1 L 1255 1035.7 L 1255 1023.3 L 1255 1010.8 L 1255 998.4 Z",
+      "d": "M 1200 970 L 1256 970 L 1256 1129 L 1200 1129 L 1200 1127 L 1225 1127 L 1225 1110 L 1200 1110 L 1200 1039 L 1225 1039 L 1225 1023 L 1200 1023 Z",
       "labelX": 1233.1,
       "labelY": 1053.3,
       "labelFontSize": 9,
       "shortLabel": "04"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-12T01:05:00.000Z.",
   },
   {
     id: "daegu-sky-first-upper-05",
@@ -4449,12 +4580,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "스카이 지정석"
     ],
     imageGeometry: {
-      "d": "M 1225 1111.8 L 1225 1117.6 L 1210.4 1123.5 L 1210.4 1129.3 L 1210.4 1135.2 L 1216.3 1141 L 1225.8 1146.9 L 1236 1152.7 L 1246.2 1158.6 L 1247 1159.3 L 1254.3 1159.3 L 1255 1158.6 L 1255 1152.7 L 1255 1146.9 L 1255 1141 L 1255 1135.2 L 1255 1129.3 L 1255 1123.5 L 1255 1117.6 L 1255 1111.8 Z",
-      "labelX": 1240.4,
-      "labelY": 1137.4,
+      "d": "M 1200 1083 L 1256 1083 L 1256 1156 L 1254 1160 L 1250 1159 L 1240 1153 L 1200 1129 L 1200 1127 L 1225 1127 L 1225 1110 L 1200 1110 Z",
+      "labelX": 1238,
+      "labelY": 1138,
       "labelFontSize": 9,
       "shortLabel": "05"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T05:55:00.000Z.",
   },
   {
     id: "daegu-sky-first-upper-06",
@@ -5282,12 +5418,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "외야석"
     ],
     imageGeometry: {
-      "d": "M 549.3 574.2 L 566.8 574.2 L 584.4 574.2 L 584.4 591.7 L 584.4 609.3 L 566.8 609.3 L 558 600.5 L 549.3 591.7 Z",
-      "labelX": 566.8,
-      "labelY": 591.7,
+      "d": "M 567 574 L 585 590 L 585 593 L 568 610 L 566 610 L 549 593 L 549 592 L 566 575 Z",
+      "labelX": 567,
+      "labelY": 591.5,
       "labelFontSize": 9,
       "shortLabel": "RF-10"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T16:54:21.461Z.",
   },
   {
     id: "daegu-outfield-reserved-rf-rf-9",
@@ -5664,12 +5805,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "외야석"
     ],
     imageGeometry: {
-      "d": "M 569 593.9 L 580.7 593.9 L 592.4 593.9 L 592.4 605.6 L 592.4 617.3 L 580.7 617.3 L 574.9 611.5 L 569 605.6 Z",
-      "labelX": 580.7,
-      "labelY": 605.6,
+      "d": "M 588 594 L 593 598 L 593 600 L 584 609 L 574 618 L 569 613 L 584 598 L 587 594 Z",
+      "labelX": 580.5,
+      "labelY": 605.4,
       "labelFontSize": 9,
       "shortLabel": "MR-10"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T16:54:21.461Z.",
   },
   {
     id: "daegu-outfield-couple-mr-mr-9",
@@ -6348,12 +6494,17 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "외야석"
     ],
     imageGeometry: {
-      "d": "M 473.9 648.8 L 492.2 648.8 L 509.8 648.8 L 509.8 661.2 L 509.8 672.9 L 494.4 684.6 L 473.9 672.9 L 473.9 661.2 Z",
-      "labelX": 492.2,
-      "labelY": 667.1,
+      "d": "M 493 649 L 510 666 L 510 668 L 494 684 L 493 685 L 474 667 L 475 666 L 492 649 Z",
+      "labelX": 491.7,
+      "labelY": 666.6,
       "labelFontSize": 9,
       "shortLabel": "LF-10"
     },
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T16:54:21.461Z.",
   },
   {
     id: "daegu-outfield-reserved-lf-lf-9",
@@ -6595,6 +6746,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "M-6"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-outfield-couple-m-m-5",
@@ -6634,6 +6787,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "M-5"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-outfield-couple-m-m-4",
@@ -6673,6 +6828,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "M-4"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-outfield-couple-m-m-3",
@@ -6712,6 +6869,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "M-3"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-outfield-couple-m-m-2",
@@ -6792,6 +6951,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelFontSize": 9,
       "shortLabel": "M-1"
     },
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
   },
   {
     id: "daegu-rooftop-table",
@@ -6868,8 +7029,8 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "shortLabel": "잔디 그린존",
       "labelFontSize": 9
     },
-    traceStatus: "OFFICIAL_IMAGE_TRACED",
-    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    traceStatus: "NEEDS_OPERATOR_REVIEW",
+    traceMethod: "PIXEL_COMPONENT_CANDIDATE",
   },
   {
     id: "daegu-camping-zone",
@@ -6974,13 +7135,18 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "장애인석"
     ],
     imageGeometry: {
-      "d": "M 1105.1 1035 L 1105.1 1037.9 L 1105.1 1040.8 L 1105.1 1043.7 L 1105.1 1046.7 L 1105.1 1049.6 L 1105.1 1052.5 L 1105.1 1054.7 L 1130 1054.7 L 1130 1052.5 L 1130 1049.6 L 1130 1046.7 L 1130 1043.7 L 1130 1040.8 L 1130 1037.9 L 1130 1035 Z",
+      "d": "M 1106 1035 L 1122 1035 L 1122 1047 L 1140 1047 L 1140 1055 L 1106 1055 Z",
       "labelX": 1117.5,
       "labelY": 1045.2,
       "shortLabel": "휠체어",
       "labelFontSize": 9
     },
     accessibilityNote: "공식 좌석안내도에 휠체어 장애인석으로 표시된 구역입니다.",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-11T00:35:00.000Z.",
   },
   {
     id: "daegu-accessible-sky-09",
@@ -7011,13 +7177,18 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "09"
     ],
     imageGeometry: {
-      "d": "M 789.9 1300.5 L 789.9 1304.9 L 789.9 1309.3 L 789.9 1313.6 L 789.9 1318 L 789.9 1322.4 L 789.9 1326.8 L 789.9 1331.2 L 789.9 1334.9 L 825 1334.9 L 825 1331.2 L 825 1326.8 L 825 1322.4 L 825 1318 L 825 1313.6 L 825 1309.3 L 825 1304.9 L 825 1300.5 Z",
-      "labelX": 807.4,
-      "labelY": 1318,
+      "d": "M 810 1299 L 836 1299 L 836 1323 L 853 1323 L 853 1299 L 889 1299 L 889 1356 L 810 1356 Z",
+      "labelX": 817,
+      "labelY": 1320,
       "shortLabel": "휠체어",
       "labelFontSize": 9
     },
     accessibilityNote: "공식 좌석안내도에 휠체어 장애인석으로 표시된 구역입니다.",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T09:45:00.000Z.",
   },
   {
     id: "daegu-accessible-u22",
@@ -7048,13 +7219,18 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "U22"
     ],
     imageGeometry: {
-      "d": "M 548.5 1271.2 L 548.5 1275.6 L 548.5 1280 L 548.5 1284.4 L 548.5 1288.8 L 548.5 1293.2 L 548.5 1297.6 L 548.5 1301.9 L 548.5 1305.6 L 560.2 1305.6 L 558.8 1301.9 L 561 1297.6 L 565.3 1293.2 L 569.7 1288.8 L 573.4 1284.4 L 571.9 1280 L 568.3 1275.6 L 563.9 1271.2 Z",
-      "labelX": 557.3,
-      "labelY": 1288.8,
+      "d": "M 501 1246 L 524 1236 L 531 1240 L 570 1280 L 587 1298 L 585 1309 L 575 1338 L 573 1343 L 554 1343 L 528 1318 L 501 1290 Z",
+      "labelX": 541,
+      "labelY": 1291,
       "shortLabel": "휠체어",
       "labelFontSize": 9
     },
     accessibilityNote: "공식 좌석안내도에 휠체어 장애인석으로 표시된 구역입니다.",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: COORDINATE_VERIFIED_SOURCE_NOTE,
+    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
+    reviewNote: "운영자 승인 corrected path를 공식 PNG 좌표계에 반영했습니다. reviewer=CODEX_MANUAL_TRACE; reviewedAt=2026-05-10T09:45:00.000Z.",
   },
 ];
 

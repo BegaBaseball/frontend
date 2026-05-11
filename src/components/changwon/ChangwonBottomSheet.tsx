@@ -4,8 +4,10 @@ import {
   CHANGWON_VIEW_INFO,
   getChangwonBlockDisplayName,
   getChangwonFanRoleLabel,
+  getChangwonLevelLabel,
   getChangwonSideLabel,
   getChangwonSourceLabel,
+  isChangwonSpecialSelectableArea,
   type ChangwonBlock,
 } from '../../data/changwonSeatData';
 import SeatViewGallery from '../SeatViewGallery';
@@ -61,9 +63,11 @@ export default function ChangwonBottomSheet({ section, mode, onClose, onUpload }
   const cat = CHANGWON_CATEGORIES[section.category];
   const accent = mode === 'dark' ? cat.dark : cat.light;
   const info = CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default;
+  const specialSelectable = isChangwonSpecialSelectableArea(section);
 
   return (
     <div
+      data-testid="changwon-bottom-sheet"
       className="fixed bottom-0 left-0 right-0 z-50 flex flex-col overflow-hidden bg-white dark:bg-slate-900"
       style={{
         height: heights[snap],
@@ -113,10 +117,21 @@ export default function ChangwonBottomSheet({ section, mode, onClose, onUpload }
       >
         <div className="mb-4 flex flex-wrap gap-1.5">
           <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
-            {cat.label} · {section.level}
+            {cat.label} · {getChangwonLevelLabel(section.level)}
           </span>
+          {specialSelectable && (
+            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+              특수 구역
+            </span>
+          )}
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
             {getChangwonSourceLabel(section.sourceConfidence)}
+          </span>
+          <span
+            data-testid="changwon-selected-status-mobile"
+            className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+          >
+            release-lock 승인
           </span>
         </div>
 
@@ -128,6 +143,14 @@ export default function ChangwonBottomSheet({ section, mode, onClose, onUpload }
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
             <div className="text-[9px] font-bold tracking-widest text-slate-400">위치</div>
             <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{getChangwonSideLabel(section.side)}</div>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
+            <div className="text-[9px] font-bold tracking-widest text-slate-400">층</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{getChangwonLevelLabel(section.level)}</div>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
+            <div className="text-[9px] font-bold tracking-widest text-slate-400">영역</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{specialSelectable ? '특수 구역' : '숫자 블록'}</div>
           </div>
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
             <div className="text-[9px] font-bold tracking-widest text-slate-400">팬 구분</div>

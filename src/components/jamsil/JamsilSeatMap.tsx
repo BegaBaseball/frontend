@@ -13,6 +13,8 @@ import JamsilBottomSheet from './JamsilBottomSheet';
 import JamsilUploadFlowModal from './JamsilUploadFlowModal';
 import { useTheme } from '../../hooks/useTheme';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
@@ -35,6 +37,9 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
         return (
           <button
             key={g.id}
+            type="button"
+            data-testid={`jamsil-filter-${g.id}`}
+            aria-pressed={active}
             onClick={() => onChange(g.id)}
             className="px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all"
             style={{
@@ -63,15 +68,12 @@ export default function JamsilSeatMap() {
   const [officialSource, setOfficialSource] = useState<'LG' | 'DOOSAN'>('LG');
   const [uploadFor, setUploadFor] = useState<JamsilBlock | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const {
+    isMobile,
+    isFullscreenOpen,
+    openFullscreen,
+    closeFullscreen,
+  } = useSeatMapTemplateShellState();
 
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
@@ -85,25 +87,6 @@ export default function JamsilSeatMap() {
       setPan({ x: 0, y: 0 });
     }
   }, [pan.x, pan.y, zoom]);
-
-  useEffect(() => {
-    if (!isFullscreenOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFullscreenOpen(false);
-      }
-    };
-
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isFullscreenOpen]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     const normalizedZoom = clampZoom(nextZoom);
@@ -120,9 +103,9 @@ export default function JamsilSeatMap() {
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     if (nextSource === 'DOOSAN') {
-      setIsFullscreenOpen(false);
+      closeFullscreen();
     }
-  }, []);
+  }, [closeFullscreen]);
 
   const usedCategories = [...new Set(JAMSIL_BLOCKS.map(b => b.category))];
 
@@ -130,10 +113,27 @@ export default function JamsilSeatMap() {
   const displaySection: JamsilBlock | null = isDoosanGuideActive
     ? null
     : selected;
-  const hoveredSection = !isDoosanGuideActive && hover ? (JAMSIL_BLOCKS.find(b => b.id === hover) ?? null) : null;
+    const hoveredSection = !isDoosanGuideActive && hover ? (JAMSIL_BLOCKS.find(b => b.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? JAMSIL_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#1F5C4A';
   const doosanReference = JAMSIL_OFFICIAL_REFERENCES.find((reference) => reference.id === 'DOOSAN');
+  const filterGroup = JAMSIL_CATEGORY_GROUPS.find((group) => group.id === filterId);
+  const filterCats = filterGroup?.cats ?? null;
+
+  useEffect(() => {
+    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
+      return;
+    }
+    setSelected(null);
+  }, [filterCats, selected]);
+
+  useEffect(() => {
+    if (!hover) return;
+    const hoveredBlock = JAMSIL_BLOCKS.find((block) => block.id === hover);
+    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
+      setHover(null);
+    }
+  }, [filterCats, hover]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <JamsilSeatMapSvg
@@ -154,7 +154,7 @@ export default function JamsilSeatMap() {
       maxZoom={MAX_ZOOM}
       zoomStep={ZOOM_STEP}
       enableAutoCenter={enableAutoCenter}
-      onFullscreen={allowFullscreen && !isDoosanGuideActive ? () => setIsFullscreenOpen(true) : undefined}
+      onFullscreen={allowFullscreen && !isDoosanGuideActive ? openFullscreen : undefined}
     />
   );
 
@@ -223,98 +223,72 @@ export default function JamsilSeatMap() {
     </div>
   );
 
+  const filterBar = (
+    <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
+  );
+  const mapContent = (
+    <div className="relative">
+      {renderMapSvg(!isFullscreenOpen)}
+      <SeatMapHoverPreview
+        visible={Boolean(hoveredSection && hoveredCategory)}
+        title={hoveredSection?.name}
+        subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+        badgeLabel={hoveredCategory?.label}
+        accentColor={hoveredAccent}
+        description={hoveredSection ? `${hoveredSection.level} · ${hoveredSection.side}` : undefined}
+      />
+    </div>
+  );
+  const mobileFilterBar = (
+    <div className="mb-2.5 overflow-x-auto">
+      {filterBar}
+    </div>
+  );
+  const desktopFilterBar = filterBar;
+  const mobileBottomSheet = isDoosanGuideActive ? null : (
+    selected && (
+      <JamsilBottomSheet
+        section={selected}
+        mode={mode}
+        onClose={() => setSelected(null)}
+        onUpload={() => setUploadFor(selected)}
+      />
+    )
+  );
+  const desktopSidePanel = isDoosanGuideActive ? null : (
+    <JamsilSidePanelV2
+      section={displaySection}
+      mode={mode}
+      onClose={() => setSelected(null)}
+      onUpload={() => setUploadFor(displaySection)}
+    />
+  );
+
   return (
     <>
-      {isMobile ? (
-        <div className={isDoosanGuideActive ? 'pb-4' : 'pb-80'}>
-          {!isDoosanGuideActive && (
-            <>
-              <div className="mb-2.5 overflow-x-auto">
-                <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
-              </div>
-            </>
-          )}
-          <div data-testid="stadium-seat-map" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-2 shadow-sm overflow-hidden">
-            <div className="mb-2 px-1 text-sm font-black text-slate-800 dark:text-white">
-              서울잠실야구장
-              <span className="ml-2 text-[11px] font-semibold" style={{ color: '#1F5C4A' }}>
-                {isDoosanGuideActive ? '두산 공식 구장 안내' : '잠실 블록 단위 안내도'}
-              </span>
-            </div>
-            <div className="relative">
-              {renderMapSvg(!isFullscreenOpen)}
-              <SeatMapHoverPreview
-                visible={Boolean(hoveredSection && hoveredCategory)}
-                title={hoveredSection?.name}
-                subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-                badgeLabel={hoveredCategory?.label}
-                accentColor={hoveredAccent}
-                description={hoveredSection ? `${hoveredSection.level} · ${hoveredSection.side}` : undefined}
-              />
-            </div>
-            {attribution}
-          </div>
-          {!isDoosanGuideActive && (
-            <JamsilBottomSheet
-              section={selected}
-              mode={mode}
-              onClose={() => setSelected(null)}
-              onUpload={() => setUploadFor(selected)}
-            />
-          )}
-        </div>
-      ) : (
-        <>
-          {!isDoosanGuideActive && (
-            <div className="flex items-center gap-2.5 flex-wrap mb-3">
-              <div className="flex-1 min-w-0">
-                <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
-              </div>
-            </div>
-          )}
-
-          <div
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns: isDoosanGuideActive ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 380px',
-              alignItems: 'start',
-            }}
-          >
-            <div data-testid="stadium-seat-map" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 shadow-sm overflow-hidden">
-              <div className="flex justify-between items-center mb-2.5 px-1">
-                <div className="text-sm font-black text-slate-800 dark:text-white">
-                  서울잠실야구장
-                  <span className="text-[11px] font-semibold ml-2" style={{ color: '#1F5C4A' }}>
-                    {isDoosanGuideActive ? '두산 공식 구장 안내' : '잠실 블록 단위 안내도'}
-                  </span>
-                </div>
-              </div>
-              <div className="relative">
-                {renderMapSvg(!isFullscreenOpen)}
-                <SeatMapHoverPreview
-                  visible={Boolean(hoveredSection && hoveredCategory)}
-                  title={hoveredSection?.name}
-                  subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-                  badgeLabel={hoveredCategory?.label}
-                  accentColor={hoveredAccent}
-                  description={hoveredSection ? `${hoveredSection.level} · ${hoveredSection.side}` : undefined}
-                />
-              </div>
-              {attribution}
-              {!isDoosanGuideActive && legend}
-            </div>
-
-            {!isDoosanGuideActive && (
-              <JamsilSidePanelV2
-                section={displaySection}
-                mode={mode}
-                onClose={() => setSelected(null)}
-                onUpload={() => setUploadFor(displaySection)}
-              />
-            )}
-          </div>
-        </>
-      )}
+      <SeatMapTemplateShell
+        mode={mode}
+        title="서울잠실야구장"
+        subtitle={isDoosanGuideActive ? '두산 공식 구장 안내' : '잠실 블록 단위 안내도'}
+        titleAccentColor="#1F5C4A"
+        isMobile={isMobile}
+        isDoosanGuideActive={isDoosanGuideActive}
+        filterBar={filterBar}
+        mobileFilterBar={mobileFilterBar}
+        desktopFilterBar={desktopFilterBar}
+        mapContent={mapContent}
+        attribution={attribution}
+        legend={isDoosanGuideActive ? undefined : legend}
+        mobileBottomSheet={mobileBottomSheet}
+        mobileHasSidePanel={Boolean(mobileBottomSheet)}
+        desktopSidePanel={desktopSidePanel}
+        toast={toast}
+        isFullscreenOpen={isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={<div className="w-full">{renderMapSvg(true, false)}</div>}
+        fullscreenTitle="서울잠실야구장"
+        fullscreenSubtitle="LG 공식 좌석도 전체화면"
+      />
 
       {uploadFor && (
         <JamsilUploadFlowModal
@@ -323,50 +297,6 @@ export default function JamsilSeatMap() {
           onClose={() => setUploadFor(null)}
           onSubmit={handleUploadSubmit}
         />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-full text-sm font-bold shadow-xl"
-          style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}>
-          {toast}
-        </div>
-      )}
-
-      {isFullscreenOpen && !isDoosanGuideActive && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="잠실 좌석도 전체화면"
-          data-testid="jamsil-seatmap-fullscreen"
-          className="fixed inset-0 z-[220] bg-slate-950/95 p-3 text-white sm:p-5"
-        >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5">
-              <div>
-                <div className="text-sm font-black text-white">서울잠실야구장</div>
-                <div className="text-[11px] font-semibold text-slate-400">LG 공식 좌석도 전체화면</div>
-              </div>
-              <button
-                type="button"
-                data-testid="jamsil-seatmap-fullscreen-close"
-                aria-label="잠실 좌석도 전체화면 닫기"
-                onClick={() => setIsFullscreenOpen(false)}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-700 text-slate-200 transition-colors hover:bg-slate-800"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-4 sm:py-4">
-              <div className="mx-auto flex h-full w-full max-w-[calc(100vh-120px)] items-center justify-center">
-                <div className="w-full">
-                  {renderMapSvg(true, false)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );

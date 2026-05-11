@@ -17,6 +17,8 @@ import GocheokBottomSheet from './GocheokBottomSheet';
 import GocheokFacilityGuide from './GocheokFacilityGuide';
 import GocheokSeatMapSvg from './GocheokSeatMapSvg';
 import GocheokUploadFlowModal from './GocheokUploadFlowModal';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 
 type GocheokGuideMode = 'seatmap' | 'facility';
 
@@ -55,6 +57,7 @@ function GuideModeTabs({
           <button
             key={option.id}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(option.id)}
             className="rounded-lg border-0 px-3 py-1.5 text-[11px] font-black transition-colors"
             style={{
@@ -79,6 +82,8 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
           <button
             key={group.id}
             type="button"
+            data-testid={`gocheok-filter-${group.id}`}
+            aria-pressed={active}
             onClick={() => onChange(group.id)}
             className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
             style={{
@@ -202,10 +207,14 @@ export default function GocheokSeatMap() {
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [filterId, setFilterId] = useState('all');
   const [activeGuideMode, setActiveGuideMode] = useState<GocheokGuideMode>('seatmap');
-  const [isMobile, setIsMobile] = useState(false);
-  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [uploadFor, setUploadFor] = useState<GocheokBlock | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const {
+    isMobile,
+    isFullscreenOpen,
+    openFullscreen,
+    closeFullscreen,
+  } = useSeatMapTemplateShellState();
   const filterGroup = GOCHEOK_CATEGORY_GROUPS.find((group) => group.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
   const hasOfficialBlocks = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && GOCHEOK_BLOCKS.length > 0;
@@ -214,32 +223,6 @@ export default function GocheokSeatMap() {
   const hoveredCategory = hoveredSection ? GOCHEOK_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#820024';
   const usedCategories = useMemo(() => [...new Set(GOCHEOK_BLOCKS.map((block) => block.category))], []);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  useEffect(() => {
-    if (!isFullscreenOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFullscreenOpen(false);
-      }
-    };
-
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isFullscreenOpen]);
 
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
@@ -263,8 +246,23 @@ export default function GocheokSeatMap() {
     setUploadFor(null);
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
-    setIsFullscreenOpen(false);
+    closeFullscreen();
   }, []);
+
+  useEffect(() => {
+    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
+      return;
+    }
+    setSelected(null);
+  }, [filterCats, selected]);
+
+  useEffect(() => {
+    if (!hover) return;
+    const hoveredBlock = GOCHEOK_BLOCKS.find((block) => block.id === hover);
+    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
+      setHover(null);
+    }
+  }, [filterCats, hover]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <GocheokSeatMapSvg
@@ -282,7 +280,7 @@ export default function GocheokSeatMap() {
       maxZoom={MAX_ZOOM}
       zoomStep={ZOOM_STEP}
       enableAutoCenter={enableAutoCenter}
-      onFullscreen={allowFullscreen && hasOfficialBlocks ? () => setIsFullscreenOpen(true) : undefined}
+      onFullscreen={allowFullscreen && hasOfficialBlocks ? openFullscreen : undefined}
     />
   );
 
@@ -323,54 +321,60 @@ export default function GocheokSeatMap() {
     </div>
   );
 
+  const guideModeBar = (
+    <div className="mb-2 px-1">
+      <GuideModeTabs value={activeGuideMode} onChange={handleGuideModeChange} mode={mode} />
+    </div>
+  );
+
+  const filterBar = hasOfficialBlocks && isSeatMapMode ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined;
+
+  const mapContent = (
+    <div>
+      {guideModeBar}
+      {isSeatMapMode ? (
+        <div className="relative">
+          {renderMapSvg(!isFullscreenOpen)}
+          <SeatMapHoverPreview
+            visible={Boolean(hoveredSection && hoveredCategory)}
+            title={hoveredSection?.name}
+            subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+            badgeLabel={hoveredCategory?.label}
+            accentColor={hoveredAccent}
+            description={hoveredSection ? `${getGocheokSideLabel(hoveredSection.side)} · ${getGocheokFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+          />
+        </div>
+      ) : (
+        <GocheokFacilityGuide mode={mode} />
+      )}
+      </div>
+  );
+
+  const detailPanel = hasOfficialBlocks && isSeatMapMode ? (
+    <DetailPanel
+      section={selected}
+      mode={mode}
+      onClose={() => setSelected(null)}
+      onUpload={() => selected && setUploadFor(selected)}
+    />
+  ) : null;
+
   return (
     <>
-      <div className={isMobile && hasOfficialBlocks && isSeatMapMode ? 'pb-80' : undefined}>
-        {hasOfficialBlocks && isSeatMapMode && (
-          <div className="mb-2.5 overflow-x-auto">
-            <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
-          </div>
-        )}
-        <div
-          data-testid="stadium-seat-map"
-          className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-3.5"
-        >
-          <div className="mb-2 flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm font-black text-slate-800 dark:text-white">
-              고척스카이돔
-              <span className="ml-2 text-[11px] font-semibold" style={{ color: '#820024' }}>
-                {isSeatMapMode ? '고척 키움 공식 좌석도' : '서울시설공단 공식 시설현황'}
-              </span>
-            </div>
-            <GuideModeTabs value={activeGuideMode} onChange={handleGuideModeChange} mode={mode} />
-          </div>
-          {isSeatMapMode ? (
-            <div className="relative">
-              {renderMapSvg(!isFullscreenOpen)}
-              <SeatMapHoverPreview
-                visible={Boolean(hoveredSection && hoveredCategory)}
-                title={hoveredSection?.name}
-                subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-                badgeLabel={hoveredCategory?.label}
-                accentColor={hoveredAccent}
-                description={hoveredSection ? `${getGocheokSideLabel(hoveredSection.side)} · ${getGocheokFanRoleLabel(hoveredSection.fanRole)}` : undefined}
-              />
-            </div>
-          ) : <GocheokFacilityGuide mode={mode} />}
-          {isSeatMapMode && attribution}
-          {hasOfficialBlocks && isSeatMapMode && legend}
-        </div>
-        {!isMobile && hasOfficialBlocks && isSeatMapMode && (
-          <div className="mt-4">
-            <DetailPanel
-              section={selected}
-              mode={mode}
-              onClose={() => setSelected(null)}
-              onUpload={() => selected && setUploadFor(selected)}
-            />
-          </div>
-        )}
-        {isMobile && hasOfficialBlocks && isSeatMapMode && (
+      <SeatMapTemplateShell
+        mode={mode}
+        title="고척스카이돔"
+        subtitle={isSeatMapMode ? '고척 키움 공식 좌석도' : '서울시설공단 공식 시설현황'}
+        titleAccentColor="#820024"
+        isMobile={isMobile}
+        isDoosanGuideActive={!isSeatMapMode}
+        filterBar={filterBar}
+        mobileFilterBar={filterBar && <div className="mb-2.5 overflow-x-auto">{filterBar}</div>}
+        desktopFilterBar={filterBar}
+        mapContent={mapContent}
+        attribution={isSeatMapMode ? attribution : null}
+        legend={hasOfficialBlocks && isSeatMapMode ? legend : undefined}
+        mobileBottomSheet={hasOfficialBlocks && isSeatMapMode && selected && (
           <GocheokBottomSheet
             section={selected}
             mode={mode}
@@ -378,7 +382,25 @@ export default function GocheokSeatMap() {
             onUpload={() => selected && setUploadFor(selected)}
           />
         )}
-      </div>
+        mobileHasSidePanel={Boolean(hasOfficialBlocks && isSeatMapMode && selected)}
+        desktopSidePanel={detailPanel}
+        toast={toast}
+        isFullscreenOpen={isSeatMapMode && isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={(
+          <div className="w-full">
+            <div className="mx-auto flex h-full w-full items-center justify-center">
+              <div className="w-full">
+                {renderMapSvg(true, false)}
+              </div>
+            </div>
+          </div>
+        )}
+        fullscreenDialogTestId="gocheok-seatmap-fullscreen"
+        fullscreenCloseTestId="gocheok-seatmap-fullscreen-close"
+        fullscreenTitle="고척스카이돔"
+        fullscreenSubtitle="키움 공식 좌석도 전체화면"
+      />
       {uploadFor && (
         <GocheokUploadFlowModal
           section={uploadFor}
@@ -386,50 +408,6 @@ export default function GocheokSeatMap() {
           onClose={() => setUploadFor(null)}
           onSubmit={handleUploadSubmit}
         />
-      )}
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-bold shadow-xl"
-          style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}
-        >
-          {toast}
-        </div>
-      )}
-      {isFullscreenOpen && hasOfficialBlocks && isSeatMapMode && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="고척 좌석도 전체화면"
-          data-testid="gocheok-seatmap-fullscreen"
-          className="fixed inset-0 z-[220] bg-slate-950/95 p-3 text-white sm:p-5"
-        >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5">
-              <div>
-                <div className="text-sm font-black text-white">고척스카이돔</div>
-                <div className="text-[11px] font-semibold text-slate-400">키움 공식 좌석도 전체화면</div>
-              </div>
-              <button
-                type="button"
-                data-testid="gocheok-seatmap-fullscreen-close"
-                aria-label="고척 좌석도 전체화면 닫기"
-                onClick={() => setIsFullscreenOpen(false)}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-700 text-slate-200 transition-colors hover:bg-slate-800"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-4 sm:py-4">
-              <div className="mx-auto flex h-full w-full max-w-[760px] items-center justify-center">
-                <div className="w-full">
-                  {renderMapSvg(true, false)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );

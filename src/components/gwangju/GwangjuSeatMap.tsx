@@ -3,13 +3,18 @@ import {
   GWANGJU_BLOCKS,
   GWANGJU_CATEGORIES,
   GWANGJU_CATEGORY_GROUPS,
+  GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES,
   GWANGJU_SELECTABLE_BLOCKS_READY,
   GWANGJU_SEATMAP_IMAGE,
   GWANGJU_VIEW_INFO,
+  getGwangjuDerivedOperatorRangesForBlock,
   getGwangjuFanRoleLabel,
   getGwangjuSideLabel,
   getGwangjuSourceLabel,
+  matchesGwangjuCategoryGroup,
+  matchesGwangjuFilter,
   type GwangjuBlock,
+  type GwangjuDerivedOperatorBlockRange,
 } from '../../data/gwangjuSeatData';
 import { useTheme } from '../../hooks/useTheme';
 import SeatViewGallery from '../SeatViewGallery';
@@ -17,27 +22,39 @@ import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import GwangjuBottomSheet from './GwangjuBottomSheet';
 import GwangjuSeatMapSvg from './GwangjuSeatMapSvg';
 import GwangjuUploadFlowModal from './GwangjuUploadFlowModal';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+
+const DERIVED_RANGE_BY_FILTER_GROUP_ID = new Map(
+  GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.map((range) => [range.filterGroupId, range]),
+);
 
 function FilterBar({
   selectedId,
   onChange,
   mode,
-  availableCategories,
+  availableGroupIds,
 }: {
   selectedId: string;
   onChange: (value: string) => void;
   mode: 'light' | 'dark';
-  availableCategories: Set<string>;
+  availableGroupIds: Set<string>;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5 py-1">
       {GWANGJU_CATEGORY_GROUPS.map((group) => {
         const active = group.id === selectedId;
-        const available = group.cats === null || group.cats.some((category) => availableCategories.has(category));
+        const available = availableGroupIds.has(group.id);
+        const derivedRange = DERIVED_RANGE_BY_FILTER_GROUP_ID.get(group.id);
         return (
           <button
             key={group.id}
             type="button"
+            data-testid={`gwangju-filter-${group.id}`}
+            data-derived-range-id={derivedRange?.id}
+            data-derived-block-ids={derivedRange?.blockIds.join(',')}
+            data-aggregate-hit-area={derivedRange?.aggregateHitArea}
+            aria-pressed={active}
             onClick={() => available && onChange(group.id)}
             disabled={!available}
             aria-disabled={!available}
@@ -55,6 +72,75 @@ function FilterBar({
         );
       })}
     </div>
+  );
+}
+
+function DerivedRangeSummary({
+  range,
+  mode,
+}: {
+  range: GwangjuDerivedOperatorBlockRange;
+  mode: 'light' | 'dark';
+}) {
+  const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
+  const textColor = mode === 'dark' ? '#cbd5e1' : '#334155';
+  const mutedColor = mode === 'dark' ? '#94a3b8' : '#64748b';
+
+  return (
+    <div
+      data-testid="gwangju-derived-range-summary"
+      data-derived-range-id={range.id}
+      data-derived-block-ids={range.blockIds.join(',')}
+      data-aggregate-hit-area={range.aggregateHitArea}
+      className="flex flex-wrap items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold"
+      style={{ borderColor, color: textColor }}
+    >
+      <span className="text-[#EA0029] dark:text-rose-300">{range.label}</span>
+      <span data-testid="gwangju-derived-range-blocks">{range.displayBlocks}</span>
+      {range.id === 'derived-k7-seats' && (
+        <span
+          data-testid="gwangju-derived-range-neutral-note"
+          className="rounded-full px-2 py-0.5"
+          style={{ background: mode === 'dark' ? '#1e293b' : '#f1f5f9', color: mutedColor }}
+        >
+          111 중립
+        </span>
+      )}
+      <span className="rounded-full px-2 py-0.5" style={{ background: mode === 'dark' ? '#1e293b' : '#f8fafc', color: mutedColor }}>
+        기존 번호 블럭
+      </span>
+    </div>
+  );
+}
+
+function DerivedRangeBadges({
+  ranges,
+  mode,
+}: {
+  ranges: GwangjuDerivedOperatorBlockRange[];
+  mode: 'light' | 'dark';
+}) {
+  if (ranges.length === 0) return null;
+
+  return (
+    <>
+      {ranges.map((range) => (
+        <span
+          key={range.id}
+          data-testid={`gwangju-section-derived-range-${range.id}`}
+          data-derived-range-id={range.id}
+          data-derived-blocks={range.displayBlocks}
+          className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+          style={{
+            background: mode === 'dark' ? '#1e293b' : '#f8fafc',
+            borderColor: mode === 'dark' ? '#334155' : '#e2e8f0',
+            color: mode === 'dark' ? '#cbd5e1' : '#334155',
+          }}
+        >
+          {range.label} {range.displayBlocks}
+        </span>
+      ))}
+    </>
   );
 }
 
@@ -85,6 +171,7 @@ function DetailPanel({
   const cat = GWANGJU_CATEGORIES[section.category];
   const accent = mode === 'dark' ? cat.dark : cat.light;
   const info = GWANGJU_VIEW_INFO[section.id] ?? GWANGJU_VIEW_INFO.default;
+  const derivedRanges = getGwangjuDerivedOperatorRangesForBlock(section.id);
 
   return (
     <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -104,6 +191,7 @@ function DetailPanel({
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
             {getGwangjuSourceLabel(section.sourceConfidence)}
           </span>
+          <DerivedRangeBadges ranges={derivedRanges} mode={mode} />
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
         <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">블록 {section.block}</p>
@@ -163,24 +251,37 @@ export default function GwangjuSeatMap() {
   const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [filterId, setFilterId] = useState('all');
-  const [isMobile, setIsMobile] = useState(false);
   const [uploadFor, setUploadFor] = useState<GwangjuBlock | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
   const filterGroup = GWANGJU_CATEGORY_GROUPS.find((group) => group.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
+  const filterFanRoles = filterGroup?.fanRoles ?? null;
   const hasSelectableBlocks = GWANGJU_SELECTABLE_BLOCKS_READY;
   const hoveredSection = hover ? (GWANGJU_BLOCKS.find((block) => block.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? GWANGJU_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#EA0029';
   const usedCategories = useMemo(() => [...new Set(GWANGJU_BLOCKS.map((block) => block.category))], []);
-  const usedCategorySet = useMemo(() => new Set(usedCategories), [usedCategories]);
+  const availableGroupIds = useMemo(() => new Set(
+    GWANGJU_CATEGORY_GROUPS
+      .filter((group) => GWANGJU_BLOCKS.some((block) => matchesGwangjuCategoryGroup(block, group)))
+      .map((group) => group.id),
+  ), []);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+    if (!selected || matchesGwangjuFilter(selected, filterCats, filterFanRoles)) {
+      return;
+    }
+    setSelected(null);
+  }, [filterCats, filterFanRoles, selected]);
+
+  useEffect(() => {
+    if (!hover) return;
+    const hoveredBlock = GWANGJU_BLOCKS.find((block) => block.id === hover);
+    if (hoveredBlock && !matchesGwangjuFilter(hoveredBlock, filterCats, filterFanRoles)) {
+      setHover(null);
+    }
+  }, [filterCats, filterFanRoles, hover]);
 
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
@@ -197,6 +298,7 @@ export default function GwangjuSeatMap() {
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
+      filterFanRoles={filterFanRoles}
       zoom={zoom}
       onZoom={setZoom}
     />
@@ -239,49 +341,70 @@ export default function GwangjuSeatMap() {
     </div>
   );
 
+  const filterBar = hasSelectableBlocks ? (
+    <FilterBar
+      selectedId={filterId}
+      onChange={setFilterId}
+      mode={mode}
+      availableGroupIds={availableGroupIds}
+    />
+  ) : undefined;
+  const selectedDerivedRange = DERIVED_RANGE_BY_FILTER_GROUP_ID.get(filterId);
+  const derivedRangeSummary = selectedDerivedRange ? (
+    <DerivedRangeSummary range={selectedDerivedRange} mode={mode} />
+  ) : undefined;
+  const desktopFilterBar = filterBar ? (
+    <div className="space-y-1.5">
+      {filterBar}
+      {derivedRangeSummary}
+    </div>
+  ) : undefined;
+  const mobileFilterBar = filterBar ? (
+    <div className="mb-2.5 space-y-1.5">
+      <div className="overflow-x-auto">{filterBar}</div>
+      {derivedRangeSummary}
+    </div>
+  ) : undefined;
+
+  const detailPanel = hasSelectableBlocks ? (
+    <DetailPanel
+      section={selected}
+      mode={mode}
+      onClose={() => setSelected(null)}
+      onUpload={() => selected && setUploadFor(selected)}
+    />
+  ) : null;
+
+  const mapContent = (
+    <div className="relative">
+      {mapSvg}
+      <SeatMapHoverPreview
+        visible={Boolean(hoveredSection && hoveredCategory)}
+        title={hoveredSection?.name}
+        subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+        badgeLabel={hoveredCategory?.label}
+        accentColor={hoveredAccent}
+        description={hoveredSection ? `${getGwangjuSideLabel(hoveredSection.side)} · ${getGwangjuFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+      />
+    </div>
+  );
+
   return (
     <>
-      <div className={isMobile && hasSelectableBlocks ? 'pb-80' : undefined}>
-        {hasSelectableBlocks && (
-          <div className="mb-2.5 overflow-x-auto">
-            <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} availableCategories={usedCategorySet} />
-          </div>
-        )}
-        <div
-          data-testid="stadium-seat-map"
-          className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-3.5"
-        >
-          <div className="mb-2 px-1 text-sm font-black text-slate-800 dark:text-white">
-            광주-KIA 챔피언스필드
-            <span className="ml-2 text-[11px] font-semibold" style={{ color: '#EA0029' }}>
-              광주 KIA 공식 좌석도
-            </span>
-          </div>
-          <div className="relative">
-            {mapSvg}
-            <SeatMapHoverPreview
-              visible={Boolean(hoveredSection && hoveredCategory)}
-              title={hoveredSection?.name}
-              subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-              badgeLabel={hoveredCategory?.label}
-              accentColor={hoveredAccent}
-              description={hoveredSection ? `${getGwangjuSideLabel(hoveredSection.side)} · ${getGwangjuFanRoleLabel(hoveredSection.fanRole)}` : undefined}
-            />
-          </div>
-          {attribution}
-          {hasSelectableBlocks && legend}
-        </div>
-        {!isMobile && hasSelectableBlocks && (
-          <div className="mt-4">
-            <DetailPanel
-              section={selected}
-              mode={mode}
-              onClose={() => setSelected(null)}
-              onUpload={() => selected && setUploadFor(selected)}
-            />
-          </div>
-        )}
-        {isMobile && hasSelectableBlocks && (
+      <SeatMapTemplateShell
+        mode={mode}
+        title="광주-KIA 챔피언스필드"
+        subtitle="광주 KIA 공식 좌석도"
+        titleAccentColor="#EA0029"
+        isMobile={isMobile}
+        isDoosanGuideActive={false}
+        filterBar={desktopFilterBar}
+        mobileFilterBar={mobileFilterBar}
+        desktopFilterBar={desktopFilterBar}
+        mapContent={mapContent}
+        attribution={attribution}
+        legend={hasSelectableBlocks ? legend : undefined}
+        mobileBottomSheet={hasSelectableBlocks && selected && (
           <GwangjuBottomSheet
             section={selected}
             mode={mode}
@@ -289,7 +412,15 @@ export default function GwangjuSeatMap() {
             onUpload={() => selected && setUploadFor(selected)}
           />
         )}
-      </div>
+        mobileHasSidePanel={Boolean(hasSelectableBlocks && selected)}
+        desktopSidePanel={detailPanel}
+        toast={toast}
+        isFullscreenOpen={isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={mapContent}
+        fullscreenTitle="광주-KIA 챔피언스필드"
+        fullscreenSubtitle="광주 KIA 공식 좌석도 전체화면"
+      />
       {uploadFor && (
         <GwangjuUploadFlowModal
           section={uploadFor}
@@ -297,14 +428,6 @@ export default function GwangjuSeatMap() {
           onClose={() => setUploadFor(null)}
           onSubmit={handleUploadSubmit}
         />
-      )}
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-bold shadow-xl"
-          style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}
-        >
-          {toast}
-        </div>
       )}
     </>
   );

@@ -27,6 +27,7 @@ const REQUIRED_CORE_CATEGORIES = [
 ];
 const OFFICIAL_SOURCE_URL = 'https://www.samsunglions.com/score/score_4_2_1.asp';
 const OFFICIAL_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png', import.meta.url);
+type Point = [number, number];
 
 function pngDimensions(assetUrl: URL) {
   const buffer = readFileSync(assetUrl);
@@ -39,19 +40,94 @@ function pngDimensions(assetUrl: URL) {
 
 function pathPoints(path: string) {
   const numbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  const points: Array<[number, number]> = [];
+  const points: Point[] = [];
   for (let index = 0; index < numbers.length; index += 2) {
     points.push([numbers[index], numbers[index + 1]]);
   }
   return points;
 }
 
-function orientation(a: [number, number], b: [number, number], c: [number, number]) {
+function geometryPaths(block: (typeof DAEGU_BLOCKS)[number]) {
+  return block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
+}
+
+function polygonArea(points: Point[]) {
+  return Math.abs(points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return sum + (point[0] * next[1]) - (next[0] * point[1]);
+  }, 0) / 2);
+}
+
+function blockArea(block: (typeof DAEGU_BLOCKS)[number]) {
+  return geometryPaths(block).reduce((sum, path) => sum + polygonArea(pathPoints(path)), 0);
+}
+
+function distanceToSegment(point: Point, start: Point, end: Point) {
+  const segmentX = end[0] - start[0];
+  const segmentY = end[1] - start[1];
+  const lengthSquared = (segmentX * segmentX) + (segmentY * segmentY);
+  if (lengthSquared === 0) return Math.hypot(point[0] - start[0], point[1] - start[1]);
+
+  const ratio = Math.max(0, Math.min(1, (
+    ((point[0] - start[0]) * segmentX) + ((point[1] - start[1]) * segmentY)
+  ) / lengthSquared));
+
+  return Math.hypot(
+    point[0] - (start[0] + (ratio * segmentX)),
+    point[1] - (start[1] + (ratio * segmentY)),
+  );
+}
+
+function pointOnPolygonBoundary(point: Point, polygon: Point[], tolerance = 0.75) {
+  for (let index = 0; index < polygon.length; index += 1) {
+    const start = polygon[index];
+    const end = polygon[(index + 1) % polygon.length];
+    if (distanceToSegment(point, start, end) <= tolerance) return true;
+  }
+
+  return false;
+}
+
+function pointInPolygon(point: Point, polygon: Point[]) {
+  if (polygon.length < 3) return false;
+  if (pointOnPolygonBoundary(point, polygon)) return true;
+
+  const [x, y] = point;
+  let inside = false;
+  for (let current = 0, previous = polygon.length - 1; current < polygon.length; previous = current, current += 1) {
+    const [xi, yi] = polygon[current];
+    const [xj, yj] = polygon[previous];
+    const intersects = ((yi > y) !== (yj > y))
+      && (x < (((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON)) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInBlockPath(point: Point, block: (typeof DAEGU_BLOCKS)[number]) {
+  return geometryPaths(block).some((path) => pointInPolygon(point, pathPoints(path)));
+}
+
+function topHitBlockAt(point: Point) {
+  let topBlock: (typeof DAEGU_BLOCKS)[number] | null = null;
+
+  [...DAEGU_BLOCKS]
+    .sort((a, b) => blockArea(b) - blockArea(a))
+    .forEach((block) => {
+      if (pointInBlockPath(point, block)) {
+        topBlock = block;
+      }
+    });
+
+  return topBlock;
+}
+
+function orientation(a: Point, b: Point, c: Point) {
   const value = ((b[0] - a[0]) * (c[1] - a[1])) - ((b[1] - a[1]) * (c[0] - a[0]));
   return Math.sign(value);
 }
 
-function segmentsIntersect(a: [number, number], b: [number, number], c: [number, number], d: [number, number]) {
+function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
   const o1 = orientation(a, b, c);
   const o2 = orientation(a, b, d);
   const o3 = orientation(c, d, a);
@@ -59,7 +135,7 @@ function segmentsIntersect(a: [number, number], b: [number, number], c: [number,
   return Boolean(o1 && o2 && o3 && o4 && o1 !== o2 && o3 !== o4);
 }
 
-function hasSelfIntersection(points: Array<[number, number]>) {
+function hasSelfIntersection(points: Point[]) {
   for (let index = 0; index < points.length; index += 1) {
     const a = points[index];
     const b = points[(index + 1) % points.length];
@@ -208,6 +284,26 @@ test('대구 공식 좌석도 polygon은 4점 사각형 일괄 회귀를 허용�
 
   assert.equal(fourPointPolygons.length, 0, 'official Daegu hit areas should not regress to 4-point rectangles');
   assert.ok(detailedPolygons.length >= 160, `expected most Daegu hit areas to use detailed polygons, got ${detailedPolygons.length}`);
+});
+
+test('대구 공식 트레이싱 블록은 label 좌표에서 자기 자신으로 선택된다', () => {
+  if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
+    assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
+    return;
+  }
+
+  const officialBlocks = DAEGU_BLOCKS.filter((block) => block.traceStatus === 'OFFICIAL_IMAGE_TRACED');
+  assert.ok(officialBlocks.length > 0, 'Daegu should keep at least one locked official traced block');
+
+  officialBlocks.forEach((block) => {
+    const labelPoint: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+    assert.ok(pointInBlockPath(labelPoint, block), `${block.id} label should stay inside its current path`);
+    assert.equal(
+      topHitBlockAt(labelPoint)?.id,
+      block.id,
+      `${block.id} label top-hit should resolve to itself`,
+    );
+  });
 });
 
 test('대구 좌석도 viewport는 좌표 보정 중 전체 공식 이미지 좌표계를 사용한다', () => {

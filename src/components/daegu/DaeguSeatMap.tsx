@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   DAEGU_BLOCKS,
   DAEGU_CATEGORIES,
@@ -13,11 +15,52 @@ import {
   type DaeguBlock,
 } from '../../data/daeguSeatData';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
+import { useDiaryStore } from '../../store/diaryStore';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import DaeguBottomSheet from './DaeguBottomSheet';
-import DaeguSeatMapSvg from './DaeguSeatMapSvg';
-import DaeguUploadFlowModal from './DaeguUploadFlowModal';
+import DaeguSeatMapSvg, { type DaeguSeatMapPan } from './DaeguSeatMapSvg';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.25;
+const FINDER_FOCUS_ZOOM = 1.6;
+
+function formatDraftDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeSearchText(value: string): string {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
+function blockSearchText(block: DaeguBlock): string {
+  const category = DAEGU_CATEGORIES[block.category];
+  return [
+    block.id,
+    block.name,
+    block.block,
+    `${block.block}블록`,
+    ...block.officialBlocks,
+    ...block.seatViewSections,
+    category?.label,
+    getDaeguSideLabel(block.side),
+    getDaeguFanRoleLabel(block.fanRole),
+    getDaeguTraceStatusLabel(block.traceStatus),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function clampZoom(value: number) {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
+}
 
 function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChange: (value: string) => void; mode: 'light' | 'dark' }) {
   return (
@@ -28,6 +71,8 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
           <button
             key={group.id}
             type="button"
+            data-testid={`daegu-filter-${group.id}`}
+            aria-pressed={active}
             onClick={() => onChange(group.id)}
             className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
             style={{
@@ -41,6 +86,116 @@ function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChang
         );
       })}
     </div>
+  );
+}
+
+function SectionFinder({
+  blocks,
+  totalCount,
+  selected,
+  mode,
+  searchTerm,
+  onSearchChange,
+  onSelect,
+  onHover,
+}: {
+  blocks: DaeguBlock[];
+  totalCount: number;
+  selected: DaeguBlock | null;
+  mode: 'light' | 'dark';
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  onSelect: (block: DaeguBlock) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
+
+  return (
+    <aside
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      data-testid="daegu-section-finder"
+    >
+      <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 dark:text-white">블록 검색</h3>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-400">
+              {blocks.length}/{totalCount}개 표시
+            </p>
+          </div>
+          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-black text-[#074CA1] dark:bg-blue-950/45 dark:text-blue-200">
+            DAEGU
+          </span>
+        </div>
+        <label className="relative mt-3 block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            data-testid="daegu-block-search"
+            aria-label="대구 좌석 블록 검색"
+            type="search"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="블록, 구역명 검색 (예: 1-1, 블루존)"
+            className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#074CA1] focus:bg-white dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
+            style={{ borderColor }}
+          />
+        </label>
+      </div>
+      <div className="max-h-[520px] overflow-y-auto p-2">
+        {blocks.length > 0 ? (
+          <div className="space-y-1.5">
+            {blocks.map((block) => {
+              const cat = DAEGU_CATEGORIES[block.category];
+              const accent = mode === 'dark' ? cat.dark : cat.light;
+              const active = selected?.id === block.id;
+              const needsReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW';
+
+              return (
+                <button
+                  key={block.id}
+                  type="button"
+                  data-testid={`daegu-section-finder-item-${block.id}`}
+                  onClick={() => onSelect(block)}
+                  onMouseEnter={() => onHover(block.id)}
+                  onMouseLeave={() => onHover(null)}
+                  className="w-full cursor-pointer rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800"
+                  style={{
+                    borderColor: active ? accent : 'transparent',
+                    background: active ? `${accent}14` : 'transparent',
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-black text-white" style={{ background: accent }}>
+                          {block.block}
+                        </span>
+                        <span className="text-xs font-black text-slate-800 dark:text-white">{block.name}</span>
+                      </div>
+                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {cat.label} · {getDaeguSideLabel(block.side)} · {getDaeguFanRoleLabel(block.fanRole)}
+                      </p>
+                    </div>
+                    {needsReview && (
+                      <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-black text-orange-700 dark:bg-orange-950/40 dark:text-orange-200">
+                        검수 필요
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex min-h-[180px] flex-col items-center justify-center px-4 text-center">
+            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색 결과가 없습니다</p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+              블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
+            </p>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -143,7 +298,7 @@ function DetailPanel({
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           style={{ background: accent }}
         >
-          + 이 구역 시야 사진 올리기
+          다이어리에서 시야 사진 공유하기
         </button>
       </div>
     </div>
@@ -152,14 +307,27 @@ function DetailPanel({
 
 export default function DaeguSeatMap() {
   const { resolvedTheme } = useTheme();
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuthSession();
+  const { requireLogin } = useAuthAccessActions();
+  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [selected, setSelected] = useState<DaeguBlock | null>(null);
   const [hover, setHover] = useState<string | null>(null);
-  const [zoom] = useState(1);
+  const [zoom, setZoom] = useState(MIN_ZOOM);
+  const [pan, setPan] = useState<DaeguSeatMapPan>({ x: 0, y: 0 });
   const [filterId, setFilterId] = useState('all');
-  const [isMobile, setIsMobile] = useState(false);
-  const [uploadFor, setUploadFor] = useState<DaeguBlock | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({
+    blockId: null,
+    requestId: 0,
+  });
+  const {
+    isMobile,
+    isFullscreenOpen,
+    openFullscreen,
+    closeFullscreen,
+  } = useSeatMapTemplateShellState();
   const filterGroup = DAEGU_CATEGORY_GROUPS.find((group) => group.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
   const hasOfficialBlocks = DAEGU_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEGU_BLOCKS.length > 0;
@@ -167,22 +335,80 @@ export default function DaeguSeatMap() {
   const hoveredCategory = hoveredSection ? DAEGU_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#074CA1';
   const usedCategories = useMemo(() => [...new Set(DAEGU_BLOCKS.map((block) => block.category))], []);
+  const visibleBlocks = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchTerm);
+    return DAEGU_BLOCKS.filter((block) => {
+      if (filterCats !== null && !filterCats.includes(block.category)) {
+        return false;
+      }
+      if (!normalizedQuery) {
+        return true;
+      }
+      return normalizeSearchText(blockSearchText(block)).includes(normalizedQuery);
+    });
+  }, [filterCats, searchTerm]);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
+      setPan({ x: 0, y: 0 });
+    }
+  }, [pan.x, pan.y, zoom]);
+
+  useEffect(() => {
+    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
+      return;
+    }
+    setSelected(null);
+  }, [filterCats, selected]);
+
+  useEffect(() => {
+    if (!hover) return;
+    const hoveredBlock = DAEGU_BLOCKS.find((block) => block.id === hover);
+    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
+      setHover(null);
+    }
+  }, [filterCats, hover]);
+
+  const handleZoomChange = useCallback((nextZoom: number) => {
+    const normalizedZoom = clampZoom(nextZoom);
+    setZoom(normalizedZoom);
+    if (normalizedZoom === MIN_ZOOM) {
+      setPan({ x: 0, y: 0 });
+    }
   }, []);
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    setToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-    setTimeout(() => setToast(null), 2800);
-  }, [uploadFor]);
+  const handleSelectSection = useCallback((section: DaeguBlock) => {
+    setSelected(section);
+    setHover(section.id);
+    setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
+    setMapFocusRequest((current) => ({
+      blockId: section.id,
+      requestId: current.requestId + 1,
+    }));
+  }, []);
 
-  const mapSvg = (
+  const handleShareSeatView = useCallback((section: DaeguBlock | null) => {
+    if (!section) return;
+
+    setPendingDraft({
+      date: formatDraftDate(new Date()),
+      stadium: 'DAEGU',
+      team: '삼성',
+      section: section.name,
+      block: section.block,
+      seatRow: '',
+      seatNumber: '',
+    });
+
+    if (!isLoggedIn) {
+      requireLogin('/mypage');
+      return;
+    }
+
+    navigate('/mypage');
+  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+
+  const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <DaeguSeatMapSvg
       mode={mode}
       selected={selected}
@@ -191,6 +417,16 @@ export default function DaeguSeatMap() {
       setHover={setHover}
       filterCats={filterCats}
       zoom={zoom}
+      pan={pan}
+      onPanChange={setPan}
+      onZoomChange={handleZoomChange}
+      minZoom={MIN_ZOOM}
+      maxZoom={MAX_ZOOM}
+      zoomStep={ZOOM_STEP}
+      focusBlockId={mapFocusRequest.blockId}
+      focusRequestId={mapFocusRequest.requestId}
+      enableAutoCenter={enableAutoCenter}
+      onFullscreenOpen={allowFullscreen && hasOfficialBlocks ? openFullscreen : undefined}
     />
   );
 
@@ -231,73 +467,95 @@ export default function DaeguSeatMap() {
     </div>
   );
 
+  const mapContent = (
+    <div className="relative">
+      {renderMapSvg(!isFullscreenOpen)}
+      <SeatMapHoverPreview
+        visible={Boolean(hoveredSection && hoveredCategory)}
+        title={hoveredSection?.name}
+        subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+        badgeLabel={hoveredCategory?.label}
+        accentColor={hoveredAccent}
+        description={hoveredSection ? `${getDaeguSideLabel(hoveredSection.side)} · ${getDaeguFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+      />
+    </div>
+  );
+
+  const filterBar = hasOfficialBlocks ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined;
+  const sectionFinder = hasOfficialBlocks ? (
+    <SectionFinder
+      blocks={visibleBlocks}
+      totalCount={DAEGU_BLOCKS.length}
+      selected={selected}
+      mode={mode}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      onSelect={handleSelectSection}
+      onHover={setHover}
+    />
+  ) : null;
+  const detailPanel = hasOfficialBlocks && selected ? (
+    <DetailPanel
+      section={selected}
+      mode={mode}
+      onClose={() => setSelected(null)}
+      onUpload={() => handleShareSeatView(selected)}
+    />
+  ) : null;
+
   return (
     <>
-      <div className={isMobile && hasOfficialBlocks ? 'pb-80' : undefined}>
-        {hasOfficialBlocks && (
-          <div className="mb-2.5 overflow-x-auto">
-            <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
-          </div>
-        )}
-        <div
-          data-testid="stadium-seat-map"
-          className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-3.5"
-        >
-          <div className="mb-2 px-1 text-sm font-black text-slate-800 dark:text-white">
-            대구삼성라이온즈파크
-            <span className="ml-2 text-[11px] font-semibold" style={{ color: '#074CA1' }}>
-              대구 삼성 공식 좌석도
-            </span>
-          </div>
-          <div className="relative">
-            {mapSvg}
-            <SeatMapHoverPreview
-              visible={Boolean(hoveredSection && hoveredCategory)}
-              title={hoveredSection?.name}
-              subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
-              badgeLabel={hoveredCategory?.label}
-              accentColor={hoveredAccent}
-              description={hoveredSection ? `${getDaeguSideLabel(hoveredSection.side)} · ${getDaeguFanRoleLabel(hoveredSection.fanRole)}` : undefined}
-            />
-          </div>
-          {attribution}
-          {hasOfficialBlocks && legend}
-        </div>
-        {!isMobile && hasOfficialBlocks && (
-          <div className="mt-4">
-            <DetailPanel
-              section={selected}
-              mode={mode}
-              onClose={() => setSelected(null)}
-              onUpload={() => selected && setUploadFor(selected)}
-            />
-          </div>
-        )}
-        {isMobile && hasOfficialBlocks && (
+      <SeatMapTemplateShell
+        mode={mode}
+        title="대구삼성라이온즈파크"
+        subtitle="대구 삼성 공식 좌석도"
+        titleAccentColor="#074CA1"
+        isMobile={isMobile}
+        isDoosanGuideActive={false}
+        filterBar={filterBar}
+        mobileFilterBar={hasOfficialBlocks ? <div className="mb-2.5 overflow-x-auto">{filterBar}</div> : undefined}
+        desktopFilterBar={filterBar}
+        mapContent={mapContent}
+        attribution={attribution}
+        legend={hasOfficialBlocks ? legend : undefined}
+        mobileSidePanel={hasOfficialBlocks ? sectionFinder : null}
+        mobileBottomSheet={hasOfficialBlocks && selected && (
           <DaeguBottomSheet
             section={selected}
             mode={mode}
             onClose={() => setSelected(null)}
-            onUpload={() => selected && setUploadFor(selected)}
+            onUpload={() => handleShareSeatView(selected)}
           />
         )}
-      </div>
-      {uploadFor && (
-        <DaeguUploadFlowModal
-          section={uploadFor}
-          mode={mode}
-          onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
-        />
-      )}
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-bold shadow-xl"
-          style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}
-        >
-          {toast}
-        </div>
-      )}
+        mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
+        desktopSidePanel={hasOfficialBlocks ? (
+          <div className="space-y-3">
+            {sectionFinder}
+            {detailPanel}
+          </div>
+        ) : null}
+        isFullscreenOpen={isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={(
+          <div className="w-full">
+            <div className="relative">
+              {renderMapSvg(true, false)}
+              <SeatMapHoverPreview
+                visible={Boolean(hoveredSection && hoveredCategory)}
+                title={hoveredSection?.name}
+                subtitle={hoveredSection ? `블록 ${hoveredSection.block}` : undefined}
+                badgeLabel={hoveredCategory?.label}
+                accentColor={hoveredAccent}
+                description={hoveredSection ? `${getDaeguSideLabel(hoveredSection.side)} · ${getDaeguFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+              />
+            </div>
+          </div>
+        )}
+        fullscreenDialogTestId="daegu-seatmap-fullscreen"
+        fullscreenCloseTestId="daegu-seatmap-fullscreen-close"
+        fullscreenTitle="대구삼성라이온즈파크"
+        fullscreenSubtitle="삼성 공식 좌석도 전체화면"
+      />
     </>
   );
 }

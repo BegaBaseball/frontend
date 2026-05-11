@@ -1,6 +1,6 @@
 import type { MutableRefObject } from 'react';
 
-import type { MatchDayResult } from '../api/prediction';
+import type { MatchDayResult } from '../api/predictionMatchDay';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import { getTodayString } from '../utils/predictionDates';
 import { mergePredictionDateBuckets } from '../utils/predictionRangeLoader';

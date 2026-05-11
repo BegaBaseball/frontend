@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   GWANGJU_CATEGORIES,
   GWANGJU_VIEW_INFO,
+  getGwangjuDerivedOperatorRangesForBlock,
   getGwangjuFanRoleLabel,
   getGwangjuSideLabel,
   getGwangjuSourceLabel,
@@ -60,6 +61,7 @@ export default function GwangjuBottomSheet({ section, mode, onClose, onUpload }:
   const cat = GWANGJU_CATEGORIES[section.category];
   const accent = mode === 'dark' ? cat.dark : cat.light;
   const info = GWANGJU_VIEW_INFO[section.id] ?? GWANGJU_VIEW_INFO.default;
+  const derivedRanges = getGwangjuDerivedOperatorRangesForBlock(section.id);
 
   return (
     <div
@@ -117,6 +119,22 @@ export default function GwangjuBottomSheet({ section, mode, onClose, onUpload }:
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
             {getGwangjuSourceLabel(section.sourceConfidence)}
           </span>
+          {derivedRanges.map((range) => (
+            <span
+              key={range.id}
+              data-testid={`gwangju-bottom-sheet-derived-range-${range.id}`}
+              data-derived-range-id={range.id}
+              data-derived-blocks={range.displayBlocks}
+              className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+              style={{
+                background: mode === 'dark' ? '#1e293b' : '#f8fafc',
+                borderColor: mode === 'dark' ? '#334155' : '#e2e8f0',
+                color: mode === 'dark' ? '#cbd5e1' : '#334155',
+              }}
+            >
+              {range.label} {range.displayBlocks}
+            </span>
+          ))}
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-2">

@@ -3,6 +3,7 @@ import {
   INCHEON_CATEGORIES,
   INCHEON_VIEW_INFO,
   getIncheonFanRoleLabel,
+  getIncheonSeatViewAliases,
   getIncheonSideLabel,
   getIncheonSourceLabel,
   type IncheonBlock,
@@ -166,7 +167,7 @@ export default function IncheonBottomSheet({ section, mode, onClose, onUpload }:
           <SeatViewGallery
             stadium="INCHEON"
             section={section.name}
-            sectionAliases={section.seatViewSections}
+            sectionAliases={getIncheonSeatViewAliases(section)}
             compact
           />
         </div>

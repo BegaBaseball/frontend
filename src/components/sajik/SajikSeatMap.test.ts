@@ -13,9 +13,17 @@ test('SajikSeatMap은 공식 사직 좌석도와 대표 블럭 markup을 렌더�
   assert.match(html, /data-testid="stadium-seat-map"/);
   assert.match(html, /부산 사직야구장/);
   assert.match(html, /사직 롯데 공식 좌석도/);
+  assert.match(html, /처음 사직 가이드/);
+  assert.match(html, /블록\/좌석 검색/);
+  assert.match(html, /홈 응원/);
+  assert.match(html, /원정\/3루/);
+  assert.match(html, /중앙\/테이블/);
   assert.match(html, /롯데자이언츠 공식 좌석안내 2026 시즌/);
   assert.match(html, /1루 내야필드석 111블록/);
   assert.match(html, /중앙탁자석 021블록/);
+  assert.match(html, /data-trace-method="PATH_TRACED_FROM_OFFICIAL_IMAGE"/);
+  assert.match(html, /data-pixel-alignment-status="PIXEL_ALIGNED"/);
+  assert.match(html, /data-manual-reviewed="true"/);
   assert.match(html, /다이어리에서 시야 사진을 공유/);
   assert.match(html, /sajik-lotte-seatmap-official-2026\.png/);
   assert.doesNotMatch(html, /data-testid="sajik-official-seatmap-required"/);
