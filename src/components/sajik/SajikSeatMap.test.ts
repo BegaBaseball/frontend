@@ -16,6 +16,9 @@ test('SajikSeatMap은 공식 사직 좌석도와 대표 블럭 markup을 렌더�
   assert.match(html, /롯데자이언츠 공식 좌석안내 2026 시즌/);
   assert.match(html, /1루 내야필드석 111블록/);
   assert.match(html, /중앙탁자석 021블록/);
+  assert.match(html, /data-trace-method="PATH_TRACED_FROM_OFFICIAL_IMAGE"/);
+  assert.match(html, /data-pixel-alignment-status="PIXEL_ALIGNED"/);
+  assert.match(html, /data-manual-reviewed="true"/);
   assert.match(html, /다이어리에서 시야 사진을 공유/);
   assert.match(html, /sajik-lotte-seatmap-official-2026\.png/);
   assert.doesNotMatch(html, /data-testid="sajik-official-seatmap-required"/);

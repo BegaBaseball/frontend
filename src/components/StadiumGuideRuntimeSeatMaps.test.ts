@@ -170,3 +170,107 @@ test('구장별 전용 좌석도는 시야/preview 연결 계약을 유지한다
     );
   });
 });
+
+test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정한다', () => {
+  const packageSource = readProjectFile('package.json');
+  const releaseLockSource = readProjectFile('docs/sajik-seatmap-release-lock.md');
+  const manifestSource = readProjectFile('scripts/sajik-seatmap-review-manifest.mjs');
+  const evidenceSource = readProjectFile('scripts/sajik-seatmap-evidence-crops.mjs');
+  const dataTestSource = readProjectFile('src/data/sajikSeatData.test.ts');
+  const svgSource = readProjectFile('src/components/sajik/SajikSeatMapSvg.tsx');
+
+  [
+    'sajik-lotte-seatmap-official-2026.png',
+    '공식 이미지 좌표계: `960x640`',
+    '`SAJIK_BLOCKS.length === 89`',
+    '`totalBlocks=89`',
+    '`p0Blocks=39`',
+    '`p1Blocks=16`',
+    '`p2Blocks=34`',
+    '`officialImageTraced=89`',
+    '`needsOperatorReview=0`',
+    '`directOfficialTrace=89`',
+    '`officialPngManualPolygon=89`',
+    '`manualPolygonV2=89`',
+    '`manualReviewed=89`',
+    '`unreviewedBlocks=0`',
+    '`pixelAligned=87`',
+    '`manualReviewRequired=2`',
+    '`officialPngBlockNotVisible=2`',
+    '`alignmentLockedVerified=87`',
+    '`alignmentFailures=0`',
+    '`refinedPolygons=83`',
+    '`OFFICIAL_PNG_MANUAL_POLYGON`',
+    '`manual-polygon-v2`',
+    '`PATH_TRACED_FROM_OFFICIAL_IMAGE`',
+    '`PIXEL_ALIGNED`',
+    '`OFFICIAL_PNG_BLOCK_NOT_VISIBLE`',
+    '예외 블럭: `011`, `903`',
+    '`SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS`',
+    '`SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS`',
+    '실제 클릭 정합 검증은 `PIXEL_ALIGNED` 87개만 대상으로 한다.',
+    '`reports/stadium/sajik-seatmap-trace-review.json`',
+    '`reports/stadium/sajik-seatmap-evidence-contact-sheet.png`',
+    '`reports/stadium/sajik-seatmap-alignment-audit.json`',
+    '`reports/stadium/sajik-seatmap-advisory-playwright-review.md`',
+    '모든 운영 polygon은 `M/L/Z` 단일 폐합 path여야 한다.',
+    '`PIXEL_ALIGNED` 블럭의 label 좌표 클릭은 렌더 순서상 자기 block을 최상위 hit-area로 가져야 한다.',
+    '`OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외 블럭은 클릭 정합 release gate에서 제외하되',
+    '외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.',
+    '`MANUAL_BASEBALL_DATA_REQUIRED`',
+    'npm run stadium:sajik:alignment-audit',
+    'npm run stadium:sajik:evidence',
+    'npm run test:stadium:seatmaps',
+    'npm run qa:stadium:sajik:trace-review',
+    'npm run build',
+    '`SAJIK_OFFICIAL_TRACE_REFERENCE`의 `expectedPointCount` 또는 `expectedArea`가 현재 path와 다르다.',
+  ].forEach((requiredText) => {
+    assert.ok(releaseLockSource.includes(requiredText), `release lock should include ${requiredText}`);
+  });
+
+  [
+    '"stadium:sajik:evidence": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && npm run stadium:sajik:trace-manifest && node --import tsx scripts/sajik-seatmap-evidence-crops.mjs"',
+    '"stadium:sajik:advisory-playwright": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs"',
+    '"qa:stadium:sajik:trace-review": "npm run stadium:sajik:evidence && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs && npm run qa:stadium:sajik:mobile && npm run stadium:sajik:alignment-audit"',
+    'node scripts/stadium-ux-audit.mjs',
+  ].forEach((requiredText) => {
+    assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
+  });
+
+  [
+    'alignmentLockedVerified',
+    'officialPngBlockNotVisible',
+    'manualPolygonV2',
+    'refinedPolygons',
+  ].forEach((requiredText) => {
+    assert.ok(manifestSource.includes(requiredText), `Sajik manifest should include ${requiredText}`);
+  });
+
+  [
+    'sajik-seatmap-evidence-contact-sheet.png',
+    'sajik-seatmap-evidence-${tier.toLowerCase()}.png',
+    'tierOrder = [',
+    'OFFICIAL_PNG_MANUAL_POLYGON',
+    'manual-polygon-v2',
+  ].forEach((requiredText) => {
+    assert.ok(evidenceSource.includes(requiredText), `Sajik evidence script should include ${requiredText}`);
+  });
+
+  [
+    '사직 polygon은 단일 폐합 path이고 자기 교차가 없다',
+    '사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다',
+    '사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다',
+    'expectedArea',
+    'SAJIK_TRACE_AREA_TOLERANCE_PX2',
+  ].forEach((requiredText) => {
+    assert.ok(dataTestSource.includes(requiredText), `Sajik data test should include ${requiredText}`);
+  });
+
+  [
+    'data-trace-method',
+    'data-pixel-alignment-status',
+    'data-manual-reviewed',
+  ].forEach((requiredText) => {
+    assert.ok(svgSource.includes(requiredText), `Sajik SVG should expose ${requiredText}`);
+  });
+});

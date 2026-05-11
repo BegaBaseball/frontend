@@ -142,9 +142,9 @@ export default function SajikSeatMapSvg({
 
             const isFiltered = filterCats !== null && !filterCats.includes(block.category);
             const isActive = hover === block.id || selected?.id === block.id;
-            const isPendingReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW';
+            const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
             const baseColor = mode === 'dark' ? cat.dark : cat.light;
-            const debugStroke = isPendingReview ? '#F97316' : '#22C55E';
+            const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
             const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? 0.06 : 0.001;
             const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
             const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.58 : 0;
@@ -157,6 +157,9 @@ export default function SajikSeatMapSvg({
                   data-testid={`sajik-seat-block-${block.id}`}
                   data-label-x={block.imageGeometry.labelX}
                   data-label-y={block.imageGeometry.labelY}
+                  data-trace-method={block.imageGeometry.traceMethod}
+                  data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                  data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={`${block.name} ${block.block}`}
                   aria-pressed={isActive}
