@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO,
   SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO,
+  SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS,
   SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
   SAJIK_CATEGORY_GROUPS,
@@ -20,6 +21,10 @@ import {
   SAJIK_TRACE_REVIEW_SUMMARY,
   SAJIK_TRACE_SOURCE,
   SAJIK_TRACE_VERSION,
+  SAJIK_THIN_ALIGNMENT_DILATION_TOLERANCE_PX,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
+  SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS,
   getSajikFanRoleLabel,
   getSajikGuideMatches,
   getSajikSeatViewAliases,
@@ -220,6 +225,13 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.sourceNote, `${block.id} source note should exist`);
     assert.equal(block.traceStatus, 'OFFICIAL_IMAGE_TRACED', `${block.id} trace status should be official image traced`);
     assert.ok(block.reviewNote, `${block.id} review note should exist`);
+    assert.equal(
+      block.mapInteractionStatus,
+      SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS.includes(block.block as (typeof SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS)[number])
+        ? 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE'
+        : 'MAP_SELECTABLE',
+      `${block.id} should keep the current map interaction state`,
+    );
     assert.ok(block.officialBlocks.length > 0, `${block.id} official blocks should exist`);
     assert.ok(block.seatViewSections.length > 0, `${block.id} seat view aliases should exist`);
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
@@ -248,6 +260,8 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
 
 test('사직 trace review summary는 모든 블럭의 수동 polygon trace 완료 상태를 고정한다', () => {
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.totalBlocks, 89);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.mapSelectable, 87);
+  assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.aliasOnlyOfficialPngBlockNotVisible, 2);
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.officialImageTraced, 89);
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.needsOperatorReview, 0);
   assert.equal(SAJIK_TRACE_REVIEW_SUMMARY.directOfficialTrace, 89);
@@ -260,6 +274,10 @@ test('사직 trace review summary는 모든 블럭의 수동 polygon trace 완�
 test('사직 alignment audit 기준값과 041 정정 alias를 고정한다', () => {
   assert.equal(SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO, 0.9);
   assert.equal(SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO, 0.75);
+  assert.equal(SAJIK_THIN_ALIGNMENT_DILATION_TOLERANCE_PX, 1.5);
+  assert.equal(SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO, 0.025);
+  assert.equal(SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX, 3);
+  assert.deepEqual([...SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS], ['121', '122', '123', '124', '125', '131', '132', '133', '134', '135', '142', '143']);
   assert.deepEqual(
     SAJIK_BLOCKS
       .filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED')
@@ -267,16 +285,32 @@ test('사직 alignment audit 기준값과 041 정정 alias를 고정한다', () 
     [...SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS],
   );
   assert.deepEqual([...SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS], ['011', '903']);
+  assert.deepEqual([...SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS], ['011', '903']);
+  assert.deepEqual(
+    SAJIK_BLOCKS
+      .filter((block) => block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE')
+      .map((block) => block.block),
+    ['011', '903'],
+  );
+  assert.equal(SAJIK_BLOCKS.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE').length, 87);
 
   const officialPngNotVisibleBlock = SAJIK_BLOCKS.find((block) => block.block === '011');
   assert.ok(officialPngNotVisibleBlock, '011 compatibility block should remain explicit');
   assert.equal(officialPngNotVisibleBlock.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED');
+  assert.equal(officialPngNotVisibleBlock.mapInteractionStatus, 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE');
   assert.match(officialPngNotVisibleBlock.imageGeometry.manualReviewNote ?? '', /공식 PNG/);
 
   const everyTimeCompatibilityBlock = SAJIK_BLOCKS.find((block) => block.block === '903');
   assert.ok(everyTimeCompatibilityBlock, '903 compatibility block should remain explicit');
   assert.equal(everyTimeCompatibilityBlock.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED');
+  assert.equal(everyTimeCompatibilityBlock.mapInteractionStatus, 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE');
   assert.match(everyTimeCompatibilityBlock.imageGeometry.manualReviewNote ?? '', /공식 PNG/);
+
+  const retraced143 = SAJIK_BLOCKS.find((block) => block.block === '143');
+  assert.ok(retraced143, '143 should remain explicit');
+  assert.equal(retraced143.mapInteractionStatus, 'MAP_SELECTABLE');
+  assert.equal(pathToPoints(retraced143.imageGeometry.d).length, 10);
+  assert.deepEqual(pathBounds(retraced143.imageGeometry.d), { minX: 779, minY: 458, maxX: 813, maxY: 481 });
 
   const central041 = SAJIK_BLOCKS.find((block) => block.block === '041');
   assert.ok(central041, '041 block should exist from official PNG');
@@ -354,7 +388,9 @@ test('사직 polygon은 단일 폐합 path이고 자기 교차가 없다', () =>
 });
 
 test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다', () => {
-  const sortedBlocks = [...SAJIK_BLOCKS].sort((left, right) => left.displayPriority - right.displayPriority);
+  const sortedBlocks = [...SAJIK_BLOCKS]
+    .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
+    .sort((left, right) => left.displayPriority - right.displayPriority);
 
   sortedBlocks.forEach((block) => {
     const hits = sortedBlocks.filter((candidate) => (
@@ -368,11 +404,24 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
     assert.ok(hits.length > 0, `${block.id} label should hit at least one polygon`);
     assert.equal(hits.at(-1)?.id, block.id, `${block.id} label should not be covered by a later-rendered polygon`);
   });
+
+  SAJIK_BLOCKS
+    .filter((block) => block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE')
+    .forEach((block) => {
+      const hits = sortedBlocks.filter((candidate) => (
+        isPointInsidePolygon(
+          block.imageGeometry.labelX,
+          block.imageGeometry.labelY,
+          pathToPoints(candidate.imageGeometry.d),
+        )
+      ));
+      assert.notEqual(hits.at(-1)?.id, block.id, `${block.id} should not be selectable from the map hit stack`);
+    });
 });
 
 test('사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다', () => {
   const refinedBlocks = SAJIK_BLOCKS.filter((block) => pathToPoints(block.imageGeometry.d).length > 4);
-  const thinFirstBaseBlocks = new Set(['121', '122', '123', '124', '131', '132', '134', '135', '142', '143']);
+  const thinFirstBaseBlocks = new Set(['121', '122', '123', '124', '125', '131', '132', '133', '134', '135', '142', '143']);
 
   assert.ok(refinedBlocks.length >= 45, 'at least 45 Sajik blocks should use refined polygons with more than 4 points');
   SAJIK_BLOCKS
@@ -415,6 +464,7 @@ test('사직 시야 갤러리 alias에는 구장/팀/블록/좌석등급명이 �
     traceStatus: 'OFFICIAL_IMAGE_TRACED',
     reviewNote: 'test',
     displayPriority: 1,
+    mapInteractionStatus: 'MAP_SELECTABLE',
     sourceConfidence: 'OFFICIAL',
     sourceNote: 'test',
     seatViewSections: ['1루 필드석'],

@@ -10,6 +10,8 @@ import {
   SAJIK_SEATMAP_IMAGE,
   SAJIK_TRACE_ANCHOR_TOLERANCE_PX,
   SAJIK_TRACE_BOUNDS_TOLERANCE_PX,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
 } from '../src/data/sajikSeatData.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -169,8 +171,11 @@ const blockRows = SAJIK_BLOCKS.map((block) => {
     traceVersion: block.imageGeometry.traceVersion,
     manualReviewed: block.imageGeometry.manualReviewed,
     pixelAlignmentStatus: block.imageGeometry.pixelAlignmentStatus,
+    mapInteractionStatus: block.mapInteractionStatus,
     alignmentClass: alignment?.alignmentClass ?? 'NOT_RUN',
     componentInsidePathRatio: alignment?.componentInsidePathRatio ?? '',
+    componentOutsideDilatedPathRatio: alignment?.componentOutsideDilatedPathRatio ?? '',
+    maxComponentOutsidePathDistance: alignment?.maxComponentOutsidePathDistance ?? '',
     pathColorCoverageRatio: alignment?.pathColorCoverageRatio ?? '',
     manualReviewNote: block.imageGeometry.manualReviewNote,
     path: block.imageGeometry.d,
@@ -204,6 +209,8 @@ const summary = {
   unreviewedBlocks: blockRows.filter((row) => row.manualReviewed !== true).length,
   pixelAligned: blockRows.filter((row) => row.pixelAlignmentStatus === 'PIXEL_ALIGNED').length,
   manualReviewRequired: blockRows.filter((row) => row.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED').length,
+  mapSelectable: blockRows.filter((row) => row.mapInteractionStatus === 'MAP_SELECTABLE').length,
+  aliasOnlyOfficialPngBlockNotVisible: blockRows.filter((row) => row.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE').length,
   refinedPolygons: blockRows.filter((row) => row.actualPointCount > 4).length,
   alignmentLockedVerified: alignmentSummary?.lockedVerified ?? blockRows.filter((row) => row.alignmentClass === 'LOCKED_VERIFIED').length,
   officialPngBlockNotVisible: alignmentSummary?.officialPngBlockNotVisible ?? blockRows.filter((row) => row.alignmentClass === 'OFFICIAL_PNG_BLOCK_NOT_VISIBLE').length,
@@ -211,6 +218,8 @@ const summary = {
   alignmentThresholds: {
     minComponentInsidePathRatio: SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO,
     minPathColorCoverageRatio: SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO,
+    maxThinComponentOutsideDilatedPathRatio: SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
+    maxThinComponentOutsidePathDistancePx: SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
   },
 };
 
@@ -268,10 +277,12 @@ const markdown = [
   `- unreviewed blocks: ${summary.unreviewedBlocks}`,
   `- pixel aligned: ${summary.pixelAligned}`,
   `- manual review required: ${summary.manualReviewRequired}`,
+  `- map selectable: ${summary.mapSelectable}`,
+  `- alias-only official PNG block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
   `- alignment locked verified: ${summary.alignmentLockedVerified}`,
   `- official PNG block not visible: ${summary.officialPngBlockNotVisible}`,
   `- alignment failures: ${summary.alignmentFailures}`,
-  `- alignment thresholds: component>=${SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO}, coverage>=${SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO}`,
+  `- alignment thresholds: component>=${SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO}, coverage>=${SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO}, thinOutside<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO}, thinMaxDistance<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX}`,
   `- needs operator review: ${summary.needsOperatorReview || '-'}`,
   '',
   '## 검수 우선순위',
@@ -286,7 +297,7 @@ const markdown = [
   '1. `npm run stadium:sajik:alignment-audit`를 실행해 공식 PNG 픽셀 정합을 먼저 검증합니다.',
   '2. `/stadium?sajikDebug=1`에서 P0 -> P1 -> P2 순서로 공식 이미지와 overlay를 비교합니다.',
   '3. 모든 블럭은 `PATH_TRACED_FROM_OFFICIAL_IMAGE`, `OFFICIAL_PNG_MANUAL_POLYGON`, `manual-polygon-v2`, `manualReviewed=true` 상태여야 하며, 공식 PNG 색상 블럭이 확인되는 블럭은 `PIXEL_ALIGNED` 상태여야 합니다.',
-  '4. 공식 PNG에서 색상 블럭이 보이지 않는 운영 호환 블럭은 `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외로만 보존합니다.',
+  '4. 공식 PNG에서 색상 블럭이 보이지 않는 운영 호환 블럭은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 보존하고 SVG hit-area에서는 렌더링하지 않습니다.',
   '5. 좌표 변경 후 `npm run stadium:sajik:evidence`, `npm run test:stadium:seatmaps`, `npm run qa:stadium:sajik:trace-review`를 통과시킵니다.',
   '',
 ].join('\n');
@@ -324,8 +335,11 @@ await writeCsv(csvPath, [
     'traceVersion',
     'manualReviewed',
     'pixelAlignmentStatus',
+    'mapInteractionStatus',
     'alignmentClass',
     'componentInsidePathRatio',
+    'componentOutsideDilatedPathRatio',
+    'maxComponentOutsidePathDistance',
     'pathColorCoverageRatio',
     'manualReviewNote',
     'path',
@@ -355,8 +369,11 @@ await writeCsv(csvPath, [
     block.traceVersion,
     block.manualReviewed,
     block.pixelAlignmentStatus,
+    block.mapInteractionStatus,
     block.alignmentClass,
     block.componentInsidePathRatio,
+    block.componentOutsideDilatedPathRatio,
+    block.maxComponentOutsidePathDistance,
     block.pathColorCoverageRatio,
     block.manualReviewNote,
     block.path,
@@ -367,4 +384,4 @@ await fs.writeFile(markdownPath, markdown, 'utf8');
 console.log(`manifest_json:${jsonPath}`);
 console.log(`manifest_csv:${csvPath}`);
 console.log(`manifest_markdown:${markdownPath}`);
-console.log(`status:ok total=${summary.totalBlocks} p0=${summary.p0Blocks} p1=${summary.p1Blocks} p2=${summary.p2Blocks} official=${summary.officialImageTraced} direct=${summary.directOfficialTrace} source=${summary.officialPngManualPolygon} version=${summary.manualPolygonV2} refined=${summary.refinedPolygons} reviewed=${summary.manualReviewed} pixelAligned=${summary.pixelAligned} notVisible=${summary.officialPngBlockNotVisible} alignmentLocked=${summary.alignmentLockedVerified} alignmentFailures=${summary.alignmentFailures}`);
+console.log(`status:ok total=${summary.totalBlocks} p0=${summary.p0Blocks} p1=${summary.p1Blocks} p2=${summary.p2Blocks} official=${summary.officialImageTraced} direct=${summary.directOfficialTrace} source=${summary.officialPngManualPolygon} version=${summary.manualPolygonV2} refined=${summary.refinedPolygons} reviewed=${summary.manualReviewed} pixelAligned=${summary.pixelAligned} mapSelectable=${summary.mapSelectable} aliasOnlyNotVisible=${summary.aliasOnlyOfficialPngBlockNotVisible} notVisible=${summary.officialPngBlockNotVisible} alignmentLocked=${summary.alignmentLockedVerified} alignmentFailures=${summary.alignmentFailures}`);
