@@ -260,6 +260,11 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'OFFICIAL_PNG_MANUAL_POLYGON',
     'manual-polygon-v2',
     'aliasOnlyOfficialPngBlockNotVisible',
+    'p0-143-boundary-lock',
+    'p0-132-142-143-seams',
+    'p0-123-133-143-seams',
+    'p0-011-alias-only-no-hit-area',
+    'rendersMapHitArea',
   ].forEach((requiredText) => {
     assert.ok(evidenceSource.includes(requiredText), `Sajik evidence script should include ${requiredText}`);
   });
@@ -267,6 +272,7 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
   [
     '사직 polygon은 단일 폐합 path이고 자기 교차가 없다',
     '사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다',
+    '사직 P0 143 주변 경계는 인접 블럭 polygon을 침범하지 않는다',
     '사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다',
     'SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS',
     'expectedArea',

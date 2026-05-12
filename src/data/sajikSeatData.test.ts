@@ -419,6 +419,55 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
     });
 });
 
+test('사직 P0 143 주변 경계는 인접 블럭 polygon을 침범하지 않는다', () => {
+  const blockByNumber = new Map(SAJIK_BLOCKS.map((block) => [block.block, block]));
+  const seamPairs = [
+    ['132', '142'],
+    ['142', '143'],
+    ['132', '143'],
+    ['123', '133'],
+    ['133', '143'],
+    ['123', '143'],
+  ] as const;
+
+  seamPairs.forEach(([firstBlockNumber, secondBlockNumber]) => {
+    const firstBlock = blockByNumber.get(firstBlockNumber);
+    const secondBlock = blockByNumber.get(secondBlockNumber);
+    assert.ok(firstBlock, `${firstBlockNumber} should exist`);
+    assert.ok(secondBlock, `${secondBlockNumber} should exist`);
+
+    const firstPoints = pathToPoints(firstBlock.imageGeometry.d);
+    const secondPoints = pathToPoints(secondBlock.imageGeometry.d);
+
+    firstPoints.forEach((point, index) => {
+      assert.equal(
+        isPointInsidePolygon(point[0], point[1], secondPoints),
+        false,
+        `${firstBlockNumber} vertex ${index} should not intrude into ${secondBlockNumber}`,
+      );
+    });
+    secondPoints.forEach((point, index) => {
+      assert.equal(
+        isPointInsidePolygon(point[0], point[1], firstPoints),
+        false,
+        `${secondBlockNumber} vertex ${index} should not intrude into ${firstBlockNumber}`,
+      );
+    });
+
+    firstPoints.forEach((point, edgeIndex) => {
+      const nextPoint = firstPoints[(edgeIndex + 1) % firstPoints.length];
+      secondPoints.forEach((comparePoint, compareIndex) => {
+        const compareNextPoint = secondPoints[(compareIndex + 1) % secondPoints.length];
+        assert.equal(
+          segmentsIntersect(point, nextPoint, comparePoint, compareNextPoint),
+          false,
+          `${firstBlockNumber}/${secondBlockNumber} edges ${edgeIndex}/${compareIndex} should not cross or overlap`,
+        );
+      });
+    });
+  });
+});
+
 test('사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다', () => {
   const refinedBlocks = SAJIK_BLOCKS.filter((block) => pathToPoints(block.imageGeometry.d).length > 4);
   const thinFirstBaseBlocks = new Set(['121', '122', '123', '124', '125', '131', '132', '133', '134', '135', '142', '143']);
