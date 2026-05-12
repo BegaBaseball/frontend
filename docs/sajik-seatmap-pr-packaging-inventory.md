@@ -26,6 +26,12 @@
 - 이 clean worktree에서는 `scripts/run-stadium-isolated-qa.mjs`를 포함하지 않고, 사직 QA가 `scripts/stadium-ux-audit.mjs`를 직접 실행한다.
 - `reports/*`, `dist/*`, `output/playwright/*`, `node_modules`는 재생성 산출물이므로 PR 범위에서 제외한다.
 
+## 현재 커밋 스택
+
+- `801c413c Lock Sajik seatmap polygon v2 alignment`
+- `0deba4be Refine Sajik map-selectable seat blocks`
+- `243a4ecc Fix Sajik trace review target filtering`
+
 ## 추천 PR 구성
 
 ### PR: Sajik polygon v2 release lock
