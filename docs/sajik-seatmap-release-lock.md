@@ -78,8 +78,12 @@
 - P1 evidence: `reports/stadium/sajik-seatmap-evidence-p1.png`
 - P2 evidence: `reports/stadium/sajik-seatmap-evidence-p2.png`
 - P0 thin-first-base evidence: `reports/stadium/sajik-seatmap-evidence-p0-thin-first-base.png`
+- P0 143 boundary lock evidence: `reports/stadium/sajik-seatmap-evidence-p0-143-boundary-lock.png`
+- P0 132/142/143 seam evidence: `reports/stadium/sajik-seatmap-evidence-p0-132-142-143-seams.png`
+- P0 123/133/143 seam evidence: `reports/stadium/sajik-seatmap-evidence-p0-123-133-143-seams.png`
 - P0 retraced 3b upper evidence: `reports/stadium/sajik-seatmap-evidence-p0-retraced-3b-upper.png`
 - P0 central lower 011 review evidence: `reports/stadium/sajik-seatmap-evidence-p0-central-lower-011-review.png`
+- P0 011 alias-only no-hit-area evidence: `reports/stadium/sajik-seatmap-evidence-p0-011-alias-only-no-hit-area.png`
 - P1 everytime review evidence: `reports/stadium/sajik-seatmap-evidence-p1-retraced-everytime.png`
 - Advisory Playwright summary: `reports/stadium/sajik-seatmap-advisory-playwright-review.md`
 - Advisory Playwright full screenshot: `../output/playwright/sajik-seatmap-advisory-review/sajik-advisory-playwright-full.png`
@@ -91,18 +95,19 @@
 
 ## 최신 검증 실행
 
-검증 시각: 2026-05-12 10:50:01 KST
+검증 시각: 2026-05-12 11:38:21 KST
 
 - `npm run qa:stadium:sajik:trace-review`: PASS
   - evidence 재생성 PASS
   - advisory Playwright review PASS, `advisory=2`, `panels=2`
   - mobile 390 + desktop 1440 browser QA PASS, `status:passed`
   - 최종 alignment audit PASS, `total=89 mapSelectable=87 aliasOnlyNotVisible=2 locked=87 notVisible=2 retrace=0 officialFailures=0 thinOutsideFailures=0`
-- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `23/23`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `24/24`
 - `npm run build`: PASS
 - `git diff --check`: PASS
-- P0 thin-first-base evidence에서 `143` overlay는 공식 파란 블럭 경계 안에 잠기며, `132/142/143` 및 `123/133/143` 주변 label top-hit 회귀는 발생하지 않는다.
-- P0 central-lower evidence에서 `011`은 alias-only dashed 영역으로만 기록되며 SVG hit-area와 지도 popup 대상에서 제외된다.
+- P0 `143` boundary-lock evidence에서 `143` overlay는 공식 파란 블럭 후보 경계 안에 잠기며 흰 여백/어두운 배경으로 내려가지 않는다.
+- P0 seam evidence는 `132/142/143`, `123/133/143` 인접 polygon의 vertex intrusion 및 edge crossing/overlap이 없음을 고정한다.
+- P0 `011` alias-only no-hit-area evidence에서 `011`은 alias-only dashed 영역으로만 기록되며 SVG hit-area와 지도 popup 대상에서 제외된다.
 
 ## 운영 규칙
 
@@ -112,6 +117,7 @@
 - self-intersection은 허용하지 않는다.
 - `labelX/labelY`는 자기 polygon 내부 또는 경계 1px 이내에 있어야 한다.
 - `MAP_SELECTABLE` 블럭의 label 좌표 클릭은 렌더 순서상 자기 block을 최상위 hit-area로 가져야 한다.
+- `132/142/143`, `123/133/143` 주변 polygon은 서로 vertex intrusion, edge crossing, edge overlap을 만들면 안 된다.
 - `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외 블럭은 클릭 정합 release gate와 SVG hit-area 렌더링에서 제외하되, 운영 호환 alias는 유지해야 한다.
 - 1루 얇은 블럭군 `121/122/123/124/125/131/132/133/134/135/142/143`은 일반 inside/coverage 기준에 더해 dilated component outside leakage와 max outside distance 기준을 통과해야 한다.
 - UI 렌더링, hover, click, zoom/pan은 기존 `SajikSeatMapSvg` path 기반 동작을 유지한다.

@@ -86,8 +86,12 @@ stale evidence 이름:
 
 현재 release lock은 새 이름의 crop을 기준으로 한다:
 
+- `reports/stadium/sajik-seatmap-evidence-p0-143-boundary-lock.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-132-142-143-seams.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-123-133-143-seams.png`
 - `reports/stadium/sajik-seatmap-evidence-p0-retraced-3b-upper.png`
 - `reports/stadium/sajik-seatmap-evidence-p0-central-lower-011-review.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-011-alias-only-no-hit-area.png`
 - `reports/stadium/sajik-seatmap-evidence-p1-retraced-everytime.png`
 
 ## 선택 staging 메모
@@ -109,8 +113,9 @@ stale evidence 이름:
 ## 최신 검증 상태
 
 - `npm run stadium:sajik:alignment-audit`: PASS, `mapSelectable=87 aliasOnlyNotVisible=2 locked=87 notVisible=2 retrace=0 officialFailures=0 thinOutsideFailures=0`
+- `npm run stadium:sajik:evidence`: PASS, P0 `143` boundary-lock, `132/142/143`, `123/133/143`, `011` alias-only no-hit-area focus crop 생성 확인
 - `npm run qa:stadium:sajik:trace-review`: PASS, mobile 390 + desktop 1440 Playwright QA 통과, `status:passed`
-- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `23/23`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `24/24`
 - `npm run test:stadium:seatmaps`: BLOCKED by unrelated clean HEAD Suwon baseline mismatch, `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES` export 누락. 사직 항목은 해당 run 안에서 모두 PASS.
 - `npm run build`: PASS
 - `git diff --check`: PASS
