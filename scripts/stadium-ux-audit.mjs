@@ -4838,6 +4838,7 @@ const verifySajikOverlayClicks = async (page) => {
           const ariaLabel = element.getAttribute('aria-label') ?? '';
           const traceStatus = element.getAttribute('data-trace-status') ?? '';
           const pixelAlignmentStatus = element.getAttribute('data-pixel-alignment-status') ?? '';
+          const mapInteractionStatus = element.getAttribute('data-map-interaction-status') ?? '';
           const rect = element.getBoundingClientRect();
           return {
             testId,
@@ -4847,6 +4848,7 @@ const verifySajikOverlayClicks = async (page) => {
             ariaLabel,
             traceStatus,
             pixelAlignmentStatus,
+            mapInteractionStatus,
             visible: rect.width > 0 && rect.height > 0,
           };
         })
