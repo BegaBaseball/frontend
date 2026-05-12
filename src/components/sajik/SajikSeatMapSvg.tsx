@@ -210,7 +210,9 @@ export default function SajikSeatMapSvg({
   const canDrag = zoom > minZoom;
 
   const zoomBtnCls = 'pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800';
-  const sortedBlocks = [...SAJIK_BLOCKS].sort((a, b) => a.displayPriority - b.displayPriority);
+  const sortedBlocks = [...SAJIK_BLOCKS]
+    .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
+    .sort((a, b) => a.displayPriority - b.displayPriority);
   const guideMatchedBlockIdSet = useMemo(() => new Set(guideMatchedBlockIds), [guideMatchedBlockIds]);
 
   useIsomorphicLayoutEffect(() => {
@@ -770,6 +772,7 @@ export default function SajikSeatMapSvg({
                     data-guide-match={isGuideMatched ? 'true' : undefined}
                     data-trace-method={block.imageGeometry.traceMethod}
                     data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                    data-map-interaction-status={block.mapInteractionStatus}
                     data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
                     tabIndex={isFiltered ? -1 : 0}
                     aria-label={`${block.name} ${block.block}`}

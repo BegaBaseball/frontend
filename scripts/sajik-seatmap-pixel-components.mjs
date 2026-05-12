@@ -57,6 +57,25 @@ const pointInPolygon = ([x, y], polygon) => {
   return inside;
 };
 
+const distanceToSegment = (point, start, end) => {
+  const segmentX = end[0] - start[0];
+  const segmentY = end[1] - start[1];
+  const lengthSquared = (segmentX * segmentX) + (segmentY * segmentY);
+  if (lengthSquared === 0) return Math.hypot(point[0] - start[0], point[1] - start[1]);
+
+  const ratio = Math.max(0, Math.min(1, (
+    ((point[0] - start[0]) * segmentX) + ((point[1] - start[1]) * segmentY)
+  ) / lengthSquared));
+  return Math.hypot(
+    point[0] - (start[0] + (ratio * segmentX)),
+    point[1] - (start[1] + (ratio * segmentY)),
+  );
+};
+
+const distanceToPolygon = (point, polygon) => polygon.reduce((minimum, current, index) => (
+  Math.min(minimum, distanceToSegment(point, current, polygon[(index + 1) % polygon.length]))
+), Number.POSITIVE_INFINITY);
+
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const maxChannelDistance = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 const pixelOffset = (width, x, y) => ((y * width) + x) * 4;
@@ -409,8 +428,16 @@ const traceBlockCandidate = (image, block) => {
   }
 
   let componentInsidePath = 0;
+  let componentInsideDilatedPath = 0;
+  let maxComponentOutsidePathDistance = 0;
+  const pathDilationTolerancePx = 1.5;
   pixels.forEach((point) => {
-    if (pointInPolygon(point, points)) componentInsidePath += 1;
+    const pixelCenter = [point[0] + 0.5, point[1] + 0.5];
+    const insidePath = pointInPolygon(point, points);
+    const distanceFromPath = insidePath ? 0 : distanceToPolygon(pixelCenter, points);
+    if (insidePath) componentInsidePath += 1;
+    if (insidePath || distanceFromPath <= pathDilationTolerancePx) componentInsideDilatedPath += 1;
+    if (!insidePath) maxComponentOutsidePathDistance = Math.max(maxComponentOutsidePathDistance, distanceFromPath);
   });
 
   let pathAreaPixels = 0;
@@ -434,6 +461,7 @@ const traceBlockCandidate = (image, block) => {
   const boundaryRings = componentBoundaryRings(pixels);
   const [outerBoundaryRing = []] = boundaryRings;
   const componentInsidePathRatio = pixels.length > 0 ? componentInsidePath / pixels.length : 0;
+  const componentInsideDilatedPathRatio = pixels.length > 0 ? componentInsideDilatedPath / pixels.length : 0;
   const pathColorCoverageRatio = pathAreaPixels > 0 ? pathSimilarPixels / pathAreaPixels : 0;
 
   return {
@@ -461,6 +489,10 @@ const traceBlockCandidate = (image, block) => {
     outerBoundaryPointCount: outerBoundaryRing.length,
     currentPathBounds: bounds,
     componentInsidePathRatio: round(componentInsidePathRatio),
+    componentInsideDilatedPathRatio: round(componentInsideDilatedPathRatio),
+    componentOutsideDilatedPathRatio: round(1 - componentInsideDilatedPathRatio),
+    maxComponentOutsidePathDistance: round(maxComponentOutsidePathDistance),
+    pathDilationTolerancePx,
     pathColorCoverageRatio: round(pathColorCoverageRatio),
     pathAreaPixels,
     pathSimilarPixels,

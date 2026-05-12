@@ -81,7 +81,9 @@ const pointInPolygon = (point, polygon) => {
   return inside;
 };
 
-const sortedBlocks = [...SAJIK_BLOCKS].sort((left, right) => left.displayPriority - right.displayPriority);
+const sortedBlocks = [...SAJIK_BLOCKS]
+  .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
+  .sort((left, right) => left.displayPriority - right.displayPriority);
 const topHitBlockAt = (point) => {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
   let topBlock = null;
