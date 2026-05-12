@@ -26,11 +26,13 @@
 - 이 clean worktree에서는 `scripts/run-stadium-isolated-qa.mjs`를 포함하지 않고, 사직 QA가 `scripts/stadium-ux-audit.mjs`를 직접 실행한다.
 - `reports/*`, `dist/*`, `output/playwright/*`, `node_modules`는 재생성 산출물이므로 PR 범위에서 제외한다.
 
-## 현재 커밋 스택
+## 사직 PR 주요 커밋 스택
 
 - `801c413c Lock Sajik seatmap polygon v2 alignment`
 - `0deba4be Refine Sajik map-selectable seat blocks`
 - `243a4ecc Fix Sajik trace review target filtering`
+- `800c1ebe Document Sajik trace review verification`
+- `d267dd1f Add Sajik focused boundary evidence checks`
 
 ## 추천 PR 구성
 
@@ -132,11 +134,15 @@ stale evidence 이름:
 - 사직 좌석도 89개 hit-area를 공식 2026 PNG 기준 `manual-polygon-v2`로 고정했습니다.
 - 공식 PNG 색상 블럭이 확인되는 87개는 `LOCKED_VERIFIED`/`MAP_SELECTABLE`로 잠그고, 공식 PNG에서 독립 블럭이 보이지 않는 `011`, `903`은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 분리했습니다.
 - Playwright label-coordinate QA는 `MAP_SELECTABLE` 87개 SVG hit-area만 렌더링/클릭 검증하고, 이전 `011` 좌표 클릭이 `011` 팝업을 열지 않음을 확인합니다.
+- P0 focus evidence로 `143` boundary lock, `132/142/143`, `123/133/143` seam, `011` no-hit-area 상태를 별도 확대 crop으로 고정했습니다.
 
 ### Key Changes
 
 - `SAJIK_BLOCKS` polygon/reference/label anchor를 v2 기준으로 고정했습니다.
 - `143`을 공식 PNG 파란 블럭 경계에 맞춰 재트레이싱하고, 얇은 1루 블럭군에 outside leakage 기준을 추가했습니다.
+- `143` 전용 boundary-lock evidence와 `132/142/143`, `123/133/143` seam evidence를 추가해 인접 polygon 침범 여부를 별도 검수하도록 했습니다.
+- `011`은 alias-only no-hit-area evidence로 SVG hit-area 제외 상태를 고정했습니다.
+- `src/data/sajikSeatData.test.ts`에 `143` 주변 seam의 vertex intrusion, edge crossing, edge overlap 방지 테스트를 추가했습니다.
 - `SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = ['011', '903']`와 `SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = ['011', '903']` 계약을 추가했습니다.
 - 사직 전용 pixel component, alignment audit, trace manifest, evidence crop, advisory Playwright review 스크립트를 추가했습니다.
 - release lock 문서에 `87 locked / 2 aliasOnlyNotVisible / 0 retrace / 0 officialFailures / 0 thinOutsideFailures` 기준과 차단 조건을 고정했습니다.
@@ -144,8 +150,9 @@ stale evidence 이름:
 ### Verification
 
 - `npm run stadium:sajik:alignment-audit`
+- `npm run stadium:sajik:evidence`
 - `npm run qa:stadium:sajik:trace-review`
-- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts` (`24/24`)
 - `npm run build`
 - `git diff --check`
 
