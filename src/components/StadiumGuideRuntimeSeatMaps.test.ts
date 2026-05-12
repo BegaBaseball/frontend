@@ -855,9 +855,12 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`unreviewedBlocks=0`',
     '`pixelAligned=87`',
     '`manualReviewRequired=2`',
+    '`mapSelectable=87`',
+    '`aliasOnlyOfficialPngBlockNotVisible=2`',
     '`officialPngBlockNotVisible=2`',
     '`alignmentLockedVerified=87`',
     '`alignmentFailures=0`',
+    '`thinOutsideFailures=0`',
     '`refinedPolygons=83`',
     '`labelTopHitFailures=0`',
     '`selfIntersections=0`',
@@ -871,7 +874,8 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '예외 블럭: `011`, `903`',
     '`SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS`',
     '`SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS`',
-    '실제 클릭 정합 검증은 `PIXEL_ALIGNED` 87개만 대상으로 한다.',
+    '`SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS`',
+    '브라우저 label-coordinate QA는 `MAP_SELECTABLE` 87개만 렌더링/클릭 대상으로 검증',
     '`311/321`',
     '`112/121`',
     '`132/142`',
@@ -890,7 +894,11 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`reports/stadium/sajik-seatmap-alignment-audit.json`',
     '`reports/stadium/sajik-seatmap-alignment-audit.md`',
     '`reports/stadium/sajik-seatmap-evidence-p0-thin-first-base.png`',
+    '`reports/stadium/sajik-seatmap-evidence-p0-143-boundary-lock.png`',
+    '`reports/stadium/sajik-seatmap-evidence-p0-132-142-143-seams.png`',
+    '`reports/stadium/sajik-seatmap-evidence-p0-123-133-143-seams.png`',
     '`reports/stadium/sajik-seatmap-evidence-p0-central-lower-011-review.png`',
+    '`reports/stadium/sajik-seatmap-evidence-p0-011-alias-only-no-hit-area.png`',
     '`reports/stadium/sajik-seatmap-evidence-p1-retraced-everytime.png`',
     '`reports/stadium/sajik-seatmap-advisory-playwright-review.md`',
     '`../output/playwright/stadium-ux-sajik-validate/stadium-mobile-smoke-summary.md`',
@@ -898,13 +906,14 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`../output/playwright/stadium-ux-sajik-validate/desktop-1440.png`',
     '모든 운영 polygon은 `M/L/Z` 단일 폐합 path여야 한다.',
     'self-intersection은 허용하지 않는다.',
-    '`PIXEL_ALIGNED` 블럭의 label 좌표 클릭은 렌더 순서상 자기 block을 최상위 hit-area로 가져야 한다.',
-    '`OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외 블럭은 클릭 정합 release gate에서 제외하되',
+    '`MAP_SELECTABLE` 블럭의 label 좌표 클릭은 렌더 순서상 자기 block을 최상위 hit-area로 가져야 한다.',
+    '`132/142/143`, `123/133/143` 주변 polygon은 서로 vertex intrusion, edge crossing, edge overlap을 만들면 안 된다.',
+    '`OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외 블럭은 클릭 정합 release gate와 SVG hit-area 렌더링에서 제외하되',
     '외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.',
     '`MANUAL_BASEBALL_DATA_REQUIRED`',
     'npm run stadium:sajik:alignment-audit',
     'npm run stadium:sajik:evidence',
-    'npm run test:stadium:seatmaps',
+    'node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts',
     'npm run qa:stadium:sajik:trace-review',
     'npm run build',
     '`SAJIK_OFFICIAL_TRACE_REFERENCE`의 `expectedPointCount` 또는 `expectedArea`가 현재 path와 다르다.',
@@ -926,6 +935,8 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'expectedArea',
     'officialPngManualPolygon',
     'manualPolygonV2',
+    'mapSelectable',
+    'aliasOnlyOfficialPngBlockNotVisible',
     'refinedPolygons',
   ].forEach((requiredText) => {
     assert.ok(manifestSource.includes(requiredText), `Sajik manifest should include ${requiredText}`);
@@ -937,6 +948,12 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'tierOrder = [',
     'OFFICIAL_PNG_MANUAL_POLYGON',
     'manual-polygon-v2',
+    'aliasOnlyOfficialPngBlockNotVisible',
+    'p0-143-boundary-lock',
+    'p0-132-142-143-seams',
+    'p0-123-133-143-seams',
+    'p0-011-alias-only-no-hit-area',
+    'rendersMapHitArea',
   ].forEach((requiredText) => {
     assert.ok(evidenceSource.includes(requiredText), `Sajik evidence script should include ${requiredText}`);
   });
@@ -944,7 +961,9 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
   [
     '사직 polygon은 단일 폐합 path이고 자기 교차가 없다',
     '사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다',
+    '사직 P0 143 주변 경계는 인접 블럭 polygon을 침범하지 않는다',
     '사직 polygon 정밀화는 단순 사각형 전체 fallback으로 회귀하지 않는다',
+    'SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS',
     'expectedArea',
     'SAJIK_TRACE_AREA_TOLERANCE_PX2',
   ].forEach((requiredText) => {
@@ -955,6 +974,7 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'pointer-events-none absolute right-3 top-3',
     'pointer-events-auto flex h-7 w-7',
     'pointer-events-auto min-h-7 min-w-10',
+    'data-map-interaction-status',
   ].forEach((requiredText) => {
     assert.ok(svgSource.includes(requiredText), `Sajik SVG should keep zoom control hit-through contract ${requiredText}`);
   });

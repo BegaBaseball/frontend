@@ -2172,6 +2172,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
           const ariaLabel = element.getAttribute('aria-label') ?? '';
           const traceStatus = element.getAttribute('data-trace-status') ?? '';
           const pixelAlignmentStatus = element.getAttribute('data-pixel-alignment-status') ?? '';
+          const mapInteractionStatus = element.getAttribute('data-map-interaction-status') ?? '';
           const rect = element.getBoundingClientRect();
           return {
             testId,
@@ -2181,6 +2182,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
             ariaLabel,
             traceStatus,
             pixelAlignmentStatus,
+            mapInteractionStatus,
             visible: rect.width > 0 && rect.height > 0,
           };
         })
@@ -3657,10 +3659,32 @@ const verifyDaejeonOverlayClicks = async (page) => {
     }
   };
 
-  await verifyDaejeonHitAreaContract('outfield-reserved-509__509');
-  await verifyDaejeonHitAreaContract('third-infield-a-113-120-213-225__115');
-  await verifyDaejeonHitAreaContract('splash-jacuzzi-425__425');
-  await verifyDaejeonHitAreaContract('splash-caravan-426__426');
+  const daejeonHoverSelectedContractBlockIds = [
+    'central-table-100__100a',
+    'central-table-100__100b',
+    'central-table-100__100c',
+    'first-infield-b-101-108__104',
+    'first-infield-b-101-108__105',
+    'first-infield-b-101-108__106',
+    'first-infield-b-101-108__107',
+    'first-infield-b-101-108__108',
+    'first-infield-a-109-112-201-212__109',
+    'first-infield-a-109-112-201-212__110',
+    'third-infield-a-113-120-213-225__116',
+    'third-infield-a-113-120-213-225__117',
+    'third-infield-a-113-120-213-225__118',
+    'third-infield-a-113-120-213-225__119',
+    'third-infield-a-113-120-213-225__120',
+    'third-infield-b-121-124__121',
+    'third-infield-b-121-124__122',
+    'outfield-reserved-509__509',
+    'splash-jacuzzi-425__425',
+    'splash-caravan-426__426',
+  ];
+
+  for (const blockId of daejeonHoverSelectedContractBlockIds) {
+    await verifyDaejeonHitAreaContract(blockId);
+  }
 
   const verifyDaejeonRetiredP2BlocksRemoved = async () => {
     const retiredP2Blocks = [
@@ -3762,6 +3786,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
     'central-accessible__center',
     'first-infield-b-101-108__104',
     'first-infield-b-101-108__105',
+    'first-infield-b-101-108__106',
     'first-infield-b-101-108__107',
     'first-infield-b-101-108__108',
     'first-infield-a-109-112-201-212__109',
@@ -3777,6 +3802,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__114',
       'third-infield-a-113-120-213-225__115',
       'third-infield-a-113-120-213-225__116',
+      'third-infield-a-113-120-213-225__117',
       'third-infield-a-113-120-213-225__118',
       'third-infield-a-113-120-213-225__119',
       'third-infield-a-113-120-213-225__120',
@@ -3786,6 +3812,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__221',
       'third-infield-a-113-120-213-225__225',
       'third-infield-b-121-124__121',
+      'third-infield-b-121-124__122',
       'third-infield-b-121-124__124',
       'cass-cheering-200__200',
       'first-infield-accessible__first-infield',
@@ -3859,14 +3886,24 @@ const verifyDaejeonOverlayClicks = async (page) => {
   }
 
   const representativeCoordinateBlockChecks = [
+    { blockId: 'central-table-100__100a', code: '100A' },
     { blockId: 'central-table-100__100b', code: '100B' },
+    { blockId: 'central-table-100__100c', code: '100C' },
     { blockId: 'first-infield-b-101-108__104', code: '104' },
     { blockId: 'first-infield-b-101-108__105', code: '105' },
+    { blockId: 'first-infield-b-101-108__106', code: '106' },
+    { blockId: 'first-infield-b-101-108__107', code: '107' },
     { blockId: 'first-infield-b-101-108__108', code: '108' },
     { blockId: 'first-infield-a-109-112-201-212__109', code: '109' },
+    { blockId: 'first-infield-a-109-112-201-212__110', code: '110' },
     { blockId: 'third-infield-a-113-120-213-225__115', code: '115' },
+    { blockId: 'third-infield-a-113-120-213-225__116', code: '116' },
+    { blockId: 'third-infield-a-113-120-213-225__117', code: '117' },
+    { blockId: 'third-infield-a-113-120-213-225__118', code: '118' },
+    { blockId: 'third-infield-a-113-120-213-225__119', code: '119' },
     { blockId: 'third-infield-a-113-120-213-225__120', code: '120' },
     { blockId: 'third-infield-b-121-124__121', code: '121' },
+    { blockId: 'third-infield-b-121-124__122', code: '122' },
     { blockId: 'third-infield-b-121-124__124', code: '124' },
     { blockId: 'cass-cheering-200__200', code: '200' },
     { blockId: 'innings-vip-400__400', code: '400' },
@@ -4854,20 +4891,21 @@ const verifySajikOverlayClicks = async (page) => {
         allTargets,
         clickableTargets: allTargets.filter((target) => (
           target.pixelAlignmentStatus === 'PIXEL_ALIGNED'
+          && target.mapInteractionStatus === 'MAP_SELECTABLE'
         )),
       };
     });
 
     const { allTargets, clickableTargets: labelClickTargets } = labelClickTargetReport;
-    if (allTargets.length !== 89) {
-      throw new Error(`Sajik rendered label coordinate target count should be 89. Actual: ${allTargets.length}`);
+    if (allTargets.length !== 87) {
+      throw new Error(`Sajik rendered map-selectable label coordinate target count should be 87. Actual: ${allTargets.length}`);
     }
     if (labelClickTargets.length !== 87) {
       const skippedTargets = allTargets
-        .filter((target) => target.pixelAlignmentStatus !== 'PIXEL_ALIGNED')
-        .map((target) => `${target.id}:${target.pixelAlignmentStatus || 'UNKNOWN'}`)
+        .filter((target) => target.pixelAlignmentStatus !== 'PIXEL_ALIGNED' || target.mapInteractionStatus !== 'MAP_SELECTABLE')
+        .map((target) => `${target.id}:${target.pixelAlignmentStatus || 'UNKNOWN'}:${target.mapInteractionStatus || 'UNKNOWN'}`)
         .join(', ');
-      throw new Error(`Sajik pixel-aligned label coordinate click target count should be 87. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
+      throw new Error(`Sajik map-selectable label coordinate click target count should be 87. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
     }
 
     for (const target of labelClickTargets) {
@@ -4930,6 +4968,37 @@ const verifySajikOverlayClicks = async (page) => {
     await closeDetailPanel();
   };
 
+  const verifyAliasOnlyCoordinatesDoNotSelect = async () => {
+    await closeDetailPanel();
+    await scrollSajikSeatMapIntoView();
+
+    const aliasOnlyRendered = await page.locator('[data-testid="sajik-seat-block-sajik-avenuel-011"]').count();
+    if (aliasOnlyRendered > 0) {
+      throw new Error('Sajik alias-only 011 block should not render as a map hit-area.');
+    }
+
+    const box = await page.evaluate(() => {
+      const svg = Array.from(document.querySelectorAll('svg[aria-label="부산 사직야구장 좌석도 구역 선택"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      if (!svg) return null;
+      const rect = svg.getBoundingClientRect();
+      return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+    });
+    if (!box) {
+      throw new Error('Sajik seatmap SVG box is missing before alias-only coordinate click.');
+    }
+
+    await page.mouse.click(box.x + ((653 / 960) * box.width), box.y + ((420 / 640) * box.height));
+    await sleep(150);
+    const selected011 = await visibleTextLocator(page, '에비뉴엘석 011블록').count();
+    if (selected011 > 0) {
+      throw new Error('Sajik alias-only 011 coordinate should not open the 011 detail panel.');
+    }
+  };
+
   const representativeSections = [
     { button: /3루 내야필드석A 313블록/, detail: /3루 내야필드석A/ },
     { button: /1루 내야필드석 111블록/, detail: /1루 내야필드석/ },
@@ -4941,8 +5010,11 @@ const verifySajikOverlayClicks = async (page) => {
   const viewport = page.viewportSize();
   if ((viewport?.width ?? 0) >= 1000) {
     await clickAllSajikLabelCoordinates();
+    await verifyAliasOnlyCoordinatesDoNotSelect();
     return;
   }
+
+  await verifyAliasOnlyCoordinatesDoNotSelect();
 
   for (const sectionName of representativeSections) {
     await closeDetailPanel();

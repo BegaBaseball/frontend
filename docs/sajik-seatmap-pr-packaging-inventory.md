@@ -13,18 +13,26 @@
 - 좌표계: `960x640`
 - trace source: `OFFICIAL_PNG_MANUAL_POLYGON`
 - trace version: `manual-polygon-v2`
-- alignment result: `87 LOCKED_VERIFIED`, `2 OFFICIAL_PNG_BLOCK_NOT_VISIBLE`, `0 RETRACE_REQUIRED`, `0 officialFailures`
+- alignment result: `87 LOCKED_VERIFIED`, `2 OFFICIAL_PNG_BLOCK_NOT_VISIBLE`, `0 RETRACE_REQUIRED`, `0 officialFailures`, `0 thinOutsideFailures`
 - 공식 PNG 미표시 예외: `011`, `903`
-- 브라우저 label-coordinate QA는 전체 89개 렌더링을 확인하고, 클릭 정합은 `PIXEL_ALIGNED` 87개만 검증한다.
+- 브라우저 label-coordinate QA는 `MAP_SELECTABLE` 87개 렌더링과 클릭 정합을 검증하고, `011/903`은 alias-only 데이터로만 유지한다.
 - 외부 야구 데이터 수집, 웹 검색, 크롤링 기반 좌표 보정은 사용하지 않는다.
 
-## 현재 index 주의
+## 현재 worktree 주의
 
-- 현재 index에는 사직이 아닌 공통 seatmap shell, isolated QA runner, Incheon guide 등의 staged 변경이 이미 섞여 있다.
-- 사직 PR만 만들려면 먼저 기존 staged 변경을 별도 PR로 정리하거나, 별도 clean worktree에서 사직 변경만 다시 적용한다.
-- 이 상태에서 `git add docs/sajik-* src/data/sajik* scripts/sajik-*`처럼 단순 add를 실행하면 PR 범위가 더 섞인다.
-- `scripts/stadium-ux-audit.mjs`는 현재 repo 기준 untracked 파일이라 사직 hunk만 staging할 수 없다. 이 파일을 포함하려면 internal QA script 승격 infra 변경까지 같은 PR에 포함하거나, infra PR이 먼저 merge된 뒤 사직 hunk만 올린다.
-- `scripts/run-stadium-isolated-qa.mjs`도 staged 신규/수정 상태이므로 사직 PR에서 `qa:stadium:sajik:mobile`을 보존하려면 runner 소유 PR과의 순서를 맞춰야 한다.
+- 사직 PR용 clean worktree: `/Users/mac/project/KBO_platform/bega_frontend_sajik_pr`
+- branch: `sajik-seatmap-v2-pr`
+- 메인 dirty worktree의 공통 seatmap shell, isolated QA runner, Incheon guide, prediction, SEO/build 변경은 포함하지 않는다.
+- 이 clean worktree에서는 `scripts/run-stadium-isolated-qa.mjs`를 포함하지 않고, 사직 QA가 `scripts/stadium-ux-audit.mjs`를 직접 실행한다.
+- `reports/*`, `dist/*`, `output/playwright/*`, `node_modules`는 재생성 산출물이므로 PR 범위에서 제외한다.
+
+## 사직 PR 주요 커밋 스택
+
+- `801c413c Lock Sajik seatmap polygon v2 alignment`
+- `0deba4be Refine Sajik map-selectable seat blocks`
+- `243a4ecc Fix Sajik trace review target filtering`
+- `800c1ebe Document Sajik trace review verification`
+- `d267dd1f Add Sajik focused boundary evidence checks`
 
 ## 추천 PR 구성
 
@@ -34,16 +42,16 @@
 
 | 경로 | 포함 판단 | 이유 |
 | --- | --- | --- |
-| `src/data/sajikSeatData.ts` | 포함 | 89개 block polygon, `011/903` 예외, trace metadata, guide/search helper 계약 |
+| `src/data/sajikSeatData.ts` | 포함 | 89개 block polygon, `011/903` alias-only 예외, `143` 재정밀화, trace metadata, guide/search helper 계약 |
 | `src/data/sajikSeatData.test.ts` | 포함 | alignment thresholds, 예외 목록, reference lock, label top-hit, self-intersection gate |
 | `scripts/sajik-seatmap-pixel-components.mjs` | 포함 | 로컬 공식 PNG 기반 색상 component 후보 생성 |
-| `scripts/sajik-seatmap-alignment-audit.mjs` | 포함 | strict alignment audit와 `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 분류 |
+| `scripts/sajik-seatmap-alignment-audit.mjs` | 포함 | strict alignment audit, 얇은 블럭 outside leakage gate, `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 분류 |
 | `scripts/sajik-seatmap-review-manifest.mjs` | 포함 | P0/P1/P2 trace manifest와 release 수치 생성 |
 | `scripts/sajik-seatmap-evidence-crops.mjs` | 포함 | P0/P1/P2 및 확대 crop evidence 생성 |
 | `scripts/sajik-seatmap-advisory-playwright-review.mjs` | 포함 | `011/903` advisory Playwright review 산출 |
 | `docs/sajik-seatmap-release-lock.md` | 포함 | release lock 수치, 예외 블럭, 산출물, 차단 조건 고정 |
 | `src/components/StadiumGuideRuntimeSeatMaps.test.ts` | 부분 포함 | 사직 release lock 문서/스크립트 계약만 선별 |
-| `scripts/stadium-ux-audit.mjs` | 부분 포함 | 사직 label-coordinate QA에서 `PIXEL_ALIGNED` 87개 클릭 검증만 선별 |
+| `scripts/stadium-ux-audit.mjs` | 포함 | clean base의 외부 `../output/playwright/stadium-ux-audit.mjs` 의존을 제거하고 사직 label-coordinate QA에서 `PIXEL_ALIGNED` 87개 클릭 검증 |
 | `package.json` | 부분 포함 | `stadium:sajik:*`, `qa:stadium:sajik:*`, 필요 시 `test:stadium:seatmaps` concurrency만 선별 |
 
 주의: `package.json`, `scripts/stadium-ux-audit.mjs`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`는 다른 구장/공통 infra 변경과 섞인 파일이다. 사직 PR만 만들려면 `git add -p` 또는 별도 작업트리에서 선택 staging이 필요하다.
@@ -80,8 +88,12 @@ stale evidence 이름:
 
 현재 release lock은 새 이름의 crop을 기준으로 한다:
 
+- `reports/stadium/sajik-seatmap-evidence-p0-143-boundary-lock.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-132-142-143-seams.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-123-133-143-seams.png`
 - `reports/stadium/sajik-seatmap-evidence-p0-retraced-3b-upper.png`
 - `reports/stadium/sajik-seatmap-evidence-p0-central-lower-011-review.png`
+- `reports/stadium/sajik-seatmap-evidence-p0-011-alias-only-no-hit-area.png`
 - `reports/stadium/sajik-seatmap-evidence-p1-retraced-everytime.png`
 
 ## 선택 staging 메모
@@ -95,16 +107,18 @@ stale evidence 이름:
 "stadium:sajik:evidence": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && npm run stadium:sajik:trace-manifest && node --import tsx scripts/sajik-seatmap-evidence-crops.mjs",
 "stadium:sajik:advisory-playwright": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs",
 "qa:stadium:sajik:trace-review": "npm run stadium:sajik:evidence && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs && npm run qa:stadium:sajik:mobile && npm run stadium:sajik:alignment-audit",
-"qa:stadium:sajik:mobile": "node scripts/run-stadium-isolated-qa.mjs SAJIK"
+"qa:stadium:sajik:mobile": "STADIUM_UX_FORCE_START_DEV_SERVER=1 STADIUM_UX_MANAGED_DEV_SERVER_PORT=5177 STADIUM_UX_VIEWPORTS=mobile-390,desktop-1440 STADIUM_UX_REVIEW_STADIUMS=SAJIK STADIUM_UX_SAJIK_DEEP_CHECK=1 VITE_SITE_URL=http://127.0.0.1:5177 VITE_API_BASE_URL=/api node scripts/stadium-ux-audit.mjs"
 ```
 
-`scripts/run-stadium-isolated-qa.mjs`가 아직 base에 없다면 사직 QA 실행을 위해 infra PR에 먼저 포함하거나, 사직 PR에 최소 runner 변경까지 함께 포함해야 한다.
+`scripts/run-stadium-isolated-qa.mjs`는 이번 clean 사직 PR 구성에 포함하지 않는다.
 
 ## 최신 검증 상태
 
-- `npm run stadium:sajik:alignment-audit`: PASS, `locked=87 notVisible=2 retrace=0 officialFailures=0`
-- `npm run qa:stadium:sajik:trace-review`: PASS, `SAJIK:mobile passed after 43s port=5196`
-- `npm run test:stadium:seatmaps`: PASS, `221/221`
+- `npm run stadium:sajik:alignment-audit`: PASS, `mapSelectable=87 aliasOnlyNotVisible=2 locked=87 notVisible=2 retrace=0 officialFailures=0 thinOutsideFailures=0`
+- `npm run stadium:sajik:evidence`: PASS, P0 `143` boundary-lock, `132/142/143`, `123/133/143`, `011` alias-only no-hit-area focus crop 생성 확인
+- `npm run qa:stadium:sajik:trace-review`: PASS, mobile 390 + desktop 1440 Playwright QA 통과, `status:passed`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `24/24`
+- `npm run test:stadium:seatmaps`: BLOCKED by unrelated clean HEAD Suwon baseline mismatch, `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES` export 누락. 사직 항목은 해당 run 안에서 모두 PASS.
 - `npm run build`: PASS
 - `git diff --check`: PASS
 
@@ -118,24 +132,32 @@ stale evidence 이름:
 ### Summary
 
 - 사직 좌석도 89개 hit-area를 공식 2026 PNG 기준 `manual-polygon-v2`로 고정했습니다.
-- 공식 PNG 색상 블럭이 확인되는 87개는 `LOCKED_VERIFIED`로 잠그고, 공식 PNG에서 독립 블럭이 보이지 않는 `011`, `903`은 `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 운영 호환 예외로 분리했습니다.
-- Playwright label-coordinate QA는 전체 89개 SVG 렌더링을 확인하되, 실제 클릭 정합은 `PIXEL_ALIGNED` 87개만 검증합니다.
+- 공식 PNG 색상 블럭이 확인되는 87개는 `LOCKED_VERIFIED`/`MAP_SELECTABLE`로 잠그고, 공식 PNG에서 독립 블럭이 보이지 않는 `011`, `903`은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 분리했습니다.
+- Playwright label-coordinate QA는 `MAP_SELECTABLE` 87개 SVG hit-area만 렌더링/클릭 검증하고, 이전 `011` 좌표 클릭이 `011` 팝업을 열지 않음을 확인합니다.
+- P0 focus evidence로 `143` boundary lock, `132/142/143`, `123/133/143` seam, `011` no-hit-area 상태를 별도 확대 crop으로 고정했습니다.
 
 ### Key Changes
 
 - `SAJIK_BLOCKS` polygon/reference/label anchor를 v2 기준으로 고정했습니다.
-- `SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = ['011', '903']` 계약을 추가했습니다.
+- `143`을 공식 PNG 파란 블럭 경계에 맞춰 재트레이싱하고, 얇은 1루 블럭군에 outside leakage 기준을 추가했습니다.
+- `143` 전용 boundary-lock evidence와 `132/142/143`, `123/133/143` seam evidence를 추가해 인접 polygon 침범 여부를 별도 검수하도록 했습니다.
+- `011`은 alias-only no-hit-area evidence로 SVG hit-area 제외 상태를 고정했습니다.
+- `src/data/sajikSeatData.test.ts`에 `143` 주변 seam의 vertex intrusion, edge crossing, edge overlap 방지 테스트를 추가했습니다.
+- `SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = ['011', '903']`와 `SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS = ['011', '903']` 계약을 추가했습니다.
 - 사직 전용 pixel component, alignment audit, trace manifest, evidence crop, advisory Playwright review 스크립트를 추가했습니다.
-- release lock 문서에 `87 locked / 2 notVisible / 0 retrace / 0 officialFailures` 기준과 차단 조건을 고정했습니다.
+- release lock 문서에 `87 locked / 2 aliasOnlyNotVisible / 0 retrace / 0 officialFailures / 0 thinOutsideFailures` 기준과 차단 조건을 고정했습니다.
 
 ### Verification
 
 - `npm run stadium:sajik:alignment-audit`
+- `npm run stadium:sajik:evidence`
 - `npm run qa:stadium:sajik:trace-review`
-- `npm run test:stadium:seatmaps`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts` (`24/24`)
 - `npm run build`
+- `git diff --check`
 
 ### Notes
 
-- `011`, `903`은 새 공식 PNG 또는 운영자 승인 좌표가 제공될 때만 `89 LOCKED_VERIFIED` 목표로 재트레이싱합니다.
+- `011`, `903`은 검색/alias 호환만 유지하며 지도 hit-area로 렌더링하지 않습니다. 새 공식 PNG 또는 운영자 승인 좌표가 제공될 때만 `89 LOCKED_VERIFIED` 목표로 재트레이싱합니다.
 - 외부 검색/크롤링/추정 좌표로 보정하지 않았습니다.
+- `npm run test:stadium:seatmaps` 전체 gate는 사직 외 수원 baseline export 누락 때문에 현재 clean HEAD에서 차단됩니다. 사직 PR에는 수원 보정을 섞지 않고 별도 baseline fix로 분리합니다.

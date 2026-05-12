@@ -8,15 +8,19 @@ import {
   SAJIK_BLOCKS,
   SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS,
   SAJIK_SEATMAP_IMAGE,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
+  SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
+  SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS,
 } from '../src/data/sajikSeatData.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
 const defaultOutDir = path.join(frontendRoot, 'reports/stadium');
 
-const AUDIT_VERSION = 'SAJIK_ALIGNMENT_AUDIT_V1';
+const AUDIT_VERSION = 'SAJIK_ALIGNMENT_AUDIT_V2';
 const allowFailures = process.argv.includes('--allow-failures');
 const officialPngBlockNotVisibleSet = new Set(SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS);
+const thinStrictBlockSet = new Set(SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS);
 
 const argValue = (name, fallback) => {
   const index = process.argv.indexOf(name);
@@ -120,10 +124,11 @@ const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf
 const pixelComponents = await readJson(pixelComponentsPath);
 const candidateByBlockId = new Map(pixelComponents.blocks.map((block) => [block.id, block.candidate]));
 const sortedBlocks = [...SAJIK_BLOCKS].sort((left, right) => left.displayPriority - right.displayPriority);
+const sortedMapSelectableBlocks = sortedBlocks.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE');
 
 const topHitBlockAt = (point) => {
   let topBlock = null;
-  sortedBlocks.forEach((block) => {
+  sortedMapSelectableBlocks.forEach((block) => {
     if (pointInPolygon(point, pathPoints(block.imageGeometry.d))) {
       topBlock = block;
     }
@@ -138,6 +143,20 @@ const failureReasons = (row, { includeCandidateGate }) => {
   if (includeCandidateGate && row.candidateStatus !== 'PIXEL_CANDIDATE_READY') reasons.push('PIXEL_CANDIDATE_NOT_READY');
   if (includeCandidateGate && row.componentInsidePathRatio < SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO) reasons.push('LOW_COMPONENT_INSIDE_CURRENT_PATH');
   if (includeCandidateGate && row.pathColorCoverageRatio < SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO) reasons.push('LOW_CURRENT_PATH_COLOR_COVERAGE');
+  if (
+    row.thinStrictPixelGate
+    && row.candidateStatus === 'PIXEL_CANDIDATE_READY'
+    && row.componentOutsideDilatedPathRatio > SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO
+  ) {
+    reasons.push('THIN_COMPONENT_LEAKAGE_OUTSIDE_DILATED_PATH');
+  }
+  if (
+    row.thinStrictPixelGate
+    && row.candidateStatus === 'PIXEL_CANDIDATE_READY'
+    && row.maxComponentOutsidePathDistance > SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX
+  ) {
+    reasons.push('THIN_COMPONENT_MAX_DISTANCE_OUTSIDE_PATH');
+  }
   return reasons;
 };
 
@@ -159,6 +178,7 @@ const rows = SAJIK_BLOCKS.map((block) => {
     traceVersion: block.imageGeometry.traceVersion,
     manualReviewed: block.imageGeometry.manualReviewed,
     pixelAlignmentStatus: block.imageGeometry.pixelAlignmentStatus,
+    mapInteractionStatus: block.mapInteractionStatus,
     currentPath: block.imageGeometry.d,
     currentPathBounds: pathBounds(block.imageGeometry.d),
     currentPathArea: round(polygonArea(points), 1),
@@ -176,10 +196,14 @@ const rows = SAJIK_BLOCKS.map((block) => {
     candidateOuterBoundaryPath: candidate.outerBoundaryPath ?? '',
     candidateHullPath: candidate.hullPath ?? '',
     componentInsidePathRatio: Number(candidate.componentInsidePathRatio ?? 0),
+    componentInsideDilatedPathRatio: Number(candidate.componentInsideDilatedPathRatio ?? 0),
+    componentOutsideDilatedPathRatio: Number(candidate.componentOutsideDilatedPathRatio ?? 1),
+    maxComponentOutsidePathDistance: Number(candidate.maxComponentOutsidePathDistance ?? 0),
     pathColorCoverageRatio: Number(candidate.pathColorCoverageRatio ?? 0),
     seedColor: candidate.seedColor ?? null,
     seedPoint: candidate.seedPoint ?? null,
-    strictPixelGate: true,
+    strictPixelGate: block.mapInteractionStatus === 'MAP_SELECTABLE',
+    thinStrictPixelGate: block.mapInteractionStatus === 'MAP_SELECTABLE' && thinStrictBlockSet.has(block.block),
   };
   const officialReasons = failureReasons(row, { includeCandidateGate: row.strictPixelGate });
   const advisoryReasons = failureReasons(row, { includeCandidateGate: true });
@@ -213,18 +237,27 @@ const classificationCounts = rows.reduce((counts, row) => {
 const summary = {
   standard: AUDIT_VERSION,
   totalBlocks: rows.length,
+  mapSelectable: rows.filter((row) => row.mapInteractionStatus === 'MAP_SELECTABLE').length,
+  aliasOnlyOfficialPngBlockNotVisible: rows.filter((row) => row.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE').length,
   lockedVerified: classificationCounts.LOCKED_VERIFIED ?? 0,
   officialPngBlockNotVisible: classificationCounts.OFFICIAL_PNG_BLOCK_NOT_VISIBLE ?? 0,
   retraceRequired: classificationCounts.RETRACE_REQUIRED ?? 0,
   officialAlignmentFailures: officialFailures.length,
   strictPixelGateBlocks: rows.filter((row) => row.strictPixelGate).length,
   pixelAdvisoryWarnings: rows.filter((row) => row.pixelAdvisoryReasons.length > 0).length,
-  labelInsideFailures: rows.filter((row) => !row.labelInsideCurrentPath).length,
-  labelTopHitFailures: rows.filter((row) => !row.labelTopHitOk).length,
+  labelInsideFailures: rows.filter((row) => row.mapInteractionStatus === 'MAP_SELECTABLE' && !row.labelInsideCurrentPath).length,
+  labelTopHitFailures: rows.filter((row) => row.mapInteractionStatus === 'MAP_SELECTABLE' && !row.labelTopHitOk).length,
   candidateFailures: rows.filter((row) => row.candidateStatus !== 'PIXEL_CANDIDATE_READY').length,
+  thinStrictGateBlocks: rows.filter((row) => row.thinStrictPixelGate).length,
+  thinOutsideFailures: rows.filter((row) => (
+    row.officialFailureReasons.includes('THIN_COMPONENT_LEAKAGE_OUTSIDE_DILATED_PATH')
+    || row.officialFailureReasons.includes('THIN_COMPONENT_MAX_DISTANCE_OUTSIDE_PATH')
+  )).length,
   alignmentThresholds: {
     minComponentInsidePathRatio: SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO,
     minPathColorCoverageRatio: SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO,
+    maxThinComponentOutsideDilatedPathRatio: SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
+    maxThinComponentOutsidePathDistancePx: SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
   },
 };
 
@@ -241,6 +274,8 @@ const audit = {
       'strictPixelGate blocks: candidateStatus=PIXEL_CANDIDATE_READY',
       `strictPixelGate blocks: componentInsidePathRatio>=${SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO}`,
       `strictPixelGate blocks: pathColorCoverageRatio>=${SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO}`,
+      `thinStrictPixelGate blocks: componentOutsideDilatedPathRatio<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO}`,
+      `thinStrictPixelGate blocks: maxComponentOutsidePathDistance<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX}`,
     ],
     advisoryForNonStrictBlocks: [
       'candidateStatus',
@@ -274,11 +309,15 @@ const markdown = [
   '',
   `- standard: \`${AUDIT_VERSION}\``,
   `- total blocks: ${summary.totalBlocks}`,
+  `- map selectable: ${summary.mapSelectable}`,
+  `- alias-only official PNG block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
   `- locked verified: ${summary.lockedVerified}`,
   `- official PNG block not visible: ${summary.officialPngBlockNotVisible}`,
   `- retrace required: ${summary.retraceRequired}`,
   `- official alignment failures: ${summary.officialAlignmentFailures}`,
   `- strict pixel gate blocks: ${summary.strictPixelGateBlocks}`,
+  `- thin strict gate blocks: ${summary.thinStrictGateBlocks}`,
+  `- thin outside failures: ${summary.thinOutsideFailures}`,
   `- pixel advisory warnings: ${summary.pixelAdvisoryWarnings}`,
   `- min component inside path ratio: ${SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO}`,
   `- min path color coverage ratio: ${SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO}`,
@@ -363,6 +402,7 @@ await writeCsv(csvPath, [
     'category',
     'level',
     'traceStatus',
+    'mapInteractionStatus',
     'alignmentClass',
     'officialPngBlockNotVisible',
     'officialFailureReasons',
@@ -373,7 +413,11 @@ await writeCsv(csvPath, [
     'labelTopHitOk',
     'candidateStatus',
     'strictPixelGate',
+    'thinStrictPixelGate',
     'componentInsidePathRatio',
+    'componentInsideDilatedPathRatio',
+    'componentOutsideDilatedPathRatio',
+    'maxComponentOutsidePathDistance',
     'pathColorCoverageRatio',
     'pixelAdvisoryReasons',
     'candidateArea',
@@ -388,6 +432,7 @@ await writeCsv(csvPath, [
     row.category,
     row.level,
     row.traceStatus,
+    row.mapInteractionStatus,
     row.alignmentClass,
     row.officialPngBlockNotVisible,
     row.officialFailureReasons.join(' '),
@@ -398,7 +443,11 @@ await writeCsv(csvPath, [
     row.labelTopHitOk,
     row.candidateStatus,
     row.strictPixelGate,
+    row.thinStrictPixelGate,
     row.componentInsidePathRatio,
+    row.componentInsideDilatedPathRatio,
+    row.componentOutsideDilatedPathRatio,
+    row.maxComponentOutsidePathDistance,
     row.pathColorCoverageRatio,
     row.pixelAdvisoryReasons.join(' '),
     row.candidateArea,
@@ -414,7 +463,7 @@ console.log(`alignment_json:${jsonPath}`);
 console.log(`alignment_csv:${csvPath}`);
 console.log(`alignment_markdown:${markdownPath}`);
 console.log(`alignment_svg:${svgPath}`);
-console.log(`status:${officialFailures.length === 0 ? 'ok' : 'failed'} total=${summary.totalBlocks} locked=${summary.lockedVerified} notVisible=${summary.officialPngBlockNotVisible} retrace=${summary.retraceRequired} officialFailures=${summary.officialAlignmentFailures}`);
+console.log(`status:${officialFailures.length === 0 ? 'ok' : 'failed'} total=${summary.totalBlocks} mapSelectable=${summary.mapSelectable} aliasOnlyNotVisible=${summary.aliasOnlyOfficialPngBlockNotVisible} locked=${summary.lockedVerified} notVisible=${summary.officialPngBlockNotVisible} retrace=${summary.retraceRequired} officialFailures=${summary.officialAlignmentFailures} thinOutsideFailures=${summary.thinOutsideFailures}`);
 
 if (officialFailures.length > 0 && !allowFailures) {
   process.exitCode = 1;

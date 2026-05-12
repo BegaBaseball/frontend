@@ -151,35 +151,45 @@ const buildOverlaySvg = (tier, tierBlocks, viewport = {
   minY: 0,
   viewWidth: SAJIK_SEATMAP_IMAGE.imageWidth,
   viewHeight: SAJIK_SEATMAP_IMAGE.imageHeight,
-}) => {
+}, options = {}) => {
+  const {
+    includeLegend = true,
+    labelFontSize = 9,
+    tierLabelFontSize = 10,
+    labelStrokeWidth = 2.6,
+    labelCircleRadius = 3,
+    tierFillOpacity = 0.45,
+  } = options;
   const tierBlockKeys = new Set(tierBlocks.map((block) => block.block));
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${viewport.width}" height="${viewport.height}" viewBox="${viewport.minX} ${viewport.minY} ${viewport.viewWidth} ${viewport.viewHeight}">
   <style>
-    .label { font: 900 9px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #020617; stroke: #ffffff; stroke-width: 2.6px; paint-order: stroke; }
-    .tier-label { font: 900 10px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #7c2d12; stroke: #ffffff; stroke-width: 2.8px; paint-order: stroke; }
+    .label { font: 900 ${labelFontSize}px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #020617; stroke: #ffffff; stroke-width: ${labelStrokeWidth}px; paint-order: stroke; }
+    .tier-label { font: 900 ${tierLabelFontSize}px Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #7c2d12; stroke: #ffffff; stroke-width: ${labelStrokeWidth}px; paint-order: stroke; }
     .candidate { fill: none; stroke: #06b6d4; stroke-width: 1.6px; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+    .alias-only { fill: #f59e0b; fill-opacity: 0.16; stroke: #f59e0b; stroke-width: 2.6px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
   </style>
   <rect x="${viewport.minX + 1}" y="${viewport.minY + 1}" width="${viewport.viewWidth - 2}" height="${viewport.viewHeight - 2}" fill="none" stroke="#0f172a" stroke-opacity="0.5" stroke-width="2" />
   ${blocksWithMetrics.map((block) => {
     const isTierBlock = tierBlockKeys.has(block.block) && (tier === 'FOCUS' || block.reviewTier === tier);
     const isAlignmentFailure = isTierBlock && block.alignment?.alignmentClass === 'RETRACE_REQUIRED';
     const isNotVisibleException = isTierBlock && block.alignment?.alignmentClass === 'OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
+    const isAliasOnly = block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
     const category = SAJIK_CATEGORIES[block.category];
     const fill = category?.light ?? '#38bdf8';
     const stroke = isAlignmentFailure ? '#dc2626' : isNotVisibleException ? '#f59e0b' : isTierBlock ? '#ea580c' : '#64748b';
     const strokeWidth = isAlignmentFailure ? '3.2' : isTierBlock ? '2.2' : '1';
 
     return `
-  <path d="${xmlEscape(block.imageGeometry.d)}" fill="${fill}" fill-opacity="${isTierBlock ? '0.45' : '0.03'}" stroke="${stroke}" stroke-opacity="${isTierBlock ? '0.92' : '0.18'}" stroke-width="${strokeWidth}" vector-effect="non-scaling-stroke">
+  <path class="${isAliasOnly && isTierBlock ? 'alias-only' : ''}" d="${xmlEscape(block.imageGeometry.d)}" fill="${fill}" fill-opacity="${isTierBlock ? tierFillOpacity : '0.03'}" stroke="${stroke}" stroke-opacity="${isTierBlock ? '0.92' : '0.18'}" stroke-width="${strokeWidth}" vector-effect="non-scaling-stroke">
     <title>${xmlEscape(`${block.block} ${block.name} ${block.pointCount}pt ${block.imageGeometry.traceVersion} ${block.alignment?.alignmentClass ?? 'alignment-not-run'}`)}</title>
   </path>
   ${isTierBlock && block.alignment?.candidateOuterBoundaryPath ? `<path class="candidate" d="${xmlEscape(block.alignment.candidateOuterBoundaryPath)}" />` : ''}
-  ${isTierBlock ? `<circle cx="${block.imageGeometry.labelX}" cy="${block.imageGeometry.labelY}" r="3" fill="#ef4444" stroke="#ffffff" stroke-width="1.4" vector-effect="non-scaling-stroke" />` : ''}
+  ${isTierBlock ? `<circle cx="${block.imageGeometry.labelX}" cy="${block.imageGeometry.labelY}" r="${labelCircleRadius}" fill="#ef4444" stroke="#ffffff" stroke-width="1.4" vector-effect="non-scaling-stroke" />` : ''}
   ${isTierBlock ? `<text class="${block.pointCount > 4 ? 'tier-label' : 'label'}" x="${block.imageGeometry.labelX}" y="${block.imageGeometry.labelY}" transform="rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})">${xmlEscape(block.imageGeometry.shortLabel)}</text>` : ''}`;
   }).join('')}
-  <text x="${viewport.minX + 16}" y="${viewport.minY + viewport.viewHeight - 18}" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#f8fafc" stroke="#0f172a" stroke-width="3" paint-order="stroke">${xmlEscape(`${tier} ${tierBlocks.length} blocks · cyan=official PNG pixel candidate · amber=official PNG block not visible · red=retrace required`)}</text>
+  ${includeLegend ? `<text x="${viewport.minX + 16}" y="${viewport.minY + viewport.viewHeight - 18}" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#f8fafc" stroke="#0f172a" stroke-width="3" paint-order="stroke">${xmlEscape(`${tier} ${tierBlocks.length} blocks · cyan=official PNG pixel candidate · amber=official PNG block not visible · red=retrace required`)}</text>` : ''}
 </svg>`;
 };
 
@@ -218,6 +228,7 @@ const renderTierPanel = async (tier, tierBlocks) => {
       id: block.id,
       block: block.block,
       name: block.name,
+      mapInteractionStatus: block.mapInteractionStatus,
       alignmentClass: block.alignment?.alignmentClass ?? 'NOT_RUN',
       componentInsidePathRatio: block.alignment?.componentInsidePathRatio ?? null,
       pathColorCoverageRatio: block.alignment?.pathColorCoverageRatio ?? null,
@@ -233,12 +244,42 @@ const renderTierPanel = async (tier, tierBlocks) => {
 const focusCrops = [
   {
     id: 'p0-thin-first-base',
-    title: 'P0 thin first-base and 041 correction',
+    title: 'P0 thin first-base, 143 strict lock, and 041 correction',
     left: 600,
     top: 320,
     width: 340,
     height: 235,
     blocks: ['111', '112', '113', '114', '115', '116', '121', '122', '123', '124', '125', '126', '127', '131', '132', '133', '134', '135', '136', '137', '142', '143', '021', '031', '041'],
+  },
+  {
+    id: 'p0-143-boundary-lock',
+    title: 'P0 143 boundary lock - blue block only',
+    left: 770,
+    top: 450,
+    width: 56,
+    height: 42,
+    blocks: ['123', '133', '134', '143'],
+    compact: true,
+  },
+  {
+    id: 'p0-132-142-143-seams',
+    title: 'P0 seam check - 132/142/143',
+    left: 695,
+    top: 468,
+    width: 118,
+    height: 62,
+    blocks: ['132', '142', '143'],
+    compact: true,
+  },
+  {
+    id: 'p0-123-133-143-seams',
+    title: 'P0 seam check - 123/133/143',
+    left: 750,
+    top: 435,
+    width: 82,
+    height: 58,
+    blocks: ['123', '133', '143'],
+    compact: true,
   },
   {
     id: 'p0-retraced-3b-upper',
@@ -251,12 +292,22 @@ const focusCrops = [
   },
   {
     id: 'p0-central-lower-011-review',
-    title: 'P0 central lower - 011 manual review',
+    title: 'P0 central lower - 011 alias-only review',
     left: 470,
     top: 390,
     width: 230,
     height: 95,
     blocks: ['024', '013', '023', '033', '022', '012', '021', '031', '011'],
+  },
+  {
+    id: 'p0-011-alias-only-no-hit-area',
+    title: 'P0 011 alias-only - no SVG hit-area',
+    left: 610,
+    top: 355,
+    width: 170,
+    height: 90,
+    blocks: ['011', '012', '021'],
+    compact: true,
   },
   {
     id: 'p1-retraced-everytime',
@@ -281,6 +332,15 @@ const renderFocusPanel = async (focus) => {
     minY: focus.top,
     viewWidth: focus.width,
     viewHeight: focus.height,
+  }, focus.compact ? {
+    includeLegend: false,
+    labelFontSize: 3.8,
+    tierLabelFontSize: 4.2,
+    labelStrokeWidth: 1.2,
+    labelCircleRadius: 1.2,
+    tierFillOpacity: 0.26,
+  } : {
+    includeLegend: false,
   }));
   const header = Buffer.from(`
 <svg xmlns="http://www.w3.org/2000/svg" width="${outputWidth}" height="${headerHeight}" viewBox="0 0 ${outputWidth} ${headerHeight}">
@@ -313,6 +373,8 @@ const renderFocusPanel = async (focus) => {
     refinedCount: focusBlocks.filter((block) => block.pointCount > 4).length,
     blocks: focusBlocks.map((block) => ({
       block: block.block,
+      mapInteractionStatus: block.mapInteractionStatus,
+      rendersMapHitArea: block.mapInteractionStatus === 'MAP_SELECTABLE',
       alignmentClass: block.alignment?.alignmentClass ?? 'NOT_RUN',
       componentInsidePathRatio: block.alignment?.componentInsidePathRatio ?? null,
       pathColorCoverageRatio: block.alignment?.pathColorCoverageRatio ?? null,
@@ -376,6 +438,8 @@ const report = {
     totalBlocks: blocksWithMetrics.length,
     refinedPolygons: blocksWithMetrics.filter((block) => block.pointCount > 4).length,
     manualReviewRequired: blocksWithMetrics.filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED').length,
+    mapSelectable: blocksWithMetrics.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE').length,
+    aliasOnlyOfficialPngBlockNotVisible: blocksWithMetrics.filter((block) => block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE').length,
     manualReviewBlocks: blocksWithMetrics
       .filter((block) => block.imageGeometry.pixelAlignmentStatus === 'MANUAL_REVIEW_REQUIRED')
       .map((block) => block.block),
@@ -403,6 +467,8 @@ const markdown = [
   `- Total blocks: ${report.summary.totalBlocks}`,
   `- Refined polygons (>4 points): ${report.summary.refinedPolygons}`,
   `- Manual review required: ${report.summary.manualReviewRequired} (${report.summary.manualReviewBlocks.join(', ') || 'none'})`,
+  `- Map selectable: ${report.summary.mapSelectable}`,
+  `- Alias-only official PNG block not visible: ${report.summary.aliasOnlyOfficialPngBlockNotVisible}`,
   `- Alignment locked verified: ${report.summary.alignmentLockedVerified ?? 'not-run'}`,
   `- Official PNG block not visible: ${report.summary.officialPngBlockNotVisible ?? 'not-run'}`,
   `- Alignment failures: ${report.summary.alignmentFailures ?? 'not-run'}`,
