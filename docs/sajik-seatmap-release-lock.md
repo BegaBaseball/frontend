@@ -89,6 +89,21 @@
   - `../output/playwright/stadium-ux/desktop-1440.png`
   - `../output/playwright/stadium-ux/sajik-debug-overlay-1440x1000.png`
 
+## 최신 검증 실행
+
+검증 시각: 2026-05-12 10:50:01 KST
+
+- `npm run qa:stadium:sajik:trace-review`: PASS
+  - evidence 재생성 PASS
+  - advisory Playwright review PASS, `advisory=2`, `panels=2`
+  - mobile 390 + desktop 1440 browser QA PASS, `status:passed`
+  - 최종 alignment audit PASS, `total=89 mapSelectable=87 aliasOnlyNotVisible=2 locked=87 notVisible=2 retrace=0 officialFailures=0 thinOutsideFailures=0`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, `23/23`
+- `npm run build`: PASS
+- `git diff --check`: PASS
+- P0 thin-first-base evidence에서 `143` overlay는 공식 파란 블럭 경계 안에 잠기며, `132/142/143` 및 `123/133/143` 주변 label top-hit 회귀는 발생하지 않는다.
+- P0 central-lower evidence에서 `011`은 alias-only dashed 영역으로만 기록되며 SVG hit-area와 지도 popup 대상에서 제외된다.
+
 ## 운영 규칙
 
 - 공식 PNG natural size는 `960x640`이어야 한다.
