@@ -12,6 +12,12 @@ import {
   SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
   SAJIK_THIN_ALIGNMENT_STRICT_BLOCKS,
 } from '../src/data/sajikSeatData.ts';
+import {
+  pathBounds,
+  pathToPoints as pathPoints,
+  pointInPolygon,
+  polygonArea,
+} from '../src/utils/seatMapPolygonValidator.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
@@ -56,69 +62,6 @@ const xmlEscape = (value) => String(value ?? '')
 
 const round = (value, digits = 3) => Number(Number(value || 0).toFixed(digits));
 
-const pathPoints = (pathData) => {
-  const numbers = pathData.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  const points = [];
-  for (let index = 0; index < numbers.length - 1; index += 2) {
-    points.push([numbers[index], numbers[index + 1]]);
-  }
-  return points;
-};
-
-const polygonArea = (points) => Math.abs(points.reduce((sum, point, index) => {
-  const next = points[(index + 1) % points.length];
-  return sum + (point[0] * next[1]) - (next[0] * point[1]);
-}, 0) / 2);
-
-const pathBounds = (pathData) => {
-  const points = pathPoints(pathData);
-  return {
-    minX: Math.min(...points.map((point) => point[0])),
-    minY: Math.min(...points.map((point) => point[1])),
-    maxX: Math.max(...points.map((point) => point[0])),
-    maxY: Math.max(...points.map((point) => point[1])),
-  };
-};
-
-const distanceToSegment = (point, start, end) => {
-  const segmentX = end[0] - start[0];
-  const segmentY = end[1] - start[1];
-  const lengthSquared = (segmentX * segmentX) + (segmentY * segmentY);
-  if (lengthSquared === 0) return Math.hypot(point[0] - start[0], point[1] - start[1]);
-
-  const ratio = Math.max(0, Math.min(1, (
-    ((point[0] - start[0]) * segmentX) + ((point[1] - start[1]) * segmentY)
-  ) / lengthSquared));
-  return Math.hypot(
-    point[0] - (start[0] + (ratio * segmentX)),
-    point[1] - (start[1] + (ratio * segmentY)),
-  );
-};
-
-const pointOnPolygonBoundary = (point, polygon, tolerance = 0.75) => {
-  for (let index = 0; index < polygon.length; index += 1) {
-    const start = polygon[index];
-    const end = polygon[(index + 1) % polygon.length];
-    if (distanceToSegment(point, start, end) <= tolerance) return true;
-  }
-  return false;
-};
-
-const pointInPolygon = (point, polygon) => {
-  if (polygon.length < 3) return false;
-
-  const [x, y] = point;
-  let inside = false;
-  for (let current = 0, previous = polygon.length - 1; current < polygon.length; previous = current, current += 1) {
-    const [xi, yi] = polygon[current];
-    const [xj, yj] = polygon[previous];
-    const intersects = ((yi > y) !== (yj > y))
-      && (x < (((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON)) + xi);
-    if (intersects) inside = !inside;
-  }
-  return inside;
-};
-
 const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'));
 
 const pixelComponents = await readJson(pixelComponentsPath);
@@ -129,7 +72,8 @@ const sortedMapSelectableBlocks = sortedBlocks.filter((block) => block.mapIntera
 const topHitBlockAt = (point) => {
   let topBlock = null;
   sortedMapSelectableBlocks.forEach((block) => {
-    if (pointInPolygon(point, pathPoints(block.imageGeometry.d))) {
+    const hitPath = block.imageGeometry.hitPath ?? block.imageGeometry.visualPath ?? block.imageGeometry.d;
+    if (pointInPolygon(point, pathPoints(hitPath))) {
       topBlock = block;
     }
   });
@@ -162,8 +106,10 @@ const failureReasons = (row, { includeCandidateGate }) => {
 
 const rows = SAJIK_BLOCKS.map((block) => {
   const candidate = candidateByBlockId.get(block.id) ?? {};
-  const points = pathPoints(block.imageGeometry.d);
-  const labelPoint = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+  const visualPath = block.imageGeometry.visualPath ?? block.imageGeometry.d;
+  const hitPath = block.imageGeometry.hitPath ?? visualPath;
+  const points = pathPoints(visualPath);
+  const labelPoint = block.imageGeometry.labelPoint ?? [block.imageGeometry.labelX, block.imageGeometry.labelY];
   const topHit = topHitBlockAt(labelPoint);
   const row = {
     id: block.id,
@@ -179,11 +125,13 @@ const rows = SAJIK_BLOCKS.map((block) => {
     manualReviewed: block.imageGeometry.manualReviewed,
     pixelAlignmentStatus: block.imageGeometry.pixelAlignmentStatus,
     mapInteractionStatus: block.mapInteractionStatus,
-    currentPath: block.imageGeometry.d,
-    currentPathBounds: pathBounds(block.imageGeometry.d),
+    currentPath: visualPath,
+    visualPath,
+    hitPath,
+    currentPathBounds: pathBounds(visualPath),
     currentPathArea: round(polygonArea(points), 1),
-    labelX: block.imageGeometry.labelX,
-    labelY: block.imageGeometry.labelY,
+    labelX: labelPoint[0],
+    labelY: labelPoint[1],
     labelInsideCurrentPath: pointInPolygon(labelPoint, points),
     labelTopHitBlockId: topHit?.id ?? null,
     labelTopHitBlock: topHit?.block ?? null,
