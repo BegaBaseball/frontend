@@ -2324,6 +2324,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   const operatorWriteSmokeSource = readProjectFile('scripts/gwangju-seatmap-operator-write-smoke.mjs');
   const operatorWriteGuardSource = readProjectFile('scripts/gwangju-seatmap-operator-write-guard.mjs');
   const pixelComponentSource = readProjectFile('scripts/gwangju-seatmap-pixel-components.mjs');
+  const imageTraceCandidateSource = readProjectFile('scripts/gwangju-seatmap-image-trace-candidates.mjs');
   const lowMarginCandidateSource = readProjectFile('scripts/gwangju-seatmap-low-margin-candidates.mjs');
   const operatorRunbookSource = readProjectFile('docs/gwangju-seatmap-operator-runbook.md');
   const releaseHandoffSource = readProjectFile('docs/gwangju-seatmap-release-handoff.md');
@@ -2342,6 +2343,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   ];
 
   assert.ok(packageSource.includes('"stadium:gwangju:pixel-components"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-trace-candidates"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-image-trace-candidates.mjs'));
   assert.ok(packageSource.includes('"stadium:gwangju:trace-manifest"'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-review-manifest.mjs'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-template"'));
@@ -2389,6 +2392,39 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_DEEP_CHECK: '1'"));
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1'"));
   assert.ok(pixelComponentSource.includes('gwangju-seatmap-pixel-components.json'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_IMAGE_TRACE_CANDIDATES_V1'));
+  assert.ok(imageTraceCandidateSource.includes('official PNG 2200x1159 only'));
+  assert.ok(imageTraceCandidateSource.includes('doesNotModifyDataFile'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_SEATMAP_IMAGE'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_BLOCKS'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_ZONE_PRECISION_WORKSETS'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES'));
+  assert.ok(imageTraceCandidateSource.includes('GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES'));
+  assert.ok(imageTraceCandidateSource.includes('REUSES_EXISTING_TRACE_ONLY'));
+  assert.ok(imageTraceCandidateSource.includes('candidatePath'));
+  assert.ok(imageTraceCandidateSource.includes('officialComponentRecall'));
+  assert.ok(imageTraceCandidateSource.includes('componentIoU'));
+  assert.ok(imageTraceCandidateSource.includes('CURRENT_PATH_USED_FOR_COMPONENT_OWNERSHIP_HINT'));
+  assert.ok(imageTraceCandidateSource.includes('P2_BOUNDARY_WATCH_BLOCK_IDS'));
+  assert.ok(imageTraceCandidateSource.includes('P2_MERGED_COMPONENT_REFERENCES'));
+  assert.ok(imageTraceCandidateSource.includes('p2-merged-official-components'));
+  assert.ok(imageTraceCandidateSource.includes('P2_MERGED_COMPONENT_RECALL_THRESHOLD'));
+  assert.ok(imageTraceCandidateSource.includes('P2_MERGED_COMPONENT_IOU_THRESHOLD'));
+  assert.ok(imageTraceCandidateSource.includes('P2_PRODUCTION_REVIEWED_CURRENT_PATH_BLOCK_IDS'));
+  assert.ok(imageTraceCandidateSource.includes('p2ProductionReviewedCurrentPathRows'));
+  assert.ok(imageTraceCandidateSource.includes('P2_COMPONENT_OWNERSHIP_REQUIRES_MANUAL_REVIEW'));
+  assert.ok(imageTraceCandidateSource.includes('P2_LABEL_COMPONENT_IS_ROW_STRIPE_ONLY'));
+  assert.ok(imageTraceCandidateSource.includes('p2BoundaryWatchRows'));
+  assert.ok(imageTraceCandidateSource.includes('gwangju-seatmap-image-trace-candidates.json'));
+  assert.ok(imageTraceCandidateSource.includes('gwangju-seatmap-image-trace-candidates.csv'));
+  assert.ok(imageTraceCandidateSource.includes('gwangju-seatmap-image-trace-candidates.md'));
+  assert.ok(imageTraceCandidateSource.includes('gwangju-seatmap-image-trace-candidates-overlay.png'));
+  assert.ok(imageTraceCandidateSource.includes('gwangju-seatmap-image-trace-candidates-crops'));
+  assert.ok(imageTraceCandidateSource.includes('browser CSS pixels'));
+  assert.ok(imageTraceCandidateSource.includes('resized screenshots'));
+  assert.ok(imageTraceCandidateSource.includes('external crawling'));
+  assert.ok(imageTraceCandidateSource.includes('web-search-based baseball data'));
+  assert.ok(imageTraceCandidateSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
   assert.ok(lowMarginCandidateSource.includes('GWANGJU_LOW_MARGIN_CANDIDATES_V1'));
   assert.ok(lowMarginCandidateSource.includes('gwangju-seatmap-low-margin-candidates.json'));
   assert.ok(lowMarginCandidateSource.includes('gwangju-seatmap-low-margin-candidates.csv'));
@@ -2460,6 +2496,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorTemplateValidationSource.includes('--strict'));
   assert.ok(operatorTemplateValidationSource.includes('LABEL_OUTSIDE_POLYGON'));
   assert.ok(operatorTemplateValidationSource.includes('POLYGON_SELF_INTERSECTION'));
+  assert.ok(operatorTemplateValidationSource.includes('OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP'));
   assert.ok(operatorTemplateValidationSource.includes('This validator does not modify gwangjuSeatData.ts'));
   assert.ok(operatorTemplateValidationSource.includes('gwangju-seatmap-operator-template-validation.json'));
   assert.ok(operatorTemplateValidationSource.includes('gwangju-seatmap-operator-template-validation.csv'));
@@ -2496,6 +2533,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorStatusSource.includes('baseTraceBlocks'));
   assert.ok(operatorStatusSource.includes('derivedRanges'));
   assert.ok(operatorStatusSource.includes('derivedRangeDisplayBlocks'));
+  assert.ok(operatorStatusSource.includes('promotionModelWarnings'));
+  assert.ok(operatorStatusSource.includes('DERIVED_RANGE_OFFICIAL_BLOCK_OVERLAP_IS_FILTER_ONLY'));
   assert.ok(operatorStatusSource.includes('EXISTING_NUMBERED_BLOCKS_ONLY'));
   assert.ok(operatorStatusSource.includes('STRICT_VALIDATION_NOT_RUN'));
   assert.ok(operatorStatusSource.includes('STRICT_VALIDATION_PENDING_OPERATOR_INPUT'));
@@ -2570,12 +2609,10 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_SEPARATE_EXPANSION_DISABLED'));
   assert.ok(releaseAuditSource.includes('classified additional separate dirty work files'));
   assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_PATCH_SEPARATION_STATUS_CHANGED'));
-  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_PACKAGE_MIXED_STATUS_MISSING'));
   assert.ok(releaseAuditSource.includes('gwangju-seatmap-pr-staging-plan.json'));
   assert.ok(releaseAuditSource.includes('prStagingPlan'));
   assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_STATUS_CHANGED'));
   assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_GIT_ADD_ENABLED'));
-  assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_PACKAGE_MIXED_STATUS_MISSING'));
   assert.ok(releaseAuditSource.includes('STALE_PR_STAGING_PLAN_BEFORE_SCOPE_GUARD'));
   assert.ok(releaseAuditSource.includes('STALE_RELEASE_SCOPE_GUARD_BEFORE_HANDOFF'));
   assert.ok(releaseAuditSource.includes("requiredScopeGuardStatus: 'passed'"));
@@ -2584,8 +2621,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseAuditSource.includes('requiredScopeGuardIncludedFiles: EXPECTED_RELEASE_PAYLOAD_FILE_COUNT'));
   assert.ok(releaseAuditSource.includes('requiredScopeGuardSeparateDirtyWorkBaselineFiles: SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT'));
   assert.ok(releaseAuditSource.includes('allowsClassifiedSeparateDirtyWorkExpansion: true'));
-  assert.ok(releaseAuditSource.includes("requiredPatchSeparationReadiness: 'review-required'"));
-  assert.ok(releaseAuditSource.includes("requiredPrStagingPlanStatus: 'review-required'"));
+  assert.ok(releaseAuditSource.includes("requiredPatchSeparationReadiness: 'ready-or-review-required'"));
+  assert.ok(releaseAuditSource.includes("requiredPrStagingPlanStatus: 'ready-or-review-required'"));
   assert.ok(releaseAuditSource.includes('requiredPrStagingPlanDoesNotRunGitAdd: true'));
   assert.ok(releaseAuditSource.includes('scopeGuardSummary'));
   assert.ok(releaseAuditSource.includes('expectedIncludedFileCount'));
@@ -2597,17 +2634,17 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseAuditSource.includes('missingExpectedSeparateDirtyWorkCount'));
   assert.ok(releaseAuditSource.includes('classifiedSeparateDirtyWorkExpansionAllowed'));
   assert.ok(releaseAuditSource.includes('classifiedAdditionalSeparateDirtyWorkCount'));
-  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=19'));
+  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=23'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true'));
   assert.ok(releaseAuditSource.includes('PR Packaging Manifest'));
-  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=19'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=23'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.separateDirtyWorkFileCount='));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.unexpectedDirtyFileCount=0'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.inventoryDriftCount=0'));
   assert.ok(releaseAuditSource.includes('Patch Separation Readiness'));
-  assert.ok(releaseAuditSource.includes('patchSeparationReadiness.status=review-required'));
-  assert.ok(releaseAuditSource.includes('patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`'));
+  assert.ok(releaseAuditSource.includes('patchSeparationReadiness.status=ready-or-review-required'));
+  assert.ok(releaseAuditSource.includes('clean release payload files are not packaging blockers'));
   assert.ok(releaseAuditSource.includes('## Scope Guard'));
   assert.ok(releaseAuditSource.includes('## PR Staging Plan'));
   assert.ok(releaseAuditSource.includes('prStagingPlanSummary'));
@@ -2617,6 +2654,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-release-scope-guard.md'));
   assert.ok(releaseScopeGuardSource.includes('expectedIncludedReleaseFiles'));
   assert.ok(releaseScopeGuardSource.includes('expectedSeparateDirtyWorkFiles'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-image-trace-candidates.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-operator-apply.mjs'));
   assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-pr-staging-plan.mjs'));
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.json'));
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.md'));
@@ -2641,9 +2680,9 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('PR Packaging Manifest'));
   assert.ok(releaseScopeGuardSource.includes('Patch Separation Readiness'));
   assert.ok(releaseScopeGuardSource.includes('PR staging plan'));
-  assert.ok(releaseScopeGuardSource.includes('stagingPlan.status=review-required'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.status=ready-or-review-required'));
   assert.ok(releaseScopeGuardSource.includes('stagingPlan.doesNotRunGitAdd=true'));
-  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=19'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=23'));
   assert.ok(releaseScopeGuardSource.includes('Release Candidate Inventory'));
   assert.ok(releaseScopeGuardSource.includes('Expected Included Release Files'));
   assert.ok(releaseScopeGuardSource.includes('Separate Workstream Baseline'));
@@ -2690,17 +2729,16 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(prStagingPlanSource.includes('SEPARATE_FILE_HAS_INDEX_DIFF'));
   assert.ok(prStagingPlanSource.includes('manual-hunk-review-before-staging'));
   assert.ok(prStagingPlanSource.includes('manual-whole-file-review-before-git-add'));
-  assert.ok(prStagingPlanSource.includes('PACKAGE_JSON_MIXED_STATUS_MISSING'));
   assert.ok(prStagingPlanSource.includes('RELEASE_PAYLOAD_COUNT_CHANGED'));
-  assert.ok(prStagingPlanSource.includes('stagingPlan.status=review-required'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.status=ready-or-review-required'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.safeToRunBulkGitAdd=false'));
-  assert.ok(prStagingPlanSource.includes('stagingPlan.packageJsonStatus=MM'));
-  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=19'));
-  assert.ok(prStagingPlanSource.includes('stagingReview.status=review-required'));
+  assert.ok(prStagingPlanSource.includes("stagingPlan.packageJsonStatus=${packageMixedStatus ?? 'none'}"));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=23'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.status=ready-or-review-required'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.safeToRunBulkGitAdd=false'));
-  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=19'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=23'));
   assert.ok(prStagingPlanSource.includes('stagingReview.recommendsOnlyIncludedFiles=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRecommendSeparateDirtyWork=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}'));
@@ -2721,6 +2759,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorApplySource.includes('--write'));
   assert.ok(operatorApplySource.includes('--require-ready'));
   assert.ok(operatorApplySource.includes('--allow-synthetic-smoke'));
+  assert.ok(operatorApplySource.includes('OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP'));
   assert.ok(operatorApplySource.includes('gwangju-seatmap-operator-apply.json'));
   assert.ok(operatorApplySource.includes('gwangju-seatmap-operator-apply.csv'));
   assert.ok(operatorApplySource.includes('gwangju-seatmap-operator-apply.md'));
@@ -2943,17 +2982,17 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`pending=2`',
     '`validDataDiff=0`',
     '`blockers=0`',
-    '`256/256`',
+    '`258/258`',
     '`status=ready`',
     '`derivedRanges=3`',
     '`status=passed`',
     '`steps=5/5`',
-    '`included=19`',
+    '`included=23`',
     '`separate=<runtime>`',
     '`unexpected=0`',
     '`inventoryDrift=0`',
     '`scopeGuardStatus=passed`',
-    '`scopeGuardIncludedFiles=19`',
+    '`scopeGuardIncludedFiles=23`',
     '`scopeGuardSeparateDirtyWorkFiles=<runtime>`',
     '`scopeGuardSeparateDirtyWorkBaselineFiles=95`',
     '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
@@ -2969,29 +3008,36 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'preoperator 통과 + postoperator blocked + scope guard 통과',
     'release-gate -> release-scope-guard -> pr-staging-plan -> release-audit',
     'release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.',
-    'PR packaging manifest가 광주 release 후보 19개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
-    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=19`, `actualIncludedFileCount=19`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
+    'PR packaging manifest가 광주 release 후보 23개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
+    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=23`, `actualIncludedFileCount=23`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
     'release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=95`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.',
-    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=19`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
-    'release scope guard의 `patchSeparationReadiness.status=review-required` 상태를 잃거나 `package.json` with status `MM` review-required 계약을 숨긴다.',
-    'patch separation readiness가 release PR staging 전에 review-required 상태임을 문서화하지 않는다.',
-    'PR staging plan이 `stagingPlan.status=review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.packageJsonStatus=MM`, `stagingPlan.releasePayloadFileCount=19`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
-    'PR staging review가 `stagingReview.status=review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=19`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
-    '`prPackagingManifest.releasePayloadFileCount=19`',
+    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=23`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
+    'release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.',
+    'patch separation readiness가 release payload files have mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.',
+    'PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=23`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
+    'PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=23`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
+    '`prPackagingManifest.releasePayloadFileCount=23`',
     '`prPackagingManifest.separateDirtyWorkFileCount=<runtime>`',
     '`prPackagingManifest.unexpectedDirtyFileCount=0`',
     '`prPackagingManifest.inventoryDriftCount=0`',
-    '`patchSeparationReadiness.status=review-required`',
-    '`package.json` with status `MM`',
+    '`patchSeparationReadiness.status=ready-or-review-required`',
+    'clean release payload files are not packaging blockers',
     'npm run stadium:gwangju:pr-staging-review',
     'gwangju-seatmap-pr-staging-review.json',
     'gwangju-seatmap-pr-staging-review.md',
-    'stagingReview.status=review-required',
+    'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=19',
+    'stagingReview.releasePayloadFileCount=23',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
+    '## 남은 작업',
+    '`operator-input-packet.status=ready_for_operator_input`',
+    '`inputPresentSections=0`',
+    '`readyForPrewrite=false`',
+    '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
+    '같은 `officialBlocks`를 공유하는 독립 polygon 승격 입력',
+    '실제 클릭 대상이 필요한 non-overlap operator target',
   ].forEach((requiredText) => {
     assert.ok(releaseLockSource.includes(requiredText), `release lock should include ${requiredText}`);
   });
@@ -3076,6 +3122,8 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '기존 공식 PNG 번호 블럭 polygon을 재사용하므로 active block 수는 111개를 유지',
     '좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다',
     '별도 중첩 hit-area를 만들지 않는다',
+    '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
+    'non-overlap 구역만 별도 operator target',
     'npm run stadium:gwangju:release-package',
     'npm run qa:stadium:gwangju:release-gate',
     'reports/stadium/gwangju-seatmap-release-package.json',
@@ -3109,30 +3157,30 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`activeTraceBlocks=111`',
     'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
     'release scope guard status: `passed`',
-    'release scope guard included release files: `19`',
+    'release scope guard included release files: `23`',
     'release scope guard separate dirty work files: runtime classified count',
     'release scope guard separate dirty work baseline files: `95`',
     'classified separate dirty work expansion allowed: `true`',
     'release scope guard unexpected files: `0`',
     'release scope guard blockers: `0`',
     'release scope guard inventory drift: `0`',
-    'patch separation readiness: `review-required`',
-    'patch separation mixed status: `package.json` with status `MM`',
-    'PR staging plan status: `review-required`',
+    'patch separation readiness: `ready` or `review-required`',
+    'patch separation mixed status: `none` unless release payload files have mixed or untracked diffs',
+    'PR staging plan status: `ready` or `review-required`',
     'PR staging plan does not run git add: `true`',
     'PR staging plan bulk git add allowed: `false`',
     '`release-verify` runs `release-gate -> release-scope-guard -> pr-staging-plan -> release-audit`.',
     '`releaseScopeGuardStatus=passed`',
-    '`releaseScopeGuardIncludedFiles=19`',
+    '`releaseScopeGuardIncludedFiles=23`',
     '`releaseScopeGuardSeparateDirtyWorkFiles=runtime`',
     '`releaseScopeGuardSeparateDirtyWorkBaselineFiles=95`',
     '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
     '`releaseScopeGuardUnexpectedFiles=0`',
     '`releaseScopeGuardBlockers=0`',
     '`releaseScopeGuardInventoryDrift=0`',
-    '`patchSeparationReadiness=review-required`',
-    '`patchSeparationPackageStatus=MM`',
-    '`stagingPlanStatus=review-required`',
+    '`patchSeparationReadiness=ready-or-review-required`',
+    '`patchSeparationPackageStatus=none-or-mixed`',
+    '`stagingPlanStatus=ready-or-review-required`',
     '`stagingPlanDoesNotRunGitAdd=true`',
     '`stagingPlanSafeToRunBulkGitAdd=false`',
     'gwangju-seatmap-release-scope-guard.json',
@@ -3149,36 +3197,34 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
     'Release PR scope: Gwangju pre-operator release package and build verification reports.',
     'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-    'Included release candidate files: `19`',
+    'Included release candidate files: `23`',
     'Separate dirty work files: runtime classified count',
     'Separate dirty work baseline files: `95`',
     'Classified separate dirty work expansion allowed: `true`',
     'Inventory drift: `0`',
-    'releaseCandidateInventory.expectedIncludedFileCount=19',
+    'releaseCandidateInventory.expectedIncludedFileCount=23',
     'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95',
     'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'prPackagingManifest.releasePayloadFileCount=19',
+    'prPackagingManifest.releasePayloadFileCount=23',
     'prPackagingManifest.separateDirtyWorkFileCount=',
     'prPackagingManifest.unexpectedDirtyFileCount=0',
     'prPackagingManifest.inventoryDriftCount=0',
     'Patch Separation Readiness',
-    'patchSeparationReadiness.status=review-required',
-    'patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`',
-    'patchSeparationReadiness must be reviewed before staging the release PR.',
+    'patchSeparationReadiness.status=ready-or-review-required',
+    'patchSeparationReadiness only becomes `review-required` when release payload files have mixed or untracked diffs.',
+    'clean release payload files are not packaging blockers',
     'PR Staging Plan',
-    'stagingPlan.status=review-required',
+    'stagingPlan.status=ready-or-review-required',
     'stagingPlan.doesNotRunGitAdd=true',
     'stagingPlan.safeToRunBulkGitAdd=false',
-    'stagingPlan.packageJsonStatus=MM',
-    'stagingPlan.releasePayloadFileCount=19',
+    'stagingPlan.releasePayloadFileCount=23',
     'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'stagingReview.status=review-required',
+    'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=19',
+    'stagingReview.releasePayloadFileCount=23',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
-    '`package.json` currently has both index and worktree changes',
     'Review focus files: `package.json`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `reports/bundle-guard-report.json`, `reports/dist-assets-report.json`.',
     'RELEASE_CANDIDATE_FILE_MISSING',
     'CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED',
@@ -3197,6 +3243,8 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`SPECIAL_BLOCKS` must not receive K7/AWAY aggregate block definitions before guarded write.',
     '`GWANGJU_IMAGE_GEOMETRY_DRAFTS` must not receive `home-k7-seats` or `away-cheering-seats` geometry before guarded write.',
     'Do not run the `113` active block acceptance path unless',
+    '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
+    'split the operator model into non-overlapping click targets',
   ].forEach((requiredText) => {
     assert.ok(releaseHandoffSource.includes(requiredText), `Gwangju handoff should include ${requiredText}`);
   });

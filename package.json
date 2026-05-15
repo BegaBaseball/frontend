@@ -85,6 +85,7 @@
     "qa:stadium:gocheok:trace-review": "npm run stadium:gocheok:trace-manifest && npm run stadium:gocheok:evidence && STADIUM_UX_GOCHEOK_DEBUG_CAPTURE=1 npm run qa:stadium:gocheok:mobile",
     "qa:stadium:gwangju:mobile": "node scripts/run-stadium-isolated-qa.mjs GWANGJU",
     "stadium:gwangju:pixel-components": "node --import tsx scripts/gwangju-seatmap-pixel-components.mjs",
+    "stadium:gwangju:image-trace-candidates": "npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-image-trace-candidates.mjs",
     "stadium:gwangju:trace-manifest": "npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-review-manifest.mjs",
     "stadium:gwangju:zone-precision-worksets": "npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-zone-precision-worksets.mjs",
     "stadium:gwangju:low-margin-candidates": "npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-low-margin-candidates.mjs",

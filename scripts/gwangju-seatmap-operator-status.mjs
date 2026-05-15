@@ -171,6 +171,26 @@ const derivedRangeRows = GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.map((range) => ({
   operatorPolygonStatus: range.operatorPolygonStatus,
   sourceRequirementIds: range.sourceRequirementIds,
 }));
+const overlappingDerivedRangePairs = [];
+for (let leftIndex = 0; leftIndex < derivedRangeRows.length; leftIndex += 1) {
+  for (let rightIndex = leftIndex + 1; rightIndex < derivedRangeRows.length; rightIndex += 1) {
+    const left = derivedRangeRows[leftIndex];
+    const right = derivedRangeRows[rightIndex];
+    const sharedOfficialBlocks = left.officialBlocks
+      .filter((officialBlock) => right.officialBlocks.includes(officialBlock));
+
+    if (sharedOfficialBlocks.length > 0) {
+      overlappingDerivedRangePairs.push({
+        left: left.id,
+        right: right.id,
+        sharedOfficialBlocks,
+      });
+    }
+  }
+}
+const promotionModelWarnings = overlappingDerivedRangePairs.map((pair) => (
+  `DERIVED_RANGE_OFFICIAL_BLOCK_OVERLAP_IS_FILTER_ONLY:${pair.left}:${pair.right}:${pair.sharedOfficialBlocks.join(' ')}`
+));
 
 const activeTraceBlocks = numberOrZero(traceSummary.totalBlocks ?? handoffSummary.activeTraceBlocks);
 const officialImageTracedBlocks = numberOrZero(
@@ -251,6 +271,7 @@ const summary = {
   derivedRangeCount: derivedRangeRows.length,
   derivedRangeDisplayBlocks: Object.fromEntries(derivedRangeRows.map((range) => [range.id, range.displayBlocks])),
   operatorBlockRangeReusesExistingTrace: GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE,
+  promotionModelWarnings,
   officialImageTracedBlocks,
   pixelAlignedBlocks,
   overlapWarnings,
@@ -385,6 +406,7 @@ await fs.writeFile(markdownPath, [
   '## Derived Ranges',
   '',
   'K7석/원정응원석/홈 응원석은 운영자 polygon 승격 전까지 active block 111개를 유지하고 기존 번호 블럭 hit-area만 재사용합니다.',
+  '서로 겹치는 derived range는 필터/배지 모델에서만 허용되며, 같은 official block을 공유하는 독립 polygon 승격 입력은 validation에서 차단합니다.',
   '',
   markdownTable(
     ['range', 'display blocks', 'filter', 'active hit-area', 'polygon status', 'source requirements'],
@@ -397,6 +419,12 @@ await fs.writeFile(markdownPath, [
       range.sourceRequirementIds.map((id) => `\`${id}\``).join('<br>'),
     ]),
   ),
+  '',
+  '## Promotion Model Warnings',
+  '',
+  summary.promotionModelWarnings.length > 0
+    ? summary.promotionModelWarnings.map((warning) => `- \`${warning}\``).join('\n')
+    : 'No promotion model warnings.',
   '',
   '## Blockers',
   '',

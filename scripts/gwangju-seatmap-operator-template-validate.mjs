@@ -414,6 +414,16 @@ for (let first = 0; first < candidateRows.length; first += 1) {
   for (let second = first + 1; second < candidateRows.length; second += 1) {
     const firstRow = candidateRows[first];
     const secondRow = candidateRows[second];
+    const sharedOfficialBlocks = firstRow.officialBlocks
+      .filter((officialBlock) => secondRow.officialBlocks.includes(officialBlock));
+
+    if (!firstRow.pending && !secondRow.pending && sharedOfficialBlocks.length > 0) {
+      firstRow.reasons.push(`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP:${secondRow.id}:${sharedOfficialBlocks.join(' ')}`);
+      secondRow.reasons.push(`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP:${firstRow.id}:${sharedOfficialBlocks.join(' ')}`);
+      firstRow.validForPromotion = false;
+      secondRow.validForPromotion = false;
+    }
+
     if (firstRow.points.length < 3 || secondRow.points.length < 3) continue;
     const overlapRatio = sampledOverlapRatio(firstRow.points, secondRow.points);
     if (overlapRatio > CANDIDATE_OVERLAP_FAILURE_THRESHOLD) {

@@ -42,7 +42,8 @@ const expectedStepCommands = [
 const expectedPendingOperatorSections = ['K7석', '원정응원석'];
 const STALE_TOLERANCE_MS = 1000;
 const SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT = 95;
-const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 19;
+const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 23;
+const allowedPatchSeparationStatuses = new Set(['ready', 'review-required']);
 
 const markdownCell = (value) => String(value ?? '-')
   .replaceAll('|', '\\|')
@@ -227,17 +228,10 @@ checks.push({
   actual: releaseScopeGuard?.separateWorkInventory?.classifiedAdditionalSeparateDirtyWorkCount ?? releaseScopeGuard?.separateWorkInventory?.extraSeparateDirtyWorkFiles?.length,
   pass: true,
 });
-addCheck('release scope guard patch separation readiness', 'review-required', releaseScopeGuard?.patchSeparationReadiness?.status, releaseScopeGuard?.patchSeparationReadiness?.status === 'review-required', 'RELEASE_SCOPE_GUARD_PATCH_SEPARATION_STATUS_CHANGED');
-addCheck(
-  'release scope guard package mixed status',
-  true,
-  releaseScopeGuard?.patchSeparationReadiness?.mixedStatusFiles?.some((entry) => entry.file === 'package.json' && entry.status === 'MM'),
-  releaseScopeGuard?.patchSeparationReadiness?.mixedStatusFiles?.some((entry) => entry.file === 'package.json' && entry.status === 'MM') === true,
-  'RELEASE_SCOPE_GUARD_PACKAGE_MIXED_STATUS_MISSING',
-);
+addCheck('release scope guard patch separation readiness', 'ready-or-review-required', releaseScopeGuard?.patchSeparationReadiness?.status, allowedPatchSeparationStatuses.has(releaseScopeGuard?.patchSeparationReadiness?.status), 'RELEASE_SCOPE_GUARD_PATCH_SEPARATION_STATUS_CHANGED');
 
 addCheck('PR staging plan version', 'GWANGJU_PR_STAGING_PLAN_V1', prStagingPlan?.version, prStagingPlan?.version === 'GWANGJU_PR_STAGING_PLAN_V1', 'PR_STAGING_PLAN_VERSION_CHANGED');
-addCheck('PR staging plan status', 'review-required', prStagingPlan?.status, prStagingPlan?.status === 'review-required', 'PR_STAGING_PLAN_STATUS_CHANGED');
+addCheck('PR staging plan status', 'ready-or-review-required', prStagingPlan?.status, allowedPatchSeparationStatuses.has(prStagingPlan?.status), 'PR_STAGING_PLAN_STATUS_CHANGED');
 addCheck('PR staging plan blockers', 0, prStagingPlan?.summary?.blockerCount, prStagingPlan?.summary?.blockerCount === 0, 'PR_STAGING_PLAN_BLOCKERS_PRESENT');
 addCheck('PR staging plan does not run git add', true, prStagingPlan?.doesNotRunGitAdd, prStagingPlan?.doesNotRunGitAdd === true, 'PR_STAGING_PLAN_GIT_ADD_ENABLED');
 addCheck('PR staging plan release payload files', EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, prStagingPlan?.summary?.releasePayloadFileCount, prStagingPlan?.summary?.releasePayloadFileCount === EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, 'PR_STAGING_PLAN_RELEASE_PAYLOAD_COUNT_CHANGED');
@@ -249,7 +243,12 @@ checks.push({
   pass: typeof prStagingPlan?.summary?.separateDirtyWorkFileCount === 'number',
 });
 addCheck('PR staging plan unexpected files', 0, prStagingPlan?.summary?.unexpectedDirtyFileCount, prStagingPlan?.summary?.unexpectedDirtyFileCount === 0, 'PR_STAGING_PLAN_UNEXPECTED_DIRTY_FILES_PRESENT');
-addCheck('PR staging plan package mixed status', 'MM', prStagingPlan?.summary?.packageJsonStatus, prStagingPlan?.summary?.packageJsonStatus === 'MM', 'PR_STAGING_PLAN_PACKAGE_MIXED_STATUS_MISSING');
+checks.push({
+  name: 'PR staging plan package mixed status',
+  expected: 'null unless package.json is mixed',
+  actual: prStagingPlan?.summary?.packageJsonStatus,
+  pass: prStagingPlan?.summary?.packageJsonStatus === null || prStagingPlan?.summary?.packageJsonStatus === 'MM',
+});
 addCheck('PR staging plan bulk add guard', false, prStagingPlan?.stagingGate?.safeToRunBulkGitAdd, prStagingPlan?.stagingGate?.safeToRunBulkGitAdd === false, 'PR_STAGING_PLAN_BULK_ADD_ALLOWED');
 
 addCheck('browser QA status', 'passed', browserQaSummary?.status, browserQaSummary?.status === 'passed', 'BROWSER_QA_NOT_PASSED');
@@ -298,39 +297,38 @@ const requiredHandoffSnippets = [
   'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
   'gwangju-seatmap-release-scope-guard.json',
   'gwangju-seatmap-release-scope-guard.md',
-  'release scope guard included release files: `19`',
+  'release scope guard included release files: `23`',
   'release scope guard separate dirty work baseline files: `95`',
   'classified separate dirty work expansion allowed: `true`',
   'release scope guard inventory drift: `0`',
-  '`releaseScopeGuardIncludedFiles=19`',
+  '`releaseScopeGuardIncludedFiles=23`',
   '`releaseScopeGuardSeparateDirtyWorkBaselineFiles=95`',
   '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
   '`releaseScopeGuardInventoryDrift=0`',
   'Release Candidate Inventory',
-  'releaseCandidateInventory.expectedIncludedFileCount=19',
+  'releaseCandidateInventory.expectedIncludedFileCount=23',
   'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95',
   'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
   'PR Packaging Manifest',
   'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
   'Release PR scope: Gwangju pre-operator release package and build verification reports.',
   'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-  'prPackagingManifest.releasePayloadFileCount=19',
+  'prPackagingManifest.releasePayloadFileCount=23',
   'prPackagingManifest.separateDirtyWorkFileCount=',
   'prPackagingManifest.unexpectedDirtyFileCount=0',
   'prPackagingManifest.inventoryDriftCount=0',
   'Patch Separation Readiness',
-  'patch separation readiness: `review-required`',
-  'patchSeparationReadiness.status=review-required',
-  'patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`',
-  'patchSeparationReadiness must be reviewed before staging the release PR.',
+  'patch separation readiness: `ready` or `review-required`',
+  'patchSeparationReadiness.status=ready-or-review-required',
+  'patchSeparationReadiness only becomes `review-required` when release payload files have mixed or untracked diffs.',
+  'clean release payload files are not packaging blockers',
   'PR staging plan: `npm run stadium:gwangju:pr-staging-plan`',
   'gwangju-seatmap-pr-staging-plan.json',
   'gwangju-seatmap-pr-staging-plan.md',
-  'stagingPlan.status=review-required',
+  'stagingPlan.status=ready-or-review-required',
   'stagingPlan.doesNotRunGitAdd=true',
   'stagingPlan.safeToRunBulkGitAdd=false',
-  'stagingPlan.packageJsonStatus=MM',
-  'stagingPlan.releasePayloadFileCount=19',
+  'stagingPlan.releasePayloadFileCount=23',
   'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
   '`K7석`: `107~111`, `118~122`',
   '`원정응원석`: `107~110`',
@@ -435,8 +433,8 @@ const report = {
     requiredScopeGuardIncludedFiles: EXPECTED_RELEASE_PAYLOAD_FILE_COUNT,
     requiredScopeGuardSeparateDirtyWorkBaselineFiles: SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT,
     allowsClassifiedSeparateDirtyWorkExpansion: true,
-    requiredPatchSeparationReadiness: 'review-required',
-    requiredPrStagingPlanStatus: 'review-required',
+    requiredPatchSeparationReadiness: 'ready-or-review-required',
+    requiredPrStagingPlanStatus: 'ready-or-review-required',
     requiredPrStagingPlanDoesNotRunGitAdd: true,
     noPrewrite113Gate: true,
   },
