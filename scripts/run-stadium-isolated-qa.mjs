@@ -288,6 +288,51 @@ function runAudit({ env, outputDir }) {
   });
 }
 
+function readAuditFailureText(outputDir) {
+  const candidates = [
+    'report.json',
+    'stadium-mobile-smoke-summary.json',
+    'stadium-mobile-smoke-summary.md',
+  ];
+  return candidates
+    .map((fileName) => path.join(outputDir, fileName))
+    .filter((filePath) => fs.existsSync(filePath))
+    .map((filePath) => {
+      try {
+        return fs.readFileSync(filePath, 'utf8');
+      } catch (_error) {
+        return '';
+      }
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function classifyQaFailure({ run, outputDir }) {
+  const text = [
+    run.error?.message ?? '',
+    run.signal ? `signal ${run.signal}` : '',
+    readAuditFailureText(outputDir),
+  ].join('\n');
+
+  if (/Failed to reload .*This could be due to syntax errors|hmr update|Vite.*reload/i.test(text)) {
+    return 'hmr-reload';
+  }
+  if (/ERR_CONNECTION_REFUSED|did not accept \/stadium connections|No local frontend dev server|Local frontend dev server/i.test(text)) {
+    return 'server';
+  }
+  if (/elementFromPoint|probe|top-hit|top hit|expected block|wrong block|coordinate|좌표/i.test(text)) {
+    return 'coordinate';
+  }
+  if (/Target page, context or browser has been closed|Target closed|Browser has been closed|Playwright|Timeout/i.test(text)) {
+    return 'browser';
+  }
+  if (/Unexpected console errors|consoleErrors|console error/i.test(text)) {
+    return 'console';
+  }
+  return 'runner';
+}
+
 function writeFailureSummary({
   summaryPath,
   target,
@@ -298,6 +343,7 @@ function writeFailureSummary({
   preRunListeners,
   postRunListeners,
   cleanedPids,
+  failureCategory,
 }) {
   if (fs.existsSync(summaryPath)) {
     return;
@@ -321,6 +367,7 @@ function writeFailureSummary({
     `- Post-run related QA PID(s): ${formatPidList(postRunListeners.relatedPids)}`,
     `- Cleaned PID(s): ${formatPidList(cleanedPids)}`,
     `- Duration seconds: ${durationSeconds}`,
+    `- Failure category: ${failureCategory}`,
     `- Failure: ${errorText}`,
     '',
   ].join('\n'), 'utf8');
@@ -393,12 +440,14 @@ function logFailureDiagnostics({
   preRunListeners,
   postRunListeners,
   cleanedPids,
+  failureCategory,
 }) {
   if (run.error) {
     console.error(`[stadium-isolated-qa] ${target.stadium}:${target.mode} failed: ${run.error.message}`);
   }
   console.error(`[stadium-isolated-qa] ${target.stadium}:${target.mode} failed after ${durationSeconds}s`);
   console.error(`[stadium-isolated-qa] diagnostics target=${target.stadium}:${target.mode} port=${port} auditChildPid=${run.childPid ?? 'unknown'}`);
+  console.error(`[stadium-isolated-qa] diagnostics failureCategory=${failureCategory}`);
   console.error(`[stadium-isolated-qa] diagnostics output=${outputDir} summary=${summaryPath}`);
   console.error(`[stadium-isolated-qa] diagnostics preRunListenerPids=${formatPidList(preRunListeners.listenerPids)} preRunRelatedQaPids=${formatPidList(preRunListeners.relatedPids)}`);
   console.error(`[stadium-isolated-qa] diagnostics postRunListenerPids=${formatPidList(postRunListeners.listenerPids)} postRunRelatedQaPids=${formatPidList(postRunListeners.relatedPids)}`);
@@ -466,6 +515,7 @@ for (const target of targets) {
   });
 
   if (run.status !== 0) {
+    const failureCategory = classifyQaFailure({ run, outputDir });
     writeFailureSummary({
       summaryPath,
       target,
@@ -476,6 +526,7 @@ for (const target of targets) {
       preRunListeners,
       postRunListeners,
       cleanedPids,
+      failureCategory,
     });
     logFailureDiagnostics({
       target,
@@ -487,6 +538,7 @@ for (const target of targets) {
       preRunListeners,
       postRunListeners,
       cleanedPids,
+      failureCategory,
     });
     process.exit(run.status ?? 1);
   }

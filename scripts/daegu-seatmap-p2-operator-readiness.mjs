@@ -28,6 +28,8 @@ const argValue = (name, fallback) => {
   return process.argv[index + 1];
 };
 
+const hasArg = (name) => process.argv.includes(name);
+
 const csvEscape = (value) => {
   const text = String(value ?? '');
   if (!/[",\n]/.test(text)) return text;
@@ -82,6 +84,7 @@ const boolOrFalse = (value) => value === true;
 
 const p2ReportDir = path.resolve(frontendRoot, argValue('--p2-report-dir', defaultP2ReportDir));
 const reportDir = path.resolve(frontendRoot, argValue('--report-dir', defaultReportDir));
+const allowWaitingExitZero = hasArg('--allow-waiting-exit-zero') || hasArg('--report-only');
 const packagePath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-package.json');
 const inputPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-input.json');
 const postEntryQaPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-post-entry-qa.json');
@@ -324,6 +327,7 @@ const summary = {
   waitingForP1Postwrite,
   readyForTemplateImport,
   readyForGuardedWriteAfterTemplateImport,
+  allowWaitingExitZero,
   targetBatchId: TARGET_BATCH_ID,
   priorBatchIds: PRIOR_BATCHES.map((batch) => batch.id),
   expectedRows,
@@ -387,6 +391,7 @@ const report = {
     'This readiness gate is read-only and never modifies the main corrections template.',
     'It must be run after npm run stadium:daegu:p2-operator-post-entry-qa.',
     'It must be run after npm run stadium:daegu:p2-operator-validate and npm run stadium:daegu:p2-operator-import.',
+    'Use --allow-waiting-exit-zero only when another report needs this readiness output without allowing template import.',
     'It blocks template import when post-entry QA reports blocked rows.',
     'It reports waiting-for-operator-entry while no P2 rows are operatorDecision=APPROVED.',
     'It reports waiting-for-p1-postwrite while P2 approvals exist but P1 boundary-first postwrite is not verified.',
@@ -471,6 +476,7 @@ await fs.writeFile(markdownPath, [
   `- waiting for P1 postwrite: ${summary.waitingForP1Postwrite}`,
   `- ready for template import: ${summary.readyForTemplateImport}`,
   `- ready for guarded write after template import: ${summary.readyForGuardedWriteAfterTemplateImport}`,
+  `- allow waiting exit zero: ${summary.allowWaitingExitZero}`,
   `- prior pending rows: ${summary.priorPendingRows}`,
   `- prior approved rows: ${summary.priorApprovedRows}`,
   `- post-entry QA status: \`${summary.postEntryQaStatus || 'missing'}\``,
@@ -562,8 +568,8 @@ await fs.writeFile(markdownPath, [
 console.log(`p2_operator_readiness_json:${jsonPath}`);
 console.log(`p2_operator_readiness_csv:${csvPath}`);
 console.log(`p2_operator_readiness_markdown:${markdownPath}`);
-console.log(`status:${summary.status} readyForTemplateImport=${summary.readyForTemplateImport} pending=${summary.pendingRows} approved=${summary.approvedRows} validApproved=${summary.validApprovedRows} p1Postwrite=${summary.p1PostwriteStatus || 'missing'}`);
+console.log(`status:${summary.status} readyForTemplateImport=${summary.readyForTemplateImport} pending=${summary.pendingRows} approved=${summary.approvedRows} validApproved=${summary.validApprovedRows} p1Postwrite=${summary.p1PostwriteStatus || 'missing'} allowWaitingExitZero=${summary.allowWaitingExitZero}`);
 
-if (!summary.readyForTemplateImport) {
+if (!summary.readyForTemplateImport && !(allowWaitingExitZero && summary.status !== 'blocked')) {
   process.exitCode = 1;
 }

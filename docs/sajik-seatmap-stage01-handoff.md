@@ -34,7 +34,7 @@ Stage 01은 사직 좌석도 `P0-A/P0-B/P0-C` 16개 구역의 operator-approved 
 - operator status board: `waiting-for-operator`, `pending=16`
 - manual patch plan: `waiting-for-operator`, `manualPatchRows=0`
 - real approval readiness status: `waiting-for-operator`, `approved=0`, `manualPatchRows=0`, `sourceDataWritePerformed=false`
-- smoke status: `passed`, `cases=12/12`
+- smoke status: `passed`, `cases=13/13`
 - approved dry-run status: `passed`, `target=021`, `manualPatchRows=1`, `readinessRow=APPROVED_NOT_APPLIED`, `sourceDataWritePerformed=false`
 - operator package preservation: `passed`
 
@@ -139,6 +139,7 @@ Readiness statuses:
 - `APPROVED_BLOCKED`: approved row violates source write, geometry, target source, locked field, label, validation, or stage contract.
 
 The readiness gate must keep `sourceDataWritePerformed=false`, `productionWriteAllowed=false`, and `productionDataChanged=false`. It may only accept Stage 01 `SEAT_SECTION` rows, may only treat `imageGeometry.hitPath`, `imageGeometry.labelPoint`, `imageGeometry.labelX`, and `imageGeometry.labelY` as writable source fields, and must keep `imageGeometry.visualPath`, `imageGeometry.geometryVersion`, `sectionKind`, `markerType`, `mapInteractionStatus`, `traceSource`, `traceMethod`, and `traceVersion` locked.
+The smoke fixture `approved-applied-after-manual-patch` simulates the post-manual-patch reports and verifies the `APPLIED -> manualPatchRows=0 -> APPROVED_APPLIED -> VERIFY_APPLIED` branch without editing `src/data/sajikSeatData.ts`.
 
 ## Approved Dry-Run Contract
 
