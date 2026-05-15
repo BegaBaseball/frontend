@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
@@ -10,7 +11,10 @@ import {
   DAEGU_SEATMAP_VIEWPORT,
   getDaeguTraceMethodLabel,
   getDaeguTraceStatusLabel,
+  isDaeguNormalSelectableSeat,
+  isDaeguReviewOnlySeat,
 } from './daeguSeatData';
+import { validateSeatMapPolygonPath } from '../utils/seatMapPolygonValidator';
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -38,6 +42,10 @@ function pngDimensions(assetUrl: URL) {
   };
 }
 
+function fileSha256(assetUrl: URL) {
+  return createHash('sha256').update(readFileSync(assetUrl)).digest('hex');
+}
+
 function pathPoints(path: string) {
   const numbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   const points: Point[] = [];
@@ -48,7 +56,12 @@ function pathPoints(path: string) {
 }
 
 function geometryPaths(block: (typeof DAEGU_BLOCKS)[number]) {
-  return block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
+  const visualPath = block.imageGeometry.visualPath ?? block.imageGeometry.d;
+  const hitPath = block.imageGeometry.hitPath ?? visualPath;
+  if (hitPath === block.imageGeometry.d && block.imageGeometry.paths?.length) {
+    return block.imageGeometry.paths;
+  }
+  return [hitPath];
 }
 
 function polygonArea(points: Point[]) {
@@ -108,7 +121,7 @@ function pointInBlockPath(point: Point, block: (typeof DAEGU_BLOCKS)[number]) {
   return geometryPaths(block).some((path) => pointInPolygon(point, pathPoints(path)));
 }
 
-function topHitBlockAt(point: Point) {
+function topHitBlockAt(point: Point): (typeof DAEGU_BLOCKS)[number] | null {
   let topBlock: (typeof DAEGU_BLOCKS)[number] | null = null;
 
   [...DAEGU_BLOCKS]
@@ -151,8 +164,12 @@ function hasSelfIntersection(points: Point[]) {
 }
 
 test('대구 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
+  assert.equal(DAEGU_SEATMAP_IMAGE.stadiumId, 'DAEGU_SAMSUNG_LIONS_PARK');
+  assert.equal(DAEGU_SEATMAP_IMAGE.mapVersion, 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1');
   assert.equal(DAEGU_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png');
   assert.equal(DAEGU_SEATMAP_IMAGE.requiredAssetFileName, 'daegu-samsung-seatmap-official-2026.png');
+  assert.equal(DAEGU_SEATMAP_IMAGE.viewBox, '0 0 1707 2048');
+  assert.equal(DAEGU_SEATMAP_IMAGE.imageSha256, '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0');
   assert.ok(DAEGU_SEATMAP_IMAGE.sourceLabel);
   assert.equal(DAEGU_SEATMAP_IMAGE.sourceUrl, OFFICIAL_SOURCE_URL);
 
@@ -173,6 +190,7 @@ test('대구 공식 PNG 실제 크기는 데이터 좌표계와 일치한다', (
   assert.equal(dimensions.height, 2048);
   assert.equal(dimensions.width, DAEGU_SEATMAP_IMAGE.imageWidth);
   assert.equal(dimensions.height, DAEGU_SEATMAP_IMAGE.imageHeight);
+  assert.equal(fileSha256(OFFICIAL_ASSET_URL), DAEGU_SEATMAP_IMAGE.imageSha256);
 });
 
 test('대구 좌석 카테고리는 공식 좌석도 입력 대기 상태에서도 핵심 구역명을 보존한다', () => {
@@ -242,9 +260,31 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     ['대구', '삼성', '라팍', block.block, block.name].forEach((alias) => {
       assert.ok(block.seatViewSections.includes(alias), `${block.id} aliases should include ${alias}`);
     });
-    const geometryPaths = block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
-    assert.ok(geometryPaths.length > 0, `${block.id} image geometry path should exist`);
-    geometryPaths.forEach((path) => {
+    assert.equal(block.imageGeometry.visualPath, block.imageGeometry.d, `${block.id} visual path should keep d as the canonical display polygon`);
+    assert.ok(block.imageGeometry.hitPath, `${block.id} hit path should exist`);
+    assert.deepEqual(block.imageGeometry.labelPoint, [block.imageGeometry.labelX, block.imageGeometry.labelY], `${block.id} label point should mirror labelX/labelY`);
+    assert.equal(block.imageGeometry.geometryVersion, 'manual-polygon-v1', `${block.id} geometry version should be normalized`);
+    assert.equal(block.imageGeometry.traceSource, 'OFFICIAL_PNG_MANUAL_POLYGON', `${block.id} trace source should be normalized`);
+    assert.equal(block.imageGeometry.traceVersion, 'manual-polygon-v1', `${block.id} trace version should be normalized`);
+    assert.equal(block.imageGeometry.manualReviewed, block.traceStatus === 'OFFICIAL_IMAGE_TRACED', `${block.id} manual review flag should follow official trace status`);
+    assert.equal(
+      block.imageGeometry.pixelAlignmentStatus,
+      block.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? 'PIXEL_ALIGNED' : 'MANUAL_REVIEW_REQUIRED',
+      `${block.id} pixel alignment status should follow trace readiness`,
+    );
+    const expectedSectionKind = block.markerType === 'WHEELCHAIR'
+      ? 'ACCESSIBILITY_MARKER'
+      : block.markerType === 'GATE'
+        ? 'GATE_MARKER'
+        : block.markerType
+          ? 'FACILITY_MARKER'
+          : 'SEAT_SECTION';
+    assert.equal(block.sectionKind, expectedSectionKind, `${block.id} section kind should separate seat polygons and markers`);
+    assert.equal(block.markerType, block.category === 'ACCESSIBLE' ? 'WHEELCHAIR' : undefined, `${block.id} marker type should only be set for wheelchair entries`);
+
+    const blockGeometryPaths = geometryPaths(block);
+    assert.ok(blockGeometryPaths.length > 0, `${block.id} image geometry path should exist`);
+    blockGeometryPaths.forEach((path) => {
       assert.ok(path.startsWith('M '), `${block.id} image geometry path should exist`);
       assert.ok(path.trim().endsWith('Z'), `${block.id} image geometry path should be closed`);
     });
@@ -254,7 +294,7 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.imageGeometry.labelX >= DAEGU_SEATMAP_VIEWPORT.x && block.imageGeometry.labelX <= viewportRight, `${block.id} label x should fit viewport`);
     assert.ok(block.imageGeometry.labelY >= DAEGU_SEATMAP_VIEWPORT.y && block.imageGeometry.labelY <= viewportBottom, `${block.id} label y should fit viewport`);
 
-    geometryPaths.forEach((path) => {
+    blockGeometryPaths.forEach((path) => {
       const pathNumbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       assert.ok(pathNumbers.length >= 12, `${block.id} image geometry should contain at least 6 polygon points`);
       assert.ok(!hasSelfIntersection(pathPoints(path)), `${block.id} image geometry should not self-intersect`);
@@ -267,6 +307,114 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
       });
     });
   });
+});
+
+test('대구 visualPath/hitPath는 공통 polygon validator 계약을 통과한다', () => {
+  if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
+    assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
+    return;
+  }
+
+  DAEGU_BLOCKS.forEach((block) => {
+    const labelPoint = block.imageGeometry.labelPoint ?? ([block.imageGeometry.labelX, block.imageGeometry.labelY] as Point);
+    const normalizedPaths = [block.imageGeometry.visualPath, block.imageGeometry.hitPath].filter((pathData): pathData is string => Boolean(pathData));
+    assert.equal(normalizedPaths.length, 2, `${block.id} should expose visual and hit polygon paths`);
+
+    normalizedPaths.forEach((pathData) => {
+      assert.deepEqual(
+        validateSeatMapPolygonPath({
+          pathData,
+          width: DAEGU_SEATMAP_IMAGE.imageWidth,
+          height: DAEGU_SEATMAP_IMAGE.imageHeight,
+          labelPoint: block.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? labelPoint : undefined,
+          labelTolerance: 1,
+        }),
+        [],
+        `${block.id} normalized polygon path should pass validator`,
+      );
+    });
+  });
+});
+
+test('대구 normal selectable seat predicate는 미검수 polygon을 일반 UI에서 제외한다', () => {
+  if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
+    assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
+    return;
+  }
+
+  const seatSections = DAEGU_BLOCKS.filter((block) => block.sectionKind === 'SEAT_SECTION');
+  const normalSelectableSeats = DAEGU_BLOCKS.filter(isDaeguNormalSelectableSeat);
+  const reviewOnlySeats = DAEGU_BLOCKS.filter(isDaeguReviewOnlySeat);
+  const screenshotBlock16 = DAEGU_BLOCKS.find((block) => block.block === '16');
+
+  assert.equal(seatSections.length, 174, 'Daegu should keep 174 seat sections and marker-only rows outside this count');
+  assert.equal(reviewOnlySeats.length, 97, 'current Daegu unresolved seat polygons should be hidden from the normal UI');
+  assert.equal(normalSelectableSeats.length, seatSections.length - reviewOnlySeats.length);
+  assert.ok(screenshotBlock16, 'screenshot-visible block 16 should exist');
+  assert.equal(isDaeguNormalSelectableSeat(screenshotBlock16), false, 'block 16 should not be normal selectable before operator review');
+  assert.equal(isDaeguReviewOnlySeat(screenshotBlock16), true, 'block 16 should remain available only in debug/review mode');
+
+  normalSelectableSeats.forEach((block) => {
+    assert.equal(block.sectionKind, 'SEAT_SECTION', `${block.id} normal selectable rows must be seat sections`);
+    assert.equal(block.traceStatus, 'OFFICIAL_IMAGE_TRACED', `${block.id} normal selectable rows must be official traced`);
+    assert.equal(block.imageGeometry.manualReviewed, true, `${block.id} normal selectable rows must be manually reviewed`);
+    assert.equal(block.imageGeometry.pixelAlignmentStatus, 'PIXEL_ALIGNED', `${block.id} normal selectable rows must be pixel aligned`);
+  });
+
+  DAEGU_BLOCKS
+    .filter((block) => block.sectionKind !== 'SEAT_SECTION')
+    .forEach((block) => {
+      assert.equal(isDaeguNormalSelectableSeat(block), false, `${block.id} marker-only row should not be normal selectable`);
+      assert.equal(isDaeguReviewOnlySeat(block), false, `${block.id} marker-only row should not be debug review seat`);
+    });
+});
+
+test('대구 미검수 polygon 구역별 정밀화 workset 분포는 repo 기준 97개와 일치한다', () => {
+  if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
+    assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
+    return;
+  }
+
+  const reviewOnlySeats = DAEGU_BLOCKS.filter(isDaeguReviewOnlySeat);
+  const zoneFor = (block: (typeof DAEGU_BLOCKS)[number]) => {
+    if (block.level === '5F' && block.category === 'SKY') return 'ZONE_5F_SKY';
+    if (block.side === 'OUTFIELD' || ['M-9', '중앙 외야', '외야 3루측'].includes(block.block)) return 'ZONE_OUTFIELD';
+    if (block.level === '3F' && block.side === 'FIRST_BASE') return 'ZONE_3F_FIRST_BASE';
+    if (block.level === '3F' && ['CENTER', 'THIRD_BASE'].includes(block.side)) return 'ZONE_3F_CENTER_THIRD';
+    return 'ZONE_UNASSIGNED';
+  };
+  const zoneCounts = reviewOnlySeats.reduce<Record<string, number>>((counts, block) => {
+    const zone = zoneFor(block);
+    counts[zone] = (counts[zone] ?? 0) + 1;
+    return counts;
+  }, {});
+  const boundaryFirstBlocks = ['T1-1', 'T3-2', 'V1', 'V2', 'V3'];
+
+  assert.deepEqual(zoneCounts, {
+    ZONE_3F_FIRST_BASE: 13,
+    ZONE_3F_CENTER_THIRD: 11,
+    ZONE_5F_SKY: 39,
+    ZONE_OUTFIELD: 34,
+  });
+  boundaryFirstBlocks.forEach((blockName) => {
+    const block = reviewOnlySeats.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should remain in the boundary-first review set`);
+  });
+  assert.equal(zoneCounts.ZONE_UNASSIGNED, undefined, 'every review-only seat should be assigned to a zone');
+});
+
+test('대구 marker-only 항목은 seat polygon layer와 분리되어 렌더링된다', () => {
+  const source = readFileSync(new URL('../components/daegu/DaeguSeatMapSvg.tsx', import.meta.url), 'utf8');
+  assert.ok(source.includes('data-layer="daegu-seat-polygon-layer"'), 'seat polygon layer should be explicit');
+  assert.ok(source.includes('data-layer="daegu-review-polygon-layer"'), 'review-only polygon layer should be explicit');
+  assert.ok(source.includes('data-layer="daegu-marker-layer"'), 'marker layer should be explicit');
+  assert.ok(source.includes("'daegu-seatmap-marker'"), 'marker layer should use marker-specific test ids');
+  assert.ok(source.includes('renderBlocks.filter(isDaeguNormalSelectableSeat)'), 'normal layer should only render verified selectable seats');
+  assert.ok(source.includes('renderBlocks.filter(isDaeguReviewOnlySeat)'), 'debug layer should isolate unreviewed seat polygons');
+  assert.ok(source.includes("renderInteractiveBlocks(renderSeatBlocks, 'seat')"), 'seat blocks should render through the seat layer');
+  assert.ok(source.includes('renderReviewOnlyBlocks(renderReviewBlocks)'), 'review-only seats should use a non-interactive debug renderer');
+  assert.ok(source.includes('renderMarkerOnlyBlocks(renderMarkerBlocks)'), 'marker-only rows should render through a non-seat marker layer');
+  assert.ok(source.includes('pointerEvents="none"'), 'review and marker-only layers should not participate in seat selection');
 });
 
 test('대구 공식 좌석도 polygon은 4점 사각형 일괄 회귀를 허용하지 않는다', () => {
