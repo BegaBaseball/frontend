@@ -981,13 +981,13 @@ export default function JamsilSeatMapSvg({
   const zoomControls = (
     <div className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <button
-        data-testid="jamsil-seatmap-zoom-out"
+        data-testid="jamsil-seatmap-zoom-in"
         className={zoomBtnCls}
-        onClick={() => updateZoomFromControls(zoom - zoomStep)}
-        disabled={zoom <= minZoom}
-        aria-label="잠실 좌석도 축소"
+        onClick={() => updateZoomFromControls(zoom + zoomStep)}
+        disabled={zoom >= maxZoom}
+        aria-label="잠실 좌석도 확대"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       <button
         data-testid="jamsil-seatmap-zoom-reset"
@@ -999,13 +999,13 @@ export default function JamsilSeatMapSvg({
         {zoom.toFixed(1)}x
       </button>
       <button
-        data-testid="jamsil-seatmap-zoom-in"
+        data-testid="jamsil-seatmap-zoom-out"
         className={zoomBtnCls}
-        onClick={() => updateZoomFromControls(zoom + zoomStep)}
-        disabled={zoom >= maxZoom}
-        aria-label="잠실 좌석도 확대"
+        onClick={() => updateZoomFromControls(zoom - zoomStep)}
+        disabled={zoom <= minZoom}
+        aria-label="잠실 좌석도 축소"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
       </button>
       {onFullscreen && (
         <button

@@ -3,19 +3,50 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  buildAnchorImpactByBlockId,
+  buildAnchorReviewCrops,
+  buildCoordinateChangeImpact,
+  coordinateChangeImpactContract,
+  coordinateImpactForBlock,
+} from './daejeon-seatmap-anchor-contract.mjs';
+
+import {
   DAEJEON_BLOCKS,
   DAEJEON_BLOCK_GROUPS,
+  DAEJEON_P2_DEDUPLICATED_ALIASES,
   DAEJEON_SECTION_COVERAGE,
   DAEJEON_SEATMAP_IMAGE,
+  DAEJEON_TRACE_REVIEW_QUEUE,
   DAEJEON_TRACE_REVIEW_SUMMARY,
   getDaejeonTraceMethodLabel,
   getDaejeonTraceStatusLabel,
   getDaejeonViewInfo,
+  isDaejeonSelectableSeatBlock,
+  isDaejeonSplitColorBlockId,
 } from '../src/data/daejeonSeatData.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
 const defaultOutDir = path.join(frontendRoot, 'reports/stadium');
+const pixelComponentsPath = path.resolve(frontendRoot, '..', 'output/playwright/daejeon-seatmap-pixel-components.json');
+const anchorReviewOutputDir = path.resolve(frontendRoot, '..', 'output/playwright/daejeon-anchor-review');
+const releaseLockDocumentPath = path.join(frontendRoot, 'docs/daejeon-seatmap-release-lock.md');
+const releaseGateReportPath = path.join(defaultOutDir, 'daejeon-seatmap-release-gate.md');
+const browserQaSummaryPath = path.resolve(frontendRoot, '..', 'output/playwright/stadium-ux-daejeon-validate/stadium-mobile-smoke-summary.md');
+const anchorReviewCrops = buildAnchorReviewCrops(anchorReviewOutputDir);
+const requiredAnchorReviewCropIds = ['special-400-accessible-first', 'special-425-426-third-accessible'];
+const daejeonCoordinateChangeImpactContract = 'DAEJEON_COORDINATE_CHANGE_IMPACT_V1';
+const anchorImpactByBlockId = buildAnchorImpactByBlockId(anchorReviewCrops);
+
+if (coordinateChangeImpactContract !== daejeonCoordinateChangeImpactContract) {
+  throw new Error(`Unexpected Daejeon coordinate impact contract: ${coordinateChangeImpactContract}`);
+}
+
+requiredAnchorReviewCropIds.forEach((cropId) => {
+  if (!anchorReviewCrops.some((crop) => crop.id === cropId)) {
+    throw new Error(`Missing required Daejeon anchor review crop: ${cropId}`);
+  }
+});
 
 const argValue = (name, fallback) => {
   const index = process.argv.indexOf(name);
@@ -98,24 +129,39 @@ const getSeatMapLayer = (block) => {
 
 const getTraceLayer = (block) => (block.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? 1 : 0);
 
+const getSplitColorRenderLayer = (block) => (isDaejeonSplitColorBlockId(block.id) ? 1 : 0);
+
 const formatArea = (value) => Number(value.toFixed(2));
 
 const renderOrderedBlocks = [...DAEJEON_BLOCKS].sort((a, b) => (
   getSeatMapLayer(a) - getSeatMapLayer(b)
   || getTraceLayer(a) - getTraceLayer(b)
+  || getSplitColorRenderLayer(a) - getSplitColorRenderLayer(b)
   || a.displayPriority - b.displayPriority
 ));
 
+const traceReviewQueueById = new Map(DAEJEON_TRACE_REVIEW_QUEUE.map((item) => [item.id, item]));
+const deduplicatedAliasesByCanonicalId = DAEJEON_P2_DEDUPLICATED_ALIASES.reduce((map, alias) => {
+  const aliases = map.get(alias.canonicalBlockId) ?? [];
+  aliases.push(alias);
+  map.set(alias.canonicalBlockId, aliases);
+  return map;
+}, new Map());
+
 const blockRows = DAEJEON_BLOCKS.map((block) => {
+  const queueItem = traceReviewQueueById.get(block.id);
+  const deduplicatedAliases = deduplicatedAliasesByCanonicalId.get(block.id) ?? [];
   const viewInfo = getDaejeonViewInfo(block);
   const hitAreaD = block.hitAreaD ?? block.imageGeometry.d;
   const hitAreaPoints = pathToPoints(hitAreaD);
   const labelPoint = [block.imageGeometry.labelX, block.imageGeometry.labelY];
   const hitStack = renderOrderedBlocks.filter((candidate) => (
-    isPointInsidePolygon(pathToPoints(candidate.hitAreaD ?? candidate.imageGeometry.d), labelPoint)
+    candidate.traceStatus === 'OFFICIAL_IMAGE_TRACED'
+    && isPointInsidePolygon(pathToPoints(candidate.hitAreaD ?? candidate.imageGeometry.d), labelPoint)
   ));
   const labelTopHitBlockId = hitStack[hitStack.length - 1]?.id ?? null;
   const hitAreaArea = formatArea(polygonArea(hitAreaPoints));
+  const coordinateImpact = coordinateImpactForBlock(anchorImpactByBlockId, block.id);
 
   return {
     id: block.id,
@@ -125,11 +171,27 @@ const blockRows = DAEJEON_BLOCKS.map((block) => {
     parentBlock: block.parentBlock,
     blockCode: block.blockCode,
     officialBlockLabel: block.officialBlockLabel,
+    sourceConfidence: block.sourceConfidence,
+    selectable: isDaejeonSelectableSeatBlock(block),
+    anchorCropIds: coordinateImpact.anchorCropIds,
+    regressionTestIds: coordinateImpact.regressionTestIds,
+    reviewPriority: coordinateImpact.reviewPriority,
+    reviewPriorities: coordinateImpact.reviewPriorities,
+    reviewMode: coordinateImpact.reviewMode,
+    reviewModes: coordinateImpact.reviewModes,
+    riskTags: coordinateImpact.riskTags,
+    manualOnlyReasons: coordinateImpact.manualOnlyReasons,
+    deduplicatedAliasIds: deduplicatedAliases.map((alias) => alias.retiredBlockId),
+    deduplicatedAliasEvidenceCropPaths: deduplicatedAliases.map((alias) => alias.evidenceCropPath),
     traceStatus: block.traceStatus,
     traceStatusLabel: getDaejeonTraceStatusLabel(block.traceStatus),
     traceMethod: block.traceMethod,
     traceMethodLabel: getDaejeonTraceMethodLabel(block.traceMethod),
     reviewNote: block.reviewNote ?? '',
+    queueSortOrder: queueItem?.sortOrder ?? '',
+    queuePhase: queueItem?.phase ?? '',
+    queueReason: queueItem?.reason ?? '',
+    queueOperatorAction: queueItem?.operatorAction ?? '',
     labelX: block.imageGeometry.labelX,
     labelY: block.imageGeometry.labelY,
     hitAreaD,
@@ -184,14 +246,48 @@ const precisionAudit = {
     'splash-caravan-426__426',
   ],
   desktopFullLabelClickViewport: '>=1000px',
-  note: 'Label top-hit은 실제 SVG 렌더 순서와 같은 layer/traceStatus/displayPriority 기준으로 산출합니다.',
+  note: 'Label top-hit은 운영 UI에서 실제 선택 가능한 OFFICIAL_IMAGE_TRACED 블록만 대상으로 산출합니다.',
 };
+
+const coordinateChangeImpact = buildCoordinateChangeImpact(blockRows);
+
+const traceReviewQueuePhaseRows = Object.entries(
+  DAEJEON_TRACE_REVIEW_QUEUE.reduce((counts, item) => {
+    counts[item.phase] = (counts[item.phase] ?? 0) + 1;
+    return counts;
+  }, {}),
+).map(([phase, count]) => {
+  const sampleBlockIds = DAEJEON_TRACE_REVIEW_QUEUE
+    .filter((item) => item.phase === phase)
+    .slice(0, 6)
+    .map((item) => `\`${item.id}\``)
+    .join('<br>');
+
+  return [phase, String(count), sampleBlockIds];
+});
 
 const manifest = {
   generatedAt: new Date().toISOString(),
   asset: DAEJEON_SEATMAP_IMAGE,
+  pixelComponentsReport: pixelComponentsPath,
   summary: DAEJEON_TRACE_REVIEW_SUMMARY,
+  traceReviewQueue: DAEJEON_TRACE_REVIEW_QUEUE,
+  deduplicatedAliases: DAEJEON_P2_DEDUPLICATED_ALIASES,
+  anchorReviewCrops,
+  releaseLock: {
+    documentPath: releaseLockDocumentPath,
+    traceManifestPath: path.join(outDir, 'daejeon-seatmap-trace-review.json'),
+    traceSummaryPath: path.join(outDir, 'daejeon-seatmap-trace-review.md'),
+    p2EvidencePath: path.join(outDir, 'daejeon-seatmap-p2-evidence-crops.md'),
+    anchorCropIndexPath: path.join(anchorReviewOutputDir, 'daejeon-anchor-review-crops.md'),
+    releaseGateReportPath,
+    browserQaSummaryPath,
+    requiredCommands: [
+      'npm run qa:stadium:daejeon:release-lock',
+    ],
+  },
   precisionAudit,
+  coordinateChangeImpact,
   groups: DAEJEON_BLOCK_GROUPS.map((group) => ({
     id: group.id,
     officialSectionName: group.officialSectionName,
@@ -218,8 +314,13 @@ const markdown = [
   `- total blocks: ${DAEJEON_TRACE_REVIEW_SUMMARY.totalBlocks}`,
   `- official image traced: ${DAEJEON_TRACE_REVIEW_SUMMARY.officialImageTraced}`,
   `- needs operator review: ${DAEJEON_TRACE_REVIEW_SUMMARY.needsOperatorReview}`,
+  `- pixel components: \`${path.relative(frontendRoot, pixelComponentsPath)}\``,
+  `- release lock: \`${path.relative(frontendRoot, releaseLockDocumentPath)}\``,
+  `- release gate report: \`${path.relative(frontendRoot, releaseGateReportPath)}\``,
+  `- browser QA summary: \`${path.relative(frontendRoot, browserQaSummaryPath)}\``,
   `- label top-hit failures: ${precisionAudit.labelTopHitFailureCount}`,
   `- hit-area area: min ${precisionAudit.hitAreaArea.min}, median ${precisionAudit.hitAreaArea.median}, p90 ${precisionAudit.hitAreaArea.p90}, max ${precisionAudit.hitAreaArea.max}`,
+  `- coordinate impact contract: \`${coordinateChangeImpact.contract}\``,
   '',
   '## 부모 구역별 pending 요약',
   '',
@@ -248,6 +349,37 @@ const markdown = [
     ]),
   ),
   '',
+  '## 수동 tracing 작업 큐',
+  '',
+  markdownTable(
+    ['phase', 'count', 'sample block ids'],
+    traceReviewQueuePhaseRows,
+  ),
+  '',
+  markdownTable(
+    ['order', 'phase', 'block', 'section', 'method', 'action'],
+    DAEJEON_TRACE_REVIEW_QUEUE.map((item) => [
+      String(item.sortOrder),
+      item.phase,
+      `\`${item.id}\``,
+      item.officialSectionName,
+      item.traceMethod,
+      item.operatorAction,
+    ]),
+  ),
+  '',
+  '## P2 deduplicated aliases',
+  '',
+  markdownTable(
+    ['retired block', 'canonical owner', 'evidence', 'reason'],
+    DAEJEON_P2_DEDUPLICATED_ALIASES.map((item) => [
+      `\`${item.retiredBlockId}\``,
+      `\`${item.canonicalBlockId}\``,
+      item.evidenceCropPath,
+      item.reason,
+    ]),
+  ),
+  '',
   '## 잠실 기준 정밀도 검수',
   '',
   markdownTable(
@@ -260,6 +392,36 @@ const markdown = [
       ['큰 hit-area(>5000)', String(precisionAudit.hitAreaArea.largeHitAreas.length)],
       ['전수 label click QA viewport', precisionAudit.desktopFullLabelClickViewport],
     ],
+  ),
+  '',
+  '## 좌표 변경 영향 범위',
+  '',
+  markdownTable(
+    ['impact group', 'count', 'block ids'],
+    [
+      ['P0 crop coverage', String(coordinateChangeImpact.counts.p0), markdownBlockIdSummary(coordinateChangeImpact.p0BlockIds)],
+      ['P1 crop coverage', String(coordinateChangeImpact.counts.p1), markdownBlockIdSummary(coordinateChangeImpact.p1BlockIds)],
+      ['P2 auto regression coverage', String(coordinateChangeImpact.counts.p2Auto), markdownBlockIdSummary(coordinateChangeImpact.p2AutoBlockIds)],
+      ['P2 manual crop-only coverage', String(coordinateChangeImpact.counts.p2ManualOnly), markdownBlockIdSummary(coordinateChangeImpact.p2ManualOnlyBlockIds)],
+      ['auto regression blocks', String(coordinateChangeImpact.counts.autoRegression), markdownBlockIdSummary(coordinateChangeImpact.autoRegressionBlockIds)],
+      ['manual crop-only blocks', String(coordinateChangeImpact.counts.manualCropOnly), markdownBlockIdSummary(coordinateChangeImpact.manualCropOnlyBlockIds)],
+      ['traced without regression', String(coordinateChangeImpact.counts.tracedWithoutRegression), markdownBlockIdSummary(coordinateChangeImpact.tracedWithoutRegressionBlockIds)],
+      ['missing impact mapping', String(coordinateChangeImpact.counts.missingImpact), markdownBlockIdSummary(coordinateChangeImpact.missingImpactBlockIds)],
+    ],
+  ),
+  '',
+  '## Anchor review crops',
+  '',
+  `- output dir: \`${path.relative(frontendRoot, anchorReviewOutputDir)}\``,
+  '',
+  markdownTable(
+    ['crop', 'purpose', 'blocks', 'output'],
+    anchorReviewCrops.map((crop) => [
+      crop.id,
+      crop.purpose,
+      markdownBlockIdSummary(crop.blocks),
+      `\`${path.relative(frontendRoot, crop.outputPath)}\``,
+    ]),
   ),
   '',
   '## 면적 outlier 참고',
@@ -278,6 +440,7 @@ const markdown = [
   '2. CSV의 `hitAreaD`, `labelX`, `labelY`를 기준으로 블록별 좌표를 보정합니다.',
   '3. 보정 완료된 child만 `traceStatus`를 `OFFICIAL_IMAGE_TRACED`로 올리고 `reviewNote`를 갱신합니다.',
   '4. 공식 이미지에서 판단할 수 없는 블록은 임의 좌표를 만들지 않고 `MANUAL_BASEBALL_DATA_REQUIRED` 검수 메모를 남깁니다.',
+  '5. 릴리즈 전에는 `npm run qa:stadium:daejeon:release-lock`으로 `docs/daejeon-seatmap-release-lock.md`의 릴리즈 게이트를 모두 통과해야 합니다.',
   '',
 ].join('\n');
 
@@ -297,11 +460,27 @@ await writeCsv(csvPath, [
     'parentBlock',
     'blockCode',
     'officialBlockLabel',
+    'sourceConfidence',
+    'selectable',
+    'anchorCropIds',
+    'regressionTestIds',
+    'reviewPriority',
+    'reviewPriorities',
+    'reviewMode',
+    'reviewModes',
+    'riskTags',
+    'manualOnlyReasons',
+    'deduplicatedAliasIds',
+    'deduplicatedAliasEvidenceCropPaths',
     'traceStatus',
     'traceStatusLabel',
     'traceMethod',
     'traceMethodLabel',
     'reviewNote',
+    'queueSortOrder',
+    'queuePhase',
+    'queueReason',
+    'queueOperatorAction',
     'labelX',
     'labelY',
     'hitAreaArea',
@@ -320,11 +499,27 @@ await writeCsv(csvPath, [
     block.parentBlock,
     block.blockCode,
     block.officialBlockLabel,
+    block.sourceConfidence,
+    block.selectable,
+    block.anchorCropIds.join('|'),
+    block.regressionTestIds.join('|'),
+    block.reviewPriority,
+    block.reviewPriorities.join('|'),
+    block.reviewMode,
+    block.reviewModes.join('|'),
+    block.riskTags.join('|'),
+    block.manualOnlyReasons.join('|'),
+    block.deduplicatedAliasIds.join('|'),
+    block.deduplicatedAliasEvidenceCropPaths.join('|'),
     block.traceStatus,
     block.traceStatusLabel,
     block.traceMethod,
     block.traceMethodLabel,
     block.reviewNote,
+    block.queueSortOrder,
+    block.queuePhase,
+    block.queueReason,
+    block.queueOperatorAction,
     block.labelX,
     block.labelY,
     block.hitAreaArea,

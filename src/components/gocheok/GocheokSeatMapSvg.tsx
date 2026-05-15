@@ -689,11 +689,13 @@ export default function GocheokSeatMapSvg({
               const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.55 : 0;
 
               return (
-                <g key={block.id}>
+                <g key={block.id} data-testid={`gocheok-seat-block-${block.id}`}>
                   <path
                     data-testid="gocheok-seatmap-hit-area"
                     data-block-id={block.id}
                     data-category={block.category}
+                    data-label-x={block.imageGeometry.labelX}
+                    data-label-y={block.imageGeometry.labelY}
                     role="button"
                     tabIndex={isFiltered ? -1 : 0}
                     aria-label={`${block.name} ${block.block}`}

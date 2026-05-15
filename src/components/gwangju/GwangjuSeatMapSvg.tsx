@@ -6,7 +6,9 @@ import {
   GWANGJU_SELECTABLE_BLOCKS_READY,
   GWANGJU_SEATMAP_IMAGE,
   GWANGJU_SEATMAP_VIEWPORT,
+  matchesGwangjuFilter,
   type GwangjuBlock,
+  type GwangjuFanRole,
 } from '../../data/gwangjuSeatData';
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
   hover: string | null;
   setHover: (id: string | null) => void;
   filterCats: string[] | null;
+  filterFanRoles: GwangjuFanRole[] | null;
   zoom: number;
   onZoom: (zoom: number) => void;
 }
@@ -62,6 +65,7 @@ export default function GwangjuSeatMapSvg({
   hover,
   setHover,
   filterCats,
+  filterFanRoles,
   zoom,
   onZoom,
 }: Props) {
@@ -73,12 +77,13 @@ export default function GwangjuSeatMapSvg({
     ? new URLSearchParams(window.location.search).get('gwangjuDebug')
     : null;
   const showDebug = debugMode === '1' || debugMode === 'hit';
-  const showHitAreaDebug = debugMode === 'hit';
+  const showHitAreaDebug = showDebug;
   const shouldRenderHitAreas = GWANGJU_SELECTABLE_BLOCKS_READY;
   const { cropX, cropWidth } = GWANGJU_SEATMAP_VIEWPORT;
   const croppedImageWidthPercent = (imageWidth / cropWidth) * 100;
   const croppedImageLeftPercent = -(cropX / cropWidth) * 100;
-  const zoomBtnCls = 'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800';
+  const zoomBtnCls = 'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800';
+  const updateZoom = (nextZoom: number) => onZoom(Math.min(2.5, Math.max(1, Number(nextZoom.toFixed(2)))));
 
   if (
     GWANGJU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
@@ -154,7 +159,7 @@ export default function GwangjuSeatMapSvg({
             const cat = GWANGJU_CATEGORIES[block.category];
             if (!cat) return null;
 
-            const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+            const isFiltered = !matchesGwangjuFilter(block, filterCats, filterFanRoles);
             const isInteractive = shouldRenderHitAreas && !isFiltered;
             const isActive = isInteractive && (hover === block.id || selected?.id === block.id);
             const baseColor = mode === 'dark' ? cat.dark : cat.light;
@@ -167,6 +172,11 @@ export default function GwangjuSeatMapSvg({
               <g key={block.id}>
                 <path
                   role={isInteractive ? 'button' : undefined}
+                  data-testid={`gwangju-seat-block-${block.id}`}
+                  data-label-x={block.imageGeometry.labelX}
+                  data-label-y={block.imageGeometry.labelY}
+                  data-trace-status={block.imageGeometry.traceStatus}
+                  data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
                   tabIndex={isInteractive ? 0 : -1}
                   aria-label={`${block.name} ${block.block}`}
                   aria-pressed={isInteractive ? selected?.id === block.id : undefined}
@@ -259,16 +269,36 @@ export default function GwangjuSeatMapSvg({
           )}
           </svg>
       </div>
-      <div className="absolute right-3 top-3 flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <button className={zoomBtnCls} onClick={() => onZoom(Math.min(zoom + 0.25, 2.5))} aria-label="확대">
+      <div className="absolute right-3 top-3 z-20 flex flex-col gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
+        <button
+          type="button"
+          data-testid="gwangju-seatmap-zoom-in"
+          className={zoomBtnCls}
+          onClick={() => updateZoom(zoom + 0.25)}
+          disabled={zoom >= 2.5}
+          aria-label="확대"
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
         </button>
-        <div className="py-0.5 text-center text-[9px] font-black text-slate-500">{zoom.toFixed(1)}x</div>
-        <button className={zoomBtnCls} onClick={() => onZoom(Math.max(zoom - 0.25, 1))} aria-label="축소">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14" /></svg>
+        <button
+          type="button"
+          data-testid="gwangju-seatmap-zoom-reset"
+          className="min-h-5 rounded-md border-0 bg-transparent px-1 py-0.5 text-center text-[9px] font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+          onClick={() => updateZoom(1)}
+          disabled={zoom <= 1}
+          aria-label="원래 크기"
+        >
+          {zoom.toFixed(1)}x
         </button>
-        <button className={zoomBtnCls} onClick={() => onZoom(1)} aria-label="원래 크기">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V3h4M21 7V3h-4M3 17v4h4M21 17v4h-4" /></svg>
+        <button
+          type="button"
+          data-testid="gwangju-seatmap-zoom-out"
+          className={zoomBtnCls}
+          onClick={() => updateZoom(zoom - 0.25)}
+          disabled={zoom <= 1}
+          aria-label="축소"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14" /></svg>
         </button>
       </div>
     </div>

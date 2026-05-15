@@ -7,8 +7,8 @@ import {
   resolvePredictionNearestNavigationDate,
 } from '../../utils/predictionMatchNavigation';
 import type { PredictionTopNoticeKind } from './PredictionTopNotice';
+import PredictionMatchPreviewTab from './PredictionMatchPreviewTab';
 
-const PredictionMatchPreviewTab = lazy(() => import('./PredictionMatchPreviewTab'));
 const PredictionMatchScheduleTopNoticeRuntime = lazy(() => import('./PredictionMatchScheduleTopNoticeRuntime'));
 
 type PredictionMatchSchedulePreviewRuntimeProps = {

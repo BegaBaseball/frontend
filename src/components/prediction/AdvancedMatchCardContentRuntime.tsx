@@ -2,7 +2,6 @@ import { lazy, Suspense, type ReactNode, useMemo, useRef, useState } from 'react
 
 import TeamLogo from '../TeamLogo';
 import ViewportDeferred from '../ViewportDeferred';
-import { Button } from '../ui/button';
 import type { Game, GameDetail, GameSummary } from '../../types/prediction';
 import type { GameStatusCode } from '../../utils/prediction';
 import {
@@ -602,14 +601,6 @@ export default function AdvancedMatchCardContentRuntime({
                   <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_COACH_MESSAGE}</p>
                 </div>
               </div>
-              <Button
-                type="button"
-                disabled
-                variant="outline"
-                className="min-h-10 shrink-0 border-amber-300/70 bg-amber-100/70 text-amber-900 disabled:cursor-not-allowed disabled:opacity-100 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100"
-              >
-                수동 데이터 필요
-              </Button>
             </div>
           </div>
         </section>

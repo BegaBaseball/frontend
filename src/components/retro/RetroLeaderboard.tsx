@@ -6,6 +6,7 @@ import type {
   UserLeaderboardStats,
   PowerupInventory as PowerupInventoryState,
 } from '../../api/leaderboard';
+import { ensureRetroFontsLoaded } from './RetroTheme';
 
 import mascotRight from '../../assets/images/mascot_v3.webp';
 const RetroLeaderboardFooterPanels = lazy(() => import('./RetroLeaderboardFooterPanels'));
@@ -185,6 +186,8 @@ export default function RetroLeaderboard({
   const displayLeaderboard = leaderboard ?? [];
 
   useEffect(() => {
+    ensureRetroFontsLoaded();
+
     let frameId: number | null = null;
     let nextFrameId: number | null = null;
 

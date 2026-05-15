@@ -3,12 +3,14 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
-import StadiumSeatMap, { resolveStadiumSeatMapPresetMeta } from './ui/StadiumSeatMap';
 import {
   MapPinIcon,
   RefreshIcon,
   WarningTriangleIcon,
 } from './icons/PublicShellIcons';
+import { resolveStadiumSeatMapEntry } from './stadiumSeatMapRegistry';
+import { StadiumSeatMapManualRequired } from './StadiumSeatMapStates';
+import { SeatMapRuntimeShell } from './stadiumSeatMap/SeatMapRuntimeShell';
 import { getCategoryIcon } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
@@ -22,16 +24,6 @@ import type { CategoryType } from '../types/stadium';
 import './StadiumGuide.css';
 
 const AuthenticatedStadiumFavoriteToggle = lazy(() => import('./AuthenticatedStadiumFavoriteToggle'));
-const JamsilSeatMap = lazy(() => import('./jamsil/JamsilSeatMap'));
-const IncheonSeatMap = lazy(() => import('./incheon/IncheonSeatMap'));
-const DaeguSeatMap = lazy(() => import('./daegu/DaeguSeatMap'));
-const DaejeonSeatMap = lazy(() => import('./daejeon/DaejeonSeatMap'));
-const GocheokSeatMap = lazy(() => import('./gocheok/GocheokSeatMap'));
-const GwangjuSeatMap = lazy(() => import('./gwangju/GwangjuSeatMap'));
-const ChangwonSeatMap = lazy(() => import('./changwon/ChangwonSeatMap'));
-const SajikSeatMap = lazy(() => import('./sajik/SajikSeatMap'));
-const SuwonSeatMap = lazy(() => import('./suwon/SuwonSeatMap'));
-const StadiumGuideAdSlot = lazy(() => import('./ads/AdSlot'));
 const StadiumGuidePlacesRuntime = lazy(() => import('./StadiumGuidePlacesRuntime'));
 
 function StadiumGuideCategorySelector({
@@ -130,35 +122,8 @@ export default function StadiumGuideRuntime() {
 
   const { isLoggedIn } = useAuthSession();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
-  const seatMapPresetMeta = resolveStadiumSeatMapPresetMeta(selectedStadiumId, selectedStadium?.stadiumName);
-  const isJamsilSeatMap = seatMapPresetMeta.id === 'jamsil';
-  const isIncheonSeatMap = seatMapPresetMeta.id === 'incheon';
-  const isDaejeonSeatMap = seatMapPresetMeta.id === 'daejeon';
-  const isDaeguSeatMap = seatMapPresetMeta.id === 'daegu';
-  const isGocheokSeatMap = seatMapPresetMeta.id === 'gocheok';
-  const isGwangjuSeatMap = seatMapPresetMeta.id === 'gwangju';
-  const isChangwonSeatMap = seatMapPresetMeta.id === 'changwon';
-  const isSajikSeatMap = seatMapPresetMeta.id === 'sajik';
-  const isSuwonSeatMap = seatMapPresetMeta.id === 'suwon';
-  const seatMapBadgeLabel = isJamsilSeatMap
-    ? '잠실 블록 단위 안내도'
-    : isIncheonSeatMap
-      ? '인천 SSG 공식 좌석도'
-      : isDaejeonSeatMap
-        ? '대전 한화 공식 좌석도'
-        : isDaeguSeatMap
-          ? '대구 삼성 공식 좌석도'
-          : isGocheokSeatMap
-            ? '고척 키움 공식 좌석도'
-            : isGwangjuSeatMap
-              ? '광주 KIA 공식 좌석도'
-              : isChangwonSeatMap
-                ? '창원 NC 공식 좌석도'
-                : isSajikSeatMap
-                  ? '사직 롯데 공식 좌석도'
-                  : isSuwonSeatMap
-                    ? '수원 kt 위즈 파크 공식 좌석도'
-                    : seatMapPresetMeta.label;
+  const seatMapEntry = resolveStadiumSeatMapEntry(selectedStadiumId, selectedStadium?.stadiumName);
+  const seatMapBadgeLabel = seatMapEntry?.badgeLabel ?? '좌석도 준비 필요';
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
@@ -174,79 +139,33 @@ export default function StadiumGuideRuntime() {
   const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
   const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
   const renderSeatMap = () => {
-    if (isJamsilSeatMap) {
+    if (!seatMapEntry) {
       return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <JamsilSeatMap />
-        </Suspense>
+        <div data-testid="stadium-seat-map">
+          <StadiumSeatMapManualRequired stadiumName={selectedStadium?.stadiumName} />
+        </div>
       );
     }
 
-    if (isIncheonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <IncheonSeatMap />
-        </Suspense>
-      );
-    }
+    const SeatMapComponent = seatMapEntry.Component;
+    const seatMapResetKey = [
+      seatMapEntry.id,
+      selectedStadiumId,
+      selectedStadium?.stadiumName,
+    ].filter(Boolean).join(':');
+    const shellResetKey = `${seatMapEntry.shellTemplate}:${seatMapResetKey}`;
 
-    if (isDaeguSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <DaeguSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isDaejeonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <DaejeonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGocheokSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <GocheokSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isGwangjuSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <GwangjuSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isChangwonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <ChangwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSajikSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <SajikSeatMap />
-        </Suspense>
-      );
-    }
-
-    if (isSuwonSeatMap) {
-      return (
-        <Suspense fallback={<StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />}>
-          <SuwonSeatMap />
-        </Suspense>
-      );
-    }
-
-    return <StadiumSeatMap stadiumId={selectedStadiumId} stadiumName={selectedStadium?.stadiumName} />;
+    return (
+      <SeatMapRuntimeShell
+        template={seatMapEntry.shellTemplate}
+        usesCoordinateGeometry={seatMapEntry.usesCoordinateGeometry}
+        badgeLabel={seatMapEntry.badgeLabel}
+        stadiumName={selectedStadium?.stadiumName}
+        resetKey={shellResetKey}
+      >
+        <SeatMapComponent />
+      </SeatMapRuntimeShell>
+    );
   };
 
   return (
@@ -268,7 +187,7 @@ export default function StadiumGuideRuntime() {
                 구장 가이드
               </h1>
             </div>
-            <p className="max-w-xl text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
+            <p className="w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
               전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
               직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
             </p>
@@ -489,7 +408,7 @@ export default function StadiumGuideRuntime() {
               )}
             </div>
 
-            <div className="space-y-8 lg:hidden">
+            <div className="space-y-8 lg:hidden" data-testid="stadium-guide-mobile-panels">
               <div>
                 <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                   주변 정보 카테고리
@@ -536,7 +455,7 @@ export default function StadiumGuideRuntime() {
             </div>
           </div>
 
-          <div className="hidden space-y-8 sm:space-y-10 lg:block">
+          <div className="hidden space-y-8 sm:space-y-10 lg:block" data-testid="stadium-guide-desktop-panels">
             <div>
               <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                 주변 정보 카테고리

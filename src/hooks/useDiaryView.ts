@@ -113,6 +113,7 @@ export const useDiaryView = () => {
     });
     const draftKey = `${pendingDraft.stadium ?? ''}:${pendingDraft.date}:${pendingDraft.section ?? ''}:${pendingDraft.block ?? ''}`;
     const stadiumDraftToastLabels: Record<string, string> = {
+      DAEGU: '대구',
       DAEJEON: '대전',
       SAJIK: '사직',
     };

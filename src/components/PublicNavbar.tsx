@@ -10,6 +10,8 @@ import NavbarNotificationControls from './NavbarNotificationControls';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { publicNavbarNavItems } from './publicNavbarNavItems';
 import { CloseIcon, MenuIcon } from './icons/PublicShellIcons';
+import { useScrollStage } from '../hooks/useScrollStage';
+import { cn } from '../lib/utils';
 
 const PublicNavbarDesktopAuthControls = lazy(() => import('./PublicNavbarDesktopAuthControls'));
 const PublicNavbarMenuPanel = lazy(() => import('./PublicNavbarMenuPanel'));
@@ -29,9 +31,10 @@ export default function PublicNavbar() {
   const shouldShowTopThemeToggle = isDesktop;
   const shouldShowDesktopNotificationButton = isLoggedIn && isDesktop;
   const shouldShowMobileNotificationButton = isLoggedIn && !isDesktop && !shouldRenderMobileMenu;
-  const navIconButtonClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none';
-  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary`;
-  const navIconSizeClass = 'h-6 w-6';
+  const scrollStage = useScrollStage();
+  const navIconButtonClass = 'relative h-9 w-9 p-2 rounded-full transition-all duration-200 focus:outline-none';
+  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8`;
+  const navIconSizeClass = 'h-5 w-5';
   const prefetchPredictionPage = () => {
     void import('./Prediction');
   };
@@ -84,105 +87,121 @@ export default function PublicNavbar() {
     };
   }, [shouldRenderMobileMenu]);
 
-  return (
-    <header
-      className={`border-b border-gray-200 dark:border-border sticky top-0 z-[60] transition-colors duration-300 ${shouldRenderMobileMenu ? 'bg-background' : 'bg-background/80 backdrop-blur-md'
-        }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <button
-            type="button"
-            onClick={() => navigate('/home')}
-            className="flex items-center gap-3 shrink-0 group"
-          >
-            <img
-              src={baseballLogo}
-              alt="Baseball"
-              className="w-10 h-10 transition-transform duration-300 group-hover:rotate-12"
-            />
-            <div className="flex flex-col items-start">
-              <h1 className="font-black text-xl tracking-widest text-primary dark:text-primary-light leading-none">
-                BEGA
-              </h1>
-              <p className="text-[16px] font-bold text-muted-foreground dark:text-gray-300 tracking-tight">
-                BASEBALL GUIDE
-              </p>
-            </div>
-          </button>
+  const capsuleMaxW =
+    scrollStage === 0 ? 'md:max-w-[980px]' :
+    scrollStage === 1 ? 'md:max-w-[760px]' :
+    'md:max-w-[560px]';
 
-          {isDesktop && (
-            <nav className="flex flex-1 items-center justify-center">
-              <div className="flex items-center gap-4 lg:gap-8 xl:gap-12 px-4 whitespace-nowrap">
-                {publicNavbarNavItems.map((item) => (
+  const capsuleGlass = shouldRenderMobileMenu
+    ? 'bg-background border-gray-200/80 dark:border-gray-800'
+    : 'bg-white/72 dark:bg-black backdrop-blur-xl border-white/80 dark:border-white/12 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_20px_50px_-20px_rgba(15,120,85,0.18)]';
+
+  return (
+    <header className="sticky top-0 z-[60] px-3 py-2 md:px-4 md:py-1.5">
+      {/* Glass capsule */}
+      <div
+        className={cn(
+          'flex h-12 md:h-[52px] items-center gap-2 md:gap-[14px] rounded-full border px-3 md:px-[14px] transition-all duration-[350ms] ease-[cubic-bezier(.16,1,.3,1)] md:mx-auto',
+          capsuleMaxW,
+          capsuleGlass,
+        )}
+      >
+        {/* Logo */}
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="flex items-center gap-2 shrink-0 group"
+        >
+          <img
+            src={baseballLogo}
+            alt="Baseball"
+            className="w-8 h-8 md:w-9 md:h-9 transition-transform duration-300 group-hover:rotate-12"
+          />
+          <div className="flex flex-col items-start leading-none">
+            <h1 className="font-black text-[17px] tracking-widest text-primary dark:text-primary-light leading-none">
+              BEGA
+            </h1>
+            <p className={cn(
+              'text-[10px] font-bold text-muted-foreground dark:text-gray-400 tracking-tight transition-all duration-300',
+              scrollStage >= 1 ? 'hidden' : 'hidden md:block',
+            )}>
+              BASEBALL GUIDE
+            </p>
+          </div>
+        </button>
+
+        {/* Desktop segmented nav */}
+        {isDesktop && (
+          <nav className="flex flex-1 items-center justify-center" aria-label="주 메뉴">
+            <div className="flex items-center gap-0.5 rounded-full bg-black/[.04] dark:bg-white/[.06] p-1">
+              {publicNavbarNavItems.map((item) => {
+                const isActive = location.pathname === `/${item.id}`;
+                return (
                   <button
                     type="button"
                     key={item.id}
-                    aria-current={location.pathname === `/${item.id}` ? 'page' : undefined}
+                    aria-current={isActive ? 'page' : undefined}
                     onClick={() => navigate(`/${item.id}`)}
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
-                      className={`
-                      relative px-1 py-1 text-[16px] lg:text-[16px] font-bold transition-all duration-200
-                      ${location.pathname === `/${item.id}`
-                        ? 'text-primary dark:text-primary-light'
-                        : 'text-muted-foreground dark:text-gray-300 hover:text-primary dark:hover:text-primary-light'
-                      }
-                    `}
+                    className={cn(
+                      'relative h-9 rounded-full px-3.5 font-bold text-[14px] transition-colors duration-150 whitespace-nowrap',
+                      isActive
+                        ? 'bg-white text-primary shadow-sm dark:bg-primary/70 dark:text-white'
+                        : 'text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100',
+                    )}
                   >
                     {item.label}
-                    {location.pathname === `/${item.id}` && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary dark:bg-primary-light" />
-                    )}
                   </button>
-                ))}
-              </div>
-            </nav>
+                );
+              })}
+            </div>
+          </nav>
+        )}
+
+        {/* Right controls */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {shouldShowTopThemeToggle && (
+            <ThemeToggleButton className={navIconToggleClass} iconClassName={navIconSizeClass} />
           )}
 
-          <div className="flex items-center gap-3 shrink-0">
-            {shouldShowTopThemeToggle && (
-              <ThemeToggleButton
-                className={navIconToggleClass}
-                iconClassName={navIconSizeClass}
-              />
-            )}
+          {shouldShowDesktopNotificationButton && (
+            <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+          )}
 
-            {shouldShowDesktopNotificationButton && (
-              <NavbarNotificationControls buttonClassName={navIconToggleClass} />
-            )}
-
-            {isDesktop && (
-              <Suspense fallback={<div className="h-9 w-28 rounded-full bg-gray-100 dark:bg-secondary animate-pulse" />}>
-                <div className="flex items-center gap-1 md:gap-2 lg:gap-3 xl:gap-4">
-                  <PublicNavbarDesktopAuthControls isAuthBootstrapPending={isAuthBootstrapPending} />
-                </div>
-              </Suspense>
-            )}
-
-            {!isDesktop && (
-              <div className="flex items-center gap-2">
-                {shouldShowMobileNotificationButton && (
-                  <NavbarNotificationControls buttonClassName={navIconToggleClass} />
-                )}
-                <button
-                  type="button"
-                  ref={menuToggleButtonRef}
-                  className={`${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary hover:scale-110 active:scale-95 ${isMenuOpen
-                    ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                    }`}
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
-                  aria-expanded={isMenuOpen}
-                  aria-controls={shouldRenderMobileMenu ? 'mobile-menu-popup' : undefined}
-                >
-                  {isMenuOpen ? <CloseIcon className="w-7 h-7 stroke-[2.5]" /> : <MenuIcon className="w-7 h-7" />}
-                </button>
+          {isDesktop && (
+            <Suspense fallback={<div className="h-8 w-24 rounded-full bg-gray-100 dark:bg-secondary animate-pulse ml-1" />}>
+              <div className="flex items-center gap-1.5 ml-1">
+                <PublicNavbarDesktopAuthControls isAuthBootstrapPending={isAuthBootstrapPending} />
               </div>
-            )}
-          </div>
+            </Suspense>
+          )}
+
+          {!isDesktop && (
+            <>
+              {shouldShowMobileNotificationButton && (
+                <NavbarNotificationControls buttonClassName={navIconToggleClass} />
+              )}
+              <button
+                type="button"
+                ref={menuToggleButtonRef}
+                className={cn(
+                  navIconButtonClass,
+                  'focus:ring-2 focus:ring-primary/50',
+                  isMenuOpen
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
+                )}
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+                aria-expanded={isMenuOpen}
+                aria-controls={shouldRenderMobileMenu ? 'mobile-menu-popup' : undefined}
+              >
+                {isMenuOpen ? <CloseIcon className="w-6 h-6 stroke-[2.5]" /> : <MenuIcon className="w-6 h-6" />}
+              </button>
+            </>
+          )}
         </div>
       </div>
 

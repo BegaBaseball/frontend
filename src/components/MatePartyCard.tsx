@@ -120,6 +120,32 @@ const getStatusConfig = (party: Party) => {
   };
 };
 
+const getCompactStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'PENDING':
+      return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+    case 'SELLING':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50';
+    case 'MATCHED':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50';
+    default:
+      return 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/50';
+  }
+};
+
+const getDayOfWeek = (dateStr: string) => {
+  const d = new Date(`${dateStr}T12:00:00`);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return Number.isNaN(d.getTime()) ? '' : days[d.getDay()];
+};
+
+const formatCompactDate = (dateStr: string) => {
+  // "2025-11-25" → "11/25"
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) return `${parts[1]}/${parts[2]}`;
+  return dateStr;
+};
+
 const formatTicketAmount = (party: Party) => {
   const amount = party.status === 'SELLING' && party.price != null
     ? party.price
@@ -163,72 +189,69 @@ export default function MatePartyCard({
   );
 
   if (variant === 'compact') {
+    const compactBadgeClass = getCompactStatusBadgeClass(party.status);
+    const dow = getDayOfWeek(party.gameDate);
+    const compactDate = formatCompactDate(party.gameDate);
+
     return (
       <button
         type="button"
         aria-label={`${zoneName} ${party.stadium} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
         className={cn(
-          'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white text-left transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:focus-visible:ring-offset-[#0a0a0a]',
+          'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[18px] border border-gray-200/80 bg-white text-left transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:focus-visible:ring-offset-[#0a0a0a]',
           className,
         )}
         onClick={() => onClick(party)}
       >
-        <div className="flex flex-1 flex-col p-3.5">
-          <div className="mb-3 flex items-start justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200/80 bg-primary/5 px-2 py-1 text-[14px] font-bold text-gray-700 dark:border-white/10 dark:text-zinc-300">
-              {formatGameDate(party.gameDate)}
-              {getWeatherIcon(party.gameDate)}
+        <div className="flex flex-1 flex-col p-[14px]">
+          {/* Row 1: D-day · date+time | status */}
+          <div className="mb-2.5 flex items-center gap-2">
+            <span className="shrink-0 text-[15px] font-black text-primary dark:text-primary-light">
+              {dDayLabel || formatCompactDate(party.gameDate)}
             </span>
-            {statusBadge}
+            <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
+            <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">
+              {compactDate}({dow}) {party.gameTime}
+            </span>
+            <span className={cn(
+              'shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-bold whitespace-nowrap',
+              compactBadgeClass,
+            )}>
+              {statusConfig.label}
+            </span>
           </div>
 
-          <div className="mb-3 flex items-start justify-between gap-3">
+          {/* Row 2: Teams + venue */}
+          <div className="mb-2.5 flex items-center gap-2.5">
+            <TeamLogo teamId={party.homeTeam} size={30} className="shrink-0" />
+            <span className="text-[12px] font-black text-slate-400 dark:text-slate-500">VS</span>
+            <TeamLogo teamId={party.awayTeam} size={30} className="shrink-0" />
             <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-1 text-[19px] font-black tracking-tight text-gray-900 dark:text-white">
-                {zoneName}
-              </h3>
-              <p className="mt-1 line-clamp-1 text-[14px] font-bold text-gray-500 dark:text-zinc-400">
-                {party.stadium} · {party.section}
-              </p>
+              <p className="truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">{party.stadium}</p>
+              <p className="truncate text-[12px] font-semibold text-gray-500 dark:text-zinc-400">{zoneName}</p>
             </div>
-            <span className="shrink-0 text-right text-[18px] font-black text-gray-900 dark:text-white">
-              {priceLabel}
+          </div>
+
+          {/* Row 3: Host + participant count */}
+          <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5 dark:border-white/5">
+            <ProfileAvatar
+              src={hostAvatarSrc}
+              alt={party.hostName}
+              fallbackName={party.hostName}
+              width={24}
+              height={24}
+              className="shrink-0 ring-1 ring-gray-200 dark:ring-white/10"
+            />
+            <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">
+              {party.hostName}
             </span>
-          </div>
-
-          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-2.5 py-2.5 dark:border-white/5 dark:bg-black/25">
-            <div className="flex min-w-0 items-center gap-2">
-              <TeamLogo teamId={party.homeTeam} size={26} className="shrink-0" />
-              <span className="truncate text-[14px] font-bold text-gray-700 dark:text-zinc-300">
-                {resolveTeamDisplayName(party.homeTeam)}
-              </span>
-            </div>
-            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[12px] font-black text-primary">VS</span>
-            <div className="flex min-w-0 items-center justify-end gap-2">
-              <span className="truncate text-right text-[14px] font-bold text-gray-700 dark:text-zinc-300">
-                {resolveTeamDisplayName(party.awayTeam)}
-              </span>
-              <TeamLogo teamId={party.awayTeam} size={26} className="shrink-0" />
-            </div>
-          </div>
-
-          <div className="mt-auto flex items-center justify-between gap-3 border-t border-gray-200 pt-3 dark:border-white/5">
-            <div className="flex min-w-0 items-center gap-2">
-              <ProfileAvatar
-                src={hostAvatarSrc}
-                alt={party.hostName}
-                fallbackName={party.hostName}
-                width={32}
-                height={32}
-                className="ring-1 ring-gray-200 dark:ring-white/10"
-              />
-              <span className="flex min-w-0 items-center gap-1.5 text-[14px] font-bold text-gray-900 dark:text-zinc-200">
-                <span className="truncate">{party.hostName}</span>
-                {hostBadgeIcon}
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[14px] font-black text-primary">
-              <MateUsersIcon className="h-4 w-4" />
+            {hostBadgeIcon}
+            <span className="text-[12px] text-gray-300 dark:text-gray-600">·</span>
+            <span className="shrink-0 text-[12px] font-semibold text-gray-500 dark:text-zinc-400">
+              신뢰도 {hostAverageRating ?? '-'}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[13px] font-black text-primary dark:text-primary-light ml-auto shrink-0">
+              <MateUsersIcon className="h-3.5 w-3.5" />
               {party.currentParticipants}/{party.maxParticipants}
             </span>
           </div>

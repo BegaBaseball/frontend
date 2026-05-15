@@ -8,7 +8,8 @@ import {
   INCHEON_SEATMAP_VIEWPORT,
   type IncheonBlock,
 } from '../../data/incheonSeatData';
-import officialSeatMapImage from '../../assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp';
+
+const officialSeatMapImage = new URL('../../assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp', import.meta.url).href;
 
 interface Props {
   mode: 'light' | 'dark';
@@ -670,8 +671,12 @@ export default function IncheonSeatMapSvg({
               <g key={block.id}>
                 <path
                   role="button"
+                  data-testid={`incheon-seat-block-${block.id}`}
+                  data-label-x={block.imageGeometry.labelX}
+                  data-label-y={block.imageGeometry.labelY}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={`${block.name} ${block.block}`}
+                  aria-pressed={isActive}
                   d={block.imageGeometry.d}
                   fill={baseColor}
                   fillOpacity={fillOpacity}

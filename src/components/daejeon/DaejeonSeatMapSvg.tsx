@@ -7,6 +7,8 @@ import {
   DAEJEON_TRACE_REVIEW_SUMMARY,
   getDaejeonTraceMethodLabel,
   getDaejeonTraceStatusLabel,
+  isDaejeonSelectableSeatBlock,
+  isDaejeonSplitColorBlockId,
   type DaejeonBlock,
 } from '../../data/daejeonSeatData';
 
@@ -70,6 +72,10 @@ function getTraceLayer(block: DaejeonBlock): number {
   return block.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? 1 : 0;
 }
 
+function getSplitColorRenderLayer(block: DaejeonBlock): number {
+  return isDaejeonSplitColorBlockId(block.id) ? 1 : 0;
+}
+
 function getPathBounds(d: string) {
   const numbers = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   const xs: number[] = [];
@@ -124,6 +130,7 @@ export default function DaejeonSeatMapSvg({
     [...DAEJEON_BLOCKS].sort((a, b) => (
       getSeatMapLayer(a) - getSeatMapLayer(b)
       || getTraceLayer(a) - getTraceLayer(b)
+      || getSplitColorRenderLayer(a) - getSplitColorRenderLayer(b)
       || a.displayPriority - b.displayPriority
     ))
   ), []);
@@ -350,7 +357,7 @@ export default function DaejeonSeatMapSvg({
             const isFiltered = !visibleBlockIdSet.has(block.id);
             const isActive = hover === block.id || selected?.id === block.id;
             const isPendingReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW';
-            const isSelectable = !isPendingReview;
+            const isSelectable = isDaejeonSelectableSeatBlock(block);
             const canInteract = showDebug || (!isFiltered && isSelectable);
             const baseColor = mode === 'dark' ? cat.dark : cat.light;
             const debugStroke = isPendingReview ? '#F97316' : '#22C55E';

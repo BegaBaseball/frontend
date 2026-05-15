@@ -1,12 +1,11 @@
-import { Suspense, type ComponentType, type LazyExoticComponent } from 'react';
+import type { ComponentProps, ComponentType } from 'react';
 
 import { usePredictionSchedule } from '../../hooks/usePredictionSchedule';
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
 
-type LoadableComponent<T extends ComponentType<any>> = T | LazyExoticComponent<T>;
-type PredictionLoadingViewComponent = LoadableComponent<typeof import('./PredictionLoadingView').default>;
-type PredictionMatchesErrorViewComponent = LoadableComponent<typeof import('./PredictionMatchesErrorView').default>;
-type PredictionMatchScheduleReadyViewComponent = LoadableComponent<typeof import('./PredictionMatchScheduleReadyView').default>;
+type PredictionLoadingViewComponent = ComponentType<ComponentProps<typeof import('./PredictionLoadingView').default>>;
+type PredictionMatchesErrorViewComponent = ComponentType<ComponentProps<typeof import('./PredictionMatchesErrorView').default>>;
+type PredictionMatchScheduleReadyViewComponent = ComponentType<ComponentProps<typeof import('./PredictionMatchScheduleReadyView').default>>;
 
 interface PredictionMatchScheduleResolvedDataRuntimeProps {
   isAuthLoading: boolean;
@@ -68,43 +67,45 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
     setProgrammaticSearchParams,
   } = schedule;
 
+  if (loading) {
+    return <LoadingView topNotice={null} />;
+  }
+
+  if (matchesLoadState === 'error') {
+    return (
+      <MatchesErrorView
+        matchesLoadErrorMessage={matchesLoadErrorMessage}
+        matchesLoadErrorCode={matchesLoadErrorCode}
+        predictionRecoveryPath="/prediction"
+        onReloadMatches={reloadMatches}
+      />
+    );
+  }
+
   return (
-    <Suspense fallback={null}>
-      {loading ? (
-        <LoadingView topNotice={null} />
-      ) : matchesLoadState === 'error' ? (
-        <MatchesErrorView
-          matchesLoadErrorMessage={matchesLoadErrorMessage}
-          matchesLoadErrorCode={matchesLoadErrorCode}
-          predictionRecoveryPath="/prediction"
-          onReloadMatches={reloadMatches}
-        />
-      ) : (
-        <MatchScheduleReadyView
-          locationState={locationState}
-          searchParams={searchParams}
-          setSearchParams={setProgrammaticSearchParams}
-          currentGame={currentGame}
-          currentDateGames={currentDateGames}
-          currentDate={currentDate}
-          currentDayNavigationMeta={currentDayNavigationMeta}
-          allDatesData={allDatesData}
-          currentDateIndex={currentDateIndex}
-          deepLinkNotice={deepLinkNotice}
-          goToPreviousDate={goToPreviousDate}
-          goToNextDate={goToNextDate}
-          goToDate={goToDate}
-          pastRangeLoadState={pastRangeLoadState}
-          pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
-          futureRangeLoadState={futureRangeLoadState}
-          futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
-          canLoadMorePast={canLoadMorePast}
-          canLoadMoreFuture={canLoadMoreFuture}
-          matchBounds={matchBounds}
-          retryLoadMorePastMatches={retryLoadMorePastMatches}
-          retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
-        />
-      )}
-    </Suspense>
+    <MatchScheduleReadyView
+      locationState={locationState}
+      searchParams={searchParams}
+      setSearchParams={setProgrammaticSearchParams}
+      currentGame={currentGame}
+      currentDateGames={currentDateGames}
+      currentDate={currentDate}
+      currentDayNavigationMeta={currentDayNavigationMeta}
+      allDatesData={allDatesData}
+      currentDateIndex={currentDateIndex}
+      deepLinkNotice={deepLinkNotice}
+      goToPreviousDate={goToPreviousDate}
+      goToNextDate={goToNextDate}
+      goToDate={goToDate}
+      pastRangeLoadState={pastRangeLoadState}
+      pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
+      futureRangeLoadState={futureRangeLoadState}
+      futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
+      canLoadMorePast={canLoadMorePast}
+      canLoadMoreFuture={canLoadMoreFuture}
+      matchBounds={matchBounds}
+      retryLoadMorePastMatches={retryLoadMorePastMatches}
+      retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
+    />
   );
 }
