@@ -8,6 +8,8 @@ import {
   DAEGU_SEATMAP_VIEWPORT,
   getDaeguTraceMethodLabel,
   getDaeguTraceStatusLabel,
+  isDaeguNormalSelectableSeat,
+  isDaeguReviewOnlySeat,
   type DaeguBlock,
 } from '../../data/daeguSeatData';
 
@@ -138,8 +140,24 @@ function resolveOfficialSeatMapImageUrl() {
   return new URL('../../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png', import.meta.url).href;
 }
 
+function getGeometryLabelPoint(geometry: DaeguBlock['imageGeometry']): [number, number] {
+  return geometry.labelPoint ?? [geometry.labelX, geometry.labelY];
+}
+
+function getVisualPath(block: DaeguBlock) {
+  return block.imageGeometry.visualPath ?? block.imageGeometry.d;
+}
+
+function getHitPath(block: DaeguBlock) {
+  return block.imageGeometry.hitPath ?? getVisualPath(block);
+}
+
 function geometryPaths(block: DaeguBlock) {
-  return block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
+  const hitPath = getHitPath(block);
+  if (hitPath === block.imageGeometry.d && block.imageGeometry.paths?.length) {
+    return block.imageGeometry.paths;
+  }
+  return [hitPath];
 }
 
 function polygonArea(path: string) {
@@ -216,6 +234,18 @@ export default function DaeguSeatMapSvg({
     () => [...DAEGU_BLOCKS].sort((a, b) => blockArea(b) - blockArea(a)),
     [],
   );
+  const renderSeatBlocks = useMemo(
+    () => renderBlocks.filter(isDaeguNormalSelectableSeat),
+    [renderBlocks],
+  );
+  const renderReviewBlocks = useMemo(
+    () => renderBlocks.filter(isDaeguReviewOnlySeat),
+    [renderBlocks],
+  );
+  const renderMarkerBlocks = useMemo(
+    () => renderBlocks.filter((block) => block.sectionKind !== 'SEAT_SECTION'),
+    [renderBlocks],
+  );
 
   useIsomorphicLayoutEffect(() => {
     const node = viewportRef.current;
@@ -255,10 +285,11 @@ export default function DaeguSeatMapSvg({
 
     const block = DAEGU_BLOCKS.find((candidate) => candidate.id === focusBlockId);
     if (!block) return;
+    const [labelX, labelY] = getGeometryLabelPoint(block.imageGeometry);
 
     const targetPoint = {
-      x: ((block.imageGeometry.labelX - viewport.x) / viewport.width) * measuredViewportSize.width,
-      y: ((block.imageGeometry.labelY - viewport.y) / viewport.height) * measuredViewportSize.height,
+      x: ((labelX - viewport.x) / viewport.width) * measuredViewportSize.width,
+      y: ((labelY - viewport.y) / viewport.height) * measuredViewportSize.height,
     };
     const centeredPan = clampPan({
       x: (measuredViewportSize.width / 2 - targetPoint.x) * zoom,
@@ -396,6 +427,214 @@ export default function DaeguSeatMapSvg({
     setDebugPoint({ x, y });
   };
 
+  const renderInteractiveBlocks = (blocks: DaeguBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
+    const cat = DAEGU_CATEGORIES[block.category];
+    if (!cat) return null;
+
+    const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+    const isSelected = selected?.id === block.id;
+    const isActive = hover === block.id || isSelected;
+    const traceStatusLabel = getDaeguTraceStatusLabel(block.traceStatus);
+    const traceMethodLabel = getDaeguTraceMethodLabel(block.traceMethod);
+    const baseColor = mode === 'dark' ? cat.dark : cat.light;
+    const isMarker = layerKind === 'marker';
+    const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? (isMarker ? 0.12 : 0.08) : 0.001;
+    const stroke = showDebug && block.traceStatus === 'NEEDS_OPERATOR_REVIEW'
+      ? '#F97316'
+      : mode === 'dark' ? '#F8FAFC' : '#0F172A';
+    const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? (isMarker ? 0.56 : 0.38) : 0;
+    const [labelX, labelY] = getGeometryLabelPoint(block.imageGeometry);
+    const visualPath = getVisualPath(block);
+    const hitPath = getHitPath(block);
+    const testIdPrefix = isMarker ? 'daegu-seatmap-marker' : 'daegu-seat-block';
+
+    return (
+      <g key={`${layerKind}-${block.id}`} data-layer={isMarker ? 'marker' : 'seat-section'}>
+        {geometryPaths(block).map((pathD, pathIndex) => (
+          <path
+            key={`${block.id}-${pathIndex}`}
+            role="button"
+            data-testid={`${testIdPrefix}-${block.id}`}
+            data-path-index={pathIndex}
+            data-label-x={labelX}
+            data-label-y={labelY}
+            data-source-confidence={block.sourceConfidence}
+            data-trace-method={block.traceMethod}
+            data-trace-status={block.traceStatus}
+            data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+            data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
+            data-geometry-version={block.imageGeometry.geometryVersion}
+            data-section-kind={block.sectionKind}
+            data-marker-type={block.markerType}
+            data-visual-path={visualPath}
+            data-hit-path={hitPath}
+            tabIndex={isFiltered || pathIndex > 0 ? -1 : 0}
+            aria-label={`${block.name} ${block.block}`}
+            aria-pressed={isSelected}
+            d={pathD}
+            fill={baseColor}
+            fillOpacity={fillOpacity}
+            stroke={stroke}
+            strokeOpacity={strokeOpacity}
+            strokeDasharray={isMarker && showDebug ? '5 4' : undefined}
+            strokeWidth={isActive ? 4 : 2}
+            filter={isActive ? 'url(#daegu-hit-glow)' : undefined}
+            pointerEvents={isFiltered ? 'none' : 'fill'}
+            vectorEffect="non-scaling-stroke"
+            style={{
+              cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+              transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+            }}
+            onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
+            onClick={(event) => {
+              if (suppressClickRef.current || event.detail > 1) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              if (!isFiltered) {
+                setSelected(selected?.id === block.id ? null : block);
+              }
+            }}
+            onDoubleClick={handleDoubleClick}
+            onKeyDown={(event) => {
+              if (isFiltered) return;
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setSelected(selected?.id === block.id ? null : block);
+              }
+            }}
+          >
+            {showDebug && <title>{`${block.id} · ${block.block} · ${traceMethodLabel} · ${traceStatusLabel}`}</title>}
+          </path>
+        ))}
+        {(isActive || showDebug) && !isFiltered && (
+          <text
+            x={labelX}
+            y={labelY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={block.imageGeometry.labelFontSize ?? 18}
+            fontWeight="800"
+            fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
+            stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+            strokeWidth="3"
+            paintOrder="stroke"
+            transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${labelX} ${labelY})`}
+            style={{ pointerEvents: 'none' }}
+          >
+            {block.imageGeometry.shortLabel}
+          </text>
+        )}
+      </g>
+    );
+  });
+
+  const renderReviewOnlyBlocks = (blocks: DaeguBlock[]) => blocks.map((block) => {
+    const [labelX, labelY] = getGeometryLabelPoint(block.imageGeometry);
+    const traceStatusLabel = getDaeguTraceStatusLabel(block.traceStatus);
+    const traceMethodLabel = getDaeguTraceMethodLabel(block.traceMethod);
+    const visualPath = getVisualPath(block);
+
+    return (
+      <g key={`review-${block.id}`} data-layer="review-only-seat-section">
+        <path
+          data-testid={`daegu-review-block-${block.id}`}
+          data-label-x={labelX}
+          data-label-y={labelY}
+          data-trace-method={block.traceMethod}
+          data-trace-status={block.traceStatus}
+          data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+          data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
+          data-section-kind={block.sectionKind}
+          d={visualPath}
+          fill="#F97316"
+          fillOpacity="0.12"
+          stroke="#F97316"
+          strokeOpacity="0.72"
+          strokeDasharray="7 5"
+          strokeWidth="3"
+          pointerEvents="none"
+          vectorEffect="non-scaling-stroke"
+        >
+          <title>{`${block.id} · ${block.block} · ${traceMethodLabel} · ${traceStatusLabel}`}</title>
+        </path>
+        <text
+          x={labelX}
+          y={labelY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={block.imageGeometry.labelFontSize ?? 18}
+          fontWeight="900"
+          fill="#F97316"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          paintOrder="stroke"
+          transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${labelX} ${labelY})`}
+          pointerEvents="none"
+        >
+          {block.imageGeometry.shortLabel}
+        </text>
+      </g>
+    );
+  });
+
+  const renderMarkerOnlyBlocks = (blocks: DaeguBlock[]) => blocks.map((block) => {
+    const cat = DAEGU_CATEGORIES[block.category];
+    if (!cat) return null;
+
+    const [labelX, labelY] = getGeometryLabelPoint(block.imageGeometry);
+    const traceStatusLabel = getDaeguTraceStatusLabel(block.traceStatus);
+    const traceMethodLabel = getDaeguTraceMethodLabel(block.traceMethod);
+    const markerColor = mode === 'dark' ? cat.dark : cat.light;
+
+    return (
+      <g key={`marker-${block.id}`} data-layer="marker-only">
+        {geometryPaths(block).map((pathD, pathIndex) => (
+          <path
+            key={`${block.id}-${pathIndex}`}
+            data-testid={`daegu-seatmap-marker-${block.id}`}
+            data-path-index={pathIndex}
+            data-label-x={labelX}
+            data-label-y={labelY}
+            data-trace-method={block.traceMethod}
+            data-trace-status={block.traceStatus}
+            data-section-kind={block.sectionKind}
+            data-marker-type={block.markerType}
+            d={pathD}
+            fill={markerColor}
+            fillOpacity={showDebug ? 0.16 : 0.001}
+            stroke={markerColor}
+            strokeOpacity={showDebug ? 0.72 : 0}
+            strokeDasharray={showDebug ? '5 4' : undefined}
+            strokeWidth="3"
+            pointerEvents="none"
+            vectorEffect="non-scaling-stroke"
+          >
+            {showDebug && <title>{`${block.id} · ${block.block} · ${traceMethodLabel} · ${traceStatusLabel}`}</title>}
+          </path>
+        ))}
+        {showDebug && (
+          <text
+            x={labelX}
+            y={labelY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={block.imageGeometry.labelFontSize ?? 18}
+            fontWeight="900"
+            fill={markerColor}
+            stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+            strokeWidth="3"
+            paintOrder="stroke"
+            pointerEvents="none"
+          >
+            {block.imageGeometry.shortLabel}
+          </text>
+        )}
+      </g>
+    );
+  });
+
   const zoomControls = (
     <div className="absolute right-3 top-3 z-10 flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
       <button
@@ -531,95 +770,17 @@ export default function DaeguSeatMapSvg({
                 ))}
               </g>
             )}
-            {renderBlocks.map((block) => {
-              const cat = DAEGU_CATEGORIES[block.category];
-              if (!cat) return null;
-
-              const isFiltered = filterCats !== null && !filterCats.includes(block.category);
-              const isSelected = selected?.id === block.id;
-              const isActive = hover === block.id || isSelected;
-              const traceStatusLabel = getDaeguTraceStatusLabel(block.traceStatus);
-              const traceMethodLabel = getDaeguTraceMethodLabel(block.traceMethod);
-              const baseColor = mode === 'dark' ? cat.dark : cat.light;
-              const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? 0.08 : 0.001;
-              const stroke = showDebug && block.traceStatus === 'NEEDS_OPERATOR_REVIEW'
-                ? '#F97316'
-                : mode === 'dark' ? '#F8FAFC' : '#0F172A';
-              const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.38 : 0;
-
-              return (
-                <g key={block.id}>
-                  {geometryPaths(block).map((pathD, pathIndex) => (
-                    <path
-                      key={`${block.id}-${pathIndex}`}
-                      role="button"
-                      data-testid={`daegu-seat-block-${block.id}`}
-                      data-path-index={pathIndex}
-                      data-label-x={block.imageGeometry.labelX}
-                      data-label-y={block.imageGeometry.labelY}
-                      data-source-confidence={block.sourceConfidence}
-                      data-trace-method={block.traceMethod}
-                      data-trace-status={block.traceStatus}
-                      tabIndex={isFiltered || pathIndex > 0 ? -1 : 0}
-                      aria-label={`${block.name} ${block.block}`}
-                      aria-pressed={isSelected}
-                      d={pathD}
-                      fill={baseColor}
-                      fillOpacity={fillOpacity}
-                      stroke={stroke}
-                      strokeOpacity={strokeOpacity}
-                      strokeWidth={isActive ? 4 : 2}
-                      filter={isActive ? 'url(#daegu-hit-glow)' : undefined}
-                      pointerEvents={isFiltered ? 'none' : 'fill'}
-                      vectorEffect="non-scaling-stroke"
-                      style={{
-                        cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
-                      }}
-                      onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
-                      onClick={(event) => {
-                        if (suppressClickRef.current || event.detail > 1) {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          return;
-                        }
-                        if (!isFiltered) {
-                          setSelected(selected?.id === block.id ? null : block);
-                        }
-                      }}
-                      onDoubleClick={handleDoubleClick}
-                      onKeyDown={(event) => {
-                        if (isFiltered) return;
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelected(selected?.id === block.id ? null : block);
-                        }
-                      }}
-                    >
-                      {showDebug && <title>{`${block.id} · ${block.block} · ${traceMethodLabel} · ${traceStatusLabel}`}</title>}
-                    </path>
-                  ))}
-                  {(isActive || showDebug) && !isFiltered && (
-                    <text
-                      x={block.imageGeometry.labelX}
-                      y={block.imageGeometry.labelY}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={block.imageGeometry.labelFontSize ?? 18}
-                      fontWeight="800"
-                      fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                      stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
-                      strokeWidth="3"
-                      paintOrder="stroke"
-                      transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})`}
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {block.imageGeometry.shortLabel}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+            <g data-layer="daegu-seat-polygon-layer">
+              {renderInteractiveBlocks(renderSeatBlocks, 'seat')}
+            </g>
+            {showDebug && (
+              <g data-layer="daegu-review-polygon-layer" pointerEvents="none">
+                {renderReviewOnlyBlocks(renderReviewBlocks)}
+              </g>
+            )}
+            <g data-layer="daegu-marker-layer">
+              {renderMarkerOnlyBlocks(renderMarkerBlocks)}
+            </g>
             {showDebug && debugPoint && (
               <text
                 x={debugPoint.x + 12}

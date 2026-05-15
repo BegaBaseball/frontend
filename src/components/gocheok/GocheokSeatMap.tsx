@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   GOCHEOK_BLOCKS,
   GOCHEOK_CATEGORIES,
@@ -13,12 +13,18 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import GocheokBottomSheet from './GocheokBottomSheet';
 import GocheokFacilityGuide from './GocheokFacilityGuide';
 import GocheokSeatMapSvg from './GocheokSeatMapSvg';
 import GocheokUploadFlowModal from './GocheokUploadFlowModal';
+import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
+import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
+import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
+import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
+import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 type GocheokGuideMode = 'seatmap' | 'facility';
 
@@ -26,6 +32,24 @@ const GOCHEOK_GUIDE_MODES: { id: GocheokGuideMode; label: string }[] = [
   { id: 'seatmap', label: '공식 좌석도' },
   { id: 'facility', label: '시설현황' },
 ];
+
+const gocheokSectionAdapter: SeatMapSectionAdapter<GocheokBlock> = {
+  getId: (section) => section.id,
+  getName: (section) => section.name,
+  getBlock: (section) => section.block,
+  getCategoryId: (section) => section.category,
+  getLevel: (section) => section.level,
+  getOfficialBlocks: (section) => section.officialBlocks,
+  getSideLabel: (section) => getGocheokSideLabel(section.side),
+  getFanRoleLabel: (section) => getGocheokFanRoleLabel(section.fanRole),
+  getSourceLabel: (section) => getGocheokSourceLabel(section.sourceConfidence),
+  getSourceNote: (section) => section.sourceNote,
+  getSeatViewSections: (section) => section.seatViewSections,
+  getAccessibilityNote: (section) => section.accessibilityNote,
+  getDistance: (section) => (GOCHEOK_VIEW_INFO[section.id] ?? GOCHEOK_VIEW_INFO.default).distance,
+  getNotes: (section) => (GOCHEOK_VIEW_INFO[section.id] ?? GOCHEOK_VIEW_INFO.default).notes,
+  getTags: (section) => (GOCHEOK_VIEW_INFO[section.id] ?? GOCHEOK_VIEW_INFO.default).tags ?? [],
+};
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
@@ -66,33 +90,6 @@ function GuideModeTabs({
             }}
           >
             {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChange: (value: string) => void; mode: 'light' | 'dark' }) {
-  return (
-    <div className="flex flex-wrap gap-1.5 py-1">
-      {GOCHEOK_CATEGORY_GROUPS.map((group) => {
-        const active = group.id === selectedId;
-        return (
-          <button
-            key={group.id}
-            type="button"
-            data-testid={`gocheok-filter-${group.id}`}
-            aria-pressed={active}
-            onClick={() => onChange(group.id)}
-            className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-            style={{
-              background: active ? '#820024' : 'transparent',
-              borderColor: active ? '#820024' : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-              color: active ? '#fff' : (mode === 'dark' ? '#94a3b8' : '#334155'),
-            }}
-          >
-            {group.label}
           </button>
         );
       })}
@@ -201,25 +198,36 @@ function DetailPanel({
 export default function GocheokSeatMap() {
   const { resolvedTheme } = useTheme();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
-  const [selected, setSelected] = useState<GocheokBlock | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
-  const [filterId, setFilterId] = useState('all');
   const [activeGuideMode, setActiveGuideMode] = useState<GocheokGuideMode>('seatmap');
   const [uploadFor, setUploadFor] = useState<GocheokBlock | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const {
+    selected,
+    setSelected,
+    hover,
+    setHover,
+    hoveredSection: activeHoveredSection,
+    filterId,
+    setFilterId,
+    filterCats,
+    toast,
+    showToast,
+  } = useSeatMapSelectionState({
+    sections: GOCHEOK_BLOCKS,
+    filterGroups: GOCHEOK_CATEGORY_GROUPS,
+    getId: (section) => section.id,
+    getCategoryId: (section) => section.category,
+  });
   const {
     isMobile,
     isFullscreenOpen,
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
-  const filterGroup = GOCHEOK_CATEGORY_GROUPS.find((group) => group.id === filterId);
-  const filterCats = filterGroup?.cats ?? null;
   const hasOfficialBlocks = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && GOCHEOK_BLOCKS.length > 0;
   const isSeatMapMode = activeGuideMode === 'seatmap';
-  const hoveredSection = isSeatMapMode && hover ? (GOCHEOK_BLOCKS.find((block) => block.id === hover) ?? null) : null;
+  const hoveredSection = isSeatMapMode ? activeHoveredSection : null;
   const hoveredCategory = hoveredSection ? GOCHEOK_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#820024';
   const usedCategories = useMemo(() => [...new Set(GOCHEOK_BLOCKS.map((block) => block.category))], []);
@@ -227,9 +235,8 @@ export default function GocheokSeatMap() {
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
     setUploadFor(null);
-    setToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-    setTimeout(() => setToast(null), 2800);
-  }, [uploadFor]);
+    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
+  }, [showToast, uploadFor]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     const normalizedZoom = clampZoom(nextZoom);
@@ -248,21 +255,6 @@ export default function GocheokSeatMap() {
     setPan({ x: 0, y: 0 });
     closeFullscreen();
   }, []);
-
-  useEffect(() => {
-    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
-      return;
-    }
-    setSelected(null);
-  }, [filterCats, selected]);
-
-  useEffect(() => {
-    if (!hover) return;
-    const hoveredBlock = GOCHEOK_BLOCKS.find((block) => block.id === hover);
-    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
-      setHover(null);
-    }
-  }, [filterCats, hover]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <GocheokSeatMapSvg
@@ -285,40 +277,17 @@ export default function GocheokSeatMap() {
   );
 
   const attribution = (
-    <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-      좌석 배치 기준: {GOCHEOK_SEATMAP_IMAGE.sourceLabel}
-      {GOCHEOK_SEATMAP_IMAGE.sourceUrl && (
-        <a
-          href={GOCHEOK_SEATMAP_IMAGE.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-        >
-          출처
-        </a>
-      )}
-      {GOCHEOK_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
-      )}
-    </div>
+    <SeatMapAttribution
+      source={{
+        sourceLabel: GOCHEOK_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: GOCHEOK_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: GOCHEOK_SEATMAP_IMAGE.assetStatus,
+      }}
+    />
   );
 
   const legend = (
-    <div className="mt-2.5 flex flex-wrap gap-1.5 px-1">
-      {usedCategories.map((category) => {
-        const cat = GOCHEOK_CATEGORIES[category];
-        if (!cat) return null;
-        const color = mode === 'dark' ? cat.dark : cat.light;
-        return (
-          <span key={category} className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
-            {cat.label}
-          </span>
-        );
-      })}
-    </div>
+    <SeatMapLegend categoryIds={usedCategories} categories={GOCHEOK_CATEGORIES} mode={mode} />
   );
 
   const guideModeBar = (
@@ -327,7 +296,16 @@ export default function GocheokSeatMap() {
     </div>
   );
 
-  const filterBar = hasOfficialBlocks && isSeatMapMode ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined;
+  const filterBar = hasOfficialBlocks && isSeatMapMode ? (
+    <SeatMapFilterBar
+      groups={GOCHEOK_CATEGORY_GROUPS}
+      selectedId={filterId}
+      onChange={setFilterId}
+      mode={mode}
+      accentColor="#820024"
+      testIdPrefix="gocheok"
+    />
+  ) : undefined;
 
   const mapContent = (
     <div>
@@ -351,9 +329,12 @@ export default function GocheokSeatMap() {
   );
 
   const detailPanel = hasOfficialBlocks && isSeatMapMode ? (
-    <DetailPanel
+    <SeatMapDetailPanel
       section={selected}
       mode={mode}
+      categories={GOCHEOK_CATEGORIES}
+      adapter={gocheokSectionAdapter}
+      stadiumKey="GOCHEOK"
       onClose={() => setSelected(null)}
       onUpload={() => selected && setUploadFor(selected)}
     />
@@ -367,7 +348,7 @@ export default function GocheokSeatMap() {
         subtitle={isSeatMapMode ? '고척 키움 공식 좌석도' : '서울시설공단 공식 시설현황'}
         titleAccentColor="#820024"
         isMobile={isMobile}
-        isDoosanGuideActive={!isSeatMapMode}
+        isAuxiliaryGuideActive={!isSeatMapMode}
         filterBar={filterBar}
         mobileFilterBar={filterBar && <div className="mb-2.5 overflow-x-auto">{filterBar}</div>}
         desktopFilterBar={filterBar}
@@ -375,9 +356,12 @@ export default function GocheokSeatMap() {
         attribution={isSeatMapMode ? attribution : null}
         legend={hasOfficialBlocks && isSeatMapMode ? legend : undefined}
         mobileBottomSheet={hasOfficialBlocks && isSeatMapMode && selected && (
-          <GocheokBottomSheet
+          <SeatMapBottomSheet
             section={selected}
             mode={mode}
+            categories={GOCHEOK_CATEGORIES}
+            adapter={gocheokSectionAdapter}
+            stadiumKey="GOCHEOK"
             onClose={() => setSelected(null)}
             onUpload={() => selected && setUploadFor(selected)}
           />

@@ -38,6 +38,9 @@ const TermsOfService = lazy(() => import('./TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
+const SajikSeatMapEditor = import.meta.env.DEV
+  ? lazy(() => import('./sajik/SajikSeatMapEditor'))
+  : null;
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
 const SchedulePage = lazy(() => import('../pages/SchedulePage'));
@@ -98,6 +101,9 @@ export default function AppRoutes() {
       </Route>
 
       {import.meta.env.DEV && <Route path="/test/error" element={<TestError />} />}
+      {import.meta.env.DEV && SajikSeatMapEditor && (
+        <Route path="/internal/sajik-seatmap-editor" element={<SajikSeatMapEditor />} />
+      )}
 
       <Route path="*" element={<NotFound />} />
     </Routes>

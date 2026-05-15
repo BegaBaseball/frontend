@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ExternalLink, Minus, Plus, Search } from 'lucide-react';
 import {
   CHANGWON_BLOCKS,
@@ -20,15 +20,39 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import ChangwonBottomSheet from './ChangwonBottomSheet';
 import ChangwonSeatMapSvg from './ChangwonSeatMapSvg';
 import ChangwonUploadFlowModal from './ChangwonUploadFlowModal';
+import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
+import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
+import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
+import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
+import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 0.9;
 const MAX_ZOOM = 1.35;
 const ZOOM_STEP = 0.1;
+
+const changwonSectionAdapter: SeatMapSectionAdapter<ChangwonBlock> = {
+  getId: (section) => section.id,
+  getName: (section) => getChangwonBlockDisplayName(section),
+  getBlock: (section) => section.block,
+  getCategoryId: (section) => section.category,
+  getLevel: (section) => getChangwonLevelLabel(section.level),
+  getOfficialBlocks: (section) => section.officialBlocks,
+  getSideLabel: (section) => getChangwonSideLabel(section.side),
+  getFanRoleLabel: (section) => getChangwonFanRoleLabel(section.fanRole),
+  getSourceLabel: (section) => getChangwonSourceLabel(section.sourceConfidence),
+  getSourceNote: (section) => section.sourceNote,
+  getSeatViewSections: (section) => section.seatViewSections,
+  getAccessibilityNote: (section) => section.accessibilityNote,
+  getDistance: (section) => (CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default).distance,
+  getNotes: (section) => (CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default).notes,
+  getTags: (section) => (CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default).tags ?? [],
+};
 
 function normalizeBlockSearchText(value: string): string {
   const trimmed = value.trim();
@@ -54,33 +78,6 @@ function getChangwonSearchMatchLabels(query: string, block: ChangwonBlock): stri
   if (accessibilityToken.includes(normalizedQuery)) labels.push('접근성');
 
   return [...new Set(labels)];
-}
-
-function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChange: (value: string) => void; mode: 'light' | 'dark' }) {
-  return (
-    <div className="flex flex-wrap gap-1.5 py-1">
-      {CHANGWON_CATEGORY_GROUPS.map((group) => {
-        const active = group.id === selectedId;
-        return (
-          <button
-            key={group.id}
-            type="button"
-            data-testid={`changwon-filter-${group.id}`}
-            aria-pressed={active}
-            onClick={() => onChange(group.id)}
-            className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-            style={{
-              background: active ? '#315288' : 'transparent',
-              borderColor: active ? '#315288' : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-              color: active ? '#fff' : (mode === 'dark' ? '#94a3b8' : '#334155'),
-            }}
-          >
-            {group.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 function ZoomControls({
@@ -376,29 +373,41 @@ function DetailPanel({
 export default function ChangwonSeatMap() {
   const { resolvedTheme } = useTheme();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
-  const [selected, setSelected] = useState<ChangwonBlock | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [filterId, setFilterId] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchResultListOpen, setIsSearchResultListOpen] = useState(false);
   const [uploadFor, setUploadFor] = useState<ChangwonBlock | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const {
+    selected,
+    setSelected,
+    hover,
+    setHover,
+    hoveredSection,
+    filterId,
+    setFilterId,
+    activeFilterGroup,
+    toast,
+    showToast,
+  } = useSeatMapSelectionState({
+    sections: CHANGWON_BLOCKS,
+    filterGroups: CHANGWON_CATEGORY_GROUPS,
+    getId: (section) => section.id,
+    getCategoryId: (section) => section.category,
+    isSectionVisible: (section, group) => (group ? isChangwonBlockInCategoryGroup(section, group) : true),
+  });
   const { isMobile, isFullscreenOpen, openFullscreen, closeFullscreen } = useSeatMapTemplateShellState();
-  const filterGroup = CHANGWON_CATEGORY_GROUPS.find((group) => group.id === filterId);
   const activeBlockIds = useMemo(() => {
-    if (!filterGroup || filterGroup.id === 'all') {
+    if (!activeFilterGroup || activeFilterGroup.id === 'all') {
       return null;
     }
 
     return new Set(
       CHANGWON_BLOCKS
-        .filter((block) => isChangwonBlockInCategoryGroup(block, filterGroup))
+        .filter((block) => isChangwonBlockInCategoryGroup(block, activeFilterGroup))
         .map((block) => block.id),
     );
-  }, [filterGroup]);
+  }, [activeFilterGroup]);
   const hasOfficialBlocks = CHANGWON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && CHANGWON_BLOCKS.length > 0;
-  const hoveredSection = hover ? (CHANGWON_BLOCKS.find((block) => block.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? CHANGWON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#315288';
   const usedCategories = useMemo(() => [...new Set(CHANGWON_BLOCKS.map((block) => block.category))], []);
@@ -412,18 +421,6 @@ export default function ChangwonSeatMap() {
     return searchChangwonSeatMapBlocks(searchTerm).slice(0, 12);
   }, [hasExactNumericSearchMatch, normalizedSearchTerm, searchTerm]);
   const showSearchResults = Boolean(normalizedSearchTerm) && !hasExactNumericSearchMatch && isSearchResultListOpen;
-
-  useEffect(() => {
-    if (selected && activeBlockIds && !activeBlockIds.has(selected.id)) {
-      setSelected(null);
-    }
-  }, [activeBlockIds, selected]);
-
-  useEffect(() => {
-    if (hover && activeBlockIds && !activeBlockIds.has(hover)) {
-      setHover(null);
-    }
-  }, [activeBlockIds, hover]);
 
   const handleZoomIn = useCallback(() => {
     setZoom((value) => Math.min(MAX_ZOOM, Number((value + ZOOM_STEP).toFixed(2))));
@@ -464,9 +461,8 @@ export default function ChangwonSeatMap() {
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
     setUploadFor(null);
-    setToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-    setTimeout(() => setToast(null), 2800);
-  }, [uploadFor]);
+    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
+  }, [showToast, uploadFor]);
 
   const mapSvg = (
     <ChangwonSeatMapSvg
@@ -481,47 +477,31 @@ export default function ChangwonSeatMap() {
   );
 
   const attribution = (
-    <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-      좌석 배치 기준: {CHANGWON_SEATMAP_IMAGE.sourceLabel}
-      {CHANGWON_SEATMAP_IMAGE.sourceUrl && (
-        <a
-          href={CHANGWON_SEATMAP_IMAGE.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-        >
-          출처
-        </a>
-      )}
-      {CHANGWON_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
-      )}
-    </div>
+    <SeatMapAttribution
+      source={{
+        sourceLabel: CHANGWON_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: CHANGWON_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: CHANGWON_SEATMAP_IMAGE.assetStatus,
+      }}
+    />
   );
 
   const legend = (
-    <div className="mt-2.5 flex flex-wrap gap-1.5 px-1">
-      {usedCategories.map((category) => {
-        const cat = CHANGWON_CATEGORIES[category];
-        if (!cat) return null;
-        const color = mode === 'dark' ? cat.dark : cat.light;
-        return (
-          <span key={category} className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
-            {cat.label}
-          </span>
-        );
-      })}
-    </div>
+    <SeatMapLegend categoryIds={usedCategories} categories={CHANGWON_CATEGORIES} mode={mode} />
   );
 
   const filterBar = (
     <div className="mb-2.5 flex flex-col gap-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
-          <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
+          <SeatMapFilterBar
+            groups={CHANGWON_CATEGORY_GROUPS}
+            selectedId={filterId}
+            onChange={setFilterId}
+            mode={mode}
+            accentColor="#315288"
+            testIdPrefix="changwon"
+          />
         </div>
         <BlockSearch
           value={searchTerm}
@@ -567,12 +547,30 @@ export default function ChangwonSeatMap() {
     </div>
   );
 
-  const detailPanel = hasOfficialBlocks && selected ? (
-    <DetailPanel
+  const detailPanel = hasOfficialBlocks ? (
+    <SeatMapDetailPanel
       section={selected}
       mode={mode}
+      categories={CHANGWON_CATEGORIES}
+      adapter={changwonSectionAdapter}
+      stadiumKey="CHANGWON"
       onClose={() => setSelected(null)}
       onUpload={() => selected && setUploadFor(selected)}
+      extraMeta={(section) => (
+        <>
+          {isChangwonSpecialSelectableArea(section) && (
+            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+              특수 구역
+            </span>
+          )}
+          <span
+            data-testid="changwon-selected-status"
+            className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+          >
+            release-lock 승인
+          </span>
+        </>
+      )}
     />
   ) : null;
 
@@ -584,7 +582,7 @@ export default function ChangwonSeatMap() {
         subtitle="창원 NC 공식 좌석도"
         titleAccentColor="#315288"
         isMobile={isMobile}
-        isDoosanGuideActive={false}
+        isAuxiliaryGuideActive={false}
         filterBar={hasOfficialBlocks ? filterBar : undefined}
         mobileFilterBar={hasOfficialBlocks ? filterBar : undefined}
         desktopFilterBar={hasOfficialBlocks ? filterBar : undefined}
@@ -592,11 +590,30 @@ export default function ChangwonSeatMap() {
         attribution={attribution}
         legend={hasOfficialBlocks ? legend : undefined}
         mobileBottomSheet={hasOfficialBlocks && selected && (
-          <ChangwonBottomSheet
+          <SeatMapBottomSheet
             section={selected}
             mode={mode}
+            categories={CHANGWON_CATEGORIES}
+            adapter={changwonSectionAdapter}
+            stadiumKey="CHANGWON"
             onClose={() => setSelected(null)}
             onUpload={() => selected && setUploadFor(selected)}
+            testId="changwon-bottom-sheet"
+            extraMeta={(section) => (
+              <>
+                {isChangwonSpecialSelectableArea(section) && (
+                  <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+                    특수 구역
+                  </span>
+                )}
+                <span
+                  data-testid="changwon-selected-status-mobile"
+                  className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                >
+                  release-lock 승인
+                </span>
+              </>
+            )}
           />
         )}
         mobileHasSidePanel={Boolean(isMobile && hasOfficialBlocks && selected)}
