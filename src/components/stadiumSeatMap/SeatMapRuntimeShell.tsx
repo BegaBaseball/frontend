@@ -18,15 +18,12 @@ interface SeatMapRuntimeShellProps {
 
 export function SeatMapRuntimeShell({
   template,
-  usesCoordinateGeometry,
   badgeLabel,
   stadiumName,
   resetKey,
   children,
 }: SeatMapRuntimeShellProps) {
-  const isJamsilTemplate = template === 'jamsil-template' && !usesCoordinateGeometry;
-
-  if (isJamsilTemplate || template === 'legacy') {
+  if (template === 'standard') {
     return (
       <StadiumSeatMapErrorBoundary
         resetKey={resetKey}
