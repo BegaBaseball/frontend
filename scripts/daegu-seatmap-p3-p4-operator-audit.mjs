@@ -9,13 +9,13 @@ const defaultP3P4ReportDir = path.join(frontendRoot, 'reports/stadium/daegu-p3-p
 const AUDIT_VERSION = 'DAEGU_P3_P4_OPERATOR_AUDIT_V1';
 const EXPECTED = {
   targetBatchId: 'BATCH_4_P3_P4',
-  packageRows: 52,
-  p3Rows: 3,
-  p4Rows: 49,
-  manualTraceRequiredRows: 27,
-  correctedPathRequiredRows: 25,
+  packageRows: 44,
+  p3Rows: 0,
+  p4Rows: 44,
+  manualTraceRequiredRows: 22,
+  correctedPathRequiredRows: 22,
   labelAndHitAreaRows: 3,
-  evidenceCropRows: 52,
+  evidenceCropRows: 44,
 };
 
 const argValue = (name, fallback) => {
@@ -42,6 +42,7 @@ const isBlank = (value) => String(value ?? '').trim() === '';
 const countInputRows = (rows) => ({
   total: rows.length,
   pending: rows.filter((row) => row.operatorDecision === 'PENDING').length,
+  needsRetrace: rows.filter((row) => row.operatorDecision === 'NEEDS_RETRACE').length,
   approved: rows.filter((row) => row.operatorDecision === 'APPROVED').length,
   decided: rows.filter((row) => row.operatorDecision !== 'PENDING').length,
   p3: rows.filter((row) => row.queuePriority === 'P3').length,
@@ -86,9 +87,10 @@ if (input.draftOnly !== false) blockers.push('INPUT_DRAFT_ONLY_NOT_FALSE');
 if (input.productionWriteAllowed !== false) blockers.push('INPUT_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
 
 pushExpected(blockers, 'INPUT_ROWS', inputCounts.total, EXPECTED.packageRows);
-pushExpected(blockers, 'INPUT_PENDING_ROWS', inputCounts.pending, EXPECTED.packageRows);
+pushExpected(blockers, 'INPUT_PENDING_ROWS', inputCounts.pending, 0);
+pushExpected(blockers, 'INPUT_NEEDS_RETRACE_ROWS', inputCounts.needsRetrace, EXPECTED.packageRows);
 pushExpected(blockers, 'INPUT_APPROVED_ROWS', inputCounts.approved, 0);
-pushExpected(blockers, 'INPUT_DECIDED_ROWS', inputCounts.decided, 0);
+pushExpected(blockers, 'INPUT_DECIDED_ROWS', inputCounts.decided, EXPECTED.packageRows);
 pushExpected(blockers, 'INPUT_P3_ROWS', inputCounts.p3, EXPECTED.p3Rows);
 pushExpected(blockers, 'INPUT_P4_ROWS', inputCounts.p4, EXPECTED.p4Rows);
 pushExpected(blockers, 'INPUT_FILLED_PATH_ROWS', inputCounts.filledPath, 0);
@@ -144,7 +146,9 @@ await writeCsv(csvPath, [
     'evidenceCropRows',
     'inputRows',
     'inputPending',
+    'inputNeedsRetrace',
     'inputApproved',
+    'inputDecided',
     'inputFilledPath',
     'blockers',
   ],
@@ -160,7 +164,9 @@ await writeCsv(csvPath, [
     summary.packageCounts.evidenceCropRows,
     summary.inputCounts.total,
     summary.inputCounts.pending,
+    summary.inputCounts.needsRetrace,
     summary.inputCounts.approved,
+    summary.inputCounts.decided,
     summary.inputCounts.filledPath,
     summary.blockers.join(' '),
   ],
@@ -187,6 +193,7 @@ await fs.writeFile(markdownPath, [
   '',
   `- rows: ${summary.inputCounts.total}`,
   `- pending: ${summary.inputCounts.pending}`,
+  `- needsRetrace: ${summary.inputCounts.needsRetrace}`,
   `- approved: ${summary.inputCounts.approved}`,
   `- decided: ${summary.inputCounts.decided}`,
   `- P3 rows: ${summary.inputCounts.p3}`,

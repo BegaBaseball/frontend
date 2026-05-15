@@ -204,16 +204,18 @@ if (reports.import.exists && boolOrFalse(importSummary.productionDataChanged)) {
   blockers.push('P0_IMPORT_CHANGED_PRODUCTION_DATA');
 }
 
-if (approvedRows.length === 0) warnings.push('NO_APPROVED_P0_ROWS_PRODUCTION_WRITE_WILL_BLOCK');
+if (approvedRows.length === 0) warnings.push('NO_APPROVED_P0_ROWS_TEMPLATE_IMPORT_WILL_BLOCK');
 if (filledPathRows.length > approvedRows.length) warnings.push('CORRECTED_PATH_FILLED_FOR_NON_APPROVED_ROWS');
 if (filledReviewerRows.length > approvedRows.length) warnings.push('REVIEWER_FILLED_FOR_NON_APPROVED_ROWS');
 
-const readyForTemplateImport = blockers.length === 0;
+const awaitingOperatorInput = blockers.length === 0 && approvedRows.length === 0;
+const readyForTemplateImport = blockers.length === 0 && approvedRows.length > 0;
 const readyForGuardedWriteAfterTemplateImport = readyForTemplateImport && approvedRows.length > 0;
 
 const summary = {
   readinessVersion: READINESS_VERSION,
-  status: readyForTemplateImport ? 'ready' : 'blocked',
+  status: blockers.length > 0 ? 'blocked' : readyForTemplateImport ? 'ready' : 'waiting-for-operator',
+  awaitingOperatorInput,
   readyForTemplateImport,
   readyForGuardedWriteAfterTemplateImport,
   targetBatchId: TARGET_BATCH_ID,
@@ -267,6 +269,7 @@ const report = {
     'This readiness gate is read-only and never modifies the main corrections template.',
     'It must be run after npm run stadium:daegu:p0-operator-validate and npm run stadium:daegu:p0-operator-import.',
     'It blocks template import while any P0 row remains PENDING.',
+    'It blocks template import unless at least one P0 row is operatorDecision=APPROVED.',
     'It does not allow production write directly; production write still requires npm run stadium:daegu:operator-corrections-write.',
     'Do not run npm run stadium:daegu:operator-corrections after p0-operator-import:write-template.',
   ],
@@ -274,10 +277,16 @@ const report = {
   nextActions: readyForTemplateImport
     ? [
       'Run npm run stadium:daegu:p0-operator-import:write-template.',
-      readyForGuardedWriteAfterTemplateImport
-        ? 'Then run npm run stadium:daegu:operator-corrections-write.'
-        : 'No approved P0 rows are present, so production write will remain blocked until an approved row exists.',
+      'Then run npm run stadium:daegu:operator-corrections-write.',
     ]
+    : awaitingOperatorInput
+      ? [
+        'Fill at least one P0 source input row with operatorDecision=APPROVED.',
+        'Approved rows require correctedPath, correctedLabelX, correctedLabelY, reviewer, and reviewedAt.',
+        'Run npm run stadium:daegu:p0-operator-validate.',
+        'Run npm run stadium:daegu:p0-operator-import.',
+        'Re-run npm run stadium:daegu:p0-operator-readiness.',
+      ]
     : [
       'Resolve blockers in the P0 operator input.',
       'Run npm run stadium:daegu:p0-operator-validate.',
@@ -325,6 +334,7 @@ await fs.writeFile(markdownPath, [
   '',
   `- readiness version: \`${READINESS_VERSION}\``,
   `- status: \`${summary.status}\``,
+  `- awaiting operator input: ${summary.awaitingOperatorInput}`,
   `- ready for template import: ${summary.readyForTemplateImport}`,
   `- ready for guarded write after template import: ${summary.readyForGuardedWriteAfterTemplateImport}`,
   `- pending rows: ${summary.pendingRows}`,
@@ -370,9 +380,10 @@ await fs.writeFile(markdownPath, [
   '',
   '1. 이 readiness는 read-only이며 main template과 `src/data/daeguSeatData.ts`를 수정하지 않습니다.',
   '2. P0 3건 중 `PENDING` row가 남아 있으면 template import를 진행하지 않습니다.',
-  '3. `APPROVED` row가 있으면 validation에서 `validForApproval=true`여야 합니다.',
-  '4. readiness가 통과해도 production write는 `npm run stadium:daegu:operator-corrections-write` guard를 다시 통과해야 합니다.',
-  '5. `p0-operator-import:write-template` 이후에는 `npm run stadium:daegu:operator-corrections`를 다시 실행하지 않습니다.',
+  '3. 승인된 P0 row가 1건 이상 있어야 template import를 진행할 수 있습니다.',
+  '4. `APPROVED` row가 있으면 validation에서 `validForApproval=true`여야 합니다.',
+  '5. readiness가 통과해도 production write는 `npm run stadium:daegu:operator-corrections-write` guard를 다시 통과해야 합니다.',
+  '6. `p0-operator-import:write-template` 이후에는 `npm run stadium:daegu:operator-corrections`를 다시 실행하지 않습니다.',
   '',
   '## Blockers',
   '',

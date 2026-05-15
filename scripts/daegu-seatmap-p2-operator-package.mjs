@@ -13,11 +13,11 @@ const STAGING_PACKAGE_VERSION = 'DAEGU_P2_REVIEW_PACKAGE_V1';
 const TARGET_BATCH_ID = 'BATCH_3_P2';
 const TARGET_PRIORITY = 'P2';
 const EXPECTED = {
-  rows: 50,
-  approvalCandidateRows: 16,
-  manualRetraceRows: 34,
+  rows: 36,
+  approvalCandidateRows: 3,
+  manualRetraceRows: 33,
   labelAndHitAreaRows: 2,
-  visualApprovalCandidateRows: 14,
+  visualApprovalCandidateRows: 1,
 };
 const REQUIRED_APPROVAL_FIELDS = [
   'operatorDecision=APPROVED',

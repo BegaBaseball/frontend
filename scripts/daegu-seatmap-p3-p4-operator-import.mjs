@@ -240,6 +240,9 @@ if (decidedRows.length === 0) warnings.push('NO_P3_P4_OPERATOR_DECISIONS_TO_IMPO
 if (writeTemplate && blockers.length === 0 && decidedRows.length === 0) {
   blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P3_P4_DECISION');
 }
+if (writeTemplate && approvedRows.length === 0) {
+  blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P3_P4_ROW');
+}
 if (writeTemplate && pendingRows.length > 0) {
   blockers.push(`WRITE_TEMPLATE_REQUIRES_NO_P3_P4_PENDING_ROWS:${pendingRows.map((row) => row.block).join(' ')}`);
 }
@@ -307,6 +310,7 @@ const report = {
     'This script only imports P3/P4 operator decisions into the corrections template.',
     'It blocks write-template while any P0, P1, or P2 rows remain pending or approved in the current template.',
     'It blocks write-template while any P3/P4 row remains PENDING.',
+    'It blocks write-template unless at least one P3/P4 row is operatorDecision=APPROVED.',
     'It blocks write-template when P3/P4 APPROVED rows do not have validForApproval=true in the existing validator report.',
     'It blocks write-template when draft/staging metadata or DRAFT_VALIDATION_ONLY markers are present.',
     'Do not run npm run stadium:daegu:operator-corrections after write-template because it regenerates the template from handoff defaults.',

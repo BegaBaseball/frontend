@@ -237,6 +237,9 @@ if (decidedRows.length === 0) warnings.push('NO_P2_OPERATOR_DECISIONS_TO_IMPORT'
 if (writeTemplate && blockers.length === 0 && decidedRows.length === 0) {
   blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P2_DECISION');
 }
+if (writeTemplate && approvedRows.length === 0) {
+  blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P2_ROW');
+}
 if (writeTemplate && pendingRows.length > 0) {
   blockers.push(`WRITE_TEMPLATE_REQUIRES_NO_P2_PENDING_ROWS:${pendingRows.map((row) => row.block).join(' ')}`);
 }
@@ -304,6 +307,7 @@ const report = {
     'This script only imports P2 operator decisions into the corrections template.',
     'It blocks write-template while any P0 or P1 rows remain pending or approved in the current template.',
     'It blocks write-template while any P2 row remains PENDING.',
+    'It blocks write-template unless at least one P2 row is operatorDecision=APPROVED.',
     'It blocks write-template when P2 APPROVED rows do not have validForApproval=true in the existing validator report.',
     'It blocks write-template when draft/staging metadata or DRAFT_VALIDATION_ONLY markers are present.',
     'Do not run npm run stadium:daegu:operator-corrections after write-template because it regenerates the template from handoff defaults.',

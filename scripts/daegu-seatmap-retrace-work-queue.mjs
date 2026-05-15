@@ -9,13 +9,13 @@ const defaultReportDir = path.join(frontendRoot, 'reports/stadium');
 
 const QUEUE_VERSION = 'DAEGU_RETRACE_WORK_QUEUE_V1';
 const EXPECTED = {
-  expectedRows: 134,
-  expectedNeedsRetraceRows: 134,
-  p0Rows: 3,
-  p1Rows: 29,
-  p2Rows: 50,
-  p3Rows: 3,
-  p4Rows: 49,
+  expectedRows: 97,
+  expectedNeedsRetraceRows: 97,
+  p0Rows: 0,
+  p1Rows: 17,
+  p2Rows: 36,
+  p3Rows: 0,
+  p4Rows: 44,
 };
 const INPUT_SPECS = [
   {
@@ -23,28 +23,28 @@ const INPUT_SPECS = [
     batchOrder: 1,
     packageVersion: 'DAEGU_P0_OPERATOR_PACKAGE_V1',
     input: 'reports/stadium/daegu-p0-operator/daegu-seatmap-p0-operator-input.json',
-    expectedRows: 3,
+    expectedRows: 1,
   },
   {
     batchId: 'BATCH_2_P1',
     batchOrder: 2,
     packageVersion: 'DAEGU_P1_OPERATOR_PACKAGE_V1',
     input: 'reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-input.json',
-    expectedRows: 29,
+    expectedRows: 17,
   },
   {
     batchId: 'BATCH_3_P2',
     batchOrder: 3,
     packageVersion: 'DAEGU_P2_OPERATOR_PACKAGE_V1',
     input: 'reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-input.json',
-    expectedRows: 50,
+    expectedRows: 36,
   },
   {
     batchId: 'BATCH_4_P3_P4',
     batchOrder: 4,
     packageVersion: 'DAEGU_P3_P4_OPERATOR_PACKAGE_V1',
     input: 'reports/stadium/daegu-p3-p4-operator/daegu-seatmap-p3-p4-operator-input.json',
-    expectedRows: 52,
+    expectedRows: 44,
   },
 ];
 
@@ -124,8 +124,6 @@ const allRows = inputReports.flatMap((inputReport) => inputReport.rows
     const operatorDecision = normalizeDecision(row.operatorDecision);
     if (operatorDecision === 'PENDING') {
       blockers.push(`INPUT_PENDING_ROW_MISSING_FROM_CURRENT_HANDOFF:${row.blockId}`);
-    } else {
-      warnings.push(`INPUT_TERMINAL_ROW_CLOSED_IN_CURRENT_HANDOFF:${row.blockId}`);
     }
     return false;
   })

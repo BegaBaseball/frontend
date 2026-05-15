@@ -13,9 +13,9 @@ const PACKAGE_VERSION = 'DAEGU_P1_OPERATOR_PACKAGE_V1';
 const TARGET_BATCH_ID = 'BATCH_2_P1';
 const TARGET_PRIORITY = 'P1';
 const EXPECTED = {
-  rows: 29,
-  manualTraceRequiredRows: 12,
-  sharedCandidateBoundaryRows: 16,
+  rows: 17,
+  manualTraceRequiredRows: 5,
+  sharedCandidateBoundaryRows: 11,
   correctedPathRequiredRows: 1,
 };
 const REQUIRED_APPROVAL_FIELDS = [

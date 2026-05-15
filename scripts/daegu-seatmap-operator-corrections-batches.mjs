@@ -13,30 +13,31 @@ const BATCHES = [
     label: '1차 P0',
     order: 1,
     queuePriorities: ['P0'],
-    expectedRows: 3,
+    expectedRows: 0,
   },
   {
     id: 'BATCH_2_P1',
     label: '2차 P1',
     order: 2,
     queuePriorities: ['P1'],
-    expectedRows: 29,
+    expectedRows: 17,
   },
   {
     id: 'BATCH_3_P2',
     label: '3차 P2',
     order: 3,
     queuePriorities: ['P2'],
-    expectedRows: 50,
+    expectedRows: 36,
   },
   {
     id: 'BATCH_4_P3_P4',
     label: '4차 P3/P4',
     order: 4,
     queuePriorities: ['P3', 'P4'],
-    expectedRows: 52,
+    expectedRows: 44,
   },
 ];
+const EXPECTED_HANDOFF_ROWS = 97;
 
 const TERMINAL_NON_APPROVED_DECISIONS = new Set(['REJECTED', 'NEEDS_RETRACE']);
 
@@ -199,7 +200,9 @@ const selectedReadyBatch = readyBatchRows.find((batch) => (
   && outOfOrderApprovedRows === 0
 )) ?? null;
 
-if (handoffItems.length !== 134) warnings.push(`HANDOFF_TARGET_COUNT_CHANGED:${handoffItems.length}:134`);
+if (handoffItems.length !== EXPECTED_HANDOFF_ROWS) {
+  warnings.push(`HANDOFF_TARGET_COUNT_CHANGED:${handoffItems.length}:${EXPECTED_HANDOFF_ROWS}`);
+}
 if (approvedBatchIds.length > 1) blockers.push(`APPROVED_ROWS_MUST_BE_SINGLE_BATCH:${approvedBatchIds.join(' ')}`);
 if (outOfOrderApprovedRows > 0) blockers.push(`APPROVED_ROWS_OUT_OF_PRIORITY_ORDER:${outOfOrderApprovedRows}`);
 if (approvedBatchIds.length === 1 && !selectedReadyBatch) {
@@ -222,7 +225,7 @@ const summary = {
   status: readyForWrite ? 'ready' : 'blocked',
   readyForWrite,
   totalHandoffRows: handoffItems.length,
-  expectedHandoffRows: 134,
+  expectedHandoffRows: EXPECTED_HANDOFF_ROWS,
   approvedRows: totalApprovedRows,
   validApprovedRows: totalValidApprovedRows,
   invalidApprovedRows: totalInvalidApprovedRows,

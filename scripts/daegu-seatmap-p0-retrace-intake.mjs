@@ -12,9 +12,9 @@ const INTAKE_VERSION = 'DAEGU_P0_RETRACE_INTAKE_V1';
 const PACKAGE_VERSION = 'DAEGU_P0_OPERATOR_PACKAGE_V1';
 const TARGET_BATCH_ID = 'BATCH_1_P0';
 const EXPECTED = {
-  expectedRows: 3,
-  expectedNeedsRetraceRows: 3,
-  expectedApprovedRows: 0,
+  expectedRows: 1,
+  expectedNeedsRetraceRows: 0,
+  expectedApprovedRows: 1,
   expectedQueuePriority: 'P0',
 };
 
@@ -98,16 +98,21 @@ const rows = inputRows.map((row) => {
   const hasReviewedAt = hasValue(row.reviewedAt);
   const hasFilledEditableFields = hasCorrectedPath || hasCorrectedLabel || hasReviewer || hasReviewedAt;
   const rowBlockers = [];
+  const requiresRetraceEvidence = operatorDecision === 'NEEDS_RETRACE';
 
   if (row.batchId !== TARGET_BATCH_ID) rowBlockers.push(`ROW_BATCH_MISMATCH:${row.batchId ?? ''}`);
   if (row.queuePriority !== EXPECTED.expectedQueuePriority) rowBlockers.push(`ROW_PRIORITY_NOT_P0:${row.queuePriority ?? ''}`);
-  if (operatorDecision !== 'NEEDS_RETRACE') rowBlockers.push(`ROW_DECISION_NOT_NEEDS_RETRACE:${operatorDecision}`);
+  if (!['NEEDS_RETRACE', 'APPROVED'].includes(operatorDecision)) {
+    rowBlockers.push(`ROW_DECISION_NOT_NEEDS_RETRACE_OR_APPROVED:${operatorDecision}`);
+  }
   if (row.draftOnly === true) rowBlockers.push('ROW_DRAFT_ONLY_TRUE');
   if (row.stagingOnly === true) rowBlockers.push('ROW_STAGING_ONLY_TRUE');
-  if (!evidenceExists) rowBlockers.push('MISSING_EVIDENCE_CROP');
+  if (requiresRetraceEvidence && !evidenceExists) rowBlockers.push('MISSING_EVIDENCE_CROP');
 
   blockers.push(...rowBlockers.map((blocker) => `${blocker}:${row.blockId}`));
-  if (hasFilledEditableFields) warnings.push(`FILLED_EDITABLE_FIELDS_PRESENT:${row.blockId}`);
+  if (operatorDecision !== 'APPROVED' && hasFilledEditableFields) {
+    warnings.push(`FILLED_EDITABLE_FIELDS_PRESENT:${row.blockId}`);
+  }
 
   return {
     sourceInput: path.relative(frontendRoot, inputPath),
@@ -169,7 +174,11 @@ if (approvedRows.length !== EXPECTED.expectedApprovedRows) {
 }
 if (nonP0Rows.length > 0) blockers.push(`NON_P0_ROWS_PRESENT:${nonP0Rows.length}`);
 
-const status = blockers.length > 0 ? 'blocked' : 'ready-for-operator-retrace';
+const status = blockers.length > 0
+  ? 'blocked'
+  : needsRetraceRows.length > 0
+    ? 'ready-for-operator-retrace'
+    : 'closed';
 const summary = {
   intakeVersion: INTAKE_VERSION,
   status,
@@ -189,7 +198,9 @@ const summary = {
   expectedApprovedRows: EXPECTED.expectedApprovedRows,
   blockers,
   warnings,
-  nextOperatorAction: 'Manually trace each P0 block in the official PNG coordinate system, then update the source P0 operator input row with an APPROVED decision and corrected geometry.',
+  nextOperatorAction: needsRetraceRows.length > 0
+    ? 'Manually trace each P0 block in the official PNG coordinate system, then update the source P0 operator input row with an APPROVED decision and corrected geometry.'
+    : 'No P0 retrace rows remain in the current baseline.',
 };
 
 const safetyContract = [

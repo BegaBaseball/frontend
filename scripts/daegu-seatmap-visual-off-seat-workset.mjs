@@ -10,12 +10,12 @@ const WORKSET_VERSION = 'DAEGU_VISUAL_OFF_SEAT_WORKSET_V1';
 const VISUAL_QUEUE_VERSION = 'DAEGU_VISUAL_ISSUE_QUEUE_V1';
 const TARGET_TIER = 'VISUAL_OFF_SEAT_HARD_FAIL';
 const EXPECTED = {
-  expectedRows: 44,
-  expectedVisualSeedRows: 9,
-  expectedP0Rows: 2,
-  expectedP1Rows: 12,
+  expectedRows: 27,
+  expectedVisualSeedRows: 7,
+  expectedP0Rows: 0,
+  expectedP1Rows: 5,
   expectedP2Rows: 0,
-  expectedP3P4Rows: 30,
+  expectedP3P4Rows: 22,
   expectedApprovedRows: 0,
 };
 const BATCH_GROUPS = {

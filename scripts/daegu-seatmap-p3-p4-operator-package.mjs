@@ -13,11 +13,11 @@ const PACKAGE_VERSION = 'DAEGU_P3_P4_OPERATOR_PACKAGE_V1';
 const TARGET_BATCH_ID = 'BATCH_4_P3_P4';
 const TARGET_PRIORITIES = ['P3', 'P4'];
 const EXPECTED = {
-  rows: 52,
-  p3Rows: 3,
-  p4Rows: 49,
-  manualTraceRequiredRows: 27,
-  correctedPathRequiredRows: 25,
+  rows: 44,
+  p3Rows: 0,
+  p4Rows: 44,
+  manualTraceRequiredRows: 22,
+  correctedPathRequiredRows: 22,
   labelAndHitAreaRows: 3,
 };
 const REQUIRED_APPROVAL_FIELDS = [

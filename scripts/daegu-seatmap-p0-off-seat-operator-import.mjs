@@ -17,14 +17,11 @@ const DRAFT_REVIEWED_AT = '2026-05-10T00:00:00.000Z';
 const DEFAULT_DRAFT_INPUT = 'reports/stadium/daegu-p0-off-seat-operator-input.json';
 const DEFAULT_SOURCE_INPUT = 'reports/stadium/daegu-p0-operator/daegu-seatmap-p0-operator-input.json';
 const EXPECTED = {
-  expectedRows: 2,
+  expectedRows: 0,
   expectedApprovedRows: 0,
   expectedDuplicateRows: 0,
 };
-const EXPECTED_BLOCK_IDS = new Set([
-  'daegu-accessible-sky-09',
-  'daegu-accessible-u22',
-]);
+const EXPECTED_BLOCK_IDS = new Set([]);
 const DECISION_OPTIONS = new Set(['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_RETRACE']);
 const SOURCE_COPY_FIELDS = [
   'operatorDecision',
