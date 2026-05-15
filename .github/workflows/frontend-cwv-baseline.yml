@@ -16,18 +16,25 @@ jobs:
 
       - name: Load public production env
         shell: bash
+        env:
+          VITE_SITE_URL_FALLBACK: ${{ vars.VITE_SITE_URL || secrets.VITE_SITE_URL }}
         run: |
-          if [[ ! -f ".env.production" ]]; then
-            echo "Missing .env.production" >&2
+          site_url="${VITE_SITE_URL_FALLBACK}"
+          if [[ -f ".env.production" ]]; then
+            file_site_url="$(grep -E '^VITE_SITE_URL=' ".env.production" | tail -n 1 | cut -d= -f2- || true)"
+            site_url="${file_site_url:-${site_url}}"
+          fi
+          if [[ -z "${site_url}" ]]; then
+            echo "Missing production env: VITE_SITE_URL. Configure GitHub Actions variable or secret VITE_SITE_URL." >&2
             exit 1
           fi
-          grep -E '^VITE_SITE_URL=' ".env.production" >> "${GITHUB_ENV}"
+          printf 'VITE_SITE_URL=%s\n' "${site_url}" >> "${GITHUB_ENV}"
 
       - name: Validate CWV env
         shell: bash
         run: |
           if [[ -z "${VITE_SITE_URL}" ]]; then
-            echo "Missing .env.production value: VITE_SITE_URL" >&2
+            echo "Missing production env: VITE_SITE_URL" >&2
             exit 1
           fi
 
