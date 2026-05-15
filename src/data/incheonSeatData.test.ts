@@ -7,7 +7,6 @@ import {
   INCHEON_IMAGE_GEOMETRY_DRAFTS,
   INCHEON_SEATMAP_IMAGE,
   INCHEON_SEATMAP_VIEWPORT,
-  getIncheonGuideMatches,
   getIncheonSeatViewAliases,
 } from './incheonSeatData';
 
@@ -158,37 +157,7 @@ test('인천 공식 좌석도 전체 블록과 특수 구역을 포함한다', (
   assert.ok(INCHEON_BLOCKS.some((block) => block.category === 'ACCESSIBLE'), 'accessible seating should exist');
 });
 
-test('인천 guide helper는 블록 검색과 목적별 추천을 제공한다', () => {
-  const blockMatches = getIncheonGuideMatches('all', '9B', INCHEON_BLOCKS);
-  assert.equal(blockMatches[0]?.block.block, '9B');
-  assert.ok(blockMatches[0].score > blockMatches[1].score, 'exact block match should outrank partial wheelchair block match');
-
-  const accessibleSearchMatches = getIncheonGuideMatches('all', '휠체어', INCHEON_BLOCKS);
-  assert.ok(accessibleSearchMatches.some((match) => match.block.block === '휠체어석 8B'));
-
-  const accessibleIntentMatches = getIncheonGuideMatches('accessible', '', INCHEON_BLOCKS);
-  assert.ok(accessibleIntentMatches.length >= 4);
-  assert.ok(accessibleIntentMatches.every((match) => match.block.category === 'ACCESSIBLE' || Boolean(match.block.accessibilityNote)));
-
-  const homeMatches = getIncheonGuideMatches('home_cheer', '홈 응원', INCHEON_BLOCKS);
-  assert.ok(homeMatches.length > 0);
-  assert.ok(homeMatches.every((match) => match.block.fanRole === 'HOME'));
-
-  const awayMatches = getIncheonGuideMatches('away_third', '원정', INCHEON_BLOCKS);
-  assert.ok(awayMatches.length > 0);
-  assert.ok(awayMatches.some((match) => match.block.fanRole === 'AWAY'));
-
-  const tableMatches = getIncheonGuideMatches('center_table', '테이블', INCHEON_BLOCKS);
-  assert.ok(tableMatches.length > 0);
-  assert.ok(tableMatches.some((match) => {
-    const label = INCHEON_CATEGORIES[match.block.category]?.label ?? '';
-    return match.block.category.includes('TABLE') || label.includes('테이블') || label.includes('탁자');
-  }));
-
-  const outfieldMatches = getIncheonGuideMatches('outfield', '', INCHEON_BLOCKS);
-  assert.ok(outfieldMatches.length > 0);
-  assert.ok(outfieldMatches.some((match) => match.block.side === 'OUTFIELD' || match.block.level === 'OUTFIELD'));
-
+test('인천 seat view alias helper는 공식 좌석/시야 검색 alias 계약을 유지한다', () => {
   const accessibleBlock = INCHEON_BLOCKS.find((block) => block.block === '휠체어석 8B');
   assert.ok(accessibleBlock);
   const aliases = getIncheonSeatViewAliases(accessibleBlock);

@@ -228,6 +228,8 @@ function suwonFixtureSignature() {
   return createHash('sha256').update(snapshotSuwonSeatFixture()).digest('hex');
 }
 
+const SUWON_RELEASE_LOCK_FIXTURE_SIGNATURE = '4b6c7bd784bb18cad7fcdbc5ffb12f78daabf968d691647b69456b3bd74aeeaf';
+
 function splitProbeKeysByBlock(probeKeys: Set<string>): Map<string, string[]> {
   const grouped = new Map<string, string[]>();
 
@@ -454,8 +456,8 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
     reviewBounds: { minX: 2187, minY: 1867, maxX: 2874, maxY: 2307 },
     expectedBounds: { minX: 2187, minY: 1867, maxX: 2874, maxY: 2307 },
     minPixelCount: 145000,
-    minInsideRatio: 0.85,
-    maxPathToPixelAreaRatio: 1.28,
+    minInsideRatio: 0.94,
+    maxPathToPixelAreaRatio: 1.1,
     maxBoundsOverflow: 4,
   },
   {
@@ -466,7 +468,7 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
     expectedBounds: { minX: 2756, minY: 1501, maxX: 3429, maxY: 2055 },
     minPixelCount: 130000,
     minInsideRatio: 0.98,
-    maxPathToPixelAreaRatio: 1.28,
+    maxPathToPixelAreaRatio: 1.16,
     maxBoundsOverflow: 4,
   },
   {
@@ -500,7 +502,7 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
     expectedBounds: { minX: 2668, minY: 1757, maxX: 2989, maxY: 1990 },
     minPixelCount: 28000,
     minInsideRatio: 0.98,
-    maxPathToPixelAreaRatio: 1.2,
+    maxPathToPixelAreaRatio: 1.12,
     maxBoundsOverflow: 4,
   },
   {
@@ -543,8 +545,8 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
     mode: 'connected',
     expectedBounds: { minX: 1368, minY: 2815, maxX: 1657, maxY: 3274 },
     minPixelCount: 26000,
-    minInsideRatio: 0.92,
-    maxPathToPixelAreaRatio: 1.9,
+    minInsideRatio: 0.95,
+    maxPathToPixelAreaRatio: 1.25,
     maxBoundsOverflow: 4,
   },
   {
@@ -554,8 +556,8 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
     mode: 'connected',
     expectedBounds: { minX: 2458, minY: 2815, maxX: 2747, maxY: 3274 },
     minPixelCount: 25000,
-    minInsideRatio: 0.95,
-    maxPathToPixelAreaRatio: 1.9,
+    minInsideRatio: 0.975,
+    maxPathToPixelAreaRatio: 1.34,
     maxBoundsOverflow: 4,
   },
 ];
@@ -672,6 +674,244 @@ test('수원 geometry trace review summary는 draft 좌표를 과장하지 않�
   assert.deepEqual(SUWON_TRACE_REVIEW_SUMMARY.pendingByCategory, []);
 });
 
+test('수원 좌석도 release lock fingerprint는 geometry/QA 계약을 고정한다', () => {
+  const skyboxIds = numberedBlocks(1, 35).map((blockName) => `suwon-sb${blockName}`);
+  const sortedSkyboxIds = [...skyboxIds].sort((a, b) => a.localeCompare(b));
+  const visualHitMismatchIds = SUWON_BLOCKS
+    .filter((block) => block.imageGeometry.d !== block.hitGeometry.d)
+    .map((block) => block.id)
+    .sort((a, b) => a.localeCompare(b));
+  const hitExceptionIds = Object.keys(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES);
+  const hitExceptionIdSet = new Set(hitExceptionIds);
+  const approvedVisualHitSplitIds = visualHitMismatchIds
+    .filter((id) => hitExceptionIdSet.has(id))
+    .sort((a, b) => a.localeCompare(b));
+  const unresolvedVisualHitMismatchIds = visualHitMismatchIds
+    .filter((id) => !hitExceptionIdSet.has(id))
+    .sort((a, b) => a.localeCompare(b));
+  const unusedHitExceptionIds = hitExceptionIds
+    .filter((id) => !visualHitMismatchIds.includes(id))
+    .sort((a, b) => a.localeCompare(b));
+
+  assert.equal(suwonFixtureSignature(), SUWON_RELEASE_LOCK_FIXTURE_SIGNATURE);
+  assert.equal(SUWON_BLOCKS.length, 176);
+  assert.equal(SUWON_BLOCKS.filter((block) => /^suwon-\d+$/.test(block.id)).length, 126);
+  assert.equal(SUWON_BLOCKS.filter((block) => /^suwon-sb\d+$/.test(block.id)).length, 35);
+  assert.equal(SUWON_BLOCKS.filter((block) => /^suwon-4\d\d$/.test(block.id)).length, 32);
+  assert.equal(SUWON_BLOCKS.filter((block) => !/^suwon-(\d+|sb\d+)$/.test(block.id)).length, 15);
+  assert.equal(SUWON_ALIGNMENT_PROBES.length, 556);
+  assert.equal(SUWON_BROWSER_QA_PROBES.length, 176);
+  assert.equal(SUWON_HIT_TEST_PROBES.length, 732);
+  assert.deepEqual(visualHitMismatchIds, sortedSkyboxIds);
+  assert.deepEqual(approvedVisualHitSplitIds, sortedSkyboxIds);
+  assert.deepEqual(unresolvedVisualHitMismatchIds, []);
+  assert.deepEqual(Object.keys(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES), skyboxIds);
+  assert.deepEqual(unusedHitExceptionIds, []);
+  assert.equal(SUWON_TRACE_REVIEW_SUMMARY.officialImageTraced, 176);
+  assert.equal(SUWON_TRACE_REVIEW_SUMMARY.draftApproximate, 0);
+});
+
+test('수원 좌석도 release lock 문서는 최종 검수 계약을 고정한다', () => {
+  const packageSource = fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8');
+  const releaseGateSource = fs.readFileSync(path.resolve(process.cwd(), 'scripts/suwon-seatmap-release-gate.mjs'), 'utf8');
+  const visualReviewSource = fs.readFileSync(path.resolve(process.cwd(), 'scripts/suwon-seatmap-visual-review.mjs'), 'utf8');
+  const precisionWorksetSource = fs.readFileSync(path.resolve(process.cwd(), 'scripts/suwon-seatmap-precision-workset.mjs'), 'utf8');
+  const releaseLockSource = fs.readFileSync(path.resolve(process.cwd(), 'docs/suwon-seatmap-release-lock.md'), 'utf8');
+
+  [
+    'suwon-kt-seatmap-official-2026@2x.jpg',
+    '공식 이미지 좌표계: `4290x9679`',
+    'cropY=1000',
+    'cropHeight=4550',
+    '`SUWON_BLOCKS.length === 176`',
+    '`totalBlocks=176`',
+    '`numericBlocks=126`',
+    '`skyboxBlocks=35`',
+    '`skyzoneBlocks=32`',
+    '`specialSelectableAreas=15`',
+    '`officialImageTraced=176`',
+    '`draftApproximate=0`',
+    '`pendingBlockIds=[]`',
+    '`browserQaProbes=176`',
+    '`alignmentProbes=556`',
+    '`hitTestProbes=732`',
+    '`visualHitMismatchBlocks=35`',
+    '`approvedVisualHitSplitBlocks=35`',
+    '`unresolvedVisualHitMismatchBlocks=0`',
+    '`hitGeometryExceptions=35`',
+    '`unusedHitGeometryExceptionNotes=0`',
+    '`releaseFixtureFingerprint=4b6c7bd784bb18cad7fcdbc5ffb12f78daabf968d691647b69456b3bd74aeeaf`',
+    '`officialAssetSha256=a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627`',
+    'reports/stadium/suwon-seatmap-release-gate.json',
+    'reports/stadium/suwon-seatmap-release-gate.md',
+    'reports/stadium/suwon-seatmap-visual-review.json',
+    'reports/stadium/suwon-seatmap-visual-review.md',
+    'reports/stadium/suwon-seatmap-precision-workset.json',
+    'reports/stadium/suwon-seatmap-precision-workset.md',
+    'reports/stadium/suwon-infield-1f-overlay.svg',
+    'reports/stadium/suwon-infield-2f-overlay.svg',
+    'reports/stadium/suwon-infield-3f-overlay.svg',
+    'reports/stadium/suwon-center-accessible-overlay.svg',
+    'reports/stadium/suwon-outfield-special-overlay.svg',
+    'reports/stadium/suwon-highfive-overlay.svg',
+    'reports/stadium/suwon-205-215-overlay.svg',
+    'reports/stadium/suwon-skybox-skyzone-overlay.svg',
+    '`suwon-lf-grass`는 공식 이미지의 3루 외야 잔디 자유석 connected green component 전체를 단일 선택 구역으로 유지하므로 large visual area를 승인한다.',
+    '`suwon-lf-grass` 승인 bounds 기준은 공식 픽셀 검수 `1032,1825-1850,2379`',
+    '`reviewedBlocks=176`',
+    '`missingReviewBlocks=0`',
+    '`duplicateReviewBlocks=0`',
+    '`approvedVisualHitSplitBlocks=35`',
+    '`unresolvedVisualHitMismatchBlocks=0`',
+    '`largeVisualAreaBlocks=0`',
+    '`approvedLargeVisualAreaBlocks=1`',
+    '`worksetBlocks=176`',
+    '`candidateBlocks=109`',
+    '`lockedReviewBlocks=67`',
+    '`p0Blocks=9`',
+    '`p1Blocks=13`',
+    '`p2Blocks=11`',
+    '`p3Blocks=76`',
+    '`missingWorksetBlocks=0`',
+    '`duplicateWorksetBlocks=0`',
+    '`requiredP0MissingBlocks=0`',
+    '`requiredP1MissingBlocks=0`',
+    'P0은 외야 특수석/잔디석 9개',
+    'P1은 하이파이브존 2개와 `205-215` 11개',
+    '기본 화면에서는 image-geometry-overlays polygon 면적을 상시 노출하지 않는다.',
+    '`?suwonDebug=1`',
+    '스카이박스 SB1-SB35만 visual polygon과 별도 compact hit polygon을 가진다.',
+    '승인된 visual/hit split은 `SB1-SB35` compact hit-area만 허용',
+    '외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.',
+    'node --import tsx scripts/suwon-seatmap-visual-review.mjs',
+    'npm run stadium:suwon:visual-review',
+    'npm run stadium:suwon:precision-workset',
+    'npm run qa:stadium:suwon:visual-review',
+    'node --import tsx scripts/suwon-seatmap-release-gate.mjs',
+    'npm run qa:stadium:suwon:release-lock',
+    'node --import tsx --test src/data/suwonSeatData.test.ts',
+    'npm run test:stadium:seatmaps',
+    'npm run qa:stadium:suwon:mobile',
+    'npm run qa:stadium:suwon:full',
+    'npm run build',
+  ].forEach((requiredText) => {
+    assert.ok(releaseLockSource.includes(requiredText), `release lock should include ${requiredText}`);
+  });
+
+  assert.ok(packageSource.includes('"qa:stadium:suwon:release-lock": "node --import tsx scripts/suwon-seatmap-release-gate.mjs"'));
+  assert.ok(packageSource.includes('"stadium:suwon:visual-review": "node --import tsx scripts/suwon-seatmap-visual-review.mjs"'));
+  assert.ok(packageSource.includes('"stadium:suwon:precision-workset": "npm run stadium:suwon:visual-review && node --import tsx scripts/suwon-seatmap-precision-workset.mjs"'));
+  assert.ok(packageSource.includes('"qa:stadium:suwon:visual-review": "npm run stadium:suwon:visual-review && npm run qa:stadium:suwon:release-lock"'));
+  [
+    'EXPECTED_RELEASE_FIXTURE_FINGERPRINT',
+    'EXPECTED_OFFICIAL_ASSET_SHA256',
+    'visual/hit mismatch ids are skybox only',
+    'approved visual/hit split ids are skybox only',
+    'unresolved visual/hit mismatch ids are empty',
+    'hit exception notes are all used by visual/hit splits',
+    'release lock document includes release gate script',
+    'release lock document includes visual review script',
+    'visual review artifact contract',
+    'visual review full coverage contract',
+    'visual review split approval contract',
+    'visual review large-area approval contract',
+    'precision workset artifact contract',
+    'precision workset full coverage contract',
+    'precision workset priority contract',
+    'suwon-seatmap-release-gate.json',
+    'suwon-seatmap-release-gate.md',
+  ].forEach((requiredText) => {
+    assert.ok(releaseGateSource.includes(requiredText), `release gate should include ${requiredText}`);
+  });
+
+  [
+    'suwon-seatmap-visual-review.json',
+    'suwon-seatmap-visual-review.md',
+    'APPROVED_LARGE_VISUAL_AREA',
+    'APPROVED_LARGE_VISUAL_AREA_NOTES',
+    'approvedLargeVisualAreaBlocks',
+    'largeVisualAreaBlocks',
+    'APPROVED_VISUAL_HIT_SPLIT',
+    'UNRESOLVED_VISUAL_HIT_MISMATCH',
+    'approvedVisualHitSplitBlocks',
+    'unresolvedVisualHitMismatchBlocks',
+    'approvedVisualHitSplitRows',
+    'unresolvedVisualHitMismatchRows',
+    'visualHitSplitApprovalNote',
+    'EXPECTED_REVIEWED_BLOCKS',
+    'missingReviewRows',
+    'missingReviewBlocks',
+    'duplicateReviewBlocks',
+    'suwon-infield-1f-overlay.svg',
+    'suwon-infield-2f-overlay.svg',
+    'suwon-infield-3f-overlay.svg',
+    'suwon-center-accessible-overlay.svg',
+    'suwon-outfield-special-overlay.svg',
+    'suwon-highfive-overlay.svg',
+    'suwon-205-215-overlay.svg',
+    'suwon-skybox-skyzone-overlay.svg',
+    'SUWON_BROWSER_QA_PROBES',
+    'SUWON_ALIGNMENT_PROBES',
+    'visualHitMismatch',
+    'suwon-lf-grass',
+    'suwon-rf-grass',
+    'suwon-1b-highfive',
+    'suwon-3b-highfive',
+    'infield-1f',
+    'infield-2f',
+    'infield-3f',
+    'center-accessible',
+    'section-205-215',
+    'skybox-skyzone',
+    'Array.from({ length: 33 }',
+    'Array.from({ length: 4 }',
+    'Array.from({ length: 18 }',
+    'Array.from({ length: 28 }',
+    'Array.from({ length: 11 }',
+    'Array.from({ length: 35 }',
+    'Array.from({ length: 32 }',
+  ].forEach((requiredText) => {
+    assert.ok(visualReviewSource.includes(requiredText), `visual review should include ${requiredText}`);
+  });
+
+  [
+    'suwon-seatmap-precision-workset.json',
+    'suwon-seatmap-precision-workset.md',
+    'EXPECTED_WORKSET_BLOCKS',
+    'EXPECTED_REVIEW_GROUPS',
+    'REQUIRED_P0_BLOCK_IDS',
+    'REQUIRED_P1_BLOCK_IDS',
+    'REQUIRED_P2_BLOCK_IDS',
+    'WORKSET_PRIORITY_DEFINITIONS',
+    'missingWorksetRows',
+    'missingWorksetBlocks',
+    'duplicateWorksetBlocks',
+    'requiredP0MissingBlocks',
+    'requiredP1MissingBlocks',
+    'candidateBlocks',
+    'lockedReviewBlocks',
+    'P0',
+    'P1',
+    'P2',
+    'P3',
+    'LOCKED',
+    'suwon-lf-grass',
+    'suwon-rf-grass',
+    'suwon-7pub',
+    'suwon-k-live',
+    'suwon-green',
+    'suwon-501-508',
+    'suwon-hite-pub',
+    'suwon-kids-camp',
+    'suwon-wiz-garden',
+    'suwon-3b-highfive',
+    'suwon-1b-highfive',
+    'Array.from({ length: 11 }',
+  ].forEach((requiredText) => {
+    assert.ok(precisionWorksetSource.includes(requiredText), `precision workset should include ${requiredText}`);
+  });
+});
+
 test('수원 visual label 좌표는 hover hit target에서 자기 자신으로 해석된다', () => {
   SUWON_BLOCKS.forEach((block) => {
     assert.equal(
@@ -722,20 +962,50 @@ test('수원 hit geometry는 겹침 해결이 필요한 블록만 visual geometr
     .filter((block) => block.imageGeometry.d !== block.hitGeometry.d)
     .map((block) => block.id)
     .sort();
+  const unexpectedMismatchIds = mismatchIds.filter((id) => !/^suwon-sb\d+$/.test(id));
 
   assert.deepEqual(mismatchIds, [...expectedMismatchIds].sort());
+  assert.deepEqual(unexpectedMismatchIds, [], 'Only skybox blocks should keep compact hit geometry separate from visual geometry');
   mismatchIds.forEach((id) => {
     assert.ok(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[id], `${id} hit geometry exception should explain the overlap reason`);
   });
+  expectedMismatchIds.forEach((id) => {
+    const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
+    assert.ok(block, `${id} hit geometry exception should reference an existing block`);
+    assert.notEqual(block.imageGeometry.d, block.hitGeometry.d, `${id} documented hit exception should have a separate hit polygon`);
+  });
 });
 
-test('수원 중앙 하단 313-316은 visual polygon을 그대로 hit polygon으로 사용한다', () => {
-  numberedBlocks(313, 316).forEach((blockName) => {
-    const block = SUWON_BLOCKS.find((candidate) => candidate.id === `suwon-${blockName}`);
-    assert.ok(block, `${blockName} should exist`);
-    assert.equal(block.hitGeometry.d, block.imageGeometry.d, `${blockName} hit polygon should match the visual polygon`);
-    assert.equal(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[block.id], undefined, `${blockName} should not keep a compact hit exception`);
-    assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve through the visual polygon`);
+test('수원 hit geometry 예외 문서는 SB1-SB35 스카이박스만 명시한다', () => {
+  const sourcePath = path.resolve(process.cwd(), 'src/data/suwonSeatData.ts');
+  const source = fs.readFileSync(sourcePath, 'utf8');
+  const expectedSkyboxIds = numberedBlocks(1, 35).map((block) => `suwon-sb${block}`);
+  const noteIds = Object.keys(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES);
+
+  assert.ok(source.includes('const SKYBOX_HIT_GEOMETRY_EXCEPTION_NOTES'), 'Suwon skybox hit exception notes should use an explicit map');
+  assert.ok(!source.includes('Object.keys(officialSkyboxGeometries).map'), 'Suwon skybox hit exception notes should not be generated from visual geometry keys');
+  assert.ok(!source.includes('Object.entries(officialSkyboxGeometries).map'), 'Suwon skybox hit exception notes should not be generated from visual geometry entries');
+  assert.deepEqual(noteIds, expectedSkyboxIds);
+  noteIds.forEach((id) => {
+    assert.match(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[id], /스카이박스/);
+    assert.match(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[id], /compact hit-area/);
+  });
+});
+
+test('수원 중앙 하단/휠체어/지니존은 visual polygon을 그대로 hit polygon으로 사용한다', () => {
+  [
+    ...numberedBlocks(216, 218).map((blockName) => `suwon-${blockName}`),
+    ...numberedBlocks(313, 316).map((blockName) => `suwon-${blockName}`),
+    'suwon-genie',
+    'suwon-wheel-center',
+    'suwon-wheel-1b',
+    'suwon-wheel-3b',
+  ].forEach((id) => {
+    const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
+    assert.ok(block, `${id} should exist`);
+    assert.equal(block.hitGeometry.d, block.imageGeometry.d, `${id} hit polygon should match the visual polygon`);
+    assert.equal(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[block.id], undefined, `${id} should not keep a compact hit exception`);
+    assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${id} label should resolve through the visual polygon`);
   });
 });
 
@@ -842,6 +1112,20 @@ test('수원 Playwright audit 좌표는 데이터 대표 probe와 같은 계약�
   );
 });
 
+test('수원 Playwright audit는 overlay 비노출과 active/debug 노출 계약을 검증한다', () => {
+  const auditPath = path.resolve(process.cwd(), 'scripts/stadium-ux-audit.mjs');
+  const auditSource = fs.readFileSync(auditPath, 'utf8');
+
+  assert.ok(auditSource.includes('assertSuwonDefaultOverlayHidden'), 'Suwon browser QA should assert default visual polygons are hidden');
+  assert.ok(auditSource.includes('assertSuwonDebugOverlayVisible'), 'Suwon browser QA should assert debug visual and hit polygons are visible');
+  assert.ok(auditSource.includes('assertSuwonActiveOverlayOnly'), 'Suwon browser QA should assert selected blocks are the only active visual polygons');
+  assert.ok(auditSource.includes('verifySuwonActiveOverlayContract'), 'Suwon browser QA should select representative active overlay blocks');
+  assert.ok(auditSource.includes("'suwon-rf-grass'"), 'Suwon active overlay QA should cover an outfield grass block');
+  assert.ok(auditSource.includes("'suwon-sb35'"), 'Suwon active overlay QA should cover a skybox block');
+  assert.ok(auditSource.includes("'suwon-432'"), 'Suwon active overlay QA should cover a skyzone block');
+  assert.ok(auditSource.includes("'suwon-1b-highfive'"), 'Suwon active overlay QA should cover a highfive block');
+});
+
 test('StadiumGuideRuntime 경로 모듈 임포트 후에도 수원 좌표 데이터가 불변이다', async () => {
   const baseline = suwonFixtureSignature();
 
@@ -890,9 +1174,13 @@ test('수원 외야 잔디 자유석 visual polygon은 상단 특수석과 겹�
   const sevenPubPolygon = pathPoints(sevenPub.imageGeometry.d);
   const greenPolygon = pathPoints(green.imageGeometry.d);
 
+  assert.deepEqual(polygonBounds(lfPolygon), { minX: 1032, maxX: 1850, minY: 1825, maxY: 2379 }, 'left outfield grass should stay within the approved official green component bounds');
+  assert.deepEqual(polygonBounds(rfPolygon), { minX: 2187, maxX: 2874, minY: 1867, maxY: 2307 }, 'right outfield grass should stay within the approved official green component bounds');
+  assert.deepEqual(polygonBounds(sevenPubPolygon), { minX: 1853, maxX: 2174, minY: 1807, maxY: 2059 }, '7 PUB should stay within the approved official gray component bounds');
   assert.ok(polygonArea(lfPolygon) >= 190000, 'left outfield grass should keep the full official grass body size');
-  assert.ok(polygonArea(rfPolygon) >= 170000, 'right outfield grass should keep the official grass body size');
-  assert.ok(polygonArea(sevenPubPolygon) >= 76000 && polygonArea(sevenPubPolygon) <= 82000, '7 PUB/위즈테라스는 공식 중앙 회색 블록 크기 안에 유지된다');
+  assert.ok(polygonArea(lfPolygon) <= 205000, 'left outfield grass approved large area should stay inside official connected grass bounds');
+  assert.ok(polygonArea(rfPolygon) >= 150000, 'right outfield grass should keep the official grass body size');
+  assert.ok(polygonArea(sevenPubPolygon) >= 74000 && polygonArea(sevenPubPolygon) <= 76000, '7 PUB/위즈테라스는 공식 중앙 회색 블록 크기 안에 유지된다');
 
   ([[1350, 2140], [1200, 2250], [1538, 1900], [1615, 1920], [1700, 2060], [1760, 1900]] as Point[]).forEach((point) => {
     assert.ok(pointInPolygon(point, lfPolygon), `left grass body probe ${point.join(',')} should remain inside grass`);
@@ -928,6 +1216,22 @@ test('수원 외야/특수석 브라우저 대표 좌표는 전체 특수 구역
     .map((probe) => probe.id);
 
   assert.deepEqual(browserProbeIds, expectedOutfieldIds);
+});
+
+test('수원 외야/하이파이브 정밀화 구역은 저정밀 polygon으로 회귀하지 않는다', () => {
+  const expectedMinimumPointCounts: Record<string, number> = {
+    'suwon-rf-grass': 50,
+    'suwon-501-508': 50,
+    'suwon-k-live': 50,
+    'suwon-1b-highfive': 40,
+  };
+
+  Object.entries(expectedMinimumPointCounts).forEach(([id, minPointCount]) => {
+    const block = suwonBlock(id);
+    const pointCount = pathPoints(block.imageGeometry.d).length;
+
+    assert.ok(pointCount >= minPointCount, `${id} should keep explicit official-image tracing points. Actual: ${pointCount}`);
+  });
 });
 
 test('수원 외야/특수석 visual polygon은 공식 이미지 색상 픽셀 component와 정렬된다', async () => {
@@ -976,12 +1280,17 @@ test('수원 좌측 외야 특수석 경계는 서로 침범하지 않는다', (
     { id: 'suwon-7pub', point: [2030, 1930] },
     { id: 'suwon-7pub', point: [2150, 1845] },
     { id: 'suwon-7pub', point: [2140, 2025] },
+    { id: 'suwon-7pub', point: [1859, 1900] },
     { id: 'suwon-7pub', point: [1870, 1825] },
-    { id: 'suwon-7pub', point: [2170, 2040] },
+    { id: 'suwon-7pub', point: [2160, 2040] },
   ];
   const excludedVisualProbes: VisualProbeExpectation[] = [
     { id: 'suwon-lf-grass', point: [1915, 1860], note: '3루 외야 잔디 자유석은 7 PUB/위즈테라스 좌측 회색 블록을 먹지 않는다' },
     { id: 'suwon-lf-grass', point: [2030, 1930], note: '3루 외야 잔디 자유석은 7 PUB/위즈테라스 중앙 회색 블록을 먹지 않는다' },
+    { id: 'suwon-lf-grass', point: [1700, 1800], note: '3루 외야 잔디 자유석은 상단 검은 통로를 먹지 않는다' },
+    { id: 'suwon-lf-grass', point: [1855, 1900], note: '3루 외야 잔디 자유석은 7 PUB 좌측 검은 경계 밖으로 확장되지 않는다' },
+    { id: 'suwon-lf-grass', point: [1855, 2050], note: '3루 외야 잔디 자유석은 7 PUB 우측 하단 회색 경계를 먹지 않는다' },
+    { id: 'suwon-lf-grass', point: [1450, 2400], note: '3루 외야 잔디 자유석은 하단 통로로 분리되어 보이지 않는다' },
     { id: 'suwon-7pub', point: [2030, 1785], note: '7 PUB은 GATE 1-1 하단 통로 영역까지 확장되지 않는다' },
     { id: 'suwon-7pub', point: [2030, 2085], note: '7 PUB은 외야 잔디석 하단 통로 영역까지 확장되지 않는다' },
     { id: 'suwon-7pub', point: [2188, 1930], note: '7 PUB은 1루 외야 잔디 자유석 좌측 경계를 먹지 않는다' },
@@ -1069,6 +1378,9 @@ test('수원 우측 상단 외야 특수석 경계는 서로 침범하지 않는
   assertVisualLabelContracts(expectedIds);
   assertVisualEdgeProbes(expectedEdgeProbes);
   assertExcludedVisualProbes(excludedVisualProbes);
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-rf-grass').imageGeometry.d)), { minX: 2187, maxX: 2874, minY: 1867, maxY: 2307 }, '1루 외야 잔디 자유석은 공식 녹색 component bounds 안에 유지된다');
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-501-508').imageGeometry.d)), { minX: 2756, maxX: 3428, minY: 1501, maxY: 2055 }, '외야테이블석은 공식 분홍 component bounds 안에 유지된다');
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-k-live').imageGeometry.d)), { minX: 2668, maxX: 2989, minY: 1757, maxY: 1990 }, 'K-라이브존은 공식 갈색 component bounds 안에 유지된다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-501-508')!.imageGeometry.d)) < 170000, '외야테이블석은 공식 분홍 영역보다 크게 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-k-live')!.imageGeometry.d)) < 38000, 'K-라이브존은 공식 갈색 블록보다 크게 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-green')!.imageGeometry.d)) < 70000, '그린존은 1루 외야 잔디석 경계를 과도하게 먹지 않는다');
@@ -1079,7 +1391,7 @@ test('수원 우측 하단 특수석 경계는 서로 침범하지 않는다', (
   const expectedEdgeProbes: VisualProbeExpectation[] = [
     { id: 'suwon-hite-pub', point: [3260, 2240] },
     { id: 'suwon-hite-pub', point: [3330, 2290] },
-    { id: 'suwon-hite-pub', point: [3345, 2390] },
+    { id: 'suwon-hite-pub', point: [3350, 2390] },
     { id: 'suwon-hite-pub', point: [3385, 2400] },
     { id: 'suwon-hite-pub', point: [3375, 2425] },
     { id: 'suwon-hite-pub', point: [3390, 2450] },
@@ -1129,6 +1441,7 @@ test('수원 우측 하단 특수석 경계는 서로 침범하지 않는다', (
   assertVisualLabelContracts(expectedIds);
   assertVisualEdgeProbes(expectedEdgeProbes);
   assertExcludedVisualProbes(excludedVisualProbes);
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-hite-pub').imageGeometry.d)), { minX: 3197, maxX: 3417, minY: 2145, maxY: 2455 }, '하이트펍존은 공식 갈색 component bounds 안에 유지된다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-hite-pub')!.imageGeometry.d)) < 31000, '하이트펍존은 공식 갈색 영역보다 크게 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-kids-camp')!.imageGeometry.d)) < 60000, '키즈랜드 캠핑존은 좌측 통로까지 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-wiz-garden')!.imageGeometry.d)) < 145000, '위즈가든은 우측 하단 통로까지 확장되지 않는다');
@@ -1270,6 +1583,7 @@ test('수원 101-133 1층 연속 구역은 전체 브라우저 QA 좌표와 경�
   Object.entries(expectedAnchors).forEach(([blockName, [expectedX, expectedY]]) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
     assert.ok(block, `${blockName} should exist`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${blockName} visual polygon should be explicitly traced with at least 6 points`);
     assert.ok(Math.abs(block.imageGeometry.labelX - expectedX) <= 2, `${blockName} label x should follow official digit center`);
     assert.ok(Math.abs(block.imageGeometry.labelY - expectedY) <= 2, `${blockName} label y should follow official digit center`);
     assert.ok(
@@ -1308,6 +1622,32 @@ test('수원 201-215 2층 1루 연속 구역은 전체 브라우저 QA 좌표와
     '213': [2597, 3637],
     '214': [2544, 3721],
     '215': [2492, 3813],
+  };
+  const expectedP1Bounds: Record<string, PixelBounds> = {
+    '205': { minX: 2924, maxX: 3049, minY: 2873, maxY: 3003 },
+    '206': { minX: 2866, maxX: 2994, minY: 2958, maxY: 3085 },
+    '207': { minX: 2818, maxX: 2937, minY: 3044, maxY: 3172 },
+    '208': { minX: 2750, maxX: 2914, minY: 3109, maxY: 3266 },
+    '209': { minX: 2695, maxX: 2859, minY: 3201, maxY: 3358 },
+    '210': { minX: 2680, maxX: 2804, minY: 3305, maxY: 3443 },
+    '211': { minX: 2624, maxX: 2757, minY: 3397, maxY: 3529 },
+    '212': { minX: 2575, maxX: 2708, minY: 3481, maxY: 3617 },
+    '213': { minX: 2535, maxX: 2660, minY: 3568, maxY: 3705 },
+    '214': { minX: 2477, maxX: 2611, minY: 3656, maxY: 3792 },
+    '215': { minX: 2427, maxX: 2560, minY: 3743, maxY: 3891 },
+  };
+  const expectedP1AreaRanges: Record<string, [number, number]> = {
+    '205': [8700, 9000],
+    '206': [8400, 8700],
+    '207': [7900, 8200],
+    '208': [13400, 13800],
+    '209': [13400, 13800],
+    '210': [10300, 10650],
+    '211': [8750, 9050],
+    '212': [9000, 9300],
+    '213': [8150, 8450],
+    '214': [9100, 9400],
+    '215': [9700, 10050],
   };
   const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-201', point: [3276, 2623] },
@@ -1348,6 +1688,96 @@ test('수원 201-215 2층 1루 연속 구역은 전체 브라우저 QA 좌표와
   Object.entries(expectedAnchors).forEach(([blockName, [expectedX, expectedY]]) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
     assert.ok(block, `${blockName} should exist`);
+    const polygon = pathPoints(block.imageGeometry.d);
+    assert.ok(polygon.length >= 6, `${blockName} visual polygon should be explicitly traced with at least 6 points`);
+    assert.ok(Math.abs(block.imageGeometry.labelX - expectedX) <= 2, `${blockName} label x should follow official digit center`);
+    assert.ok(Math.abs(block.imageGeometry.labelY - expectedY) <= 2, `${blockName} label y should follow official digit center`);
+    assert.ok(
+      pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], polygon),
+      `${blockName} label should stay inside its refined visual polygon`,
+    );
+    assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve to its block`);
+
+    if (expectedP1Bounds[blockName]) {
+      assert.deepEqual(polygonBounds(polygon), expectedP1Bounds[blockName], `${blockName} visual polygon should keep official 205-215 diagonal bounds`);
+      const [minArea, maxArea] = expectedP1AreaRanges[blockName];
+      const area = polygonArea(polygon);
+      assert.ok(area >= minArea && area <= maxArea, `${blockName} visual polygon area should stay in official 205-215 band. Actual: ${area}`);
+    }
+  });
+
+  expectedEdgeProbes.forEach(({ id, point }) => {
+    const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
+    assert.ok(block, `${id} should exist`);
+    assert.ok(pointInPolygon(point, pathPoints(block.imageGeometry.d)), `${point.join(',')} should stay inside ${id} visual polygon`);
+    assert.equal(topHitBlockAt(point)?.id, id, `${point.join(',')} should resolve to ${id}`);
+  });
+});
+
+test('수원 219-233 2층 3루 연속 구역은 전체 브라우저 QA 좌표와 경계 probe를 가진다', () => {
+  const expectedSecondFloorIds = numberedBlocks(219, 233).map((block) => `suwon-${block}`);
+  const browserProbeIds = SUWON_BROWSER_QA_PROBES
+    .filter((probe) => {
+      const blockNumber = Number(probe.id.replace('suwon-', ''));
+      return blockNumber >= 219 && blockNumber <= 233;
+    })
+    .map((probe) => probe.id);
+  const expectedAnchors: Record<string, Point> = {
+    '219': [1620, 3817],
+    '220': [1569, 3724],
+    '221': [1520, 3639],
+    '222': [1472, 3549],
+    '223': [1424, 3461],
+    '224': [1360, 3395],
+    '225': [1310, 3300],
+    '226': [1260, 3205],
+    '227': [1210, 3115],
+    '228': [1165, 3020],
+    '229': [1110, 2930],
+    '230': [1075, 2860],
+    '231': [1040, 2780],
+    '232': [1005, 2690],
+    '233': [930, 2600],
+  };
+  const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
+    { id: 'suwon-219', point: [1585, 3815] },
+    { id: 'suwon-219', point: [1640, 3820] },
+    { id: 'suwon-220', point: [1530, 3730] },
+    { id: 'suwon-220', point: [1600, 3730] },
+    { id: 'suwon-221', point: [1485, 3640] },
+    { id: 'suwon-221', point: [1545, 3650] },
+    { id: 'suwon-222', point: [1435, 3555] },
+    { id: 'suwon-222', point: [1500, 3560] },
+    { id: 'suwon-223', point: [1390, 3468] },
+    { id: 'suwon-223', point: [1458, 3470] },
+    { id: 'suwon-224', point: [1325, 3395] },
+    { id: 'suwon-224', point: [1390, 3405] },
+    { id: 'suwon-225', point: [1275, 3305] },
+    { id: 'suwon-225', point: [1340, 3310] },
+    { id: 'suwon-226', point: [1225, 3210] },
+    { id: 'suwon-226', point: [1295, 3210] },
+    { id: 'suwon-227', point: [1180, 3125] },
+    { id: 'suwon-227', point: [1245, 3130] },
+    { id: 'suwon-228', point: [1130, 3030] },
+    { id: 'suwon-228', point: [1200, 3030] },
+    { id: 'suwon-229', point: [1085, 2935] },
+    { id: 'suwon-229', point: [1150, 2940] },
+    { id: 'suwon-230', point: [1045, 2860] },
+    { id: 'suwon-230', point: [1110, 2865] },
+    { id: 'suwon-231', point: [1005, 2795] },
+    { id: 'suwon-231', point: [1065, 2775] },
+    { id: 'suwon-232', point: [960, 2700] },
+    { id: 'suwon-232', point: [1020, 2670] },
+    { id: 'suwon-233', point: [885, 2605] },
+    { id: 'suwon-233', point: [970, 2585] },
+  ];
+
+  assert.deepEqual(browserProbeIds, expectedSecondFloorIds);
+
+  Object.entries(expectedAnchors).forEach(([blockName, [expectedX, expectedY]]) => {
+    const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should exist`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${blockName} visual polygon should remain explicitly traced`);
     assert.ok(Math.abs(block.imageGeometry.labelX - expectedX) <= 2, `${blockName} label x should follow official digit center`);
     assert.ok(Math.abs(block.imageGeometry.labelY - expectedY) <= 2, `${blockName} label y should follow official digit center`);
     assert.ok(
@@ -1402,7 +1832,32 @@ test('수원 116-118 BC카드존은 대표 좌표와 경계 probe로 회귀 고�
   });
 });
 
+test('수원 중앙/2층 저정밀 후보는 공식 색상 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-115': { minPoints: 30, minArea: 6000, maxArea: 8000 },
+    'suwon-117': { minPoints: 40, minArea: 9500, maxArea: 11500 },
+    'suwon-118': { minPoints: 40, minArea: 13000, maxArea: 15500 },
+    'suwon-119': { minPoints: 30, minArea: 5800, maxArea: 7600 },
+    'suwon-226': { minPoints: 30, minArea: 15000, maxArea: 17500 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const polygon = pathPoints(suwonBlock(id).imageGeometry.d);
+    const area = polygonArea(polygon);
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined multi-point polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced color bounds. Actual: ${area}`);
+  });
+});
+
 test('수원 301-328 3층 연속 구역은 공식 숫자 중심선과 맞는다', () => {
+  const expectedThirdFloorIds = numberedBlocks(301, 328).map((block) => `suwon-${block}`);
+  const browserProbeIds = SUWON_BROWSER_QA_PROBES
+    .filter((probe) => {
+      const blockNumber = Number(probe.id.replace('suwon-', ''));
+      return blockNumber >= 301 && blockNumber <= 328;
+    })
+    .map((probe) => probe.id);
   const expectedAnchors: Record<string, Point> = {
     '301': [3157, 2931],
     '302': [3115, 3018],
@@ -1434,15 +1889,19 @@ test('수원 301-328 3층 연속 구역은 공식 숫자 중심선과 맞는다'
     '328': [960, 2930],
   };
 
+  assert.deepEqual(browserProbeIds, expectedThirdFloorIds);
+
   Object.entries(expectedAnchors).forEach(([blockName, [expectedX, expectedY]]) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
     assert.ok(block, `${blockName} should exist`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${blockName} visual polygon should remain explicitly traced`);
     assert.ok(Math.abs(block.imageGeometry.labelX - expectedX) <= 2, `${blockName} label x should follow official digit center`);
     assert.ok(Math.abs(block.imageGeometry.labelY - expectedY) <= 2, `${blockName} label y should follow official digit center`);
     assert.ok(
       pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)),
       `${blockName} label should stay inside its refined visual polygon`,
     );
+    assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve to its block`);
   });
 });
 
@@ -1503,6 +1962,7 @@ test('수원 SB1-SB35 스카이박스는 명시 compact hit polygon과 전체 �
 
   skyboxBlocks.forEach((block) => {
     assert.ok(block.imageGeometry.d !== block.hitGeometry.d, `${block.id} should keep compact hit geometry separate from visual geometry`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${block.id} visual polygon should remain explicitly traced beyond a 4-point rough block`);
     assert.ok(pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)), `${block.id} label should stay inside visual polygon`);
     assert.ok(pointInPolygon([block.hitGeometry.labelX, block.hitGeometry.labelY], pathPoints(block.hitGeometry.d)), `${block.id} hit label should stay inside compact hit polygon`);
     assert.equal(topHitBlockAt([block.hitGeometry.labelX, block.hitGeometry.labelY])?.id, block.id, `${block.id} compact hit label should resolve to itself`);
@@ -1521,37 +1981,129 @@ test('수원 401-432 스카이존은 전체 브라우저 QA 좌표와 경계 pro
     .map((probe) => probe.id);
   const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-401', point: [3322, 3526] },
+    { id: 'suwon-401', point: [3268, 3575] },
+    { id: 'suwon-401', point: [3390, 3655] },
+    { id: 'suwon-401', point: [3440, 3548] },
     { id: 'suwon-402', point: [3246, 3674] },
+    { id: 'suwon-402', point: [3210, 3695] },
+    { id: 'suwon-402', point: [3315, 3790] },
+    { id: 'suwon-402', point: [3370, 3685] },
     { id: 'suwon-403', point: [3180, 3800] },
+    { id: 'suwon-403', point: [3125, 3845] },
+    { id: 'suwon-403', point: [3250, 3930] },
+    { id: 'suwon-403', point: [3305, 3835] },
     { id: 'suwon-404', point: [3106, 3942] },
+    { id: 'suwon-404', point: [3065, 3975] },
+    { id: 'suwon-404', point: [3188, 4058] },
+    { id: 'suwon-404', point: [3235, 3958] },
     { id: 'suwon-405', point: [3042, 4067] },
+    { id: 'suwon-405', point: [3000, 4095] },
+    { id: 'suwon-405', point: [3115, 4200] },
+    { id: 'suwon-405', point: [3175, 4088] },
     { id: 'suwon-406', point: [2970, 4196] },
+    { id: 'suwon-406', point: [2912, 4245] },
+    { id: 'suwon-406', point: [3030, 4338] },
+    { id: 'suwon-406', point: [3095, 4235] },
     { id: 'suwon-407', point: [2873, 4343] },
+    { id: 'suwon-407', point: [2828, 4368] },
+    { id: 'suwon-407', point: [2935, 4468] },
+    { id: 'suwon-407', point: [3015, 4368] },
     { id: 'suwon-408', point: [2777, 4460] },
+    { id: 'suwon-408', point: [2735, 4500] },
+    { id: 'suwon-408', point: [2804, 4595] },
+    { id: 'suwon-408', point: [2865, 4545] },
     { id: 'suwon-409', point: [2645, 4561] },
+    { id: 'suwon-409', point: [2580, 4585] },
+    { id: 'suwon-409', point: [2645, 4705] },
+    { id: 'suwon-409', point: [2780, 4615] },
     { id: 'suwon-410', point: [2496, 4637] },
+    { id: 'suwon-410', point: [2425, 4650] },
+    { id: 'suwon-410', point: [2470, 4780] },
+    { id: 'suwon-410', point: [2615, 4715] },
     { id: 'suwon-411', point: [2338, 4688] },
+    { id: 'suwon-411', point: [2267, 4800] },
+    { id: 'suwon-411', point: [2445, 4785] },
     { id: 'suwon-412', point: [2184, 4717] },
+    { id: 'suwon-412', point: [2072, 4775] },
+    { id: 'suwon-412', point: [2164, 4850] },
+    { id: 'suwon-412', point: [2244, 4810] },
     { id: 'suwon-413', point: [1943, 4718] },
+    { id: 'suwon-413', point: [1915, 4835] },
+    { id: 'suwon-413', point: [2048, 4830] },
     { id: 'suwon-414', point: [1824, 4705] },
+    { id: 'suwon-414', point: [1760, 4800] },
+    { id: 'suwon-414', point: [1888, 4835] },
     { id: 'suwon-415', point: [1710, 4673] },
+    { id: 'suwon-415', point: [1610, 4755] },
+    { id: 'suwon-415', point: [1715, 4810] },
+    { id: 'suwon-415', point: [1765, 4690] },
     { id: 'suwon-416', point: [1573, 4615] },
+    { id: 'suwon-416', point: [1470, 4695] },
+    { id: 'suwon-416', point: [1570, 4758] },
+    { id: 'suwon-416', point: [1630, 4640] },
     { id: 'suwon-417', point: [1445, 4537] },
+    { id: 'suwon-417', point: [1338, 4600] },
+    { id: 'suwon-417', point: [1440, 4680] },
     { id: 'suwon-418', point: [1365, 4459] },
+    { id: 'suwon-418', point: [1275, 4532] },
+    { id: 'suwon-418', point: [1305, 4580] },
+    { id: 'suwon-418', point: [1400, 4475] },
     { id: 'suwon-419', point: [1271, 4329] },
+    { id: 'suwon-419', point: [1135, 4355] },
+    { id: 'suwon-419', point: [1262, 4410] },
+    { id: 'suwon-419', point: [1295, 4375] },
     { id: 'suwon-420', point: [1188, 4238] },
+    { id: 'suwon-420', point: [1088, 4268] },
+    { id: 'suwon-420', point: [1116, 4332] },
+    { id: 'suwon-420', point: [1205, 4242] },
     { id: 'suwon-421', point: [1142, 4146] },
+    { id: 'suwon-421', point: [1042, 4184] },
+    { id: 'suwon-421', point: [1070, 4242] },
+    { id: 'suwon-421', point: [1168, 4172] },
     { id: 'suwon-422', point: [1093, 4056] },
+    { id: 'suwon-422', point: [992, 4093] },
+    { id: 'suwon-422', point: [1020, 4156] },
+    { id: 'suwon-422', point: [1120, 4082] },
     { id: 'suwon-423', point: [1041, 3965] },
+    { id: 'suwon-423', point: [940, 4000] },
+    { id: 'suwon-423', point: [970, 4065] },
+    { id: 'suwon-423', point: [1065, 3978] },
     { id: 'suwon-424', point: [994, 3873] },
+    { id: 'suwon-424', point: [892, 3910] },
+    { id: 'suwon-424', point: [922, 3975] },
+    { id: 'suwon-424', point: [1020, 3894] },
     { id: 'suwon-425', point: [943, 3782] },
+    { id: 'suwon-425', point: [840, 3816] },
+    { id: 'suwon-425', point: [870, 3880] },
+    { id: 'suwon-425', point: [975, 3805] },
     { id: 'suwon-426', point: [894, 3686] },
+    { id: 'suwon-426', point: [790, 3720] },
+    { id: 'suwon-426', point: [822, 3790] },
+    { id: 'suwon-426', point: [922, 3708] },
     { id: 'suwon-427', point: [843, 3592] },
+    { id: 'suwon-427', point: [738, 3626] },
+    { id: 'suwon-427', point: [770, 3695] },
+    { id: 'suwon-427', point: [876, 3614] },
     { id: 'suwon-428', point: [791, 3499] },
+    { id: 'suwon-428', point: [685, 3530] },
+    { id: 'suwon-428', point: [718, 3600] },
+    { id: 'suwon-428', point: [825, 3520] },
     { id: 'suwon-429', point: [750, 3419] },
+    { id: 'suwon-429', point: [630, 3430] },
+    { id: 'suwon-429', point: [666, 3505] },
+    { id: 'suwon-429', point: [775, 3428] },
     { id: 'suwon-430', point: [707, 3341] },
+    { id: 'suwon-430', point: [575, 3330] },
+    { id: 'suwon-430', point: [613, 3405] },
+    { id: 'suwon-430', point: [720, 3330] },
     { id: 'suwon-431', point: [630, 3245] },
+    { id: 'suwon-431', point: [520, 3230] },
+    { id: 'suwon-431', point: [560, 3310] },
+    { id: 'suwon-431', point: [670, 3230] },
     { id: 'suwon-432', point: [580, 3100] },
+    { id: 'suwon-432', point: [472, 3145] },
+    { id: 'suwon-432', point: [506, 3210] },
+    { id: 'suwon-432', point: [615, 3125] },
   ];
 
   assert.deepEqual(browserProbeIds, expectedSkyzoneIds);
@@ -1559,6 +2111,7 @@ test('수원 401-432 스카이존은 전체 브라우저 QA 좌표와 경계 pro
   skyzoneBlocks.forEach((block) => {
     const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
     assert.ok(pointInPolygon(label, pathPoints(block.imageGeometry.d)), `${block.id} label should stay inside visual polygon`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${block.id} visual polygon should stay refined beyond a 4-point skyzone block`);
     assert.equal(topHitBlockAt(label)?.id, block.id, `${block.id} visual label should resolve to itself`);
   });
 
@@ -1567,6 +2120,155 @@ test('수원 401-432 스카이존은 전체 브라우저 QA 좌표와 경계 pro
     const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
     assert.ok(block, `${id} should exist`);
     assert.ok(pointInPolygon(point, pathPoints(block.imageGeometry.d)), `${point.join(',')} should stay inside ${id} visual polygon`);
+  });
+});
+
+test('수원 401/403/404/406/407 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-401': { minPoints: 34, minArea: 22000, maxArea: 24000 },
+    'suwon-403': { minPoints: 34, minArea: 21000, maxArea: 23000 },
+    'suwon-404': { minPoints: 32, minArea: 20000, maxArea: 22000 },
+    'suwon-406': { minPoints: 34, minArea: 22500, maxArea: 24500 },
+    'suwon-407': { minPoints: 34, minArea: 21500, maxArea: 23500 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 402/405/409/410/412 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-402': { minPoints: 34, minArea: 19800, maxArea: 21000 },
+    'suwon-405': { minPoints: 36, minArea: 21600, maxArea: 22800 },
+    'suwon-409': { minPoints: 35, minArea: 24700, maxArea: 25900 },
+    'suwon-410': { minPoints: 34, minArea: 24500, maxArea: 25700 },
+    'suwon-412': { minPoints: 30, minArea: 25900, maxArea: 27100 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 408/411/413/414/417 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-408': { minPoints: 36, minArea: 22000, maxArea: 24500 },
+    'suwon-411': { minPoints: 30, minArea: 23500, maxArea: 25500 },
+    'suwon-413': { minPoints: 28, minArea: 19500, maxArea: 21500 },
+    'suwon-414': { minPoints: 30, minArea: 19500, maxArea: 21500 },
+    'suwon-417': { minPoints: 30, minArea: 19000, maxArea: 21000 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 415/416/418/419/420 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-415': { minPoints: 31, minArea: 20400, maxArea: 21600 },
+    'suwon-416': { minPoints: 34, minArea: 20300, maxArea: 21500 },
+    'suwon-418': { minPoints: 32, minArea: 15800, maxArea: 16900 },
+    'suwon-419': { minPoints: 24, minArea: 11500, maxArea: 12500 },
+    'suwon-420': { minPoints: 25, minArea: 10100, maxArea: 11100 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 421/422/424/426/427 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-421': { minPoints: 24, minArea: 10800, maxArea: 11800 },
+    'suwon-422': { minPoints: 26, minArea: 11000, maxArea: 12000 },
+    'suwon-424': { minPoints: 26, minArea: 11400, maxArea: 12400 },
+    'suwon-426': { minPoints: 28, minArea: 11900, maxArea: 12900 },
+    'suwon-427': { minPoints: 28, minArea: 12100, maxArea: 13100 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 423/425/428-432 스카이존은 공식 남색 외곽 다점 polygon으로 유지된다', () => {
+  const expectedGeometryContracts: Record<string, { minPoints: number; minArea: number; maxArea: number }> = {
+    'suwon-423': { minPoints: 25, minArea: 10700, maxArea: 11700 },
+    'suwon-425': { minPoints: 22, minArea: 11200, maxArea: 12300 },
+    'suwon-428': { minPoints: 25, minArea: 11900, maxArea: 13000 },
+    'suwon-429': { minPoints: 28, minArea: 12600, maxArea: 13600 },
+    'suwon-430': { minPoints: 27, minArea: 12800, maxArea: 13900 },
+    'suwon-431': { minPoints: 28, minArea: 13000, maxArea: 14100 },
+    'suwon-432': { minPoints: 27, minArea: 12000, maxArea: 13000 },
+  };
+
+  Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
+    const block = suwonBlock(id);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a refined official-color skyzone polygon`);
+    assert.ok(area >= contract.minArea && area <= contract.maxArea, `${id} area should stay near official traced blue bounds. Actual: ${area}`);
+    assert.equal(block.imageGeometry.d, block.hitGeometry.d, `${id} should not need compact hit geometry after visual retracing`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside the refined skyzone polygon`);
+    assert.equal(topHitBlockAt(label)?.id, id, `${id} label should resolve to itself`);
+  });
+});
+
+test('수원 401-432 스카이존은 더 이상 rough 8-10점 polygon을 사용하지 않는다', () => {
+  numberedBlocks(401, 432).forEach((blockNumber) => {
+    const id = `suwon-${blockNumber}`;
+    const pointCount = pathPoints(suwonBlock(id).imageGeometry.d).length;
+
+    assert.ok(pointCount >= 20, `${id} should keep a refined multi-point skyzone polygon. Actual: ${pointCount}`);
   });
 });
 
@@ -1579,11 +2281,11 @@ test('수원 1루/3루 하이파이브존은 공식 이미지의 상단 색상 �
     { id: 'suwon-3b-highfive', point: [1400, 2860] },
     { id: 'suwon-3b-highfive', point: [1500, 3040] },
     { id: 'suwon-3b-highfive', point: [1600, 3220] },
-    { id: 'suwon-3b-highfive', point: [1588, 3265] },
+    { id: 'suwon-3b-highfive', point: [1600, 3260] },
     { id: 'suwon-1b-highfive', point: [2700, 2860] },
     { id: 'suwon-1b-highfive', point: [2600, 3040] },
     { id: 'suwon-1b-highfive', point: [2520, 3220] },
-    { id: 'suwon-1b-highfive', point: [2492, 3268] },
+    { id: 'suwon-1b-highfive', point: [2508, 3260] },
   ];
   const excludedVisualProbes: VisualProbeExpectation[] = [
     { id: 'suwon-3b-highfive', point: [1348, 2870], note: '3루 하이파이브존은 좌측 검은 통로까지 확장되지 않는다' },
@@ -1603,11 +2305,19 @@ test('수원 1루/3루 하이파이브존은 공식 이미지의 상단 색상 �
   expectedHighfiveIds.forEach((id) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
     assert.ok(block, `${id} should exist`);
-    const area = polygonArea(pathPoints(block.imageGeometry.d));
-    assert.ok(area > 35000, `${id} should keep the official high-five color band selectable`);
-    assert.ok(area < 70000, `${id} should not regress to the former overextended vertical strip`);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const bounds = polygonBounds(polygon);
+    const expectedBounds = id === 'suwon-3b-highfive'
+      ? { minX: 1368, maxX: 1657, minY: 2815, maxY: 3273 }
+      : { minX: 2458, maxX: 2747, minY: 2817, maxY: 3273 };
+
+    assert.deepEqual(bounds, expectedBounds, `${id} should stay inside the official high-five color component bounds`);
+    assert.ok(area > 32000, `${id} should keep the official high-five color band selectable`);
+    assert.ok(area < 34000, `${id} should not regress to an overextended vertical strip`);
+    assert.ok(polygon.length >= 6, `${id} visual polygon should stay explicitly traced beyond a 5-point rough strip`);
     const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
-    assert.ok(pointInPolygon(label, pathPoints(block.imageGeometry.d)), `${id} label should stay inside visual polygon`);
+    assert.ok(pointInPolygon(label, polygon), `${id} label should stay inside visual polygon`);
     assert.equal(topHitBlockAt(label)?.id, id, `${id} visual label should resolve to itself`);
   });
 
@@ -1622,14 +2332,44 @@ test('수원 1루/3루 하이파이브존은 공식 이미지의 상단 색상 �
 });
 
 test('수원 216-218/지니존/휠체어석 중앙 하단 경계 probe는 기대 블록으로 해석된다', () => {
+  const expectedP2Bounds: Record<string, PixelBounds> = {
+    'suwon-216': { minX: 2179, maxX: 2491, minY: 3727, maxY: 4028 },
+    'suwon-217': { minX: 1879, maxX: 2238, minY: 3838, maxY: 4054 },
+    'suwon-218': { minX: 1623, maxX: 1937, minY: 3727, maxY: 4030 },
+    'suwon-313': { minX: 2311, maxX: 2581, minY: 3943, maxY: 4180 },
+    'suwon-314': { minX: 2061, maxX: 2340, minY: 4071, maxY: 4262 },
+    'suwon-315': { minX: 1742, maxX: 2042, minY: 4067, maxY: 4254 },
+    'suwon-316': { minX: 1515, maxX: 1795, minY: 3943, maxY: 4197 },
+    'suwon-genie': { minX: 1788, maxX: 2228, minY: 3792, maxY: 3858 },
+    'suwon-wheel-center': { minX: 2300, maxX: 2379, minY: 4163, maxY: 4267 },
+    'suwon-wheel-1b': { minX: 2730, maxX: 2868, minY: 4084, maxY: 4187 },
+    'suwon-wheel-3b': { minX: 1764, maxX: 1843, minY: 4163, maxY: 4267 },
+  };
+  const expectedP2AreaRanges: Record<string, [number, number]> = {
+    'suwon-216': [50000, 51050],
+    'suwon-217': [55500, 56500],
+    'suwon-218': [49000, 50000],
+    'suwon-313': [34500, 35550],
+    'suwon-314': [38500, 39500],
+    'suwon-315': [38500, 39500],
+    'suwon-316': [34800, 35600],
+    'suwon-genie': [25000, 26000],
+    'suwon-wheel-center': [5100, 5400],
+    'suwon-wheel-1b': [7300, 7550],
+    'suwon-wheel-3b': [4800, 5100],
+  };
   const expectedProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-216', point: [2325, 3887] },
     { id: 'suwon-217', point: [2058, 3954] },
     { id: 'suwon-218', point: [1790, 3888] },
     { id: 'suwon-genie', point: [2005, 3830] },
+    { id: 'suwon-genie', point: [1815, 3820] },
     { id: 'suwon-genie', point: [2184, 3850] },
+    { id: 'suwon-genie', point: [2210, 3825] },
     { id: 'suwon-217', point: [2005, 3940] },
+    { id: 'suwon-217', point: [2058, 3868] },
     { id: 'suwon-216', point: [2335, 3745] },
+    { id: 'suwon-216', point: [2210, 3860] },
     { id: 'suwon-216', point: [2240, 3900] },
     { id: 'suwon-217', point: [2185, 3950] },
     { id: 'suwon-216', point: [2400, 3970] },
@@ -1637,6 +2377,7 @@ test('수원 216-218/지니존/휠체어석 중앙 하단 경계 probe는 기대
     { id: 'suwon-216', point: [2296, 4010] },
     { id: 'suwon-218', point: [1840, 3940] },
     { id: 'suwon-218', point: [1818, 3775] },
+    { id: 'suwon-218', point: [1815, 3860] },
     { id: 'suwon-218', point: [1662, 3930] },
     { id: 'suwon-218', point: [1858, 4025] },
     { id: 'suwon-217', point: [1950, 3960] },
@@ -1645,30 +2386,40 @@ test('수원 216-218/지니존/휠체어석 중앙 하단 경계 probe는 기대
     { id: 'suwon-218', point: [1780, 4000] },
     { id: 'suwon-313', point: [2549, 4085] },
     { id: 'suwon-313', point: [2380, 4170] },
+    { id: 'suwon-313', point: [2388, 4155] },
     { id: 'suwon-314', point: [2130, 4240] },
+    { id: 'suwon-314', point: [2265, 4200] },
     { id: 'suwon-315', point: [1970, 4240] },
     { id: 'suwon-315', point: [1818, 4080] },
     { id: 'suwon-316', point: [1619, 4130] },
     { id: 'suwon-316', point: [1724, 4188] },
+    { id: 'suwon-wheel-center', point: [2340, 4180] },
     { id: 'suwon-wheel-center', point: [2325, 4198] },
+    { id: 'suwon-wheel-center', point: [2308, 4215] },
     { id: 'suwon-wheel-center', point: [2360, 4225] },
     { id: 'suwon-wheel-center', point: [2320, 4240] },
+    { id: 'suwon-wheel-3b', point: [1805, 4180] },
     { id: 'suwon-wheel-3b', point: [1775, 4188] },
     { id: 'suwon-wheel-3b', point: [1820, 4225] },
     { id: 'suwon-wheel-3b', point: [1790, 4240] },
     { id: 'suwon-315', point: [1850, 4150] },
+    { id: 'suwon-315', point: [1858, 4180] },
     { id: 'suwon-wheel-1b', point: [2828, 4124] },
+    { id: 'suwon-wheel-1b', point: [2795, 4120] },
     { id: 'suwon-wheel-1b', point: [2830, 4140] },
+    { id: 'suwon-wheel-1b', point: [2850, 4125] },
   ];
   const excludedVisualProbes: VisualProbeExpectation[] = [
     { id: 'suwon-genie', point: [2005, 3860], note: '지니존은 217 상단 녹색 블록을 먹지 않는다' },
+    { id: 'suwon-genie', point: [1815, 3860], note: '지니존은 218 하단 녹색 블록을 먹지 않는다' },
     { id: 'suwon-genie', point: [2184, 3860], note: '지니존은 216 상단 녹색 블록을 먹지 않는다' },
+    { id: 'suwon-genie', point: [2210, 3860], note: '지니존은 216 하단 녹색 블록을 먹지 않는다' },
     { id: 'suwon-genie', point: [2058, 3862], note: '지니존은 하단 네이버클럽존 경계 밖으로 확장되지 않는다' },
     { id: 'suwon-216', point: [2240, 4060], note: '216은 하단 KT존 검은 통로를 먹지 않는다' },
     { id: 'suwon-216', point: [2428, 4070], note: '216은 313 방향 하단 통로까지 확장되지 않는다' },
     { id: 'suwon-216', point: [2296, 4040], note: '216은 하단 KT존 검은 띠까지 확장되지 않는다' },
     { id: 'suwon-217', point: [2050, 4110], note: '217은 하단 KT존 검은 통로를 먹지 않는다' },
-    { id: 'suwon-217', point: [2215, 4020], note: '217은 216 사이 검은 분리선을 먹지 않는다' },
+    { id: 'suwon-217', point: [2240, 4020], note: '217은 216 사이 검은 분리선을 먹지 않는다' },
     { id: 'suwon-218', point: [1760, 4000], note: '218은 하단 좌측 검은 통로를 먹지 않는다' },
     { id: 'suwon-218', point: [1818, 4050], note: '218은 하단 KT존 검은 띠까지 확장되지 않는다' },
     { id: 'suwon-313', point: [2340, 4198], note: '313은 중앙 휠체어석 핀을 먹지 않는다' },
@@ -1677,8 +2428,13 @@ test('수원 216-218/지니존/휠체어석 중앙 하단 경계 probe는 기대
     { id: 'suwon-315', point: [1804, 4215], note: '315는 3루 휠체어석 핀을 먹지 않는다' },
     { id: 'suwon-315', point: [1820, 4225], note: '315는 3루 휠체어석 우측 하단 핀을 먹지 않는다' },
     { id: 'suwon-316', point: [1804, 4215], note: '316은 3루 휠체어석 핀을 먹지 않는다' },
+    { id: 'suwon-wheel-center', point: [2265, 4200], note: '중앙 휠체어석은 314 경계 안쪽을 먹지 않는다' },
+    { id: 'suwon-wheel-center', point: [2388, 4155], note: '중앙 휠체어석은 313 경계 안쪽을 먹지 않는다' },
     { id: 'suwon-wheel-center', point: [2340, 4290], note: '중앙 휠체어석은 하단 시설 아이콘을 먹지 않는다' },
+    { id: 'suwon-wheel-3b', point: [1858, 4180], note: '3루 휠체어석은 315 경계 안쪽을 먹지 않는다' },
     { id: 'suwon-wheel-3b', point: [1804, 4290], note: '3루 휠체어석은 하단 시설 아이콘을 먹지 않는다' },
+    { id: 'suwon-wheel-1b', point: [2600, 4060], note: '1루 휠체어석은 313 하단 통로 방향을 먹지 않는다' },
+    { id: 'suwon-wheel-1b', point: [2680, 4070], note: '1루 휠체어석은 312 하단 통로 방향을 먹지 않는다' },
     { id: 'suwon-wheel-1b', point: [2825, 4200], note: '1루 휠체어석은 하단 통로/시설 영역을 먹지 않는다' },
     { id: 'suwon-wheel-1b', point: [2875, 4140], note: '1루 휠체어석은 우측 블루 블록까지 확장되지 않는다' },
   ];
@@ -1691,6 +2447,14 @@ test('수원 216-218/지니존/휠체어석 중앙 하단 경계 probe는 기대
   });
 
   assertExcludedVisualProbes(excludedVisualProbes);
+  Object.entries(expectedP2Bounds).forEach(([id, expectedBounds]) => {
+    const polygon = pathPoints(suwonBlock(id).imageGeometry.d);
+    const [minArea, maxArea] = expectedP2AreaRanges[id];
+    const area = polygonArea(polygon);
+
+    assert.deepEqual(polygonBounds(polygon), expectedBounds, `${id} visual polygon should stay in the official P2 component bounds`);
+    assert.ok(area >= minArea && area <= maxArea, `${id} visual polygon area should stay in official P2 band. Actual: ${area}`);
+  });
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-216')!.imageGeometry.d)) < 56000, '216은 하단 검은 통로까지 과대 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-217')!.imageGeometry.d)) < 65000, '217은 KT존 검은 띠까지 과대 확장되지 않는다');
   assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-218')!.imageGeometry.d)) < 56000, '218은 하단 검은 통로까지 과대 확장되지 않는다');
@@ -1784,10 +2548,16 @@ test('수원 SVG 컴포넌트는 공식 이미지와 overlay를 단일 좌표계
 
 test('수원 좌석도 런타임은 필터 상태와 출처 캡션을 노출한다', () => {
   const componentPath = path.resolve(process.cwd(), 'src/components/suwon/SuwonSeatMap.tsx');
+  const filterPath = path.resolve(process.cwd(), 'src/components/stadiumSeatMap/SeatMapFilterBar.tsx');
+  const attributionPath = path.resolve(process.cwd(), 'src/components/stadiumSeatMap/SeatMapAttribution.tsx');
+  const selectionStatePath = path.resolve(process.cwd(), 'src/components/stadiumSeatMap/useSeatMapSelectionState.ts');
   const source = fs.readFileSync(componentPath, 'utf8');
+  const filterSource = fs.readFileSync(filterPath, 'utf8');
+  const attributionSource = fs.readFileSync(attributionPath, 'utf8');
+  const selectionStateSource = fs.readFileSync(selectionStatePath, 'utf8');
 
-  assert.ok(source.includes('aria-pressed={filterId === group.id}'), 'Suwon filter buttons should expose pressed state for QA and accessibility');
-  assert.ok(source.includes('좌석 배치 기준: {SUWON_SEATMAP_IMAGE.sourceLabel}'), 'Suwon source caption should align with other stadium seat maps');
-  assert.ok(source.includes('setSelected((current) => (current && !visibleCats.includes(current.category) ? null : current))'), 'Suwon filter changes should close stale selected details');
-  assert.ok(source.includes('setHovered((current) => (current && !visibleCats.includes(current.category) ? null : current))'), 'Suwon filter changes should close stale hovered details');
+  assert.ok(source.includes('SeatMapFilterBar') && filterSource.includes('aria-pressed={active}'), 'Suwon filter buttons should expose pressed state for QA and accessibility');
+  assert.ok(source.includes('SeatMapAttribution') && source.includes('sourceLabel: SUWON_SEATMAP_IMAGE.sourceLabel') && attributionSource.includes("source.prefixLabel ?? '좌석 배치 기준:'"), 'Suwon source caption should align with other stadium seat maps');
+  assert.ok(selectionStateSource.includes('setSelected(null)') && selectionStateSource.includes('sectionIsVisible(selected)'), 'Suwon filter changes should close stale selected details through the shared selection state hook');
+  assert.ok(selectionStateSource.includes('setHover(null)') && selectionStateSource.includes('sectionIsVisible(hoveredSection)'), 'Suwon filter changes should close stale hovered details through the shared selection state hook');
 });
