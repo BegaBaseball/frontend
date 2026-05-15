@@ -671,6 +671,26 @@ test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
   assert.equal(incheonSource.includes('desktopSecondaryPanel='), false, 'Incheon should not use desktop secondary guide slots');
 });
 
+test('standard shell PR scope guard는 clean expected 파일을 blocker로 보지 않는다', () => {
+  const guardSource = readProjectFile('scripts/stadium-seatmap-standard-shell-pr-scope-guard.mjs');
+  const scopeDocSource = readProjectFile('docs/stadium-seatmap-standard-shell-pr-scope.md');
+
+  assert.ok(guardSource.includes('notDirtyExpectedCount'), 'scope guard should report clean expected standard shell files separately');
+  assert.ok(
+    guardSource.includes('clean expected files are not packaging blockers'),
+    'scope guard report should state clean expected files are not packaging blockers',
+  );
+  assert.equal(
+    guardSource.includes('Expected standard shell PR file is not present in dirty inventory.'),
+    false,
+    'scope guard should not fail just because an expected standard shell file is currently clean',
+  );
+  assert.ok(
+    scopeDocSource.includes('expected files not currently dirty'),
+    'scope doc should document the not-dirty expected file behavior',
+  );
+});
+
 test('구장별 전용 좌석도는 공통 UX 계약을 노출한다', () => {
   const fullscreenControlPresetIds = new Set(['jamsil', 'incheon', 'daegu', 'gocheok', 'changwon', 'sajik', 'suwon']);
   const suppressClickPresetIds = new Set(['jamsil', 'incheon', 'daegu', 'daejeon', 'gocheok', 'sajik', 'suwon']);
