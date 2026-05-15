@@ -2,7 +2,9 @@
 
 ## 목적
 
-광주 active 111개 블럭은 공식 PNG 기준 trace가 완료되어 있다. 2026-05-11 운영자 입력으로 `K7석`은 `107~111`, `118~122`, `원정응원석`은 `107~110` 번호 블럭 범위로 확정했다. 이 범위는 기존 공식 PNG 번호 블럭 polygon을 재사용하므로 active block 수는 111개를 유지하고, 별도 중첩 hit-area를 만들지 않는다.
+광주 active 111개 블럭은 공식 PNG 기준 `manual-polygon-v5` / `FULL_ACTIVE_111_RETRACE` 세대로 구역별 재검수되어 있다. 2026-05-11 운영자 입력으로 `K7석`은 `107~111`, `118~122`, `원정응원석`은 `107~110` 번호 블럭 범위로 확정했다. 이 범위는 기존 공식 PNG 번호 블럭 polygon을 재사용하므로 active block 수는 111개를 유지하고, 별도 중첩 hit-area를 만들지 않는다.
+
+trace manifest는 `previousTraceVersion=manual-polygon-v4`, `fullRetracedBlocks=111`, `blocksChangedFromPreviousTrace=111`, `totalRetracePointDelta=865`, bbox/anchor/coverage delta, zone precision workset, zone crop, O/P component recall/IoU gate 결과를 남긴다.
 
 독립 K7/원정응원석 aggregate polygon이 필요해지는 경우에는 아래 좌표 입력 자동화 경로를 다시 사용한다. 그 전까지 `home-k7-seats`, `away-cheering-seats` operator polygon requirement는 후속 입력 대기 상태로 남긴다.
 
@@ -34,23 +36,33 @@
    - `홈 응원석`: `118~122`
    - `원정응원석`: `107~110`
 6. 좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다.
-7. 최종 릴리즈 검증은 `npm run qa:stadium:gwangju:release-gate`로 실행한다.
-8. 개별 확인이 필요하면 `npm run test:stadium:seatmaps`, `npm run qa:stadium:gwangju:trace-review`, `npm run stadium:gwangju:release-package`, `npm run build` 순서로 실행한다.
+7. 현재 최종 릴리즈 검증은 pre-operator 기준 `npm run qa:stadium:gwangju:release-verify` 또는 명시 alias `npm run qa:stadium:gwangju:release-verify:preoperator`로 실행한다.
+8. 개별 확인이 필요하면 `npm run qa:stadium:gwangju:release-gate`, `npm run stadium:gwangju:release-audit` 순서로 실행한다.
+9. 운영자 좌표 입력 준비 자료는 `npm run stadium:gwangju:operator-input-aid`로 생성한다. 현재 production data에서는 `status=ready_for_operator_input`이고, `REFERENCE_BOUNDS_ONLY_NOT_OPERATOR_POLYGON` 정책을 유지해야 한다.
+10. 좌표 입력자가 보는 단일 패킷은 `npm run stadium:gwangju:operator-input-packet`으로 생성한다. 현재 production data에서는 `status=ready_for_operator_input`, `inputPresentSections=0`, `readyForPrewrite=false`가 정상이다.
+11. 전체 intake 묶음은 `npm run stadium:gwangju:operator-intake`이며 `operator-handoff -> operator-input-aid -> operator-input-packet` 순서로 실행한다.
+12. 후속 post-operator skeleton은 `npm run qa:stadium:gwangju:release-verify:postoperator`로 실행할 수 있지만, 현재 production data에서는 `status=blocked`, `actualActiveBlocks=111`, `POST_OPERATOR_POLYGON_NOT_APPLIED`가 정상이다.
 
 ### 후속 독립 polygon 입력 경로
 
 1. `npm run stadium:gwangju:operator-handoff`를 실행해 trace review, template, validation, apply-plan, handoff 산출물을 갱신한다. 이때 기존 template의 `operatorInput`은 section id 기준으로 보존된다.
-2. `reports/stadium/gwangju-seatmap-operator-template.json`에서 `K7석`, `원정응원석`의 `operatorInput`을 채운다.
-3. `operatorInput.points`는 공식 PNG 좌표 `[x, y]` 배열로 입력하고, `labelX`, `labelY`는 polygon 내부 label anchor로 입력한다.
-4. `officialBlocks`, `level`, `side`, `fanRole`, `shortLabel`, `reviewer`, `reviewedAt`을 함께 채운다.
-5. `npm run stadium:gwangju:operator-template:validate:strict`를 실행한다.
-6. `npm run stadium:gwangju:operator-template:apply-plan:require-ready`를 실행한다.
-7. `npm run stadium:gwangju:operator-status`를 실행해 `ready`인지 확인한다.
-8. `npm run stadium:gwangju:operator-apply`를 실행해 dry-run apply 보고서가 두 구역을 승격 후보로 계산하는지 확인한다. 이 명령은 data file을 수정하지 않는다.
-9. `npm run stadium:gwangju:operator-write-smoke`를 실행해 synthetic 입력이 isolated report directory에서 ready 경로를 통과하고, 실제 apply write path가 임시 data file에서만 동작하며, production data/template을 바꾸지 않는지 확인한다.
-10. `npm run stadium:gwangju:operator-write-guard:require-ready`를 실행한다.
-11. guard가 통과하면 `npm run stadium:gwangju:operator-apply:write`로 `validForDataDiff=true`인 두 구역만 `gwangjuSeatData.ts`에 승격한다.
-12. 승격 후 `npm run stadium:gwangju:operator-postwrite-gate`를 실행한다.
+2. `npm run stadium:gwangju:operator-input-aid`를 실행해 K7/AWAY reference block, anchor, bbox, clean crop 경로를 확인한다.
+3. `npm run stadium:gwangju:operator-input-packet`을 실행해 trace/template/input-aid/status/apply-plan을 한 파일에서 확인한다.
+4. input-aid와 input-packet의 bbox는 `REFERENCE_BOUNDS_ONLY_NOT_OPERATOR_POLYGON` 참고값이다. 이 bbox를 aggregate polygon으로 복사하지 않는다.
+5. `reports/stadium/gwangju-seatmap-operator-template.json`에서 `K7석`, `원정응원석`의 `operatorInput`을 채운다.
+6. `operatorInput.points`는 공식 PNG 좌표 `[x, y]` 배열로 입력하고, `labelX`, `labelY`는 polygon 내부 label anchor로 입력한다.
+7. `officialBlocks`, `level`, `side`, `fanRole`, `shortLabel`, `reviewer`, `reviewedAt`을 함께 채운다.
+8. 입력 후 `npm run stadium:gwangju:operator-input-packet`을 다시 실행하면 write 전 상태는 `operator_input_present`가 된다.
+9. `npm run stadium:gwangju:operator-template:validate:strict`를 실행한다.
+10. `npm run stadium:gwangju:operator-template:apply-plan:require-ready`를 실행한다.
+11. `npm run stadium:gwangju:operator-status`를 실행해 `ready`인지 확인한다.
+12. strict/apply-plan/status가 모두 ready이면 input-packet은 `ready_for_prewrite`가 되어야 한다.
+13. `npm run stadium:gwangju:operator-apply`를 실행해 dry-run apply 보고서가 두 구역을 승격 후보로 계산하는지 확인한다. 이 명령은 data file을 수정하지 않는다.
+14. `npm run stadium:gwangju:operator-write-smoke`를 실행해 synthetic 입력이 isolated report directory에서 ready 경로를 통과하고, 실제 apply write path가 임시 data file에서만 동작하며, production data/template을 바꾸지 않는지 확인한다.
+15. `npm run stadium:gwangju:operator-write-guard:require-ready`를 실행한다.
+16. guard가 통과하면 `npm run stadium:gwangju:operator-apply:write`로 `validForDataDiff=true`인 두 구역만 `gwangjuSeatData.ts`에 승격한다.
+17. 승격 후 `npm run stadium:gwangju:operator-postwrite-gate`를 실행한다.
+18. postwrite gate 통과 후 `npm run qa:stadium:gwangju:release-verify:postoperator`를 실행해 `POST_OPERATOR_POLYGON_APPLIED_RELEASE` 기준을 확인한다.
 
 ## 상태 해석
 
@@ -59,6 +71,8 @@
 - `ready`: 두 운영자 polygon 구역 모두 strict validation과 apply-plan ready 조건을 통과해 data diff 후보가 있다.
 - block-range 반영 상태의 trace 기준은 active 111개이다. 독립 polygon 승격을 별도로 수행하는 경우에만 active 113개 기준으로 전환한다.
 - 113개 기준 검증은 `operator-apply:write`와 `operator-postwrite-gate`가 실제 좌표 승격을 끝낸 뒤에만 활성화한다.
+- post-operator release 기준은 active 113개, K7/AWAY `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`, 기존 111개 traced block 무수정 상태이다.
+- post-operator audit mode는 `POST_OPERATOR_POLYGON_APPLIED_RELEASE`이며, 승격 전에는 blocked 상태를 release guard로 사용한다.
 
 ## 승격 전 Guard
 
@@ -71,20 +85,37 @@
 - `npm run stadium:gwangju:operator-prewrite-gate`는 좌표 입력 완료 후 data diff 직전에 실행하는 묶음 명령이다.
 - `npm run stadium:gwangju:operator-apply:write`는 `operator-prewrite-gate` 통과 뒤에만 production write를 수행한다.
 - `npm run stadium:gwangju:operator-postwrite-gate`는 승격 후 handoff/status, seatmap test, 광주 trace QA, build를 다시 실행한다.
+- `npm run stadium:gwangju:operator-input-aid`는 `gwangju-seatmap-operator-input-aid.json/.csv/.md`를 생성하며 data file을 수정하지 않는다.
+- input-aid의 reference block bbox, anchor, clean crop은 operator 입력 보조 자료이고, aggregate K7/AWAY polygon 좌표가 아니다.
+- `npm run stadium:gwangju:operator-input-packet`은 trace review, operator template, input-aid, status, validation, apply-plan을 묶어 `gwangju-seatmap-operator-input-packet.json/.md`를 생성하며 data file을 수정하지 않는다.
+- input-packet 상태값은 `blocked`, `ready_for_operator_input`, `operator_input_present`, `ready_for_prewrite`만 허용한다.
+- `npm run stadium:gwangju:operator-intake`는 운영자 입력 전 갱신용 묶음이며 `operator-handoff -> operator-input-aid -> operator-input-packet` 순서이다.
 - `npm run stadium:gwangju:release-package`는 현재 산출물과 browser QA summary를 묶어 `ready/blocked`를 판단하며 data file을 수정하지 않는다.
+- `npm run stadium:gwangju:release-audit`는 release gate/package/status/trace/browser QA/handoff JSON과 문서 계약만 빠르게 검사하며 data file을 수정하지 않는다.
 - `npm run qa:stadium:gwangju:release-gate`는 `operator-status -> seatmap tests -> trace-review QA -> release-package -> build`를 순서대로 실행하고 `reports/stadium/gwangju-seatmap-release-gate.json/.md`를 남긴다.
+- `npm run qa:stadium:gwangju:release-verify`는 호환용 최종 명령이며 현재는 `release-verify:preoperator`를 실행한다.
+- `npm run qa:stadium:gwangju:release-verify:preoperator`는 `release-gate -> release-audit` 순서로 active 111, operator pending, derived-only, stale=0 기준을 검증한다.
+- `npm run qa:stadium:gwangju:release-verify:postoperator`는 `reports/stadium/gwangju-seatmap-postoperator-audit.json/.md`를 남기며, 승격 전에는 active 113 및 독립 K7/AWAY polygon 미적용을 이유로 실패해야 한다.
 - `docs/gwangju-seatmap-release-handoff.md`는 현재 release-ready 상태, K7/AWAY no hit-area 계약, 후속 113개 승격 금지선을 운영 인계용으로 고정한다.
 
 ## 산출물
 
 - `docs/gwangju-seatmap-release-handoff.md`
 - `reports/stadium/gwangju-seatmap-operator-template.json`
+- `reports/stadium/gwangju-seatmap-operator-input-aid.json`
+- `reports/stadium/gwangju-seatmap-operator-input-aid.csv`
+- `reports/stadium/gwangju-seatmap-operator-input-aid.md`
+- `reports/stadium/gwangju-seatmap-operator-input-packet.json`
+- `reports/stadium/gwangju-seatmap-operator-input-packet.md`
 - `reports/stadium/gwangju-seatmap-operator-template-validation.json`
 - `reports/stadium/gwangju-seatmap-operator-template-apply-plan.json`
 - `reports/stadium/gwangju-seatmap-operator-handoff.json`
 - `reports/stadium/gwangju-seatmap-operator-status.json`
 - `reports/stadium/gwangju-seatmap-release-package.json`
 - `reports/stadium/gwangju-seatmap-release-gate.json`
+- `reports/stadium/gwangju-seatmap-release-audit.json`
+- `reports/stadium/gwangju-seatmap-postoperator-audit.json`
+- `reports/stadium/gwangju-seatmap-postoperator-audit.md`
 - `reports/stadium/gwangju-seatmap-operator-apply.json`
 - `reports/stadium/gwangju-seatmap-operator-write-smoke/gwangju-seatmap-operator-write-smoke.json`
 - `reports/stadium/gwangju-seatmap-operator-write-guard.json`

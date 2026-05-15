@@ -27,7 +27,9 @@
 - coordinate impact contract: `DAEJEON_COORDINATE_CHANGE_IMPACT_V1`
 - coordinate impact missing count: `missingImpact=0`
 - anchor visual baseline contract: `DAEJEON_ANCHOR_VISUAL_BASELINE_V1`
-- anchor visual diff: `changedCropCount=0`, `metadataMismatchCount=0`
+- anchor crop count: `28`
+- anchor visual baseline: `expectedCropCount=28`
+- anchor visual diff: `baselineCropCount=28`, `currentCropCount=28`, `changedCropCount=0`, `metadataMismatchCount=0`
 - geometry baseline contract: `DAEJEON_GEOMETRY_BASELINE_V1`
 - geometry diff: `changedBlockCount=0`, `missingBlockCount=0`, `extraBlockCount=0`
 
@@ -96,6 +98,7 @@
 - 좌표 변경이 발생하면 trace manifest, P2 evidence, anchor crops, isolated browser QA를 다시 생성한다.
 - 좌표 변경이 발생하면 `coordinateChangeImpactSummary`의 `anchorCropIds`, `regressionTestIds`, `reviewPriority`, `reviewMode`, `riskTags` 기준으로 재검수 crop/test를 확인한다.
 - anchor visual baseline은 `src/data/daejeonAnchorVisualBaseline.json`이 source of truth다.
+- anchor visual baseline은 `expectedCropCount=28`이며, `first-104-106-detail`, `third-116-121-detail`, `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s37-sequence`를 자동 owner-point 회귀 crop으로 포함한다.
 - anchor crop hash 또는 metadata가 baseline과 다르면 `reports/stadium/daejeon-seatmap-visual-diff.md`에 변경 crop이 표시되고 release-lock은 실패한다.
 - baseline 갱신은 운영자 육안 검수 후 `npm run stadium:daejeon:visual-baseline`로만 수행한다.
 - geometry baseline은 `src/data/daejeonGeometryBaseline.json`이 source of truth다.
