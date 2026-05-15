@@ -32,18 +32,34 @@ jobs:
 
       - name: Load public map env
         shell: bash
+        env:
+          VITE_KAKAO_MAP_KEY_FALLBACK: ${{ vars.VITE_KAKAO_MAP_KEY || secrets.VITE_KAKAO_MAP_KEY }}
+          VITE_KAKAO_API_KEY_FALLBACK: ${{ vars.VITE_KAKAO_API_KEY || secrets.VITE_KAKAO_API_KEY }}
         run: |
-          if [[ ! -f ".env.production" ]]; then
-            echo "Missing .env.production" >&2
+          map_key="${VITE_KAKAO_MAP_KEY_FALLBACK}"
+          api_key="${VITE_KAKAO_API_KEY_FALLBACK}"
+          if [[ -f ".env.production" ]]; then
+            file_map_key="$(grep -E '^VITE_KAKAO_MAP_KEY=' ".env.production" | tail -n 1 | cut -d= -f2- || true)"
+            file_api_key="$(grep -E '^VITE_KAKAO_API_KEY=' ".env.production" | tail -n 1 | cut -d= -f2- || true)"
+            map_key="${file_map_key:-${map_key}}"
+            api_key="${file_api_key:-${api_key}}"
+          fi
+          if [[ -z "${map_key}" && -z "${api_key}" ]]; then
+            echo "Missing map env: configure GitHub Actions variable or secret VITE_KAKAO_MAP_KEY or VITE_KAKAO_API_KEY." >&2
             exit 1
           fi
-          grep -E '^(VITE_KAKAO_MAP_KEY|VITE_KAKAO_API_KEY)=' ".env.production" >> "${GITHUB_ENV}"
+          if [[ -n "${map_key}" ]]; then
+            printf 'VITE_KAKAO_MAP_KEY=%s\n' "${map_key}" >> "${GITHUB_ENV}"
+          fi
+          if [[ -n "${api_key}" ]]; then
+            printf 'VITE_KAKAO_API_KEY=%s\n' "${api_key}" >> "${GITHUB_ENV}"
+          fi
 
       - name: Validate map env
         shell: bash
         run: |
           if [[ -z "${VITE_KAKAO_MAP_KEY}" && -z "${VITE_KAKAO_API_KEY}" ]]; then
-            echo "Missing .env.production value: VITE_KAKAO_MAP_KEY or VITE_KAKAO_API_KEY" >&2
+            echo "Missing map env: VITE_KAKAO_MAP_KEY or VITE_KAKAO_API_KEY" >&2
             exit 1
           fi
 
