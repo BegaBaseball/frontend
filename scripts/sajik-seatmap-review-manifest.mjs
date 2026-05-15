@@ -13,6 +13,12 @@ import {
   SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO,
   SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX,
 } from '../src/data/sajikSeatData.ts';
+import {
+  pathBounds,
+  pathSubpathCount,
+  pathToPoints as pathPoints,
+  polygonArea,
+} from '../src/utils/seatMapPolygonValidator.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
@@ -82,41 +88,6 @@ const markdownTable = (headers, rows) => [
   ...rows.map((row) => `| ${row.join(' | ')} |`),
 ].join('\n');
 
-const parseSubpathCount = (pathData) => (pathData.match(/(?:^|\s)M\s/g) ?? []).length || 1;
-
-const pathPoints = (pathData) => {
-  const numbers = pathData.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  const points = [];
-
-  for (let index = 0; index < numbers.length - 1; index += 2) {
-    points.push([numbers[index], numbers[index + 1]]);
-  }
-
-  return points;
-};
-
-const pathBounds = (pathData) => {
-  const points = pathPoints(pathData);
-  const xs = points.map(([x]) => x);
-  const ys = points.map(([, y]) => y);
-
-  return {
-    minX: Math.min(...xs),
-    minY: Math.min(...ys),
-    maxX: Math.max(...xs),
-    maxY: Math.max(...ys),
-  };
-};
-
-const polygonArea = (points) => {
-  const signedArea = points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return area + ((point[0] * next[1]) - (next[0] * point[1]));
-  }, 0);
-
-  return Math.abs(signedArea / 2);
-};
-
 const reviewTierForBlock = (block) => {
   if (P0_BLOCKS.has(block.block) || P0_CATEGORIES.has(block.category)) return 'P0';
   if (block.level === '1F' || P1_CATEGORIES.has(block.category)) return 'P1';
@@ -140,7 +111,10 @@ const blockRows = SAJIK_BLOCKS.map((block) => {
     throw new Error(`Missing Sajik trace reference for block ${block.block}`);
   }
 
-  const points = pathPoints(block.imageGeometry.d);
+  const visualPath = block.imageGeometry.visualPath ?? block.imageGeometry.d;
+  const hitPath = block.imageGeometry.hitPath ?? visualPath;
+  const labelPoint = block.imageGeometry.labelPoint ?? [block.imageGeometry.labelX, block.imageGeometry.labelY];
+  const points = pathPoints(visualPath);
   const area = Number(polygonArea(points).toFixed(2));
   const alignment = alignmentByBlock.get(block.block);
 
@@ -152,15 +126,17 @@ const blockRows = SAJIK_BLOCKS.map((block) => {
     side: block.side,
     category: block.category,
     fanRole: block.fanRole,
+    sectionKind: block.sectionKind,
+    markerType: block.markerType ?? '',
     reviewTier: reviewTierForBlock(block),
     labelAnchor: {
-      x: block.imageGeometry.labelX,
-      y: block.imageGeometry.labelY,
+      x: labelPoint[0],
+      y: labelPoint[1],
     },
     expectedBounds: reference.expectedBounds,
-    currentBounds: pathBounds(block.imageGeometry.d),
+    currentBounds: pathBounds(visualPath),
     expectedSubpathCount: reference.expectedSubpathCount,
-    actualSubpathCount: parseSubpathCount(block.imageGeometry.d),
+    actualSubpathCount: pathSubpathCount(visualPath),
     expectedPointCount: reference.expectedPointCount,
     actualPointCount: points.length,
     expectedArea: reference.expectedArea,
@@ -178,7 +154,10 @@ const blockRows = SAJIK_BLOCKS.map((block) => {
     maxComponentOutsidePathDistance: alignment?.maxComponentOutsidePathDistance ?? '',
     pathColorCoverageRatio: alignment?.pathColorCoverageRatio ?? '',
     manualReviewNote: block.imageGeometry.manualReviewNote,
-    path: block.imageGeometry.d,
+    path: visualPath,
+    visualPath,
+    hitPath,
+    geometryVersion: block.imageGeometry.geometryVersion,
   };
 });
 
