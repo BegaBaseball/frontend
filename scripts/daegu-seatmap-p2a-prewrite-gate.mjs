@@ -322,6 +322,10 @@ const inputPacketPath = path.join(p2OperatorDir, 'daegu-seatmap-p2a-operator-inp
 const postEntryQaPath = path.join(p2OperatorDir, 'daegu-seatmap-p2a-operator-post-entry-qa.json');
 const validationPath = path.join(p2OperatorDir, 'daegu-seatmap-operator-corrections-validation.json');
 const importPath = path.join(reportDir, 'daegu-seatmap-p2-operator-import.json');
+const p1PostwriteGatePath = path.join(
+  reportDir,
+  'daegu-p1-operator/daegu-seatmap-p1-boundary-first-postwrite-gate.json',
+);
 
 const reports = {
   input: await readJsonReport(inputPath),
@@ -330,6 +334,7 @@ const reports = {
   validation: await readJsonReport(validationPath),
   import: await readJsonReport(importPath),
 };
+const p1PostwriteGateReport = await readJsonReport(p1PostwriteGatePath);
 
 const structuralBlockers = [];
 Object.values(reports).forEach((report) => {
@@ -341,6 +346,7 @@ const inputPacketSummary = reports.inputPacket.data?.summary ?? {};
 const postEntryQaSummary = reports.postEntryQa.data?.summary ?? {};
 const validationSummary = reports.validation.data?.summary ?? {};
 const importSummary = reports.import.data?.summary ?? {};
+const p1PostwriteGateSummary = p1PostwriteGateReport.data?.summary ?? {};
 
 if (reports.input.exists && input.targetBatchId !== TARGET_BATCH_ID) structuralBlockers.push(`P2_INPUT_BATCH_MISMATCH:${input.targetBatchId ?? ''}`);
 if (reports.input.exists && input.productionWriteAllowed !== false) structuralBlockers.push('P2_INPUT_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
@@ -538,7 +544,10 @@ const approvedRows = rows.filter((row) => row.approved);
 const waitingRows = rows.filter((row) => !row.approved);
 const rowBlockers = rows.flatMap((row) => row.blockers.map((blocker) => `${row.block || row.blockId}:${blocker}`));
 const allBlockers = [...structuralBlockers, ...rowBlockers];
-const p1PostwriteStatus = postEntryQaSummary.p1PostwriteStatus ?? inputPacketSummary.p1PostwriteStatus ?? '';
+const p1PostwriteStatus = p1PostwriteGateSummary.status
+  ?? postEntryQaSummary.p1PostwriteStatus
+  ?? inputPacketSummary.p1PostwriteStatus
+  ?? '';
 const p1PostwriteVerified = p1PostwriteStatus === 'postwrite-verified';
 const status = allBlockers.length > 0
   ? 'blocked'
@@ -601,6 +610,8 @@ const summary = {
   sourcePostEntryQa: path.relative(frontendRoot, postEntryQaPath),
   sourceValidation: path.relative(frontendRoot, validationPath),
   sourceImportDryRun: path.relative(frontendRoot, importPath),
+  sourceP1PostwriteGate: path.relative(frontendRoot, p1PostwriteGatePath),
+  sourceP1PostwriteGateExists: p1PostwriteGateReport.exists,
 };
 
 const report = {

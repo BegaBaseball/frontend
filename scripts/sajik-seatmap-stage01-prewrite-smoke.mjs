@@ -224,6 +224,51 @@ const tamperTargetSourceForReadiness = ({ manualPatchPlanReport }) => {
   }
 };
 
+const simulateAppliedForReadiness = ({ postApplyReport, operatorStatusReport, manualPatchPlanReport }) => {
+  const appliedSectionIds = new Set((postApplyReport.rows ?? []).map((row) => row.sectionId));
+  const approvedRows = operatorStatusReport.summary?.approvedRows ?? appliedSectionIds.size;
+
+  postApplyReport.summary.status = 'applied';
+  postApplyReport.summary.appliedRows = appliedSectionIds.size;
+  postApplyReport.summary.unappliedRows = 0;
+  postApplyReport.summary.blockers = [];
+  postApplyReport.summary.warnings = [];
+  for (const row of postApplyReport.rows ?? []) {
+    row.applied = true;
+    row.hitPathMatches = true;
+    row.labelPointMatches = true;
+    row.legacyLabelMatches = true;
+    row.visualPathLocked = true;
+    row.reasons = [];
+  }
+
+  operatorStatusReport.summary.status = 'applied';
+  operatorStatusReport.summary.appliedRows = approvedRows;
+  operatorStatusReport.summary.notAppliedRows = 0;
+  operatorStatusReport.summary.manualPatchChecklistRows = 0;
+  operatorStatusReport.summary.statusCounts = {
+    APPLIED: approvedRows,
+    PENDING: Math.max(0, (operatorStatusReport.summary.totalRows ?? 0) - approvedRows),
+  };
+  operatorStatusReport.summary.warnings = [];
+  for (const row of operatorStatusReport.rows ?? []) {
+    if (appliedSectionIds.has(row.sectionId)) {
+      row.rowStatus = 'APPLIED';
+      row.action = 'NO_ACTION';
+      row.postApplyStatus = 'applied';
+      row.postApplyReasons = [];
+    }
+  }
+  operatorStatusReport.manualPatchChecklist = [];
+
+  manualPatchPlanReport.summary.status = 'applied';
+  manualPatchPlanReport.summary.appliedRows = approvedRows;
+  manualPatchPlanReport.summary.notAppliedRows = 0;
+  manualPatchPlanReport.summary.manualPatchRows = 0;
+  manualPatchPlanReport.summary.warnings = [];
+  manualPatchPlanReport.rows = [];
+};
+
 const runPrewrite = async ({ caseId, input, tamperReadinessReports = null }) => {
   const caseDir = path.join(smokeRootDir, caseId);
   const caseInputPath = path.join(caseDir, 'sajik-seatmap-stage01-operator-input.json');
@@ -743,6 +788,9 @@ setApprovedNoDelta(approvedNoDeltaInput, '021');
 const approvedWithDeltaInput = cloneJson(baseInput);
 setApprovedWithDelta(approvedWithDeltaInput, '021');
 
+const approvedAppliedInput = cloneJson(baseInput);
+setApprovedWithDelta(approvedAppliedInput, '021');
+
 const invalidApprovedInput = cloneJson(baseInput);
 setInvalidApproved(invalidApprovedInput, '021');
 
@@ -814,6 +862,11 @@ const rawCaseResults = [
     caseId: 'tampered-target-source-readiness',
     input: approvedWithDeltaInput,
     tamperReadinessReports: tamperTargetSourceForReadiness,
+  }),
+  await runPrewrite({
+    caseId: 'approved-applied-after-manual-patch',
+    input: approvedAppliedInput,
+    tamperReadinessReports: simulateAppliedForReadiness,
   }),
 ];
 const operatorPackagePreservation = await runOperatorPackagePreservation(approvedWithDeltaInput);
@@ -1269,6 +1322,42 @@ const caseResults = [
     realApprovalReadinessAction: 'FIX_APPROVAL',
     realApprovalReadinessBlocker: 'TARGET_SOURCE_FILE_MISMATCH',
   }),
+  validateCase(rawCaseResults[12], {
+    exitCode: 0,
+    status: 'ready-for-data-patch',
+    approvedRows: 1,
+    patchPreviewRows: 1,
+    inputAidExitCode: 0,
+    inputAidStatus: 'ready-for-prewrite',
+    inputAidReadyRows: 1,
+    inputAidRejectedRows: 0,
+    inputAidNeedsRetraceRows: 0,
+    inputAidKeepCurrentRows: 0,
+    inputAidInvalidRows: 0,
+    inputAidRowStatus: 'READY_FOR_PREWRITE',
+    inputAidAction: 'RUN_PREWRITE',
+    geometryDelta: true,
+    applyReadyExitCode: 0,
+    applyReadyStatus: 'ready-for-manual-apply',
+    postApplyExitCode: 0,
+    postApplyStatus: 'applied',
+    operatorStatusExitCode: 0,
+    operatorStatus: 'applied',
+    operatorRowStatus: 'APPLIED',
+    manualPatchPlanExitCode: 0,
+    manualPatchPlanStatus: 'applied',
+    manualPatchPlanRows: 0,
+    realApprovalReadinessExitCode: 0,
+    realApprovalReadinessStatus: 'applied',
+    realApprovalReadinessApprovedRows: 1,
+    realApprovalReadinessReadyRows: 0,
+    realApprovalReadinessNotAppliedRows: 0,
+    realApprovalReadinessAppliedRows: 1,
+    realApprovalReadinessBlockedRows: 0,
+    realApprovalReadinessManualPatchRows: 0,
+    realApprovalReadinessRowStatus: 'APPROVED_APPLIED',
+    realApprovalReadinessAction: 'VERIFY_APPLIED',
+  }),
 ];
 
 const failedCases = caseResults.filter((result) => !result.passed);
@@ -1338,6 +1427,7 @@ const report = {
     'The approved-with-delta fixture also confirms manual patch plan reports MANUAL_PATCH_REQUIRED before a manual data patch is present.',
     'The approved-with-delta fixture also confirms real approval readiness reports APPROVED_NOT_APPLIED before a manual data patch is present.',
     'The approved-no-delta fixture confirms real approval readiness reports APPROVED_APPLIED with APPROVED_NO_GEOMETRY_DELTA.',
+    'The approved-applied-after-manual-patch fixture simulates post-apply APPLIED reports and confirms real approval readiness reports APPROVED_APPLIED with VERIFY_APPLIED.',
     'The invalid-approved-row fixture confirms approved rows with missing fields are blocked.',
     'The invalid-path-row fixture confirms malformed correctedPath values are blocked.',
     'The invalid-label-row fixture confirms labelPoint outside the correctedPath is blocked.',

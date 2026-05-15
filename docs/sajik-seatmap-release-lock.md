@@ -154,7 +154,7 @@
 
 ## 최신 검증 실행
 
-검증 시각: 2026-05-15 22:22:18 KST
+검증 시각: 2026-05-15 22:30:17 KST
 
 - `npm run qa:stadium:sajik:trace-review`: PASS
   - evidence 재생성 PASS
@@ -175,12 +175,13 @@
 - `npm run stadium:sajik:stage01-operator-status`: PASS, `status=waiting-for-operator`, `approved=0`, `applied=0`, `notApplied=0`, `pending=16`, `invalid=0`, `blockers=0`
 - `npm run stadium:sajik:stage01-manual-patch-plan`: PASS, `status=waiting-for-operator`, `manualPatchRows=0`, `approved=0`, `applied=0`, `notApplied=0`, `blockers=0`
 - `npm run stadium:sajik:stage01-real-approval-readiness`: PASS, `status=waiting-for-operator`, `approved=0`, `ready=0`, `notApplied=0`, `applied=0`, `blocked=0`, `manualPatchRows=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:sajik:stage01-prewrite-smoke`: PASS, `cases=12/12`, `operatorPackagePreservationPassed=true`, `preservationStatus=preserved`, `productionDataChanged=false`, `approved-with-delta` fixture rowStatus `NOT_APPLIED`, readiness `APPROVED_NOT_APPLIED`, `approved-no-delta` readiness `APPROVED_APPLIED`, input aid action `RUN_PREWRITE`, manual patch plan action `MANUAL_PATCH_REQUIRED`, decision row fixture `REJECTED/NEEDS_RETRACE/KEEP_CURRENT`, invalid path/label/unknown section fixtures blocked, tampered readiness fixtures block `VISUAL_PATH_CHANGED_WITHOUT_APPROVAL` and `TARGET_SOURCE_FILE_MISMATCH`
+- `npm run stadium:sajik:stage01-prewrite-smoke`: PASS, `cases=13/13`, `operatorPackagePreservationPassed=true`, `preservationStatus=preserved`, `productionDataChanged=false`, `approved-with-delta` fixture rowStatus `NOT_APPLIED`, readiness `APPROVED_NOT_APPLIED`, `approved-applied-after-manual-patch` fixture rowStatus `APPLIED`, readiness `APPROVED_APPLIED`, `approved-no-delta` readiness `APPROVED_APPLIED`, input aid action `RUN_PREWRITE`, manual patch plan action `MANUAL_PATCH_REQUIRED`, decision row fixture `REJECTED/NEEDS_RETRACE/KEEP_CURRENT`, invalid path/label/unknown section fixtures blocked, tampered readiness fixtures block `VISUAL_PATH_CHANGED_WITHOUT_APPROVAL` and `TARGET_SOURCE_FILE_MISMATCH`
 - `npm run stadium:sajik:stage01-approved-dry-run`: PASS, `target=021`, `prewrite=ready-for-data-patch`, `applyReady=ready-for-manual-apply`, `postApply=not-applied`, `readiness=ready-for-manual-apply`, `readinessRow=APPROVED_NOT_APPLIED`, `manualPatchRows=1`, `sourceDataWritePerformed=false`, `productionWriteAllowed=false`
 - `npm run stadium:sajik:marker-transition-review`: PASS, `markers=3`, `sections=3`, `seatPaths=84`, `markerLayer=3`, `aliasRendered=0`, `positionLocks=3`, `selectableCompat=3`, `markerOnlyApplied=false`, `blockers=0`
 - `npm run stadium:sajik:editor-regression`: PASS, editor v1.7 browser regression `status:passed checks=11`
-- `npm run stadium:sajik:pr-scope-guard`: PASS, `status:passed`, `included=37`, `separate=143`, `unexpected=0`, `blockers=0`, patch separation `review-required`, `safeToRunBulkGitAdd=false`
-- `npm run qa:stadium:sajik:polygon-v2`: PASS, local build env `VITE_SITE_URL=http://127.0.0.1:5176`, `VITE_API_BASE_URL=/api`, dataset/export/alignment/evidence/hitPath review/Stage 01 operator-input-aid/review-board/prewrite/apply-ready/post-apply/operator-status/manual-patch-plan/readiness/smoke/approved dry-run/marker transition review/Sajik-focused node tests/editor regression/scope guard/build 통합 게이트
+- `npm run stadium:sajik:pr-scope-guard`: BLOCKED in current partial worktree, `status=blocked`, `included=6`, `separate=42`, `unexpected=0`, `blockers=31`, patch separation `blocked`; blocker cause is missing full Sajik v2 release payload files, not Stage 01 readiness failure.
+- `npm run qa:stadium:sajik:polygon-v2`: BLOCKED at `stadium:sajik:pr-scope-guard` in current partial worktree after dataset/export/alignment/evidence/hitPath review/Stage 01 operator-input-aid/review-board/prewrite/apply-ready/post-apply/operator-status/manual-patch-plan/readiness/smoke/approved dry-run/marker transition review/Sajik-focused node tests/editor regression passed.
+- `VITE_SITE_URL=http://127.0.0.1:5176 VITE_API_BASE_URL=/api npm run build`: PASS
 - `npm run build`: PASS
 - `git diff --check`: PASS
 - `SAJIK_SEATMAP_IMAGE`의 `mapVersion`, `viewBox`, `imageSha256` 고정값과 현재 공식 PNG SHA-256 일치 확인.
@@ -198,7 +199,7 @@
 - Stage 01 operator status board는 operator input, prewrite, apply-ready, post-apply audit를 합쳐 rowStatus `PENDING/REJECTED/NEEDS_RETRACE/KEEP_CURRENT/INVALID/APPLIED/NOT_APPLIED`와 manual patch checklist를 생성해야 한다.
 - Stage 01 manual patch plan은 operator status의 `NOT_APPLIED` row만 `MANUAL_PATCH_REQUIRED` 대상으로 정리하고, `src/data/sajikSeatData.ts`에 반영할 current/approved geometry diff와 TS fragment를 read-only 산출물로 생성해야 한다. `writableSourceFields`는 `imageGeometry.hitPath`, `imageGeometry.labelPoint`, `imageGeometry.labelX`, `imageGeometry.labelY`로 제한하고, `lockedSourceFields`에는 `imageGeometry.visualPath`, `sectionKind`, `markerType`, `mapInteractionStatus`, trace metadata를 포함해야 한다.
 - Stage 01 real approval readiness gate는 실제 operator input 승인 row만 대상으로 `APPROVED_READY`, `APPROVED_NOT_APPLIED`, `APPROVED_APPLIED`, `APPROVED_BLOCKED` 상태를 산출해야 한다. 이 gate는 `sourceDataWritePerformed=false`, `productionWriteAllowed=false`, `productionDataChanged=false`를 유지하고 `visualPath`, `sectionKind`, `markerType`, `mapInteractionStatus`, trace metadata 변경을 차단해야 한다.
-- Stage 01 prewrite smoke는 pending-only, 승인 no-delta, 승인 with-delta, invalid approval 차단, invalid path/label 차단, unknown section 차단, alias/marker write 차단, rejected/needs-retrace/keep-current decision row, mixed approved/decision/pending row, visualPath tamper, target source tamper, operator input editable field 보존을 fixture로 검증하며 production data write는 수행하지 않는다.
+- Stage 01 prewrite smoke는 pending-only, 승인 no-delta, 승인 with-delta, manual patch 적용 완료 시뮬레이션, invalid approval 차단, invalid path/label 차단, unknown section 차단, alias/marker write 차단, rejected/needs-retrace/keep-current decision row, mixed approved/decision/pending row, visualPath tamper, target source tamper, operator input editable field 보존을 fixture로 검증하며 production data write는 수행하지 않는다.
 - Stage 01 approved dry-run은 `021` 1개 approved fixture로 `ready-for-data-patch -> ready-for-manual-apply -> not-applied -> MANUAL_PATCH_REQUIRED -> APPROVED_NOT_APPLIED` 상태 전이를 검증하며 source data write를 수행하지 않는다.
 - marker transition review는 휠체어석 marker/section `3/3`, marker position/labelPoint lock `3`, selectable compatibility `3`, `markerOnlyApplied=false`를 유지한다.
 - Runtime layer split은 일반 seat path 84개, accessibility marker 3개, alias-only rendered 0개를 유지한다.
@@ -233,7 +234,7 @@
 - Stage 01 operator status board는 `APPROVED` row가 valid지만 production data에 아직 반영되지 않았을 때 summary `ready-for-manual-apply`와 rowStatus `NOT_APPLIED`를 보고해야 한다.
 - Stage 01 manual patch plan은 `Source Edit Contract`, `sourceEditChecklist`, `writableSourceFields`, `lockedSourceFields`를 포함해야 하며 Stage 01에서 수정 가능한 source field를 명확히 제한해야 한다.
 - Stage 01 real approval readiness는 실제 승인 row를 기준으로 manual patch readiness를 검증해야 하며, source write 금지와 locked field 보존 계약을 위반하면 release gate를 실패시켜야 한다.
-- Stage 01 prewrite smoke는 `pending-only`, `approved-no-delta`, `approved-with-delta`, `invalid-approved-row`, `invalid-path-row`, `invalid-label-row`, `unknown-section-row`, `forbidden-alias-marker-row`, `decision-rows`, `mixed-approved-decision-pending`, `tampered-visual-path-readiness`, `tampered-target-source-readiness`, `operator-input-preservation` fixture를 모두 통과해야 하며, `productionDataChanged=false`를 유지해야 한다.
+- Stage 01 prewrite smoke는 `pending-only`, `approved-no-delta`, `approved-with-delta`, `invalid-approved-row`, `invalid-path-row`, `invalid-label-row`, `unknown-section-row`, `forbidden-alias-marker-row`, `decision-rows`, `mixed-approved-decision-pending`, `tampered-visual-path-readiness`, `tampered-target-source-readiness`, `approved-applied-after-manual-patch`, `operator-input-preservation` fixture를 모두 통과해야 하며, `productionDataChanged=false`를 유지해야 한다.
 - Stage 01 approved dry-run은 `sourceDataWritePerformed=false`, `productionWriteAllowed=false`, `productionDataChanged=false`, `manualPatchRows=1`, `readinessRow=APPROVED_NOT_APPLIED`를 유지해야 한다.
 - Stage 01 handoff 문서는 approval input contract, manual patch checklist, Stage 02 entry conditions를 고정해야 한다.
 - 좌표는 공식 PNG 좌표계 기준이며, 새 좌표는 소수 1자리 px 정밀도 안에서 관리한다.

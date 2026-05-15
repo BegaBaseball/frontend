@@ -738,6 +738,142 @@ const readSuwonZoomState = async (page) => visibleSuwonSeatMapTestId(page, 'suwo
   transform: window.getComputedStyle(node).transform,
 }));
 
+const readVisibleSuwonOverlayPaintState = async (page) => page.evaluate(() => {
+  const svg = Array.from(document.querySelectorAll('[data-testid="suwon-seatmap-svg"]'))
+    .find((candidate) => {
+      const rect = candidate.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+
+  if (!svg) {
+    return null;
+  }
+
+  const readPathState = (path) => ({
+    id: path.getAttribute('data-block-id') ?? '',
+    fillOpacity: path.getAttribute('fill-opacity') ?? '',
+    stroke: path.getAttribute('stroke') ?? '',
+    strokeWidth: path.getAttribute('stroke-width') ?? '',
+    strokeDasharray: path.getAttribute('stroke-dasharray') ?? '',
+    pointerEvents: path.getAttribute('pointer-events') ?? window.getComputedStyle(path).pointerEvents,
+    ariaPressed: path.getAttribute('aria-pressed') ?? '',
+  });
+  const visualStates = Array.from(svg.querySelectorAll('[data-layer="image-geometry-overlays"][data-block-id]'))
+    .map(readPathState);
+  const hitStates = Array.from(svg.querySelectorAll('[data-layer="hit-targets"][data-block-id]'))
+    .map(readPathState);
+  const activeVisualIds = visualStates
+    .filter((state) => Number(state.fillOpacity) > 0 || state.stroke !== 'transparent' || Number(state.strokeWidth) > 0)
+    .map((state) => state.id);
+  const selectedHitIds = hitStates
+    .filter((state) => state.ariaPressed === 'true')
+    .map((state) => state.id);
+
+  return {
+    visualCount: visualStates.length,
+    hitCount: hitStates.length,
+    activeVisualIds,
+    selectedHitIds,
+    visualStates,
+    hitStates,
+  };
+});
+
+const requireSuwonOverlayPaintState = async (page, context) => {
+  const state = await readVisibleSuwonOverlayPaintState(page);
+  if (!state) {
+    throw new Error(`Suwon overlay paint state was not available during ${context}.`);
+  }
+  if (state.visualCount < 150 || state.hitCount < 150 || state.visualCount !== state.hitCount) {
+    throw new Error(`Suwon overlay path counts are invalid during ${context}: ${JSON.stringify({
+      visualCount: state.visualCount,
+      hitCount: state.hitCount,
+    })}`);
+  }
+  return state;
+};
+
+const assertSuwonDefaultOverlayHidden = async (page) => {
+  const state = await requireSuwonOverlayPaintState(page, 'default hidden overlay check');
+  const visualPaintViolations = state.visualStates.filter((pathState) => (
+    pathState.fillOpacity !== '0'
+    || pathState.stroke !== 'transparent'
+    || pathState.strokeWidth !== '0'
+  ));
+  const hitPaintViolations = state.hitStates.filter((pathState) => (
+    pathState.fillOpacity !== '0.001'
+    || pathState.stroke !== 'transparent'
+    || pathState.strokeWidth !== '0'
+    || pathState.pointerEvents !== 'fill'
+  ));
+
+  if (visualPaintViolations.length || hitPaintViolations.length || state.selectedHitIds.length) {
+    throw new Error(`Suwon default overlay should hide visual polygons while preserving painted hit targets: ${JSON.stringify({
+      visualPaintViolations: visualPaintViolations.slice(0, 8),
+      hitPaintViolations: hitPaintViolations.slice(0, 8),
+      selectedHitIds: state.selectedHitIds,
+    })}`);
+  }
+};
+
+const assertSuwonDebugOverlayVisible = async (page) => {
+  const state = await requireSuwonOverlayPaintState(page, 'debug overlay check');
+  const hiddenVisuals = state.visualStates.filter((pathState) => (
+    pathState.fillOpacity !== '0.18'
+    || pathState.stroke === 'transparent'
+    || pathState.strokeWidth !== '4'
+  ));
+  const hiddenHitTargets = state.hitStates.filter((pathState) => (
+    pathState.fillOpacity !== '0.08'
+    || pathState.stroke !== '#22d3ee'
+    || pathState.strokeWidth !== '5'
+    || pathState.strokeDasharray !== '5 4'
+    || pathState.pointerEvents !== 'fill'
+  ));
+
+  if (hiddenVisuals.length || hiddenHitTargets.length) {
+    throw new Error(`Suwon debug overlay should expose visual and hit polygons: ${JSON.stringify({
+      hiddenVisuals: hiddenVisuals.slice(0, 8),
+      hiddenHitTargets: hiddenHitTargets.slice(0, 8),
+    })}`);
+  }
+};
+
+const assertSuwonActiveOverlayOnly = async (page, expectedId) => {
+  const state = await requireSuwonOverlayPaintState(page, `active overlay check for ${expectedId}`);
+  const expectedActiveIds = [expectedId];
+  const activeVisualIds = [...state.activeVisualIds].sort();
+  const selectedHitIds = [...state.selectedHitIds].sort();
+  const activeVisual = state.visualStates.find((pathState) => pathState.id === expectedId);
+
+  if (
+    JSON.stringify(activeVisualIds) !== JSON.stringify(expectedActiveIds)
+    || JSON.stringify(selectedHitIds) !== JSON.stringify(expectedActiveIds)
+    || !activeVisual
+    || activeVisual.fillOpacity !== '0.12'
+    || activeVisual.stroke !== '#facc15'
+    || activeVisual.strokeWidth !== '4'
+  ) {
+    throw new Error(`Suwon active overlay should only highlight ${expectedId}: ${JSON.stringify({
+      activeVisualIds,
+      selectedHitIds,
+      activeVisual,
+    })}`);
+  }
+};
+
+const verifySuwonActiveOverlayContract = async (page, targetIds) => {
+  for (const targetId of targetIds) {
+    await scrollVisibleSeatMapIntoView(page);
+    const section = visibleSuwonSeatMapTestId(page, `suwon-seat-hit-${targetId}`);
+    await section.waitFor({ state: 'attached', timeout: 10000 });
+    await dispatchSeatMapSectionClick(section);
+    await page.waitForFunction((testId) => Array.from(document.querySelectorAll(`[data-testid="${testId}"]`))
+      .some((candidate) => candidate.getAttribute('aria-pressed') === 'true'), `suwon-seat-hit-${targetId}`, { timeout: 5000 });
+    await assertSuwonActiveOverlayOnly(page, targetId);
+  }
+};
+
 const collectMetrics = async (page) => page.evaluate(() => {
   const doc = document.documentElement;
   const hero = document.querySelector('.stadium-hero-container');
@@ -4080,7 +4216,7 @@ const verifyDaeguOverlayClicks = async (page) => {
   };
 
   const waitForSelectedSection = async (ariaLabel, timeout = 5000) => page.waitForFunction((label) => {
-    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [role="button"]'));
+    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [data-layer="daegu-seat-polygon-layer"] [role="button"]'));
     return buttons.some((button) => (
       button.getAttribute('aria-label') === label
       && button.getAttribute('aria-pressed') === 'true'
@@ -4091,16 +4227,16 @@ const verifyDaeguOverlayClicks = async (page) => {
     { ariaLabel: '블루존 3-1 3-1' },
     { ariaLabel: '원정 응원석 1-1 1-1' },
     { ariaLabel: 'VIP석 M-1 M-1' },
-    { ariaLabel: '1루 테이블석 T1-1 T1-1' },
+    { ariaLabel: '1루 테이블석 T1-3 T1-3' },
     { ariaLabel: 'SKY 하단 지정석 S22 S22' },
-    { ariaLabel: '외야 지정석 LF-1 LF-1' },
-    { ariaLabel: '휠체어 장애인석 U22 U22 휠체어' },
+    { ariaLabel: '외야 지정석 LF-8 LF-8' },
+    { ariaLabel: 'SKY 블루존 U22 U22' },
   ];
 
   for (const sectionName of representativeSections) {
     await closeDetailPanel();
     await scrollVisibleSeatMapIntoView(page);
-    const section = visibleSeatMapHitAreaByLabel(page, sectionName.ariaLabel);
+    const section = page.locator(`[data-testid="stadium-seat-map"]:visible svg [data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label=${JSON.stringify(sectionName.ariaLabel)}]`).first();
     await section.click({ timeout: 5000, force: true });
     const clickSelected = await waitForSelectedSection(sectionName.ariaLabel, 1200)
       .then(() => true)
@@ -4164,29 +4300,57 @@ const verifyDaeguFullOverlayClicks = async (page) => {
     Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
       .some((svg) => {
         const rect = svg.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0 && svg.querySelectorAll('[role="button"]').length >= 150;
+        const normalSeatButtons = svg.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]').length;
+        const reviewOnlyBlocks = svg.querySelectorAll('[data-layer="daegu-review-polygon-layer"] [data-layer="review-only-seat-section"]').length;
+        const reviewOnlyButtons = svg.querySelectorAll('[data-layer="daegu-review-polygon-layer"] [role="button"]').length;
+        return (
+          rect.width > 0
+          && rect.height > 0
+          && normalSeatButtons >= 70
+          && reviewOnlyBlocks >= 90
+          && reviewOnlyButtons === 0
+        );
       })
   ), null, { timeout: 10000 });
 
-  const hitAreas = seatMapSvg.locator('[role="button"]');
+  const reviewOnlyBlock16Count = await seatMapSvg.locator('[data-testid="daegu-review-block-daegu-sky-third-upper-16"]').count();
+  if (reviewOnlyBlock16Count !== 1) {
+    throw new Error(`Daegu review overlay expected block 16 to be debug-only, got ${reviewOnlyBlock16Count}.`);
+  }
+
+  const reviewOnlySeatLayerCount = await seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [data-trace-status="NEEDS_OPERATOR_REVIEW"]').count();
+  if (reviewOnlySeatLayerCount !== 0) {
+    throw new Error(`Daegu normal seat layer must not render NEEDS_OPERATOR_REVIEW blocks, got ${reviewOnlySeatLayerCount}.`);
+  }
+
+  const markerOnlySeatLayerCount = await seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label*="휠체어 장애인석"]').count();
+  if (markerOnlySeatLayerCount !== 0) {
+    throw new Error(`Daegu marker-only accessible entries must not render in the seat polygon layer, got ${markerOnlySeatLayerCount}.`);
+  }
+
+  const markerLayerButtonCount = await seatMapSvg.locator('[data-layer="daegu-marker-layer"] [role="button"]').count();
+  if (markerLayerButtonCount !== 0) {
+    throw new Error(`Daegu marker-only layer must not expose seat selection buttons, got ${markerLayerButtonCount}.`);
+  }
+
+  const hitAreas = seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [role="button"]');
   const hitAreaCount = await hitAreas.count();
-  if (hitAreaCount < 150) {
-    throw new Error(`Daegu official seatmap full click check expected at least 150 hit areas, got ${hitAreaCount}.`);
+  if (hitAreaCount < 70) {
+    throw new Error(`Daegu official seatmap full click check expected at least 70 normal selectable hit areas, got ${hitAreaCount}.`);
   }
 
   const verifyDaeguFilterInteractions = async () => {
     const filterTargets = [
       { filterTestId: 'daegu-filter-cheer', ariaLabel: '블루존 3-1 3-1' },
-      { filterTestId: 'daegu-filter-table', ariaLabel: '1루 테이블석 T1-1 T1-1' },
-      { filterTestId: 'daegu-filter-outfield', ariaLabel: '외야 지정석 LF-1 LF-1' },
-      { filterTestId: 'daegu-filter-accessible', ariaLabel: '휠체어 장애인석 U22 U22 휠체어' },
+      { filterTestId: 'daegu-filter-table', ariaLabel: '1루 테이블석 T1-3 T1-3' },
+      { filterTestId: 'daegu-filter-outfield', ariaLabel: '외야 지정석 LF-8 LF-8' },
     ];
 
     for (const target of filterTargets) {
       await closeDetailPanel();
       await clickVisibleSeatMapFilter(page, target.filterTestId);
       await scrollVisibleSeatMapIntoView(page);
-      const section = visibleSeatMapHitAreaByLabel(page, target.ariaLabel);
+      const section = seatMapSvg.locator(`[data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label=${JSON.stringify(target.ariaLabel)}]`).first();
       await dispatchSeatMapSectionClick(section);
       await page.waitForFunction((label) => {
         const seatMapSvg = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
@@ -4194,7 +4358,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
             const rect = svg.getBoundingClientRect();
             return rect.width > 0 && rect.height > 0;
           });
-        return Array.from(seatMapSvg?.querySelectorAll('[role="button"]') ?? [])
+        return Array.from(seatMapSvg?.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]') ?? [])
           .some((button) => button.getAttribute('aria-label') === label && button.getAttribute('aria-pressed') === 'true');
       }, target.ariaLabel, { timeout: 5000 });
     }
@@ -4220,7 +4384,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
         const rect = svg.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
       });
-    const buttons = Array.from(seatMapSvg?.querySelectorAll('[role="button"]') ?? []);
+    const buttons = Array.from(seatMapSvg?.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]') ?? []);
     const button = buttons[targetIndex];
     return Boolean(
       button
@@ -4272,6 +4436,7 @@ const verifySuwonOverlayClicks = async (page) => {
     await visibleTextLocator(page, 'MANUAL_BASEBALL_DATA_REQUIRED').waitFor({ state: 'visible', timeout: 5000 });
     return;
   }
+  await assertSuwonDebugOverlayVisible(page);
 
   const closeDetailPanel = async () => {
     const closeButton = page.getByRole('button', { name: '닫기' }).first();
@@ -4398,6 +4563,21 @@ const verifySuwonOverlayClicks = async (page) => {
     { id: 'suwon-216', button: /216 중앙지정석|216/, detail: '216 중앙지정석', point: [2325, 3887] },
     { id: 'suwon-217', button: /217 중앙지정석|217/, detail: '217 중앙지정석', point: [2058, 3954] },
     { id: 'suwon-218', button: /218 중앙지정석|218/, detail: '218 중앙지정석', point: [1790, 3888] },
+    { id: 'suwon-219', button: /219 중앙지정석|219/, detail: '219 중앙지정석', point: [1620, 3817] },
+    { id: 'suwon-220', button: /220 중앙지정석|220/, detail: '220 중앙지정석', point: [1569, 3724] },
+    { id: 'suwon-221', button: /221 중앙지정석|221/, detail: '221 중앙지정석', point: [1520, 3639] },
+    { id: 'suwon-222', button: /222 중앙지정석|222/, detail: '222 중앙지정석', point: [1472, 3549] },
+    { id: 'suwon-223', button: /223 중앙지정석|223/, detail: '223 중앙지정석', point: [1424, 3461] },
+    { id: 'suwon-224', button: /224 내야지정석|224/, detail: '224 내야지정석', point: [1360, 3395] },
+    { id: 'suwon-225', button: /225 내야지정석|225/, detail: '225 내야지정석', point: [1310, 3300] },
+    { id: 'suwon-226', button: /226 내야지정석|226/, detail: '226 내야지정석', point: [1260, 3205] },
+    { id: 'suwon-227', button: /227 3루 응원지정석|227/, detail: '227 3루 응원지정석', point: [1210, 3115] },
+    { id: 'suwon-228', button: /228 3루 응원지정석|228/, detail: '228 3루 응원지정석', point: [1165, 3020] },
+    { id: 'suwon-229', button: /229 3루 응원지정석|229/, detail: '229 3루 응원지정석', point: [1110, 2930] },
+    { id: 'suwon-230', button: /230 3루 응원지정석|230/, detail: '230 3루 응원지정석', point: [1075, 2860] },
+    { id: 'suwon-231', button: /231 내야지정석|231/, detail: '231 내야지정석', point: [1040, 2780] },
+    { id: 'suwon-232', button: /232 내야지정석|232/, detail: '232 내야지정석', point: [1005, 2690] },
+    { id: 'suwon-233', button: /233 내야지정석|233/, detail: '233 내야지정석', point: [930, 2600] },
     { id: 'suwon-301', button: /301 내야일반석|301/, detail: '301 내야일반석', point: [3157, 2931] },
     { id: 'suwon-302', button: /302 내야일반석|302/, detail: '302 내야일반석', point: [3115, 3018] },
     { id: 'suwon-303', button: /303 내야일반석|303/, detail: '303 내야일반석', point: [3080, 3118] },
@@ -4554,8 +4734,16 @@ const verifySuwonOverlayClicks = async (page) => {
 
 const SUWON_FULL_CLICK_TARGETS = [
   { id: 'suwon-117', detail: '117 중앙지정석' },
+  { id: 'suwon-216', detail: '216 중앙지정석' },
+  { id: 'suwon-217', detail: '217 중앙지정석' },
+  { id: 'suwon-218', detail: '218 중앙지정석' },
   { id: 'suwon-312', detail: '312 내야일반석' },
+  { id: 'suwon-313', detail: '313 내야일반석' },
+  { id: 'suwon-314', detail: '314 중앙지정석' },
+  { id: 'suwon-315', detail: '315 중앙지정석' },
+  { id: 'suwon-316', detail: '316 중앙지정석' },
   { id: 'suwon-genie', detail: '지니존/BC카드존' },
+  { id: 'suwon-wheel-center', detail: '중앙 휠체어석' },
   { id: 'suwon-wheel-1b', detail: '1루 휠체어석' },
   { id: 'suwon-wheel-3b', detail: '3루 휠체어석' },
   { id: 'suwon-109', detail: '109 1루 응원지정석' },
@@ -4573,6 +4761,18 @@ const verifySuwonFullOverlayClicks = async (page) => {
   if (await page.getByTestId('suwon-official-seatmap-required').count()) {
     await visibleTextLocator(page, 'MANUAL_BASEBALL_DATA_REQUIRED').waitFor({ state: 'visible', timeout: 5000 });
     return;
+  }
+  await assertSuwonDefaultOverlayHidden(page);
+  await verifySuwonActiveOverlayContract(page, [
+    'suwon-rf-grass',
+    'suwon-sb35',
+    'suwon-432',
+    'suwon-1b-highfive',
+  ]);
+  const initialCloseButton = page.getByRole('button', { name: '닫기' }).first();
+  if (await initialCloseButton.count()) {
+    await initialCloseButton.click({ timeout: 3000 }).catch(() => undefined);
+    await sleep(150);
   }
 
   const waitForSeatViewGalleryState = async (targetId) => {
@@ -4849,6 +5049,136 @@ const verifySajikOverlayClicks = async (page) => {
     await sleep(120);
   };
 
+  const readVisibleSajikZoomState = async () => page.evaluate(() => {
+    const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    return {
+      zoom: Number(layer?.getAttribute('data-zoom') ?? '1'),
+      panX: Number(layer?.getAttribute('data-pan-x') ?? '0'),
+      panY: Number(layer?.getAttribute('data-pan-y') ?? '0'),
+      transform: layer ? window.getComputedStyle(layer).transform : '',
+    };
+  });
+
+  const clickVisibleSajikControl = async (testId) => {
+    const clicked = await page.evaluate((targetTestId) => {
+      const button = Array.from(document.querySelectorAll(`[data-testid="${targetTestId}"]`))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      if (!(button instanceof HTMLButtonElement)) {
+        return false;
+      }
+      button.dispatchEvent(new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      }));
+      return true;
+    }, testId);
+    if (!clicked) {
+      throw new Error(`Sajik visible zoom control was not available: ${testId}`);
+    }
+  };
+
+  const visibleSajikViewportBox = async () => page.evaluate(() => {
+    const viewport = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-viewport"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    if (!viewport) {
+      return null;
+    }
+    const rect = viewport.getBoundingClientRect();
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+
+  const verifySajikZoomPanInteraction = async () => {
+    await closeDetailPanel();
+    await scrollSajikSeatMapIntoView();
+    await page.evaluate(() => {
+      const viewport = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-viewport"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      viewport?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    });
+    await sleep(150);
+
+    await clickVisibleSajikControl('sajik-seatmap-zoom-in');
+    await sleep(120);
+    await clickVisibleSajikControl('sajik-seatmap-zoom-in');
+    await page.waitForFunction(() => {
+      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      return Number(layer?.getAttribute('data-zoom') ?? '1') >= 1.25;
+    }, null, { timeout: 5000 });
+
+    const beforeDrag = await readVisibleSajikZoomState();
+    const box = await visibleSajikViewportBox();
+    if (!box) {
+      throw new Error('Sajik zoom viewport bounding box was not available.');
+    }
+
+    const pageViewport = page.viewportSize() ?? { width: 390, height: 844 };
+    const visibleLeft = Math.max(box.x, 24);
+    const visibleRight = Math.min(box.x + box.width, pageViewport.width - 24);
+    const visibleTop = Math.max(box.y, 96);
+    const visibleBottom = Math.min(box.y + box.height, pageViewport.height - 96);
+    if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) {
+      throw new Error(`Sajik zoom viewport was not sufficiently visible for drag: ${JSON.stringify({ box, pageViewport })}`);
+    }
+
+    const startX = (visibleLeft + visibleRight) / 2;
+    const startY = (visibleTop + visibleBottom) / 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 56, startY + 34, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForFunction(() => {
+      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
+      const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
+      return Math.abs(panX) > 1 || Math.abs(panY) > 1;
+    }, null, { timeout: 5000 });
+
+    const afterDrag = await readVisibleSajikZoomState();
+    if (afterDrag.zoom < 1.25 || (afterDrag.panX === beforeDrag.panX && afterDrag.panY === beforeDrag.panY)) {
+      throw new Error(`Sajik zoom drag did not update transform state: ${JSON.stringify({ beforeDrag, afterDrag })}`);
+    }
+
+    await clickVisibleSajikControl('sajik-seatmap-zoom-reset');
+    await page.waitForFunction(() => {
+      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      const zoom = Number(layer?.getAttribute('data-zoom') ?? '1');
+      const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
+      const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
+      return zoom === 1 && panX === 0 && panY === 0;
+    }, null, { timeout: 5000 });
+  };
+
   const clickAllSajikLabelCoordinates = async () => {
     await closeDetailPanel();
     await scrollSajikSeatMapIntoView();
@@ -4864,24 +5194,31 @@ const verifySajikOverlayClicks = async (page) => {
         return { allTargets: [], clickableTargets: [] };
       }
 
-      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+      const targetSelector = '[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]';
+      const allTargets = Array.from(svg.querySelectorAll(targetSelector))
         .map((element) => {
           const testId = element.getAttribute('data-testid') ?? '';
-          const id = testId.replace('sajik-seat-block-', '');
+          const isAccessibilityMarker = testId.startsWith('sajik-accessibility-marker-');
+          const id = testId
+            .replace('sajik-seat-block-', '')
+            .replace('sajik-accessibility-marker-', '');
           const labelX = Number(element.getAttribute('data-label-x'));
           const labelY = Number(element.getAttribute('data-label-y'));
           const ariaLabel = element.getAttribute('aria-label') ?? '';
           const traceStatus = element.getAttribute('data-trace-status') ?? '';
           const pixelAlignmentStatus = element.getAttribute('data-pixel-alignment-status') ?? '';
+          const mapInteractionStatus = element.getAttribute('data-map-interaction-status') ?? '';
           const rect = element.getBoundingClientRect();
           return {
             testId,
             id,
+            targetKind: isAccessibilityMarker ? 'ACCESSIBILITY_MARKER' : 'SEAT_SECTION',
             labelX,
             labelY,
             ariaLabel,
             traceStatus,
             pixelAlignmentStatus,
+            mapInteractionStatus,
             visible: rect.width > 0 && rect.height > 0,
           };
         })
@@ -4889,6 +5226,10 @@ const verifySajikOverlayClicks = async (page) => {
 
       return {
         allTargets,
+        layerCounts: {
+          seatPaths: allTargets.filter((target) => target.targetKind === 'SEAT_SECTION').length,
+          accessibilityMarkers: allTargets.filter((target) => target.targetKind === 'ACCESSIBILITY_MARKER').length,
+        },
         clickableTargets: allTargets.filter((target) => (
           target.pixelAlignmentStatus === 'PIXEL_ALIGNED'
           && target.mapInteractionStatus === 'MAP_SELECTABLE'
@@ -4896,9 +5237,12 @@ const verifySajikOverlayClicks = async (page) => {
       };
     });
 
-    const { allTargets, clickableTargets: labelClickTargets } = labelClickTargetReport;
+    const { allTargets, layerCounts, clickableTargets: labelClickTargets } = labelClickTargetReport;
     if (allTargets.length !== 87) {
-      throw new Error(`Sajik rendered map-selectable label coordinate target count should be 87. Actual: ${allTargets.length}`);
+      throw new Error(`Sajik rendered map-selectable label coordinate target count should be 87 (84 seat paths + 3 accessibility markers). Actual: ${allTargets.length}`);
+    }
+    if (layerCounts.seatPaths !== 84 || layerCounts.accessibilityMarkers !== 3) {
+      throw new Error(`Sajik runtime layer target count should be 84 seat paths + 3 accessibility markers. Actual: ${JSON.stringify(layerCounts)}`);
     }
     if (labelClickTargets.length !== 87) {
       const skippedTargets = allTargets
@@ -4932,7 +5276,7 @@ const verifySajikOverlayClicks = async (page) => {
 
       let isPressed = false;
       for (let attempt = 0; attempt < 15; attempt += 1) {
-        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]'))
           .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
           .map((candidate) => candidate.getAttribute('data-testid')));
         isPressed = pressedIds.includes(target.testId);
@@ -4942,7 +5286,7 @@ const verifySajikOverlayClicks = async (page) => {
       if (!isPressed) {
         const hitDebug = await page.evaluate((point) => {
           const element = document.elementFromPoint(point.x, point.y);
-          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]'))
             .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
             .map((candidate) => ({
               testId: candidate.getAttribute('data-testid'),
@@ -5006,6 +5350,8 @@ const verifySajikOverlayClicks = async (page) => {
     { button: /휠체어석 1루/, detail: /휠체어석/ },
     { button: /중앙탁자석 021블록/, detail: /중앙탁자석/ },
   ];
+
+  await verifySajikZoomPanInteraction();
 
   const viewport = page.viewportSize();
   if ((viewport?.width ?? 0) >= 1000) {
