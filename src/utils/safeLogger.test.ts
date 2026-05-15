@@ -86,6 +86,31 @@ test('safeLogger redacts sensitive keys in objects', () => {
   assert.equal(payload.nested.token, '[REDACTED]');
 });
 
+test('safeLogger preserves plain diagnostic objects with message fields', () => {
+  const { calls, console } = setupSafeConsoleCapture();
+  console.warn('home bootstrap', {
+    endpoint: '/home/bootstrap?date=2026-05-14',
+    selectedDate: '2026-05-14',
+    status: 409,
+    responseCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+    message: '야구 데이터 준비가 필요합니다.',
+  });
+
+  assert.equal(calls.length, 1);
+  const payload = calls[0][1] as {
+    endpoint: unknown;
+    selectedDate: unknown;
+    status: unknown;
+    responseCode: unknown;
+    message: unknown;
+  };
+  assert.equal(payload.endpoint, '/home/bootstrap');
+  assert.equal(payload.selectedDate, '2026-05-14');
+  assert.equal(payload.status, 409);
+  assert.equal(payload.responseCode, 'MANUAL_BASEBALL_DATA_REQUIRED');
+  assert.equal(payload.message, '야구 데이터 준비가 필요합니다.');
+});
+
 test('safeLogger redacts sensitive label/value pairs in plain text', () => {
   const { calls, console } = setupSafeConsoleCapture();
   console.warn('auth', 'Authorization: token-abc-123');

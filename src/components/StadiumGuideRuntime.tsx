@@ -1,16 +1,9 @@
-import { lazy, Suspense, useCallback } from 'react';
+import { lazy, Suspense } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import {
-  INCHEON_VISIT_QUICK_ACTIONS,
-  isIncheonStadium,
-  type IncheonVisitQuickAction,
-} from '../data/incheonVisitGuide';
-import {
-  ArrowRightIcon,
-  MapIcon,
   MapPinIcon,
   RefreshIcon,
   WarningTriangleIcon,
@@ -101,102 +94,6 @@ function StadiumGuideCategorySelector({
   );
 }
 
-function IncheonVisitQuickActions({
-  selectedCategory,
-  onCategorySelect,
-  onSeatMapFocus,
-  isDark,
-}: {
-  selectedCategory: CategoryType;
-  onCategorySelect: (category: CategoryType) => void;
-  onSeatMapFocus: () => void;
-  isDark: boolean;
-}) {
-  const renderActionIcon = (action: IncheonVisitQuickAction) => {
-    if (action.kind === 'category' && action.category) {
-      const config = CATEGORY_CONFIGS[action.category];
-      const Icon = getCategoryIcon(config.iconKey);
-      return <Icon className="h-5 w-5" />;
-    }
-
-    return <MapIcon className="h-5 w-5" />;
-  };
-
-  return (
-    <section
-      data-testid="incheon-visit-quick-actions"
-      className="mb-6 rounded-2xl border-2 bg-white p-4 shadow-sm dark:bg-card sm:p-5"
-      style={{
-        borderColor: isDark ? '#374151' : '#C8102E33',
-      }}
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h4 className="text-base font-black text-slate-900 dark:text-white">처음 인천 동선</h4>
-          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            좌석, 먹거리, 픽업, 편의점, 주차 동선
-          </p>
-        </div>
-        <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-black text-[#C8102E] dark:bg-red-950/30 dark:text-red-200">
-          SSG
-        </span>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        {INCHEON_VISIT_QUICK_ACTIONS.map((action) => {
-          const categoryConfig = action.category ? CATEGORY_CONFIGS[action.category] : null;
-          const isSelected = Boolean(action.category && selectedCategory === action.category);
-          const accent = categoryConfig?.color ?? '#C8102E';
-
-          return (
-            <button
-              key={action.id}
-              type="button"
-              data-testid={`incheon-visit-action-${action.id}`}
-              onClick={() => {
-                if (action.kind === 'seatmap') {
-                  onSeatMapFocus();
-                  return;
-                }
-                if (action.category) {
-                  onCategorySelect(action.category);
-                }
-              }}
-              className="flex min-h-[92px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              style={{
-                backgroundColor: isSelected
-                  ? (isDark ? `${accent}22` : `${accent}12`)
-                  : (isDark ? '#111827' : '#f8fafc'),
-                borderColor: isSelected ? accent : (isDark ? '#374151' : '#e2e8f0'),
-              }}
-            >
-              <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: isDark ? `${accent}22` : `${accent}14`,
-                  color: accent,
-                }}
-              >
-                {renderActionIcon(action)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-black text-slate-900 dark:text-white">{action.label}</span>
-                <span className="mt-0.5 block text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-                  {action.description}
-                </span>
-                <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-black" style={{ color: accent }}>
-                  {action.actionLabel}
-                  <ArrowRightIcon className="h-3.5 w-3.5" />
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 export default function StadiumGuideRuntime() {
   const { theme, resolvedTheme } = useTheme();
   const {
@@ -227,7 +124,6 @@ export default function StadiumGuideRuntime() {
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
   const seatMapEntry = resolveStadiumSeatMapEntry(selectedStadiumId, selectedStadium?.stadiumName);
   const seatMapBadgeLabel = seatMapEntry?.badgeLabel ?? '좌석도 준비 필요';
-  const showIncheonVisitQuickActions = isIncheonStadium(selectedStadiumId, selectedStadium?.stadiumName);
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === 'dark';
@@ -242,23 +138,6 @@ export default function StadiumGuideRuntime() {
   const canShowMapFallbackActions = Boolean(selectedStadium && hasStadiumCoordinates && !canRenderMap);
   const stadiumControlsDisabled = stadiumsStatus === 'loading' || stadiumsStatus === 'empty' || stadiumsStatus === 'error';
   const listControlsDisabled = stadiumControlsDisabled || !selectedStadium;
-  const scrollToStadiumGuidePanel = useCallback((testId: string) => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    document.querySelector(`[data-testid="${testId}"]`)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, []);
-  const handleIncheonSeatMapFocus = useCallback(() => {
-    scrollToStadiumGuidePanel('stadium-seat-map');
-  }, [scrollToStadiumGuidePanel]);
-  const handleIncheonCategorySelect = useCallback((category: CategoryType) => {
-    setSelectedCategory(category);
-    window.setTimeout(() => scrollToStadiumGuidePanel('stadium-guide-places-panel'), 0);
-  }, [scrollToStadiumGuidePanel, setSelectedCategory]);
   const renderSeatMap = () => {
     if (!seatMapEntry) {
       return (
@@ -274,8 +153,7 @@ export default function StadiumGuideRuntime() {
       selectedStadiumId,
       selectedStadium?.stadiumName,
     ].filter(Boolean).join(':');
-    const shouldUseJamsilTemplateShell = seatMapEntry.isNonCoordinateMap && seatMapEntry.shellTemplate === 'jamsil-template';
-    const templateResetKey = shouldUseJamsilTemplateShell ? `template-${seatMapResetKey}` : seatMapResetKey;
+    const shellResetKey = `${seatMapEntry.shellTemplate}:${seatMapResetKey}`;
 
     return (
       <SeatMapRuntimeShell
@@ -283,7 +161,7 @@ export default function StadiumGuideRuntime() {
         usesCoordinateGeometry={seatMapEntry.usesCoordinateGeometry}
         badgeLabel={seatMapEntry.badgeLabel}
         stadiumName={selectedStadium?.stadiumName}
-        resetKey={templateResetKey}
+        resetKey={shellResetKey}
       >
         <SeatMapComponent />
       </SeatMapRuntimeShell>
@@ -309,7 +187,7 @@ export default function StadiumGuideRuntime() {
                 구장 가이드
               </h1>
             </div>
-            <p className="max-w-xl text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
+            <p className="w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
               전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
               직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
             </p>
@@ -437,15 +315,6 @@ export default function StadiumGuideRuntime() {
                     </Button>
                   </div>
                 </div>
-              )}
-
-              {showIncheonVisitQuickActions && (
-                <IncheonVisitQuickActions
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={handleIncheonCategorySelect}
-                  onSeatMapFocus={handleIncheonSeatMapFocus}
-                  isDark={isDark}
-                />
               )}
 
               {canRenderMap ? (

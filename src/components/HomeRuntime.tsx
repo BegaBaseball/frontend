@@ -174,26 +174,6 @@ const resolveAutomaticLeagueTab = (
     scheduledGames: Game[],
     visibleLeagueTabs: typeof HOME_LEAGUE_TABS,
 ): LeagueTab | null => {
-    const {
-        primary: scheduledDateGames,
-        secondary: delayedDateGames,
-        excluded: standardDateGames,
-    } = partitionScheduledGames(games);
-    const hasOnlyUpcomingDateGames = games.length > 0
-        && standardDateGames.length === 0
-        && (scheduledDateGames.length > 0 || delayedDateGames.length > 0);
-
-    if (hasOnlyUpcomingDateGames) {
-        return 'scheduled';
-    }
-
-    if (standardDateGames.length > 0) {
-        const firstType = standardDateGames[0].leagueType;
-        if (firstType === 'POSTSEASON') return coerceVisibleLeagueTab('postseason', visibleLeagueTabs);
-        if (firstType === 'KOREAN_SERIES') return coerceVisibleLeagueTab('koreanseries', visibleLeagueTabs);
-        return 'regular';
-    }
-
     if (games.length > 0) {
         const firstType = games[0].leagueType;
         if (firstType === 'POSTSEASON') return coerceVisibleLeagueTab('postseason', visibleLeagueTabs);
@@ -264,6 +244,8 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const lastBootstrapDateKeyRef = useRef<string | null>(null);
     const homeLiveSummaryInFlightRef = useRef(false);
     const homeLiveSummaryAbortRef = useRef<AbortController | null>(null);
+    const lastObservedHomeRouteSearchRef = useRef(searchParams.toString());
+    const pendingHomeRouteSearchRef = useRef<string | null>(null);
     const secondaryPanelsTimeoutRef = useRef<number | null>(null);
     const secondaryPanelsIdleCallbackRef = useRef<number | null>(null);
     const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
@@ -275,11 +257,52 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     );
 
     useEffect(() => {
-        searchParamsRef.current = searchParams;
-        if (searchParams.has('date') || searchParams.has('tab')) {
-            shouldSyncHomeRouteQueryRef.current = true;
+        const searchString = searchParams.toString();
+        const previousSearchString = lastObservedHomeRouteSearchRef.current;
+        const pendingSearchString = pendingHomeRouteSearchRef.current;
+
+        if (pendingSearchString && searchString !== pendingSearchString) {
+            return;
         }
-    }, [searchParams]);
+
+        searchParamsRef.current = searchParams;
+
+        if (pendingSearchString === searchString) {
+            pendingHomeRouteSearchRef.current = null;
+        }
+
+        lastObservedHomeRouteSearchRef.current = searchString;
+        const routeState = resolveHomeRouteState(searchParams, getTodayMidday());
+        if (routeState.hasRouteQuery) {
+            shouldSyncHomeRouteQueryRef.current = true;
+            hasUserChangedTabRef.current = routeState.hasExplicitTab;
+            const routeDateKey = formatDateForAPI(routeState.date);
+            if (routeDateKey !== formatDateForAPI(selectedDate)) {
+                setSelectedDate(routeState.date);
+            }
+            if (routeState.tab !== activeLeagueTab) {
+                setActiveLeagueTab(routeState.tab);
+            }
+            return;
+        }
+
+        const previousRouteState = previousSearchString
+            ? resolveHomeRouteState(new URLSearchParams(previousSearchString), getTodayMidday())
+            : null;
+        if (!previousRouteState?.hasRouteQuery) {
+            return;
+        }
+
+        shouldSyncHomeRouteQueryRef.current = false;
+        hasUserChangedTabRef.current = false;
+        const today = getTodayMidday();
+        if (formatDateForAPI(today) !== formatDateForAPI(selectedDate)) {
+            setSelectedDate(today);
+        }
+        if (activeLeagueTab !== 'regular') {
+            setActiveLeagueTab('regular');
+        }
+    }, [activeLeagueTab, searchParams, selectedDate]);
 
     const replaceHomeRouteState = useCallback((nextDate: Date, nextTab: LeagueTab) => {
         shouldSyncHomeRouteQueryRef.current = true;
@@ -292,6 +315,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
             return;
         }
 
+        pendingHomeRouteSearchRef.current = nextSearchParams.toString();
         searchParamsRef.current = nextSearchParams;
         setSearchParams(nextSearchParams, { replace: true });
     }, [setSearchParams]);
@@ -411,22 +435,27 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setLoadFailureReason(snapshot.loadState.failureReason);
         setManualDataRequest(snapshot.loadState.manualDataRequest);
 
-        console.info('[HomeLoad]', {
-            event: 'home_load_completed',
+        const homeLoadLogContext = {
             selectedDate: formatDateForAPI(date),
             source: snapshot.loadState.source,
             isFallback: snapshot.loadState.isFallback,
             timedOut: snapshot.loadState.timedOut,
+            failureReason: snapshot.loadState.failureReason,
             success: snapshot.success,
+        };
+
+        console.info('[HomeLoad]', {
+            event: 'home_load_completed',
+            ...homeLoadLogContext,
         });
 
         if (showConnectionError) {
             console.warn('[HomeLoad]', {
-                event: 'home_load_all_sections_failed',
-                selectedDate: formatDateForAPI(date),
-                source: snapshot.loadState.source,
-                timedOut: snapshot.loadState.timedOut,
-                success: snapshot.success,
+                event: snapshot.loadState.failureReason === 'manual-data-required'
+                    ? 'home_load_manual_data_required'
+                    : 'home_load_all_sections_failed',
+                ...homeLoadLogContext,
+                manualDataRequest: snapshot.loadState.manualDataRequest,
             });
         }
     }, []);
@@ -771,13 +800,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }
     }, [clearSecondaryPanelMount, shouldMountWelcomeGuide, showCalendar]);
 
-    const { excluded: standardGames } = useMemo(
-        () => partitionScheduledGames(games),
-        [games],
-    );
     const { regularSeasonGames, postSeasonGames, koreanSeriesGames } = useMemo(
-        () => partitionGamesByLeague(standardGames),
-        [standardGames],
+        () => partitionGamesByLeague(games),
+        [games],
     );
     const {
         primary: scheduledPrimaryGames,

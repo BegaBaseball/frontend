@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import {
@@ -25,8 +25,6 @@ interface Props {
   minZoom: number;
   maxZoom: number;
   enableAutoCenter?: boolean;
-  guideMatchedBlockIds?: readonly string[];
-  guideActive?: boolean;
 }
 
 interface SeatMapPan {
@@ -158,8 +156,6 @@ export default function IncheonSeatMapSvg({
   minZoom,
   maxZoom,
   enableAutoCenter = true,
-  guideMatchedBlockIds = [],
-  guideActive = false,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
@@ -198,7 +194,6 @@ export default function IncheonSeatMapSvg({
     : readViewportSize(viewportRef.current);
   const effectivePan = clampPan(pan, zoom, measuredViewportSize);
   const canDrag = zoom > minZoom;
-  const guideMatchedBlockIdSet = useMemo(() => new Set(guideMatchedBlockIds), [guideMatchedBlockIds]);
 
   useLayoutEffect(() => {
     const node = viewportRef.current;
@@ -667,11 +662,10 @@ export default function IncheonSeatMapSvg({
 
             const isFiltered = filterCats !== null && !filterCats.includes(block.category);
             const isActive = hover === block.id || selected?.id === block.id;
-            const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
             const baseColor = mode === 'dark' ? cat.dark : cat.light;
-            const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : isGuideMatched ? 0.24 : showDebug ? 0.08 : 0.001;
+            const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? 0.08 : 0.001;
             const stroke = mode === 'dark' ? '#F8FAFC' : '#0F172A';
-            const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.72 : showDebug ? 0.38 : 0;
+            const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.38 : 0;
 
             return (
               <g key={block.id}>
@@ -680,7 +674,6 @@ export default function IncheonSeatMapSvg({
                   data-testid={`incheon-seat-block-${block.id}`}
                   data-label-x={block.imageGeometry.labelX}
                   data-label-y={block.imageGeometry.labelY}
-                  data-guide-match={isGuideMatched ? 'true' : undefined}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={`${block.name} ${block.block}`}
                   aria-pressed={isActive}
@@ -689,7 +682,7 @@ export default function IncheonSeatMapSvg({
                   fillOpacity={fillOpacity}
                   stroke={stroke}
                   strokeOpacity={strokeOpacity}
-                  strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
+                  strokeWidth={isActive ? 4 : 2}
                   filter={isActive ? 'url(#incheon-hit-glow)' : undefined}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}

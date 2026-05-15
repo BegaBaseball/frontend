@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#020617" />
+    <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -28,11 +28,11 @@
     <style>
       /* FOUC 방지: 다크모드일 때 CSS 로드 전 즉시 배경색 적용 */
       html.dark body {
-        background-color: #020617; /* Tailwind Slate-950 (approx HSL 222 84% 4.9%) */
+        background-color: #000000; /* Tailwind Slate-950 (approx HSL 222 84% 4.9%) */
         color: #f8fafc;
       }
       html.dark {
-        background-color: #020617;
+        background-color: #000000;
       }
     </style>
 
@@ -116,10 +116,10 @@
         root.classList.add(theme);
 
         // 배경색 즉시 적용으로 깜빡임 최소화
-        const bgColor = theme === 'dark' ? '#020617' : '#ffffff';
+        const bgColor = theme === 'dark' ? '#000000' : '#ffffff';
         if (theme === 'dark') {
-          document.body && (document.body.style.backgroundColor = '#020617');
-          root.style.backgroundColor = '#020617';
+          document.body && (document.body.style.backgroundColor = '#000000');
+          root.style.backgroundColor = '#000000';
         } else {
           if (document.body) {
             document.body.style.backgroundColor = '#ffffff';
@@ -156,7 +156,7 @@
       <!-- SEO_ROOT_SLOT -->
     </div>
     <!-- #root 밖에 위치: React DOM 조정 시 제거되지 않아 0.2s 페이드가 완전히 완료됨 -->
-    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#020617;z-index:9999;transition:opacity 0.2s ease;">
+    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#000000;z-index:9999;transition:opacity 0.2s ease;">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
     </div>
     <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>
