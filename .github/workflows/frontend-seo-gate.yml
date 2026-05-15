@@ -51,6 +51,7 @@ jobs:
           site_url="${site_url:-${VITE_SITE_URL_FALLBACK}}"
           api_base_url="${api_base_url:-${VITE_API_BASE_URL_FALLBACK}}"
           require_social_verification="${require_social_verification:-${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION_FALLBACK}}"
+          require_social_verification="${require_social_verification:-false}"
           ga4_measurement_id="${ga4_measurement_id:-${VITE_GA4_MEASUREMENT_ID_FALLBACK}}"
           google_site_verification="${google_site_verification:-${VITE_GOOGLE_SITE_VERIFICATION_FALLBACK}}"
           naver_site_verification="${naver_site_verification:-${VITE_NAVER_SITE_VERIFICATION_FALLBACK}}"
