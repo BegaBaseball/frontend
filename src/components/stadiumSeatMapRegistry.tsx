@@ -11,7 +11,7 @@ export type StadiumSeatMapPresetId =
   | 'sajik'
   | 'suwon';
 
-export type StadiumSeatMapShellTemplate = 'legacy' | 'jamsil-template';
+export type StadiumSeatMapShellTemplate = 'standard';
 
 export interface StadiumSeatMapEntry {
   id: StadiumSeatMapPresetId;
@@ -38,7 +38,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'JamsilSeatMap',
     Component: lazySeatMap(() => import('./jamsil/JamsilSeatMap')),
     usesCoordinateGeometry: false,
-    shellTemplate: 'jamsil-template',
+    shellTemplate: 'standard',
     isNonCoordinateMap: true,
   },
   {
@@ -50,7 +50,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'IncheonSeatMap',
     Component: lazySeatMap(() => import('./incheon/IncheonSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -62,7 +62,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'DaeguSeatMap',
     Component: lazySeatMap(() => import('./daegu/DaeguSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -74,7 +74,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'DaejeonSeatMap',
     Component: lazySeatMap(() => import('./daejeon/DaejeonSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -86,7 +86,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'GocheokSeatMap',
     Component: lazySeatMap(() => import('./gocheok/GocheokSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -98,7 +98,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'GwangjuSeatMap',
     Component: lazySeatMap(() => import('./gwangju/GwangjuSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -110,7 +110,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'ChangwonSeatMap',
     Component: lazySeatMap(() => import('./changwon/ChangwonSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -122,7 +122,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'SajikSeatMap',
     Component: lazySeatMap(() => import('./sajik/SajikSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
   {
@@ -134,7 +134,7 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
     componentName: 'SuwonSeatMap',
     Component: lazySeatMap(() => import('./suwon/SuwonSeatMap')),
     usesCoordinateGeometry: true,
-    shellTemplate: 'legacy',
+    shellTemplate: 'standard',
     isNonCoordinateMap: false,
   },
 ];

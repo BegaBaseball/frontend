@@ -7,7 +7,7 @@ interface SeatMapTemplateShellProps {
   titleAccentColor: string;
   seatMapTestId?: string;
   isMobile: boolean;
-  isDoosanGuideActive: boolean;
+  isAuxiliaryGuideActive: boolean;
   filterBar?: ReactNode;
   mobileFilterBar?: ReactNode;
   desktopFilterBar?: ReactNode;
@@ -15,9 +15,11 @@ interface SeatMapTemplateShellProps {
   attribution: ReactNode;
   legend?: ReactNode;
   mobileSidePanel?: ReactNode;
+  mobileSecondaryPanel?: ReactNode;
   mobileBottomSheet?: ReactNode;
   mobileHasSidePanel?: boolean;
   desktopSidePanel?: ReactNode;
+  desktopSecondaryPanel?: ReactNode;
   toast?: string | null;
   isFullscreenOpen: boolean;
   fullscreenMapContent: ReactNode;
@@ -35,7 +37,7 @@ export function SeatMapTemplateShell({
   titleAccentColor,
   seatMapTestId = 'stadium-seat-map',
   isMobile,
-  isDoosanGuideActive,
+  isAuxiliaryGuideActive,
   filterBar,
   mobileFilterBar,
   desktopFilterBar,
@@ -43,9 +45,11 @@ export function SeatMapTemplateShell({
   attribution,
   legend,
   mobileSidePanel,
+  mobileSecondaryPanel,
   mobileBottomSheet,
   mobileHasSidePanel = false,
   desktopSidePanel,
+  desktopSecondaryPanel,
   toast,
   isFullscreenOpen,
   fullscreenMapContent,
@@ -55,6 +59,14 @@ export function SeatMapTemplateShell({
   fullscreenTitle,
   fullscreenSubtitle,
 }: SeatMapTemplateShellProps) {
+  const resolvedMobileSecondaryPanel = mobileSecondaryPanel ?? mobileSidePanel;
+  const resolvedDesktopPanel = (desktopSecondaryPanel || desktopSidePanel) ? (
+    <div className="space-y-3">
+      {desktopSecondaryPanel}
+      {desktopSidePanel}
+    </div>
+  ) : null;
+  const hasDesktopPanel = !isAuxiliaryGuideActive && Boolean(resolvedDesktopPanel);
   const mapSection = (
     <div
       className="relative"
@@ -83,20 +95,20 @@ export function SeatMapTemplateShell({
   return (
     <>
       {isMobile ? (
-        <div className={isDoosanGuideActive || !mobileHasSidePanel ? 'pb-4' : 'pb-80'}>
-          {!isDoosanGuideActive && (mobileFilterBar ?? filterBar)}
+        <div className={isAuxiliaryGuideActive || !mobileHasSidePanel ? 'pb-4' : 'pb-80'}>
+          {!isAuxiliaryGuideActive && (mobileFilterBar ?? filterBar)}
 
           {mapFrame}
-          {!isDoosanGuideActive && mobileSidePanel && (
+          {!isAuxiliaryGuideActive && resolvedMobileSecondaryPanel && (
             <div className="mt-3">
-              {mobileSidePanel}
+              {resolvedMobileSecondaryPanel}
             </div>
           )}
-          {!isDoosanGuideActive && mobileBottomSheet}
+          {!isAuxiliaryGuideActive && mobileBottomSheet}
         </div>
       ) : (
         <>
-          {!isDoosanGuideActive && (
+          {!isAuxiliaryGuideActive && (
             <div className="flex items-center gap-2.5 flex-wrap mb-3">
               <div className="flex-1 min-w-0">
                 {desktopFilterBar ?? filterBar}
@@ -107,12 +119,12 @@ export function SeatMapTemplateShell({
           <div
             className="grid gap-4"
             style={{
-              gridTemplateColumns: isDoosanGuideActive ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 380px',
+              gridTemplateColumns: hasDesktopPanel ? 'minmax(0, 1fr) 380px' : 'minmax(0, 1fr)',
               alignItems: 'start',
             }}
           >
             {mapFrame}
-            {desktopSidePanel}
+            {resolvedDesktopPanel}
           </div>
         </>
       )}
@@ -125,7 +137,7 @@ export function SeatMapTemplateShell({
         </div>
       )}
 
-      {isFullscreenOpen && !isDoosanGuideActive && (
+      {isFullscreenOpen && !isAuxiliaryGuideActive && (
         <div
           role="dialog"
           aria-modal="true"
