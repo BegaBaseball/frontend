@@ -11,16 +11,22 @@ export type SajikTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';
 export type SajikTraceVersion = 'manual-polygon-v2';
 export type SajikPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRED';
 export type SajikMapInteractionStatus = 'MAP_SELECTABLE' | 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
+export type SajikMarkerType = 'WHEELCHAIR';
+export type SajikSectionKind = 'SEAT_SECTION' | 'ACCESSIBILITY_MARKER' | 'ALIAS_ONLY';
 export type SajikSeatMapPoint = [number, number];
 
 export interface SajikImageGeometry {
   d: string;
+  visualPath?: string;
+  hitPath?: string;
   labelX: number;
   labelY: number;
+  labelPoint?: SajikSeatMapPoint;
   labelRotate?: number;
   labelFontSize?: number;
   shortLabel: string;
   alignmentSeedPoint?: SajikTracePoint;
+  geometryVersion?: SajikTraceVersion;
   traceMethod: SajikTraceMethod;
   traceSource: SajikTraceSource;
   traceVersion: SajikTraceVersion;
@@ -50,9 +56,13 @@ export interface SajikOfficialTraceReference {
 }
 
 export interface SajikSeatMapImage {
+  stadiumId: 'BUSAN_SAJIK';
+  mapVersion: 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2';
   imagePath: string;
   imageWidth: number;
   imageHeight: number;
+  viewBox: string;
+  imageSha256: string;
   sourceLabel: string;
   sourceUrl: string | null;
   assetStatus: SajikSeatMapAssetStatus;
@@ -77,6 +87,8 @@ export interface SajikBlock {
   seatViewSections: string[];
   imageGeometry: SajikImageGeometry;
   accessibilityNote?: string;
+  markerType?: SajikMarkerType;
+  sectionKind?: SajikSectionKind;
 }
 
 export interface SajikCategory {
@@ -140,11 +152,19 @@ export interface SajikBlockMatch {
 }
 
 export const SAJIK_REFERENCE_URL = 'https://www.giantsclub.com/html/?pcode=340';
+export const SAJIK_STADIUM_ID = 'BUSAN_SAJIK';
+export const SAJIK_MAP_VERSION = 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2';
+export const SAJIK_VIEW_BOX = '0 0 960 640';
+export const SAJIK_IMAGE_SHA256 = 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa';
 
 export const SAJIK_SEATMAP_IMAGE: SajikSeatMapImage = {
+  stadiumId: SAJIK_STADIUM_ID,
+  mapVersion: SAJIK_MAP_VERSION,
   imagePath: 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png',
   imageWidth: 960,
   imageHeight: 640,
+  viewBox: SAJIK_VIEW_BOX,
+  imageSha256: SAJIK_IMAGE_SHA256,
   sourceLabel: '롯데자이언츠 공식 좌석안내 2026 시즌',
   sourceUrl: SAJIK_REFERENCE_URL,
   assetStatus: 'OFFICIAL',
@@ -267,14 +287,31 @@ function createSajikBlock(block: SajikBlockDefinition): SajikBlock {
   const mapInteractionStatus = SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCK_SET.has(block.block)
     ? 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE'
     : 'MAP_SELECTABLE';
+  const traceVersion = block.imageGeometry.traceVersion ?? SAJIK_TRACE_VERSION;
+  const visualPath = block.imageGeometry.visualPath ?? block.imageGeometry.d;
+  const hitPath = block.imageGeometry.hitPath ?? visualPath;
+  const labelPoint = block.imageGeometry.labelPoint ?? ([block.imageGeometry.labelX, block.imageGeometry.labelY] as SajikSeatMapPoint);
+  const markerType = block.markerType ?? (block.category === 'ACCESSIBLE' ? 'WHEELCHAIR' : undefined);
+  const sectionKind = block.sectionKind
+    ?? (mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE'
+      ? 'ALIAS_ONLY'
+      : markerType === 'WHEELCHAIR'
+        ? 'ACCESSIBILITY_MARKER'
+        : 'SEAT_SECTION');
   return {
     ...publicBlock,
     mapInteractionStatus,
+    markerType,
+    sectionKind,
     imageGeometry: {
       ...block.imageGeometry,
+      visualPath,
+      hitPath,
+      labelPoint,
+      geometryVersion: block.imageGeometry.geometryVersion ?? traceVersion,
       traceMethod: block.imageGeometry.traceMethod ?? 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
       traceSource: block.imageGeometry.traceSource ?? SAJIK_TRACE_SOURCE,
-      traceVersion: block.imageGeometry.traceVersion ?? SAJIK_TRACE_VERSION,
+      traceVersion,
       manualReviewed: block.imageGeometry.manualReviewed ?? true,
       pixelAlignmentStatus,
       manualReviewNote: block.imageGeometry.manualReviewNote
@@ -1948,6 +1985,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     displayPriority: 87,
     imageGeometry: {
       d: 'M 452 253 L 476 263 L 471 283 L 467 283 L 446 276 Z',
+      hitPath: 'M 452 253 L 476 263 L 471 283 L 467 283 L 449 276 Z',
       labelX: 454,
       labelY: 276,
       labelRotate: 0,

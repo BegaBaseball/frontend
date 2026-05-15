@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
@@ -33,130 +34,54 @@ import {
   getSajikTraceStatusLabel,
   type SajikBlock,
 } from './sajikSeatData';
-
-const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
-
-function pathToPoints(d: string): Array<[number, number]> {
-  const numbers = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  const points: Array<[number, number]> = [];
-
-  for (let index = 0; index < numbers.length - 1; index += 2) {
-    points.push([numbers[index], numbers[index + 1]]);
-  }
-
-  return points;
-}
-
-function pathSubpathCount(d: string): number {
-  return (d.match(/(?:^|\s)M\s/g) ?? []).length || 1;
-}
-
-function pathBounds(d: string) {
-  const points = pathToPoints(d);
-  const xs = points.map(([x]) => x);
-  const ys = points.map(([, y]) => y);
-
-  return {
-    minX: Math.min(...xs),
-    minY: Math.min(...ys),
-    maxX: Math.max(...xs),
-    maxY: Math.max(...ys),
-  };
-}
-
-function polygonArea(points: Array<[number, number]>): number {
-  const signedArea = points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return area + ((point[0] * next[1]) - (next[0] * point[1]));
-  }, 0);
-
-  return Math.abs(signedArea / 2);
-}
+import {
+  buildSajikSeatMapSectionPatchPayload,
+  buildSajikSeatMapDataset,
+  formatSajikSeatMapSectionPatchTsFragment,
+  formatSajikSeatMapDatasetIssue,
+  geometrySnapshotFromPolygons,
+  SAJIK_HITPATH_EXPANSION_CANDIDATE_SECTION_IDS,
+  validateSajikSeatMapDataset,
+  validateSajikSeatMapDatasetIssues,
+} from './sajikSeatMapDataset';
+import {
+  distanceToPolygon as distanceToSeatMapPolygon,
+  isSingleClosedPolygonPath,
+  pathBounds,
+  pathSubpathCount,
+  pathToPoints,
+  pointInPolygon,
+  polygonArea,
+  polygonSelfIntersections,
+  segmentsIntersect,
+  validateSeatMapPolygonPath,
+  type SeatMapPoint,
+} from '../utils/seatMapPolygonValidator';
 
 function assertWithinTolerance(actual: number, expected: number, tolerance: number, message: string) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: expected ${expected}, actual ${actual}, tolerance ${tolerance}`);
 }
 
-function isPointInsidePolygon(x: number, y: number, points: Array<[number, number]>): boolean {
-  let inside = false;
+const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
+const SAJIK_EXPLICIT_HIT_PATH_BLOCKS = new Set<string>([
+  'sajik-accessible-휠체어석-3루',
+]);
 
-  for (let index = 0, previous = points.length - 1; index < points.length; previous = index++) {
-    const [xi, yi] = points[index];
-    const [xj, yj] = points[previous];
-    const intersects = ((yi > y) !== (yj > y))
-      && x < (((xj - xi) * (y - yi)) / (yj - yi)) + xi;
-
-    if (intersects) {
-      inside = !inside;
-    }
-  }
-
-  return inside;
+function isPointInsidePolygon(x: number, y: number, points: SeatMapPoint[]): boolean {
+  return pointInPolygon([x, y], points);
 }
 
-function distanceToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const segmentLengthSquared = (dx * dx) + (dy * dy);
-
-  if (segmentLengthSquared === 0) {
-    return Math.hypot(px - ax, py - ay);
-  }
-
-  const t = Math.max(0, Math.min(1, (((px - ax) * dx) + ((py - ay) * dy)) / segmentLengthSquared));
-  return Math.hypot(px - (ax + (t * dx)), py - (ay + (t * dy)));
-}
-
-function distanceToPolygon(px: number, py: number, points: Array<[number, number]>): number {
-  return points.reduce((minimum, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return Math.min(minimum, distanceToSegment(px, py, point[0], point[1], next[0], next[1]));
-  }, Number.POSITIVE_INFINITY);
-}
-
-function orientation(a: [number, number], b: [number, number], c: [number, number]): number {
-  return ((b[0] - a[0]) * (c[1] - a[1])) - ((b[1] - a[1]) * (c[0] - a[0]));
-}
-
-function isPointOnSegment(point: [number, number], start: [number, number], end: [number, number]): boolean {
-  const epsilon = 0.0001;
-  if (Math.abs(orientation(start, end, point)) > epsilon) {
-    return false;
-  }
-
-  return point[0] >= Math.min(start[0], end[0]) - epsilon
-    && point[0] <= Math.max(start[0], end[0]) + epsilon
-    && point[1] >= Math.min(start[1], end[1]) - epsilon
-    && point[1] <= Math.max(start[1], end[1]) + epsilon;
-}
-
-function segmentsIntersect(
-  firstStart: [number, number],
-  firstEnd: [number, number],
-  secondStart: [number, number],
-  secondEnd: [number, number],
-): boolean {
-  const firstOrientation = orientation(firstStart, firstEnd, secondStart);
-  const secondOrientation = orientation(firstStart, firstEnd, secondEnd);
-  const thirdOrientation = orientation(secondStart, secondEnd, firstStart);
-  const fourthOrientation = orientation(secondStart, secondEnd, firstEnd);
-
-  if (
-    ((firstOrientation > 0 && secondOrientation < 0) || (firstOrientation < 0 && secondOrientation > 0))
-    && ((thirdOrientation > 0 && fourthOrientation < 0) || (thirdOrientation < 0 && fourthOrientation > 0))
-  ) {
-    return true;
-  }
-
-  return isPointOnSegment(secondStart, firstStart, firstEnd)
-    || isPointOnSegment(secondEnd, firstStart, firstEnd)
-    || isPointOnSegment(firstStart, secondStart, secondEnd)
-    || isPointOnSegment(firstEnd, secondStart, secondEnd);
+function distanceToPolygon(px: number, py: number, points: SeatMapPoint[]): number {
+  return distanceToSeatMapPolygon([px, py], points);
 }
 
 test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
+  assert.equal(SAJIK_SEATMAP_IMAGE.stadiumId, 'BUSAN_SAJIK');
+  assert.equal(SAJIK_SEATMAP_IMAGE.mapVersion, 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2');
   assert.equal(SAJIK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png');
   assert.equal(SAJIK_SEATMAP_IMAGE.requiredAssetFileName, 'sajik-lotte-seatmap-official-2026.png');
+  assert.equal(SAJIK_SEATMAP_IMAGE.viewBox, '0 0 960 640');
+  assert.equal(SAJIK_SEATMAP_IMAGE.imageSha256, 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa');
   assert.equal(SAJIK_SEATMAP_IMAGE.sourceUrl, SAJIK_REFERENCE_URL);
   assert.ok(SAJIK_SEATMAP_IMAGE.sourceLabel);
 
@@ -172,11 +97,17 @@ test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한�
 });
 
 test('사직 공식 asset 파일과 데이터 상태는 함께 전환되어야 한다', () => {
-  const assetExists = existsSync(resolve(process.cwd(), SAJIK_SEATMAP_IMAGE.imagePath));
+  const assetPath = resolve(process.cwd(), SAJIK_SEATMAP_IMAGE.imagePath);
+  const assetExists = existsSync(assetPath);
 
   if (SAJIK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL') {
     assert.equal(assetExists, true, 'OFFICIAL 상태에서는 승인된 사직 좌석도 asset 파일이 있어야 한다');
     assert.equal(SAJIK_BLOCKS.length, 89, 'OFFICIAL 상태에서는 사직 블록 hit-area 데이터가 89개여야 한다');
+    assert.equal(
+      createHash('sha256').update(readFileSync(assetPath)).digest('hex'),
+      SAJIK_SEATMAP_IMAGE.imageSha256,
+      'OFFICIAL 상태에서는 승인된 사직 좌석도 asset hash가 mapVersion 기준과 일치해야 한다',
+    );
   } else {
     assert.equal(
       assetExists,
@@ -235,6 +166,14 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.officialBlocks.length > 0, `${block.id} official blocks should exist`);
     assert.ok(block.seatViewSections.length > 0, `${block.id} seat view aliases should exist`);
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
+    assert.equal(block.imageGeometry.visualPath, block.imageGeometry.d, `${block.id} visual path should default to the official traced path`);
+    if (SAJIK_EXPLICIT_HIT_PATH_BLOCKS.has(block.id)) {
+      assert.notEqual(block.imageGeometry.hitPath, block.imageGeometry.visualPath, `${block.id} should keep its approved mobile hit-area override`);
+    } else {
+      assert.equal(block.imageGeometry.hitPath, block.imageGeometry.visualPath, `${block.id} hit path should default to the visual path until an explicit mobile hit-area is approved`);
+    }
+    assert.deepEqual(block.imageGeometry.labelPoint, [block.imageGeometry.labelX, block.imageGeometry.labelY], `${block.id} label point should mirror labelX/labelY`);
+    assert.equal(block.imageGeometry.geometryVersion, SAJIK_TRACE_VERSION, `${block.id} geometry version should use the v2 precision trace version`);
     assert.equal(block.imageGeometry.traceMethod, 'PATH_TRACED_FROM_OFFICIAL_IMAGE', `${block.id} should use direct official-image path tracing`);
     assert.equal(block.imageGeometry.traceSource, SAJIK_TRACE_SOURCE, `${block.id} should use the official PNG manual polygon source`);
     assert.equal(block.imageGeometry.traceVersion, SAJIK_TRACE_VERSION, `${block.id} should use the v2 precision trace version`);
@@ -248,6 +187,16 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.imageGeometry.shortLabel, `${block.id} image label should exist`);
     assert.ok(block.imageGeometry.labelX >= 0 && block.imageGeometry.labelX <= SAJIK_SEATMAP_IMAGE.imageWidth, `${block.id} label x should fit image bounds`);
     assert.ok(block.imageGeometry.labelY >= 0 && block.imageGeometry.labelY <= SAJIK_SEATMAP_IMAGE.imageHeight, `${block.id} label y should fit image bounds`);
+    assert.equal(
+      block.sectionKind,
+      block.mapInteractionStatus === 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE'
+        ? 'ALIAS_ONLY'
+        : block.category === 'ACCESSIBLE'
+          ? 'ACCESSIBILITY_MARKER'
+          : 'SEAT_SECTION',
+      `${block.id} should expose its normalized section kind`,
+    );
+    assert.equal(block.markerType, block.category === 'ACCESSIBLE' ? 'WHEELCHAIR' : undefined, `${block.id} marker type should only be set for wheelchair entries`);
 
     const pathNumbers = block.imageGeometry.d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
     assert.ok(pathNumbers.length >= 4, `${block.id} image geometry should contain path coordinates`);
@@ -256,6 +205,193 @@ test('사직 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
       assert.ok(coordinate >= 0 && coordinate <= limit, `${block.id} path coordinate ${coordinate} should fit image bounds`);
     });
   });
+});
+
+test('사직 sectionKind별 runtime layer 계약은 고정되어야 한다', () => {
+  const seatSections = SAJIK_BLOCKS.filter((block) => block.sectionKind === 'SEAT_SECTION');
+  const accessibilityMarkers = SAJIK_BLOCKS.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER');
+  const aliasOnlySections = SAJIK_BLOCKS.filter((block) => block.sectionKind === 'ALIAS_ONLY');
+  const mapSelectableBlocks = SAJIK_BLOCKS.filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE');
+
+  assert.equal(seatSections.length, 84, 'Sajik runtime seat path layer should have 84 seat sections');
+  assert.equal(accessibilityMarkers.length, 3, 'Sajik runtime accessibility marker layer should have 3 markers');
+  assert.equal(aliasOnlySections.length, 2, 'Sajik alias-only sections should stay out of runtime hit layers');
+  assert.equal(mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION').length, 84);
+  assert.equal(mapSelectableBlocks.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER').length, 3);
+  assert.equal(mapSelectableBlocks.filter((block) => block.sectionKind === 'ALIAS_ONLY').length, 0);
+
+  mapSelectableBlocks.forEach((block) => {
+    assert.ok(block.imageGeometry.visualPath, `${block.id} should expose visualPath for runtime rendering`);
+    assert.ok(block.imageGeometry.hitPath, `${block.id} should expose hitPath for runtime rendering`);
+    assert.ok(block.imageGeometry.labelPoint, `${block.id} should expose labelPoint for runtime rendering`);
+    assert.equal(block.imageGeometry.geometryVersion, SAJIK_TRACE_VERSION, `${block.id} should expose manual-polygon-v2 geometryVersion`);
+  });
+
+  accessibilityMarkers.forEach((block) => {
+    assert.equal(block.markerType, 'WHEELCHAIR', `${block.id} should remain a wheelchair marker`);
+    assert.equal(block.mapInteractionStatus, 'MAP_SELECTABLE', `${block.id} marker selection compatibility should stay enabled`);
+  });
+
+  aliasOnlySections.forEach((block) => {
+    assert.equal(block.mapInteractionStatus, 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE', `${block.id} should stay alias-only`);
+  });
+});
+
+test('사직 visualPath/hitPath는 공통 polygon validator 계약을 통과한다', () => {
+  SAJIK_BLOCKS.forEach((block) => {
+    const labelPoint = block.imageGeometry.labelPoint ?? [block.imageGeometry.labelX, block.imageGeometry.labelY];
+    const normalizedPaths = [block.imageGeometry.visualPath, block.imageGeometry.hitPath].filter((pathData): pathData is string => Boolean(pathData));
+    assert.equal(normalizedPaths.length, 2, `${block.id} should expose visual and hit polygon paths`);
+    normalizedPaths.forEach((pathData) => {
+      assert.deepEqual(
+        validateSeatMapPolygonPath({
+          pathData,
+          width: SAJIK_SEATMAP_IMAGE.imageWidth,
+          height: SAJIK_SEATMAP_IMAGE.imageHeight,
+          labelPoint,
+          labelTolerance: 1,
+        }),
+        [],
+        `${block.id} normalized polygon path should pass validator`,
+      );
+    });
+  });
+});
+
+test('사직 JSON dataset export 모델은 editor/export 계약을 보존한다', () => {
+  const dataset = buildSajikSeatMapDataset();
+
+  assert.equal(dataset.stadiumId, 'BUSAN_SAJIK');
+  assert.equal(dataset.mapVersion, SAJIK_SEATMAP_IMAGE.mapVersion);
+  assert.equal(dataset.coordinateSystem, 'SVG_VIEW_BOX');
+  assert.deepEqual(dataset.image, {
+    path: SAJIK_SEATMAP_IMAGE.imagePath,
+    width: 960,
+    height: 640,
+    viewBox: '0 0 960 640',
+    sha256: SAJIK_SEATMAP_IMAGE.imageSha256,
+    sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
+    sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
+  });
+  assert.deepEqual(dataset.summary, {
+    totalSections: 89,
+    enabledSections: 87,
+    aliasOnlySections: 2,
+    markers: 3,
+  });
+  assert.deepEqual(validateSajikSeatMapDataset(dataset), []);
+  assert.deepEqual(validateSajikSeatMapDatasetIssues(dataset), []);
+  assert.deepEqual(
+    dataset.sections.filter((section) => section.hitPathExpansionCandidate).map((section) => section.sectionId).sort(),
+    [...SAJIK_HITPATH_EXPANSION_CANDIDATE_SECTION_IDS].sort(),
+  );
+
+  const section112 = dataset.sections.find((section) => section.sectionId === '112');
+  assert.ok(section112, '112 section should be exported');
+  assert.equal(section112.seatCategoryLabel, SAJIK_CATEGORIES.INFIELD_FIELD_1B.label);
+  assert.equal(section112.floor, 1);
+  assert.equal(section112.enabled, true);
+  assert.equal(section112.visualPath, section112.hitPath);
+  assert.ok(section112.visualPolygon.length >= 3);
+  assert.deepEqual(section112.visualPolygon, section112.hitPolygon);
+  assert.deepEqual(section112.labelPoint, SAJIK_BLOCKS.find((block) => block.block === '112')?.imageGeometry.labelPoint);
+
+  const section112Patch = buildSajikSeatMapSectionPatchPayload(section112, dataset);
+  assert.equal(section112Patch.type, 'SAJIK_SECTION_GEOMETRY_PATCH_PREVIEW');
+  assert.equal(section112Patch.mapVersion, SAJIK_SEATMAP_IMAGE.mapVersion);
+  assert.equal(section112Patch.sectionId, '112');
+  assert.equal(section112Patch.enabled, true);
+  assert.equal(section112Patch.markerType, undefined);
+  assert.deepEqual(section112Patch.before, section112Patch.after);
+  assert.equal(section112Patch.validation.status, 'PASS');
+  assert.equal(section112Patch.validation.issueCount, 0);
+  assert.deepEqual(section112Patch.validation.issues, []);
+
+  const moved112Polygon = section112.visualPolygon.map((point, index): SeatMapPoint => (
+    index === 0 ? [point[0] + 1, point[1]] : point
+  ));
+  const moved112Geometry = geometrySnapshotFromPolygons({
+    visualPolygon: moved112Polygon,
+    hitPolygon: moved112Polygon,
+    labelPoint: section112.labelPoint,
+  });
+  const moved112Patch = buildSajikSeatMapSectionPatchPayload(section112, dataset, moved112Geometry);
+  assert.notDeepEqual(moved112Patch.before, moved112Patch.after);
+  assert.equal(moved112Patch.after.visualPath, moved112Patch.after.hitPath);
+  assert.equal(moved112Patch.validation.status, 'PASS');
+  assert.equal(moved112Patch.validation.issueCount, 0);
+  const moved112TsPatch = formatSajikSeatMapSectionPatchTsFragment(moved112Patch);
+  assert.match(moved112TsPatch, /BUSAN_SAJIK_2026_MANUAL_POLYGON_V2 112 geometry patch preview/);
+  assert.match(moved112TsPatch, /sectionId: '112'/);
+  assert.match(moved112TsPatch, /visualPath: 'M /);
+  assert.match(moved112TsPatch, /hitPath: 'M /);
+  assert.match(moved112TsPatch, /labelPoint: \[/);
+
+  const [labelX, labelY] = section112.labelPoint;
+  const tinyHitPathGeometry = geometrySnapshotFromPolygons({
+    visualPolygon: section112.visualPolygon,
+    hitPolygon: [
+      [labelX - 1, labelY - 1],
+      [labelX + 1, labelY - 1],
+      [labelX + 1, labelY + 1],
+      [labelX - 1, labelY + 1],
+    ],
+    labelPoint: section112.labelPoint,
+  });
+  const tinyHitPathPatch = buildSajikSeatMapSectionPatchPayload(section112, dataset, tinyHitPathGeometry);
+  assert.equal(tinyHitPathPatch.validation.status, 'FAIL');
+  assert.ok(tinyHitPathPatch.validation.issues.some((issue) => (
+    issue.sectionId === '112'
+    && issue.pathKind === 'hitPath'
+    && issue.code === 'HIT_POLYGON_TOO_SMALL'
+  )));
+
+  const aliasOnlySections = dataset.sections.filter((section) => section.sectionKind === 'ALIAS_ONLY');
+  assert.deepEqual(aliasOnlySections.map((section) => section.sectionId), ['011', '903']);
+  assert.ok(aliasOnlySections.every((section) => section.enabled === false));
+
+  assert.ok(aliasOnlySections[0], '011 alias-only section should be exported');
+  const alias011Patch = buildSajikSeatMapSectionPatchPayload(aliasOnlySections[0], dataset);
+  assert.equal(alias011Patch.sectionId, '011');
+  assert.equal(alias011Patch.enabled, false);
+  assert.equal(alias011Patch.sectionKind, 'ALIAS_ONLY');
+  assert.equal(alias011Patch.validation.status, 'PASS');
+
+  const wheelchairMarkers = dataset.markers.filter((marker) => marker.type === 'WHEELCHAIR');
+  assert.equal(wheelchairMarkers.length, 3);
+  const wheelchairPatch = buildSajikSeatMapSectionPatchPayload(
+    dataset.sections.find((section) => section.sectionId === wheelchairMarkers[0]?.relatedSectionId) ?? section112,
+    dataset,
+  );
+  assert.equal(wheelchairPatch.sectionKind, 'ACCESSIBILITY_MARKER');
+  assert.equal(wheelchairPatch.markerType, 'WHEELCHAIR');
+  assert.equal(wheelchairPatch.validation.status, 'PASS');
+  assert.deepEqual(
+    wheelchairMarkers.map((marker) => marker.relatedSectionId),
+    SAJIK_BLOCKS.filter((block) => block.markerType === 'WHEELCHAIR').map((block) => block.block),
+  );
+
+  const invalidDataset = {
+    ...dataset,
+    sections: [
+      {
+        ...dataset.sections[0],
+        sectionId: 'BROKEN',
+        visualPath: 'M 0 0 L 1 1 Z',
+        visualPolygon: [[0, 0], [1, 1]] as SeatMapPoint[],
+      },
+    ],
+    markers: [],
+  };
+  const invalidIssues = validateSajikSeatMapDatasetIssues(invalidDataset);
+  assert.ok(invalidIssues.some((issue) => (
+    issue.sectionId === 'BROKEN'
+    && issue.pathKind === 'visualPath'
+    && issue.code === 'MIN_POINT_COUNT_REQUIRED'
+    && issue.severity === 'error'
+  )));
+  assert.ok(invalidIssues.every((issue) => issue.message.length > 0));
+  assert.match(formatSajikSeatMapDatasetIssue(invalidIssues[0]), /^BROKEN:(visualPath|hitPath):/);
 });
 
 test('사직 trace review summary는 모든 블럭의 수동 polygon trace 완료 상태를 고정한다', () => {
@@ -358,32 +494,9 @@ test('사직 label 좌표는 자기 polygon 내부 또는 허용 오차 안에 �
 
 test('사직 polygon은 단일 폐합 path이고 자기 교차가 없다', () => {
   SAJIK_BLOCKS.forEach((block) => {
-    assert.match(
-      block.imageGeometry.d,
-      /^M\s-?\d+(?:\.\d+)?\s-?\d+(?:\.\d+)?(?:\sL\s-?\d+(?:\.\d+)?\s-?\d+(?:\.\d+)?)+\sZ$/,
-      `${block.id} should be a single closed M/L/Z polygon`,
-    );
-
+    assert.equal(isSingleClosedPolygonPath(block.imageGeometry.d), true, `${block.id} should be a single closed M/L/Z polygon`);
     const points = pathToPoints(block.imageGeometry.d);
-    points.forEach((point, edgeIndex) => {
-      const nextPoint = points[(edgeIndex + 1) % points.length];
-
-      for (let compareIndex = edgeIndex + 1; compareIndex < points.length; compareIndex += 1) {
-        const isAdjacent = Math.abs(edgeIndex - compareIndex) <= 1
-          || (edgeIndex === 0 && compareIndex === points.length - 1);
-        if (isAdjacent) {
-          continue;
-        }
-
-        const comparePoint = points[compareIndex];
-        const compareNextPoint = points[(compareIndex + 1) % points.length];
-        assert.equal(
-          segmentsIntersect(point, nextPoint, comparePoint, compareNextPoint),
-          false,
-          `${block.id} polygon edges ${edgeIndex} and ${compareIndex} should not intersect`,
-        );
-      }
-    });
+    assert.deepEqual(polygonSelfIntersections(points), [], `${block.id} polygon edges should not self-intersect`);
   });
 });
 
@@ -397,7 +510,7 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
       isPointInsidePolygon(
         block.imageGeometry.labelX,
         block.imageGeometry.labelY,
-        pathToPoints(candidate.imageGeometry.d),
+        pathToPoints(candidate.imageGeometry.hitPath),
       )
     ));
 
@@ -412,7 +525,7 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
         isPointInsidePolygon(
           block.imageGeometry.labelX,
           block.imageGeometry.labelY,
-          pathToPoints(candidate.imageGeometry.d),
+          pathToPoints(candidate.imageGeometry.hitPath),
         )
       ));
       assert.notEqual(hits.at(-1)?.id, block.id, `${block.id} should not be selectable from the map hit stack`);
