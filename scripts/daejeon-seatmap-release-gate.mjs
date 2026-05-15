@@ -22,7 +22,7 @@ const EXPECTED_BLOCKS = 145;
 const EXPECTED_TRACED = 145;
 const EXPECTED_REVIEW = 0;
 const EXPECTED_P2_ALIASES = 11;
-const EXPECTED_ANCHOR_CROPS = 26;
+const EXPECTED_ANCHOR_CROPS = 28;
 const OPERATOR_APPROVAL_STATUSES = new Set([
   'MISSING_APPROVAL',
   'PENDING_OPERATOR_APPROVAL',
@@ -96,9 +96,11 @@ const requiredFiles = {
 const requiredAnchorCropIds = [
   'home-100',
   'first-101-109',
+  'first-104-106-detail',
   'first-109-112-sequence',
   'cass-200-detail',
   'third-121-124',
+  'third-116-121-detail',
   'first-4f-table-301-413-sequence',
   'third-4f-table-414-330-sequence',
   'outfield-upper-500-509-sequence',

@@ -138,6 +138,9 @@ if (stepResults.length === commandPlan.length && blockers.length === 0) {
   if (traceReview?.summary?.totalBlocks !== 111) {
     blockers.push(`TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED:${traceReview?.summary?.totalBlocks ?? 'missing'}`);
   }
+  if (traceReview?.summary?.componentCoverageWarningCount !== 0) {
+    blockers.push(`TRACE_REVIEW_OP_COMPONENT_COVERAGE_WARNINGS_PRESENT:${traceReview?.summary?.componentCoverageWarningCount ?? 'missing'}`);
+  }
   if (browserQa?.status !== 'passed') {
     blockers.push(`BROWSER_QA_NOT_PASSED:${browserQa?.status ?? 'missing'}`);
   }

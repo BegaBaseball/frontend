@@ -14,7 +14,7 @@ const EXPECTED_BLOCKS = 145;
 const EXPECTED_TRACED = 145;
 const EXPECTED_REVIEW = 0;
 const EXPECTED_P2_ALIASES = 11;
-const EXPECTED_ANCHOR_CROPS = 26;
+const EXPECTED_ANCHOR_CROPS = 28;
 
 const WATCH_FILES = [
   'package.json',

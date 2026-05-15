@@ -46,9 +46,11 @@ const requiredStaticCropIds = [
   'first-4f-table-301-413-sequence',
   'third-4f-table-414-330-sequence',
   'outfield-upper-500-509-sequence',
+  'first-104-106-detail',
   'first-107-110-detail',
   'third-119-121-detail',
   'third-115-117-detail',
+  'third-116-121-detail',
   'third-113-114-detail',
   'third-213-225-sequence',
   'third-221-225-detail',
@@ -75,13 +77,18 @@ const requiredRegressionIds = [
   'P1_FIRST_4F_301_413_SEQUENCE_REGRESSION',
   'P1_THIRD_4F_414_330_SEQUENCE_REGRESSION',
   'P1_OUTFIELD_500_509_SEQUENCE_REGRESSION',
+  'P2_FIRST_104_106_DETAIL_REGRESSION',
   'P2_FIRST_107_110_DETAIL_REGRESSION',
   'P2_THIRD_119_121_DETAIL_REGRESSION',
   'P2_THIRD_115_117_DETAIL_REGRESSION',
+  'P2_THIRD_116_121_DETAIL_REGRESSION',
   'P2_THIRD_113_114_DETAIL_REGRESSION',
   'P2_THIRD_213_225_SEQUENCE_REGRESSION',
   'P2_THIRD_221_225_DETAIL_REGRESSION',
   'P2_THIRD_213_219_DETAIL_REGRESSION',
+  'P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION',
+  'P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION',
+  'P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION',
   'P2_SPECIAL_400_ACCESSIBLE_FIRST_REGRESSION',
   'P2_SPECIAL_425_426_THIRD_ACCESSIBLE_REGRESSION',
   'P2_SPECIAL_ACCESSIBLE_CENTER_REGRESSION',
@@ -105,7 +112,6 @@ requiredStaticCropIds.forEach((cropId) => {
 if (
   p0ReviewCropIds.size === 0
   || p1ReviewCropIds.size === 0
-  || p2ManualOnlyCropIds.size === 0
   || defaultPassCriteria.length === 0
   || defaultRejectCriteria.length === 0
   || cropCriteriaByGroup.size === 0
