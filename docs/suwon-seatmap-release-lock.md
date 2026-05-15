@@ -36,7 +36,7 @@
 - `unresolvedVisualHitMismatchBlocks=0`
 - `hitGeometryExceptions=35`
 - `unusedHitGeometryExceptionNotes=0`
-- `releaseFixtureFingerprint=4b6c7bd784bb18cad7fcdbc5ffb12f78daabf968d691647b69456b3bd74aeeaf`
+- `releaseFixtureFingerprint=0039bb9b41b25718eeed261f9441666d47a033b352a908f95623a37d9d78ab88`
 - `officialAssetSha256=a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627`
 
 ## 범위별 lock

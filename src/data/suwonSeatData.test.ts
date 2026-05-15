@@ -228,7 +228,7 @@ function suwonFixtureSignature() {
   return createHash('sha256').update(snapshotSuwonSeatFixture()).digest('hex');
 }
 
-const SUWON_RELEASE_LOCK_FIXTURE_SIGNATURE = '4b6c7bd784bb18cad7fcdbc5ffb12f78daabf968d691647b69456b3bd74aeeaf';
+const SUWON_RELEASE_LOCK_FIXTURE_SIGNATURE = '0039bb9b41b25718eeed261f9441666d47a033b352a908f95623a37d9d78ab88';
 
 function splitProbeKeysByBlock(probeKeys: Set<string>): Map<string, string[]> {
   const grouped = new Map<string, string[]>();
@@ -740,7 +740,7 @@ test('수원 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '`unresolvedVisualHitMismatchBlocks=0`',
     '`hitGeometryExceptions=35`',
     '`unusedHitGeometryExceptionNotes=0`',
-    '`releaseFixtureFingerprint=4b6c7bd784bb18cad7fcdbc5ffb12f78daabf968d691647b69456b3bd74aeeaf`',
+    '`releaseFixtureFingerprint=0039bb9b41b25718eeed261f9441666d47a033b352a908f95623a37d9d78ab88`',
     '`officialAssetSha256=a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627`',
     'reports/stadium/suwon-seatmap-release-gate.json',
     'reports/stadium/suwon-seatmap-release-gate.md',
@@ -1222,7 +1222,12 @@ test('수원 외야/하이파이브 정밀화 구역은 저정밀 polygon으로 
   const expectedMinimumPointCounts: Record<string, number> = {
     'suwon-rf-grass': 50,
     'suwon-501-508': 50,
+    'suwon-7pub': 60,
+    'suwon-green': 40,
     'suwon-k-live': 50,
+    'suwon-hite-pub': 48,
+    'suwon-kids-camp': 65,
+    'suwon-wiz-garden': 80,
     'suwon-1b-highfive': 40,
   };
 
@@ -1403,7 +1408,7 @@ test('수원 우측 하단 특수석 경계는 서로 침범하지 않는다', (
     { id: 'suwon-kids-camp', point: [3565, 2470] },
     { id: 'suwon-kids-camp', point: [3588, 2480] },
     { id: 'suwon-kids-camp', point: [3454, 2452] },
-    { id: 'suwon-wiz-garden', point: [3643, 2350] },
+    { id: 'suwon-wiz-garden', point: [3650, 2355] },
     { id: 'suwon-wiz-garden', point: [3700, 2450] },
     { id: 'suwon-wiz-garden', point: [3735, 2650] },
     { id: 'suwon-wiz-garden', point: [3660, 2800] },
@@ -1442,9 +1447,15 @@ test('수원 우측 하단 특수석 경계는 서로 침범하지 않는다', (
   assertVisualEdgeProbes(expectedEdgeProbes);
   assertExcludedVisualProbes(excludedVisualProbes);
   assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-hite-pub').imageGeometry.d)), { minX: 3197, maxX: 3417, minY: 2145, maxY: 2455 }, '하이트펍존은 공식 갈색 component bounds 안에 유지된다');
-  assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-hite-pub')!.imageGeometry.d)) < 31000, '하이트펍존은 공식 갈색 영역보다 크게 확장되지 않는다');
-  assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-kids-camp')!.imageGeometry.d)) < 60000, '키즈랜드 캠핑존은 좌측 통로까지 확장되지 않는다');
-  assert.ok(polygonArea(pathPoints(SUWON_BLOCKS.find((block) => block.id === 'suwon-wiz-garden')!.imageGeometry.d)) < 145000, '위즈가든은 우측 하단 통로까지 확장되지 않는다');
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-kids-camp').imageGeometry.d)), { minX: 3300, maxX: 3596, minY: 2034, maxY: 2487 }, '키즈랜드 캠핑존은 공식 녹색 component bounds 안에 유지된다');
+  assert.deepEqual(polygonBounds(pathPoints(suwonBlock('suwon-wiz-garden').imageGeometry.d)), { minX: 3423, maxX: 3755, minY: 2305, maxY: 3316 }, '위즈가든은 공식 녹색 component bounds 안에 유지된다');
+  const hitePubArea = polygonArea(pathPoints(suwonBlock('suwon-hite-pub').imageGeometry.d));
+  const kidsCampArea = polygonArea(pathPoints(suwonBlock('suwon-kids-camp').imageGeometry.d));
+  const wizGardenArea = polygonArea(pathPoints(suwonBlock('suwon-wiz-garden').imageGeometry.d));
+
+  assert.ok(hitePubArea >= 26000 && hitePubArea <= 27000, '하이트펍존은 공식 갈색 component 면적 범위 안에 유지된다');
+  assert.ok(kidsCampArea >= 51000 && kidsCampArea <= 52500, '키즈랜드 캠핑존은 공식 녹색 component 면적 범위 안에 유지된다');
+  assert.ok(wizGardenArea >= 131000 && wizGardenArea <= 134000, '위즈가든은 공식 녹색 component 면적 범위 안에 유지된다');
 });
 
 test('수원 공식 좌석도 주요 블록과 특수 구역을 포함한다', () => {
@@ -1560,6 +1571,66 @@ test('수원 101-133 1층 연속 구역은 전체 브라우저 QA 좌표와 경�
     '132': [1118, 2596],
     '133': [1070, 2510],
   };
+  const expectedP3FirstFloorBounds: Record<string, PixelBounds> = {
+    '101': { minX: 2973, maxX: 3113, minY: 2442, maxY: 2578 },
+    '102': { minX: 2926, maxX: 3066, minY: 2527, maxY: 2664 },
+    '103': { minX: 2878, maxX: 3017, minY: 2614, maxY: 2750 },
+    '104': { minX: 2831, maxX: 2969, minY: 2700, maxY: 2837 },
+    '105': { minX: 2783, maxX: 2921, minY: 2786, maxY: 2923 },
+    '106': { minX: 2736, maxX: 2873, minY: 2872, maxY: 3010 },
+    '107': { minX: 2688, maxX: 2824, minY: 2959, maxY: 3096 },
+    '108': { minX: 2641, maxX: 2776, minY: 3046, maxY: 3184 },
+    '109': { minX: 2593, maxX: 2728, minY: 3132, maxY: 3270 },
+    '110': { minX: 2545, maxX: 2679, minY: 3219, maxY: 3333 },
+    '111': { minX: 2498, maxX: 2595, minY: 3306, maxY: 3428 },
+    '112': { minX: 2450, maxX: 2559, minY: 3393, maxY: 3514 },
+    '113': { minX: 2402, maxX: 2510, minY: 3480, maxY: 3601 },
+    '114': { minX: 2354, maxX: 2460, minY: 3568, maxY: 3688 },
+    '120': { minX: 1656, maxX: 1761, minY: 3567, maxY: 3687 },
+    '121': { minX: 1608, maxX: 1713, minY: 3480, maxY: 3600 },
+    '122': { minX: 1560, maxX: 1665, minY: 3393, maxY: 3512 },
+    '123': { minX: 1511, maxX: 1617, minY: 3306, maxY: 3425 },
+    '124': { minX: 1462, maxX: 1569, minY: 3219, maxY: 3338 },
+    '125': { minX: 1414, maxX: 1521, minY: 3132, maxY: 3252 },
+    '126': { minX: 1377, maxX: 1474, minY: 3045, maxY: 3165 },
+    '127': { minX: 1290, maxX: 1426, minY: 2959, maxY: 3075 },
+    '128': { minX: 1242, maxX: 1378, minY: 2872, maxY: 3010 },
+    '129': { minX: 1194, maxX: 1331, minY: 2786, maxY: 2923 },
+    '130': { minX: 1146, maxX: 1284, minY: 2700, maxY: 2837 },
+    '131': { minX: 1097, maxX: 1237, minY: 2614, maxY: 2750 },
+    '132': { minX: 1049, maxX: 1189, minY: 2528, maxY: 2664 },
+    '133': { minX: 1001, maxX: 1142, minY: 2442, maxY: 2578 },
+  };
+  const expectedP3FirstFloorAreaRanges: Record<string, [number, number]> = {
+    '101': [9950, 10250],
+    '102': [9900, 10200],
+    '103': [9900, 10150],
+    '104': [9850, 10100],
+    '105': [9850, 10100],
+    '106': [9800, 10050],
+    '107': [9750, 10000],
+    '108': [9750, 10000],
+    '109': [9650, 9900],
+    '110': [8600, 8800],
+    '111': [6800, 7000],
+    '112': [7050, 7250],
+    '113': [6950, 7150],
+    '114': [6850, 7050],
+    '120': [6700, 6900],
+    '121': [6750, 6950],
+    '122': [6750, 6950],
+    '123': [6800, 7000],
+    '124': [6850, 7050],
+    '125': [6900, 7100],
+    '126': [6550, 6750],
+    '127': [9150, 9350],
+    '128': [9750, 10050],
+    '129': [9850, 10100],
+    '130': [9850, 10100],
+    '131': [9900, 10150],
+    '132': [9900, 10150],
+    '133': [10000, 10250],
+  };
   const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-109', point: [2648, 3220] },
     { id: 'suwon-110', point: [2615, 3298] },
@@ -1593,6 +1664,18 @@ test('수원 101-133 1층 연속 구역은 전체 브라우저 QA 좌표와 경�
     assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve to its block`);
   });
 
+  Object.entries(expectedP3FirstFloorBounds).forEach(([blockName, expectedBounds]) => {
+    const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should exist`);
+    const polygon = pathPoints(block.imageGeometry.d);
+    const area = polygonArea(polygon);
+    const [minArea, maxArea] = expectedP3FirstFloorAreaRanges[blockName];
+
+    assert.ok(polygon.length >= 20, `${blockName} visual polygon should keep scanline-level tracing detail`);
+    assertNearBounds(polygonBounds(polygon), expectedBounds, 1, `${blockName} official grey block bounds`);
+    assert.ok(area >= minArea && area <= maxArea, `${blockName} visual polygon area ${area} should stay in official grey block range ${minArea}-${maxArea}`);
+  });
+
   expectedEdgeProbes.forEach(({ id, point }) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.id === id);
     assert.ok(block, `${id} should exist`);
@@ -1624,30 +1707,38 @@ test('수원 201-215 2층 1루 연속 구역은 전체 브라우저 QA 좌표와
     '215': [2492, 3813],
   };
   const expectedP1Bounds: Record<string, PixelBounds> = {
+    '201': { minX: 3107, maxX: 3311, minY: 2527, maxY: 2708 },
+    '202': { minX: 3059, maxX: 3285, minY: 2613, maxY: 2807 },
+    '203': { minX: 3011, maxX: 3254, minY: 2700, maxY: 2904 },
+    '204': { minX: 2963, maxX: 3098, minY: 2786, maxY: 2916 },
     '205': { minX: 2924, maxX: 3049, minY: 2873, maxY: 3003 },
     '206': { minX: 2866, maxX: 2994, minY: 2958, maxY: 3085 },
     '207': { minX: 2818, maxX: 2937, minY: 3044, maxY: 3172 },
     '208': { minX: 2750, maxX: 2914, minY: 3109, maxY: 3266 },
     '209': { minX: 2695, maxX: 2859, minY: 3201, maxY: 3358 },
     '210': { minX: 2680, maxX: 2804, minY: 3305, maxY: 3443 },
-    '211': { minX: 2624, maxX: 2757, minY: 3397, maxY: 3529 },
+    '211': { minX: 2625, maxX: 2757, minY: 3397, maxY: 3529 },
     '212': { minX: 2575, maxX: 2708, minY: 3481, maxY: 3617 },
     '213': { minX: 2535, maxX: 2660, minY: 3568, maxY: 3705 },
     '214': { minX: 2477, maxX: 2611, minY: 3656, maxY: 3792 },
     '215': { minX: 2427, maxX: 2560, minY: 3743, maxY: 3891 },
   };
   const expectedP1AreaRanges: Record<string, [number, number]> = {
+    '201': [16950, 17200],
+    '202': [19000, 19300],
+    '203': [20700, 21000],
+    '204': [9400, 9600],
     '205': [8700, 9000],
     '206': [8400, 8700],
     '207': [7900, 8200],
     '208': [13400, 13800],
     '209': [13400, 13800],
-    '210': [10300, 10650],
-    '211': [8750, 9050],
-    '212': [9000, 9300],
-    '213': [8150, 8450],
-    '214': [9100, 9400],
-    '215': [9700, 10050],
+    '210': [11300, 11650],
+    '211': [9350, 9650],
+    '212': [9550, 9850],
+    '213': [9150, 9400],
+    '214': [9650, 9950],
+    '215': [10600, 10950],
   };
   const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-201', point: [3276, 2623] },
@@ -1703,6 +1794,8 @@ test('수원 201-215 2층 1루 연속 구역은 전체 브라우저 QA 좌표와
       const [minArea, maxArea] = expectedP1AreaRanges[blockName];
       const area = polygonArea(polygon);
       assert.ok(area >= minArea && area <= maxArea, `${blockName} visual polygon area should stay in official 205-215 band. Actual: ${area}`);
+      const minimumScanlinePoints = Number(blockName) >= 205 ? 30 : 20;
+      assert.ok(polygon.length >= minimumScanlinePoints, `${blockName} visual polygon should keep scanline-level tracing detail`);
     }
   });
 
@@ -1739,6 +1832,40 @@ test('수원 219-233 2층 3루 연속 구역은 전체 브라우저 QA 좌표와
     '232': [1005, 2690],
     '233': [930, 2600],
   };
+  const expectedP3Bounds: Record<string, PixelBounds> = {
+    '219': { minX: 1551, maxX: 1687, minY: 3743, maxY: 3891 },
+    '220': { minX: 1502, maxX: 1637, minY: 3655, maxY: 3793 },
+    '221': { minX: 1454, maxX: 1588, minY: 3586, maxY: 3705 },
+    '222': { minX: 1400, maxX: 1544, minY: 3476, maxY: 3623 },
+    '223': { minX: 1356, maxX: 1491, minY: 3394, maxY: 3529 },
+    '224': { minX: 1292, maxX: 1424, minY: 3328, maxY: 3443 },
+    '225': { minX: 1252, maxX: 1377, minY: 3233, maxY: 3345 },
+    '226': { minX: 1198, maxX: 1324, minY: 3136, maxY: 3275 },
+    '227': { minX: 1165, maxX: 1277, minY: 3054, maxY: 3178 },
+    '228': { minX: 1113, maxX: 1232, minY: 2963, maxY: 3072 },
+    '229': { minX: 1064, maxX: 1177, minY: 2871, maxY: 2990 },
+    '230': { minX: 1018, maxX: 1142, minY: 2793, maxY: 2918 },
+    '231': { minX: 972, maxX: 1101, minY: 2713, maxY: 2846 },
+    '232': { minX: 937, maxX: 1055, minY: 2628, maxY: 2758 },
+    '233': { minX: 862, maxX: 997, minY: 2533, maxY: 2663 },
+  };
+  const expectedP3AreaRanges: Record<string, [number, number]> = {
+    '219': [10650, 10950],
+    '220': [9650, 9950],
+    '221': [9200, 9500],
+    '222': [11150, 11450],
+    '223': [9550, 9850],
+    '224': [9500, 9800],
+    '225': [8800, 9100],
+    '226': [11200, 11550],
+    '227': [9200, 9500],
+    '228': [8900, 9200],
+    '229': [8400, 8700],
+    '230': [9150, 9400],
+    '231': [10550, 10850],
+    '232': [9200, 9500],
+    '233': [11400, 11750],
+  };
   const expectedEdgeProbes: Array<{ id: string; point: Point }> = [
     { id: 'suwon-219', point: [1585, 3815] },
     { id: 'suwon-219', point: [1640, 3820] },
@@ -1752,11 +1879,11 @@ test('수원 219-233 2층 3루 연속 구역은 전체 브라우저 QA 좌표와
     { id: 'suwon-223', point: [1458, 3470] },
     { id: 'suwon-224', point: [1325, 3395] },
     { id: 'suwon-224', point: [1390, 3405] },
-    { id: 'suwon-225', point: [1275, 3305] },
+    { id: 'suwon-225', point: [1289, 3298] },
     { id: 'suwon-225', point: [1340, 3310] },
-    { id: 'suwon-226', point: [1225, 3210] },
+    { id: 'suwon-226', point: [1236, 3204] },
     { id: 'suwon-226', point: [1295, 3210] },
-    { id: 'suwon-227', point: [1180, 3125] },
+    { id: 'suwon-227', point: [1189, 3120] },
     { id: 'suwon-227', point: [1245, 3130] },
     { id: 'suwon-228', point: [1130, 3030] },
     { id: 'suwon-228', point: [1200, 3030] },
@@ -1785,6 +1912,14 @@ test('수원 219-233 2층 3루 연속 구역은 전체 브라우저 QA 좌표와
       `${blockName} label should stay inside its refined visual polygon`,
     );
     assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve to its block`);
+
+    const expectedBounds = expectedP3Bounds[blockName];
+    assert.ok(expectedBounds, `${blockName} official grey block bounds should be locked`);
+    assert.ok(pathPoints(block.imageGeometry.d).length >= 20, `${blockName} visual polygon should keep scanline-level tracing detail`);
+    assert.deepEqual(polygonBounds(pathPoints(block.imageGeometry.d)), expectedBounds, `${blockName} visual polygon should keep official 219-233 diagonal bounds`);
+    const [minArea, maxArea] = expectedP3AreaRanges[blockName];
+    const area = polygonArea(pathPoints(block.imageGeometry.d));
+    assert.ok(area >= minArea && area <= maxArea, `${blockName} visual polygon area should stay in official 219-233 band. Actual: ${area}`);
   });
 
   expectedEdgeProbes.forEach(({ id, point }) => {
@@ -1838,7 +1973,7 @@ test('수원 중앙/2층 저정밀 후보는 공식 색상 외곽 다점 polygon
     'suwon-117': { minPoints: 40, minArea: 9500, maxArea: 11500 },
     'suwon-118': { minPoints: 40, minArea: 13000, maxArea: 15500 },
     'suwon-119': { minPoints: 30, minArea: 5800, maxArea: 7600 },
-    'suwon-226': { minPoints: 30, minArea: 15000, maxArea: 17500 },
+    'suwon-226': { minPoints: 30, minArea: 11200, maxArea: 11550 },
   };
 
   Object.entries(expectedGeometryContracts).forEach(([id, contract]) => {
@@ -1888,20 +2023,56 @@ test('수원 301-328 3층 연속 구역은 공식 숫자 중심선과 맞는다'
     '327': [1004, 3023],
     '328': [960, 2930],
   };
+  const expectedOfficialGreyContracts: Record<string, { bounds: PixelBounds; area: [number, number]; minPoints: number }> = {
+    'suwon-301': { bounds: { minX: 3091, maxX: 3220, minY: 2864, maxY: 3002 }, area: [9500, 9650], minPoints: 28 },
+    'suwon-302': { bounds: { minX: 3042, maxX: 3181, minY: 2951, maxY: 3095 }, area: [10500, 10650], minPoints: 30 },
+    'suwon-303': { bounds: { minX: 2996, maxX: 3141, minY: 3039, maxY: 3191 }, area: [15050, 15250], minPoints: 32 },
+    'suwon-304': { bounds: { minX: 2947, maxX: 3097, minY: 3129, maxY: 3279 }, area: [13950, 14100], minPoints: 30 },
+    'suwon-305': { bounds: { minX: 2896, maxX: 3025, minY: 3220, maxY: 3374 }, area: [14800, 15000], minPoints: 32 },
+    'suwon-306': { bounds: { minX: 2851, maxX: 3005, minY: 3305, maxY: 3459 }, area: [15550, 15750], minPoints: 32 },
+    'suwon-307': { bounds: { minX: 2799, maxX: 2957, minY: 3390, maxY: 3544 }, area: [12400, 12550], minPoints: 32 },
+    'suwon-308': { bounds: { minX: 2750, maxX: 2907, minY: 3477, maxY: 3632 }, area: [12100, 12250], minPoints: 32 },
+    'suwon-309': { bounds: { minX: 2701, maxX: 2857, minY: 3565, maxY: 3720 }, area: [12050, 12200], minPoints: 32 },
+    'suwon-310': { bounds: { minX: 2653, maxX: 2807, minY: 3653, maxY: 3809 }, area: [12000, 12150], minPoints: 32 },
+    'suwon-311': { bounds: { minX: 2604, maxX: 2758, minY: 3741, maxY: 3897 }, area: [12000, 12150], minPoints: 32 },
+    'suwon-312': { bounds: { minX: 2528, maxX: 2708, minY: 3829, maxY: 4005 }, area: [17100, 17350], minPoints: 36 },
+    'suwon-317': { bounds: { minX: 1407, maxX: 1587, minY: 3829, maxY: 4017 }, area: [17250, 17450], minPoints: 38 },
+    'suwon-318': { bounds: { minX: 1357, maxX: 1511, minY: 3741, maxY: 3897 }, area: [12000, 12150], minPoints: 32 },
+    'suwon-319': { bounds: { minX: 1307, maxX: 1462, minY: 3653, maxY: 3809 }, area: [12000, 12150], minPoints: 32 },
+    'suwon-320': { bounds: { minX: 1258, maxX: 1413, minY: 3565, maxY: 3720 }, area: [12050, 12200], minPoints: 32 },
+    'suwon-321': { bounds: { minX: 1207, maxX: 1365, minY: 3478, maxY: 3632 }, area: [12080, 12250], minPoints: 32 },
+    'suwon-322': { bounds: { minX: 1149, maxX: 1315, minY: 3389, maxY: 3544 }, area: [17450, 17650], minPoints: 32 },
+    'suwon-323': { bounds: { minX: 1112, maxX: 1260, minY: 3309, maxY: 3459 }, area: [14600, 14800], minPoints: 30 },
+    'suwon-324': { bounds: { minX: 1061, maxX: 1211, minY: 3222, maxY: 3372 }, area: [14650, 14850], minPoints: 30 },
+    'suwon-325': { bounds: { minX: 1016, maxX: 1173, minY: 3135, maxY: 3283 }, area: [14700, 14900], minPoints: 30 },
+    'suwon-326': { bounds: { minX: 973, maxX: 1112, minY: 3039, maxY: 3193 }, area: [14250, 14500], minPoints: 32 },
+    'suwon-327': { bounds: { minX: 934, maxX: 1073, minY: 2952, maxY: 3095 }, area: [10500, 10650], minPoints: 30 },
+    'suwon-328': { bounds: { minX: 895, maxX: 1024, minY: 2864, maxY: 3001 }, area: [9500, 9650], minPoints: 28 },
+  };
 
   assert.deepEqual(browserProbeIds, expectedThirdFloorIds);
 
   Object.entries(expectedAnchors).forEach(([blockName, [expectedX, expectedY]]) => {
     const block = SUWON_BLOCKS.find((candidate) => candidate.block === blockName);
     assert.ok(block, `${blockName} should exist`);
-    assert.ok(pathPoints(block.imageGeometry.d).length >= 6, `${blockName} visual polygon should remain explicitly traced`);
+    const visualPolygon = pathPoints(block.imageGeometry.d);
+    assert.ok(visualPolygon.length >= 6, `${blockName} visual polygon should remain explicitly traced`);
     assert.ok(Math.abs(block.imageGeometry.labelX - expectedX) <= 2, `${blockName} label x should follow official digit center`);
     assert.ok(Math.abs(block.imageGeometry.labelY - expectedY) <= 2, `${blockName} label y should follow official digit center`);
     assert.ok(
-      pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)),
+      pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], visualPolygon),
       `${blockName} label should stay inside its refined visual polygon`,
     );
     assert.equal(topHitBlockAt([block.imageGeometry.labelX, block.imageGeometry.labelY])?.id, block.id, `${blockName} label should resolve to its block`);
+  });
+
+  Object.entries(expectedOfficialGreyContracts).forEach(([id, contract]) => {
+    const polygon = pathPoints(suwonBlock(id).imageGeometry.d);
+    const area = polygonArea(polygon);
+
+    assert.deepEqual(polygonBounds(polygon), contract.bounds, `${id} should stay within official 3F grey component bounds`);
+    assert.ok(polygon.length >= contract.minPoints, `${id} should remain a scanline-traced multi-point polygon`);
+    assert.ok(area >= contract.area[0] && area <= contract.area[1], `${id} area should stay near official 3F grey component. Actual: ${area}`);
   });
 });
 
@@ -1911,7 +2082,7 @@ test('수원 301-328 3층 경계 probe는 기대 블록으로 해석된다', () 
     { id: 'suwon-302', point: [3128, 3000] },
     { id: 'suwon-303', point: [3066, 3088] },
     { id: 'suwon-304', point: [3028, 3188] },
-    { id: 'suwon-306', point: [2920, 3350] },
+    { id: 'suwon-306', point: [2883, 3352] },
     { id: 'suwon-307', point: [2860, 3425] },
     { id: 'suwon-308', point: [2805, 3508] },
     { id: 'suwon-310', point: [2728, 3770] },
