@@ -979,6 +979,44 @@ test('광주 특수석 hit-area는 번호 블록 label 중심을 침범하지 �
   });
 });
 
+test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공식 component 재트레이싱 기준을 유지한다', () => {
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const expectedBoundsByBlockId = {
+    'champion-seats': { minX: 461, minY: 740, maxX: 559, maxY: 843 },
+    'central-table-seats': { minX: 397, minY: 755, maxX: 523, maxY: 895 },
+    'first-surprise-seats': { minX: 714, minY: 772, maxX: 959, maxY: 848 },
+    'third-surprise-seats': { minX: 573, minY: 404, maxX: 654, maxY: 515 },
+  };
+
+  Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist for P3 precision lock`);
+    const subpaths = parsePathSubpaths(block.imageGeometry.d);
+
+    assert.deepEqual(getPathBounds(subpaths), expectedBounds);
+    assert.equal(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedSubpathCount, 1);
+    assert.deepEqual(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedBounds, expectedBounds);
+  });
+
+  const champion = blocksById.get('champion-seats')!;
+  const centralTable = blocksById.get('central-table-seats')!;
+
+  assert.equal(
+    pointInPolygon([centralTable.imageGeometry.labelX, centralTable.imageGeometry.labelY], parsePolygonPoints(champion.imageGeometry.d)),
+    false,
+    'champion hit-area should not swallow the central table label',
+  );
+  assert.equal(
+    pointInPolygon([champion.imageGeometry.labelX, champion.imageGeometry.labelY], parsePolygonPoints(centralTable.imageGeometry.d)),
+    false,
+    'central table hit-area should not swallow the champion label',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(champion.imageGeometry.d, centralTable.imageGeometry.d) <= 0.005,
+    'champion and central table polygons should share a boundary without meaningful overlap',
+  );
+});
+
 test('광주 외야석 hit-area는 외야테이블석 label을 삼키지 않는다', () => {
   const blockById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
   const pairs = [

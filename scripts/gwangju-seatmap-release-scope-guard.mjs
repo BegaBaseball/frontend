@@ -34,8 +34,12 @@ const expectedIncludedReleaseFiles = [
   'package.json',
   'reports/bundle-guard-report.json',
   'reports/dist-assets-report.json',
+  'scripts/gwangju-seatmap-image-trace-candidates.mjs',
+  'scripts/gwangju-seatmap-operator-apply.mjs',
   'scripts/gwangju-seatmap-operator-input-aid.mjs',
   'scripts/gwangju-seatmap-operator-input-packet.mjs',
+  'scripts/gwangju-seatmap-operator-status.mjs',
+  'scripts/gwangju-seatmap-operator-template-validate.mjs',
   'scripts/gwangju-seatmap-low-margin-candidates.mjs',
   'scripts/gwangju-seatmap-postoperator-audit.mjs',
   'scripts/gwangju-seatmap-pr-staging-plan.mjs',
@@ -303,36 +307,36 @@ const requiredHandoffSnippets = [
   'gwangju-seatmap-release-scope-guard.md',
   'PR Packaging Manifest',
   'Release Candidate Inventory',
-  'Included release candidate files: `19`',
+  'Included release candidate files: `23`',
   'Separate dirty work files:',
   'Separate dirty work baseline files: `95`',
   'Classified separate dirty work expansion allowed: `true`',
   'Inventory drift: `0`',
-  'releaseCandidateInventory.expectedIncludedFileCount=19',
+  'releaseCandidateInventory.expectedIncludedFileCount=23',
   'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95',
   'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
-  'prPackagingManifest.releasePayloadFileCount=19',
+  'prPackagingManifest.releasePayloadFileCount=23',
   'prPackagingManifest.separateDirtyWorkFileCount=',
   'prPackagingManifest.unexpectedDirtyFileCount=0',
   'prPackagingManifest.inventoryDriftCount=0',
   'Patch Separation Readiness',
-  'patch separation readiness: `review-required`',
-  'patchSeparationReadiness.status=review-required',
-  'patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`',
-  'patchSeparationReadiness must be reviewed before staging the release PR.',
+  'patch separation readiness: `ready` or `review-required`',
+  'patchSeparationReadiness.status=ready-or-review-required',
+  'patchSeparationReadiness only becomes `review-required` when release payload files have mixed or untracked diffs.',
+  'clean release payload files are not packaging blockers',
   'PR staging plan',
   'gwangju-seatmap-pr-staging-plan.json',
   'gwangju-seatmap-pr-staging-plan.md',
   'gwangju-seatmap-pr-staging-review.json',
   'gwangju-seatmap-pr-staging-review.md',
-  'stagingPlan.status=review-required',
+  'stagingPlan.status=ready-or-review-required',
   'stagingPlan.doesNotRunGitAdd=true',
-  'stagingPlan.releasePayloadFileCount=19',
+  'stagingPlan.releasePayloadFileCount=23',
   'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
-  'stagingReview.status=review-required',
+  'stagingReview.status=ready-or-review-required',
   'stagingReview.doesNotRunGitAdd=true',
   'stagingReview.safeToRunBulkGitAdd=false',
-  'stagingReview.releasePayloadFileCount=19',
+  'stagingReview.releasePayloadFileCount=23',
   'stagingReview.recommendsOnlyIncludedFiles=true',
   'stagingReview.doesNotRecommendSeparateDirtyWork=true',
   'RELEASE_CANDIDATE_FILE_MISSING',
@@ -412,6 +416,16 @@ const readText = async (filePath) => {
   }
 };
 
+const fileExists = async (filePath) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+};
+
 const { stdout } = await execFileAsync('git', ['status', '--short'], { cwd: frontendRoot });
 const dirtyEntries = stdout
   .split('\n')
@@ -419,6 +433,28 @@ const dirtyEntries = stdout
   .filter(Boolean)
   .map(parseStatusLine)
   .map(classifyFile);
+const dirtyEntriesByFile = new Map(dirtyEntries.map((entry) => [entry.file, entry]));
+const expectedIncludedFileSet = new Set(expectedIncludedReleaseFiles);
+const expectedIncludedFileExistence = await Promise.all(expectedIncludedReleaseFiles.map(async (file) => ({
+  file,
+  exists: await fileExists(path.join(frontendRoot, file)),
+})));
+const includedFiles = expectedIncludedFileExistence
+  .filter((entry) => entry.exists)
+  .map(({ file }) => {
+    const dirtyEntry = dirtyEntriesByFile.get(file);
+    const includedRule = includedRules.find((rule) => rule.match(file));
+
+    return {
+      status: dirtyEntry?.status ?? '-',
+      file,
+      scope: 'included',
+      rule: includedRule?.id ?? 'expected-release-payload',
+      reason: includedRule?.reason ?? 'Expected Gwangju release payload file.',
+      dirty: Boolean(dirtyEntry),
+    };
+  });
+const includedEntriesByFile = new Map(includedFiles.map((entry) => [entry.file, entry]));
 
 const releaseHandoffSource = await readText(path.join(frontendRoot, 'docs/gwangju-seatmap-release-handoff.md'));
 const releaseLockSource = await readText(path.join(frontendRoot, 'docs/gwangju-seatmap-release-lock.md'));
@@ -430,31 +466,37 @@ const releaseLockMissingSnippets = [
   'scope guard',
   'npm run stadium:gwangju:release-scope-guard',
   'preoperator 통과 + postoperator blocked + scope guard 통과',
-  'scopeGuardIncludedFiles=19',
+  'scopeGuardIncludedFiles=23',
   'scopeGuardSeparateDirtyWorkFiles=',
   'scopeGuardSeparateDirtyWorkBaselineFiles=95',
   'classifiedSeparateDirtyWorkExpansionAllowed=true',
-  'expectedIncludedFileCount=19',
+  'expectedIncludedFileCount=23',
   'expectedSeparateDirtyWorkCount baseline=95',
-  'prPackagingManifest.releasePayloadFileCount=19',
+  'prPackagingManifest.releasePayloadFileCount=23',
   'prPackagingManifest.separateDirtyWorkFileCount=',
-  'patchSeparationReadiness.status=review-required',
-  'package.json` with status `MM',
-  'stagingPlan.status=review-required',
+  'patchSeparationReadiness.status=ready-or-review-required',
+  'clean release payload files are not packaging blockers',
+  'stagingPlan.status=ready-or-review-required',
   'stagingPlan.doesNotRunGitAdd=true',
-  'stagingReview.status=review-required',
+  'stagingReview.status=ready-or-review-required',
   'stagingReview.doesNotRunGitAdd=true',
-  'stagingReview.releasePayloadFileCount=19',
+  'stagingReview.releasePayloadFileCount=23',
 ].filter((snippet) => !releaseLockSource.includes(snippet));
 
 const unexpectedFiles = dirtyEntries.filter((entry) => entry.scope === 'unexpected');
-const includedFiles = dirtyEntries.filter((entry) => entry.scope === 'included');
 const separateDirtyWork = dirtyEntries.filter((entry) => entry.scope === 'separate');
 const entriesByFile = new Map(dirtyEntries.map((entry) => [entry.file, entry]));
-const includedInventoryDiff = diffFileList(
-  expectedIncludedReleaseFiles,
-  includedFiles.map((entry) => entry.file),
-);
+includedFiles.forEach((entry) => {
+  entriesByFile.set(entry.file, entry);
+});
+const includedInventoryDiff = {
+  missing: sorted(expectedIncludedFileExistence.filter((entry) => !entry.exists).map((entry) => entry.file)),
+  extra: sorted(dirtyEntries
+    .filter((entry) => entry.scope === 'included' && !expectedIncludedFileSet.has(entry.file))
+    .map((entry) => entry.file)),
+};
+const dirtyIncludedFileCount = includedFiles.filter((entry) => entry.dirty).length;
+const cleanIncludedFileCount = includedFiles.length - dirtyIncludedFileCount;
 const separateInventoryDiff = diffFileList(
   expectedSeparateDirtyWorkFiles,
   separateDirtyWork.map((entry) => entry.file),
@@ -486,7 +528,7 @@ const groupedIncludedCounts = includedFiles.reduce((counts, entry) => ({
   [entry.rule]: (counts[entry.rule] ?? 0) + 1,
 }), {});
 
-const isMixedGitStatus = (status) => status !== '??' && status[0] !== ' ' && status[1] !== ' ';
+const isMixedGitStatus = (status) => Boolean(status && status !== '-' && status !== '??' && status[0] !== ' ' && status[1] !== ' ');
 const mixedStatusFiles = includedFiles
   .filter((entry) => isMixedGitStatus(entry.status))
   .map((entry) => ({
@@ -520,11 +562,11 @@ const patchSeparationFocusFiles = [
   },
 ];
 const patchSeparationFocusRows = patchSeparationFocusFiles.map((focus) => {
-  const entry = entriesByFile.get(focus.file);
+  const entry = includedEntriesByFile.get(focus.file) ?? entriesByFile.get(focus.file);
   return {
     file: focus.file,
     status: entry?.status ?? '-',
-    scope: entry?.scope ?? 'clean-or-missing',
+    scope: entry?.scope ?? 'missing',
     rule: entry?.rule ?? '-',
     reason: focus.reason,
   };
@@ -546,7 +588,7 @@ const inventoryRows = (expectedFiles, diff) => expectedFiles.map((file) => {
     `\`${entry?.status ?? '-'}\``,
     `\`${entry?.scope ?? 'missing'}\``,
     `\`${entry?.rule ?? '-'}\``,
-    diff.missing.includes(file) ? '`missing`' : '`present`',
+    diff.missing.includes(file) ? '`missing`' : (entry?.dirty ? '`dirty-present`' : '`clean-present`'),
   ];
 });
 
@@ -592,7 +634,7 @@ const report = {
     reviewFocusFiles: patchSeparationFocusRows,
     reviewRequiredReasons: patchSeparationReviewReasons,
     manualReviewRequired: patchSeparationStatus === 'review-required',
-    currentContract: 'MM package.json and other mixed/untracked included release files require manual review before staging.',
+    currentContract: 'Clean expected release files are accepted; mixed/untracked release payload diffs require review before staging.',
   },
   scopeContract: {
     releaseMode: 'PRE_OPERATOR_DERIVED_RANGE_RELEASE',
@@ -604,6 +646,8 @@ const report = {
   summary: {
     dirtyFileCount: dirtyEntries.length,
     includedFileCount: includedFiles.length,
+    dirtyIncludedFileCount,
+    cleanIncludedFileCount,
     separateDirtyWorkCount: separateDirtyWork.length,
     unexpectedFileCount: unexpectedFiles.length,
     blockerCount: blockers.length,
@@ -612,6 +656,8 @@ const report = {
   releaseCandidateInventory: {
     expectedIncludedFileCount: expectedIncludedReleaseFiles.length,
     actualIncludedFileCount: includedFiles.length,
+    dirtyIncludedFileCount,
+    cleanIncludedFileCount,
     missingExpectedIncludedFiles: includedInventoryDiff.missing,
     extraIncludedFiles: includedInventoryDiff.extra,
     expectedIncludedReleaseFiles,
@@ -672,7 +718,7 @@ const markdown = [
   `- manual review required: \`${report.patchSeparationReadiness.manualReviewRequired}\``,
   `- mixed status files: \`${mixedStatusFiles.length}\``,
   `- untracked included files: \`${untrackedIncludedFiles.length}\``,
-  '- `MM package.json` and other mixed/untracked included release files must be reviewed before staging the release PR.',
+  '- Clean expected release payload files are accepted; mixed/untracked included release files must be reviewed before staging the release PR.',
   '',
   patchSeparationReviewReasons.length > 0
     ? patchSeparationReviewReasons.map((reason) => `- \`${reason}\``).join('\n')
@@ -710,6 +756,8 @@ const markdown = [
     [
       ['expected included release files', `\`${expectedIncludedReleaseFiles.length}\``],
       ['actual included release files', `\`${includedFiles.length}\``],
+      ['dirty included release files', `\`${dirtyIncludedFileCount}\``],
+      ['clean included release files', `\`${cleanIncludedFileCount}\``],
       ['missing expected included files', `\`${includedInventoryDiff.missing.length}\``],
       ['extra included files', `\`${includedInventoryDiff.extra.length}\``],
       ['expected separate dirty work files', `\`${expectedSeparateDirtyWorkFiles.length}\``],
@@ -747,7 +795,7 @@ const markdown = [
         entry.reason,
       ]),
     )
-    : 'No included dirty files.',
+    : 'No included release payload files.',
   '',
   '## Separate Dirty Work',
   '',

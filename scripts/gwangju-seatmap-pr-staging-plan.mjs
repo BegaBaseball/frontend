@@ -18,8 +18,9 @@ const reviewJsonPath = path.join(reportDir, 'gwangju-seatmap-pr-staging-review.j
 const reviewMarkdownPath = path.join(reportDir, 'gwangju-seatmap-pr-staging-review.md');
 const scopeGuardPath = path.join(reportDir, 'gwangju-seatmap-release-scope-guard.json');
 const prStagingPlanPath = jsonPath;
-const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 19;
+const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 23;
 const isReviewMode = process.argv.includes('--review');
+const allowedPatchSeparationStatuses = new Set(['ready', 'review-required']);
 
 const sourcePolicy = {
   allowedCoordinateSource: 'operator-provided official PNG coordinates only',
@@ -61,6 +62,7 @@ const readJson = async (filePath) => {
 };
 
 const gitStatusRank = (status) => {
+  if (!status || status === '-') return 0;
   if (status === '??') return 3;
   if (status && status[0] !== ' ' && status[1] !== ' ') return 2;
   if (status?.[1] !== ' ') return 1;
@@ -111,6 +113,7 @@ const readIncludedDiff = async (entry) => {
   return {
     file: entry.file,
     status: entry.status,
+    dirty: Boolean(entry.dirty),
     rule: entry.rule,
     hasCachedDiff,
     hasWorktreeDiff,
@@ -122,19 +125,20 @@ const readIncludedDiff = async (entry) => {
 };
 
 const reviewClassFor = (entry, diff) => {
+  if (!entry.dirty && !diff.hasCachedDiff && !diff.hasWorktreeDiff) return 'ready-to-stage';
   if (entry.file === 'reports/bundle-guard-report.json' || entry.file === 'reports/dist-assets-report.json') {
     return 'generated-report-review-required';
   }
   if (entry.status === '??') return 'untracked-review-required';
-  if (entry.status && entry.status[0] !== ' ' && entry.status[1] !== ' ') return 'manual-hunk-review-required';
+  if (entry.status && entry.status !== '-' && entry.status[0] !== ' ' && entry.status[1] !== ' ') return 'manual-hunk-review-required';
   if (diff.hasCachedDiff && diff.hasWorktreeDiff) return 'manual-hunk-review-required';
   return 'ready-to-stage';
 };
 
 const stagingActionFor = (entry, focusFiles) => {
   if (entry.status === '??') return 'manual-whole-file-review-before-git-add';
-  if (entry.status && entry.status[0] !== ' ' && entry.status[1] !== ' ') return 'manual-hunk-review-before-staging';
-  if (focusFiles.has(entry.file)) return 'manual-confirm-scope-before-staging';
+  if (entry.status && entry.status !== '-' && entry.status[0] !== ' ' && entry.status[1] !== ' ') return 'manual-hunk-review-before-staging';
+  if (entry.status !== '-' && focusFiles.has(entry.file)) return 'manual-confirm-scope-before-staging';
   return 'stage-after-scope-confirmation';
 };
 
@@ -165,15 +169,14 @@ if (releasePayloadFileCount !== EXPECTED_RELEASE_PAYLOAD_FILE_COUNT) blockers.pu
 if (includedFiles.length !== EXPECTED_RELEASE_PAYLOAD_FILE_COUNT) blockers.push(`ACTUAL_INCLUDED_FILE_COUNT_CHANGED:${includedFiles.length}`);
 if (!classifiedSeparateDirtyWorkExpansionAllowed) blockers.push('CLASSIFIED_SEPARATE_DIRTY_WORK_EXPANSION_NOT_ALLOWED');
 if (unexpectedDirtyFileCount !== 0) blockers.push(`UNEXPECTED_DIRTY_FILES_PRESENT:${unexpectedDirtyFileCount}`);
-if (patchStatus !== 'review-required') blockers.push(`PATCH_SEPARATION_READINESS_CHANGED:${patchStatus ?? 'missing'}`);
-if (packageMixedStatus !== 'MM') blockers.push(`PACKAGE_JSON_MIXED_STATUS_MISSING:${packageMixedStatus ?? 'missing'}`);
+if (!allowedPatchSeparationStatuses.has(patchStatus)) blockers.push(`PATCH_SEPARATION_READINESS_CHANGED:${patchStatus ?? 'missing'}`);
 
 const releasePayload = includedFiles.map((entry) => ({
   ...entry,
   stagingAction: stagingActionFor(entry, focusFileSet),
 }));
 
-const manualReviewFiles = uniqueByFile([
+const manualReviewFiles = patchStatus === 'review-required' ? uniqueByFile([
   ...(patchSeparationReadiness.mixedStatusFiles ?? []),
   ...(patchSeparationReadiness.untrackedIncludedFiles ?? []),
   ...(patchSeparationReadiness.reviewFocusFiles ?? []),
@@ -188,9 +191,10 @@ const manualReviewFiles = uniqueByFile([
     focusFileSet,
   ),
   reason: entry.reason ?? 'Review before staging the release PR.',
-}));
+})) : [];
 
-const status = blockers.length > 0 ? 'blocked' : 'review-required';
+const status = blockers.length > 0 ? 'blocked' : patchStatus;
+const manualReviewRequired = status === 'review-required';
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -217,14 +221,14 @@ const report = {
     blockerCount: blockers.length,
     patchSeparationReadiness: patchStatus,
     packageJsonStatus: packageMixedStatus,
-    manualReviewRequired: true,
+    manualReviewRequired,
   },
   stagingGate: {
     status,
     safeToRunBulkGitAdd: false,
-    requiresManualReviewBeforeStaging: true,
-    requiresManualHunkReview: true,
-    currentContract: 'Report only. Do not run git add from this script; review mixed/untracked included files before staging.',
+    requiresManualReviewBeforeStaging: manualReviewRequired,
+    requiresManualHunkReview: manualReviewRequired,
+    currentContract: 'Report only. Do not run git add from this script; review mixed/untracked included files before staging when present.',
     forbiddenCommands: [
       'git add .',
       'git add -A',
@@ -259,15 +263,15 @@ const markdown = [
   '',
   '## Staging Gate',
   '',
-  '- stagingPlan.status=review-required',
+  '- stagingPlan.status=ready-or-review-required',
   '- stagingPlan.doesNotRunGitAdd=true',
   '- stagingPlan.safeToRunBulkGitAdd=false',
-  '- stagingPlan.packageJsonStatus=MM',
-  '- stagingPlan.releasePayloadFileCount=19',
+  `- stagingPlan.packageJsonStatus=${packageMixedStatus ?? 'none'}`,
+  '- stagingPlan.releasePayloadFileCount=23',
   `- stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}`,
   `- stagingPlan.separateDirtyWorkBaselineFileCount=${separateDirtyWorkBaselineFileCount ?? '-'}`,
   `- stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=${classifiedSeparateDirtyWorkExpansionAllowed}`,
-  '- Review `package.json` with status `MM` before staging the release PR.',
+  '- Clean release payload files are not packaging blockers; review mixed/untracked included files before staging when present.',
   '- Do not use `git add .`, `git add -A`, or `git commit -am` for this release payload.',
   '',
   '## Blockers',
@@ -358,7 +362,7 @@ if (isReviewMode) {
   const reviewBlockers = [
     ...blockers,
     ...(planError ? [`${planError}:reports/stadium/gwangju-seatmap-pr-staging-plan.json`] : []),
-    ...(sourcePlan?.status && sourcePlan.status !== 'review-required'
+    ...(sourcePlan?.status && !allowedPatchSeparationStatuses.has(sourcePlan.status)
       ? [`PR_STAGING_PLAN_STATUS_CHANGED:${sourcePlan.status}`]
       : []),
     ...(sourcePlan?.summary?.releasePayloadFileCount !== EXPECTED_RELEASE_PAYLOAD_FILE_COUNT
@@ -368,7 +372,8 @@ if (isReviewMode) {
   const reviewWarnings = [
     ...cachedOutsideRelease.map((entry) => `SEPARATE_FILE_HAS_INDEX_DIFF:${entry.file}:${entry.status}`),
   ];
-  const reviewStatus = reviewBlockers.length > 0 ? 'blocked' : 'review-required';
+  const reviewStatus = reviewBlockers.length > 0 ? 'blocked' : sourcePlan?.status;
+  const reviewManualRequired = reviewStatus === 'review-required';
   const reviewReport = {
     generatedAt: new Date().toISOString(),
     version: REVIEW_VERSION,
@@ -402,7 +407,7 @@ if (isReviewMode) {
       cachedOutsideReleaseCount: cachedOutsideRelease.length,
       cachedIncludedFileCount: reviewFiles.filter((entry) => entry.hasCachedDiff).length,
       worktreeIncludedFileCount: reviewFiles.filter((entry) => entry.hasWorktreeDiff).length,
-      manualReviewRequired: true,
+      manualReviewRequired: reviewManualRequired,
     },
     stagingGate: {
       status: reviewStatus,
@@ -448,13 +453,13 @@ if (isReviewMode) {
     '',
     '## Staging Gate',
     '',
-    '- stagingReview.status=review-required',
+    '- stagingReview.status=ready-or-review-required',
     '- stagingReview.doesNotRunGitAdd=true',
     '- stagingReview.safeToRunBulkGitAdd=false',
-    '- stagingReview.releasePayloadFileCount=19',
+    '- stagingReview.releasePayloadFileCount=23',
     '- stagingReview.recommendsOnlyIncludedFiles=true',
     '- stagingReview.doesNotRecommendSeparateDirtyWork=true',
-    '- Review included files with `manual-hunk-review-required`, `untracked-review-required`, or `generated-report-review-required` before staging.',
+    '- Clean release payload files are not packaging blockers; review included files with `manual-hunk-review-required`, `untracked-review-required`, or `generated-report-review-required` before staging when present.',
     '- Do not use `git add .`, `git add -A`, or `git commit -am` for this release payload.',
     '',
     '## Blockers',

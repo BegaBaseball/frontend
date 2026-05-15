@@ -243,14 +243,14 @@ npm run build
 - release audit가 `passed`가 아니거나 release gate/package/status/trace/browser QA/handoff 산출물 stale 상태를 감지한다.
 - release verify가 `release-gate -> release-scope-guard -> pr-staging-plan -> release-audit` 순서를 잃는다.
 - release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.
-- PR packaging manifest가 광주 release 후보 19개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
-- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=19`, `actualIncludedFileCount=19`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
+- PR packaging manifest가 광주 release 후보 23개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
+- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=23`, `actualIncludedFileCount=23`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
 - release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=95`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.
-- release scope guard의 `prPackagingManifest.releasePayloadFileCount=19`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
-- release scope guard의 `patchSeparationReadiness.status=review-required` 상태를 잃거나 `package.json` with status `MM` review-required 계약을 숨긴다.
-- patch separation readiness가 release PR staging 전에 review-required 상태임을 문서화하지 않는다.
-- PR staging plan이 `stagingPlan.status=review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.packageJsonStatus=MM`, `stagingPlan.releasePayloadFileCount=19`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
-- PR staging review가 `stagingReview.status=review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=19`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
+- release scope guard의 `prPackagingManifest.releasePayloadFileCount=23`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
+- release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.
+- patch separation readiness가 release payload files have mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.
+- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=23`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
+- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=23`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
 - pre-operator release verify가 `activeBlocks=111`, `operatorStatus=pending`, `REUSES_EXISTING_TRACE_ONLY` 중 하나를 잃는다.
 - post-operator acceptance가 실제 `operator-apply:write`와 `operator-postwrite-gate` 완료 전 실행된다.
 - post-operator verify가 좌표 승격 전 `POST_OPERATOR_POLYGON_NOT_APPLIED`, `status=blocked`, `actualActiveBlocks=111` 상태를 잃고 통과한다.
@@ -268,7 +268,7 @@ npm run build
   - `validDataDiff=0`
   - `blockers=0`
 - `npm run test:stadium:seatmaps`: PASS
-  - `256/256`
+  - `258/258`
   - 광주 K7/원정응원석 block-range, fanRole 필터, operator pending 계약 포함
 - `npm run qa:stadium:gwangju:trace-review`: PASS
   - `activeBlocks=111`
@@ -305,7 +305,7 @@ npm run build
   - `blockers=0`
   - `stale=0`
   - `scopeGuardStatus=passed`
-  - `scopeGuardIncludedFiles=19`
+  - `scopeGuardIncludedFiles=23`
   - `scopeGuardSeparateDirtyWorkFiles=<runtime>`
   - `scopeGuardSeparateDirtyWorkBaselineFiles=95`
   - `classifiedSeparateDirtyWorkExpansionAllowed=true`
@@ -313,30 +313,29 @@ npm run build
   - `scopeGuardBlockers=0`
 - `npm run stadium:gwangju:release-scope-guard`: PASS
   - `status=passed`
-  - `included=19`
+  - `included=23`
   - `separate=<runtime>`
   - `unexpected=0`
   - `inventoryDrift=0`
-  - `prPackagingManifest.releasePayloadFileCount=19`
+  - `prPackagingManifest.releasePayloadFileCount=23`
   - `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`
   - `prPackagingManifest.unexpectedDirtyFileCount=0`
   - `prPackagingManifest.inventoryDriftCount=0`
-  - `patchSeparationReadiness.status=review-required`
-  - `package.json` with status `MM`
+  - `patchSeparationReadiness.status=ready-or-review-required`
+  - clean release payload files are not packaging blockers
   - 광주 release package, 별도 Daegu/Daejeon/Sajik/Suwon dirty work 분리
 - `npm run stadium:gwangju:pr-staging-plan`: PASS
-  - `stagingPlan.status=review-required`
+  - `stagingPlan.status=ready-or-review-required`
   - `stagingPlan.doesNotRunGitAdd=true`
   - `stagingPlan.safeToRunBulkGitAdd=false`
-  - `stagingPlan.packageJsonStatus=MM`
-  - `stagingPlan.releasePayloadFileCount=19`
+  - `stagingPlan.releasePayloadFileCount=23`
   - `stagingPlan.separateDirtyWorkFileCount=<runtime>`
   - `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true`
 - `npm run stadium:gwangju:pr-staging-review`: PASS
-  - `stagingReview.status=review-required`
+  - `stagingReview.status=ready-or-review-required`
   - `stagingReview.doesNotRunGitAdd=true`
   - `stagingReview.safeToRunBulkGitAdd=false`
-  - `stagingReview.releasePayloadFileCount=19`
+  - `stagingReview.releasePayloadFileCount=23`
   - `stagingReview.recommendsOnlyIncludedFiles=true`
   - `stagingReview.doesNotRecommendSeparateDirtyWork=true`
 - `npm run stadium:gwangju:operator-input-aid`: PASS
@@ -364,6 +363,16 @@ npm run build
   - `POST_OPERATOR_POLYGON_NOT_APPLIED`
 - `npm run build`: PASS
   - 기존 `clientErrorReporter.ts` dynamic/static import warning은 exit code 0이면 release lock 차단 조건으로 보지 않는다.
+
+## 남은 작업
+
+- `home-k7-seats`와 `away-cheering-seats`의 공식 PNG `2200x1159` 기준 operator polygon 입력이 아직 없다.
+- 현재 정상 상태는 `operator-input-packet.status=ready_for_operator_input`, `inputPresentSections=0`, `readyForPrewrite=false`이다.
+- 현재 postoperator 검증은 `status=blocked`, `actualActiveBlocks=111`, `expectedActiveBlocks=113`, `POST_OPERATOR_POLYGON_NOT_APPLIED`가 정상 결과이다.
+- 좌표 입력 전에는 `gwangjuSeatData.ts`에 K7/AWAY 독립 geometry를 쓰지 않는다.
+- 현재 K7석 derived range와 원정응원석 derived range는 `107~110`을 공유하는 중첩 필터 모델이다. 이 중첩은 기존 번호 블럭 재사용 필터/배지에서만 허용되며, 같은 `officialBlocks`를 공유하는 독립 polygon 승격 입력은 `OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`으로 차단한다.
+- 독립 polygon이 필요하면 K7 전체 aggregate를 active hit-area로 만들지 않고, 실제 클릭 대상이 필요한 non-overlap operator target으로 모델을 먼저 분리한다.
+- 좌표 입력 후에만 strict validate, apply-plan require-ready, prewrite gate, guarded write, postwrite gate 순서로 `113` active block acceptance를 실행한다.
 
 ## PR 포함 범위
 

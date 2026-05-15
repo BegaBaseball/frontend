@@ -52,17 +52,19 @@ trace manifest는 `previousTraceVersion=manual-polygon-v4`, `fullRetracedBlocks=
 5. `reports/stadium/gwangju-seatmap-operator-template.json`에서 `K7석`, `원정응원석`의 `operatorInput`을 채운다.
 6. `operatorInput.points`는 공식 PNG 좌표 `[x, y]` 배열로 입력하고, `labelX`, `labelY`는 polygon 내부 label anchor로 입력한다.
 7. `officialBlocks`, `level`, `side`, `fanRole`, `shortLabel`, `reviewer`, `reviewedAt`을 함께 채운다.
-8. 입력 후 `npm run stadium:gwangju:operator-input-packet`을 다시 실행하면 write 전 상태는 `operator_input_present`가 된다.
-9. `npm run stadium:gwangju:operator-template:validate:strict`를 실행한다.
-10. `npm run stadium:gwangju:operator-template:apply-plan:require-ready`를 실행한다.
-11. `npm run stadium:gwangju:operator-status`를 실행해 `ready`인지 확인한다.
-12. strict/apply-plan/status가 모두 ready이면 input-packet은 `ready_for_prewrite`가 되어야 한다.
-13. `npm run stadium:gwangju:operator-apply`를 실행해 dry-run apply 보고서가 두 구역을 승격 후보로 계산하는지 확인한다. 이 명령은 data file을 수정하지 않는다.
-14. `npm run stadium:gwangju:operator-write-smoke`를 실행해 synthetic 입력이 isolated report directory에서 ready 경로를 통과하고, 실제 apply write path가 임시 data file에서만 동작하며, production data/template을 바꾸지 않는지 확인한다.
-15. `npm run stadium:gwangju:operator-write-guard:require-ready`를 실행한다.
-16. guard가 통과하면 `npm run stadium:gwangju:operator-apply:write`로 `validForDataDiff=true`인 두 구역만 `gwangjuSeatData.ts`에 승격한다.
-17. 승격 후 `npm run stadium:gwangju:operator-postwrite-gate`를 실행한다.
-18. postwrite gate 통과 후 `npm run qa:stadium:gwangju:release-verify:postoperator`를 실행해 `POST_OPERATOR_POLYGON_APPLIED_RELEASE` 기준을 확인한다.
+8. `home-k7-seats`와 `away-cheering-seats`의 `officialBlocks`는 서로 겹치면 안 된다. 현재 K7석 derived range(`107~111`, `118~122`)와 원정응원석 derived range(`107~110`)는 중첩 필터 모델이므로, 그대로 독립 polygon 두 개로 승격하는 입력은 `OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`으로 차단된다.
+9. 독립 polygon 승격이 필요하면 K7 전체는 계속 derived-only로 두고, 실제 hit-area가 필요한 non-overlap 구역만 별도 operator target으로 분리한 뒤 진행한다.
+10. 입력 후 `npm run stadium:gwangju:operator-input-packet`을 다시 실행하면 write 전 상태는 `operator_input_present`가 된다.
+11. `npm run stadium:gwangju:operator-template:validate:strict`를 실행한다.
+12. `npm run stadium:gwangju:operator-template:apply-plan:require-ready`를 실행한다.
+13. `npm run stadium:gwangju:operator-status`를 실행해 `ready`인지 확인한다.
+14. strict/apply-plan/status가 모두 ready이면 input-packet은 `ready_for_prewrite`가 되어야 한다.
+15. `npm run stadium:gwangju:operator-apply`를 실행해 dry-run apply 보고서가 두 구역을 승격 후보로 계산하는지 확인한다. 이 명령은 data file을 수정하지 않는다.
+16. `npm run stadium:gwangju:operator-write-smoke`를 실행해 synthetic 입력이 isolated report directory에서 ready 경로를 통과하고, 실제 apply write path가 임시 data file에서만 동작하며, production data/template을 바꾸지 않는지 확인한다.
+17. `npm run stadium:gwangju:operator-write-guard:require-ready`를 실행한다.
+18. guard가 통과하면 `npm run stadium:gwangju:operator-apply:write`로 `validForDataDiff=true`인 두 구역만 `gwangjuSeatData.ts`에 승격한다.
+19. 승격 후 `npm run stadium:gwangju:operator-postwrite-gate`를 실행한다.
+20. postwrite gate 통과 후 `npm run qa:stadium:gwangju:release-verify:postoperator`를 실행해 `POST_OPERATOR_POLYGON_APPLIED_RELEASE` 기준을 확인한다.
 
 ## 상태 해석
 

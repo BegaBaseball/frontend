@@ -439,6 +439,22 @@ const rows = APPLY_SECTION_IDS.map((id) => {
   };
 });
 
+for (let firstIndex = 0; firstIndex < rows.length; firstIndex += 1) {
+  for (let secondIndex = firstIndex + 1; secondIndex < rows.length; secondIndex += 1) {
+    const firstRow = rows[firstIndex];
+    const secondRow = rows[secondIndex];
+    const sharedOfficialBlocks = firstRow.officialBlocks
+      .filter((officialBlock) => secondRow.officialBlocks.includes(officialBlock));
+
+    if (sharedOfficialBlocks.length > 0) {
+      firstRow.rowBlockers.push(`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP:${secondRow.id}:${sharedOfficialBlocks.join(' ')}`);
+      secondRow.rowBlockers.push(`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP:${firstRow.id}:${sharedOfficialBlocks.join(' ')}`);
+      firstRow.validForApply = false;
+      secondRow.validForApply = false;
+    }
+  }
+}
+
 if ((shouldWrite || requireReady) && rows.some((row) => !row.validForApply)) {
   rows
     .filter((row) => !row.validForApply)
