@@ -70,6 +70,10 @@ function clampZoom(value: number, minZoom: number, maxZoom: number) {
   return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));
 }
 
+function getGeometryLabelPoint(geometry: SajikBlock['imageGeometry']): [number, number] {
+  return geometry.labelPoint ?? [geometry.labelX, geometry.labelY];
+}
+
 function readViewportSize(node: HTMLDivElement | null): ViewportSize {
   if (!node) {
     return { width: 0, height: 0 };
@@ -210,9 +214,11 @@ export default function SajikSeatMapSvg({
   const canDrag = zoom > minZoom;
 
   const zoomBtnCls = 'pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800';
-  const sortedBlocks = [...SAJIK_BLOCKS]
+  const mapSelectableBlocks = [...SAJIK_BLOCKS]
     .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
     .sort((a, b) => a.displayPriority - b.displayPriority);
+  const seatSectionBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION');
+  const accessibilityMarkerBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER');
   const guideMatchedBlockIdSet = useMemo(() => new Set(guideMatchedBlockIds), [guideMatchedBlockIds]);
 
   useIsomorphicLayoutEffect(() => {
@@ -243,9 +249,10 @@ export default function SajikSeatMapSvg({
       return;
     }
 
+    const [labelX, labelY] = getGeometryLabelPoint(selected.imageGeometry);
     const targetPoint = {
-      x: (selected.imageGeometry.labelX / imageWidth) * measuredViewportSize.width,
-      y: (selected.imageGeometry.labelY / imageHeight) * measuredViewportSize.height,
+      x: (labelX / imageWidth) * measuredViewportSize.width,
+      y: (labelY / imageHeight) * measuredViewportSize.height,
     };
     const centeredPan = clampPan({
       x: (measuredViewportSize.width / 2 - targetPoint.x) * zoom,
@@ -714,7 +721,7 @@ export default function SajikSeatMapSvg({
             onDragStart={(event) => event.preventDefault()}
           />
           <svg
-            viewBox={`0 0 ${imageWidth} ${imageHeight}`}
+            viewBox={SAJIK_SEATMAP_IMAGE.viewBox}
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             aria-label="부산 사직야구장 좌석도 구역 선택"
@@ -747,96 +754,230 @@ export default function SajikSeatMapSvg({
                 ))}
               </g>
             )}
-            {sortedBlocks.map((block) => {
-              const cat = SAJIK_CATEGORIES[block.category];
-              if (!cat) return null;
+            <g
+              data-testid="sajik-seat-section-layer"
+              data-layer="seat-sections"
+              data-seat-path-count={seatSectionBlocks.length}
+            >
+              {seatSectionBlocks.map((block) => {
+                const cat = SAJIK_CATEGORIES[block.category];
+                const visualPath = block.imageGeometry.visualPath;
+                const hitPath = block.imageGeometry.hitPath;
+                const labelPoint = block.imageGeometry.labelPoint;
+                if (!cat || !visualPath || !hitPath || !labelPoint) return null;
 
-              const isFiltered = filterCats !== null && !filterCats.includes(block.category);
-              const isActive = hover === block.id || selected?.id === block.id;
-              const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
-              const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
-              const baseColor = mode === 'dark' ? cat.dark : cat.light;
-              const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
-              const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : isGuideMatched ? 0.24 : showDebug ? 0.06 : 0.001;
-              const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
-              const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.72 : showDebug ? 0.58 : 0;
-              const traceStatusLabel = getSajikTraceStatusLabel(block.traceStatus);
+                const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+                const isActive = hover === block.id || selected?.id === block.id;
+                const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
+                const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
+                const baseColor = mode === 'dark' ? cat.dark : cat.light;
+                const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
+                const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : isGuideMatched ? 0.24 : showDebug ? 0.06 : 0.001;
+                const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
+                const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.72 : showDebug ? 0.58 : 0;
+                const traceStatusLabel = getSajikTraceStatusLabel(block.traceStatus);
+                const [labelX, labelY] = labelPoint;
 
-              return (
-                <g key={block.id}>
-                  <path
-                    role="button"
-                    data-testid={`sajik-seat-block-${block.id}`}
-                    data-label-x={block.imageGeometry.labelX}
-                    data-label-y={block.imageGeometry.labelY}
-                    data-guide-match={isGuideMatched ? 'true' : undefined}
-                    data-trace-method={block.imageGeometry.traceMethod}
-                    data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
-                    data-map-interaction-status={block.mapInteractionStatus}
-                    data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
-                    tabIndex={isFiltered ? -1 : 0}
-                    aria-label={`${block.name} ${block.block}`}
-                    aria-pressed={isActive}
-                    d={block.imageGeometry.d}
-                    fill={baseColor}
-                    fillOpacity={fillOpacity}
-                    stroke={stroke}
-                    strokeOpacity={strokeOpacity}
-                    strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
-                    filter={isActive ? 'url(#sajik-hit-glow)' : undefined}
-                    pointerEvents={isFiltered ? 'none' : 'fill'}
-                    vectorEffect="non-scaling-stroke"
-                    style={{
-                      cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-                      transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
-                    }}
-                    onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
-                    onClick={(event) => {
-                      if (suppressClickRef.current || event.detail > 1) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        return;
-                      }
-                      if (!isFiltered) {
-                        setSelected(selected?.id === block.id ? null : block);
-                      }
-                    }}
-                    onDoubleClick={handleSvgDoubleClick}
-                    onKeyDown={(event) => {
-                      if (isFiltered) return;
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelected(selected?.id === block.id ? null : block);
-                      }
-                    }}
-                  >
-                    {showDebug && (
-                      <title>
-                        {`${block.id} · ${block.name} · ${traceStatusLabel} · ${block.imageGeometry.traceMethod} · ${block.imageGeometry.pixelAlignmentStatus}`}
-                      </title>
-                    )}
-                  </path>
-                  {(isActive || isGuideMatched || showDebug) && !isFiltered && (
-                    <text
-                      x={block.imageGeometry.labelX}
-                      y={block.imageGeometry.labelY}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={block.imageGeometry.labelFontSize ?? 12}
-                      fontWeight="800"
-                      fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                      stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
-                      strokeWidth="3"
-                      paintOrder="stroke"
-                      transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})`}
-                      style={{ pointerEvents: 'none' }}
+                return (
+                  <g key={block.id}>
+                    <path
+                      role="button"
+                      data-testid={`sajik-seat-block-${block.id}`}
+                      data-label-x={labelX}
+                      data-label-y={labelY}
+                      data-guide-match={isGuideMatched ? 'true' : undefined}
+                      data-trace-method={block.imageGeometry.traceMethod}
+                      data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                      data-map-interaction-status={block.mapInteractionStatus}
+                      data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
+                      data-geometry-version={block.imageGeometry.geometryVersion}
+                      data-section-kind={block.sectionKind}
+                      data-marker-type={block.markerType}
+                      data-visual-path={visualPath}
+                      data-hit-path={hitPath}
+                      tabIndex={isFiltered ? -1 : 0}
+                      aria-label={`${block.name} ${block.block}`}
+                      aria-pressed={isActive}
+                      d={hitPath}
+                      fill={baseColor}
+                      fillOpacity={fillOpacity}
+                      stroke={stroke}
+                      strokeOpacity={strokeOpacity}
+                      strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
+                      filter={isActive ? 'url(#sajik-hit-glow)' : undefined}
+                      pointerEvents={isFiltered ? 'none' : 'fill'}
+                      vectorEffect="non-scaling-stroke"
+                      style={{
+                        cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+                      }}
+                      onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
+                      onClick={(event) => {
+                        if (suppressClickRef.current || event.detail > 1) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          return;
+                        }
+                        if (!isFiltered) {
+                          setSelected(selected?.id === block.id ? null : block);
+                        }
+                      }}
+                      onDoubleClick={handleSvgDoubleClick}
+                      onKeyDown={(event) => {
+                        if (isFiltered) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelected(selected?.id === block.id ? null : block);
+                        }
+                      }}
                     >
-                      {block.imageGeometry.shortLabel}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+                      {showDebug && (
+                        <title>
+                          {`${block.id} · ${block.name} · ${traceStatusLabel} · ${block.imageGeometry.traceMethod} · ${block.imageGeometry.pixelAlignmentStatus}`}
+                        </title>
+                      )}
+                    </path>
+                    {(isActive || isGuideMatched || showDebug) && !isFiltered && (
+                      <text
+                        x={labelX}
+                        y={labelY}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={block.imageGeometry.labelFontSize ?? 12}
+                        fontWeight="800"
+                        fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
+                        stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                        strokeWidth="3"
+                        paintOrder="stroke"
+                        transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${labelX} ${labelY})`}
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {block.imageGeometry.shortLabel}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+            <g
+              data-testid="sajik-accessibility-markers-layer"
+              data-layer="accessibility-markers"
+              data-marker-count={accessibilityMarkerBlocks.length}
+            >
+              {accessibilityMarkerBlocks.map((block) => {
+                const cat = SAJIK_CATEGORIES[block.category];
+                const labelPoint = block.imageGeometry.labelPoint;
+                const visualPath = block.imageGeometry.visualPath;
+                const hitPath = block.imageGeometry.hitPath;
+                if (!cat || !labelPoint || !visualPath || !hitPath) return null;
+
+                const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+                const isActive = hover === block.id || selected?.id === block.id;
+                const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
+                const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
+                const baseColor = mode === 'dark' ? cat.dark : cat.light;
+                const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
+                const markerOpacity = isFiltered ? 0.001 : isActive ? 0.86 : isGuideMatched ? 0.72 : showDebug ? 0.42 : 0.001;
+                const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
+                const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.76 : showDebug ? 0.62 : 0;
+                const traceStatusLabel = getSajikTraceStatusLabel(block.traceStatus);
+                const [labelX, labelY] = labelPoint;
+
+                return (
+                  <g key={block.id}>
+                    <path
+                      role="button"
+                      data-testid={`sajik-accessibility-marker-${block.id}`}
+                      data-label-x={labelX}
+                      data-label-y={labelY}
+                      data-guide-match={isGuideMatched ? 'true' : undefined}
+                      data-trace-method={block.imageGeometry.traceMethod}
+                      data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                      data-map-interaction-status={block.mapInteractionStatus}
+                      data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
+                      data-geometry-version={block.imageGeometry.geometryVersion}
+                      data-section-kind={block.sectionKind}
+                      data-marker-type={block.markerType}
+                      data-related-section-id={block.block}
+                      data-visual-path={visualPath}
+                      data-hit-path={hitPath}
+                      tabIndex={isFiltered ? -1 : 0}
+                      aria-label={`${block.name} ${block.block}`}
+                      aria-pressed={isActive}
+                      d={hitPath}
+                      fill={baseColor}
+                      fillOpacity={markerOpacity}
+                      stroke={stroke}
+                      strokeOpacity={strokeOpacity}
+                      strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
+                      filter={isActive ? 'url(#sajik-hit-glow)' : undefined}
+                      pointerEvents={isFiltered ? 'none' : 'fill'}
+                      vectorEffect="non-scaling-stroke"
+                      style={{
+                        cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+                      }}
+                      onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
+                      onClick={(event) => {
+                        if (suppressClickRef.current || event.detail > 1) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          return;
+                        }
+                        if (!isFiltered) {
+                          setSelected(selected?.id === block.id ? null : block);
+                        }
+                      }}
+                      onDoubleClick={handleSvgDoubleClick}
+                      onKeyDown={(event) => {
+                        if (isFiltered) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelected(selected?.id === block.id ? null : block);
+                        }
+                      }}
+                    >
+                      {showDebug && (
+                        <title>
+                          {`${block.id} · ${block.name} · ${traceStatusLabel} · ${block.imageGeometry.traceMethod} · ${block.imageGeometry.pixelAlignmentStatus}`}
+                        </title>
+                      )}
+                    </path>
+                    {(isActive || isGuideMatched || showDebug) && !isFiltered && (
+                      <circle
+                        cx={labelX}
+                        cy={labelY}
+                        r={isActive || isGuideMatched ? 11 : 9}
+                        fill={baseColor}
+                        fillOpacity={markerOpacity}
+                        stroke={stroke}
+                        strokeOpacity={strokeOpacity}
+                        strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
+                        vectorEffect="non-scaling-stroke"
+                        pointerEvents="none"
+                      />
+                    )}
+                    {(isActive || isGuideMatched || showDebug) && !isFiltered && (
+                      <text
+                        x={labelX}
+                        y={labelY - 15}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={block.imageGeometry.labelFontSize ?? 11}
+                        fontWeight="800"
+                        fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
+                        stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                        strokeWidth="3"
+                        paintOrder="stroke"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {block.imageGeometry.shortLabel}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
             {showDebug && debugPoint && (
               <g pointerEvents="none">
                 <rect x={debugPoint.x + 8} y={debugPoint.y - 24} width="96" height="22" rx="5" fill="#0f172a" opacity="0.9" />

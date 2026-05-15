@@ -19,16 +19,40 @@ import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import SajikBottomSheet from './SajikBottomSheet';
 import SajikSeatMapSvg, { type SeatMapPan } from './SajikSeatMapSvg';
+import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
+import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
+import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
+import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
+import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
 const GUIDE_FOCUS_ZOOM = 1.45;
 const GUIDE_RESULT_LIMIT = 10;
+
+const sajikSectionAdapter: SeatMapSectionAdapter<SajikBlock> = {
+  getId: (section) => section.id,
+  getName: (section) => section.name,
+  getBlock: (section) => section.block,
+  getCategoryId: (section) => section.category,
+  getLevel: (section) => section.level,
+  getOfficialBlocks: (section) => section.officialBlocks,
+  getSideLabel: (section) => getSajikSideLabel(section.side),
+  getFanRoleLabel: (section) => getSajikFanRoleLabel(section.fanRole),
+  getSourceLabel: (section) => getSajikSourceLabel(section.sourceConfidence),
+  getSourceNote: (section) => section.sourceNote,
+  getSeatViewSections: (section) => getSajikSeatViewAliases(section),
+  getAccessibilityNote: (section) => section.accessibilityNote,
+  getDistance: (section) => (SAJIK_VIEW_INFO[section.id] ?? SAJIK_VIEW_INFO.default).distance,
+  getNotes: (section) => (SAJIK_VIEW_INFO[section.id] ?? SAJIK_VIEW_INFO.default).notes,
+  getTags: (section) => (SAJIK_VIEW_INFO[section.id] ?? SAJIK_VIEW_INFO.default).tags ?? [],
+};
 
 const SAJIK_GUIDE_INTENTS: Array<{ id: SajikGuideIntent; label: string }> = [
   { id: 'all', label: '전체' },
@@ -48,33 +72,6 @@ function formatDraftDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChange: (value: string) => void; mode: 'light' | 'dark' }) {
-  return (
-    <div className="flex flex-wrap gap-1.5 py-1">
-      {SAJIK_CATEGORY_GROUPS.map((group) => {
-        const active = group.id === selectedId;
-        return (
-          <button
-            key={group.id}
-            type="button"
-            data-testid={`sajik-filter-${group.id}`}
-            aria-pressed={active}
-            onClick={() => onChange(group.id)}
-            className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-            style={{
-              background: active ? '#041E42' : 'transparent',
-              borderColor: active ? '#041E42' : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-              color: active ? '#fff' : (mode === 'dark' ? '#94a3b8' : '#334155'),
-            }}
-          >
-            {group.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 function SajikFirstVisitGuide({
@@ -287,21 +284,31 @@ export default function SajikSeatMap() {
   const { requireLogin } = useAuthAccessActions();
   const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
-  const [selected, setSelected] = useState<SajikBlock | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
-  const [filterId, setFilterId] = useState('all');
   const [guideIntent, setGuideIntent] = useState<SajikGuideIntent>('all');
   const [guideQuery, setGuideQuery] = useState('');
+  const {
+    selected,
+    setSelected,
+    hover,
+    setHover,
+    hoveredSection,
+    filterId,
+    setFilterId,
+    filterCats,
+  } = useSeatMapSelectionState({
+    sections: SAJIK_BLOCKS,
+    filterGroups: SAJIK_CATEGORY_GROUPS,
+    getId: (section) => section.id,
+    getCategoryId: (section) => section.category,
+  });
   const {
     isMobile,
     isFullscreenOpen,
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
-  const filterGroup = SAJIK_CATEGORY_GROUPS.find((group) => group.id === filterId);
-  const filterCats = filterGroup?.cats ?? null;
   const hasOfficialBlocks = SAJIK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && SAJIK_BLOCKS.length > 0;
   const guideMatches = useMemo(
     () => (hasOfficialBlocks ? getSajikGuideMatches(guideIntent, guideQuery, SAJIK_BLOCKS) : []),
@@ -312,7 +319,6 @@ export default function SajikSeatMap() {
     () => (guideActive ? guideMatches.map((match) => match.block.id) : []),
     [guideActive, guideMatches],
   );
-  const hoveredSection = hover ? (SAJIK_BLOCKS.find((block) => block.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? SAJIK_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#041E42';
   const usedCategories = useMemo(() => [...new Set(SAJIK_BLOCKS.map((block) => block.category))], []);
@@ -322,21 +328,6 @@ export default function SajikSeatMap() {
       setPan({ x: 0, y: 0 });
     }
   }, [pan.x, pan.y, zoom]);
-
-  useEffect(() => {
-    if (!selected || filterCats === null || filterCats.includes(selected.category)) {
-      return;
-    }
-    setSelected(null);
-  }, [filterCats, selected]);
-
-  useEffect(() => {
-    if (!hover) return;
-    const hoveredBlock = SAJIK_BLOCKS.find((block) => block.id === hover);
-    if (hoveredBlock && filterCats !== null && !filterCats.includes(hoveredBlock.category)) {
-      setHover(null);
-    }
-  }, [filterCats, hover]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     const normalizedZoom = clampZoom(nextZoom);
@@ -419,50 +410,40 @@ export default function SajikSeatMap() {
   ) : null;
 
   const attribution = (
-    <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-      좌석 배치 기준: {SAJIK_SEATMAP_IMAGE.sourceLabel}
-      {SAJIK_SEATMAP_IMAGE.sourceUrl && (
-        <a
-          href={SAJIK_SEATMAP_IMAGE.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-        >
-          출처
-        </a>
-      )}
-      {SAJIK_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
-      )}
-    </div>
+    <SeatMapAttribution
+      source={{
+        sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: SAJIK_SEATMAP_IMAGE.assetStatus,
+      }}
+    />
   );
 
   const legend = (
-    <div className="mt-2.5 flex flex-wrap gap-1.5 px-1">
-      {usedCategories.map((category) => {
-        const cat = SAJIK_CATEGORIES[category];
-        if (!cat) return null;
-        const color = mode === 'dark' ? cat.dark : cat.light;
-        return (
-          <span key={category} className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
-            {cat.label}
-          </span>
-        );
-      })}
-    </div>
+    <SeatMapLegend categoryIds={usedCategories} categories={SAJIK_CATEGORIES} mode={mode} />
   );
 
-  const filterBar = hasOfficialBlocks ? <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} /> : undefined;
+  const filterBar = hasOfficialBlocks ? (
+    <SeatMapFilterBar
+      groups={SAJIK_CATEGORY_GROUPS}
+      selectedId={filterId}
+      onChange={setFilterId}
+      mode={mode}
+      accentColor="#041E42"
+      testIdPrefix="sajik"
+    />
+  ) : undefined;
 
   const detailPanel = hasOfficialBlocks ? (
-    <DetailPanel
+    <SeatMapDetailPanel
       section={selected}
       mode={mode}
+      categories={SAJIK_CATEGORIES}
+      adapter={sajikSectionAdapter}
+      stadiumKey="SAJIK"
       onClose={() => setSelected(null)}
       onUpload={() => handleShareSeatView(selected)}
+      copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
     />
   ) : null;
 
@@ -488,33 +469,29 @@ export default function SajikSeatMap() {
         subtitle="사직 롯데 공식 좌석도"
         titleAccentColor="#041E42"
         isMobile={isMobile}
-        isDoosanGuideActive={false}
+        isAuxiliaryGuideActive={false}
         filterBar={filterBar}
-        mobileFilterBar={(guidePanel || filterBar) ? (
-          <div className="space-y-3">
-            {guidePanel}
-            {filterBar && <div className="overflow-x-auto">{filterBar}</div>}
-          </div>
-        ) : undefined}
+        mobileFilterBar={filterBar ? <div className="overflow-x-auto">{filterBar}</div> : undefined}
         desktopFilterBar={filterBar && <div className="overflow-x-auto">{filterBar}</div>}
         mapContent={mapContent}
         attribution={attribution}
         legend={hasOfficialBlocks ? legend : undefined}
+        mobileSecondaryPanel={guidePanel}
         mobileBottomSheet={hasOfficialBlocks && selected && (
-          <SajikBottomSheet
+          <SeatMapBottomSheet
             section={selected}
             mode={mode}
+            categories={SAJIK_CATEGORIES}
+            adapter={sajikSectionAdapter}
+            stadiumKey="SAJIK"
             onClose={() => setSelected(null)}
             onUpload={() => handleShareSeatView(selected)}
+            copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
-        desktopSidePanel={hasOfficialBlocks ? (
-          <div className="space-y-3">
-            {guidePanel}
-            {detailPanel}
-          </div>
-        ) : null}
+        desktopSecondaryPanel={guidePanel}
+        desktopSidePanel={detailPanel}
         isFullscreenOpen={isFullscreenOpen}
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { createElement } from 'react';
@@ -6,9 +8,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 
 import SajikSeatMap from './SajikSeatMap';
+import SajikSeatMapEditor from './SajikSeatMapEditor';
 
 test('SajikSeatMap은 공식 사직 좌석도와 대표 블럭 markup을 렌더링한다', () => {
   const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(SajikSeatMap)));
+  const componentSource = readFileSync(resolve(process.cwd(), 'src/components/sajik/SajikSeatMap.tsx'), 'utf8');
+  const svgSource = readFileSync(resolve(process.cwd(), 'src/components/sajik/SajikSeatMapSvg.tsx'), 'utf8');
+  const seatPathMatches = html.match(/data-testid="sajik-seat-block-/g) ?? [];
+  const accessibilityMarkerMatches = html.match(/data-testid="sajik-accessibility-marker-/g) ?? [];
 
   assert.match(html, /data-testid="stadium-seat-map"/);
   assert.match(html, /부산 사직야구장/);
@@ -25,12 +32,113 @@ test('SajikSeatMap은 공식 사직 좌석도와 대표 블럭 markup을 렌더�
   assert.match(html, /data-pixel-alignment-status="PIXEL_ALIGNED"/);
   assert.match(html, /data-map-interaction-status="MAP_SELECTABLE"/);
   assert.match(html, /data-manual-reviewed="true"/);
+  assert.match(html, /<svg[^>]+viewBox="0 0 960 640"/);
+  assert.match(html, /<img[^>]+src="[^"]*sajik-lotte-seatmap-official-2026\.png"/);
+  assert.match(html, /<img[^>]+draggable="false"/);
+  assert.doesNotMatch(html, /<image[^>]+href="[^"]*sajik-lotte-seatmap-official-2026\.png"/);
+  assert.match(html, /data-geometry-version="manual-polygon-v2"/);
+  assert.match(html, /data-section-kind="SEAT_SECTION"/);
+  assert.match(html, /data-section-kind="ACCESSIBILITY_MARKER"/);
+  assert.match(html, /data-marker-type="WHEELCHAIR"/);
+  assert.match(html, /data-testid="sajik-seat-section-layer"/);
+  assert.match(html, /data-layer="seat-sections"/);
+  assert.match(html, /data-seat-path-count="84"/);
+  assert.match(html, /data-testid="sajik-accessibility-markers-layer"/);
+  assert.match(html, /data-layer="accessibility-markers"/);
+  assert.match(html, /data-marker-count="3"/);
+  assert.equal(seatPathMatches.length, 84);
+  assert.equal(accessibilityMarkerMatches.length, 3);
+  assert.match(html, /<path[^>]*data-section-kind="ACCESSIBILITY_MARKER"/);
+  assert.doesNotMatch(html, /<circle[^>]*data-testid="sajik-accessibility-marker-/);
+  assert.match(html, /data-visual-path=/);
+  assert.match(html, /data-hit-path=/);
   assert.doesNotMatch(html, /sajik-seat-block-sajik-avenuel-011/);
   assert.doesNotMatch(html, /sajik-seat-block-sajik-everytime-903/);
-  assert.match(html, /다이어리에서 시야 사진을 공유/);
+  assert.doesNotMatch(html, /sajik-accessibility-marker-sajik-avenuel-011/);
+  assert.doesNotMatch(html, /sajik-accessibility-marker-sajik-everytime-903/);
+  assert.doesNotMatch(svgSource, /\?\? block\.imageGeometry\.d/);
+  assert.match(componentSource, /다이어리에서 시야 사진을 공유|다이어리에서 시야 사진 공유하기/);
   assert.match(html, /sajik-lotte-seatmap-official-2026\.png/);
   assert.doesNotMatch(html, /data-testid="sajik-official-seatmap-required"/);
   assert.doesNotMatch(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.doesNotMatch(html, /SAJIK SEAT VIEW/);
   assert.doesNotMatch(html, /사진은 데모 상태/);
+});
+
+test('SajikSeatMapEditor는 dev-only editor/export shell 계약을 렌더링한다', () => {
+  const html = renderToStaticMarkup(createElement(SajikSeatMapEditor));
+
+  assert.match(html, /data-testid="sajik-seatmap-editor"/);
+  assert.match(html, /Internal seatmap editor v1.7/);
+  assert.match(html, /data-summary-total-sections="89"/);
+  assert.match(html, /data-summary-enabled-sections="87"/);
+  assert.match(html, /data-summary-alias-only-sections="2"/);
+  assert.match(html, /data-summary-markers="3"/);
+  assert.match(html, /data-testid="sajik-editor-svg"/);
+  assert.match(html, /viewBox="0 0 960 640"/);
+  assert.match(html, /data-testid="sajik-editor-official-image"/);
+  assert.match(html, /data-testid="sajik-editor-section-112"/);
+  assert.match(html, /data-testid="sajik-editor-marker-/);
+  assert.match(html, /data-testid="sajik-editor-draft-controls"/);
+  assert.match(html, /data-testid="sajik-editor-draft-status"/);
+  assert.match(html, /draft clean/);
+  assert.match(html, /data-testid="sajik-editor-dirty-section-summary"/);
+  assert.match(html, /dirty sections: none/);
+  assert.match(html, /data-testid="sajik-editor-hitpath-diff-status"/);
+  assert.match(html, /hitPath matches visualPath/);
+  assert.match(html, /data-testid="sajik-editor-path-kind-visualPath"/);
+  assert.match(html, /data-testid="sajik-editor-path-kind-hitPath"/);
+  assert.match(html, /data-testid="sajik-editor-path-kind-labelPoint"/);
+  assert.match(html, /data-testid="sajik-editor-sync-hitpath"/);
+  assert.match(html, /data-testid="sajik-editor-vertex-index-input"/);
+  assert.match(html, /data-testid="sajik-editor-nudge-step"/);
+  assert.match(html, /data-testid="sajik-editor-selected-vertex"/);
+  assert.match(html, /data-testid="sajik-editor-nudge-x-plus"/);
+  assert.match(html, /data-testid="sajik-editor-add-vertex-after"/);
+  assert.match(html, /data-testid="sajik-editor-delete-vertex"/);
+  assert.match(html, /data-testid="sajik-editor-invalid-hitpath-fixture"/);
+  assert.match(html, /data-testid="sajik-editor-reset-draft"/);
+  assert.match(html, /data-testid="sajik-editor-reset-all-drafts"/);
+  assert.match(html, /data-testid="sajik-editor-vertex-handle-visualPath-0"/);
+  assert.match(html, /data-testid="sajik-editor-validator-pass"/);
+  assert.match(html, /VALIDATOR PASS/);
+  assert.match(html, /data-testid="sajik-editor-visualpath-validator-pass"/);
+  assert.match(html, /data-testid="sajik-editor-hitpath-validator-pass"/);
+  assert.match(html, /data-testid="sajik-editor-section-status-112"/);
+  assert.match(html, />enabled</);
+  assert.match(html, /data-testid="sajik-editor-section-status-011"/);
+  assert.match(html, />alias-only</);
+  assert.match(html, />wheelchair</);
+  assert.match(html, /data-testid="sajik-editor-section-hit-candidate-021"/);
+  assert.match(html, />hit</);
+  assert.match(html, /data-testid="sajik-editor-before-after-status"/);
+  assert.match(html, /before = after/);
+  assert.match(html, /data-testid="sajik-editor-copy-status"/);
+  assert.match(html, /copy: idle/);
+  assert.match(html, /data-testid="sajik-editor-copy-json"/);
+  assert.match(html, /data-testid="sajik-editor-copy-ts"/);
+  assert.match(html, /data-testid="sajik-editor-patch-status-pass"/);
+  assert.match(html, /PATCH PASS/);
+  assert.match(html, /data-testid="sajik-editor-patch-json"/);
+  assert.match(html, /SAJIK_SECTION_GEOMETRY_PATCH_PREVIEW/);
+  assert.match(html, /&quot;before&quot;/);
+  assert.match(html, /&quot;after&quot;/);
+  assert.match(html, /&quot;validation&quot;/);
+  assert.match(html, /&quot;status&quot;: &quot;PASS&quot;/);
+  assert.match(html, /data-testid="sajik-editor-ts-patch"/);
+  assert.match(html, /geometry patch preview/);
+  assert.match(html, /data-testid="sajik-editor-selected-json"/);
+  assert.match(html, /&quot;sectionId&quot;: &quot;112&quot;/);
+  assert.match(html, /data-testid="sajik-editor-dataset-json"/);
+  assert.match(html, /BUSAN_SAJIK_2026_MANUAL_POLYGON_V2/);
+});
+
+test('SajikSeatMapEditor route는 production navigation에 노출되지 않는 dev-only 내부 route다', () => {
+  const appRoutesSource = readFileSync(resolve(process.cwd(), 'src/components/AppRoutes.tsx'), 'utf8');
+  const publicNavSource = readFileSync(resolve(process.cwd(), 'src/components/publicNavbarNavItems.ts'), 'utf8');
+
+  assert.match(appRoutesSource, /const SajikSeatMapEditor = import\.meta\.env\.DEV/);
+  assert.match(appRoutesSource, /path="\/internal\/sajik-seatmap-editor"/);
+  assert.match(appRoutesSource, /import\.meta\.env\.DEV && SajikSeatMapEditor/);
+  assert.doesNotMatch(publicNavSource, /sajik-seatmap-editor/);
 });
