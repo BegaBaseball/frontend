@@ -9,12 +9,14 @@ const defaultReportDir = path.join(frontendRoot, 'reports/stadium');
 const STATE_AUDIT_VERSION = 'DAEGU_OPERATOR_STATE_AUDIT_V1';
 const TEMPLATE_VERSION = 'DAEGU_OPERATOR_CORRECTIONS_TEMPLATE_V1';
 const DECISION_OPTIONS = new Set(['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_RETRACE']);
+const EXPECTED_TEMPLATE_ROWS = 97;
 const INPUT_BATCHES = [
   {
     id: 'BATCH_1_P0',
     label: 'P0',
     priorities: ['P0'],
-    expectedRows: 3,
+    expectedRows: 1,
+    terminalRowsMayBeClosedInTemplate: true,
     inputPath: 'reports/stadium/daegu-p0-operator/daegu-seatmap-p0-operator-input.json',
     inputPackageVersion: 'DAEGU_P0_OPERATOR_PACKAGE_V1',
     importPath: 'reports/stadium/daegu-seatmap-p0-operator-import.json',
@@ -24,7 +26,7 @@ const INPUT_BATCHES = [
     id: 'BATCH_2_P1',
     label: 'P1',
     priorities: ['P1'],
-    expectedRows: 29,
+    expectedRows: 17,
     inputPath: 'reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-input.json',
     inputPackageVersion: 'DAEGU_P1_OPERATOR_PACKAGE_V1',
     importPath: 'reports/stadium/daegu-seatmap-p1-operator-import.json',
@@ -34,7 +36,7 @@ const INPUT_BATCHES = [
     id: 'BATCH_3_P2',
     label: 'P2',
     priorities: ['P2'],
-    expectedRows: 50,
+    expectedRows: 36,
     inputPath: 'reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-input.json',
     inputPackageVersion: 'DAEGU_P2_OPERATOR_PACKAGE_V1',
     importPath: 'reports/stadium/daegu-seatmap-p2-operator-import.json',
@@ -44,7 +46,7 @@ const INPUT_BATCHES = [
     id: 'BATCH_4_P3_P4',
     label: 'P3/P4',
     priorities: ['P3', 'P4'],
-    expectedRows: 52,
+    expectedRows: 44,
     inputPath: 'reports/stadium/daegu-p3-p4-operator/daegu-seatmap-p3-p4-operator-input.json',
     inputPackageVersion: 'DAEGU_P3_P4_OPERATOR_PACKAGE_V1',
     importPath: 'reports/stadium/daegu-seatmap-p3-p4-operator-import.json',
@@ -52,10 +54,10 @@ const INPUT_BATCHES = [
   },
 ];
 const TEMPLATE_BATCHES = [
-  { id: 'BATCH_1_P0', priorities: ['P0'], expectedRows: 3 },
-  { id: 'BATCH_2_P1', priorities: ['P1'], expectedRows: 29 },
-  { id: 'BATCH_3_P2', priorities: ['P2'], expectedRows: 50 },
-  { id: 'BATCH_4_P3_P4', priorities: ['P3', 'P4'], expectedRows: 52 },
+  { id: 'BATCH_1_P0', priorities: ['P0'], expectedRows: 0 },
+  { id: 'BATCH_2_P1', priorities: ['P1'], expectedRows: 17 },
+  { id: 'BATCH_3_P2', priorities: ['P2'], expectedRows: 36 },
+  { id: 'BATCH_4_P3_P4', priorities: ['P3', 'P4'], expectedRows: 44 },
 ];
 
 const argValue = (name, fallback) => {
@@ -143,7 +145,9 @@ if (!templateReport.exists) blockers.push(`MISSING_REPORT:${templateReport.relat
 if (templateReport.exists && templateReport.data?.templateVersion !== TEMPLATE_VERSION) {
   blockers.push(`TEMPLATE_VERSION_MISMATCH:${templateReport.data?.templateVersion ?? ''}`);
 }
-if (templateRows.length !== 134) warnings.push(`TEMPLATE_ROW_COUNT_CHANGED_AFTER_WRITES:${templateRows.length}:134`);
+if (templateRows.length !== EXPECTED_TEMPLATE_ROWS) {
+  warnings.push(`TEMPLATE_ROW_COUNT_CHANGED_AFTER_WRITES:${templateRows.length}:${EXPECTED_TEMPLATE_ROWS}`);
+}
 
 const templateBatchRows = TEMPLATE_BATCHES.map((batch) => {
   const rows = templateRows.filter((row) => batch.priorities.includes(row.queuePriority));
@@ -198,7 +202,7 @@ for (const batch of INPUT_BATCHES) {
   if (missingPendingTemplateRows.length > 0) {
     blockers.push(`INPUT_PENDING_ROWS_MISSING_FROM_TEMPLATE:${batch.id}:${missingPendingTemplateRows.map((row) => row.blockId).join(' ')}`);
   }
-  if (missingTerminalTemplateRows.length > 0) {
+  if (missingTerminalTemplateRows.length > 0 && !batch.terminalRowsMayBeClosedInTemplate) {
     warnings.push(`INPUT_TERMINAL_ROWS_CLOSED_IN_TEMPLATE:${batch.id}:${missingTerminalTemplateRows.map((row) => row.blockId).join(' ')}`);
   }
   if (inputSummary.invalidRows > 0) blockers.push(`INVALID_OPERATOR_DECISION:${batch.id}`);

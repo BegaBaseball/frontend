@@ -10,9 +10,9 @@ const defaultReportDir = path.join(frontendRoot, 'reports/stadium');
 const WORKSET_VERSION = 'DAEGU_P0_P1_OFF_SEAT_WORKSET_V1';
 const OFF_SEAT_INTAKE_VERSION = 'DAEGU_OFF_SEAT_RETRACE_INTAKE_V1';
 const EXPECTED = {
-  expectedRows: 14,
-  expectedP0Rows: 2,
-  expectedP1Rows: 12,
+  expectedRows: 5,
+  expectedP0Rows: 0,
+  expectedP1Rows: 5,
   expectedDuplicateRows: 0,
   expectedApprovedRows: 0,
 };

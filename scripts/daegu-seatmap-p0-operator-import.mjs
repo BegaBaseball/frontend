@@ -177,6 +177,9 @@ if (decidedRows.length === 0) warnings.push('NO_P0_OPERATOR_DECISIONS_TO_IMPORT'
 if (writeTemplate && blockers.length === 0 && decidedRows.length === 0) {
   blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P0_DECISION');
 }
+if (writeTemplate && approvedRows.length === 0) {
+  blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P0_ROW');
+}
 if (writeTemplate && pendingRows.length > 0) {
   blockers.push(`WRITE_TEMPLATE_REQUIRES_NO_P0_PENDING_ROWS:${pendingRows.map((row) => row.block).join(' ')}`);
 }
@@ -214,6 +217,7 @@ const report = {
   safetyContract: [
     'This script only imports P0 operator decisions into the corrections template.',
     'It blocks write-template while any P0 row remains PENDING.',
+    'It blocks write-template unless at least one P0 row is operatorDecision=APPROVED.',
     'It blocks write-template when draft/staging metadata or DRAFT_VALIDATION_ONLY markers are present.',
     'Do not run npm run stadium:daegu:operator-corrections after write-template because it regenerates the template from handoff defaults.',
     'It never modifies src/data/daeguSeatData.ts or promotes blocks to OFFICIAL_IMAGE_TRACED.',

@@ -14,8 +14,8 @@ const TARGET_PRIORITY = 'P0';
 const COPY_TARGET_SOURCE_INPUT = 'reports/stadium/daegu-p0-operator/daegu-seatmap-p0-operator-input.json';
 const MIN_OFFICIAL_TRACE_POINTS = 6;
 const EXPECTED = {
-  expectedRows: 2,
-  expectedP0Rows: 2,
+  expectedRows: 0,
+  expectedP0Rows: 0,
   expectedDuplicateRows: 0,
   expectedApprovedRows: 0,
 };

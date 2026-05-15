@@ -12,10 +12,10 @@ const PACKET_VERSION = 'DAEGU_P2_DECISION_PACKET_V1';
 const PACKAGE_VERSION = 'DAEGU_P2_OPERATOR_PACKAGE_V1';
 const TARGET_BATCH_ID = 'BATCH_3_P2';
 const EXPECTED = {
-  rows: 50,
-  manualTraceRequiredRows: 34,
+  rows: 36,
+  manualTraceRequiredRows: 33,
   labelAndHitAreaRows: 2,
-  visualApprovalCandidateRows: 14,
+  visualApprovalCandidateRows: 1,
 };
 
 const argValue = (name, fallback) => {

@@ -11,6 +11,7 @@ const defaultInputPath = path.join(
 );
 
 const IMPORT_VERSION = 'DAEGU_P1_OPERATOR_IMPORT_V1';
+const NEXT_ACTION_PACKET_VERSION = 'DAEGU_P1_NEXT_ACTION_PACKET_V1';
 const TARGET_BATCH_ID = 'BATCH_2_P1';
 const TARGET_PRIORITY = 'P1';
 const PRIOR_BATCH_ID = 'BATCH_1_P0';
@@ -19,6 +20,16 @@ const TEMPLATE_VERSION = 'DAEGU_OPERATOR_CORRECTIONS_TEMPLATE_V1';
 const DRAFT_REVIEWER = 'DRAFT_VALIDATION_ONLY';
 const DRAFT_REVIEWED_AT = '2026-05-10T00:00:00.000Z';
 const DECISION_OPTIONS = new Set(['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_RETRACE']);
+const STAGE_ORDER = {
+  PAIR_BOUNDARY_FIRST: 1,
+  SINGLE_CORRECTED_PATH: 2,
+  DUPLICATE_CANDIDATE_SPLIT: 3,
+};
+const ORDERED_STAGES = [
+  'PAIR_BOUNDARY_FIRST',
+  'SINGLE_CORRECTED_PATH',
+  'DUPLICATE_CANDIDATE_SPLIT',
+];
 const IMPORT_FIELDS = [
   'operatorDecision',
   'correctedPath',
@@ -106,10 +117,15 @@ const writeTemplate = hasFlag('--write-template');
 const templateJsonPath = path.join(reportDir, 'daegu-seatmap-operator-corrections-template.json');
 const templateCsvPath = path.join(reportDir, 'daegu-seatmap-operator-corrections-template.csv');
 const handoffPath = path.join(reportDir, 'daegu-seatmap-operator-handoff.json');
+const nextActionPath = path.resolve(
+  frontendRoot,
+  argValue('--next-action', path.join(path.dirname(inputPath), 'daegu-seatmap-p1-next-action-packet.json')),
+);
 
 const input = await readJson(inputPath);
 const template = await readJson(templateJsonPath);
 const handoff = await readJson(handoffPath);
+const nextAction = await readJson(nextActionPath);
 
 const p1HandoffRows = (handoff.workItems ?? []).filter((row) => row.queuePriority === TARGET_PRIORITY);
 const expectedP1Ids = new Set(p1HandoffRows.map((row) => row.id));
@@ -117,6 +133,8 @@ const inputRows = Array.isArray(input.corrections) ? input.corrections : [];
 const inputByBlockId = new Map(inputRows.map((row) => [row.blockId, row]));
 const templateRows = Array.isArray(template.corrections) ? template.corrections : [];
 const templateIds = new Set(templateRows.map((row) => row.blockId));
+const nextActionRows = Array.isArray(nextAction.rows) ? nextAction.rows : [];
+const nextActionByBlockId = new Map(nextActionRows.map((row) => [row.blockId, row]));
 const blockers = [];
 const warnings = [];
 
@@ -126,6 +144,12 @@ if (input.packageVersion !== 'DAEGU_P1_OPERATOR_PACKAGE_V1') {
 if (input.targetBatchId !== TARGET_BATCH_ID) blockers.push(`INPUT_BATCH_MISMATCH:${input.targetBatchId ?? ''}`);
 if (template.templateVersion !== TEMPLATE_VERSION) {
   blockers.push(`TEMPLATE_VERSION_MISMATCH:${template.templateVersion ?? ''}`);
+}
+if (nextAction.summary?.packetVersion !== NEXT_ACTION_PACKET_VERSION) {
+  blockers.push(`NEXT_ACTION_PACKET_VERSION_MISMATCH:${nextAction.summary?.packetVersion ?? ''}`);
+}
+if (nextAction.summary?.targetBatchId !== TARGET_BATCH_ID) {
+  blockers.push(`NEXT_ACTION_BATCH_MISMATCH:${nextAction.summary?.targetBatchId ?? ''}`);
 }
 const inputIds = new Set(inputRows.map((row) => row.blockId));
 const nonP1InputRows = inputRows.filter((row) => !expectedP1Ids.has(row.blockId));
@@ -188,6 +212,11 @@ const mergedRows = templateRows.map((templateRow) => {
   if (!inputRow) return templateRow;
 
   const editable = normalizeEditableFields(inputRow);
+  const nextActionRow = nextActionByBlockId.get(templateRow.blockId);
+  if (!nextActionRow) blockers.push(`P1_NEXT_ACTION_MISSING_ROW:${templateRow.blockId}`);
+  if (nextActionRow && !Object.hasOwn(STAGE_ORDER, nextActionRow.stage)) {
+    blockers.push(`P1_NEXT_ACTION_UNKNOWN_STAGE:${templateRow.blockId}:${nextActionRow.stage ?? ''}`);
+  }
   const mergedRow = {
     ...templateRow,
     ...editable,
@@ -197,6 +226,8 @@ const mergedRows = templateRows.map((templateRow) => {
     blockId: templateRow.blockId,
     block: templateRow.block,
     queuePriority: templateRow.queuePriority,
+    stage: nextActionRow?.stage ?? '',
+    stageOrder: STAGE_ORDER[nextActionRow?.stage] ?? 99,
     operatorDecision: mergedRow.operatorDecision,
     changed,
     approved: mergedRow.operatorDecision === 'APPROVED',
@@ -209,9 +240,30 @@ const changedRows = importedRows.filter((row) => row.changed);
 const decidedRows = importedRows.filter((row) => row.decided);
 const approvedRows = importedRows.filter((row) => row.approved);
 const pendingRows = importedRows.filter((row) => row.operatorDecision === 'PENDING');
+const stageSummaries = ORDERED_STAGES.map((stage) => {
+  const stageRows = importedRows.filter((row) => row.stage === stage);
+  const stageApprovedRows = stageRows.filter((row) => row.approved);
+  return {
+    stage,
+    stageOrder: STAGE_ORDER[stage],
+    rows: stageRows.length,
+    approvedRows: stageApprovedRows.length,
+    approvedBlocks: stageApprovedRows.map((row) => row.block),
+  };
+});
+const firstIncompleteStage = stageSummaries.find((stage) => stage.approvedRows < stage.rows);
+const laterApprovedRows = firstIncompleteStage
+  ? approvedRows.filter((row) => row.stageOrder > firstIncompleteStage.stageOrder)
+  : [];
 if (decidedRows.length === 0) warnings.push('NO_P1_OPERATOR_DECISIONS_TO_IMPORT');
 if (writeTemplate && blockers.length === 0 && decidedRows.length === 0) {
   blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P1_DECISION');
+}
+if (writeTemplate && approvedRows.length === 0) {
+  blockers.push('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P1_ROW');
+}
+if (writeTemplate && laterApprovedRows.length > 0) {
+  blockers.push(`WRITE_TEMPLATE_REQUIRES_P1_STAGE_ORDER:${firstIncompleteStage.stage}:${laterApprovedRows.map((row) => row.block).join(' ')}`);
 }
 if (writeTemplate && pendingRows.length > 0) {
   blockers.push(`WRITE_TEMPLATE_REQUIRES_NO_P1_PENDING_ROWS:${pendingRows.map((row) => row.block).join(' ')}`);
@@ -230,6 +282,7 @@ const summary = {
   priorBatchId: PRIOR_BATCH_ID,
   input: path.relative(frontendRoot, inputPath),
   template: path.relative(frontendRoot, templateJsonPath),
+  nextAction: path.relative(frontendRoot, nextActionPath),
   totalInputRows: inputRows.length,
   importedRows: importedRows.length,
   changedRows: changedRows.length,
@@ -242,6 +295,9 @@ const summary = {
   priorBatchRows: priorBatchRows.length,
   priorPendingRows: priorPendingRows.length,
   priorApprovedRows: priorApprovedRows.length,
+  stageSummaries,
+  firstIncompleteStage: firstIncompleteStage?.stage ?? '',
+  laterApprovedRows: laterApprovedRows.length,
   productionDataChanged: false,
   templateChanged: writeTemplate && blockers.length === 0,
   blockers,
@@ -256,6 +312,8 @@ const report = {
     'This script only imports P1 operator decisions into the corrections template.',
     'It blocks write-template while P0 remains pending or has approved rows that still need the P0 production write path.',
     'It blocks write-template while any P1 row remains PENDING.',
+    'It blocks write-template unless at least one P1 row is operatorDecision=APPROVED.',
+    'It blocks write-template when SINGLE_CORRECTED_PATH or DUPLICATE_CANDIDATE_SPLIT rows are approved before the earlier P1 stage is complete.',
     'Terminal P1 input rows already closed by production data may remain in the source input as audit history.',
     'It blocks write-template when draft/staging metadata or DRAFT_VALIDATION_ONLY markers are present.',
     'Do not run npm run stadium:daegu:operator-corrections after write-template because it regenerates the template from handoff defaults.',
@@ -279,6 +337,7 @@ await writeCsv(csvPath, [
     'changed',
     'approved',
     'decided',
+    'stage',
   ],
   ...importedRows.map((row) => [
     row.blockId,
@@ -288,6 +347,7 @@ await writeCsv(csvPath, [
     row.changed,
     row.approved,
     row.decided,
+    row.stage,
   ]),
 ]);
 await fs.writeFile(markdownPath, [
@@ -308,19 +368,34 @@ await fs.writeFile(markdownPath, [
   `- draft marker rows: ${summary.draftMarkerRows}`,
   `- prior pending rows: ${summary.priorPendingRows}`,
   `- prior approved rows: ${summary.priorApprovedRows}`,
+  `- first incomplete stage: \`${summary.firstIncompleteStage || 'none'}\``,
+  `- later approved rows: ${summary.laterApprovedRows}`,
   `- production data changed: ${summary.productionDataChanged}`,
   `- template changed: ${summary.templateChanged}`,
   '',
   '## Imported Rows',
   '',
   markdownTable(
-    ['block', 'decision', 'changed', 'approved', 'decided'],
+    ['block', 'stage', 'decision', 'changed', 'approved', 'decided'],
     importedRows.map((row) => [
       `\`${row.block}\``,
+      `\`${row.stage || 'UNKNOWN'}\``,
       `\`${row.operatorDecision}\``,
       String(row.changed),
       String(row.approved),
       String(row.decided),
+    ]),
+  ),
+  '',
+  '## Stage Order',
+  '',
+  markdownTable(
+    ['stage', 'rows', 'approved', 'approved blocks'],
+    stageSummaries.map((row) => [
+      `\`${row.stage}\``,
+      row.rows,
+      row.approvedRows,
+      row.approvedBlocks.map((block) => `\`${block}\``).join(' ') || '-',
     ]),
   ),
   '',

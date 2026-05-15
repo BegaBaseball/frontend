@@ -8,14 +8,14 @@ const defaultP2ReportDir = path.join(frontendRoot, 'reports/stadium/daegu-p2-dra
 
 const AUDIT_VERSION = 'DAEGU_P2_STAGING_AUDIT_V1';
 const EXPECTED = {
-  p2Rows: 50,
-  validApprovedRows: 16,
-  invalidApprovedRows: 34,
-  manualRetraceRequired: 34,
+  p2Rows: 36,
+  validApprovedRows: 3,
+  invalidApprovedRows: 33,
+  manualRetraceRequired: 33,
   labelAndHitAreaReview: 2,
-  visualApprovalCandidates: 14,
-  approvalCandidateRows: 16,
-  manualRetraceRows: 34,
+  visualApprovalCandidates: 1,
+  approvalCandidateRows: 3,
+  manualRetraceRows: 33,
 };
 
 const argValue = (name, fallback) => {

@@ -9,11 +9,11 @@ const defaultP1ReportDir = path.join(frontendRoot, 'reports/stadium/daegu-p1-ope
 const AUDIT_VERSION = 'DAEGU_P1_OPERATOR_AUDIT_V1';
 const EXPECTED = {
   targetBatchId: 'BATCH_2_P1',
-  packageRows: 29,
-  manualTraceRequiredRows: 12,
-  sharedCandidateBoundaryRows: 16,
+  packageRows: 17,
+  manualTraceRequiredRows: 5,
+  sharedCandidateBoundaryRows: 11,
   correctedPathRequiredRows: 1,
-  evidenceCropRows: 29,
+  evidenceCropRows: 17,
 };
 
 const argValue = (name, fallback) => {
@@ -40,6 +40,7 @@ const isBlank = (value) => String(value ?? '').trim() === '';
 const countInputRows = (rows) => ({
   total: rows.length,
   pending: rows.filter((row) => row.operatorDecision === 'PENDING').length,
+  needsRetrace: rows.filter((row) => row.operatorDecision === 'NEEDS_RETRACE').length,
   approved: rows.filter((row) => row.operatorDecision === 'APPROVED').length,
   decided: rows.filter((row) => row.operatorDecision !== 'PENDING').length,
   filledPath: rows.filter((row) => !isBlank(row.correctedPath)).length,
@@ -80,9 +81,10 @@ if (input.draftOnly !== false) blockers.push('INPUT_DRAFT_ONLY_NOT_FALSE');
 if (input.productionWriteAllowed !== false) blockers.push('INPUT_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
 
 pushExpected(blockers, 'INPUT_ROWS', inputCounts.total, EXPECTED.packageRows);
-pushExpected(blockers, 'INPUT_PENDING_ROWS', inputCounts.pending, EXPECTED.packageRows);
+pushExpected(blockers, 'INPUT_PENDING_ROWS', inputCounts.pending, 0);
+pushExpected(blockers, 'INPUT_NEEDS_RETRACE_ROWS', inputCounts.needsRetrace, EXPECTED.packageRows);
 pushExpected(blockers, 'INPUT_APPROVED_ROWS', inputCounts.approved, 0);
-pushExpected(blockers, 'INPUT_DECIDED_ROWS', inputCounts.decided, 0);
+pushExpected(blockers, 'INPUT_DECIDED_ROWS', inputCounts.decided, EXPECTED.packageRows);
 pushExpected(blockers, 'INPUT_FILLED_PATH_ROWS', inputCounts.filledPath, 0);
 pushExpected(blockers, 'INPUT_FILLED_LABEL_X_ROWS', inputCounts.filledLabelX, 0);
 pushExpected(blockers, 'INPUT_FILLED_LABEL_Y_ROWS', inputCounts.filledLabelY, 0);
@@ -132,7 +134,9 @@ await writeCsv(csvPath, [
     'evidenceCropRows',
     'inputRows',
     'inputPending',
+    'inputNeedsRetrace',
     'inputApproved',
+    'inputDecided',
     'inputFilledPath',
     'blockers',
   ],
@@ -146,7 +150,9 @@ await writeCsv(csvPath, [
     summary.packageCounts.evidenceCropRows,
     summary.inputCounts.total,
     summary.inputCounts.pending,
+    summary.inputCounts.needsRetrace,
     summary.inputCounts.approved,
+    summary.inputCounts.decided,
     summary.inputCounts.filledPath,
     summary.blockers.join(' '),
   ],
@@ -171,6 +177,7 @@ await fs.writeFile(markdownPath, [
   '',
   `- rows: ${summary.inputCounts.total}`,
   `- pending: ${summary.inputCounts.pending}`,
+  `- needsRetrace: ${summary.inputCounts.needsRetrace}`,
   `- approved: ${summary.inputCounts.approved}`,
   `- decided: ${summary.inputCounts.decided}`,
   `- filledPath: ${summary.inputCounts.filledPath}`,
