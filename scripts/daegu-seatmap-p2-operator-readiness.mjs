@@ -1,0 +1,575 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const frontendRoot = path.resolve(scriptDir, '..');
+const defaultReportDir = path.join(frontendRoot, 'reports/stadium');
+const defaultP2ReportDir = path.join(defaultReportDir, 'daegu-p2-operator');
+
+const READINESS_VERSION = 'DAEGU_P2_OPERATOR_READINESS_V2';
+const PACKAGE_VERSION = 'DAEGU_P2_OPERATOR_PACKAGE_V1';
+const IMPORT_VERSION = 'DAEGU_P2_OPERATOR_IMPORT_V1';
+const VALIDATION_VERSION = 'DAEGU_OPERATOR_CORRECTIONS_VALIDATION_V1';
+const TEMPLATE_VERSION = 'DAEGU_OPERATOR_CORRECTIONS_TEMPLATE_V1';
+const POST_ENTRY_QA_VERSION = 'DAEGU_P2_OPERATOR_POST_ENTRY_QA_V1';
+const P1_POSTWRITE_GATE_VERSION = 'DAEGU_P1_BOUNDARY_FIRST_POSTWRITE_GATE_V1';
+const TARGET_BATCH_ID = 'BATCH_3_P2';
+const TARGET_PRIORITY = 'P2';
+const PRIOR_BATCHES = [
+  { id: 'BATCH_1_P0', priorities: ['P0'] },
+  { id: 'BATCH_2_P1', priorities: ['P1'] },
+];
+const DECISION_OPTIONS = new Set(['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_RETRACE']);
+
+const argValue = (name, fallback) => {
+  const index = process.argv.indexOf(name);
+  if (index === -1 || !process.argv[index + 1]) return fallback;
+  return process.argv[index + 1];
+};
+
+const hasArg = (name) => process.argv.includes(name);
+
+const csvEscape = (value) => {
+  const text = String(value ?? '');
+  if (!/[",\n]/.test(text)) return text;
+  return `"${text.replaceAll('"', '""')}"`;
+};
+
+const writeCsv = async (filePath, rows) => {
+  const content = rows.map((row) => row.map(csvEscape).join(',')).join('\n');
+  await fs.writeFile(filePath, `${content}\n`, 'utf8');
+};
+
+const markdownCell = (value) => String(value ?? '-')
+  .replaceAll('|', '\\|')
+  .replaceAll('\n', '<br>');
+
+const markdownTable = (headers, rows) => [
+  `| ${headers.join(' | ')} |`,
+  `| ${headers.map(() => '---').join(' | ')} |`,
+  ...rows.map((row) => `| ${row.map(markdownCell).join(' | ')} |`),
+].join('\n');
+
+const readJsonReport = async (filePath) => {
+  try {
+    return {
+      path: filePath,
+      relativePath: path.relative(frontendRoot, filePath),
+      exists: true,
+      data: JSON.parse(await fs.readFile(filePath, 'utf8')),
+      error: '',
+    };
+  } catch (error) {
+    return {
+      path: filePath,
+      relativePath: path.relative(frontendRoot, filePath),
+      exists: false,
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
+
+const normalizeDecision = (decision) => String(decision ?? 'PENDING').trim() || 'PENDING';
+
+const isBlank = (value) => String(value ?? '').trim() === '';
+
+const numberOrZero = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+};
+
+const boolOrFalse = (value) => value === true;
+
+const p2ReportDir = path.resolve(frontendRoot, argValue('--p2-report-dir', defaultP2ReportDir));
+const reportDir = path.resolve(frontendRoot, argValue('--report-dir', defaultReportDir));
+const allowWaitingExitZero = hasArg('--allow-waiting-exit-zero') || hasArg('--report-only');
+const packagePath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-package.json');
+const inputPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-input.json');
+const postEntryQaPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-post-entry-qa.json');
+const validationPath = path.join(p2ReportDir, 'daegu-seatmap-operator-corrections-validation.json');
+const importPath = path.join(reportDir, 'daegu-seatmap-p2-operator-import.json');
+const templatePath = path.join(reportDir, 'daegu-seatmap-operator-corrections-template.json');
+const p1PostwriteGatePath = path.join(
+  reportDir,
+  'daegu-p1-operator/daegu-seatmap-p1-boundary-first-postwrite-gate.json',
+);
+
+const reports = {
+  package: await readJsonReport(packagePath),
+  input: await readJsonReport(inputPath),
+  postEntryQa: await readJsonReport(postEntryQaPath),
+  validation: await readJsonReport(validationPath),
+  import: await readJsonReport(importPath),
+  template: await readJsonReport(templatePath),
+  p1PostwriteGate: await readJsonReport(p1PostwriteGatePath),
+};
+
+const packageReport = reports.package.data ?? {};
+const input = reports.input.data ?? {};
+const postEntrySummary = reports.postEntryQa.data?.summary ?? {};
+const validationSummary = reports.validation.data?.summary ?? {};
+const importSummary = reports.import.data?.summary ?? {};
+const p1PostwriteSummary = reports.p1PostwriteGate.data?.summary ?? {};
+const validationRows = Array.isArray(reports.validation.data?.rows) ? reports.validation.data.rows : [];
+const inputRows = Array.isArray(input.corrections) ? input.corrections : [];
+const templateRows = Array.isArray(reports.template.data?.corrections) ? reports.template.data.corrections : [];
+const validationByBlockId = new Map(validationRows.map((row) => [row.blockId, row]));
+const expectedRows = Number(packageReport.totalRows ?? inputRows.length);
+
+const rows = inputRows.map((row) => {
+  const decision = normalizeDecision(row.operatorDecision);
+  const validationRow = validationByBlockId.get(row.blockId) ?? {};
+  return {
+    blockId: row.blockId,
+    block: row.block,
+    decision,
+    pending: decision === 'PENDING',
+    approved: decision === 'APPROVED',
+    rejected: decision === 'REJECTED',
+    needsRetrace: decision === 'NEEDS_RETRACE',
+    invalidDecision: !DECISION_OPTIONS.has(decision),
+    hasCorrectedPath: !isBlank(row.correctedPath),
+    hasCorrectedLabelX: !isBlank(row.correctedLabelX),
+    hasCorrectedLabelY: !isBlank(row.correctedLabelY),
+    hasReviewer: !isBlank(row.reviewer),
+    hasReviewedAt: !isBlank(row.reviewedAt),
+    validForApproval: validationRow.validForApproval === true,
+    reasons: Array.isArray(validationRow.reasons) ? validationRow.reasons : [],
+    warnings: Array.isArray(validationRow.warnings) ? validationRow.warnings : [],
+  };
+});
+
+const pendingRows = rows.filter((row) => row.pending);
+const decidedRows = rows.filter((row) => !row.pending);
+const approvedRows = rows.filter((row) => row.approved);
+const rejectedRows = rows.filter((row) => row.rejected);
+const needsRetraceRows = rows.filter((row) => row.needsRetrace);
+const invalidDecisionRows = rows.filter((row) => row.invalidDecision);
+const filledPathRows = rows.filter((row) => row.hasCorrectedPath);
+const filledReviewerRows = rows.filter((row) => row.hasReviewer);
+const blockerRows = rows.filter((row) => row.reasons.length > 0);
+const p2TemplateRows = templateRows.filter((row) => row.queuePriority === TARGET_PRIORITY);
+const priorBatchSummaries = PRIOR_BATCHES.map((batch) => {
+  const batchRows = templateRows.filter((row) => batch.priorities.includes(row.queuePriority));
+  return {
+    batchId: batch.id,
+    priorities: batch.priorities,
+    rows: batchRows.length,
+    pendingRows: batchRows.filter((row) => normalizeDecision(row.operatorDecision) === 'PENDING').length,
+    approvedRows: batchRows.filter((row) => normalizeDecision(row.operatorDecision) === 'APPROVED').length,
+  };
+});
+const priorPendingRows = priorBatchSummaries.reduce((total, row) => total + row.pendingRows, 0);
+const priorApprovedRows = priorBatchSummaries.reduce((total, row) => total + row.approvedRows, 0);
+const p1PostwriteStatus = p1PostwriteSummary.status ?? postEntrySummary.p1PostwriteStatus ?? '';
+const p1PostwriteVerified = p1PostwriteStatus === 'postwrite-verified';
+
+const blockers = [];
+const warnings = [];
+const waitingReasons = [];
+
+Object.values(reports).forEach((report) => {
+  if (!report.exists) blockers.push(`MISSING_REPORT:${report.relativePath}`);
+});
+
+if (reports.package.exists && packageReport.packageVersion !== PACKAGE_VERSION) {
+  blockers.push(`PACKAGE_VERSION_MISMATCH:${packageReport.packageVersion ?? ''}`);
+}
+if (reports.package.exists && packageReport.targetBatchId !== TARGET_BATCH_ID) {
+  blockers.push(`PACKAGE_BATCH_MISMATCH:${packageReport.targetBatchId ?? ''}`);
+}
+if (reports.input.exists && input.packageVersion !== PACKAGE_VERSION) {
+  blockers.push(`INPUT_PACKAGE_VERSION_MISMATCH:${input.packageVersion ?? ''}`);
+}
+if (reports.input.exists && input.targetBatchId !== TARGET_BATCH_ID) {
+  blockers.push(`INPUT_BATCH_MISMATCH:${input.targetBatchId ?? ''}`);
+}
+if (reports.input.exists && input.draftOnly !== false) blockers.push('INPUT_DRAFT_ONLY_NOT_FALSE');
+if (reports.input.exists && input.productionWriteAllowed !== false) {
+  blockers.push('INPUT_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
+}
+if (reports.postEntryQa.exists && postEntrySummary.postEntryQaVersion !== POST_ENTRY_QA_VERSION) {
+  blockers.push(`POST_ENTRY_QA_VERSION_MISMATCH:${postEntrySummary.postEntryQaVersion ?? ''}`);
+}
+if (reports.postEntryQa.exists && postEntrySummary.targetBatchId !== TARGET_BATCH_ID) {
+  blockers.push(`POST_ENTRY_QA_BATCH_MISMATCH:${postEntrySummary.targetBatchId ?? ''}`);
+}
+if (reports.postEntryQa.exists && postEntrySummary.productionWriteAllowed !== false) {
+  blockers.push('POST_ENTRY_QA_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
+}
+if (reports.p1PostwriteGate.exists && p1PostwriteSummary.gateVersion !== P1_POSTWRITE_GATE_VERSION) {
+  blockers.push(`P1_POSTWRITE_GATE_VERSION_MISMATCH:${p1PostwriteSummary.gateVersion ?? ''}`);
+}
+if (reports.template.exists && reports.template.data?.templateVersion !== TEMPLATE_VERSION) {
+  blockers.push(`TEMPLATE_VERSION_MISMATCH:${reports.template.data?.templateVersion ?? ''}`);
+}
+if (rows.length !== expectedRows) blockers.push(`P2_INPUT_ROW_COUNT_MISMATCH:${rows.length}:${expectedRows}`);
+if (p2TemplateRows.length !== expectedRows) {
+  blockers.push(`P2_TEMPLATE_ROW_COUNT_MISMATCH:${p2TemplateRows.length}:${expectedRows}`);
+}
+if (invalidDecisionRows.length > 0) {
+  blockers.push(`INVALID_P2_OPERATOR_DECISION:${invalidDecisionRows.map((row) => row.blockId).join(' ')}`);
+}
+priorBatchSummaries.forEach((batch) => {
+  if (approvedRows.length === 0) {
+    if (batch.pendingRows > 0) waitingReasons.push(`P2_WAITING_PRIOR_BATCH_CLOSED:${batch.batchId}`);
+    if (batch.approvedRows > 0) waitingReasons.push(`P2_WAITING_PRIOR_BATCH_WRITTEN:${batch.batchId}`);
+    return;
+  }
+  if (batch.pendingRows > 0) {
+    if (batch.batchId === 'BATCH_2_P1' && !p1PostwriteVerified) {
+      waitingReasons.push(`P2_WAITING_P1_POSTWRITE:${batch.batchId}`);
+    } else {
+      blockers.push(`P2_REQUIRES_PRIOR_BATCH_CLOSED:${batch.batchId}`);
+    }
+  }
+  if (batch.approvedRows > 0) {
+    if (batch.batchId === 'BATCH_2_P1' && !p1PostwriteVerified) {
+      waitingReasons.push(`P2_WAITING_P1_POSTWRITE:${batch.batchId}`);
+    } else {
+      blockers.push(`P2_REQUIRES_PRIOR_BATCH_WRITTEN:${batch.batchId}`);
+    }
+  }
+});
+if (pendingRows.length > 0) {
+  if (approvedRows.length === 0) {
+    waitingReasons.push(`P2_WAITING_OPERATOR_ENTRY:${pendingRows.length}`);
+  } else if (!p1PostwriteVerified) {
+    waitingReasons.push(`P2_PENDING_ROWS_DEFERRED_UNTIL_P1_POSTWRITE:${pendingRows.length}`);
+  } else {
+    blockers.push(`P2_PENDING_ROWS_REMAIN:${pendingRows.map((row) => row.block).join(' ')}`);
+  }
+}
+if (decidedRows.length === 0) waitingReasons.push('NO_P2_OPERATOR_DECISIONS');
+if (approvedRows.length === 0) waitingReasons.push('NO_APPROVED_P2_ROWS');
+
+if (reports.validation.exists && validationSummary.validationVersion !== VALIDATION_VERSION) {
+  blockers.push(`VALIDATION_VERSION_MISMATCH:${validationSummary.validationVersion ?? ''}`);
+}
+if (reports.validation.exists && validationSummary.status !== 'ok') blockers.push('P2_VALIDATION_STATUS_NOT_OK');
+
+const validationApprovedRows = numberOrZero(validationSummary.approvedRows);
+const validApprovedRows = numberOrZero(validationSummary.validApprovedRows);
+const invalidApprovedRows = numberOrZero(validationSummary.invalidApprovedRows);
+const invalidMetadataRows = numberOrZero(validationSummary.invalidMetadataRows);
+if (reports.validation.exists && validationApprovedRows !== approvedRows.length) {
+  blockers.push(`P2_VALIDATION_APPROVED_ROWS_MISMATCH:${validationApprovedRows}:${approvedRows.length}`);
+}
+if (invalidApprovedRows > 0) blockers.push(`P2_INVALID_APPROVED_ROWS:${invalidApprovedRows}`);
+if (invalidMetadataRows > 0) blockers.push(`P2_INVALID_METADATA_ROWS:${invalidMetadataRows}`);
+if (approvedRows.length > 0 && validApprovedRows !== approvedRows.length) {
+  blockers.push(`P2_VALID_APPROVED_ROWS_DO_NOT_MATCH_APPROVED_ROWS:${validApprovedRows}:${approvedRows.length}`);
+}
+
+if (reports.import.exists && importSummary.importVersion !== IMPORT_VERSION) {
+  blockers.push(`IMPORT_VERSION_MISMATCH:${importSummary.importVersion ?? ''}`);
+}
+if (reports.import.exists && importSummary.status !== 'ok') blockers.push('P2_IMPORT_DRY_RUN_STATUS_NOT_OK');
+if (reports.import.exists && importSummary.mode !== 'dry-run') {
+  blockers.push(`P2_IMPORT_REPORT_NOT_DRY_RUN:${importSummary.mode ?? ''}`);
+}
+if (reports.import.exists && numberOrZero(importSummary.importedRows) !== expectedRows) {
+  blockers.push(`P2_IMPORT_ROWS_MISMATCH:${importSummary.importedRows ?? ''}:${expectedRows}`);
+}
+if (reports.import.exists && numberOrZero(importSummary.decidedRows) !== decidedRows.length) {
+  blockers.push(`P2_IMPORT_DECIDED_ROWS_MISMATCH:${importSummary.decidedRows ?? ''}:${decidedRows.length}`);
+}
+if (reports.import.exists && numberOrZero(importSummary.approvedRows) !== approvedRows.length) {
+  blockers.push(`P2_IMPORT_APPROVED_ROWS_MISMATCH:${importSummary.approvedRows ?? ''}:${approvedRows.length}`);
+}
+if (reports.import.exists && numberOrZero(importSummary.pendingRows) !== pendingRows.length) {
+  blockers.push(`P2_IMPORT_PENDING_ROWS_MISMATCH:${importSummary.pendingRows ?? ''}:${pendingRows.length}`);
+}
+if (reports.import.exists && boolOrFalse(importSummary.productionDataChanged)) {
+  blockers.push('P2_IMPORT_CHANGED_PRODUCTION_DATA');
+}
+
+if (reports.postEntryQa.exists && numberOrZero(postEntrySummary.totalRows) !== expectedRows) {
+  blockers.push(`POST_ENTRY_QA_ROW_COUNT_MISMATCH:${postEntrySummary.totalRows ?? ''}:${expectedRows}`);
+}
+if (reports.postEntryQa.exists && numberOrZero(postEntrySummary.approvedRows) !== approvedRows.length) {
+  blockers.push(`POST_ENTRY_QA_APPROVED_ROWS_MISMATCH:${postEntrySummary.approvedRows ?? ''}:${approvedRows.length}`);
+}
+if (reports.postEntryQa.exists && numberOrZero(postEntrySummary.blockedRows) > 0) {
+  blockers.push(`POST_ENTRY_QA_BLOCKED_ROWS:${postEntrySummary.blockedRows}`);
+}
+if (reports.postEntryQa.exists && postEntrySummary.status === 'blocked-after-entry') {
+  blockers.push('POST_ENTRY_QA_STATUS_BLOCKED_AFTER_ENTRY');
+}
+if (reports.postEntryQa.exists && approvedRows.length > 0 && postEntrySummary.status === 'waiting-for-operator-entry') {
+  blockers.push('POST_ENTRY_QA_STATUS_WAITING_BUT_APPROVED_ROWS_EXIST');
+}
+if (approvedRows.length > 0 && !p1PostwriteVerified) {
+  waitingReasons.push(`P2_WAITING_FOR_P1_POSTWRITE:${p1PostwriteStatus || 'missing'}`);
+}
+
+if (approvedRows.length === 0) warnings.push('NO_APPROVED_P2_ROWS_TEMPLATE_IMPORT_WILL_BLOCK');
+if (filledPathRows.length > approvedRows.length) warnings.push('CORRECTED_PATH_FILLED_FOR_NON_APPROVED_ROWS');
+if (filledReviewerRows.length > approvedRows.length) warnings.push('REVIEWER_FILLED_FOR_NON_APPROVED_ROWS');
+
+const awaitingOperatorInput = blockers.length === 0 && approvedRows.length === 0;
+const waitingForP1Postwrite = blockers.length === 0 && approvedRows.length > 0 && !p1PostwriteVerified;
+const readyForTemplateImport = blockers.length === 0 && approvedRows.length > 0 && p1PostwriteVerified;
+const readyForGuardedWriteAfterTemplateImport = readyForTemplateImport && approvedRows.length > 0;
+
+const summary = {
+  readinessVersion: READINESS_VERSION,
+  status: blockers.length > 0
+    ? 'blocked'
+    : readyForTemplateImport
+      ? 'ready'
+      : waitingForP1Postwrite
+        ? 'waiting-for-p1-postwrite'
+        : 'waiting-for-operator-entry',
+  awaitingOperatorInput,
+  waitingForP1Postwrite,
+  readyForTemplateImport,
+  readyForGuardedWriteAfterTemplateImport,
+  allowWaitingExitZero,
+  targetBatchId: TARGET_BATCH_ID,
+  priorBatchIds: PRIOR_BATCHES.map((batch) => batch.id),
+  expectedRows,
+  totalRows: rows.length,
+  pendingRows: pendingRows.length,
+  decidedRows: decidedRows.length,
+  approvedRows: approvedRows.length,
+  rejectedRows: rejectedRows.length,
+  needsRetraceRows: needsRetraceRows.length,
+  invalidDecisionRows: invalidDecisionRows.length,
+  filledPathRows: filledPathRows.length,
+  filledReviewerRows: filledReviewerRows.length,
+  priorBatchSummaries,
+  priorPendingRows,
+  priorApprovedRows,
+  postEntryQaStatus: postEntrySummary.status ?? '',
+  postEntryQaApprovedRows: numberOrZero(postEntrySummary.approvedRows),
+  postEntryQaBlockedRows: numberOrZero(postEntrySummary.blockedRows),
+  p1PostwriteStatus,
+  p1PostwriteVerified,
+  validationStatus: validationSummary.status ?? '',
+  validationApprovedRows,
+  validApprovedRows,
+  invalidApprovedRows,
+  invalidMetadataRows,
+  importStatus: importSummary.status ?? '',
+  importMode: importSummary.mode ?? '',
+  importChangedRows: numberOrZero(importSummary.changedRows),
+  importDecidedRows: numberOrZero(importSummary.decidedRows),
+  importApprovedRows: numberOrZero(importSummary.approvedRows),
+  importPendingRows: numberOrZero(importSummary.pendingRows),
+  productionDataChanged: boolOrFalse(importSummary.productionDataChanged),
+  blockerRows: blockerRows.length,
+  blockers,
+  warnings,
+  waitingReasons: [...new Set(waitingReasons)],
+  postEntryQaCommand: 'npm run stadium:daegu:p2-operator-post-entry-qa',
+  p1PostwriteGateCommand: 'npm run stadium:daegu:p1-boundary-first-postwrite-gate',
+  packageCommand: 'npm run stadium:daegu:p2-operator-package',
+  validateCommand: 'npm run stadium:daegu:p2-operator-validate',
+  importDryRunCommand: 'npm run stadium:daegu:p2-operator-import',
+  templateImportCommand: 'npm run stadium:daegu:p2-operator-import:write-template',
+  guardedWriteCommand: 'npm run stadium:daegu:operator-corrections-write',
+  postWriteGateCommand: 'npm run stadium:daegu:operator-corrections-postwrite-gate',
+};
+
+const report = {
+  generatedAt: new Date().toISOString(),
+  summary,
+  sourceReports: Object.fromEntries(
+    Object.entries(reports).map(([key, sourceReport]) => [
+      key,
+      {
+        path: sourceReport.relativePath,
+        exists: sourceReport.exists,
+        error: sourceReport.error,
+      },
+    ]),
+  ),
+  safetyContract: [
+    'This readiness gate is read-only and never modifies the main corrections template.',
+    'It must be run after npm run stadium:daegu:p2-operator-post-entry-qa.',
+    'It must be run after npm run stadium:daegu:p2-operator-validate and npm run stadium:daegu:p2-operator-import.',
+    'Use --allow-waiting-exit-zero only when another report needs this readiness output without allowing template import.',
+    'It blocks template import when post-entry QA reports blocked rows.',
+    'It reports waiting-for-operator-entry while no P2 rows are operatorDecision=APPROVED.',
+    'It reports waiting-for-p1-postwrite while P2 approvals exist but P1 boundary-first postwrite is not verified.',
+    'It blocks template import while BATCH_1_P0 or BATCH_2_P1 is still pending or still has approved rows waiting for production write.',
+    'It blocks template import while any P2 row remains PENDING.',
+    'It blocks template import unless at least one P2 row is operatorDecision=APPROVED.',
+    'It requires every P2 APPROVED row to be validForApproval=true in the existing validator report.',
+    'P2 candidate paths are references only and must not be promoted automatically.',
+    'It does not allow production write directly; production write still requires npm run stadium:daegu:operator-corrections-write.',
+    'Do not run npm run stadium:daegu:operator-corrections after p2-operator-import:write-template.',
+  ],
+  rows,
+  nextActions: readyForTemplateImport
+    ? [
+      'Run npm run stadium:daegu:p2-operator-import:write-template.',
+      'Then run npm run stadium:daegu:operator-corrections-write.',
+    ]
+    : waitingForP1Postwrite
+      ? [
+        'Finish P1 boundary-first production write and postwrite verification.',
+        'Run npm run stadium:daegu:p1-boundary-first-postwrite-gate.',
+        'Run npm run stadium:daegu:p2-operator-post-entry-qa.',
+        'Re-run npm run stadium:daegu:p2-operator-readiness.',
+      ]
+    : awaitingOperatorInput
+      ? [
+        'Run npm run stadium:daegu:p2-operator-post-entry-qa after editing the P2 input rows.',
+        'Fill at least one P2 source input row with operatorDecision=APPROVED.',
+        'Approved rows require correctedPath, correctedLabelX, correctedLabelY, reviewer, and reviewedAt.',
+        'Run npm run stadium:daegu:p2-operator-validate.',
+        'Run npm run stadium:daegu:p2-operator-import.',
+        'Re-run npm run stadium:daegu:p2-operator-readiness.',
+      ]
+    : [
+      'Resolve blockers in the P2 operator input.',
+      'Run npm run stadium:daegu:p2-operator-validate.',
+      'Run npm run stadium:daegu:p2-operator-import.',
+      'Re-run npm run stadium:daegu:p2-operator-readiness.',
+    ],
+};
+
+const jsonPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-readiness.json');
+const csvPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-readiness.csv');
+const markdownPath = path.join(p2ReportDir, 'daegu-seatmap-p2-operator-readiness.md');
+
+await fs.mkdir(p2ReportDir, { recursive: true });
+await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+await writeCsv(csvPath, [
+  [
+    'blockId',
+    'block',
+    'decision',
+    'validForApproval',
+    'hasCorrectedPath',
+    'hasCorrectedLabelX',
+    'hasCorrectedLabelY',
+    'hasReviewer',
+    'hasReviewedAt',
+    'reasons',
+    'warnings',
+  ],
+  ...rows.map((row) => [
+    row.blockId,
+    row.block,
+    row.decision,
+    row.validForApproval,
+    row.hasCorrectedPath,
+    row.hasCorrectedLabelX,
+    row.hasCorrectedLabelY,
+    row.hasReviewer,
+    row.hasReviewedAt,
+    row.reasons.join(' '),
+    row.warnings.join(' '),
+  ]),
+]);
+await fs.writeFile(markdownPath, [
+  '# Daegu P2 Operator Readiness',
+  '',
+  `- readiness version: \`${READINESS_VERSION}\``,
+  `- status: \`${summary.status}\``,
+  `- awaiting operator input: ${summary.awaitingOperatorInput}`,
+  `- waiting for P1 postwrite: ${summary.waitingForP1Postwrite}`,
+  `- ready for template import: ${summary.readyForTemplateImport}`,
+  `- ready for guarded write after template import: ${summary.readyForGuardedWriteAfterTemplateImport}`,
+  `- allow waiting exit zero: ${summary.allowWaitingExitZero}`,
+  `- prior pending rows: ${summary.priorPendingRows}`,
+  `- prior approved rows: ${summary.priorApprovedRows}`,
+  `- post-entry QA status: \`${summary.postEntryQaStatus || 'missing'}\``,
+  `- post-entry QA approved rows: ${summary.postEntryQaApprovedRows}`,
+  `- post-entry QA blocked rows: ${summary.postEntryQaBlockedRows}`,
+  `- P1 postwrite status: \`${summary.p1PostwriteStatus || 'missing'}\``,
+  `- P1 postwrite verified: ${summary.p1PostwriteVerified}`,
+  `- pending rows: ${summary.pendingRows}`,
+  `- decided rows: ${summary.decidedRows}`,
+  `- approved rows: ${summary.approvedRows}`,
+  `- rejected rows: ${summary.rejectedRows}`,
+  `- needs retrace rows: ${summary.needsRetraceRows}`,
+  `- invalid decision rows: ${summary.invalidDecisionRows}`,
+  `- valid approved rows: ${summary.validApprovedRows}`,
+  `- invalid approved rows: ${summary.invalidApprovedRows}`,
+  `- import dry-run status: \`${summary.importStatus || 'missing'}\``,
+  `- import dry-run changed rows: ${summary.importChangedRows}`,
+  `- production data changed: ${summary.productionDataChanged}`,
+  '',
+  '## Prior Batches',
+  '',
+  markdownTable(
+    ['batch', 'priorities', 'rows', 'pending', 'approved'],
+    priorBatchSummaries.map((row) => [
+      `\`${row.batchId}\``,
+      `\`${row.priorities.join(',')}\``,
+      row.rows,
+      row.pendingRows,
+      row.approvedRows,
+    ]),
+  ),
+  '',
+  '## Rows',
+  '',
+  markdownTable(
+    [
+      'block',
+      'decision',
+      'valid',
+      'path',
+      'label x',
+      'label y',
+      'reviewer',
+      'reviewed at',
+      'reasons',
+    ],
+    rows.map((row) => [
+      row.block ? `\`${row.block}\`` : row.blockId,
+      `\`${row.decision}\``,
+      String(row.validForApproval),
+      String(row.hasCorrectedPath),
+      String(row.hasCorrectedLabelX),
+      String(row.hasCorrectedLabelY),
+      String(row.hasReviewer),
+      String(row.hasReviewedAt),
+      row.reasons.map((reason) => `\`${reason}\``).join('<br>') || '-',
+    ]),
+  ),
+  '',
+  '## Gate',
+  '',
+  '1. 이 readiness는 read-only이며 main template과 `src/data/daeguSeatData.ts`를 수정하지 않습니다.',
+  '2. P0/P1 batch가 pending 없이 닫혔고 approved row도 남아 있지 않아야 P2 template import를 진행할 수 있습니다.',
+  '3. P2 36건 중 `PENDING` row가 남아 있으면 template import를 진행하지 않습니다.',
+  '4. 승인된 P2 row가 1건 이상 있어야 template import를 진행할 수 있습니다.',
+  '5. `APPROVED` row가 있으면 validation에서 `validForApproval=true`여야 합니다.',
+  '6. `candidatePath`는 참고자료이며 운영자 승인 없이 `correctedPath`로 자동 승격하지 않습니다.',
+  '7. readiness가 통과해도 production write는 `npm run stadium:daegu:operator-corrections-write` guard를 다시 통과해야 합니다.',
+  '8. `p2-operator-import:write-template` 이후에는 `npm run stadium:daegu:operator-corrections`를 다시 실행하지 않습니다.',
+  '',
+  '## Blockers',
+  '',
+  summary.blockers.length > 0 ? summary.blockers.map((blocker) => `- \`${blocker}\``).join('\n') : 'No blockers.',
+  '',
+  '## Warnings',
+  '',
+  summary.warnings.length > 0 ? summary.warnings.map((warning) => `- \`${warning}\``).join('\n') : 'No warnings.',
+  '',
+  '## Waiting Reasons',
+  '',
+  summary.waitingReasons.length > 0 ? summary.waitingReasons.map((reason) => `- \`${reason}\``).join('\n') : 'No waiting reasons.',
+  '',
+  '## Next Actions',
+  '',
+  report.nextActions.map((action, index) => `${index + 1}. ${action}`).join('\n'),
+  '',
+].join('\n'), 'utf8');
+
+console.log(`p2_operator_readiness_json:${jsonPath}`);
+console.log(`p2_operator_readiness_csv:${csvPath}`);
+console.log(`p2_operator_readiness_markdown:${markdownPath}`);
+console.log(`status:${summary.status} readyForTemplateImport=${summary.readyForTemplateImport} pending=${summary.pendingRows} approved=${summary.approvedRows} validApproved=${summary.validApprovedRows} p1Postwrite=${summary.p1PostwriteStatus || 'missing'} allowWaitingExitZero=${summary.allowWaitingExitZero}`);
+
+if (!summary.readyForTemplateImport && !(allowWaitingExitZero && summary.status !== 'blocked')) {
+  process.exitCode = 1;
+}

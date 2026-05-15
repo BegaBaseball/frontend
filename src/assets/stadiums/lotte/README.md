@@ -18,7 +18,7 @@ Do not hotlink this asset from the runtime UI. The app bundles the local PNG and
 
 1. Keep `SAJIK_SEATMAP_IMAGE.assetStatus` in `src/data/sajikSeatData.ts` as `OFFICIAL` only while this file and verified hit-area coordinates are present.
 2. Manually update `SAJIK_BLOCKS` if the official image changes.
-3. Run `node --import tsx --test src/data/sajikSeatData.test.ts src/components/ui/stadiumSeatMapModel.test.ts`.
+3. Run `node --import tsx --test src/data/sajikSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`.
 4. Run `npm run qa:stadium:sajik:mobile` and verify both mobile 390 and desktop 1440 pass.
 
 If this official asset or the verified coordinates are removed, return the component to `MANUAL_BASEBALL_DATA_REQUIRED`.

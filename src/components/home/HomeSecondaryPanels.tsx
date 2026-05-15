@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 
 import type { CheerPost } from '../../api/cheerApi';
 import type { FeaturedMateCard } from '../../types/home';
@@ -219,6 +219,24 @@ export default function HomeSecondaryPanels({
   onCloseCalendar,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activePanel, setActivePanel] = useState(0);
+
+  const handleCarouselScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const ratio = max > 0 ? el.scrollLeft / max : 0;
+    setActivePanel(ratio > 0.5 ? 1 : 0);
+  };
+
+  const scrollToPanel = (index: number) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const target = index === 0 ? 0 : el.scrollWidth - el.clientWidth;
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
   const panelCardClassName = `border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-card ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
   const rankingCardClassName = `overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-card ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
   const compactRankingRows = [
@@ -254,6 +272,7 @@ export default function HomeSecondaryPanels({
         title="실시간 인기 응원글"
         icon={<FlameIcon className="h-5 w-5 text-red-500" />}
         onMore={onNavigateToCheer}
+        moreLabel="전체 보기"
       />
       <Card className={panelCardClassName}>
         {isHotCheerLoading ? (
@@ -328,6 +347,7 @@ export default function HomeSecondaryPanels({
         title="직관 메이트 찾기"
         icon={<UsersIcon className="h-5 w-5 text-blue-500" />}
         onMore={onNavigateToMate}
+        moreLabel="전체 보기"
       />
       <Card className={panelCardClassName}>
         {isFeaturedMatesLoading ? (
@@ -524,11 +544,29 @@ export default function HomeSecondaryPanels({
 
         <div className="mt-4 space-y-4 lg:grid lg:grid-cols-12 lg:gap-4 lg:space-y-0">
           {renderRankingPanel()}
-          <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleCarouselScroll}
+            className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0"
+          >
             <div className="flex snap-x snap-mandatory gap-4 lg:contents">
               {renderHotCheerPanel()}
               {renderFeaturedMatePanel()}
             </div>
+          </div>
+          {/* Mobile-only dot indicators */}
+          <div className="flex items-center justify-center gap-2 pt-2 lg:hidden">
+            {[0, 1].map((i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollToPanel(i)}
+                aria-label={i === 0 ? '응원글 패널로 이동' : '메이트 패널로 이동'}
+                className="p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+              >
+                <span className={`block rounded-full transition-all duration-200 ${activePanel === i ? 'h-2 w-2.5 bg-primary dark:bg-primary-light' : 'h-1.5 w-1.5 bg-slate-300 dark:bg-slate-600'}`} />
+              </button>
+            ))}
           </div>
         </div>
       </div>

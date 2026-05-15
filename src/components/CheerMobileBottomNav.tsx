@@ -37,11 +37,12 @@ export default function CheerMobileBottomNav({
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-md safe-area-bottom dark:border-border dark:bg-card/95 lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-4 pt-2 safe-area-bottom lg:hidden"
       data-testid="cheer-mobile-bottom-nav"
       aria-label="응원석 모바일 네비게이션"
     >
-      <div className="mx-auto grid h-[68px] max-w-md grid-cols-5 items-center px-1">
+      {/* Floating glass capsule */}
+      <div className="mx-auto grid h-[60px] max-w-sm grid-cols-5 items-stretch gap-0.5 rounded-[22px] border border-white/80 bg-white/88 p-1.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_18px_40px_-16px_rgba(15,67,56,.35)] backdrop-blur-xl dark:border-white/12 dark:bg-black dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_18px_40px_-16px_rgba(15,120,85,0.18)]">
         {items.map((item) => {
           const Icon = item.icon;
           const isWrite = item.id === 'write';
@@ -59,12 +60,12 @@ export default function CheerMobileBottomNav({
                 navigate(item.path);
               }}
               className={cn(
-                'flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-xs font-black transition-colors active:scale-[0.98]',
+                'flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 text-[10.5px] font-black transition-all duration-200 active:scale-[0.97]',
                 isActive
-                  ? 'text-primary'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white',
+                  ? 'bg-primary text-white shadow-[0_4px_12px_-4px_rgba(45,95,79,.4)]'
+                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
               )}
-              style={isActive ? { color: teamAccent } : undefined}
+              style={isActive && !isWrite ? { backgroundColor: teamAccent } : undefined}
               aria-current={isActive ? 'page' : undefined}
               aria-label={item.label}
               data-testid={`cheer-bottom-nav-${item.id}`}
@@ -72,16 +73,16 @@ export default function CheerMobileBottomNav({
               {isWrite ? (
                 <>
                   <span
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(15,23,42,0.20)]"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[0_4px_12px_rgba(15,23,42,0.22)]"
                     style={{ backgroundColor: teamAccent }}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4.5 w-4.5" />
                   </span>
-                  <span className="leading-none text-slate-700 dark:text-slate-200">{item.label}</span>
+                  <span className="leading-none text-gray-500 dark:text-gray-300">{item.label}</span>
                 </>
               ) : (
                 <>
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-[18px] w-[18px]" />
                   <span className="truncate leading-none">{item.label}</span>
                 </>
               )}

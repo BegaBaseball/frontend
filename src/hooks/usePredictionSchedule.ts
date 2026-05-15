@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchMatchesByDay,
   type MatchDayResult,
-} from '../api/prediction';
+} from '../api/predictionMatchDay';
 import { getTodayString } from '../utils/predictionDates';
 import { getApiErrorMessage, parseError, type ParsedError } from '../utils/errorUtils';
 import {
@@ -15,6 +15,10 @@ import {
   buildPredictionRecoveryPath,
   type PredictionLocationState,
 } from '../utils/predictionDeepLink';
+import {
+  schedulePredictionPostPaintIdleWork,
+  type PredictionDeferredWorkCancel,
+} from '../utils/predictionDeferredWork';
 import type { DateGames, Game, GameDetail, MatchBounds, MatchDayNavigation } from '../types/prediction';
 import {
   MATCH_FETCH_SIZE,
@@ -274,10 +278,11 @@ export const usePredictionSchedule = ({
   const currentDateIndexRef = useRef(0);
   const dayNavigationByDateRef = useRef<Record<string, MatchDayNavigationMeta>>({});
   const dayRequestInFlightRef = useRef<Map<string, Promise<MatchDayResult>>>(new Map());
-  const adjacentPrefetchTimeoutRef = useRef<number | null>(null);
-  const adjacentPrefetchIdleCallbackRef = useRef<number | null>(null);
+  const adjacentPrefetchCancelRef = useRef<PredictionDeferredWorkCancel | null>(null);
   const adjacentPrefetchPendingAnchorRef = useRef<string | null>(null);
   const adjacentPrefetchCompletedAnchorsRef = useRef<Set<string>>(new Set());
+  const matchBoundsHydrationCancelRef = useRef<PredictionDeferredWorkCancel | null>(null);
+  const scheduleMatchBoundsAfterInitialLoadRef = useRef(false);
   const programmaticSearchSignatureRef = useRef('');
   const suppressNextProgrammaticSearchLoadRef = useRef(false);
 
@@ -617,20 +622,23 @@ export const usePredictionSchedule = ({
   ]);
 
   const clearScheduledAdjacentPrefetch = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (adjacentPrefetchIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
-      window.cancelIdleCallback(adjacentPrefetchIdleCallbackRef.current);
-      adjacentPrefetchIdleCallbackRef.current = null;
-    }
-    if (adjacentPrefetchTimeoutRef.current !== null) {
-      globalThis.clearTimeout(adjacentPrefetchTimeoutRef.current);
-      adjacentPrefetchTimeoutRef.current = null;
-    }
+    adjacentPrefetchCancelRef.current?.();
+    adjacentPrefetchCancelRef.current = null;
     adjacentPrefetchPendingAnchorRef.current = null;
   }, []);
+
+  const clearScheduledMatchBoundsHydration = useCallback(() => {
+    matchBoundsHydrationCancelRef.current?.();
+    matchBoundsHydrationCancelRef.current = null;
+  }, []);
+
+  const scheduleMatchBoundsHydration = useCallback(() => {
+    clearScheduledMatchBoundsHydration();
+    matchBoundsHydrationCancelRef.current = schedulePredictionPostPaintIdleWork(() => {
+      matchBoundsHydrationCancelRef.current = null;
+      void hydrateMatchBounds();
+    });
+  }, [clearScheduledMatchBoundsHydration, hydrateMatchBounds]);
 
   const scheduleAdjacentPrefetch = useCallback((anchorDate: string) => {
     const normalizedDate = normalizeDateKey(anchorDate) || anchorDate;
@@ -643,8 +651,7 @@ export const usePredictionSchedule = ({
         anchorDate: normalizedDate,
         pendingAnchorDateRef: adjacentPrefetchPendingAnchorRef,
         completedAnchorDatesRef: adjacentPrefetchCompletedAnchorsRef,
-        adjacentPrefetchIdleCallbackRef,
-        adjacentPrefetchTimeoutRef,
+        adjacentPrefetchCancelRef,
         clearScheduledAdjacentPrefetch,
         dayNavigationByDateRef,
         loadPredictionDay,
@@ -856,6 +863,8 @@ export const usePredictionSchedule = ({
     }
     setDeepLinkNotice(null);
     clearScheduledAdjacentPrefetch();
+    clearScheduledMatchBoundsHydration();
+    scheduleMatchBoundsAfterInitialLoadRef.current = false;
     adjacentPrefetchCompletedAnchorsRef.current.clear();
     matchBoundsRef.current = null;
     matchBoundsHydrationPromiseRef.current = null;
@@ -954,7 +963,7 @@ export const usePredictionSchedule = ({
         }
         syncRangeStateFromDates(normalizedDates, initialAnchorDate);
       }
-      void hydrateMatchBounds();
+      scheduleMatchBoundsAfterInitialLoadRef.current = true;
     } catch (error) {
       if (isCancelLikeError(error)) {
         return;
@@ -985,16 +994,21 @@ export const usePredictionSchedule = ({
       if (!silent) {
         setLoading(false);
       }
+      if (scheduleMatchBoundsAfterInitialLoadRef.current) {
+        scheduleMatchBoundsAfterInitialLoadRef.current = false;
+        scheduleMatchBoundsHydration();
+      }
       isFetchingAllGamesRef.current = false;
     }
   }, [
     clearScheduledAdjacentPrefetch,
+    clearScheduledMatchBoundsHydration,
     deepLinkDate,
     deepLinkGameId,
     deepLinkParamValidationNotice,
     emitFlowEvent,
-    hydrateMatchBounds,
     loadPredictionDay,
+    scheduleMatchBoundsHydration,
     setCanLoadMoreFutureState,
     setCanLoadMorePastState,
     syncRangeStateFromDates,
@@ -1099,7 +1113,7 @@ export const usePredictionSchedule = ({
         setFutureRangeLoadErrorMessage(null);
         navigationSeedAppliedRef.current = true;
         primeGameDetail(seededGame.gameId, seededGameDetail);
-        void hydrateMatchBounds();
+        scheduleMatchBoundsHydration();
       });
 
     return () => {
@@ -1113,7 +1127,7 @@ export const usePredictionSchedule = ({
     setCanLoadMoreFutureState,
     setCanLoadMorePastState,
     stateGame,
-    hydrateMatchBounds,
+    scheduleMatchBoundsHydration,
   ]);
 
   useEffect(() => {
@@ -1389,6 +1403,11 @@ export const usePredictionSchedule = ({
       requestKeySuffix: `jump:${normalizedDate}`,
     });
   }, [loadPredictionDay, resetNavigationDeepLinkResolution]);
+
+  useEffect(() => () => {
+    clearScheduledAdjacentPrefetch();
+    clearScheduledMatchBoundsHydration();
+  }, [clearScheduledAdjacentPrefetch, clearScheduledMatchBoundsHydration]);
 
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();

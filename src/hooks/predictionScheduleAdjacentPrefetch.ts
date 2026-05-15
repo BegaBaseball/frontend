@@ -1,4 +1,8 @@
 import { getTodayString } from '../utils/predictionDates';
+import {
+  schedulePredictionPostPaintIdleWork,
+  type PredictionDeferredWorkCancel,
+} from '../utils/predictionDeferredWork';
 
 type PredictionAdjacentPrefetchDeps = {
   anchorDate: string;
@@ -15,8 +19,7 @@ type PredictionAdjacentPrefetchDeps = {
 type PredictionAdjacentPrefetchScheduleDeps = PredictionAdjacentPrefetchDeps & {
   pendingAnchorDateRef: { current: string | null };
   completedAnchorDatesRef: { current: Set<string> };
-  adjacentPrefetchIdleCallbackRef: { current: number | null };
-  adjacentPrefetchTimeoutRef: { current: number | null };
+  adjacentPrefetchCancelRef: { current: PredictionDeferredWorkCancel | null };
   clearScheduledAdjacentPrefetch: () => void;
 };
 
@@ -66,8 +69,7 @@ export const schedulePredictionAdjacentPrefetch = ({
   anchorDate,
   pendingAnchorDateRef,
   completedAnchorDatesRef,
-  adjacentPrefetchIdleCallbackRef,
-  adjacentPrefetchTimeoutRef,
+  adjacentPrefetchCancelRef,
   clearScheduledAdjacentPrefetch,
   ...runDeps
 }: PredictionAdjacentPrefetchScheduleDeps) => {
@@ -87,8 +89,7 @@ export const schedulePredictionAdjacentPrefetch = ({
   pendingAnchorDateRef.current = anchorDate;
 
   const runPrefetch = () => {
-    adjacentPrefetchIdleCallbackRef.current = null;
-    adjacentPrefetchTimeoutRef.current = null;
+    adjacentPrefetchCancelRef.current = null;
 
     if (pendingAnchorDateRef.current !== anchorDate || completedAnchorDatesRef.current.has(anchorDate)) {
       return;
@@ -105,16 +106,5 @@ export const schedulePredictionAdjacentPrefetch = ({
     });
   };
 
-  const requestIdleCallback = 'requestIdleCallback' in window
-    ? window.requestIdleCallback.bind(window)
-    : null;
-
-  if (requestIdleCallback) {
-    adjacentPrefetchIdleCallbackRef.current = requestIdleCallback(() => {
-      runPrefetch();
-    }, { timeout: 1200 });
-    return;
-  }
-
-  adjacentPrefetchTimeoutRef.current = window.setTimeout(runPrefetch, 0);
+  adjacentPrefetchCancelRef.current = schedulePredictionPostPaintIdleWork(runPrefetch);
 };

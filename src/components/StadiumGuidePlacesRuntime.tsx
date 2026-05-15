@@ -65,7 +65,7 @@ export default function StadiumGuidePlacesRuntime({
   );
 
   return (
-    <div>
+    <div data-testid="stadium-guide-places-panel">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
           {CATEGORY_CONFIGS[selectedCategory].label} 목록

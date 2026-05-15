@@ -1227,21 +1227,27 @@ export const INCHEON_IMAGE_GEOMETRY_DRAFTS: Record<string, IncheonImageGeometryD
     shortLabel: "그린존"
   },
   "incheon-accessible-25b": {
-    d: "M 1141 2816 L 1204 2816 L 1210 2822 L 1210 2884 L 1204 2890 L 1141 2890 L 1135 2884 L 1135 2822 Z",
-    labelX: 1172,
-    labelY: 2853,
+    d: "M 1068 2740 L 1140 2740 L 1140 2812 L 1068 2812 L 1068 2740 L 1140 2740 L 1140 2812 L 1068 2812 Z",
+    labelX: 1105,
+    labelY: 2777,
     shortLabel: "휠체어"
   },
   "incheon-accessible-23b": {
-    d: "M 1231 2922 L 1294 2922 L 1300 2928 L 1300 2992 L 1294 2998 L 1231 2998 L 1225 2992 L 1225 2928 Z",
-    labelX: 1262,
-    labelY: 2960,
+    d: "M 1180 2855 L 1252 2855 L 1252 2926 L 1180 2926 L 1180 2855 L 1252 2855 L 1252 2926 L 1180 2926 Z",
+    labelX: 1217,
+    labelY: 2891,
     shortLabel: "휠체어"
   },
   "incheon-accessible-9b": {
-    d: "M 2134 2918 L 2197 2918 L 2203 2924 L 2203 2989 L 2197 2995 L 2134 2995 L 2128 2989 L 2128 2924 Z",
-    labelX: 2165,
-    labelY: 2956,
+    d: "M 2101 2852 L 2173 2852 L 2173 2924 L 2101 2924 L 2101 2852 L 2173 2852 L 2173 2924 L 2101 2924 Z",
+    labelX: 2138,
+    labelY: 2889,
+    shortLabel: "휠체어"
+  },
+  "incheon-accessible-8b": {
+    d: "M 2218 2740 L 2290 2740 L 2290 2812 L 2218 2812 L 2218 2740 L 2290 2740 L 2290 2812 L 2218 2812 Z",
+    labelX: 2255,
+    labelY: 2777,
     shortLabel: "휠체어"
   }
 };
@@ -4703,6 +4709,26 @@ const INCHEON_BLOCK_DEFINITIONS: IncheonBlockDefinition[] = [
     accessibilityNote: "공식 좌석도에 휠체어 아이콘으로 표시된 구역입니다."
   },
   {
+    id: "incheon-accessible-8b",
+    level: "1F",
+    category: "ACCESSIBLE",
+    name: "휠체어석 8B",
+    block: "휠체어석 8B",
+    officialBlocks: [
+      "휠체어석 8B"
+    ],
+    side: "FIRST_BASE",
+    fanRole: "HOME",
+    sourceConfidence: "OFFICIAL",
+    sourceNote: "SSG 랜더스 공식 티켓 안내 2026 좌석도 이미지에서 확인한 블록/구역입니다.",
+    seatViewSections: [
+      "휠체어석 8B",
+      "1루 휠체어석",
+      "인천 휠체어석"
+    ],
+    accessibilityNote: "공식 좌석도에 휠체어 아이콘으로 표시된 구역입니다."
+  },
+  {
     id: "incheon-accessible-23b",
     level: "1F",
     category: "ACCESSIBLE",
@@ -4757,6 +4783,31 @@ function createIncheonBlock(definition: IncheonBlockDefinition): IncheonBlock {
 }
 
 export const INCHEON_BLOCKS: IncheonBlock[] = INCHEON_BLOCK_DEFINITIONS.map(createIncheonBlock);
+
+export function getIncheonSeatViewAliases(block: IncheonBlock): string[] {
+  const categoryLabel = INCHEON_CATEGORIES[block.category]?.label;
+  const aliases = [
+    '인천',
+    '인천SSG랜더스필드',
+    '인천 SSG 랜더스필드',
+    'SSG',
+    'SSG 랜더스',
+    '랜더스',
+    block.name,
+    block.block,
+    block.block ? `${block.block}블록` : null,
+    categoryLabel,
+    ...block.officialBlocks,
+    ...block.officialBlocks.map((officialBlock) => `${officialBlock}블록`),
+    ...block.seatViewSections,
+  ];
+
+  return Array.from(new Set(
+    aliases
+      .map((alias) => alias?.trim())
+      .filter((alias): alias is string => Boolean(alias)),
+  ));
+}
 
 export function getIncheonSideLabel(side: IncheonSide): string {
   if (side === 'FIRST_BASE') return '1루';

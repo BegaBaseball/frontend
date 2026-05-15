@@ -9,8 +9,7 @@ import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
 import { Card } from '../ui/card';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
-
-const PredictionMatchSchedulePreviewRuntime = lazy(() => import('./PredictionMatchSchedulePreviewRuntime'));
+import PredictionMatchSchedulePreviewRuntime from './PredictionMatchSchedulePreviewRuntime';
 
 type PredictionMatchScheduleReadyViewProps = {
   locationState: PredictionLocationState;

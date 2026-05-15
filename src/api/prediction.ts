@@ -14,6 +14,9 @@ import {
   UserPredictionStat,
 } from '../types/prediction';
 
+export { fetchMatchesByDay } from './predictionMatchDay';
+export type { MatchDayResult } from './predictionMatchDay';
+
 export interface MyVotesRequest {
   gameIds: string[];
 }
@@ -241,7 +244,6 @@ export interface MatchRangePageMeta {
 
 export type MatchRangeResult = ApiResult<Game[] | MatchRangePageMeta>;
 export type GameDetailResult = ApiResult<GameDetail>;
-export type MatchDayResult = ApiResult<MatchDayNavigation>;
 
 export interface FetchOptions {
   signal?: AbortSignal;
@@ -373,32 +375,6 @@ const toLiveSummary = (value: unknown): GameLiveSummary | null => {
     lastEventSeq: toNullableNumber(source.lastEventSeq ?? source.last_event_seq),
     lastUpdatedAt: toNullableString(source.lastUpdatedAt ?? source.last_updated_at),
   };
-};
-
-export const fetchMatchesByDay = async (
-  date: string,
-  options: FetchOptions = {}
-): Promise<MatchDayResult> => {
-  try {
-    const data = await publicGet<MatchDayNavigation>('/matches/day', {
-      params: { date },
-      signal: options.signal,
-    });
-    return {
-      ok: true,
-      data,
-    };
-  } catch (error) {
-    const parsed = parseError(error);
-    return {
-      ok: false,
-      error: {
-        message: parsed.message || '경기일 조회에 실패했습니다.',
-        status: parsed.statusCode,
-        code: parsed.responseCode,
-      },
-    };
-  }
 };
 
 /**

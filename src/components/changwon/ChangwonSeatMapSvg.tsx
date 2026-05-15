@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import {
   CHANGWON_BLOCKS,
   CHANGWON_CATEGORIES,
@@ -109,10 +109,13 @@ export default function ChangwonSeatMapSvg({
 
   return (
     <div
+      data-testid="changwon-seatmap-viewport"
       className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
       style={{ aspectRatio: `${imageWidth} / ${cropHeight}` }}
     >
       <div
+        data-testid="changwon-seatmap-transform-layer"
+        data-zoom={zoom.toFixed(2)}
         className="absolute left-0 w-full transition-transform duration-200 ease-out"
         style={{
           height: `${croppedImageHeightPercent}%`,
@@ -175,33 +178,56 @@ export default function ChangwonSeatMapSvg({
             const stroke = mode === 'dark' ? '#F8FAFC' : '#0F172A';
             const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.62 : 0;
             const traceReference = CHANGWON_OFFICIAL_TRACE_REFERENCE[block.block];
+            const expandedHitStrokeWidth = block.imageGeometry.hitStrokeWidth ?? 0;
+            const usesExpandedHitArea = expandedHitStrokeWidth > 0;
+            const handleSelect = () => !isFiltered && setSelected(selected?.id === block.id ? null : block);
+            const handleKeyDown = (event: KeyboardEvent<SVGPathElement>) => {
+              if (isFiltered) return;
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setSelected(selected?.id === block.id ? null : block);
+              }
+            };
 
             return (
               <g key={block.id}>
                 <path
                   role="button"
+                  data-testid={`changwon-seat-block-${block.id}`}
+                  data-label-x={block.imageGeometry.labelX}
+                  data-label-y={block.imageGeometry.labelY}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={getChangwonBlockDisplayName(block)}
                   aria-pressed={isSelected}
                   d={block.imageGeometry.d}
                   fill={baseColor}
-                  fillOpacity={fillOpacity}
-                  stroke={stroke}
-                  strokeOpacity={strokeOpacity}
-                  strokeWidth={isActive ? 4 : showDebug ? 1.5 : 2}
-                  filter={isActive ? 'url(#changwon-hit-glow)' : undefined}
-                  vectorEffect="non-scaling-stroke"
+                  fillOpacity={usesExpandedHitArea ? 0.001 : fillOpacity}
+                  stroke={usesExpandedHitArea ? baseColor : stroke}
+                  strokeOpacity={usesExpandedHitArea ? (isFiltered ? 0 : 0.001) : strokeOpacity}
+                  strokeWidth={usesExpandedHitArea ? expandedHitStrokeWidth : isActive ? 4 : showDebug ? 1.5 : 2}
+                  filter={!usesExpandedHitArea && isActive ? 'url(#changwon-hit-glow)' : undefined}
+                  vectorEffect={usesExpandedHitArea ? undefined : 'non-scaling-stroke'}
+                  pointerEvents={isFiltered ? 'none' : usesExpandedHitArea ? undefined : 'fill'}
                   style={{ cursor: isFiltered ? 'default' : 'pointer', transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
                   onMouseEnter={() => !isFiltered && setHover(block.id)}
-                  onClick={() => !isFiltered && setSelected(selected?.id === block.id ? null : block)}
-                  onKeyDown={(event) => {
-                    if (isFiltered) return;
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      setSelected(selected?.id === block.id ? null : block);
-                    }
-                  }}
+                  onClick={handleSelect}
+                  onKeyDown={handleKeyDown}
                 />
+                {usesExpandedHitArea && (
+                  <path
+                    aria-hidden="true"
+                    d={block.imageGeometry.d}
+                    fill={baseColor}
+                    fillOpacity={fillOpacity}
+                    stroke={stroke}
+                    strokeOpacity={strokeOpacity}
+                    strokeWidth={isActive ? 4 : showDebug ? 1.5 : 2}
+                    filter={isActive ? 'url(#changwon-hit-glow)' : undefined}
+                    pointerEvents="none"
+                    vectorEffect="non-scaling-stroke"
+                    style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
+                  />
+                )}
                 {(isActive || showDebug) && !isFiltered && (
                   <text
                     x={block.imageGeometry.labelX}

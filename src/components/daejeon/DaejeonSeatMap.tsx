@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Minus, Plus, RotateCcw, Search } from 'lucide-react';
+import { BookOpen, Minus, Plus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DAEJEON_BLOCKS,
@@ -16,6 +16,7 @@ import {
   getDaejeonTraceStatusLabel,
   getDaejeonViewInfo,
   getDaejeonZoneGroupLabel,
+  isDaejeonSelectableSeatBlock,
   type DaejeonBlock,
 } from '../../data/daejeonSeatData';
 import { useTheme } from '../../hooks/useTheme';
@@ -23,8 +24,16 @@ import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import DaejeonBottomSheet from './DaejeonBottomSheet';
 import DaejeonSeatMapSvg from './DaejeonSeatMapSvg';
+import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
+import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
+import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
+import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
+import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
+import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
+import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
+import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 0.9;
 const MAX_ZOOM = 1.35;
@@ -33,6 +42,36 @@ const OFFICIAL_BLOCK_PREVIEW_COUNT = 6;
 const FINDER_FOCUS_ZOOM = 1.2;
 
 type MapPan = { x: number; y: number };
+
+const daejeonSectionAdapter: SeatMapSectionAdapter<DaejeonBlock> = {
+  getId: (section) => section.id,
+  getName: (section) => section.name,
+  getBlock: (section) => section.blockCode,
+  getCategoryId: (section) => section.category,
+  getLevel: (section) => `${section.level} · ${getDaejeonZoneGroupLabel(section.zoneGroup)}`,
+  getOfficialBlocks: (section) => section.officialBlocks,
+  getSideLabel: (section) => getDaejeonSideLabel(section.side),
+  getFanRoleLabel: (section) => getDaejeonFanRoleLabel(section.fanRole),
+  getSourceLabel: (section) => getDaejeonSourceLabel(section.sourceConfidence),
+  getSourceNote: (section) => section.sourceNote,
+  getSeatViewSections: (section) => section.seatViewSections,
+  getAccessibilityNote: (section) => section.accessibilityNote,
+  getDistance: (section) => getDaejeonViewInfo(section).distance,
+  getNotes: (section) => {
+    const info = getDaejeonViewInfo(section);
+    const coverage = findDaejeonSectionCoverageByBlock(section.id);
+    const coverageText = coverage
+      ? `${coverage.officialSectionName} · ${getDaejeonCoverageStatusLabel(coverage.status)}`
+      : null;
+    return [
+      info.notes,
+      `${section.officialSectionName} · ${getDaejeonTraceStatusLabel(section.traceStatus)}`,
+      coverageText,
+      section.reviewNote,
+    ].filter(Boolean).join(' · ');
+  },
+  getTags: (section) => getDaejeonViewInfo(section).tags ?? [],
+};
 
 function formatDraftDate(date: Date): string {
   const year = date.getFullYear();
@@ -47,32 +86,6 @@ function normalizeSearchText(value: string): string {
 
 function isDenseTouchTarget(section: DaejeonBlock): boolean {
   return section.category === 'TABLE' && section.level === '4F';
-}
-
-function FilterBar({ selectedId, onChange, mode }: { selectedId: string; onChange: (value: string) => void; mode: 'light' | 'dark' }) {
-  return (
-    <div className="flex flex-wrap gap-1.5 py-1">
-      {DAEJEON_CATEGORY_GROUPS.map((group) => {
-        const active = group.id === selectedId;
-        return (
-          <button
-            key={group.id}
-            type="button"
-            data-testid={`daejeon-filter-${group.id}`}
-            onClick={() => onChange(group.id)}
-            className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-            style={{
-              background: active ? '#F37321' : 'transparent',
-              borderColor: active ? '#F37321' : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-              color: active ? '#fff' : (mode === 'dark' ? '#94a3b8' : '#334155'),
-            }}
-          >
-            {group.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 function ZoomControls({
@@ -97,28 +110,6 @@ function ZoomControls({
     <div className="flex items-center gap-1.5">
       <button
         type="button"
-        data-testid="daejeon-seatmap-zoom-out"
-        aria-label="축소"
-        onClick={onZoomOut}
-        disabled={zoom <= MIN_ZOOM}
-        className={buttonClass}
-        style={{ borderColor }}
-      >
-        <Minus className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        data-testid="daejeon-seatmap-zoom-reset"
-        aria-label="초기화"
-        onClick={onReset}
-        disabled={!canReset}
-        className={buttonClass}
-        style={{ borderColor }}
-      >
-        <RotateCcw className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
         data-testid="daejeon-seatmap-zoom-in"
         aria-label="확대"
         onClick={onZoomIn}
@@ -127,6 +118,28 @@ function ZoomControls({
         style={{ borderColor }}
       >
         <Plus className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        data-testid="daejeon-seatmap-zoom-reset"
+        aria-label="초기화"
+        onClick={onReset}
+        disabled={!canReset}
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800"
+        style={{ borderColor }}
+      >
+        {zoom.toFixed(2)}x
+      </button>
+      <button
+        type="button"
+        data-testid="daejeon-seatmap-zoom-out"
+        aria-label="축소"
+        onClick={onZoomOut}
+        disabled={zoom <= MIN_ZOOM}
+        className={buttonClass}
+        style={{ borderColor }}
+      >
+        <Minus className="h-4 w-4" />
       </button>
     </div>
   );
@@ -252,12 +265,14 @@ function SectionFinder({
                   <button
                     key={block.id}
                     type="button"
-                    onClick={() => onSelect(block)}
+                    onClick={() => !isPendingReview && onSelect(block)}
                     onMouseEnter={() => onHover(isPendingReview ? null : block.id)}
                     onMouseLeave={() => onHover(null)}
+                    disabled={isPendingReview}
+                    aria-disabled={isPendingReview}
                     aria-pressed={isActive}
                     aria-label={`구역 선택 ${block.name} ${block.blockCode}`}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
                     style={{
                       background: isActive ? `${accent}18` : 'transparent',
                       borderColor: isActive ? `${accent}66` : (mode === 'dark' ? '#334155' : '#e2e8f0'),
@@ -316,6 +331,7 @@ function DetailPanel({
   const zoneLabel = getDaejeonZoneGroupLabel(section.zoneGroup);
   const coverage = findDaejeonSectionCoverageByBlock(section.id);
   const parentGroup = findDaejeonParentBlockGroup(section.parentId);
+  const isPendingReview = !isDaejeonSelectableSeatBlock(section);
 
   return (
     <div className="sticky top-4 overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={{ maxHeight: 'calc(100vh - 32px)' }}>
@@ -405,11 +421,12 @@ function DetailPanel({
         <button
           type="button"
           onClick={onUpload}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          style={{ background: accent }}
+          disabled={isPendingReview}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ background: isPendingReview ? '#94a3b8' : accent }}
         >
           <BookOpen className="h-4 w-4" />
-          다이어리에서 시야 사진 공유하기
+          {isPendingReview ? '좌표 검수 후 공유 가능' : '다이어리에서 시야 사진 공유하기'}
         </button>
       </div>
     </div>
@@ -423,19 +440,28 @@ export default function DaejeonSeatMap() {
   const { requireLogin } = useAuthAccessActions();
   const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
-  const [selected, setSelected] = useState<DaejeonBlock | null>(null);
   const [finderSelectedBlockId, setFinderSelectedBlockId] = useState<string | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({ blockId: null, requestId: 0 });
-  const [filterId, setFilterId] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const filterGroup = DAEJEON_CATEGORY_GROUPS.find((group) => group.id === filterId);
-  const filterCats = filterGroup?.cats ?? null;
+  const {
+    selected,
+    setSelected,
+    hover,
+    setHover,
+    hoveredSection,
+    filterId,
+    setFilterId,
+    filterCats,
+  } = useSeatMapSelectionState({
+    sections: DAEJEON_BLOCKS,
+    filterGroups: DAEJEON_CATEGORY_GROUPS,
+    getId: (section) => section.id,
+    getCategoryId: (section) => section.category,
+  });
+  const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
   const hasOfficialBlocks = DAEJEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEJEON_BLOCKS.length > 0;
-  const hoveredSection = hover ? (DAEJEON_BLOCKS.find((block) => block.id === hover) ?? null) : null;
   const hoveredCategory = hoveredSection ? DAEJEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#F37321';
   const usedCategories = useMemo(() => [...new Set(DAEJEON_BLOCKS.map((block) => block.category))], []);
@@ -477,13 +503,6 @@ export default function DaejeonSeatMap() {
   const visibleBlockIds = useMemo(() => visibleBlocks.map((block) => block.id), [visibleBlocks]);
   const canResetView = zoom !== 1 || pan.x !== 0 || pan.y !== 0;
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 960);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
   const handleZoomIn = useCallback(() => {
     setZoom((value) => Math.min(MAX_ZOOM, Number((value + ZOOM_STEP).toFixed(2))));
   }, []);
@@ -510,6 +529,13 @@ export default function DaejeonSeatMap() {
   }, []);
 
   const handleSelectSection = useCallback((section: DaejeonBlock) => {
+    if (!isDaejeonSelectableSeatBlock(section)) {
+      setSelected(null);
+      setFinderSelectedBlockId(null);
+      setHover(null);
+      return;
+    }
+
     if (selected?.id === section.id) {
       setSelected(null);
       setFinderSelectedBlockId(null);
@@ -517,12 +543,6 @@ export default function DaejeonSeatMap() {
     }
 
     setSelected(section);
-    if (section.traceStatus === 'NEEDS_OPERATOR_REVIEW') {
-      setFinderSelectedBlockId(null);
-      setHover(null);
-      return;
-    }
-
     setFinderSelectedBlockId(section.id);
     setHover(section.id);
     setZoom((currentZoom) => {
@@ -554,6 +574,7 @@ export default function DaejeonSeatMap() {
 
   const handleShareSeatView = useCallback((section: DaejeonBlock | null) => {
     if (!section) return;
+    if (!isDaejeonSelectableSeatBlock(section)) return;
 
     setPendingDraft({
       date: formatDraftDate(new Date()),
@@ -590,55 +611,47 @@ export default function DaejeonSeatMap() {
   );
 
   const attribution = (
-    <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-      좌석 배치 기준: {DAEJEON_SEATMAP_IMAGE.sourceLabel}
-      {DAEJEON_SEATMAP_IMAGE.sourceUrl && (
-        <a
-          href={DAEJEON_SEATMAP_IMAGE.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
-        >
-          출처
-        </a>
-      )}
-      {DAEJEON_SEATMAP_IMAGE.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
-      )}
-    </div>
+    <SeatMapAttribution
+      source={{
+        sourceLabel: DAEJEON_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: DAEJEON_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: DAEJEON_SEATMAP_IMAGE.assetStatus,
+      }}
+    />
   );
 
   const legend = (
-    <div className="mt-2.5 flex flex-wrap gap-1.5 px-1">
-      {usedCategories.map((category) => {
-        const cat = DAEJEON_CATEGORIES[category];
-        if (!cat) return null;
-        const color = mode === 'dark' ? cat.dark : cat.light;
-        return (
-          <span key={category} className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
-            {cat.label}
-          </span>
-        );
-      })}
-    </div>
+    <SeatMapLegend categoryIds={usedCategories} categories={DAEJEON_CATEGORIES} mode={mode} />
   );
 
-  const mapCard = (
-    <div
-      data-testid="stadium-seat-map"
-      className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-3.5"
-    >
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="text-sm font-black text-slate-800 dark:text-white">
-          대전 한화생명볼파크
-          <span className="ml-2 text-[11px] font-semibold" style={{ color: '#F37321' }}>
-            대전 한화 공식 좌석도
-          </span>
-        </div>
-        {hasOfficialBlocks && (
+  const filterBar = (
+    <SeatMapFilterBar
+      groups={DAEJEON_CATEGORY_GROUPS}
+      selectedId={filterId}
+      onChange={setFilterId}
+      mode={mode}
+      accentColor="#F37321"
+      testIdPrefix="daejeon"
+    />
+  );
+  const sectionFinder = (
+    <SectionFinder
+      blocks={visibleBlocks}
+      totalCount={DAEJEON_BLOCKS.length}
+      selected={selected}
+      mode={mode}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      onSelect={handleSelectSection}
+      onHover={setHover}
+    />
+  );
+
+  const mapContent = (
+    <div className="relative">
+      {mapSvg}
+      {hasOfficialBlocks && (
+        <div className="absolute right-3 top-3 z-20 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
           <ZoomControls
             zoom={zoom}
             onZoomIn={handleZoomIn}
@@ -647,80 +660,87 @@ export default function DaejeonSeatMap() {
             canReset={canResetView}
             mode={mode}
           />
-        )}
-      </div>
-      <div className="relative">
-        {mapSvg}
-        <SeatMapHoverPreview
-          visible={Boolean(hoveredSection && hoveredCategory)}
-          title={hoveredSection?.name}
-          subtitle={hoveredSection ? `정확 블록 ${hoveredSection.blockCode}` : undefined}
-          badgeLabel={hoveredCategory?.label}
-          accentColor={hoveredAccent}
-          description={hoveredSection ? `${getDaejeonSideLabel(hoveredSection.side)} · ${getDaejeonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
-        />
-      </div>
-      {attribution}
-      {hasOfficialBlocks && legend}
-    </div>
-  );
-
-  return (
-    <div className={isMobile && hasOfficialBlocks ? 'pb-80' : undefined}>
-      {hasOfficialBlocks && (
-        <div className="mb-2.5 overflow-x-auto">
-          <FilterBar selectedId={filterId} onChange={setFilterId} mode={mode} />
         </div>
       )}
+      <SeatMapHoverPreview
+        visible={Boolean(hoveredSection && hoveredCategory)}
+        title={hoveredSection?.name}
+        subtitle={hoveredSection ? `정확 블록 ${hoveredSection.blockCode}` : undefined}
+        badgeLabel={hoveredCategory?.label}
+        accentColor={hoveredAccent}
+        description={hoveredSection ? `${getDaejeonSideLabel(hoveredSection.side)} · ${getDaejeonFanRoleLabel(hoveredSection.fanRole)}` : undefined}
+      />
+    </div>
+  );
+  const detailPanel = hasOfficialBlocks ? (
+    <SeatMapDetailPanel
+      section={selected}
+      mode={mode}
+      categories={DAEJEON_CATEGORIES}
+      adapter={daejeonSectionAdapter}
+      stadiumKey="DAEJEON"
+      onClose={handleCloseSection}
+      onUpload={() => handleShareSeatView(selected)}
+      copy={{ blockLabel: '정확 블록' }}
+      isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
+      getUploadLabel={(section) => (
+        isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
+      )}
+    />
+  ) : null;
 
-      {isMobile || !hasOfficialBlocks ? (
-        <>
-          {mapCard}
-          {hasOfficialBlocks && (
-            <div className="mt-3">
-              <SectionFinder
-                blocks={visibleBlocks}
-                totalCount={DAEJEON_BLOCKS.length}
-                selected={selected}
-                mode={mode}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onSelect={handleSelectSection}
-                onHover={setHover}
-              />
-            </div>
-          )}
-          {isMobile && hasOfficialBlocks && (
-            <DaejeonBottomSheet
-              section={selected}
-              mode={mode}
-              preferFull={selected?.id === finderSelectedBlockId}
-              onClose={handleCloseSection}
-              onUpload={() => handleShareSeatView(selected)}
-            />
-          )}
-        </>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px_380px]">
-          {mapCard}
-          <SectionFinder
-            blocks={visibleBlocks}
-            totalCount={DAEJEON_BLOCKS.length}
-            selected={selected}
-            mode={mode}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onSelect={handleSelectSection}
-            onHover={setHover}
-          />
-          <DetailPanel
+  return (
+    <>
+      <SeatMapTemplateShell
+        mode={mode}
+        title="대전 한화생명볼파크"
+        subtitle="대전 한화 공식 좌석도"
+        titleAccentColor="#F37321"
+        isMobile={isMobile}
+        isAuxiliaryGuideActive={false}
+        filterBar={hasOfficialBlocks ? filterBar : undefined}
+        mobileFilterBar={hasOfficialBlocks ? (
+          <div className="mb-2.5 overflow-x-auto">
+            {filterBar}
+          </div>
+        ) : undefined}
+        desktopFilterBar={hasOfficialBlocks ? filterBar : undefined}
+        mapContent={mapContent}
+        attribution={attribution}
+        legend={hasOfficialBlocks ? legend : undefined}
+        mobileSecondaryPanel={hasOfficialBlocks ? sectionFinder : undefined}
+        mobileBottomSheet={hasOfficialBlocks && selected && (
+          <SeatMapBottomSheet
             section={selected}
             mode={mode}
+            categories={DAEJEON_CATEGORIES}
+            adapter={daejeonSectionAdapter}
+            stadiumKey="DAEJEON"
+            preferFull={selected?.id === finderSelectedBlockId}
             onClose={handleCloseSection}
             onUpload={() => handleShareSeatView(selected)}
+            copy={{ blockLabel: '정확 블록' }}
+            isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
+            getUploadLabel={(section) => (
+              isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
+            )}
           />
-        </div>
         )}
-    </div>
+        mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
+        desktopSecondaryPanel={sectionFinder}
+        desktopSidePanel={detailPanel}
+        isFullscreenOpen={isFullscreenOpen}
+        onFullscreenClose={closeFullscreen}
+        fullscreenMapContent={(
+          <div className="w-full">
+            <div className="relative">
+              {mapSvg}
+            </div>
+          </div>
+        )}
+        fullscreenTitle="대전 한화생명볼파크"
+        fullscreenSubtitle="한화 공식 좌석도 전체화면"
+      />
+    </>
   );
 }

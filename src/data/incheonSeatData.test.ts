@@ -7,6 +7,7 @@ import {
   INCHEON_IMAGE_GEOMETRY_DRAFTS,
   INCHEON_SEATMAP_IMAGE,
   INCHEON_SEATMAP_VIEWPORT,
+  getIncheonSeatViewAliases,
 } from './incheonSeatData';
 
 function numberedBlocks(start: number, end: number): string[] {
@@ -94,7 +95,8 @@ test('인천 대표 블록 좌표는 공식 이미지 실제 좌석도 영역에
     '8B': { x: [2130, 2260], y: [2870, 3040] },
     '25B': { x: [1090, 1215], y: [2660, 2820] },
     '410B': { x: [1490, 1635], y: [3400, 3550] },
-    '휠체어석 9B': { x: [2120, 2210], y: [2910, 3010] },
+    '휠체어석 9B': { x: [2100, 2180], y: [2845, 2930] },
+    '휠체어석 8B': { x: [2210, 2300], y: [2735, 2820] },
     'L9': { x: [900, 1020], y: [2860, 3010] },
     'R14': { x: [2500, 2625], y: [2600, 2750] },
     'C1': { x: [1820, 1935], y: [3260, 3360] },
@@ -102,7 +104,8 @@ test('인천 대표 블록 좌표는 공식 이미지 실제 좌석도 영역에
     '418B': { x: [480, 610], y: [2460, 2600] },
     '로케트배터리 외야파티덱': { x: [1300, 1470], y: [1240, 1370] },
     '이마트바비큐존': { x: [2260, 2430], y: [1430, 1570] },
-    '휠체어석 23B': { x: [1210, 1315], y: [2910, 3010] },
+    '휠체어석 25B': { x: [1070, 1140], y: [2740, 2820] },
+    '휠체어석 23B': { x: [1180, 1260], y: [2850, 2930] },
   };
 
   Object.entries(expectedBounds).forEach(([blockName, bounds]) => {
@@ -139,6 +142,7 @@ test('인천 공식 좌석도 전체 블록과 특수 구역을 포함한다', (
     '도드람한돈 바비큐존',
     '이마트바비큐존',
     '휠체어석 9B',
+    '휠체어석 8B',
     '휠체어석 23B',
     '휠체어석 25B',
   ];
@@ -151,4 +155,13 @@ test('인천 공식 좌석도 전체 블록과 특수 구역을 포함한다', (
   assert.ok(INCHEON_BLOCKS.some((block) => block.category === 'CHEERING'), 'home cheering section should exist');
   assert.ok(INCHEON_BLOCKS.some((block) => block.category === 'AWAY'), 'away cheering section should exist');
   assert.ok(INCHEON_BLOCKS.some((block) => block.category === 'ACCESSIBLE'), 'accessible seating should exist');
+});
+
+test('인천 seat view alias helper는 공식 좌석/시야 검색 alias 계약을 유지한다', () => {
+  const accessibleBlock = INCHEON_BLOCKS.find((block) => block.block === '휠체어석 8B');
+  assert.ok(accessibleBlock);
+  const aliases = getIncheonSeatViewAliases(accessibleBlock);
+  assert.ok(aliases.includes('인천 SSG 랜더스필드'));
+  assert.ok(aliases.includes('SSG 랜더스'));
+  assert.ok(aliases.includes('휠체어석 8B'));
 });

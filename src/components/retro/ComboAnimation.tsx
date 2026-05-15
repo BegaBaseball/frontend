@@ -1,5 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useMemo } from 'react';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
+import { ensureRetroFontsLoaded } from './RetroTheme';
 
 const comboAnimationCss = `
   @keyframes combo-fadeInOverlay {
@@ -180,6 +181,8 @@ export default function ComboAnimation({
     if (!shouldShow) {
       return;
     }
+
+    ensureRetroFontsLoaded();
 
     const timer = setTimeout(() => {
       hideCombo();
