@@ -394,7 +394,21 @@ const DAEJEON_P1_ANCHOR_CROP_REGRESSION_MATRIX = [
   },
 ] as const;
 
+const daejeonSkyboxBlockIds = (start: number, end: number) => Array.from(
+  { length: end - start + 1 },
+  (_, index) => `skybox-s01-s37__s${String(start + index).padStart(2, '0')}`,
+);
+
 const DAEJEON_P2_ANCHOR_CROP_REGRESSION_MATRIX = [
+  {
+    cropId: 'first-104-106-detail',
+    testId: 'P2_FIRST_104_106_DETAIL_REGRESSION',
+    coveredBlockIds: [
+      'first-infield-b-101-108__104',
+      'first-infield-b-101-108__105',
+      'first-infield-b-101-108__106',
+    ],
+  },
   {
     cropId: 'first-107-110-detail',
     testId: 'P2_FIRST_107_110_DETAIL_REGRESSION',
@@ -421,6 +435,18 @@ const DAEJEON_P2_ANCHOR_CROP_REGRESSION_MATRIX = [
       'third-infield-a-113-120-213-225__115',
       'third-infield-a-113-120-213-225__116',
       'third-infield-a-113-120-213-225__117',
+    ],
+  },
+  {
+    cropId: 'third-116-121-detail',
+    testId: 'P2_THIRD_116_121_DETAIL_REGRESSION',
+    coveredBlockIds: [
+      'third-infield-a-113-120-213-225__116',
+      'third-infield-a-113-120-213-225__117',
+      'third-infield-a-113-120-213-225__118',
+      'third-infield-a-113-120-213-225__119',
+      'third-infield-a-113-120-213-225__120',
+      'third-infield-b-121-124__121',
     ],
   },
   {
@@ -474,6 +500,21 @@ const DAEJEON_P2_ANCHOR_CROP_REGRESSION_MATRIX = [
       'third-infield-a-113-120-213-225__218',
       'third-infield-a-113-120-213-225__219',
     ],
+  },
+  {
+    cropId: 'skybox-s01-s12-sequence',
+    testId: 'P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION',
+    coveredBlockIds: daejeonSkyboxBlockIds(1, 12),
+  },
+  {
+    cropId: 'skybox-s13-s25-sequence',
+    testId: 'P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION',
+    coveredBlockIds: daejeonSkyboxBlockIds(13, 25),
+  },
+  {
+    cropId: 'skybox-s26-s37-sequence',
+    testId: 'P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION',
+    coveredBlockIds: daejeonSkyboxBlockIds(26, 37),
   },
   {
     cropId: 'special-400-accessible-first',
@@ -699,13 +740,18 @@ test('대전 P2 anchor crop은 자동 후보와 수동 crop-only 대상을 구�
   assert.deepEqual(
     p2AutoCropIds,
     [
+      'first-104-106-detail',
       'first-107-110-detail',
       'third-119-121-detail',
       'third-115-117-detail',
+      'third-116-121-detail',
       'third-113-114-detail',
       'third-213-225-sequence',
       'third-221-225-detail',
       'third-213-219-detail',
+      'skybox-s01-s12-sequence',
+      'skybox-s13-s25-sequence',
+      'skybox-s26-s37-sequence',
       'special-400-accessible-first',
       'special-425-426-third-accessible',
       'special-accessible-center',
@@ -714,15 +760,8 @@ test('대전 P2 anchor crop은 자동 후보와 수동 crop-only 대상을 구�
     'P2 automated crop order should stay aligned with the visual precision backlog',
   );
 
-  [
-    'skybox-s01-s12-sequence',
-    'skybox-s13-s25-sequence',
-    'skybox-s26-s37-sequence',
-  ].forEach((cropId) => {
-    assert.ok(anchorCropContract.includes(`'${cropId}'`), `${cropId} should remain in anchor crop generation`);
-    assert.ok(anchorCropContract.includes('p2ManualOnlyCropIds'), `${cropId} should be covered by the manual-only contract`);
-    assert.ok(anchorCropContract.includes('MANUAL_CROP_ONLY'), `${cropId} should expose manual crop-only review mode`);
-  });
+  assert.ok(anchorCropContract.includes('p2ManualOnlyCropIds'), 'empty manual-only contract should remain for release summary compatibility');
+  assert.ok(anchorCropContract.includes('new Set([])'), 'P2 manual-only crop set should stay empty after skybox regression promotion');
 
   DAEJEON_P2_ANCHOR_CROP_REGRESSION_MATRIX.forEach(({ cropId, testId, coveredBlockIds }) => {
     assert.ok(anchorCropContract.includes(`'${cropId}'`), `${cropId} should remain in anchor crop generation`);
@@ -1256,6 +1295,94 @@ test('대전 외야 상단 500/501-509 블록은 공식 셀 bounds와 owner poin
   });
 });
 
+test('대전 스카이박스 S01-S12 소형 블록은 공식 셀 bounds와 owner point를 유지한다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const expectations = [
+    { id: 'skybox-s01-s37__s01', bounds: { minX: 764, minY: 526, maxX: 780, maxY: 536 }, labelPoint: [772, 531] as const, excludedPoints: [[767, 546]] as const },
+    { id: 'skybox-s01-s37__s02', bounds: { minX: 760, minY: 541, maxX: 775, maxY: 551 }, labelPoint: [767, 546] as const, excludedPoints: [[772, 531], [761, 554]] as const },
+    { id: 'skybox-s01-s37__s03', bounds: { minX: 754, minY: 550, maxX: 769, maxY: 559 }, labelPoint: [761, 554] as const, excludedPoints: [[767, 546], [755, 570]] as const },
+    { id: 'skybox-s01-s37__s04', bounds: { minX: 748, minY: 565, maxX: 763, maxY: 575 }, labelPoint: [755, 570] as const, excludedPoints: [[761, 554], [746, 593]] as const },
+    { id: 'skybox-s01-s37__s05', bounds: { minX: 738, minY: 588, maxX: 754, maxY: 599 }, labelPoint: [746, 593] as const, excludedPoints: [[755, 570], [740, 603]] as const },
+    { id: 'skybox-s01-s37__s06', bounds: { minX: 733, minY: 598, maxX: 748, maxY: 609 }, labelPoint: [740, 603] as const, excludedPoints: [[746, 593], [734, 618]] as const },
+    { id: 'skybox-s01-s37__s07', bounds: { minX: 727, minY: 613, maxX: 742, maxY: 623 }, labelPoint: [734, 618] as const, excludedPoints: [[740, 603], [729, 627]] as const },
+    { id: 'skybox-s01-s37__s08', bounds: { minX: 722, minY: 622, maxX: 737, maxY: 632 }, labelPoint: [729, 627] as const, excludedPoints: [[734, 618], [724, 642]] as const },
+    { id: 'skybox-s01-s37__s09', bounds: { minX: 717, minY: 637, maxX: 732, maxY: 647 }, labelPoint: [724, 642] as const, excludedPoints: [[729, 627], [711, 665]] as const },
+    { id: 'skybox-s01-s37__s10', bounds: { minX: 703, minY: 661, maxX: 720, maxY: 670 }, labelPoint: [711, 665] as const, excludedPoints: [[724, 642], [700, 675]] as const },
+    { id: 'skybox-s01-s37__s11', bounds: { minX: 692, minY: 670, maxX: 709, maxY: 680 }, labelPoint: [700, 675] as const, excludedPoints: [[711, 665], [675, 709]] as const },
+    { id: 'skybox-s01-s37__s12', bounds: { minX: 667, minY: 704, maxX: 683, maxY: 715 }, labelPoint: [675, 709] as const, excludedPoints: [[700, 675]] as const },
+  ];
+
+  expectations.forEach(({ id, bounds, labelPoint, excludedPoints }) => {
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured skybox S01-S12 bounds`);
+    assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], labelPoint, `${id} label should stay on the official visual center`);
+    assert.equal(getTopHitBlockIdAtPoint(labelPoint), id, `${id} label should top-hit itself`);
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent skybox point ${point.join(',')}`);
+    });
+  });
+});
+
+test('대전 스카이박스 S13-S25 소형 블록은 공식 셀 bounds와 owner point를 유지한다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const expectations = [
+    { id: 'skybox-s01-s37__s13', bounds: { minX: 656, minY: 713, maxX: 673, maxY: 724 }, labelPoint: [664, 718] as const, excludedPoints: [[657, 731]] as const },
+    { id: 'skybox-s01-s37__s14', bounds: { minX: 649, minY: 724, maxX: 665, maxY: 739 }, labelPoint: [657, 731] as const, excludedPoints: [[664, 718], [647, 740]] as const },
+    { id: 'skybox-s01-s37__s15', bounds: { minX: 640, minY: 734, maxX: 655, maxY: 747 }, labelPoint: [647, 740] as const, excludedPoints: [[657, 731], [639, 752]] as const },
+    { id: 'skybox-s01-s37__s16', bounds: { minX: 630, minY: 745, maxX: 648, maxY: 760 }, labelPoint: [639, 752] as const, excludedPoints: [[647, 740], [621, 775]] as const },
+    { id: 'skybox-s01-s37__s17', bounds: { minX: 613, minY: 769, maxX: 629, maxY: 781 }, labelPoint: [621, 775] as const, excludedPoints: [[639, 752], [573, 808]] as const },
+    { id: 'skybox-s01-s37__s18', bounds: { minX: 564, minY: 802, maxX: 582, maxY: 814 }, labelPoint: [573, 808] as const, excludedPoints: [[621, 775], [556.5, 811.5]] as const },
+    { id: 'skybox-s01-s37__s19', bounds: { minX: 537, minY: 807, maxX: 564, maxY: 828 }, labelPoint: [556.5, 811.5] as const, excludedPoints: [[573, 808], [535, 829]] as const },
+    { id: 'skybox-s01-s37__s20', bounds: { minX: 522, minY: 819, maxX: 539, maxY: 834 }, labelPoint: [535, 829] as const, excludedPoints: [[556.5, 811.5], [515, 831.5]] as const },
+    { id: 'skybox-s01-s37__s21', bounds: { minX: 511, minY: 827, maxX: 529, maxY: 840 }, labelPoint: [515, 831.5] as const, excludedPoints: [[535, 829], [506.5, 840.5]] as const },
+    { id: 'skybox-s01-s37__s22', bounds: { minX: 485, minY: 831, maxX: 511, maxY: 849 }, labelPoint: [506.5, 840.5] as const, excludedPoints: [[515, 831.5], [479, 842]] as const },
+    { id: 'skybox-s01-s37__s23', bounds: { minX: 467, minY: 838, maxX: 483, maxY: 851 }, labelPoint: [479, 842] as const, excludedPoints: [[506.5, 840.5], [461, 850.5]] as const },
+    { id: 'skybox-s01-s37__s24', bounds: { minX: 458, minY: 840, maxX: 472, maxY: 853 }, labelPoint: [461, 850.5] as const, excludedPoints: [[479, 842], [441, 848]] as const },
+    { id: 'skybox-s01-s37__s25', bounds: { minX: 429, minY: 843, maxX: 453, maxY: 854 }, labelPoint: [441, 848] as const, excludedPoints: [[461, 850.5]] as const },
+  ];
+
+  expectations.forEach(({ id, bounds, labelPoint, excludedPoints }) => {
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured skybox S13-S25 bounds`);
+    assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], labelPoint, `${id} label should stay on the official visual center`);
+    assert.equal(getTopHitBlockIdAtPoint(labelPoint), id, `${id} label should top-hit itself`);
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent skybox point ${point.join(',')}`);
+    });
+  });
+});
+
+test('대전 스카이박스 S26-S37 소형 블록은 공식 셀 bounds와 owner point를 유지한다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const expectations = [
+    { id: 'skybox-s01-s37__s26', bounds: { minX: 398, minY: 839, maxX: 416, maxY: 852 }, labelPoint: [401.5, 846] as const, excludedPoints: [[392, 839.5]] as const },
+    { id: 'skybox-s01-s37__s27', bounds: { minX: 370, minY: 830, maxX: 395, maxY: 849 }, labelPoint: [392, 839.5] as const, excludedPoints: [[401.5, 846], [362, 837.5]] as const },
+    { id: 'skybox-s01-s37__s28', bounds: { minX: 352, minY: 828, maxX: 368, maxY: 841 }, labelPoint: [362, 837.5] as const, excludedPoints: [[392, 839.5], [345.5, 829.5]] as const },
+    { id: 'skybox-s01-s37__s29', bounds: { minX: 342, minY: 821, maxX: 360, maxY: 834 }, labelPoint: [345.5, 829.5] as const, excludedPoints: [[362, 837.5], [334, 823]] as const },
+    { id: 'skybox-s01-s37__s30', bounds: { minX: 326, minY: 816, maxX: 343, maxY: 830 }, labelPoint: [334, 823] as const, excludedPoints: [[345.5, 829.5], [324, 814]] as const },
+    { id: 'skybox-s01-s37__s31', bounds: { minX: 316, minY: 808, maxX: 333, maxY: 821 }, labelPoint: [324, 814] as const, excludedPoints: [[334, 823], [302, 799]] as const },
+    { id: 'skybox-s01-s37__s32', bounds: { minX: 294, minY: 793, maxX: 311, maxY: 805 }, labelPoint: [302, 799] as const, excludedPoints: [[324, 814], [281, 783]] as const },
+    { id: 'skybox-s01-s37__s33', bounds: { minX: 272, minY: 777, maxX: 290, maxY: 789 }, labelPoint: [281, 783] as const, excludedPoints: [[302, 799], [268, 775]] as const },
+    { id: 'skybox-s01-s37__s34', bounds: { minX: 261, minY: 769, maxX: 276, maxY: 781 }, labelPoint: [268, 775] as const, excludedPoints: [[281, 783], [245, 743]] as const },
+    { id: 'skybox-s01-s37__s35', bounds: { minX: 236, minY: 738, maxX: 254, maxY: 748 }, labelPoint: [245, 743] as const, excludedPoints: [[268, 775], [227, 724]] as const },
+    { id: 'skybox-s01-s37__s36', bounds: { minX: 220, minY: 719, maxX: 235, maxY: 730 }, labelPoint: [227, 724] as const, excludedPoints: [[245, 743], [177, 665]] as const },
+    { id: 'skybox-s01-s37__s37', bounds: { minX: 170, minY: 660, maxX: 185, maxY: 671 }, labelPoint: [177, 665] as const, excludedPoints: [[227, 724]] as const },
+  ];
+
+  expectations.forEach(({ id, bounds, labelPoint, excludedPoints }) => {
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured skybox S26-S37 bounds`);
+    assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], labelPoint, `${id} label should stay on the official visual center`);
+    assert.equal(getTopHitBlockIdAtPoint(labelPoint), id, `${id} label should top-hit itself`);
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent skybox point ${point.join(',')}`);
+    });
+  });
+});
+
 test('대전 특수석/휠체어석은 공식 셀 bounds와 owner point를 유지한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
@@ -1480,6 +1607,109 @@ test('대전 3루 118-120 블록은 공식 PNG 색상 셀 재측정 bounds를 �
   });
 });
 
+test('대전 3루 113-124 연속 블록은 공식 이미지 소유권이 한 칸씩 밀리지 않는다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const expectations = [
+    {
+      id: 'third-infield-a-113-120-213-225__113',
+      bounds: { minX: 293, minY: 657, maxX: 375, maxY: 735 },
+      labelPoint: [333.2, 696.4] as const,
+      ownerPoints: [[333, 696], [313, 716], [349, 681]] as const,
+      excludedPoints: [[320, 770], [320, 669]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__114',
+      bounds: { minX: 275, minY: 629, maxX: 362, maxY: 710 },
+      labelPoint: [319.7, 668.9] as const,
+      ownerPoints: [[320, 669], [315, 680], [330, 650]] as const,
+      excludedPoints: [[333, 696], [298, 641]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__115',
+      bounds: { minX: 253, minY: 603, maxX: 339, maxY: 682 },
+      labelPoint: [297.5, 641.4] as const,
+      ownerPoints: [[298, 641], [270, 650]] as const,
+      excludedPoints: [[320, 669], [275, 619]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__116',
+      bounds: { minX: 231, minY: 583, maxX: 318, maxY: 656 },
+      labelPoint: [275.3, 618.7] as const,
+      ownerPoints: [[275, 619], [290, 620]] as const,
+      excludedPoints: [[298, 641], [260, 590]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__117',
+      bounds: { minX: 208, minY: 550, maxX: 324, maxY: 631 },
+      labelPoint: [260.9, 589.6] as const,
+      ownerPoints: [[260, 590], [230, 600]] as const,
+      excludedPoints: [[275, 619], [260, 555]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__118',
+      bounds: { minX: 202, minY: 520, maxX: 315, maxY: 591 },
+      labelPoint: [260, 555] as const,
+      ownerPoints: [[260, 555], [290, 555]] as const,
+      excludedPoints: [[260, 590], [241, 524]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__119',
+      bounds: { minX: 181, minY: 487, maxX: 298, maxY: 562 },
+      labelPoint: [241, 524] as const,
+      ownerPoints: [[241, 524], [270, 504]] as const,
+      excludedPoints: [[260, 555], [220, 500]] as const,
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__120',
+      bounds: { minX: 173, minY: 463, maxX: 282, maxY: 527 },
+      labelPoint: [220, 500] as const,
+      ownerPoints: [[220, 500], [250, 488]] as const,
+      excludedPoints: [[241, 524], [180, 484]] as const,
+    },
+    {
+      id: 'third-infield-b-121-124__121',
+      bounds: { minX: 156, minY: 453, maxX: 208, maxY: 501 },
+      labelPoint: [180, 484] as const,
+      ownerPoints: [[180, 462], [180, 484], [190, 485]] as const,
+      excludedPoints: [[220, 500], [215, 445], [197, 409]] as const,
+    },
+    {
+      id: 'third-infield-b-121-124__122',
+      bounds: { minX: 163, minY: 423, maxX: 267, maxY: 467 },
+      labelPoint: [215, 445] as const,
+      ownerPoints: [[215, 445], [180, 445], [250, 455]] as const,
+      excludedPoints: [[180, 484], [197, 409]] as const,
+    },
+    {
+      id: 'third-infield-b-121-124__123',
+      bounds: { minX: 165, minY: 391, maxX: 236, maxY: 424 },
+      labelPoint: [197, 409] as const,
+      ownerPoints: [[197, 409], [180, 405], [220, 415]] as const,
+      excludedPoints: [[215, 445], [183, 377]] as const,
+    },
+    {
+      id: 'third-infield-b-121-124__124',
+      bounds: { minX: 167, minY: 355, maxX: 203, maxY: 390 },
+      labelPoint: [183, 377] as const,
+      ownerPoints: [[183, 377], [175, 380]] as const,
+      excludedPoints: [[197, 409], [215, 445]] as const,
+    },
+  ];
+
+  expectations.forEach(({ id, bounds, labelPoint, ownerPoints, excludedPoints }) => {
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured third-base sequence bounds`);
+    assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], labelPoint, `${id} label should stay on the official visual center`);
+    ownerPoints.forEach((point) => {
+      assert.equal(getTopHitBlockIdAtPoint(point), id, `${id} should own official third-base point ${point.join(',')}`);
+    });
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent third-base point ${point.join(',')}`);
+    });
+  });
+});
+
 test('대전 3루 113/114 경계는 중앙 100C와 하단 블록을 흡수하지 않는다', () => {
   const ownerPoints: Array<{ point: TestPoint; expectedId: string }> = [
     { point: [313, 716], expectedId: 'third-infield-a-113-120-213-225__113' },
@@ -1690,7 +1920,86 @@ test('대전 3루 221-225 작은 블록은 좌측 외곽 셀 bounds를 유지한
   });
 });
 
-test('대전 1루 101-109 블록은 공식 이미지 소유권이 한 칸씩 밀리지 않는다', () => {
+test('대전 3루 213-225/220 하단 작은 블록은 연속 경계 소유권을 유지한다', () => {
+  const boundaryMatrix: Array<{ id: string; ownerPoints: readonly TestPoint[]; excludedPoints: readonly TestPoint[] }> = [
+    {
+      id: 'third-infield-a-113-120-213-225__213',
+      ownerPoints: [[338, 784], [344, 795]],
+      excludedPoints: [[311, 765], [320, 770]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__214',
+      ownerPoints: [[311, 765], [316, 775]],
+      excludedPoints: [[338, 784], [288, 738]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__215',
+      ownerPoints: [[288, 738], [296, 740]],
+      excludedPoints: [[311, 765], [266, 713]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__216',
+      ownerPoints: [[266, 713], [270, 725]],
+      excludedPoints: [[288, 738], [244, 686]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__217',
+      ownerPoints: [[244, 686], [252, 690]],
+      excludedPoints: [[266, 713], [221, 660]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__218',
+      ownerPoints: [[221, 660], [232, 666]],
+      excludedPoints: [[244, 686], [200, 625]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__219',
+      ownerPoints: [[200, 625], [210, 636]],
+      excludedPoints: [[221, 660], [190, 599]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__220',
+      ownerPoints: [[190, 599], [195, 608], [219, 595]],
+      excludedPoints: [[200, 625], [169, 556], [241, 524]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__221',
+      ownerPoints: [[169, 556], [178, 565]],
+      excludedPoints: [[190, 599], [155, 524]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__222',
+      ownerPoints: [[155, 524], [164, 532]],
+      excludedPoints: [[169, 556], [137, 496]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__223',
+      ownerPoints: [[137, 496], [150, 500]],
+      excludedPoints: [[155, 524], [134, 469]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__224',
+      ownerPoints: [[134, 469], [145, 472]],
+      excludedPoints: [[137, 496], [138, 443]],
+    },
+    {
+      id: 'third-infield-a-113-120-213-225__225',
+      ownerPoints: [[138, 443], [146, 450]],
+      excludedPoints: [[134, 469], [137, 496]],
+    },
+  ];
+
+  boundaryMatrix.forEach(({ id, ownerPoints, excludedPoints }) => {
+    ownerPoints.forEach((point) => {
+      assert.equal(getTopHitBlockIdAtPoint(point), id, `${id} should keep third-base lower-cell boundary point ${point.join(',')}`);
+    });
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent third-base lower-cell point ${point.join(',')}`);
+    });
+  });
+});
+
+test('대전 1루 101-112 블록은 공식 이미지 소유권이 한 칸씩 밀리지 않는다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
     {
@@ -1776,12 +2085,42 @@ test('대전 1루 101-109 블록은 공식 이미지 소유권이 한 칸씩 밀
     },
     {
       id: 'first-infield-a-109-112-201-212__109',
-      bounds: { minX: 543, minY: 603, maxX: 637, maxY: 688 },
-      labelPoint: [599, 633] as const,
+      bounds: { minX: 564, minY: 584, maxX: 652, maxY: 655 },
+      labelPoint: [610, 626] as const,
       ownerPoints: [
-        [599, 633],
-        [565, 605],
-        [620, 650],
+        [607, 624],
+        [585, 596],
+        [640, 638],
+      ] as const,
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__110',
+      bounds: { minX: 544, minY: 603, maxX: 636, maxY: 687 },
+      labelPoint: [589.1, 644.6] as const,
+      ownerPoints: [
+        [589, 645],
+        [570, 640],
+        [620, 670],
+      ] as const,
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__111',
+      bounds: { minX: 521, minY: 629, maxX: 607, maxY: 708 },
+      labelPoint: [563.4, 668.1] as const,
+      ownerPoints: [
+        [563, 668],
+        [540, 655],
+        [585, 700],
+      ] as const,
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__112',
+      bounds: { minX: 507, minY: 655, maxX: 589, maxY: 736 },
+      labelPoint: [548.9, 696.5] as const,
+      ownerPoints: [
+        [549, 696],
+        [520, 670],
+        [575, 720],
       ] as const,
     },
   ];
@@ -1904,6 +2243,80 @@ test('대전 1루 201-212 하단 작은 블록은 공식 셀 bounds와 owner poi
   });
 });
 
+test('대전 1루 201-212 하단 작은 블록은 연속 경계 소유권을 유지한다', () => {
+  const boundaryMatrix: Array<{ id: string; ownerPoints: readonly TestPoint[]; excludedPoints: readonly TestPoint[] }> = [
+    {
+      id: 'first-infield-a-109-112-201-212__201',
+      ownerPoints: [[752, 466], [760, 470]],
+      excludedPoints: [[744, 496], [731, 524]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__202',
+      ownerPoints: [[744, 496], [750, 502]],
+      excludedPoints: [[752, 466], [731, 524]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__203',
+      ownerPoints: [[731, 524], [736, 535]],
+      excludedPoints: [[744, 496], [716, 558]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__204',
+      ownerPoints: [[716, 558], [724, 565]],
+      excludedPoints: [[731, 524], [693, 593]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__205',
+      ownerPoints: [[693, 593], [691, 600]],
+      excludedPoints: [[716, 558], [685, 626]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__206',
+      ownerPoints: [[685, 626], [690, 642]],
+      excludedPoints: [[693, 593], [664, 661]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__207',
+      ownerPoints: [[664, 661], [675, 660]],
+      excludedPoints: [[685, 626], [641, 687]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__208',
+      ownerPoints: [[641, 687], [650, 685]],
+      excludedPoints: [[664, 661], [618, 714]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__209',
+      ownerPoints: [[618, 714], [625, 720]],
+      excludedPoints: [[641, 687], [596, 740]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__210',
+      ownerPoints: [[596, 740], [602, 746]],
+      excludedPoints: [[618, 714], [570, 763]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__211',
+      ownerPoints: [[570, 763], [575, 765]],
+      excludedPoints: [[596, 740], [543, 784]],
+    },
+    {
+      id: 'first-infield-a-109-112-201-212__212',
+      ownerPoints: [[543, 784], [552, 784]],
+      excludedPoints: [[570, 763], [596, 740]],
+    },
+  ];
+
+  boundaryMatrix.forEach(({ id, ownerPoints, excludedPoints }) => {
+    ownerPoints.forEach((point) => {
+      assert.equal(getTopHitBlockIdAtPoint(point), id, `${id} should keep first-base lower-cell boundary point ${point.join(',')}`);
+    });
+    excludedPoints.forEach((point) => {
+      assert.notEqual(getTopHitBlockIdAtPoint(point), id, `${id} should not absorb adjacent first-base lower-cell point ${point.join(',')}`);
+    });
+  });
+});
+
 test('대전 1루/3루 내야 연속 블록은 공식 PNG owner point를 자기 블록으로 유지한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const ownerMatrix: Array<{ id: string; points: readonly TestPoint[] }> = [
@@ -1915,7 +2328,7 @@ test('대전 1루/3루 내야 연속 블록은 공식 PNG owner point를 자기 
     { id: 'first-infield-b-101-108__106', points: [[650, 528], [665, 550], [690, 540]] },
     { id: 'first-infield-b-101-108__107', points: [[631, 559], [600, 540], [665, 575]] },
     { id: 'first-infield-b-101-108__108', points: [[627, 594], [640, 610], [650, 620]] },
-    { id: 'first-infield-a-109-112-201-212__109', points: [[599, 633], [565, 605], [620, 650]] },
+    { id: 'first-infield-a-109-112-201-212__109', points: [[610, 626], [607, 624], [585, 596], [640, 638]] },
     { id: 'first-infield-a-109-112-201-212__110', points: [[589, 645]] },
     { id: 'first-infield-a-109-112-201-212__111', points: [[563, 668]] },
     { id: 'first-infield-a-109-112-201-212__112', points: [[549, 696]] },

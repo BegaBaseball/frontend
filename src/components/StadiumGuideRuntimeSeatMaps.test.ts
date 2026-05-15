@@ -299,7 +299,7 @@ test('구장별 전용 좌석도 파일과 공식 asset은 런타임 계약에 �
     [
       `${componentBasePath}.tsx`,
       `${componentBasePath}Svg.tsx`,
-      `src/components/${contract.folder}/${contract.componentName.replace('SeatMap', 'BottomSheet')}.tsx`,
+      'src/components/stadiumSeatMap/SeatMapBottomSheet.tsx',
       `src/data/${contract.dataFile}`,
       `src/data/${contract.dataFile.replace('.ts', '.test.ts')}`,
       ...contract.requiredFiles,
@@ -371,12 +371,12 @@ test('StadiumGuideRuntime은 registry, 중립 스켈레톤, 수동 데이터 상
   assert.ok(runtimeSource.includes('resolveStadiumSeatMapEntry'), 'runtime should resolve seat maps through registry');
   assert.ok(runtimeSource.includes('SeatMapRuntimeShell'), 'runtime should delegate to shared runtime shell');
   assert.ok(runtimeSource.includes('usesCoordinateGeometry'), 'runtime should branch on coordinate geometry exclusion metadata');
-  assert.ok(runtimeSource.includes('isNonCoordinateMap'), 'runtime should branch on non-coordinate exclusion metadata');
-  assert.ok(runtimeSource.includes('templateResetKey'), 'runtime should preserve reset key contract for runtime shell errors');
-  assert.ok(runtimeSource.includes('shouldUseJamsilTemplateShell'), 'runtime should derive template shell path via dedicated bool');
+  assert.ok(runtimeSource.includes('shellResetKey'), 'runtime should preserve shell-aware reset key contract for runtime shell errors');
   assert.ok(runtimeSource.includes('seatMapEntry.shellTemplate'), 'runtime should pass shell template metadata to runtime shell');
   assert.ok(runtimeSource.includes('StadiumSeatMapManualRequired'), 'runtime should show manual-data-required state when no entry resolves');
   assert.ok(runtimeSource.includes('<SeatMapComponent />'), 'runtime should render the resolved registry component');
+  assert.ok(runtimeSource.includes('w-full max-w-none text-sm leading-relaxed'), 'runtime hero description should use the full hero card width');
+  assert.ok(!runtimeSource.includes('max-w-xl text-sm leading-relaxed'), 'runtime hero description should not be constrained to half-width on desktop');
   assert.ok(runtimeShellSource.includes('StadiumSeatMapLoadingSkeleton'), 'shared runtime shell should provide neutral loading skeleton');
   assert.ok(runtimeShellSource.includes('StadiumSeatMapErrorBoundary'), 'shared runtime shell should isolate seat map render/import errors');
   assert.ok(runtimeShellSource.includes('StadiumSeatMapErrorFallback'), 'shared runtime shell should provide retry fallback');
@@ -385,30 +385,40 @@ test('StadiumGuideRuntime은 registry, 중립 스켈레톤, 수동 데이터 상
   assert.ok(!runtimeSource.includes('resolveStadiumSeatMapPresetMeta'), 'runtime should not use removed preset meta resolver');
 });
 
-test('좌석도 registry는 좌표 기반 제외 정책과 템플릿 shell 계약을 유지한다', () => {
+test('좌석도 registry는 좌표 기반 QA 메타데이터와 표준 shell 계약을 유지한다', () => {
+  const registrySource = readProjectFile('src/components/stadiumSeatMapRegistry.tsx');
+  const runtimeSource = readProjectFile('src/components/StadiumGuideRuntime.tsx');
+  const runtimeShellSource = readProjectFile('src/components/stadiumSeatMap/SeatMapRuntimeShell.tsx');
+  const templateSource = readProjectFile('src/components/stadiumSeatMap/SeatMapTemplateShell.tsx');
   const coordinateTemplates = STADIUM_SEAT_MAP_ENTRIES.filter((entry) => entry.usesCoordinateGeometry);
-  const templateEntries = STADIUM_SEAT_MAP_ENTRIES.filter((entry) => entry.shellTemplate === 'jamsil-template');
   const nonCoordinateTemplateEntries = STADIUM_SEAT_MAP_ENTRIES.filter((entry) => entry.isNonCoordinateMap);
   const nonCoordinateGeometryEntries = STADIUM_SEAT_MAP_ENTRIES.filter((entry) => !entry.usesCoordinateGeometry);
 
   assert.ok(coordinateTemplates.length > 0, 'there should be at least one coordinate geometry based seat map');
+  assert.ok(registrySource.includes("export type StadiumSeatMapShellTemplate = 'standard'"), 'registry should keep the single standard shell type');
+  assert.ok(runtimeSource.includes('seatMapEntry.usesCoordinateGeometry'), 'runtime should keep QA/audit coordinate metadata wired');
+  assert.ok(runtimeSource.includes('seatMapEntry.shellTemplate'), 'runtime should keep shell template metadata wired');
 
-  templateEntries.forEach((entry) => {
-    assert.equal(entry.usesCoordinateGeometry, false, `${entry.id} template shell should only be used for non-coordinate maps`);
-    assert.equal(entry.isNonCoordinateMap, true, `${entry.id} template shell should require non-coordinate flag`);
+  STADIUM_SEAT_MAP_ENTRIES.forEach((entry) => {
+    assert.equal(entry.shellTemplate, 'standard', `${entry.id} should use the standard seat map shell`);
   });
 
   coordinateTemplates.forEach((entry) => {
-    assert.equal(entry.shellTemplate, 'legacy', `${entry.id} should still use legacy runtime shell while using coordinate geometry`);
     assert.equal(entry.isNonCoordinateMap, false, `${entry.id} coordinate map should not be flagged as non-coordinate`);
   });
 
   nonCoordinateGeometryEntries.forEach((entry) => {
-    assert.equal(entry.shellTemplate, 'jamsil-template', `${entry.id} should be routed to template shell when coordinate geometry is not used`);
+    assert.equal(entry.isNonCoordinateMap, true, `${entry.id} should keep non-coordinate QA metadata`);
   });
 
   nonCoordinateTemplateEntries.forEach((entry) => {
-    assert.equal(entry.shellTemplate, 'jamsil-template', `${entry.id} should use template shell when non-coordinate flag is true`);
+    assert.equal(entry.usesCoordinateGeometry, false, `${entry.id} should keep coordinate QA exclusion metadata`);
+  });
+
+  [registrySource, runtimeSource, runtimeShellSource, templateSource].forEach((source) => {
+    assert.equal(source.includes('jamsil-template'), false, 'standard shell production code should not reintroduce jamsil-template naming');
+    assert.equal(source.includes('legacy'), false, 'standard shell production code should not reintroduce legacy shell naming');
+    assert.equal(source.includes('isDoosanGuideActive'), false, 'shared shell production code should not use Doosan-specific naming');
   });
 });
 
@@ -471,22 +481,64 @@ test('Suwon runtime contract 임포트는 좌표 fixture를 변경하지 않는�
   );
 });
 
-test('StadiumGuideRuntime은 인천 선택 시 빠른 동선 패널 계약을 제공한다', () => {
+test('인천 전용 guide/quick-action 계약은 표준 좌석도에서 제거된 상태를 유지한다', () => {
   const runtimeSource = readProjectFile('src/components/StadiumGuideRuntime.tsx');
-  const incheonVisitGuideSource = readProjectFile('src/data/incheonVisitGuide.ts');
+  const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
+  const incheonSvgSource = readProjectFile('src/components/incheon/IncheonSeatMapSvg.tsx');
+  const incheonDataSource = readProjectFile('src/data/incheonSeatData.ts');
 
-  assert.ok(runtimeSource.includes('isIncheonStadium'), 'runtime should gate the Incheon quick actions by stadium matcher');
-  assert.ok(runtimeSource.includes('INCHEON_VISIT_QUICK_ACTIONS'), 'runtime should render Incheon quick actions from static frontend data');
-  assert.ok(runtimeSource.includes('data-testid="incheon-visit-quick-actions"'));
-  assert.ok(runtimeSource.includes('data-testid={`incheon-visit-action-${action.id}`}'));
-  assert.ok(runtimeSource.includes("scrollToStadiumGuidePanel('stadium-seat-map')"));
-  assert.ok(runtimeSource.includes("scrollToStadiumGuidePanel('stadium-guide-places-panel')"));
-  assert.ok(runtimeSource.includes('setSelectedCategory(category);'));
+  assert.equal(fs.existsSync(path.join(projectRoot, 'src/data/incheonVisitGuide.ts')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'src/data/incheonVisitGuide.test.ts')), false);
 
-  assert.ok(incheonVisitGuideSource.includes("category: 'food'"));
-  assert.ok(incheonVisitGuideSource.includes("category: 'delivery'"));
-  assert.ok(incheonVisitGuideSource.includes("category: 'store'"));
-  assert.ok(incheonVisitGuideSource.includes("category: 'parking'"));
+  [
+    'IncheonVisitQuickActions',
+    'isIncheonStadium',
+    'INCHEON_VISIT_QUICK_ACTIONS',
+    'incheon-visit-quick-actions',
+  ].forEach((removedToken) => {
+    assert.equal(runtimeSource.includes(removedToken), false, `runtime should not include ${removedToken}`);
+  });
+
+  [
+    'IncheonFirstVisitGuide',
+    'incheon-first-visit-guide',
+    'incheon-guide-',
+    'guideMatchedBlockIds',
+    'getIncheonGuideMatches',
+    'mobileSecondaryPanel',
+    'desktopSecondaryPanel',
+  ].forEach((removedToken) => {
+    assert.equal(incheonSource.includes(removedToken), false, `IncheonSeatMap should not include ${removedToken}`);
+  });
+
+  [
+    'guideMatchedBlockIds',
+    'guideActive',
+    'data-guide-match',
+  ].forEach((removedToken) => {
+    assert.equal(incheonSvgSource.includes(removedToken), false, `IncheonSeatMapSvg should not include ${removedToken}`);
+  });
+
+  [
+    'IncheonGuideIntent',
+    'IncheonBlockMatch',
+    'getIncheonGuideMatches',
+    'getIncheonGuideSearch',
+  ].forEach((removedToken) => {
+    assert.equal(incheonDataSource.includes(removedToken), false, `incheonSeatData should not include ${removedToken}`);
+  });
+
+  [
+    'SeatMapFilterBar',
+    'SeatMapLegend',
+    'SeatMapAttribution',
+    'SeatMapDetailPanel',
+    'SeatMapBottomSheet',
+    'IncheonUploadFlowModal',
+    'fullscreenDialogTestId="incheon-seatmap-fullscreen"',
+  ].forEach((requiredToken) => {
+    assert.ok(incheonSource.includes(requiredToken), `IncheonSeatMap should keep standard UX token ${requiredToken}`);
+  });
 });
 
 test('구장별 전용 좌석도는 시야/preview 연결 계약을 유지한다', () => {
@@ -503,17 +555,120 @@ test('구장별 전용 좌석도는 시야/preview 연결 계약을 유지한다
 
   STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
     const source = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
+    const detailPanelSource = readProjectFile('src/components/stadiumSeatMap/SeatMapDetailPanel.tsx');
     if (contract.presetId === 'jamsil') {
       assert.ok(source.includes('SeatMapHoverPreview'), `${contract.componentName} should render SeatMapHoverPreview`);
       return;
     }
 
-    assert.ok(source.includes('SeatViewGallery'), `${contract.componentName} should render SeatViewGallery`);
     assert.ok(
-      source.includes(`stadium="${expectedStadiumKeys[contract.presetId]}"`),
+      source.includes('SeatViewGallery') || source.includes('SeatMapDetailPanel'),
+      `${contract.componentName} should render SeatViewGallery directly or through the shared detail panel`,
+    );
+    assert.ok(
+      source.includes(`stadium="${expectedStadiumKeys[contract.presetId]}"`)
+        || source.includes(`stadiumKey="${expectedStadiumKeys[contract.presetId]}"`)
+        || detailPanelSource.includes('stadium={stadiumKey}'),
       `${contract.componentName} should use ${expectedStadiumKeys[contract.presetId]} SeatViewGallery key`,
     );
   });
+});
+
+test('좌석도 공통 UI 컴포넌트는 잠실 기준 UX 계약을 제공한다', () => {
+  const filterSource = readProjectFile('src/components/stadiumSeatMap/SeatMapFilterBar.tsx');
+  const legendSource = readProjectFile('src/components/stadiumSeatMap/SeatMapLegend.tsx');
+  const attributionSource = readProjectFile('src/components/stadiumSeatMap/SeatMapAttribution.tsx');
+  const detailSource = readProjectFile('src/components/stadiumSeatMap/SeatMapDetailPanel.tsx');
+  const bottomSheetSource = readProjectFile('src/components/stadiumSeatMap/SeatMapBottomSheet.tsx');
+  const hookSource = readProjectFile('src/components/stadiumSeatMap/useSeatMapSelectionState.ts');
+  const typeSource = readProjectFile('src/components/stadiumSeatMap/seatMapCommonTypes.ts');
+  const templateSource = readProjectFile('src/components/stadiumSeatMap/SeatMapTemplateShell.tsx');
+  const jamsilSource = readProjectFile('src/components/jamsil/JamsilSeatMap.tsx');
+  const suwonSource = readProjectFile('src/components/suwon/SuwonSeatMap.tsx');
+
+  assert.ok(typeSource.includes('SeatMapCategoryMeta'));
+  assert.ok(typeSource.includes('SeatMapFilterGroup'));
+  assert.ok(typeSource.includes('SeatMapSectionAdapter'));
+  assert.ok(typeSource.includes('SeatMapCommonCopy'));
+  assert.ok(typeSource.includes('SeatMapSourceInfo'));
+  assert.ok(typeSource.includes('blockLabel?: string'), 'shared copy should allow stadium-specific block label copy');
+  assert.ok(filterSource.includes('aria-pressed'), 'shared filter should expose pressed state');
+  assert.ok(filterSource.includes('getGroupState'), 'shared filter should support stadium-specific disabled/data attributes');
+  assert.ok(legendSource.includes('categoryIds'), 'shared legend should render category ids from stadium data');
+  assert.ok(attributionSource.includes('좌석 배치 기준:'), 'shared attribution should render source caption copy');
+  assert.ok(attributionSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'), 'shared attribution should preserve manual data contract');
+  assert.ok(detailSource.includes('SeatViewGallery'), 'shared detail panel should own the common gallery block');
+  assert.ok(detailSource.includes('copy?.blockLabel'), 'shared detail panel should honor custom block label copy');
+  assert.ok(detailSource.includes('extraMeta'), 'shared detail panel should expose stadium-specific metadata slot');
+  assert.ok(bottomSheetSource.includes("type Snap = 'peek' | 'half' | 'full'"), 'shared bottom sheet should preserve mobile snap behavior');
+  assert.ok(bottomSheetSource.includes('testId?: string'), 'shared bottom sheet should preserve stadium QA ids when needed');
+  assert.ok(bottomSheetSource.includes('data-testid={testId}'), 'shared bottom sheet should render the provided QA id');
+  assert.ok(bottomSheetSource.includes('extraMeta'), 'shared bottom sheet should expose stadium-specific metadata slot');
+  assert.ok(hookSource.includes('filterCats'), 'shared selection hook should derive filter categories');
+  assert.ok(hookSource.includes('setSelected(null)'), 'shared selection hook should clear invalid selected sections');
+  assert.ok(templateSource.includes('isAuxiliaryGuideActive'), 'template shell should use a generic auxiliary guide flag');
+  assert.ok(templateSource.includes('mobileSecondaryPanel'), 'template shell should expose a mobile secondary panel slot');
+  assert.ok(templateSource.includes('desktopSecondaryPanel'), 'template shell should expose a desktop secondary panel slot');
+  assert.ok(!templateSource.includes('isDoosanGuideActive'), 'template shell should not expose Doosan-specific naming');
+  const jamsilDedicatedBottomSheetName = 'Jamsil' + 'BottomSheet';
+  const jamsilDedicatedSidePanelName = 'Jamsil' + 'SidePanelV2';
+  assert.ok(jamsilSource.includes('SeatMapBottomSheet'), 'Jamsil should wire the shared mobile bottom sheet');
+  assert.ok(jamsilSource.includes('SeatMapDetailPanel'), 'Jamsil should wire the shared desktop detail panel');
+  assert.ok(!jamsilSource.includes(jamsilDedicatedBottomSheetName), 'Jamsil should not keep a dedicated mobile bottom sheet');
+  assert.ok(!jamsilSource.includes(jamsilDedicatedSidePanelName), 'Jamsil should not keep a dedicated desktop detail panel');
+  assert.ok(jamsilSource.includes('JamsilUploadFlowModal'), 'Jamsil should keep the upload CTA modal');
+  assert.ok(jamsilSource.includes('isAuxiliaryGuideActive={isDoosanGuideActive}'), 'Jamsil should keep Doosan guide as an auxiliary guide extension');
+  const suwonDedicatedBottomSheetName = 'Suwon' + 'BottomSheet';
+  assert.ok(suwonSource.includes('SeatMapBottomSheet'), 'Suwon should wire the shared mobile bottom sheet');
+  assert.ok(!suwonSource.includes(suwonDedicatedBottomSheetName), 'Suwon should not keep a dedicated mobile bottom sheet');
+  assert.ok(suwonSource.includes('SuwonUploadFlowModal'), 'Suwon should wire the upload CTA modal');
+});
+
+test('구장별 전용 모바일 바텀시트 파일은 재도입하지 않는다', () => {
+  STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
+    const componentSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
+    const bottomSheetName = contract.componentName.replace('SeatMap', 'BottomSheet');
+    const bottomSheetPath = `src/components/${contract.folder}/${bottomSheetName}.tsx`;
+
+    assert.equal(
+      fs.existsSync(path.join(projectRoot, bottomSheetPath)),
+      false,
+      `${bottomSheetPath} should stay removed`,
+    );
+
+    assert.ok(componentSource.includes('SeatMapBottomSheet'), `${contract.componentName} should use the shared bottom sheet`);
+    assert.equal(componentSource.includes(bottomSheetName), false, `${contract.componentName} should not reference ${bottomSheetName}`);
+  });
+});
+
+test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
+  const secondaryPanelPresetIds = new Set(['daegu', 'daejeon', 'sajik']);
+
+  STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
+    const componentSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
+    const usesSecondaryPanel = componentSource.includes('mobileSecondaryPanel=')
+      || componentSource.includes('desktopSecondaryPanel=');
+
+    assert.equal(
+      usesSecondaryPanel,
+      secondaryPanelPresetIds.has(contract.presetId),
+      `${contract.componentName} secondary panel usage should match the allowlist`,
+    );
+  });
+
+  const daeguSource = readProjectFile('src/components/daegu/DaeguSeatMap.tsx');
+  const daejeonSource = readProjectFile('src/components/daejeon/DaejeonSeatMap.tsx');
+  const sajikSource = readProjectFile('src/components/sajik/SajikSeatMap.tsx');
+  const gocheokSource = readProjectFile('src/components/gocheok/GocheokSeatMap.tsx');
+  const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
+
+  assert.ok(daeguSource.includes('data-testid="daegu-section-finder"'), 'Daegu finder should remain the documented secondary panel exception');
+  assert.ok(daejeonSource.includes('data-testid="daejeon-section-finder"'), 'Daejeon finder should remain the documented secondary panel exception');
+  assert.ok(sajikSource.includes('data-testid="sajik-first-visit-guide"'), 'Sajik first-visit guide should remain the documented secondary panel exception');
+  assert.ok(gocheokSource.includes('GocheokFacilityGuide'), 'Gocheok facility mode should remain the documented auxiliary guide exception');
+  assert.ok(gocheokSource.includes('isAuxiliaryGuideActive={!isSeatMapMode}'), 'Gocheok facility mode should use the shared auxiliary guide flag');
+  assert.equal(incheonSource.includes('mobileSecondaryPanel='), false, 'Incheon should not use mobile secondary guide slots');
+  assert.equal(incheonSource.includes('desktopSecondaryPanel='), false, 'Incheon should not use desktop secondary guide slots');
 });
 
 test('구장별 전용 좌석도는 공통 UX 계약을 노출한다', () => {
@@ -532,14 +687,24 @@ test('구장별 전용 좌석도는 공통 UX 계약을 노출한다', () => {
   STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
     const componentSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
     const svgSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}Svg.tsx`);
+    const sharedFilterSource = readProjectFile('src/components/stadiumSeatMap/SeatMapFilterBar.tsx');
+    const sharedAttributionSource = readProjectFile('src/components/stadiumSeatMap/SeatMapAttribution.tsx');
     const combinedSource = `${componentSource}\n${svgSource}`;
     const zoomPrefix = `${contract.presetId}-seatmap`;
     const zoomInIndex = combinedSource.indexOf(`data-testid="${zoomPrefix}-zoom-in"`);
     const zoomResetIndex = combinedSource.indexOf(`data-testid="${zoomPrefix}-zoom-reset"`);
     const zoomOutIndex = combinedSource.indexOf(`data-testid="${zoomPrefix}-zoom-out"`);
 
-    assert.ok(componentSource.includes('aria-pressed'), `${contract.componentName} filter controls should expose aria-pressed`);
-    assert.ok(componentSource.includes('좌석 배치 기준:'), `${contract.componentName} should render the source caption below the map`);
+    assert.ok(
+      componentSource.includes('aria-pressed') || componentSource.includes('SeatMapFilterBar'),
+      `${contract.componentName} filter controls should expose aria-pressed`,
+    );
+    assert.ok(sharedFilterSource.includes('aria-pressed'), 'shared filter controls should expose aria-pressed');
+    assert.ok(
+      componentSource.includes('좌석 배치 기준:') || componentSource.includes('SeatMapAttribution'),
+      `${contract.componentName} should render the source caption below the map`,
+    );
+    assert.ok(sharedAttributionSource.includes('좌석 배치 기준:'), 'shared attribution should provide the source caption copy');
     assert.ok(zoomInIndex >= 0, `${contract.componentName} should expose zoom-in test id`);
     assert.ok(zoomResetIndex > zoomInIndex, `${contract.componentName} should order zoom reset after zoom-in`);
     assert.ok(zoomOutIndex > zoomResetIndex, `${contract.componentName} should order zoom-out after zoom reset`);
@@ -566,15 +731,23 @@ test('구장별 전용 좌석도는 공통 UX 계약을 노출한다', () => {
       assert.ok(fullscreenIndex > zoomOutIndex, `${contract.componentName} should order fullscreen after zoom-out`);
     }
 
-    if (contract.presetId !== 'suwon') {
-      const bottomSheetName = contract.componentName.replace('SeatMap', 'BottomSheet');
-      assert.match(
-        componentSource,
-        new RegExp(`selected\\s*&&\\s*\\(\\s*<${bottomSheetName}`),
-        `${contract.componentName} should render mobile bottom sheet only after a selected section exists`,
-      );
-    }
+    const bottomSheetName = contract.componentName.replace('SeatMap', 'BottomSheet');
+    assert.ok(
+      new RegExp(`selected\\s*&&\\s*\\(\\s*<SeatMapBottomSheet`).test(componentSource),
+      `${contract.componentName} should render the shared mobile bottom sheet only after a selected section exists`,
+    );
+    assert.equal(componentSource.includes(bottomSheetName), false, `${contract.componentName} should not reference ${bottomSheetName}`);
   });
+
+  const daejeonSource = readProjectFile('src/components/daejeon/DaejeonSeatMap.tsx');
+  const gwangjuSource = readProjectFile('src/components/gwangju/GwangjuSeatMap.tsx');
+  const changwonSource = readProjectFile('src/components/changwon/ChangwonSeatMap.tsx');
+
+  assert.ok(daejeonSource.includes("copy={{ blockLabel: '정확 블록' }}"), 'Daejeon should preserve exact-block detail copy through shared panels');
+  assert.ok(gwangjuSource.includes('extraMeta={renderDerivedRangeMeta}'), 'Gwangju should preserve derived range badges in the shared mobile sheet');
+  assert.ok(gwangjuSource.includes('extraMeta={renderDesktopDerivedRangeMeta}'), 'Gwangju should preserve derived range badges in the shared detail panel');
+  assert.ok(changwonSource.includes('testId="changwon-bottom-sheet"'), 'Changwon should preserve its mobile QA bottom-sheet id');
+  assert.ok(changwonSource.includes('changwon-selected-status-mobile'), 'Changwon should preserve its mobile release-lock status badge');
 });
 
 test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제공한다', () => {
@@ -586,7 +759,8 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(incheonSvgSource.includes('data-testid={`incheon-seat-block-${block.id}`}'));
   assert.ok(incheonSvgSource.includes('data-label-x={block.imageGeometry.labelX}'));
   assert.ok(incheonSvgSource.includes('data-label-y={block.imageGeometry.labelY}'));
-  assert.ok(incheonSvgSource.includes("data-guide-match={isGuideMatched ? 'true' : undefined}"));
+  assert.equal(incheonSvgSource.includes('data-guide-match'), false);
+  assert.equal(incheonSvgSource.includes('guideMatchedBlockIds'), false);
   assert.ok(incheonSvgSource.includes('aria-pressed={isActive}'));
 
   assert.ok(gocheokSvgSource.includes('data-testid={`gocheok-seat-block-${block.id}`}'));
@@ -612,7 +786,6 @@ test('창원 trace review 스크립트는 117개 숫자 블록과 특수 선택 
   const manifestSource = readProjectFile('scripts/changwon-seatmap-review-manifest.mjs');
   const uxReadinessSource = readProjectFile('scripts/changwon-seatmap-ux-readiness.mjs');
   const changwonComponentSource = readProjectFile('src/components/changwon/ChangwonSeatMap.tsx');
-  const changwonBottomSheetSource = readProjectFile('src/components/changwon/ChangwonBottomSheet.tsx');
   const auditSource = fs.readFileSync(
     path.join(projectRoot, 'scripts/stadium-ux-audit.mjs'),
     'utf8',
@@ -723,8 +896,8 @@ test('창원 trace review 스크립트는 117개 숫자 블록과 특수 선택 
   assert.ok(changwonComponentSource.includes('changwon-filter-visible-count'));
   assert.ok(changwonComponentSource.includes('changwon-selected-status'));
   assert.ok(changwonComponentSource.includes('changwon-seatmap-fullscreen-open'));
-  assert.ok(changwonBottomSheetSource.includes('changwon-bottom-sheet'));
-  assert.ok(changwonBottomSheetSource.includes('changwon-selected-status-mobile'));
+  assert.ok(changwonComponentSource.includes('testId="changwon-bottom-sheet"'));
+  assert.ok(changwonComponentSource.includes('changwon-selected-status-mobile'));
   assert.ok(auditSource.includes('Changwon debug anchor count should be 123'));
   assert.ok(auditSource.includes('p0-121-128'));
   assert.ok(auditSource.includes('special-first-base'));
@@ -835,6 +1008,19 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
   const releaseLockSource = readProjectFile('docs/sajik-seatmap-release-lock.md');
   const manifestSource = readProjectFile('scripts/sajik-seatmap-review-manifest.mjs');
   const evidenceSource = readProjectFile('scripts/sajik-seatmap-evidence-crops.mjs');
+  const zonePrecisionWorksetsSource = readProjectFile('scripts/sajik-seatmap-zone-precision-worksets.mjs');
+  const stage01OperatorPackageSource = readProjectFile('scripts/sajik-seatmap-stage01-operator-package.mjs');
+  const stage01OperatorInputAidSource = readProjectFile('scripts/sajik-seatmap-stage01-operator-input-aid.mjs');
+  const stage01ReviewBoardSource = readProjectFile('scripts/sajik-seatmap-stage01-review-board.mjs');
+  const stage01PrewriteSource = readProjectFile('scripts/sajik-seatmap-stage01-prewrite.mjs');
+  const stage01ApplyReadySource = readProjectFile('scripts/sajik-seatmap-stage01-apply-ready.mjs');
+  const stage01PostApplyAuditSource = readProjectFile('scripts/sajik-seatmap-stage01-post-apply-audit.mjs');
+  const stage01OperatorStatusSource = readProjectFile('scripts/sajik-seatmap-stage01-operator-status.mjs');
+  const stage01ManualPatchPlanSource = readProjectFile('scripts/sajik-seatmap-stage01-manual-patch-plan.mjs');
+  const stage01RealApprovalReadinessSource = readProjectFile('scripts/sajik-seatmap-stage01-real-approval-readiness.mjs');
+  const stage01PrewriteSmokeSource = readProjectFile('scripts/sajik-seatmap-stage01-prewrite-smoke.mjs');
+  const stage01ApprovedDryRunSource = readProjectFile('scripts/sajik-seatmap-stage01-approved-dry-run.mjs');
+  const stage01HandoffSource = readProjectFile('docs/sajik-seatmap-stage01-handoff.md');
   const dataTestSource = readProjectFile('src/data/sajikSeatData.test.ts');
   const svgSource = readProjectFile('src/components/sajik/SajikSeatMapSvg.tsx');
 
@@ -856,6 +1042,9 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`pixelAligned=87`',
     '`manualReviewRequired=2`',
     '`mapSelectable=87`',
+    '`seatSectionRenderedPaths=84`',
+    '`accessibilityMarkersRendered=3`',
+    '`aliasOnlyRendered=0`',
     '`aliasOnlyOfficialPngBlockNotVisible=2`',
     '`officialPngBlockNotVisible=2`',
     '`alignmentLockedVerified=87`',
@@ -875,7 +1064,7 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS`',
     '`SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS`',
     '`SAJIK_ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS`',
-    '브라우저 label-coordinate QA는 `MAP_SELECTABLE` 87개만 렌더링/클릭 대상으로 검증',
+    '브라우저 label-coordinate QA는 `84 seat paths + 3 accessibility markers = 87` selectable target을 검증',
     '`311/321`',
     '`112/121`',
     '`132/142`',
@@ -893,6 +1082,47 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`reports/stadium/sajik-seatmap-evidence-p2.png`',
     '`reports/stadium/sajik-seatmap-alignment-audit.json`',
     '`reports/stadium/sajik-seatmap-alignment-audit.md`',
+    '`reports/stadium/sajik-seatmap-hitpath-candidate-review.json`',
+    '`reports/stadium/sajik-seatmap-hitpath-candidate-review.md`',
+    '`reports/stadium/sajik-seatmap-zone-precision-worksets.json`',
+    '`reports/stadium/sajik-seatmap-zone-precision-worksets.md`',
+    '`reports/stadium/sajik-seatmap-zone-precision-worksets.svg`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-input.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-package.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-checklist.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-input-aid.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-input-aid.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-input-aid.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-review-board.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-review-board.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-review-board.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-entry-sheet.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-entry-sheet.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-review-board.svg`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-prewrite.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-prewrite.patch-preview.ts`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-apply-ready.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-apply-ready.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-post-apply-audit.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-post-apply-audit.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-status.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-status.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-operator-status.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-manual-patch-plan.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-manual-patch-plan.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-manual-patch-plan.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-real-approval-readiness.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-real-approval-readiness.csv`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-real-approval-readiness.md`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-prewrite-smoke.json`',
+    '`reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-prewrite-smoke.md`',
+    '`reports/stadium/sajik-stage01-operator/dry-run/sajik-seatmap-stage01-approved-dry-run.json`',
+    '`reports/stadium/sajik-stage01-operator/dry-run/sajik-seatmap-stage01-approved-dry-run.md`',
+    '`docs/sajik-seatmap-stage01-handoff.md`',
+    '`reports/stadium/sajik-seatmap-marker-transition-review.json`',
+    '`reports/stadium/sajik-seatmap-marker-transition-review.md`',
+    '`reports/stadium/sajik-seatmap-pr-scope-guard.json`',
+    '`reports/stadium/sajik-seatmap-pr-scope-guard.md`',
     '`reports/stadium/sajik-seatmap-evidence-p0-thin-first-base.png`',
     '`reports/stadium/sajik-seatmap-evidence-p0-143-boundary-lock.png`',
     '`reports/stadium/sajik-seatmap-evidence-p0-132-142-143-seams.png`',
@@ -909,13 +1139,36 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     '`MAP_SELECTABLE` 블럭의 label 좌표 클릭은 렌더 순서상 자기 block을 최상위 hit-area로 가져야 한다.',
     '`132/142/143`, `123/133/143` 주변 polygon은 서로 vertex intrusion, edge crossing, edge overlap을 만들면 안 된다.',
     '`OFFICIAL_PNG_BLOCK_NOT_VISIBLE` 예외 블럭은 클릭 정합 release gate와 SVG hit-area 렌더링에서 제외하되',
+    '일반 seat path layer는 `sectionKind=SEAT_SECTION` 84개만 `<path>`로 렌더링한다.',
+    '접근성 marker layer는 `sectionKind=ACCESSIBILITY_MARKER` 3개를 실제 polygon `<path>` hit-area로 렌더링한다.',
+    'runtime renderer는 `imageGeometry.d` fallback을 사용하지 않는다.',
     '외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.',
     '`MANUAL_BASEBALL_DATA_REQUIRED`',
     'npm run stadium:sajik:alignment-audit',
     'npm run stadium:sajik:evidence',
-    'node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts',
+    'npm run stadium:sajik:hitpath-review',
+    'npm run stadium:sajik:zone-precision-worksets',
+    'npm run stadium:sajik:stage01-operator-input-aid',
+    'npm run stadium:sajik:stage01-review-board',
+    'npm run stadium:sajik:stage01-prewrite',
+    'npm run stadium:sajik:stage01-apply-ready',
+    'npm run stadium:sajik:stage01-post-apply-audit',
+    'npm run stadium:sajik:stage01-operator-status',
+    'npm run stadium:sajik:stage01-manual-patch-plan',
+    'npm run stadium:sajik:stage01-real-approval-readiness',
+    'npm run stadium:sajik:stage01-prewrite-smoke',
+    'npm run stadium:sajik:stage01-approved-dry-run',
+    'npm run stadium:sajik:marker-transition-review',
+    'node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts',
+    'node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts',
     'npm run qa:stadium:sajik:trace-review',
+    'npm run stadium:sajik:pr-scope-guard',
     'npm run build',
+    'docs/sajik-seatmap-editor-v18-roadmap.md',
+    'Editor v1.8 구현은 이번 release lock에 포함하지 않는다.',
+    'PR scope guard는 `doesNotRunGitAdd=true`, `safeToRunBulkGitAdd=false` 상태를 유지해야 하며',
+    'PR scope guard report는 `stagingManifest`를 포함해야 하며 `releasePayloadFileCount=37`',
+    'forbidden staging commands',
     '`SAJIK_OFFICIAL_TRACE_REFERENCE`의 `expectedPointCount` 또는 `expectedArea`가 현재 path와 다르다.',
     '모바일 390에서 `723` path 중심 클릭이 zoom control 배경에 가로채인다.',
   ].forEach((requiredText) => {
@@ -925,7 +1178,23 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
   [
     '"stadium:sajik:evidence": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && npm run stadium:sajik:trace-manifest && node --import tsx scripts/sajik-seatmap-evidence-crops.mjs"',
     '"stadium:sajik:advisory-playwright": "npm run stadium:sajik:pixel-components && node --import tsx scripts/sajik-seatmap-alignment-audit.mjs --allow-failures && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs"',
+    '"stadium:sajik:hitpath-review": "node --import tsx scripts/sajik-seatmap-hitpath-candidate-review.mjs"',
+    '"stadium:sajik:zone-precision-worksets": "npm run stadium:sajik:hitpath-review && node --import tsx scripts/sajik-seatmap-zone-precision-worksets.mjs"',
+    '"stadium:sajik:stage01-operator-package": "npm run stadium:sajik:zone-precision-worksets && node --import tsx scripts/sajik-seatmap-stage01-operator-package.mjs"',
+    '"stadium:sajik:stage01-operator-input-aid": "npm run stadium:sajik:stage01-operator-package && node --import tsx scripts/sajik-seatmap-stage01-operator-input-aid.mjs"',
+    '"stadium:sajik:stage01-review-board": "npm run stadium:sajik:stage01-operator-input-aid && node --import tsx scripts/sajik-seatmap-stage01-review-board.mjs"',
+    '"stadium:sajik:stage01-prewrite": "npm run stadium:sajik:stage01-operator-package && node --import tsx scripts/sajik-seatmap-stage01-prewrite.mjs"',
+    '"stadium:sajik:stage01-apply-ready": "npm run stadium:sajik:stage01-prewrite && node --import tsx scripts/sajik-seatmap-stage01-apply-ready.mjs"',
+    '"stadium:sajik:stage01-post-apply-audit": "npm run stadium:sajik:stage01-apply-ready && node --import tsx scripts/sajik-seatmap-stage01-post-apply-audit.mjs"',
+    '"stadium:sajik:stage01-operator-status": "npm run stadium:sajik:stage01-post-apply-audit && node --import tsx scripts/sajik-seatmap-stage01-operator-status.mjs"',
+    '"stadium:sajik:stage01-manual-patch-plan": "npm run stadium:sajik:stage01-operator-status && node --import tsx scripts/sajik-seatmap-stage01-manual-patch-plan.mjs"',
+    '"stadium:sajik:stage01-real-approval-readiness": "npm run stadium:sajik:stage01-operator-input-aid && npm run stadium:sajik:stage01-manual-patch-plan && node --import tsx scripts/sajik-seatmap-stage01-real-approval-readiness.mjs"',
+    '"stadium:sajik:stage01-prewrite-smoke": "npm run stadium:sajik:stage01-operator-package && node --import tsx scripts/sajik-seatmap-stage01-prewrite-smoke.mjs"',
+    '"stadium:sajik:stage01-approved-dry-run": "npm run stadium:sajik:stage01-operator-package && node --import tsx scripts/sajik-seatmap-stage01-approved-dry-run.mjs"',
+    '"stadium:sajik:marker-transition-review": "node --import tsx scripts/sajik-seatmap-marker-transition-review.mjs"',
+    '"stadium:sajik:pr-scope-guard": "node scripts/sajik-seatmap-pr-scope-guard.mjs"',
     '"qa:stadium:sajik:trace-review": "npm run stadium:sajik:evidence && node --import tsx scripts/sajik-seatmap-advisory-playwright-review.mjs && npm run qa:stadium:sajik:mobile && npm run stadium:sajik:alignment-audit"',
+    '"qa:stadium:sajik:polygon-v2": "npm run stadium:sajik:dataset-export -- --check && npm run stadium:sajik:alignment-audit && npm run stadium:sajik:evidence && npm run stadium:sajik:hitpath-review && npm run stadium:sajik:zone-precision-worksets && npm run stadium:sajik:stage01-operator-input-aid && npm run stadium:sajik:stage01-review-board && npm run stadium:sajik:stage01-prewrite && npm run stadium:sajik:stage01-apply-ready && npm run stadium:sajik:stage01-post-apply-audit && npm run stadium:sajik:stage01-operator-status && npm run stadium:sajik:stage01-manual-patch-plan && npm run stadium:sajik:stage01-real-approval-readiness && npm run stadium:sajik:stage01-prewrite-smoke && npm run stadium:sajik:stage01-approved-dry-run && npm run stadium:sajik:marker-transition-review && node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts && node --import tsx --test --test-name-pattern \\"사직|Sajik\\" src/components/StadiumGuideRuntimeSeatMaps.test.ts && npm run stadium:sajik:editor-regression && npm run stadium:sajik:pr-scope-guard && npm run build"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -940,6 +1209,449 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'refinedPolygons',
   ].forEach((requiredText) => {
     assert.ok(manifestSource.includes(requiredText), `Sajik manifest should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_ZONE_PRECISION_WORKSETS_V1',
+    'P0-A',
+    'P0-B',
+    'P0-C',
+    'P1-A',
+    'P1-B',
+    'P2-A',
+    'ZONE_HOME_PLATE_SMALL',
+    'ZONE_FIRST_BASE_THIN_121_125',
+    'ZONE_FIRST_BASE_THIN_131_143',
+    'ZONE_CENTRAL_TABLE_ADJACENT',
+    'ZONE_CENTRAL_UPPER_ADJACENT',
+    'ZONE_CENTRAL_DEFERRED',
+    'ZONE_OUTFIELD_GUARD',
+    '723',
+    '914',
+    '922',
+    'productionWriteAllowed: false',
+  ].forEach((requiredText) => {
+    assert.ok(zonePrecisionWorksetsSource.includes(requiredText), `Sajik zone precision worksets should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_OPERATOR_PACKAGE_V1',
+    'Stage 01 P0',
+    'P0-A',
+    'P0-B',
+    'P0-C',
+    'EXPECTED_STAGE01_ROWS = 16',
+    'correctedPath',
+    'correctedLabelX',
+    'correctedLabelY',
+    'productionWriteAllowed: false',
+    'existingOperatorInput',
+    'preservationStatus',
+    'decisionOptions',
+    'KEEP_CURRENT',
+    'existingEditableRows',
+    'preservedEditableRows',
+    'ignoredExistingEditableRows',
+    'OPERATOR_INPUT_PRESERVATION_FAILED',
+    'OPERATOR_INPUT_OUTSIDE_STAGE01',
+    'DUPLICATE_EXISTING_OPERATOR_INPUT',
+    'sajik-seatmap-stage01-operator-input.json',
+  ].forEach((requiredText) => {
+    assert.ok(stage01OperatorPackageSource.includes(requiredText), `Sajik Stage 01 package should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_OPERATOR_INPUT_AID_V1',
+    'SAJIK_STAGE01_OPERATOR_PACKAGE_V1',
+    'EXPECTED_STAGE01_ROWS = 16',
+    'READY_FOR_PREWRITE',
+    'REJECTED',
+    'NEEDS_RETRACE',
+    'KEEP_CURRENT',
+    'INVALID',
+    'keepCurrentRows',
+    'nextAction',
+    'nextActionContract',
+    'FILL_OR_DECIDE',
+    'RUN_PREWRITE',
+    'FIX_OPERATOR_INPUT',
+    'NO_PATCH_PREVIEW',
+    'decisionOptions',
+    'decisions-recorded',
+    'ready-for-prewrite',
+    'APPROVAL_FIELD_REQUIRED',
+    'REVIEWED_AT_INVALID_DATE',
+    'CORRECTED_PATH_',
+    'DECISION_NOTE_RECOMMENDED',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+    'sajik-seatmap-stage01-operator-input-aid.json',
+    'sajik-seatmap-stage01-operator-input-aid.csv',
+    'sajik-seatmap-stage01-operator-input-aid.md',
+    'External baseball data, web search, crawling',
+  ].forEach((requiredText) => {
+    assert.ok(stage01OperatorInputAidSource.includes(requiredText), `Sajik Stage 01 operator input aid should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_REVIEW_BOARD_V1',
+    'SAJIK_STAGE01_OPERATOR_PACKAGE_V1',
+    'SAJIK_STAGE01_OPERATOR_INPUT_AID_V1',
+    'EXPECTED_STAGE01_ROWS = 16',
+    'sajik-seatmap-stage01-review-board.json',
+    'sajik-seatmap-stage01-review-board.csv',
+    'sajik-seatmap-stage01-review-board.md',
+    'sajik-seatmap-stage01-entry-sheet.csv',
+    'sajik-seatmap-stage01-entry-sheet.md',
+    'sajik-seatmap-stage01-review-board.svg',
+    'FILL_OR_DECIDE',
+    'RUN_PREWRITE',
+    'FIX_OPERATOR_INPUT',
+    'NO_PATCH_PREVIEW',
+    'KEEP_CURRENT',
+    'operatorDecisionOptions',
+    'approvedRequiredFields',
+    'keepCurrentRule',
+    'patchPreviewEligible',
+    'Invalid Rows First',
+    'Example approved entry',
+    'Example keep-current entry',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'does not infer coordinates',
+    'IMAGE_HREF',
+    'currentVisualPath',
+    'currentLabelPoint',
+    'editableFieldsPresent',
+  ].forEach((requiredText) => {
+    assert.ok(stage01ReviewBoardSource.includes(requiredText), `Sajik Stage 01 review board should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_PREWRITE_V1',
+    'SAJIK_STAGE01_OPERATOR_PACKAGE_V1',
+    'EXPECTED_STAGE01_ROWS = 16',
+    'ready-for-data-patch',
+    'waiting-for-operator',
+    'correctedPath',
+    'topHitIssuesFor',
+    'operatorInputSchema',
+    'KEEP_CURRENT',
+    'APPROVAL_FIELD_INVALID_NUMBER:correctedLabelX',
+    'patchReviewRows',
+    'Patch Preview Review',
+    'visualPathLocked',
+    'pointCountDelta',
+    'areaDelta',
+    'boundsDelta',
+    'labelPointDelta',
+    'buildSajikSeatMapSectionPatchPayload',
+    'formatSajikSeatMapSectionPatchTsFragment',
+    'productionDataChanged: false',
+    'sajik-seatmap-stage01-prewrite.patch-preview.ts',
+  ].forEach((requiredText) => {
+    assert.ok(stage01PrewriteSource.includes(requiredText), `Sajik Stage 01 prewrite should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_APPLY_READY_V1',
+    'SAJIK_STAGE01_PREWRITE_V1',
+    'ready-for-manual-apply',
+    'waiting-for-operator',
+    'MANUAL_DATA_PATCH_REVIEW_ONLY',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+    'VISUAL_PATH_CHANGED',
+    'PATCH_PAYLOAD_INVALID',
+    'diffSummary',
+    'pointCountBefore',
+    'areaBefore',
+    'boundsDelta',
+    'labelPointDelta',
+    'sajik-seatmap-stage01-apply-ready.json',
+  ].forEach((requiredText) => {
+    assert.ok(stage01ApplyReadySource.includes(requiredText), `Sajik Stage 01 apply-ready should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_POST_APPLY_AUDIT_V1',
+    'SAJIK_STAGE01_PREWRITE_V1',
+    'not-applied',
+    '--require-applied',
+    'CURRENT_HIT_PATH_NOT_APPLIED',
+    'CURRENT_LABEL_POINT_NOT_APPLIED',
+    'CURRENT_LABEL_X_NOT_APPLIED',
+    'CURRENT_LABEL_Y_NOT_APPLIED',
+    'readOnly: true',
+    'sourceDataWritePerformed: false',
+    'sajik-seatmap-stage01-post-apply-audit.json',
+    'sajik-seatmap-stage01-post-apply-audit.md',
+  ].forEach((requiredText) => {
+    assert.ok(stage01PostApplyAuditSource.includes(requiredText), `Sajik Stage 01 post-apply audit should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_OPERATOR_STATUS_V1',
+    'SAJIK_STAGE01_OPERATOR_PACKAGE_V1',
+    'SAJIK_STAGE01_PREWRITE_V1',
+    'SAJIK_STAGE01_APPLY_READY_V1',
+    'SAJIK_STAGE01_POST_APPLY_AUDIT_V1',
+    'PENDING',
+    'REJECTED',
+    'NEEDS_RETRACE',
+    'KEEP_CURRENT',
+    'INVALID',
+    'APPLIED',
+    'NOT_APPLIED',
+    'ready-for-manual-apply',
+    'manualPatchChecklist',
+    'MANUAL_PATCH_REQUIRED',
+    'sajik-seatmap-stage01-operator-status.json',
+    'sajik-seatmap-stage01-operator-status.csv',
+    'sajik-seatmap-stage01-operator-status.md',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+  ].forEach((requiredText) => {
+    assert.ok(stage01OperatorStatusSource.includes(requiredText), `Sajik Stage 01 operator status should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_MANUAL_PATCH_PLAN_V1',
+    'SAJIK_STAGE01_OPERATOR_STATUS_V1',
+    'SAJIK_STAGE01_PREWRITE_V1',
+    'ready-for-manual-apply',
+    'waiting-for-operator',
+    'MANUAL_PATCH_REQUIRED',
+    '--require-ready',
+    'REQUIRE_READY_NOT_SATISFIED',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+    'targetSourceFile',
+    'src/data/sajikSeatData.ts',
+    'WRITABLE_SOURCE_FIELDS',
+    'LOCKED_SOURCE_FIELDS',
+    'Source Edit Contract',
+    'sourceEditChecklist',
+    'writableSourceFields',
+    'lockedSourceFields',
+    'formatSajikSeatMapSectionPatchTsFragment',
+    'diffSummary',
+    'visualPathLocked',
+    'hitPathChanged',
+    'labelPointChanged',
+    'sajik-seatmap-stage01-manual-patch-plan.json',
+    'sajik-seatmap-stage01-manual-patch-plan.csv',
+    'sajik-seatmap-stage01-manual-patch-plan.md',
+  ].forEach((requiredText) => {
+    assert.ok(stage01ManualPatchPlanSource.includes(requiredText), `Sajik Stage 01 manual patch plan should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_REAL_APPROVAL_READINESS_V1',
+    'APPROVED_READY',
+    'APPROVED_NOT_APPLIED',
+    'APPROVED_APPLIED',
+    'APPROVED_BLOCKED',
+    'SECTION_KIND_NOT_WRITABLE',
+    'VISUAL_PATH_CHANGED_WITHOUT_APPROVAL',
+    'APPROVED_NO_GEOMETRY_DELTA',
+    'WRITABLE_SOURCE_FIELDS',
+    'LOCKED_SOURCE_FIELDS',
+    'sourceDataWritePerformed',
+    'productionWriteAllowed',
+    'productionDataChanged',
+    'sajik-seatmap-stage01-real-approval-readiness.json',
+    'sajik-seatmap-stage01-real-approval-readiness.csv',
+    'sajik-seatmap-stage01-real-approval-readiness.md',
+    'targetSourceFile',
+    'src/data/sajikSeatData.ts',
+    'read-only readiness gate; manual review patch only',
+  ].forEach((requiredText) => {
+    assert.ok(
+      stage01RealApprovalReadinessSource.includes(requiredText),
+      `Sajik Stage 01 real approval readiness should include ${requiredText}`,
+    );
+  });
+
+  [
+    'SAJIK_STAGE01_PREWRITE_SMOKE_V1',
+    'approved-no-delta',
+    'approved-with-delta',
+    'approved-applied-after-manual-patch',
+    'pending-only',
+    'invalid-approved-row',
+    'invalid-path-row',
+    'invalid-label-row',
+    'unknown-section-row',
+    'forbidden-alias-marker-row',
+    'decision-rows',
+    'mixed-approved-decision-pending',
+    'operator-input-preservation',
+    'operatorPackagePreservationPassed',
+    'preservationStatus',
+    'existingEditableRows',
+    'ignoredExistingEditableRows',
+    'inputAidStatus',
+    'inputAidReadyRows',
+    'inputAidAction',
+    'inputAidNextActionIncludes',
+    'inputAidRejectedRows',
+    'inputAidNeedsRetraceRows',
+    'inputAidKeepCurrentRows',
+    'inputAidInvalidRows',
+    'READY_FOR_PREWRITE',
+    'decisions-recorded',
+    'ready-for-data-patch',
+    'ready-for-manual-apply',
+    'APPROVED_NO_GEOMETRY_DELTA',
+    'rowWarningAbsent',
+    'APPROVAL_FIELD_REQUIRED:reviewer',
+    'MIN_POINT_COUNT_REQUIRED',
+    'LABEL_OUTSIDE_POLYGON',
+    'SECTION_NOT_FOUND',
+    'SECTION_KIND_NOT_WRITABLE',
+    'NEEDS_RETRACE',
+    'KEEP_CURRENT',
+    'postApplyStatus',
+    'operatorStatus',
+    'operatorRowStatus',
+    'manualPatchPlanStatus',
+    'manualPatchPlanRows',
+    'manualPatchPlanAction',
+    'realApprovalReadinessStatus',
+    'realApprovalReadinessApprovedNotAppliedRows',
+    'realApprovalReadinessApprovedAppliedRows',
+    'realApprovalReadinessApprovedBlockedRows',
+    'MANUAL_PATCH_REQUIRED',
+    'APPLIED',
+    'applied',
+    'NOT_APPLIED',
+    'not-applied',
+    'APPROVED_NOT_APPLIED',
+    'APPROVED_APPLIED',
+    'APPROVED_BLOCKED',
+    'APPLY_MANUAL_PATCH',
+    'VERIFY_APPLIED',
+    'tampered-visual-path-readiness',
+    'tampered-target-source-readiness',
+    'VISUAL_PATH_CHANGED_WITHOUT_APPROVAL',
+    'TARGET_SOURCE_FILE_MISMATCH',
+    'sourceDataWritePerformed',
+    'productionDataChanged: false',
+    'sajik-seatmap-stage01-operator-input-aid.json',
+    'sajik-seatmap-stage01-apply-ready.json',
+    'sajik-seatmap-stage01-post-apply-audit.json',
+    'sajik-seatmap-stage01-operator-status.json',
+    'sajik-seatmap-stage01-manual-patch-plan.json',
+    'sajik-seatmap-stage01-real-approval-readiness.json',
+    'sajik-seatmap-stage01-prewrite-smoke.json',
+  ].forEach((requiredText) => {
+    assert.ok(stage01PrewriteSmokeSource.includes(requiredText), `Sajik Stage 01 smoke should include ${requiredText}`);
+  });
+
+  [
+    'SAJIK_STAGE01_APPROVED_DRY_RUN_V1',
+    "DRY_RUN_TARGET_SECTION_ID = '021'",
+    'STAGE01_DRY_RUN_OPERATOR',
+    'ready-for-data-patch',
+    'ready-for-manual-apply',
+    'not-applied',
+    'MANUAL_PATCH_REQUIRED',
+    'APPROVED_NOT_APPLIED',
+    'APPLY_MANUAL_PATCH',
+    'NOT_APPLIED',
+    'writableSourceFields',
+    'lockedSourceFields',
+    'visualPathLocked',
+    'sourceDataWritePerformed',
+    'productionWriteAllowed',
+    'productionDataChanged',
+    'realApprovalReadinessStatus',
+    'realApprovalReadinessContract',
+    'approvedNotAppliedRows',
+    'readinessRow',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+    'productionDataChanged: false',
+    'sajik-seatmap-stage01-approved-dry-run.json',
+    'sajik-seatmap-stage01-approved-dry-run.md',
+    'sajik-seatmap-stage01-operator-input.json',
+    'sajik-seatmap-stage01-prewrite.json',
+    'sajik-seatmap-stage01-apply-ready.json',
+    'sajik-seatmap-stage01-post-apply-audit.json',
+    'sajik-seatmap-stage01-operator-status.json',
+    'sajik-seatmap-stage01-manual-patch-plan.json',
+    'sajik-seatmap-stage01-real-approval-readiness.json',
+    'src/data/sajikSeatData.ts',
+    "sectionId: '021'",
+    'must not edit src/data/sajikSeatData.ts',
+  ].forEach((requiredText) => {
+    assert.ok(stage01ApprovedDryRunSource.includes(requiredText), `Sajik Stage 01 approved dry-run should include ${requiredText}`);
+  });
+
+  [
+    'Sajik Seatmap Stage 01 Handoff',
+    'target rows: `021/022/031/032/121/122/123/124/125/131/132/133/134/135/142/143`',
+    'smoke status: `passed`, `cases=13/13`',
+    'approved dry-run status: `passed`, `target=021`, `manualPatchRows=1`, `readinessRow=APPROVED_NOT_APPLIED`, `sourceDataWritePerformed=false`',
+    'operator package preservation: `passed`',
+    'operator input aid: `waiting-for-operator`, `pending=16`',
+    'review board: `waiting-for-operator`, `pending=16`, `ready=0`, `invalid=0`',
+    'entry sheet: `reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-entry-sheet.csv`',
+    'real approval readiness: `reports/stadium/sajik-stage01-operator/sajik-seatmap-stage01-real-approval-readiness.md`',
+    'preservationStatus',
+    'ignoredExistingEditableRows',
+    'Example approved row',
+    'Example rejected row',
+    'Example retrace request row',
+    'Example keep-current row',
+    'operatorDecisionOptions',
+    'approvedRequiredFields',
+    'patchPreviewEligible',
+    'Source Edit Contract',
+    'writable source fields',
+    'locked source fields',
+    '`FILL_OR_DECIDE`',
+    '`RUN_PREWRITE`',
+    '`FIX_OPERATOR_INPUT`',
+    '`NO_PATCH_PREVIEW`',
+    'post-apply audit status: `waiting-for-operator`',
+    'operator status board: `waiting-for-operator`, `pending=16`',
+    'manual patch plan: `waiting-for-operator`, `manualPatchRows=0`',
+    'real approval readiness status: `waiting-for-operator`, `approved=0`, `manualPatchRows=0`, `sourceDataWritePerformed=false`',
+    '`operatorDecision=APPROVED`',
+    '`correctedPath`',
+    '`correctedLabelX`',
+    '`correctedLabelY`',
+    '`operator input aid` is read-only',
+    '`ready-for-manual-apply`',
+    '`post-apply audit` is read-only',
+    '`operator status board` is read-only',
+    '`manual patch plan` is read-only',
+    'Approved Dry-Run Contract',
+    'Real Approval Readiness Contract',
+    'APPROVED_READY',
+    'APPROVED_NOT_APPLIED',
+    'APPROVED_APPLIED',
+    'APPROVED_BLOCKED',
+    'ready-for-data-patch',
+    'MANUAL_PATCH_REQUIRED',
+    '`productionWriteAllowed=false`',
+    '`productionDataChanged=false`',
+    'npm run stadium:sajik:stage01-post-apply-audit -- --require-applied',
+    'npm run stadium:sajik:stage01-operator-input-aid',
+    'npm run stadium:sajik:stage01-review-board',
+    'npm run stadium:sajik:stage01-operator-status',
+    'npm run stadium:sajik:stage01-manual-patch-plan',
+    'npm run stadium:sajik:stage01-real-approval-readiness',
+    'npm run stadium:sajik:stage01-approved-dry-run',
+    'apply `imageGeometry.hitPath`',
+    'update legacy-compatible `labelX` and `labelY`',
+    'keep `imageGeometry.visualPath` unchanged',
+    'Stage 02 Entry Conditions',
+    'No automatic write to `src/data/sajikSeatData.ts`',
+  ].forEach((requiredText) => {
+    assert.ok(stage01HandoffSource.includes(requiredText), `Sajik Stage 01 handoff should include ${requiredText}`);
   });
 
   [
@@ -975,9 +1687,15 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
     'pointer-events-auto flex h-7 w-7',
     'pointer-events-auto min-h-7 min-w-10',
     'data-map-interaction-status',
+    "block.sectionKind === 'SEAT_SECTION'",
+    "block.sectionKind === 'ACCESSIBILITY_MARKER'",
+    'data-testid="sajik-seat-section-layer"',
+    'data-testid="sajik-accessibility-markers-layer"',
+    'sajik-accessibility-marker-',
   ].forEach((requiredText) => {
     assert.ok(svgSource.includes(requiredText), `Sajik SVG should keep zoom control hit-through contract ${requiredText}`);
   });
+  assert.doesNotMatch(svgSource, /\?\? block\.imageGeometry\.d/);
 });
 
 test('Stadium QA runner는 generic smoke 포트 충돌 회피와 실패 진단을 고정한다', () => {
@@ -992,6 +1710,11 @@ test('Stadium QA runner는 generic smoke 포트 충돌 회피와 실패 진단�
   assert.ok(runnerSource.includes('SMOKE_VIEWPORTS'));
   assert.ok(runnerSource.includes('portListenerDiagnostics'));
   assert.ok(runnerSource.includes('auditChildPid='));
+  assert.ok(runnerSource.includes('classifyQaFailure'));
+  assert.ok(runnerSource.includes('failureCategory='));
+  assert.ok(runnerSource.includes("'hmr-reload'"));
+  assert.ok(runnerSource.includes("'coordinate'"));
+  assert.ok(runnerSource.includes("'server'"));
   assert.ok(runnerSource.includes('Output dir:'));
   assert.ok(runnerSource.includes('Summary path:'));
   assert.ok(runnerSource.includes('Post-run listener PID(s):'));
@@ -1129,6 +1852,11 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '마지막 release gate 이후 변경됐는지 mtime으로 확인한다',
     '운영자는 trace manifest, P2 evidence, anchor crops, 브라우저 QA summary를 한 문서에서 확인하고 승인/반려 체크리스트를 처리한다.',
     'coordinate impact missingImpact=0',
+    'anchor crop count: `28`',
+    'anchor visual baseline: `expectedCropCount=28`',
+    'anchor visual diff: `baselineCropCount=28`, `currentCropCount=28`, `changedCropCount=0`, `metadataMismatchCount=0`',
+    '`first-104-106-detail`',
+    '`third-116-121-detail`',
     'visual diff changedCropCount=0',
     'geometry diff changedBlockCount=0',
     'npm run stadium:daejeon:block-crops -- --codes 104,105',
@@ -1164,7 +1892,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     'EXPECTED_TRACED = 145',
     'EXPECTED_REVIEW = 0',
     'EXPECTED_P2_ALIASES = 11',
-    'EXPECTED_ANCHOR_CROPS = 26',
+    'EXPECTED_ANCHOR_CROPS = 28',
     "'src/data/daejeonSeatData.test.ts'",
     "'src/components/StadiumGuideRuntimeSeatMaps.test.ts'",
     "'npm'",
@@ -1334,7 +2062,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '"contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1"',
     '"reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2"',
     '"coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1"',
-    '"expectedCropCount": 26',
+    '"expectedCropCount": 28',
     '"id": "first-101-109"',
     '"id": "third-121-124"',
     '"sha256"',
@@ -1569,10 +2297,14 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   const operatorStatusSource = readProjectFile('scripts/gwangju-seatmap-operator-status.mjs');
   const releasePackageSource = readProjectFile('scripts/gwangju-seatmap-release-package.mjs');
   const releaseGateSource = readProjectFile('scripts/gwangju-seatmap-release-gate.mjs');
+  const releaseAuditSource = readProjectFile('scripts/gwangju-seatmap-release-audit.mjs');
+  const releaseScopeGuardSource = readProjectFile('scripts/gwangju-seatmap-release-scope-guard.mjs');
+  const prStagingPlanSource = readProjectFile('scripts/gwangju-seatmap-pr-staging-plan.mjs');
   const operatorApplySource = readProjectFile('scripts/gwangju-seatmap-operator-apply.mjs');
   const operatorWriteSmokeSource = readProjectFile('scripts/gwangju-seatmap-operator-write-smoke.mjs');
   const operatorWriteGuardSource = readProjectFile('scripts/gwangju-seatmap-operator-write-guard.mjs');
   const pixelComponentSource = readProjectFile('scripts/gwangju-seatmap-pixel-components.mjs');
+  const lowMarginCandidateSource = readProjectFile('scripts/gwangju-seatmap-low-margin-candidates.mjs');
   const operatorRunbookSource = readProjectFile('docs/gwangju-seatmap-operator-runbook.md');
   const releaseHandoffSource = readProjectFile('docs/gwangju-seatmap-release-handoff.md');
   const auditSource = fs.readFileSync(
@@ -1604,6 +2336,12 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-operator-status.mjs'));
   assert.ok(packageSource.includes('"stadium:gwangju:release-package"'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:operator-status && node --import tsx scripts/gwangju-seatmap-release-package.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:release-scope-guard"'));
+  assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-release-scope-guard.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:pr-staging-plan"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:release-scope-guard && node --import tsx scripts/gwangju-seatmap-pr-staging-plan.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:pr-staging-review"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:pr-staging-plan && node --import tsx scripts/gwangju-seatmap-pr-staging-plan.mjs --review'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-apply"'));
   assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-operator-apply.mjs'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-write-smoke"'));
@@ -1620,11 +2358,28 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(packageSource.includes('npm run stadium:gwangju:operator-handoff && npm run stadium:gwangju:operator-status && npm run test:stadium:seatmaps && npm run qa:stadium:gwangju:trace-review && npm run build'));
   assert.ok(packageSource.includes('"qa:stadium:gwangju:trace-review"'));
   assert.ok(packageSource.includes('STADIUM_UX_GWANGJU_DEBUG_CAPTURE=1 npm run qa:stadium:gwangju:mobile'));
+  assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-zone-precision-worksets.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-low-margin-candidates.mjs'));
   assert.ok(packageSource.includes('"qa:stadium:gwangju:release-gate"'));
   assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-release-gate.mjs'));
+  assert.ok(packageSource.includes('"qa:stadium:gwangju:release-verify:preoperator"'));
+  assert.ok(packageSource.includes('npm run qa:stadium:gwangju:release-gate && npm run stadium:gwangju:pr-staging-plan && npm run stadium:gwangju:release-audit'));
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_DEEP_CHECK: '1'"));
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1'"));
   assert.ok(pixelComponentSource.includes('gwangju-seatmap-pixel-components.json'));
+  assert.ok(lowMarginCandidateSource.includes('GWANGJU_LOW_MARGIN_CANDIDATES_V1'));
+  assert.ok(lowMarginCandidateSource.includes('gwangju-seatmap-low-margin-candidates.json'));
+  assert.ok(lowMarginCandidateSource.includes('gwangju-seatmap-low-margin-candidates.csv'));
+  assert.ok(lowMarginCandidateSource.includes('gwangju-seatmap-low-margin-candidates.md'));
+  assert.ok(lowMarginCandidateSource.includes('NUMBERED_PIXEL_REVIEW_TARGET'));
+  assert.ok(lowMarginCandidateSource.includes('SPECIAL_PIXEL_REVIEW_TARGET'));
+  assert.ok(lowMarginCandidateSource.includes('COMPONENT_RECALL_REVIEW_TARGET'));
+  assert.ok(lowMarginCandidateSource.includes('COMPONENT_IOU_REVIEW_TARGET'));
+  assert.ok(lowMarginCandidateSource.includes('P1_P2_BOUNDARY_WATCH'));
+  assert.ok(lowMarginCandidateSource.includes('doesNotModifyDataFile'));
+  assert.ok(lowMarginCandidateSource.includes('official PNG 2200x1159 only'));
   assert.ok(manifestSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'));
   assert.ok(manifestSource.includes('GWANGJU_TRACE_REVIEW_SUMMARY'));
   assert.ok(manifestSource.includes('GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES'));
@@ -1635,14 +2390,31 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(manifestSource.includes('traceStatus'));
   assert.ok(manifestSource.includes('traceSource'));
   assert.ok(manifestSource.includes('traceVersion'));
+  assert.ok(manifestSource.includes('previousTraceVersion'));
+  assert.ok(manifestSource.includes('traceGeneration'));
+  assert.ok(manifestSource.includes('fullRetracedBlocks'));
+  assert.ok(manifestSource.includes('blocksChangedFromPreviousTrace'));
+  assert.ok(manifestSource.includes('totalRetracePointDelta'));
+  assert.ok(manifestSource.includes('previousAnchorDeltaPx'));
+  assert.ok(manifestSource.includes('previousBoundsDeltaPx'));
+  assert.ok(manifestSource.includes('previousPixelCoverageDelta'));
+  assert.ok(manifestSource.includes('pathChangedFromPreviousTrace'));
   assert.ok(manifestSource.includes('manualReviewed'));
   assert.ok(manifestSource.includes('pixelAlignmentStatus'));
   assert.ok(manifestSource.includes('expectedBounds'));
   assert.ok(manifestSource.includes('pixelCoverageRatio'));
+  assert.ok(manifestSource.includes('officialComponentRecall'));
+  assert.ok(manifestSource.includes('componentIoU'));
+  assert.ok(manifestSource.includes('componentCoverageWarnings'));
   assert.ok(manifestSource.includes('overlapWarnings'));
   assert.ok(manifestSource.includes('cleanOverlayArtifacts'));
+  assert.ok(manifestSource.includes('GWANGJU_ZONE_PRECISION_WORKSETS'));
+  assert.ok(manifestSource.includes('zonePrecisionWorksets'));
+  assert.ok(manifestSource.includes('zonePrecisionWarnings'));
+  assert.ok(manifestSource.includes('zoneOverlayArtifacts'));
   assert.ok(manifestSource.includes('gwangju-seatmap-trace-review-overlay.png'));
   assert.ok(manifestSource.includes('gwangju-seatmap-trace-review-clean-crops'));
+  assert.ok(manifestSource.includes('gwangju-seatmap-trace-review-zone-crops'));
   assert.ok(gwangjuDataSource.includes("'reviewer', 'reviewedAt'"));
   assert.ok(operatorTemplateSource.includes('GWANGJU_OPERATOR_SECTION_REQUIREMENTS'));
   assert.ok(operatorTemplateSource.includes('GWANGJU_PENDING_OPERATOR_SECTIONS'));
@@ -1766,6 +2538,156 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseGateSource.includes('operator-provided official PNG coordinates only'));
   assert.ok(releaseGateSource.includes('web-search-based baseball data'));
   assert.ok(releaseGateSource.includes('좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다.'));
+  assert.ok(releaseAuditSource.includes('gwangju-seatmap-release-scope-guard.json'));
+  assert.ok(releaseAuditSource.includes('releaseScopeGuard'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_NOT_PASSED'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_BLOCKERS_PRESENT'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_UNEXPECTED_FILES_PRESENT'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_INCLUDED_FILE_COUNT_CHANGED'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_INCLUDED_FILES_MISSING'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_EXTRA_INCLUDED_FILES'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_SEPARATE_DIRTY_WORK_BASELINE_CHANGED'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_SEPARATE_EXPANSION_DISABLED'));
+  assert.ok(releaseAuditSource.includes('classified additional separate dirty work files'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_PATCH_SEPARATION_STATUS_CHANGED'));
+  assert.ok(releaseAuditSource.includes('RELEASE_SCOPE_GUARD_PACKAGE_MIXED_STATUS_MISSING'));
+  assert.ok(releaseAuditSource.includes('gwangju-seatmap-pr-staging-plan.json'));
+  assert.ok(releaseAuditSource.includes('prStagingPlan'));
+  assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_STATUS_CHANGED'));
+  assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_GIT_ADD_ENABLED'));
+  assert.ok(releaseAuditSource.includes('PR_STAGING_PLAN_PACKAGE_MIXED_STATUS_MISSING'));
+  assert.ok(releaseAuditSource.includes('STALE_PR_STAGING_PLAN_BEFORE_SCOPE_GUARD'));
+  assert.ok(releaseAuditSource.includes('STALE_RELEASE_SCOPE_GUARD_BEFORE_HANDOFF'));
+  assert.ok(releaseAuditSource.includes("requiredScopeGuardStatus: 'passed'"));
+  assert.ok(releaseAuditSource.includes('requiredScopeGuardUnexpectedFiles: 0'));
+  assert.ok(releaseAuditSource.includes('requiredScopeGuardBlockers: 0'));
+  assert.ok(releaseAuditSource.includes('requiredScopeGuardIncludedFiles: EXPECTED_RELEASE_PAYLOAD_FILE_COUNT'));
+  assert.ok(releaseAuditSource.includes('requiredScopeGuardSeparateDirtyWorkBaselineFiles: SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT'));
+  assert.ok(releaseAuditSource.includes('allowsClassifiedSeparateDirtyWorkExpansion: true'));
+  assert.ok(releaseAuditSource.includes("requiredPatchSeparationReadiness: 'review-required'"));
+  assert.ok(releaseAuditSource.includes("requiredPrStagingPlanStatus: 'review-required'"));
+  assert.ok(releaseAuditSource.includes('requiredPrStagingPlanDoesNotRunGitAdd: true'));
+  assert.ok(releaseAuditSource.includes('scopeGuardSummary'));
+  assert.ok(releaseAuditSource.includes('expectedIncludedFileCount'));
+  assert.ok(releaseAuditSource.includes('actualIncludedFileCount'));
+  assert.ok(releaseAuditSource.includes('missingExpectedIncludedFileCount'));
+  assert.ok(releaseAuditSource.includes('extraIncludedFileCount'));
+  assert.ok(releaseAuditSource.includes('expectedSeparateDirtyWorkCount'));
+  assert.ok(releaseAuditSource.includes('actualSeparateDirtyWorkCount'));
+  assert.ok(releaseAuditSource.includes('missingExpectedSeparateDirtyWorkCount'));
+  assert.ok(releaseAuditSource.includes('classifiedSeparateDirtyWorkExpansionAllowed'));
+  assert.ok(releaseAuditSource.includes('classifiedAdditionalSeparateDirtyWorkCount'));
+  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=19'));
+  assert.ok(releaseAuditSource.includes('separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95'));
+  assert.ok(releaseAuditSource.includes('separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true'));
+  assert.ok(releaseAuditSource.includes('PR Packaging Manifest'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=19'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.separateDirtyWorkFileCount='));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.unexpectedDirtyFileCount=0'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.inventoryDriftCount=0'));
+  assert.ok(releaseAuditSource.includes('Patch Separation Readiness'));
+  assert.ok(releaseAuditSource.includes('patchSeparationReadiness.status=review-required'));
+  assert.ok(releaseAuditSource.includes('patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`'));
+  assert.ok(releaseAuditSource.includes('## Scope Guard'));
+  assert.ok(releaseAuditSource.includes('## PR Staging Plan'));
+  assert.ok(releaseAuditSource.includes('prStagingPlanSummary'));
+  assert.ok(releaseAuditSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
+  assert.ok(releaseScopeGuardSource.includes('GWANGJU_RELEASE_SCOPE_GUARD_V1'));
+  assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-release-scope-guard.json'));
+  assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-release-scope-guard.md'));
+  assert.ok(releaseScopeGuardSource.includes('expectedIncludedReleaseFiles'));
+  assert.ok(releaseScopeGuardSource.includes('expectedSeparateDirtyWorkFiles'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-pr-staging-plan.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.json'));
+  assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.md'));
+  assert.ok(releaseScopeGuardSource.includes('"stadium:gwangju:pr-staging-review"'));
+  assert.ok(releaseScopeGuardSource.includes('node --import tsx scripts/gwangju-seatmap-pr-staging-plan.mjs --review'));
+  assert.ok(releaseScopeGuardSource.includes('prPackagingManifest'));
+  assert.ok(releaseScopeGuardSource.includes('releasePayloadFileCount'));
+  assert.ok(releaseScopeGuardSource.includes('separateDirtyWorkFileCount'));
+  assert.ok(releaseScopeGuardSource.includes('unexpectedDirtyFileCount'));
+  assert.ok(releaseScopeGuardSource.includes('inventoryDriftCount'));
+  assert.ok(releaseScopeGuardSource.includes('patchSeparationReadiness'));
+  assert.ok(releaseScopeGuardSource.includes('patchSeparationStatus'));
+  assert.ok(releaseScopeGuardSource.includes('mixedStatusFiles'));
+  assert.ok(releaseScopeGuardSource.includes('untrackedIncludedFiles'));
+  assert.ok(releaseScopeGuardSource.includes('reviewFocusFiles'));
+  assert.ok(releaseScopeGuardSource.includes('MIXED_GIT_STATUS'));
+  assert.ok(releaseScopeGuardSource.includes('UNTRACKED_INCLUDED_FILE'));
+  assert.ok(releaseScopeGuardSource.includes('releaseCandidateInventory'));
+  assert.ok(releaseScopeGuardSource.includes('separateWorkInventory'));
+  assert.ok(releaseScopeGuardSource.includes('classifiedSeparateDirtyWorkExpansionAllowed'));
+  assert.ok(releaseScopeGuardSource.includes('CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED'));
+  assert.ok(releaseScopeGuardSource.includes('PR Packaging Manifest'));
+  assert.ok(releaseScopeGuardSource.includes('Patch Separation Readiness'));
+  assert.ok(releaseScopeGuardSource.includes('PR staging plan'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.status=review-required'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.doesNotRunGitAdd=true'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=19'));
+  assert.ok(releaseScopeGuardSource.includes('Release Candidate Inventory'));
+  assert.ok(releaseScopeGuardSource.includes('Expected Included Release Files'));
+  assert.ok(releaseScopeGuardSource.includes('Separate Workstream Baseline'));
+  assert.ok(releaseScopeGuardSource.includes('git'));
+  assert.ok(releaseScopeGuardSource.includes('status'));
+  assert.ok(releaseScopeGuardSource.includes('includedRules'));
+  assert.ok(releaseScopeGuardSource.includes('separateRules'));
+  assert.ok(releaseScopeGuardSource.includes('Gwangju pre-operator release package'));
+  assert.ok(releaseScopeGuardSource.includes('Daejeon work is explicitly outside the Gwangju release handoff scope'));
+  assert.ok(releaseScopeGuardSource.includes('daejeon-files'));
+  assert.ok(releaseScopeGuardSource.includes('Separate dirty work that must not be judged by this handoff'));
+  assert.ok(releaseScopeGuardSource.includes('UNCLASSIFIED_DIRTY_FILE'));
+  assert.ok(releaseScopeGuardSource.includes('RELEASE_CANDIDATE_FILE_MISSING'));
+  assert.ok(releaseScopeGuardSource.includes('RELEASE_CANDIDATE_FILE_UNEXPECTED'));
+  assert.ok(releaseScopeGuardSource.includes('HANDOFF_SCOPE_SNIPPET_MISSING'));
+  assert.ok(releaseScopeGuardSource.includes('PACKAGE_SCOPE_GUARD_SCRIPT_MISSING'));
+  assert.ok(releaseScopeGuardSource.includes('RELEASE_LOCK_SCOPE_GUARD_SNIPPET_MISSING'));
+  assert.ok(releaseScopeGuardSource.includes('daegu-files'));
+  assert.ok(releaseScopeGuardSource.includes('sajik-files'));
+  assert.ok(releaseScopeGuardSource.includes('suwon-files'));
+  assert.ok(releaseScopeGuardSource.includes('cross-stadium-utilities'));
+  assert.ok(releaseScopeGuardSource.includes('src/components/AppRoutes.tsx'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/daegu-seatmap-p1-operator-readiness.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(releaseScopeGuardSource.includes('browser CSS pixels'));
+  assert.ok(releaseScopeGuardSource.includes('web-search-based baseball data'));
+  assert.ok(releaseScopeGuardSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
+  assert.ok(prStagingPlanSource.includes('GWANGJU_PR_STAGING_PLAN_V1'));
+  assert.ok(prStagingPlanSource.includes('GWANGJU_PR_STAGING_REVIEW_V1'));
+  assert.ok(prStagingPlanSource.includes('gwangju-seatmap-pr-staging-plan.json'));
+  assert.ok(prStagingPlanSource.includes('gwangju-seatmap-pr-staging-plan.md'));
+  assert.ok(prStagingPlanSource.includes('gwangju-seatmap-pr-staging-review.json'));
+  assert.ok(prStagingPlanSource.includes('gwangju-seatmap-pr-staging-review.md'));
+  assert.ok(prStagingPlanSource.includes('--review'));
+  assert.ok(prStagingPlanSource.includes('doesNotRunGitAdd'));
+  assert.ok(prStagingPlanSource.includes('safeToRunBulkGitAdd'));
+  assert.ok(prStagingPlanSource.includes('git'));
+  assert.ok(prStagingPlanSource.includes('diff'));
+  assert.ok(prStagingPlanSource.includes('--cached'));
+  assert.ok(prStagingPlanSource.includes('manual-hunk-review-required'));
+  assert.ok(prStagingPlanSource.includes('untracked-review-required'));
+  assert.ok(prStagingPlanSource.includes('generated-report-review-required'));
+  assert.ok(prStagingPlanSource.includes('ready-to-stage'));
+  assert.ok(prStagingPlanSource.includes('SEPARATE_FILE_HAS_INDEX_DIFF'));
+  assert.ok(prStagingPlanSource.includes('manual-hunk-review-before-staging'));
+  assert.ok(prStagingPlanSource.includes('manual-whole-file-review-before-git-add'));
+  assert.ok(prStagingPlanSource.includes('PACKAGE_JSON_MIXED_STATUS_MISSING'));
+  assert.ok(prStagingPlanSource.includes('RELEASE_PAYLOAD_COUNT_CHANGED'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.status=review-required'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.doesNotRunGitAdd=true'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.safeToRunBulkGitAdd=false'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.packageJsonStatus=MM'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=19'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.status=review-required'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRunGitAdd=true'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.safeToRunBulkGitAdd=false'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=19'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.recommendsOnlyIncludedFiles=true'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRecommendSeparateDirtyWork=true'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=${classifiedSeparateDirtyWorkExpansionAllowed}'));
+  assert.ok(prStagingPlanSource.includes('git add .'));
+  assert.ok(prStagingPlanSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(prStagingPlanSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
   assert.ok(operatorApplySource.includes('GWANGJU_OPERATOR_APPLY_V1'));
   assert.ok(operatorApplySource.includes('typescript'));
   assert.ok(operatorApplySource.includes('GWANGJU_OPERATOR_WRITE_GUARD_V1'));
@@ -1906,7 +2828,6 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
   const dataSource = readProjectFile('src/data/gwangjuSeatData.ts');
   const dataTestSource = readProjectFile('src/data/gwangjuSeatData.test.ts');
   const componentSource = readProjectFile('src/components/gwangju/GwangjuSeatMap.tsx');
-  const bottomSheetSource = readProjectFile('src/components/gwangju/GwangjuBottomSheet.tsx');
   const runbookSource = readProjectFile('docs/gwangju-seatmap-operator-runbook.md');
   const releaseHandoffSource = readProjectFile('docs/gwangju-seatmap-release-handoff.md');
   const auditSource = fs.readFileSync(
@@ -1924,6 +2845,9 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`OFFICIAL_IMAGE_PIXEL_TRACE`',
     '`OFFICIAL_IMAGE_TRACED`',
     '`PIXEL_ALIGNED`',
+    '`manual-polygon-v5`',
+    '`manual-polygon-v4`',
+    '`FULL_ACTIVE_111_RETRACE`',
     '`activeBlocks=111`',
     '`GWANGJU_BASE_TRACE_BLOCK_COUNT === 111`',
     '`GWANGJU_EXPECTED_TRACE_BLOCK_COUNT === 111`',
@@ -1931,8 +2855,15 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`directOfficialTraceBlocks=111`',
     '`manualReviewedBlocks=111`',
     '`pixelAlignedBlocks=111`',
+    '`fullRetracedBlocks=111`',
+    '`blocksChangedFromPreviousTrace=111`',
+    '`totalRetracePointDelta=1182`',
     '`overlapWarnings=0`',
-    '`minimumPixelCoverageRatio=0.8286`',
+    '`minimumPixelCoverageRatio=0.9677`',
+    '`componentCoverageWarnings=0`',
+    '`minimumOfficialComponentRecall=0.9263`',
+    '`minimumComponentIoU=0.7692`',
+    '`repeatedNumberedBlockMinimumPixelCoverageRatio=1.0000`',
     '`GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE === true`',
     '`GWANGJU_SEATMAP_COORDINATES_READY === false`',
     '`operatorRequiredSections=K7석, 원정응원석`',
@@ -1956,6 +2887,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`away-cheering-seats`: `PENDING_OPERATOR_INPUT`',
     '독립 K7/AWAY aggregate hit-area는 공식 PNG `2200x1159` 기준 운영자 polygon 좌표가 들어오기 전까지 생성하지 않는다.',
     '독립 polygon 승격이 별도로 완료된 경우에만 active block 기준을 `111`에서 `113`으로 전환한다.',
+    'O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 공식 색상 영역 내부에 있을 때 통과할 수 있으므로',
+    '최소 공식 component recall: `0.78`',
+    '최소 component IoU: `0.62`',
+    '`outfield-right-seats`는 공식 PNG component `outfield-3` bounds `1184,341,1333,838` 기준으로 하단까지 포함해야 한다.',
+    '런타임 SVG는 `GWANGJU_BLOCKS.map`과 `d={block.imageGeometry.d}`만 일반 좌석 `<path>` source로 사용한다.',
+    '`GWANGJU_NON_SELECTABLE_MARKER_ZONES`는 좌석 `<path>`가 아니라 차단용 marker layer이며 block detail 선택 대상이 아니다.',
     '`reports/stadium/gwangju-seatmap-trace-review.md`',
     '`reports/stadium/gwangju-seatmap-trace-review-overlay.png`',
     '`reports/stadium/gwangju-seatmap-trace-review-clean-crops/`',
@@ -1964,6 +2901,9 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`reports/stadium/gwangju-seatmap-operator-status.md`',
     '`reports/stadium/gwangju-seatmap-release-package.md`',
     '`reports/stadium/gwangju-seatmap-release-gate.md`',
+    '`reports/stadium/gwangju-seatmap-release-scope-guard.md`',
+    '`reports/stadium/gwangju-seatmap-release-scope-guard.json`',
+    'PR packaging manifest: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
     '`../output/playwright/stadium-ux-gwangju-validate/stadium-mobile-smoke-summary.md`',
     '`operator-provided official PNG coordinates only`',
     'browser CSS pixels',
@@ -1977,26 +2917,77 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'npm run qa:stadium:gwangju:trace-review',
     'npm run stadium:gwangju:release-package',
     'npm run qa:stadium:gwangju:release-gate',
+    'npm run stadium:gwangju:release-scope-guard',
     'npm run build',
     '`status=pending`',
     '`pending=2`',
     '`validDataDiff=0`',
     '`blockers=0`',
-    '`221/221`',
+    '`256/256`',
     '`status=ready`',
     '`derivedRanges=3`',
     '`status=passed`',
     '`steps=5/5`',
+    '`included=19`',
+    '`separate=<runtime>`',
+    '`unexpected=0`',
+    '`inventoryDrift=0`',
+    '`scopeGuardStatus=passed`',
+    '`scopeGuardIncludedFiles=19`',
+    '`scopeGuardSeparateDirtyWorkFiles=<runtime>`',
+    '`scopeGuardSeparateDirtyWorkBaselineFiles=95`',
+    '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
+    '`scopeGuardUnexpectedFiles=0`',
+    '`scopeGuardBlockers=0`',
     '`releasePackageStatus=ready`',
     '`operatorStatus=pending`',
     '`browserQaStatus=passed`',
     '`activeTraceBlocks=111`',
+    '`POST_OPERATOR_POLYGON_NOT_APPLIED`',
+    '`actualActiveBlocks=111`',
+    '`expectedActiveBlocks=113`',
+    'preoperator 통과 + postoperator blocked + scope guard 통과',
+    'release-gate -> release-scope-guard -> pr-staging-plan -> release-audit',
+    'release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.',
+    'PR packaging manifest가 광주 release 후보 19개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
+    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=19`, `actualIncludedFileCount=19`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
+    'release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=95`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.',
+    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=19`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
+    'release scope guard의 `patchSeparationReadiness.status=review-required` 상태를 잃거나 `package.json` with status `MM` review-required 계약을 숨긴다.',
+    'patch separation readiness가 release PR staging 전에 review-required 상태임을 문서화하지 않는다.',
+    'PR staging plan이 `stagingPlan.status=review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.packageJsonStatus=MM`, `stagingPlan.releasePayloadFileCount=19`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
+    'PR staging review가 `stagingReview.status=review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=19`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
+    '`prPackagingManifest.releasePayloadFileCount=19`',
+    '`prPackagingManifest.separateDirtyWorkFileCount=<runtime>`',
+    '`prPackagingManifest.unexpectedDirtyFileCount=0`',
+    '`prPackagingManifest.inventoryDriftCount=0`',
+    '`patchSeparationReadiness.status=review-required`',
+    '`package.json` with status `MM`',
+    'npm run stadium:gwangju:pr-staging-review',
+    'gwangju-seatmap-pr-staging-review.json',
+    'gwangju-seatmap-pr-staging-review.md',
+    'stagingReview.status=review-required',
+    'stagingReview.doesNotRunGitAdd=true',
+    'stagingReview.safeToRunBulkGitAdd=false',
+    'stagingReview.releasePayloadFileCount=19',
+    'stagingReview.recommendsOnlyIncludedFiles=true',
+    'stagingReview.doesNotRecommendSeparateDirtyWork=true',
   ].forEach((requiredText) => {
     assert.ok(releaseLockSource.includes(requiredText), `release lock should include ${requiredText}`);
   });
 
   [
     "export const GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE = true",
+    "export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v4'",
+    "export const GWANGJU_FULL_RETRACE_VERSION = 'manual-polygon-v5'",
+    'export const GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES',
+    'export const GWANGJU_ZONE_PRECISION_WORKSETS',
+    "'p1-op-outfield-component'",
+    "'p5-full-release-reference'",
+    "componentIds: ['outfield-3']",
+    'GWANGJU_OP_COMPONENT_COVERAGE_MIN_RECALL',
+    'GWANGJU_OP_COMPONENT_COVERAGE_MIN_IOU',
+    "export const GWANGJU_FULL_RETRACE_GENERATION",
     "export const GWANGJU_BASE_TRACE_BLOCK_COUNT = 111",
     "export const GWANGJU_K7_OFFICIAL_BLOCKS = ['107', '108', '109', '110', '111', '118', '119', '120', '121', '122']",
     "export const GWANGJU_AWAY_CHEERING_OFFICIAL_BLOCKS = ['107', '108', '109', '110']",
@@ -2051,10 +3042,10 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
 
   [
     'getGwangjuDerivedOperatorRangesForBlock',
-    'gwangju-bottom-sheet-derived-range-',
+    'extraMeta={renderDerivedRangeMeta}',
     'data-derived-blocks={range.displayBlocks}',
   ].forEach((requiredText) => {
-    assert.ok(bottomSheetSource.includes(requiredText), `Gwangju bottom sheet should include ${requiredText}`);
+    assert.ok(componentSource.includes(requiredText), `Gwangju shared panel wiring should include ${requiredText}`);
   });
 
   [
@@ -2080,6 +3071,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
   [
     'Release State',
     'Current Acceptance',
+    'Change Scope',
     'K7/AWAY Contract',
     'Operator Polygon Status',
     'Source Policy',
@@ -2095,6 +3087,92 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`operatorStatus=pending`',
     '`browserQaStatus=passed`',
     '`activeTraceBlocks=111`',
+    'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
+    'release scope guard status: `passed`',
+    'release scope guard included release files: `19`',
+    'release scope guard separate dirty work files: runtime classified count',
+    'release scope guard separate dirty work baseline files: `95`',
+    'classified separate dirty work expansion allowed: `true`',
+    'release scope guard unexpected files: `0`',
+    'release scope guard blockers: `0`',
+    'release scope guard inventory drift: `0`',
+    'patch separation readiness: `review-required`',
+    'patch separation mixed status: `package.json` with status `MM`',
+    'PR staging plan status: `review-required`',
+    'PR staging plan does not run git add: `true`',
+    'PR staging plan bulk git add allowed: `false`',
+    '`release-verify` runs `release-gate -> release-scope-guard -> pr-staging-plan -> release-audit`.',
+    '`releaseScopeGuardStatus=passed`',
+    '`releaseScopeGuardIncludedFiles=19`',
+    '`releaseScopeGuardSeparateDirtyWorkFiles=runtime`',
+    '`releaseScopeGuardSeparateDirtyWorkBaselineFiles=95`',
+    '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
+    '`releaseScopeGuardUnexpectedFiles=0`',
+    '`releaseScopeGuardBlockers=0`',
+    '`releaseScopeGuardInventoryDrift=0`',
+    '`patchSeparationReadiness=review-required`',
+    '`patchSeparationPackageStatus=MM`',
+    '`stagingPlanStatus=review-required`',
+    '`stagingPlanDoesNotRunGitAdd=true`',
+    '`stagingPlanSafeToRunBulkGitAdd=false`',
+    'gwangju-seatmap-release-scope-guard.json',
+    'gwangju-seatmap-release-scope-guard.md',
+    'gwangju-seatmap-pr-staging-plan.json',
+    'gwangju-seatmap-pr-staging-plan.md',
+    'gwangju-seatmap-pr-staging-review.json',
+    'gwangju-seatmap-pr-staging-review.md',
+    'npm run stadium:gwangju:pr-staging-plan',
+    'npm run stadium:gwangju:pr-staging-review',
+    'npm run stadium:gwangju:release-scope-guard',
+    'Release Candidate Inventory',
+    'PR Packaging Manifest',
+    'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
+    'Release PR scope: Gwangju pre-operator release package and build verification reports.',
+    'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
+    'Included release candidate files: `19`',
+    'Separate dirty work files: runtime classified count',
+    'Separate dirty work baseline files: `95`',
+    'Classified separate dirty work expansion allowed: `true`',
+    'Inventory drift: `0`',
+    'releaseCandidateInventory.expectedIncludedFileCount=19',
+    'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95',
+    'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
+    'prPackagingManifest.releasePayloadFileCount=19',
+    'prPackagingManifest.separateDirtyWorkFileCount=',
+    'prPackagingManifest.unexpectedDirtyFileCount=0',
+    'prPackagingManifest.inventoryDriftCount=0',
+    'Patch Separation Readiness',
+    'patchSeparationReadiness.status=review-required',
+    'patchSeparationReadiness.mixedStatusFiles includes `package.json` with status `MM`',
+    'patchSeparationReadiness must be reviewed before staging the release PR.',
+    'PR Staging Plan',
+    'stagingPlan.status=review-required',
+    'stagingPlan.doesNotRunGitAdd=true',
+    'stagingPlan.safeToRunBulkGitAdd=false',
+    'stagingPlan.packageJsonStatus=MM',
+    'stagingPlan.releasePayloadFileCount=19',
+    'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
+    'stagingReview.status=review-required',
+    'stagingReview.doesNotRunGitAdd=true',
+    'stagingReview.safeToRunBulkGitAdd=false',
+    'stagingReview.releasePayloadFileCount=19',
+    'stagingReview.recommendsOnlyIncludedFiles=true',
+    'stagingReview.doesNotRecommendSeparateDirtyWork=true',
+    '`package.json` currently has both index and worktree changes',
+    'Review focus files: `package.json`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `reports/bundle-guard-report.json`, `reports/dist-assets-report.json`.',
+    'RELEASE_CANDIDATE_FILE_MISSING',
+    'CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED',
+    'Gwangju pre-operator release package',
+    'Separate dirty work that must not be judged by this handoff',
+    'Daejeon files',
+    'Sajik files',
+    'Suwon files',
+    'Daegu files',
+    'scripts/daegu-seatmap-p1-next-action-packet.mjs',
+    'scripts/daegu-seatmap-p1-operator-readiness.mjs',
+    'scripts/daegu-seatmap-p2-next-action-packet.mjs',
+    'src/components/AppRoutes.tsx',
+    'src/utils/seatMapPolygonValidator.ts',
     'independent K7/AWAY active block target `113` is not enabled before operator polygon write.',
     '`SPECIAL_BLOCKS` must not receive K7/AWAY aggregate block definitions before guarded write.',
     '`GWANGJU_IMAGE_GEOMETRY_DRAFTS` must not receive `home-k7-seats` or `away-cheering-seats` geometry before guarded write.',
@@ -2143,6 +3221,17 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   const p2StagingAuditSource = readProjectFile('scripts/daegu-seatmap-p2-staging-audit.mjs');
   const p2OperatorPackageSource = readProjectFile('scripts/daegu-seatmap-p2-operator-package.mjs');
   const p2DecisionPacketSource = readProjectFile('scripts/daegu-seatmap-p2-decision-packet.mjs');
+  const p2NextActionPacketSource = readProjectFile('scripts/daegu-seatmap-p2-next-action-packet.mjs');
+  const p2OperatorHandoffSource = readProjectFile('scripts/daegu-seatmap-p2-operator-handoff.mjs');
+  const p2OperatorWorksetsSource = readProjectFile('scripts/daegu-seatmap-p2-operator-worksets.mjs');
+  const p2OperatorWorksetPreflightSource = readProjectFile('scripts/daegu-seatmap-p2-operator-workset-preflight.mjs');
+  const p2OperatorEntrySheetSource = readProjectFile('scripts/daegu-seatmap-p2-operator-entry-sheet.mjs');
+  const p2OperatorTracingPackSource = readProjectFile('scripts/daegu-seatmap-p2-operator-tracing-pack.mjs');
+  const p2OperatorPostEntryQaSource = readProjectFile('scripts/daegu-seatmap-p2-operator-post-entry-qa.mjs');
+  const p2aOperatorPostEntryQaSource = readProjectFile('scripts/daegu-seatmap-p2a-operator-post-entry-qa.mjs');
+  const p2aOperatorInputPacketSource = readProjectFile('scripts/daegu-seatmap-p2a-operator-input-packet.mjs');
+  const p2aPrewriteGateSource = readProjectFile('scripts/daegu-seatmap-p2a-prewrite-gate.mjs');
+  const p2aReadinessV3Source = readProjectFile('scripts/daegu-seatmap-p2a-readiness-v3.mjs');
   const p2OperatorImportSource = readProjectFile('scripts/daegu-seatmap-p2-operator-import.mjs');
   const p2OperatorReadinessSource = readProjectFile('scripts/daegu-seatmap-p2-operator-readiness.mjs');
   const p3p4OperatorPackageSource = readProjectFile('scripts/daegu-seatmap-p3-p4-operator-package.mjs');
@@ -2150,11 +3239,30 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   const p3p4DecisionPacketSource = readProjectFile('scripts/daegu-seatmap-p3-p4-decision-packet.mjs');
   const p3p4OperatorImportSource = readProjectFile('scripts/daegu-seatmap-p3-p4-operator-import.mjs');
   const p3p4OperatorReadinessSource = readProjectFile('scripts/daegu-seatmap-p3-p4-operator-readiness.mjs');
+  const precisionAuditSource = readProjectFile('scripts/daegu-seatmap-precision-audit.mjs');
+  const renderSafetyAuditSource = readProjectFile('scripts/daegu-seatmap-render-safety-audit.mjs');
+  const zonePrecisionWorksetsSource = readProjectFile('scripts/daegu-seatmap-zone-precision-worksets.mjs');
   const operatorStateAuditSource = readProjectFile('scripts/daegu-seatmap-operator-state-audit.mjs');
   const retraceWorkQueueSource = readProjectFile('scripts/daegu-seatmap-retrace-work-queue.mjs');
   const nonOverlapPriorityQueueSource = readProjectFile('scripts/daegu-seatmap-non-overlap-priority-queue.mjs');
   const visualIssueQueueSource = readProjectFile('scripts/daegu-seatmap-visual-issue-queue.mjs');
   const visualOffSeatWorksetSource = readProjectFile('scripts/daegu-seatmap-visual-off-seat-workset.mjs');
+  const p1PairedBoundaryReviewSource = readProjectFile('scripts/daegu-seatmap-p1-paired-boundary-review.mjs');
+  const p1BoundaryInputAidSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-input-aid.mjs');
+  const p1NextActionPacketSource = readProjectFile('scripts/daegu-seatmap-p1-next-action-packet.mjs');
+  const p1PrecisionWorksetSource = readProjectFile('scripts/daegu-seatmap-p1-precision-workset.mjs');
+  const p1BoundaryFirstReadinessSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-readiness.mjs');
+  const p1BoundaryFirstPacketSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-packet.mjs');
+  const p1BoundaryFirstTemplateGateSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-template-gate.mjs');
+  const p1BoundaryFirstSourceCopySource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-source-copy.mjs');
+  const p1BoundaryFirstReviewBoardSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-review-board.mjs');
+  const p1BoundaryFirstEntrySheetSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-entry-sheet.mjs');
+  const p1BoundaryFirstEntryPreflightSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-entry-preflight.mjs');
+  const p1BoundaryFirstTracingPackSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-tracing-pack.mjs');
+  const p1BoundaryFirstOperatorHandoffSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-operator-handoff.mjs');
+  const p1BoundaryFirstPostwriteGateSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-postwrite-gate.mjs');
+  const p1BoundaryFirstRegressionSource = readProjectFile('scripts/daegu-seatmap-p1-boundary-first-regression.mjs');
+  const p1StageOrderRegressionSource = readProjectFile('scripts/daegu-seatmap-p1-stage-order-regression.mjs');
   const offSeatRetraceIntakeSource = readProjectFile('scripts/daegu-seatmap-off-seat-retrace-intake.mjs');
   const p0p1OffSeatWorksetSource = readProjectFile('scripts/daegu-seatmap-p0-p1-off-seat-workset.mjs');
   const p0OffSeatOperatorInputSource = readProjectFile('scripts/daegu-seatmap-p0-off-seat-operator-input.mjs');
@@ -2199,6 +3307,17 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('"stadium:daegu:p2-operator-readiness"'));
   assert.ok(packageSource.includes('"stadium:daegu:p2-operator-prewrite-gate"'));
   assert.ok(packageSource.includes('"stadium:daegu:p2-operator-import:write-template"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-next-action-packet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-handoff"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-worksets"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-workset-preflight"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-entry-sheet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-tracing-pack"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2-operator-post-entry-qa"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2a-operator-post-entry-qa"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2a-operator-input-packet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2a-prewrite-gate"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p2a-readiness-v3"'));
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-operator-package"'));
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-operator-audit"'));
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-decision-packet"'));
@@ -2207,11 +3326,34 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-operator-readiness"'));
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-operator-prewrite-gate"'));
   assert.ok(packageSource.includes('"stadium:daegu:p3-p4-operator-import:write-template"'));
+  assert.ok(packageSource.includes('"stadium:daegu:precision-audit"'));
+  assert.ok(packageSource.includes('"stadium:daegu:render-safety-audit"'));
+  assert.ok(packageSource.includes('"stadium:daegu:zone-precision-worksets"'));
+  assert.ok(packageSource.includes('"qa:stadium:daegu:release-lock"'));
   assert.ok(packageSource.includes('"stadium:daegu:operator-state-audit"'));
   assert.ok(packageSource.includes('"stadium:daegu:retrace-work-queue"'));
   assert.ok(packageSource.includes('"stadium:daegu:non-overlap-priority-queue"'));
   assert.ok(packageSource.includes('"stadium:daegu:visual-issue-queue"'));
   assert.ok(packageSource.includes('"stadium:daegu:visual-off-seat-workset"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-paired-boundary-review"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-input-aid"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-next-action-packet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-precision-workset"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-readiness"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-packet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-template-gate"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-source-copy"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-source-copy:write-source-input"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-review-board"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-entry-sheet"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-entry-preflight"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-entry-preflight:require-ready"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-tracing-pack"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-operator-handoff"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-postwrite-gate"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-postwrite-gate:require-written"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-boundary-first-regression"'));
+  assert.ok(packageSource.includes('"stadium:daegu:p1-stage-order-regression"'));
   assert.ok(packageSource.includes('"stadium:daegu:off-seat-retrace-intake"'));
   assert.ok(packageSource.includes('"stadium:daegu:p0-p1-off-seat-workset"'));
   assert.ok(packageSource.includes('"stadium:daegu:p0-off-seat-operator-input"'));
@@ -2247,7 +3389,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-operator-corrections-validate.mjs --input reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-input.json --report-dir reports/stadium/daegu-p1-operator --handoff reports/stadium/daegu-seatmap-operator-handoff.json'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-operator-import.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-operator-readiness.mjs'));
-  assert.ok(packageSource.includes('npm run stadium:daegu:p1-operator-validate && npm run stadium:daegu:p1-operator-import && npm run stadium:daegu:p1-operator-readiness'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-readiness && npm run stadium:daegu:p1-operator-validate && npm run stadium:daegu:p1-operator-import && npm run stadium:daegu:p1-operator-readiness'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-operator-import.mjs --write-template'));
   assert.ok(packageSource.includes('npm run stadium:daegu:handoff-evidence && node --import tsx scripts/daegu-seatmap-p2-review-package.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p2-staging-audit.mjs'));
@@ -2256,8 +3398,19 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-operator-corrections-validate.mjs --input reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-input.json --report-dir reports/stadium/daegu-p2-operator --handoff reports/stadium/daegu-seatmap-operator-handoff.json'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p2-operator-import.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p2-operator-readiness.mjs'));
-  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-validate && npm run stadium:daegu:p2-operator-import && npm run stadium:daegu:p2-operator-readiness'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-post-entry-qa && npm run stadium:daegu:p2-operator-validate && npm run stadium:daegu:p2-operator-import && npm run stadium:daegu:p2-operator-readiness'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p2-operator-import.mjs --write-template'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-staging-audit && npm run stadium:daegu:p2-decision-packet && node --import tsx scripts/daegu-seatmap-p2-next-action-packet.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-package && npm run stadium:daegu:p2-next-action-packet && npm run stadium:daegu:p2-operator-validate && npm run stadium:daegu:p2-operator-import && node --import tsx scripts/daegu-seatmap-p2-operator-handoff.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-handoff && node --import tsx scripts/daegu-seatmap-p2-operator-worksets.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-worksets && node --import tsx scripts/daegu-seatmap-p2-operator-workset-preflight.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-workset-preflight && node --import tsx scripts/daegu-seatmap-p2-operator-entry-sheet.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-entry-sheet && node --import tsx scripts/daegu-seatmap-p2-operator-tracing-pack.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2-operator-tracing-pack && node --import tsx scripts/daegu-seatmap-p2-operator-post-entry-qa.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:operator-corrections-template && npm run stadium:daegu:operator-corrections-validate && npm run stadium:daegu:operator-corrections-batches && npm run stadium:daegu:p2-operator-post-entry-qa && node --import tsx scripts/daegu-seatmap-p2a-operator-post-entry-qa.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2a-operator-post-entry-qa && node --import tsx scripts/daegu-seatmap-p2a-operator-input-packet.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2a-operator-input-packet && npm run stadium:daegu:p2-operator-validate && npm run stadium:daegu:p2-operator-import && node --import tsx scripts/daegu-seatmap-p2a-prewrite-gate.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p2a-operator-input-packet && npm run stadium:daegu:p1-operator-package && npm run stadium:daegu:p1-boundary-first-postwrite-gate && npm run stadium:daegu:p2-operator-validate && npm run stadium:daegu:p2-operator-import && node --import tsx scripts/daegu-seatmap-p2-operator-readiness.mjs --allow-waiting-exit-zero && node --import tsx scripts/daegu-seatmap-p2a-prewrite-gate.mjs --allow-waiting-exit-zero && npm run stadium:daegu:render-safety-audit && node --import tsx scripts/daegu-seatmap-p2a-readiness-v3.mjs'));
   assert.ok(packageSource.includes('npm run stadium:daegu:handoff-evidence && node --import tsx scripts/daegu-seatmap-p3-p4-operator-package.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p3-p4-operator-audit.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p3-p4-decision-packet.mjs'));
@@ -2266,11 +3419,33 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p3-p4-operator-readiness.mjs'));
   assert.ok(packageSource.includes('npm run stadium:daegu:p3-p4-operator-validate && npm run stadium:daegu:p3-p4-operator-import && npm run stadium:daegu:p3-p4-operator-readiness'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p3-p4-operator-import.mjs --write-template'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:alignment-audit && npm run stadium:daegu:handoff-evidence && node --import tsx scripts/daegu-seatmap-precision-audit.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:precision-audit && node --import tsx scripts/daegu-seatmap-render-safety-audit.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:precision-audit -- --require-release'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-operator-state-audit.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-retrace-work-queue.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-non-overlap-priority-queue.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-visual-issue-queue.mjs'));
   assert.ok(packageSource.includes('npm run stadium:daegu:visual-issue-queue && node --import tsx scripts/daegu-seatmap-visual-off-seat-workset.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-paired-boundary-review && node --import tsx scripts/daegu-seatmap-p1-boundary-input-aid.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-input-aid && npm run stadium:daegu:p1-decision-packet && node --import tsx scripts/daegu-seatmap-p1-next-action-packet.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:precision-audit && npm run stadium:daegu:p1-next-action-packet && node --import tsx scripts/daegu-seatmap-p1-precision-workset.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-next-action-packet && npm run stadium:daegu:p1-operator-validate && node --import tsx scripts/daegu-seatmap-p1-boundary-first-readiness.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-readiness && node --import tsx scripts/daegu-seatmap-p1-boundary-first-packet.mjs'));
+  assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-boundary-first-template-gate.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-template-gate && node --import tsx scripts/daegu-seatmap-p1-boundary-first-source-copy.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-entry-preflight:require-ready && npm run stadium:daegu:p1-boundary-first-template-gate && node --import tsx scripts/daegu-seatmap-p1-boundary-first-source-copy.mjs --write-source-input'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-template-gate && node --import tsx scripts/daegu-seatmap-p1-boundary-first-source-copy.mjs --write-source-input'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-packet && npm run stadium:daegu:p1-boundary-first-template-gate && npm run stadium:daegu:p1-boundary-first-source-copy && node --import tsx scripts/daegu-seatmap-p1-boundary-first-review-board.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-review-board && node --import tsx scripts/daegu-seatmap-p1-boundary-first-entry-sheet.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-entry-sheet && node --import tsx scripts/daegu-seatmap-p1-boundary-first-entry-preflight.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-entry-sheet && node --import tsx scripts/daegu-seatmap-p1-boundary-first-entry-preflight.mjs --require-ready'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-entry-preflight && node --import tsx scripts/daegu-seatmap-p1-boundary-first-tracing-pack.mjs'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:p1-boundary-first-tracing-pack && npm run stadium:daegu:p1-boundary-first-postwrite-gate && node --import tsx scripts/daegu-seatmap-p1-boundary-first-operator-handoff.mjs'));
+  assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-boundary-first-postwrite-gate.mjs'));
+  assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-boundary-first-postwrite-gate.mjs --require-written'));
+  assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-boundary-first-regression.mjs'));
+  assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p1-stage-order-regression.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-off-seat-retrace-intake.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p0-p1-off-seat-workset.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-p0-off-seat-operator-input.mjs'));
@@ -2285,7 +3460,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-operator-corrections-status.mjs'));
   assert.ok(packageSource.includes('node --import tsx scripts/daegu-seatmap-operator-corrections-write-guard.mjs'));
   assert.ok(packageSource.includes('npm run stadium:daegu:operator-corrections-validate && npm run stadium:daegu:operator-corrections-preview && npm run stadium:daegu:operator-corrections-apply && npm run stadium:daegu:operator-corrections-write-smoke && npm run stadium:daegu:operator-corrections-batches && npm run stadium:daegu:operator-corrections-status && npm run stadium:daegu:operator-corrections-write-guard && node --import tsx scripts/daegu-seatmap-operator-corrections-apply.mjs --input reports/stadium/daegu-seatmap-operator-corrections-template.json --write'));
-  assert.ok(packageSource.includes('npm run stadium:daegu:alignment-audit && npm run test:stadium:seatmaps && npm run qa:stadium:daegu:full && npm run build'));
+  assert.ok(packageSource.includes('npm run stadium:daegu:alignment-audit && npm run stadium:daegu:precision-audit && npm run stadium:daegu:render-safety-audit && npm run stadium:daegu:p1-boundary-first-postwrite-gate && npm run test:stadium:seatmaps && npm run qa:stadium:daegu:full && npm run build'));
   assert.ok(packageSource.includes('npm run stadium:daegu:alignment-audit && npm run stadium:daegu:operator-corrections && npm run stadium:daegu:operator-corrections-apply && npm run stadium:daegu:operator-corrections-write-smoke && npm run stadium:daegu:operator-corrections-batches && npm run stadium:daegu:operator-corrections-status && npm run stadium:daegu:handoff-evidence && npm run qa:stadium:daegu:full'));
   assert.ok(manifestSource.includes('operatorReviewContract'));
   assert.ok(manifestSource.includes('operatorDecisionOptions'));
@@ -2365,9 +3540,9 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0RetraceIntakeSource.includes('DAEGU_P0_RETRACE_INTAKE_V1'));
   assert.ok(p0RetraceIntakeSource.includes('DAEGU_P0_OPERATOR_PACKAGE_V1'));
   assert.ok(p0RetraceIntakeSource.includes('BATCH_1_P0'));
-  assert.ok(p0RetraceIntakeSource.includes('expectedRows: 3'));
-  assert.ok(p0RetraceIntakeSource.includes('expectedNeedsRetraceRows: 3'));
-  assert.ok(p0RetraceIntakeSource.includes('expectedApprovedRows: 0'));
+  assert.ok(p0RetraceIntakeSource.includes('expectedRows: 1'));
+  assert.ok(p0RetraceIntakeSource.includes('expectedNeedsRetraceRows: 0'));
+  assert.ok(p0RetraceIntakeSource.includes('expectedApprovedRows: 1'));
   assert.ok(p0RetraceIntakeSource.includes('daegu-seatmap-p0-operator-input.json'));
   assert.ok(p0RetraceIntakeSource.includes('daegu-seatmap-p0-retrace-intake.json'));
   assert.ok(p0RetraceIntakeSource.includes('daegu-seatmap-p0-retrace-intake.csv'));
@@ -2375,7 +3550,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0RetraceIntakeSource.includes('NEEDS_RETRACE'));
   assert.ok(p0RetraceIntakeSource.includes('OPERATOR_MANUAL_TRACE_REQUIRED'));
   assert.ok(p0RetraceIntakeSource.includes('OPERATOR_SEPARATE_SHARED_CANDIDATE_BOUNDARY'));
-  assert.ok(p0RetraceIntakeSource.includes('ROW_DECISION_NOT_NEEDS_RETRACE'));
+  assert.ok(p0RetraceIntakeSource.includes('ROW_DECISION_NOT_NEEDS_RETRACE_OR_APPROVED'));
   assert.ok(p0RetraceIntakeSource.includes('currentPath'));
   assert.ok(p0RetraceIntakeSource.includes('candidatePath'));
   assert.ok(p0RetraceIntakeSource.includes('candidateDuplicateGroup'));
@@ -2400,6 +3575,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0OperatorImportSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p0OperatorImportSource.includes('INVALID_P0_OPERATOR_DECISION'));
   assert.ok(p0OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P0_DECISION'));
+  assert.ok(p0OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P0_ROW'));
   assert.ok(p0OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_NO_P0_PENDING_ROWS'));
   assert.ok(p0OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_DRAFT_ONLY'));
   assert.ok(p0OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_STAGING_ONLY'));
@@ -2407,8 +3583,11 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0OperatorImportSource.includes('Do not run npm run stadium:daegu:operator-corrections after write-template'));
   assert.ok(p0OperatorReadinessSource.includes('DAEGU_P0_OPERATOR_READINESS_V1'));
   assert.ok(p0OperatorReadinessSource.includes('daegu-seatmap-p0-operator-readiness.json'));
+  assert.ok(p0OperatorReadinessSource.includes('waiting-for-operator'));
+  assert.ok(p0OperatorReadinessSource.includes('awaitingOperatorInput'));
   assert.ok(p0OperatorReadinessSource.includes('readyForTemplateImport'));
   assert.ok(p0OperatorReadinessSource.includes('readyForGuardedWriteAfterTemplateImport'));
+  assert.ok(p0OperatorReadinessSource.includes('NO_APPROVED_P0_ROWS_TEMPLATE_IMPORT_WILL_BLOCK'));
   assert.ok(p0OperatorReadinessSource.includes('P0_PENDING_ROWS_REMAIN'));
   assert.ok(p0OperatorReadinessSource.includes('P0_IMPORT_REPORT_NOT_DRY_RUN'));
   assert.ok(p0OperatorReadinessSource.includes('This readiness gate is read-only'));
@@ -2439,8 +3618,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p1DecisionPacketSource.includes('daegu-seatmap-p1-decision-packet.json'));
   assert.ok(p1DecisionPacketSource.includes('daegu-seatmap-p1-decision-packet.csv'));
   assert.ok(p1DecisionPacketSource.includes('daegu-seatmap-p1-decision-packet.md'));
-  assert.ok(p1DecisionPacketSource.includes('manualTraceRequiredRows: 12'));
-  assert.ok(p1DecisionPacketSource.includes('sharedCandidateBoundaryRows: 16'));
+  assert.ok(p1DecisionPacketSource.includes('manualTraceRequiredRows: 5'));
+  assert.ok(p1DecisionPacketSource.includes('sharedCandidateBoundaryRows: 11'));
   assert.ok(p1DecisionPacketSource.includes('correctedPathRequiredRows: 1'));
   assert.ok(p1DecisionPacketSource.includes('P1 write-template remains blocked until P0 is closed.'));
   assert.ok(p1DecisionPacketSource.includes('Candidate paths are visual references only'));
@@ -2456,8 +3635,14 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p1OperatorImportSource.includes('productionDataChanged: false'));
   assert.ok(p1OperatorImportSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p1OperatorImportSource.includes('INVALID_P1_OPERATOR_DECISION'));
+  assert.ok(p1OperatorImportSource.includes('DAEGU_P1_NEXT_ACTION_PACKET_V1'));
   assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P1_DECISION'));
+  assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P1_ROW'));
+  assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_P1_STAGE_ORDER'));
   assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_NO_P1_PENDING_ROWS'));
+  assert.ok(p1OperatorImportSource.includes('PAIR_BOUNDARY_FIRST'));
+  assert.ok(p1OperatorImportSource.includes('SINGLE_CORRECTED_PATH'));
+  assert.ok(p1OperatorImportSource.includes('DUPLICATE_CANDIDATE_SPLIT'));
   assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_DRAFT_ONLY'));
   assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_STAGING_ONLY'));
   assert.ok(p1OperatorImportSource.includes('WRITE_TEMPLATE_HAS_DRAFT_MARKERS'));
@@ -2467,15 +3652,215 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p1OperatorReadinessSource.includes('DAEGU_P1_OPERATOR_READINESS_V1'));
   assert.ok(p1OperatorReadinessSource.includes('BATCH_2_P1'));
   assert.ok(p1OperatorReadinessSource.includes('BATCH_1_P0'));
+  assert.ok(p1OperatorReadinessSource.includes('const BASELINE_EXPECTED_ROWS = 17'));
   assert.ok(p1OperatorReadinessSource.includes('daegu-seatmap-p1-operator-readiness.json'));
+  assert.ok(p1OperatorReadinessSource.includes('waiting-for-operator'));
+  assert.ok(p1OperatorReadinessSource.includes('awaitingOperatorInput'));
   assert.ok(p1OperatorReadinessSource.includes('readyForTemplateImport'));
   assert.ok(p1OperatorReadinessSource.includes('readyForGuardedWriteAfterTemplateImport'));
+  assert.ok(p1OperatorReadinessSource.includes('NO_P1_TEMPLATE_CHANGES_TO_IMPORT'));
+  assert.ok(p1OperatorReadinessSource.includes('NO_APPROVED_P1_ROWS_TEMPLATE_IMPORT_WILL_BLOCK'));
+  assert.ok(p1OperatorReadinessSource.includes('P1_STAGE_ORDER_APPROVAL_BLOCKED'));
+  assert.ok(p1OperatorReadinessSource.includes('firstIncompleteStage'));
   assert.ok(p1OperatorReadinessSource.includes('P1_REQUIRES_PRIOR_BATCH_CLOSED'));
   assert.ok(p1OperatorReadinessSource.includes('P1_REQUIRES_PRIOR_BATCH_WRITTEN'));
   assert.ok(p1OperatorReadinessSource.includes('P1_PENDING_ROWS_REMAIN'));
   assert.ok(p1OperatorReadinessSource.includes('P1_IMPORT_REPORT_NOT_DRY_RUN'));
   assert.ok(p1OperatorReadinessSource.includes('This readiness gate is read-only'));
   assert.ok(p1OperatorReadinessSource.includes('Do not run npm run stadium:daegu:operator-corrections after p1-operator-import:write-template'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('DAEGU_P1_BOUNDARY_FIRST_READINESS_V1'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('daegu-seatmap-p1-boundary-first-readiness.json'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('READY_FOR_OPERATOR'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('MISSING_EVIDENCE'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('MISSING_CONTEXT'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('APPROVED_VALID'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('APPROVED_INVALID'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('canAdvanceToSingleCorrectedPath'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('BOUNDARY_FIRST_DUPLICATE_CORRECTED_PATH'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('T1-1'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('T3-2'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('V1'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('V2'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('V3'));
+  assert.ok(p1BoundaryFirstReadinessSource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('DAEGU_P1_BOUNDARY_FIRST_PACKET_V1'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('DAEGU_P1_BOUNDARY_FIRST_OPERATOR_TEMPLATE_V1'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('daegu-seatmap-p1-boundary-first-packet.json'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('daegu-seatmap-p1-boundary-first-overlay.svg'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('candidateReferenceOnly'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('templateOnly: true'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('existingOperatorTemplate'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('preservedEditableRows'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('hasOperatorFilledEditableFields'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('editableSource'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('Regenerating this packet must preserve operator-filled editable fields'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryFirstPacketSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('DAEGU_P1_BOUNDARY_FIRST_TEMPLATE_GATE_V1'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('DAEGU_P1_BOUNDARY_FIRST_OPERATOR_TEMPLATE_V1'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('TEMPLATE_HAS_NON_BOUNDARY_ROWS'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('APPROVED_ROW_MISSING_FIELDS'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('BOUNDARY_FIRST_DUPLICATE_CORRECTED_PATH'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('CORRECTED_LABEL_OUTSIDE_PATH'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('ready-for-source-copy'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('waiting-for-operator'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('partial-boundary-approval'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('templateSha256'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('sourceInputSha256'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('writesSourceInput: false'));
+  assert.ok(p1BoundaryFirstTemplateGateSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('DAEGU_P1_BOUNDARY_FIRST_SOURCE_COPY_V1'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('DAEGU_P1_BOUNDARY_FIRST_TEMPLATE_GATE_V1'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('daegu-seatmap-p1-boundary-first-source-copy.json'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('GATE_TEMPLATE_SHA256_STALE'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('GATE_SOURCE_INPUT_SHA256_STALE'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('WRITE_SOURCE_INPUT_REQUIRES_READY_GATE_AND_FIVE_APPROVALS'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('ready-for-write-source-input'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('source-input-updated'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstSourceCopySource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_REVIEW_BOARD_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_PACKET_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_OPERATOR_TEMPLATE_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_TEMPLATE_GATE_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_SOURCE_COPY_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('DAEGU_P1_BOUNDARY_FIRST_READINESS_V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('daegu-seatmap-p1-boundary-first-review-board.json'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('daegu-seatmap-p1-boundary-first-review-board.svg'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('T1-1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('T3-2'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('V1'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('V2'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('V3'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('candidateReferenceOnly'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('templateEditableSource'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('approvalMissingFields'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('nextOperatorAction'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('correctedLabelX/Y'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('Fill ${missingFields.join'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('correctedPath'));
+  assert.ok(p1BoundaryFirstReviewBoardSource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_SHEET_V1'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('DAEGU_P1_BOUNDARY_FIRST_REVIEW_BOARD_V1'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('DAEGU_P1_BOUNDARY_FIRST_OPERATOR_TEMPLATE_V1'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('daegu-seatmap-p1-boundary-first-entry-sheet.json'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('daegu-seatmap-p1-boundary-first-entry-sheet.csv'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('daegu-seatmap-p1-boundary-first-entry-sheet.md'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('waiting-for-operator-entry'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('ready-for-template-gate'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('missingOperatorInputFields'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('editableTarget'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('candidatePath is reference-only and must not be copied into correctedPath'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstEntrySheetSource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_PREFLIGHT_V1'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_SHEET_V1'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('daegu-seatmap-p1-boundary-first-entry-preflight.json'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('daegu-seatmap-p1-boundary-first-entry-preflight.csv'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('daegu-seatmap-p1-boundary-first-entry-preflight.md'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('--require-ready'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('report-only'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('require-ready'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('ENTRY_PREFLIGHT_REQUIRES_OPERATOR_INPUT'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('waiting-for-operator-entry'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('ready-for-template-gate'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('missingOperatorInputFields'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('This preflight is read-only.'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('It never writes operatorDecision or corrected fields into any source input.'));
+  assert.ok(p1BoundaryFirstEntryPreflightSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('DAEGU_P1_BOUNDARY_FIRST_TRACING_PACK_V1'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('DAEGU_P1_BOUNDARY_FIRST_REVIEW_BOARD_V1'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_SHEET_V1'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_PREFLIGHT_V1'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('daegu-seatmap-p1-boundary-first-tracing-pack.json'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('daegu-seatmap-p1-boundary-first-tracing-pack.csv'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('daegu-seatmap-p1-boundary-first-tracing-pack.md'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('daegu-seatmap-p1-boundary-first-tracing-overview.svg'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('ready-for-operator-tracing'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('official Daegu PNG as the SVG background'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('candidatePath is reference-only and must not be copied into correctedPath'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('editableTarget'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('gridLines'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('target-current'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('target-candidate'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('paired-current'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstTracingPackSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('DAEGU_P1_BOUNDARY_FIRST_OPERATOR_HANDOFF_V1'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('DAEGU_P1_BOUNDARY_FIRST_TRACING_PACK_V1'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('DAEGU_P1_BOUNDARY_FIRST_ENTRY_PREFLIGHT_V1'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('DAEGU_P1_BOUNDARY_FIRST_POSTWRITE_GATE_V1'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('daegu-seatmap-p1-boundary-first-operator-handoff.json'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('daegu-seatmap-p1-boundary-first-operator-handoff.csv'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('daegu-seatmap-p1-boundary-first-operator-handoff.md'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('ready-for-operator-tracing'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('ready-for-source-copy'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('operator-input-needs-gate-fix'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('postwrite-verified'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('correctedPath'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('correctedLabelX/Y'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('reviewer'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('reviewedAt'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('candidatePath is reference-only and must not be copied into correctedPath'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('writesSourceInput: false'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstOperatorHandoffSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('DAEGU_P1_BOUNDARY_FIRST_POSTWRITE_GATE_V1'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('BATCH_2_P1'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('daegu-seatmap-p1-boundary-first-postwrite-gate.json'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('waiting-for-operator'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('postwrite-verified'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('--require-written'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('P1_BOUNDARY_FIRST_REQUIRES_FIVE_APPROVED_SOURCE_ROWS'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('VALIDATION_HAS_NON_BOUNDARY_APPROVED_ROWS'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('APPLY_REPORT_NOT_WRITE_MODE'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('BOUNDARY_ROW_PROMOTED_WITHOUT_SOURCE_APPROVAL'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('NORMAL_SELECTABLE_PREDICATE_FALSE'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('ALIGNMENT_CLASS_NOT_LOCKED_VERIFIED'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('RENDER_SAFETY_NOT_NORMAL_SELECTABLE'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('writesSourceInput: false'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryFirstPostwriteGateSource.includes('This gate is read-only and never modifies source input, corrections template, or src/data/daeguSeatData.ts.'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('DAEGU_P1_BOUNDARY_FIRST_REGRESSION_V1'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('template-preservation'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('P1_BOUNDARY_FIRST_TEMPLATE_PRESERVATION_REGRESSION'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('preservationPreservedEditableRows'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('PRESERVATION_EDITABLE_ROWS_MISMATCH'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('PRESERVATION_T11_PATH_LOST'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('PRESERVATION_NON_EDITED_ROW_NOT_REGENERATED_FROM_SOURCE'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('daegu-p1-boundary-first-regression'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('APPROVED_INVALID'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('APPROVED_ROW_MISSING_FIELDS:correctedPath'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('APPROVED_ROW_MISSING_FIELDS:correctedLabelX correctedLabelY'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('BOUNDARY_FIRST_DUPLICATE_CORRECTED_PATH'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('CORRECTED_LABEL_OUTSIDE_PATH'));
+  assert.ok(p1BoundaryFirstRegressionSource.includes('It never modifies src/data/daeguSeatData.ts'));
+  assert.ok(p1StageOrderRegressionSource.includes('DAEGU_P1_STAGE_ORDER_REGRESSION_V1'));
+  assert.ok(p1StageOrderRegressionSource.includes('daegu-p1-stage-order-regression'));
+  assert.ok(p1StageOrderRegressionSource.includes('daegu-outfield-couple-m-m-9'));
+  assert.ok(p1StageOrderRegressionSource.includes('WRITE_TEMPLATE_REQUIRES_P1_STAGE_ORDER'));
+  assert.ok(p1StageOrderRegressionSource.includes('P1_STAGE_ORDER_APPROVAL_BLOCKED'));
+  assert.ok(p1StageOrderRegressionSource.includes('PAIR_BOUNDARY_FIRST'));
+  assert.ok(p1StageOrderRegressionSource.includes('SINGLE_CORRECTED_PATH'));
+  assert.ok(p1StageOrderRegressionSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p2ReviewPackageSource.includes('DAEGU_P2_REVIEW_PACKAGE_V1'));
   assert.ok(p2ReviewPackageSource.includes('EXPECTED_P2_COUNTS'));
   assert.ok(p2ReviewPackageSource.includes('MANUAL_RETRACE_REQUIRED'));
@@ -2498,8 +3883,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p2OperatorPackageSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
   assert.ok(p2OperatorPackageSource.includes('DAEGU_P2_REVIEW_PACKAGE_V1'));
   assert.ok(p2OperatorPackageSource.includes('BATCH_3_P2'));
-  assert.ok(p2OperatorPackageSource.includes('approvalCandidateRows: 16'));
-  assert.ok(p2OperatorPackageSource.includes('manualRetraceRows: 34'));
+  assert.ok(p2OperatorPackageSource.includes('approvalCandidateRows: 3'));
+  assert.ok(p2OperatorPackageSource.includes('manualRetraceRows: 33'));
   assert.ok(p2OperatorPackageSource.includes('candidatePath'));
   assert.ok(p2OperatorPackageSource.includes('Candidate paths in this package are references only'));
   assert.ok(p2OperatorPackageSource.includes('daegu-seatmap-p2-operator-input.json'));
@@ -2514,14 +3899,285 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p2DecisionPacketSource.includes('daegu-seatmap-p2-decision-packet.json'));
   assert.ok(p2DecisionPacketSource.includes('daegu-seatmap-p2-decision-packet.csv'));
   assert.ok(p2DecisionPacketSource.includes('daegu-seatmap-p2-decision-packet.md'));
-  assert.ok(p2DecisionPacketSource.includes('manualTraceRequiredRows: 34'));
+  assert.ok(p2DecisionPacketSource.includes('manualTraceRequiredRows: 33'));
   assert.ok(p2DecisionPacketSource.includes('labelAndHitAreaRows: 2'));
-  assert.ok(p2DecisionPacketSource.includes('visualApprovalCandidateRows: 14'));
+  assert.ok(p2DecisionPacketSource.includes('visualApprovalCandidateRows: 1'));
   assert.ok(p2DecisionPacketSource.includes('P2 write-template remains blocked until P0 and P1 are closed.'));
   assert.ok(p2DecisionPacketSource.includes('P2 staging and draft values are not production approvals.'));
   assert.ok(p2DecisionPacketSource.includes('Candidate paths are visual references only'));
   assert.ok(p2DecisionPacketSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p2DecisionPacketSource.includes('requiresOperatorDecision'));
+  assert.ok(p2NextActionPacketSource.includes('DAEGU_P2_NEXT_ACTION_PACKET_V1'));
+  assert.ok(p2NextActionPacketSource.includes('daegu-seatmap-p2-next-action-packet.json'));
+  assert.ok(p2NextActionPacketSource.includes('daegu-seatmap-p2-next-action-packet.csv'));
+  assert.ok(p2NextActionPacketSource.includes('daegu-seatmap-p2-next-action-packet.md'));
+  assert.ok(p2NextActionPacketSource.includes('LABEL_HIT_AREA_REVIEW_FIRST'));
+  assert.ok(p2NextActionPacketSource.includes('VISUAL_APPROVAL_CHECK'));
+  assert.ok(p2NextActionPacketSource.includes('MANUAL_RETRACE_BATCH'));
+  assert.ok(p2NextActionPacketSource.includes('expectedRows: 36'));
+  assert.ok(p2NextActionPacketSource.includes('labelAndHitAreaRows: 2'));
+  assert.ok(p2NextActionPacketSource.includes('visualApprovalCandidateRows: 1'));
+  assert.ok(p2NextActionPacketSource.includes('manualRetraceRows: 33'));
+  assert.ok(p2NextActionPacketSource.includes('approvalCandidateRows: 3'));
+  assert.ok(p2NextActionPacketSource.includes('productionWriteAllowed: false'));
+  assert.ok(p2NextActionPacketSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2NextActionPacketSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2NextActionPacketSource.includes('writesProductionData: false'));
+  assert.ok(p2NextActionPacketSource.includes('PATH_REQUIRES_AT_LEAST_SIX_POINTS'));
+  assert.ok(p2NextActionPacketSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
+  assert.ok(p2NextActionPacketSource.includes('P2 staging and draft values are not production approvals.'));
+  assert.ok(p2NextActionPacketSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p2NextActionPacketSource.includes('correctedPath'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P2_OPERATOR_HANDOFF_V1'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P2_NEXT_ACTION_PACKET_V1'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P2_OPERATOR_READINESS_V2'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P2_STAGING_AUDIT_V1'));
+  assert.ok(p2OperatorHandoffSource.includes('DAEGU_P1_BOUNDARY_FIRST_POSTWRITE_GATE_V1'));
+  assert.ok(p2OperatorHandoffSource.includes('daegu-seatmap-p2-operator-handoff.json'));
+  assert.ok(p2OperatorHandoffSource.includes('daegu-seatmap-p2-operator-handoff.csv'));
+  assert.ok(p2OperatorHandoffSource.includes('daegu-seatmap-p2-operator-handoff.md'));
+  assert.ok(p2OperatorHandoffSource.includes('waiting-for-prior-batch-and-operator'));
+  assert.ok(p2OperatorHandoffSource.includes('ready-for-template-import'));
+  assert.ok(p2OperatorHandoffSource.includes('LABEL_HIT_AREA_REVIEW_FIRST'));
+  assert.ok(p2OperatorHandoffSource.includes('VISUAL_APPROVAL_CHECK'));
+  assert.ok(p2OperatorHandoffSource.includes('MANUAL_RETRACE_BATCH'));
+  assert.ok(p2OperatorHandoffSource.includes('P2 production write remains blocked until P1 boundary-first postwrite is verified.'));
+  assert.ok(p2OperatorHandoffSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorHandoffSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorHandoffSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorHandoffSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorHandoffSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2OperatorWorksetsSource.includes('DAEGU_P2_OPERATOR_WORKSETS_V1'));
+  assert.ok(p2OperatorWorksetsSource.includes('DAEGU_P2_OPERATOR_HANDOFF_V1'));
+  assert.ok(p2OperatorWorksetsSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
+  assert.ok(p2OperatorWorksetsSource.includes('daegu-seatmap-p2-operator-worksets.json'));
+  assert.ok(p2OperatorWorksetsSource.includes('daegu-seatmap-p2-operator-worksets.csv'));
+  assert.ok(p2OperatorWorksetsSource.includes('daegu-seatmap-p2-operator-worksets.md'));
+  assert.ok(p2OperatorWorksetsSource.includes("slug: 'p2-a-label-hit'"));
+  assert.ok(p2OperatorWorksetsSource.includes("slug: 'p2-b-visual-approval'"));
+  assert.ok(p2OperatorWorksetsSource.includes("slug: 'p2-c-sky-u-manual-retrace'"));
+  assert.ok(p2OperatorWorksetsSource.includes("slug: 'p2-d-outfield-manual-retrace'"));
+  assert.ok(p2OperatorWorksetsSource.includes('p2aRows: 2'));
+  assert.ok(p2OperatorWorksetsSource.includes('p2bRows: 1'));
+  assert.ok(p2OperatorWorksetsSource.includes('p2cRows: 5'));
+  assert.ok(p2OperatorWorksetsSource.includes('p2dRows: 28'));
+  assert.ok(p2OperatorWorksetsSource.includes('candidateReferenceOnly: true'));
+  assert.ok(p2OperatorWorksetsSource.includes('minCorrectedPathPoints: 6'));
+  assert.ok(p2OperatorWorksetsSource.includes('candidatePath and candidateLabel are reference-only'));
+  assert.ok(p2OperatorWorksetsSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorWorksetsSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorWorksetsSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorWorksetsSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorWorksetsSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('DAEGU_P2_OPERATOR_WORKSET_PREFLIGHT_V1'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('DAEGU_P2_OPERATOR_WORKSETS_V1'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('daegu-seatmap-p2-operator-workset-preflight.json'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('daegu-seatmap-p2-operator-workset-preflight.csv'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('daegu-seatmap-p2-operator-workset-preflight.md'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('APPROVED_ROW_MISSING_FIELDS'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('CORRECTED_PATH_REUSES_CURRENT_PATH'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('CORRECTED_PATH_REUSES_CANDIDATE_PATH'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('CORRECTED_PATH_REQUIRES_AT_LEAST_SIX_POINTS'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('CORRECTED_LABEL_XY_NOT_NUMERIC'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('LABEL_TOP_HIT_REQUIRES_OPERATOR_QA'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('VISUAL_APPROVAL_OPERATOR_NOTE_RECOMMENDED'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('P2_WORKSET_DUPLICATE_ASSIGNMENT'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('P2_WORKSET_UNASSIGNED_ROWS'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorWorksetPreflightSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2OperatorEntrySheetSource.includes('DAEGU_P2_OPERATOR_ENTRY_SHEET_V1'));
+  assert.ok(p2OperatorEntrySheetSource.includes('DAEGU_P2_OPERATOR_WORKSET_PREFLIGHT_V1'));
+  assert.ok(p2OperatorEntrySheetSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-operator-entry-sheet.json'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-operator-entry-sheet.csv'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-operator-entry-sheet.md'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-a-label-hit-entry-sheet'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-b-visual-approval-entry-sheet'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-c-sky-u-manual-retrace-entry-sheet'));
+  assert.ok(p2OperatorEntrySheetSource.includes('daegu-seatmap-p2-d-outfield-manual-retrace-entry-sheet'));
+  assert.ok(p2OperatorEntrySheetSource.includes('editableTarget'));
+  assert.ok(p2OperatorEntrySheetSource.includes('editableFields'));
+  assert.ok(p2OperatorEntrySheetSource.includes('operatorDecision'));
+  assert.ok(p2OperatorEntrySheetSource.includes('correctedPath'));
+  assert.ok(p2OperatorEntrySheetSource.includes('correctedLabelX'));
+  assert.ok(p2OperatorEntrySheetSource.includes('correctedLabelY'));
+  assert.ok(p2OperatorEntrySheetSource.includes('reviewer'));
+  assert.ok(p2OperatorEntrySheetSource.includes('reviewedAt'));
+  assert.ok(p2OperatorEntrySheetSource.includes('candidatePath is reference-only'));
+  assert.ok(p2OperatorEntrySheetSource.includes('currentPath is reference-only'));
+  assert.ok(p2OperatorEntrySheetSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2OperatorEntrySheetSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorEntrySheetSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorEntrySheetSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorEntrySheetSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorEntrySheetSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2OperatorTracingPackSource.includes('DAEGU_P2_OPERATOR_TRACING_PACK_V1'));
+  assert.ok(p2OperatorTracingPackSource.includes('DAEGU_P2_OPERATOR_ENTRY_SHEET_V1'));
+  assert.ok(p2OperatorTracingPackSource.includes('DAEGU_P2_OPERATOR_WORKSET_PREFLIGHT_V1'));
+  assert.ok(p2OperatorTracingPackSource.includes('DAEGU_SEATMAP_IMAGE'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-operator-tracing-pack.json'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-operator-tracing-pack.csv'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-operator-tracing-pack.md'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-operator-tracing-overview.svg'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-a-label-hit-tracing-overview.svg'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-b-visual-approval-tracing-overview.svg'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-c-sky-u-manual-retrace-tracing-overview.svg'));
+  assert.ok(p2OperatorTracingPackSource.includes('daegu-seatmap-p2-d-outfield-manual-retrace-tracing-overview.svg'));
+  assert.ok(p2OperatorTracingPackSource.includes('red=currentPath, orange=candidatePath reference-only'));
+  assert.ok(p2OperatorTracingPackSource.includes('official Daegu PNG'));
+  assert.ok(p2OperatorTracingPackSource.includes('1707x2048'));
+  assert.ok(p2OperatorTracingPackSource.includes('editableTarget'));
+  assert.ok(p2OperatorTracingPackSource.includes('candidatePath is reference-only and must not be copied into correctedPath'));
+  assert.ok(p2OperatorTracingPackSource.includes('currentPath is reference-only and must not be copied into correctedPath'));
+  assert.ok(p2OperatorTracingPackSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorTracingPackSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorTracingPackSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorTracingPackSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorTracingPackSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_PACKAGE_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_ENTRY_SHEET_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_TRACING_PACK_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_WORKSET_PREFLIGHT_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_HANDOFF_V1'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('daegu-seatmap-p2-operator-post-entry-qa.json'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('daegu-seatmap-p2-operator-post-entry-qa.csv'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('daegu-seatmap-p2-operator-post-entry-qa.md'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('blocked-after-entry'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('waiting-for-p1-postwrite'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('ready-for-p2-readiness'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('APPROVED_ROW_MISSING_FIELDS'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('CORRECTED_PATH_REUSES_CURRENT_PATH'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('CORRECTED_PATH_REUSES_CANDIDATE_PATH'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('CORRECTED_PATH_REQUIRES_AT_LEAST_SIX_POINTS'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('CORRECTED_LABEL_XY_NOT_NUMERIC'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('EVIDENCE_CROP_MISSING'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('TRACING_SVG_MISSING'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('WORKSET_ASSIGNMENT_MISMATCH'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('FILL_REQUIRED_FIELDS'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('RETRACE_FROM_OFFICIAL_PNG'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('MOVE_LABEL_POINT'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('REVIEW_LABEL_TOP_HIT'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('DO_NOT_COPY_REFERENCE_PATH'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('RUN_WORKSET_PREFLIGHT'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('WAIT_FOR_P1_POSTWRITE'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('P2 production write waits for P1 boundary-first postwrite verification.'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('writesSourceInput: false'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('writesProductionData: false'));
+  assert.ok(p2OperatorPostEntryQaSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('DAEGU_P2A_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('DAEGU_P2_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes("const TARGET_WORKSET = 'P2-A'"));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('const EXPECTED_P2A_ROWS = 2'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('daegu-seatmap-p2a-operator-post-entry-qa.json'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('daegu-seatmap-p2a-operator-post-entry-qa.csv'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('daegu-seatmap-p2a-operator-post-entry-qa.md'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('waiting-for-p1-postwrite'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('ready-for-p2-readiness'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('P2A_LABEL_TOP_HIT_OPERATOR_QA_REQUIRED'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('REVIEW_LABEL_TOP_HIT'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('CONTINUE_P2_FULL_READINESS'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('readyForProductionWrite: false'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('writesSourceInput: false'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('writesProductionData: false'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2aOperatorPostEntryQaSource.includes('P2-A approval never bypasses the full P2 readiness gate.'));
+  assert.ok(p2aOperatorInputPacketSource.includes('DAEGU_P2A_OPERATOR_INPUT_PACKET_V1'));
+  assert.ok(p2aOperatorInputPacketSource.includes('DAEGU_P2A_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2aOperatorInputPacketSource.includes('DAEGU_P2_OPERATOR_ENTRY_SHEET_V1'));
+  assert.ok(p2aOperatorInputPacketSource.includes('DAEGU_P2_OPERATOR_TRACING_PACK_V1'));
+  assert.ok(p2aOperatorInputPacketSource.includes("const TARGET_WORKSET = 'P2-A'"));
+  assert.ok(p2aOperatorInputPacketSource.includes('const EXPECTED_P2A_ROWS = 2'));
+  assert.ok(p2aOperatorInputPacketSource.includes('daegu-seatmap-p2a-operator-input-packet.json'));
+  assert.ok(p2aOperatorInputPacketSource.includes('daegu-seatmap-p2a-operator-input-packet.csv'));
+  assert.ok(p2aOperatorInputPacketSource.includes('daegu-seatmap-p2a-operator-input-packet.md'));
+  assert.ok(p2aOperatorInputPacketSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p2aOperatorInputPacketSource.includes('correctedPath'));
+  assert.ok(p2aOperatorInputPacketSource.includes('correctedLabelX'));
+  assert.ok(p2aOperatorInputPacketSource.includes('correctedLabelY'));
+  assert.ok(p2aOperatorInputPacketSource.includes('reviewer'));
+  assert.ok(p2aOperatorInputPacketSource.includes('reviewedAt'));
+  assert.ok(p2aOperatorInputPacketSource.includes('operatorNote'));
+  assert.ok(p2aOperatorInputPacketSource.includes('CHECK_CORRECTED_LABEL_POINT_INSIDE_POLYGON'));
+  assert.ok(p2aOperatorInputPacketSource.includes('CHECK_LABEL_POINT_SELECTS_SAME_BLOCK'));
+  assert.ok(p2aOperatorInputPacketSource.includes('CHECK_HIT_PATH_DOES_NOT_CAPTURE_NEIGHBOR_BLOCK'));
+  assert.ok(p2aOperatorInputPacketSource.includes('CHECK_PATH_ALIGNED_TO_OFFICIAL_PNG_SEAT_AREA'));
+  assert.ok(p2aOperatorInputPacketSource.includes('CHECK_CURRENT_AND_CANDIDATE_PATHS_NOT_COPIED'));
+  assert.ok(p2aOperatorInputPacketSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2aOperatorInputPacketSource.includes('waiting-for-p1-postwrite'));
+  assert.ok(p2aOperatorInputPacketSource.includes('ready-for-p2-readiness'));
+  assert.ok(p2aOperatorInputPacketSource.includes('productionWriteAllowed: false'));
+  assert.ok(p2aOperatorInputPacketSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2aOperatorInputPacketSource.includes('writesSourceInput: false'));
+  assert.ok(p2aOperatorInputPacketSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2aOperatorInputPacketSource.includes('writesProductionData: false'));
+  assert.ok(p2aOperatorInputPacketSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2aOperatorInputPacketSource.includes('currentPath is reference-only and must not be copied into correctedPath.'));
+  assert.ok(p2aOperatorInputPacketSource.includes('candidatePath is reference-only and must not be copied into correctedPath.'));
+  assert.ok(p2aOperatorInputPacketSource.includes('P2-A approval never bypasses full P2 readiness or the production write guard.'));
+  assert.ok(p2aPrewriteGateSource.includes('DAEGU_P2A_PREWRITE_GATE_V1'));
+  assert.ok(p2aPrewriteGateSource.includes('DAEGU_P2A_OPERATOR_INPUT_PACKET_V1'));
+  assert.ok(p2aPrewriteGateSource.includes('DAEGU_P2A_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2aPrewriteGateSource.includes('DAEGU_OPERATOR_CORRECTIONS_VALIDATION_V1'));
+  assert.ok(p2aPrewriteGateSource.includes("const TARGET_WORKSET = 'P2-A'"));
+  assert.ok(p2aPrewriteGateSource.includes('const EXPECTED_P2A_ROWS = 2'));
+  assert.ok(p2aPrewriteGateSource.includes('daegu-seatmap-p2a-prewrite-gate.json'));
+  assert.ok(p2aPrewriteGateSource.includes('daegu-seatmap-p2a-prewrite-gate.csv'));
+  assert.ok(p2aPrewriteGateSource.includes('daegu-seatmap-p2a-prewrite-gate.md'));
+  assert.ok(p2aPrewriteGateSource.includes('daegu-seatmap-p2a-prewrite-preview.svg'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_APPROVED_ROW_MISSING_FIELDS'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_CORRECTED_PATH_REUSES_CURRENT_PATH'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_CORRECTED_PATH_REUSES_CANDIDATE_PATH'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_CORRECTED_LABEL_OUTSIDE_PATH'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_CORRECTED_LABEL_TOP_HIT_MISMATCH'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_CORRECTED_HIT_PATH_CAPTURES_NEIGHBOR_LABEL'));
+  assert.ok(p2aPrewriteGateSource.includes('P2A_VALIDATION_ROW_NOT_VALID_FOR_APPROVAL'));
+  assert.ok(p2aPrewriteGateSource.includes('CHECK_CORRECTED_LABEL_POINT_INSIDE_POLYGON'));
+  assert.ok(p2aPrewriteGateSource.includes('CHECK_LABEL_POINT_SELECTS_SAME_BLOCK'));
+  assert.ok(p2aPrewriteGateSource.includes('CHECK_HIT_PATH_DOES_NOT_CAPTURE_NEIGHBOR_BLOCK'));
+  assert.ok(p2aPrewriteGateSource.includes('CHECK_PATH_ALIGNED_TO_OFFICIAL_PNG_SEAT_AREA'));
+  assert.ok(p2aPrewriteGateSource.includes('CHECK_CURRENT_AND_CANDIDATE_PATHS_NOT_COPIED'));
+  assert.ok(p2aPrewriteGateSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2aPrewriteGateSource.includes('waiting-for-p1-postwrite'));
+  assert.ok(p2aPrewriteGateSource.includes('ready-for-p2-readiness'));
+  assert.ok(p2aPrewriteGateSource.includes('daegu-seatmap-p1-boundary-first-postwrite-gate.json'));
+  assert.ok(p2aPrewriteGateSource.includes('sourceP1PostwriteGateExists'));
+  assert.ok(p2aPrewriteGateSource.includes('--allow-waiting-exit-zero'));
+  assert.ok(p2aPrewriteGateSource.includes('readyForProductionWrite: false'));
+  assert.ok(p2aPrewriteGateSource.includes('writesOperatorDecision: false'));
+  assert.ok(p2aPrewriteGateSource.includes('writesSourceInput: false'));
+  assert.ok(p2aPrewriteGateSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p2aPrewriteGateSource.includes('writesProductionData: false'));
+  assert.ok(p2aPrewriteGateSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p2aPrewriteGateSource.includes('P2-A prewrite readiness never bypasses the full P2 readiness gate or production write guard.'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_P2A_READINESS_V3'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_P2A_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_P2A_OPERATOR_INPUT_PACKET_V1'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_P2A_PREWRITE_GATE_V1'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_P2_OPERATOR_READINESS_V2'));
+  assert.ok(p2aReadinessV3Source.includes('DAEGU_SEATMAP_RENDER_SAFETY_AUDIT_V1'));
+  assert.ok(p2aReadinessV3Source.includes("const TARGET_WORKSET = 'P2-A'"));
+  assert.ok(p2aReadinessV3Source.includes('daegu-seatmap-p2a-readiness-v3.json'));
+  assert.ok(p2aReadinessV3Source.includes('daegu-seatmap-p2a-readiness-v3.csv'));
+  assert.ok(p2aReadinessV3Source.includes('daegu-seatmap-p2a-readiness-v3.md'));
+  assert.ok(p2aReadinessV3Source.includes('P2A_WAITING_OPERATOR_ENTRY'));
+  assert.ok(p2aReadinessV3Source.includes('P2A_WAITING_P1_POSTWRITE'));
+  assert.ok(p2aReadinessV3Source.includes('P2A_WAITING_FULL_P2_READINESS'));
+  assert.ok(p2aReadinessV3Source.includes('PASS_UI_CONTAINMENT'));
+  assert.ok(p2aReadinessV3Source.includes('P2A_NEVER_ALLOWS_DIRECT_PRODUCTION_WRITE'));
+  assert.ok(p2aReadinessV3Source.includes('productionWriteAllowed: false'));
+  assert.ok(p2aReadinessV3Source.includes('It never writes source input, corrections template, or src/data/daeguSeatData.ts.'));
   assert.ok(p2OperatorImportSource.includes('DAEGU_P2_OPERATOR_IMPORT_V1'));
   assert.ok(p2OperatorImportSource.includes('BATCH_3_P2'));
   assert.ok(p2OperatorImportSource.includes('BATCH_1_P0'));
@@ -2534,6 +4190,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p2OperatorImportSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p2OperatorImportSource.includes('INVALID_P2_OPERATOR_DECISION'));
   assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P2_DECISION'));
+  assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P2_ROW'));
   assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_NO_P2_PENDING_ROWS'));
   assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_DRAFT_ONLY'));
   assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_STAGING_ONLY'));
@@ -2543,27 +4200,45 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p2OperatorImportSource.includes('WRITE_TEMPLATE_P2_INVALID_APPROVED_ROWS'));
   assert.ok(p2OperatorImportSource.includes('Do not run npm run stadium:daegu:operator-corrections after write-template'));
   assert.ok(p2OperatorImportSource.includes('candidate paths are references only'));
-  assert.ok(p2OperatorReadinessSource.includes('DAEGU_P2_OPERATOR_READINESS_V1'));
+  assert.ok(p2OperatorReadinessSource.includes('DAEGU_P2_OPERATOR_READINESS_V2'));
+  assert.ok(p2OperatorReadinessSource.includes('DAEGU_P2_OPERATOR_POST_ENTRY_QA_V1'));
+  assert.ok(p2OperatorReadinessSource.includes('DAEGU_P1_BOUNDARY_FIRST_POSTWRITE_GATE_V1'));
   assert.ok(p2OperatorReadinessSource.includes('BATCH_3_P2'));
   assert.ok(p2OperatorReadinessSource.includes('BATCH_1_P0'));
   assert.ok(p2OperatorReadinessSource.includes('BATCH_2_P1'));
   assert.ok(p2OperatorReadinessSource.includes('daegu-seatmap-p2-operator-readiness.json'));
+  assert.ok(p2OperatorReadinessSource.includes('daegu-seatmap-p2-operator-post-entry-qa.json'));
+  assert.ok(p2OperatorReadinessSource.includes('daegu-seatmap-p1-boundary-first-postwrite-gate.json'));
+  assert.ok(p2OperatorReadinessSource.includes('waiting-for-operator-entry'));
+  assert.ok(p2OperatorReadinessSource.includes('waiting-for-p1-postwrite'));
+  assert.ok(p2OperatorReadinessSource.includes('awaitingOperatorInput'));
+  assert.ok(p2OperatorReadinessSource.includes('waitingForP1Postwrite'));
   assert.ok(p2OperatorReadinessSource.includes('readyForTemplateImport'));
   assert.ok(p2OperatorReadinessSource.includes('readyForGuardedWriteAfterTemplateImport'));
+  assert.ok(p2OperatorReadinessSource.includes('--allow-waiting-exit-zero'));
+  assert.ok(p2OperatorReadinessSource.includes('--report-only'));
+  assert.ok(p2OperatorReadinessSource.includes('allowWaitingExitZero'));
+  assert.ok(p2OperatorReadinessSource.includes('postEntryQaStatus'));
+  assert.ok(p2OperatorReadinessSource.includes('p1PostwriteVerified'));
+  assert.ok(p2OperatorReadinessSource.includes('P2_WAITING_OPERATOR_ENTRY'));
+  assert.ok(p2OperatorReadinessSource.includes('P2_WAITING_FOR_P1_POSTWRITE'));
+  assert.ok(p2OperatorReadinessSource.includes('NO_APPROVED_P2_ROWS_TEMPLATE_IMPORT_WILL_BLOCK'));
+  assert.ok(p2OperatorReadinessSource.includes('POST_ENTRY_QA_BLOCKED_ROWS'));
   assert.ok(p2OperatorReadinessSource.includes('P2_REQUIRES_PRIOR_BATCH_CLOSED'));
   assert.ok(p2OperatorReadinessSource.includes('P2_REQUIRES_PRIOR_BATCH_WRITTEN'));
   assert.ok(p2OperatorReadinessSource.includes('P2_PENDING_ROWS_REMAIN'));
   assert.ok(p2OperatorReadinessSource.includes('P2_IMPORT_REPORT_NOT_DRY_RUN'));
   assert.ok(p2OperatorReadinessSource.includes('This readiness gate is read-only'));
+  assert.ok(p2OperatorReadinessSource.includes('It must be run after npm run stadium:daegu:p2-operator-post-entry-qa.'));
   assert.ok(p2OperatorReadinessSource.includes('candidate paths are references only'));
   assert.ok(p2OperatorReadinessSource.includes('Do not run npm run stadium:daegu:operator-corrections after p2-operator-import:write-template'));
   assert.ok(p3p4OperatorPackageSource.includes('DAEGU_P3_P4_OPERATOR_PACKAGE_V1'));
   assert.ok(p3p4OperatorPackageSource.includes('BATCH_4_P3_P4'));
   assert.ok(p3p4OperatorPackageSource.includes("TARGET_PRIORITIES = ['P3', 'P4']"));
-  assert.ok(p3p4OperatorPackageSource.includes('p3Rows: 3'));
-  assert.ok(p3p4OperatorPackageSource.includes('p4Rows: 49'));
-  assert.ok(p3p4OperatorPackageSource.includes('manualTraceRequiredRows: 27'));
-  assert.ok(p3p4OperatorPackageSource.includes('correctedPathRequiredRows: 25'));
+  assert.ok(p3p4OperatorPackageSource.includes('p3Rows: 0'));
+  assert.ok(p3p4OperatorPackageSource.includes('p4Rows: 44'));
+  assert.ok(p3p4OperatorPackageSource.includes('manualTraceRequiredRows: 22'));
+  assert.ok(p3p4OperatorPackageSource.includes('correctedPathRequiredRows: 22'));
   assert.ok(p3p4OperatorPackageSource.includes('labelAndHitAreaRows: 3'));
   assert.ok(p3p4OperatorPackageSource.includes('OPERATOR_MANUAL_TRACE_REQUIRED'));
   assert.ok(p3p4OperatorPackageSource.includes('OPERATOR_CORRECTED_PATH_REQUIRED'));
@@ -2589,10 +4264,10 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p3p4DecisionPacketSource.includes('daegu-seatmap-p3-p4-decision-packet.json'));
   assert.ok(p3p4DecisionPacketSource.includes('daegu-seatmap-p3-p4-decision-packet.csv'));
   assert.ok(p3p4DecisionPacketSource.includes('daegu-seatmap-p3-p4-decision-packet.md'));
-  assert.ok(p3p4DecisionPacketSource.includes('p3Rows: 3'));
-  assert.ok(p3p4DecisionPacketSource.includes('p4Rows: 49'));
-  assert.ok(p3p4DecisionPacketSource.includes('manualTraceRequiredRows: 27'));
-  assert.ok(p3p4DecisionPacketSource.includes('correctedPathRequiredRows: 25'));
+  assert.ok(p3p4DecisionPacketSource.includes('p3Rows: 0'));
+  assert.ok(p3p4DecisionPacketSource.includes('p4Rows: 44'));
+  assert.ok(p3p4DecisionPacketSource.includes('manualTraceRequiredRows: 22'));
+  assert.ok(p3p4DecisionPacketSource.includes('correctedPathRequiredRows: 22'));
   assert.ok(p3p4DecisionPacketSource.includes('labelAndHitAreaRows: 3'));
   assert.ok(p3p4DecisionPacketSource.includes('P3/P4 write-template remains blocked until P0, P1, and P2 are closed.'));
   assert.ok(p3p4DecisionPacketSource.includes('Candidate paths are visual references only'));
@@ -2611,6 +4286,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p3p4OperatorImportSource.includes('It never modifies src/data/daeguSeatData.ts'));
   assert.ok(p3p4OperatorImportSource.includes('INVALID_P3_P4_OPERATOR_DECISION'));
   assert.ok(p3p4OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_P3_P4_DECISION'));
+  assert.ok(p3p4OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P3_P4_ROW'));
   assert.ok(p3p4OperatorImportSource.includes('WRITE_TEMPLATE_REQUIRES_NO_P3_P4_PENDING_ROWS'));
   assert.ok(p3p4OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_DRAFT_ONLY'));
   assert.ok(p3p4OperatorImportSource.includes('WRITE_TEMPLATE_INPUT_STAGING_ONLY'));
@@ -2626,8 +4302,11 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p3p4OperatorReadinessSource.includes('BATCH_2_P1'));
   assert.ok(p3p4OperatorReadinessSource.includes('BATCH_3_P2'));
   assert.ok(p3p4OperatorReadinessSource.includes('daegu-seatmap-p3-p4-operator-readiness.json'));
+  assert.ok(p3p4OperatorReadinessSource.includes('waiting-for-operator'));
+  assert.ok(p3p4OperatorReadinessSource.includes('awaitingOperatorInput'));
   assert.ok(p3p4OperatorReadinessSource.includes('readyForTemplateImport'));
   assert.ok(p3p4OperatorReadinessSource.includes('readyForGuardedWriteAfterTemplateImport'));
+  assert.ok(p3p4OperatorReadinessSource.includes('NO_APPROVED_P3_P4_ROWS_TEMPLATE_IMPORT_WILL_BLOCK'));
   assert.ok(p3p4OperatorReadinessSource.includes('P3_P4_REQUIRES_PRIOR_BATCH_CLOSED'));
   assert.ok(p3p4OperatorReadinessSource.includes('P3_P4_REQUIRES_PRIOR_BATCH_WRITTEN'));
   assert.ok(p3p4OperatorReadinessSource.includes('P3_P4_PENDING_ROWS_REMAIN'));
@@ -2659,8 +4338,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(retraceWorkQueueSource.includes('daegu-retrace-work-queue.json'));
   assert.ok(retraceWorkQueueSource.includes('daegu-retrace-work-queue.csv'));
   assert.ok(retraceWorkQueueSource.includes('daegu-retrace-work-queue.md'));
-  assert.ok(retraceWorkQueueSource.includes('expectedRows: 134'));
-  assert.ok(retraceWorkQueueSource.includes('expectedNeedsRetraceRows: 134'));
+  assert.ok(retraceWorkQueueSource.includes('expectedRows: 97'));
+  assert.ok(retraceWorkQueueSource.includes('expectedNeedsRetraceRows: 97'));
   assert.ok(retraceWorkQueueSource.includes('productionWriteAllowed: false'));
   assert.ok(retraceWorkQueueSource.includes('queueRows'));
   assert.ok(retraceWorkQueueSource.includes('currentPath'));
@@ -2675,10 +4354,10 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(nonOverlapPriorityQueueSource.includes('daegu-non-overlap-priority-queue.json'));
   assert.ok(nonOverlapPriorityQueueSource.includes('daegu-non-overlap-priority-queue.csv'));
   assert.ok(nonOverlapPriorityQueueSource.includes('daegu-non-overlap-priority-queue.md'));
-  assert.ok(nonOverlapPriorityQueueSource.includes('expectedRows: 134'));
-  assert.ok(nonOverlapPriorityQueueSource.includes('expectedNonOverlapRows: 117'));
-  assert.ok(nonOverlapPriorityQueueSource.includes('expectedDuplicateRows: 17'));
-  assert.ok(nonOverlapPriorityQueueSource.includes('expectedOffSeatRows: 44'));
+  assert.ok(nonOverlapPriorityQueueSource.includes('expectedRows: 97'));
+  assert.ok(nonOverlapPriorityQueueSource.includes('expectedNonOverlapRows: 86'));
+  assert.ok(nonOverlapPriorityQueueSource.includes('expectedDuplicateRows: 11'));
+  assert.ok(nonOverlapPriorityQueueSource.includes('expectedOffSeatRows: 27'));
   assert.ok(nonOverlapPriorityQueueSource.includes('NO_OVERLAP_OFF_SEAT_RETRACE_FIRST'));
   assert.ok(nonOverlapPriorityQueueSource.includes('NO_OVERLAP_VISUAL_APPROVAL_CANDIDATE'));
   assert.ok(nonOverlapPriorityQueueSource.includes('NO_OVERLAP_MANUAL_RETRACE'));
@@ -2698,8 +4377,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(visualIssueQueueSource.includes('daegu-visual-issue-queue.json'));
   assert.ok(visualIssueQueueSource.includes('daegu-visual-issue-queue.csv'));
   assert.ok(visualIssueQueueSource.includes('daegu-visual-issue-queue.md'));
-  assert.ok(visualIssueQueueSource.includes('expectedRows: 134'));
-  assert.ok(visualIssueQueueSource.includes('expectedVisualSeedRows: 29'));
+  assert.ok(visualIssueQueueSource.includes('expectedRows: 97'));
+  assert.ok(visualIssueQueueSource.includes('expectedVisualSeedRows: 19'));
   assert.ok(visualIssueQueueSource.includes('VISUAL_SEED_OBSERVATIONS'));
   assert.ok(visualIssueQueueSource.includes('Image #1'));
   assert.ok(visualIssueQueueSource.includes('Image #2'));
@@ -2717,7 +4396,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(visualIssueQueueSource.includes('DO_NOT_COPY_CURRENT_PATH_TO_CORRECTED_PATH'));
   assert.ok(visualIssueQueueSource.includes('REFERENCE_ONLY_REQUIRES_OPERATOR_VISUAL_APPROVAL'));
   assert.ok(visualIssueQueueSource.includes('Candidate paths remain reference-only'));
-  assert.ok(visualIssueQueueSource.includes('It includes the remaining unresolved Daegu operator rows from the source input files; the original baseline was 134 rows.'));
+  assert.ok(visualIssueQueueSource.includes('It includes the remaining unresolved Daegu operator rows from the source input files; the current locked baseline is 97 rows after prior approved writes.'));
   assert.ok(visualIssueQueueSource.includes('It never writes the main corrections template.'));
   assert.ok(visualIssueQueueSource.includes('It never modifies src/data/daeguSeatData.ts.'));
   assert.ok(visualIssueQueueSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
@@ -2728,12 +4407,12 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(visualOffSeatWorksetSource.includes('daegu-visual-off-seat-workset.json'));
   assert.ok(visualOffSeatWorksetSource.includes('daegu-visual-off-seat-workset.csv'));
   assert.ok(visualOffSeatWorksetSource.includes('daegu-visual-off-seat-workset.md'));
-  assert.ok(visualOffSeatWorksetSource.includes('expectedRows: 44'));
-  assert.ok(visualOffSeatWorksetSource.includes('expectedVisualSeedRows: 9'));
-  assert.ok(visualOffSeatWorksetSource.includes('expectedP0Rows: 2'));
-  assert.ok(visualOffSeatWorksetSource.includes('expectedP1Rows: 12'));
+  assert.ok(visualOffSeatWorksetSource.includes('expectedRows: 27'));
+  assert.ok(visualOffSeatWorksetSource.includes('expectedVisualSeedRows: 7'));
+  assert.ok(visualOffSeatWorksetSource.includes('expectedP0Rows: 0'));
+  assert.ok(visualOffSeatWorksetSource.includes('expectedP1Rows: 5'));
   assert.ok(visualOffSeatWorksetSource.includes('expectedP2Rows: 0'));
-  assert.ok(visualOffSeatWorksetSource.includes('expectedP3P4Rows: 30'));
+  assert.ok(visualOffSeatWorksetSource.includes('expectedP3P4Rows: 22'));
   assert.ok(visualOffSeatWorksetSource.includes('productionWriteAllowed: false'));
   assert.ok(visualOffSeatWorksetSource.includes('DO_NOT_COPY_CURRENT_PATH_TO_CORRECTED_PATH'));
   assert.ok(visualOffSeatWorksetSource.includes('REFERENCE_ONLY_DO_NOT_COPY_TO_CORRECTED_PATH'));
@@ -2745,13 +4424,89 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(visualOffSeatWorksetSource.includes('npm run stadium:daegu:p0-operator-prewrite-gate'));
   assert.ok(visualOffSeatWorksetSource.includes('npm run stadium:daegu:p1-operator-prewrite-gate'));
   assert.ok(visualOffSeatWorksetSource.includes('npm run stadium:daegu:p3-p4-operator-prewrite-gate'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('DAEGU_P1_PAIRED_BOUNDARY_REVIEW_V1'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('DAEGU_VISUAL_OFF_SEAT_WORKSET_V1'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('DAEGU_ALIGNMENT_AUDIT_V1'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('expectedRows: 5'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('expectedPairedRelabelRows: 2'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('expectedManualSplitRows: 3'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('PAIRED_RELABEL_BOUNDARY_REVIEW'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('MANUAL_NON_OVERLAP_SPLIT_REQUIRED'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('LOCKED_NEIGHBOR_OWNS_VISIBLE_TABLE_AREA'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('CANDIDATE_COMPONENT_COLLIDES_WITH_T3_TABLE_BLOCKS'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('Rows in this report must not be approved as single-row corrections.'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('It never writes the main corrections template.'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
+  assert.ok(p1PairedBoundaryReviewSource.includes('npm run stadium:daegu:p1-operator-prewrite-gate'));
+  assert.ok(p1BoundaryInputAidSource.includes('DAEGU_P1_BOUNDARY_INPUT_AID_V1'));
+  assert.ok(p1BoundaryInputAidSource.includes('DAEGU_P1_PAIRED_BOUNDARY_REVIEW_V1'));
+  assert.ok(p1BoundaryInputAidSource.includes('DAEGU_ALIGNMENT_AUDIT_V1'));
+  assert.ok(p1BoundaryInputAidSource.includes('daegu-seatmap-p1-boundary-input-aid.json'));
+  assert.ok(p1BoundaryInputAidSource.includes('daegu-seatmap-p1-boundary-input-aid.csv'));
+  assert.ok(p1BoundaryInputAidSource.includes('daegu-seatmap-p1-boundary-input-aid.md'));
+  assert.ok(p1BoundaryInputAidSource.includes('expectedRows: 5'));
+  assert.ok(p1BoundaryInputAidSource.includes('expectedPairedRelabelRows: 2'));
+  assert.ok(p1BoundaryInputAidSource.includes('expectedManualSplitRows: 3'));
+  assert.ok(p1BoundaryInputAidSource.includes('PAIRED_RELABEL_BOUNDARY_REVIEW'));
+  assert.ok(p1BoundaryInputAidSource.includes('MANUAL_NON_OVERLAP_SPLIT_REQUIRED'));
+  assert.ok(p1BoundaryInputAidSource.includes('LOCKED_NEIGHBOR_OWNERSHIP_REVIEW'));
+  assert.ok(p1BoundaryInputAidSource.includes('SHARED_MANUAL_SPLIT_REVIEW'));
+  assert.ok(p1BoundaryInputAidSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1BoundaryInputAidSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1BoundaryInputAidSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1BoundaryInputAidSource.includes('writesProductionData: false'));
+  assert.ok(p1BoundaryInputAidSource.includes('contains no operatorDecision column'));
+  assert.ok(p1BoundaryInputAidSource.includes('Rows in this aid must not be approved as isolated single-row corrections.'));
+  assert.ok(p1BoundaryInputAidSource.includes('The currentPath must not be copied into correctedPath.'));
+  assert.ok(p1BoundaryInputAidSource.includes('Candidate paths are reference-only and must not be copied into correctedPath.'));
+  assert.ok(p1BoundaryInputAidSource.includes('It never writes the main corrections template.'));
+  assert.ok(p1BoundaryInputAidSource.includes('It never modifies src/data/daeguSeatData.ts.'));
+  assert.ok(p1BoundaryInputAidSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
+  assert.ok(p1BoundaryInputAidSource.includes('npm run stadium:daegu:p1-operator-prewrite-gate'));
+  assert.ok(p1NextActionPacketSource.includes('DAEGU_P1_NEXT_ACTION_PACKET_V1'));
+  assert.ok(p1NextActionPacketSource.includes('daegu-seatmap-p1-next-action-packet.json'));
+  assert.ok(p1NextActionPacketSource.includes('daegu-seatmap-p1-next-action-packet.csv'));
+  assert.ok(p1NextActionPacketSource.includes('daegu-seatmap-p1-next-action-packet.md'));
+  assert.ok(p1NextActionPacketSource.includes('PAIR_BOUNDARY_FIRST'));
+  assert.ok(p1NextActionPacketSource.includes('SINGLE_CORRECTED_PATH'));
+  assert.ok(p1NextActionPacketSource.includes('DUPLICATE_CANDIDATE_SPLIT'));
+  assert.ok(p1NextActionPacketSource.includes('expectedRows: 17'));
+  assert.ok(p1NextActionPacketSource.includes('boundaryAidRows: 5'));
+  assert.ok(p1NextActionPacketSource.includes('singleCorrectedPathRows: 1'));
+  assert.ok(p1NextActionPacketSource.includes('sharedCandidateBoundaryRows: 11'));
+  assert.ok(p1NextActionPacketSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1NextActionPacketSource.includes('writesOperatorDecision: false'));
+  assert.ok(p1NextActionPacketSource.includes('writesCorrectionsTemplate: false'));
+  assert.ok(p1NextActionPacketSource.includes('writesProductionData: false'));
+  assert.ok(p1NextActionPacketSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
+  assert.ok(p1NextActionPacketSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p1NextActionPacketSource.includes('correctedPath'));
+  assert.ok(p1PrecisionWorksetSource.includes('DAEGU_P1_PRECISION_WORKSET_V1'));
+  assert.ok(p1PrecisionWorksetSource.includes('DAEGU_SEATMAP_PRECISION_AUDIT_V1'));
+  assert.ok(p1PrecisionWorksetSource.includes('DAEGU_P1_NEXT_ACTION_PACKET_V1'));
+  assert.ok(p1PrecisionWorksetSource.includes('daegu-seatmap-p1-precision-workset.json'));
+  assert.ok(p1PrecisionWorksetSource.includes('daegu-seatmap-p1-precision-workset.csv'));
+  assert.ok(p1PrecisionWorksetSource.includes('daegu-seatmap-p1-precision-workset.md'));
+  assert.ok(p1PrecisionWorksetSource.includes('daegu-seatmap-p1-precision-workset.svg'));
+  assert.ok(p1PrecisionWorksetSource.includes('boundaryFirstRows: 5'));
+  assert.ok(p1PrecisionWorksetSource.includes('singleCorrectedPathRows: 1'));
+  assert.ok(p1PrecisionWorksetSource.includes('duplicateSplitRows: 11'));
+  assert.ok(p1PrecisionWorksetSource.includes('draftVisualPath'));
+  assert.ok(p1PrecisionWorksetSource.includes('draftHitPath'));
+  assert.ok(p1PrecisionWorksetSource.includes('draftLabelPoint'));
+  assert.ok(p1PrecisionWorksetSource.includes('productionWriteAllowed: false'));
+  assert.ok(p1PrecisionWorksetSource.includes('sourceOfTruth: false'));
+  assert.ok(p1PrecisionWorksetSource.includes('draftOnly: true'));
+  assert.ok(p1PrecisionWorksetSource.includes('operatorDecision=APPROVED'));
+  assert.ok(p1PrecisionWorksetSource.includes('No external crawling, web search, or coordinate inference is allowed.'));
   assert.ok(offSeatRetraceIntakeSource.includes('DAEGU_OFF_SEAT_RETRACE_INTAKE_V1'));
   assert.ok(offSeatRetraceIntakeSource.includes('INPUT_SPECS'));
   assert.ok(offSeatRetraceIntakeSource.includes('daegu-off-seat-retrace-intake.json'));
   assert.ok(offSeatRetraceIntakeSource.includes('daegu-off-seat-retrace-intake.csv'));
   assert.ok(offSeatRetraceIntakeSource.includes('daegu-off-seat-retrace-intake.md'));
-  assert.ok(offSeatRetraceIntakeSource.includes('expectedRows: 44'));
-  assert.ok(offSeatRetraceIntakeSource.includes('expectedP0P1Rows: 14'));
+  assert.ok(offSeatRetraceIntakeSource.includes('expectedRows: 27'));
+  assert.ok(offSeatRetraceIntakeSource.includes('expectedP0P1Rows: 5'));
   assert.ok(offSeatRetraceIntakeSource.includes('expectedDuplicateRowsIncluded: 0'));
   assert.ok(offSeatRetraceIntakeSource.includes('expectedDuplicateRowsExcluded: 2'));
   assert.ok(offSeatRetraceIntakeSource.includes('P0_P1_OFF_SEAT_FIRST'));
@@ -2780,9 +4535,9 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0p1OffSeatWorksetSource.includes('daegu-p0-p1-off-seat-workset.json'));
   assert.ok(p0p1OffSeatWorksetSource.includes('daegu-p0-p1-off-seat-workset.csv'));
   assert.ok(p0p1OffSeatWorksetSource.includes('daegu-p0-p1-off-seat-workset.md'));
-  assert.ok(p0p1OffSeatWorksetSource.includes('expectedRows: 14'));
-  assert.ok(p0p1OffSeatWorksetSource.includes('expectedP0Rows: 2'));
-  assert.ok(p0p1OffSeatWorksetSource.includes('expectedP1Rows: 12'));
+  assert.ok(p0p1OffSeatWorksetSource.includes('expectedRows: 5'));
+  assert.ok(p0p1OffSeatWorksetSource.includes('expectedP0Rows: 0'));
+  assert.ok(p0p1OffSeatWorksetSource.includes('expectedP1Rows: 5'));
   assert.ok(p0p1OffSeatWorksetSource.includes('expectedDuplicateRows: 0'));
   assert.ok(p0p1OffSeatWorksetSource.includes('P0_P1_OFF_SEAT_FIRST'));
   assert.ok(p0p1OffSeatWorksetSource.includes('sourceOffSeatIntake'));
@@ -2810,8 +4565,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0OffSeatOperatorInputSource.includes('daegu-p0-off-seat-operator-input.json'));
   assert.ok(p0OffSeatOperatorInputSource.includes('daegu-p0-off-seat-operator-input.csv'));
   assert.ok(p0OffSeatOperatorInputSource.includes('daegu-p0-off-seat-operator-input.md'));
-  assert.ok(p0OffSeatOperatorInputSource.includes('expectedRows: 2'));
-  assert.ok(p0OffSeatOperatorInputSource.includes('expectedP0Rows: 2'));
+  assert.ok(p0OffSeatOperatorInputSource.includes('expectedRows: 0'));
+  assert.ok(p0OffSeatOperatorInputSource.includes('expectedP0Rows: 0'));
   assert.ok(p0OffSeatOperatorInputSource.includes('expectedDuplicateRows: 0'));
   assert.ok(p0OffSeatOperatorInputSource.includes('expectedApprovedRows: 0'));
   assert.ok(p0OffSeatOperatorInputSource.includes('TARGET_BATCH_ID'));
@@ -2852,7 +4607,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(p0OffSeatOperatorImportSource.includes('daegu-p0-off-seat-operator-input.json'));
   assert.ok(p0OffSeatOperatorImportSource.includes('daegu-seatmap-p0-operator-input.json'));
   assert.ok(p0OffSeatOperatorImportSource.includes('--write-source-input'));
-  assert.ok(p0OffSeatOperatorImportSource.includes('expectedRows: 2'));
+  assert.ok(p0OffSeatOperatorImportSource.includes('expectedRows: 0'));
   assert.ok(p0OffSeatOperatorImportSource.includes('expectedApprovedRows: 0'));
   assert.ok(p0OffSeatOperatorImportSource.includes('expectedDuplicateRows: 0'));
   assert.ok(p0OffSeatOperatorImportSource.includes('TARGET_BATCH_ID'));
@@ -2938,10 +4693,10 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsBatchesSource.includes('BATCH_2_P1'));
   assert.ok(correctionsBatchesSource.includes('BATCH_3_P2'));
   assert.ok(correctionsBatchesSource.includes('BATCH_4_P3_P4'));
-  assert.ok(correctionsBatchesSource.includes('expectedRows: 3'));
-  assert.ok(correctionsBatchesSource.includes('expectedRows: 29'));
-  assert.ok(correctionsBatchesSource.includes('expectedRows: 50'));
-  assert.ok(correctionsBatchesSource.includes('expectedRows: 52'));
+  assert.ok(correctionsBatchesSource.includes('expectedRows: 0'));
+  assert.ok(correctionsBatchesSource.includes('expectedRows: 17'));
+  assert.ok(correctionsBatchesSource.includes('expectedRows: 36'));
+  assert.ok(correctionsBatchesSource.includes('expectedRows: 44'));
   assert.ok(correctionsBatchesSource.includes('singleBatchOnly'));
   assert.ok(correctionsBatchesSource.includes('failedRowsStayInSourceBatch'));
   assert.ok(correctionsBatchesSource.includes('failedRowsAreNotCarriedForward'));
@@ -2979,7 +4734,61 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsWriteGuardSource.includes('WRITE_SMOKE_PRODUCTION_DATA_NOT_UNCHANGED'));
   assert.ok(correctionsWriteGuardSource.includes('process.exitCode = 1'));
   assert.ok(correctionsWriteGuardSource.includes('apply --write'));
+  assert.ok(precisionAuditSource.includes('DAEGU_SEATMAP_PRECISION_AUDIT_V1'));
+  assert.ok(precisionAuditSource.includes('PASS_WORKFLOW'));
+  assert.ok(precisionAuditSource.includes('PASS_LOCKED_80'));
+  assert.ok(precisionAuditSource.includes('PASS_RELEASE_177'));
+  assert.ok(precisionAuditSource.includes('UNRESOLVED_PRECISION_ROWS'));
+  assert.ok(precisionAuditSource.includes('FLOATING_OR_OFF_SEAT_REVIEW'));
+  assert.ok(precisionAuditSource.includes('OVERSIZED_RECT_MANUAL_RETRACE'));
+  assert.ok(precisionAuditSource.includes('SAME_SEAT_MULTI_OWNER'));
+  assert.ok(precisionAuditSource.includes('PEER_LABEL_INSIDE_CURRENT_PATH'));
+  assert.ok(precisionAuditSource.includes('draftVisualPath'));
+  assert.ok(precisionAuditSource.includes('draftHitPath'));
+  assert.ok(precisionAuditSource.includes('draftLabelPoint'));
+  assert.ok(precisionAuditSource.includes('operatorDecision=APPROVED'));
+  assert.ok(precisionAuditSource.includes('--require-release'));
+  assert.ok(renderSafetyAuditSource.includes('DAEGU_SEATMAP_RENDER_SAFETY_AUDIT_V1'));
+  assert.ok(renderSafetyAuditSource.includes('PASS_UI_CONTAINMENT'));
+  assert.ok(renderSafetyAuditSource.includes('PASS_RELEASE_177'));
+  assert.ok(renderSafetyAuditSource.includes('EXPECTED_REVIEW_ONLY_SEATS = 97'));
+  assert.ok(renderSafetyAuditSource.includes('HIDDEN_FROM_NORMAL_UI'));
+  assert.ok(renderSafetyAuditSource.includes('SCREENSHOT_ZONE_RISK'));
+  assert.ok(renderSafetyAuditSource.includes('LEGACY_RECTANGLE_REVIEW'));
+  assert.ok(renderSafetyAuditSource.includes('markerLayerUsesNonSeatRenderer'));
+  assert.ok(renderSafetyAuditSource.includes('markerLayerPointerDisabled'));
+  assert.ok(renderSafetyAuditSource.includes('isDaeguNormalSelectableSeat'));
+  assert.ok(renderSafetyAuditSource.includes('isDaeguReviewOnlySeat'));
+  assert.ok(renderSafetyAuditSource.includes('SOURCE_CONTRACT_MISSING'));
+  assert.ok(renderSafetyAuditSource.includes('SCREENSHOT_BLOCK_16_NOT_FLAGGED'));
+  assert.ok(zonePrecisionWorksetsSource.includes('DAEGU_ZONE_PRECISION_WORKSETS_V1'));
+  assert.ok(zonePrecisionWorksetsSource.includes('ZONE_3F_FIRST_BASE'));
+  assert.ok(zonePrecisionWorksetsSource.includes('ZONE_3F_CENTER_THIRD'));
+  assert.ok(zonePrecisionWorksetsSource.includes('ZONE_5F_SKY'));
+  assert.ok(zonePrecisionWorksetsSource.includes('ZONE_OUTFIELD'));
+  assert.ok(zonePrecisionWorksetsSource.includes('STAGE_01_BOUNDARY_FIRST'));
+  assert.ok(zonePrecisionWorksetsSource.includes('STAGE_02_DUPLICATE_SHARED'));
+  assert.ok(zonePrecisionWorksetsSource.includes('STAGE_03_3F_MANUAL_RETRACE'));
+  assert.ok(zonePrecisionWorksetsSource.includes('STAGE_04_5F_SKY'));
+  assert.ok(zonePrecisionWorksetsSource.includes('STAGE_05_OUTFIELD'));
+  assert.ok(zonePrecisionWorksetsSource.includes('expectedRows: 13'));
+  assert.ok(zonePrecisionWorksetsSource.includes('expectedRows: 11'));
+  assert.ok(zonePrecisionWorksetsSource.includes('expectedRows: 39'));
+  assert.ok(zonePrecisionWorksetsSource.includes('expectedRows: 34'));
+  assert.ok(zonePrecisionWorksetsSource.includes('productionWriteAllowed: false'));
+  assert.ok(zonePrecisionWorksetsSource.includes('operatorApprovalRequired: true'));
   assert.ok(correctionsRunbookSource.includes('대구 좌석도 operator corrections runbook'));
+  assert.ok(correctionsRunbookSource.includes('PASS_WORKFLOW'));
+  assert.ok(correctionsRunbookSource.includes('PASS_LOCKED_80'));
+  assert.ok(correctionsRunbookSource.includes('PASS_UI_CONTAINMENT'));
+  assert.ok(correctionsRunbookSource.includes('PASS_RELEASE_177'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:precision-audit'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:render-safety-audit'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:zone-precision-worksets'));
+  assert.ok(correctionsRunbookSource.includes('npm run qa:stadium:daegu:release-lock'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-precision-audit.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-render-safety-audit.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-zone-precision-worksets.md'));
   assert.ok(correctionsRunbookSource.includes('readyForWrite=false'));
   assert.ok(correctionsRunbookSource.includes('NO_APPROVED_OPERATOR_CORRECTIONS'));
   assert.ok(correctionsRunbookSource.includes('BATCH_1_P0'));
@@ -2992,6 +4801,8 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-non-overlap-priority-queue.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-visual-issue-queue.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-visual-off-seat-workset.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-input-aid.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-precision-workset.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-off-seat-retrace-intake.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p0-p1-off-seat-workset.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p0-off-seat-operator-input.md'));
@@ -3017,27 +4828,125 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-package'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-audit'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-decision-packet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-next-action-packet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-precision-workset'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-packet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-template-gate'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-source-copy'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-source-copy:write-source-input'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-review-board'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-entry-sheet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-entry-preflight'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-entry-preflight:require-ready'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-tracing-pack'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-operator-handoff'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-postwrite-gate'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-postwrite-gate:require-written'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-validate'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-import'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-readiness'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-prewrite-gate'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-operator-import:write-template'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-input-aid'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-package.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-checklist.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-decision-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-next-action-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-precision-workset.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-readiness.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-overlay.svg'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-operator-template.json'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-template-gate.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-source-copy.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-review-board.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-entry-sheet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-entry-preflight.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-tracing-pack/'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-operator-handoff.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-boundary-first-postwrite-gate.md'));
+  assert.ok(correctionsRunbookSource.includes('status=postwrite-verified'));
+  assert.ok(correctionsRunbookSource.includes('editableSource=existingOperatorTemplate'));
+  assert.ok(correctionsRunbookSource.includes('approvalMissingFields'));
+  assert.ok(correctionsRunbookSource.includes('nextOperatorAction'));
+  assert.ok(correctionsRunbookSource.includes('missingOperatorInputFields'));
+  assert.ok(correctionsRunbookSource.includes('editableTarget'));
+  assert.ok(correctionsRunbookSource.includes('waiting-for-operator-entry'));
+  assert.ok(correctionsRunbookSource.includes('ready-for-template-gate'));
+  assert.ok(correctionsRunbookSource.includes('ENTRY_PREFLIGHT_REQUIRES_OPERATOR_INPUT'));
+  assert.ok(correctionsRunbookSource.includes('report-only'));
+  assert.ok(correctionsRunbookSource.includes('require-ready'));
+  assert.ok(correctionsRunbookSource.includes('`source-copy:write-source-input` 명령은 이 require-ready preflight를 먼저 통과'));
+  assert.ok(correctionsRunbookSource.includes('red current target, blue paired neighbor, orange candidate reference-only path'));
+  assert.ok(correctionsRunbookSource.includes('공식 PNG `1707x2048` 원본을 배경으로 사용'));
+  assert.ok(correctionsRunbookSource.includes('좌표 변환을 하지 않는다'));
+  assert.ok(correctionsRunbookSource.includes('template-preservation'));
+  assert.ok(correctionsRunbookSource.includes('preservedEditableRows'));
+  assert.ok(correctionsRunbookSource.includes('templateOnly=true'));
+  assert.ok(correctionsRunbookSource.includes('productionWriteAllowed=false'));
+  assert.ok(correctionsRunbookSource.includes('status=ready-for-source-copy'));
+  assert.ok(correctionsRunbookSource.includes('status=waiting-for-operator'));
+  assert.ok(correctionsRunbookSource.includes('status=partial-boundary-approval'));
+  assert.ok(correctionsRunbookSource.includes('status=ready-for-write-source-input'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-audit.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-operator/daegu-seatmap-p1-operator-readiness.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-p1-operator-import.md'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-package'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-decision-packet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-next-action-packet'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-validate'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-import'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-readiness'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-prewrite-gate'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-import:write-template'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-handoff'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-worksets'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-workset-preflight'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-entry-sheet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-tracing-pack'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2-operator-post-entry-qa'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2a-operator-post-entry-qa'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2a-operator-input-packet'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2a-prewrite-gate'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p2a-readiness-v3'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-package.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-checklist.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-decision-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-next-action-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-handoff.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-worksets.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-workset-preflight.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-entry-sheet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-tracing-pack/daegu-seatmap-p2-operator-tracing-pack.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-post-entry-qa.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2a-operator-post-entry-qa.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2a-operator-input-packet.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2a-prewrite-gate.md'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2a-prewrite-preview.svg'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2a-readiness-v3.md'));
+  assert.ok(correctionsRunbookSource.includes('P2A_LABEL_TOP_HIT_OPERATOR_QA_REQUIRED'));
+  assert.ok(correctionsRunbookSource.includes('P2A_APPROVED_ROW_MISSING_FIELDS'));
+  assert.ok(correctionsRunbookSource.includes('P2A_CORRECTED_LABEL_OUTSIDE_PATH'));
+  assert.ok(correctionsRunbookSource.includes('P2A_CORRECTED_LABEL_TOP_HIT_MISMATCH'));
+  assert.ok(correctionsRunbookSource.includes('P2A_CORRECTED_HIT_PATH_CAPTURES_NEIGHBOR_LABEL'));
+  assert.ok(correctionsRunbookSource.includes('P2A_VALIDATION_ROW_NOT_VALID_FOR_APPROVAL'));
+  assert.ok(correctionsRunbookSource.includes('P2A_WAITING_OPERATOR_ENTRY'));
+  assert.ok(correctionsRunbookSource.includes('P2A_WAITING_P1_POSTWRITE'));
+  assert.ok(correctionsRunbookSource.includes('P2A_WAITING_FULL_P2_READINESS'));
+  assert.ok(correctionsRunbookSource.includes('P2A_NEVER_ALLOWS_DIRECT_PRODUCTION_WRITE'));
+  assert.ok(correctionsRunbookSource.includes('CONTINUE_P2_FULL_READINESS'));
+  assert.ok(correctionsRunbookSource.includes('CHECK_CORRECTED_LABEL_POINT_INSIDE_POLYGON'));
+  assert.ok(correctionsRunbookSource.includes('CHECK_LABEL_POINT_SELECTS_SAME_BLOCK'));
+  assert.ok(correctionsRunbookSource.includes('CHECK_HIT_PATH_DOES_NOT_CAPTURE_NEIGHBOR_BLOCK'));
+  assert.ok(correctionsRunbookSource.includes('CHECK_PATH_ALIGNED_TO_OFFICIAL_PNG_SEAT_AREA'));
+  assert.ok(correctionsRunbookSource.includes('CHECK_CURRENT_AND_CANDIDATE_PATHS_NOT_COPIED'));
+  assert.ok(correctionsRunbookSource.includes('status=ready-for-p2-readiness'));
+  assert.ok(correctionsRunbookSource.includes('FILL_REQUIRED_FIELDS'));
+  assert.ok(correctionsRunbookSource.includes('RETRACE_FROM_OFFICIAL_PNG'));
+  assert.ok(correctionsRunbookSource.includes('WAIT_FOR_P1_POSTWRITE'));
+  assert.ok(correctionsRunbookSource.includes('red=currentPath, orange=candidatePath reference-only'));
+  assert.ok(correctionsRunbookSource.includes('editableTarget'));
+  assert.ok(correctionsRunbookSource.includes('CORRECTED_PATH_REUSES_CANDIDATE_PATH'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p2-operator/daegu-seatmap-p2-operator-readiness.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-p2-operator-import.md'));
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p3-p4-operator-package'));
@@ -3054,7 +4963,21 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p3-p4-operator/daegu-seatmap-p3-p4-decision-packet.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p3-p4-operator/daegu-seatmap-p3-p4-operator-readiness.md'));
   assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-seatmap-p3-p4-operator-import.md'));
-  assert.ok(correctionsRunbookSource.includes('P3 3건, P4 49건'));
+  assert.ok(correctionsRunbookSource.includes('P3 0건, P4 44건'));
+  assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P0_ROW'));
+  assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P1_ROW'));
+  assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_P1_STAGE_ORDER'));
+  assert.ok(correctionsRunbookSource.includes('P1_STAGE_ORDER_APPROVAL_BLOCKED'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-readiness'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-boundary-first-regression'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-boundary-first-regression/'));
+  assert.ok(correctionsRunbookSource.includes('APPROVED_VALID'));
+  assert.ok(correctionsRunbookSource.includes('APPROVED_INVALID'));
+  assert.ok(correctionsRunbookSource.includes('canAdvanceToSingleCorrectedPath=false'));
+  assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p1-stage-order-regression'));
+  assert.ok(correctionsRunbookSource.includes('reports/stadium/daegu-p1-stage-order-regression/'));
+  assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P2_ROW'));
+  assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_AT_LEAST_ONE_APPROVED_P3_P4_ROW'));
   assert.ok(correctionsRunbookSource.includes('DRAFT_VALIDATION_ONLY'));
   assert.ok(correctionsRunbookSource.includes('WRITE_TEMPLATE_REQUIRES_NO_P0_PENDING_ROWS'));
   assert.ok(correctionsRunbookSource.includes('P0/P1/P2/P3/P4 operator input 파일을 source of truth로 둔다'));
@@ -3071,7 +4994,7 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsRunbookSource.includes('npm run stadium:daegu:p0-off-seat-operator-import:write-source-input'));
   assert.ok(correctionsRunbookSource.includes('NO_OVERLAP_OFF_SEAT_RETRACE_FIRST'));
   assert.ok(correctionsRunbookSource.includes('시각 오류 우선 queue'));
-  assert.ok(correctionsRunbookSource.includes('visual seed는 29건'));
+  assert.ok(correctionsRunbookSource.includes('visual seed는 현재 19건'));
   assert.ok(correctionsRunbookSource.includes('현재 source input에 없는 블록은 observation으로만 남기고 visual seed row에는 포함하지 않는다.'));
   assert.ok(correctionsRunbookSource.includes('VISUAL_OFF_SEAT_HARD_FAIL'));
   assert.ok(correctionsRunbookSource.includes('OVERSIZED_RECT_MANUAL_RETRACE'));
@@ -3080,19 +5003,19 @@ test('대구 trace review 스크립트는 운영자 승인 패키지 입력 필�
   assert.ok(correctionsRunbookSource.includes('DEFER_DUPLICATE_BOUNDARY'));
   assert.ok(correctionsRunbookSource.includes('`PIXEL_CANDIDATE_READY` row도 자동 승격하지 않으며'));
   assert.ok(correctionsRunbookSource.includes('production write 순서는 계속 P0, P1, P2, P3/P4 gate를 따른다.'));
-  assert.ok(correctionsRunbookSource.includes('VISUAL_OFF_SEAT_HARD_FAIL 44건 workset'));
-  assert.ok(correctionsRunbookSource.includes('현재 기준 분포는 P0 2건, P1 12건, P2 0건, P3/P4 30건이며 visual seed row는 9건이어야 한다.'));
+  assert.ok(correctionsRunbookSource.includes('VISUAL_OFF_SEAT_HARD_FAIL 27건 workset'));
+  assert.ok(correctionsRunbookSource.includes('현재 기준 분포는 P0 0건, P1 5건, P2 0건, P3/P4 22건이며 visual seed row는 7건이어야 한다.'));
   assert.ok(correctionsRunbookSource.includes('이 workset은 read-only이고 `productionWriteAllowed=false`다.'));
   assert.ok(correctionsRunbookSource.includes('실제 좌석 경계를 최소 6점 이상으로 수동 트레이싱'));
   assert.ok(correctionsRunbookSource.includes('LOW_COMPONENT_INSIDE_CURRENT_PATH'));
   assert.ok(correctionsRunbookSource.includes('LOW_CURRENT_PATH_COLOR_COVERAGE'));
-  assert.ok(correctionsRunbookSource.includes('현재 기준 off-seat intake는 44건이며'));
-  assert.ok(correctionsRunbookSource.includes('P0/P1 subset은 14건'));
+  assert.ok(correctionsRunbookSource.includes('현재 기준 off-seat intake는 27건이며'));
+  assert.ok(correctionsRunbookSource.includes('P0/P1 subset은 5건'));
   assert.ok(correctionsRunbookSource.includes('중복 후보 경계가 있는 row는 이 intake에서 제외'));
-  assert.ok(correctionsRunbookSource.includes('현재 기준 workset은 P0 2건, P1 12건, 총 14건'));
+  assert.ok(correctionsRunbookSource.includes('현재 기준 workset은 P0 0건, P1 5건, 총 5건'));
   assert.ok(correctionsRunbookSource.includes('currentPath`는 오류 확인용'));
   assert.ok(correctionsRunbookSource.includes('candidatePath`는 참고용'));
-  assert.ok(correctionsRunbookSource.includes('대상은 `09 휠체어`, `U22 휠체어`'));
+  assert.ok(correctionsRunbookSource.includes('현재 대상 row는 0건이며 duplicate row는 0건이어야 한다.'));
   assert.ok(correctionsRunbookSource.includes('P0 off-seat draft import'));
   assert.ok(correctionsRunbookSource.includes('기본 모드는 dry-run이며 source input, main corrections template, `src/data/daeguSeatData.ts`를 수정하지 않는다.'));
   assert.ok(correctionsRunbookSource.includes('승인 row가 없으면 source input을 쓰지 않는다.'));
@@ -3213,7 +5136,11 @@ test('주요 full QA 스크립트는 필터 적용 후 대표 블록 클릭 회�
     "'gocheok-filter-accessible'",
     "'daegu-filter-cheer'",
     "'daegu-filter-table'",
-    "'daegu-filter-accessible'",
+    "'daegu-filter-outfield'",
+    'daegu-review-block-daegu-sky-third-upper-16',
+    'Daegu normal seat layer must not render NEEDS_OPERATOR_REVIEW blocks',
+    'Daegu marker-only accessible entries must not render in the seat polygon layer',
+    'Daegu marker-only layer must not expose seat selection buttons',
   ].forEach((snippet) => {
     assert.ok(auditSource.includes(snippet), `${snippet} should be part of stadium full filter QA`);
   });

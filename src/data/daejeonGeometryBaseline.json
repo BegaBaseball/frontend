@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-11T15:52:20.703Z",
+  "generatedAt": "2026-05-11T16:05:43.244Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedBlockCount": 145,
   "policy": {
@@ -509,7 +509,7 @@
       "parentId": "first-infield-a-109-112-201-212",
       "officialBlockLabel": "내야 지정석A 109",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "8938d5df11e92208f317551a8f991b2c409eef42504e1c4370fe3af84cb3b0e7",
+      "fingerprint": "e9e8745cee9e8a7caf33d17c839c0f170c5e8b63d231d1f039b8fa90d715b03f",
       "geometry": {
         "id": "first-infield-a-109-112-201-212__109",
         "parentId": "first-infield-a-109-112-201-212",
@@ -522,14 +522,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 543 624 L 563 603 L 635 662 L 637 667 L 617 688 Z",
-          "labelX": 599,
-          "labelY": 633,
+          "d": "M 577 584 L 586 591 L 606 607 L 625 622 L 652 634 L 652 637 L 636 655 L 626 647 L 606 631 L 586 615 L 564 600 L 566 596 L 574 588 Z",
+          "labelX": 610,
+          "labelY": 626,
           "shortLabel": "109",
           "labelFontSize": 9,
           "labelRotate": -23
         },
-        "hitAreaD": "M 543 624 L 563 603 L 635 662 L 637 667 L 617 688 Z"
+        "hitAreaD": "M 577 584 L 586 591 L 606 607 L 625 622 L 652 634 L 652 637 L 636 655 L 626 647 L 606 631 L 586 615 L 564 600 L 566 596 L 574 588 Z"
       },
       "anchorCropIds": [
         "first-101-109",

@@ -10,6 +10,8 @@ import {
   GWANGJU_COORDINATE_TRACE_STATUS,
   GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES,
   GWANGJU_EXPECTED_TRACE_BLOCK_COUNT,
+  GWANGJU_FULL_RETRACE_GENERATION,
+  GWANGJU_FULL_RETRACE_VERSION,
   GWANGJU_IMAGE_GEOMETRY_DRAFTS,
   GWANGJU_OFFICIAL_TRACE_REFERENCE,
   GWANGJU_AWAY_CHEERING_BLOCK_IDS,
@@ -19,10 +21,12 @@ import {
   GWANGJU_K7_OFFICIAL_BLOCKS,
   GWANGJU_MYSEATCHECK_REFERENCE_URL,
   GWANGJU_NON_SELECTABLE_MARKER_ZONES,
+  GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES,
   GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE,
   GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS,
   GWANGJU_OPERATOR_SECTION_REQUIREMENTS,
   GWANGJU_PENDING_OPERATOR_SECTIONS,
+  GWANGJU_PREVIOUS_TRACE_VERSION,
   GWANGJU_SELECTABLE_BLOCKS_READY,
   GWANGJU_SEATMAP_COORDINATES_READY,
   GWANGJU_SEATMAP_IMAGE,
@@ -30,6 +34,7 @@ import {
   GWANGJU_TRACE_BOUNDS_TOLERANCE_PX,
   GWANGJU_TRACE_REVIEW_REGIONS,
   GWANGJU_TRACE_REVIEW_SUMMARY,
+  GWANGJU_ZONE_PRECISION_WORKSETS,
   getGwangjuDerivedOperatorRangesForBlock,
   matchesGwangjuCategoryGroup,
 } from './gwangjuSeatData';
@@ -296,6 +301,180 @@ function calculateOfficialSeatColorOverlapRatio(image: ImagePixelData, pathData:
   return sampledPoints === 0 ? 0 : seatColorPoints / sampledPoints;
 }
 
+const GWANGJU_COMPONENT_COLOR_SPECS = {
+  outfield: {
+    colors: [[220, 234, 186]],
+    threshold: 22,
+    minArea: 300,
+  },
+  'bleachers-table': {
+    colors: [[144, 195, 31]],
+    threshold: 30,
+    minArea: 100,
+  },
+} as const;
+
+const GWANGJU_COMPONENT_EXTRACTION_BOUNDS = { minX: 250, maxX: 1370, minY: 90, maxY: 1090 } as const;
+
+function colorDistance(first: readonly [number, number, number], second: readonly [number, number, number]): number {
+  return Math.hypot(first[0] - second[0], first[1] - second[1], first[2] - second[2]);
+}
+
+function isOfficialComponentPixel(
+  image: ImagePixelData,
+  groupId: keyof typeof GWANGJU_COMPONENT_COLOR_SPECS,
+  x: number,
+  y: number,
+): boolean {
+  const spec = GWANGJU_COMPONENT_COLOR_SPECS[groupId];
+  const color = getPixelColor(image, x, y);
+
+  return spec.colors.some((target) => colorDistance(color, target) <= spec.threshold);
+}
+
+function componentPixelKey(x: number, y: number): string {
+  return `${x},${y}`;
+}
+
+function extractOfficialComponents(
+  image: ImagePixelData,
+  groupId: keyof typeof GWANGJU_COMPONENT_COLOR_SPECS,
+) {
+  const spec = GWANGJU_COMPONENT_COLOR_SPECS[groupId];
+  const bounds = GWANGJU_COMPONENT_EXTRACTION_BOUNDS;
+  const width = bounds.maxX - bounds.minX + 1;
+  const height = bounds.maxY - bounds.minY + 1;
+  const mask = new Uint8Array(width * height);
+  const seen = new Uint8Array(width * height);
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      if (isOfficialComponentPixel(image, groupId, x, y)) {
+        mask[((y - bounds.minY) * width) + (x - bounds.minX)] = 1;
+      }
+    }
+  }
+
+  const components: Array<{
+    id: string;
+    area: number;
+    bounds: {
+      minX: number;
+      minY: number;
+      maxX: number;
+      maxY: number;
+    };
+    pixelKeys: Set<string>;
+  }> = [];
+  const queue: Array<[number, number]> = [];
+  const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const startIndex = ((y - bounds.minY) * width) + (x - bounds.minX);
+      if (!mask[startIndex] || seen[startIndex]) continue;
+
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+      let area = 0;
+      const pixelKeys = new Set<string>();
+
+      seen[startIndex] = 1;
+      queue.length = 0;
+      queue.push([x, y]);
+
+      for (let head = 0; head < queue.length; head += 1) {
+        const [currentX, currentY] = queue[head];
+        area += 1;
+        minX = Math.min(minX, currentX);
+        maxX = Math.max(maxX, currentX);
+        minY = Math.min(minY, currentY);
+        maxY = Math.max(maxY, currentY);
+        pixelKeys.add(componentPixelKey(currentX, currentY));
+
+        for (const [offsetX, offsetY] of directions) {
+          const nextX = currentX + offsetX;
+          const nextY = currentY + offsetY;
+          if (nextX < bounds.minX || nextX > bounds.maxX || nextY < bounds.minY || nextY > bounds.maxY) {
+            continue;
+          }
+
+          const index = ((nextY - bounds.minY) * width) + (nextX - bounds.minX);
+          if (!mask[index] || seen[index]) continue;
+
+          seen[index] = 1;
+          queue.push([nextX, nextY]);
+        }
+      }
+
+      if (area >= spec.minArea) {
+        components.push({
+          id: `${groupId}-${components.length + 1}`,
+          area,
+          bounds: { minX, minY, maxX, maxY },
+          pixelKeys,
+        });
+      }
+    }
+  }
+
+  return components.sort((left, right) => (
+    left.bounds.minY - right.bounds.minY
+    || left.bounds.minX - right.bounds.minX
+  ));
+}
+
+function getSelectedOfficialComponentPixels(
+  image: ImagePixelData,
+  reference: typeof GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES[string],
+): Set<string> {
+  const selectedIds = new Set(reference.componentIds);
+  const selectedPixelKeys = new Set<string>();
+  extractOfficialComponents(image, reference.componentGroupId)
+    .filter((component) => selectedIds.has(component.id))
+    .forEach((component) => {
+      component.pixelKeys.forEach((pixelKey) => selectedPixelKeys.add(pixelKey));
+    });
+
+  return selectedPixelKeys;
+}
+
+function calculateOfficialComponentCoverage(
+  image: ImagePixelData,
+  block: { imageGeometry: { d: string } },
+  reference: typeof GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES[string],
+) {
+  const subpaths = parsePathSubpaths(block.imageGeometry.d);
+  const selectedComponentPixels = getSelectedOfficialComponentPixels(image, reference);
+  const bounds = reference.expectedBounds;
+  let componentPixels = 0;
+  let polygonPixels = 0;
+  let intersectingPixels = 0;
+  const sampleStep = 2;
+  const padding = 20;
+
+  for (let y = Math.max(0, Math.floor(bounds.minY - padding)); y <= Math.min(image.height - 1, Math.ceil(bounds.maxY + padding)); y += sampleStep) {
+    for (let x = Math.max(0, Math.floor(bounds.minX - padding)); x <= Math.min(image.width - 1, Math.ceil(bounds.maxX + padding)); x += sampleStep) {
+      const insideReferenceBounds = x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
+      const isComponentPixel = insideReferenceBounds && selectedComponentPixels.has(componentPixelKey(x, y));
+      const isPolygonPixel = subpaths.some((subpath) => isPointInSubpath({ x, y }, subpath));
+
+      if (isComponentPixel) componentPixels += 1;
+      if (isPolygonPixel) polygonPixels += 1;
+      if (isComponentPixel && isPolygonPixel) intersectingPixels += 1;
+    }
+  }
+
+  return {
+    officialComponentRecall: componentPixels === 0 ? 0 : intersectingPixels / componentPixels,
+    componentIoU: (componentPixels + polygonPixels - intersectingPixels) === 0
+      ? 0
+      : intersectingPixels / (componentPixels + polygonPixels - intersectingPixels),
+  };
+}
+
 function isNumberedSeatBlock(block: { block: string }): boolean {
   return /^\d+$/.test(block.block) || /^S-\d+$/.test(block.block);
 }
@@ -431,12 +610,18 @@ test('광주 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.officialBlocks.length > 0, `${block.id} official blocks should exist`);
     assert.ok(block.seatViewSections.length > 0, `${block.id} seat view aliases should exist`);
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
-    assert.match(block.imageGeometry.d, /^M -?\d+(?:\.\d+)? -?\d+(?:\.\d+)?(?: L -?\d+(?:\.\d+)? -?\d+(?:\.\d+)?){3,} Z$/, `${block.id} image geometry should use closed polygon path data`);
+    const subpaths = parsePathSubpaths(block.imageGeometry.d);
+    assert.ok(subpaths.length >= 1, `${block.id} image geometry should use closed polygon path data`);
+    if (!['bleachers-table-left', 'bleachers-table-right', 'skybox-seats'].includes(block.id)) {
+      assert.equal(subpaths.length, 1, `${block.id} should use a single official-image polygon subpath`);
+    }
     assert.ok((block.imageGeometry.d.match(/L /g)?.length ?? 0) >= 3, `${block.id} image geometry should use polygon path data`);
     assert.equal(block.imageGeometry.traceStatus, 'OFFICIAL_IMAGE_TRACED', `${block.id} should use official traced geometry`);
     assert.equal(block.imageGeometry.traceMethod, 'PATH_TRACED_FROM_OFFICIAL_IMAGE', `${block.id} should use direct official-image path tracing`);
     assert.equal(block.imageGeometry.traceSource, 'OFFICIAL_PNG_MANUAL_POLYGON', `${block.id} should use manual official-PNG polygon source`);
-    assert.equal(block.imageGeometry.traceVersion, 'manual-polygon-v2', `${block.id} should use the precision retrace version`);
+    assert.equal(block.imageGeometry.traceVersion, GWANGJU_FULL_RETRACE_VERSION, `${block.id} should use the full precision retrace version`);
+    assert.equal(block.imageGeometry.previousTraceVersion, GWANGJU_PREVIOUS_TRACE_VERSION, `${block.id} should keep the previous trace version`);
+    assert.equal(block.imageGeometry.traceGeneration, GWANGJU_FULL_RETRACE_GENERATION, `${block.id} should use the full active block retrace generation`);
     assert.equal(block.imageGeometry.manualReviewed, true, `${block.id} precision trace should be manually reviewed`);
     assert.equal(block.imageGeometry.pixelAlignmentStatus, 'PIXEL_ALIGNED', `${block.id} should be pixel aligned`);
     assert.ok(block.imageGeometry.manualReviewNote, `${block.id} should keep trace review note`);
@@ -445,6 +630,8 @@ test('광주 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.imageGeometry.labelY >= 0 && block.imageGeometry.labelY <= GWANGJU_SEATMAP_IMAGE.imageHeight, `${block.id} label y should fit image bounds`);
 
     const pathNumbers = block.imageGeometry.d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    assert.equal(pathNumbers.length / 2, block.imageGeometry.retracePointCount, `${block.id} path point count should match retrace metadata`);
+    assert.equal(block.imageGeometry.retracePointCount, block.imageGeometry.retraceSourcePointCount * 2, `${block.id} should be regenerated as a full retrace path`);
     assert.ok(pathNumbers.length >= 4, `${block.id} image geometry should contain path coordinates`);
     pathNumbers.forEach((coordinate, index) => {
       const limit = index % 2 === 0 ? GWANGJU_SEATMAP_IMAGE.imageWidth : GWANGJU_SEATMAP_IMAGE.imageHeight;
@@ -464,11 +651,74 @@ test('광주 trace review summary는 active 블록의 수동 polygon trace 완�
   assert.equal(GWANGJU_TRACE_REVIEW_SUMMARY.manualReviewRequired, 0);
 });
 
+test('광주 manual-polygon-v5 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
+  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v5');
+  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v4');
+
+  const worksetsById = new Map(GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) => [workset.id, workset]));
+  const activeBlockIds = new Set(GWANGJU_BLOCKS.map((block) => block.id));
+
+  assert.deepEqual(
+    GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) => workset.id),
+    [
+      'p1-op-outfield-component',
+      'p2-lower-infield-low-margin',
+      'p3-official-special-sections',
+      'p4-repeated-numbered-blocks',
+      'p5-full-release-reference',
+    ],
+  );
+
+  assert.deepEqual(worksetsById.get('p1-op-outfield-component')?.blockIds, [
+    'outfield-left-seats',
+    'outfield-right-seats',
+    'bleachers-table-left',
+    'bleachers-table-right',
+  ]);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-118'), true);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-119'), true);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k9-117'), true);
+  assert.equal(worksetsById.get('p3-official-special-sections')?.blockIds.length, 12);
+  assert.equal(worksetsById.get('p4-repeated-numbered-blocks')?.blockIds.length, 70);
+  assert.deepEqual(
+    new Set(worksetsById.get('p4-repeated-numbered-blocks')?.blockIds.map((blockId) => (
+      GWANGJU_BLOCKS.find((block) => block.id === blockId)?.category
+    ))),
+    new Set(['SKY_PICNIC', 'FIVE_TABLE']),
+  );
+  assert.ok(
+    worksetsById.get('p4-repeated-numbered-blocks')?.acceptanceFocus.includes('repeat-block-pixel-coverage-lock'),
+    'P4 repeated numbered blocks should lock high official pixel coverage',
+  );
+  assert.equal(worksetsById.get('p5-full-release-reference')?.blockIds.length, GWANGJU_EXPECTED_TRACE_BLOCK_COUNT);
+
+  GWANGJU_ZONE_PRECISION_WORKSETS.forEach((workset) => {
+    assert.ok(workset.acceptanceFocus.length > 0, `${workset.id} should define acceptance focus`);
+    workset.blockIds.forEach((blockId) => {
+      assert.ok(activeBlockIds.has(blockId), `${workset.id} should reference active block ${blockId}`);
+    });
+  });
+
+  const p5BlockIds = new Set(worksetsById.get('p5-full-release-reference')?.blockIds);
+  assert.deepEqual([...activeBlockIds].sort(), [...p5BlockIds].sort());
+});
+
 test('광주 official trace reference는 전 active 블록의 anchor와 bbox를 고정한다', () => {
+  const source = readFileSync(new URL('./gwangjuSeatData.ts', import.meta.url), 'utf8');
   const expectedIds = GWANGJU_BLOCKS.map((block) => block.id).sort();
   const actualReferenceIds = Object.keys(GWANGJU_OFFICIAL_TRACE_REFERENCE).sort();
 
   assert.deepEqual(actualReferenceIds, expectedIds);
+  assert.equal(source.includes('toOfficialTraceReference'), false, 'trace reference should not be generated from current geometry at runtime');
+  assert.equal(
+    source.includes('Object.entries(GWANGJU_IMAGE_GEOMETRY).map(([id, geometry])'),
+    false,
+    'trace reference should stay independently locked from current geometry',
+  );
+  assert.ok(
+    source.includes("'skybox-seats': { numberAnchor: { x: 356, y: 848 }, expectedBounds: { minX: 345, minY: 823, maxX: 389, maxY: 888 }, expectedSubpathCount: 2 }"),
+    'multi-subpath skybox reference should be statically locked',
+  );
 
   GWANGJU_BLOCKS.forEach((block) => {
     const reference = GWANGJU_OFFICIAL_TRACE_REFERENCE[block.id];
@@ -562,6 +812,83 @@ test('광주 블록 geometry는 정적 공식 이미지 좌표 map에서만 공�
   assert.equal(source.includes('SKY_PICNIC_GEOMETRY_CENTERS'), false);
   assert.equal(source.includes('GENERATED_ROTATED_BOX'), false);
   assert.equal(source.includes('APPROXIMATE_MANUAL_POLYGON'), false);
+});
+
+test('광주 구역별 정밀화 manifest와 package script는 v5 workset 산출물을 고정한다', () => {
+  const manifestSource = readFileSync(new URL('../../scripts/gwangju-seatmap-review-manifest.mjs', import.meta.url), 'utf8');
+  const worksetSource = readFileSync(new URL('../../scripts/gwangju-seatmap-zone-precision-worksets.mjs', import.meta.url), 'utf8');
+  const lowMarginSource = readFileSync(new URL('../../scripts/gwangju-seatmap-low-margin-candidates.mjs', import.meta.url), 'utf8');
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const svgSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMapSvg.tsx', import.meta.url), 'utf8');
+  const componentSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMap.tsx', import.meta.url), 'utf8');
+
+  [
+    'GWANGJU_ZONE_PRECISION_WORKSETS',
+    'zonePrecisionWorksets',
+    'zonePrecisionWarnings',
+    'zonePrecisionWorksetIds',
+    'COMPONENT_EXTRACTION_BOUNDS',
+    'getSelectedOfficialComponentPixels',
+    'reference.componentIds',
+    'REPEATED_NUMBERED_BLOCK_MIN_PIXEL_COVERAGE',
+    'REPEATED_BLOCK_PIXEL_COVERAGE_BELOW_LOCK',
+    'gwangju-seatmap-trace-review-zone-crops',
+    'zoneOverlayArtifacts',
+  ].forEach((requiredText) => {
+    assert.ok(manifestSource.includes(requiredText), `manifest should include ${requiredText}`);
+  });
+
+  [
+    'GWANGJU_ZONE_PRECISION_WORKSETS_V1',
+    'REPEATED_NUMBERED_BLOCK_MIN_PIXEL_COVERAGE',
+    'REPEATED_BLOCK_PIXEL_COVERAGE_BELOW_LOCK',
+    'gwangju-seatmap-zone-precision-worksets.json',
+    'gwangju-seatmap-zone-precision-worksets.csv',
+    'gwangju-seatmap-zone-precision-worksets.md',
+    'gwangju-seatmap-zone-precision-worksets.svg',
+    'runtimeSeatLayerSource',
+    'GWANGJU_BLOCKS[].imageGeometry.d',
+    'GWANGJU_IMAGE_GEOMETRY_DRAFTS',
+    'GWANGJU_OFFICIAL_TRACE_REFERENCE',
+    'gwangju-seatmap-operator-template.json',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredText) => {
+    assert.ok(worksetSource.includes(requiredText), `zone workset script should include ${requiredText}`);
+  });
+
+  assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-zone-precision-worksets.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-low-margin-candidates.mjs'));
+  [
+    'GWANGJU_LOW_MARGIN_CANDIDATES_V1',
+    'gwangju-seatmap-low-margin-candidates.json',
+    'gwangju-seatmap-low-margin-candidates.csv',
+    'gwangju-seatmap-low-margin-candidates.md',
+    'NUMBERED_PIXEL_ACCEPTANCE_MIN',
+    'SPECIAL_PIXEL_ACCEPTANCE_MIN',
+    'COMPONENT_RECALL_REVIEW_TARGET',
+    'COMPONENT_IOU_REVIEW_TARGET',
+    'P1_P2_BOUNDARY_WATCH',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+    'browser CSS pixels',
+    'web-search-based baseball data',
+  ].forEach((requiredText) => {
+    assert.ok(lowMarginSource.includes(requiredText), `low-margin script should include ${requiredText}`);
+  });
+  assert.ok(svgSource.includes('GWANGJU_BLOCKS.map'), 'runtime seat layer should render active blocks');
+  assert.ok(svgSource.includes('d={block.imageGeometry.d}'), 'runtime seat layer should use release-ready block image geometry');
+  assert.equal(svgSource.includes('GWANGJU_IMAGE_GEOMETRY_DRAFTS'), false, 'runtime should not render draft geometry directly');
+  assert.equal(svgSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'), false, 'runtime should not render reference geometry directly');
+  assert.equal(svgSource.includes('GWANGJU_OPERATOR_SECTION_REQUIREMENTS'), false, 'runtime SVG should not render operator-only sections');
+  assert.equal(svgSource.includes('gwangju-seatmap-operator-template'), false, 'runtime SVG should not read operator template data');
+  assert.equal(svgSource.includes('home-k7-seats'), false, 'runtime SVG should not render pending K7 aggregate geometry');
+  assert.equal(svgSource.includes('away-cheering-seats'), false, 'runtime SVG should not render pending away aggregate geometry');
+  assert.ok(svgSource.includes('GWANGJU_NON_SELECTABLE_MARKER_ZONES.map'), 'runtime should keep marker-only zones in a separate marker layer');
+  assert.ok(svgSource.includes('<circle'), 'marker-only zones should be rendered as non-seat marker geometry');
+  assert.equal(componentSource.includes('GWANGJU_IMAGE_GEOMETRY_DRAFTS'), false, 'runtime component should not import draft geometry');
+  assert.equal(componentSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'), false, 'runtime component should not import reference geometry');
+  assert.equal(componentSource.includes('GWANGJU_OPERATOR_SECTION_REQUIREMENTS'), false, 'runtime component should not import operator-only section requirements');
 });
 
 test('광주 좌석도는 정적 공식 이미지 polygon 상태에서 선택을 활성화한다', () => {
@@ -686,6 +1013,80 @@ test('광주 traced geometry는 공식 PNG 좌석 색상 영역과 충분히 겹
     assert.ok(
       overlapRatio >= minimumOverlapRatio,
       `${block.id} should overlap official colored seat pixels. Actual ratio: ${overlapRatio.toFixed(2)}`,
+    );
+  });
+});
+
+test('광주 P4 반복 블럭은 높은 공식 PNG 좌석 색상 overlap으로 잠근다', async () => {
+  const image = await readOfficialSeatmapPixels();
+  const p4Workset = GWANGJU_ZONE_PRECISION_WORKSETS.find((workset) => workset.id === 'p4-repeated-numbered-blocks');
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const failures: string[] = [];
+
+  assert.ok(p4Workset, 'P4 repeated numbered block workset should exist');
+  assert.equal(p4Workset.blockIds.length, 70);
+
+  p4Workset.blockIds.forEach((blockId) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist`);
+    assert.ok(['SKY_PICNIC', 'FIVE_TABLE'].includes(block.category), `${blockId} should stay in P4 repeat categories`);
+
+    const overlapRatio = calculateOfficialSeatColorOverlapRatio(image, block.imageGeometry.d);
+    if (overlapRatio < 0.98) {
+      failures.push(`${blockId}:${overlapRatio.toFixed(4)}`);
+    }
+  });
+
+  assert.deepEqual(failures, []);
+});
+
+test('광주 P4 518/519와 skybox 공유 경계는 공식 component bbox로 잠근다', () => {
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const expectedBoundsByBlockId = {
+    'five-table-518': { minX: 319, minY: 861, maxX: 382, maxY: 919 },
+    'five-table-519': { minX: 297, minY: 827, maxX: 361, maxY: 882 },
+    'skybox-seats': { minX: 345, minY: 823, maxX: 389, maxY: 888 },
+  };
+  const sharedBoundaryIds = Object.keys(expectedBoundsByBlockId);
+
+  sharedBoundaryIds.forEach((blockId) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist for shared-boundary lock`);
+    const subpaths = parsePathSubpaths(block.imageGeometry.d);
+
+    assert.deepEqual(getPathBounds(subpaths), expectedBoundsByBlockId[blockId as keyof typeof expectedBoundsByBlockId]);
+  });
+  assert.equal(parsePathSubpaths(blocksById.get('skybox-seats')!.imageGeometry.d).length, 2);
+
+  sharedBoundaryIds.forEach((firstId, firstIndex) => {
+    sharedBoundaryIds.slice(firstIndex + 1).forEach((secondId) => {
+      const overlapRatio = calculateSampledOverlapRatio(
+        blocksById.get(firstId)!.imageGeometry.d,
+        blocksById.get(secondId)!.imageGeometry.d,
+      );
+
+      assert.ok(overlapRatio <= 0.005, `${firstId}/${secondId} should not overlap. Actual ratio: ${overlapRatio.toFixed(4)}`);
+    });
+  });
+});
+
+test('광주 O/P 외야 hit-area는 공식 PNG component coverage 기준을 통과한다', async () => {
+  const image = await readOfficialSeatmapPixels();
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+
+  Object.entries(GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES).forEach(([blockId, reference]) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist for O/P component coverage`);
+
+    const metrics = calculateOfficialComponentCoverage(image, block, reference);
+
+    assert.ok(
+      metrics.officialComponentRecall >= reference.minimumRecall,
+      `${blockId} should cover official ${reference.componentIds.join('+')} pixels. Actual recall: ${metrics.officialComponentRecall.toFixed(3)}`,
+    );
+    assert.ok(
+      metrics.componentIoU >= reference.minimumIoU,
+      `${blockId} should align with official ${reference.componentIds.join('+')} component. Actual IoU: ${metrics.componentIoU.toFixed(3)}`,
     );
   });
 });
