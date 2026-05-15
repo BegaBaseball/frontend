@@ -12,6 +12,7 @@ const skyboxBlockIds = (start, end) => Array.from({ length: end - start + 1 }, (
 export const cropReviewMeta = new Map([
   ['home-100', { group: 'home', purpose: '홈 뒤쪽 100A-100C 기준 좌표 검수', reviewFocus: '중앙/포수/탁자 100A-100C가 홈플레이트 뒤 공식 셀 안에 머무는지 확인' }],
   ['first-101-109', { group: 'first', purpose: '1루 101-109 연속 블록 drift 검수', reviewFocus: '104 단일 셀, 105-109 한 칸 밀림 회귀가 없는지 확인' }],
+  ['first-104-106-detail', { group: 'first', purpose: '1루 104-106 단일화 상세 검수', reviewFocus: '104가 오른쪽 라벨 셀만 소유하고 105/106이 한 칸 밀리지 않는지 확인' }],
   ['first-107-110-detail', { group: 'first', purpose: '1루 107-110 경계 상세 검수', reviewFocus: '108/109/110 경계와 label top-hit 위치 확인' }],
   ['first-109-112-sequence', { group: 'first', purpose: '1루 109-112 하단 연속 블록 검수', reviewFocus: '109-112 순서와 각 path가 공식 색상 셀 밖으로 나가지 않는지 확인' }],
   ['cass-200-detail', { group: 'first', purpose: 'CASS 응원석 200 기준 검수', reviewFocus: '200 특수 셀이 인접 1루 내야/탁자석을 흡수하지 않는지 확인' }],
@@ -21,6 +22,7 @@ export const cropReviewMeta = new Map([
   ['third-113-120-sequence', { group: 'third', purpose: '3루 113-120 연속 블록 drift 검수', reviewFocus: '113-120 순서가 밀리지 않고 100C/하단 블록을 흡수하지 않는지 확인' }],
   ['third-113-117-wide', { group: 'third', purpose: '3루 113-117 wide 검수', reviewFocus: '115-117 하단 경계와 113/114 경계의 전체 흐름 확인' }],
   ['third-115-117-detail', { group: 'third', purpose: '3루 115-117 상세 검수', reviewFocus: '115/116/117 path가 스크린샷 이슈 기준 셀에 맞는지 확인' }],
+  ['third-116-121-detail', { group: 'third', purpose: '3루 116-121 연속 경계 상세 검수', reviewFocus: '116-121이 117/121 스크린샷 이슈 기준으로 한 칸씩 밀리지 않는지 확인' }],
   ['third-113-114-detail', { group: 'third', purpose: '3루 113/114 경계 상세 검수', reviewFocus: '113/114가 중앙 100C를 흡수하지 않는지 확인' }],
   ['third-213-225-sequence', { group: 'third', purpose: '3루 213-225 하단 소블록 검수', reviewFocus: '213-225 소블록 순서와 하단 좌측 외곽 셀 bounds 확인' }],
   ['third-221-225-detail', { group: 'third', purpose: '3루 221-225 상세 검수', reviewFocus: '221-225 좌측 외곽 소블록이 과대 확장되지 않는지 확인' }],
@@ -68,8 +70,8 @@ export const cropCriteriaByGroup = new Map([
     reject: ['500 잔디석 또는 501-509 테이블/지정석이 서로 겹치거나 외곽을 벗어난다.'],
   }],
   ['skybox', {
-    pass: ['S01-S37 소형 셀이 label-only 예외 없이 crop 안에서 모두 확인된다.'],
-    reject: ['스카이박스 셀이 누락되거나 label/top-hit 검수 없이 잠긴 것처럼 보인다.'],
+    pass: ['S01-S37 소형 셀이 label-only 예외 없이 자동 owner-point 회귀 테스트로 잠긴다.'],
+    reject: ['스카이박스 셀이 누락되거나 label/top-hit 회귀 테스트 없이 잠긴 것처럼 보인다.'],
   }],
   ['special', {
     pass: ['특수석/휠체어석 path가 인접 일반석을 과대 선택하지 않는다.'],
@@ -95,21 +97,14 @@ export const p1ReviewCropIds = new Set([
   'outfield-upper-500-509-sequence',
 ]);
 
-export const p2ManualOnlyCropIds = new Set([
-  'skybox-s01-s12-sequence',
-  'skybox-s13-s25-sequence',
-  'skybox-s26-s37-sequence',
-]);
+export const p2ManualOnlyCropIds = new Set([]);
 
-export const p2ManualOnlyReasonByCropId = new Map([
-  ['skybox-s01-s12-sequence', 'S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다.'],
-  ['skybox-s13-s25-sequence', 'S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다.'],
-  ['skybox-s26-s37-sequence', 'S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다.'],
-]);
+export const p2ManualOnlyReasonByCropId = new Map([]);
 
 export const riskTagsByCropId = new Map([
   ['home-100', ['100A-100C', 'home-stack', 'visible-path']],
   ['first-101-109', ['104-single-cell', '105-109-drift', 'first-base-sequence']],
+  ['first-104-106-detail', ['104-single-cell', '105-106-drift', 'screenshot-regression']],
   ['first-107-110-detail', ['108-109-boundary', 'label-top-hit']],
   ['first-109-112-sequence', ['109-112-drift', 'lower-infield']],
   ['cass-200-detail', ['special-seat', 'adjacent-overlap']],
@@ -119,6 +114,7 @@ export const riskTagsByCropId = new Map([
   ['third-113-120-sequence', ['113-120-drift', '100C-overlap']],
   ['third-113-117-wide', ['113-117-drift', 'dugout-boundary']],
   ['third-115-117-detail', ['115-117-boundary', 'screenshot-regression']],
+  ['third-116-121-detail', ['116-121-drift', '121-split-color', 'screenshot-regression']],
   ['third-113-114-detail', ['113-114-boundary', '100C-overlap']],
   ['third-213-225-sequence', ['213-225-small-blocks', 'lower-third']],
   ['third-221-225-detail', ['221-225-small-blocks', 'left-edge']],
@@ -149,13 +145,18 @@ export const regressionTestIdsByCropId = new Map([
   ['first-4f-table-301-413-sequence', ['P1_FIRST_4F_301_413_SEQUENCE_REGRESSION']],
   ['third-4f-table-414-330-sequence', ['P1_THIRD_4F_414_330_SEQUENCE_REGRESSION']],
   ['outfield-upper-500-509-sequence', ['P1_OUTFIELD_500_509_SEQUENCE_REGRESSION']],
+  ['first-104-106-detail', ['P2_FIRST_104_106_DETAIL_REGRESSION']],
   ['first-107-110-detail', ['P2_FIRST_107_110_DETAIL_REGRESSION']],
   ['third-119-121-detail', ['P2_THIRD_119_121_DETAIL_REGRESSION']],
   ['third-115-117-detail', ['P2_THIRD_115_117_DETAIL_REGRESSION']],
+  ['third-116-121-detail', ['P2_THIRD_116_121_DETAIL_REGRESSION']],
   ['third-113-114-detail', ['P2_THIRD_113_114_DETAIL_REGRESSION']],
   ['third-213-225-sequence', ['P2_THIRD_213_225_SEQUENCE_REGRESSION']],
   ['third-221-225-detail', ['P2_THIRD_221_225_DETAIL_REGRESSION']],
   ['third-213-219-detail', ['P2_THIRD_213_219_DETAIL_REGRESSION']],
+  ['skybox-s01-s12-sequence', ['P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION']],
+  ['skybox-s13-s25-sequence', ['P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION']],
+  ['skybox-s26-s37-sequence', ['P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION']],
   ['special-400-accessible-first', ['P2_SPECIAL_400_ACCESSIBLE_FIRST_REGRESSION']],
   ['special-425-426-third-accessible', ['P2_SPECIAL_425_426_THIRD_ACCESSIBLE_REGRESSION']],
   ['special-accessible-center', ['P2_SPECIAL_ACCESSIBLE_CENTER_REGRESSION']],
@@ -197,6 +198,18 @@ export const anchorReviewCropDefinitions = [
       'first-infield-b-101-108__107',
       'first-infield-b-101-108__108',
       'first-infield-a-109-112-201-212__109',
+    ],
+  },
+  {
+    id: 'first-104-106-detail',
+    x: 580,
+    y: 455,
+    width: 170,
+    height: 120,
+    blocks: [
+      'first-infield-b-101-108__104',
+      'first-infield-b-101-108__105',
+      'first-infield-b-101-108__106',
     ],
   },
   {
@@ -313,6 +326,21 @@ export const anchorReviewCropDefinitions = [
       'third-infield-a-113-120-213-225__115',
       'third-infield-a-113-120-213-225__116',
       'third-infield-a-113-120-213-225__117',
+    ],
+  },
+  {
+    id: 'third-116-121-detail',
+    x: 145,
+    y: 445,
+    width: 200,
+    height: 230,
+    blocks: [
+      'third-infield-a-113-120-213-225__116',
+      'third-infield-a-113-120-213-225__117',
+      'third-infield-a-113-120-213-225__118',
+      'third-infield-a-113-120-213-225__119',
+      'third-infield-a-113-120-213-225__120',
+      'third-infield-b-121-124__121',
     ],
   },
   {

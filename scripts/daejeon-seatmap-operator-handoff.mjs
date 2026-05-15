@@ -13,7 +13,7 @@ const EXPECTED_BLOCKS = 145;
 const EXPECTED_TRACED = 145;
 const EXPECTED_REVIEW = 0;
 const EXPECTED_P2_ALIASES = 11;
-const EXPECTED_ANCHOR_CROPS = 26;
+const EXPECTED_ANCHOR_CROPS = 28;
 
 const approvalChecklist = [
   'Trace manifest의 totalBlocks=145, officialImageTraced=145, needsOperatorReview=0을 확인했습니다.',
@@ -43,9 +43,11 @@ const lockedDecisions = [
 const keyAnchorCropIds = [
   'home-100',
   'first-101-109',
+  'first-104-106-detail',
   'first-109-112-sequence',
   'cass-200-detail',
   'third-121-124',
+  'third-116-121-detail',
   'first-4f-table-301-413-sequence',
   'third-4f-table-414-330-sequence',
   'outfield-upper-500-509-sequence',
