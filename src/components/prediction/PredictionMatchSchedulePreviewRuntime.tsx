@@ -76,15 +76,14 @@ export default function PredictionMatchSchedulePreviewRuntime({
 
   const hasAdditionalPastMatches = hasPredictionAdditionalPastMatches(matchBounds, allDatesData);
   const hasPastNavigation = canMovePrevDate || hasAdditionalPastMatches;
-  const isFutureRangeLoading = futureRangeLoadState === 'loading';
-  const isFutureRangeError = futureRangeLoadState === 'error';
 
   const topNoticeKind = useMemo<PredictionTopNoticeKind | null>(() => {
     if (deepLinkNotice) {
       return 'INFO';
     }
 
-    if (isFutureRangeLoading || isFutureRangeError) {
+    // futureRangeLoadState에서 직접 파생하므로 별도 변수 없이 인라인 처리
+    if (futureRangeLoadState === 'loading' || futureRangeLoadState === 'error') {
       return 'FUTURE';
     }
 
@@ -118,8 +117,6 @@ export default function PredictionMatchSchedulePreviewRuntime({
     deepLinkNotice,
     futureRangeLoadState,
     hasPastNavigation,
-    isFutureRangeError,
-    isFutureRangeLoading,
     pastRangeLoadState,
   ]);
 
