@@ -147,7 +147,7 @@ describe('Prediction Coach Briefing Regression', () => {
           writable: true,
           value: (query: string) =>
             ({
-              matches: query === '(prefers-reduced-motion: reduce)',
+              matches: query === '(prefers-reduced-motion: reduce)' || /min-width/.test(query),
               media: query,
               onchange: null,
               addListener: () => undefined,
@@ -367,11 +367,13 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeRetry');
     cy.tick(100);
     cy.tick(2000);
+    // PENDING 첫 지연은 5000ms — 2100ms 시점엔 아직 재시도 없어야 함
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
+    // 30s tick: PENDING 지연 [5s,10s,15s,20s,25s,30s] → 최대 7회(초기 1 + 재시도 6)
     cy.tick(30000);
     cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
       expect(Number(length)).to.be.gte(1);
-      expect(Number(length)).to.be.lte(4);
+      expect(Number(length)).to.be.lte(8);
     });
   });
 
@@ -499,12 +501,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    // First retry delay is 2000ms (RETRY_DELAYS_MS[0]); assert before boundary then after.
-    cy.wait(1000);
+    // PENDING 첫 재시도 지연은 5000ms; 경계 전후 확인
+    cy.wait(3000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.wait(3000);
+    cy.wait(4000); // 누적 7000ms > 5000ms → 첫 PENDING 재시도 이후
     cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
@@ -909,12 +911,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(interceptions).to.have.length.at.least(1);
     });
     getCoachBriefingCard()
-      .find('span.animate-pulse')
+      .find('.animate-pulse')
       .should('exist');
 
     cy.wait('@coachAnalyzeLoadingCursor');
     getCoachBriefingCard()
-      .find('span.animate-pulse')
+      .find('.animate-pulse')
       .should('not.exist');
   });
 
@@ -1088,6 +1090,7 @@ describe('Prediction Coach Briefing Regression', () => {
         data_quality: 'partial',
         used_evidence: ['game', 'kbo_seasons', 'team_recent_form'],
         grounding_reasons: ['missing_summary', 'missing_starters', 'missing_lineups'],
+        win_probability_home: 0.62,
         structured_response: {
           headline: '부분 근거 기반 자동 브리핑',
           sentiment: 'neutral',
@@ -1124,6 +1127,10 @@ describe('Prediction Coach Briefing Regression', () => {
     getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
     getCoachBriefingCard()
       .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
+    // V5: VS bar should appear when win_probability_home is provided
+    getCoachBriefingCard()
+      .find('[data-testid="coach-vs-bar"]')
+      .should('exist');
   });
 
   it('shows detailed partial-quality warnings when clutch or focus evidence is limited', () => {
