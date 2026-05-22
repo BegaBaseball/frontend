@@ -2,9 +2,9 @@
 
 ## 목적
 
-광주 active 111개 블럭은 공식 PNG 기준 `manual-polygon-v5` / `FULL_ACTIVE_111_RETRACE` 세대로 구역별 재검수되어 있다. 2026-05-11 운영자 입력으로 `K7석`은 `107~111`, `118~122`, `원정응원석`은 `107~110` 번호 블럭 범위로 확정했다. 이 범위는 기존 공식 PNG 번호 블럭 polygon을 재사용하므로 active block 수는 111개를 유지하고, 별도 중첩 hit-area를 만들지 않는다.
+광주 active 111개 블럭은 공식 PNG 기준 `manual-polygon-v8` / `FULL_ACTIVE_111_RETRACE` 세대로 구역별 재검수되어 있다. 2026-05-11 운영자 입력으로 `K7석`은 `107~111`, `118~122`, `원정응원석`은 `107~110` 번호 블럭 범위로 확정했다. 이 범위는 기존 공식 PNG 번호 블럭 polygon을 재사용하므로 active block 수는 111개를 유지하고, 별도 중첩 hit-area를 만들지 않는다.
 
-trace manifest는 `previousTraceVersion=manual-polygon-v4`, `fullRetracedBlocks=111`, `blocksChangedFromPreviousTrace=111`, `totalRetracePointDelta=865`, bbox/anchor/coverage delta, zone precision workset, zone crop, O/P component recall/IoU gate 결과를 남긴다.
+trace manifest는 `previousTraceVersion=manual-polygon-v7`, `fullRetracedBlocks=111`, `blocksChangedFromPreviousTrace=111`, bbox/anchor/coverage delta, zone precision workset, zone crop, O/P component recall/IoU gate 결과를 남긴다. 101~108 하단 내야 구간은 trace manifest 전 `gwangju-seatmap-image-alignment-audit`로 `officialBlockMaskRecall`, `componentIoU`, `outsideBleedRatio`를 확인한다. S-301~S-335는 같은 audit에서 `official-sky-picnic-color-scan`으로 공식 PNG sky-picnic pink 색상 coverage를 전수조사하며, 선택 가능한 A/B/C/G/H/I/J/K 알파벳 표시 좌석은 `official-alphabet-section-color-scan`으로 공식 PNG 구역 색상 coverage를 전수조사한다. S-* 및 알파벳 표시 좌석 mismatch는 trace manifest 앞단의 `--require-sky-picnic --require-alphabet-sections` release gate에서 차단한다.
 
 독립 K7/원정응원석 aggregate polygon이 필요해지는 경우에는 아래 좌표 입력 자동화 경로를 다시 사용한다. 그 전까지 `home-k7-seats`, `away-cheering-seats` operator polygon requirement는 후속 입력 대기 상태로 남긴다.
 

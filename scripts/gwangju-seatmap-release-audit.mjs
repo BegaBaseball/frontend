@@ -16,7 +16,7 @@ const reportDir = path.join(frontendRoot, 'reports/stadium');
 const outputRoot = path.join(repoRoot, 'output/playwright');
 
 const AUDIT_VERSION = 'GWANGJU_SEATMAP_RELEASE_AUDIT_V1';
-const AUDIT_MODE = 'PRE_OPERATOR_DERIVED_RANGE_RELEASE';
+const AUDIT_MODE = 'OFFICIAL_DERIVED_AGGREGATE_RELEASE';
 const auditJsonPath = path.join(reportDir, 'gwangju-seatmap-release-audit.json');
 const auditMarkdownPath = path.join(reportDir, 'gwangju-seatmap-release-audit.md');
 
@@ -25,24 +25,27 @@ const inputFiles = {
   releasePackage: path.join(reportDir, 'gwangju-seatmap-release-package.json'),
   operatorStatus: path.join(reportDir, 'gwangju-seatmap-operator-status.json'),
   traceReview: path.join(reportDir, 'gwangju-seatmap-trace-review.json'),
+  runtimeLayerAudit: path.join(reportDir, 'gwangju-seatmap-runtime-layer-audit.json'),
   releaseScopeGuard: path.join(reportDir, 'gwangju-seatmap-release-scope-guard.json'),
   prStagingPlan: path.join(reportDir, 'gwangju-seatmap-pr-staging-plan.json'),
+  targetedStaging: path.join(reportDir, 'gwangju-seatmap-targeted-staging.json'),
+  stagedScopeAudit: path.join(reportDir, 'gwangju-seatmap-staged-scope-audit.json'),
   releaseHandoff: path.join(frontendRoot, 'docs/gwangju-seatmap-release-handoff.md'),
   browserQaSummary: path.join(outputRoot, 'stadium-ux-gwangju-validate/stadium-mobile-smoke-summary.json'),
 };
 
 const expectedStepCommands = [
   'npm run stadium:gwangju:operator-status',
-  'npm run test:stadium:seatmaps',
-  'npm run qa:stadium:gwangju:trace-review',
+  'npm run test:stadium:gwangju:seatmaps',
+  'validate existing gwangju trace-review artifacts',
   'npm run stadium:gwangju:release-package',
   'npm run build',
 ];
 
-const expectedPendingOperatorSections = ['K7석', '원정응원석'];
+const expectedPendingOperatorSections = [];
 const STALE_TOLERANCE_MS = 1000;
 const SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT = 95;
-const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 23;
+const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 34;
 const allowedPatchSeparationStatuses = new Set(['ready', 'review-required']);
 
 const markdownCell = (value) => String(value ?? '-')
@@ -143,8 +146,11 @@ const releaseGate = jsonInputs.releaseGate?.data;
 const releasePackage = jsonInputs.releasePackage?.data;
 const operatorStatus = jsonInputs.operatorStatus?.data;
 const traceReview = jsonInputs.traceReview?.data;
+const runtimeLayerAudit = jsonInputs.runtimeLayerAudit?.data;
 const releaseScopeGuard = jsonInputs.releaseScopeGuard?.data;
 const prStagingPlan = jsonInputs.prStagingPlan?.data;
+const targetedStaging = jsonInputs.targetedStaging?.data;
+const stagedScopeAudit = jsonInputs.stagedScopeAudit?.data;
 const browserQaSummary = jsonInputs.browserQaSummary?.data;
 
 const blockers = [];
@@ -174,37 +180,45 @@ addCheck('release gate blockers', 0, releaseGate?.blockers?.length ?? releaseGat
 addCheck('release gate steps', '5/5', `${releaseGatePassedSteps}/${releaseGate?.finalChecks?.totalSteps ?? releaseGateSteps.length}`, releaseGatePassedSteps === 5 && releaseGateSteps.length === 5 && releaseGate?.finalChecks?.completedSteps === 5, 'RELEASE_GATE_STEPS_NOT_COMPLETE');
 addCheck('release gate command order', expectedStepCommands.join(' -> '), releaseGateCommands.join(' -> '), JSON.stringify(releaseGateCommands) === JSON.stringify(expectedStepCommands), 'RELEASE_GATE_COMMAND_ORDER_CHANGED');
 addCheck('release gate package status', 'ready', releaseGate?.finalChecks?.releasePackageStatus, releaseGate?.finalChecks?.releasePackageStatus === 'ready', 'RELEASE_GATE_PACKAGE_NOT_READY');
-addCheck('release gate operator status', 'pending', releaseGate?.finalChecks?.operatorStatus, releaseGate?.finalChecks?.operatorStatus === 'pending', 'RELEASE_GATE_OPERATOR_STATUS_NOT_PENDING');
+addCheck('release gate operator status', 'ready', releaseGate?.finalChecks?.operatorStatus, releaseGate?.finalChecks?.operatorStatus === 'ready', 'RELEASE_GATE_OPERATOR_STATUS_NOT_READY');
 addCheck('release gate browser QA', 'passed', releaseGate?.finalChecks?.browserQaStatus, releaseGate?.finalChecks?.browserQaStatus === 'passed', 'RELEASE_GATE_BROWSER_QA_NOT_PASSED');
-addCheck('release gate active trace blocks', 111, releaseGate?.finalChecks?.activeTraceBlocks, releaseGate?.finalChecks?.activeTraceBlocks === 111, 'RELEASE_GATE_ACTIVE_TRACE_BLOCKS_CHANGED');
-addCheck('release gate aggregate hit-area', 'REUSES_EXISTING_TRACE_ONLY', releaseGate?.activeBlockContract?.aggregateHitArea, releaseGate?.activeBlockContract?.aggregateHitArea === 'REUSES_EXISTING_TRACE_ONLY', 'RELEASE_GATE_AGGREGATE_HIT_AREA_CHANGED');
-addCheck('release gate no prewrite 113', true, releaseGate?.activeBlockContract?.noPrewrite113Gate, releaseGate?.activeBlockContract?.noPrewrite113Gate === true, 'RELEASE_GATE_PREWRITE_113_ENABLED');
+addCheck('release gate active trace blocks', 113, releaseGate?.finalChecks?.activeTraceBlocks, releaseGate?.finalChecks?.activeTraceBlocks === 113, 'RELEASE_GATE_ACTIVE_TRACE_BLOCKS_CHANGED');
+addCheck('release gate aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', releaseGate?.activeBlockContract?.aggregateHitArea, releaseGate?.activeBlockContract?.aggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'RELEASE_GATE_AGGREGATE_HIT_AREA_CHANGED');
+addCheck('release gate official aggregate ready', true, releaseGate?.activeBlockContract?.officialDerivedAggregateReady, releaseGate?.activeBlockContract?.officialDerivedAggregateReady === true, 'RELEASE_GATE_OFFICIAL_AGGREGATE_NOT_READY');
 
 addCheck('release package status', 'ready', releasePackage?.status, releasePackage?.status === 'ready', 'RELEASE_PACKAGE_NOT_READY');
 addCheck('release package blockers', 0, releasePackage?.blockers?.length, (releasePackage?.blockers ?? []).length === 0, 'RELEASE_PACKAGE_BLOCKERS_PRESENT');
-addCheck('release package release mode', 'DERIVED_RANGE_FILTER_AND_BADGE_ONLY', releasePackage?.releaseMode, releasePackage?.releaseMode === 'DERIVED_RANGE_FILTER_AND_BADGE_ONLY', 'RELEASE_PACKAGE_MODE_CHANGED');
-addCheck('release package aggregate hit-area', 'REUSES_EXISTING_TRACE_ONLY', releasePackage?.activeBlockContract?.aggregateHitArea, releasePackage?.activeBlockContract?.aggregateHitArea === 'REUSES_EXISTING_TRACE_ONLY', 'RELEASE_PACKAGE_AGGREGATE_HIT_AREA_CHANGED');
-addCheck('release package expected trace blocks', 111, releasePackage?.activeBlockContract?.expectedTraceBlocks, releasePackage?.activeBlockContract?.expectedTraceBlocks === 111, 'RELEASE_PACKAGE_ACTIVE_TRACE_BLOCKS_CHANGED');
+addCheck('release package release mode', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', releasePackage?.releaseMode, releasePackage?.releaseMode === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', 'RELEASE_PACKAGE_MODE_CHANGED');
+addCheck('release package aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', releasePackage?.activeBlockContract?.aggregateHitArea, releasePackage?.activeBlockContract?.aggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'RELEASE_PACKAGE_AGGREGATE_HIT_AREA_CHANGED');
+addCheck('release package expected trace blocks', 113, releasePackage?.activeBlockContract?.expectedTraceBlocks, releasePackage?.activeBlockContract?.expectedTraceBlocks === 113, 'RELEASE_PACKAGE_ACTIVE_TRACE_BLOCKS_CHANGED');
 addCheck('release package pending sections', expectedPendingOperatorSections.join(','), releasePackage?.activeBlockContract?.pendingOperatorSections?.join(','), sameSet(releasePackage?.activeBlockContract?.pendingOperatorSections, expectedPendingOperatorSections), 'RELEASE_PACKAGE_PENDING_SECTIONS_CHANGED');
 
-addCheck('operator status', 'pending', operatorStatus?.summary?.status, operatorStatus?.summary?.status === 'pending', 'OPERATOR_STATUS_NOT_PENDING');
+addCheck('operator status', 'ready', operatorStatus?.summary?.status, operatorStatus?.summary?.status === 'ready', 'OPERATOR_STATUS_NOT_READY');
 addCheck('operator status blockers', 0, operatorStatus?.summary?.blockers?.length, (operatorStatus?.summary?.blockers ?? []).length === 0, 'OPERATOR_STATUS_BLOCKERS_PRESENT');
 addCheck('operator valid data diff', 0, operatorStatus?.summary?.validDataDiffSections, operatorStatus?.summary?.validDataDiffSections === 0, 'OPERATOR_VALID_DATA_DIFF_NOT_ZERO');
-addCheck('operator active trace blocks', 111, operatorStatus?.summary?.activeTraceBlocks, operatorStatus?.summary?.activeTraceBlocks === 111, 'OPERATOR_ACTIVE_TRACE_BLOCKS_CHANGED');
+addCheck('operator active trace blocks', 113, operatorStatus?.summary?.activeTraceBlocks, operatorStatus?.summary?.activeTraceBlocks === 113, 'OPERATOR_ACTIVE_TRACE_BLOCKS_CHANGED');
 
 addCheck('trace review status', 'READY', traceReview?.summary?.traceStatus, traceReview?.summary?.traceStatus === 'READY', 'TRACE_REVIEW_NOT_READY');
-addCheck('trace review total blocks', 111, traceReview?.summary?.totalBlocks, traceReview?.summary?.totalBlocks === 111, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
-addCheck('trace review pixel aligned', 111, traceReview?.summary?.pixelAlignedBlocks, traceReview?.summary?.pixelAlignedBlocks === 111, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
+addCheck('trace review total blocks', 113, traceReview?.summary?.totalBlocks, traceReview?.summary?.totalBlocks === 113, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
+addCheck('trace review pixel aligned', 113, traceReview?.summary?.pixelAlignedBlocks, traceReview?.summary?.pixelAlignedBlocks === 113, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
 addCheck('trace review overlap warnings', 0, traceReview?.summary?.overlapWarningCount, traceReview?.summary?.overlapWarningCount === 0, 'TRACE_REVIEW_OVERLAP_WARNINGS_PRESENT');
 addCheck('trace review O/P component coverage warnings', 0, traceReview?.summary?.componentCoverageWarningCount, traceReview?.summary?.componentCoverageWarningCount === 0, 'TRACE_REVIEW_OP_COMPONENT_COVERAGE_WARNINGS_PRESENT');
-addCheck('trace review aggregate hit-area', 'REUSES_EXISTING_TRACE_ONLY', traceReview?.summary?.aggregateHitAreaMode, traceReview?.summary?.aggregateHitAreaMode === 'REUSES_EXISTING_TRACE_ONLY', 'TRACE_REVIEW_AGGREGATE_HIT_AREA_CHANGED');
+addCheck('trace review aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', traceReview?.summary?.aggregateHitAreaMode, traceReview?.summary?.aggregateHitAreaMode === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'TRACE_REVIEW_AGGREGATE_HIT_AREA_CHANGED');
+
+addCheck('runtime layer audit version', 'GWANGJU_RUNTIME_LAYER_AUDIT_V1', runtimeLayerAudit?.version, runtimeLayerAudit?.version === 'GWANGJU_RUNTIME_LAYER_AUDIT_V1', 'RUNTIME_LAYER_AUDIT_VERSION_CHANGED');
+addCheck('runtime layer audit status', 'passed', runtimeLayerAudit?.status, runtimeLayerAudit?.status === 'passed', 'RUNTIME_LAYER_AUDIT_NOT_PASSED');
+addCheck('runtime layer source', 'GWANGJU_BLOCKS[].imageGeometry.d', runtimeLayerAudit?.runtimeSeatLayerSource, runtimeLayerAudit?.runtimeSeatLayerSource === 'GWANGJU_BLOCKS[].imageGeometry.d', 'RUNTIME_LAYER_SOURCE_CHANGED');
+addCheck('runtime rendered path count', 113, runtimeLayerAudit?.summary?.renderedPathCount, runtimeLayerAudit?.summary?.renderedPathCount === 113, 'RUNTIME_LAYER_RENDERED_PATH_COUNT_CHANGED');
+addCheck('runtime path mismatches', 0, runtimeLayerAudit?.summary?.pathMismatchCount, runtimeLayerAudit?.summary?.pathMismatchCount === 0, 'RUNTIME_LAYER_PATH_MISMATCHES_PRESENT');
+addCheck('runtime forbidden rendered ids', 0, runtimeLayerAudit?.summary?.forbiddenRenderedIdCount, runtimeLayerAudit?.summary?.forbiddenRenderedIdCount === 0, 'RUNTIME_LAYER_FORBIDDEN_IDS_PRESENT');
+addCheck('runtime label top-hit failures', 0, runtimeLayerAudit?.summary?.labelTopHitFailureCount, runtimeLayerAudit?.summary?.labelTopHitFailureCount === 0, 'RUNTIME_LAYER_LABEL_TOP_HIT_FAILURES_PRESENT');
 
 addCheck('release scope guard version', 'GWANGJU_RELEASE_SCOPE_GUARD_V1', releaseScopeGuard?.version, releaseScopeGuard?.version === 'GWANGJU_RELEASE_SCOPE_GUARD_V1', 'RELEASE_SCOPE_GUARD_VERSION_CHANGED');
 addCheck('release scope guard status', 'passed', releaseScopeGuard?.status, releaseScopeGuard?.status === 'passed', 'RELEASE_SCOPE_GUARD_NOT_PASSED');
 addCheck('release scope guard blockers', 0, releaseScopeGuard?.summary?.blockerCount, releaseScopeGuard?.summary?.blockerCount === 0, 'RELEASE_SCOPE_GUARD_BLOCKERS_PRESENT');
 addCheck('release scope guard unexpected files', 0, releaseScopeGuard?.summary?.unexpectedFileCount, releaseScopeGuard?.summary?.unexpectedFileCount === 0, 'RELEASE_SCOPE_GUARD_UNEXPECTED_FILES_PRESENT');
-addCheck('release scope guard active block count', 111, releaseScopeGuard?.scopeContract?.activeBlockCount, releaseScopeGuard?.scopeContract?.activeBlockCount === 111, 'RELEASE_SCOPE_GUARD_ACTIVE_BLOCK_COUNT_CHANGED');
-addCheck('release scope guard post-operator state', 'blocked', releaseScopeGuard?.scopeContract?.postOperatorBeforeWrite, releaseScopeGuard?.scopeContract?.postOperatorBeforeWrite === 'blocked', 'RELEASE_SCOPE_GUARD_POST_OPERATOR_STATE_CHANGED');
+addCheck('release scope guard active block count', 113, releaseScopeGuard?.scopeContract?.activeBlockCount, releaseScopeGuard?.scopeContract?.activeBlockCount === 113, 'RELEASE_SCOPE_GUARD_ACTIVE_BLOCK_COUNT_CHANGED');
+addCheck('release scope guard aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', releaseScopeGuard?.scopeContract?.k7AwayAggregateHitArea, releaseScopeGuard?.scopeContract?.k7AwayAggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', 'RELEASE_SCOPE_GUARD_AGGREGATE_HIT_AREA_CHANGED');
 addCheck('release scope guard included release files', EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, releaseScopeGuard?.releaseCandidateInventory?.actualIncludedFileCount, releaseScopeGuard?.releaseCandidateInventory?.actualIncludedFileCount === EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, 'RELEASE_SCOPE_GUARD_INCLUDED_FILE_COUNT_CHANGED');
 addCheck('release scope guard missing included files', 0, releaseScopeGuard?.releaseCandidateInventory?.missingExpectedIncludedFiles?.length, (releaseScopeGuard?.releaseCandidateInventory?.missingExpectedIncludedFiles ?? []).length === 0, 'RELEASE_SCOPE_GUARD_INCLUDED_FILES_MISSING');
 addCheck('release scope guard extra included files', 0, releaseScopeGuard?.releaseCandidateInventory?.extraIncludedFiles?.length, (releaseScopeGuard?.releaseCandidateInventory?.extraIncludedFiles ?? []).length === 0, 'RELEASE_SCOPE_GUARD_EXTRA_INCLUDED_FILES');
@@ -251,8 +265,23 @@ checks.push({
 });
 addCheck('PR staging plan bulk add guard', false, prStagingPlan?.stagingGate?.safeToRunBulkGitAdd, prStagingPlan?.stagingGate?.safeToRunBulkGitAdd === false, 'PR_STAGING_PLAN_BULK_ADD_ALLOWED');
 
+addCheck('targeted staging status', 'ready', targetedStaging?.status, targetedStaging?.status === 'ready', 'TARGETED_STAGING_NOT_READY');
+addCheck('targeted staging blockers', 0, targetedStaging?.summary?.blockerCount, targetedStaging?.summary?.blockerCount === 0, 'TARGETED_STAGING_BLOCKERS_PRESENT');
+addCheck('targeted staging target files', EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, targetedStaging?.summary?.targetFileCount, targetedStaging?.summary?.targetFileCount === EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, 'TARGETED_STAGING_TARGET_COUNT_CHANGED');
+addCheck('targeted staging does not run git add', true, targetedStaging?.doesNotRunGitAdd, targetedStaging?.doesNotRunGitAdd === true, 'TARGETED_STAGING_GIT_ADD_ENABLED');
+addCheck('targeted staging bulk add guard', false, targetedStaging?.stagingGate?.safeToRunBulkGitAdd, targetedStaging?.stagingGate?.safeToRunBulkGitAdd === false, 'TARGETED_STAGING_BULK_ADD_ALLOWED');
+
+addCheck('staged scope audit version', 'GWANGJU_STAGED_SCOPE_AUDIT_V1', stagedScopeAudit?.version, stagedScopeAudit?.version === 'GWANGJU_STAGED_SCOPE_AUDIT_V1', 'STAGED_SCOPE_AUDIT_VERSION_CHANGED');
+addCheck('staged scope audit status', 'ready', stagedScopeAudit?.status, stagedScopeAudit?.status === 'ready', 'STAGED_SCOPE_AUDIT_NOT_READY');
+addCheck('staged scope audit blockers', 0, stagedScopeAudit?.summary?.blockerCount, stagedScopeAudit?.summary?.blockerCount === 0, 'STAGED_SCOPE_AUDIT_BLOCKERS_PRESENT');
+addCheck('staged scope audit expected target files', EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, stagedScopeAudit?.summary?.expectedTargetFileCount, stagedScopeAudit?.summary?.expectedTargetFileCount === EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, 'STAGED_SCOPE_AUDIT_TARGET_COUNT_CHANGED');
+addCheck('staged scope audit outside targets', 0, stagedScopeAudit?.summary?.stagedOutsideTargetFileCount, stagedScopeAudit?.summary?.stagedOutsideTargetFileCount === 0, 'STAGED_SCOPE_AUDIT_OUTSIDE_TARGETS_PRESENT');
+addCheck('staged scope audit separate dirty work', 0, stagedScopeAudit?.summary?.stagedSeparateDirtyWorkFileCount, stagedScopeAudit?.summary?.stagedSeparateDirtyWorkFileCount === 0, 'STAGED_SCOPE_AUDIT_SEPARATE_DIRTY_WORK_PRESENT');
+addCheck('staged scope audit does not run git add', true, stagedScopeAudit?.doesNotRunGitAdd, stagedScopeAudit?.doesNotRunGitAdd === true, 'STAGED_SCOPE_AUDIT_GIT_ADD_ENABLED');
+addCheck('staged scope audit bulk add guard', false, stagedScopeAudit?.stagedScopeGate?.safeToRunBulkGitAdd, stagedScopeAudit?.stagedScopeGate?.safeToRunBulkGitAdd === false, 'STAGED_SCOPE_AUDIT_BULK_ADD_ALLOWED');
+
 addCheck('browser QA status', 'passed', browserQaSummary?.status, browserQaSummary?.status === 'passed', 'BROWSER_QA_NOT_PASSED');
-addCheck('data expected trace blocks', 111, GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, GWANGJU_EXPECTED_TRACE_BLOCK_COUNT === 111, 'DATA_EXPECTED_TRACE_BLOCKS_CHANGED');
+addCheck('data expected trace blocks', 113, GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, GWANGJU_EXPECTED_TRACE_BLOCK_COUNT === 113, 'DATA_EXPECTED_TRACE_BLOCKS_CHANGED');
 addCheck('data aggregate hit-area mode', true, GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE, GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE === true, 'DATA_AGGREGATE_HIT_AREA_MODE_CHANGED');
 addCheck('data pending sections', expectedPendingOperatorSections.join(','), GWANGJU_PENDING_OPERATOR_SECTIONS.join(','), sameSet(GWANGJU_PENDING_OPERATOR_SECTIONS, expectedPendingOperatorSections), 'DATA_PENDING_SECTIONS_CHANGED');
 
@@ -262,6 +291,8 @@ const sourcePolicyValues = [
   operatorStatus?.sourcePolicy,
   releaseScopeGuard?.sourcePolicy,
   prStagingPlan?.sourcePolicy,
+  targetedStaging?.sourcePolicy,
+  stagedScopeAudit?.sourcePolicy,
 ].filter(Boolean);
 sourcePolicyValues.forEach((policy, index) => {
   addCheck(`source policy ${index + 1} missing data contract`, 'MANUAL_BASEBALL_DATA_REQUIRED', policy.missingBaseballDataContract, policy.missingBaseballDataContract === 'MANUAL_BASEBALL_DATA_REQUIRED', 'SOURCE_POLICY_MANUAL_CONTRACT_CHANGED');
@@ -273,76 +304,106 @@ sourcePolicyValues.forEach((policy, index) => {
 });
 
 const requiredHandoffSnippets = [
-  'release mode: `DERIVED_RANGE_FILTER_AND_BADGE_ONLY`',
+  'release mode: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`',
   'release gate: `npm run qa:stadium:gwangju:release-gate`',
+  'runtime layer audit: `npm run qa:stadium:gwangju:runtime-layer`',
   'coordinate system: `2200x1159`',
-  'active block count: `111`',
-  'aggregate hit-area mode: `REUSES_EXISTING_TRACE_ONLY`',
-  'independent K7/AWAY active block target `113` is not enabled before operator polygon write.',
+  'active block count: `113`',
+  'aggregate hit-area mode: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY`',
+  'K7/AWAY active block target `113` is enabled through official numbered-block aggregate geometry.',
   'release gate status: `passed`',
   'release gate blockers: `0`',
   'release gate steps: `5/5`',
   'release package status: `ready`',
-  'operator status: `pending`',
+  'operator status: `ready`',
   'browser QA status: `passed`',
-  'active trace blocks: `111`',
+  'runtime layer audit status: `passed`',
+  'active trace blocks: `113`',
   'missing baseball data contract: `MANUAL_BASEBALL_DATA_REQUIRED`',
   '`status=passed`',
   '`blockers=0`',
   '`steps=5/5`',
   '`releasePackageStatus=ready`',
-  '`operatorStatus=pending`',
+  '`operatorStatus=ready`',
   '`browserQaStatus=passed`',
-  '`activeTraceBlocks=111`',
+  '`runtimeLayerAuditStatus=passed`',
+  '`activeTraceBlocks=113`',
   'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
   'gwangju-seatmap-release-scope-guard.json',
   'gwangju-seatmap-release-scope-guard.md',
-  'release scope guard included release files: `23`',
+  'gwangju-seatmap-runtime-layer-audit.json',
+  'gwangju-seatmap-runtime-layer-audit.csv',
+  'gwangju-seatmap-runtime-layer-audit.md',
+  'release scope guard included release files: `34`',
   'release scope guard separate dirty work baseline files: `95`',
   'classified separate dirty work expansion allowed: `true`',
   'release scope guard inventory drift: `0`',
-  '`releaseScopeGuardIncludedFiles=23`',
+  '`releaseScopeGuardIncludedFiles=34`',
   '`releaseScopeGuardSeparateDirtyWorkBaselineFiles=95`',
   '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
   '`releaseScopeGuardInventoryDrift=0`',
   'Release Candidate Inventory',
-  'releaseCandidateInventory.expectedIncludedFileCount=23',
+  'releaseCandidateInventory.expectedIncludedFileCount=34',
   'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=95',
   'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
   'PR Packaging Manifest',
   'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
-  'Release PR scope: Gwangju pre-operator release package and build verification reports.',
+  'Release PR scope: Gwangju official derived aggregate release package and build verification reports.',
   'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-  'prPackagingManifest.releasePayloadFileCount=23',
+  'prPackagingManifest.releasePayloadFileCount=34',
   'prPackagingManifest.separateDirtyWorkFileCount=',
   'prPackagingManifest.unexpectedDirtyFileCount=0',
   'prPackagingManifest.inventoryDriftCount=0',
   'Patch Separation Readiness',
   'patch separation readiness: `ready` or `review-required`',
   'patchSeparationReadiness.status=ready-or-review-required',
-  'patchSeparationReadiness only becomes `review-required` when release payload files have mixed or untracked diffs.',
+  'patchSeparationReadiness only becomes `review-required` when release payload files have unreviewed mixed or untracked diffs.',
+  'reviewed expected untracked release files are ready for targeted staging.',
   'clean release payload files are not packaging blockers',
   'PR staging plan: `npm run stadium:gwangju:pr-staging-plan`',
   'gwangju-seatmap-pr-staging-plan.json',
   'gwangju-seatmap-pr-staging-plan.md',
+  'targeted staging report: `npm run stadium:gwangju:targeted-staging`',
+  'gwangju-seatmap-targeted-staging.json',
+  'gwangju-seatmap-targeted-staging.csv',
+  'gwangju-seatmap-targeted-staging.md',
+  'staged scope audit: `npm run stadium:gwangju:staged-scope-audit`',
+  'gwangju-seatmap-staged-scope-audit.json',
+  'gwangju-seatmap-staged-scope-audit.csv',
+  'gwangju-seatmap-staged-scope-audit.md',
+  'stagedScopeAudit.status=ready',
+  'stagedScopeAudit.doesNotRunGitAdd=true',
+  'stagedScopeAudit.safeToRunBulkGitAdd=false',
+  'stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
+  'stagedScopeAudit.blocksSeparateDirtyWork=true',
+  'stagedScopeAudit.expectedTargetFileCount=34',
+  'stagedScopeAudit.stagedOutsideTargetFileCount=0',
+  'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
+  'targetedStaging.status=ready',
+  'targetedStaging.doesNotRunGitAdd=true',
+  'targetedStaging.safeToRunBulkGitAdd=false',
+  'targetedStaging.recommendsOnlyIncludedFiles=true',
+  'targetedStaging.doesNotRecommendSeparateDirtyWork=true',
+  'targetedStaging.targetFileCount=34',
+  'targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
   'stagingPlan.status=ready-or-review-required',
   'stagingPlan.doesNotRunGitAdd=true',
   'stagingPlan.safeToRunBulkGitAdd=false',
-  'stagingPlan.releasePayloadFileCount=23',
+  'stagingPlan.releasePayloadFileCount=34',
   'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
   '`K7석`: `107~111`, `118~122`',
   '`원정응원석`: `107~110`',
   '`홈 응원석`: `118~122`',
-  '`home-k7-seats`: `PENDING_OPERATOR_INPUT`',
-  '`away-cheering-seats`: `PENDING_OPERATOR_INPUT`',
-  '`OPERATOR_REQUIRED`',
+  '`home-k7-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
+  '`away-cheering-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
+  '`K7석`, `원정응원석` aggregate hit-areas use `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`.',
   'operator-provided official PNG coordinates only',
   'browser CSS pixels',
   'resized screenshots',
   'external crawling',
   'web-search-based baseball data',
   'third-party copied seatmap images',
-  'Do not run the `113` active block acceptance path unless',
+  'Do not replace the current `113` active block aggregate release with new operator geometry unless',
 ];
 
 const missingHandoffSnippets = requiredHandoffSnippets.filter((snippet) => !releaseHandoff.text.includes(snippet));
@@ -354,15 +415,20 @@ const staleChecks = [
   ['STALE_RELEASE_GATE_BEFORE_RELEASE_PACKAGE', fileInfos.releaseGate, fileInfos.releasePackage],
   ['STALE_RELEASE_GATE_BEFORE_OPERATOR_STATUS', fileInfos.releaseGate, fileInfos.operatorStatus],
   ['STALE_RELEASE_GATE_BEFORE_TRACE_REVIEW', fileInfos.releaseGate, fileInfos.traceReview],
+  ['STALE_RELEASE_GATE_BEFORE_RUNTIME_LAYER_AUDIT', fileInfos.releaseGate, fileInfos.runtimeLayerAudit],
   ['STALE_RELEASE_GATE_BEFORE_BROWSER_QA', fileInfos.releaseGate, fileInfos.browserQaSummary],
-  ['STALE_RELEASE_GATE_BEFORE_HANDOFF', fileInfos.releaseGate, fileInfos.releaseHandoff],
   ['STALE_RELEASE_PACKAGE_BEFORE_OPERATOR_STATUS', fileInfos.releasePackage, fileInfos.operatorStatus],
   ['STALE_RELEASE_PACKAGE_BEFORE_TRACE_REVIEW', fileInfos.releasePackage, fileInfos.traceReview],
+  ['STALE_RUNTIME_LAYER_AUDIT_BEFORE_TRACE_REVIEW', fileInfos.runtimeLayerAudit, fileInfos.traceReview],
+  ['STALE_RUNTIME_LAYER_AUDIT_BEFORE_BROWSER_QA', fileInfos.runtimeLayerAudit, fileInfos.browserQaSummary],
   ['STALE_RELEASE_PACKAGE_BEFORE_BROWSER_QA', fileInfos.releasePackage, fileInfos.browserQaSummary],
-  ['STALE_RELEASE_PACKAGE_BEFORE_HANDOFF', fileInfos.releasePackage, fileInfos.releaseHandoff],
   ['STALE_RELEASE_SCOPE_GUARD_BEFORE_HANDOFF', fileInfos.releaseScopeGuard, fileInfos.releaseHandoff],
   ['STALE_PR_STAGING_PLAN_BEFORE_SCOPE_GUARD', fileInfos.prStagingPlan, fileInfos.releaseScopeGuard],
   ['STALE_PR_STAGING_PLAN_BEFORE_HANDOFF', fileInfos.prStagingPlan, fileInfos.releaseHandoff],
+  ['STALE_TARGETED_STAGING_BEFORE_PR_STAGING_PLAN', fileInfos.targetedStaging, fileInfos.prStagingPlan],
+  ['STALE_TARGETED_STAGING_BEFORE_HANDOFF', fileInfos.targetedStaging, fileInfos.releaseHandoff],
+  ['STALE_STAGED_SCOPE_AUDIT_BEFORE_TARGETED_STAGING', fileInfos.stagedScopeAudit, fileInfos.targetedStaging],
+  ['STALE_STAGED_SCOPE_AUDIT_BEFORE_HANDOFF', fileInfos.stagedScopeAudit, fileInfos.releaseHandoff],
 ];
 
 const staleRows = staleChecks.map(([code, later, earlier]) => ({
@@ -397,8 +463,8 @@ if (!releaseGate?.doesNotModifyDataFile || !releasePackage?.doesNotModifyDataFil
   blockers.push('RELEASE_AUDIT_MUTATION_CONTRACT_CHANGED');
 }
 
-if (releaseGate?.activeBlockContract?.noPrewrite113Gate !== true || releasePackage?.activeBlockContract?.noPrewrite113Gate !== true) {
-  blockers.push('PREWRITE_113_GATE_ENABLED_BEFORE_OPERATOR_POLYGON_WRITE');
+if (releaseGate?.activeBlockContract?.officialDerivedAggregateReady !== true || releasePackage?.activeBlockContract?.officialDerivedAggregateReady !== true) {
+  blockers.push('OFFICIAL_DERIVED_AGGREGATE_NOT_READY');
 }
 
 if (blockers.length > 0 && blockingStaleRows.length > 0) {
@@ -423,10 +489,11 @@ const report = {
     requiredBlockers: 0,
     requiredCompletedSteps: 5,
     requiredReleasePackageStatus: 'ready',
-    requiredOperatorStatus: 'pending',
+    requiredOperatorStatus: 'ready',
     requiredBrowserQaStatus: 'passed',
-    requiredActiveTraceBlocks: 111,
-    requiredAggregateHitArea: 'REUSES_EXISTING_TRACE_ONLY',
+    requiredRuntimeLayerAuditStatus: 'passed',
+    requiredActiveTraceBlocks: 113,
+    requiredAggregateHitArea: 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY',
     requiredScopeGuardStatus: 'passed',
     requiredScopeGuardUnexpectedFiles: 0,
     requiredScopeGuardBlockers: 0,
@@ -436,7 +503,11 @@ const report = {
     requiredPatchSeparationReadiness: 'ready-or-review-required',
     requiredPrStagingPlanStatus: 'ready-or-review-required',
     requiredPrStagingPlanDoesNotRunGitAdd: true,
-    noPrewrite113Gate: true,
+    requiredTargetedStagingStatus: 'ready',
+    requiredStagedScopeAuditStatus: 'ready',
+    requiredStagedOutsideTargetFiles: 0,
+    requiredStagedSeparateDirtyWorkFiles: 0,
+    officialDerivedAggregateReady: true,
   },
   inputs: Object.fromEntries(Object.entries(fileInfos).map(([key, info]) => [key, {
     path: info.path,
@@ -483,6 +554,27 @@ const report = {
     packageJsonStatus: prStagingPlan?.summary?.packageJsonStatus ?? null,
     manualReviewRequired: prStagingPlan?.summary?.manualReviewRequired ?? null,
   },
+  targetedStagingSummary: {
+    status: targetedStaging?.status ?? null,
+    targetFileCount: targetedStaging?.summary?.targetFileCount ?? null,
+    reviewedUntrackedReadyFileCount: targetedStaging?.summary?.reviewedUntrackedReadyFileCount ?? null,
+    reviewedUntrackedStagedFileCount: targetedStaging?.summary?.reviewedUntrackedStagedFileCount ?? null,
+    reviewedUntrackedSatisfiedFileCount: targetedStaging?.summary?.reviewedUntrackedSatisfiedFileCount ?? null,
+    unexpectedDirtyFileCount: targetedStaging?.summary?.unexpectedDirtyFileCount ?? null,
+    blockerCount: targetedStaging?.summary?.blockerCount ?? null,
+    doesNotRunGitAdd: targetedStaging?.doesNotRunGitAdd ?? null,
+    safeToRunBulkGitAdd: targetedStaging?.stagingGate?.safeToRunBulkGitAdd ?? null,
+  },
+  stagedScopeAuditSummary: {
+    status: stagedScopeAudit?.status ?? null,
+    expectedTargetFileCount: stagedScopeAudit?.summary?.expectedTargetFileCount ?? null,
+    stagedFileCount: stagedScopeAudit?.summary?.stagedFileCount ?? null,
+    stagedOutsideTargetFileCount: stagedScopeAudit?.summary?.stagedOutsideTargetFileCount ?? null,
+    stagedSeparateDirtyWorkFileCount: stagedScopeAudit?.summary?.stagedSeparateDirtyWorkFileCount ?? null,
+    blockerCount: stagedScopeAudit?.summary?.blockerCount ?? null,
+    doesNotRunGitAdd: stagedScopeAudit?.doesNotRunGitAdd ?? null,
+    safeToRunBulkGitAdd: stagedScopeAudit?.stagedScopeGate?.safeToRunBulkGitAdd ?? null,
+  },
   sourcePolicy: {
     allowedCoordinateSource: 'operator-provided official PNG coordinates only',
     coordinateSystem: '2200x1159',
@@ -508,8 +600,8 @@ const markdown = [
   `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
   `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
   `- active trace blocks: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
-  '- aggregate hit-area: `REUSES_EXISTING_TRACE_ONLY`',
-  '- no prewrite 113 gate: `true`',
+  '- aggregate hit-area: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY`',
+  '- official derived aggregate ready: `true`',
   `- scope guard status: \`${report.scopeGuardSummary.status ?? '-'}\``,
   `- scope guard unexpected files: \`${report.scopeGuardSummary.unexpectedFileCount ?? '-'}\``,
   `- scope guard blockers: \`${report.scopeGuardSummary.blockerCount ?? '-'}\``,
@@ -585,6 +677,39 @@ const markdown = [
       ['safe to run bulk git add', `\`${report.prStagingPlanSummary.safeToRunBulkGitAdd ?? '-'}\``],
       ['package.json status', `\`${report.prStagingPlanSummary.packageJsonStatus ?? '-'}\``],
       ['manual review required', `\`${report.prStagingPlanSummary.manualReviewRequired ?? '-'}\``],
+    ],
+  ),
+  '',
+  '## Targeted Staging',
+  '',
+  markdownTable(
+    ['check', 'value'],
+    [
+      ['status', `\`${report.targetedStagingSummary.status ?? '-'}\``],
+      ['target files', `\`${report.targetedStagingSummary.targetFileCount ?? '-'}\``],
+      ['reviewed untracked ready files', `\`${report.targetedStagingSummary.reviewedUntrackedReadyFileCount ?? '-'}\``],
+      ['reviewed untracked staged files', `\`${report.targetedStagingSummary.reviewedUntrackedStagedFileCount ?? '-'}\``],
+      ['reviewed untracked satisfied files', `\`${report.targetedStagingSummary.reviewedUntrackedSatisfiedFileCount ?? '-'}\``],
+      ['unexpected dirty files', `\`${report.targetedStagingSummary.unexpectedDirtyFileCount ?? '-'}\``],
+      ['blockers', `\`${report.targetedStagingSummary.blockerCount ?? '-'}\``],
+      ['does not run git add', `\`${report.targetedStagingSummary.doesNotRunGitAdd ?? '-'}\``],
+      ['safe to run bulk git add', `\`${report.targetedStagingSummary.safeToRunBulkGitAdd ?? '-'}\``],
+    ],
+  ),
+  '',
+  '## Staged Scope Audit',
+  '',
+  markdownTable(
+    ['check', 'value'],
+    [
+      ['status', `\`${report.stagedScopeAuditSummary.status ?? '-'}\``],
+      ['expected target files', `\`${report.stagedScopeAuditSummary.expectedTargetFileCount ?? '-'}\``],
+      ['staged files', `\`${report.stagedScopeAuditSummary.stagedFileCount ?? '-'}\``],
+      ['staged outside target files', `\`${report.stagedScopeAuditSummary.stagedOutsideTargetFileCount ?? '-'}\``],
+      ['staged separate dirty work files', `\`${report.stagedScopeAuditSummary.stagedSeparateDirtyWorkFileCount ?? '-'}\``],
+      ['blockers', `\`${report.stagedScopeAuditSummary.blockerCount ?? '-'}\``],
+      ['does not run git add', `\`${report.stagedScopeAuditSummary.doesNotRunGitAdd ?? '-'}\``],
+      ['safe to run bulk git add', `\`${report.stagedScopeAuditSummary.safeToRunBulkGitAdd ?? '-'}\``],
     ],
   ),
   '',

@@ -625,10 +625,10 @@ const zonePrecisionWorksetRows = GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) =
     ...missingBlockIds.map((blockId) => `MISSING_BLOCK:${blockId}`),
     ...rows
       .filter((row) => row.traceVersion !== GWANGJU_FULL_RETRACE_VERSION)
-      .map((row) => `TRACE_VERSION_NOT_V5:${row.id}:${row.traceVersion}`),
+      .map((row) => `TRACE_VERSION_MISMATCH:${row.id}:${row.traceVersion}:expected=${GWANGJU_FULL_RETRACE_VERSION}`),
     ...rows
       .filter((row) => row.previousTraceVersion !== GWANGJU_PREVIOUS_TRACE_VERSION)
-      .map((row) => `PREVIOUS_TRACE_VERSION_NOT_V4:${row.id}:${row.previousTraceVersion}`),
+      .map((row) => `PREVIOUS_TRACE_VERSION_MISMATCH:${row.id}:${row.previousTraceVersion}:expected=${GWANGJU_PREVIOUS_TRACE_VERSION}`),
     ...rows
       .filter((row) => row.traceStatus !== 'OFFICIAL_IMAGE_TRACED')
       .map((row) => `TRACE_STATUS_NOT_READY:${row.id}:${row.traceStatus}`),
@@ -920,7 +920,7 @@ const markdown = [
     ]),
   ),
   '',
-  '각 workset은 `manual-polygon-v5` active geometry를 기준으로 bbox/anchor/coverage/component/overlap evidence를 묶어 검수합니다. P5는 전체 111개 reference 재고정과 K7/AWAY derived-only 계약을 확인합니다.',
+  `각 workset은 \`${GWANGJU_FULL_RETRACE_VERSION}\` active geometry를 기준으로 bbox/anchor/coverage/component/overlap evidence를 묶어 검수합니다. P5는 전체 111개 reference 재고정과 K7/AWAY derived-only 계약을 확인합니다.`,
   '',
   '## Derived range / no aggregate hit-area',
   '',
@@ -942,6 +942,8 @@ const markdown = [
   '## O/P component coverage',
   '',
   '기존 `pixelCoverageRatio`는 작은 polygon도 색상 영역 안에만 있으면 통과할 수 있으므로, O/P 외야 계열은 공식 PNG component recall/IoU를 별도로 차단 기준으로 둡니다.',
+  '',
+  '101~108 하단 내야는 `gwangju-seatmap-image-alignment-audit`에서 공식 PNG 독립 mask recall/IoU/outside bleed를 추가로 확인합니다.',
   '',
   markdownTable(
     ['id', 'components', 'recall', 'min recall', 'IoU', 'min IoU', 'status'],
