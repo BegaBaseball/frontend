@@ -183,9 +183,10 @@ const report = {
   derivedRanges: derivedRangeRows,
   blockers,
   gateCommands: [
-    'npm run stadium:gwangju:operator-status',
-    'npm run test:stadium:seatmaps',
     'npm run qa:stadium:gwangju:trace-review',
+    'npm run stadium:gwangju:operator-status',
+    'npm run test:stadium:gwangju:seatmaps',
+    'validate existing gwangju trace-review artifacts',
     'npm run stadium:gwangju:release-package',
     'npm run build',
   ],

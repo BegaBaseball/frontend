@@ -26,6 +26,7 @@ export interface CoachBriefingMetaState {
   groundingWarnings: string[];
   groundingReasons: string[];
   supportedFactCount?: number;
+  winProbabilityHome?: number | null;
 }
 
 interface CoachBriefingAutoRuntimeProps {
@@ -72,6 +73,7 @@ interface CoachBriefingCachePayload {
   groundingWarnings?: string[];
   groundingReasons?: string[];
   supportedFactCount?: number;
+  winProbabilityHome?: number | null;
 }
 
 const resolvePitcherName = (
@@ -124,6 +126,12 @@ const normalizeCoachBriefingMeta = (
     && Number.isFinite(payload.supportedFactCount)
     && payload.supportedFactCount >= 0
   ) ? payload.supportedFactCount : undefined;
+  const winProbabilityHome = (
+    typeof payload.winProbabilityHome === 'number'
+    && Number.isFinite(payload.winProbabilityHome)
+    && payload.winProbabilityHome >= 0
+    && payload.winProbabilityHome <= 1
+  ) ? payload.winProbabilityHome : null;
   if (
     !payload.generationMode
     && !payload.dataQuality
@@ -144,6 +152,7 @@ const normalizeCoachBriefingMeta = (
     groundingWarnings,
     groundingReasons,
     supportedFactCount,
+    winProbabilityHome,
   };
 };
 
@@ -288,6 +297,10 @@ export default function CoachBriefingAutoRuntime({
   const MAX_COACH_RETRIES = 3;
   const RETRY_DELAYS_MS = [2000, 4000, 6000] as const;
   const MAX_BACKOFF_MS = 16000;
+  // in_progress(백그라운드 생성 중) 상태 전용 — 더 길게 기다린다
+  const MAX_COACH_PENDING_RETRIES = 12;
+  const PENDING_RETRY_DELAYS_MS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 60000, 75000, 90000, 120000] as const;
+  const MAX_PENDING_BACKOFF_MS = 120000;
   const effectiveRequestMode: CoachRequestMode = requestMode;
   const briefingLabel = autoEnabled ? '실데이터 브리핑' : 'AI 코치 분석';
   const isGuestBlocked = !isLoggedIn && !isAuthLoading;
@@ -461,6 +474,7 @@ export default function CoachBriefingAutoRuntime({
         groundingWarnings: cached.groundingWarnings,
         groundingReasons: cached.groundingReasons,
         supportedFactCount: cached.supportedFactCount,
+        winProbabilityHome: cached.winProbabilityHome ?? null,
       }));
       successfulRequestFingerprintRef.current = requestCacheKey;
       onLoadingChange(false);
@@ -485,6 +499,7 @@ export default function CoachBriefingAutoRuntime({
         groundingWarnings: meta?.groundingWarnings,
         groundingReasons: meta?.groundingReasons,
         supportedFactCount: meta?.supportedFactCount,
+        winProbabilityHome: meta?.winProbabilityHome ?? null,
       };
 
       coachBriefingMemoryCache.set(requestCacheKey, payload);
@@ -509,6 +524,7 @@ export default function CoachBriefingAutoRuntime({
         groundingWarnings: payload.groundingWarnings,
         groundingReasons: payload.groundingReasons,
         supportedFactCount: payload.supportedFactCount,
+        winProbabilityHome: payload.winProbabilityHome ?? null,
       });
 
       coachBriefingMemoryCache.set(requestCacheKey, {
@@ -523,6 +539,7 @@ export default function CoachBriefingAutoRuntime({
         groundingWarnings: cachedMeta?.groundingWarnings,
         groundingReasons: cachedMeta?.groundingReasons,
         supportedFactCount: cachedMeta?.supportedFactCount,
+        winProbabilityHome: cachedMeta?.winProbabilityHome ?? null,
       });
       onMetaChange(cachedMeta);
       return cachedValue;
@@ -629,6 +646,7 @@ export default function CoachBriefingAutoRuntime({
           groundingWarnings: response.grounding_warnings,
           groundingReasons: response.grounding_reasons,
           supportedFactCount: response.supported_fact_count,
+          winProbabilityHome: response.win_probability_home ?? null,
         });
 
         if (response.manual_data_request) {
@@ -653,15 +671,19 @@ export default function CoachBriefingAutoRuntime({
           return;
         }
 
-        const scheduleRetryIfNeeded = (retryable: boolean) => {
+        const scheduleRetryIfNeeded = (retryable: boolean, isPending: boolean = false) => {
           if (!retryable) {
             clearRetryTimer();
             resetRetryState();
             return false;
           }
 
+          const maxRetries = isPending ? MAX_COACH_PENDING_RETRIES : MAX_COACH_RETRIES;
+          const retryDelays = isPending ? PENDING_RETRY_DELAYS_MS : RETRY_DELAYS_MS;
+          const maxBackoff = isPending ? MAX_PENDING_BACKOFF_MS : MAX_BACKOFF_MS;
+
           const currentRetryCount = retryCountRef.current;
-          if (currentRetryCount >= MAX_COACH_RETRIES) {
+          if (currentRetryCount >= maxRetries) {
             clearRetryTimer();
             resetRetryState();
             if (canOverrideSuccessfulBriefing()) {
@@ -672,9 +694,9 @@ export default function CoachBriefingAutoRuntime({
 
           clearRetryTimer();
           const selectedDelay =
-            RETRY_DELAYS_MS[currentRetryCount] ??
-            RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
-          const backoffMs = Math.min(selectedDelay, MAX_BACKOFF_MS);
+            retryDelays[currentRetryCount] ??
+            retryDelays[retryDelays.length - 1];
+          const backoffMs = Math.min(selectedDelay, maxBackoff);
           const nextRetryCount = currentRetryCount + 1;
           retryTimerRef.current = setTimeout(() => {
             retryTimerRef.current = null;
@@ -717,7 +739,7 @@ export default function CoachBriefingAutoRuntime({
           return;
         }
 
-        keepLoadingAfterResponse = scheduleRetryIfNeeded(shouldRetry);
+        keepLoadingAfterResponse = scheduleRetryIfNeeded(shouldRetry, shouldRetry);
 
         if (shouldRetry || !matchesCurrentRequest()) {
           return;

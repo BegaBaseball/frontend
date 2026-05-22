@@ -612,7 +612,7 @@ test('광주 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
     const subpaths = parsePathSubpaths(block.imageGeometry.d);
     assert.ok(subpaths.length >= 1, `${block.id} image geometry should use closed polygon path data`);
-    if (!['bleachers-table-left', 'bleachers-table-right', 'skybox-seats'].includes(block.id)) {
+    if (!['bleachers-table-left', 'bleachers-table-right', 'skybox-seats', 'first-surprise-seats'].includes(block.id)) {
       assert.equal(subpaths.length, 1, `${block.id} should use a single official-image polygon subpath`);
     }
     assert.ok((block.imageGeometry.d.match(/L /g)?.length ?? 0) >= 3, `${block.id} image geometry should use polygon path data`);
@@ -651,9 +651,9 @@ test('광주 trace review summary는 active 블록의 수동 polygon trace 완�
   assert.equal(GWANGJU_TRACE_REVIEW_SUMMARY.manualReviewRequired, 0);
 });
 
-test('광주 manual-polygon-v5 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
-  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v5');
-  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v4');
+test('광주 manual-polygon-v8 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
+  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v8');
+  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v7');
 
   const worksetsById = new Map(GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) => [workset.id, workset]));
   const activeBlockIds = new Set(GWANGJU_BLOCKS.map((block) => block.id));
@@ -675,6 +675,10 @@ test('광주 manual-polygon-v5 구역별 정밀화 workset은 111개 release 계
     'bleachers-table-left',
     'bleachers-table-right',
   ]);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k5-101'), true);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k5-106'), true);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-107'), true);
+  assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-108'), true);
   assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-118'), true);
   assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k7-119'), true);
   assert.equal(worksetsById.get('p2-lower-infield-low-margin')?.blockIds.includes('k9-117'), true);
@@ -814,13 +818,16 @@ test('광주 블록 geometry는 정적 공식 이미지 좌표 map에서만 공�
   assert.equal(source.includes('APPROXIMATE_MANUAL_POLYGON'), false);
 });
 
-test('광주 구역별 정밀화 manifest와 package script는 v5 workset 산출물을 고정한다', () => {
+test('광주 구역별 정밀화 manifest와 package script는 v8 image alignment/workset 산출물을 고정한다', () => {
   const manifestSource = readFileSync(new URL('../../scripts/gwangju-seatmap-review-manifest.mjs', import.meta.url), 'utf8');
   const worksetSource = readFileSync(new URL('../../scripts/gwangju-seatmap-zone-precision-worksets.mjs', import.meta.url), 'utf8');
   const lowMarginSource = readFileSync(new URL('../../scripts/gwangju-seatmap-low-margin-candidates.mjs', import.meta.url), 'utf8');
+  const imageAlignmentSource = readFileSync(new URL('../../scripts/gwangju-seatmap-image-alignment-audit.mjs', import.meta.url), 'utf8');
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
   const svgSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMapSvg.tsx', import.meta.url), 'utf8');
   const componentSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMap.tsx', import.meta.url), 'utf8');
+  const runtimeLayerSource = readFileSync(new URL('../../scripts/gwangju-seatmap-runtime-layer-audit.mjs', import.meta.url), 'utf8');
+  const browserAuditSource = readFileSync(new URL('../../scripts/stadium-ux-audit.mjs', import.meta.url), 'utf8');
 
   [
     'GWANGJU_ZONE_PRECISION_WORKSETS',
@@ -834,8 +841,42 @@ test('광주 구역별 정밀화 manifest와 package script는 v5 workset 산출
     'REPEATED_BLOCK_PIXEL_COVERAGE_BELOW_LOCK',
     'gwangju-seatmap-trace-review-zone-crops',
     'zoneOverlayArtifacts',
+    'gwangju-seatmap-image-alignment-audit',
+    '공식 PNG 독립 mask',
   ].forEach((requiredText) => {
     assert.ok(manifestSource.includes(requiredText), `manifest should include ${requiredText}`);
+  });
+
+  [
+    'GWANGJU_IMAGE_ALIGNMENT_AUDIT_V4',
+    'gwangju-seatmap-image-alignment-audit.json',
+    'gwangju-seatmap-image-alignment-audit.csv',
+    'gwangju-seatmap-image-alignment-audit.md',
+    'officialBlockMaskRecall',
+    'componentIoU',
+    'skyPicnicColorCoverageRatio',
+    'skyPicnicReviewRequiredBlocks',
+    'alphabetSectionColorCoverageRatio',
+    'outsideBleedRatio',
+    'P0_OFFICIAL_BLOCK_MASKS',
+    'SKY_PICNIC_COLOR_SCAN_THRESHOLDS',
+    'ALPHABET_SECTION_COLOR_SCAN_THRESHOLDS',
+    'official-sky-picnic-color-scan',
+    'official-alphabet-section-color-scan',
+    '--require-sky-picnic',
+    '--require-alphabet-sections',
+    'blockers: requireSkyPicnicScan ? reviewWarnings : []',
+    'sky-picnic-s-301-315',
+    'sky-picnic-s-316-335',
+    'alphabet-special-seats-upper',
+    'browser CSS pixels',
+    'resized screenshots',
+    'external crawling',
+    'web-search-based baseball data',
+    'third-party copied seatmap images',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredText) => {
+    assert.ok(imageAlignmentSource.includes(requiredText), `image alignment audit should include ${requiredText}`);
   });
 
   [
@@ -857,9 +898,21 @@ test('광주 구역별 정밀화 manifest와 package script는 v5 workset 산출
   });
 
   assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit"'));
+  assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-image-alignment-audit.mjs'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-sky-picnic"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-sky-picnic'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-alphabet-sections"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-alphabet-sections'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-release"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-sky-picnic --require-alphabet-sections'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit:require-release && npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-review-manifest.mjs'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-zone-precision-worksets.mjs'));
   assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-low-margin-candidates.mjs'));
+  assert.ok(packageSource.includes('"qa:stadium:gwangju:runtime-layer"'));
+  assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-runtime-layer-audit.mjs'));
+  assert.ok(packageSource.includes('npm run qa:stadium:gwangju:mobile && npm run qa:stadium:gwangju:runtime-layer'));
   [
     'GWANGJU_LOW_MARGIN_CANDIDATES_V1',
     'gwangju-seatmap-low-margin-candidates.json',
@@ -889,6 +942,31 @@ test('광주 구역별 정밀화 manifest와 package script는 v5 workset 산출
   assert.equal(componentSource.includes('GWANGJU_IMAGE_GEOMETRY_DRAFTS'), false, 'runtime component should not import draft geometry');
   assert.equal(componentSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'), false, 'runtime component should not import reference geometry');
   assert.equal(componentSource.includes('GWANGJU_OPERATOR_SECTION_REQUIREMENTS'), false, 'runtime component should not import operator-only section requirements');
+  [
+    'GWANGJU_RUNTIME_LAYER_AUDIT_V1',
+    'gwangju-seatmap-runtime-layer-audit.json',
+    'gwangju-seatmap-runtime-layer-audit.csv',
+    'gwangju-seatmap-runtime-layer-audit.md',
+    'GWANGJU_BLOCKS[].imageGeometry.d',
+    'runtime-rendered-paths-match-manifest',
+    'runtime-forbidden-paths-absent',
+    'runtime-label-top-hit',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+    'browser CSS pixels',
+    'web-search-based baseball data',
+  ].forEach((requiredText) => {
+    assert.ok(runtimeLayerSource.includes(requiredText), `runtime layer audit should include ${requiredText}`);
+  });
+  [
+    'readGwangjuTraceManifestBlocks',
+    'Gwangju runtime layer must render release-ready manifest paths only',
+    'pathMismatchCount',
+    'forbiddenRenderedIds',
+    'labelTopHitFailureCount',
+    "type: 'gwangju-runtime-layer'",
+  ].forEach((requiredText) => {
+    assert.ok(browserAuditSource.includes(requiredText), `browser QA should include ${requiredText}`);
+  });
 });
 
 test('광주 좌석도는 정적 공식 이미지 polygon 상태에서 선택을 활성화한다', () => {
@@ -985,7 +1063,13 @@ test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공
     'champion-seats': { minX: 461, minY: 740, maxX: 559, maxY: 843 },
     'central-table-seats': { minX: 397, minY: 755, maxX: 523, maxY: 895 },
     'first-surprise-seats': { minX: 714, minY: 772, maxX: 959, maxY: 848 },
-    'third-surprise-seats': { minX: 573, minY: 404, maxX: 654, maxY: 515 },
+    'third-surprise-seats': { minX: 574, minY: 402, maxX: 656, maxY: 517 },
+  };
+  const expectedSubpathCountByBlockId = {
+    'champion-seats': 1,
+    'central-table-seats': 1,
+    'first-surprise-seats': 3,
+    'third-surprise-seats': 1,
   };
 
   Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
@@ -994,7 +1078,8 @@ test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공
     const subpaths = parsePathSubpaths(block.imageGeometry.d);
 
     assert.deepEqual(getPathBounds(subpaths), expectedBounds);
-    assert.equal(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedSubpathCount, 1);
+    assert.equal(subpaths.length, expectedSubpathCountByBlockId[blockId as keyof typeof expectedSubpathCountByBlockId]);
+    assert.equal(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedSubpathCount, expectedSubpathCountByBlockId[blockId as keyof typeof expectedSubpathCountByBlockId]);
     assert.deepEqual(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedBounds, expectedBounds);
   });
 
@@ -1081,8 +1166,8 @@ test('광주 P4 반복 블럭은 높은 공식 PNG 좌석 색상 overlap으로 �
 test('광주 P4 518/519와 skybox 공유 경계는 공식 component bbox로 잠근다', () => {
   const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
   const expectedBoundsByBlockId = {
-    'five-table-518': { minX: 319, minY: 861, maxX: 382, maxY: 919 },
-    'five-table-519': { minX: 297, minY: 827, maxX: 361, maxY: 882 },
+    'five-table-518': { minX: 319, minY: 861, maxX: 385, maxY: 920 },
+    'five-table-519': { minX: 297, minY: 827, maxX: 362, maxY: 883 },
     'skybox-seats': { minX: 345, minY: 823, maxX: 389, maxY: 888 },
   };
   const sharedBoundaryIds = Object.keys(expectedBoundsByBlockId);

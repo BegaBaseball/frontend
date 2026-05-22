@@ -4,14 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-import {
-  GWANGJU_SEATMAP_IMAGE,
-} from '../src/data/gwangjuSeatData.ts';
-
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
-const repoRoot = path.resolve(frontendRoot, '..');
-const outDir = path.join(repoRoot, 'output/playwright');
+const outDir = path.join(frontendRoot, 'reports/stadium');
+const GWANGJU_SEATMAP_IMAGE = {
+  imagePath: 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png',
+};
 const imagePath = path.resolve(frontendRoot, GWANGJU_SEATMAP_IMAGE.imagePath);
 
 const SEATMAP_BOUNDS = { minX: 250, maxX: 1370, minY: 90, maxY: 1090 };
@@ -138,7 +136,19 @@ const report = {
 
 await fs.mkdir(outDir, { recursive: true });
 const reportPath = path.join(outDir, 'gwangju-seatmap-pixel-components.json');
-await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+const temporaryReportPath = `${reportPath}.${process.pid}.tmp`;
+await fs.writeFile(temporaryReportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+try {
+  await fs.rename(temporaryReportPath, reportPath);
+} catch (error) {
+  if (error?.code !== 'EPERM' && error?.code !== 'EACCES') {
+    throw error;
+  }
+  await fs.unlink(reportPath).catch((unlinkError) => {
+    if (unlinkError?.code !== 'ENOENT') throw unlinkError;
+  });
+  await fs.rename(temporaryReportPath, reportPath);
+}
 
 console.log(`pixel_components_json:${reportPath}`);
 for (const group of groups) {

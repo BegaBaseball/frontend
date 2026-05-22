@@ -223,10 +223,10 @@ const blockers = [
 
 if (traceReview) {
   if (traceReview.summary?.traceVersion !== GWANGJU_FULL_RETRACE_VERSION) {
-    blockers.push(`TRACE_VERSION_NOT_V5:${traceReview.summary?.traceVersion ?? 'missing'}`);
+    blockers.push(`TRACE_VERSION_MISMATCH:${traceReview.summary?.traceVersion ?? 'missing'}:expected=${GWANGJU_FULL_RETRACE_VERSION}`);
   }
   if (traceReview.summary?.previousTraceVersion !== GWANGJU_PREVIOUS_TRACE_VERSION) {
-    blockers.push(`PREVIOUS_TRACE_VERSION_NOT_V4:${traceReview.summary?.previousTraceVersion ?? 'missing'}`);
+    blockers.push(`PREVIOUS_TRACE_VERSION_MISMATCH:${traceReview.summary?.previousTraceVersion ?? 'missing'}:expected=${GWANGJU_PREVIOUS_TRACE_VERSION}`);
   }
   if (traceReview.summary?.totalBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
     blockers.push(`ACTIVE_BLOCK_COUNT_CHANGED:${traceReview.summary?.totalBlocks ?? 'missing'}`);

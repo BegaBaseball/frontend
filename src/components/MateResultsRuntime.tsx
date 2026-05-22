@@ -1,3 +1,5 @@
+import { lazy, Suspense } from 'react';
+
 import AdSlot from './ads/AdSlot';
 import { Button } from './ui/button';
 import {
@@ -8,9 +10,10 @@ import {
   MateRefreshIcon,
   MateUsersIcon,
 } from './MateIcons';
-import MatePartyCard from './MatePartyCard';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Party } from '../types/mate';
+
+const MatePartyCard = lazy(() => import('./MatePartyCard'));
 
 type MateResultsTabKey = 'all' | 'recruiting' | 'matched' | 'selling';
 
@@ -55,6 +58,26 @@ export default function MateResultsRuntime({
   const isRichCardLayout = useMediaQuery('(min-width: 1024px)');
   const partyCardVariant = isRichCardLayout ? 'rich' : 'compact';
   const skeletonCardHeight = isRichCardLayout ? 'min-h-[508px]' : 'min-h-[304px]';
+
+  const renderSkeletonGrid = () => (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+      {Array.from({ length: 6 }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className={`${skeletonCardHeight} flex animate-pulse flex-col rounded-[24px] border border-gray-200/80 bg-white p-4 dark:border-white/15 dark:bg-[#16181c]`}
+        >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="h-8 w-40 rounded-lg bg-gray-200 dark:bg-white/10" />
+            <div className="h-8 w-24 rounded-lg bg-primary/15" />
+          </div>
+          <div className="mb-5 h-12 rounded-xl bg-gray-100 dark:bg-white/5" />
+          <div className="mb-5 h-24 rounded-2xl bg-gray-100 dark:bg-black/30" />
+          <div className="mt-auto h-12 rounded-full bg-gray-100 dark:bg-white/5" />
+        </div>
+      ))}
+    </div>
+  );
 
   const renderEmptyState = (tabKey: MateResultsTabKey) => {
     const messages = EMPTY_MESSAGES_BY_TAB[tabKey];
@@ -101,28 +124,30 @@ export default function MateResultsRuntime({
   };
 
   const renderPartyGrid = (items: Party[]) => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
-      {items.flatMap((party, index) => [
-        <MatePartyCard
-          key={party.id}
-          party={party}
-          variant={partyCardVariant}
-          onClick={onPartyClick}
-        />,
-        index === 3 && items.length > 4 ? (
-          <AdSlot
-            key="mate-list-1"
-            slotId="mate_list_1"
-            pageType="mate_list"
-            listIndex={4}
-            creativeType="native_card"
-            loggedIn={Boolean(authUserId)}
-            userId={authUserId ? String(authUserId) : null}
-            minHeight={156}
-          />
-        ) : null,
-      ])}
-    </div>
+    <Suspense fallback={renderSkeletonGrid()}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+        {items.flatMap((party, index) => [
+          <MatePartyCard
+            key={party.id}
+            party={party}
+            variant={partyCardVariant}
+            onClick={onPartyClick}
+          />,
+          index === 3 && items.length > 4 ? (
+            <AdSlot
+              key="mate-list-1"
+              slotId="mate_list_1"
+              pageType="mate_list"
+              listIndex={4}
+              creativeType="native_card"
+              loggedIn={Boolean(authUserId)}
+              userId={authUserId ? String(authUserId) : null}
+              minHeight={156}
+            />
+          ) : null,
+        ])}
+      </div>
+    </Suspense>
   );
 
   const renderPagination = () => (
@@ -156,23 +181,7 @@ export default function MateResultsRuntime({
   if (isLoading) {
     return (
       <div role="status" aria-live="polite" aria-label="메이트 파티 목록 불러오는 중">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div
-              key={index}
-              aria-hidden="true"
-              className={`${skeletonCardHeight} flex animate-pulse flex-col rounded-[24px] border border-gray-200/80 bg-white p-4 dark:border-white/15 dark:bg-[#16181c]`}
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div className="h-8 w-40 rounded-lg bg-gray-200 dark:bg-white/10" />
-                <div className="h-8 w-24 rounded-lg bg-primary/15" />
-              </div>
-              <div className="mb-5 h-12 rounded-xl bg-gray-100 dark:bg-white/5" />
-              <div className="mb-5 h-24 rounded-2xl bg-gray-100 dark:bg-black/30" />
-              <div className="mt-auto h-12 rounded-full bg-gray-100 dark:bg-white/5" />
-            </div>
-          ))}
-        </div>
+        {renderSkeletonGrid()}
       </div>
     );
   }

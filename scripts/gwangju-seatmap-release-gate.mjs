@@ -22,6 +22,7 @@ const gateMarkdownPath = path.join(reportDir, 'gwangju-seatmap-release-gate.md')
 const releasePackagePath = path.join(reportDir, 'gwangju-seatmap-release-package.json');
 const operatorStatusPath = path.join(reportDir, 'gwangju-seatmap-operator-status.json');
 const traceReviewPath = path.join(reportDir, 'gwangju-seatmap-trace-review.json');
+const runtimeLayerAuditPath = path.join(reportDir, 'gwangju-seatmap-runtime-layer-audit.json');
 const browserQaPath = path.join(outputRoot, 'stadium-ux-gwangju-validate/stadium-mobile-smoke-summary.json');
 
 const commandPlan = [
@@ -49,6 +50,10 @@ const commandPlan = [
     label: 'build',
     command: 'npm',
     args: ['run', 'build'],
+    env: {
+      VITE_SITE_URL: process.env.VITE_SITE_URL || 'http://localhost:5176',
+      VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || '/api',
+    },
   },
 ];
 
@@ -77,7 +82,7 @@ const runCommand = (step) => new Promise((resolve) => {
 
   const child = spawn(step.command, step.args, {
     cwd: frontendRoot,
-    env: { ...process.env },
+    env: { ...process.env, ...step.env },
     stdio: 'inherit',
     shell: false,
   });
@@ -116,6 +121,7 @@ for (const step of commandPlan) {
 const releasePackage = await readJsonIfExists(releasePackagePath);
 const operatorStatus = await readJsonIfExists(operatorStatusPath);
 const traceReview = await readJsonIfExists(traceReviewPath);
+const runtimeLayerAudit = await readJsonIfExists(runtimeLayerAuditPath);
 const browserQa = await readJsonIfExists(browserQaPath);
 
 const blockers = stepResults
@@ -144,6 +150,12 @@ if (stepResults.length === commandPlan.length && blockers.length === 0) {
   if (browserQa?.status !== 'passed') {
     blockers.push(`BROWSER_QA_NOT_PASSED:${browserQa?.status ?? 'missing'}`);
   }
+  if (runtimeLayerAudit?.status !== 'passed') {
+    blockers.push(`RUNTIME_LAYER_AUDIT_NOT_PASSED:${runtimeLayerAudit?.status ?? 'missing'}`);
+  }
+  if (runtimeLayerAudit?.summary?.pathMismatchCount !== 0) {
+    blockers.push(`RUNTIME_LAYER_PATH_MISMATCHES_PRESENT:${runtimeLayerAudit?.summary?.pathMismatchCount ?? 'missing'}`);
+  }
 }
 
 const status = blockers.length === 0 ? 'passed' : 'failed';
@@ -155,6 +167,7 @@ const releaseAcceptance = {
   requiredReleasePackageStatus: 'ready',
   requiredOperatorStatus: 'pending',
   requiredBrowserQaStatus: 'passed',
+  requiredRuntimeLayerAuditStatus: 'passed',
   requiredActiveTraceBlocks: 111,
 };
 const report = {
@@ -199,6 +212,8 @@ const report = {
     operatorStatus: operatorStatus?.summary?.status ?? null,
     activeTraceBlocks: traceReview?.summary?.totalBlocks ?? null,
     browserQaStatus: browserQa?.status ?? null,
+    runtimeLayerAuditStatus: runtimeLayerAudit?.status ?? null,
+    runtimeLayerPathMismatches: runtimeLayerAudit?.summary?.pathMismatchCount ?? null,
     blockers: blockers.length,
     completedSteps: passedStepCount,
     totalSteps: commandPlan.length,
@@ -218,6 +233,7 @@ const markdown = [
   `- operator sections: \`${GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ')}\``,
   `- release package: \`${report.finalChecks.releasePackageStatus ?? '-'}\``,
   `- browser QA: \`${report.finalChecks.browserQaStatus ?? '-'}\``,
+  `- runtime layer audit: \`${report.finalChecks.runtimeLayerAuditStatus ?? '-'}\``,
   `- completed steps: \`${report.finalChecks.completedSteps}/${report.finalChecks.totalSteps}\``,
   '',
   '## Acceptance',
@@ -231,6 +247,8 @@ const markdown = [
       ['release package', `\`${releaseAcceptance.requiredReleasePackageStatus}\``, `\`${report.finalChecks.releasePackageStatus ?? '-'}\``],
       ['operator status', `\`${releaseAcceptance.requiredOperatorStatus}\``, `\`${report.finalChecks.operatorStatus ?? '-'}\``],
       ['browser QA', `\`${releaseAcceptance.requiredBrowserQaStatus}\``, `\`${report.finalChecks.browserQaStatus ?? '-'}\``],
+      ['runtime layer audit', `\`${releaseAcceptance.requiredRuntimeLayerAuditStatus}\``, `\`${report.finalChecks.runtimeLayerAuditStatus ?? '-'}\``],
+      ['runtime path mismatches', '`0`', `\`${report.finalChecks.runtimeLayerPathMismatches ?? '-'}\``],
       ['active trace blocks', `\`${releaseAcceptance.requiredActiveTraceBlocks}\``, `\`${report.finalChecks.activeTraceBlocks ?? '-'}\``],
     ],
   ),

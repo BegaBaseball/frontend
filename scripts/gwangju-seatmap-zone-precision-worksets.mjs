@@ -97,8 +97,8 @@ const worksetRows = GWANGJU_ZONE_PRECISION_WORKSETS.map((workset, index) => {
       ? [`TRACE_MANIFEST_WORKSET_NOT_PASSED:${workset.id}:${manifestWorkset.status}`]
       : []),
     ...missingBlockIds.map((blockId) => `MISSING_BLOCK:${blockId}`),
-    ...traceVersionFailures.map((failure) => `TRACE_VERSION_NOT_V5:${failure}`),
-    ...previousVersionFailures.map((failure) => `PREVIOUS_TRACE_VERSION_NOT_V4:${failure}`),
+    ...traceVersionFailures.map((failure) => `TRACE_VERSION_MISMATCH:${failure}:expected=${GWANGJU_FULL_RETRACE_VERSION}`),
+    ...previousVersionFailures.map((failure) => `PREVIOUS_TRACE_VERSION_MISMATCH:${failure}:expected=${GWANGJU_PREVIOUS_TRACE_VERSION}`),
     ...readinessFailures.map((blockId) => `BLOCK_NOT_RELEASE_READY:${blockId}`),
     ...componentFailures.map((blockId) => `COMPONENT_COVERAGE_FAILED:${blockId}`),
   ];
@@ -142,12 +142,12 @@ const blockers = [
   ...(traceReview ? [] : [`TRACE_REVIEW_MISSING:${path.relative(frontendRoot, traceReviewPath)}`]),
 ];
 
-if (traceReview) {
+  if (traceReview) {
   if (traceReview.summary?.traceVersion !== GWANGJU_FULL_RETRACE_VERSION) {
-    blockers.push(`TRACE_REVIEW_VERSION_NOT_V5:${traceReview.summary?.traceVersion ?? 'missing'}`);
+    blockers.push(`TRACE_REVIEW_VERSION_MISMATCH:${traceReview.summary?.traceVersion ?? 'missing'}:expected=${GWANGJU_FULL_RETRACE_VERSION}`);
   }
   if (traceReview.summary?.previousTraceVersion !== GWANGJU_PREVIOUS_TRACE_VERSION) {
-    blockers.push(`TRACE_REVIEW_PREVIOUS_VERSION_NOT_V4:${traceReview.summary?.previousTraceVersion ?? 'missing'}`);
+    blockers.push(`TRACE_REVIEW_PREVIOUS_VERSION_MISMATCH:${traceReview.summary?.previousTraceVersion ?? 'missing'}:expected=${GWANGJU_PREVIOUS_TRACE_VERSION}`);
   }
   if (traceReview.summary?.totalBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
     blockers.push(`ACTIVE_BLOCK_COUNT_CHANGED:${traceReview.summary?.totalBlocks ?? 'missing'}`);
