@@ -57,6 +57,7 @@ import {
     WarningTriangleIcon,
 } from './icons/PublicShellIcons';
 import { isAdminRole, useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
+import AdSlot from './ads/AdSlot';
 
 const LazyHomeSecondaryPanels = lazy(() => import('./home/HomeSecondaryPanelsContainer'));
 const LazyHomeMatchPanel = lazy(() => import('./home/HomeMatchPanel'));
@@ -1152,6 +1153,14 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                         </div>
                     </div>
                 </div>
+
+                <AdSlot
+                    slotId="home_mid_1"
+                    pageType="home"
+                    contentId={selectedDateKey}
+                    loggedIn={isLoggedIn}
+                    userId={authUserId ? String(authUserId) : null}
+                />
 
                 {shouldMountSecondaryPanels ? (
                     <Suspense fallback={null}>

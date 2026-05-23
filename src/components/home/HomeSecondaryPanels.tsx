@@ -286,56 +286,144 @@ export default function HomeSecondaryPanels({
         ) : hotCheerPosts.length === 0 ? (
           <EmptyState>인기 응원글이 없습니다.</EmptyState>
         ) : (
-          <div className="flex flex-col gap-2">
-            {hotCheerPosts.map((post) => {
-              const thumbnailUrl = post.imageUrls?.[0];
+          <>
+            {/* Mobile: uniform compact list */}
+            <div className="flex flex-col gap-2 lg:hidden">
+              {hotCheerPosts.map((post) => {
+                const thumbnailUrl = post.imageUrls?.[0];
+                return (
+                  <button
+                    type="button"
+                    key={post.id}
+                    onClick={() => onNavigateToCheerPost(post.id)}
+                    className="group w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                  >
+                    <div className="flex gap-3">
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                          <TeamLogo team={post.team} size={30} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <span className="min-w-0 truncate text-[14px] font-bold text-zinc-600 dark:text-zinc-400">
+                            {post.author || '익명'}
+                          </span>
+                          <span className="shrink-0 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            {formatTimeAgo(post.createdAt)}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-[15px] font-black leading-snug text-gray-900 dark:text-zinc-100">
+                          {post.content}
+                        </p>
+                        <div className="mt-2 flex gap-3">
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
+                            <FlameIcon className="h-3.5 w-3.5" /> {post.likeCount}
+                          </span>
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3.5 w-3.5" /> {post.commentCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-              return (
-                <button
-                  type="button"
-                  key={post.id}
-                  onClick={() => onNavigateToCheerPost(post.id)}
-                  className="group w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
-                >
-                  <div className="flex gap-3">
-                    {thumbnailUrl ? (
+            {/* Desktop: hero first post + compact list for rest */}
+            <div className="hidden flex-col gap-1 lg:flex">
+              {(() => {
+                const hero = hotCheerPosts[0];
+                const heroThumb = hero.imageUrls?.[0];
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToCheerPost(hero.id)}
+                    className="group w-full rounded-xl text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                  >
+                    {heroThumb ? (
                       <img
-                        src={thumbnailUrl}
+                        src={heroThumb}
                         alt=""
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                        className="mb-2.5 h-[120px] w-full rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
-                        <TeamLogo team={post.team} size={30} />
+                      <div className="mb-2.5 flex h-[100px] w-full items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                        <TeamLogo team={hero.team} size={44} />
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <span className="min-w-0 truncate text-[14px] font-bold text-zinc-600 dark:text-zinc-400">
-                          {post.author || '익명'}
-                        </span>
-                        <span className="shrink-0 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
-                          {formatTimeAgo(post.createdAt)}
-                        </span>
-                      </div>
+                    <div className="px-1">
                       <p className="line-clamp-2 text-[15px] font-black leading-snug text-gray-900 dark:text-zinc-100">
-                        {post.content}
+                        {hero.content}
                       </p>
-                      <div className="mt-2 flex gap-3">
-                        <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
-                          <FlameIcon className="h-3.5 w-3.5" /> {post.likeCount}
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                          {hero.author || '익명'} · {formatTimeAgo(hero.createdAt)}
                         </span>
-                        <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
-                          <MessageSquareIcon className="h-3.5 w-3.5" /> {post.commentCount}
-                        </span>
+                        <div className="flex shrink-0 gap-3">
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
+                            <FlameIcon className="h-3.5 w-3.5" /> {hero.likeCount}
+                          </span>
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3.5 w-3.5" /> {hero.commentCount}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })()}
+
+              {hotCheerPosts.length > 1 && (
+                <div className="mt-1 border-t border-zinc-100 pt-1 dark:border-zinc-800/80">
+                  {hotCheerPosts.slice(1).map((post) => {
+                    const thumbnailUrl = post.imageUrls?.[0];
+                    return (
+                      <button
+                        type="button"
+                        key={post.id}
+                        onClick={() => onNavigateToCheerPost(post.id)}
+                        className="group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                      >
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt=""
+                            className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                            <TeamLogo team={post.team} size={22} />
+                          </div>
+                        )}
+                        <p className="min-w-0 flex-1 truncate text-[14px] font-bold text-gray-900 dark:text-zinc-100">
+                          {post.content}
+                        </p>
+                        <div className="flex shrink-0 gap-2">
+                          <span className="flex items-center gap-0.5 text-[12px] font-bold text-rose-500">
+                            <FlameIcon className="h-3 w-3" /> {post.likeCount}
+                          </span>
+                          <span className="flex items-center gap-0.5 text-[12px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3 w-3" /> {post.commentCount}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </Card>
     </section>
