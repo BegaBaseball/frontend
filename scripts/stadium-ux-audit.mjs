@@ -5371,10 +5371,12 @@ const verifySajikOverlayClicks = async (page) => {
         return { allTargets: [], clickableTargets: [] };
       }
 
-      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
         .map((element) => {
           const testId = element.getAttribute('data-testid') ?? '';
-          const id = testId.replace('sajik-seat-block-', '');
+          const id = testId
+            .replace('sajik-seat-block-', '')
+            .replace('sajik-accessibility-marker-', '');
           const labelX = Number(element.getAttribute('data-label-x'));
           const labelY = Number(element.getAttribute('data-label-y'));
           const ariaLabel = element.getAttribute('aria-label') ?? '';
@@ -5438,7 +5440,7 @@ const verifySajikOverlayClicks = async (page) => {
 
       let isPressed = false;
       for (let attempt = 0; attempt < 15; attempt += 1) {
-        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
           .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
           .map((candidate) => candidate.getAttribute('data-testid')));
         isPressed = pressedIds.includes(target.testId);
@@ -5448,7 +5450,7 @@ const verifySajikOverlayClicks = async (page) => {
       if (!isPressed) {
         const hitDebug = await page.evaluate((point) => {
           const element = document.elementFromPoint(point.x, point.y);
-          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
+          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
             .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
             .map((candidate) => ({
               testId: candidate.getAttribute('data-testid'),
