@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   analyzeTeam,
+  CoachAnalyzeError,
   CoachAnalyzeResponse,
   CoachDataQuality,
   CoachGenerationMode,
@@ -9,6 +10,7 @@ import {
 } from '../api/coach';
 import type { Game, GameDetail } from '../types/prediction';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
+import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import {
   buildCoachBriefingRequestDescriptor,
   type CoachRequestMode,
@@ -75,6 +77,11 @@ interface CoachBriefingCachePayload {
   supportedFactCount?: number;
   winProbabilityHome?: number | null;
 }
+
+const isRealtimeAuthExpiredEvent = (event: Event): boolean => {
+  const detail = (event as CustomEvent<{ cause?: unknown; requestUrl?: unknown } | undefined>).detail;
+  return detail?.cause === 'realtime_auth_failed' && detail.requestUrl === '/ws';
+};
 
 const resolvePitcherName = (
   pitcher?: { name?: string | null } | string | null,
@@ -412,9 +419,40 @@ export default function CoachBriefingAutoRuntime({
     currentRequestFingerprintRef.current = null;
   };
 
+  const markAuthExpired = () => {
+    clearActiveRequest();
+    onLoadingChange(false);
+    onAuthExpiredChange(true);
+    aiBriefingRef.current = null;
+    onBriefingChange(null);
+    onMetaChange(null);
+    clearRetryTimer();
+    resetRetryState();
+  };
+
   useEffect(() => {
     aiBriefingRef.current = null;
   }, [game?.gameId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleRealtimeAuthExpired = (event: Event) => {
+      if (isRealtimeAuthExpiredEvent(event)) {
+        markAuthExpired();
+      }
+    };
+
+    window.addEventListener('auth-session-expired', handleRealtimeAuthExpired);
+    return () => window.removeEventListener('auth-session-expired', handleRealtimeAuthExpired);
+  }, [
+    onAuthExpiredChange,
+    onBriefingChange,
+    onLoadingChange,
+    onMetaChange,
+  ]);
 
   useEffect(() => {
     if (requestCacheKeyRef.current === requestCacheKey) {
@@ -432,7 +470,6 @@ export default function CoachBriefingAutoRuntime({
       onBriefingChange(null);
       onMetaChange(null);
       onLoadingChange(false);
-      onAuthExpiredChange(false);
       successfulRequestFingerprintRef.current = null;
       clearRetryTimer();
       resetRetryState();
@@ -586,7 +623,17 @@ export default function CoachBriefingAutoRuntime({
     onLoadingChange(true);
     let sharedRequest = coachBriefingInFlightRequests.get(requestCacheKey);
     if (!sharedRequest) {
-      sharedRequest = analyzeTeam(requestDescriptor.requestPayload);
+      sharedRequest = ensureRealtimeAuthSession({ useInjectedProfile: false }).then((isAuthReady) => {
+        if (!isAuthReady) {
+          throw new CoachAnalyzeError(
+            'AUTH_EXPIRED',
+            '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.',
+            401,
+          );
+        }
+
+        return analyzeTeam(requestDescriptor.requestPayload);
+      });
       coachBriefingInFlightRequests.set(requestCacheKey, sharedRequest);
     }
 
@@ -768,14 +815,7 @@ export default function CoachBriefingAutoRuntime({
           return;
         }
         if (isCoachAnalyzeError(error) && error.code === 'AUTH_EXPIRED') {
-          clearActiveRequest();
-          onLoadingChange(false);
-          onAuthExpiredChange(true);
-          aiBriefingRef.current = null;
-          onBriefingChange(null);
-          onMetaChange(null);
-          clearRetryTimer();
-          resetRetryState();
+          markAuthExpired();
           return;
         }
         if (

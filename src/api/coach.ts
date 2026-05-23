@@ -182,6 +182,7 @@ export interface CoachAnalyzeResponse {
     game_status_bucket?: string;
     validation_status?: string;
     manual_data_request?: ManualBaseballDataRequest;
+    win_probability_home?: number | null;
 }
 
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
@@ -481,6 +482,7 @@ export async function analyzeTeam(
     let gameStatusBucket: string | undefined = undefined;
     let validationStatus: string | undefined = undefined;
     let manualDataRequest: ManualBaseballDataRequest | undefined = undefined;
+    let winProbabilityHome: number | null | undefined = undefined;
 
     if (responseBody) {
         try {
@@ -549,6 +551,15 @@ export async function analyzeTeam(
                 }
                 if (parsed.manual_data_request && typeof parsed.manual_data_request === 'object') {
                     manualDataRequest = parsed.manual_data_request as ManualBaseballDataRequest;
+                }
+                const rawWinProb = (parsed as Record<string, unknown>).win_probability_home;
+                if (
+                    typeof rawWinProb === 'number'
+                    && Number.isFinite(rawWinProb)
+                    && rawWinProb >= 0
+                    && rawWinProb <= 1
+                ) {
+                    winProbabilityHome = rawWinProb;
                 }
             };
 
@@ -675,5 +686,6 @@ export async function analyzeTeam(
         game_status_bucket: gameStatusBucket,
         validation_status: validationStatus,
         manual_data_request: manualDataRequest,
+        win_probability_home: winProbabilityHome,
     };
 }

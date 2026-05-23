@@ -380,6 +380,9 @@ export default function CoachBriefing({
           awayPitcherName={awayPitcherName}
           isPastGame={isPastGame}
           isFutureGame={isFutureGame}
+          homeTeamId={game?.homeTeam ?? null}
+          awayTeamId={game?.awayTeam ?? null}
+          winProbabilityHome={briefingMeta?.winProbabilityHome ?? null}
         />
       </Suspense>
     </>
