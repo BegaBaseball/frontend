@@ -7,14 +7,37 @@ import {
   DAEGU_CATEGORIES,
   DAEGU_CATEGORY_GROUPS,
   DAEGU_REQUIRED_OFFICIAL_SECTIONS,
+  DAEGU_DEFAULT_SEATMAP_SOURCE_ID,
+  DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME,
+  DAEGU_MYSEATCHECK_REFERENCE_URL,
+  DAEGU_OPERATOR_REFERENCE_BLOCKS,
+  DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256,
+  DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
+  DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT,
   DAEGU_SEATMAP_IMAGE,
+  DAEGU_SEATMAP_SOURCE_REFERENCES,
   DAEGU_SEATMAP_VIEWPORT,
   getDaeguTraceMethodLabel,
   getDaeguTraceStatusLabel,
   isDaeguNormalSelectableSeat,
+  isDaeguOperatorReferenceSelectableSeat,
+  isDaeguOfficialUnconfirmedSeat,
   isDaeguReviewOnlySeat,
 } from './daeguSeatData';
 import { validateSeatMapPolygonPath } from '../utils/seatMapPolygonValidator';
+
+const DAEGU_VISUAL_MATCH_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-seatmap-visual-match.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P0_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p0-approval.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P1_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p1-approval.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -31,6 +54,111 @@ const REQUIRED_CORE_CATEGORIES = [
 ];
 const OFFICIAL_SOURCE_URL = 'https://www.samsunglions.com/score/score_4_2_1.asp';
 const OFFICIAL_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png', import.meta.url);
+const OPERATOR_REFERENCE_RAPAK_2025_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.png', import.meta.url);
+const OFFICIAL_ALLOWED_GEOMETRY_VERSIONS = new Set([
+  'manual-polygon-v1',
+  'daegu-p1-duplicate-precision-p0-operator-approved-v1',
+  'daegu-p1-boundary-first-image-approved-v1',
+  'daegu-visual-match-batch1-1-2-t1-4-image-approved-v1',
+  'daegu-visual-match-batch1-3-8-11-image-approved-v1',
+  'daegu-visual-match-batch1-3e-3-4-chain-image-approved-v1',
+  'daegu-visual-match-batch1-13-14-u22-protected-v1',
+  'daegu-visual-match-batch1-15-16-component-split-image-approved-v1',
+  'daegu-visual-match-batch1-u25-u31-magenta-component-image-approved-v1',
+  'daegu-visual-match-batch2-u10-u14-magenta-component-image-approved-v1',
+  'daegu-visual-match-batch2-06-11-sky-upper-component-split-image-approved-v1',
+  'daegu-visual-match-batch2-01-05-sky-upper-component-split-image-approved-v1',
+  'daegu-visual-match-batch2-07-sky-upper-component-split-image-approved-v1',
+  'daegu-visual-match-batch2-08-sky-upper-component-split-image-approved-v1',
+  'daegu-visual-match-batch2-12-wayfinding-marker-image-classified-v1',
+  'daegu-visual-match-batch2-1-12-small-triangle-image-approved-v1',
+  'daegu-visual-match-batch3-1-9-1-12-overlap-split-v1',
+  'daegu-visual-match-batch2-mr-9-official-label-remap-v1',
+  'daegu-visual-match-batch2-m-9-official-label-remap-v1',
+  'daegu-visual-match-batch2-right-outfield-grass-zone-image-approved-v1',
+  'daegu-visual-match-batch2-right-outfield-camping-split-image-approved-v1',
+  'daegu-missing-block-p0-1-4-image-approved-v1',
+  'daegu-missing-block-p0-s7-image-approved-v1',
+  'daegu-missing-block-p1-lf-2-image-approved-v1',
+  'daegu-missing-block-p1-s24-image-approved-v1',
+  'daegu-missing-block-p1-s25-image-approved-v1',
+  'daegu-missing-block-p1-s26-image-approved-v1',
+  'daegu-missing-block-p1-s27-image-approved-v1',
+  'daegu-missing-block-p1-1-11-image-approved-v1',
+  'daegu-missing-block-p1-1-10-image-approved-v1',
+  'daegu-missing-block-p1-1-9-component-boundary-v2',
+  'daegu-missing-block-p1-1-8-component-boundary-v2',
+  'daegu-missing-block-p1-1-7-component-boundary-v2',
+  'daegu-missing-block-p1-1e-cluster-component-boundary-v1',
+  'daegu-missing-block-p1-s24-s27-component-boundary-v2',
+  'daegu-missing-block-p1-s31-s23-diagonal-component-remap-v3',
+  'daegu-missing-block-p1-s21-s23-ownership-remap-v1',
+  'daegu-missing-block-p1-party-live-image-approved-v1',
+]);
+
+function assertDaeguOpsScript(packageSource: string, scriptName: string): void {
+  const operationName = scriptName.replace('stadium:daegu:', '');
+  assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  assert.ok(
+    packageSource.includes(`"${scriptName}": "node scripts/stadium-seatmap-ops.mjs daegu ${operationName}"`),
+    `${scriptName} should route through stadium-seatmap-ops.mjs`,
+  );
+}
+
+const OFFICIAL_SIMPLE_POLYGON_BLOCKS = new Set([
+  '1-6',
+  'T3-2',
+  '3-1',
+  'S21',
+  'S20',
+  'S12',
+  'S11',
+  'S10',
+  'S9',
+  'S8',
+  'U19',
+  'U18',
+  'U17',
+  'U16',
+  'U1',
+  'U23',
+  'U22',
+  '09',
+  'F-2',
+  'M-6',
+  'M-5',
+  'M-4',
+  'M-3',
+  'M-1',
+  'TR-7',
+  'TR-6',
+  'TR-5',
+  'TR-4',
+  'TR-3',
+  'TR-2',
+  'TR-1',
+  'RF-8',
+  'RF-7',
+  'RF-6',
+  'RF-5',
+  'RF-4',
+  'RF-3',
+  'RF-2',
+  'RF-1',
+  'MR-8',
+  'MR-7',
+  'MR-6',
+  'MR-5',
+  'MR-4',
+  'MR-3',
+  'MR-2',
+  'MR-1',
+  'LF-6',
+  'LF-5',
+  'LF-4',
+  'LF-1',
+  '외야 3루측',
+]);
 type Point = [number, number];
 
 function pngDimensions(assetUrl: URL) {
@@ -124,7 +252,8 @@ function pointInBlockPath(point: Point, block: (typeof DAEGU_BLOCKS)[number]) {
 function topHitBlockAt(point: Point): (typeof DAEGU_BLOCKS)[number] | null {
   let topBlock: (typeof DAEGU_BLOCKS)[number] | null = null;
 
-  [...DAEGU_BLOCKS]
+  DAEGU_BLOCKS
+    .filter((block) => !isDaeguReviewOnlySeat(block))
     .sort((a, b) => blockArea(b) - blockArea(a))
     .forEach((block) => {
       if (pointInBlockPath(point, block)) {
@@ -166,8 +295,8 @@ function hasSelfIntersection(points: Point[]) {
 test('대구 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
   assert.equal(DAEGU_SEATMAP_IMAGE.stadiumId, 'DAEGU_SAMSUNG_LIONS_PARK');
   assert.equal(DAEGU_SEATMAP_IMAGE.mapVersion, 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1');
-  assert.equal(DAEGU_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png');
-  assert.equal(DAEGU_SEATMAP_IMAGE.requiredAssetFileName, 'daegu-samsung-seatmap-official-2026.png');
+  assert.equal(DAEGU_SEATMAP_IMAGE.imagePath, `src/assets/stadiums/samsung/${DAEGU_SEATMAP_IMAGE.requiredAssetFileName}`);
+  assert.match(DAEGU_SEATMAP_IMAGE.requiredAssetFileName, /^daegu-samsung-seatmap-official-2026\.(png|webp)$/);
   assert.equal(DAEGU_SEATMAP_IMAGE.viewBox, '0 0 1707 2048');
   assert.equal(DAEGU_SEATMAP_IMAGE.imageSha256, '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0');
   assert.ok(DAEGU_SEATMAP_IMAGE.sourceLabel);
@@ -191,6 +320,229 @@ test('대구 공식 PNG 실제 크기는 데이터 좌표계와 일치한다', (
   assert.equal(dimensions.width, DAEGU_SEATMAP_IMAGE.imageWidth);
   assert.equal(dimensions.height, DAEGU_SEATMAP_IMAGE.imageHeight);
   assert.equal(fileSha256(OFFICIAL_ASSET_URL), DAEGU_SEATMAP_IMAGE.imageSha256);
+});
+
+test('대구 MySeatCheck reference source는 공식 좌석도와 분리된 pending asset으로만 등록된다', () => {
+  const officialSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'SAMSUNG_OFFICIAL_2026');
+  const mySeatCheckSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'MYSEATCHECK_REFERENCE_2026');
+
+  assert.equal(DAEGU_DEFAULT_SEATMAP_SOURCE_ID, 'OPERATOR_REFERENCE_RAPAK_2025');
+  assert.ok(officialSource, 'official Daegu source reference should exist');
+  assert.ok(mySeatCheckSource, 'MySeatCheck reference source should exist');
+  assert.equal(officialSource.productionCanonical, true, 'official source should remain the production canonical source');
+  assert.equal(officialSource.polygonStatus, 'PRODUCTION_INTERACTIVE');
+  assert.equal(mySeatCheckSource.kind, 'REFERENCE_IMAGE');
+  assert.equal(mySeatCheckSource.assetStatus, 'EXTERNAL_REFERENCE_PENDING_ASSET');
+  assert.equal(mySeatCheckSource.polygonStatus, 'REFERENCE_ONLY_PENDING_ASSET');
+  assert.equal(mySeatCheckSource.productionCanonical, false);
+  assert.equal(mySeatCheckSource.attributionRequired, true);
+  assert.equal(mySeatCheckSource.imageWidth, 0);
+  assert.equal(mySeatCheckSource.imageHeight, 0);
+  assert.equal(mySeatCheckSource.viewBox, '0 0 0 0');
+  assert.equal(mySeatCheckSource.imageSha256, null);
+  assert.equal(mySeatCheckSource.sourceUrl, DAEGU_MYSEATCHECK_REFERENCE_URL);
+  assert.equal(mySeatCheckSource.requiredAssetFileName, DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME);
+  assert.equal(mySeatCheckSource.imagePath, `src/assets/stadiums/samsung/${DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME}`);
+  assert.match(
+    mySeatCheckSource.notes,
+    /Do not replace the official PNG or promote coordinates/,
+    'external reference should not be allowed to replace canonical official coordinates',
+  );
+});
+
+test('대구 업로드 operator reference source는 4096 기본 선택 좌석도로 등록된다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const source = DAEGU_SEATMAP_SOURCE_REFERENCES.find((candidate) => candidate.id === 'OPERATOR_REFERENCE_RAPAK_2025');
+
+  assert.ok(source, 'uploaded RaPak operator reference source should exist');
+  assert.equal(source.kind, 'INTERACTIVE_SEATMAP');
+  assert.equal(source.assetStatus, 'OPERATOR_REFERENCE');
+  assert.equal(source.polygonStatus, 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE');
+  assert.equal(source.productionCanonical, false);
+  assert.equal(source.imageWidth, 4096);
+  assert.equal(source.imageHeight, 4096);
+  assert.equal(source.viewBox, '0 0 4096 4096');
+  assert.equal(DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.width, 4096);
+  assert.equal(DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.height, 4096);
+  assert.equal(source.imageSha256, DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256);
+  assert.equal(source.requiredAssetFileName, DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME);
+  assert.equal(source.imagePath, `src/assets/stadiums/samsung/${DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME}`);
+  assert.equal(fileSha256(OPERATOR_REFERENCE_RAPAK_2025_ASSET_URL), DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256);
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-trace"'), 'operator reference trace script should be exposed');
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-review-packet"'), 'operator reference review packet script should be exposed');
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-auto-map"'), 'operator reference auto-map script should be exposed');
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-inventory"'), 'operator reference inventory script should be exposed');
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-p0-approval-packet"'), 'operator reference P0 approval packet script should be exposed');
+  assert.ok(packageSource.includes('"stadium:daegu:operator-reference-p0-approval-gate"'), 'operator reference P0 approval gate script should be exposed');
+  assert.match(
+    source.notes,
+    /Only approved 4096x4096 operator-reference polygons are interactive/,
+    'uploaded reference should only expose approved 4096 polygons',
+  );
+});
+
+test('대구 operator reference P0/P1 승인 블럭 21개는 4096 좌표계에서만 selectable이다', () => {
+  const expectedP0Labels = new Set(['TR0', 'TR8', 'TR9', 'TR10']);
+  const expectedP1Labels = new Set([
+    'TR1',
+    'TR2',
+    'TR3',
+    'TR4',
+    'TR5',
+    'TR6',
+    'TR7',
+    'RF1',
+    'RF2',
+    'RF3',
+    'RF4',
+    'RF5',
+    'RF6',
+    'RF7',
+    'RF8',
+    'RF9',
+    'RF10',
+  ]);
+  const expectedLabels = new Set([...expectedP0Labels, ...expectedP1Labels]);
+  const blockLabels = DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => block.block.replace('-', ''));
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 21);
+  assert.deepEqual(new Set(blockLabels), expectedLabels);
+  assert.equal(blockLabels.filter((label) => expectedP0Labels.has(label)).length, 4);
+  assert.equal(blockLabels.filter((label) => expectedP1Labels.has(label)).length, 17);
+
+  DAEGU_OPERATOR_REFERENCE_BLOCKS.forEach((block) => {
+    const normalizedBlock = block.block.replace('-', '');
+    assert.equal(isDaeguOperatorReferenceSelectableSeat(block), true, `${block.block} should be selectable in operator reference mode`);
+    assert.equal(block.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+    assert.equal(
+      block.imageGeometry.geometryVersion,
+      expectedP0Labels.has(normalizedBlock)
+        ? 'DAEGU_OPERATOR_REFERENCE_P0_APPROVED_DRY_RUN_V1'
+        : 'DAEGU_OPERATOR_REFERENCE_P1_APPROVED_DRY_RUN_V1',
+    );
+    assert.equal(block.imageGeometry.traceVersion, block.imageGeometry.geometryVersion);
+    assert.equal(block.imageGeometry.manualReviewed, true);
+    assert.equal(block.imageGeometry.pixelAlignmentStatus, 'PIXEL_ALIGNED');
+    assert.ok(block.sourceNote.includes('4096x4096'), `${block.block} source note should document the 4096 coordinate system`);
+    assert.ok(block.sourceNote.includes('공식 PNG 1707x2048'), `${block.block} source note should prevent official PNG coordinate mixing`);
+    if (block.block === 'TR-0') {
+      assert.match(block.reviewNote, /ZERO_INDEX_LABEL_REVIEW/);
+    }
+
+    [
+      block.imageGeometry.visualPath ?? block.imageGeometry.d,
+      block.imageGeometry.hitPath ?? block.imageGeometry.visualPath ?? block.imageGeometry.d,
+    ].forEach((path) => {
+      const validationErrors = validateSeatMapPolygonPath({
+        pathData: path,
+        width: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.width,
+        height: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.height,
+      });
+      assert.deepEqual(validationErrors, [], `${block.block} operator reference path should be valid`);
+      const points = pathPoints(path);
+      assert.ok(!hasSelfIntersection(points), `${block.block} operator reference path should not self-intersect`);
+      points.forEach(([x, y]) => {
+        assert.ok(x >= 0 && x <= DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.width, `${block.block} x coordinate should stay inside 4096 viewBox`);
+        assert.ok(y >= 0 && y <= DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.height, `${block.block} y coordinate should stay inside 4096 viewBox`);
+      });
+    });
+
+    const labelPoint = block.imageGeometry.labelPoint ?? [block.imageGeometry.labelX, block.imageGeometry.labelY];
+    assert.ok(
+      pointInBlockPath(labelPoint, block),
+      `${block.block} label point should land inside its operator reference hit path`,
+    );
+  });
+
+  assert.ok(
+    DAEGU_OPERATOR_REFERENCE_BLOCKS.some((block) => pathPoints(block.imageGeometry.d).some(([x]) => x > DAEGU_SEATMAP_IMAGE.imageWidth)),
+    'operator reference paths should contain 4096-space x coordinates beyond the 1707 official PNG width',
+  );
+  assert.equal(DAEGU_SEATMAP_VIEWPORT.width, 1707, 'official PNG viewport should stay 1707 wide');
+  assert.equal(DAEGU_SEATMAP_VIEWPORT.height, 2048, 'official PNG viewport should stay 2048 high');
+});
+
+test('대구 operator reference P0 approval flow는 누락 후보 4개와 승인 gate 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p0-approval-packet',
+    'stadium:daegu:operator-reference-p0-approval-gate',
+    'stadium:daegu:operator-reference-p0-approval-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'TR8',
+    'TR9',
+    'TR10',
+    'TR0',
+    'ADD_NEW_SECTION',
+    'MAP_TO_EXISTING',
+    'EXCLUDE_NON_SEAT',
+    'ZERO_INDEX_LABEL_REVIEW',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedHitPath',
+    'correctedLabelX',
+    'correctedLabelY',
+    'reviewer',
+    'reviewedAt',
+    'p0-approval-packet-ready',
+    'p0-approval-gate-waiting-for-operator-input',
+    'p0-approval-gate-dry-run-ready',
+    'daegu-operator-reference-p0-dry-run-apply-plan.json',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'This packet creates review evidence and operator input only. It never writes src/data/daeguSeatData.ts.',
+    'This gate validates operator input and emits a dry-run plan only. It never writes src/data/daeguSeatData.ts.',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P0_APPROVAL_SOURCE.includes(requiredText),
+      `Daegu operator reference P0 approval flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P1 approval flow는 TR/RF 17개 후보의 dry-run only 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p1-approval-packet',
+    'stadium:daegu:operator-reference-p1-approval-gate',
+    'stadium:daegu:operator-reference-p1-approval-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'TR1',
+    'TR7',
+    'RF1',
+    'RF10',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    'EXCLUDE_NON_SEAT',
+    'DAEGU_OPERATOR_REFERENCE_P1_APPROVED_DRY_RUN_V1',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedHitPath',
+    'reviewer',
+    'reviewedAt',
+    'p1-approval-packet-ready',
+    'p1-approval-gate-waiting-for-operator-input',
+    'p1-approval-gate-dry-run-ready',
+    'daegu-operator-reference-p1-dry-run-apply-plan.json',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'This packet creates 4096 operator-reference P1 review evidence only. It never writes src/data/daeguSeatData.ts.',
+    'dry-run only; patch DAEGU_OPERATOR_REFERENCE_BLOCKS, not DAEGU_BLOCKS',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P1_APPROVAL_SOURCE.includes(requiredText),
+      `Daegu operator reference P1 approval flow should include ${requiredText}`,
+    );
+  });
 });
 
 test('대구 좌석 카테고리는 공식 좌석도 입력 대기 상태에서도 핵심 구역명을 보존한다', () => {
@@ -236,7 +588,12 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.level, `${block.id} level should exist`);
     assert.ok(block.sourceConfidence, `${block.id} source confidence should exist`);
     assert.ok(block.sourceNote, `${block.id} source note should exist`);
-    assert.ok(block.traceStatus === 'OFFICIAL_IMAGE_TRACED' || block.traceStatus === 'NEEDS_OPERATOR_REVIEW', `${block.id} trace status should be explicit`);
+    assert.ok(
+      block.traceStatus === 'OFFICIAL_IMAGE_TRACED'
+      || block.traceStatus === 'NEEDS_OPERATOR_REVIEW'
+      || block.traceStatus === 'OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED',
+      `${block.id} trace status should be explicit`,
+    );
     assert.ok(
       block.traceMethod === 'PATH_TRACED_FROM_OFFICIAL_IMAGE'
       || block.traceMethod === 'LEGACY_SCALED_POLYGON'
@@ -263,7 +620,7 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.equal(block.imageGeometry.visualPath, block.imageGeometry.d, `${block.id} visual path should keep d as the canonical display polygon`);
     assert.ok(block.imageGeometry.hitPath, `${block.id} hit path should exist`);
     assert.deepEqual(block.imageGeometry.labelPoint, [block.imageGeometry.labelX, block.imageGeometry.labelY], `${block.id} label point should mirror labelX/labelY`);
-    assert.equal(block.imageGeometry.geometryVersion, 'manual-polygon-v1', `${block.id} geometry version should be normalized`);
+    assert.equal(block.imageGeometry.geometryVersion != null && OFFICIAL_ALLOWED_GEOMETRY_VERSIONS.has(block.imageGeometry.geometryVersion), true, `${block.id} geometry version should be normalized to an approved Daegu trace version`);
     assert.equal(block.imageGeometry.traceSource, 'OFFICIAL_PNG_MANUAL_POLYGON', `${block.id} trace source should be normalized`);
     assert.equal(block.imageGeometry.traceVersion, 'manual-polygon-v1', `${block.id} trace version should be normalized`);
     assert.equal(block.imageGeometry.manualReviewed, block.traceStatus === 'OFFICIAL_IMAGE_TRACED', `${block.id} manual review flag should follow official trace status`);
@@ -272,7 +629,9 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
       block.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? 'PIXEL_ALIGNED' : 'MANUAL_REVIEW_REQUIRED',
       `${block.id} pixel alignment status should follow trace readiness`,
     );
-    const expectedSectionKind = block.markerType === 'WHEELCHAIR'
+    const expectedSectionKind = block.block === '12'
+      ? 'WAYFINDING_MARKER'
+      : block.markerType === 'WHEELCHAIR'
       ? 'ACCESSIBILITY_MARKER'
       : block.markerType === 'GATE'
         ? 'GATE_MARKER'
@@ -296,7 +655,9 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
 
     blockGeometryPaths.forEach((path) => {
       const pathNumbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-      assert.ok(pathNumbers.length >= 12, `${block.id} image geometry should contain at least 6 polygon points`);
+      if (block.traceStatus === 'OFFICIAL_IMAGE_TRACED' && !OFFICIAL_SIMPLE_POLYGON_BLOCKS.has(block.block)) {
+        assert.ok(pathNumbers.length >= 12, `${block.id} image geometry should contain at least 6 polygon points`);
+      }
       assert.ok(!hasSelfIntersection(pathPoints(path)), `${block.id} image geometry should not self-intersect`);
       pathNumbers.forEach((coordinate, index) => {
         const limit = index % 2 === 0 ? DAEGU_SEATMAP_IMAGE.imageWidth : DAEGU_SEATMAP_IMAGE.imageHeight;
@@ -345,14 +706,41 @@ test('대구 normal selectable seat predicate는 미검수 polygon을 일반 UI�
   const seatSections = DAEGU_BLOCKS.filter((block) => block.sectionKind === 'SEAT_SECTION');
   const normalSelectableSeats = DAEGU_BLOCKS.filter(isDaeguNormalSelectableSeat);
   const reviewOnlySeats = DAEGU_BLOCKS.filter(isDaeguReviewOnlySeat);
-  const screenshotBlock16 = DAEGU_BLOCKS.find((block) => block.block === '16');
+  const officialUnconfirmedSeats = DAEGU_BLOCKS.filter(isDaeguOfficialUnconfirmedSeat);
+  const wayfindingRows = DAEGU_BLOCKS.filter((block) => block.sectionKind === 'WAYFINDING_MARKER');
+  const classifiedReleaseRows = [...officialUnconfirmedSeats, ...wayfindingRows];
+  const validationBlockedBlocks = ['MR-10', 'M-10'];
+  const validationBlockedEvidence: Record<string, string[]> = {
+    'MR-10': ['OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED', 'seat component', 'coverage 0.19'],
+    'M-10': ['OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED', 'seat seed', 'M-9'],
+  };
 
-  assert.equal(seatSections.length, 174, 'Daegu should keep 174 seat sections and marker-only rows outside this count');
-  assert.equal(reviewOnlySeats.length, 97, 'current Daegu unresolved seat polygons should be hidden from the normal UI');
-  assert.equal(normalSelectableSeats.length, seatSections.length - reviewOnlySeats.length);
-  assert.ok(screenshotBlock16, 'screenshot-visible block 16 should exist');
-  assert.equal(isDaeguNormalSelectableSeat(screenshotBlock16), false, 'block 16 should not be normal selectable before operator review');
-  assert.equal(isDaeguReviewOnlySeat(screenshotBlock16), true, 'block 16 should remain available only in debug/review mode');
+  assert.equal(DAEGU_BLOCKS.length, 177, 'Daegu release inventory should stay fixed at 177 rows');
+  assert.equal(seatSections.length, 173, 'Daegu should keep 173 seat sections and marker-only rows outside this count');
+  assert.equal(normalSelectableSeats.length, seatSections.length - reviewOnlySeats.length - officialUnconfirmedSeats.length);
+  assert.equal(normalSelectableSeats.length, 171, 'Daegu release lock should expose 171 normal selectable seat sections');
+  assert.equal(reviewOnlySeats.length, 0, 'Daegu release lock should not expose review-only seat polygons');
+  assert.equal(officialUnconfirmedSeats.length, 2, 'MR-10/M-10 should be policy-excluded until an independent official component is confirmed');
+  assert.equal(classifiedReleaseRows.length, 3, 'Daegu release lock should keep MR-10/M-10/12 as classified release rows');
+  validationBlockedBlocks.forEach((blockName) => {
+    const block = DAEGU_BLOCKS.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should exist`);
+    assert.equal(block.sectionKind, 'SEAT_SECTION', `${blockName} should remain a tracked seat-section inventory row`);
+    assert.equal(block.traceStatus, 'OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED', `${blockName} should not be promoted without operator confirmation`);
+    assert.equal(block.traceMethod, 'PATH_TRACED_FROM_OFFICIAL_IMAGE', `${blockName} should keep the official-image evidence path method`);
+    assert.equal(block.imageGeometry.manualReviewed, false, `${blockName} should not be marked manually reviewed before operator confirmation`);
+    assert.equal(block.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED', `${blockName} should require manual review before seat layer return`);
+    assert.equal(isDaeguNormalSelectableSeat(block), false, `${blockName} should not be normal selectable without a confirmed independent official component`);
+    assert.equal(isDaeguReviewOnlySeat(block), false, `${blockName} should not appear as a debug review polygon candidate`);
+    assert.equal(isDaeguOfficialUnconfirmedSeat(block), true, `${blockName} should be tracked as official-image independent component unconfirmed`);
+    validationBlockedEvidence[blockName].forEach((requiredText) => {
+      assert.match(
+        `${block.sourceNote} ${block.reviewNote}`,
+        new RegExp(requiredText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+        `${blockName} should document the official-image visibility blocker: ${requiredText}`,
+      );
+    });
+  });
 
   normalSelectableSeats.forEach((block) => {
     assert.equal(block.sectionKind, 'SEAT_SECTION', `${block.id} normal selectable rows must be seat sections`);
@@ -367,40 +755,571 @@ test('대구 normal selectable seat predicate는 미검수 polygon을 일반 UI�
       assert.equal(isDaeguNormalSelectableSeat(block), false, `${block.id} marker-only row should not be normal selectable`);
       assert.equal(isDaeguReviewOnlySeat(block), false, `${block.id} marker-only row should not be debug review seat`);
     });
+
+  const wayfindingBlock12 = DAEGU_BLOCKS.find((block) => block.block === '12');
+  assert.ok(wayfindingBlock12, '12 wayfinding marker should exist');
+  assert.equal(wayfindingBlock12.sectionKind, 'WAYFINDING_MARKER', '12 should be separated from selectable seat polygons');
+  assert.equal(wayfindingBlock12.traceStatus, 'NEEDS_OPERATOR_REVIEW', '12 should not be promoted as an official traced seat polygon');
+  assert.equal(wayfindingBlock12.imageGeometry.manualReviewed, false, '12 should not be marked manually reviewed as a seat polygon');
+  assert.equal(wayfindingBlock12.imageGeometry.pixelAlignmentStatus, 'MANUAL_REVIEW_REQUIRED', '12 should remain outside the pixel-aligned seat polygon set');
+  assert.equal(isDaeguNormalSelectableSeat(wayfindingBlock12), false, '12 wayfinding marker should not be normal selectable');
+  assert.equal(isDaeguReviewOnlySeat(wayfindingBlock12), false, '12 wayfinding marker should not be a review-only seat polygon');
 });
 
-test('대구 미검수 polygon 구역별 정밀화 workset 분포는 repo 기준 97개와 일치한다', () => {
+test('대구 미검수 polygon 구역별 정밀화 workset은 모든 row를 구역별로 분류한다', () => {
   if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
     assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
     return;
   }
 
   const reviewOnlySeats = DAEGU_BLOCKS.filter(isDaeguReviewOnlySeat);
-  const zoneFor = (block: (typeof DAEGU_BLOCKS)[number]) => {
-    if (block.level === '5F' && block.category === 'SKY') return 'ZONE_5F_SKY';
-    if (block.side === 'OUTFIELD' || ['M-9', '중앙 외야', '외야 3루측'].includes(block.block)) return 'ZONE_OUTFIELD';
-    if (block.level === '3F' && block.side === 'FIRST_BASE') return 'ZONE_3F_FIRST_BASE';
-    if (block.level === '3F' && ['CENTER', 'THIRD_BASE'].includes(block.side)) return 'ZONE_3F_CENTER_THIRD';
-    return 'ZONE_UNASSIGNED';
-  };
-  const zoneCounts = reviewOnlySeats.reduce<Record<string, number>>((counts, block) => {
-    const zone = zoneFor(block);
-    counts[zone] = (counts[zone] ?? 0) + 1;
-    return counts;
-  }, {});
-  const boundaryFirstBlocks = ['T1-1', 'T3-2', 'V1', 'V2', 'V3'];
+  const officialUnconfirmedSeats = DAEGU_BLOCKS.filter(isDaeguOfficialUnconfirmedSeat);
+  const reviewOnlySeatBlocks = new Set(reviewOnlySeats.map((block) => block.block));
+  const batch1ReviewBlocks: string[] = [];
+  const heldBoundaryFirstBlocks: string[] = [];
+  const promotedBoundaryFirstBlocks = ['T1-1', 'V1', 'V2', 'T3-2', 'V3', '13', '14', '15', '16', '1-2', 'T1-4', '3-10', '3-9', '3E-3', '3E-2', '3-8', '3-7', '3-6', '3-5', '3-4', '1-4', '1-12', '1-11', '1-10', '1-9', '1-8', '1E-3', '1E-2', '1E-1', 'S7', 'LF-2', 'S31', 'S30', 'S29', 'S28', 'S24', 'S25', 'S26', 'S27', 'S22', 'S23', 'U25', 'U26', 'U27', 'U28', 'U29', 'U30', 'U31', 'U10', 'U11', 'U12', 'U13', 'U14', '01', '06', '07', '08', '09', '10', '11', 'MR-9', 'M-9', '우측 외야', '중앙 외야'];
 
-  assert.deepEqual(zoneCounts, {
-    ZONE_3F_FIRST_BASE: 13,
-    ZONE_3F_CENTER_THIRD: 11,
-    ZONE_5F_SKY: 39,
-    ZONE_OUTFIELD: 34,
+  assert.equal(reviewOnlySeats.length, 0, 'currently unresolved coordinate workset should be empty after official-image unconfirmed rows are policy-excluded');
+  assert.equal(officialUnconfirmedSeats.length, 2, 'MR-10/M-10 should remain classified release rows outside selectable seat layers until independent official components are confirmed');
+
+  [...batch1ReviewBlocks, ...heldBoundaryFirstBlocks].forEach((blockName) => {
+    const block = DAEGU_BLOCKS.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should exist`);
+    assert.equal(reviewOnlySeatBlocks.has(blockName), true, `${blockName} should remain in review-only workset`);
+    assert.equal(isDaeguNormalSelectableSeat(block), false, `${blockName} should not be normal selectable before operator approval`);
   });
-  boundaryFirstBlocks.forEach((blockName) => {
-    const block = reviewOnlySeats.find((candidate) => candidate.block === blockName);
-    assert.ok(block, `${blockName} should remain in the boundary-first review set`);
+
+  promotedBoundaryFirstBlocks.forEach((blockName) => {
+    const block = DAEGU_BLOCKS.find((candidate) => candidate.block === blockName);
+    assert.ok(block, `${blockName} should exist`);
+    assert.equal(isDaeguNormalSelectableSeat(block), true, `${blockName} should be normal selectable`);
   });
-  assert.equal(zoneCounts.ZONE_UNASSIGNED, undefined, 'every review-only seat should be assigned to a zone');
+});
+
+test('대구 13~16 retrace candidate는 공식 PNG component scan과 operator 승인 차단을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const candidateSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-16-retrace-candidate');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_16_RETRACE_CANDIDATE_V1',
+    'THIRTEEN_TO_SIXTEEN_RETRACE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'THIRTEEN_TO_SIXTEEN_WAITING_FOR_OPERATOR_INPUT_RELEASE_BLOCKED',
+    'RETRACE_REQUIRED_CONTINUOUS_COMPONENT',
+    'OFFICIAL_PNG_PURPLE_COMPONENT_SCAN_WITH_OPERATOR_RETRACE_PARTITION',
+    'floodPurpleComponent',
+    'nearestPurplePixel',
+    'component-mask.png',
+    '13',
+    '14',
+    '15',
+    '16',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedLabelX/Y',
+    'reviewer',
+    'reviewedAt',
+    'This script samples only the official Daegu PNG.',
+    'It scans the purple 13-16 component and emits evidence-only retrace candidates.',
+    'It protects U22 wheelchair marker labels from seat candidate hit areas.',
+    'OFFICIAL_PNG_PURPLE_COMPONENT_SCAN_WITH_U22_MARKER_PROTECTED_PARTITION',
+    'PROTECTED_MARKER_LABEL_HITS',
+    'U22 휠체어',
+    'It never writes src/data/daeguSeatData.ts.',
+    'PASS_VISUAL_MATCH and PASS_RELEASE_177 remain false.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(candidateSource.includes(requiredText), `Daegu 13-16 retrace candidate should include ${requiredText}`);
+  });
+});
+
+test('대구 13~16 approval gate는 승인 row만 dry-run patch로 내보낸다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const gateSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const smokeSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-16-approval-gate');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-16-approval-gate:require-approved');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-16-approval-smoke');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_16_APPROVAL_GATE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_13_16_RETRACE_CANDIDATE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_13_16_DRY_RUN_APPLY_PLAN_V1',
+    'BATCH_1_SCREENSHOT_ZONE_FIRST',
+    'APPROVED_ROWS_REQUIRED_FOR_13_16_APPROVAL_GATE',
+    '13',
+    '14',
+    '15',
+    '16',
+    'correctedPath',
+    'correctedLabelX',
+    'correctedLabelY',
+    'reviewer',
+    'reviewedAt',
+    'validateSeatMapPolygonPath',
+    'pointInPolygon',
+    'approximateOverlap',
+    'CORRECTED_VISUAL_',
+    'CORRECTED_HIT_',
+    'CORRECTED_HIT_PATH_CAPTURES_APPROVED_LABEL',
+    'CORRECTED_HIT_PATH_CAPTURES_NORMAL_LABEL',
+    'CORRECTED_HIT_PATH_CAPTURES_MARKER_LABEL',
+    'CORRECTED_LABEL_TOP_HIT_CONFLICT_NORMAL',
+    'CORRECTED_LABEL_TOP_HIT_CONFLICT_MARKER',
+    'CORRECTED_VISUAL_OVERLAPS_APPROVED',
+    'CORRECTED_VISUAL_OVERLAPS_NORMAL',
+    "traceStatus: 'OFFICIAL_IMAGE_TRACED'",
+    "traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE'",
+    'manualReviewed: true',
+    "pixelAlignmentStatus: 'PIXEL_ALIGNED'",
+    '13/15/16 can be approved independently when marker and normal label ownership checks pass.',
+    'This gate never writes src/data/daeguSeatData.ts.',
+    'status === READY_STATUS ? candidatePatchRows : []',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'dataFileChanged: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(gateSource.includes(requiredText), `Daegu 13-16 approval gate should include ${requiredText}`);
+  });
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_16_APPROVAL_SMOKE_V1',
+    'no-approval-waiting',
+    'no-approval-require-approved-blocked',
+    'single-16-approved',
+    'single-14-approved',
+    'single-14-old-path-blocked-by-u22-marker',
+    '15-16-approved',
+    '14-15-16-approved',
+    'all-13-16-approved',
+    'single-16-missing-reviewer-blocked',
+    'APPROVED_ROWS_REQUIRED_FOR_13_16_APPROVAL_GATE',
+    'OLD_14_MARKER_COLLISION_PATH',
+    'CORRECTED_HIT_PATH_CAPTURES_MARKER_LABEL:U22 휠체어:daegu-sky-third-upper-14',
+    'APPROVED_MISSING_REVIEWER:daegu-sky-third-upper-16',
+    'ready-for-dry-run-review',
+    'waiting-for-operator-input',
+    'blocked-no-approved-rows',
+    'daegu-seatmap-visual-match-batch1-13-16-dry-run-apply-plan.json',
+    'productionWriteAllowed, false',
+    'dataFileChanged, false',
+    'passVisualMatch, false',
+    'passRelease177, false',
+  ].forEach((requiredText) => {
+    assert.ok(smokeSource.includes(requiredText), `Daegu 13-16 approval smoke should include ${requiredText}`);
+  });
+});
+
+test('대구 13~16 split analysis는 U22 휠체어 marker label 보호를 포함한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const splitSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const gridSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assert.ok(packageSource.includes('"stadium:daegu:visual-match-batch1-13-14-split-analysis"'));
+  assert.ok(packageSource.includes('"stadium:daegu:visual-match-batch1-13-16-grid-split-analysis"'));
+
+  [
+    'PROTECTED_MARKER_BLOCK',
+    'U22 휠체어',
+    'currentDraft14ContainsU22MarkerLabel',
+    'proposed14ExcludesU22MarkerLabel',
+    'markerU22ContainsMarkerLabel',
+    'The U22 wheelchair marker label is protected',
+    'exclude the U22 wheelchair marker label',
+  ].forEach((requiredText) => {
+    assert.ok(splitSource.includes(requiredText), `Daegu 13/14 split analysis should include ${requiredText}`);
+  });
+
+  [
+    'PROTECTED_MARKER_BLOCKS',
+    'U22 휠체어',
+    "kind: 'marker'",
+    'U22 wheelchair is included as a protected marker label',
+    'unexpectedLabelHits',
+  ].forEach((requiredText) => {
+    assert.ok(gridSource.includes(requiredText), `Daegu 13~16 grid split analysis should include ${requiredText}`);
+  });
+});
+
+test('대구 13/U24 ownership gate는 U24 보정 이후 13 단독 승인을 허용한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const reconciliationSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const gateSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const smokeSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-u24-ownership-reconciliation');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-u24-ownership-approval-gate');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-u24-ownership-approval-gate:require-approved');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-13-u24-ownership-approval-smoke');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_RECONCILIATION_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_INPUT_V1',
+    'THIRTEEN_U24_OWNERSHIP_RECONCILIATION_READY_RELEASE_BLOCKED',
+    'LOCKED_NEEDS_OWNERSHIP_CORRECTION',
+    'RETRACE_REQUIRED_CONTINUOUS_COMPONENT',
+    'currentOverlap',
+    'proposedOverlap',
+    'currentU24Evidence',
+    'proposedU24Evidence',
+    '13 requires U24 ownership correction before approval.',
+    'It proves current U24 captures purple 13 component pixels',
+    'It never writes src/data/daeguSeatData.ts.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(reconciliationSource.includes(requiredText), `Daegu 13/U24 reconciliation should include ${requiredText}`);
+  });
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_APPROVAL_GATE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_INPUT_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_DRY_RUN_APPLY_PLAN_V1',
+    'OWNERSHIP_DEPENDENCY_MISSING:13_REQUIRES_U24',
+    'APPROVED_ROWS_REQUIRED_FOR_13_U24_OWNERSHIP_APPROVAL_GATE',
+    '13 requires U24 ownership correction before approval.',
+    'If current U24 already matches the ownership correction, 13 can be approved independently.',
+    'U24 can be approved independently',
+    'u24OwnershipAlreadyResolved',
+    'This gate never writes src/data/daeguSeatData.ts.',
+    'validateSeatMapPolygonPath',
+    'pointInPolygon',
+    'approximateOverlap',
+    'CORRECTED_VISUAL_OVERLAPS_NORMAL',
+    'CORRECTED_LABEL_TOP_HIT_CONFLICT_NORMAL',
+    'status === READY_STATUS ? candidatePatchRows : []',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'dataFileChanged: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(gateSource.includes(requiredText), `Daegu 13/U24 approval gate should include ${requiredText}`);
+  });
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_13_U24_OWNERSHIP_APPROVAL_SMOKE_V1',
+    'no-approval-waiting',
+    'no-approval-require-approved-blocked',
+    'thirteen-only-approved-after-u24-correction',
+    'u24-only-approved',
+    'thirteen-u24-approved',
+    'u24-missing-reviewer-blocked',
+    'APPROVED_ROWS_REQUIRED_FOR_13_U24_OWNERSHIP_APPROVAL_GATE',
+    'APPROVED_MISSING_REVIEWER:daegu-sky-blue-zone-u24',
+    'ready-for-dry-run-review',
+    'waiting-for-operator-input',
+    'blocked-no-approved-rows',
+    'daegu-seatmap-visual-match-batch1-13-u24-ownership-dry-run-apply-plan.json',
+    'productionWriteAllowed, false',
+    'dataFileChanged, false',
+    'passVisualMatch, false',
+    'passRelease177, false',
+  ].forEach((requiredText) => {
+    assert.ok(smokeSource.includes(requiredText), `Daegu 13/U24 approval smoke should include ${requiredText}`);
+  });
+});
+
+test('대구 U25~U27 sequence candidate는 공식 PNG magenta scan과 U28~U31 guard를 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const candidateSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-u25-u27-sequence-candidate');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_U25_U27_SEQUENCE_CANDIDATE_V1',
+    'U25_U27_SEQUENCE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'U25_U27_WAITING_FOR_OPERATOR_INPUT_RELEASE_BLOCKED',
+    'SEQUENCE_CONFIRMATION_REQUIRED',
+    'OFFICIAL_PNG_MAGENTA_SEQUENCE_SCAN_WITH_OPERATOR_RETRACE_PARTITION',
+    'floodMagentaComponent',
+    'nearestMagentaPixel',
+    'sequenceOrderIsMonotonic',
+    'magenta-component-mask.png',
+    'U25',
+    'U26',
+    'U27',
+    'U28',
+    'U31',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedLabelX/Y',
+    'reviewer',
+    'reviewedAt',
+    'This script samples only the official Daegu PNG.',
+    'It scans the U25-U31 magenta sequence and emits evidence-only U25-U27 sequence candidates.',
+    'It uses U28-U31 only as guard rows for sequence order and overlap checks.',
+    'It never writes src/data/daeguSeatData.ts.',
+    'PASS_VISUAL_MATCH and PASS_RELEASE_177 remain false.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(candidateSource.includes(requiredText), `Daegu U25-U27 sequence candidate should include ${requiredText}`);
+  });
+});
+
+test('대구 S22/S23 pair retrace candidate는 공식 PNG magenta scan과 S24 guard를 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const candidateSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-s22-s23-pair-retrace-candidate');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_S22_S23_PAIR_RETRACE_CANDIDATE_V1',
+    'S22_S23_PAIR_RETRACE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'S22_S23_WAITING_FOR_OPERATOR_INPUT_RELEASE_BLOCKED',
+    'PAIR_RETRACE_REQUIRED',
+    'OFFICIAL_PNG_MAGENTA_PAIR_RETRACE_SCAN_WITH_OPERATOR_APPROVAL_REQUIRED',
+    'floodMagentaComponent',
+    'nearestMagentaPixel',
+    'magenta-component-mask.png',
+    'S22',
+    'S23',
+    'S24',
+    'S22_S23_PAIR_RETRACE_REQUIRED',
+    'CANDIDATE_REQUIRES_REWORK',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedLabelX/Y',
+    'reviewer',
+    'reviewedAt',
+    'This script samples only the official Daegu PNG.',
+    'It scans the S22-S24 magenta component and emits evidence-only S22/S23 pair retrace candidates.',
+    'It uses S24 and neighboring labels only as guard rows for ownership checks.',
+    'It never writes src/data/daeguSeatData.ts.',
+    'PASS_VISUAL_MATCH and PASS_RELEASE_177 remain false.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(candidateSource.includes(requiredText), `Daegu S22/S23 pair retrace candidate should include ${requiredText}`);
+  });
+});
+
+test('대구 batch1 consolidated operator package는 승인 전 dry-run only 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const candidateSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-consolidated-operator-package');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_CONSOLIDATED_OPERATOR_PACKAGE_V1',
+    'BATCH1_CONSOLIDATED_WAITING_FOR_OPERATOR_INPUT_RELEASE_BLOCKED',
+    'BATCH1_CONSOLIDATED_APPROVED_INPUT_PRESENT_DRY_RUN_ONLY_RELEASE_BLOCKED',
+    'THIRTEEN_TO_SIXTEEN_RETRACE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'U25_U27_SEQUENCE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'S22_S23_PAIR_RETRACE_CANDIDATE_READY_RELEASE_BLOCKED',
+    'APPROVAL_READY_VISUAL_GATE_PASSED_RELEASE_BLOCKED',
+    'EXPECTED_BLOCKS',
+    'PAIR_APPROVAL_GROUPS',
+    'S22',
+    'S23',
+    'S24',
+    'U28',
+    'U31',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedLabelX/Y',
+    'reviewer',
+    'reviewedAt',
+    "traceStatus: 'OFFICIAL_IMAGE_TRACED'",
+    "traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE'",
+    'manualReviewed: true',
+    "pixelAlignmentStatus: 'PIXEL_ALIGNED'",
+    'This script consolidates only official-PNG-derived Batch1 evidence reports.',
+    'It never writes src/data/daeguSeatData.ts.',
+    'Approved rows are emitted only as a dry-run apply plan.',
+    'It blocks partial S22/S23 pair approval.',
+    'PASS_VISUAL_MATCH and PASS_RELEASE_177 remain false.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(candidateSource.includes(requiredText), `Daegu batch1 consolidated package should include ${requiredText}`);
+  });
+});
+
+test('대구 batch1 consolidated approval gate는 승인 row geometry 검증과 source write 차단을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const gateSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-consolidated-approval-gate');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-consolidated-approval-gate:require-approved');
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-consolidated-approved-apply-dry-run');
+  assert.ok(gateSource.includes('daegu-seatmap-visual-match-batch1-consolidated-dry-run-apply-plan.json'));
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_CONSOLIDATED_APPROVAL_GATE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_CONSOLIDATED_OPERATOR_PACKAGE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_DRY_RUN_APPLY_PLAN_V1',
+    'BATCH_1_SCREENSHOT_ZONE_FIRST',
+    'APPROVED_ROWS_REQUIRED_FOR_CONSOLIDATED_APPROVAL_GATE',
+    'EMPTY_PATCH_ROWS_NOT_ALLOWED',
+    'PAIR_APPROVAL_GROUP_PARTIAL',
+    'S22',
+    'S23',
+    'correctedPath',
+    'correctedLabelX',
+    'correctedLabelY',
+    'reviewer',
+    'reviewedAt',
+    'validateSeatMapPolygonPath',
+    'pointInPolygon',
+    'approximateOverlap',
+    'CORRECTED_VISUAL_',
+    'CORRECTED_HIT_',
+    'CORRECTED_HIT_PATH_CAPTURES_APPROVED_LABEL',
+    'CORRECTED_HIT_PATH_CAPTURES_NORMAL_LABEL',
+    'CORRECTED_LABEL_TOP_HIT_CONFLICT_NORMAL',
+    'CORRECTED_VISUAL_OVERLAPS_APPROVED',
+    'CORRECTED_VISUAL_OVERLAPS_NORMAL',
+    "traceStatus: 'OFFICIAL_IMAGE_TRACED'",
+    "traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE'",
+    'manualReviewed: true',
+    "pixelAlignmentStatus: 'PIXEL_ALIGNED'",
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'dataFileChanged: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+    'This gate never writes `src/data/daeguSeatData.ts`.',
+    'A passing waiting state is not visual precision completion.',
+  ].forEach((requiredText) => {
+    assert.ok(gateSource.includes(requiredText), `Daegu batch1 consolidated approval gate should include ${requiredText}`);
+  });
+});
+
+test('대구 batch1 consolidated approval smoke는 승인 lifecycle과 dry-run apply 연결을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const smokeSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assertDaeguOpsScript(packageSource, 'stadium:daegu:visual-match-batch1-consolidated-approval-smoke');
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_CONSOLIDATED_APPROVAL_SMOKE_V1',
+    'no-approval-waiting',
+    'no-approval-require-approved-blocked',
+    's22-only-approved-blocked',
+    'approved-missing-reviewer-blocked',
+    'single-14-approved',
+    'multi-14-u25-approved',
+    's22-s23-approved-blocked-by-s21-overlap',
+    'APPROVED_ROWS_REQUIRED_FOR_CONSOLIDATED_APPROVAL_GATE',
+    'PAIR_APPROVAL_GROUP_PARTIAL:S22+S23',
+    'APPROVED_MISSING_REVIEWER:daegu-sky-third-upper-14',
+    'CORRECTED_VISUAL_OVERLAPS_NORMAL:S21:1:daegu-sky-lower-s22',
+    'ready-for-dry-run-review',
+    'waiting-for-operator-input',
+    'blocked-no-approved-rows',
+    'daegu-seatmap-visual-match-batch1-consolidated-dry-run-apply-plan.json',
+    'scripts/daegu-seatmap-visual-match.mjs',
+    '--require-ready',
+    '--allow-partial',
+    'plannedEditCount',
+    'productionWriteAllowed, false',
+    'dataFileChanged, false',
+    'passVisualMatch, false',
+    'passRelease177, false',
+  ].forEach((requiredText) => {
+    assert.ok(smokeSource.includes(requiredText), `Daegu batch1 consolidated approval smoke should include ${requiredText}`);
+  });
+});
+
+test('대구 S21~S24 ownership reconciliation은 S21/S22/S23 그룹 승인 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const reconciliationSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const gateSource = DAEGU_VISUAL_MATCH_SOURCE;
+  const smokeSource = DAEGU_VISUAL_MATCH_SOURCE;
+
+  assert.ok(packageSource.includes('"stadium:daegu:visual-match-batch1-s21-s24-ownership-reconciliation"'));
+  assert.ok(packageSource.includes('"stadium:daegu:visual-match-batch1-s21-s24-ownership-approval-gate"'));
+  assert.ok(packageSource.includes('"stadium:daegu:visual-match-batch1-s21-s24-ownership-approval-smoke"'));
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_S21_S24_OWNERSHIP_RECONCILIATION_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_S21_S24_OWNERSHIP_INPUT_V1',
+    'S21_S24_OWNERSHIP_RECONCILIATION_READY_RELEASE_BLOCKED',
+    'LOCKED_NEEDS_OWNERSHIP_CORRECTION',
+    'currentS21CapturesS22ComponentPixels',
+    'proposedS21CapturesS22ComponentPixels',
+    'S21',
+    'S22',
+    'S23',
+    'S24',
+    'Current S21 normal polygon captures S22 official PNG component pixels',
+    'Operator must approve S21, S22, and S23 together or keep all three pending.',
+    'S24 can be approved independently after visual confirmation.',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(reconciliationSource.includes(requiredText), `Daegu S21-S24 reconciliation should include ${requiredText}`);
+  });
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_S21_S24_OWNERSHIP_APPROVAL_GATE_V1',
+    'DAEGU_VISUAL_MATCH_BATCH1_S21_S24_OWNERSHIP_DRY_RUN_APPLY_PLAN_V1',
+    'OWNERSHIP_GROUP_PARTIAL',
+    'S21',
+    'S22',
+    'S23',
+    'S24',
+    'APPROVED_ROWS_REQUIRED_FOR_S21_S24_OWNERSHIP_APPROVAL_GATE',
+    'S21/S22/S23 must be approved together because current S21 captures S22 component pixels.',
+    'S24 can be approved independently after visual confirmation.',
+    'This gate never writes src/data/daeguSeatData.ts.',
+    'status === READY_STATUS ? candidatePatchRows : []',
+    'productionWriteAllowed: false',
+    'writesProductionData: false',
+    'sourceDataWritePerformed: false',
+    'dataFileChanged: false',
+    'passVisualMatch: false',
+    'passRelease177: false',
+  ].forEach((requiredText) => {
+    assert.ok(gateSource.includes(requiredText), `Daegu S21-S24 approval gate should include ${requiredText}`);
+  });
+
+  [
+    'DAEGU_VISUAL_MATCH_BATCH1_S21_S24_OWNERSHIP_APPROVAL_SMOKE_V1',
+    'no-approval-waiting',
+    'no-approval-require-approved-blocked',
+    's22-s23-only-approved-blocked',
+    's21-s22-s23-approved',
+    's21-s22-s23-s24-approved',
+    's24-only-approved',
+    'OWNERSHIP_GROUP_PARTIAL:S21+S22+S23',
+    'ready-for-dry-run-review',
+    'blocked-no-approved-rows',
+    'productionWriteAllowed, false',
+    'dataFileChanged, false',
+    'passVisualMatch, false',
+    'passRelease177, false',
+  ].forEach((requiredText) => {
+    assert.ok(smokeSource.includes(requiredText), `Daegu S21-S24 approval smoke should include ${requiredText}`);
+  });
 });
 
 test('대구 marker-only 항목은 seat polygon layer와 분리되어 렌더링된다', () => {
@@ -417,21 +1336,45 @@ test('대구 marker-only 항목은 seat polygon layer와 분리되어 렌더링�
   assert.ok(source.includes('pointerEvents="none"'), 'review and marker-only layers should not participate in seat selection');
 });
 
+test('대구 좌석도는 기존 좌석배치도 4096 데이터와 공식 PNG 1707 데이터를 모드별로 분리한다', () => {
+  const seatMapSource = readFileSync(new URL('../components/daegu/DaeguSeatMap.tsx', import.meta.url), 'utf8');
+  const svgSource = readFileSync(new URL('../components/daegu/DaeguSeatMapSvg.tsx', import.meta.url), 'utf8');
+
+  assert.ok(seatMapSource.includes('data-testid="daegu-seatmap-image-mode-toggle"'), 'Daegu seatmap should expose an image mode toggle');
+  assert.ok(seatMapSource.includes("useState<DaeguSeatMapImageViewMode>('operatorReference')"), 'operator reference mode should be the default');
+  assert.ok(seatMapSource.includes('DAEGU_OPERATOR_REFERENCE_BLOCKS'), 'operator reference mode should use a separate 4096 block dataset');
+  assert.ok(seatMapSource.includes('daegu-seatmap-mode-operator-reference'), 'existing seatmap button should be testable');
+  assert.ok(seatMapSource.includes('daegu-seatmap-mode-official-png'), 'official image button should be testable');
+  assert.ok(seatMapSource.includes("'기존 좌석배치도'"), 'existing seatmap label should be visible');
+  assert.ok(seatMapSource.includes("'공식 이미지'"), 'official image label should be visible');
+  assert.ok(svgSource.includes("imageViewMode === 'operatorReference'"), 'SVG renderer should branch for the operator reference mode');
+  assert.ok(svgSource.includes('DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT'), 'operator reference renderer should use the 4096 viewport');
+  assert.ok(svgSource.includes(DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME), 'operator reference mode should use the uploaded reference asset');
+  assert.ok(svgSource.includes('renderBlocks.length > 0'), 'interactive layers should be driven by the active mode dataset');
+  assert.ok(svgSource.includes('data-image-view-mode={imageViewMode}'), 'SVG should expose the active image mode for QA');
+  assert.equal(seatMapSource.includes('이 모드에서는 좌석 polygon 선택을 비활성화합니다'), false, 'operator reference mode should no longer describe polygon selection as disabled');
+});
+
 test('대구 공식 좌석도 polygon은 4점 사각형 일괄 회귀를 허용하지 않는다', () => {
   if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
     assert.equal(DAEGU_BLOCKS.length, 0, 'manual-required state should not expose synthesized hit areas');
     return;
   }
 
-  const pointCounts = DAEGU_BLOCKS.flatMap((block) => {
+  const pointCounts = DAEGU_BLOCKS.filter((block) => block.traceStatus === 'OFFICIAL_IMAGE_TRACED').flatMap((block) => {
     const geometryPaths = block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
     return geometryPaths.map((path) => (path.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2);
   });
-  const fourPointPolygons = pointCounts.filter((count) => count <= 4);
-  const detailedPolygons = pointCounts.filter((count) => count >= 8);
+  const fourPointPolygons = DAEGU_BLOCKS.filter((block) => block.traceStatus === 'OFFICIAL_IMAGE_TRACED').flatMap((block) => {
+    const geometryPaths = block.imageGeometry.paths?.length ? block.imageGeometry.paths : [block.imageGeometry.d];
+    return geometryPaths
+      .filter((path) => ((path.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2) <= 4)
+      .map(() => block.block);
+  });
+  const detailedPolygons = pointCounts.filter((count) => count >= 6);
 
-  assert.equal(fourPointPolygons.length, 0, 'official Daegu hit areas should not regress to 4-point rectangles');
-  assert.ok(detailedPolygons.length >= 160, `expected most Daegu hit areas to use detailed polygons, got ${detailedPolygons.length}`);
+  assert.deepEqual(new Set(fourPointPolygons), OFFICIAL_SIMPLE_POLYGON_BLOCKS, 'only audited simple official blocks may use 4-point rectangles');
+  assert.equal(detailedPolygons.length, pointCounts.length - OFFICIAL_SIMPLE_POLYGON_BLOCKS.size, 'all non-simple official Daegu hit areas should use at least 6 polygon points');
 });
 
 test('대구 공식 트레이싱 블록은 label 좌표에서 자기 자신으로 선택된다', () => {
@@ -465,6 +1408,7 @@ test('대구 좌석도 viewport는 좌표 보정 중 전체 공식 이미지 좌
 test('대구 좌석도 trace 상태와 방식은 UI에서 표시 가능한 라벨을 가진다', () => {
   assert.equal(getDaeguTraceStatusLabel('OFFICIAL_IMAGE_TRACED'), '공식 이미지 트레이싱 완료');
   assert.equal(getDaeguTraceStatusLabel('NEEDS_OPERATOR_REVIEW'), '운영자 좌표 검수 필요');
+  assert.equal(getDaeguTraceStatusLabel('OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED'), '공식 이미지 독립 블럭 미확인');
   assert.equal(getDaeguTraceMethodLabel('PATH_TRACED_FROM_OFFICIAL_IMAGE'), '공식 PNG 직접 트레이싱');
   assert.equal(getDaeguTraceMethodLabel('LEGACY_SCALED_POLYGON'), '기존 좌표계 변환 polygon');
   assert.equal(getDaeguTraceMethodLabel('PIXEL_COMPONENT_CANDIDATE'), '공식 PNG 픽셀 후보');
