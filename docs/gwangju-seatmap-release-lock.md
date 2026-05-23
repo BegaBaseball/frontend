@@ -15,8 +15,8 @@
 ## 고정 상태
 
 - release phase: `OFFICIAL_DERIVED_AGGREGATE_READY`
-- trace version: `manual-polygon-v62`
-- previous trace version: `manual-polygon-v61`
+- trace version: `manual-polygon-v86`
+- previous trace version: `manual-polygon-v85`
 - trace generation: `FULL_ACTIVE_111_RETRACE`
 - `activeBlocks=113`
 - `GWANGJU_BASE_TRACE_BLOCK_COUNT === 111`
@@ -27,7 +27,7 @@
 - `pixelAlignedBlocks=113`
 - `fullRetracedBlocks=113`
 - `blocksChangedFromPreviousTrace=113`
-- `totalRetracePointDelta=7161`
+- `totalRetracePointDelta=7184`
 - `overlapWarnings=0`
 - `minimumPixelCoverageRatio=1.0000`
 - `componentCoverageWarnings=0`
@@ -95,7 +95,7 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - overlay: `reports/stadium/gwangju-seatmap-image-alignment-audit-overlay.png`
 - crop: `reports/stadium/gwangju-seatmap-image-alignment-audit-crops/`
 - P0 기준: `officialBlockMaskRecall >= 0.90`, `componentIoU >= 0.75`, `outsideBleedRatio <= 0.08`
-- 101~127 전수조사: `official-numbered-component-mask` 및 `official-numbered-boundary-mask`로 번호 내야 block의 공식 PNG mask recall, IoU, outside bleed, label top-hit를 별도 고정한다.
+- 101~127 전수조사: `official-numbered-component-mask`, `official-numbered-boundary-mask`, `official-numbered-independent-visual-reference`로 번호 내야 block의 공식 PNG mask recall, IoU, outside bleed, label top-hit를 별도 고정한다. 특히 3루 `121~127`은 production polygon 복사 mask가 아니라 `official-png-crop-121-127-shared-boundary-v86` 기준 visual reference와 forbidden adjacency overlap gate를 함께 사용한다.
 - S-* 전수조사: `S-301~S-335`는 `official-sky-picnic-color-scan`으로 공식 PNG sky-picnic pink 색상 coverage와 outside bleed를 별도 보고한다.
 - 5층 테이블 전수조사: `501~535`는 `official-five-table-color-scan`으로 공식 PNG 회색/청회색 fill coverage와 outside bleed를 별도 보고한다.
 - 기본 실행은 S-* 및 5층 테이블 mismatch를 `review-required`로 보고하고, trace manifest는 `--require-sky-picnic --require-alphabet-sections --require-five-table` release gate로 같은 결과를 차단한다.
@@ -103,13 +103,13 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - v45에서는 `S-301~S-304`를 공식 PNG 확대 crop의 분홍색 visible block 외곽 기준으로 axis-aligned rectangle에서 기울어진 polygon으로 보정해 `J` 하단 boundary와의 여백을 줄인다.
 - 5층 테이블 evidence crop: `gwangju-seatmap-image-alignment-audit-five-table-501-518.png`, `gwangju-seatmap-image-alignment-audit-five-table-519-535.png`
 - 알파벳 표시 좌석 전수조사: 선택 가능한 `A/B/C/G/H/I/J/K` 좌석은 `official-alphabet-section-color-scan`으로 공식 PNG 구역 색상 coverage와 outside bleed를 별도 보고한다. `J/I/H` 하단 내야 특수석은 101~108 polygon 배치 후 좌표 복사 mask가 아니라 공식 PNG 색상 mask에서 추출한 `official-alphabet-section-mask` recall/IoU/outside bleed gate로 별도 차단한다.
-- 1루 `I/J`는 H/번호 블럭과 같은 살구색이 섞이는 구간을 분리한다. `I`는 공식 PNG crop에서 보이는 H와 J 사이의 긴 strip 색상 component 외곽으로 bbox `958,893,1111,945`를 고정하고, `J`는 공식 crop의 non-overlap 외곽 bbox `867,930,958,967`로 고정한다. 이 polygon은 `104~108`, `H`, `S-301~S-304` label center를 삼키면 안 된다.
-- 3루 `H`/`126` 공유 경계는 공식 PNG 색상 mask를 별도로 고정한다. `third-family-seats`는 `560,150,700,315` search bounds 안에서 빨간 구역 row-envelope를 추출하되 `k5-126`, `k5-127` polygon을 mask에서 제외하고, `k5-126`은 공식 번호 mask `[[543,296],[630,309],[669,320],[664,358],[498,330],[510,315]]` 기준으로 상단 침범을 차단한다. v41에서는 121~127 우선 검수 crop에서 인접 구역을 침범하던 확장형 후보를 폐기하고 124/125를 공식 PNG 색상 component 외곽 기준으로 보수 재고정했다. v42에서는 3루 H를 공식 PNG 빨간 component 상단/좌측 외곽과 126/127 non-overlap clip 경계로 다시 잠갔다. v43에서는 3루 121~123을 공식 PNG 노란 seat component 외곽과 G non-overlap clip 경계로 다시 잠갔다. v44에서는 1루 101~108 하단 내야 crop 재검수에서 `104`와 1루 `H`의 공식 component bbox 1px 경계 차이를 생산 좌표에 반영했다. v51에서는 124~127 legacy polygon을 폐기하고 공식 PNG crop에서 다시 찍은 4개 numbered block mask로 교체했다. v52에서는 124~127을 실제 공식 PNG 좌석 덩어리 크기에 맞춰 재확장하고 3루 H 하단 공유 경계를 새 126/127 mask와 non-overlap으로 다시 잘랐다. v54에서는 검수 overlay에서 124~127이 533/534 위쪽으로 보이던 legacy 배치를 폐기하고 123~127을 공식 PNG 3루 하단 행 위치로 재고정했다. v55에서는 124~126을 공식 하단 행 band에 맞춰 다시 내리고, 126의 좌측/우측 과확장으로 533/534와 필드 쪽에 몰려 보이는 배치를 차단했다. v56에서는 공식 PNG 확대 crop을 다시 대조해 `126`의 필드 쪽 과확장과 `127`의 베이지/필드 영역 오인식을 줄이고 127을 실제 좌측 쐐기형 번호 구역으로 이동했다. v57에서는 123/124/125 공식 PNG overlay를 다시 만들고, 123/124의 좌측 bleed를 줄인 상태에서 `image-alignment-audit`를 통과하도록 123/124/125 bbox를 재고정했다. v58에서는 123~127을 다시 검수해 126/127의 H/필드/테이블 방향 과확장 여지를 줄이고, 123~125는 공식 PNG 색상 mask와 data polygon을 동일 좌표로 고정했다. v59에서는 공식 PNG raw/grid crop에서 123~125를 긴 띠형 행으로 재배치하고 126/127은 H/J/G와 non-overlap인 불규칙 다점 polygon으로 재트레이싱했다.
-- 3루 `H` reference bbox는 `571,158,692,308`, `123` reference bbox는 `470,414,600,455`, `124` reference bbox는 `490,382,635,430`, `125` reference bbox는 `492,358,650,405`, `126` reference bbox는 `510,304,680,378`, `127` reference bbox는 `646,258,686,320`으로 고정한다. 이 값이 바뀌면 image alignment audit, trace manifest, clean crop, browser QA를 다시 생성해야 한다.
-- 3루 `I/J`는 단순 색상 coverage가 아니라 `official-alphabet-section-mask`로 고정한다. `third-wheelchair-seats` bbox는 `438,288,508,362`, `party-seats-third` bbox는 `459,353,489,381`이며 두 polygon은 서로 label center를 삼키면 안 된다.
+- 1루 `H/I/J`는 번호 블럭과 같은 살구색이 섞이는 구간을 분리한다. `H`는 공식 PNG 빨간 row-envelope를 visual outline으로 유지하고, hit-area는 `101~108`, `I`, `J`와 sampled overlap을 만들지 않도록 하단 shared boundary를 non-overlap clip해 bbox `1007,812,1185,904`로 고정한다. `I`는 공식 PNG crop에서 보이는 H와 J 사이의 긴 strip 색상 component를 production polygon 복사본이 아닌 `largest-component-row-envelope`로 다시 추출해 bbox `958,893,1112,944`로 고정하고, `J`는 공식 PNG 색상 `row-envelope`에서 다시 추출한 뒤 105 하단 shared boundary를 침범하지 않도록 좌상단을 non-overlap clip해 bbox `867,930,959,966`으로 고정한다. 이 polygon들은 `101~108`, `H/I/J`, `S-301~S-304` label center를 서로 삼키면 안 된다.
+- 3루 `H`/`126` 공유 경계는 공식 PNG 색상 mask를 별도로 고정한다. `third-family-seats`는 `560,150,700,315` search bounds 안에서 빨간 구역 row-envelope를 추출하되 `k5-126`, `k5-127` polygon을 mask에서 제외하고, `k5-126`은 공식 번호 mask `[[535,298],[570,296],[626,309],[683,319],[674,356],[506,326],[526,318]]` 기준으로 상단 침범을 차단한다. v78에서는 공식 PNG grid crop에서 `126`의 125 공유 경계를 `506,326`까지 다시 재고정했고, v79에서는 `127` 오른쪽 과대 hit-area를 줄였으며, v80에서는 `127`을 `[[678,239],[692,235],[690,257],[685,301],[679,313],[663,304],[661,280],[669,247]]`로 한 번 더 조여 `H/126/533~535` sampled overlap 0을 유지하는 non-overlap reference로 교체했다.
+- 3루 `H` reference bbox는 `569,158,692,305`, `123` reference bbox는 `455,400,628,454`, `124` reference bbox는 `467,371,646,430`, `125` reference bbox는 `489,326,674,397`, `126` reference bbox는 `515,294,683,362`, `127` reference bbox는 `657,232,692,313`으로 고정한다. 이 값이 바뀌면 image alignment audit, trace manifest, clean crop, browser QA를 다시 생성해야 한다.
+- 3루 `I/J`는 단순 색상 coverage가 아니라 `official-alphabet-section-mask`로 고정한다. v71에서 `third-wheelchair-seats`는 상단 strip을 공식 PNG 색상 component `[[0,2]]` row-envelope로 재산출하고 하단 marker subpath를 보조 ring으로 묶어 bbox `438,204,607,362`, subpath `2`로 고정한다. v72에서 `party-seats-third`는 아이콘 둘레만 잡던 작은 polygon을 폐기하고 공식 PNG에서 보이는 J 띠 영역을 124/I/S-335 non-overlap 경계 안의 bbox `430,353,489,398`로 재트레이싱했다. v73에서 `third-family-seats`는 공식 빨간 H component row-envelope를 3px 간격으로 재산출해 좌하단/상단 곡선 경계를 더 촘촘한 다점 polygon으로 잠갔다. 두 polygon은 서로 label center를 삼키면 안 된다.
 - 기본 실행은 알파벳 좌석 mismatch를 `review-required`로 보고하고, trace manifest는 `--require-sky-picnic --require-alphabet-sections --require-five-table` release gate로 같은 결과를 차단한다.
 - 알파벳 evidence crop: `gwangju-seatmap-image-alignment-audit-special-seats.png`, `gwangju-seatmap-image-alignment-audit-alphabet-special-seats-upper.png`
-- 하단 내야 split evidence: `lower-infield-special-split/` 아래 공식 PNG crop, `101~108` 번호 블럭 only overlay, `J/I/H` 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 생성한다. 두 layer의 sampled overlap ratio가 `0.5%`를 넘으면 번호 블럭과 특수석이 각각 mask gate를 통과해도 release를 실패시킨다.
+- 하단 내야 split evidence: `lower-infield-special-split/` 아래 공식 PNG crop, `101~108` 번호 블럭 only overlay, `J/I/H` 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 생성한다. 두 layer의 sampled overlap이 1개라도 있으면 번호 블럭과 특수석이 각각 mask gate를 통과해도 release를 실패시킨다.
 - audit는 공식 PNG `2200x1159` 기준 독립 mask만 사용하며 browser CSS pixel, resized screenshot, external crawling, web-search-based baseball data, third-party copied seatmap images를 사용하지 않는다.
 
 ## P4 반복 블럭 coverage 계약
@@ -180,8 +180,8 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - 공식 PNG natural size는 `2200x1159`이어야 한다.
 - SVG overlay와 hit-area는 공식 PNG 원본 좌표계를 기준으로 유지한다.
 - active 113개 block은 모두 `OFFICIAL_IMAGE_TRACED`, `manualReviewed: true`, `PIXEL_ALIGNED` 상태여야 한다.
-- 기본 111개 active block은 `manual-polygon-v62` / `FULL_ACTIVE_111_RETRACE` 세대로 고정하고, K7/AWAY 2개 aggregate는 기존 공식 traced 번호 블럭 subpath로만 구성한다.
-- `manual-polygon-v61` 대비 재생성 결과는 trace manifest의 `previousTraceVersion`, `blocksChangedFromPreviousTrace`, `totalRetracePointDelta`, bbox/anchor/coverage delta, zone overlay crop 필드로 확인한다.
+- 기본 111개 active block은 `manual-polygon-v86` / `FULL_ACTIVE_111_RETRACE` 세대로 고정하고, K7/AWAY 2개 aggregate는 기존 공식 traced 번호 블럭 subpath로만 구성한다.
+- `manual-polygon-v85` 대비 재생성 결과는 trace manifest의 `previousTraceVersion`, `blocksChangedFromPreviousTrace`, `totalRetracePointDelta`, bbox/anchor/coverage delta, zone overlay crop 필드로 확인한다.
 - `GWANGJU_ZONE_PRECISION_WORKSETS`는 P1 O/P 외야, P2 하단 내야 저마진 K7/K9, P3 특수석, P4 SKY_PICNIC/FIVE_TABLE 반복 블럭, P5 전체 113개 reference 재고정 순서를 고정한다.
 - 일반 좌석 layer는 `GWANGJU_BLOCKS[].imageGeometry.d`만 hit-area로 렌더링하며 `GWANGJU_IMAGE_GEOMETRY_DRAFTS`, `GWANGJU_OFFICIAL_TRACE_REFERENCE`, operator template, marker-only zone은 런타임 hit-area source가 아니다. K7/AWAY aggregate는 `GWANGJU_BLOCKS`에 들어간 release-ready geometry만 filter 전용으로 렌더링한다.
 - 런타임 SVG는 `GWANGJU_BLOCKS.map`과 `d={block.imageGeometry.d}`만 일반 좌석 `<path>` source로 사용한다.
@@ -252,7 +252,7 @@ Commit readiness after explicit targeted staging:
 npm run stadium:gwangju:commit-readiness
 ```
 
-`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <34 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 34개 target file이 모두 staged 된 뒤에만 통과해야 한다.
+`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <40 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 40개 target file이 모두 staged 된 뒤에만 통과해야 한다.
 
 최종 판정은 preoperator 통과 + official derived aggregate release + scope guard 통과 상태를 함께 확인한다.
 
@@ -287,19 +287,19 @@ npm run build
 - release audit가 `passed`가 아니거나 release gate/package/status/trace/browser QA/handoff 산출물 stale 상태를 감지한다.
 - release verify가 `release-gate -> targeted-staging -> staged-scope-audit -> release-audit` 순서를 잃는다.
 - release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.
-- PR packaging manifest가 광주 release 후보 34개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
-- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=34`, `actualIncludedFileCount=34`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
+- PR packaging manifest가 광주 release 후보 40개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
+- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=40`, `actualIncludedFileCount=40`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
 - release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=95`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.
-- release scope guard의 `prPackagingManifest.releasePayloadFileCount=34`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
+- release scope guard의 `prPackagingManifest.releasePayloadFileCount=40`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
 - release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.
 - patch separation readiness가 release payload files have unreviewed mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.
-- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=34`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
-- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=34`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
-- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=34`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=6` 계약을 잃는다.
+- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=40`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
+- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=40`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
+- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=40`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=2` 계약을 잃는다.
 - targeted staging report가 separate dirty work를 staging 대상으로 추천하거나 `git add .`, `git add -A`, `git commit -am`을 허용한다.
-- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=34`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
+- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=40`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
 - staged scope audit가 targeted staging 파일 외 staged 파일이나 separate dirty work staged 파일을 허용한다.
-- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 34-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
+- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 40-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
 - commit-readiness가 모든 targeted file staged 이후 `stagedScopeAudit.requireComplete=true`, `stagedScopeAudit.missingStagedTargetFileCount=0`, `readyForCommit=true` 계약을 고정하지 못한다.
 - release verify가 `activeBlocks=113`, `operatorStatus=ready`, `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 중 하나를 잃는다.
 - post-operator independent polygon acceptance는 별도 non-overlap operator target이 추가된 경우에만 실행한다.
@@ -320,11 +320,11 @@ npm run build
   - 광주 K7/원정응원석 block-range, fanRole 필터, 공식 derived aggregate 계약 포함
 - `npm run qa:stadium:gwangju:trace-review`: PASS
   - `activeBlocks=113`
-  - `traceVersion=manual-polygon-v62`
+  - `traceVersion=manual-polygon-v86`
   - `traceGeneration=FULL_ACTIVE_111_RETRACE`
   - `fullRetracedBlocks=113`
   - `blocksChangedFromPreviousTrace=113`
-  - `totalRetracePointDelta=7161`
+  - `totalRetracePointDelta=7184`
   - `officialImageTracedBlocks=113`
   - `manualReviewedBlocks=113`
   - `pixelAlignedBlocks=113`
@@ -360,7 +360,7 @@ npm run build
   - `blockers=0`
   - `stale=0`
   - `scopeGuardStatus=passed`
-  - `scopeGuardIncludedFiles=34`
+  - `scopeGuardIncludedFiles=40`
   - `scopeGuardSeparateDirtyWorkFiles=<runtime>`
   - `scopeGuardSeparateDirtyWorkBaselineFiles=95`
   - `classifiedSeparateDirtyWorkExpansionAllowed=true`
@@ -368,11 +368,11 @@ npm run build
   - `scopeGuardBlockers=0`
 - `npm run stadium:gwangju:release-scope-guard`: PASS
   - `status=passed`
-  - `included=35`
+  - `included=40`
   - `separate=<runtime>`
   - `unexpected=0`
   - `inventoryDrift=0`
-  - `prPackagingManifest.releasePayloadFileCount=34`
+  - `prPackagingManifest.releasePayloadFileCount=40`
   - `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`
   - `prPackagingManifest.unexpectedDirtyFileCount=0`
   - `prPackagingManifest.inventoryDriftCount=0`
@@ -383,34 +383,34 @@ npm run build
   - `stagingPlan.status=ready-or-review-required`
   - `stagingPlan.doesNotRunGitAdd=true`
   - `stagingPlan.safeToRunBulkGitAdd=false`
-  - `stagingPlan.releasePayloadFileCount=34`
+  - `stagingPlan.releasePayloadFileCount=40`
   - `stagingPlan.separateDirtyWorkFileCount=<runtime>`
   - `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true`
 - `npm run stadium:gwangju:pr-staging-review`: PASS
   - `stagingReview.status=ready-or-review-required`
   - `stagingReview.doesNotRunGitAdd=true`
   - `stagingReview.safeToRunBulkGitAdd=false`
-  - `stagingReview.releasePayloadFileCount=34`
+  - `stagingReview.releasePayloadFileCount=40`
   - `stagingReview.recommendsOnlyIncludedFiles=true`
   - `stagingReview.doesNotRecommendSeparateDirtyWork=true`
   - current status: `ready`
   - `blockers=0`
   - `reviewClassCounts.ready-to-stage=<runtime>`
   - `reviewClassCounts.untracked-review-required=0`
-  - reviewed expected untracked release files: `scripts/gwangju-seatmap-image-alignment-audit.mjs`, `scripts/gwangju-seatmap-browser-evidence.mjs`, `scripts/gwangju-seatmap-evidence-inventory.mjs`, `scripts/gwangju-seatmap-runtime-layer-audit.mjs`, `scripts/gwangju-seatmap-targeted-staging.mjs`, `scripts/gwangju-seatmap-staged-scope-audit.mjs`
+  - reviewed expected untracked release files: `scripts/gwangju-seatmap-core-qa.mjs`, `scripts/gwangju-seatmap-evidence-workset-ops.mjs`, `scripts/gwangju-seatmap-operator-template-ops.mjs`, `scripts/gwangju-seatmap-operator-intake-write-ops.mjs`, `scripts/gwangju-seatmap-release-staging-ops.mjs`
 - `npm run stadium:gwangju:targeted-staging`: PASS
   - `targetedStaging.status=ready`
   - `targetedStaging.doesNotRunGitAdd=true`
   - `targetedStaging.safeToRunBulkGitAdd=false`
-  - `targetedStaging.targetFileCount=34`
-  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=6`
+  - `targetedStaging.targetFileCount=40`
+  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=2`
   - targeted staging excludes separate dirty work and recommends only explicit included release files.
 - `npm run stadium:gwangju:staged-scope-audit`: PASS
   - `stagedScopeAudit.status=ready`
   - `stagedScopeAudit.requireComplete=false`
   - `stagedScopeAudit.doesNotRunGitAdd=true`
   - `stagedScopeAudit.safeToRunBulkGitAdd=false`
-  - `stagedScopeAudit.expectedTargetFileCount=34`
+  - `stagedScopeAudit.expectedTargetFileCount=40`
   - `stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count>` before explicit staging
   - `stagedScopeAudit.stagedOutsideTargetFileCount=0`
   - `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0`
