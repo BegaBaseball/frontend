@@ -137,13 +137,14 @@ const fetchCurrentUserProfileResponse = async (): Promise<RawAuthProfileResponse
 
 export interface FetchCurrentUserProfileOptions {
   retryOn401?: boolean;
+  useInjectedProfile?: boolean;
 }
 
 export const fetchCurrentUserProfile = async (
   options: FetchCurrentUserProfileOptions = {},
 ): Promise<AuthProfile> => {
-  const { retryOn401 = true } = options;
-  const injectedResponse = getInjectedAuthProfileResponse();
+  const { retryOn401 = true, useInjectedProfile = true } = options;
+  const injectedResponse = useInjectedProfile ? getInjectedAuthProfileResponse() : null;
   if (injectedResponse) {
     return normalizeAuthProfile(injectedResponse);
   }
