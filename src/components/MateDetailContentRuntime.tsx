@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import {
@@ -9,7 +9,6 @@ import {
   updateParty,
 } from '../api/mate';
 import {
-  getMatePartyApplicationsQueryOptions,
   invalidateMatePartyQueries,
   removeMatePartyFromCollections,
   setMatePartyMyApplicationQueryData,
@@ -40,6 +39,7 @@ interface MateDetailContentRuntimeProps {
   isApproved: boolean;
   canAccessCheckIn: boolean;
   myApplication: Application | null;
+  hostApplications: Application[];
   sectionCardClass: string;
   insetPanelClass: string;
   getSeatBadgeColor: (section: string) => string;
@@ -92,6 +92,7 @@ export default function MateDetailContentRuntime({
   isApproved,
   canAccessCheckIn,
   myApplication,
+  hostApplications,
   sectionCardClass,
   insetPanelClass,
   getSeatBadgeColor,
@@ -114,13 +115,7 @@ export default function MateDetailContentRuntime({
   const [cancelMemo, setCancelMemo] = useState('');
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
-  const hostApplicationsQuery = useQuery({
-    ...(party.id != null
-      ? getMatePartyApplicationsQueryOptions(party.id)
-      : getMatePartyApplicationsQueryOptions('unknown')),
-    enabled: Boolean(party.id && isHost),
-  });
-  const applications = hostApplicationsQuery.data ?? [];
+  const applications = isHost ? hostApplications : [];
 
   const [approvedApplications, pendingApplications] = useMemo(() => [
     applications.filter((application) => application.isApproved),

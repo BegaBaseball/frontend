@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
+  DEFAULT_REPO_ROOT,
   extractLabelGlobs,
   findFullMateRegressionMatches,
   loadFullMateRegressionGlobs,
@@ -57,4 +62,33 @@ test('findFullMateRegressionMatches returns only matching files', () => {
   assert.deepEqual(matches, [
     'src/utils/loginRedirect.ts',
   ]);
+});
+
+test('mate-regression-label-check accepts changed files from --file', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'mate-label-check-'));
+  const changedFilesPath = join(tempDir, 'changed-files.txt');
+
+  try {
+    writeFileSync(changedFilesPath, [
+      'README.md',
+      'src/components/MateDetailRuntime.tsx',
+    ].join('\n'));
+
+    const result = spawnSync(process.execPath, [
+      'scripts/mate-regression-label-check.mjs',
+      '--json',
+      '--file',
+      changedFilesPath,
+    ], {
+      cwd: DEFAULT_REPO_ROOT,
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.shouldApply, true);
+    assert.deepEqual(payload.matches, ['src/components/MateDetailRuntime.tsx']);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });

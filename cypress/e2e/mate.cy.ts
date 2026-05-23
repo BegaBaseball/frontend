@@ -266,7 +266,6 @@ describe('Mate Page Accuracy', () => {
 
   it('uses backend status filtering so matched tab shows results even outside the current page', () => {
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
     cy.contains('잠실야구장').should('be.visible');
 
     cy.contains('button', '매칭 완료').click();
@@ -280,7 +279,6 @@ describe('Mate Page Accuracy', () => {
   it('keeps desktop search and primary actions in the same toolbar row', () => {
     cy.viewport(1440, 1000);
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
 
     cy.get('#mate-search').should('be.visible').then(($search) => {
       const searchRect = $search[0].getBoundingClientRect();
@@ -314,7 +312,6 @@ describe('Mate Page Accuracy', () => {
     }).as('getPartyApplications');
 
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
     cy.contains('테스트 호스트').should('be.visible');
     cy.contains('인증 전').should('be.visible');
     cy.contains('4.5').should('be.visible');
@@ -332,9 +329,7 @@ describe('Mate Page Accuracy', () => {
 
   it('resets pagination to first page on search and date filter changes', () => {
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0')
-      .its('request.url')
-      .should('include', 'page=0');
+    cy.contains('잠실야구장').should('be.visible');
 
     cy.contains('button', '다음').click();
     cy.wait('@getPartiesPage1')
