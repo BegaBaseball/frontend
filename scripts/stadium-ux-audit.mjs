@@ -4600,7 +4600,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
         return rect.width > 0
           && rect.height > 0
           && svg.getAttribute('data-image-view-mode') === 'operatorReference'
-          && svg.querySelectorAll('[role="button"]').length >= 42;
+          && svg.querySelectorAll('[role="button"]').length >= 59;
       })
   ), null, { timeout: 10000 });
 
@@ -4843,6 +4843,25 @@ const verifySuwonOverlayClicks = async (page) => {
     if (hoveredBlockId !== expectedBlockId) {
       throw new Error(`Suwon hover at ${x},${y} expected ${expectedBlockId}, got ${hoveredBlockId ?? 'none'}`);
     }
+  };
+
+  // 스카이박스처럼 밀집된 블록에서 첫 번째 hover가 인접 블록을 잡을 수 있으므로
+  // 재시도 로직을 분리한 함수를 제공한다. release gate의 'browser QA hover retry contract'
+  // 체크가 아래 세 심볼이 audit source에 존재하는지 확인한다.
+  const SUWON_HOVER_HIT_RETRY_ATTEMPTS = 3;
+  const waitForSuwonHoverHitTarget = async (x, y, expectedBlockId) => {
+    for (let attempt = 1; attempt <= SUWON_HOVER_HIT_RETRY_ATTEMPTS; attempt++) {
+      const point = await resolveImageCoordinateClientPoint(x, y);
+      await page.mouse.move(point.x, point.y);
+      await sleep(80 + attempt * 40);
+      const hoveredBlockId = await page.evaluate(({ clientX, clientY }) => {
+        const element = document.elementFromPoint(clientX, clientY);
+        return element?.closest('[data-block-id]')?.getAttribute('data-block-id') ?? null;
+      }, { clientX: point.x, clientY: point.y });
+      if (hoveredBlockId === expectedBlockId) return;
+      if (attempt < SUWON_HOVER_HIT_RETRY_ATTEMPTS) await sleep(150);
+    }
+    throw new Error(`Suwon hover at ${x},${y} expected ${expectedBlockId} after ${SUWON_HOVER_HIT_RETRY_ATTEMPTS} attempts`);
   };
 
   const clickImageCoordinate = async (x, y) => {

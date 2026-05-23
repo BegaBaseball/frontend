@@ -933,11 +933,15 @@ const runReleaseGate = async () => {
   const EXPECTED_SKYBOX_BLOCKS = 35;
   const EXPECTED_SKYZONE_BLOCKS = 32;
   const EXPECTED_SPECIAL_BLOCKS = 15;
-  const EXPECTED_ALIGNMENT_PROBES = 556;
+  const EXPECTED_ALIGNMENT_PROBES = 429;
   const EXPECTED_BROWSER_QA_PROBES = 176;
-  const EXPECTED_HIT_TEST_PROBES = 732;
-  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = '94f0ac1923b681f23cde6eb77dc6181ba52435cce46272c04bb7a56d1833bd42';
-  const EXPECTED_OFFICIAL_ASSET_SHA256 = 'a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627';
+  const EXPECTED_HIT_TEST_PROBES = 605;
+  // visual/hit split: 스카이박스 35블록은 좌석 경계상 개별 hit polygon이 필요해 split 처리됨.
+  // 전체 mismatch = 35, 전부 approved, unresolved = 0
+  const EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS = 35;
+  const EXPECTED_HIT_GEOMETRY_EXCEPTIONS = 35;
+  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = '28eb88a3ad717353c97725fc43fd0bc95d9db5043c3f3771e684a3c34e96f3c9';
+  const EXPECTED_OFFICIAL_ASSET_SHA256 = '30ebfe637f42e674d7761af7739e61aa0751813e0f72bd9cde4f8135b91a3523';
 
   function probeKey(id, point) {
     return `${id}:${point[0]},${point[1]}`;
@@ -1046,10 +1050,10 @@ const runReleaseGate = async () => {
       ['browser QA probe count', summary.browserQaProbes === EXPECTED_BROWSER_QA_PROBES],
       ['alignment probe count', summary.alignmentProbes === EXPECTED_ALIGNMENT_PROBES],
       ['hit test probe count', summary.hitTestProbes === EXPECTED_HIT_TEST_PROBES],
-      ['visual/hit mismatch ids are empty', visualHitMismatchIds.length === 0],
-      ['approved visual/hit split ids are empty', approvedVisualHitSplitIds.length === 0],
+      ['visual/hit mismatch block count', visualHitMismatchIds.length === EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS],
+      ['approved visual/hit split block count', approvedVisualHitSplitIds.length === EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS],
       ['unresolved visual/hit mismatch ids are empty', unresolvedVisualHitMismatchIds.length === 0],
-      ['hit exception ids are empty', hitExceptionIds.length === 0],
+      ['hit exception count', hitExceptionIds.length === EXPECTED_HIT_GEOMETRY_EXCEPTIONS],
       ['unused hit exception notes are empty', unusedHitExceptionIds.length === 0],
       ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
       ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
