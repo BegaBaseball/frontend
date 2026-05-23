@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   GWANGJU_BLOCKS,
+  GWANGJU_AWAY_CHEERING_BLOCK_IDS,
   GWANGJU_CATEGORIES,
   GWANGJU_CATEGORY_GROUPS,
   GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES,
+  GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS,
   GWANGJU_SELECTABLE_BLOCKS_READY,
   GWANGJU_SEATMAP_IMAGE,
   GWANGJU_VIEW_INFO,
@@ -28,11 +30,39 @@ import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
-import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const DERIVED_RANGE_BY_FILTER_GROUP_ID = new Map(
   GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.map((range) => [range.filterGroupId, range]),
 );
+
+const AGGREGATE_SECTION_FILTER_ID = new Map([
+  ['home-k7-seats', 'k7'],
+  ['away-cheering-seats', 'away-cheering'],
+]);
+
+const SOURCE_SECTION_IDS_HIDDEN_BY_AGGREGATE_FILTER = new Map([
+  ['k7', new Set(GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS)],
+  ['away-cheering', new Set(GWANGJU_AWAY_CHEERING_BLOCK_IDS)],
+]);
+
+function isGwangjuSectionVisibleInFilter(section: GwangjuBlock, group: typeof GWANGJU_CATEGORY_GROUPS[number] | null): boolean {
+  const aggregateFilterId = AGGREGATE_SECTION_FILTER_ID.get(section.id);
+  if (aggregateFilterId) {
+    return group?.id === aggregateFilterId;
+  }
+
+  const hiddenSourceIds = group ? SOURCE_SECTION_IDS_HIDDEN_BY_AGGREGATE_FILTER.get(group.id) : null;
+  if (hiddenSourceIds?.has(section.id)) {
+    return false;
+  }
+
+  if (!group) return true;
+  if (!matchesGwangjuCategoryGroup(section, group)) return false;
+  if (group.sides != null && !group.sides.includes(section.side)) return false;
+  if (group.levels != null && !group.levels.includes(section.level)) return false;
+  return true;
+}
 
 const gwangjuSectionAdapter: SeatMapSectionAdapter<GwangjuBlock> = {
   getId: (section) => section.id,
@@ -50,9 +80,9 @@ const gwangjuSectionAdapter: SeatMapSectionAdapter<GwangjuBlock> = {
   getDistance: (section) => (GWANGJU_VIEW_INFO[section.id] ?? GWANGJU_VIEW_INFO.default).distance,
   getNotes: (section) => {
     const info = GWANGJU_VIEW_INFO[section.id] ?? GWANGJU_VIEW_INFO.default;
-    const derivedRanges = getGwangjuDerivedOperatorRangesForBlock(section);
+    const derivedRanges = getGwangjuDerivedOperatorRangesForBlock(section.id);
     const derivedRangeText = derivedRanges.length > 0
-      ? `운영자 파생 구역: ${derivedRanges.map((range) => range.name).join(', ')}`
+      ? `운영자 파생 구역: ${derivedRanges.map((range) => range.label).join(', ')}`
       : null;
     return [info.notes, derivedRangeText].filter(Boolean).join(' · ');
   },
@@ -228,10 +258,15 @@ function DetailPanel({
   );
 }
 
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.25;
+
 export default function GwangjuSeatMap() {
   const { resolvedTheme } = useTheme();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [uploadFor, setUploadFor] = useState<GwangjuBlock | null>(null);
   const {
     selected,
@@ -243,6 +278,8 @@ export default function GwangjuSeatMap() {
     setFilterId,
     activeFilterGroup,
     filterCats,
+    filterSides,
+    filterLevels,
     toast,
     showToast,
   } = useSeatMapSelectionState({
@@ -250,7 +287,7 @@ export default function GwangjuSeatMap() {
     filterGroups: GWANGJU_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
-    isSectionVisible: (section, group) => (group ? matchesGwangjuCategoryGroup(section, group) : true),
+    isSectionVisible: isGwangjuSectionVisibleInFilter,
   });
   const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
   const filterFanRoles = activeFilterGroup?.fanRoles ?? null;
@@ -278,9 +315,17 @@ export default function GwangjuSeatMap() {
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
+      filterSides={filterSides}
+      filterLevels={filterLevels}
       filterFanRoles={filterFanRoles}
+      activeFilterId={filterId}
       zoom={zoom}
+      pan={pan}
+      onPanChange={setPan}
       onZoom={setZoom}
+      minZoom={MIN_ZOOM}
+      maxZoom={MAX_ZOOM}
+      zoomStep={ZOOM_STEP}
     />
   );
 
@@ -411,6 +456,7 @@ export default function GwangjuSeatMap() {
             stadiumKey="GWANGJU"
             onClose={() => setSelected(null)}
             onUpload={() => selected && setUploadFor(selected)}
+            testId="gwangju-bottom-sheet"
             extraMeta={renderDerivedRangeMeta}
           />
         )}
