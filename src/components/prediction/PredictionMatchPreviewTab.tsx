@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -69,6 +70,7 @@ export default function PredictionMatchPreviewTab({
   onNearestNavigation,
 }: PredictionMatchPreviewTabProps) {
   const selectedDateButtonRef = useRef<HTMLButtonElement | null>(null);
+  const matchListScrollRef = useRef<HTMLDivElement | null>(null);
   const currentDateKey = formatPredictionScheduleDateKey(parsePredictionScheduleDateKey(currentDate) || new Date());
   const monthTitle = getPredictionScheduleMonthTitle(currentDate);
   const dateRailItems = useMemo(() => buildPredictionScheduleDateRail(currentDate), [currentDate]);
@@ -79,6 +81,15 @@ export default function PredictionMatchPreviewTab({
     })),
     [currentDateGames, currentDate],
   );
+
+  // Each match row: min-h-[4.75rem] sm:min-h-[5.25rem] lg:min-h-[6.25rem] — use 84px as a safe estimate
+  const ESTIMATED_ROW_HEIGHT = 84;
+  const rowVirtualizer = useVirtualizer({
+    count: rowViewModels.length,
+    getScrollElement: () => matchListScrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 3,
+  });
 
   useEffect(() => {
     selectedDateButtonRef.current?.scrollIntoView({
@@ -202,104 +213,125 @@ export default function PredictionMatchPreviewTab({
         {currentDateGames.length > 0 ? (
           <div className="relative">
             <div
-              className="overflow-x-hidden lg:overflow-x-auto"
+              ref={matchListScrollRef}
+              className="max-h-[40rem] overflow-x-hidden overflow-y-auto lg:overflow-x-auto"
               data-testid="prediction-schedule-match-list"
               tabIndex={0}
               aria-label="경기 일정 가로 스크롤 영역"
             >
-              <ul className="min-w-0 divide-y divide-slate-200 pr-0 dark:divide-border lg:min-w-[920px] lg:pr-16">
-                {rowViewModels.map(({ game, viewModel }) => {
+              {/* Virtual container: total height drives the scrollbar */}
+              <div
+                className="relative min-w-0 lg:min-w-[920px] lg:pr-16"
+                style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const { game, viewModel } = rowViewModels[virtualItem.index];
                   const compactScoreLabel = viewModel.status.scoreLabel?.replace(/\s+/g, '') || '';
 
                   return (
-                    <li
+                    <div
                       key={game.gameId}
-                      data-testid="prediction-schedule-match-row"
-                      data-game-id={game.gameId}
-                      aria-label={viewModel.ariaLabel}
-                      className="grid min-h-[4.75rem] grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-2 py-3 sm:min-h-[5.25rem] sm:grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] sm:gap-3 sm:px-4 lg:min-h-[6.25rem] lg:grid-cols-[5rem_5rem_minmax(32rem,1fr)_5.75rem] lg:gap-4 lg:px-6 lg:py-4"
+                      data-index={virtualItem.index}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
                     >
-                      <div className="min-w-0 lg:hidden">
-                        <p className="text-[13px] font-black leading-tight tabular-nums text-slate-900 dark:text-gray-100 sm:text-[15px]">
-                          {viewModel.startTimeLabel}
-                        </p>
-                        <p className="mt-0.5 truncate text-[11px] font-bold leading-tight text-slate-500 dark:text-gray-300 sm:text-[13px]">
-                          {viewModel.stadiumLabel}
-                        </p>
-                      </div>
-                      <div className="hidden text-lg font-black tabular-nums text-slate-900 dark:text-gray-100 lg:block">
-                        {viewModel.startTimeLabel}
-                      </div>
-                      <div className="hidden truncate text-[16px] font-bold text-slate-500 dark:text-gray-300 lg:block">
-                        {viewModel.stadiumLabel}
-                      </div>
+                      {/* Divider between rows */}
+                      {virtualItem.index > 0 && (
+                        <div className="border-t border-slate-200 dark:border-border" />
+                      )}
                       <div
-                        className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] sm:gap-2 lg:grid-cols-[minmax(10rem,1fr)_6.25rem_minmax(10rem,1fr)] lg:gap-3"
-                        data-testid="prediction-schedule-matchup"
+                        data-testid="prediction-schedule-match-row"
+                        data-game-id={game.gameId}
+                        aria-label={viewModel.ariaLabel}
+                        className="grid min-h-[4.75rem] grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-2 py-3 sm:min-h-[5.25rem] sm:grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] sm:gap-3 sm:px-4 lg:min-h-[6.25rem] lg:grid-cols-[5rem_5rem_minmax(32rem,1fr)_5.75rem] lg:gap-4 lg:px-6 lg:py-4"
                       >
-                        <div className="flex min-h-12 min-w-0 items-center justify-end gap-1 sm:min-h-14 sm:gap-2 lg:min-h-[3.75rem] lg:gap-3">
-                          <div className="min-w-0 text-right">
-                            <p
-                              className="truncate text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:text-xl"
-                              aria-label={viewModel.awayTeam.fullName}
-                            >
-                              {viewModel.awayTeam.shortName}
-                            </p>
-                            <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
-                              {viewModel.awayTeam.pitcherName}
-                            </p>
+                        <div className="min-w-0 lg:hidden">
+                          <p className="text-[13px] font-black leading-tight tabular-nums text-slate-900 dark:text-gray-100 sm:text-[15px]">
+                            {viewModel.startTimeLabel}
+                          </p>
+                          <p className="mt-0.5 truncate text-[11px] font-bold leading-tight text-slate-500 dark:text-gray-300 sm:text-[13px]">
+                            {viewModel.stadiumLabel}
+                          </p>
+                        </div>
+                        <div className="hidden text-lg font-black tabular-nums text-slate-900 dark:text-gray-100 lg:block">
+                          {viewModel.startTimeLabel}
+                        </div>
+                        <div className="hidden truncate text-[16px] font-bold text-slate-500 dark:text-gray-300 lg:block">
+                          {viewModel.stadiumLabel}
+                        </div>
+                        <div
+                          className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] sm:gap-2 lg:grid-cols-[minmax(10rem,1fr)_6.25rem_minmax(10rem,1fr)] lg:gap-3"
+                          data-testid="prediction-schedule-matchup"
+                        >
+                          <div className="flex min-h-12 min-w-0 items-center justify-end gap-1 sm:min-h-14 sm:gap-2 lg:min-h-[3.75rem] lg:gap-3">
+                            <div className="min-w-0 text-right">
+                              <p
+                                className="truncate text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:text-xl"
+                                aria-label={viewModel.awayTeam.fullName}
+                              >
+                                {viewModel.awayTeam.shortName}
+                              </p>
+                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
+                                {viewModel.awayTeam.pitcherName}
+                              </p>
+                            </div>
+                            <ScheduleTeamLogo team={viewModel.awayTeam.rawName} />
                           </div>
-                          <ScheduleTeamLogo team={viewModel.awayTeam.rawName} />
-                        </div>
-                        <div className={`text-center text-[12px] font-black sm:text-sm lg:text-lg ${getStatusToneClass(viewModel.status.tone)}`}>
-                          {viewModel.status.hasScore ? (
-                            <span
-                              className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-1 py-1 text-slate-900 tabular-nums dark:bg-secondary dark:text-gray-100 sm:min-w-[3.25rem] sm:px-2 lg:min-w-[5.5rem] lg:rounded-full lg:px-3 lg:py-1.5"
-                              aria-label={`${viewModel.status.label} ${viewModel.status.scoreLabel}`}
-                            >
-                              <span className="lg:hidden">{compactScoreLabel}</span>
-                              <span className="hidden lg:inline">{viewModel.status.scoreLabel}</span>
-                            </span>
-                          ) : (
-                            viewModel.status.label
-                          )}
-                        </div>
-                        <div className="flex min-h-12 min-w-0 items-center gap-1 sm:min-h-14 sm:gap-2 lg:min-h-[3.75rem] lg:gap-3">
-                          <ScheduleTeamLogo team={viewModel.homeTeam.rawName} />
-                          <div className="min-w-0">
-                            <p
-                              className="flex min-w-0 items-center gap-0.5 text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:gap-1.5 lg:text-xl"
-                              aria-label={viewModel.homeTeam.fullName}
-                            >
-                              <span className="truncate">{viewModel.homeTeam.shortName}</span>
-                              <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded bg-slate-400 px-0.5 text-[10px] font-black text-white sm:h-5 sm:min-w-5 sm:text-[11px] lg:h-6 lg:min-w-6 lg:rounded-md lg:px-1 lg:text-[14px]">
-                                홈
+                          <div className={`text-center text-[12px] font-black sm:text-sm lg:text-lg ${getStatusToneClass(viewModel.status.tone)}`}>
+                            {viewModel.status.hasScore ? (
+                              <span
+                                className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-1 py-1 text-slate-900 tabular-nums dark:bg-secondary dark:text-gray-100 sm:min-w-[3.25rem] sm:px-2 lg:min-w-[5.5rem] lg:rounded-full lg:px-3 lg:py-1.5"
+                                aria-label={`${viewModel.status.label} ${viewModel.status.scoreLabel}`}
+                              >
+                                <span className="lg:hidden">{compactScoreLabel}</span>
+                                <span className="hidden lg:inline">{viewModel.status.scoreLabel}</span>
                               </span>
-                            </p>
-                            <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
-                              {viewModel.homeTeam.pitcherName}
-                            </p>
+                            ) : (
+                              viewModel.status.label
+                            )}
+                          </div>
+                          <div className="flex min-h-12 min-w-0 items-center gap-1 sm:min-h-14 sm:gap-2 lg:min-h-[3.75rem] lg:gap-3">
+                            <ScheduleTeamLogo team={viewModel.homeTeam.rawName} />
+                            <div className="min-w-0">
+                              <p
+                                className="flex min-w-0 items-center gap-0.5 text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:gap-1.5 lg:text-xl"
+                                aria-label={viewModel.homeTeam.fullName}
+                              >
+                                <span className="truncate">{viewModel.homeTeam.shortName}</span>
+                                <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded bg-slate-400 px-0.5 text-[10px] font-black text-white sm:h-5 sm:min-w-5 sm:text-[11px] lg:h-6 lg:min-w-6 lg:rounded-md lg:px-1 lg:text-[14px]">
+                                  홈
+                                </span>
+                              </p>
+                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
+                                {viewModel.homeTeam.pitcherName}
+                              </p>
+                            </div>
                           </div>
                         </div>
+                        <div className="sticky right-0 z-20 flex justify-end bg-white pl-1 dark:bg-card lg:static lg:bg-transparent lg:pl-0">
+                          {viewModel.canEnterDetail ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              data-testid="prediction-match-enter-detail-btn"
+                              className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-[12px] font-black text-slate-700 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-gray-100 dark:hover:bg-secondary sm:h-9 sm:min-w-[3.5rem] sm:text-[14px] lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-[16px]"
+                              onClick={() => onEnterMatchDetail(game)}
+                            >
+                              전력
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="sticky right-0 z-20 flex justify-end bg-white pl-1 dark:bg-card lg:static lg:bg-transparent lg:pl-0">
-                        {viewModel.canEnterDetail ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            data-testid="prediction-match-enter-detail-btn"
-                            className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-[12px] font-black text-slate-700 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-gray-100 dark:hover:bg-secondary sm:h-9 sm:min-w-[3.5rem] sm:text-[14px] lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-[16px]"
-                            onClick={() => onEnterMatchDetail(game)}
-                          >
-                            전력
-                          </Button>
-                        ) : null}
-                      </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             </div>
             <div
               aria-hidden="true"

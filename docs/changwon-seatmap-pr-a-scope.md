@@ -23,8 +23,8 @@
 | `docs/changwon-seatmap-release-candidate.md` | 전체 | release-lock 근거 문서 |
 | `docs/changwon-seatmap-pr-packaging-inventory.md` | 전체 | 전체 변경 분리 인벤토리 |
 | `docs/changwon-seatmap-pr-a-scope.md` | 전체 | PR A 실행 범위 고정 문서 |
-| `scripts/changwon-seatmap-review-manifest.mjs` | 전체 | trace manifest, visual approval 생성 |
-| `scripts/changwon-seatmap-ux-readiness.mjs` | 전체 | NC UX readiness 생성 |
+| `scripts/changwon-seatmap-ops.mjs trace-manifest` | 전체 | trace manifest, visual approval 생성 |
+| `scripts/changwon-seatmap-ops.mjs ux-readiness` | 전체 | NC UX readiness 생성 |
 | `scripts/stadium-ux-audit.mjs` | 전체 | repo 내부 브라우저 QA 원본 |
 | `scripts/run-stadium-isolated-qa.mjs` | 전체 | isolated QA runner와 `CHANGWON` 기본 포함 |
 | `src/components/changwon/ChangwonSeatMap.tsx` | 전체 | 검색/필터/선택 UX |

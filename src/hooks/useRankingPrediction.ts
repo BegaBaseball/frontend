@@ -5,8 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthSession } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import {
-  fetchCurrentSeason,
-  fetchSavedPrediction,
+  fetchRankingPredictionInit,
   saveRankingPrediction,
 } from '../api/ranking';
 import {
@@ -83,47 +82,22 @@ export const useRankingPrediction = () => {
     setInitErrorMessage(null);
 
     try {
-      const seasonData = await fetchCurrentSeason();
-      setCurrentSeason(seasonData.seasonYear);
+      const initData = await fetchRankingPredictionInit();
+      setCurrentSeason(initData.seasonYear);
 
-      try {
-        const savedPrediction = await fetchSavedPrediction(seasonData.seasonYear);
+      if (initData.saved) {
+        setAlreadySaved(true);
+        setIsPredictionSaved(true);
+        setShareId(initData.saved.shareId);
 
-        if (savedPrediction) {
-          setAlreadySaved(true);
-          setIsPredictionSaved(true);
-          setShareId(savedPrediction.shareId);
-
-          const restoredRankings = restoreTeamsFromIds(savedPrediction.teamIdsInOrder, allTeams);
-          setRankings(restoredRankings);
-          toast.info(`${seasonData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
-        } else {
-          setAlreadySaved(false);
-          setShareId(null);
-          resetRankings();
-          setIsPredictionSaved(false);
-        }
-      } catch (error: unknown) {
-        const failure = resolveRankingPredictionInitFailure(error);
-        if (failure === 'redirect-auth') {
-          redirectToLogin(true);
-          return;
-        }
-
-        if (failure === 'closed') {
-          setAlreadySaved(false);
-          setShareId(null);
-          setInitState('closed');
-          return;
-        }
-
-        const errorMessage = getApiErrorMessage(error, '저장된 예측을 불러오지 못했습니다.');
+        const restoredRankings = restoreTeamsFromIds(initData.saved.teamIdsInOrder, allTeams);
+        setRankings(restoredRankings);
+        toast.info(`${initData.seasonYear} 시즌 순위 예측을 불러왔습니다.`);
+      } else {
         setAlreadySaved(false);
         setShareId(null);
-        setInitErrorMessage(errorMessage);
-        setInitState('error');
-        toast.error(errorMessage);
-        return;
+        resetRankings();
+        setIsPredictionSaved(false);
       }
     } catch (error: unknown) {
       setShareId(null);

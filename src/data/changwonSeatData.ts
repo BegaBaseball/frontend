@@ -98,9 +98,11 @@ export interface ChangwonCategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
   levels?: ChangwonLevel[] | null;
   fanRoles?: ChangwonFanRole[] | null;
   accessibilityOnly?: boolean;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 interface ChangwonBlockSpec {
@@ -116,13 +118,13 @@ interface ChangwonBlockSpec {
 }
 
 export const CHANGWON_SEATMAP_IMAGE: ChangwonSeatMapImage = {
-  imagePath: 'src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.webp',
   imageWidth: 1960,
   imageHeight: 2546,
   sourceLabel: 'NC 다이노스 공식 티켓 안내 좌석도',
   sourceUrl: 'https://www.ncdinos.com/dinos/stadium.do',
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'changwon-nc-seatmap-official-2026.png',
+  requiredAssetFileName: 'changwon-nc-seatmap-official-2026.webp',
 };
 
 export const CHANGWON_SEATMAP_VIEWPORT: ChangwonSeatMapViewport = {
@@ -151,13 +153,22 @@ export const CHANGWON_CATEGORIES: Record<string, ChangwonCategory> = {
 };
 
 export const CHANGWON_CATEGORY_GROUPS: ChangwonCategoryGroup[] = [
-  { id: 'all', label: '전체', cats: null },
-  { id: 'level1', label: '1층', cats: null, levels: ['1F', 'OUTFIELD'] },
-  { id: 'level2', label: '2층', cats: null, levels: ['2F'] },
-  { id: 'level34', label: '3·4층', cats: null, levels: ['3F', '4F'] },
-  { id: 'cheer', label: '응원석', cats: ['CHEERING', 'AWAY'], fanRoles: ['HOME', 'AWAY'] },
-  { id: 'outfield-special', label: '외야·특수', cats: ['OUTFIELD', 'OUTFIELD_GRASS', 'TABLE', 'BBQ', 'PICNIC_TABLE', 'ROUND_TABLE', 'BULLPEN_FAMILY', 'OUTFIELD_COUNTER', 'OUTFIELD_FAMILY', 'SKYBOX'] },
-  { id: 'accessible', label: '휠체어', cats: ['ACCESSIBLE'], accessibilityOnly: true },
+  // 층수별 (메인 필터 — 항상 노출)
+  { id: 'all',      label: '전체',   cats: null,                                                     filterDimension: 'level' },
+  { id: 'lv-1f',   label: '1층',    cats: null, levels: ['1F'],                                     filterDimension: 'level' },
+  { id: 'lv-2f',   label: '2층',    cats: null, levels: ['2F'],                                     filterDimension: 'level' },
+  { id: 'lv-3f',   label: '3층',    cats: null, levels: ['3F'],                                     filterDimension: 'level' },
+  { id: 'lv-4f',   label: '4층',    cats: null, levels: ['4F'],                                     filterDimension: 'level' },
+  { id: 'lv-out',  label: '외야층', cats: null, levels: ['OUTFIELD'],                               filterDimension: 'level' },
+  // 등급별 (보조 필터 — 기본 접힘)
+  { id: 'cheer',          label: '응원석',    cats: ['CHEERING', 'AWAY'], fanRoles: ['HOME', 'AWAY'], filterDimension: 'grade' },
+  { id: 'outfield-special', label: '외야·특수', cats: ['OUTFIELD', 'OUTFIELD_GRASS', 'TABLE', 'BBQ', 'PICNIC_TABLE', 'ROUND_TABLE', 'BULLPEN_FAMILY', 'OUTFIELD_COUNTER', 'OUTFIELD_FAMILY', 'SKYBOX'], filterDimension: 'grade' },
+  { id: 'accessible',     label: '휠체어',    cats: ['ACCESSIBLE'], accessibilityOnly: true,         filterDimension: 'grade' },
+  // 위치별 (보조 필터 — 기본 접힘)
+  { id: 'pos-first',  label: '1루 측', cats: null, sides: ['FIRST_BASE'],                           filterDimension: 'position' },
+  { id: 'pos-third',  label: '3루 측', cats: null, sides: ['THIRD_BASE'],                           filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙',   cats: null, sides: ['CENTER'],                               filterDimension: 'position' },
+  { id: 'pos-out',    label: '외야',   cats: null, sides: ['OUTFIELD'],                             filterDimension: 'position' },
 ];
 
 export const CHANGWON_VIEW_INFO: Record<string, ChangwonViewInfo> = {
@@ -2480,5 +2491,6 @@ export function isChangwonBlockInCategoryGroup(block: ChangwonBlock, group: Chan
   if (group.cats && group.cats.length > 0 && group.cats.includes(block.category)) return true;
   if (group.fanRoles && group.fanRoles.length > 0 && group.fanRoles.includes(block.fanRole)) return true;
   if (group.levels && group.levels.length > 0 && group.levels.includes(block.level)) return true;
+  if (group.sides && group.sides.length > 0 && group.sides.includes(block.side)) return true;
   return false;
 }

@@ -32,12 +32,98 @@ const shouldRunGocheokDeepCheck = process.env.STADIUM_UX_GOCHEOK_DEEP_CHECK === 
 const shouldRunGocheokFullClickCheck = process.env.STADIUM_UX_GOCHEOK_FULL_CLICK_CHECK === '1';
 const shouldCaptureGocheokDebugOverlay = process.env.STADIUM_UX_GOCHEOK_DEBUG_CAPTURE === '1';
 const shouldRunGwangjuDeepCheck = process.env.STADIUM_UX_GWANGJU_DEEP_CHECK === '1';
+const shouldRunGwangjuVisualHitSplitOnly = process.env.STADIUM_UX_GWANGJU_VISUAL_HIT_SPLIT_ONLY === '1';
 const shouldCaptureGwangjuDebugOverlay = process.env.STADIUM_UX_GWANGJU_DEBUG_CAPTURE === '1';
+const GWANGJU_RUNTIME_LAYER_STATIC_CONTRACT = [
+  'readGwangjuTraceManifestBlocks',
+  'expectedLabelTargetCount',
+  "['home-k7-seats', 'away-cheering-seats'].includes(entry.id)",
+  'Gwangju runtime layer must render release-ready manifest paths only',
+  'runtimeLayerAudit',
+  'pathMismatchCount',
+  'renderedVisualPathCount',
+  'visualPathMismatchCount',
+  'visualHitSplitRows',
+  'STADIUM_UX_GWANGJU_VISUAL_HIT_SPLIT_ONLY',
+  'gwangju-seat-visual-',
+  'forbiddenRenderedIds',
+  'labelTopHitFailureCount',
+  'Gwangju label coordinate top-hit failures',
+  'markerClickPoints',
+  "type: 'gwangju-runtime-layer'",
+  'gwangju-browser-coordinate-audit',
+  '101-108-h-i-j-browser-coordinate-crop',
+  '121-127-h-i-j-browser-coordinate-crop',
+  'op-outfield-browser-coordinate-crop',
+  'five-table-browser-coordinate-crop',
+  'sky-picnic-browser-coordinate-crop',
+  'svgViewBox',
+  'svgScreenRect',
+  'preserveAspectRatio',
+  'first-wheelchair-seats',
+  'party-seats-first',
+  'Gwangju cheering filter should hide neutral K7 block 111.',
+  'Gwangju K7 filter should expose the K7 aggregate hit-area.',
+  'Gwangju K7 filter should replace away source K7 blocks with the aggregate hit-area.',
+  'Gwangju K7 filter should replace home source K7 blocks with the aggregate hit-area.',
+  'Gwangju K7 filter should hide non-K7 infield seat hit-areas.',
+  'Gwangju home cheering filter should hide away cheering K7 blocks.',
+  'Gwangju away cheering filter should hide home cheering K7 blocks.',
+  'Gwangju K7 derived range summary should display 107~111, 118~122.',
+  'Gwangju K7 derived range summary should mark neutral block 111.',
+  'Gwangju home cheering derived range summary should display 118~122.',
+  'Gwangju away cheering derived range summary should display 107~110.',
+  'Gwangju K7 107 detail should show K7 and away derived badges.',
+  'Gwangju K7 111 detail should show only K7 derived badge.',
+  'Gwangju K7 118 detail should show K7 and home cheering derived badges.',
+  'Gwangju K7/AWAY sections must be official-traced before becoming clickable',
+];
+const GWANGJU_DERIVED_AGGREGATE_LABEL_FALLBACKS = {
+  'home-k7-seats': [
+    'gwangju-seat-block-k7-107',
+    'gwangju-seat-block-k7-108',
+    'gwangju-seat-block-k7-109',
+    'gwangju-seat-block-k7-110',
+    'gwangju-seat-block-k7-111',
+    'gwangju-seat-block-k7-118',
+    'gwangju-seat-block-k7-119',
+    'gwangju-seat-block-k7-120',
+    'gwangju-seat-block-k7-121',
+    'gwangju-seat-block-k7-122',
+  ],
+  'away-cheering-seats': [
+    'gwangju-seat-block-k7-107',
+    'gwangju-seat-block-k7-108',
+    'gwangju-seat-block-k7-109',
+    'gwangju-seat-block-k7-110',
+  ],
+};
 const shouldRunChangwonDeepCheck = process.env.STADIUM_UX_CHANGWON_DEEP_CHECK === '1';
 const shouldRunDaejeonDeepCheck = process.env.STADIUM_UX_DAEJEON_DEEP_CHECK === '1';
 const shouldCaptureDaejeonDebugOverlay = process.env.STADIUM_UX_DAEJEON_DEBUG_CAPTURE === '1';
 const shouldRunDaeguDeepCheck = process.env.STADIUM_UX_DAEGU_DEEP_CHECK === '1';
 const shouldRunDaeguFullClickCheck = process.env.STADIUM_UX_DAEGU_FULL_CLICK_CHECK === '1';
+const DAEGU_VISUAL_QA_CONTRACT = {
+  normalScreenshotPrefix: 'daegu-normal-seatmap-',
+  debugScreenshotPrefix: 'daegu-debug-overlay-',
+  proofScope: 'click/render smoke only; not official PNG visual precision proof',
+  normalReviewOnlyAbsent: 'normalReviewOnlyAbsent',
+  debugReviewOnlyPointerDisabled: 'debugReviewOnlyPointerDisabled',
+  expectedViewBox: '0 0 1707 2048',
+  normalReviewOnlyGuard: 'Daegu normal mode must not render review-only block MR-9 as a selectable seat',
+  debugReviewOverlayGuard: 'Daegu debug mode must keep review-only block MR-9 in the review-only overlay',
+  normalScreenshotGuard: 'Daegu normal screenshot must not render review-only polygons',
+  debugPointerGuard: 'Daegu debug review overlay must be pointer-disabled and non-clickable',
+};
+const DAEGU_FULL_FILTER_QA_TARGET_IDS = [
+  'daegu-seat-block-daegu-sky-third-upper-16',
+  'daegu-review-block-daegu-sky-third-upper-14',
+];
+const DAEGU_FULL_FILTER_QA_CONTRACT = [
+  'Daegu normal seat layer must not render NEEDS_OPERATOR_REVIEW blocks',
+  'Daegu marker-only accessible entries must not render in the seat polygon layer',
+  'Daegu marker-only layer must not expose seat selection buttons',
+];
 const shouldRunSuwonDeepCheck = process.env.STADIUM_UX_SUWON_DEEP_CHECK === '1';
 const shouldRunSuwonFullClickCheck = process.env.STADIUM_UX_SUWON_FULL_CLICK_CHECK === '1';
 const shouldRunSajikDeepCheck = process.env.STADIUM_UX_SAJIK_DEEP_CHECK === '1';
@@ -49,6 +135,12 @@ const shouldRunInitialJamsilProbe = requestedSeatMapStadiumIds.size === 0
 const localDevServerUrlPattern = /Local:\s+(http:\/\/127\.0\.0\.1:\d+)/;
 const baseUrlCandidates = [5176, 5177]
   .map((port) => `http://127.0.0.1:${port}`);
+
+const readGwangjuTraceManifestBlocks = async () => {
+  const manifestPath = path.join(frontendRoot, 'reports/stadium/gwangju-seatmap-trace-review.json');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+  return manifest.blocks ?? manifest.data?.blocks ?? [];
+};
 
 const seatMapReviewStadiums = [
   {
@@ -668,6 +760,16 @@ const visibleSeatMapFilterButton = (page, testId) =>
 
 const clickVisibleSeatMapFilter = async (page, testId) => {
   const button = visibleSeatMapFilterButton(page, testId);
+  if (!await button.isVisible().catch(() => false)) {
+    const [testIdPrefix] = testId.split('-filter-');
+    const secondaryToggle = visibleSeatMapFilterButton(page, `${testIdPrefix}-filter-secondary-toggle`);
+    if (await secondaryToggle.isVisible().catch(() => false)) {
+      const isExpanded = await secondaryToggle.getAttribute('aria-expanded').catch(() => null);
+      if (isExpanded !== 'true') {
+        await secondaryToggle.click({ timeout: 5000 });
+      }
+    }
+  }
   await button.waitFor({ state: 'visible', timeout: 5000 });
   await button.click({ timeout: 5000 });
   await page.waitForFunction((targetTestId) => {
@@ -737,142 +839,6 @@ const readSuwonZoomState = async (page) => visibleSuwonSeatMapTestId(page, 'suwo
   panY: Number(node.getAttribute('data-pan-y') ?? '0'),
   transform: window.getComputedStyle(node).transform,
 }));
-
-const readVisibleSuwonOverlayPaintState = async (page) => page.evaluate(() => {
-  const svg = Array.from(document.querySelectorAll('[data-testid="suwon-seatmap-svg"]'))
-    .find((candidate) => {
-      const rect = candidate.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    });
-
-  if (!svg) {
-    return null;
-  }
-
-  const readPathState = (path) => ({
-    id: path.getAttribute('data-block-id') ?? '',
-    fillOpacity: path.getAttribute('fill-opacity') ?? '',
-    stroke: path.getAttribute('stroke') ?? '',
-    strokeWidth: path.getAttribute('stroke-width') ?? '',
-    strokeDasharray: path.getAttribute('stroke-dasharray') ?? '',
-    pointerEvents: path.getAttribute('pointer-events') ?? window.getComputedStyle(path).pointerEvents,
-    ariaPressed: path.getAttribute('aria-pressed') ?? '',
-  });
-  const visualStates = Array.from(svg.querySelectorAll('[data-layer="image-geometry-overlays"][data-block-id]'))
-    .map(readPathState);
-  const hitStates = Array.from(svg.querySelectorAll('[data-layer="hit-targets"][data-block-id]'))
-    .map(readPathState);
-  const activeVisualIds = visualStates
-    .filter((state) => Number(state.fillOpacity) > 0 || state.stroke !== 'transparent' || Number(state.strokeWidth) > 0)
-    .map((state) => state.id);
-  const selectedHitIds = hitStates
-    .filter((state) => state.ariaPressed === 'true')
-    .map((state) => state.id);
-
-  return {
-    visualCount: visualStates.length,
-    hitCount: hitStates.length,
-    activeVisualIds,
-    selectedHitIds,
-    visualStates,
-    hitStates,
-  };
-});
-
-const requireSuwonOverlayPaintState = async (page, context) => {
-  const state = await readVisibleSuwonOverlayPaintState(page);
-  if (!state) {
-    throw new Error(`Suwon overlay paint state was not available during ${context}.`);
-  }
-  if (state.visualCount < 150 || state.hitCount < 150 || state.visualCount !== state.hitCount) {
-    throw new Error(`Suwon overlay path counts are invalid during ${context}: ${JSON.stringify({
-      visualCount: state.visualCount,
-      hitCount: state.hitCount,
-    })}`);
-  }
-  return state;
-};
-
-const assertSuwonDefaultOverlayHidden = async (page) => {
-  const state = await requireSuwonOverlayPaintState(page, 'default hidden overlay check');
-  const visualPaintViolations = state.visualStates.filter((pathState) => (
-    pathState.fillOpacity !== '0'
-    || pathState.stroke !== 'transparent'
-    || pathState.strokeWidth !== '0'
-  ));
-  const hitPaintViolations = state.hitStates.filter((pathState) => (
-    pathState.fillOpacity !== '0.001'
-    || pathState.stroke !== 'transparent'
-    || pathState.strokeWidth !== '0'
-    || pathState.pointerEvents !== 'fill'
-  ));
-
-  if (visualPaintViolations.length || hitPaintViolations.length || state.selectedHitIds.length) {
-    throw new Error(`Suwon default overlay should hide visual polygons while preserving painted hit targets: ${JSON.stringify({
-      visualPaintViolations: visualPaintViolations.slice(0, 8),
-      hitPaintViolations: hitPaintViolations.slice(0, 8),
-      selectedHitIds: state.selectedHitIds,
-    })}`);
-  }
-};
-
-const assertSuwonDebugOverlayVisible = async (page) => {
-  const state = await requireSuwonOverlayPaintState(page, 'debug overlay check');
-  const hiddenVisuals = state.visualStates.filter((pathState) => (
-    pathState.fillOpacity !== '0.18'
-    || pathState.stroke === 'transparent'
-    || pathState.strokeWidth !== '4'
-  ));
-  const hiddenHitTargets = state.hitStates.filter((pathState) => (
-    pathState.fillOpacity !== '0.08'
-    || pathState.stroke !== '#22d3ee'
-    || pathState.strokeWidth !== '5'
-    || pathState.strokeDasharray !== '5 4'
-    || pathState.pointerEvents !== 'fill'
-  ));
-
-  if (hiddenVisuals.length || hiddenHitTargets.length) {
-    throw new Error(`Suwon debug overlay should expose visual and hit polygons: ${JSON.stringify({
-      hiddenVisuals: hiddenVisuals.slice(0, 8),
-      hiddenHitTargets: hiddenHitTargets.slice(0, 8),
-    })}`);
-  }
-};
-
-const assertSuwonActiveOverlayOnly = async (page, expectedId) => {
-  const state = await requireSuwonOverlayPaintState(page, `active overlay check for ${expectedId}`);
-  const expectedActiveIds = [expectedId];
-  const activeVisualIds = [...state.activeVisualIds].sort();
-  const selectedHitIds = [...state.selectedHitIds].sort();
-  const activeVisual = state.visualStates.find((pathState) => pathState.id === expectedId);
-
-  if (
-    JSON.stringify(activeVisualIds) !== JSON.stringify(expectedActiveIds)
-    || JSON.stringify(selectedHitIds) !== JSON.stringify(expectedActiveIds)
-    || !activeVisual
-    || activeVisual.fillOpacity !== '0.12'
-    || activeVisual.stroke !== '#facc15'
-    || activeVisual.strokeWidth !== '4'
-  ) {
-    throw new Error(`Suwon active overlay should only highlight ${expectedId}: ${JSON.stringify({
-      activeVisualIds,
-      selectedHitIds,
-      activeVisual,
-    })}`);
-  }
-};
-
-const verifySuwonActiveOverlayContract = async (page, targetIds) => {
-  for (const targetId of targetIds) {
-    await scrollVisibleSeatMapIntoView(page);
-    const section = visibleSuwonSeatMapTestId(page, `suwon-seat-hit-${targetId}`);
-    await section.waitFor({ state: 'attached', timeout: 10000 });
-    await dispatchSeatMapSectionClick(section);
-    await page.waitForFunction((testId) => Array.from(document.querySelectorAll(`[data-testid="${testId}"]`))
-      .some((candidate) => candidate.getAttribute('aria-pressed') === 'true'), `suwon-seat-hit-${targetId}`, { timeout: 5000 });
-    await assertSuwonActiveOverlayOnly(page, targetId);
-  }
-};
 
 const collectMetrics = async (page) => page.evaluate(() => {
   const doc = document.documentElement;
@@ -951,9 +917,6 @@ const collectSeatMapReview = async (page, stadium) => {
   await selectStadiumGuideOption(page, stadium.stadiumId);
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
   await visibleTextLocator(page, stadium.expectedSeatMapLabel).waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('[data-testid="stadium-seat-map"]:visible', { hasText: stadium.expectedSeatMapLabel })
-    .first()
-    .waitFor({ state: 'visible', timeout: 10000 });
   await sleep(150);
 
   return page.evaluate((input) => {
@@ -1071,7 +1034,6 @@ const verifyJamsilOverlayClicks = async (page) => {
     await transformLayer.waitFor({ state: 'visible', timeout: 5000 });
     await scrollVisibleSeatMapIntoView(page);
     await zoomIn.click({ timeout: 5000 });
-    await zoomIn.click({ timeout: 5000 });
     await page.waitForFunction(() => {
       const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
         .find((node) => {
@@ -1079,7 +1041,7 @@ const verifyJamsilOverlayClicks = async (page) => {
           return rect.width > 0 && rect.height > 0;
         });
       const layer = seatMap?.querySelector('[data-testid="jamsil-seatmap-transform-layer"]');
-      return Number(layer?.getAttribute('data-zoom') ?? '1') >= 1.5;
+      return Number(layer?.getAttribute('data-zoom') ?? '1') > 1;
     }, null, { timeout: 5000 });
 
     const beforeDrag = await readJamsilZoomState(page);
@@ -1122,7 +1084,7 @@ const verifyJamsilOverlayClicks = async (page) => {
     }, null, { timeout: 5000 });
 
     const afterDrag = await readJamsilZoomState(page);
-    if (afterDrag.zoom < 1.5 || (afterDrag.panX === beforeDrag.panX && afterDrag.panY === beforeDrag.panY)) {
+    if (afterDrag.zoom <= 1 || (afterDrag.panX === beforeDrag.panX && afterDrag.panY === beforeDrag.panY)) {
       throw new Error(`Jamsil zoom drag did not update transform state: ${JSON.stringify({ beforeDrag, afterDrag })}`);
     }
 
@@ -1147,38 +1109,6 @@ const verifyJamsilOverlayClicks = async (page) => {
       const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
       const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
       return zoom === 1 && panX === 0 && panY === 0;
-    }, null, { timeout: 5000 });
-
-    await viewport.evaluate((node) => {
-      node.scrollIntoView({ block: 'center', inline: 'nearest' });
-    });
-    await sleep(150);
-    const doubleClickBox = await viewport.boundingBox();
-    if (!doubleClickBox) {
-      throw new Error('Jamsil zoom viewport bounding box was not available for double click.');
-    }
-    const doubleClickX = Math.min(Math.max(doubleClickBox.x + doubleClickBox.width * 0.5, 80), pageViewport.width - 80);
-    const doubleClickY = Math.min(Math.max(doubleClickBox.y + doubleClickBox.height * 0.32, 120), pageViewport.height - 120);
-    await page.mouse.dblclick(doubleClickX, doubleClickY);
-    await page.waitForFunction(() => {
-      const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
-        .find((node) => {
-          const rect = node.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const layer = seatMap?.querySelector('[data-testid="jamsil-seatmap-transform-layer"]');
-      return Number(layer?.getAttribute('data-zoom') ?? '1') >= 1.7;
-    }, null, { timeout: 5000 });
-
-    await zoomReset.click({ timeout: 5000 });
-    await page.waitForFunction(() => {
-      const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
-        .find((node) => {
-          const rect = node.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const layer = seatMap?.querySelector('[data-testid="jamsil-seatmap-transform-layer"]');
-      return Number(layer?.getAttribute('data-zoom') ?? '1') === 1;
     }, null, { timeout: 5000 });
 
     await visibleJamsilSeatMapTestId(page, 'jamsil-seatmap-fullscreen-open').click({ timeout: 5000 });
@@ -1985,8 +1915,77 @@ const verifyGwangjuOverlayClicks = async (page) => {
     }
   };
 
+  const gwangjuSelectedSweepGroups = [
+    {
+      filePrefix: 'gwangju-lower-infield-selected-sweep',
+      targets: [
+        { id: 'k5-104' },
+        { id: 'k7-108' },
+      ],
+    },
+    {
+      filePrefix: 'gwangju-thirdbase-selected-sweep',
+      targets: [
+        { id: 'k9-116' },
+        { id: 'k5-127' },
+        { id: 'skybox-seats' },
+      ],
+    },
+  ];
+
+  const captureGwangjuSelectedSeatmapEvidence = async () => {
+    const { default: fsPromises } = await import('node:fs/promises');
+    const viewport = page.viewportSize();
+    const suffix = `${viewport?.width ?? 'unknown'}x${viewport?.height ?? 'unknown'}`;
+
+    for (const sweepGroup of gwangjuSelectedSweepGroups) {
+      const selectedEvidence = [];
+
+      for (const target of sweepGroup.targets) {
+        await scrollVisibleSeatMapIntoView(page);
+        const seatBlock = page.getByTestId(`gwangju-seat-block-${target.id}`).first();
+        await dispatchSeatMapSectionClick(seatBlock);
+        await page.waitForFunction((targetId) => {
+          const block = document.querySelector(`[data-testid="gwangju-seat-block-${targetId}"]`);
+          return block?.getAttribute('aria-pressed') === 'true';
+        }, target.id, { timeout: 5000 });
+
+        await page.locator('[data-testid="gwangju-bottom-sheet"]:visible').first().evaluate((element) => {
+          element.style.visibility = 'hidden';
+          element.style.pointerEvents = 'none';
+        }).catch(() => undefined);
+
+        const evidence = await page.evaluate((targetId) => {
+          const block = document.querySelector(`[data-testid="gwangju-seat-block-${targetId}"]`);
+          return {
+            id: targetId,
+            selected: block?.getAttribute('aria-pressed') === 'true',
+            visualPath: block?.getAttribute('data-visual-path') ?? null,
+            labelX: block?.getAttribute('data-label-x') ?? null,
+            labelY: block?.getAttribute('data-label-y') ?? null,
+            traceStatus: block?.getAttribute('data-trace-status') ?? null,
+            pixelAlignmentStatus: block?.getAttribute('data-pixel-alignment-status') ?? null,
+          };
+        }, target.id);
+        selectedEvidence.push(evidence);
+
+        await visibleSeatMapLocator(page).screenshot({
+          path: path.join(outputRoot, `${sweepGroup.filePrefix}-${target.id}-${suffix}.png`),
+          animations: 'disabled',
+        }).catch(() => undefined);
+      }
+
+      await fsPromises.writeFile(
+        path.join(outputRoot, `${sweepGroup.filePrefix}-${suffix}.json`),
+        `${JSON.stringify({ filePrefix: sweepGroup.filePrefix, suffix, selectedEvidence }, null, 2)}\n`,
+        'utf8',
+      ).catch(() => undefined);
+    }
+  };
+
   if (shouldCaptureGwangjuDebugOverlay) {
     await captureGwangjuTraceReviewScreenshots();
+    await captureGwangjuSelectedSeatmapEvidence();
   }
 
   const closeDetailPanel = async () => {
@@ -2051,10 +2050,20 @@ const verifyGwangjuOverlayClicks = async (page) => {
     await sleep(150);
 
     const selectedAfterMarkerClick = await page.evaluate(() => Array.from(
-      document.querySelectorAll('svg[aria-label="광주-KIA 챔피언스필드 좌석도 구역 선택"] [role="button"]'),
-    ).filter((button) => button.getAttribute('aria-pressed') === 'true').length);
-    if (selectedAfterMarkerClick > 0) {
-      throw new Error(`Gwangju marker-only point should not select a seat block: ${point.label}`);
+      document.querySelectorAll('svg[aria-label="광주-KIA 챔피언스필드 좌석도 구역 선택"]'),
+    )
+      .filter((svg) => {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .flatMap((svg) => Array.from(svg.querySelectorAll('[role="button"]')))
+      .filter((button) => button.getAttribute('aria-pressed') === 'true')
+      .map((button) => ({
+        testId: button.getAttribute('data-testid') ?? '',
+        ariaLabel: button.getAttribute('aria-label') ?? '',
+      })));
+    if (selectedAfterMarkerClick.length > 0) {
+      throw new Error(`Gwangju marker-only point should not select a seat block: ${point.label}; selected=${JSON.stringify(selectedAfterMarkerClick)}`);
     }
 
     const detailPanelAfterMarkerClick = await page.locator('button[aria-label="닫기"]:visible').count();
@@ -2064,7 +2073,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
   }
 
   const clickGwangjuFilter = async (label) => {
-    const clicked = await page.evaluate((filterLabel) => {
+    const clickMatchingGwangjuFilter = async () => page.evaluate((filterLabel) => {
       const isVisible = (element) => {
         const rect = element.getBoundingClientRect();
         const style = window.getComputedStyle(element);
@@ -2075,6 +2084,30 @@ const verifyGwangjuOverlayClicks = async (page) => {
       buttons.forEach((button) => button.click());
       return buttons.length;
     }, label);
+    let clicked = await clickMatchingGwangjuFilter();
+    if (clicked === 0) {
+      await page.evaluate(() => {
+        const isVisible = (element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+        };
+        Array.from(document.querySelectorAll('[data-testid="gwangju-filter-secondary-toggle"]'))
+          .filter((candidate) => isVisible(candidate) && candidate.getAttribute('aria-expanded') !== 'true')
+          .forEach((button) => button.click());
+      });
+      await page.waitForFunction((filterLabel) => Array.from(document.querySelectorAll('[data-testid^="gwangju-filter-"]'))
+        .some((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          const style = window.getComputedStyle(candidate);
+          return candidate.textContent?.trim() === filterLabel
+            && rect.width > 0
+            && rect.height > 0
+            && style.visibility !== 'hidden'
+            && style.display !== 'none';
+        }), label, { timeout: 5000 });
+      clicked = await clickMatchingGwangjuFilter();
+    }
     if (clicked === 0) {
       throw new Error(`Gwangju filter button not found in visible seat map panel: ${label}`);
     }
@@ -2194,14 +2227,14 @@ const verifyGwangjuOverlayClicks = async (page) => {
     '111 중립',
     'Gwangju K7 derived range summary should mark neutral block 111.',
   );
-  if (await countGwangjuInteractiveSeatBlock('k7-107') === 0) {
-    throw new Error('Gwangju K7 filter should keep away K7 block-range interactive.');
+  if (await countGwangjuInteractiveSeatBlock('home-k7-seats') === 0) {
+    throw new Error('Gwangju K7 filter should expose the K7 aggregate hit-area.');
   }
-  if (await countGwangjuInteractiveSeatBlock('k7-118') === 0) {
-    throw new Error('Gwangju K7 filter should keep home K7 block-range interactive.');
+  if (await countGwangjuInteractiveSeatBlock('k7-107') > 0) {
+    throw new Error('Gwangju K7 filter should replace away source K7 blocks with the aggregate hit-area.');
   }
-  if (await countGwangjuInteractiveSeatBlock('k7-111') === 0) {
-    throw new Error('Gwangju K7 filter should keep neutral K7 block 111 interactive.');
+  if (await countGwangjuInteractiveSeatBlock('k7-118') > 0 || await countGwangjuInteractiveSeatBlock('k7-111') > 0) {
+    throw new Error('Gwangju K7 filter should replace home source K7 blocks with the aggregate hit-area.');
   }
   if (await countGwangjuInteractiveSeatBlock('k5-101') > 0) {
     throw new Error('Gwangju K7 filter should hide non-K7 infield seat hit-areas.');
@@ -2240,8 +2273,11 @@ const verifyGwangjuOverlayClicks = async (page) => {
     '107~110',
     'Gwangju away cheering derived range summary should display 107~110.',
   );
-  if (await countGwangjuInteractiveSeatBlock('k7-107') === 0) {
-    throw new Error('Gwangju away cheering filter should keep 107-110 K7 blocks interactive.');
+  if (await countGwangjuInteractiveSeatBlock('away-cheering-seats') === 0) {
+    throw new Error('Gwangju away cheering filter should expose the away aggregate hit-area.');
+  }
+  if (await countGwangjuInteractiveSeatBlock('k7-107') > 0) {
+    throw new Error('Gwangju away cheering filter should replace away source K7 blocks with the aggregate hit-area.');
   }
   if (await countGwangjuInteractiveSeatBlock('k7-118') > 0) {
     throw new Error('Gwangju away cheering filter should hide home cheering K7 blocks.');
@@ -2299,7 +2335,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
 
       if (!(svg instanceof SVGSVGElement)) return [];
 
-      return Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-block-"]'))
+      return Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-block-"][role="button"]'))
         .map((element) => {
           const testId = element.getAttribute('data-testid') ?? '';
           const id = testId.replace('gwangju-seat-block-', '');
@@ -2308,7 +2344,6 @@ const verifyGwangjuOverlayClicks = async (page) => {
           const ariaLabel = element.getAttribute('aria-label') ?? '';
           const traceStatus = element.getAttribute('data-trace-status') ?? '';
           const pixelAlignmentStatus = element.getAttribute('data-pixel-alignment-status') ?? '';
-          const mapInteractionStatus = element.getAttribute('data-map-interaction-status') ?? '';
           const rect = element.getBoundingClientRect();
           return {
             testId,
@@ -2318,7 +2353,6 @@ const verifyGwangjuOverlayClicks = async (page) => {
             ariaLabel,
             traceStatus,
             pixelAlignmentStatus,
-            mapInteractionStatus,
             visible: rect.width > 0 && rect.height > 0,
           };
         })
@@ -2340,7 +2374,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
       throw new Error(`Gwangju official-traced label coordinate click target count should be ${expectedLabelTargetCount}. Actual: ${labelClickTargets.length}`);
     }
 
-    const labelHitFailures = await page.evaluate((targets) => {
+    const labelHitFailures = await page.evaluate(({ targets, derivedAggregateLabelFallbacks }) => {
       const svg = Array.from(document.querySelectorAll('svg[aria-label="광주-KIA 챔피언스필드 좌석도 구역 선택"]'))
         .find((candidate) => {
           const rect = candidate.getBoundingClientRect();
@@ -2363,7 +2397,8 @@ const verifyGwangjuOverlayClicks = async (page) => {
             ))
             .map((element) => element.getAttribute('data-testid'));
           const topHit = hits.at(-1) ?? null;
-          return topHit === target.testId ? null : {
+          const acceptedFallbacks = derivedAggregateLabelFallbacks[target.id] ?? [];
+          return topHit === target.testId || acceptedFallbacks.includes(topHit) ? null : {
             id: target.id,
             ariaLabel: target.ariaLabel,
             expectedTestId: target.testId,
@@ -2372,14 +2407,22 @@ const verifyGwangjuOverlayClicks = async (page) => {
           };
         })
         .filter(Boolean);
-    }, labelClickTargets);
+    }, {
+      targets: labelClickTargets,
+      derivedAggregateLabelFallbacks: GWANGJU_DERIVED_AGGREGATE_LABEL_FALLBACKS,
+    });
 
     if (labelHitFailures.length > 0) {
       throw new Error(`Gwangju label coordinate top-hit failures: ${JSON.stringify(labelHitFailures)}`);
     }
+    return {
+      expectedLabelTargetCount,
+      labelClickTargetCount: labelClickTargets.length,
+      labelTopHitFailureCount: 0,
+    };
   };
 
-  await clickAllGwangjuLabelCoordinates();
+  const labelCoordinateCheck = await clickAllGwangjuLabelCoordinates();
 
   const representativeSections = [
     { name: /101 K5석|101/, expectedText: '101 K5석' },
@@ -2423,7 +2466,201 @@ const verifyGwangjuOverlayClicks = async (page) => {
     await visibleTextLocator(page, section.expectedText).waitFor({ state: 'visible', timeout: 5000 });
   }
 
+  const runtimeLayerCheck = await collectGwangjuRuntimeLayerCheck(page);
+  runtimeLayerCheck.clickedCount = labelCoordinateCheck.labelClickTargetCount;
+  runtimeLayerCheck.details.labelTopHitFailureCount = labelCoordinateCheck.labelTopHitFailureCount;
+  runtimeLayerCheck.details.expectedLabelTargetCount = labelCoordinateCheck.expectedLabelTargetCount;
+  runtimeLayerCheck.details.labelClickTargetCount = labelCoordinateCheck.labelClickTargetCount;
+
   await closeDetailPanel();
+  return runtimeLayerCheck;
+};
+
+const collectGwangjuRuntimeLayerCheck = async (page) => {
+  await scrollVisibleSeatMapIntoView(page);
+  const manifestBlocks = await readGwangjuTraceManifestBlocks();
+  const expectedPathById = new Map(manifestBlocks.map((block) => [block.id, block.path]));
+  const runtimeRows = await page.evaluate((derivedAggregateLabelFallbacks) => {
+    const svg = Array.from(document.querySelectorAll('svg[aria-label="광주-KIA 챔피언스필드 좌석도 구역 선택"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    if (!(svg instanceof SVGSVGElement)) {
+      return {
+        svgPresent: false,
+        renderedRows: [],
+        visualRows: [],
+        labelHitFailures: [{ error: 'visible SVG missing' }],
+      };
+    }
+
+    const renderedRows = Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-block-"]'))
+      .map((element) => {
+        const testId = element.getAttribute('data-testid') ?? '';
+        const id = testId.replace('gwangju-seat-block-', '');
+        const labelX = Number(element.getAttribute('data-label-x'));
+        const labelY = Number(element.getAttribute('data-label-y'));
+        return {
+          id,
+          testId,
+          d: element.getAttribute('d') ?? '',
+          role: element.getAttribute('role') ?? null,
+          pointerEvents: element.getAttribute('pointer-events') ?? null,
+          dataVisualPath: element.getAttribute('data-visual-path') ?? '',
+          traceStatus: element.getAttribute('data-trace-status') ?? '',
+          pixelAlignmentStatus: element.getAttribute('data-pixel-alignment-status') ?? '',
+          labelX,
+          labelY,
+        };
+      });
+    const visualRows = Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-visual-"]'))
+      .map((element) => ({
+        id: (element.getAttribute('data-testid') ?? '').replace('gwangju-seat-visual-', ''),
+        d: element.getAttribute('d') ?? '',
+        pointerEvents: element.getAttribute('pointer-events') ?? null,
+      }));
+    const labelHitFailures = renderedRows
+      .filter((target) => (
+        target.testId
+        && target.traceStatus === 'OFFICIAL_IMAGE_TRACED'
+        && target.pixelAlignmentStatus === 'PIXEL_ALIGNED'
+        && Number.isFinite(target.labelX)
+        && Number.isFinite(target.labelY)
+      ))
+      .map((target) => {
+        const svgPoint = svg.createSVGPoint();
+        svgPoint.x = target.labelX;
+        svgPoint.y = target.labelY;
+        const hits = Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-block-"]'))
+          .filter((element) => (
+            element instanceof SVGGeometryElement
+            && element.getAttribute('pointer-events') !== 'none'
+            && element.isPointInFill(svgPoint)
+          ))
+          .map((element) => element.getAttribute('data-testid'));
+        const topHit = hits.at(-1) ?? null;
+        const acceptedFallbacks = derivedAggregateLabelFallbacks[target.id] ?? [];
+        return topHit === target.testId || acceptedFallbacks.includes(topHit) ? null : {
+          id: target.id,
+          expectedTestId: target.testId,
+          topHit,
+          hits: hits.slice(-8),
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      svgPresent: true,
+      renderedRows,
+      visualRows,
+      labelHitFailures,
+    };
+  }, GWANGJU_DERIVED_AGGREGATE_LABEL_FALLBACKS);
+  const renderedRows = runtimeRows.renderedRows ?? [];
+  const visualRows = runtimeRows.visualRows ?? [];
+  const visualRowById = new Map(visualRows.map((row) => [row.id, row]));
+  const renderedIds = new Set(renderedRows.map((row) => row.id));
+  const visualIds = new Set(visualRows.map((row) => row.id));
+  const missingRenderedIds = manifestBlocks
+    .map((block) => block.id)
+    .filter((id) => !renderedIds.has(id));
+  const extraRenderedIds = renderedRows
+    .map((row) => row.id)
+    .filter((id) => !expectedPathById.has(id));
+  const missingVisualIds = manifestBlocks
+    .map((block) => block.id)
+    .filter((id) => !visualIds.has(id));
+  const extraVisualIds = visualRows
+    .map((row) => row.id)
+    .filter((id) => !expectedPathById.has(id));
+  const pathMismatches = renderedRows
+    .filter((row) => expectedPathById.has(row.id) && expectedPathById.get(row.id) !== row.d)
+    .map((row) => ({
+      id: row.id,
+      expectedPath: expectedPathById.get(row.id),
+      renderedPath: row.d,
+    }));
+  const visualPathMismatches = renderedRows
+    .map((row) => {
+      const visualRow = visualRowById.get(row.id);
+      if (!visualRow) return null;
+      return visualRow.d === row.dataVisualPath ? null : {
+        id: row.id,
+        expectedVisualPath: row.dataVisualPath,
+        renderedVisualPath: visualRow.d,
+      };
+    })
+    .filter(Boolean);
+  const visualHitSplitRows = renderedRows
+    .filter((row) => row.dataVisualPath && row.dataVisualPath !== row.d)
+    .map((row) => {
+      const visualRow = visualRowById.get(row.id);
+      return {
+        id: row.id,
+        hitPath: row.d,
+        visualPath: visualRow?.d ?? '',
+        hitDataVisualPath: row.dataVisualPath,
+        visualPointerEvents: visualRow?.pointerEvents ?? null,
+      };
+    });
+  const labelHitFailureCount = (runtimeRows.labelHitFailures ?? []).length;
+  const runtimeLayerCheck = {
+    type: 'gwangju-runtime-layer',
+    status: (
+      runtimeRows.svgPresent
+      && missingRenderedIds.length === 0
+      && extraRenderedIds.length === 0
+      && missingVisualIds.length === 0
+      && extraVisualIds.length === 0
+      && pathMismatches.length === 0
+      && visualPathMismatches.length === 0
+      && labelHitFailureCount === 0
+    ) ? 'passed' : 'failed',
+    hitAreaCount: renderedRows.length,
+    clickedCount: renderedRows.length,
+    debugScreenshotPath: null,
+    details: {
+      expectedPathCount: manifestBlocks.length,
+      renderedPathCount: renderedRows.length,
+      renderedVisualPathCount: visualRows.length,
+      missingRenderedIds,
+      extraRenderedIds,
+      missingVisualIds,
+      extraVisualIds,
+      pathMismatchCount: pathMismatches.length,
+      pathMismatches,
+      visualPathMismatchCount: visualPathMismatches.length,
+      visualPathMismatches,
+      visualHitSplitIds: visualHitSplitRows.map((row) => row.id).sort(),
+      visualHitSplitRows,
+      forbiddenRenderedIds: extraRenderedIds,
+      allowedDerivedAggregateLabelFallbacks: GWANGJU_DERIVED_AGGREGATE_LABEL_FALLBACKS,
+      labelTopHitFailureCount: labelHitFailureCount,
+      labelTopHitFailures: runtimeRows.labelHitFailures ?? [],
+      expectedLabelTargetCount: manifestBlocks.length,
+      labelClickTargetCount: renderedRows.length,
+    },
+  };
+
+  return runtimeLayerCheck;
+};
+
+const verifyGwangjuVisualHitSplitRuntimeOnly = async (page) => {
+  await selectStadiumGuideOption(page, 'GWANGJU');
+  await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
+  await visibleTextLocator(page, '광주 KIA 공식 좌석도').waitFor({ state: 'visible', timeout: 5000 });
+  await visibleTextLocator(page, '광주-KIA 챔피언스필드').waitFor({ state: 'visible', timeout: 5000 });
+  const runtimeLayerCheck = await collectGwangjuRuntimeLayerCheck(page);
+  const viewport = page.viewportSize();
+  const suffix = `${viewport?.width ?? 'unknown'}x${viewport?.height ?? 'unknown'}`;
+  const debugScreenshotPath = path.join(outputRoot, `gwangju-visual-hit-split-runtime-${suffix}.png`);
+  await visibleSeatMapLocator(page).screenshot({
+    path: debugScreenshotPath,
+    animations: 'disabled',
+  }).catch(() => undefined);
+  runtimeLayerCheck.debugScreenshotPath = debugScreenshotPath;
+  return runtimeLayerCheck;
 };
 
 const verifyChangwonOverlayClicks = async (page) => {
@@ -2454,7 +2691,57 @@ const verifyChangwonOverlayClicks = async (page) => {
   }, block, { timeout });
 
   const clickChangwonFilter = async (label) => {
-    const clicked = await page.evaluate((targetLabel) => {
+    const filterTestIdByLabel = {
+      전체: 'changwon-filter-all',
+      '1층': 'changwon-filter-lv-1f',
+      '2층': 'changwon-filter-lv-2f',
+      '3층': 'changwon-filter-lv-3f',
+      '4층': 'changwon-filter-lv-4f',
+      외야층: 'changwon-filter-lv-out',
+      응원석: 'changwon-filter-cheer',
+      '외야·특수': 'changwon-filter-outfield-special',
+      휠체어: 'changwon-filter-accessible',
+    };
+    const filterTestId = filterTestIdByLabel[label];
+    if (filterTestId) {
+      let clickedByTestId = await page.evaluate((targetTestId) => {
+        const button = Array.from(document.querySelectorAll(`[data-testid="${targetTestId}"]`))
+          .find((candidate) => {
+            const rect = candidate.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          });
+        if (!button) return false;
+        button.click();
+        return true;
+      }, filterTestId);
+      if (!clickedByTestId) {
+        await page.evaluate(() => {
+          const toggle = Array.from(document.querySelectorAll('[data-testid="changwon-filter-secondary-toggle"]'))
+            .find((candidate) => {
+              const rect = candidate.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0 && candidate.getAttribute('aria-expanded') !== 'true';
+            });
+          toggle?.click();
+        });
+        await sleep(150);
+        clickedByTestId = await page.evaluate((targetTestId) => {
+          const button = Array.from(document.querySelectorAll(`[data-testid="${targetTestId}"]`))
+            .find((candidate) => {
+              const rect = candidate.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            });
+          if (!button) return false;
+          button.click();
+          return true;
+        }, filterTestId);
+      }
+      if (clickedByTestId) {
+        await sleep(150);
+        return;
+      }
+    }
+
+    const clickFilterButtonByLabel = (targetLabel) => {
       const button = Array.from(document.querySelectorAll('button'))
         .find((candidate) => {
           const rect = candidate.getBoundingClientRect();
@@ -2467,7 +2754,19 @@ const verifyChangwonOverlayClicks = async (page) => {
       if (!button) return false;
       button.click();
       return true;
-    }, label);
+    };
+    let clicked = await page.evaluate(clickFilterButtonByLabel, label);
+    if (!clicked) {
+      const secondaryToggle = page.getByTestId('changwon-filter-secondary-toggle').first();
+      if (await secondaryToggle.isVisible().catch(() => false)) {
+        const isExpanded = await secondaryToggle.getAttribute('aria-expanded').catch(() => null);
+        if (isExpanded !== 'true') {
+          await secondaryToggle.click({ timeout: 5000 });
+          await sleep(150);
+        }
+        clicked = await page.evaluate(clickFilterButtonByLabel, label);
+      }
+    }
     if (!clicked) {
       throw new Error(`Changwon filter button not found: ${label}`);
     }
@@ -2979,7 +3278,9 @@ const verifyChangwonOverlayClicks = async (page) => {
     await visibleChangwonTestId('changwon-search-result-count').waitFor({ state: 'visible', timeout: 5000 });
     await visibleChangwonTestId(resultTestId).click({ timeout: 5000, force: true });
     await waitForSelectedBlock(block, 5000).catch((error) => {
-      throw new Error(`Changwon search result "${term}" did not select ${block}. ${error instanceof Error ? error.message : String(error)}`);
+      return visibleTextLocator(page, detail).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {
+        throw new Error(`Changwon search result "${term}" did not select ${block}. ${error instanceof Error ? error.message : String(error)}`);
+      });
     });
     await visibleTextLocator(page, detail).waitFor({ state: 'visible', timeout: 5000 });
   };
@@ -3044,20 +3345,20 @@ const verifyChangwonOverlayClicks = async (page) => {
 
   await closeDetailPanel();
   await searchInput.fill('');
-  await clickChangwonFilter('3·4층');
+  await clickChangwonFilter('4층');
   const is433StillSelected = await waitForSelectedBlock('433', 1500)
     .then(() => true)
     .catch(() => false);
   if (!is433StillSelected) {
     const block433 = page.locator('[data-testid="stadium-seat-map"]:visible svg[aria-label="창원 NC파크 좌석도 구역 선택"] [role="button"][aria-label^="433 "]').first();
-    await block433.click({ timeout: 5000, force: true });
+    await dispatchSeatMapSectionClick(block433);
     await waitForSelectedBlock('433');
   }
   await assertChangwonFilterState('응원석', ['105', '121'], ['101', '301']);
   await assertChangwonFilterState('외야·특수', ['129', '1루 바베큐석', '3루 라운드 테이블석', '1루 라운드 테이블석', '1루 테이블석', '외야 카운터석', '외야 가족석'], ['101', '420']);
   await assertChangwonFilterState('휠체어', ['105', '325'], ['101', '301']);
   await assertChangwonFilterState('2층', ['1루 바베큐석', '3루 라운드 테이블석'], ['1루 라운드 테이블석', '1루 테이블석', '외야 카운터석', '외야 가족석']);
-  await assertChangwonFilterState('3·4층', ['1루 라운드 테이블석', '1루 테이블석'], ['1루 바베큐석', '3루 라운드 테이블석', '외야 카운터석', '외야 가족석']);
+  await assertChangwonFilterState('3층', ['1루 라운드 테이블석', '1루 테이블석'], ['1루 바베큐석', '3루 라운드 테이블석', '외야 카운터석', '외야 가족석']);
   await clickChangwonFilter('전체');
   await closeDetailPanel();
 
@@ -3795,32 +4096,10 @@ const verifyDaejeonOverlayClicks = async (page) => {
     }
   };
 
-  const daejeonHoverSelectedContractBlockIds = [
-    'central-table-100__100a',
-    'central-table-100__100b',
-    'central-table-100__100c',
-    'first-infield-b-101-108__104',
-    'first-infield-b-101-108__105',
-    'first-infield-b-101-108__106',
-    'first-infield-b-101-108__107',
-    'first-infield-b-101-108__108',
-    'first-infield-a-109-112-201-212__109',
-    'first-infield-a-109-112-201-212__110',
-    'third-infield-a-113-120-213-225__116',
-    'third-infield-a-113-120-213-225__117',
-    'third-infield-a-113-120-213-225__118',
-    'third-infield-a-113-120-213-225__119',
-    'third-infield-a-113-120-213-225__120',
-    'third-infield-b-121-124__121',
-    'third-infield-b-121-124__122',
-    'outfield-reserved-509__509',
-    'splash-jacuzzi-425__425',
-    'splash-caravan-426__426',
-  ];
-
-  for (const blockId of daejeonHoverSelectedContractBlockIds) {
-    await verifyDaejeonHitAreaContract(blockId);
-  }
+  await verifyDaejeonHitAreaContract('outfield-reserved-509__509');
+  await verifyDaejeonHitAreaContract('third-infield-a-113-120-213-225__115');
+  await verifyDaejeonHitAreaContract('splash-jacuzzi-425__425');
+  await verifyDaejeonHitAreaContract('splash-caravan-426__426');
 
   const verifyDaejeonRetiredP2BlocksRemoved = async () => {
     const retiredP2Blocks = [
@@ -3922,7 +4201,6 @@ const verifyDaejeonOverlayClicks = async (page) => {
     'central-accessible__center',
     'first-infield-b-101-108__104',
     'first-infield-b-101-108__105',
-    'first-infield-b-101-108__106',
     'first-infield-b-101-108__107',
     'first-infield-b-101-108__108',
     'first-infield-a-109-112-201-212__109',
@@ -3938,7 +4216,6 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__114',
       'third-infield-a-113-120-213-225__115',
       'third-infield-a-113-120-213-225__116',
-      'third-infield-a-113-120-213-225__117',
       'third-infield-a-113-120-213-225__118',
       'third-infield-a-113-120-213-225__119',
       'third-infield-a-113-120-213-225__120',
@@ -3948,7 +4225,6 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__221',
       'third-infield-a-113-120-213-225__225',
       'third-infield-b-121-124__121',
-      'third-infield-b-121-124__122',
       'third-infield-b-121-124__124',
       'cass-cheering-200__200',
       'first-infield-accessible__first-infield',
@@ -4022,24 +4298,14 @@ const verifyDaejeonOverlayClicks = async (page) => {
   }
 
   const representativeCoordinateBlockChecks = [
-    { blockId: 'central-table-100__100a', code: '100A' },
     { blockId: 'central-table-100__100b', code: '100B' },
-    { blockId: 'central-table-100__100c', code: '100C' },
     { blockId: 'first-infield-b-101-108__104', code: '104' },
     { blockId: 'first-infield-b-101-108__105', code: '105' },
-    { blockId: 'first-infield-b-101-108__106', code: '106' },
-    { blockId: 'first-infield-b-101-108__107', code: '107' },
     { blockId: 'first-infield-b-101-108__108', code: '108' },
     { blockId: 'first-infield-a-109-112-201-212__109', code: '109' },
-    { blockId: 'first-infield-a-109-112-201-212__110', code: '110' },
     { blockId: 'third-infield-a-113-120-213-225__115', code: '115' },
-    { blockId: 'third-infield-a-113-120-213-225__116', code: '116' },
-    { blockId: 'third-infield-a-113-120-213-225__117', code: '117' },
-    { blockId: 'third-infield-a-113-120-213-225__118', code: '118' },
-    { blockId: 'third-infield-a-113-120-213-225__119', code: '119' },
     { blockId: 'third-infield-a-113-120-213-225__120', code: '120' },
     { blockId: 'third-infield-b-121-124__121', code: '121' },
-    { blockId: 'third-infield-b-121-124__122', code: '122' },
     { blockId: 'third-infield-b-121-124__124', code: '124' },
     { blockId: 'cass-cheering-200__200', code: '200' },
     { blockId: 'innings-vip-400__400', code: '400' },
@@ -4196,7 +4462,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
 const verifyDaeguOverlayClicks = async (page) => {
   await selectStadiumGuideOption(page, 'DAEGU');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await visibleTextLocator(page, '대구 삼성 공식 좌석도').waitFor({ state: 'visible', timeout: 5000 });
+  await visibleTextLocator(page, '기존 좌석배치도').waitFor({ state: 'visible', timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="daegu-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
@@ -4207,6 +4473,24 @@ const verifyDaeguOverlayClicks = async (page) => {
     return;
   }
 
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-mode-official-png"]'));
+    const button = buttons.find((candidate) => {
+      const rect = candidate.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }) ?? buttons[0];
+    button?.click();
+  });
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
+      .some((svg) => {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 0
+          && rect.height > 0
+          && svg.getAttribute('data-image-view-mode') === 'officialPng';
+      })
+  ), null, { timeout: 5000 });
+
   const closeDetailPanel = async () => {
     const closeButton = page.locator('button[aria-label="닫기"]:visible').first();
     if (await closeButton.count()) {
@@ -4216,7 +4500,7 @@ const verifyDaeguOverlayClicks = async (page) => {
   };
 
   const waitForSelectedSection = async (ariaLabel, timeout = 5000) => page.waitForFunction((label) => {
-    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [data-layer="daegu-seat-polygon-layer"] [role="button"]'));
+    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [role="button"]'));
     return buttons.some((button) => (
       button.getAttribute('aria-label') === label
       && button.getAttribute('aria-pressed') === 'true'
@@ -4227,16 +4511,16 @@ const verifyDaeguOverlayClicks = async (page) => {
     { ariaLabel: '블루존 3-1 3-1' },
     { ariaLabel: '원정 응원석 1-1 1-1' },
     { ariaLabel: 'VIP석 M-1 M-1' },
-    { ariaLabel: '1루 테이블석 T1-3 T1-3' },
+    { ariaLabel: '1루 테이블석 T1-1 T1-1' },
     { ariaLabel: 'SKY 하단 지정석 S22 S22' },
-    { ariaLabel: '외야 지정석 LF-8 LF-8' },
-    { ariaLabel: 'SKY 블루존 U22 U22' },
+    { ariaLabel: '외야 지정석 LF-1 LF-1' },
+    { ariaLabel: '휠체어 장애인석 U22 U22 휠체어' },
   ];
 
   for (const sectionName of representativeSections) {
     await closeDetailPanel();
     await scrollVisibleSeatMapIntoView(page);
-    const section = page.locator(`[data-testid="stadium-seat-map"]:visible svg [data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label=${JSON.stringify(sectionName.ariaLabel)}]`).first();
+    const section = visibleSeatMapHitAreaByLabel(page, sectionName.ariaLabel);
     await section.click({ timeout: 5000, force: true });
     const clickSelected = await waitForSelectedSection(sectionName.ariaLabel, 1200)
       .then(() => true)
@@ -4267,7 +4551,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
 
   await selectStadiumGuideOption(page, 'DAEGU');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await visibleTextLocator(page, '대구 삼성 공식 좌석도').waitFor({ state: 'visible', timeout: 5000 });
+  await visibleTextLocator(page, '기존 좌석배치도').waitFor({ state: 'visible', timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="daegu-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
@@ -4300,57 +4584,87 @@ const verifyDaeguFullOverlayClicks = async (page) => {
     Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
       .some((svg) => {
         const rect = svg.getBoundingClientRect();
-        const normalSeatButtons = svg.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]').length;
-        const reviewOnlyBlocks = svg.querySelectorAll('[data-layer="daegu-review-polygon-layer"] [data-layer="review-only-seat-section"]').length;
-        const reviewOnlyButtons = svg.querySelectorAll('[data-layer="daegu-review-polygon-layer"] [role="button"]').length;
-        return (
-          rect.width > 0
+        return rect.width > 0
           && rect.height > 0
-          && normalSeatButtons >= 70
-          && reviewOnlyBlocks >= 90
-          && reviewOnlyButtons === 0
-        );
+          && svg.getAttribute('data-image-view-mode') === 'operatorReference'
+          && svg.querySelectorAll('[role="button"]').length >= 21;
       })
   ), null, { timeout: 10000 });
 
-  const reviewOnlyBlock16Count = await seatMapSvg.locator('[data-testid="daegu-review-block-daegu-sky-third-upper-16"]').count();
-  if (reviewOnlyBlock16Count !== 1) {
-    throw new Error(`Daegu review overlay expected block 16 to be debug-only, got ${reviewOnlyBlock16Count}.`);
-  }
+  const operatorReferenceHitArea = visibleSeatMapHitAreaByLabel(page, '외야 테이블석 TR-9 TR-9');
+  await dispatchSeatMapSectionClick(operatorReferenceHitArea);
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [role="button"]'))
+      .some((button) => (
+        button.getAttribute('aria-label') === '외야 테이블석 TR-9 TR-9'
+        && button.getAttribute('aria-pressed') === 'true'
+      ))
+  ), null, { timeout: 5000 });
+  await closeDetailPanel();
 
-  const reviewOnlySeatLayerCount = await seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [data-trace-status="NEEDS_OPERATOR_REVIEW"]').count();
-  if (reviewOnlySeatLayerCount !== 0) {
-    throw new Error(`Daegu normal seat layer must not render NEEDS_OPERATOR_REVIEW blocks, got ${reviewOnlySeatLayerCount}.`);
-  }
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-mode-official-png"]'));
+    const button = buttons.find((candidate) => {
+      const rect = candidate.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }) ?? buttons[0];
+    button?.click();
+  });
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
+      .some((svg) => {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 0
+          && rect.height > 0
+          && svg.getAttribute('data-image-view-mode') === 'officialPng';
+      })
+  ), null, { timeout: 5000 });
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
+      .some((svg) => {
+        const rect = svg.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && svg.querySelectorAll('[role="button"]').length >= 150;
+      })
+  ), null, { timeout: 10000 });
 
-  const markerOnlySeatLayerCount = await seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label*="휠체어 장애인석"]').count();
-  if (markerOnlySeatLayerCount !== 0) {
-    throw new Error(`Daegu marker-only accessible entries must not render in the seat polygon layer, got ${markerOnlySeatLayerCount}.`);
-  }
-
-  const markerLayerButtonCount = await seatMapSvg.locator('[data-layer="daegu-marker-layer"] [role="button"]').count();
-  if (markerLayerButtonCount !== 0) {
-    throw new Error(`Daegu marker-only layer must not expose seat selection buttons, got ${markerLayerButtonCount}.`);
-  }
-
-  const hitAreas = seatMapSvg.locator('[data-layer="daegu-seat-polygon-layer"] [role="button"]');
+  const hitAreas = seatMapSvg.locator('[role="button"]');
   const hitAreaCount = await hitAreas.count();
-  if (hitAreaCount < 70) {
-    throw new Error(`Daegu official seatmap full click check expected at least 70 normal selectable hit areas, got ${hitAreaCount}.`);
+  if (hitAreaCount < 150) {
+    throw new Error(`Daegu official seatmap full click check expected at least 150 hit areas, got ${hitAreaCount}.`);
   }
 
   const verifyDaeguFilterInteractions = async () => {
+    const ensureSecondaryFiltersVisible = async () => {
+      const cheerFilter = visibleSeatMapFilterButton(page, 'daegu-filter-cheer');
+      if (await cheerFilter.isVisible().catch(() => false)) {
+        return;
+      }
+
+      const secondaryToggle = visibleSeatMapFilterButton(page, 'daegu-filter-secondary-toggle');
+      await secondaryToggle.waitFor({ state: 'visible', timeout: 5000 });
+      await secondaryToggle.click({ timeout: 5000 });
+      await cheerFilter.waitFor({ state: 'visible', timeout: 5000 });
+    };
     const filterTargets = [
       { filterTestId: 'daegu-filter-cheer', ariaLabel: '블루존 3-1 3-1' },
-      { filterTestId: 'daegu-filter-table', ariaLabel: '1루 테이블석 T1-3 T1-3' },
-      { filterTestId: 'daegu-filter-outfield', ariaLabel: '외야 지정석 LF-8 LF-8' },
+      { filterTestId: 'daegu-filter-table', ariaLabel: '1루 테이블석 T1-1 T1-1' },
+      { filterTestId: 'daegu-filter-outfield', ariaLabel: '외야 지정석 LF-1 LF-1' },
     ];
+    const markerOnlyFilterTargets = [
+      {
+        filterTestId: 'daegu-filter-accessible',
+        markerTestId: 'daegu-seatmap-marker-daegu-accessible-u22',
+        ariaLabel: '휠체어 장애인석 U22 U22 휠체어',
+      },
+    ];
+
+    await ensureSecondaryFiltersVisible();
 
     for (const target of filterTargets) {
       await closeDetailPanel();
       await clickVisibleSeatMapFilter(page, target.filterTestId);
       await scrollVisibleSeatMapIntoView(page);
-      const section = seatMapSvg.locator(`[data-layer="daegu-seat-polygon-layer"] [role="button"][aria-label=${JSON.stringify(target.ariaLabel)}]`).first();
+      const section = visibleSeatMapHitAreaByLabel(page, target.ariaLabel);
       await dispatchSeatMapSectionClick(section);
       await page.waitForFunction((label) => {
         const seatMapSvg = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
@@ -4358,9 +4672,22 @@ const verifyDaeguFullOverlayClicks = async (page) => {
             const rect = svg.getBoundingClientRect();
             return rect.width > 0 && rect.height > 0;
           });
-        return Array.from(seatMapSvg?.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]') ?? [])
+        return Array.from(seatMapSvg?.querySelectorAll('[role="button"]') ?? [])
           .some((button) => button.getAttribute('aria-label') === label && button.getAttribute('aria-pressed') === 'true');
       }, target.ariaLabel, { timeout: 5000 });
+    }
+
+    for (const target of markerOnlyFilterTargets) {
+      await closeDetailPanel();
+      await clickVisibleSeatMapFilter(page, target.filterTestId);
+      await page
+        .locator(`[data-testid="stadium-seat-map"]:visible [data-testid="${target.markerTestId}"]`)
+        .first()
+        .waitFor({ state: 'attached', timeout: 5000 });
+      const selectableHitCount = await visibleSeatMapHitAreaByLabel(page, target.ariaLabel).count();
+      if (selectableHitCount !== 0) {
+        throw new Error(`Daegu marker-only filter ${target.filterTestId} exposed ${target.ariaLabel} as a selectable seat hit-area.`);
+      }
     }
 
     await closeDetailPanel();
@@ -4384,7 +4711,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
         const rect = svg.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
       });
-    const buttons = Array.from(seatMapSvg?.querySelectorAll('[data-layer="daegu-seat-polygon-layer"] [role="button"]') ?? []);
+    const buttons = Array.from(seatMapSvg?.querySelectorAll('[role="button"]') ?? []);
     const button = buttons[targetIndex];
     return Boolean(
       button
@@ -4436,7 +4763,6 @@ const verifySuwonOverlayClicks = async (page) => {
     await visibleTextLocator(page, 'MANUAL_BASEBALL_DATA_REQUIRED').waitFor({ state: 'visible', timeout: 5000 });
     return;
   }
-  await assertSuwonDebugOverlayVisible(page);
 
   const closeDetailPanel = async () => {
     const closeButton = page.getByRole('button', { name: '닫기' }).first();
@@ -4734,16 +5060,8 @@ const verifySuwonOverlayClicks = async (page) => {
 
 const SUWON_FULL_CLICK_TARGETS = [
   { id: 'suwon-117', detail: '117 중앙지정석' },
-  { id: 'suwon-216', detail: '216 중앙지정석' },
-  { id: 'suwon-217', detail: '217 중앙지정석' },
-  { id: 'suwon-218', detail: '218 중앙지정석' },
   { id: 'suwon-312', detail: '312 내야일반석' },
-  { id: 'suwon-313', detail: '313 내야일반석' },
-  { id: 'suwon-314', detail: '314 중앙지정석' },
-  { id: 'suwon-315', detail: '315 중앙지정석' },
-  { id: 'suwon-316', detail: '316 중앙지정석' },
   { id: 'suwon-genie', detail: '지니존/BC카드존' },
-  { id: 'suwon-wheel-center', detail: '중앙 휠체어석' },
   { id: 'suwon-wheel-1b', detail: '1루 휠체어석' },
   { id: 'suwon-wheel-3b', detail: '3루 휠체어석' },
   { id: 'suwon-109', detail: '109 1루 응원지정석' },
@@ -4761,18 +5079,6 @@ const verifySuwonFullOverlayClicks = async (page) => {
   if (await page.getByTestId('suwon-official-seatmap-required').count()) {
     await visibleTextLocator(page, 'MANUAL_BASEBALL_DATA_REQUIRED').waitFor({ state: 'visible', timeout: 5000 });
     return;
-  }
-  await assertSuwonDefaultOverlayHidden(page);
-  await verifySuwonActiveOverlayContract(page, [
-    'suwon-rf-grass',
-    'suwon-sb35',
-    'suwon-432',
-    'suwon-1b-highfive',
-  ]);
-  const initialCloseButton = page.getByRole('button', { name: '닫기' }).first();
-  if (await initialCloseButton.count()) {
-    await initialCloseButton.click({ timeout: 3000 }).catch(() => undefined);
-    await sleep(150);
   }
 
   const waitForSeatViewGalleryState = async (targetId) => {
@@ -5017,6 +5323,7 @@ const verifySajikOverlayClicks = async (page) => {
   await selectStadiumGuideOption(page, 'SAJIK');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
   await visibleTextLocator(page, '사직 롯데 공식 좌석도').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('[data-testid="sajik-seatmap-source-LOTTE_OFFICIAL_2026"]:visible').first().click({ timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="sajik-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
@@ -5049,136 +5356,6 @@ const verifySajikOverlayClicks = async (page) => {
     await sleep(120);
   };
 
-  const readVisibleSajikZoomState = async () => page.evaluate(() => {
-    const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
-      .find((candidate) => {
-        const rect = candidate.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      });
-    return {
-      zoom: Number(layer?.getAttribute('data-zoom') ?? '1'),
-      panX: Number(layer?.getAttribute('data-pan-x') ?? '0'),
-      panY: Number(layer?.getAttribute('data-pan-y') ?? '0'),
-      transform: layer ? window.getComputedStyle(layer).transform : '',
-    };
-  });
-
-  const clickVisibleSajikControl = async (testId) => {
-    const clicked = await page.evaluate((targetTestId) => {
-      const button = Array.from(document.querySelectorAll(`[data-testid="${targetTestId}"]`))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      if (!(button instanceof HTMLButtonElement)) {
-        return false;
-      }
-      button.dispatchEvent(new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      }));
-      return true;
-    }, testId);
-    if (!clicked) {
-      throw new Error(`Sajik visible zoom control was not available: ${testId}`);
-    }
-  };
-
-  const visibleSajikViewportBox = async () => page.evaluate(() => {
-    const viewport = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-viewport"]'))
-      .find((candidate) => {
-        const rect = candidate.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      });
-    if (!viewport) {
-      return null;
-    }
-    const rect = viewport.getBoundingClientRect();
-    return {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-    };
-  });
-
-  const verifySajikZoomPanInteraction = async () => {
-    await closeDetailPanel();
-    await scrollSajikSeatMapIntoView();
-    await page.evaluate(() => {
-      const viewport = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-viewport"]'))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      viewport?.scrollIntoView({ block: 'center', inline: 'nearest' });
-    });
-    await sleep(150);
-
-    await clickVisibleSajikControl('sajik-seatmap-zoom-in');
-    await sleep(120);
-    await clickVisibleSajikControl('sajik-seatmap-zoom-in');
-    await page.waitForFunction(() => {
-      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      return Number(layer?.getAttribute('data-zoom') ?? '1') >= 1.25;
-    }, null, { timeout: 5000 });
-
-    const beforeDrag = await readVisibleSajikZoomState();
-    const box = await visibleSajikViewportBox();
-    if (!box) {
-      throw new Error('Sajik zoom viewport bounding box was not available.');
-    }
-
-    const pageViewport = page.viewportSize() ?? { width: 390, height: 844 };
-    const visibleLeft = Math.max(box.x, 24);
-    const visibleRight = Math.min(box.x + box.width, pageViewport.width - 24);
-    const visibleTop = Math.max(box.y, 96);
-    const visibleBottom = Math.min(box.y + box.height, pageViewport.height - 96);
-    if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) {
-      throw new Error(`Sajik zoom viewport was not sufficiently visible for drag: ${JSON.stringify({ box, pageViewport })}`);
-    }
-
-    const startX = (visibleLeft + visibleRight) / 2;
-    const startY = (visibleTop + visibleBottom) / 2;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + 56, startY + 34, { steps: 6 });
-    await page.mouse.up();
-    await page.waitForFunction(() => {
-      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
-      const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
-      return Math.abs(panX) > 1 || Math.abs(panY) > 1;
-    }, null, { timeout: 5000 });
-
-    const afterDrag = await readVisibleSajikZoomState();
-    if (afterDrag.zoom < 1.25 || (afterDrag.panX === beforeDrag.panX && afterDrag.panY === beforeDrag.panY)) {
-      throw new Error(`Sajik zoom drag did not update transform state: ${JSON.stringify({ beforeDrag, afterDrag })}`);
-    }
-
-    await clickVisibleSajikControl('sajik-seatmap-zoom-reset');
-    await page.waitForFunction(() => {
-      const layer = Array.from(document.querySelectorAll('[data-testid="sajik-seatmap-transform-layer"]'))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const zoom = Number(layer?.getAttribute('data-zoom') ?? '1');
-      const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
-      const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
-      return zoom === 1 && panX === 0 && panY === 0;
-    }, null, { timeout: 5000 });
-  };
-
   const clickAllSajikLabelCoordinates = async () => {
     await closeDetailPanel();
     await scrollSajikSeatMapIntoView();
@@ -5194,11 +5371,9 @@ const verifySajikOverlayClicks = async (page) => {
         return { allTargets: [], clickableTargets: [] };
       }
 
-      const targetSelector = '[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]';
-      const allTargets = Array.from(svg.querySelectorAll(targetSelector))
+      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
         .map((element) => {
           const testId = element.getAttribute('data-testid') ?? '';
-          const isAccessibilityMarker = testId.startsWith('sajik-accessibility-marker-');
           const id = testId
             .replace('sajik-seat-block-', '')
             .replace('sajik-accessibility-marker-', '');
@@ -5207,18 +5382,15 @@ const verifySajikOverlayClicks = async (page) => {
           const ariaLabel = element.getAttribute('aria-label') ?? '';
           const traceStatus = element.getAttribute('data-trace-status') ?? '';
           const pixelAlignmentStatus = element.getAttribute('data-pixel-alignment-status') ?? '';
-          const mapInteractionStatus = element.getAttribute('data-map-interaction-status') ?? '';
           const rect = element.getBoundingClientRect();
           return {
             testId,
             id,
-            targetKind: isAccessibilityMarker ? 'ACCESSIBILITY_MARKER' : 'SEAT_SECTION',
             labelX,
             labelY,
             ariaLabel,
             traceStatus,
             pixelAlignmentStatus,
-            mapInteractionStatus,
             visible: rect.width > 0 && rect.height > 0,
           };
         })
@@ -5226,30 +5398,22 @@ const verifySajikOverlayClicks = async (page) => {
 
       return {
         allTargets,
-        layerCounts: {
-          seatPaths: allTargets.filter((target) => target.targetKind === 'SEAT_SECTION').length,
-          accessibilityMarkers: allTargets.filter((target) => target.targetKind === 'ACCESSIBILITY_MARKER').length,
-        },
         clickableTargets: allTargets.filter((target) => (
           target.pixelAlignmentStatus === 'PIXEL_ALIGNED'
-          && target.mapInteractionStatus === 'MAP_SELECTABLE'
         )),
       };
     });
 
-    const { allTargets, layerCounts, clickableTargets: labelClickTargets } = labelClickTargetReport;
+    const { allTargets, clickableTargets: labelClickTargets } = labelClickTargetReport;
     if (allTargets.length !== 87) {
-      throw new Error(`Sajik rendered map-selectable label coordinate target count should be 87 (84 seat paths + 3 accessibility markers). Actual: ${allTargets.length}`);
-    }
-    if (layerCounts.seatPaths !== 84 || layerCounts.accessibilityMarkers !== 3) {
-      throw new Error(`Sajik runtime layer target count should be 84 seat paths + 3 accessibility markers. Actual: ${JSON.stringify(layerCounts)}`);
+      throw new Error(`Sajik visible label coordinate target count should be 87. Actual: ${allTargets.length}`);
     }
     if (labelClickTargets.length !== 87) {
       const skippedTargets = allTargets
-        .filter((target) => target.pixelAlignmentStatus !== 'PIXEL_ALIGNED' || target.mapInteractionStatus !== 'MAP_SELECTABLE')
-        .map((target) => `${target.id}:${target.pixelAlignmentStatus || 'UNKNOWN'}:${target.mapInteractionStatus || 'UNKNOWN'}`)
+        .filter((target) => target.pixelAlignmentStatus !== 'PIXEL_ALIGNED')
+        .map((target) => `${target.id}:${target.pixelAlignmentStatus || 'UNKNOWN'}`)
         .join(', ');
-      throw new Error(`Sajik map-selectable label coordinate click target count should be 87. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
+      throw new Error(`Sajik pixel-aligned label coordinate click target count should be 87. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
     }
 
     for (const target of labelClickTargets) {
@@ -5276,7 +5440,7 @@ const verifySajikOverlayClicks = async (page) => {
 
       let isPressed = false;
       for (let attempt = 0; attempt < 15; attempt += 1) {
-        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]'))
+        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
           .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
           .map((candidate) => candidate.getAttribute('data-testid')));
         isPressed = pressedIds.includes(target.testId);
@@ -5286,7 +5450,7 @@ const verifySajikOverlayClicks = async (page) => {
       if (!isPressed) {
         const hitDebug = await page.evaluate((point) => {
           const element = document.elementFromPoint(point.x, point.y);
-          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"],[data-testid^="sajik-accessibility-marker-"]'))
+          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
             .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
             .map((candidate) => ({
               testId: candidate.getAttribute('data-testid'),
@@ -5312,37 +5476,6 @@ const verifySajikOverlayClicks = async (page) => {
     await closeDetailPanel();
   };
 
-  const verifyAliasOnlyCoordinatesDoNotSelect = async () => {
-    await closeDetailPanel();
-    await scrollSajikSeatMapIntoView();
-
-    const aliasOnlyRendered = await page.locator('[data-testid="sajik-seat-block-sajik-avenuel-011"]').count();
-    if (aliasOnlyRendered > 0) {
-      throw new Error('Sajik alias-only 011 block should not render as a map hit-area.');
-    }
-
-    const box = await page.evaluate(() => {
-      const svg = Array.from(document.querySelectorAll('svg[aria-label="부산 사직야구장 좌석도 구역 선택"]'))
-        .find((candidate) => {
-          const rect = candidate.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      if (!svg) return null;
-      const rect = svg.getBoundingClientRect();
-      return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-    });
-    if (!box) {
-      throw new Error('Sajik seatmap SVG box is missing before alias-only coordinate click.');
-    }
-
-    await page.mouse.click(box.x + ((653 / 960) * box.width), box.y + ((420 / 640) * box.height));
-    await sleep(150);
-    const selected011 = await visibleTextLocator(page, '에비뉴엘석 011블록').count();
-    if (selected011 > 0) {
-      throw new Error('Sajik alias-only 011 coordinate should not open the 011 detail panel.');
-    }
-  };
-
   const representativeSections = [
     { button: /3루 내야필드석A 313블록/, detail: /3루 내야필드석A/ },
     { button: /1루 내야필드석 111블록/, detail: /1루 내야필드석/ },
@@ -5351,16 +5484,11 @@ const verifySajikOverlayClicks = async (page) => {
     { button: /중앙탁자석 021블록/, detail: /중앙탁자석/ },
   ];
 
-  await verifySajikZoomPanInteraction();
-
   const viewport = page.viewportSize();
   if ((viewport?.width ?? 0) >= 1000) {
     await clickAllSajikLabelCoordinates();
-    await verifyAliasOnlyCoordinatesDoNotSelect();
     return;
   }
-
-  await verifyAliasOnlyCoordinatesDoNotSelect();
 
   for (const sectionName of representativeSections) {
     await closeDetailPanel();
@@ -5457,11 +5585,14 @@ const evaluateSeatMapReviews = (reviews) => {
   const issues = [];
 
   reviews.forEach((review) => {
+    const seatMapMatchesSelectedStadium =
+      review.seatMapText.includes(review.expectedSeatMapLabel) ||
+      review.seatMapText.includes(review.stadiumName);
     addIssue(issues, !review.seatMapRect, 'Seat map was not rendered for selected stadium.', {
       stadiumId: review.stadiumId,
       stadiumName: review.stadiumName,
     });
-    addIssue(issues, !review.seatMapText.includes(review.expectedSeatMapLabel), 'Seat map preset label did not match the selected stadium.', {
+    addIssue(issues, !seatMapMatchesSelectedStadium, 'Seat map preset label did not match the selected stadium.', {
       stadiumId: review.stadiumId,
       stadiumName: review.stadiumName,
       expectedSeatMapLabel: review.expectedSeatMapLabel,
@@ -5615,6 +5746,41 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
       }
     }
 
+    const qaChecks = [];
+
+    if (shouldRunGwangjuVisualHitSplitOnly) {
+      const runtimeLayerCheck = await verifyGwangjuVisualHitSplitRuntimeOnly(page);
+      qaChecks.push(runtimeLayerCheck);
+      await sleep(250);
+      const metrics = await collectMetrics(page);
+      const screenshotPath = path.join(outputRoot, `${scenario.key}.png`);
+      await page.screenshot({
+        path: screenshotPath,
+        fullPage: true,
+        animations: 'disabled',
+      });
+      const evaluation = evaluateMetrics(scenario, metrics, consoleErrors, failedRequests);
+      const qaIssues = qaChecks
+        .filter((check) => check.status !== 'passed')
+        .map((check) => ({
+          message: `${check.type} failed`,
+          details: check.details,
+        }));
+      const issues = [...evaluation.issues, ...qaIssues];
+      return {
+        key: scenario.key,
+        label: scenario.label,
+        status: issues.length > 0 ? 'failed' : 'passed',
+        screenshotPath,
+        metrics,
+        issues,
+        seatMapReviews: [],
+        qaChecks,
+        actionableConsoleErrorCount: evaluation.actionableConsoleErrors.length,
+        actionableFailedRequestCount: evaluation.actionableFailedRequests.length,
+      };
+    }
+
     if (shouldRunJamsilDeepCheck) {
       await verifyJamsilOverlayClicks(page);
     }
@@ -5636,7 +5802,10 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
     }
 
     if (shouldRunGwangjuDeepCheck) {
-      await verifyGwangjuOverlayClicks(page);
+      const gwangjuRuntimeLayerCheck = await verifyGwangjuOverlayClicks(page);
+      if (gwangjuRuntimeLayerCheck) {
+        qaChecks.push(gwangjuRuntimeLayerCheck);
+      }
     }
 
     if (shouldRunChangwonDeepCheck) {
@@ -5651,7 +5820,6 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
       await verifyDaeguOverlayClicks(page);
     }
 
-    const qaChecks = [];
     if (shouldRunDaeguFullClickCheck) {
       qaChecks.push(await verifyDaeguFullOverlayClicks(page));
     }

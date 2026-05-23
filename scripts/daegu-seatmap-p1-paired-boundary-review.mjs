@@ -10,6 +10,7 @@ const defaultOutputDir = path.join(defaultReportDir, 'daegu-p1-operator');
 
 const REVIEW_VERSION = 'DAEGU_P1_PAIRED_BOUNDARY_REVIEW_V1';
 const VISUAL_WORKSET_VERSION = 'DAEGU_VISUAL_OFF_SEAT_WORKSET_V1';
+const P1_OPERATOR_INPUT_VERSION = 'DAEGU_P1_OPERATOR_PACKAGE_V1';
 const ALIGNMENT_STANDARD = 'DAEGU_ALIGNMENT_AUDIT_V1';
 const TARGET_BATCH_ID = 'BATCH_2_P1';
 const EXPECTED = {
@@ -68,6 +69,8 @@ const argValue = (name, fallback) => {
   return process.argv[index + 1];
 };
 
+const argFlag = (name) => process.argv.includes(name);
+
 const csvEscape = (value) => {
   const text = String(value ?? '');
   if (!/[",\n]/.test(text)) return text;
@@ -90,6 +93,17 @@ const markdownTable = (headers, rows) => [
 ].join('\n');
 
 const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+const readOptionalJson = async (filePath) => {
+  try {
+    return await readJson(filePath);
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+};
 
 const absoluteFromFrontendRoot = (filePath) => {
   if (!filePath) return '';
@@ -126,9 +140,16 @@ const summarizeAlignmentBlock = (row) => {
 
 const reportDir = path.resolve(frontendRoot, argValue('--report-dir', defaultReportDir));
 const outputDir = path.resolve(frontendRoot, argValue('--output-dir', defaultOutputDir));
+const sourceMode = argFlag('--source-mode=p1-operator-input') || argValue('--source-mode', '') === 'p1-operator-input'
+  ? 'p1-operator-input'
+  : 'visual-workset';
 const visualWorksetPath = path.resolve(
   frontendRoot,
   argValue('--visual-workset', path.join(reportDir, 'daegu-visual-off-seat-workset.json')),
+);
+const p1OperatorInputPath = path.resolve(
+  frontendRoot,
+  argValue('--p1-operator-input', path.join(reportDir, 'daegu-p1-operator/daegu-seatmap-p1-operator-input.json')),
 );
 const alignmentPath = path.resolve(
   frontendRoot,
@@ -137,27 +158,56 @@ const alignmentPath = path.resolve(
 
 const blockers = [];
 const warnings = [];
-const visualWorkset = await readJson(visualWorksetPath);
+const visualWorkset = sourceMode === 'visual-workset' ? await readJson(visualWorksetPath) : null;
+const p1OperatorInput = sourceMode === 'p1-operator-input' ? await readOptionalJson(p1OperatorInputPath) : null;
 const alignmentAudit = await readJson(alignmentPath);
-const worksetRows = Array.isArray(visualWorkset.rows) ? visualWorkset.rows : [];
+const worksetRows = Array.isArray(visualWorkset?.rows) ? visualWorkset.rows : [];
+const p1OperatorRows = Array.isArray(p1OperatorInput?.corrections) ? p1OperatorInput.corrections : [];
 const alignmentRows = Array.isArray(alignmentAudit.blocks) ? alignmentAudit.blocks : [];
 const alignmentByBlock = new Map(alignmentRows.map((row) => [row.block, row]));
 
-if (visualWorkset.summary?.worksetVersion !== VISUAL_WORKSET_VERSION) {
-  blockers.push(`VISUAL_WORKSET_VERSION_MISMATCH:${visualWorkset.summary?.worksetVersion ?? ''}`);
+if (sourceMode === 'visual-workset' && visualWorkset?.summary?.worksetVersion !== VISUAL_WORKSET_VERSION) {
+  blockers.push(`VISUAL_WORKSET_VERSION_MISMATCH:${visualWorkset?.summary?.worksetVersion ?? ''}`);
+}
+if (sourceMode === 'p1-operator-input' && p1OperatorInput?.packageVersion !== P1_OPERATOR_INPUT_VERSION) {
+  blockers.push(`P1_OPERATOR_INPUT_VERSION_MISMATCH:${p1OperatorInput?.packageVersion ?? ''}`);
 }
 if (alignmentAudit.standard !== ALIGNMENT_STANDARD && alignmentAudit.summary?.standard !== ALIGNMENT_STANDARD) {
   blockers.push(`ALIGNMENT_STANDARD_MISMATCH:${alignmentAudit.standard ?? alignmentAudit.summary?.standard ?? ''}`);
 }
-if (visualWorkset.summary?.productionWriteAllowed !== false) {
+if (sourceMode === 'visual-workset' && visualWorkset?.summary?.productionWriteAllowed !== false) {
   blockers.push('VISUAL_WORKSET_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
+}
+if (sourceMode === 'p1-operator-input' && p1OperatorInput?.productionWriteAllowed !== false) {
+  blockers.push('P1_OPERATOR_INPUT_PRODUCTION_WRITE_ALLOWED_NOT_FALSE');
 }
 if (alignmentAudit.summary?.officialAlignmentFailures !== 0) {
   blockers.push(`ALIGNMENT_OFFICIAL_FAILURES_PRESENT:${alignmentAudit.summary?.officialAlignmentFailures}`);
 }
 
-const targetRows = worksetRows
-  .filter((row) => row.batchId === TARGET_BATCH_ID)
+const targetRows = (sourceMode === 'p1-operator-input'
+  ? p1OperatorRows
+    .filter((row) => row.batchId === TARGET_BATCH_ID && REVIEW_SPECS[row.block])
+    .map((row) => ({
+      sourceQueue: path.relative(frontendRoot, p1OperatorInputPath),
+      sourceInput: path.relative(frontendRoot, p1OperatorInputPath),
+      batchId: row.batchId,
+      blockId: row.blockId,
+      block: row.block,
+      name: row.name,
+      category: row.category,
+      queuePriority: row.queuePriority,
+      operatorDecision: 'PENDING',
+      sourceOperatorDecision: row.operatorDecision,
+      candidateStatus: row.candidateStatus,
+      evidenceCrop: row.evidenceCrop,
+      componentInsidePathRatio: row.componentInsidePathRatio,
+      pathColorCoverageRatio: row.pathColorCoverageRatio,
+      officialFailureReasons: String(row.officialFailureReasons ?? '').split('; ').filter(Boolean),
+      riskFlags: String(row.riskFlags ?? '').split('; ').filter(Boolean),
+      operatorNote: '',
+    }))
+  : worksetRows.filter((row) => row.batchId === TARGET_BATCH_ID))
   .sort((left, right) => String(left.block).localeCompare(String(right.block), 'ko'));
 const expectedBlocks = Object.keys(REVIEW_SPECS);
 const targetBlocks = targetRows.map((row) => row.block);
@@ -167,7 +217,7 @@ if (missingExpectedBlocks.length > 0) {
   warnings.push(`P1_PAIRED_REVIEW_EXPECTED_BLOCKS_CHANGED:${missingExpectedBlocks.join(' ')}`);
 }
 if (unmappedRows.length > 0) {
-  blockers.push(`P1_PAIRED_REVIEW_UNMAPPED_ROWS:${unmappedRows.map((row) => row.block).join(' ')}`);
+  warnings.push(`P1_PAIRED_REVIEW_OUT_OF_SCOPE_ROWS:${unmappedRows.map((row) => row.block).join(' ')}`);
 }
 
 const rows = targetRows
@@ -196,9 +246,13 @@ const rows = targetRows
 
     return {
       reviewVersion: REVIEW_VERSION,
-      sourceWorkset: path.relative(frontendRoot, visualWorksetPath),
+      sourceMode,
+      sourceWorkset: sourceMode === 'p1-operator-input'
+        ? path.relative(frontendRoot, p1OperatorInputPath)
+        : path.relative(frontendRoot, visualWorksetPath),
       sourceAlignmentAudit: path.relative(frontendRoot, alignmentPath),
       sourceInput: row.sourceInput,
+      sourceOperatorDecision: row.sourceOperatorDecision ?? '',
       batchId: row.batchId,
       blockId: row.blockId,
       block: row.block,
@@ -250,12 +304,16 @@ const summary = {
   reviewVersion: REVIEW_VERSION,
   status,
   productionWriteAllowed: false,
-  sourceWorksetVersion: VISUAL_WORKSET_VERSION,
+  sourceMode,
+  sourceWorksetVersion: sourceMode === 'p1-operator-input' ? P1_OPERATOR_INPUT_VERSION : VISUAL_WORKSET_VERSION,
   sourceAlignmentStandard: ALIGNMENT_STANDARD,
-  sourceWorkset: path.relative(frontendRoot, visualWorksetPath),
+  sourceWorkset: sourceMode === 'p1-operator-input'
+    ? path.relative(frontendRoot, p1OperatorInputPath)
+    : path.relative(frontendRoot, visualWorksetPath),
   sourceAlignmentAudit: path.relative(frontendRoot, alignmentPath),
   targetBatchId: TARGET_BATCH_ID,
   totalRows: rows.length,
+  outOfScopeP1Rows: unmappedRows.map((row) => row.block),
   pairedRelabelRows: pairedRelabelRows.length,
   manualSplitRows: manualSplitRows.length,
   approvedRows: approvedRows.length,
@@ -272,6 +330,7 @@ const safetyContract = [
   'Rows in this report must not be approved as single-row corrections.',
   'The currentPath must not be copied into correctedPath.',
   'Candidate paths are reference-only and must not be copied into correctedPath.',
+  'When sourced from P1 operator input, operatorDecision is intentionally normalized to PENDING for review-only rows.',
   'Production data can change only after paired boundaries pass the existing P1 validation/import/readiness/write gates.',
   'No external crawling, web search, or coordinate inference is allowed.',
 ];
@@ -298,8 +357,10 @@ await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 await writeCsv(csvPath, [
   [
     'sourceWorkset',
+    'sourceMode',
     'sourceAlignmentAudit',
     'sourceInput',
+    'sourceOperatorDecision',
     'batchId',
     'blockId',
     'block',
@@ -327,8 +388,10 @@ await writeCsv(csvPath, [
   ],
   ...rows.map((row) => [
     row.sourceWorkset,
+    row.sourceMode,
     row.sourceAlignmentAudit,
     row.sourceInput,
+    row.sourceOperatorDecision,
     row.batchId,
     row.blockId,
     row.block,
@@ -391,8 +454,10 @@ await fs.writeFile(markdownPath, [
   `- status: \`${summary.status}\``,
   `- production write allowed: ${summary.productionWriteAllowed}`,
   `- source workset: \`${summary.sourceWorkset}\``,
+  `- source mode: \`${summary.sourceMode}\``,
   `- source alignment audit: \`${summary.sourceAlignmentAudit}\``,
   `- total rows: ${summary.totalRows}`,
+  `- out-of-scope P1 rows: ${summary.outOfScopeP1Rows.length > 0 ? summary.outOfScopeP1Rows.map((block) => `\`${block}\``).join(' ') : 'none'}`,
   `- paired relabel rows: ${summary.pairedRelabelRows}`,
   `- manual split rows: ${summary.manualSplitRows}`,
   `- approved rows: ${summary.approvedRows}`,

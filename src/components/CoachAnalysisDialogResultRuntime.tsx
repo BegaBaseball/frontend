@@ -434,8 +434,17 @@ export const getAnalysisData = ({
                 coachNote || '',
                 '코치 노트가 제공되지 않았습니다.',
             ),
-            analysis_summary: normalizedAnalysis.summary,
-            verdict: normalizedAnalysis.verdict,
+            // 구조화 분석 미제공 시 detailed_markdown 첫 비-헤딩 줄에서 파생
+            analysis_summary: normalizedAnalysis.summary || normalizedAnalysis.verdict,
+            verdict: normalizedAnalysis.verdict
+                || normalizedAnalysis.summary
+                || normalizeStructuredInlineText(
+                    (detailedMarkdown || '')
+                        .split('\n')
+                        .find((l) => l.trim() && !l.startsWith('#') && !l.startsWith('-'))
+                    ?? '',
+                    '',
+                ),
             strengths: normalizedAnalysis.strengths,
             weaknesses: normalizedAnalysis.weaknesses,
             risks: normalizedAnalysis.risks,

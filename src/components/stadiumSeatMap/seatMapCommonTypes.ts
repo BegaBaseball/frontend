@@ -2,6 +2,31 @@ import type { ReactNode } from 'react';
 
 export type SeatMapThemeMode = 'light' | 'dark';
 
+export interface SeatMapPan {
+  x: number;
+  y: number;
+}
+
+export interface SeatMapSvgBaseProps<TBlock> {
+  mode: 'light' | 'dark';
+  selected: TBlock | null;
+  setSelected: (block: TBlock | null) => void;
+  hover: string | null;
+  setHover: (id: string | null) => void;
+  filterCats: readonly string[] | null;
+  filterSides?: readonly string[] | null;
+  filterLevels?: readonly string[] | null;
+  zoom: number;
+  pan: SeatMapPan;
+  onPanChange: (pan: SeatMapPan) => void;
+  onZoom: (z: number) => void;
+  minZoom: number;
+  maxZoom: number;
+  zoomStep: number;
+  enableAutoCenter?: boolean;
+  onFullscreen?: () => void;
+}
+
 export interface SeatMapCategoryMeta {
   label: string;
   light: string;
@@ -14,6 +39,9 @@ export interface SeatMapFilterGroup {
   id: string;
   label: string;
   cats: readonly string[] | null;
+  sides?: readonly string[] | null;
+  levels?: readonly string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 export interface SeatMapSourceInfo {

@@ -30,7 +30,7 @@ import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
-import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 0.9;
 const MAX_ZOOM = 1.35;
@@ -374,6 +374,7 @@ export default function ChangwonSeatMap() {
   const { resolvedTheme } = useTheme();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchResultListOpen, setIsSearchResultListOpen] = useState(false);
   const [uploadFor, setUploadFor] = useState<ChangwonBlock | null>(null);
@@ -385,6 +386,9 @@ export default function ChangwonSeatMap() {
     hoveredSection,
     filterId,
     setFilterId,
+    filterCats,
+    filterSides,
+    filterLevels,
     activeFilterGroup,
     toast,
     showToast,
@@ -396,22 +400,14 @@ export default function ChangwonSeatMap() {
     isSectionVisible: (section, group) => (group ? isChangwonBlockInCategoryGroup(section, group) : true),
   });
   const { isMobile, isFullscreenOpen, openFullscreen, closeFullscreen } = useSeatMapTemplateShellState();
-  const activeBlockIds = useMemo(() => {
-    if (!activeFilterGroup || activeFilterGroup.id === 'all') {
-      return null;
-    }
-
-    return new Set(
-      CHANGWON_BLOCKS
-        .filter((block) => isChangwonBlockInCategoryGroup(block, activeFilterGroup))
-        .map((block) => block.id),
-    );
-  }, [activeFilterGroup]);
   const hasOfficialBlocks = CHANGWON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && CHANGWON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? CHANGWON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#315288';
   const usedCategories = useMemo(() => [...new Set(CHANGWON_BLOCKS.map((block) => block.category))], []);
-  const visibleBlockCount = activeBlockIds ? activeBlockIds.size : CHANGWON_BLOCKS.length;
+  const visibleChangwonBlocks = useMemo(() => CHANGWON_BLOCKS.filter((block) =>
+    isChangwonBlockInCategoryGroup(block, activeFilterGroup ?? { id: 'all', label: '전체', cats: null })
+  ), [activeFilterGroup]);
+  const visibleBlockCount = visibleChangwonBlocks.length;
   const specialSelectableCount = useMemo(() => CHANGWON_BLOCKS.filter(isChangwonSpecialSelectableArea).length, []);
   const normalizedSearchTerm = normalizeChangwonSeatMapSearchText(searchTerm);
   const exactNumericSearchBlock = normalizeBlockSearchText(searchTerm);
@@ -432,6 +428,7 @@ export default function ChangwonSeatMap() {
 
   const handleResetZoom = useCallback(() => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
   }, []);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -471,8 +468,17 @@ export default function ChangwonSeatMap() {
       setSelected={setSelected}
       hover={hover}
       setHover={setHover}
-      activeBlockIds={activeBlockIds}
+      filterCats={filterCats}
+      filterSides={filterSides}
+      filterLevels={filterLevels}
+      filterGroup={activeFilterGroup}
       zoom={zoom}
+      pan={pan}
+      onPanChange={setPan}
+      onZoom={setZoom}
+      minZoom={MIN_ZOOM}
+      maxZoom={MAX_ZOOM}
+      zoomStep={ZOOM_STEP}
     />
   );
 

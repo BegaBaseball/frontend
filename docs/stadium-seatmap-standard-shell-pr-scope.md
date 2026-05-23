@@ -49,6 +49,7 @@ npm run stadium:seatmap:standard-shell-pr-scope-guard
 ```
 
 이 명령은 `/reports/stadium/stadium-seatmap-standard-shell-pr-scope-guard.md`에 whole-file `git add -- ...` 후보 명령과 partial `git add -p -- ...` 검토 명령을 함께 생성한다. report는 `/reports` ignore 규칙에 따라 PR에 포함하지 않는다.
+이미 정리되어 dirty 상태가 아닌 expected 파일은 `expected files not currently dirty`로만 보고하고 blocker로 취급하지 않는다. 이 guard의 목적은 현재 worktree dirty set 분류이지, clean 파일을 강제로 다시 변경시키는 것이 아니다.
 
 ## Partial Review Files
 
@@ -115,6 +116,7 @@ npm run stadium:seatmap:standard-shell-pr-scope-guard
 - staging 후 scope guard report의 `Post-Stage Review Commands`를 실행한다.
 - ignored `/reports/stadium/stadium-seatmap-standard-shell-pr-scope-guard.*`는 PR에 포함하지 않는다.
 - branch를 분리한 뒤 build reports를 다시 생성할지 결정한다.
+- expected standard shell 파일이 clean 상태라면 guard report의 not-dirty 항목으로만 확인하고 별도 staging 대상으로 만들지 않는다.
 
 ## Verification
 

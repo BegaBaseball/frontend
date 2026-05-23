@@ -179,8 +179,9 @@ if (blockers.length === 0) {
   ));
 
   commandResults.push(await runNodeScript(
-    path.join(scriptDir, 'daegu-seatmap-p1-operator-import.mjs'),
+    path.join(scriptDir, 'daegu-seatmap-p1-operator-boundary.mjs'),
     [
+      'p1-operator-import',
       '--input',
       path.relative(frontendRoot, fixtureInputPath),
       '--report-dir',
@@ -192,8 +193,9 @@ if (blockers.length === 0) {
   ));
 
   commandResults.push(await runNodeScript(
-    path.join(scriptDir, 'daegu-seatmap-p1-operator-readiness.mjs'),
+    path.join(scriptDir, 'daegu-seatmap-p1-operator-boundary.mjs'),
     [
+      'p1-operator-readiness',
       '--p1-report-dir',
       path.relative(frontendRoot, fixtureP1Dir),
       '--report-dir',
@@ -203,8 +205,9 @@ if (blockers.length === 0) {
   ));
 
   commandResults.push(await runNodeScript(
-    path.join(scriptDir, 'daegu-seatmap-p1-operator-import.mjs'),
+    path.join(scriptDir, 'daegu-seatmap-p1-operator-boundary.mjs'),
     [
+      'p1-operator-import',
       '--input',
       path.relative(frontendRoot, fixtureInputPath),
       '--report-dir',

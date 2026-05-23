@@ -117,12 +117,20 @@ const positionStyleMap: Record<NonNullable<ToasterProps['position']>, CSSPropert
   'bottom-right': { bottom: 16, right: 16, alignItems: 'flex-end' },
 };
 
-const variantAccentMap: Record<ToastVariant, string> = {
-  default: '#475569',
-  success: '#16a34a',
-  error: '#dc2626',
-  info: '#2563eb',
-  warning: '#d97706',
+const variantTokenMap: Record<ToastVariant, { rail: string; tint: string; darkRail: string; darkTint: string }> = {
+  default: { rail: '#475569', tint: '#f1f5f9', darkRail: '#94a3b8', darkTint: 'rgba(71,85,105,.18)' },
+  success: { rail: '#15803d', tint: '#ecfdf5', darkRail: '#4ade80', darkTint: 'rgba(21,128,61,.18)' },
+  error:   { rail: '#b91c1c', tint: '#fef2f2', darkRail: '#f87171', darkTint: 'rgba(185,28,28,.18)' },
+  info:    { rail: '#2d5f4f', tint: '#eef6f3', darkRail: '#6ee7b7', darkTint: 'rgba(45,95,79,.18)' },
+  warning: { rail: '#a16207', tint: '#fefce8', darkRail: '#fbbf24', darkTint: 'rgba(161,98,7,.18)' },
+};
+
+const variantIconMap: Record<ToastVariant, string> = {
+  default: '<circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="7" r="1" fill="currentColor"/><circle cx="12" cy="17" r="1" fill="currentColor"/>',
+  success: '<polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  error:   '<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  info:    '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
 };
 
 const useToastState = () => useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
@@ -172,8 +180,13 @@ export function Toaster({
   return createPortal(
     <div className={className} style={containerStyle} aria-live="polite" aria-atomic="true">
       {toasts.map((entry) => {
-        const accent = variantAccentMap[entry.variant];
         const isDark = resolvedTheme === 'dark';
+        const tokens = variantTokenMap[entry.variant];
+        const rail = isDark ? tokens.darkRail : tokens.rail;
+        const tint = isDark ? tokens.darkTint : tokens.tint;
+        const iconSvg = variantIconMap[entry.variant];
+        const durationSec = entry.duration / 1000;
+
         return (
           <div
             key={entry.id}
@@ -181,27 +194,34 @@ export function Toaster({
             style={{
               pointerEvents: 'auto',
               width: '100%',
-              borderRadius: 16,
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.08)'}`,
-              backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255,255,255,0.96)',
-              color: isDark ? '#f8fafc' : '#0f172a',
-              boxShadow: isDark
-                ? '0 12px 36px rgba(2, 6, 23, 0.45)'
-                : '0 12px 36px rgba(15, 23, 42, 0.16)',
-              backdropFilter: 'blur(12px)',
+              position: 'relative',
+              borderRadius: 14,
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+              backgroundColor: isDark ? '#1a2a26' : '#fff',
+              color: isDark ? '#e4f0ec' : '#111827',
+              boxShadow: '0 10px 28px -14px rgba(16,37,32,.22), 0 2px 6px rgba(0,0,0,.04)',
               overflow: 'hidden',
+              fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 42px 14px 14px' }}>
+              {/* Icon chip */}
               <span
                 aria-hidden="true"
                 style={{
-                  width: 10,
-                  minWidth: 10,
-                  height: 10,
-                  marginTop: 6,
-                  borderRadius: 999,
-                  backgroundColor: accent,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  backgroundColor: tint,
+                  color: rail,
+                  boxShadow: `0 0 0 3px ${rail}2e`,
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">${iconSvg}</svg>`,
                 }}
               />
               <div style={{ minWidth: 0, flex: 1 }}>
@@ -209,34 +229,52 @@ export function Toaster({
                   {entry.title}
                 </div>
                 {entry.description ? (
-                  <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: isDark ? '#cbd5e1' : '#475569' }}>
+                  <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: isDark ? '#8db4a8' : '#6b7280' }}>
                     {entry.description}
                   </div>
                 ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => dismissToast(entry.id)}
-                aria-label="알림 닫기"
-                style={{
-                  border: 0,
-                  background: 'transparent',
-                  color: isDark ? '#94a3b8' : '#64748b',
-                  cursor: 'pointer',
-                  padding: 0,
-                  fontSize: 18,
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
             </div>
+
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => dismissToast(entry.id)}
+              aria-label="알림 닫기"
+              style={{
+                position: 'absolute',
+                top: 9,
+                right: 9,
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                border: 0,
+                background: isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)',
+                color: isDark ? '#8db4a8' : '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+
+            {/* Progress bar */}
             <div
               aria-hidden="true"
               style={{
-                height: 3,
-                background: accent,
-                opacity: 0.9,
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 2,
+                background: rail,
+                opacity: 0.5,
+                transformOrigin: 'left',
+                animation: `toast-countdown ${durationSec}s linear forwards`,
               }}
             />
           </div>

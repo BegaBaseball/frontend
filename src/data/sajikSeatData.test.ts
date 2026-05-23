@@ -10,12 +10,17 @@ import {
   SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
   SAJIK_CATEGORY_GROUPS,
+  SAJIK_DEFAULT_SEATMAP_SOURCE_ID,
+  SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256,
+  SAJIK_OPERATOR_REFERENCE_MAP_VERSION,
+  SAJIK_OPERATOR_REFERENCE_VIEW_BOX,
   SAJIK_OFFICIAL_PNG_BLOCK_NOT_VISIBLE_BLOCKS,
   SAJIK_OFFICIAL_TRACE_REFERENCE,
   SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS,
   SAJIK_REFERENCE_URL,
   SAJIK_REQUIRED_OFFICIAL_SECTIONS,
   SAJIK_SEATMAP_IMAGE,
+  SAJIK_SEATMAP_SOURCE_REFERENCES,
   SAJIK_TRACE_ANCHOR_TOLERANCE_PX,
   SAJIK_TRACE_AREA_TOLERANCE_PX2,
   SAJIK_TRACE_BOUNDS_TOLERANCE_PX,
@@ -45,6 +50,13 @@ import {
   validateSajikSeatMapDatasetIssues,
 } from './sajikSeatMapDataset';
 import {
+  SAJIK_OPERATOR_REFERENCE_IMAGE,
+  SAJIK_OPERATOR_REFERENCE_RUNTIME_SELECTION_ENABLED,
+  SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET,
+  SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES,
+  validateSajikOperatorReferenceSeatMapDataset,
+} from './sajikOperatorReferenceSeatMapDataset';
+import {
   distanceToPolygon as distanceToSeatMapPolygon,
   isSingleClosedPolygonPath,
   pathBounds,
@@ -64,6 +76,7 @@ function assertWithinTolerance(actual: number, expected: number, tolerance: numb
 
 const SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCK_SET = new Set<string>(SAJIK_PIXEL_ALIGNMENT_REVIEW_REQUIRED_BLOCKS);
 const SAJIK_EXPLICIT_HIT_PATH_BLOCKS = new Set<string>([
+  'sajik-central-table-032',
   'sajik-accessible-휠체어석-3루',
 ]);
 
@@ -84,6 +97,12 @@ test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한�
   assert.equal(SAJIK_SEATMAP_IMAGE.imageSha256, 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa');
   assert.equal(SAJIK_SEATMAP_IMAGE.sourceUrl, SAJIK_REFERENCE_URL);
   assert.ok(SAJIK_SEATMAP_IMAGE.sourceLabel);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImagePath, undefined);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImageSha256, undefined);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImageNaturalWidth, undefined);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImageNaturalHeight, undefined);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImageSourceUrl, undefined);
+  assert.equal(SAJIK_SEATMAP_IMAGE.renderImageSourceLabel, undefined);
 
   if (SAJIK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL') {
     assert.equal(SAJIK_SEATMAP_IMAGE.imageWidth, 960);
@@ -94,6 +113,205 @@ test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한�
     assert.equal(SAJIK_SEATMAP_IMAGE.imageHeight, 0);
     assert.equal(SAJIK_BLOCKS.length, 0);
   }
+});
+
+test('사직 좌석도 source references는 operator reference를 기본 좌표계로 두고 공식 이미지를 secondary로 유지한다', () => {
+  assert.equal(SAJIK_DEFAULT_SEATMAP_SOURCE_ID, 'OPERATOR_REFERENCE_2026');
+  assert.equal(SAJIK_SEATMAP_SOURCE_REFERENCES.length, 2);
+  assert.equal(SAJIK_SEATMAP_SOURCE_REFERENCES[0]?.id, 'OPERATOR_REFERENCE_2026');
+  assert.equal(SAJIK_SEATMAP_SOURCE_REFERENCES[1]?.id, 'LOTTE_OFFICIAL_2026');
+
+  const officialSource = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'LOTTE_OFFICIAL_2026');
+  const operatorReference = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'OPERATOR_REFERENCE_2026');
+
+  assert.ok(operatorReference);
+  assert.equal(operatorReference.label, '기준 좌석도');
+  assert.equal(operatorReference.kind, 'REFERENCE_IMAGE');
+  assert.equal(operatorReference.assetStatus, 'OPERATOR_REFERENCE');
+  assert.equal(operatorReference.polygonStatus, 'PRODUCTION_INTERACTIVE');
+  assert.equal(operatorReference.imagePath, 'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png');
+  assert.equal(operatorReference.imageWidth, 1151);
+  assert.equal(operatorReference.imageHeight, 1367);
+  assert.equal(operatorReference.viewBox, SAJIK_OPERATOR_REFERENCE_VIEW_BOX);
+  assert.equal(operatorReference.imageSha256, SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256);
+  assert.equal(operatorReference.mapVersion, SAJIK_OPERATOR_REFERENCE_MAP_VERSION);
+  assert.equal(operatorReference.sourceUrl, null);
+
+  assert.ok(officialSource);
+  assert.equal(officialSource.label, '공식 이미지');
+  assert.equal(officialSource.kind, 'INTERACTIVE_SEATMAP');
+  assert.equal(officialSource.assetStatus, 'OFFICIAL');
+  assert.equal(officialSource.polygonStatus, 'PRODUCTION_INTERACTIVE');
+  assert.equal(officialSource.imagePath, SAJIK_SEATMAP_IMAGE.imagePath);
+  assert.equal(officialSource.viewBox, SAJIK_SEATMAP_IMAGE.viewBox);
+
+  const referenceAssetPath = resolve(process.cwd(), operatorReference.imagePath);
+  assert.equal(existsSync(referenceAssetPath), true, 'operator reference asset should be checked into static assets');
+  assert.equal(
+    createHash('sha256').update(readFileSync(referenceAssetPath)).digest('hex'),
+    operatorReference.imageSha256,
+    'operator reference asset hash should remain fixed',
+  );
+});
+
+test('사직 operator reference polygon dataset은 선택 미리보기 runtime 계약으로 고정된다', () => {
+  const dataset = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET;
+
+  assert.equal(dataset.stadiumId, 'BUSAN_SAJIK');
+  assert.equal(dataset.sourceId, 'OPERATOR_REFERENCE_2026');
+  assert.equal(dataset.mapVersion, 'BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1');
+  assert.equal(dataset.coordinateSystem, 'SVG_VIEW_BOX');
+  assert.equal(dataset.runtimeSelectionEnabled, true);
+  assert.equal(SAJIK_OPERATOR_REFERENCE_RUNTIME_SELECTION_ENABLED, true);
+  assert.deepEqual(dataset.image, SAJIK_OPERATOR_REFERENCE_IMAGE);
+  assert.equal(dataset.image.width, 1151);
+  assert.equal(dataset.image.height, 1367);
+  assert.equal(dataset.image.viewBox, SAJIK_OPERATOR_REFERENCE_VIEW_BOX);
+  assert.equal(dataset.image.sha256, SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256);
+  assert.equal(dataset.image.sourceStatus, 'OPERATOR_REFERENCE');
+  assert.deepEqual(dataset.summary, {
+    sections: 78,
+    markers: 14,
+    stageCount: 4,
+  });
+  assert.deepEqual(validateSajikOperatorReferenceSeatMapDataset(dataset), []);
+  assert.equal(SAJIK_SEATMAP_IMAGE.viewBox, '0 0 960 640', 'official production coordinate system should stay separated');
+
+  const sectionIds = new Set<string>();
+  const stageCounts = new Map<string, number>();
+  const expectedVisibleSectionIds = [
+    '021', '022', '023', '024',
+    '031', '032', '033', '034', '041', '044',
+    '051', '052', '053', '054', '055', '056', '057',
+    '111', '112', '113', '114', '115', '116',
+    '121', '122', '123', '124', '125', '126', '127',
+    '131', '132', '133', '134', '135', '136', '137', '142', '143',
+    '311', '312', '313', '314', '315', '316',
+    '321', '322', '323', '324', '325', '326', '327',
+    '331', '332', '333', '334', '335', '336', '337', '338', '342', '343',
+    '721', '722', '723', '724', '732', '733', '734',
+    '921', '922', '923', '924', '925', '931', '932', '933', '934',
+  ];
+  const expectedHitExpandedSectionIds = [...expectedVisibleSectionIds];
+  const expectedManualHitExpandedSectionIds = new Set(['021']);
+  const expectedHitExpandedSectionIdSet = new Set(expectedHitExpandedSectionIds);
+  const actualHitExpandedSectionIds: string[] = [];
+  const officialBlockIds = new Set(SAJIK_BLOCKS.flatMap((block) => [block.block, ...block.officialBlocks]));
+  const officialMetadataMissingSectionIds: string[] = [];
+  dataset.sections.forEach((section) => {
+    assert.ok(!sectionIds.has(section.sectionId), `${section.sectionId} should be unique in operator reference dataset`);
+    sectionIds.add(section.sectionId);
+    stageCounts.set(section.stageId, (stageCounts.get(section.stageId) ?? 0) + 1);
+    assert.equal(section.traceStatus, 'OPERATOR_APPROVED');
+    assert.equal(section.geometryVersion, 'operator-reference-polygon-v1');
+    if (expectedHitExpandedSectionIdSet.has(section.sectionId)) {
+      actualHitExpandedSectionIds.push(section.sectionId);
+      assert.notEqual(section.visualPath, section.hitPath, `${section.sectionId} should keep its approved touch hitPath expansion`);
+      assert.notDeepEqual(section.visualPolygon, section.hitPolygon, `${section.sectionId} hit polygon should expand beyond the visual polygon`);
+      assert.equal(section.hitPathExpansionPx, 3, `${section.sectionId} should record the approved touch hitPath buffer size`);
+      assert.equal(
+        section.hitPathExpansionSource,
+        expectedManualHitExpandedSectionIds.has(section.sectionId) ? 'MANUAL_TOUCH_POLYGON_V1' : 'CENTROID_RADIAL_BUFFER_V1',
+        `${section.sectionId} should record the touch hitPath expansion source`,
+      );
+      assert.ok(
+        polygonArea(section.hitPolygon) > polygonArea(section.visualPolygon),
+        `${section.sectionId} hit polygon should be larger than the visual polygon`,
+      );
+    } else {
+      assert.equal(section.visualPath, section.hitPath, `${section.sectionId} hitPath should mirror visualPath until an explicit touch hit-area is approved`);
+      assert.deepEqual(section.visualPolygon, section.hitPolygon, `${section.sectionId} hit polygon should mirror visual polygon until an explicit touch hit-area is approved`);
+      assert.equal(section.hitPathExpansionPx, undefined, `${section.sectionId} should not carry unused hitPath expansion metadata`);
+      assert.equal(section.hitPathExpansionSource, undefined, `${section.sectionId} should not carry unused hitPath expansion metadata`);
+    }
+    assert.ok(section.visualPolygon.length >= 3, `${section.sectionId} should have at least 3 polygon points`);
+    assert.ok(section.visualPolygon.length <= 8, `${section.sectionId} should not trace label/icon extraction noise as polygon vertices`);
+    assert.ok(section.operatorReview.reviewer, `${section.sectionId} should keep reviewer metadata`);
+    assert.ok(section.operatorReview.reviewedAt, `${section.sectionId} should keep review timestamp`);
+    if (!officialBlockIds.has(section.sectionId)) {
+      officialMetadataMissingSectionIds.push(section.sectionId);
+    }
+
+    const bounds = pathBounds(section.visualPath);
+    assert.ok(bounds.minX >= 0 && bounds.maxX <= dataset.image.width, `${section.sectionId} x bounds should fit reference image`);
+    assert.ok(bounds.minY >= 0 && bounds.maxY <= dataset.image.height, `${section.sectionId} y bounds should fit reference image`);
+    const [labelX, labelY] = section.labelPoint;
+    assert.ok(labelX >= 0 && labelX <= dataset.image.width, `${section.sectionId} label x should fit reference image`);
+    assert.ok(labelY >= 0 && labelY <= dataset.image.height, `${section.sectionId} label y should fit reference image`);
+  });
+
+  assert.equal(stageCounts.get('stage01'), 17);
+  assert.equal(stageCounts.get('stage02'), 22);
+  assert.equal(stageCounts.get('stage03'), 30);
+  assert.equal(stageCounts.get('stage04'), 9);
+  assert.deepEqual([...sectionIds].sort(), expectedVisibleSectionIds, 'operator reference should cover every image-analysis visible labeled section');
+  assert.deepEqual(
+    actualHitExpandedSectionIds.sort(),
+    expectedHitExpandedSectionIds,
+    'operator reference touch hitPath expansion should stay limited to topology-approved small sections',
+  );
+  assert.deepEqual(
+    officialMetadataMissingSectionIds,
+    ['323', '322', '921'],
+    'reference-only sections should not be added to official production SAJIK_BLOCKS',
+  );
+  assert.deepEqual(
+    SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES.map((override) => override.sectionId),
+    officialMetadataMissingSectionIds,
+    'reference-only sections should have explicit preview metadata overrides before promotion preview',
+  );
+
+  const markerIds = new Set<string>();
+  const linkedSelectableMarkerIds = new Set([
+    'stage02-wheelchair-01',
+    'stage02-wheelchair-03',
+    'stage02-wheelchair-04',
+    'stage02-wheelchair-09',
+    'stage03-wheelchair-01',
+    'stage03-wheelchair-02',
+    'stage03-wheelchair-04',
+    'stage03-wheelchair-05',
+  ]);
+  const expectedMarkerSectionIds = new Map<string, string>([
+    ['stage02-wheelchair-01', '137'],
+    ['stage02-wheelchair-02', '127'],
+    ['stage02-wheelchair-03', '125'],
+    ['stage02-wheelchair-04', '135'],
+    ['stage02-wheelchair-05', '124'],
+    ['stage02-wheelchair-06', '133'],
+    ['stage02-wheelchair-07', '123'],
+    ['stage02-wheelchair-08', '122'],
+    ['stage02-wheelchair-09', '132'],
+    ['stage03-wheelchair-01', '325'],
+    ['stage03-wheelchair-02', '335'],
+    ['stage03-wheelchair-03', '324'],
+    ['stage03-wheelchair-04', '333'],
+    ['stage03-wheelchair-05', '323'],
+  ]);
+  dataset.markers.forEach((marker) => {
+    assert.ok(!markerIds.has(marker.markerId), `${marker.markerId} should be unique in operator reference marker dataset`);
+    markerIds.add(marker.markerId);
+    assert.equal(marker.markerType, 'WHEELCHAIR');
+    const expectedInteractionStatus = linkedSelectableMarkerIds.has(marker.markerId)
+      ? 'LINKED_SECTION_SELECTABLE'
+      : 'DISPLAY_ONLY';
+    assert.equal(marker.markerInteractionStatus, expectedInteractionStatus, `${marker.markerId} interaction policy should match operator approval`);
+    assert.equal(marker.enabled, linkedSelectableMarkerIds.has(marker.markerId), `${marker.markerId} enabled flag should follow marker interaction policy`);
+    assert.equal(marker.source, 'IMAGE_ANALYSIS_COMPONENT');
+    assert.equal(marker.relatedSectionId, expectedMarkerSectionIds.get(marker.markerId), `${marker.markerId} should keep its image-analysis related section`);
+    assert.ok(sectionIds.has(marker.relatedSectionId), `${marker.markerId} relatedSectionId should exist in reference sections`);
+    const [x, y] = marker.position;
+    assert.ok(x >= 0 && x <= dataset.image.width, `${marker.markerId} x should fit reference image`);
+    assert.ok(y >= 0 && y <= dataset.image.height, `${marker.markerId} y should fit reference image`);
+    const containingSections = dataset.sections.filter((section) => pointInPolygon([x, y], section.visualPolygon));
+    assert.equal(
+      containingSections.length,
+      1,
+      `${marker.markerId} marker point should be covered by exactly one continuous seat polygon after marker-layer split`,
+    );
+    assert.equal(containingSections[0].sectionId, marker.relatedSectionId, `${marker.markerId} relatedSectionId should match containing section`);
+  });
+  assert.equal(markerIds.size, expectedMarkerSectionIds.size);
 });
 
 test('사직 공식 asset 파일과 데이터 상태는 함께 전환되어야 한다', () => {
@@ -115,6 +333,315 @@ test('사직 공식 asset 파일과 데이터 상태는 함께 전환되어야 �
       '승인된 사직 좌석도 asset 파일이 추가되면 assetStatus를 OFFICIAL로 바꾸고 블록 좌표를 수동 입력해야 한다',
     );
   }
+});
+
+test('사직 고해상도 source audit는 수동 후보만 검증하고 런타임 hotlink를 막는다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-source-audit.mjs'), 'utf8');
+
+  assert.match(packageJson, /"stadium:sajik:source-audit": "node scripts\/sajik-seatmap-source-audit\.mjs"/);
+  assert.match(scriptSource, /OFFICIAL_PUBLIC_CANDIDATE_URLS/);
+  assert.match(scriptSource, /giantsclub\.com/);
+  assert.match(scriptSource, /ticketlink\.co\.kr/);
+  assert.match(scriptSource, /sj_info_bg@2x\.jpg/);
+  assert.match(scriptSource, /sj_info_bg_original\.jpg/);
+  assert.match(scriptSource, /FALLBACK_HTML_NOT_IMAGE_ASSET/);
+  assert.match(scriptSource, /NOT_HIGH_RESOLUTION_SOURCE/);
+  assert.match(scriptSource, /OPERATOR_SOURCE_LABEL_REQUIRED/);
+  assert.match(scriptSource, /APPROVED_FOR_STATIC_IMPORT/);
+  assert.match(scriptSource, /acceptsRuntimeHotlink: false/);
+  assert.doesNotMatch(scriptSource, /puppeteer|playwright|cheerio|crawl|scrap/i);
+});
+
+test('사직 operator reference visible section audit는 이미지 분석 후보 78개 누락을 막는다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(packageScripts['stadium:sajik:operator-reference-visible-section-audit'], 'node scripts/sajik-seatmap-operator-reference.mjs operator-reference-visible-section-audit');
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-visible-section-audit/);
+  assert.match(scriptSource, /PASS_VISIBLE_SECTION_AUDIT/);
+  assert.match(scriptSource, /expectedVisibleSectionCount: 78/);
+  assert.match(scriptSource, /Grey\/unlabeled structural bands/);
+});
+
+test('사직 operator reference marker policy audit는 접근성 marker 표시/선택 정책을 고정한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-marker-policy-audit'],
+    'node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-marker-policy-audit',
+  );
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-marker-policy-audit/);
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_MARKER_POLICY_AUDIT_V1/);
+  assert.match(scriptSource, /PASS_MARKER_POLICY_AUDIT/);
+  assert.match(scriptSource, /EXPECTED_MARKER_COUNT = 14/);
+  assert.match(scriptSource, /EXPECTED_LINKED_SELECTABLE_MARKER_IDS = \[/);
+  assert.match(scriptSource, /stage02-wheelchair-01/);
+  assert.match(scriptSource, /stage02-wheelchair-03/);
+  assert.match(scriptSource, /stage02-wheelchair-04/);
+  assert.match(scriptSource, /stage02-wheelchair-09/);
+  assert.match(scriptSource, /stage03-wheelchair-01/);
+  assert.match(scriptSource, /stage03-wheelchair-02/);
+  assert.match(scriptSource, /stage03-wheelchair-04/);
+  assert.match(scriptSource, /stage03-wheelchair-05/);
+  assert.match(scriptSource, /EXPECTED_MARKER_INTERACTION_STATUS = 'DISPLAY_ONLY'/);
+  assert.match(scriptSource, /seatPolygonLayer: 'EXCLUDED'/);
+  assert.match(scriptSource, /linkedSelectionBehavior: 'SELECT_RELATED_SECTION'/);
+  assert.match(scriptSource, /linkedSelectionRequiresOperatorApproval: true/);
+});
+
+test('사직 operator reference marker link readiness는 남은 marker 승격 후보를 분리한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-marker-link-readiness'],
+    'node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-marker-link-readiness',
+  );
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_MARKER_LINK_READINESS_V1/);
+  assert.match(scriptSource, /PASS_MARKER_LINK_READINESS/);
+  assert.match(scriptSource, /POINTER_HIT_RADIUS_PX = 26/);
+  assert.match(scriptSource, /MIN_RELATED_BOUNDARY_MARGIN_PX = 15/);
+  assert.match(scriptSource, /READY_FOR_LINKING/);
+  assert.match(scriptSource, /NEEDS_BOUNDARY_REVIEW/);
+  assert.match(scriptSource, /recommendedBatchA/);
+});
+
+test('사직 operator reference marker boundary review는 남은 6개 marker evidence를 생성한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-marker-boundary-review'],
+    'node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-marker-boundary-review',
+  );
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_MARKER_BOUNDARY_REVIEW_V1/);
+  assert.match(scriptSource, /PASS_MARKER_BOUNDARY_REVIEW_EVIDENCE/);
+  assert.match(scriptSource, /TARGET_MARKER_IDS = \[/);
+  assert.match(scriptSource, /stage02-wheelchair-02/);
+  assert.match(scriptSource, /stage02-wheelchair-05/);
+  assert.match(scriptSource, /stage02-wheelchair-06/);
+  assert.match(scriptSource, /stage02-wheelchair-07/);
+  assert.match(scriptSource, /stage02-wheelchair-08/);
+  assert.match(scriptSource, /stage03-wheelchair-03/);
+  assert.match(scriptSource, /APPROVE_LINK/);
+  assert.match(scriptSource, /KEEP_DISPLAY_ONLY/);
+  assert.match(scriptSource, /REMAP_RELATED_SECTION/);
+  assert.match(scriptSource, /NEEDS_RETRACE/);
+  assert.match(scriptSource, /operator-reference-marker-boundary-review\.md/);
+});
+
+test('사직 operator reference target trace review는 127/133/143/132/142 이미지 분석 재검수를 고정한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+  const closeoutScriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review'],
+    'npm run stadium:sajik:operator-reference-trace:stage02 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-trace:stage01'],
+    'node scripts/sajik-seatmap-operator-reference.mjs operator-reference-trace-candidates --stage stage01',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage01-pink-inner'],
+    'npm run stadium:sajik:operator-reference-trace:stage01 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage01-pink-inner',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage01-red-lower'],
+    'npm run stadium:sajik:operator-reference-trace:stage01 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage01-red-lower',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage03'],
+    'npm run stadium:sajik:operator-reference-trace:stage03 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage03',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage03-lower-outer'],
+    'npm run stadium:sajik:operator-reference-trace:stage03 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage03-lower-outer',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage03-upper-outer'],
+    'npm run stadium:sajik:operator-reference-trace:stage03 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage03-upper-outer',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage03-middle-inner'],
+    'npm run stadium:sajik:operator-reference-trace:stage03 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage03-middle-inner',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage03-closeout'],
+    'npm run stadium:sajik:operator-reference-trace:stage03 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage03-closeout',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage04'],
+    'npm run stadium:sajik:operator-reference-trace:stage04 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage04',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage02-marker-adjacent'],
+    'npm run stadium:sajik:operator-reference-trace:stage02 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage02-marker-adjacent',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage02-middle'],
+    'npm run stadium:sajik:operator-reference-trace:stage02 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage02-middle',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-target-trace-review:stage02-yellow-lower'],
+    'npm run stadium:sajik:operator-reference-trace:stage02 && node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-target-trace-review --stage stage02-yellow-lower',
+  );
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-trace-coverage-closeout'],
+    'node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-trace-coverage-closeout',
+  );
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-marker-boundary-review/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage01-pink-inner/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage01-red-lower/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage02-marker-adjacent/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage02-middle/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage02-yellow-lower/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage03/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage03-lower-outer/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage03-upper-outer/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage03-middle-inner/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage03-closeout/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-target-trace-review:stage04/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-trace-coverage-closeout/);
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_TARGET_TRACE_REVIEW_V1/);
+  assert.match(scriptSource, /stage01-lower-central-candidates\.json/);
+  assert.match(scriptSource, /targetSectionIds: \['021', '022', '023', '024', '031', '032', '033', '034', '041', '044'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['051', '052', '053', '054', '055', '056', '057'\]/);
+  assert.match(scriptSource, /stage02-first-base-candidates\.json/);
+  assert.match(scriptSource, /targetSectionIds: \['127', '133', '143', '132', '142'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['137', '125', '135', '124', '123', '122'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['116', '126', '136', '115', '114', '134'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['113', '112', '111', '121', '131'\]/);
+  assert.match(scriptSource, /stage03-third-base-candidates\.json/);
+  assert.match(scriptSource, /targetSectionIds: \['325', '335', '324', '333', '323'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['314', '334', '343', '322', '321', '331', '342'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['734', '724', '733', '723', '732', '722', '721', '338', '337', '327'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['316', '326', '336', '315', '313', '312', '311'\]/);
+  assert.match(scriptSource, /targetSectionIds: \['332'\]/);
+  assert.match(scriptSource, /stage04-right-outfield-candidates\.json/);
+  assert.match(scriptSource, /targetSectionIds: \['925', '934', '924', '933', '923', '932', '922', '931', '921'\]/);
+  assert.match(scriptSource, /LOCK_CURRENT_TRACE/);
+  assert.match(scriptSource, /LOCK_CONTINUOUS_MARKER_SPLIT_TRACE/);
+  assert.match(scriptSource, /LOCK_SIMPLIFIED_TRACE/);
+  assert.match(scriptSource, /NEEDS_COORDINATE_PATCH/);
+  assert.match(scriptSource, /continuousMarkerSplitSectionIds: \['127'\]/);
+  assert.match(scriptSource, /continuousMarkerSplitSectionIds: \['123', '122'\]/);
+  assert.match(scriptSource, /continuousMarkerSplitSectionIds: \['324'\]/);
+  assert.match(scriptSource, /simplifiedTraceSectionIds: \['041', '044'\]/);
+  assert.match(scriptSource, /simplifiedTraceSectionIds: \['923'\]/);
+  assert.match(scriptSource, /operator-reference-stage01-pink-inner-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage01-red-lower-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-target-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage02-marker-adjacent-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage02-middle-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage02-yellow-lower-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage03-target-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage03-lower-outer-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage03-upper-outer-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage03-middle-inner-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage03-closeout-trace-review\.md/);
+  assert.match(scriptSource, /operator-reference-stage04-right-outfield-trace-review\.md/);
+  assert.match(closeoutScriptSource, /SAJIK_OPERATOR_REFERENCE_TRACE_COVERAGE_CLOSEOUT_V1/);
+  assert.match(closeoutScriptSource, /PASS_TRACE_COVERAGE_CLOSEOUT/);
+  assert.match(closeoutScriptSource, /EXPECTED_COVERED_SECTION_COUNT = 78/);
+  assert.match(closeoutScriptSource, /operator-reference-stage01-pink-inner-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage01-red-lower-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-target-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage02-marker-adjacent-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage02-middle-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage02-yellow-lower-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage03-target-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage03-lower-outer-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage03-upper-outer-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage03-middle-inner-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage03-closeout-trace-review\.json/);
+  assert.match(closeoutScriptSource, /operator-reference-stage04-right-outfield-trace-review\.json/);
+  assert.match(closeoutScriptSource, /MISSING_SECTIONS/);
+  assert.match(closeoutScriptSource, /DUPLICATE_REVIEW_SECTION/);
+  assert.match(closeoutScriptSource, /NEEDS_COORDINATE_PATCH/);
+});
+
+test('사직 operator reference promotion readiness는 primary source 계약을 고정한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-promotion-readiness'],
+    'node --import tsx scripts/sajik-seatmap-operator-reference.mjs operator-reference-promotion-readiness',
+  );
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-approved'], /operator-reference-promotion-readiness/);
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_PRIMARY_SOURCE_READINESS_V1/);
+  assert.match(scriptSource, /PASS_PRIMARY_SOURCE_READINESS/);
+  assert.match(scriptSource, /PRIMARY_SOURCE_ACTIVE/);
+  assert.match(scriptSource, /APPROVED_BY_OPERATOR_REQUEST/);
+  assert.match(scriptSource, /autoPromotionAllowed: false/);
+  assert.match(scriptSource, /SAJIK_DEFAULT_SEATMAP_SOURCE_ID !== 'OPERATOR_REFERENCE_2026'/);
+  assert.match(scriptSource, /PRODUCTION_INTERACTIVE/);
+  assert.match(scriptSource, /EXPECTED_SECTION_COUNT = 78/);
+  assert.match(scriptSource, /EXPECTED_MARKER_COUNT = 14/);
+  assert.match(scriptSource, /operator-reference-trace-coverage-closeout\.json/);
+  assert.match(scriptSource, /PASS_TRACE_COVERAGE_CLOSEOUT/);
+  assert.match(scriptSource, /EXPECTED_TRACE_COVERAGE_REPORT_COUNT = 12/);
+  assert.match(scriptSource, /EXPECTED_TRACE_COVERAGE_DECISIONS = \{/);
+  assert.match(scriptSource, /LOCK_CURRENT_TRACE: 71/);
+  assert.match(scriptSource, /LOCK_SIMPLIFIED_TRACE: 3/);
+  assert.match(scriptSource, /LOCK_CONTINUOUS_MARKER_SPLIT_TRACE: 4/);
+  assert.match(scriptSource, /TRACE_COVERAGE_COVERED/);
+  assert.match(scriptSource, /TRACE_COVERAGE_DECISIONS_CHANGED/);
+  assert.match(scriptSource, /traceCoverage: \{/);
+  assert.match(scriptSource, /EXPECTED_LINKED_SELECTABLE_MARKER_IDS = \[/);
+  assert.match(scriptSource, /stage02-wheelchair-03/);
+  assert.match(scriptSource, /stage02-wheelchair-04/);
+  assert.match(scriptSource, /stage02-wheelchair-09/);
+  assert.match(scriptSource, /stage03-wheelchair-01/);
+  assert.match(scriptSource, /stage03-wheelchair-02/);
+  assert.match(scriptSource, /stage03-wheelchair-04/);
+  assert.match(scriptSource, /DISPLAY_ONLY_MARKER_COUNT/);
+  assert.match(scriptSource, /remaining 6 wheelchair image components/);
+  assert.match(scriptSource, /EXPECTED_REFERENCE_ONLY_SECTION_IDS = \['322', '323', '921'\]/);
+  assert.match(scriptSource, /LINKED_SELECTABLE_MARKER_IDS_CHANGED/);
+  assert.doesNotMatch(scriptSource, /Approve replacing LOTTE_OFFICIAL_2026 as the default Sajik map source/);
+});
+
+test('사직 operator reference scope audit는 PR staging 범위를 분리한다', () => {
+  const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+  const packageScripts = JSON.parse(packageJson).scripts as Record<string, string>;
+  const scriptSource = readFileSync(resolve(process.cwd(), 'scripts/sajik-seatmap-operator-reference.mjs'), 'utf8');
+
+  assert.equal(
+    packageScripts['stadium:sajik:operator-reference-scope-audit'],
+    'node scripts/sajik-seatmap-operator-reference.mjs operator-reference-scope-audit',
+  );
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-release'], /operator-reference-scope-audit/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-release'], /operator-reference-approved/);
+  assert.match(packageScripts['qa:stadium:sajik:operator-reference-release'], /operator-reference-interactive-preview/);
+  assert.match(scriptSource, /SAJIK_OPERATOR_REFERENCE_SCOPE_AUDIT_V1/);
+  assert.match(scriptSource, /PASS_OPERATOR_REFERENCE_SCOPE_AUDIT/);
+  assert.match(scriptSource, /BLOCKED_OPERATOR_REFERENCE_SCOPE_AUDIT/);
+  assert.match(scriptSource, /OPERATOR_REFERENCE_2026/);
+  assert.match(scriptSource, /BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1/);
+  assert.match(scriptSource, /sajik-seatmap-operator-reference-2026\.png/);
+  assert.match(scriptSource, /sajikOperatorReferenceSeatMapDataset\.ts/);
+  assert.match(scriptSource, /operator-reference-scope-audit\.json/);
+  assert.match(scriptSource, /operator-reference-scope-audit\.md/);
+  assert.match(scriptSource, /doesNotRunGitAdd: true/);
+  assert.match(scriptSource, /safeToRunBulkGitAdd: false/);
+  assert.match(scriptSource, /requiresManualHunkReview: true/);
+  assert.match(scriptSource, /git add \./);
+  assert.match(scriptSource, /git add package\.json/);
+  assert.match(scriptSource, /src\/components\/CoachBriefingContentCardRuntime\.tsx/);
+  assert.match(scriptSource, /reports\/stadium\/sajik-operator-reference-trace/);
+  assert.match(scriptSource, /STADIUM_UX_SAJIK_OPERATOR_REFERENCE_PREVIEW_CHECK/);
 });
 
 test('사직 좌석 카테고리는 공식 좌석도의 핵심 구역명을 보존한다', () => {
@@ -273,6 +800,12 @@ test('사직 JSON dataset export 모델은 editor/export 계약을 보존한다'
     sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
     sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
   });
+  assert.equal(dataset.image.renderImagePath, SAJIK_SEATMAP_IMAGE.renderImagePath);
+  assert.equal(dataset.image.renderImageSha256, SAJIK_SEATMAP_IMAGE.renderImageSha256);
+  assert.equal(dataset.image.renderImageNaturalWidth, SAJIK_SEATMAP_IMAGE.renderImageNaturalWidth);
+  assert.equal(dataset.image.renderImageNaturalHeight, SAJIK_SEATMAP_IMAGE.renderImageNaturalHeight);
+  assert.equal(dataset.image.renderImageSourceUrl, SAJIK_SEATMAP_IMAGE.renderImageSourceUrl);
+  assert.equal(dataset.image.renderImageSourceLabel, SAJIK_SEATMAP_IMAGE.renderImageSourceLabel);
   assert.deepEqual(dataset.summary, {
     totalSections: 89,
     enabledSections: 87,
@@ -445,8 +978,8 @@ test('사직 alignment audit 기준값과 041 정정 alias를 고정한다', () 
   const retraced143 = SAJIK_BLOCKS.find((block) => block.block === '143');
   assert.ok(retraced143, '143 should remain explicit');
   assert.equal(retraced143.mapInteractionStatus, 'MAP_SELECTABLE');
-  assert.equal(pathToPoints(retraced143.imageGeometry.d).length, 10);
-  assert.deepEqual(pathBounds(retraced143.imageGeometry.d), { minX: 779, minY: 458, maxX: 813, maxY: 481 });
+  assert.equal(pathToPoints(retraced143.imageGeometry.d).length, 12);
+  assert.deepEqual(pathBounds(retraced143.imageGeometry.d), { minX: 779, minY: 458, maxX: 814, maxY: 482 });
 
   const central041 = SAJIK_BLOCKS.find((block) => block.block === '041');
   assert.ok(central041, '041 block should exist from official PNG');
@@ -510,7 +1043,7 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
       isPointInsidePolygon(
         block.imageGeometry.labelX,
         block.imageGeometry.labelY,
-        pathToPoints(candidate.imageGeometry.hitPath),
+        pathToPoints(candidate.imageGeometry.hitPath ?? ''),
       )
     ));
 
@@ -525,7 +1058,7 @@ test('사직 label 좌표 클릭은 최상위 polygon hit target과 일치한다
         isPointInsidePolygon(
           block.imageGeometry.labelX,
           block.imageGeometry.labelY,
-          pathToPoints(candidate.imageGeometry.hitPath),
+          pathToPoints(candidate.imageGeometry.hitPath ?? ''),
         )
       ));
       assert.notEqual(hits.at(-1)?.id, block.id, `${block.id} should not be selectable from the map hit stack`);

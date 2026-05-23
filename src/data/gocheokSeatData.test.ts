@@ -287,7 +287,7 @@ test('고척 시설현황 guide는 공식 정적 안내 정보이며 좌석 hit-
   assert.equal(guide.floorImages.length, 3);
   assert.ok(guide.openLicenseLabel.includes('공공누리'));
   assert.ok(guide.implementationNote.includes('정적 공식 안내 자료'));
-  assert.equal('imageGeometry' in (guide as Record<string, unknown>), false);
+  assert.equal('imageGeometry' in (guide as unknown as Record<string, unknown>), false);
 });
 
 test('고척 블록 데이터는 중복 id와 중복 공식 블록을 갖지 않는다', () => {

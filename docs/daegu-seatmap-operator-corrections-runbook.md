@@ -11,11 +11,11 @@
 
 - 공식 PNG 좌표계: `1707x2048`
 - 전체 블록: `177`
-- `LOCKED_VERIFIED`: `80`
-- 운영자 handoff 대상: `97`
-- 현재 approved rows: `0`
-- 현재 production write 상태: `readyForWrite=false`
-- 현재 blocker: `NO_APPROVED_OPERATOR_CORRECTIONS`
+- `LOCKED_VERIFIED`: `174`
+- classified release rows: `3` (`MR-10`, `M-10`, `12`)
+- unresolved selectable seat polygon rows: `0`
+- 현재 release lock: `PASS_RELEASE_177`
+- 분류 정책: `MR-10`/`M-10`은 독립 공식 좌석 component 미확인으로 selectable seat layer에서 제외하고, `12`는 좌석 polygon이 아닌 wayfinding marker로 분리한다.
 
 ## 통과 기준 재정의
 
@@ -26,7 +26,7 @@
 | `PASS_WORKFLOW` | 스크립트와 데이터 계약이 실행 가능하다. polygon 정밀화 완료가 아니다. |
 | `PASS_LOCKED_80` | 현재 공식 traced baseline 80개만 label/top-hit 등 기본 검증을 통과했다. 나머지 97개는 미해결이다. |
 | `PASS_UI_CONTAINMENT` | 미검수 97개 seat polygon은 일반 사용자 UI에서 숨겨지고 debug review overlay로만 노출된다. release 완료가 아니다. |
-| `PASS_RELEASE_177` | 177개 전체가 operator 승인, official PNG 정렬, 중복/overlap/label top-hit 검증을 통과했다. 이 상태만 정밀화 완료다. |
+| `PASS_RELEASE_177` | 177개 inventory 전체가 해결됐다. 공식 좌석 polygon은 official PNG 정렬, 중복/overlap/label top-hit 검증을 통과하고, non-seat/policy-excluded row는 selectable seat layer에서 제외된 분류 lock 상태다. |
 
 정밀 audit는 아래 명령으로 생성한다.
 
@@ -42,7 +42,7 @@ npm run stadium:daegu:precision-audit
 npm run stadium:daegu:render-safety-audit
 ```
 
-이 명령은 `precision-audit`를 먼저 갱신하고 `reports/stadium/daegu-seatmap-render-safety-audit.json`, `.csv`, `.md`, `.svg`를 생성한다. `PASS_UI_CONTAINMENT`는 미검수 polygon 노출 차단 기준이며, `PASS_RELEASE_177`을 대체하지 않는다.
+이 명령은 `precision-audit`를 먼저 갱신하고 `reports/stadium/daegu-seatmap-render-safety-audit.json`, `.csv`, `.md`, `.svg`를 생성한다. `PASS_UI_CONTAINMENT`는 미검수 polygon 노출 차단 기준이며, `PASS_RELEASE_177`은 visual match와 classified row lock까지 충족한 상태에서만 사용한다.
 
 구역별 정밀화 작업 순서와 workset은 아래 명령으로 고정한다.
 
@@ -60,7 +60,7 @@ npm run stadium:daegu:zone-precision-worksets
 npm run qa:stadium:daegu:release-lock
 ```
 
-`qa:stadium:daegu:release-lock`은 `PASS_RELEASE_177`이 아니면 실패한다. 현재 기준 97개 미해결 row가 남아 있으므로 release lock은 실패하는 것이 정상이다.
+`qa:stadium:daegu:release-lock`은 `PASS_RELEASE_177`이 아니면 실패한다. 현재 기준 release lock은 174개 official seat polygon과 3개 classified row를 합산해 177개 inventory resolved 상태로 통과한다.
 
 현재 상태는 다음 리포트에서 확인한다.
 

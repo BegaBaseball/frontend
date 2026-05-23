@@ -31,7 +31,7 @@ const installDeferredWorkWindow = () => {
     },
   } as unknown as Window;
 
-  mutableGlobal.window = fakeWindow;
+  (mutableGlobal as { window?: Window }).window = fakeWindow;
 
   return {
     flushAnimationFrame: () => {
