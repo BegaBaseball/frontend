@@ -9,15 +9,18 @@ const LazyCoachAnalysisDialog = lazy(() => import('./CoachAnalysisDialog'));
 
 type CoachAnalysisDialogLauncherProps = Omit<CoachAnalysisDialogProps, 'trigger' | 'defaultOpen'> & {
   buttonLabel: string;
+  fullWidth?: boolean;
 };
 
 function CoachAnalysisTriggerButton({
   buttonLabel,
   disabled = false,
+  fullWidth = false,
   onClick,
 }: {
   buttonLabel: string;
   disabled?: boolean;
+  fullWidth?: boolean;
   onClick?: ComponentProps<typeof Button>['onClick'];
 }) {
   return (
@@ -26,14 +29,14 @@ function CoachAnalysisTriggerButton({
       data-testid="coach-analysis-open"
       disabled={disabled}
       onClick={onClick}
-      className="w-full md:w-auto h-10 bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm disabled:opacity-100"
+      className={`${fullWidth ? 'w-full h-12' : 'w-full md:w-auto h-10'} bg-emerald-950 hover:bg-emerald-900 text-emerald-50 border border-emerald-700/60 rounded-xl shadow-sm disabled:opacity-100`}
     >
       {disabled ? (
         <PredictionLoaderIcon className="w-4 h-4 mr-2 text-emerald-50 animate-spin" />
       ) : (
         <PredictionZapIcon className="w-4 h-4 mr-2 text-emerald-50" />
       )}
-      <span className="text-[16px] font-semibold">
+      <span className={`${fullWidth ? 'text-[15px] font-bold' : 'text-[16px] font-semibold'}`}>
         {disabled ? '분석 도구 준비 중...' : buttonLabel}
       </span>
     </Button>
@@ -42,6 +45,7 @@ function CoachAnalysisTriggerButton({
 
 export default function CoachAnalysisDialogLauncher({
   buttonLabel,
+  fullWidth = false,
   ...dialogProps
 }: CoachAnalysisDialogLauncherProps) {
   const [hasRequestedDialog, setHasRequestedDialog] = useState(false);
@@ -50,17 +54,18 @@ export default function CoachAnalysisDialogLauncher({
     return (
       <CoachAnalysisTriggerButton
         buttonLabel={buttonLabel}
+        fullWidth={fullWidth}
         onClick={() => setHasRequestedDialog(true)}
       />
     );
   }
 
   return (
-    <Suspense fallback={<CoachAnalysisTriggerButton buttonLabel={buttonLabel} disabled />}>
+    <Suspense fallback={<CoachAnalysisTriggerButton buttonLabel={buttonLabel} fullWidth={fullWidth} disabled />}>
       <LazyCoachAnalysisDialog
         {...dialogProps}
         defaultOpen
-        trigger={<CoachAnalysisTriggerButton buttonLabel={buttonLabel} />}
+        trigger={<CoachAnalysisTriggerButton buttonLabel={buttonLabel} fullWidth={fullWidth} />}
       />
     </Suspense>
   );
