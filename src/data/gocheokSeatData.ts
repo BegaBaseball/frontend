@@ -98,6 +98,9 @@ export interface GocheokCategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
+  levels?: string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 export type GocheokTraceReviewPriority = 'DONE' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
@@ -134,14 +137,14 @@ const GOCHEOK_SISUL_SEATMAP_URL = 'https://www.sisul.or.kr/open_content/skydome/
 const GOCHEOK_SISUL_FACILITY_URL = 'https://www.sisul.or.kr/open_content/skydome/introduce/facility.jsp';
 
 export const GOCHEOK_SEATMAP_IMAGE: GocheokSeatMapImage = {
-  imagePath: 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp',
   imageWidth: 653,
   imageHeight: 960,
   imageSha256: 'c3e44086682b21f23179cf438fab4f6bd9bcc9b92152bb572f0887b5f122f528',
   sourceLabel: '서울시설공단 공식 고척스카이돔 좌석배치도',
   sourceUrl: GOCHEOK_SISUL_SEATMAP_URL,
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'gocheok-kiwoom-seatmap-official-2026.png',
+  requiredAssetFileName: 'gocheok-kiwoom-seatmap-official-2026.webp',
 };
 
 export const GOCHEOK_SEATMAP_VIEW_BOX = `0 0 ${GOCHEOK_SEATMAP_IMAGE.imageWidth} ${GOCHEOK_SEATMAP_IMAGE.imageHeight}` as const;
@@ -255,12 +258,24 @@ export const GOCHEOK_CATEGORIES: Record<string, GocheokCategory> = {
 };
 
 export const GOCHEOK_CATEGORY_GROUPS: GocheokCategoryGroup[] = [
-  { id: 'all', label: '전체', cats: null },
-  { id: 'premium', label: '프리미엄/테이블', cats: ['DIAMOND', 'TABLE'] },
-  { id: 'infield', label: '내야석', cats: ['SKY_BLUE', 'BURGUNDY', 'GOLD'] },
-  { id: 'cheer', label: '응원석', cats: ['BURGUNDY'] },
-  { id: 'outfield', label: '외야석', cats: ['OUTFIELD'] },
-  { id: 'accessible', label: '휠체어석', cats: ['ACCESSIBLE'] },
+  // 층수별 (메인 필터 — 항상 노출)
+  { id: 'all',       label: '전체',   cats: null,                              filterDimension: 'level' },
+  { id: 'lv-1f',    label: '1층',    cats: null, levels: ['1F'],              filterDimension: 'level' },
+  { id: 'lv-2f',    label: '2층',    cats: null, levels: ['2F'],              filterDimension: 'level' },
+  { id: 'lv-3f',    label: '3층',    cats: null, levels: ['3F'],              filterDimension: 'level' },
+  { id: 'lv-4f',    label: '4층',    cats: null, levels: ['4F'],              filterDimension: 'level' },
+  { id: 'lv-out',   label: '외야층', cats: null, levels: ['OUTFIELD'],        filterDimension: 'level' },
+  // 등급별 (보조 필터 — 기본 접힘)
+  { id: 'premium',   label: '프리미엄/테이블', cats: ['DIAMOND', 'TABLE'],     filterDimension: 'grade' },
+  { id: 'infield',   label: '내야석',          cats: ['SKY_BLUE', 'BURGUNDY', 'GOLD'], filterDimension: 'grade' },
+  { id: 'cheer',     label: '응원석',          cats: ['BURGUNDY'],             filterDimension: 'grade' },
+  { id: 'outfield',  label: '외야석',          cats: ['OUTFIELD'],             filterDimension: 'grade' },
+  { id: 'accessible',label: '휠체어석',        cats: ['ACCESSIBLE'],           filterDimension: 'grade' },
+  // 위치별 (보조 필터 — 기본 접힘)
+  { id: 'pos-first',  label: '1루 측', cats: null, sides: ['FIRST_BASE'],     filterDimension: 'position' },
+  { id: 'pos-third',  label: '3루 측', cats: null, sides: ['THIRD_BASE'],     filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙',   cats: null, sides: ['CENTER'],         filterDimension: 'position' },
+  { id: 'pos-out',    label: '외야',   cats: null, sides: ['OUTFIELD'],       filterDimension: 'position' },
 ];
 
 export const GOCHEOK_VIEW_INFO: Record<string, GocheokViewInfo> = {

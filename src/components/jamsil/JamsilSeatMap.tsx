@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   JAMSIL_BLOCKS,
   JAMSIL_CATEGORIES,
@@ -77,14 +77,24 @@ export default function JamsilSeatMap() {
     hoveredSection: activeHoveredSection,
     filterId,
     setFilterId,
+    filterCats,
     toast,
     showToast,
+    filterSides,
+    filterLevels,
   } = useSeatMapSelectionState({
     sections: JAMSIL_BLOCKS,
     filterGroups: JAMSIL_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
+    isSectionVisible: (block, filterGroup, cats) => {
+      if (cats !== null && !cats.includes(block.category)) return false;
+      if (filterGroup?.sides != null && !filterGroup.sides.includes(block.side)) return false;
+      if (filterGroup?.levels != null && !filterGroup.levels.includes(block.level)) return false;
+      return true;
+    },
   });
+
   const {
     isMobile,
     isFullscreenOpen,

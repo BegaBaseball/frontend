@@ -178,6 +178,15 @@ describe('Stadium Guide Quality Flow', () => {
   const categoryButton = (label: string) =>
     desktopPanels().contains('button', label).should('be.visible');
 
+  const mobilePanels = () =>
+    cy.get('[data-testid="stadium-guide-mobile-panels"]').should('be.visible');
+
+  const mobilePlacesPanel = () =>
+    mobilePanels().find('[data-testid="stadium-guide-places-panel"]').should('be.visible');
+
+  const mobileCategoryButton = (label: string) =>
+    mobilePanels().contains('button', label).should('be.visible');
+
   const searchInput = () =>
     placesPanel().find('input[placeholder="장소 이름 검색..."]').should('be.visible');
 
@@ -427,5 +436,56 @@ describe('Stadium Guide Quality Flow', () => {
       .its('sessionStorage')
       .invoke('getItem', 'pendingLoginRedirect')
       .should('eq', '/mypage');
+  });
+
+  it('모바일에서 카드 탭 → 주소 상세 정보가 펼쳐지고 재탭 시 닫힌다', () => {
+    cy.viewport(375, 812);
+    interceptGuestSession();
+    interceptBaseStadiumApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getFoodPlaces');
+
+    // id:101 통밥 — address: '서울 송파구 올림픽로 25'
+    mobilePlacesPanel().find('[id="place-101"]').as('card');
+
+    // 기본 상태: 주소 숨김(hidden sm:block)
+    cy.get('@card').contains('📍').should('not.be.visible');
+
+    // 탭 → expand
+    cy.get('@card').find('.flex-1').click();
+    cy.get('@card').contains('📍').should('be.visible');
+    cy.get('@card').contains('서울 송파구 올림픽로 25').should('be.visible');
+    cy.screenshot('stadium-mobile-card-expanded');
+
+    // 재탭 → collapse
+    cy.get('@card').find('.flex-1').click();
+    cy.get('@card').contains('📍').should('not.be.visible');
+  });
+
+  it('카테고리 변경 시 expand 상태가 리셋된다', () => {
+    cy.viewport(375, 812);
+    interceptGuestSession();
+    interceptBaseStadiumApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getFoodPlaces');
+
+    // 카드 expand
+    mobilePlacesPanel().find('[id="place-101"]').as('card');
+    cy.get('@card').find('.flex-1').click();
+    cy.get('@card').contains('📍').should('be.visible');
+
+    // 배달픽업존으로 전환
+    mobileCategoryButton('배달픽업존').click();
+    cy.wait('@getDeliveryPlaces');
+    mobilePlacesPanel().contains('종합운동장역 6번 출구 픽업존').should('be.visible');
+
+    // 구장 먹거리로 복귀
+    mobileCategoryButton('구장 먹거리').click();
+    cy.wait('@getFoodPlaces');
+
+    // expand 상태 리셋 확인
+    mobilePlacesPanel().find('[id="place-101"]').contains('📍').should('not.be.visible');
   });
 });

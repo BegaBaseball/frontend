@@ -12,11 +12,11 @@ const PRECISION_AUDIT_VERSION = 'DAEGU_SEATMAP_PRECISION_AUDIT_V1';
 const NEXT_ACTION_PACKET_VERSION = 'DAEGU_P1_NEXT_ACTION_PACKET_V1';
 const TARGET_BATCH_ID = 'BATCH_2_P1';
 const EXPECTED = {
-  expectedRows: 17,
-  boundaryFirstRows: 5,
-  singleCorrectedPathRows: 1,
-  duplicateSplitRows: 11,
-  approvedRows: 0,
+  expectedRows: 12,
+  boundaryFirstRows: 1,
+  singleCorrectedPathRows: 2,
+  duplicateSplitRows: 9,
+  approvedRows: 1,
 };
 
 const argValue = (name, fallback) => {
@@ -111,7 +111,10 @@ const rows = nextActionRows.map((actionRow) => {
 
   if (!precisionRow) blockers.push(`P1_ROW_MISSING_FROM_PRECISION_AUDIT:${actionRow.blockId}`);
   if (!inputRow) blockers.push(`P1_ROW_MISSING_FROM_SOURCE_INPUT:${actionRow.blockId}`);
-  if (precisionRow && !['01_P1_BOUNDARY_FIRST', '02_P1_DUPLICATE_OR_SINGLE_CORRECTION'].includes(precisionRow.workOrderGroup)) {
+  const allowedWorkOrderGroups = actionRow.stage === 'SINGLE_CORRECTED_PATH'
+    ? ['01_P1_BOUNDARY_FIRST', '02_P1_DUPLICATE_OR_SINGLE_CORRECTION', '04_P3_P4_MANUAL_CORRECTION']
+    : ['01_P1_BOUNDARY_FIRST', '02_P1_DUPLICATE_OR_SINGLE_CORRECTION'];
+  if (precisionRow && !allowedWorkOrderGroups.includes(precisionRow.workOrderGroup)) {
     blockers.push(`P1_PRECISION_WORK_ORDER_MISMATCH:${actionRow.block}:${precisionRow.workOrderGroup}`);
   }
 

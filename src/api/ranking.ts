@@ -1,7 +1,7 @@
 import { getApiErrorStatus } from './errorStatus';
 import { privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
-import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest } from '../types/ranking';
+import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest, RankingPredictionInitResponse } from '../types/ranking';
 
 /**
  * 현재 예측 가능한 시즌 조회
@@ -27,6 +27,15 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
     }
     throw error;
   }
+};
+
+/**
+ * 현재 시즌 + 저장된 예측을 단일 요청으로 조회
+ */
+export const fetchRankingPredictionInit = async (): Promise<RankingPredictionInitResponse> => {
+  return privateGet<RankingPredictionInitResponse>('/predictions/ranking/init', {
+    skipAuthSessionHandling: true,
+  });
 };
 
 /**

@@ -5,6 +5,7 @@ This directory contains the approved Lotte Giants official Sajik Baseball Stadiu
 Runtime file:
 
 - `sajik-lotte-seatmap-official-2026.png`
+- `sajik-seatmap-operator-reference-2026.png` is the operator-provided 2026 primary reference image for the promoted `OPERATOR_REFERENCE_2026` polygon dataset.
 
 Source:
 
@@ -13,6 +14,14 @@ Source:
 - Stored file: PNG conversion of the official 960 x 640 source image
 
 Do not hotlink this asset from the runtime UI. The app bundles the local PNG and keeps Sajik seat map data static. Do not add runtime crawling, scraping, or web-search-based seat data collection.
+
+Operator reference metadata:
+
+- File: `sajik-seatmap-operator-reference-2026.png`
+- Size: `1151 x 1367`
+- SHA-256: `794d957510240c786f4fce821814afbf01cc1f93fe7ec3ecca23846a8d753f6f`
+- Source status: `OPERATOR_REFERENCE`
+- Polygon mapVersion: `BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1`
 
 ## Maintenance Checklist
 

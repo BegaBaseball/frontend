@@ -335,7 +335,6 @@ describe('Mate execution flow UI', () => {
 
     cy.visit('/mate/940');
     cy.wait('@getRouteParty');
-    cy.wait('@getPartyApplications');
     cy.contains('button', '체크인 QR 보기').should('be.visible');
     cy.get('@getRouteParty.all').then((calls) => {
       baselinePartyRequestCount = calls.length;

@@ -39,7 +39,7 @@ editor v1.8은 현재 `/internal/sajik-seatmap-editor` v1.7을 운영자가 실�
 
 ## v1.8 착수 전제
 
-- `npm run stadium:sajik:hitpath-review`가 `expanded=0`, `blockers=0`으로 통과해야 한다.
+- `npm run stadium:sajik:hitpath-review`가 `expanded=1`, `approvedHitPathExpansionSectionIds=032`, `blockers=0`으로 통과해야 한다.
 - `npm run stadium:sajik:marker-transition-review`가 `markerOnlyApplied=false`, `blockers=0`으로 통과해야 한다.
 - `npm run stadium:sajik:editor-regression`이 v1.7 계약을 먼저 통과해야 한다.
 - `npm run stadium:sajik:pr-scope-guard`가 v1.8 구현 파일을 이번 v2+ PR에 섞지 않아야 한다.

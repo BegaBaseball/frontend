@@ -24,7 +24,7 @@ import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
-import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 type GocheokGuideMode = 'seatmap' | 'facility';
 
@@ -54,11 +54,6 @@ const gocheokSectionAdapter: SeatMapSectionAdapter<GocheokBlock> = {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
-
-interface SeatMapPan {
-  x: number;
-  y: number;
-}
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
@@ -211,6 +206,8 @@ export default function GocheokSeatMap() {
     filterId,
     setFilterId,
     filterCats,
+    filterSides,
+    filterLevels,
     toast,
     showToast,
   } = useSeatMapSelectionState({
@@ -218,6 +215,12 @@ export default function GocheokSeatMap() {
     filterGroups: GOCHEOK_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
+    isSectionVisible: (block, filterGroup, cats) => {
+      if (cats !== null && !cats.includes(block.category)) return false;
+      if (filterGroup?.sides != null && !filterGroup.sides.includes(block.side)) return false;
+      if (filterGroup?.levels != null && !filterGroup.levels.includes(block.level)) return false;
+      return true;
+    },
   });
   const {
     isMobile,
@@ -227,6 +230,12 @@ export default function GocheokSeatMap() {
   } = useSeatMapTemplateShellState();
   const hasOfficialBlocks = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && GOCHEOK_BLOCKS.length > 0;
   const isSeatMapMode = activeGuideMode === 'seatmap';
+  const visibleGocheokBlocks = useMemo(() => GOCHEOK_BLOCKS.filter((block) => {
+    if (filterCats !== null && !filterCats.includes(block.category)) return false;
+    if (filterSides != null && !filterSides.includes(block.side)) return false;
+    if (filterLevels != null && !filterLevels.includes(block.level)) return false;
+    return true;
+  }), [filterCats, filterLevels, filterSides]);
   const hoveredSection = isSeatMapMode ? activeHoveredSection : null;
   const hoveredCategory = hoveredSection ? GOCHEOK_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#820024';
@@ -264,6 +273,8 @@ export default function GocheokSeatMap() {
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
+      filterSides={filterSides}
+      filterLevels={filterLevels}
       zoom={zoom}
       pan={pan}
       onPanChange={setPan}

@@ -28,6 +28,8 @@ const EXPECTED_ALIAS_ONLY_SECTIONS = 2;
 const EXPECTED_MARKERS = 3;
 const EXPECTED_CANDIDATE_ROWS = 22;
 const EXPECTED_GUARD_ROWS = 3;
+const APPROVED_HITPATH_EXPANSION_SECTION_IDS = ['032'];
+const approvedHitPathExpansionSectionIdSet = new Set(APPROVED_HITPATH_EXPANSION_SECTION_IDS);
 
 const workStages = [
   {
@@ -228,7 +230,9 @@ const candidateRows = workStages.flatMap((stage) => stage.sectionIds.map((sectio
     requiredApprovalFields,
     productionWriteAllowed: false,
     sourceOfTruth: false,
-    currentDecision: visualEqualsHit ? 'WAITING_FOR_OPERATOR_APPROVAL_NO_COORDINATE_CHANGE' : 'APPROVED_HITPATH_EXPANSION_PRESENT',
+    currentDecision: !visualEqualsHit && approvedHitPathExpansionSectionIdSet.has(sectionId)
+      ? 'APPROVED_HITPATH_EXPANSION_PRESENT'
+      : 'WAITING_FOR_OPERATOR_APPROVAL_NO_COORDINATE_CHANGE',
   };
 }));
 
@@ -309,7 +313,11 @@ const blockers = [
   ...candidateRows.filter((row) => !row.enabled).map((row) => `CANDIDATE_NOT_ENABLED:${row.sectionId}`),
   ...candidateRows.filter((row) => row.sectionKind !== 'SEAT_SECTION').map((row) => `CANDIDATE_NOT_SEAT_SECTION:${row.sectionId}`),
   ...candidateRows.filter((row) => !row.hitPathExpansionCandidate).map((row) => `CANDIDATE_FLAG_MISSING:${row.sectionId}`),
-  ...candidateRows.filter((row) => !row.visualEqualsHit).map((row) => `UNAPPROVED_HITPATH_EXPANSION_PRESENT:${row.sectionId}`),
+  ...candidateRows.filter((row) => !row.visualEqualsHit && !approvedHitPathExpansionSectionIdSet.has(row.sectionId)).map((row) => `UNAPPROVED_HITPATH_EXPANSION_PRESENT:${row.sectionId}`),
+  ...APPROVED_HITPATH_EXPANSION_SECTION_IDS.filter((sectionId) => {
+    const row = candidateRows.find((candidateRow) => candidateRow.sectionId === sectionId);
+    return !row || row.visualEqualsHit;
+  }).map((sectionId) => `APPROVED_HITPATH_EXPANSION_MISSING:${sectionId}`),
   ...candidateRows.filter((row) => row.validationIssueCount > 0).map((row) => `CANDIDATE_VALIDATION_ISSUE:${row.sectionId}`),
   ...guardRows.filter((row) => !sectionsById.has(row.sectionId)).map((row) => `MISSING_GUARD_SECTION:${row.sectionId}`),
   ...guardRows.filter((row) => !row.enabled).map((row) => `GUARD_SECTION_NOT_ENABLED:${row.sectionId}`),
@@ -341,12 +349,13 @@ const summary = {
   zoneCounts,
   guardZoneCounts,
   visualEqualsHitCandidates: candidateRows.filter((row) => row.visualEqualsHit).length,
-  approvedExpandedHitPaths: candidateRows.filter((row) => !row.visualEqualsHit).length,
+  approvedExpandedHitPaths: candidateRows.filter((row) => !row.visualEqualsHit && approvedHitPathExpansionSectionIdSet.has(row.sectionId)).length,
   productionWriteAllowed: false,
   sourceOfTruth: false,
   operatorApprovalRequiredRows: candidateRows.length,
   blockers,
   expansionCriteria,
+  approvedHitPathExpansionSectionIds: APPROVED_HITPATH_EXPANSION_SECTION_IDS,
 };
 
 const report = {
@@ -358,6 +367,7 @@ const report = {
   guardRows,
   aliasOnlyRows,
   markerRows,
+  approvedHitPathExpansionSectionIds: APPROVED_HITPATH_EXPANSION_SECTION_IDS,
 };
 
 await fs.mkdir(reportDir, { recursive: true });

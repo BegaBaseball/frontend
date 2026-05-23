@@ -15,7 +15,7 @@ const installAdjacentPrefetchWindow = () => {
   const rafCallbacks = new Map<number, FrameRequestCallback>();
   const idleCallbacks = new Map<number, IdleRequestCallback>();
 
-  mutableGlobal.window = {
+  const fakeWindow = {
     requestAnimationFrame: (callback: FrameRequestCallback) => {
       const id = nextId;
       nextId += 1;
@@ -35,6 +35,7 @@ const installAdjacentPrefetchWindow = () => {
       idleCallbacks.delete(id);
     },
   } as unknown as Window;
+  (mutableGlobal as { window?: Window }).window = fakeWindow;
 
   return {
     flushAnimationFrame: () => {

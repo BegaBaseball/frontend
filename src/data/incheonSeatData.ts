@@ -69,19 +69,22 @@ export interface IncheonCategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
+  levels?: string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 type IncheonBlockDefinition = Omit<IncheonBlock, 'imageGeometry'>;
 
 export const INCHEON_SEATMAP_IMAGE: IncheonSeatMapImage = {
-  imagePath: "src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.png",
+  imagePath: "src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp",
   optimizedImagePath: "src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp",
   imageWidth: 3360,
   imageHeight: 5328,
   sourceLabel: "SSG 랜더스 공식 티켓 안내 2026 좌석도",
   sourceUrl: "https://www.ssglanders.com/game/ticket",
   assetStatus: "OFFICIAL",
-  requiredAssetFileName: "incheon-ssg-seatmap-official-2026.png"
+  requiredAssetFileName: "incheon-ssg-seatmap-official-2026.webp"
 };
 
 export const INCHEON_SEATMAP_VIEWPORT: IncheonSeatMapViewport = {
@@ -247,63 +250,24 @@ export const INCHEON_CATEGORIES: Record<string, IncheonCategory> = {
 };
 
 export const INCHEON_CATEGORY_GROUPS: IncheonCategoryGroup[] = [
-  {
-    id: "all",
-    label: "전체",
-    cats: null
-  },
-  {
-    id: "cheer",
-    label: "응원석",
-    cats: [
-      "CHEERING",
-      "AWAY"
-    ]
-  },
-  {
-    id: "field",
-    label: "필드석",
-    cats: [
-      "INFIELD_FIELD",
-      "OUTFIELD_FIELD",
-      "SKY_VIEW"
-    ]
-  },
-  {
-    id: "table",
-    label: "테이블/패밀리",
-    cats: [
-      "PEACOCK_TABLE",
-      "NOBRAND_TABLE",
-      "SKY_TABLE",
-      "FAMILY_TABLE",
-      "FAMILY"
-    ]
-  },
-  {
-    id: "special",
-    label: "특수석",
-    cats: [
-      "LIVE",
-      "DUGOUT",
-      "HOME_RUN",
-      "GREEN",
-      "FRIENDLY",
-      "MINI_SKYBOX",
-      "BBQ_DODRAM",
-      "BBQ_EMART",
-      "PARTY_DECK",
-      "CHOGA",
-      "SKYBOX"
-    ]
-  },
-  {
-    id: "accessible",
-    label: "휠체어석",
-    cats: [
-      "ACCESSIBLE"
-    ]
-  }
+  // 층수별 (level row)
+  { id: 'all', label: '전체', cats: null, filterDimension: 'level' },
+  { id: 'lv-1f', label: '1층', cats: null, levels: ['1F'], filterDimension: 'level' },
+  { id: 'lv-2f', label: '2층', cats: null, levels: ['2F'], filterDimension: 'level' },
+  { id: 'lv-3f', label: '3층', cats: null, levels: ['3F'], filterDimension: 'level' },
+  { id: 'lv-4f', label: '4층', cats: null, levels: ['4F'], filterDimension: 'level' },
+  { id: 'lv-out', label: '외야층', cats: null, levels: ['OUTFIELD'], filterDimension: 'level' },
+  // 등급별 (grade row)
+  { id: 'cheer', label: '응원석', cats: ['CHEERING', 'AWAY'], filterDimension: 'grade' },
+  { id: 'field', label: '필드석', cats: ['INFIELD_FIELD', 'OUTFIELD_FIELD', 'SKY_VIEW'], filterDimension: 'grade' },
+  { id: 'table', label: '테이블/패밀리', cats: ['PEACOCK_TABLE', 'NOBRAND_TABLE', 'SKY_TABLE', 'FAMILY_TABLE', 'FAMILY'], filterDimension: 'grade' },
+  { id: 'special', label: '특수석', cats: ['LIVE', 'DUGOUT', 'HOME_RUN', 'GREEN', 'FRIENDLY', 'MINI_SKYBOX', 'BBQ_DODRAM', 'BBQ_EMART', 'PARTY_DECK', 'CHOGA', 'SKYBOX'], filterDimension: 'grade' },
+  { id: 'accessible', label: '휠체어석', cats: ['ACCESSIBLE'], filterDimension: 'grade' },
+  // 위치별 (position row)
+  { id: 'pos-first', label: '1루 측', cats: null, sides: ['FIRST_BASE'], filterDimension: 'position' },
+  { id: 'pos-third', label: '3루 측', cats: null, sides: ['THIRD_BASE'], filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙', cats: null, sides: ['CENTER'], filterDimension: 'position' },
+  { id: 'pos-out', label: '외야', cats: null, sides: ['OUTFIELD'], filterDimension: 'position' },
 ];
 
 export const INCHEON_VIEW_INFO: Record<string, IncheonViewInfo> = {

@@ -107,8 +107,8 @@ export default function SeoHead() {
     ensureGa4Queue();
 
     if (!window.__BEGA_GA4_INITIALIZED__) {
-      window.gtag('js', new Date());
-      window.gtag('config', GA4_MEASUREMENT_ID);
+      window.gtag!('js', new Date());
+      window.gtag!('config', GA4_MEASUREMENT_ID);
       window.__BEGA_GA4_INITIALIZED__ = true;
     }
 

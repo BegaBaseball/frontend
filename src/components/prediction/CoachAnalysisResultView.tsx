@@ -1,4 +1,4 @@
-import { type ComponentType, type SVGProps } from 'react';
+import { type ComponentType, type SVGProps, useEffect, useState } from 'react';
 import {
     CoachAnalysisData,
     CoachMetric,
@@ -13,7 +13,6 @@ import {
     PredictionCheckCircleIcon,
     PredictionCrosshairIcon,
     PredictionEyeIcon,
-    PredictionGavelIcon,
     PredictionHelpCircleIcon,
     PredictionRadarIcon,
     PredictionTrophyIcon,
@@ -29,6 +28,29 @@ interface InsightSectionProps {
     title: string;
     items: string[];
     tone?: 'default' | 'warning';
+}
+
+function useIsDark(): boolean {
+    const [isDark, setIsDark] = useState<boolean>(() => {
+        if (typeof document === 'undefined') return false;
+        return document.documentElement.classList.contains('dark');
+    });
+    useEffect(() => {
+        const obs = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'));
+        });
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => obs.disconnect();
+    }, []);
+    return isDark;
+}
+
+function PenIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+            <path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+        </svg>
+    );
 }
 
 function InsightSection({ icon: Icon, title, items, tone = 'default' }: InsightSectionProps) {
@@ -66,43 +88,333 @@ function InsightSection({ icon: Icon, title, items, tone = 'default' }: InsightS
     );
 }
 
-function RiskSection({ risks, isReviewMode }: { risks: CoachRiskItem[]; isReviewMode: boolean }) {
-    if (risks.length === 0) {
-        return null;
-    }
+/* ── A · 코치 메모 노트 — notebook/memo style verdict ── */
+function CoachVerdictMemo({ verdict, isReviewMode, isFallback = false }: { verdict: string; isReviewMode: boolean; isFallback?: boolean }) {
+    const isDark = useIsDark();
 
-    const levelClassName = (level: CoachRiskItem['level']) => {
-        if (level === 0) {
-            return 'border-red-300 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300';
-        }
-        if (level === 1) {
-            return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300';
-        }
-        return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300';
-    };
+    const paperBg = isDark ? '#1a1810' : '#fffdf5';
+    const paperBorder = isDark ? '#3a3420' : '#e9e2c8';
+    const ruleColor = isDark ? '#2a2416' : '#f0e8c8';
+    const accentColor = isDark ? '#c4a055' : '#7c5f1a';
+    const textColor = isDark ? '#ede8d8' : '#1f1812';
+    const dashedBorder = isDark ? '#4a3c1a' : '#d6c884';
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center gap-3">
-                <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
-                <div>
-                    <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">리스크 관리 포인트</h4>
-                    <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
-                        {isReviewMode ? '실제 결과에 영향을 준 위험 구간입니다.' : '경기 전개에서 즉시 확인이 필요한 구간입니다.'}
-                    </p>
+        <div
+            role="note"
+            aria-label={isReviewMode ? '코치 리뷰 노트' : 'AI 코치 분석 메모'}
+            style={{
+                background: paperBg,
+                border: `1px solid ${paperBorder}`,
+                borderRadius: 4,
+                boxShadow: isDark
+                    ? `0 1px 0 ${paperBorder}, 0 8px 24px -16px rgba(0,0,0,0.5)`
+                    : `0 1px 0 ${paperBorder}, 0 8px 24px -16px rgba(120,95,30,0.25)`,
+                padding: '20px 24px 22px',
+                position: 'relative',
+                backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent 23px, ${ruleColor} 23px, ${ruleColor} 24px)`,
+                backgroundPosition: '0 36px',
+            }}
+        >
+            {/* tape decoration */}
+            <div
+                aria-hidden="true"
+                style={{
+                    position: 'absolute',
+                    left: 20,
+                    top: -8,
+                    width: 64,
+                    height: 14,
+                    background: isDark ? 'rgba(180,150,80,0.10)' : 'rgba(180,150,80,0.18)',
+                    transform: 'rotate(-2deg)',
+                    borderRadius: 1,
+                }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <PenIcon style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
+                <span style={{
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    color: accentColor,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                }}>
+                    {isReviewMode ? '코치 리뷰 노트' : 'AI 코치 메모'}
+                </span>
+            </div>
+
+            <p style={{
+                margin: 0,
+                fontSize: 15.5,
+                lineHeight: 1.55,
+                fontWeight: 600,
+                color: textColor,
+                letterSpacing: '-0.005em',
+            }}>
+                {verdict}
+            </p>
+
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: `1px dashed ${dashedBorder}`,
+            }}>
+                <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: accentColor,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                }}>
+                    {isFallback
+                        ? '— BEGA AI 분석 (구체적 판단은 상세 리포트 참고)'
+                        : '— BEGA 코치 분석'
+                    }
+                </span>
+            </div>
+        </div>
+    );
+}
+
+/* ── D · 리스크 회차 타임라인 ── */
+function RiskTimeline({ risks }: { risks: CoachRiskItem[] }) {
+    const isDark = useIsDark();
+    const innings = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    const levelCount = [0, 0, 0];
+    const riskDots = risks.map((risk) => {
+        const offset = levelCount[risk.level]++;
+        let x: number;
+        if (risk.level === 0) x = 2 + offset;
+        else if (risk.level === 1) x = 5 + offset;
+        else x = 7 + offset;
+        return { risk, x: Math.min(x, 9) };
+    });
+
+    const sevColor = (level: 0 | 1 | 2) =>
+        level === 0 ? '#dc2626' : level === 1 ? '#d97706' : '#059669';
+
+    const inningRangeLabel = (level: 0 | 1 | 2) =>
+        level === 0 ? '1~5회' : level === 1 ? '5~7회' : '7~9회';
+
+    const bg = isDark ? '#1c1f28' : '#fff';
+    const borderColor = isDark ? '#2d3748' : '#e5e7eb';
+    const axisColor = isDark ? '#374151' : '#e5e7eb';
+    const tickColor = isDark ? '#4b5563' : '#cbd5e1';
+    const tickLabelColor = isDark ? '#6b7280' : '#94a3b8';
+    const rowBorderColor = isDark ? '#1f2937' : '#f1f5f9';
+    const textColor = isDark ? '#e5e7eb' : '#0f1419';
+    const subColor = isDark ? '#6b7280' : '#64748b';
+    const headerColor = isDark ? '#9ca3af' : '#475569';
+
+    return (
+        <div style={{ background: bg, border: `1px solid ${borderColor}`, borderRadius: 16, padding: '18px 22px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: headerColor, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    리스크 회차 분포
+                </span>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 11.5, fontWeight: 700, color: subColor }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#dc2626', display: 'inline-block', flexShrink: 0 }} />
+                        높음
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#d97706', display: 'inline-block', flexShrink: 0 }} />
+                        중간
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#059669', display: 'inline-block', flexShrink: 0 }} />
+                        낮음
+                    </span>
                 </div>
             </div>
-            <div className="space-y-3">
-                {risks.map((risk, idx) => (
+
+            {/* 9-inning axis */}
+            <div style={{ position: 'relative', height: 60, margin: '0 12px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 30, height: 2, background: axisColor }} />
+                {innings.map((n, i) => (
+                    <div key={n} style={{ position: 'absolute', left: `${(i / 8) * 100}%`, top: 26, transform: 'translateX(-50%)' }}>
+                        <div style={{ width: 1, height: 10, background: tickColor, margin: '0 auto' }} />
+                        <div style={{ fontSize: 10.5, color: tickLabelColor, fontWeight: 700, textAlign: 'center', marginTop: 4 }}>
+                            {n}회
+                        </div>
+                    </div>
+                ))}
+                {riskDots.map(({ risk, x }, i) => {
+                    const color = sevColor(risk.level);
+                    const leftPct = ((x - 1) / 8) * 100;
+                    return (
+                        <div key={i} style={{ position: 'absolute', left: `${leftPct}%`, top: 16, transform: 'translateX(-50%)' }}>
+                            <div style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: 999,
+                                background: color,
+                                border: `3px solid ${bg}`,
+                                boxShadow: `0 0 0 1px ${color}`,
+                                margin: '0 auto',
+                            }} />
+                            <div style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                color: textColor,
+                                whiteSpace: 'nowrap',
+                                position: 'absolute',
+                                top: -22,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                            }}>
+                                {risk.area}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* compact list */}
+            <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column' }}>
+                {risks.map((r, idx) => (
                     <div
-                        key={`risk-${idx}`}
-                        className={`rounded-xl border p-4 text-[16px] leading-relaxed shadow-sm ${levelClassName(risk.level)}`}
+                        key={`tl-${idx}`}
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: '64px 1fr auto',
+                            gap: 12,
+                            padding: '10px 0',
+                            borderTop: idx === 0 ? 'none' : `1px solid ${rowBorderColor}`,
+                            alignItems: 'center',
+                        }}
                     >
-                        <p className="mb-1 text-[16px] font-bold uppercase opacity-80">{risk.area}</p>
-                        <p>{risk.description}</p>
+                        <span style={{ fontSize: 11.5, color: subColor, fontWeight: 800, fontFamily: 'ui-monospace, monospace' }}>
+                            {inningRangeLabel(r.level)}
+                        </span>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: textColor, lineHeight: 1.4 }}>
+                            <strong style={{ fontWeight: 800 }}>{r.area}</strong>
+                            <span style={{ color: subColor, fontWeight: 600 }}> · {r.description}</span>
+                        </span>
+                        <span style={{
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            minWidth: 'max-content',
+                            color: sevColor(r.level),
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            background: r.level === 0
+                                ? (isDark ? 'rgba(220,38,38,0.15)' : '#fef2f2')
+                                : r.level === 1
+                                    ? (isDark ? 'rgba(217,119,6,0.15)' : '#fffbeb')
+                                    : (isDark ? 'rgba(5,150,105,0.15)' : '#ecfdf5'),
+                        }}>
+                            {r.level === 0 ? '위험' : r.level === 1 ? '주의' : '관찰'}
+                        </span>
                     </div>
                 ))}
             </div>
+        </div>
+    );
+}
+
+/* ── E · 영향 방향 (versus-aware) ── */
+function RiskVersus({ risks, isPositive }: { risks: CoachRiskItem[]; isPositive: boolean }) {
+    const isDark = useIsDark();
+
+    const getImpactTo = (level: 0 | 1 | 2): 'home' | 'away' | 'both' => {
+        if (level === 1) return 'both';
+        // level 0 (critical): risks that threaten the predicted-losing side's ability to upset
+        // if home team is positive (favored), level 0 critical risks hurt the away team most
+        return level === 0 ? (isPositive ? 'away' : 'home') : 'both';
+    };
+
+    const sevColor = (level: 0 | 1 | 2) =>
+        level === 0 ? '#dc2626' : level === 1 ? '#d97706' : '#059669';
+
+    const bg = isDark ? '#1c1f28' : '#fff';
+    const borderColor = isDark ? '#2d3748' : '#e5e7eb';
+    const headerBg = isDark ? '#111827' : '#fafafa';
+    const headerBorderColor = isDark ? '#1f2937' : '#eef2f0';
+    const rowBorderColor = isDark ? '#1f2937' : '#f1f5f9';
+    const textColor = isDark ? '#e5e7eb' : '#0f1419';
+    const subColor = isDark ? '#6b7280' : '#475569';
+    const headerTextColor = isDark ? '#6b7280' : '#64748b';
+
+    return (
+        <div style={{ background: bg, border: `1px solid ${borderColor}`, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                background: headerBg,
+                padding: '10px 18px',
+                fontSize: 11,
+                fontWeight: 800,
+                color: headerTextColor,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                borderBottom: `1px solid ${headerBorderColor}`,
+            }}>
+                <span>홈팀 리스크</span>
+                <span style={{ textAlign: 'right' }}>원정팀 리스크</span>
+            </div>
+
+            {risks.map((r, idx) => {
+                const impactTo = getImpactTo(r.level);
+                const isHome = impactTo === 'home';
+                const isAway = impactTo === 'away';
+                const isBoth = impactTo === 'both';
+
+                return (
+                    <div
+                        key={`vs-${idx}`}
+                        style={{ padding: '14px 18px', borderTop: `1px solid ${rowBorderColor}`, position: 'relative' }}
+                    >
+                        {/* impact accent bar */}
+                        <div style={{ position: 'absolute', left: 18, right: 18, top: 0, height: 3, display: 'flex' }}>
+                            {isHome && (
+                                <div style={{ width: '50%', background: isDark ? 'rgba(254,202,202,0.25)' : '#fecaca' }} />
+                            )}
+                            {isAway && (
+                                <div style={{ width: '50%', marginLeft: 'auto', background: isDark ? 'rgba(167,243,208,0.25)' : '#a7f3d0' }} />
+                            )}
+                            {isBoth && (
+                                <div style={{ width: '100%', background: isDark ? 'rgba(253,230,138,0.15)' : '#fde68a' }} />
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: textColor }}>{r.area}</span>
+                            <span style={{
+                                marginLeft: 'auto',
+                                fontSize: 12,
+                                fontWeight: 800,
+                                color: isHome ? '#b91c1c' : isAway ? '#047857' : '#854d0e',
+                                padding: '3px 8px',
+                                borderRadius: 999,
+                                background: isHome
+                                    ? (isDark ? 'rgba(220,38,38,0.15)' : '#fef2f2')
+                                    : isAway
+                                        ? (isDark ? 'rgba(5,150,105,0.15)' : '#ecfdf5')
+                                        : (isDark ? 'rgba(133,77,14,0.15)' : '#fffbeb'),
+                                whiteSpace: 'nowrap',
+                            }}>
+                                {isHome ? '홈팀 불리' : isAway ? '원정팀 불리' : '공통 변수'}
+                            </span>
+                            <span style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: sevColor(r.level),
+                                fontFamily: 'ui-monospace, monospace',
+                            }}>
+                                L{r.level}
+                            </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, color: subColor, fontWeight: 600, lineHeight: 1.5, paddingLeft: 0 }}>
+                            {r.description}
+                        </p>
+                    </div>
+                );
+            })}
         </div>
     );
 }
@@ -126,6 +438,10 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
     const strategicFactors = analysisData.metrics.filter((metric: CoachMetric) => metric.risk_level !== 0);
     const hasAnyMetric = criticalFactors.length > 0 || strategicFactors.length > 0;
     const hasDetailedReport = Boolean(analysisData.detailed_analysis) || Boolean(analysisData.coach_note);
+    // verdict → analysis_summary → dashboard.context (항상 non-empty) 순으로 폴백
+    const verdictText = analysisData.verdict
+        || analysisData.analysis_summary
+        || analysisData.dashboard.context;
 
     return (
         <div
@@ -176,35 +492,12 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                 )}
             </div>
 
-            {(analysisData.verdict || analysisData.analysis_summary) && (
-                <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <div className="mb-3 flex items-center gap-3">
-                                <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                    <PredictionGavelIcon aria-hidden="true" className="h-4 w-4" />
-                                </div>
-                            <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과 진단' : '코치 판단'}</h4>
-                        </div>
-                        <p className="text-base font-bold leading-relaxed text-gray-900 dark:text-white">
-                            {analysisData.verdict || analysisData.analysis_summary}
-                        </p>
-                    </div>
-
-                    {analysisData.analysis_summary && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <div className="mb-3 flex items-center gap-3">
-                                <div className="rounded-xl bg-gray-100 p-2 text-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                    <PredictionRadarIcon aria-hidden="true" className="h-4 w-4" />
-                                </div>
-                                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '경기 요약' : '한 줄 요약'}</h4>
-                            </div>
-                            <p className="text-[16px] leading-relaxed text-gray-700 dark:text-gray-300">
-                                {analysisData.analysis_summary}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* 코치 판단 — A · 일지 메모 노트 (항상 렌더: verdictText는 dashboard.context로 폴백 보장) */}
+            <CoachVerdictMemo
+                verdict={verdictText}
+                isReviewMode={isReviewMode}
+                isFallback={!analysisData.verdict && !analysisData.analysis_summary}
+            />
 
             {hasAnyMetric && (
                 <div className="space-y-10">
@@ -282,7 +575,22 @@ export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisR
                 />
             </div>
 
-            <RiskSection risks={analysisData.risks} isReviewMode={isReviewMode} />
+            {/* 리스크 관리 — D · 회차 타임라인 + E · 영향 방향 */}
+            {analysisData.risks.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
+                        <div>
+                            <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">리스크 관리 포인트</h4>
+                            <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
+                                {isReviewMode ? '실제 결과에 영향을 준 위험 구간입니다.' : '경기 전개에서 즉시 확인이 필요한 구간입니다.'}
+                            </p>
+                        </div>
+                    </div>
+                    <RiskTimeline risks={analysisData.risks} />
+                    <RiskVersus risks={analysisData.risks} isPositive={isPositive} />
+                </div>
+            )}
 
             {hasDetailedReport && (
                 <div className="space-y-4 pt-2">

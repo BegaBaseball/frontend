@@ -25,8 +25,8 @@ NC파크 좌석도 release-lock 작업을 PR 가능한 단위로 분리하기 �
 | --- | --- | --- |
 | `docs/changwon-seatmap-release-lock.md` | 포함 | 최종 release-lock 수치, QA source, 검증 결과 고정 |
 | `docs/changwon-seatmap-release-candidate.md` | 포함 | release-lock의 근거가 되는 후보 문서 |
-| `scripts/changwon-seatmap-review-manifest.mjs` | 포함 | trace manifest, visual approval 산출물 생성 |
-| `scripts/changwon-seatmap-ux-readiness.mjs` | 포함 | NC 검색/필터/특수구역 readiness report 생성 |
+| `scripts/changwon-seatmap-ops.mjs trace-manifest` | 포함 | trace manifest, visual approval 산출물 생성 |
+| `scripts/changwon-seatmap-ops.mjs ux-readiness` | 포함 | NC 검색/필터/특수구역 readiness report 생성 |
 | `scripts/stadium-ux-audit.mjs` | 포함 | repo 내부 브라우저 QA 실행 원본 |
 | `scripts/run-stadium-isolated-qa.mjs` | 포함 | isolated QA runner, port retry, internal audit script 경로 |
 | `package.json` | 부분 포함 | Changwon scripts, attached QA internal path, seatmap test concurrency만 선별 필요 |
@@ -50,8 +50,8 @@ PR A 검증 중 드러난 기존 dirty-state blocker를 해소한 최소 변경�
 | `src/data/daejeonSeatData.test.ts` | 포함 후보 | anchor crop 계약이 `daejeon-seatmap-anchor-contract.mjs`로 분리된 구조 반영 |
 | `src/data/sajikSeatData.ts` | 포함 후보 | 현재 polygon 기준 trace reference와 label top-hit gate 복구 |
 | `scripts/daejeon-seatmap-anchor-contract.mjs` | 포함 후보 | 대전 anchor crop contract 원본 |
-| `scripts/daejeon-anchor-review-crops.mjs` | 포함 후보 | 대전 anchor crop 산출물 생성 |
-| `scripts/daejeon-seatmap-review-manifest.mjs` | 포함 후보 | 대전 manifest coordinate impact 계약 |
+| `scripts/daejeon-seatmap-ops.mjs` | 포함 후보 | 대전 anchor crop 산출물 생성 |
+| `scripts/daejeon-seatmap-ops.mjs` | 포함 후보 | 대전 manifest coordinate impact 계약 |
 
 ### PR C 이후: 구장별 운영자 패키지/재트레이싱 작업
 

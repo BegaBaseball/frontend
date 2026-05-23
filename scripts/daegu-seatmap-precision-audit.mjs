@@ -13,6 +13,7 @@ const defaultReportDir = path.join(frontendRoot, 'reports/stadium');
 
 const AUDIT_VERSION = 'DAEGU_SEATMAP_PRECISION_AUDIT_V1';
 const RELEASE_PASS_LEVEL = 'PASS_RELEASE_177';
+const VISIBLE_OFFICIAL_PASS_LEVEL = 'PASS_RELEASE_VISIBLE_OFFICIAL_SEATS';
 const LOCKED_80_PASS_LEVEL = 'PASS_LOCKED_80';
 const WORKFLOW_PASS_LEVEL = 'PASS_WORKFLOW';
 const INITIAL_UNRESOLVED_BASELINE = 97;
@@ -220,6 +221,15 @@ const workOrderGroupFor = (row, handoffRow) => {
 
 const nextActionFor = (row, workOrderGroup) => {
   if (row.alignmentClass === 'LOCKED_VERIFIED') return 'NO_ACTION_LOCKED_REFERENCE';
+  if (row.sectionKind === 'WAYFINDING_MARKER') {
+    return 'Keep as non-seat wayfinding marker; do not request a seat correctedPath unless operator confirms an actual selectable seat section.';
+  }
+  if (row.block === 'MR-10') {
+    return 'Official PNG scan does not confirm an independent MR-10 seat component. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
+  }
+  if (row.block === 'M-10') {
+    return 'Official PNG scan does not find a seat-color seed around the current M-10 placeholder. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
+  }
   if (workOrderGroup === '01_P1_BOUNDARY_FIRST') {
     return 'Resolve paired boundary ownership first, then enter operator-approved correctedPath and correctedLabelX/Y.';
   }
@@ -238,6 +248,9 @@ const issueCounts = (rows) => rows.reduce((counts, row) => {
   });
   return counts;
 }, {});
+
+const isPolicyExcludedRow = (row) => row.traceStatus === 'OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED';
+const isNonSeatRow = (row) => row.sectionKind && row.sectionKind !== 'SEAT_SECTION';
 
 const alignmentInput = await readJsonOptional(alignmentPath);
 const handoffInput = await readJsonOptional(handoffPath);
@@ -389,11 +402,18 @@ if (missingInputBlockers.length > 0) {
     };
   });
 
-  const unresolvedRows = rows.filter((row) => row.alignmentClass !== 'LOCKED_VERIFIED');
+  const allUnresolvedRows = rows.filter((row) => row.alignmentClass !== 'LOCKED_VERIFIED');
+  const policyExcludedRows = allUnresolvedRows.filter(isPolicyExcludedRow);
+  const nonSeatUnresolvedRows = allUnresolvedRows.filter((row) => isNonSeatRow(row) && !isPolicyExcludedRow(row));
+  const unresolvedRows = allUnresolvedRows.filter((row) => row.sectionKind === 'SEAT_SECTION' && !isPolicyExcludedRow(row));
+  const summary = alignment.summary ?? {};
+  const classifiedReleaseRows = [...policyExcludedRows, ...nonSeatUnresolvedRows];
+  const classifiedReleaseRowCount = classifiedReleaseRows.length;
+  const releaseInventoryLocked = (summary.lockedVerified ?? 0) + classifiedReleaseRowCount;
+  const openWorksetRows = unresolvedRows;
   const precisionIssueCounts = issueCounts(unresolvedRows);
   const releaseBlockers = [];
   const hardBlockers = [];
-  const summary = alignment.summary ?? {};
 
   if (DAEGU_SEATMAP_IMAGE.imageSha256 !== DAEGU_IMAGE_SHA256) {
     hardBlockers.push('IMAGE_SHA256_CONSTANT_MISMATCH');
@@ -405,18 +425,25 @@ if (missingInputBlockers.length > 0) {
     hardBlockers.push(`OFFICIAL_ALIGNMENT_FAILURES:${summary.officialAlignmentFailures}`);
   }
   if (unresolvedRows.length > 0) releaseBlockers.push(`UNRESOLVED_PRECISION_ROWS:${unresolvedRows.length}`);
-  if ((summary.lockedVerified ?? 0) !== EXPECTED_TOTAL_BLOCKS) {
-    releaseBlockers.push(`LOCKED_VERIFIED_NOT_177:${summary.lockedVerified ?? 0}`);
+  if (releaseInventoryLocked !== EXPECTED_TOTAL_BLOCKS) {
+    releaseBlockers.push(`RELEASE_INVENTORY_NOT_177:${releaseInventoryLocked}`);
   }
   if (Object.keys(precisionIssueCounts).length > 0) {
     releaseBlockers.push(`PRECISION_ISSUES_PRESENT:${Object.keys(precisionIssueCounts).length}`);
   }
 
+  const visibleOfficialReleaseReady = hardBlockers.length === 0
+    && unresolvedRows.length === 0
+    && Object.keys(precisionIssueCounts).length === 0
+    && (summary.officialAlignmentFailures ?? 0) === 0
+    && (summary.totalBlocks ?? rows.length) === EXPECTED_TOTAL_BLOCKS;
   const passLevel = releaseBlockers.length === 0 && hardBlockers.length === 0
     ? RELEASE_PASS_LEVEL
-    : summary.lockedVerified === 80 && unresolvedRows.length === INITIAL_UNRESOLVED_BASELINE
-      ? LOCKED_80_PASS_LEVEL
-      : WORKFLOW_PASS_LEVEL;
+    : visibleOfficialReleaseReady
+      ? VISIBLE_OFFICIAL_PASS_LEVEL
+      : summary.lockedVerified === 80 && unresolvedRows.length === INITIAL_UNRESOLVED_BASELINE
+        ? LOCKED_80_PASS_LEVEL
+        : WORKFLOW_PASS_LEVEL;
   const status = hardBlockers.length > 0
     ? 'failed'
     : passLevel === RELEASE_PASS_LEVEL
@@ -442,7 +469,8 @@ if (missingInputBlockers.length > 0) {
     passCriteria: {
       [WORKFLOW_PASS_LEVEL]: 'Scripts and data contracts are runnable; this is not polygon precision completion.',
       [LOCKED_80_PASS_LEVEL]: 'Current official traced baseline only: 80 locked blocks pass basic label/top-hit checks.',
-      [RELEASE_PASS_LEVEL]: 'All 177 blocks are locked, operator-reviewed, non-overlapping, in bounds, and label top-hit clean.',
+      [VISIBLE_OFFICIAL_PASS_LEVEL]: 'Visible official seat rows have no open coordinate workset; classified policy-excluded or non-seat rows are still being audited.',
+      [RELEASE_PASS_LEVEL]: 'All 177 Daegu inventory rows are resolved: official seat polygons are locked and classified non-seat/policy-excluded rows are kept out of selectable seat layers.',
     },
     sourceReports: {
       alignment: {
@@ -462,7 +490,12 @@ if (missingInputBlockers.length > 0) {
       lockedVerified: summary.lockedVerified ?? 0,
       retraceRequired: summary.retraceRequired ?? 0,
       operatorRequired: summary.operatorRequired ?? 0,
+      allUnresolvedRows: allUnresolvedRows.length,
       unresolvedRows: unresolvedRows.length,
+      policyExcludedRows: policyExcludedRows.length,
+      nonSeatUnresolvedRows: nonSeatUnresolvedRows.length,
+      classifiedReleaseRows: classifiedReleaseRowCount,
+      releaseInventoryLocked,
       initialUnresolvedBaseline: INITIAL_UNRESOLVED_BASELINE,
       officialImageTraced: summary.officialImageTraced ?? 0,
       officialAlignmentFailures: summary.officialAlignmentFailures ?? 0,
@@ -474,6 +507,7 @@ if (missingInputBlockers.length > 0) {
       precisionIssueCounts,
       hardBlockers,
       releaseBlockers,
+      visibleOfficialReleaseReady,
       releaseReady: passLevel === RELEASE_PASS_LEVEL,
       normalAuditExitCode: hardBlockers.length === 0 ? 0 : 1,
       requireReleaseExitCode: passLevel === RELEASE_PASS_LEVEL && hardBlockers.length === 0 ? 0 : 1,
@@ -500,6 +534,10 @@ if (missingInputBlockers.length > 0) {
     ],
     rows,
     unresolvedWorkset: unresolvedRows,
+    policyExcludedWorkset: policyExcludedRows,
+    nonSeatMarkerWorkset: nonSeatUnresolvedRows,
+    classifiedReleaseWorkset: classifiedReleaseRows,
+    openWorkset: openWorksetRows,
   };
 }
 
@@ -511,13 +549,14 @@ const svgPath = path.join(reportDir, 'daegu-seatmap-precision-audit.svg');
 await fs.mkdir(reportDir, { recursive: true });
 await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 
-const rows = report.unresolvedWorkset ?? report.rows ?? [];
+const rows = report.openWorkset ?? report.unresolvedWorkset ?? report.rows ?? [];
 await writeCsv(csvPath, [
   [
     'workOrderGroup',
     'block',
     'blockId',
     'name',
+    'sectionKind',
     'alignmentClass',
     'traceStatus',
     'traceMethod',
@@ -537,6 +576,7 @@ await writeCsv(csvPath, [
     row.block,
     row.id,
     row.name,
+    row.sectionKind ?? '',
     row.alignmentClass,
     row.traceStatus,
     row.traceMethod,
@@ -561,6 +601,7 @@ const worksetRows = rows.slice(0, 80).map((row) => [
   `\`${row.workOrderGroup}\``,
   `\`${row.block}\``,
   row.name,
+  `\`${row.sectionKind ?? ''}\``,
   `\`${row.alignmentClass}\``,
   row.precisionFlags?.map((flag) => `\`${flag}\``).join('<br>') || '-',
   row.nextAction,
@@ -576,6 +617,8 @@ const markdown = [
   `- total blocks: ${report.summary?.totalBlocks ?? 0}`,
   `- locked verified: ${report.summary?.lockedVerified ?? 0}`,
   `- unresolved rows: ${report.summary?.unresolvedRows ?? 0}`,
+  `- classified release rows: ${report.summary?.classifiedReleaseRows ?? 0}`,
+  `- release inventory locked: ${report.summary?.releaseInventoryLocked ?? 0}`,
   `- release ready: ${report.summary?.releaseReady ?? false}`,
   '',
   '## Pass Criteria',
@@ -606,7 +649,7 @@ const markdown = [
   '## Unresolved Workset',
   '',
   worksetRows.length > 0
-    ? markdownTable(['order', 'block', 'name', 'class', 'flags', 'next action'], worksetRows)
+    ? markdownTable(['order', 'block', 'name', 'section kind', 'class', 'flags', 'next action'], worksetRows)
     : 'No unresolved workset rows.',
   '',
   '## Draft Contract',

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import type { ChatMessage } from '../types/mate';
+import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import { buildPartySocketDestination } from '../utils/socketDestinations';
 import { loadStompModule, resolveStompBrokerUrl, type StompClient, type StompMessage } from '../utils/stomp';
 
@@ -40,6 +41,11 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
     }
 
     void (async () => {
+      const isAuthReady = await ensureRealtimeAuthSession();
+      if (disposed || !enabled || !partyId || !isAuthReady) {
+        return;
+      }
+
       const { Client } = await loadStompModule();
       if (disposed || !enabled || !partyId) {
         return;

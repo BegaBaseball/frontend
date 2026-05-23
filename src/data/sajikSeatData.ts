@@ -13,7 +13,14 @@ export type SajikPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRE
 export type SajikMapInteractionStatus = 'MAP_SELECTABLE' | 'ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE';
 export type SajikMarkerType = 'WHEELCHAIR';
 export type SajikSectionKind = 'SEAT_SECTION' | 'ACCESSIBILITY_MARKER' | 'ALIAS_ONLY';
+export type SajikMapVersion =
+  | 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2'
+  | 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2_HIRES_DISPLAY_V1'
+  | 'BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1';
 export type SajikSeatMapPoint = [number, number];
+export type SajikSeatMapSourceId = 'LOTTE_OFFICIAL_2026' | 'OPERATOR_REFERENCE_2026';
+export type SajikSeatMapSourceKind = 'INTERACTIVE_SEATMAP' | 'REFERENCE_IMAGE';
+export type SajikSeatMapSourceStatus = 'OFFICIAL' | 'OPERATOR_REFERENCE';
 
 export interface SajikImageGeometry {
   d: string;
@@ -57,7 +64,28 @@ export interface SajikOfficialTraceReference {
 
 export interface SajikSeatMapImage {
   stadiumId: 'BUSAN_SAJIK';
-  mapVersion: 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2';
+  mapVersion: SajikMapVersion;
+  imagePath: string;
+  imageWidth: number;
+  imageHeight: number;
+  viewBox: string;
+  imageSha256: string;
+  renderImagePath?: string;
+  renderImageSha256?: string;
+  renderImageNaturalWidth?: number;
+  renderImageNaturalHeight?: number;
+  renderImageSourceUrl?: string;
+  renderImageSourceLabel?: string;
+  sourceLabel: string;
+  sourceUrl: string | null;
+  assetStatus: SajikSeatMapAssetStatus;
+  requiredAssetFileName: string;
+}
+
+export interface SajikSeatMapSourceReference {
+  id: SajikSeatMapSourceId;
+  label: string;
+  kind: SajikSeatMapSourceKind;
   imagePath: string;
   imageWidth: number;
   imageHeight: number;
@@ -65,8 +93,9 @@ export interface SajikSeatMapImage {
   imageSha256: string;
   sourceLabel: string;
   sourceUrl: string | null;
-  assetStatus: SajikSeatMapAssetStatus;
-  requiredAssetFileName: string;
+  assetStatus: SajikSeatMapSourceStatus;
+  mapVersion: SajikMapVersion;
+  polygonStatus: 'PRODUCTION_INTERACTIVE' | 'REFERENCE_ONLY_PENDING_TRACE' | 'REFERENCE_INTERACTIVE_PREVIEW_READY';
 }
 
 export interface SajikBlock {
@@ -111,6 +140,9 @@ export interface SajikCategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
+  levels?: string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 type SajikBlockDefinition = Omit<
@@ -156,11 +188,14 @@ export const SAJIK_STADIUM_ID = 'BUSAN_SAJIK';
 export const SAJIK_MAP_VERSION = 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2';
 export const SAJIK_VIEW_BOX = '0 0 960 640';
 export const SAJIK_IMAGE_SHA256 = 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa';
+export const SAJIK_OPERATOR_REFERENCE_MAP_VERSION = 'BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1';
+export const SAJIK_OPERATOR_REFERENCE_VIEW_BOX = '0 0 1151 1367';
+export const SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256 = '794d957510240c786f4fce821814afbf01cc1f93fe7ec3ecca23846a8d753f6f';
 
 export const SAJIK_SEATMAP_IMAGE: SajikSeatMapImage = {
   stadiumId: SAJIK_STADIUM_ID,
   mapVersion: SAJIK_MAP_VERSION,
-  imagePath: 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp',
   imageWidth: 960,
   imageHeight: 640,
   viewBox: SAJIK_VIEW_BOX,
@@ -168,8 +203,43 @@ export const SAJIK_SEATMAP_IMAGE: SajikSeatMapImage = {
   sourceLabel: '롯데자이언츠 공식 좌석안내 2026 시즌',
   sourceUrl: SAJIK_REFERENCE_URL,
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'sajik-lotte-seatmap-official-2026.png',
+  requiredAssetFileName: 'sajik-lotte-seatmap-official-2026.webp',
 };
+
+export const SAJIK_SEATMAP_SOURCE_REFERENCES: SajikSeatMapSourceReference[] = [
+  {
+    id: 'OPERATOR_REFERENCE_2026',
+    label: '기준 좌석도',
+    kind: 'REFERENCE_IMAGE',
+    imagePath: 'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp',
+    imageWidth: 1151,
+    imageHeight: 1367,
+    viewBox: SAJIK_OPERATOR_REFERENCE_VIEW_BOX,
+    imageSha256: SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256,
+    sourceLabel: 'Operator-provided reference image, 2026-05-19',
+    sourceUrl: null,
+    assetStatus: 'OPERATOR_REFERENCE',
+    mapVersion: SAJIK_OPERATOR_REFERENCE_MAP_VERSION,
+    polygonStatus: 'PRODUCTION_INTERACTIVE',
+  },
+  {
+    id: 'LOTTE_OFFICIAL_2026',
+    label: '공식 이미지',
+    kind: 'INTERACTIVE_SEATMAP',
+    imagePath: SAJIK_SEATMAP_IMAGE.imagePath,
+    imageWidth: SAJIK_SEATMAP_IMAGE.imageWidth,
+    imageHeight: SAJIK_SEATMAP_IMAGE.imageHeight,
+    viewBox: SAJIK_SEATMAP_IMAGE.viewBox,
+    imageSha256: SAJIK_SEATMAP_IMAGE.imageSha256,
+    sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
+    sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
+    assetStatus: 'OFFICIAL',
+    mapVersion: SAJIK_SEATMAP_IMAGE.mapVersion,
+    polygonStatus: 'PRODUCTION_INTERACTIVE',
+  },
+];
+
+export const SAJIK_DEFAULT_SEATMAP_SOURCE_ID: SajikSeatMapSourceId = 'OPERATOR_REFERENCE_2026';
 
 export const SAJIK_CATEGORIES: Record<string, SajikCategory> = {
   AVENUEL: { label: '에비뉴엘석', light: '#C0007A', dark: '#EC4899', textLight: '#831843', textDark: '#FCE7F3' },
@@ -195,12 +265,23 @@ export const SAJIK_CATEGORIES: Record<string, SajikCategory> = {
 };
 
 export const SAJIK_CATEGORY_GROUPS: SajikCategoryGroup[] = [
-  { id: 'all', label: '전체', cats: null },
-  { id: 'cheer', label: '응원/필드', cats: ['CHEER_TABLE', 'INFIELD_FIELD_1B', 'INFIELD_FIELD_3A', 'INFIELD_FIELD_3B'] },
-  { id: 'table', label: '탁자석', cats: ['CENTRAL_TABLE', 'WIDE_TABLE', 'INFIELD_TABLE', 'EVERYTIME', 'CENTRAL_UPPER_TABLE'] },
-  { id: 'upper', label: '상단석', cats: ['CENTRAL_UPPER', 'INFIELD_UPPER_1B', 'INFIELD_UPPER_3A', 'INFIELD_UPPER_3B'] },
-  { id: 'outfield', label: '외야/특수석', cats: ['OUTFIELD_1B', 'OUTFIELD_3B', 'CAMPING', 'GROUP_3B', 'PREMIUM_3B', 'AVENUEL'] },
-  { id: 'accessible', label: '휠체어석', cats: ['ACCESSIBLE'] },
+  // 층수별 (메인 필터 — 항상 노출)
+  { id: 'all',      label: '전체',   cats: null,                                                                              filterDimension: 'level' },
+  { id: 'lv-1f',   label: '1층',    cats: null, levels: ['1F'],                                                              filterDimension: 'level' },
+  { id: 'lv-2f',   label: '2층',    cats: null, levels: ['2F'],                                                              filterDimension: 'level' },
+  { id: 'lv-3f',   label: '3층',    cats: null, levels: ['3F'],                                                              filterDimension: 'level' },
+  { id: 'lv-out',  label: '외야층', cats: null, levels: ['OUTFIELD'],                                                        filterDimension: 'level' },
+  // 등급별 (보조 필터 — 기본 접힘)
+  { id: 'cheer',      label: '응원/필드',  cats: ['CHEER_TABLE', 'INFIELD_FIELD_1B', 'INFIELD_FIELD_3A', 'INFIELD_FIELD_3B'],  filterDimension: 'grade' },
+  { id: 'table',      label: '탁자석',     cats: ['CENTRAL_TABLE', 'WIDE_TABLE', 'INFIELD_TABLE', 'EVERYTIME', 'CENTRAL_UPPER_TABLE'], filterDimension: 'grade' },
+  { id: 'upper',      label: '상단석',     cats: ['CENTRAL_UPPER', 'INFIELD_UPPER_1B', 'INFIELD_UPPER_3A', 'INFIELD_UPPER_3B'], filterDimension: 'grade' },
+  { id: 'outfield',   label: '외야/특수석', cats: ['OUTFIELD_1B', 'OUTFIELD_3B', 'CAMPING', 'GROUP_3B', 'PREMIUM_3B', 'AVENUEL'], filterDimension: 'grade' },
+  { id: 'accessible', label: '휠체어석',   cats: ['ACCESSIBLE'],                                                              filterDimension: 'grade' },
+  // 위치별 (보조 필터 — 기본 접힘)
+  { id: 'pos-first',  label: '1루 측', cats: null, sides: ['FIRST_BASE'],                                                    filterDimension: 'position' },
+  { id: 'pos-third',  label: '3루 측', cats: null, sides: ['THIRD_BASE'],                                                    filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙',   cats: null, sides: ['CENTER'],                                                        filterDimension: 'position' },
+  { id: 'pos-out',    label: '외야',   cats: null, sides: ['OUTFIELD'],                                                      filterDimension: 'position' },
 ];
 
 export const SAJIK_VIEW_INFO: Record<string, SajikViewInfo> = {
@@ -337,7 +418,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 1,
     imageGeometry: {
-      d: 'M 485 148 L 498 138 L 515 126 L 526 127 L 529 133 L 525 155 L 506 166 L 484 158 Z',
+      d: 'M 484 152 L 486 150 L 499 142 L 502 142 L 507 144 L 515 152 L 517 156 L 517 160 L 506 170 L 502 170 L 497 166 L 489 158 Z',
       labelX: 506,
       labelY: 148,
       labelRotate: -24,
@@ -358,7 +439,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 2,
     imageGeometry: {
-      d: 'M 536 117 L 585 99 L 593 129 L 549 144 L 535 119 Z',
+      d: 'M 535 118 L 536 117 L 544 113 L 551 110 L 561 106 L 579 100 L 583 99 L 584 99 L 587 108 L 592 126 L 592 128 L 550 143 L 549 143 L 548 142 L 545 137 L 539 126 Z',
       labelX: 562,
       labelY: 122,
       labelRotate: -8,
@@ -472,7 +553,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 8,
     imageGeometry: {
-      d: 'M 648 123 L 695 123 L 727 128 L 727 144 L 724 154 L 650 149 L 649 148 L 647 125 Z',
+      d: 'M 647 124 L 648 123 L 694 123 L 703 124 L 710 125 L 716 126 L 726 128 L 730 129 L 730 131 L 725 147 L 723 153 L 721 153 L 651 148 L 650 147 L 649 145 L 648 137 Z',
       labelX: 682,
       labelY: 147,
       labelRotate: 8,
@@ -605,7 +686,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 15,
     imageGeometry: {
-      d: 'M 853 256 L 860 252 L 868 248 L 875 248 L 876 249 L 877 251 L 879 257 L 880 262 L 878 264 L 862 271 L 859 272 L 858 272 L 857 270 L 853 258 Z',
+      d: 'M 853 256 L 860 252 L 873 245 L 875 245 L 876 249 L 877 251 L 879 257 L 880 262 L 878 264 L 862 271 L 859 272 L 858 272 L 857 270 L 853 258 Z',
       labelX: 860,
       labelY: 269,
       labelRotate: 11,
@@ -662,7 +743,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 18,
     imageGeometry: {
-      d: 'M 438 203 L 455 180 L 481 155 L 501 177 L 465 217 L 457 217 L 438 206 Z',
+      d: 'M 438 203 L 444 194 L 447 190 L 455 180 L 480 155 L 491 166 L 500 176 L 463 219 L 462 219 L 458 217 L 438 205 Z',
       labelX: 468,
       labelY: 178,
       labelRotate: -27,
@@ -757,7 +838,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 23,
     imageGeometry: {
-      d: 'M 442 276 L 447 269 L 450 258 L 451 255 L 457 255 L 473 262 L 475 263 L 475 265 L 474 269 L 471 280 L 470 282 L 468 282 L 453 278 Z',
+      d: 'M 446 275 L 447 270 L 449 262 L 452 253 L 457 255 L 475 263 L 475 265 L 471 280 L 470 282 L 468 282 L 457 279 L 450 277 L 447 276 Z',
       labelX: 446.5,
       labelY: 274,
       labelRotate: -9,
@@ -776,7 +857,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 24,
     imageGeometry: {
-      d: 'M 398 322 L 399 311 L 400 304 L 401 300 L 404 300 L 419 303 L 421 304 L 432 356 L 432 357 L 399 357 L 398 354 Z',
+      d: 'M 398 322 L 399 311 L 400 304 L 401 300 L 404 300 L 419 303 L 421 304 L 432 356 L 432 358 L 399 357 L 398 354 Z',
       labelX: 413,
       labelY: 306,
       labelRotate: -5,
@@ -852,7 +933,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 28,
     imageGeometry: {
-      d: 'M 399 361 L 409 361 L 434 362 L 447 388 L 448 411 L 412 411 L 411 410 L 410 408 L 407 400 L 405 394 L 404 390 L 401 377 L 399 363 Z',
+      d: 'M 399 361 L 409 361 L 434 362 L 447 388 L 452 416 L 450 417 L 444 418 L 437 419 L 421 421 L 417 421 L 414 416 L 410 408 L 407 400 L 405 394 L 404 390 L 401 377 L 399 363 Z',
       labelX: 420,
       labelY: 374,
       labelRotate: 10,
@@ -969,7 +1050,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 34,
     imageGeometry: {
-      d: 'M 473 289 L 476 288 L 520 299 L 520 317 L 473 310 L 472 309 Z',
+      d: 'M 472 296 L 473 289 L 474 288 L 475 288 L 512 297 L 516 298 L 519 299 L 520 305 L 521 312 L 521 316 L 518 316 L 510 315 L 496 313 L 478 310 L 473 309 L 472 308 Z',
       labelX: 488,
       labelY: 309,
       labelRotate: -3,
@@ -988,7 +1069,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'HOME',
     displayPriority: 35,
     imageGeometry: {
-      d: 'M 472 313 L 523 321 L 524 327 L 524 352 L 481 357 L 475 338 L 472 320 Z',
+      d: 'M 472 313 L 473 313 L 480 314 L 520 320 L 522 321 L 523 327 L 525 341 L 526 349 L 526 351 L 521 352 L 505 354 L 496 355 L 486 356 L 481 356 L 480 354 L 477 345 L 475 337 L 473 326 L 472 319 Z',
       labelX: 491,
       labelY: 342,
       labelRotate: 3,
@@ -1065,7 +1146,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 39,
     imageGeometry: {
-      d: 'M 447 451 L 481 442 L 507 460 L 506 462 L 475 479 L 472 479 L 447 458 Z',
+      d: 'M 443 452 L 481 442 L 507 460 L 506 462 L 475 479 L 472 479 L 443 455 Z',
       labelX: 487,
       labelY: 459,
       labelRotate: 17,
@@ -1084,7 +1165,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 40,
     imageGeometry: {
-      d: 'M 477 481 L 495 471 L 506 465 L 508 464 L 513 464 L 521 468 L 521 478 L 501 494 L 498 494 L 494 492 L 487 488 L 482 485 L 479 483 Z',
+      d: 'M 477 481 L 495 471 L 506 465 L 510 463 L 513 463 L 526 470 L 529 472 L 529 473 L 526 476 L 502 495 L 498 495 L 494 493 L 487 489 L 482 486 L 479 484 Z',
       labelX: 486,
       labelY: 484,
       labelRotate: 14,
@@ -1103,7 +1184,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 41,
     imageGeometry: {
-      d: 'M 505 496 L 520 484 L 524 481 L 548 481 L 551 482 L 567 488 L 565 491 L 549 511 L 548 512 L 544 512 L 523 505 L 513 501 L 506 498 L 505 497 Z',
+      d: 'M 505 496 L 520 484 L 529 477 L 533 474 L 534 474 L 540 477 L 567 488 L 566 491 L 549 512 L 548 513 L 544 513 L 523 506 L 513 502 L 506 499 L 505 498 Z',
       labelX: 532,
       labelY: 496,
       labelRotate: 8,
@@ -1122,7 +1203,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 42,
     imageGeometry: {
-      d: 'M 553 513 L 555 510 L 567 495 L 568 494 L 586 494 L 590 495 L 592 496 L 584 514 L 581 520 L 579 520 L 564 517 L 556 515 L 553 514 Z',
+      d: 'M 553 513 L 555 510 L 571 490 L 574 490 L 592 496 L 592 497 L 582 520 L 579 520 L 564 517 L 556 515 L 553 514 Z',
       labelX: 575,
       labelY: 508,
       labelRotate: 2,
@@ -1141,7 +1222,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 43,
     imageGeometry: {
-      d: 'M 586 520 L 588 515 L 595 499 L 607 499 L 630 503 L 634 504 L 634 510 L 632 524 L 631 525 L 617 525 L 607 524 L 598 523 L 591 522 L 586 521 Z',
+      d: 'M 586 520 L 588 515 L 596 497 L 599 497 L 631 503 L 635 504 L 635 511 L 633 525 L 632 526 L 617 526 L 607 525 L 598 524 L 591 523 L 586 522 Z',
       labelX: 612,
       labelY: 513,
       labelRotate: 0,
@@ -1179,9 +1260,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 45,
     imageGeometry: {
-      d: 'M 454 414 L 484 420 L 500 447 L 469 440 Z',
-      labelX: 465,
-      labelY: 421,
+      d: 'M 465 423 L 466 422 L 475 422 L 494 440 L 498 443 L 498 444 L 496 446 L 492 446 L 490 445 L 482 439 L 477 435 L 470 429 Z',
+      labelX: 480,
+      labelY: 433,
       labelRotate: 16,
       labelFontSize: 9,
       shortLabel: '044',
@@ -1199,8 +1280,8 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     displayPriority: 46,
     imageGeometry: {
       d: 'M 490 412 L 509 406 L 546 437 L 545 444 L 539 450 L 533 448 L 503 426 Z',
-      labelX: 500.5,
-      labelY: 415,
+      labelX: 496,
+      labelY: 414,
       labelRotate: 14,
       labelFontSize: 9,
       shortLabel: '034',
@@ -1217,7 +1298,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 47,
     imageGeometry: {
-      d: 'M 501 409 L 502 408 L 508 406 L 544 435 L 545 436 L 544 443 L 538 449 L 536 449 L 528 444 L 525 442 L 518 437 L 514 434 L 503 425 L 501 423 Z',
+      d: 'M 497 410 L 499 409 L 508 406 L 544 435 L 545 436 L 544 443 L 538 449 L 536 449 L 528 444 L 525 442 L 518 437 L 514 434 L 503 425 L 497 419 Z',
       labelX: 535,
       labelY: 432,
       labelRotate: 8,
@@ -1237,7 +1318,8 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 48,
     imageGeometry: {
-      d: 'M 500 439 L 506 433 L 512 437 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 Z',
+      d: 'M 473 416 L 482 414 L 486 414 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 L 491 433 L 475 420 Z',
+      hitPath: 'M 492 425 L 497 425 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 L 495 436 L 492 433 Z',
       labelX: 525,
       labelY: 455,
       labelRotate: 13,
@@ -1254,11 +1336,12 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     officialBlocks: ['032'],
     side: 'CENTER',
     fanRole: 'NEUTRAL',
-    displayPriority: 49,
+    displayPriority: 54,
     imageGeometry: {
-      d: 'M 573.8 466.4 L 604.7 469.7 L 602.2 493.6 L 571.3 490.3 Z',
+      d: 'M 569 464 L 570 462 L 572 459 L 575 455 L 577 453 L 579 453 L 582 454 L 584 455 L 598 464 L 599 465 L 596 471 L 595 472 L 592 472 L 584 470 L 575 467 L 570 465 Z',
+      hitPath: 'M 572 464 L 605 467 L 608 473 L 604 494 L 568 491 L 569 473 Z',
       labelX: 588,
-      labelY: 480,
+      labelY: 466,
       labelRotate: 6,
       labelFontSize: 9,
       shortLabel: '032',
@@ -1275,7 +1358,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 50,
     imageGeometry: {
-      d: 'M 600 484 L 637 484 L 665 486 L 665 492 L 656 492 L 642 491 L 600 490 Z',
+      d: 'M 600 484 L 638 484 L 666 486 L 666 493 L 656 493 L 641 492 L 600 491 Z',
       labelX: 636,
       labelY: 488,
       labelRotate: 0,
@@ -1294,7 +1377,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 51,
     imageGeometry: {
-      d: 'M 542 451 L 548 445 L 550 445 L 570 456 L 570 458 L 566 463 L 560 462 L 542 453 Z',
+      d: 'M 542 451 L 548 445 L 550 445 L 570 455 L 570 458 L 568 460 L 566 463 L 562 463 L 553 459 L 543 453 L 542 452 Z',
       labelX: 557,
       labelY: 455,
       labelRotate: 8,
@@ -1313,7 +1396,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 52,
     imageGeometry: {
-      d: 'M 577 453 L 585 455 L 600 465 L 596 473 L 588 472 L 569 465 Z',
+      d: 'M 577 453 L 585 455 L 600 465 L 599 468 L 597 472 L 596 473 L 592 473 L 588 472 L 569 465 L 570 462 L 573 458 Z',
       labelX: 589,
       labelY: 462,
       labelRotate: 4,
@@ -1332,7 +1415,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 53,
     imageGeometry: {
-      d: 'M 600 472 L 603 466 L 625 465 L 665 469 L 665 481 L 661 482 L 642 481 L 619 478 L 608 476 L 600 474 Z',
+      d: 'M 599 473 L 603 466 L 624 465 L 626 465 L 665 469 L 666 469 L 666 482 L 662 482 L 658 483 L 655 482 L 641 482 L 625 480 L 613 478 L 603 476 L 600 475 Z',
       labelX: 636,
       labelY: 474,
       labelRotate: 0,
@@ -1351,7 +1434,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 54,
     imageGeometry: {
-      d: 'M 546 438 L 552 431 L 579 438 L 585 445 L 577 452 L 554 449 L 546 443 Z',
+      d: 'M 548 439 L 550 436 L 553 433 L 554 433 L 572 441 L 576 443 L 576 445 L 574 448 L 572 452 L 570 452 L 565 450 L 563 449 L 552 443 L 549 440 Z',
       labelX: 562,
       labelY: 442,
       labelRotate: 8,
@@ -1371,7 +1454,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 55,
     imageGeometry: {
-      d: 'M 590 450 L 611 447 L 642 455 L 644 459 L 636 464 L 616 467 L 590 459 Z',
+      d: 'M 589 454 L 592 449 L 593 448 L 596 448 L 621 456 L 624 457 L 624 459 L 622 461 L 620 465 L 618 465 L 609 463 L 595 459 L 589 457 Z',
       labelX: 616,
       labelY: 456,
       labelRotate: 5,
@@ -1391,12 +1474,13 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 56,
     imageGeometry: {
-      d: 'M 635 408.5 L 671 408.5 L 671 431.5 L 635 431.5 Z',
-      labelX: 653,
-      labelY: 420,
-      labelRotate: 0,
+      d: 'M 623 466 L 666 468 L 666 492 L 620 489 L 620 469 Z',
+      labelX: 644,
+      labelY: 479,
+      labelRotate: 3,
       labelFontSize: 9,
       shortLabel: '011',
+      alignmentSeedPoint: { x: 643, y: 477 },
     },
   },
   {
@@ -1410,7 +1494,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 57,
     imageGeometry: {
-      d: 'M 669 447 L 678 443 L 685 440 L 690 438 L 692 446 L 694 455 L 695 460 L 695 462 L 691 463 L 680 464 L 670 464 L 669 457 Z',
+      d: 'M 669 447 L 673 445 L 680 442 L 690 438 L 691 441 L 693 450 L 695 460 L 695 462 L 693 463 L 682 464 L 670 464 L 669 463 Z',
       labelX: 682,
       labelY: 453,
       labelRotate: -3,
@@ -1429,7 +1513,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 58,
     imageGeometry: {
-      d: 'M 695 436 L 707 430 L 730 419 L 733 422 L 751 446 L 751 448 L 749 449 L 744 451 L 732 455 L 716 459 L 706 461 L 700 461 L 699 458 L 698 454 L 696 445 L 695 440 Z',
+      d: 'M 695 436 L 698 434 L 730 419 L 731 419 L 752 447 L 752 448 L 747 450 L 729 456 L 721 458 L 712 460 L 700 462 L 699 459 L 695 441 Z',
       labelX: 721,
       labelY: 442,
       labelRotate: -6,
@@ -1448,7 +1532,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 59,
     imageGeometry: {
-      d: 'M 735 417 L 748 410 L 768 400 L 770 400 L 772 401 L 797 416 L 800 418 L 801 419 L 797 422 L 788 428 L 778 434 L 771 438 L 760 444 L 758 445 L 756 445 L 754 443 L 750 438 L 738 422 Z',
+      d: 'M 735 417 L 736 416 L 765 401 L 769 399 L 789 411 L 797 416 L 800 418 L 801 419 L 800 420 L 793 425 L 790 427 L 775 436 L 764 442 L 758 445 L 756 445 L 753 442 L 749 437 L 743 429 L 738 422 L 736 419 Z',
       labelX: 766,
       labelY: 421,
       labelRotate: -17,
@@ -1467,7 +1551,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 60,
     imageGeometry: {
-      d: 'M 774 397 L 775 396 L 786 390 L 790 388 L 792 388 L 799 391 L 815 398 L 819 400 L 820 401 L 806 415 L 804 415 L 800 413 L 780 401 Z',
+      d: 'M 774 397 L 775 396 L 780 393 L 790 388 L 792 388 L 795 389 L 820 400 L 820 401 L 817 405 L 813 409 L 806 415 L 803 415 L 778 400 L 775 398 Z',
       labelX: 798,
       labelY: 401,
       labelRotate: -28,
@@ -1486,7 +1570,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 61,
     imageGeometry: {
-      d: 'M 796 385 L 797 384 L 811 376 L 815 374 L 816 374 L 835 380 L 835 381 L 833 385 L 828 392 L 824 397 L 823 397 L 807 390 L 798 386 Z',
+      d: 'M 796 385 L 797 384 L 800 382 L 809 377 L 815 374 L 817 374 L 835 380 L 835 382 L 831 388 L 825 396 L 824 397 L 823 397 L 809 391 L 800 387 Z',
       labelX: 817,
       labelY: 385,
       labelRotate: -28,
@@ -1505,7 +1589,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 62,
     imageGeometry: {
-      d: 'M 822 370 L 827 367 L 833 364 L 845 360 L 846 360 L 844 365 L 840 373 L 838 376 L 837 376 L 830 374 L 824 372 L 822 371 Z',
+      d: 'M 821 371 L 827 367 L 833 364 L 844 360 L 846 360 L 845 363 L 840 373 L 838 376 L 837 376 L 832 375 L 824 372 Z',
       labelX: 835,
       labelY: 369,
       labelRotate: -25,
@@ -1524,7 +1608,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 63,
     imageGeometry: {
-      d: 'M 670 469 L 677 468 L 691 467 L 696 467 L 697 468 L 699 477 L 699 479 L 698 480 L 688 481 L 670 481 Z',
+      d: 'M 670 469 L 676 469 L 676 468 L 691 468 L 691 467 L 697 467 L 698 468 L 698 472 L 699 472 L 699 477 L 700 477 L 700 480 L 699 481 L 689 482 L 670 482 Z',
       labelX: 684,
       labelY: 475,
       labelRotate: -2,
@@ -1543,7 +1627,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 64,
     imageGeometry: {
-      d: 'M 701 466 L 753 452 L 755 452 L 757 454 L 760 464 L 756 466 L 741 471 L 734 473 L 726 475 L 716 477 L 713 477 L 702 472 L 701 467 Z',
+      d: 'M 701 466 L 753 452 L 756 452 L 758 454 L 760 464 L 762 465 L 756 467 L 742 472 L 735 474 L 727 476 L 718 478 L 713 478 L 711 470 L 705 470 L 702 473 L 701 469 Z',
       labelX: 733,
       labelY: 465,
       labelRotate: -6,
@@ -1562,7 +1646,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 65,
     imageGeometry: {
-      d: 'M 760 449 L 761 448 L 804 422 L 807 422 L 810 424 L 811 425 L 814 434 L 813 435 L 807 439 L 793 448 L 771 459 L 770 459 L 761 452 L 760 450 Z',
+      d: 'M 759 449 L 804 422 L 807 422 L 809 423 L 811 425 L 814 434 L 813 435 L 804 441 L 793 448 L 778 456 L 770 460 L 769 460 L 761 452 Z',
       labelX: 789,
       labelY: 441,
       labelRotate: -15,
@@ -1581,7 +1665,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 66,
     imageGeometry: {
-      d: 'M 809 418 L 811 416 L 825 403 L 826 403 L 832 405 L 842 409 L 842 410 L 833 419 L 826 425 L 823 426 L 812 420 Z',
+      d: 'M 809 418 L 824 403 L 827 403 L 840 408 L 842 409 L 842 410 L 831 421 L 825 426 L 822 426 L 815 422 L 810 419 Z',
       labelX: 816,
       labelY: 418,
       labelRotate: -28,
@@ -1600,7 +1684,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 67,
     imageGeometry: {
-      d: 'M 829 398 L 833 392 L 840 382 L 843 382 L 852 384 L 859 386 L 859 387 L 856 392 L 851 399 L 847 404 L 846 405 L 844 405 L 841 404 L 833 401 L 829 399 Z',
+      d: 'M 828 399 L 830 396 L 839 383 L 840 382 L 843 382 L 858 385 L 859 386 L 859 387 L 858 389 L 854 395 L 848 403 L 846 405 L 843 405 L 835 402 L 830 400 Z',
       labelX: 842,
       labelY: 394,
       labelRotate: -28,
@@ -1619,7 +1703,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 68,
     imageGeometry: {
-      d: 'M 843 377 L 852 359 L 867 359 L 872 360 L 872 361 L 871 364 L 866 374 L 856 380 L 855 380 L 845 378 Z',
+      d: 'M 843 377 L 850 362 L 852 359 L 872 359 L 872 363 L 866 375 L 865 376 L 860 375 L 857 380 L 853 380 L 844 378 Z',
       labelX: 857,
       labelY: 371,
       labelRotate: -20,
@@ -1638,7 +1722,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 69,
     imageGeometry: {
-      d: 'M 836 335 L 870 332 L 880 333 L 878 345 L 867 354 L 856 354 L 837 353 Z',
+      d: 'M 854 352 L 859 335 L 860 334 L 877 332 L 881 332 L 881 334 L 879 342 L 878 345 L 877 347 L 867 354 L 854 354 Z',
       labelX: 858,
       labelY: 344,
       labelRotate: 0,
@@ -1676,7 +1760,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 71,
     imageGeometry: {
-      d: 'M 705 483 L 732 478 L 733 479 L 733 481 L 732 483 L 722 487 L 718 488 L 712 489 L 706 489 L 705 485 Z',
+      d: 'M 705 483 L 732 478 L 733 478 L 733 484 L 731 484 L 727 483 L 724 487 L 719 489 L 713 490 L 706 490 L 705 486 Z',
       labelX: 713,
       labelY: 485,
       labelRotate: -2,
@@ -1695,9 +1779,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 72,
     imageGeometry: {
-      d: 'M 772 464 L 781 459 L 792 453 L 793 453 L 803 454 L 803 455 L 789 463 L 777 469 L 776 469 L 772 465 Z',
+      d: 'M 772 464 L 779 460 L 790 454 L 798 450 L 799 450 L 803 453 L 803 455 L 802 456 L 793 461 L 777 469 L 775 469 L 772 465 Z',
       labelX: 787,
-      labelY: 462,
+      labelY: 460,
       labelRotate: -12,
       labelFontSize: 9,
       shortLabel: '133',
@@ -1714,9 +1798,9 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 73,
     imageGeometry: {
-      d: 'M 810 456 L 811 455 L 834 438 L 835 438 L 837 439 L 840 441 L 835 446 L 828 452 L 823 456 L 819 459 L 817 460 L 812 460 L 810 457 Z',
-      labelX: 826,
-      labelY: 448,
+      d: 'M 828 429 L 829 428 L 847 411 L 848 411 L 863 416 L 864 418 L 860 422 L 846 437 L 845 438 L 843 438 L 835 433 L 830 431 L 828 430 Z',
+      labelX: 844,
+      labelY: 424,
       labelRotate: -28,
       labelFontSize: 9,
       shortLabel: '134',
@@ -1733,7 +1817,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 74,
     imageGeometry: {
-      d: 'M 856 400 L 857 398 L 863 389 L 865 387 L 867 387 L 879 389 L 884 390 L 880 396 L 874 404 L 870 409 L 867 412 L 865 412 L 859 410 Z',
+      d: 'M 856 400 L 857 398 L 863 389 L 865 387 L 868 387 L 879 389 L 884 390 L 880 396 L 875 403 L 873 407 L 870 411 L 868 413 L 864 413 L 860 411 L 859 410 Z',
       labelX: 869,
       labelY: 400,
       labelRotate: -28,
@@ -1771,7 +1855,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 76,
     imageGeometry: {
-      d: 'M 880 354 L 886 332 L 888 331 L 897 330 L 907 329 L 910 329 L 910 331 L 908 339 L 905 348 L 894 355 L 883 355 Z',
+      d: 'M 880 354 L 886 332 L 887 331 L 905 329 L 911 329 L 911 333 L 910 337 L 907 347 L 905 350 L 904 348 L 897 347 L 895 350 L 894 355 L 880 356 Z',
       labelX: 895,
       labelY: 342,
       labelRotate: 0,
@@ -1792,7 +1876,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     seatViewSections: ['141', '141블록'],
     parentLabel: '141',
     imageGeometry: {
-      d: 'M 600 494 L 668 494 L 704 497 L 704 503 L 641 503 L 600 501 Z',
+      d: 'M 620 496 L 621 492 L 627 492 L 656 495 L 655 502 L 641 501 L 632 500 L 624 499 L 620 498 Z',
       labelX: 640,
       labelY: 499,
       labelRotate: 1,
@@ -1811,7 +1895,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 78,
     imageGeometry: {
-      d: 'M 671 506 L 708 494 L 772 476 L 775 476 L 776 477 L 781 483 L 781 484 L 776 487 L 760 495 L 751 499 L 744 502 L 734 506 L 713 513 L 698 517 L 690 519 L 680 521 L 674 522 L 671 522 Z',
+      d: 'M 671 506 L 708 494 L 774 475 L 777 478 L 782 483 L 782 485 L 776 488 L 758 497 L 749 501 L 734 507 L 713 514 L 702 517 L 690 520 L 675 523 L 671 523 Z',
       labelX: 725,
       labelY: 506,
       labelRotate: -3,
@@ -1830,9 +1914,10 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'AWAY',
     displayPriority: 79,
     imageGeometry: {
-      d: 'M 779 473 L 805 459 L 807 458 L 812 462 L 813 463 L 811 465 L 793 477 L 788 480 L 786 481 L 780 475 Z',
+      d: 'M 779 473 L 834 438 L 835 438 L 839 440 L 840 441 L 835 446 L 828 452 L 823 456 L 811 465 L 793 477 L 788 480 L 786 481 L 781 476 Z',
+      hitPath: 'M 779 473 L 814 453 L 822 452 L 822 456 L 819 459 L 811 465 L 793 477 L 788 480 L 786 481 L 781 476 Z',
       labelX: 795,
-      labelY: 470,
+      labelY: 471,
       labelRotate: -14,
       labelFontSize: 9,
       shortLabel: '143',
@@ -1869,7 +1954,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     fanRole: 'NEUTRAL',
     displayPriority: 81,
     imageGeometry: {
-      d: 'M 847 291 L 884 286 L 885 302 L 850 307 Z',
+      d: 'M 859 293 L 863 292 L 871 289 L 882 286 L 884 286 L 885 292 L 885 300 L 882 301 L 865 304 L 862 304 L 859 302 L 859 294 Z',
       labelX: 861,
       labelY: 298,
       labelRotate: 7,
@@ -1928,7 +2013,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     imageGeometry: {
       d: 'M 886 266 L 888 264 L 899 259 L 909 255 L 911 255 L 912 258 L 913 264 L 913 271 L 912 272 L 894 278 L 888 278 L 887 274 L 886 269 Z',
       labelX: 899,
-      labelY: 259,
+      labelY: 267,
       labelRotate: 9,
       labelFontSize: 9,
       shortLabel: '903',
@@ -2039,90 +2124,90 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
 export const SAJIK_BLOCKS: SajikBlock[] = SAJIK_BLOCK_DEFINITIONS.map(createSajikBlock);
 
 export const SAJIK_OFFICIAL_TRACE_REFERENCE: Record<string, SajikOfficialTraceReference> = {
-  '338': { numberAnchor: { x: 506, y: 148 }, expectedBounds: { minX: 484, minY: 126, maxX: 529, maxY: 166 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 1152 },
-  '732': { numberAnchor: { x: 562, y: 122 }, expectedBounds: { minX: 535, minY: 99, maxX: 593, maxY: 144 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1525 },
+  '338': { numberAnchor: { x: 506, y: 148 }, expectedBounds: { minX: 484, minY: 142, maxX: 517, maxY: 170 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 573 },
+  '732': { numberAnchor: { x: 562, y: 122 }, expectedBounds: { minX: 535, minY: 99, maxX: 592, maxY: 143 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 1527.5 },
   '733': { numberAnchor: { x: 617, y: 116 }, expectedBounds: { minX: 589, minY: 89, maxX: 643, maxY: 127 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1530.5 },
   '734': { numberAnchor: { x: 675, y: 116 }, expectedBounds: { minX: 645, minY: 88, maxX: 695, maxY: 120 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 1489 },
   '721': { numberAnchor: { x: 534, y: 172 }, expectedBounds: { minX: 507, minY: 149, maxX: 559, maxY: 194 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 1208 },
   '722': { numberAnchor: { x: 575, y: 149 }, expectedBounds: { minX: 552, minY: 132, maxX: 601, maxY: 170 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 1126 },
   '723': { numberAnchor: { x: 625, y: 145 }, expectedBounds: { minX: 598, minY: 124, maxX: 645, maxY: 156 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1134.5 },
-  '724': { numberAnchor: { x: 682, y: 147 }, expectedBounds: { minX: 647, minY: 123, maxX: 727, maxY: 154 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 2158.5 },
+  '724': { numberAnchor: { x: 682, y: 147 }, expectedBounds: { minX: 647, minY: 123, maxX: 730, maxY: 153 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 2099.5 },
   '925': { numberAnchor: { x: 807, y: 176 }, expectedBounds: { minX: 780, minY: 156, maxX: 820, maxY: 192 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 810 },
   '935': { numberAnchor: { x: 820, y: 145 }, expectedBounds: { minX: 796, minY: 128, maxX: 843, maxY: 170 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1091.5 },
   '924': { numberAnchor: { x: 829, y: 203 }, expectedBounds: { minX: 806, minY: 177, maxX: 850, maxY: 221 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 990 },
   '934': { numberAnchor: { x: 848, y: 181 }, expectedBounds: { minX: 826, minY: 151, maxX: 876, maxY: 202 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1316 },
   '923': { numberAnchor: { x: 849, y: 236 }, expectedBounds: { minX: 833, minY: 208, maxX: 873, maxY: 253 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 975 },
   '933': { numberAnchor: { x: 873, y: 217 }, expectedBounds: { minX: 857, minY: 187, maxX: 902, maxY: 239 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1282.5 },
-  '922': { numberAnchor: { x: 862, y: 268 }, expectedBounds: { minX: 853, minY: 248, maxX: 880, maxY: 272 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 439.5 },
+  '922': { numberAnchor: { x: 862, y: 268 }, expectedBounds: { minX: 853, minY: 245, maxX: 880, maxY: 272 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 456.5 },
   '932': { numberAnchor: { x: 887, y: 257 }, expectedBounds: { minX: 879, minY: 230, maxX: 910, maxY: 261 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 613 },
   '931': { numberAnchor: { x: 899, y: 310 }, expectedBounds: { minX: 887, minY: 300, maxX: 915, maxY: 327 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 590.5 },
-  '337': { numberAnchor: { x: 468, y: 178 }, expectedBounds: { minX: 438, minY: 155, maxX: 501, maxY: 217 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1916 },
+  '337': { numberAnchor: { x: 468, y: 178 }, expectedBounds: { minX: 438, minY: 155, maxX: 500, maxY: 219 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 1879.5 },
   '327': { numberAnchor: { x: 491, y: 216 }, expectedBounds: { minX: 467, minY: 179, maxX: 521, maxY: 235 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 1515.5 },
   '336': { numberAnchor: { x: 435, y: 230 }, expectedBounds: { minX: 423, minY: 209, maxX: 461, maxY: 248 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 839.5 },
   '326': { numberAnchor: { x: 469, y: 247 }, expectedBounds: { minX: 454, minY: 226, maxX: 487, maxY: 260 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 652 },
   '335': { numberAnchor: { x: 421, y: 286 }, expectedBounds: { minX: 402, minY: 269, maxX: 441, maxY: 303 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 969 },
-  '325': { numberAnchor: { x: 446.5, y: 274 }, expectedBounds: { minX: 442, minY: 255, maxX: 475, maxY: 282 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 582 },
-  '334': { numberAnchor: { x: 413, y: 306 }, expectedBounds: { minX: 398, minY: 300, maxX: 432, maxY: 357 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 1551 },
+  '325': { numberAnchor: { x: 446.5, y: 274 }, expectedBounds: { minX: 446, minY: 253, maxX: 475, maxY: 282 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 562.5 },
+  '334': { numberAnchor: { x: 413, y: 306 }, expectedBounds: { minX: 398, minY: 300, maxX: 432, maxY: 358 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 1567.5 },
   '324': { numberAnchor: { x: 448, y: 305 }, expectedBounds: { minX: 444, minY: 282, maxX: 470, maxY: 309 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 573 },
   '343': { numberAnchor: { x: 413, y: 336 }, expectedBounds: { minX: 398, minY: 307, maxX: 433, maxY: 358 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1455.5 },
   '333': { numberAnchor: { x: 449, y: 335 }, expectedBounds: { minX: 444, minY: 308, maxX: 477, maxY: 358 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1190.5 },
-  '342': { numberAnchor: { x: 420, y: 374 }, expectedBounds: { minX: 399, minY: 361, maxX: 448, maxY: 411 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 1982 },
+  '342': { numberAnchor: { x: 420, y: 374 }, expectedBounds: { minX: 399, minY: 361, maxX: 452, maxY: 421 }, expectedSubpathCount: 1, expectedPointCount: 17, expectedArea: 2331 },
   '332': { numberAnchor: { x: 465, y: 377 }, expectedBounds: { minX: 457, minY: 361, maxX: 487, maxY: 385 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 497.5 },
   '331': { numberAnchor: { x: 450, y: 407 }, expectedBounds: { minX: 441, minY: 394, maxX: 467, maxY: 419 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 263 },
   '321': { numberAnchor: { x: 488, y: 401 }, expectedBounds: { minX: 471, minY: 385, maxX: 506, maxY: 409 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 489 },
   '316': { numberAnchor: { x: 502, y: 246 }, expectedBounds: { minX: 481, minY: 221, maxX: 516, maxY: 274 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1047 },
   '315': { numberAnchor: { x: 491, y: 278 }, expectedBounds: { minX: 474, minY: 265, maxX: 519, maxY: 295 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 745 },
-  '314': { numberAnchor: { x: 488, y: 309 }, expectedBounds: { minX: 472, minY: 288, maxX: 520, maxY: 317 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 965.5 },
-  '313': { numberAnchor: { x: 491, y: 342 }, expectedBounds: { minX: 472, minY: 313, maxX: 524, maxY: 357 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1824.5 },
+  '314': { numberAnchor: { x: 488, y: 309 }, expectedBounds: { minX: 472, minY: 288, maxX: 521, maxY: 316 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 943.5 },
+  '313': { numberAnchor: { x: 491, y: 342 }, expectedBounds: { minX: 472, minY: 313, maxX: 526, maxY: 356 }, expectedSubpathCount: 1, expectedPointCount: 19, expectedArea: 1836.5 },
   '312': { numberAnchor: { x: 501, y: 373 }, expectedBounds: { minX: 483, minY: 356, maxX: 529, maxY: 380 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 781.5 },
   '311': { numberAnchor: { x: 520, y: 392 }, expectedBounds: { minX: 496, minY: 375, maxX: 532, maxY: 402 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 607 },
   '057': { numberAnchor: { x: 452, y: 430 }, expectedBounds: { minX: 421, minY: 421, maxX: 476, maxY: 449 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 930 },
-  '056': { numberAnchor: { x: 487, y: 459 }, expectedBounds: { minX: 447, minY: 442, maxX: 507, maxY: 479 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1289 },
-  '055': { numberAnchor: { x: 486, y: 484 }, expectedBounds: { minX: 477, minY: 464, maxX: 521, maxY: 494 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 759.5 },
-  '054': { numberAnchor: { x: 532, y: 496 }, expectedBounds: { minX: 505, minY: 481, maxX: 567, maxY: 512 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 1228.5 },
-  '053': { numberAnchor: { x: 575, y: 508 }, expectedBounds: { minX: 553, minY: 494, maxX: 592, maxY: 520 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 671.5 },
-  '052': { numberAnchor: { x: 612, y: 513 }, expectedBounds: { minX: 586, minY: 499, maxX: 634, maxY: 525 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 1021 },
+  '056': { numberAnchor: { x: 487, y: 459 }, expectedBounds: { minX: 443, minY: 442, maxX: 507, maxY: 479 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1314.5 },
+  '055': { numberAnchor: { x: 486, y: 484 }, expectedBounds: { minX: 477, minY: 463, maxX: 529, maxY: 495 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 887.5 },
+  '054': { numberAnchor: { x: 532, y: 496 }, expectedBounds: { minX: 505, minY: 474, maxX: 567, maxY: 513 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 1390 },
+  '053': { numberAnchor: { x: 575, y: 508 }, expectedBounds: { minX: 553, minY: 490, maxX: 592, maxY: 520 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 727 },
+  '052': { numberAnchor: { x: 612, y: 513 }, expectedBounds: { minX: 586, minY: 497, maxX: 635, maxY: 526 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 1116 },
   '051': { numberAnchor: { x: 651, y: 512 }, expectedBounds: { minX: 636, minY: 504, maxX: 666, maxY: 525 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 564 },
-  '044': { numberAnchor: { x: 465, y: 421 }, expectedBounds: { minX: 454, minY: 414, maxX: 500, maxY: 447 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 707.5 },
-  '034': { numberAnchor: { x: 500.5, y: 415 }, expectedBounds: { minX: 490, minY: 406, maxX: 546, maxY: 450 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1007 },
-  '024': { numberAnchor: { x: 535, y: 432 }, expectedBounds: { minX: 501, minY: 406, maxX: 545, maxY: 449 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 881.5 },
-  '033': { numberAnchor: { x: 525, y: 455 }, expectedBounds: { minX: 500, minY: 433, maxX: 534, maxY: 458 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 310 },
-  '032': { numberAnchor: { x: 588, y: 480 }, expectedBounds: { minX: 571.3, minY: 466.4, maxX: 604.7, maxY: 493.6 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 746.76 },
-  '031': { numberAnchor: { x: 636, y: 488 }, expectedBounds: { minX: 600, minY: 484, maxX: 665, maxY: 492 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 422 },
-  '023': { numberAnchor: { x: 557, y: 455 }, expectedBounds: { minX: 542, minY: 445, maxX: 570, maxY: 463 }, expectedSubpathCount: 1, expectedPointCount: 8, expectedArea: 264 },
-  '022': { numberAnchor: { x: 589, y: 462 }, expectedBounds: { minX: 569, minY: 453, maxX: 600, maxY: 473 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 353.5 },
-  '021': { numberAnchor: { x: 636, y: 474 }, expectedBounds: { minX: 600, minY: 465, maxX: 665, maxY: 482 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 822 },
-  '013': { numberAnchor: { x: 562, y: 442 }, expectedBounds: { minX: 546, minY: 431, maxX: 585, maxY: 452 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 530 },
-  '012': { numberAnchor: { x: 616, y: 456 }, expectedBounds: { minX: 590, minY: 447, maxX: 644, maxY: 467 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 726.5 },
-  '011': { numberAnchor: { x: 653, y: 420 }, expectedBounds: { minX: 635, minY: 408.5, maxX: 671, maxY: 431.5 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 828 },
-  '111': { numberAnchor: { x: 682, y: 453 }, expectedBounds: { minX: 669, minY: 438, maxX: 695, maxY: 464 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 516 },
-  '112': { numberAnchor: { x: 721, y: 442 }, expectedBounds: { minX: 695, minY: 419, maxX: 751, maxY: 461 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 1485 },
-  '113': { numberAnchor: { x: 766, y: 421 }, expectedBounds: { minX: 735, minY: 400, maxX: 801, maxY: 445 }, expectedSubpathCount: 1, expectedPointCount: 18, expectedArea: 1609 },
-  '114': { numberAnchor: { x: 798, y: 401 }, expectedBounds: { minX: 774, minY: 388, maxX: 820, maxY: 415 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 645.5 },
-  '115': { numberAnchor: { x: 817, y: 385 }, expectedBounds: { minX: 796, minY: 374, maxX: 835, maxY: 397 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 501 },
-  '116': { numberAnchor: { x: 835, y: 369 }, expectedBounds: { minX: 822, minY: 360, maxX: 846, maxY: 376 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 192.5 },
-  '121': { numberAnchor: { x: 684, y: 475 }, expectedBounds: { minX: 670, minY: 467, maxX: 699, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 370.5 },
-  '122': { numberAnchor: { x: 733, y: 465 }, expectedBounds: { minX: 701, minY: 452, maxX: 760, maxY: 477 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 808.5 },
-  '123': { numberAnchor: { x: 789, y: 441 }, expectedBounds: { minX: 760, minY: 422, maxX: 814, maxY: 459 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 850.5 },
-  '124': { numberAnchor: { x: 816, y: 418 }, expectedBounds: { minX: 809, minY: 403, maxX: 842, maxY: 426 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 407 },
-  '125': { numberAnchor: { x: 842, y: 394 }, expectedBounds: { minX: 829, minY: 382, maxX: 859, maxY: 405 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 423 },
-  '126': { numberAnchor: { x: 857, y: 371 }, expectedBounds: { minX: 843, minY: 359, maxX: 872, maxY: 380 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 408 },
-  '127': { numberAnchor: { x: 858, y: 344 }, expectedBounds: { minX: 836, minY: 332, maxX: 880, maxY: 354 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 813 },
+  '044': { numberAnchor: { x: 480, y: 433 }, expectedBounds: { minX: 465, minY: 422, maxX: 498, maxY: 446 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 264.5 },
+  '034': { numberAnchor: { x: 496, y: 414 }, expectedBounds: { minX: 490, minY: 406, maxX: 546, maxY: 450 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 1007 },
+  '024': { numberAnchor: { x: 535, y: 432 }, expectedBounds: { minX: 497, minY: 406, maxX: 545, maxY: 449 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 929.5 },
+  '033': { numberAnchor: { x: 525, y: 455 }, expectedBounds: { minX: 473, minY: 414, maxX: 534, maxY: 458 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 718.5 },
+  '032': { numberAnchor: { x: 588, y: 466 }, expectedBounds: { minX: 569, minY: 453, maxX: 599, maxY: 472 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 334.5 },
+  '031': { numberAnchor: { x: 636, y: 488 }, expectedBounds: { minX: 600, minY: 484, maxX: 666, maxY: 493 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 497 },
+  '023': { numberAnchor: { x: 557, y: 455 }, expectedBounds: { minX: 542, minY: 445, maxX: 570, maxY: 463 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 276.5 },
+  '022': { numberAnchor: { x: 589, y: 462 }, expectedBounds: { minX: 569, minY: 453, maxX: 600, maxY: 473 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 365 },
+  '021': { numberAnchor: { x: 636, y: 474 }, expectedBounds: { minX: 599, minY: 465, maxX: 666, maxY: 483 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 902.5 },
+  '013': { numberAnchor: { x: 562, y: 442 }, expectedBounds: { minX: 548, minY: 433, maxX: 576, maxY: 452 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 275.5 },
+  '012': { numberAnchor: { x: 616, y: 456 }, expectedBounds: { minX: 589, minY: 448, maxX: 624, maxY: 465 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 337.5 },
+  '011': { numberAnchor: { x: 644, y: 479 }, expectedBounds: { minX: 620, minY: 466, maxX: 666, maxY: 492 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 1079.5 },
+  '111': { numberAnchor: { x: 682, y: 453 }, expectedBounds: { minX: 669, minY: 438, maxX: 695, maxY: 464 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 526 },
+  '112': { numberAnchor: { x: 721, y: 442 }, expectedBounds: { minX: 695, minY: 419, maxX: 752, maxY: 462 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 1513.5 },
+  '113': { numberAnchor: { x: 766, y: 421 }, expectedBounds: { minX: 735, minY: 399, maxX: 801, maxY: 445 }, expectedSubpathCount: 1, expectedPointCount: 20, expectedArea: 1640 },
+  '114': { numberAnchor: { x: 798, y: 401 }, expectedBounds: { minX: 774, minY: 388, maxX: 820, maxY: 415 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 670 },
+  '115': { numberAnchor: { x: 817, y: 385 }, expectedBounds: { minX: 796, minY: 374, maxX: 835, maxY: 397 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 510.5 },
+  '116': { numberAnchor: { x: 835, y: 369 }, expectedBounds: { minX: 821, minY: 360, maxX: 846, maxY: 376 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 197.5 },
+  '121': { numberAnchor: { x: 684, y: 475 }, expectedBounds: { minX: 670, minY: 467, maxX: 700, maxY: 482 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 401 },
+  '122': { numberAnchor: { x: 733, y: 465 }, expectedBounds: { minX: 701, minY: 452, maxX: 762, maxY: 478 }, expectedSubpathCount: 1, expectedPointCount: 16, expectedArea: 839.5 },
+  '123': { numberAnchor: { x: 789, y: 441 }, expectedBounds: { minX: 759, minY: 422, maxX: 814, maxY: 460 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 874 },
+  '124': { numberAnchor: { x: 816, y: 418 }, expectedBounds: { minX: 809, minY: 403, maxX: 842, maxY: 426 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 423.5 },
+  '125': { numberAnchor: { x: 842, y: 394 }, expectedBounds: { minX: 828, minY: 382, maxX: 859, maxY: 405 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 438 },
+  '126': { numberAnchor: { x: 857, y: 371 }, expectedBounds: { minX: 843, minY: 359, maxX: 872, maxY: 380 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 420.5 },
+  '127': { numberAnchor: { x: 858, y: 344 }, expectedBounds: { minX: 854, minY: 332, maxX: 881, maxY: 354 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 431.5 },
   '131': { numberAnchor: { x: 683, y: 489 }, expectedBounds: { minX: 666, minY: 483, maxX: 704, maxY: 493 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 345 },
-  '132': { numberAnchor: { x: 713, y: 485 }, expectedBounds: { minX: 705, minY: 478, maxX: 733, maxY: 489 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 182 },
-  '133': { numberAnchor: { x: 787, y: 462 }, expectedBounds: { minX: 772, minY: 453, maxX: 803, maxY: 469 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 197.5 },
-  '134': { numberAnchor: { x: 826, y: 448 }, expectedBounds: { minX: 810, minY: 438, maxX: 840, maxY: 460 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 236.5 },
-  '135': { numberAnchor: { x: 869, y: 400 }, expectedBounds: { minX: 856, minY: 387, maxX: 884, maxY: 412 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 421 },
+  '132': { numberAnchor: { x: 713, y: 485 }, expectedBounds: { minX: 705, minY: 478, maxX: 733, maxY: 490 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 200.5 },
+  '133': { numberAnchor: { x: 787, y: 460 }, expectedBounds: { minX: 772, minY: 450, maxX: 803, maxY: 469 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 228 },
+  '134': { numberAnchor: { x: 844, y: 424 }, expectedBounds: { minX: 828, minY: 411, maxX: 864, maxY: 438 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 501.5 },
+  '135': { numberAnchor: { x: 869, y: 400 }, expectedBounds: { minX: 856, minY: 387, maxX: 884, maxY: 413 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 443.5 },
   '136': { numberAnchor: { x: 884, y: 372 }, expectedBounds: { minX: 868, minY: 360, maxX: 900, maxY: 385 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 534.5 },
-  '137': { numberAnchor: { x: 895, y: 342 }, expectedBounds: { minX: 880, minY: 329, maxX: 910, maxY: 355 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 558 },
-  '041': { numberAnchor: { x: 640, y: 499 }, expectedBounds: { minX: 600, minY: 494, maxX: 704, maxY: 503 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 841 },
-  '142': { numberAnchor: { x: 725, y: 506 }, expectedBounds: { minX: 671, minY: 476, maxX: 781, maxY: 522 }, expectedSubpathCount: 1, expectedPointCount: 18, expectedArea: 1919 },
-  '143': { numberAnchor: { x: 795, y: 470 }, expectedBounds: { minX: 779, minY: 458, maxX: 813, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 10, expectedArea: 306 },
+  '137': { numberAnchor: { x: 895, y: 342 }, expectedBounds: { minX: 880, minY: 329, maxX: 911, maxY: 356 }, expectedSubpathCount: 1, expectedPointCount: 14, expectedArea: 562.5 },
+  '041': { numberAnchor: { x: 640, y: 499 }, expectedBounds: { minX: 620, minY: 492, maxX: 656, maxY: 502 }, expectedSubpathCount: 1, expectedPointCount: 9, expectedArea: 256.5 },
+  '142': { numberAnchor: { x: 725, y: 506 }, expectedBounds: { minX: 671, minY: 475, maxX: 782, maxY: 523 }, expectedSubpathCount: 1, expectedPointCount: 15, expectedArea: 2053.5 },
+  '143': { numberAnchor: { x: 795, y: 471 }, expectedBounds: { minX: 779, minY: 438, maxX: 840, maxY: 481 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 642.5 },
   '914': { numberAnchor: { x: 862, y: 280 }, expectedBounds: { minX: 846, minY: 268, maxX: 884, maxY: 291 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 676 },
-  '913': { numberAnchor: { x: 861, y: 298 }, expectedBounds: { minX: 847, minY: 286, maxX: 885, maxY: 307 }, expectedSubpathCount: 1, expectedPointCount: 4, expectedArea: 586 },
+  '913': { numberAnchor: { x: 861, y: 298 }, expectedBounds: { minX: 859, minY: 286, maxX: 885, maxY: 304 }, expectedSubpathCount: 1, expectedPointCount: 12, expectedArea: 347.5 },
   '912': { numberAnchor: { x: 879, y: 302 }, expectedBounds: { minX: 861, minY: 285, maxX: 886, maxY: 305 }, expectedSubpathCount: 1, expectedPointCount: 6, expectedArea: 360.5 },
   '911': { numberAnchor: { x: 874, y: 296 }, expectedBounds: { minX: 861, minY: 286, maxX: 885, maxY: 304 }, expectedSubpathCount: 1, expectedPointCount: 11, expectedArea: 322.5 },
-  '903': { numberAnchor: { x: 899, y: 259 }, expectedBounds: { minX: 886, minY: 255, maxX: 913, maxY: 278 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 433 },
+  '903': { numberAnchor: { x: 899, y: 267 }, expectedBounds: { minX: 886, minY: 255, maxX: 913, maxY: 278 }, expectedSubpathCount: 1, expectedPointCount: 13, expectedArea: 433 },
   '902': { numberAnchor: { x: 903, y: 274 }, expectedBounds: { minX: 886, minY: 255, maxX: 914, maxY: 280 }, expectedSubpathCount: 1, expectedPointCount: 7, expectedArea: 484 },
   '901': { numberAnchor: { x: 903, y: 291 }, expectedBounds: { minX: 888, minY: 276, maxX: 916, maxY: 301 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 522 },
   '휠체어석-3루': { numberAnchor: { x: 454, y: 276 }, expectedBounds: { minX: 446, minY: 253, maxX: 476, maxY: 283 }, expectedSubpathCount: 1, expectedPointCount: 5, expectedArea: 587.5 },

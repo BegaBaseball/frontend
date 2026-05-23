@@ -651,7 +651,7 @@ test('대전 trace review queue는 pending 블록만 공식 PNG 수동 tracing �
 });
 
 test('대전 P0 anchor crop은 자동 owner-point 회귀 테스트와 연결된다', () => {
-  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-anchor-review-crops.mjs', import.meta.url), 'utf8');
+  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-seatmap-ops.mjs', import.meta.url), 'utf8');
   const anchorCropContractSource = readFileSync(new URL('../../scripts/daejeon-seatmap-anchor-contract.mjs', import.meta.url), 'utf8');
   const anchorCropContract = `${anchorCropSource}\n${anchorCropContractSource}`;
   const dataTestSource = readFileSync(new URL('./daejeonSeatData.test.ts', import.meta.url), 'utf8');
@@ -687,7 +687,7 @@ test('대전 P0 anchor crop은 자동 owner-point 회귀 테스트와 연결된�
 });
 
 test('대전 P1 anchor crop은 자동 owner-point 회귀 테스트와 연결된다', () => {
-  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-anchor-review-crops.mjs', import.meta.url), 'utf8');
+  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-seatmap-ops.mjs', import.meta.url), 'utf8');
   const anchorCropContractSource = readFileSync(new URL('../../scripts/daejeon-seatmap-anchor-contract.mjs', import.meta.url), 'utf8');
   const anchorCropContract = `${anchorCropSource}\n${anchorCropContractSource}`;
   const dataTestSource = readFileSync(new URL('./daejeonSeatData.test.ts', import.meta.url), 'utf8');
@@ -730,7 +730,7 @@ test('대전 P1 anchor crop은 자동 owner-point 회귀 테스트와 연결된�
 });
 
 test('대전 P2 anchor crop은 자동 후보와 수동 crop-only 대상을 구분한다', () => {
-  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-anchor-review-crops.mjs', import.meta.url), 'utf8');
+  const anchorCropSource = readFileSync(new URL('../../scripts/daejeon-seatmap-ops.mjs', import.meta.url), 'utf8');
   const anchorCropContractSource = readFileSync(new URL('../../scripts/daejeon-seatmap-anchor-contract.mjs', import.meta.url), 'utf8');
   const anchorCropContract = `${anchorCropSource}\n${anchorCropContractSource}`;
   const dataTestSource = readFileSync(new URL('./daejeonSeatData.test.ts', import.meta.url), 'utf8');
@@ -960,14 +960,14 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
   const expectations = [
     {
       id: 'first-table-4f-301-413__301',
-      bounds: { minX: 766, minY: 451, maxX: 795, maxY: 489 },
+      bounds: { minX: 766, minY: 452, maxX: 794, maxY: 488 },
       labelPoint: [782, 469] as const,
       ownerPoints: [[772, 480], [790, 460]] as const,
       excludedPoints: [[760, 470], [802, 470]] as const,
     },
     {
       id: 'first-table-4f-301-413__302',
-      bounds: { minX: 754, minY: 491, maxX: 798, maxY: 523 },
+      bounds: { minX: 755, minY: 491, maxX: 797, maxY: 522 },
       labelPoint: [777, 505] as const,
       ownerPoints: [[765, 515], [790, 500]] as const,
       excludedPoints: [[748, 505], [804, 505]] as const,
@@ -981,7 +981,7 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
     },
     {
       id: 'first-table-4f-301-413__402',
-      bounds: { minX: 792, minY: 498, maxX: 830, maxY: 532 },
+      bounds: { minX: 792, minY: 499, maxX: 828, maxY: 530 },
       labelPoint: [811, 515] as const,
       ownerPoints: [[805, 520], [815, 520], [797, 525]] as const,
       excludedPoints: [[786, 515], [837, 515]] as const,
@@ -995,14 +995,14 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
     },
     {
       id: 'first-table-4f-301-413__404',
-      bounds: { minX: 758, minY: 572, maxX: 814, maxY: 623 },
+      bounds: { minX: 759, minY: 572, maxX: 802, maxY: 618 },
       labelPoint: [777, 588] as const,
       ownerPoints: [[785, 590], [770, 600], [795, 615]] as const,
       excludedPoints: [[752, 590], [820, 590]] as const,
     },
     {
       id: 'first-table-4f-301-413__405',
-      bounds: { minX: 730, minY: 619, maxX: 805, maxY: 660 },
+      bounds: { minX: 734, minY: 620, maxX: 801, maxY: 659 },
       labelPoint: [744, 640] as const,
       ownerPoints: [[760, 630], [790, 650]] as const,
       excludedPoints: [[720, 640], [812, 640]] as const,
@@ -1501,28 +1501,29 @@ test('대전 104 블록은 공식 이미지의 라벨 셀만 소유한다', () =
   const block = blockById.get('first-infield-b-101-108__104');
   assert.ok(block, 'first-infield-b-101-108__104 should exist');
   assert.equal(isDaejeonSplitColorBlockId(block.id), false, '104 should not use split-color render priority');
-  assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), { minX: 676, minY: 474, maxX: 730, maxY: 502 });
+  assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), { minX: 676, minY: 458, maxX: 730, maxY: 502 });
   assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], [705, 487]);
 
-  [
+  ([
     [690, 486],
     [710, 495],
     [720, 500],
-  ].forEach((point) => {
+    [701, 467],
+  ] as [number, number][]).forEach((point) => {
     assert.equal(getTopHitBlockIdAtPoint(point), block.id, `104 should include official label-cell point ${point.join(',')}`);
   });
 
-  [
+  ([
     [620, 480],
-    [650, 478],
+    [645, 489],
     [665, 496],
     [700, 510],
-  ].forEach((point) => {
+  ] as [number, number][]).forEach((point) => {
     assert.notEqual(getTopHitBlockIdAtPoint(point), block.id, `104 should not absorb adjacent point ${point.join(',')}`);
   });
 });
 
-test('대전 split-color 121 블록은 공식 이미지의 두 색상 셀 선택 영역을 포함한다', () => {
+test('대전 121 블록은 단일 폴리곤 기준 오버랩 없는 공식 셀을 커버한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
     {
@@ -1548,15 +1549,15 @@ test('대전 split-color 121 블록은 공식 이미지의 두 색상 셀 선택
   expectations.forEach(({ id, bounds, labelPoint, includedPoints, excludedPoints }) => {
     const block = blockById.get(id);
     assert.ok(block, `${id} should exist`);
-    assert.ok(isDaejeonSplitColorBlockId(id), `${id} should be registered as split-color`);
-    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured split-color bounds`);
+    assert.equal(isDaejeonSplitColorBlockId(id), false, `${id} should not use split-color render priority`);
+    assert.deepEqual(pointBounds(pathToPoints(block.imageGeometry.d)), bounds, `${id} should keep measured bounds`);
     assert.deepEqual([block.imageGeometry.labelX, block.imageGeometry.labelY], labelPoint, `${id} label should move to the official visual center`);
     assert.equal(getTopHitBlockIdAtPoint(labelPoint), id, `${id} label should top-hit itself`);
     includedPoints.forEach((point) => {
       assert.equal(
         getTopHitBlockIdAtPoint(point),
         id,
-        `${id} should include split-color official point ${point.join(',')}`,
+        `${id} should include official point ${point.join(',')}`,
       );
     });
     excludedPoints.forEach((point) => {
@@ -2034,21 +2035,22 @@ test('대전 1루 101-112 블록은 공식 이미지 소유권이 한 칸씩 밀
     },
     {
       id: 'first-infield-b-101-108__104',
-      bounds: { minX: 676, minY: 474, maxX: 730, maxY: 502 },
+      bounds: { minX: 676, minY: 458, maxX: 730, maxY: 502 },
       labelPoint: [705, 487] as const,
       ownerPoints: [
         [690, 486],
         [710, 495],
         [720, 500],
+        [701, 467],
       ] as const,
     },
     {
       id: 'first-infield-b-101-108__105',
-      bounds: { minX: 596, minY: 467, maxX: 717, maxY: 530 },
-      labelPoint: [650, 510] as const,
+      bounds: { minX: 613, minY: 469, maxX: 718, maxY: 530 },
+      labelPoint: [665, 500] as const,
       ownerPoints: [
         [620, 480],
-        [650, 478],
+        [645, 489],
         [665, 496],
         [700, 510],
       ] as const,
@@ -2323,8 +2325,8 @@ test('대전 1루/3루 내야 연속 블록은 공식 PNG owner point를 자기 
     { id: 'first-infield-b-101-108__101', points: [[700, 375]] },
     { id: 'first-infield-b-101-108__102', points: [[687, 406], [660, 417], [710, 402]] },
     { id: 'first-infield-b-101-108__103', points: [[674, 445], [630, 455], [720, 440]] },
-    { id: 'first-infield-b-101-108__104', points: [[690, 486], [710, 495], [720, 500]] },
-    { id: 'first-infield-b-101-108__105', points: [[620, 480], [650, 478], [665, 496], [700, 510]] },
+    { id: 'first-infield-b-101-108__104', points: [[690, 486], [710, 495], [720, 500], [701, 467]] },
+    { id: 'first-infield-b-101-108__105', points: [[620, 480], [645, 489], [665, 496], [700, 510]] },
     { id: 'first-infield-b-101-108__106', points: [[650, 528], [665, 550], [690, 540]] },
     { id: 'first-infield-b-101-108__107', points: [[631, 559], [600, 540], [665, 575]] },
     { id: 'first-infield-b-101-108__108', points: [[627, 594], [640, 610], [650, 620]] },

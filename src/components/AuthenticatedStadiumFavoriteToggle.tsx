@@ -28,8 +28,20 @@ export default function AuthenticatedStadiumFavoriteToggle({
     mutationFn: ({ id, currentlyFavorite }: { id: string; currentlyFavorite: boolean }) => (
       currentlyFavorite ? removeStadiumFavorite(id) : addStadiumFavorite(id)
     ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stadium-favorites'] }),
-    onError: () => toast.error('즐겨찾기를 변경하지 못했습니다. 다시 시도해 주세요.'),
+    onMutate: async ({ id, currentlyFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ['stadium-favorites'] });
+      const prev = queryClient.getQueryData<string[]>(['stadium-favorites']) ?? [];
+      queryClient.setQueryData<string[]>(
+        ['stadium-favorites'],
+        currentlyFavorite ? prev.filter((sid) => sid !== id) : [...prev, id],
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) queryClient.setQueryData(['stadium-favorites'], context.prev);
+      toast.error('즐겨찾기를 변경하지 못했습니다. 다시 시도해 주세요.');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['stadium-favorites'] }),
   });
 
   return (

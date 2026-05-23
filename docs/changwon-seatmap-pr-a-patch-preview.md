@@ -36,8 +36,8 @@ docs/changwon-seatmap-release-candidate.md
 docs/changwon-seatmap-pr-packaging-inventory.md
 docs/changwon-seatmap-pr-a-scope.md
 docs/changwon-seatmap-pr-a-patch-preview.md
-scripts/changwon-seatmap-review-manifest.mjs
-scripts/changwon-seatmap-ux-readiness.mjs
+scripts/changwon-seatmap-ops.mjs trace-manifest
+scripts/changwon-seatmap-ops.mjs ux-readiness
 scripts/stadium-ux-audit.mjs
 scripts/run-stadium-isolated-qa.mjs
 src/components/changwon/ChangwonBottomSheet.tsx
@@ -57,10 +57,10 @@ PR A에서 `package.json`은 아래 변경만 포함한다.
 "qa:stadium:mobile": "node scripts/run-stadium-isolated-qa.mjs ALL",
 "qa:stadium:mobile:smoke": "node scripts/run-stadium-isolated-qa.mjs JAMSIL:SMOKE",
 "test:stadium:seatmaps": "node --import tsx --test --test-concurrency=1 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/*SeatData.test.ts src/components/ui/stadiumSeatMapModel.test.ts",
-"qa:stadium:changwon:mobile": "node scripts/run-stadium-isolated-qa.mjs CHANGWON",
-"stadium:changwon:trace-manifest": "node --import tsx scripts/changwon-seatmap-review-manifest.mjs",
-"stadium:changwon:ux-readiness": "node --import tsx scripts/changwon-seatmap-ux-readiness.mjs",
-"qa:stadium:changwon:trace-review": "npm run stadium:changwon:trace-manifest && npm run stadium:changwon:ux-readiness && npm run qa:stadium:changwon:mobile",
+"qa:stadium:changwon:mobile": "node scripts/stadium-seatmap-ops.mjs changwon mobile",
+"stadium:changwon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs changwon trace-manifest",
+"stadium:changwon:ux-readiness": "node scripts/stadium-seatmap-ops.mjs changwon ux-readiness",
+"qa:stadium:changwon:trace-review": "node scripts/stadium-seatmap-ops.mjs changwon trace-review",
 "qa:stadium:mobile:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs",
 "qa:stadium:mobile:smoke:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_VIEWPORTS=mobile-390 STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs"
 ```

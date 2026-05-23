@@ -21,6 +21,11 @@ export interface SavedPredictionResponse {
   createdAt: string;
 }
 
+export interface RankingPredictionInitResponse {
+  seasonYear: number;
+  saved: SavedPredictionResponse | null;
+}
+
 export interface SaveRankingRequest {
   seasonYear: number;
   teamIdsInOrder: string[];

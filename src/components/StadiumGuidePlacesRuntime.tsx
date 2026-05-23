@@ -15,6 +15,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import {
   ArrowUpDownIcon,
+  ChevronDownIcon,
   RefreshIcon,
   SearchIcon,
   WarningTriangleIcon,
@@ -53,10 +54,12 @@ export default function StadiumGuidePlacesRuntime({
 }: StadiumGuidePlacesRuntimeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<StadiumGuideSortOrder>('default');
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setSearchQuery('');
     setSortOrder('default');
+    setExpandedIds(new Set());
   }, [selectedCategory, selectedStadiumId]);
 
   const filteredPlaces = useMemo(
@@ -64,10 +67,19 @@ export default function StadiumGuidePlacesRuntime({
     [places, searchQuery, sortOrder],
   );
 
+  const handleCardClick = (place: Place) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(place.id) ? next.delete(place.id) : next.add(place.id);
+      return next;
+    });
+    handlePlaceClick(place);
+  };
+
   return (
     <div data-testid="stadium-guide-places-panel">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+        <h3 className="font-bold dark:text-gray-200 text-balance" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
           {CATEGORY_CONFIGS[selectedCategory].label} 목록
         </h3>
         <span className="text-[16px] text-gray-400 dark:text-gray-500">
@@ -167,11 +179,13 @@ export default function StadiumGuidePlacesRuntime({
                   const placeCloseTime = normalizeOptionalText(place.closeTime);
                   const hasPlaceCoordinates = hasValidCoordinates(place.lat, place.lng);
 
+                  const isExpanded = expandedIds.has(place.id);
+
                   return (
                     <Card
                       key={place.id}
                       id={`place-${place.id}`}
-                      className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-card"
+                      className="p-3 sm:p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 dark:bg-card"
                       style={{
                         backgroundColor: isSelected
                           ? (isDark ? '#1f4436' : THEME_COLORS.primaryLight)
@@ -181,43 +195,46 @@ export default function StadiumGuidePlacesRuntime({
                           : (isDark ? '#374151' : THEME_COLORS.border),
                       }}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div
-                          className="flex-1"
-                          onClick={() => handlePlaceClick(place)}
+                          className="flex-1 min-w-0"
+                          onClick={() => handleCardClick(place)}
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Icon className="w-5 h-5" style={{ color }} />
-                            <h4 className="dark:text-white" style={{ fontWeight: 700 }}>{place.name}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Icon className="w-5 h-5 flex-shrink-0" style={{ color }} />
+                            <h4 className="dark:text-white text-balance" style={{ fontWeight: 700 }}>{place.name}</h4>
                           </div>
                           {placeDescription ? (
-                            <p className="text-gray-600 dark:text-gray-300 text-[16px] mb-1">
+                            <p className={`text-gray-600 dark:text-gray-300 text-sm mb-1 text-balance ${isExpanded ? '' : 'line-clamp-1 sm:line-clamp-none'}`}>
                               {placeDescription}
                             </p>
                           ) : null}
                           {placeAddress ? (
-                            <p className="text-[16px] text-gray-600 dark:text-gray-300">📍 {placeAddress}</p>
+                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`}>📍 {placeAddress}</p>
                           ) : null}
                           {placePhone ? (
-                            <p className="text-[16px] text-gray-600 dark:text-gray-300">📞 {placePhone}</p>
+                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`}>📞 {placePhone}</p>
                           ) : null}
                           {placeOpenTime || placeCloseTime ? (
-                            <p className="text-[16px] text-gray-600 dark:text-gray-300">
+                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`}>
                               ⏰ {formatOptionalText(placeOpenTime)} - {formatOptionalText(placeCloseTime)}
                             </p>
                           ) : null}
                           {!hasPlaceCoordinates ? (
-                            <p className="text-[16px] text-amber-700 dark:text-amber-400 mt-1">
+                            <p className={`text-sm text-amber-700 dark:text-amber-400 mt-1 ${isExpanded ? 'block' : 'hidden sm:block'}`}>
                               좌표 정보가 없어 길찾기를 제공할 수 없습니다.
                             </p>
                           ) : null}
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                          <ChevronDownIcon
+                            className={`w-4 h-4 text-gray-400 transition-transform sm:hidden ${isExpanded ? 'rotate-180' : ''}`}
+                          />
                           {typeof place.rating === 'number' ? (
                             <div className="flex items-center gap-1">
                               <span className="text-yellow-500">★</span>
-                              <span style={{ fontWeight: 700 }} className="dark:text-white">
+                              <span style={{ fontWeight: 700 }} className="dark:text-white text-sm">
                                 {place.rating.toFixed(1)}
                               </span>
                             </div>
@@ -230,7 +247,7 @@ export default function StadiumGuidePlacesRuntime({
                               openKakaoMapRoute(place.name, place.lat, place.lng);
                             }}
                             disabled={!hasPlaceCoordinates}
-                            className="px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-white text-sm transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ backgroundColor: THEME_COLORS.primary }}
                           >
                             길찾기
@@ -241,7 +258,7 @@ export default function StadiumGuidePlacesRuntime({
                   );
                 })
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-300">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-300 text-balance">
                   {!selectedStadiumName ? (
                     '구장을 선택해주세요.'
                   ) : listStatus === 'idle' ? (

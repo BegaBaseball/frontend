@@ -23,6 +23,8 @@ const jsonPath = path.join(reportDir, 'sajik-seatmap-hitpath-candidate-review.js
 const markdownPath = path.join(reportDir, 'sajik-seatmap-hitpath-candidate-review.md');
 
 const REVIEW_VERSION = 'SAJIK_HITPATH_CANDIDATE_REVIEW_V1';
+const APPROVED_HITPATH_EXPANSION_SECTION_IDS = ['032'];
+const approvedHitPathExpansionSectionIdSet = new Set(APPROVED_HITPATH_EXPANSION_SECTION_IDS);
 
 const reviewGroups = [
   {
@@ -137,9 +139,11 @@ const candidateRows = reviewGroups.flatMap((group) => group.sectionIds.map((sect
     validationIssues: validationIssues.map((issue) => `${issue.pathKind ?? 'geometry'}:${issue.code}`),
     reason: group.reason,
     nextAction: group.nextAction,
-    currentDecision: group.priority === 'P2'
-      ? 'DEFER_NO_COORDINATE_CHANGE'
-      : 'REVIEW_CANDIDATE_NO_COORDINATE_CHANGE',
+    currentDecision: section && section.visualPath !== section.hitPath && approvedHitPathExpansionSectionIdSet.has(sectionId)
+      ? 'APPROVED_HITPATH_EXPANSION_PRESENT'
+      : group.priority === 'P2'
+        ? 'DEFER_NO_COORDINATE_CHANGE'
+        : 'REVIEW_CANDIDATE_NO_COORDINATE_CHANGE',
   };
 }));
 
@@ -169,7 +173,11 @@ const blockers = [
   ...candidateRows.filter((row) => !row.enabled).map((row) => `CANDIDATE_NOT_SELECTABLE:${row.sectionId}`),
   ...candidateRows.filter((row) => row.sectionKind !== 'SEAT_SECTION').map((row) => `CANDIDATE_NOT_SEAT_SECTION:${row.sectionId}`),
   ...candidateRows.filter((row) => !row.hitPathExpansionCandidate).map((row) => `CANDIDATE_FLAG_MISSING:${row.sectionId}`),
-  ...candidateRows.filter((row) => !row.visualEqualsHit).map((row) => `UNAPPROVED_HITPATH_EXPANSION:${row.sectionId}`),
+  ...candidateRows.filter((row) => !row.visualEqualsHit && !approvedHitPathExpansionSectionIdSet.has(row.sectionId)).map((row) => `UNAPPROVED_HITPATH_EXPANSION:${row.sectionId}`),
+  ...APPROVED_HITPATH_EXPANSION_SECTION_IDS.filter((sectionId) => {
+    const row = candidateRows.find((candidateRow) => candidateRow.sectionId === sectionId);
+    return !row || row.visualEqualsHit;
+  }).map((sectionId) => `APPROVED_HITPATH_EXPANSION_MISSING:${sectionId}`),
   ...candidateRows.filter((row) => row.validationIssueCount > 0).map((row) => `CANDIDATE_VALIDATION_ISSUE:${row.sectionId}`),
   ...aliasOnlyRows.filter((row) => row.enabled).map((row) => `ALIAS_ONLY_ENABLED:${row.sectionId}`),
   ...aliasOnlyRows.filter((row) => row.sectionKind !== 'ALIAS_ONLY').map((row) => `ALIAS_ONLY_SECTION_KIND_MISMATCH:${row.sectionId}`),
@@ -195,9 +203,10 @@ const report = {
     p2: priorityCounts.P2 ?? 0,
     aliasOnlyExceptions: aliasOnlyRows.length,
     visualEqualsHitCandidates: candidateRows.filter((row) => row.visualEqualsHit).length,
-    approvedExpandedHitPaths: candidateRows.filter((row) => !row.visualEqualsHit).length,
+    approvedExpandedHitPaths: candidateRows.filter((row) => !row.visualEqualsHit && approvedHitPathExpansionSectionIdSet.has(row.sectionId)).length,
     blockers: blockers.length,
   },
+  approvedHitPathExpansionSectionIds: APPROVED_HITPATH_EXPANSION_SECTION_IDS,
   expansionCriteria,
   reviewGroups,
   candidateRows,

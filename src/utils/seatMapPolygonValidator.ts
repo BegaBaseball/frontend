@@ -27,7 +27,8 @@ export type SeatMapPolygonIssueCode =
   | 'SELF_INTERSECTION'
   | 'POINT_OUT_OF_BOUNDS'
   | 'LABEL_OUT_OF_BOUNDS'
-  | 'LABEL_OUTSIDE_POLYGON';
+  | 'LABEL_OUTSIDE_POLYGON'
+  | 'HIT_POLYGON_TOO_SMALL';
 
 export interface SeatMapPolygonValidationIssue {
   code: SeatMapPolygonIssueCode;
@@ -45,6 +46,7 @@ const polygonIssueMessages: Record<SeatMapPolygonIssueCode, string> = {
   POINT_OUT_OF_BOUNDS: 'Polygon coordinates must stay within the image bounds.',
   LABEL_OUT_OF_BOUNDS: 'Label point must stay within the image bounds.',
   LABEL_OUTSIDE_POLYGON: 'Label point must be inside or near the polygon.',
+  HIT_POLYGON_TOO_SMALL: 'Hit polygon area must meet the minimum visual area ratio.',
 };
 
 export function pathToPoints(pathData: string): SeatMapPoint[] {
