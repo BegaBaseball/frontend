@@ -1,126 +1,50 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react';
 import {
   SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
+  SAJIK_SEATMAP_SOURCE_REFERENCES,
   SAJIK_SEATMAP_IMAGE,
   SAJIK_TRACE_REVIEW_SUMMARY,
   getSajikTraceStatusLabel,
   type SajikBlock,
+  type SajikSeatMapSourceId,
 } from '../../data/sajikSeatData';
+import {
+  SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET,
+  SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES,
+} from '../../data/sajikOperatorReferenceSeatMapDataset';
+import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
+import {
+  clampPan,
+  clampZoom,
+  panForZoomAtPoint,
+  readViewportSize,
+  getPointerDistance,
+  getPointerMidpoint,
+  useIsomorphicLayoutEffect,
+  type ViewportSize,
+  type ViewportPoint,
+  type TrackedPointer,
+} from '../stadiumSeatMap/seatMapInteractionUtils';
 
-interface Props {
-  mode: 'light' | 'dark';
-  selected: SajikBlock | null;
-  setSelected: (block: SajikBlock | null) => void;
-  hover: string | null;
-  setHover: (id: string | null) => void;
-  filterCats: string[] | null;
-  zoom: number;
-  pan: SeatMapPan;
-  onPanChange: (pan: SeatMapPan) => void;
-  onZoom: (zoom: number) => void;
-  minZoom: number;
-  maxZoom: number;
-  zoomStep: number;
-  enableAutoCenter?: boolean;
-  onFullscreen?: () => void;
+interface SajikExtraProps {
+  seatMapSourceId: SajikSeatMapSourceId;
+  onSeatMapSourceChange: (sourceId: SajikSeatMapSourceId) => void;
   guideMatchedBlockIds?: readonly string[];
   guideActive?: boolean;
+  showOperatorReferenceDebugOverlay?: boolean;
+  enableOperatorReferenceInteractivePreview?: boolean;
 }
 
-export interface SeatMapPan {
-  x: number;
-  y: number;
-}
-
-interface ViewportSize {
-  width: number;
-  height: number;
-}
-
-interface ViewportPoint {
-  x: number;
-  y: number;
-}
-
-interface TrackedPointer {
-  clientX: number;
-  clientY: number;
-  pointerType: string;
-}
-
-const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
-
-function clampPan(pan: SeatMapPan, zoom: number, viewport: ViewportSize): SeatMapPan {
-  if (zoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const maxX = (viewport.width * (zoom - 1)) / 2;
-  const maxY = (viewport.height * (zoom - 1)) / 2;
-
-  return {
-    x: Math.min(maxX, Math.max(-maxX, pan.x)),
-    y: Math.min(maxY, Math.max(-maxY, pan.y)),
-  };
-}
-
-function clampZoom(value: number, minZoom: number, maxZoom: number) {
-  return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));
-}
+type Props = SeatMapSvgBaseProps<SajikBlock> & SajikExtraProps;
 
 function getGeometryLabelPoint(geometry: SajikBlock['imageGeometry']): [number, number] {
   return geometry.labelPoint ?? [geometry.labelX, geometry.labelY];
-}
-
-function readViewportSize(node: HTMLDivElement | null): ViewportSize {
-  if (!node) {
-    return { width: 0, height: 0 };
-  }
-
-  const rect = node.getBoundingClientRect();
-  return {
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function getPointerDistance(first: TrackedPointer, second: TrackedPointer) {
-  return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
-}
-
-function getPointerMidpoint(first: TrackedPointer, second: TrackedPointer, node: HTMLDivElement): ViewportPoint {
-  const rect = node.getBoundingClientRect();
-  return {
-    x: ((first.clientX + second.clientX) / 2) - rect.left,
-    y: ((first.clientY + second.clientY) / 2) - rect.top,
-  };
-}
-
-function panForZoomAtPoint(
-  currentPan: SeatMapPan,
-  currentZoom: number,
-  nextZoom: number,
-  point: ViewportPoint,
-  viewport: ViewportSize,
-): SeatMapPan {
-  if (nextZoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const centerX = viewport.width / 2;
-  const centerY = viewport.height / 2;
-  const pointDeltaX = point.x - centerX;
-  const pointDeltaY = point.y - centerY;
-  const safeCurrentZoom = Math.max(currentZoom, 0.01);
-  const contentDeltaX = (pointDeltaX - currentPan.x) / safeCurrentZoom;
-  const contentDeltaY = (pointDeltaY - currentPan.y) / safeCurrentZoom;
-
-  return clampPan({
-    x: pointDeltaX - (contentDeltaX * nextZoom),
-    y: pointDeltaY - (contentDeltaY * nextZoom),
-  }, nextZoom, viewport);
 }
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
@@ -150,21 +74,79 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   );
 }
 
-function resolveOfficialSeatMapImageUrl() {
-  if (SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
+function SourceTabs({
+  value,
+  onChange,
+  mode,
+}: {
+  value: SajikSeatMapSourceId;
+  onChange: (value: SajikSeatMapSourceId) => void;
+  mode: 'light' | 'dark';
+}) {
+  return (
+    <div
+      data-testid="sajik-seatmap-source-tabs"
+      className="pointer-events-auto absolute left-3 top-3 z-20 flex w-fit max-w-[calc(100%-1.5rem)] gap-1 overflow-x-auto rounded-xl bg-white/92 p-1 shadow-sm ring-1 ring-slate-200 backdrop-blur dark:bg-slate-950/88 dark:ring-slate-700"
+    >
+      {SAJIK_SEATMAP_SOURCE_REFERENCES.map((option) => {
+        const active = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            data-testid={`sajik-seatmap-source-${option.id}`}
+            data-source-kind={option.kind}
+            data-polygon-status={option.polygonStatus}
+            onClick={() => onChange(option.id)}
+            className="rounded-lg border-0 px-2.5 py-1.5 text-[11px] font-black transition-colors"
+            style={{
+              background: active ? '#041E42' : 'transparent',
+              color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function resolveSeatMapSourceImageUrl(sourceId: SajikSeatMapSourceId) {
+  if (sourceId === 'LOTTE_OFFICIAL_2026' && SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
     return null;
   }
 
-  return new URL('../../assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png', import.meta.url).href;
+  const seatMapImageUrls: Record<string, string> = {
+    [SAJIK_SEATMAP_IMAGE.imagePath]: new URL('../../assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp', import.meta.url).href,
+    'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp': new URL('../../assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp', import.meta.url).href,
+  };
+  const sourceReference = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === sourceId);
+  const imagePath = sourceId === 'LOTTE_OFFICIAL_2026'
+    ? SAJIK_SEATMAP_IMAGE.renderImagePath ?? SAJIK_SEATMAP_IMAGE.imagePath
+    : sourceReference?.imagePath;
+
+  return imagePath ? seatMapImageUrls[imagePath] ?? null : null;
 }
+
+const OPERATOR_REFERENCE_STAGE_COLORS: Record<string, string> = {
+  stage01: '#F43F5E',
+  stage02: '#0EA5E9',
+  stage03: '#22C55E',
+  stage04: '#A855F7',
+};
 
 export default function SajikSeatMapSvg({
   mode,
+  seatMapSourceId,
+  onSeatMapSourceChange,
   selected,
   setSelected,
   hover,
   setHover,
   filterCats,
+  filterSides,
+  filterLevels,
   zoom,
   pan,
   onPanChange,
@@ -176,12 +158,16 @@ export default function SajikSeatMapSvg({
   onFullscreen,
   guideMatchedBlockIds = [],
   guideActive = false,
+  showOperatorReferenceDebugOverlay = false,
+  enableOperatorReferenceInteractivePreview = false,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const suppressClickRef = useRef(false);
   const activePointersRef = useRef<Map<number, TrackedPointer>>(new Map());
   const pinchStateRef = useRef<{
@@ -204,9 +190,23 @@ export default function SajikSeatMapSvg({
     usesPointerCapture: boolean;
   } | null>(null);
 
+  const activeSourceReference = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === seatMapSourceId)
+    ?? SAJIK_SEATMAP_SOURCE_REFERENCES[0]!;
+  const isReferenceSource = activeSourceReference.kind === 'REFERENCE_IMAGE';
   const { imageWidth, imageHeight } = SAJIK_SEATMAP_IMAGE;
-  const seatMapImageUrl = resolveOfficialSeatMapImageUrl();
+  const seatMapImageUrl = resolveSeatMapSourceImageUrl(activeSourceReference.id);
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sajikDebug') === '1';
+  const showReferenceDebugOverlay = isReferenceSource && (showOperatorReferenceDebugOverlay || showDebug);
+  const showReferenceInteractivePreview = isReferenceSource && (
+    enableOperatorReferenceInteractivePreview
+    || (
+      (
+        activeSourceReference.polygonStatus === 'PRODUCTION_INTERACTIVE'
+        || activeSourceReference.polygonStatus === 'REFERENCE_INTERACTIVE_PREVIEW_READY'
+      )
+      && SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.runtimeSelectionEnabled
+    )
+  );
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
     : readViewportSize(viewportRef.current);
@@ -217,9 +217,90 @@ export default function SajikSeatMapSvg({
   const mapSelectableBlocks = [...SAJIK_BLOCKS]
     .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
     .sort((a, b) => a.displayPriority - b.displayPriority);
-  const seatSectionBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION');
+  const seatSectionBlocks = isReferenceSource ? [] : mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION');
   const accessibilityMarkerBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER');
   const guideMatchedBlockIdSet = useMemo(() => new Set(guideMatchedBlockIds), [guideMatchedBlockIds]);
+  const operatorReferenceBlockBySectionId = useMemo(() => {
+    const blockBySectionId = new Map<string, SajikBlock>();
+    SAJIK_BLOCKS.forEach((block) => {
+      blockBySectionId.set(block.block, block);
+      block.officialBlocks.forEach((officialBlock) => {
+        blockBySectionId.set(officialBlock, block);
+      });
+    });
+    const overrideBySectionId = new Map(
+      SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES.map(
+        (override): [string, typeof override] => [override.sectionId, override],
+      ),
+    );
+    SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.forEach((section) => {
+      if (blockBySectionId.has(section.sectionId)) return;
+
+      const override = overrideBySectionId.get(section.sectionId);
+      if (!override) return;
+
+      const [labelX, labelY] = section.labelPoint;
+      const categoryLabel = SAJIK_CATEGORIES[override.category]?.label ?? override.name;
+      blockBySectionId.set(section.sectionId, {
+        id: `sajik-operator-reference-${section.sectionId}`,
+        level: override.level,
+        category: override.category,
+        name: override.name,
+        block: section.sectionId,
+        officialBlocks: [section.sectionId],
+        side: override.side,
+        fanRole: override.fanRole,
+        traceStatus: 'NEEDS_OPERATOR_REVIEW',
+        reviewNote: 'Operator reference source primary metadata. Official 960x640 Sajik map remains available as a secondary source.',
+        displayPriority: 10000 + Number(section.sectionId.replace(/\D/g, '') || 0),
+        mapInteractionStatus: 'MAP_SELECTABLE',
+        sourceConfidence: 'UNVERIFIED',
+        sourceNote: override.sourceNote,
+        seatViewSections: [
+          `sajik-operator-reference-${section.sectionId}`,
+          override.name,
+          section.sectionId,
+          `${section.sectionId}블록`,
+          categoryLabel,
+          '사직',
+          '사직야구장',
+          '부산 사직야구장',
+          '롯데',
+          '롯데 자이언츠',
+        ],
+        sectionKind: 'SEAT_SECTION',
+        imageGeometry: {
+          d: section.visualPath,
+          visualPath: section.visualPath,
+          hitPath: section.hitPath,
+          labelX,
+          labelY,
+          labelPoint: [labelX, labelY],
+          labelFontSize: 12,
+          shortLabel: section.sectionId,
+          traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
+          traceSource: 'OFFICIAL_PNG_MANUAL_POLYGON',
+          traceVersion: 'manual-polygon-v2',
+          manualReviewed: true,
+          pixelAlignmentStatus: 'MANUAL_REVIEW_REQUIRED',
+          manualReviewNote: 'Operator reference source coordinates use the primary 1151x1367 viewBox. The official 960x640 map remains a secondary source.',
+        },
+      });
+    });
+    return blockBySectionId;
+  }, []);
+  const operatorReferenceLinkedSectionCount = useMemo(() => (
+    SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.filter((section) => (
+      operatorReferenceBlockBySectionId.has(section.sectionId)
+    )).length
+  ), [operatorReferenceBlockBySectionId]);
+  const operatorReferenceMetadataMissingCount = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections - operatorReferenceLinkedSectionCount;
+  const operatorReferenceLinkedMarkerCount = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.filter((marker) => marker.enabled).length;
+
+  useEffect(() => {
+    setImageFailed(false);
+    setImageLoaded(false);
+  }, [activeSourceReference.id]);
 
   useIsomorphicLayoutEffect(() => {
     const node = viewportRef.current;
@@ -506,7 +587,6 @@ export default function SajikSeatMapSvg({
 
     if (!canDrag || event.button !== 0) return;
 
-    event.preventDefault();
     const liveViewportSize = readViewportSize(event.currentTarget);
     const startPan = clampPan(pan, zoom, liveViewportSize);
     setViewportSize(liveViewportSize);
@@ -659,21 +739,399 @@ export default function SajikSeatMapSvg({
   );
 
   if (
-    SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
+    (!isReferenceSource && SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL')
     || !seatMapImageUrl
-    || imageWidth <= 0
-    || imageHeight <= 0
+    || (!isReferenceSource && imageWidth <= 0)
+    || (!isReferenceSource && imageHeight <= 0)
     || imageFailed
   ) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#050810]">
+        <SourceTabs
+          value={activeSourceReference.id}
+          onChange={(value) => {
+            setSelected(null);
+            setHover(null);
+            onSeatMapSourceChange(value);
+          }}
+          mode={mode}
+        />
         <MissingOfficialSeatMap mode={mode} />
+      </div>
+    );
+  }
+
+  if (isReferenceSource) {
+    const referenceImage = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.image;
+
+    return (
+      <div
+        data-testid="sajik-reference-seatmap-panel"
+        data-source-id={activeSourceReference.id}
+        data-source-kind={activeSourceReference.kind}
+        data-polygon-status={activeSourceReference.polygonStatus}
+        data-reference-debug-overlay={showReferenceDebugOverlay ? 'true' : 'false'}
+        data-reference-interactive-preview={showReferenceInteractivePreview ? 'true' : 'false'}
+        className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
+      >
+        <SourceTabs
+          value={activeSourceReference.id}
+          onChange={(value) => {
+            setSelected(null);
+            setHover(null);
+            onSeatMapSourceChange(value);
+          }}
+          mode={mode}
+        />
+        <div
+          data-testid="sajik-reference-seatmap-viewport"
+          className="relative w-full overflow-hidden bg-white dark:bg-slate-950"
+          style={{ aspectRatio: `${activeSourceReference.imageWidth} / ${activeSourceReference.imageHeight}` }}
+        >
+          <svg
+            data-testid="sajik-reference-seatmap-svg"
+            viewBox={referenceImage.viewBox}
+            className="absolute inset-0 h-full w-full select-none"
+            preserveAspectRatio="xMidYMid meet"
+            aria-label="부산 사직야구장 참고 좌석 배치도"
+          >
+            {!imageLoaded && !imageFailed && (
+              <rect x={0} y={0} width={referenceImage.width} height={referenceImage.height} fill="#e5e7eb" />
+            )}
+            <image
+              data-testid="sajik-reference-seatmap-image"
+              href={seatMapImageUrl}
+              x={0}
+              y={0}
+              width={referenceImage.width}
+              height={referenceImage.height}
+              preserveAspectRatio="none"
+              pointerEvents="none"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageFailed(true)}
+              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
+            />
+            {showReferenceDebugOverlay && (
+              <g
+                data-testid="sajik-operator-reference-debug-overlay"
+                data-overlay-kind="operator-reference-approved-polygons"
+                data-runtime-selection-enabled="false"
+                data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
+                data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
+                aria-hidden="true"
+                pointerEvents="none"
+              >
+                <g
+                  data-testid="sajik-operator-reference-section-layer"
+                  data-layer="operator-reference-sections"
+                  data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
+                >
+                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.map((section) => {
+                    const stroke = OPERATOR_REFERENCE_STAGE_COLORS[section.stageId] ?? '#0F172A';
+                    return (
+                      <path
+                        key={section.sectionId}
+                        data-testid={`sajik-operator-reference-block-${section.sectionId}`}
+                        data-section-id={section.sectionId}
+                        data-stage-id={section.stageId}
+                        data-geometry-version={section.geometryVersion}
+                        data-trace-status={section.traceStatus}
+                        d={section.visualPath}
+                        fill={stroke}
+                        fillOpacity="0.16"
+                        stroke={stroke}
+                        strokeOpacity="0.95"
+                        strokeWidth="3"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    );
+                  })}
+                </g>
+                <g
+                  data-testid="sajik-operator-reference-marker-layer"
+                  data-layer="operator-reference-markers"
+                  data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
+                >
+                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.map((marker) => (
+                    <circle
+                      key={marker.markerId}
+                      data-testid={`sajik-operator-reference-marker-${marker.markerId}`}
+                      data-marker-id={marker.markerId}
+                      data-marker-type={marker.markerType}
+                      data-marker-interaction-status={marker.markerInteractionStatus}
+                      data-related-section-id={marker.relatedSectionId}
+                      data-stage-id={marker.stageId}
+                      data-enabled={String(marker.enabled)}
+                      cx={marker.position[0]}
+                      cy={marker.position[1]}
+                      r="14"
+                      fill="#A3E635"
+                      fillOpacity="0.35"
+                      stroke="#0F172A"
+                      strokeOpacity="0.9"
+                      strokeWidth="3"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ))}
+                </g>
+              </g>
+            )}
+            {showReferenceInteractivePreview && (
+              <g
+                data-testid="sajik-operator-reference-preview-layer"
+                data-overlay-kind="operator-reference-interactive-preview"
+                data-runtime-selection-enabled={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.runtimeSelectionEnabled ? 'reference-preview' : 'preview-only'}
+                data-linked-section-count={operatorReferenceLinkedSectionCount}
+                data-metadata-missing-count={operatorReferenceMetadataMissingCount}
+                data-marker-policy="display-only-with-linked-section-markers"
+              >
+                <g
+                  data-testid="sajik-operator-reference-preview-section-layer"
+                  data-layer="operator-reference-preview-sections"
+                  data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
+                >
+                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.map((section) => {
+                    const block = operatorReferenceBlockBySectionId.get(section.sectionId);
+                    const cat = block ? SAJIK_CATEGORIES[block.category] : null;
+                    const isLinked = Boolean(block && cat);
+                    const isFilteredByFilter = isLinked && Boolean(block && (
+                      (filterCats !== null && !filterCats.includes(block.category)) ||
+                      (filterSides != null && !filterSides.includes(block.side)) ||
+                      (filterLevels != null && !filterLevels.includes(block.level))
+                    ));
+                    const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
+                    const isActive = Boolean(block && !isFilteredByFilter && (hover === block.id || selected?.id === block.id));
+                    let refFill = block && cat
+                      ? (mode === 'dark' ? cat.dark : cat.light)
+                      : '#EF4444';
+                    let refFillOpacity: number;
+                    let refStrokeOpacity: number;
+                    if (!isLinked) {
+                      refFillOpacity = 0.18;
+                      refStrokeOpacity = 0.9;
+                    } else if (isFilteredByFilter) {
+                      refFill = mode === 'dark' ? '#020617' : '#1e293b';
+                      refFillOpacity = 0.42;
+                      refStrokeOpacity = 0;
+                    } else if (isActive) {
+                      refFillOpacity = 0.34;
+                      refStrokeOpacity = 0.95;
+                    } else if (isAnyFilterActive) {
+                      refFillOpacity = 0.20;
+                      refStrokeOpacity = 0.62;
+                    } else {
+                      refFillOpacity = 0.09;
+                      refStrokeOpacity = 0.62;
+                    }
+                    const [labelX, labelY] = section.labelPoint;
+
+                    return (
+                      <g key={section.sectionId}>
+                        <path
+                          role={isLinked && !isFilteredByFilter ? 'button' : undefined}
+                          data-testid={`sajik-operator-reference-preview-block-${section.sectionId}`}
+                          data-section-id={section.sectionId}
+                          data-mapped-block-id={block?.id}
+                          data-metadata-status={isLinked ? 'linked' : 'missing'}
+                          data-stage-id={section.stageId}
+                          data-geometry-version={section.geometryVersion}
+                          data-trace-status={section.traceStatus}
+                          data-visual-path={section.visualPath}
+                          data-hit-path={section.hitPath}
+                          tabIndex={isLinked && !isFilteredByFilter ? 0 : -1}
+                          aria-label={block ? `${block.name} ${block.block} reference preview` : `reference metadata missing ${section.sectionId}`}
+                          aria-disabled={isLinked && !isFilteredByFilter ? undefined : true}
+                          aria-pressed={isActive}
+                          d={section.hitPath}
+                          fill={refFill}
+                          fillOpacity={refFillOpacity}
+                          stroke={refFill}
+                          strokeOpacity={refStrokeOpacity}
+                          strokeWidth={isActive ? 4 : 2.5}
+                          pointerEvents={isLinked && !isFilteredByFilter ? 'fill' : 'none'}
+                          vectorEffect="non-scaling-stroke"
+                          style={{
+                            cursor: isLinked && !isFilteredByFilter ? 'pointer' : 'default',
+                            transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
+                          }}
+                          onMouseEnter={() => {
+                            if (block) setHover(block.id);
+                          }}
+                          onMouseLeave={() => {
+                            if (block) setHover(null);
+                          }}
+                          onClick={(event) => {
+                            if (!block || isFilteredByFilter || suppressClickRef.current || event.detail > 1) {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              return;
+                            }
+                            setSelected(selected?.id === block.id ? null : block);
+                          }}
+                          onKeyDown={(event) => {
+                            if (!block || isFilteredByFilter) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelected(selected?.id === block.id ? null : block);
+                            }
+                          }}
+                        />
+                        {isActive && (
+                          <text
+                            x={labelX}
+                            y={labelY}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize="16"
+                            fontWeight="900"
+                            fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
+                            stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                            strokeWidth="4"
+                            paintOrder="stroke"
+                            style={{ pointerEvents: 'none' }}
+                          >
+                            {section.sectionId}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
+                <g
+                  data-testid="sajik-operator-reference-preview-marker-layer"
+                  data-layer="operator-reference-preview-markers"
+                  data-runtime-selection-enabled={operatorReferenceLinkedMarkerCount > 0 ? 'linked-section-selectable' : 'false'}
+                  data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
+                  data-linked-marker-count={operatorReferenceLinkedMarkerCount}
+                >
+                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.map((marker) => {
+                    const block = operatorReferenceBlockBySectionId.get(marker.relatedSectionId);
+                    const isSelectableMarker = Boolean(marker.enabled && block);
+                    const isActive = Boolean(block && (hover === block.id || selected?.id === block.id));
+                    const markerFillOpacity = isSelectableMarker ? (isActive ? 0.72 : 0.44) : 0.28;
+                    const markerStrokeOpacity = isSelectableMarker ? 0.96 : 0.88;
+                    const visualRadius = isActive ? 17 : 14;
+                    const hitRadius = isSelectableMarker ? 26 : visualRadius;
+
+                    const markerInteractionHandlers = isSelectableMarker && block
+                      ? {
+                          onMouseEnter: () => {
+                            setHover(block.id);
+                          },
+                          onMouseLeave: () => {
+                            setHover(null);
+                          },
+                          onClick: (event: ReactMouseEvent<SVGCircleElement>) => {
+                            if (suppressClickRef.current || event.detail > 1) {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              return;
+                            }
+                            setSelected(selected?.id === block.id ? null : block);
+                          },
+                          onKeyDown: (event: ReactKeyboardEvent<SVGCircleElement>) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelected(selected?.id === block.id ? null : block);
+                            }
+                          },
+                        }
+                      : {
+                          onMouseEnter: () => {
+                            if (block) setHover(block.id);
+                          },
+                          onMouseLeave: () => {
+                            if (block) setHover(null);
+                          },
+                          onClick: (event: ReactMouseEvent<SVGCircleElement>) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          },
+                        };
+
+                    return (
+                      <g key={marker.markerId}>
+                        <circle
+                          role={isSelectableMarker ? 'button' : undefined}
+                          tabIndex={isSelectableMarker ? 0 : -1}
+                          aria-label={block ? `${block.name} ${block.block} 접근성 marker` : undefined}
+                          aria-pressed={isSelectableMarker ? isActive : undefined}
+                          data-testid={`sajik-operator-reference-preview-marker-${marker.markerId}`}
+                          data-marker-id={marker.markerId}
+                          data-marker-type={marker.markerType}
+                          data-marker-interaction-status={marker.markerInteractionStatus}
+                          data-related-section-id={marker.relatedSectionId}
+                          data-mapped-block-id={block?.id}
+                          data-stage-id={marker.stageId}
+                          data-enabled={String(marker.enabled)}
+                          data-hit-target-radius={hitRadius}
+                          data-visual-radius={visualRadius}
+                          cx={marker.position[0]}
+                          cy={marker.position[1]}
+                          r={hitRadius}
+                          fill={isSelectableMarker ? '#FFFFFF' : '#A3E635'}
+                          fillOpacity={isSelectableMarker ? 0.001 : markerFillOpacity}
+                          stroke={isSelectableMarker ? 'transparent' : '#111827'}
+                          strokeOpacity={isSelectableMarker ? 0 : markerStrokeOpacity}
+                          strokeWidth={isSelectableMarker ? 0 : 3}
+                          pointerEvents={isSelectableMarker ? 'all' : 'none'}
+                          vectorEffect="non-scaling-stroke"
+                          style={{
+                            cursor: isSelectableMarker ? 'pointer' : 'default',
+                            transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s',
+                          }}
+                          {...markerInteractionHandlers}
+                        />
+                        {isSelectableMarker && (
+                          <circle
+                            data-testid={`sajik-operator-reference-linked-marker-visual-${marker.markerId}`}
+                            data-marker-id={marker.markerId}
+                            data-related-section-id={marker.relatedSectionId}
+                            aria-hidden="true"
+                            cx={marker.position[0]}
+                            cy={marker.position[1]}
+                            r={visualRadius}
+                            fill="#A3E635"
+                            fillOpacity={markerFillOpacity}
+                            stroke="#041E42"
+                            strokeOpacity={markerStrokeOpacity}
+                            strokeWidth={isActive ? 4 : 3}
+                            pointerEvents="none"
+                            vectorEffect="non-scaling-stroke"
+                            style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s' }}
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
+              </g>
+            )}
+          </svg>
+        </div>
+        <div
+          data-testid="sajik-reference-seatmap-trace-note"
+          className="border-t border-slate-200 bg-white/92 px-3 py-2 text-[11px] font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-950/90 dark:text-slate-400"
+        >
+          {showReferenceInteractivePreview
+            ? `기준 좌석도 선택 레이어입니다. ${operatorReferenceLinkedSectionCount}개 구역이 사직 메타데이터와 연결되어 있고 ${operatorReferenceMetadataMissingCount}개 구역은 메타데이터 보강이 필요합니다. 접근성 원형 마커 ${operatorReferenceLinkedMarkerCount}개는 관련 구역 선택으로 연결됩니다.`
+            : 'Operator reference image. Polygon tracing is pending, so seat selection is disabled for this source.'}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]">
+      <SourceTabs
+        value={activeSourceReference.id}
+        onChange={(value) => {
+          setSelected(null);
+          setHover(null);
+          onSeatMapSourceChange(value);
+        }}
+        mode={mode}
+      />
       <div
         ref={viewportRef}
         data-testid="sajik-seatmap-viewport"
@@ -710,34 +1168,43 @@ export default function SajikSeatMapSvg({
             transformOrigin: '50% 50%',
           }}
         >
-          <img
-            src={seatMapImageUrl}
-            alt="부산 사직야구장 공식 좌석 배치도"
-            className="absolute inset-0 h-full w-full select-none object-contain"
-            draggable={false}
-            loading="eager"
-            decoding="async"
-            onError={() => setImageFailed(true)}
-            onDragStart={(event) => event.preventDefault()}
-          />
           <svg
+            ref={svgRef}
             viewBox={SAJIK_SEATMAP_IMAGE.viewBox}
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             aria-label="부산 사직야구장 좌석도 구역 선택"
             onDoubleClick={handleSvgDoubleClick}
             onMouseMove={(event) => {
-              if (!showDebug) return;
-              const rect = event.currentTarget.getBoundingClientRect();
-              const x = Math.round(((event.clientX - rect.left) / rect.width) * imageWidth);
-              const y = Math.round(((event.clientY - rect.top) / rect.height) * imageHeight);
-              setDebugPoint({ x, y });
+              if (!showDebug || !svgRef.current) return;
+              const ctm = svgRef.current.getScreenCTM();
+              if (!ctm) return;
+              const pt = svgRef.current.createSVGPoint();
+              pt.x = event.clientX;
+              pt.y = event.clientY;
+              const mapped = pt.matrixTransform(ctm.inverse());
+              setDebugPoint({ x: Math.round(mapped.x), y: Math.round(mapped.y) });
             }}
             onMouseLeave={() => {
               setHover(null);
               if (showDebug) setDebugPoint(null);
             }}
           >
+            {!imageLoaded && !imageFailed && (
+              <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+            )}
+            <image
+              href={seatMapImageUrl ?? undefined}
+              x={0}
+              y={0}
+              width={imageWidth}
+              height={imageHeight}
+              preserveAspectRatio="none"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageFailed(true)}
+              pointerEvents="none"
+              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
+            />
             <defs>
               <filter id="sajik-hit-glow">
                 <feGaussianBlur stdDeviation="2.5" result="blur" />
@@ -766,13 +1233,31 @@ export default function SajikSeatMapSvg({
                 const labelPoint = block.imageGeometry.labelPoint;
                 if (!cat || !visualPath || !hitPath || !labelPoint) return null;
 
-                const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+                const isFiltered =
+                  (filterCats !== null && !filterCats.includes(block.category)) ||
+                  (filterSides != null && !filterSides.includes(block.side)) ||
+                  (filterLevels != null && !filterLevels.includes(block.level));
+                const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
                 const isActive = hover === block.id || selected?.id === block.id;
                 const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
                 const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
-                const baseColor = mode === 'dark' ? cat.dark : cat.light;
+                let fill = mode === 'dark' ? cat.dark : cat.light;
                 const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
-                const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : isGuideMatched ? 0.24 : showDebug ? 0.06 : 0.001;
+                let fillOpacity: number;
+                if (isActive && !isFiltered) {
+                  fillOpacity = 0.34;
+                } else if (isAnyFilterActive && !isFiltered) {
+                  fillOpacity = 0.20;
+                } else if (isFiltered) {
+                  fill = mode === 'dark' ? '#020617' : '#1e293b';
+                  fillOpacity = 0.42;
+                } else if (isGuideMatched) {
+                  fillOpacity = 0.24;
+                } else if (showDebug) {
+                  fillOpacity = 0.06;
+                } else {
+                  fillOpacity = 0.001;
+                }
                 const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
                 const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.72 : showDebug ? 0.58 : 0;
                 const traceStatusLabel = getSajikTraceStatusLabel(block.traceStatus);
@@ -799,7 +1284,7 @@ export default function SajikSeatMapSvg({
                       aria-label={`${block.name} ${block.block}`}
                       aria-pressed={isActive}
                       d={hitPath}
-                      fill={baseColor}
+                      fill={fill}
                       fillOpacity={fillOpacity}
                       stroke={stroke}
                       strokeOpacity={strokeOpacity}
@@ -809,7 +1294,7 @@ export default function SajikSeatMapSvg({
                       vectorEffect="non-scaling-stroke"
                       style={{
                         cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+                        transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
                       }}
                       onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
                       onClick={(event) => {
@@ -871,7 +1356,10 @@ export default function SajikSeatMapSvg({
                 const hitPath = block.imageGeometry.hitPath;
                 if (!cat || !labelPoint || !visualPath || !hitPath) return null;
 
-                const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+                const isFiltered =
+                  (filterCats !== null && !filterCats.includes(block.category)) ||
+                  (filterSides != null && !filterSides.includes(block.side)) ||
+                  (filterLevels != null && !filterLevels.includes(block.level));
                 const isActive = hover === block.id || selected?.id === block.id;
                 const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
                 const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
