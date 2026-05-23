@@ -34,8 +34,8 @@ These files appear to be operator, release, or QA automation scripts. Keep only 
 - `scripts/daegu-seatmap-precision-audit.mjs`
 - `scripts/daegu-seatmap-render-safety-audit.mjs`
 - `scripts/daegu-seatmap-zone-precision-worksets.mjs`
-- `scripts/gwangju-seatmap-low-margin-candidates.mjs`
-- `scripts/gwangju-seatmap-zone-precision-worksets.mjs`
+- `scripts/gwangju-seatmap-evidence-workset-ops.mjs`
+- `scripts/gwangju-seatmap-evidence-workset-ops.mjs`
 - `scripts/sajik-seatmap-*.mjs`
 - `scripts/stadium-seatmap-standard-shell-pr-scope-guard.mjs`
 - `scripts/suwon-seatmap-*.mjs`
