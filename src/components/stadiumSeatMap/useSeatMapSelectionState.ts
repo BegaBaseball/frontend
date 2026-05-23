@@ -35,6 +35,8 @@ export function useSeatMapSelectionState<
   ), [filterGroups, filterId]);
 
   const filterCats = activeFilterGroup?.cats ?? null;
+  const filterSides = activeFilterGroup?.sides ?? null;
+  const filterLevels = activeFilterGroup?.levels ?? null;
 
   const hoveredSection = useMemo(() => (
     hover ? (sections.find((section) => getId(section) === hover) ?? null) : null
@@ -79,6 +81,8 @@ export function useSeatMapSelectionState<
     setFilterId,
     activeFilterGroup,
     filterCats,
+    filterSides,
+    filterLevels,
     toast,
     setToast,
     showToast,
