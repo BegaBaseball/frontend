@@ -231,6 +231,20 @@ describe('Prediction Coach Briefing Regression', () => {
   const getCoachBriefingBadge = (label: string) => getCoachBriefingCard().contains('span', label);
   const getCoachBriefingButton = (label: string) => getCoachBriefingCard().contains('button', label);
   const expectCoachBriefingText = (text: string) => getCoachBriefingCard().should('contain.text', text);
+  const authProfilePayload = {
+    success: true,
+    data: {
+      id: 123,
+      email: 'test@example.com',
+      name: 'TestUser',
+      handle: 'testuser',
+      favoriteTeam: 'HH',
+      role: 'ROLE_USER',
+      hasPassword: true,
+      profileImageUrl: null,
+      cheerPoints: 0,
+    },
+  };
 
 
 
@@ -836,6 +850,132 @@ describe('Prediction Coach Briefing Regression', () => {
     expectCoachBriefingText('실데이터 브리핑은 로그인 후 제공됩니다.');
     getCoachBriefingButton('로그인하고 브리핑 보기')
       .should('exist');
+  });
+
+  it('reissues expired realtime auth before requesting coach briefing', () => {
+    let profileRequestCount = 0;
+
+    cy.intercept('GET', '**/api/auth/mypage', (req) => {
+      profileRequestCount += 1;
+
+      if (profileRequestCount === 1) {
+        req.reply({
+          statusCode: 401,
+          body: {
+            code: 'TOKEN_EXPIRED',
+            message: 'Unauthorized',
+          },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: authProfilePayload,
+      });
+    }).as('coachRealtimeAuthProfile');
+
+    cy.intercept('POST', '**/auth/reissue*', {
+      statusCode: 200,
+      body: { success: true },
+    }).as('coachRealtimeAuthReissue');
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        meta: {
+          validation_status: 'success',
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'auto',
+          cache_key_version: 'v4',
+          request_mode: 'auto_brief',
+          cached: false,
+          cache_state: 'MISS_GENERATE',
+          in_progress: false,
+          generation_mode: 'deterministic_auto',
+          data_quality: 'grounded',
+          structured_response: {
+            headline: '재발급 후 실데이터 브리핑',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.',
+            coach_note: '만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.',
+          },
+        },
+      }),
+    }).as('coachAnalyzeAfterRealtimeReissue');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachRealtimeAuthProfile');
+    cy.wait('@coachRealtimeAuthReissue');
+    cy.wait('@coachRealtimeAuthProfile');
+    cy.wait('@coachAnalyzeAfterRealtimeReissue');
+    expectCoachBriefingText('만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.');
+    cy.contains('로그인 세션이 만료되었습니다').should('not.exist');
+  });
+
+  it('shows a re-login CTA when realtime auth preflight cannot reissue', () => {
+    cy.intercept('GET', '**/api/auth/mypage', {
+      statusCode: 401,
+      body: {
+        code: 'TOKEN_EXPIRED',
+        message: 'Unauthorized',
+      },
+    }).as('coachRealtimeAuthExpiredProfile');
+
+    cy.intercept('POST', '**/auth/reissue*', {
+      statusCode: 401,
+      body: {
+        success: false,
+        code: 'REFRESH_TOKEN_EXPIRED',
+      },
+    }).as('coachRealtimeAuthExpiredReissue');
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        meta: {
+          validation_status: 'success',
+          request_mode: 'auto_brief',
+          cache_state: 'HIT',
+          in_progress: false,
+        },
+      }),
+    }).as('coachAnalyzeRealtimeAuthExpired');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachRealtimeAuthExpiredProfile');
+    cy.wait('@coachRealtimeAuthExpiredReissue');
+
+    expectCoachBriefingText('로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('exist');
+    cy.get('@coachAnalyzeRealtimeAuthExpired.all')
+      .should('have.length', 0);
   });
 
   it('shows a re-login CTA instead of generic fallback when coach analyze returns AUTH_EXPIRED', () => {
