@@ -3805,6 +3805,19 @@ const verifyDaejeonOverlayClicks = async (page) => {
   };
   await searchInput.fill('카스');
   await visibleDaejeonFinderContainsText('카스존(응원단석)');
+  // 등급·위치 보조 필터가 기본 접힘 상태일 수 있으므로 먼저 토글 후 클릭
+  const cheerFilterVisible = await page.evaluate(() => {
+    const el = Array.from(document.querySelectorAll('[data-testid="daejeon-filter-cheer"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    return Boolean(el);
+  });
+  if (!cheerFilterVisible) {
+    await clickVisibleByTestId('daejeon-filter-secondary-toggle');
+    await sleep(200);
+  }
   await clickVisibleByTestId('daejeon-filter-cheer');
   await visibleDaejeonFinderContainsText('카스존(응원단석)');
   await searchInput.fill('');
@@ -4587,7 +4600,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
         return rect.width > 0
           && rect.height > 0
           && svg.getAttribute('data-image-view-mode') === 'operatorReference'
-          && svg.querySelectorAll('[role="button"]').length >= 21;
+          && svg.querySelectorAll('[role="button"]').length >= 42;
       })
   ), null, { timeout: 10000 });
 
