@@ -89,13 +89,14 @@ export default function MateDetailRuntime() {
       : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
     enabled: Boolean(partyId && currentUserId && !isHost),
   });
-  useQuery({
+  const hostApplicationsQuery = useQuery({
     ...(partyId != null
       ? getMatePartyApplicationsQueryOptions(partyId)
       : getMatePartyApplicationsQueryOptions('unknown')),
     enabled: Boolean(partyId && isHost),
     refetchOnMount: 'always',
   });
+  const hostApplications = hostApplicationsQuery.data ?? [];
   const myApplication = myApplicationQuery.data ?? null;
 
   useEffect(() => {
@@ -437,6 +438,7 @@ export default function MateDetailRuntime() {
                 isApproved={isApproved}
                 canAccessCheckIn={canAccessCheckIn}
                 myApplication={myApplication}
+                hostApplications={hostApplications}
                 sectionCardClass={sectionCardClass}
                 insetPanelClass={insetPanelClass}
                 getSeatBadgeColor={getSeatBadgeColor}

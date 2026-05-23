@@ -329,9 +329,29 @@ export default function DaeguSeatMap() {
     () => (imageViewMode === 'operatorReference' ? DAEGU_OPERATOR_REFERENCE_BLOCKS : DAEGU_BLOCKS),
     [imageViewMode],
   );
+  const fallbackRenderBlocks = useMemo(
+    () => (imageViewMode === 'operatorReference' ? DAEGU_BLOCKS : DAEGU_OPERATOR_REFERENCE_BLOCKS),
+    [imageViewMode],
+  );
   const selectableDaeguBlocks = useMemo(
-    () => activeRenderBlocks.filter(isDaeguNormalSelectableSeat),
-    [activeRenderBlocks],
+    () => {
+      const merged = new Map<string, DaeguBlock>();
+      activeRenderBlocks
+        .filter(isDaeguNormalSelectableSeat)
+        .forEach((block) => {
+          merged.set(block.id, block);
+        });
+      fallbackRenderBlocks
+        .filter(isDaeguNormalSelectableSeat)
+        .forEach((block) => {
+          if (!merged.has(block.id)) {
+            merged.set(block.id, block);
+          }
+        });
+
+      return Array.from(merged.values());
+    },
+    [activeRenderBlocks, fallbackRenderBlocks],
   );
   const selectableDaeguBlockIds = useMemo(
     () => new Set(selectableDaeguBlocks.map((block) => block.id)),
