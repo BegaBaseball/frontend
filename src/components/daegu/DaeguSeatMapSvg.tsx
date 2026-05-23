@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { ExternalLink, Minus, Plus } from 'lucide-react';
 import {
-  DAEGU_BLOCKS,
   DAEGU_CATEGORIES,
+  DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT,
   DAEGU_SEATMAP_IMAGE,
+  DAEGU_SEATMAP_SOURCE_REFERENCES,
   DAEGU_SEATMAP_VIEWPORT,
   getDaeguTraceMethodLabel,
   getDaeguTraceStatusLabel,
@@ -12,98 +13,30 @@ import {
   isDaeguReviewOnlySeat,
   type DaeguBlock,
 } from '../../data/daeguSeatData';
+import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
+import {
+  clampPan,
+  clampZoom,
+  panForZoomAtPoint,
+  readViewportSize,
+  useIsomorphicLayoutEffect,
+  getPointerDistance,
+  getPointerMidpoint,
+  type ViewportSize,
+  type ViewportPoint,
+  type TrackedPointer,
+} from '../stadiumSeatMap/seatMapInteractionUtils';
 
-export interface DaeguSeatMapPan {
-  x: number;
-  y: number;
-}
-
-interface ViewportSize {
-  width: number;
-  height: number;
-}
-
-interface ViewportPoint {
-  x: number;
-  y: number;
-}
-
-interface Props {
-  mode: 'light' | 'dark';
-  selected: DaeguBlock | null;
-  setSelected: (block: DaeguBlock | null) => void;
-  hover: string | null;
-  setHover: (id: string | null) => void;
-  filterCats: string[] | null;
-  zoom: number;
-  pan: DaeguSeatMapPan;
-  onPanChange: (pan: DaeguSeatMapPan) => void;
-  onZoomChange: (zoom: number) => void;
-  minZoom: number;
-  maxZoom: number;
-  zoomStep: number;
+interface DaeguExtraProps {
+  blocks: DaeguBlock[];
   focusBlockId: string | null;
   focusRequestId: number;
-  enableAutoCenter?: boolean;
-  onFullscreenOpen?: () => void;
+  imageViewMode?: DaeguSeatMapImageViewMode;
 }
 
-const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+export type DaeguSeatMapImageViewMode = 'operatorReference' | 'officialPng';
 
-function clampZoom(value: number, minZoom: number, maxZoom: number) {
-  return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));
-}
-
-function clampPan(pan: DaeguSeatMapPan, zoom: number, viewport: ViewportSize): DaeguSeatMapPan {
-  if (zoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const maxX = (viewport.width * (zoom - 1)) / 2;
-  const maxY = (viewport.height * (zoom - 1)) / 2;
-
-  return {
-    x: Math.min(maxX, Math.max(-maxX, pan.x)),
-    y: Math.min(maxY, Math.max(-maxY, pan.y)),
-  };
-}
-
-function readViewportSize(node: HTMLDivElement | null): ViewportSize {
-  if (!node) {
-    return { width: 0, height: 0 };
-  }
-
-  const rect = node.getBoundingClientRect();
-  return {
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function panForZoomAtPoint(
-  currentPan: DaeguSeatMapPan,
-  currentZoom: number,
-  nextZoom: number,
-  point: ViewportPoint,
-  viewport: ViewportSize,
-): DaeguSeatMapPan {
-  if (nextZoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const centerX = viewport.width / 2;
-  const centerY = viewport.height / 2;
-  const pointDeltaX = point.x - centerX;
-  const pointDeltaY = point.y - centerY;
-  const safeCurrentZoom = Math.max(currentZoom, 0.01);
-  const contentDeltaX = (pointDeltaX - currentPan.x) / safeCurrentZoom;
-  const contentDeltaY = (pointDeltaY - currentPan.y) / safeCurrentZoom;
-
-  return clampPan({
-    x: pointDeltaX - (contentDeltaX * nextZoom),
-    y: pointDeltaY - (contentDeltaY * nextZoom),
-  }, nextZoom, viewport);
-}
+type Props = SeatMapSvgBaseProps<DaeguBlock> & DaeguExtraProps;
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   return (
@@ -137,7 +70,11 @@ function resolveOfficialSeatMapImageUrl() {
     return null;
   }
 
-  return new URL('../../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png', import.meta.url).href;
+  return new URL('../../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp', import.meta.url).href;
+}
+
+function resolveOperatorReferenceSeatMapImageUrl() {
+  return new URL('../../assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.webp', import.meta.url).href;
 }
 
 function getGeometryLabelPoint(geometry: DaeguBlock['imageGeometry']): [number, number] {
@@ -178,41 +115,62 @@ function blockArea(block: DaeguBlock) {
 }
 
 export default function DaeguSeatMapSvg({
+  blocks,
   mode,
   selected,
   setSelected,
   hover,
   setHover,
   filterCats,
+  filterSides,
+  filterLevels,
   zoom,
   pan,
   onPanChange,
-  onZoomChange,
+  onZoom,
   minZoom,
   maxZoom,
   zoomStep,
   focusBlockId,
   focusRequestId,
+  imageViewMode = 'operatorReference',
   enableAutoCenter = true,
-  onFullscreenOpen,
+  onFullscreen,
 }: Props) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const dragStateRef = useRef<{
     pointerId: number;
     startClientX: number;
     startClientY: number;
-    startPan: DaeguSeatMapPan;
+    startPan: SeatMapPan;
     viewport: ViewportSize;
     moved: boolean;
+    captureTarget: HTMLDivElement;
+    usesPointerCapture: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
+  const activePointersRef = useRef<Map<number, TrackedPointer>>(new Map());
+  const pinchStateRef = useRef<{
+    startDistance: number;
+    startZoom: number;
+    startPan: SeatMapPan;
+    viewport: ViewportSize;
+    midpoint: ViewportPoint;
+    moved: boolean;
+  } | null>(null);
+  const lastTapRef = useRef<{ time: number; clientX: number; clientY: number } | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
-  const { imageWidth, imageHeight } = DAEGU_SEATMAP_IMAGE;
-  const viewport = DAEGU_SEATMAP_VIEWPORT;
-  const seatMapImageUrl = resolveOfficialSeatMapImageUrl();
+  const operatorReferenceSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'OPERATOR_REFERENCE_RAPAK_2025');
+  const isOperatorReferenceMode = imageViewMode === 'operatorReference';
+  const imageWidth = isOperatorReferenceMode ? operatorReferenceSource?.imageWidth ?? 0 : DAEGU_SEATMAP_IMAGE.imageWidth;
+  const imageHeight = isOperatorReferenceMode ? operatorReferenceSource?.imageHeight ?? 0 : DAEGU_SEATMAP_IMAGE.imageHeight;
+  const viewport = isOperatorReferenceMode ? DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT : DAEGU_SEATMAP_VIEWPORT;
+  const seatMapImageUrl = isOperatorReferenceMode ? resolveOperatorReferenceSeatMapImageUrl() : resolveOfficialSeatMapImageUrl();
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('daeguDebug') === '1';
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
@@ -231,9 +189,10 @@ export default function DaeguSeatMapSvg({
     (_, index) => gridStartY + (index * 100),
   );
   const renderBlocks = useMemo(
-    () => [...DAEGU_BLOCKS].sort((a, b) => blockArea(b) - blockArea(a)),
-    [],
+    () => [...blocks].sort((a, b) => blockArea(b) - blockArea(a)),
+    [blocks],
   );
+  const shouldRenderInteractiveLayers = renderBlocks.length > 0;
   const renderSeatBlocks = useMemo(
     () => renderBlocks.filter(isDaeguNormalSelectableSeat),
     [renderBlocks],
@@ -246,6 +205,11 @@ export default function DaeguSeatMapSvg({
     () => renderBlocks.filter((block) => block.sectionKind !== 'SEAT_SECTION'),
     [renderBlocks],
   );
+
+  useEffect(() => {
+    setImageFailed(false);
+    setDebugPoint(null);
+  }, [imageViewMode]);
 
   useIsomorphicLayoutEffect(() => {
     const node = viewportRef.current;
@@ -283,7 +247,7 @@ export default function DaeguSeatMapSvg({
       return;
     }
 
-    const block = DAEGU_BLOCKS.find((candidate) => candidate.id === focusBlockId);
+    const block = renderBlocks.find((candidate) => candidate.id === focusBlockId);
     if (!block) return;
     const [labelX, labelY] = getGeometryLabelPoint(block.imageGeometry);
 
@@ -305,6 +269,7 @@ export default function DaeguSeatMapSvg({
     measuredViewportSize.width,
     minZoom,
     onPanChange,
+    renderBlocks,
     viewport.height,
     viewport.width,
     viewport.x,
@@ -335,27 +300,35 @@ export default function DaeguSeatMapSvg({
     const startPan = clampPan(pan, zoom, nextViewport);
 
     setViewportSize(nextViewport);
-    onZoomChange(nextZoom);
+    onZoom(nextZoom);
     onPanChange(panForZoomAtPoint(startPan, zoom, nextZoom, point, nextViewport));
-  }, [maxZoom, minZoom, onPanChange, onZoomChange, pan, zoom]);
+  }, [maxZoom, minZoom, onPanChange, onZoom, pan, zoom]);
 
   const updateZoomFromControls = useCallback((nextZoom: number) => {
     const normalizedZoom = clampZoom(nextZoom, minZoom, maxZoom);
-    onZoomChange(normalizedZoom);
+    onZoom(normalizedZoom);
     if (normalizedZoom === minZoom) {
       onPanChange({ x: 0, y: 0 });
       return;
     }
 
     onPanChange(clampPan(pan, normalizedZoom, measuredViewportSize));
-  }, [maxZoom, measuredViewportSize, minZoom, onPanChange, onZoomChange, pan]);
+  }, [maxZoom, measuredViewportSize, minZoom, onPanChange, onZoom, pan]);
 
   const finishDrag = useCallback((pointerId: number) => {
     const state = dragStateRef.current;
-    if (!state || state.pointerId !== pointerId) return;
+    if (!state || (pointerId !== -1 && state.pointerId !== pointerId)) return;
 
     if (state.moved) {
       suppressNextClick();
+    }
+
+    try {
+      if (state.usesPointerCapture && state.pointerId >= 0 && state.captureTarget.hasPointerCapture(state.pointerId)) {
+        state.captureTarget.releasePointerCapture(state.pointerId);
+      }
+    } catch {
+      // Pointer capture can be released by the browser before our window-level listener runs.
     }
     dragStateRef.current = null;
     setIsDragging(false);
@@ -363,7 +336,7 @@ export default function DaeguSeatMapSvg({
 
   const updateDragPan = useCallback((clientX: number, clientY: number, pointerId: number, preventDefault: () => void) => {
     const state = dragStateRef.current;
-    if (!state || state.pointerId !== pointerId) return;
+    if (!state || (pointerId !== -1 && state.pointerId !== pointerId)) return;
 
     const deltaX = clientX - state.startClientX;
     const deltaY = clientY - state.startClientY;
@@ -373,16 +346,182 @@ export default function DaeguSeatMapSvg({
     if (!state.moved) return;
 
     preventDefault();
+    const viewport = state.viewport.width > 0 && state.viewport.height > 0
+      ? state.viewport
+      : readViewportSize(viewportRef.current);
+
     onPanChange(clampPan({
       x: state.startPan.x + deltaX,
       y: state.startPan.y + deltaY,
-    }, zoom, state.viewport));
+    }, zoom, viewport));
   }, [onPanChange, zoom]);
 
+  const getTrackedTouchPointers = useCallback(() => (
+    [...activePointersRef.current.values()].filter((pointer) => pointer.pointerType === 'touch')
+  ), []);
+
+  const beginPinchZoom = useCallback(() => {
+    const node = viewportRef.current;
+    if (!node) return false;
+
+    const pointers = getTrackedTouchPointers();
+    if (pointers.length < 2) return false;
+
+    const viewport = readViewportSize(node);
+    if (viewport.width <= 0 || viewport.height <= 0) return false;
+
+    const [first, second] = pointers;
+    const startDistance = getPointerDistance(first, second);
+    if (startDistance <= 0) return false;
+
+    pinchStateRef.current = {
+      startDistance,
+      startZoom: zoom,
+      startPan: clampPan(pan, zoom, viewport),
+      viewport,
+      midpoint: getPointerMidpoint(first, second, node),
+      moved: false,
+    };
+    dragStateRef.current = null;
+    setViewportSize(viewport);
+    setIsDragging(true);
+    return true;
+  }, [getTrackedTouchPointers, pan, zoom]);
+
+  const updatePinchZoom = useCallback(() => {
+    const pinchState = pinchStateRef.current;
+    if (!pinchState) return false;
+
+    const pointers = getTrackedTouchPointers();
+    if (pointers.length < 2) return false;
+
+    const [first, second] = pointers;
+    const currentDistance = getPointerDistance(first, second);
+    if (currentDistance <= 0) return true;
+
+    const nextZoom = clampZoom(
+      pinchState.startZoom * (currentDistance / pinchState.startDistance),
+      minZoom,
+      maxZoom,
+    );
+    pinchState.moved = true;
+    onZoom(nextZoom);
+    onPanChange(panForZoomAtPoint(
+      pinchState.startPan,
+      pinchState.startZoom,
+      nextZoom,
+      pinchState.midpoint,
+      pinchState.viewport,
+    ));
+    return true;
+  }, [getTrackedTouchPointers, maxZoom, minZoom, onPanChange, onZoom]);
+
+  const finishPinchZoom = useCallback(() => {
+    const pinchState = pinchStateRef.current;
+    if (!pinchState) return false;
+
+    if (pinchState.moved) {
+      suppressNextClick(220);
+    }
+    pinchStateRef.current = null;
+    setIsDragging(false);
+    return true;
+  }, [suppressNextClick]);
+
+  const handleDoubleTap = useCallback((clientX: number, clientY: number) => {
+    const now = window.performance.now();
+    const lastTap = lastTapRef.current;
+    lastTapRef.current = { time: now, clientX, clientY };
+
+    if (!lastTap || now - lastTap.time > 300 || Math.hypot(clientX - lastTap.clientX, clientY - lastTap.clientY) > 28) {
+      return false;
+    }
+
+    lastTapRef.current = null;
+    const nextZoom = zoom < Math.min(maxZoom, 1.75) ? Math.min(maxZoom, 1.75) : minZoom;
+    updateZoomAtClientPoint(clientX, clientY, nextZoom);
+    suppressNextClick(260);
+    return true;
+  }, [maxZoom, minZoom, suppressNextClick, zoom, updateZoomAtClientPoint]);
+
+  useEffect(() => {
+    if (!isDragging) return undefined;
+
+    const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
+      if (activePointersRef.current.has(event.pointerId)) {
+        activePointersRef.current.set(event.pointerId, {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          pointerType: event.pointerType,
+        });
+      }
+      if (pinchStateRef.current && updatePinchZoom()) {
+        event.preventDefault();
+        return;
+      }
+      updateDragPan(event.clientX, event.clientY, event.pointerId, () => event.preventDefault());
+    };
+    const handleWindowPointerEnd = (event: globalThis.PointerEvent) => {
+      activePointersRef.current.delete(event.pointerId);
+      if (pinchStateRef.current) {
+        finishPinchZoom();
+        return;
+      }
+      finishDrag(event.pointerId);
+    };
+    const handleWindowMouseMove = (event: globalThis.MouseEvent) => {
+      updateDragPan(event.clientX, event.clientY, -1, () => event.preventDefault());
+    };
+    const handleWindowMouseEnd = () => {
+      finishDrag(-1);
+    };
+    const handleWindowBlur = () => {
+      const state = dragStateRef.current;
+      if (state) {
+        finishDrag(state.pointerId);
+      }
+      activePointersRef.current.clear();
+      finishPinchZoom();
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', handleWindowPointerEnd);
+    window.addEventListener('pointercancel', handleWindowPointerEnd);
+    window.addEventListener('mousemove', handleWindowMouseMove, { passive: false });
+    window.addEventListener('mouseup', handleWindowMouseEnd);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerEnd);
+      window.removeEventListener('pointercancel', handleWindowPointerEnd);
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseEnd);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [finishDrag, finishPinchZoom, isDragging, updateDragPan, updatePinchZoom]);
+
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') {
+      activePointersRef.current.set(event.pointerId, {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        pointerType: event.pointerType,
+      });
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep touch gestures working when pointer capture is unavailable.
+      }
+      if (activePointersRef.current.size >= 2 && beginPinchZoom()) {
+        event.preventDefault();
+        suppressNextClick(220);
+        return;
+      }
+    }
+
     if (!canDrag || event.button !== 0) return;
 
-    event.preventDefault();
     const liveViewportSize = readViewportSize(event.currentTarget);
     const startPan = clampPan(pan, zoom, liveViewportSize);
     setViewportSize(liveViewportSize);
@@ -393,52 +532,108 @@ export default function DaeguSeatMapSvg({
       startPan,
       viewport: liveViewportSize,
       moved: false,
+      captureTarget: event.currentTarget,
+      usesPointerCapture: true,
     };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
-      // Pointer capture may be unavailable in some test environments.
+      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
     }
     setIsDragging(true);
-  }, [canDrag, pan, zoom]);
+  }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (activePointersRef.current.has(event.pointerId)) {
+      activePointersRef.current.set(event.pointerId, {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        pointerType: event.pointerType,
+      });
+    }
+    if (pinchStateRef.current && updatePinchZoom()) {
+      event.preventDefault();
+      return;
+    }
     updateDragPan(event.clientX, event.clientY, event.pointerId, () => event.preventDefault());
-  }, [updateDragPan]);
+  }, [updateDragPan, updatePinchZoom]);
 
   const handlePointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const dragMoved = dragStateRef.current?.moved ?? false;
+    const wasPinching = Boolean(pinchStateRef.current);
+    activePointersRef.current.delete(event.pointerId);
+
+    if (wasPinching) {
+      event.preventDefault();
+      finishPinchZoom();
+      return;
+    }
+
     finishDrag(event.pointerId);
-  }, [finishDrag]);
+    if (event.pointerType === 'touch' && !dragMoved) {
+      handleDoubleTap(event.clientX, event.clientY);
+    }
+  }, [finishDrag, finishPinchZoom, handleDoubleTap]);
+
+  const zoomFromDoubleClick = useCallback((clientX: number, clientY: number) => {
+    const nextZoom = zoom < Math.min(maxZoom, 1.75) ? Math.min(maxZoom, 1.75) : minZoom;
+    updateZoomAtClientPoint(clientX, clientY, nextZoom);
+    suppressNextClick(220);
+  }, [maxZoom, minZoom, suppressNextClick, updateZoomAtClientPoint, zoom]);
 
   const handleDoubleClick = useCallback((event: ReactMouseEvent<HTMLDivElement | SVGElement | SVGPathElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const nextZoom = zoom < Math.min(maxZoom, 1.75) ? Math.min(maxZoom, 1.75) : minZoom;
-    updateZoomAtClientPoint(event.clientX, event.clientY, nextZoom);
-    suppressNextClick(220);
-  }, [maxZoom, minZoom, suppressNextClick, updateZoomAtClientPoint, zoom]);
+    zoomFromDoubleClick(event.clientX, event.clientY);
+  }, [zoomFromDoubleClick]);
+
+  const handleSvgDoubleClick = useCallback((event: ReactMouseEvent<SVGElement | SVGPathElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    zoomFromDoubleClick(event.clientX, event.clientY);
+  }, [zoomFromDoubleClick]);
 
   const handleDebugMouseMove = (event: ReactMouseEvent<SVGSVGElement>) => {
-    if (!showDebug) return;
+    if (!showDebug || !svgRef.current) return;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = Math.round(viewport.x + (((event.clientX - rect.left) / rect.width) * viewport.width));
-    const y = Math.round(viewport.y + (((event.clientY - rect.top) / rect.height) * viewport.height));
-    setDebugPoint({ x, y });
+    const ctm = svgRef.current.getScreenCTM();
+    if (!ctm) return;
+    const pt = svgRef.current.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    const mapped = pt.matrixTransform(ctm.inverse());
+    setDebugPoint({ x: Math.round(mapped.x), y: Math.round(mapped.y) });
   };
 
   const renderInteractiveBlocks = (blocks: DaeguBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
     const cat = DAEGU_CATEGORIES[block.category];
     if (!cat) return null;
 
-    const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+    const isFiltered =
+      (filterCats !== null && !filterCats.includes(block.category)) ||
+      (filterSides != null && !filterSides.includes(block.side)) ||
+      (filterLevels != null && !filterLevels.includes(block.level));
+    const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
     const isSelected = selected?.id === block.id;
     const isActive = hover === block.id || isSelected;
     const traceStatusLabel = getDaeguTraceStatusLabel(block.traceStatus);
     const traceMethodLabel = getDaeguTraceMethodLabel(block.traceMethod);
     const baseColor = mode === 'dark' ? cat.dark : cat.light;
     const isMarker = layerKind === 'marker';
-    const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? (isMarker ? 0.12 : 0.08) : 0.001;
+    let fill = baseColor;
+    let fillOpacity: number;
+    if (showDebug) {
+      fillOpacity = isMarker ? 0.12 : 0.08;
+    } else if (isActive && !isFiltered) {
+      fillOpacity = 0.34;
+    } else if (isAnyFilterActive && !isFiltered) {
+      fillOpacity = 0.20;
+    } else if (isFiltered) {
+      fill = mode === 'dark' ? '#020617' : '#1e293b';
+      fillOpacity = 0.42;
+    } else {
+      fillOpacity = 0.001;
+    }
     const stroke = showDebug && block.traceStatus === 'NEEDS_OPERATOR_REVIEW'
       ? '#F97316'
       : mode === 'dark' ? '#F8FAFC' : '#0F172A';
@@ -472,7 +667,7 @@ export default function DaeguSeatMapSvg({
             aria-label={`${block.name} ${block.block}`}
             aria-pressed={isSelected}
             d={pathD}
-            fill={baseColor}
+            fill={fill}
             fillOpacity={fillOpacity}
             stroke={stroke}
             strokeOpacity={strokeOpacity}
@@ -483,7 +678,7 @@ export default function DaeguSeatMapSvg({
             vectorEffect="non-scaling-stroke"
             style={{
               cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-              transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+              transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
             }}
             onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
             onClick={(event) => {
@@ -496,7 +691,7 @@ export default function DaeguSeatMapSvg({
                 setSelected(selected?.id === block.id ? null : block);
               }
             }}
-            onDoubleClick={handleDoubleClick}
+            onDoubleClick={handleSvgDoubleClick}
             onKeyDown={(event) => {
               if (isFiltered) return;
               if (event.key === 'Enter' || event.key === ' ') {
@@ -667,12 +862,12 @@ export default function DaeguSeatMapSvg({
       >
         <Minus className="h-3.5 w-3.5" />
       </button>
-      {onFullscreenOpen && (
+      {onFullscreen && (
         <button
           type="button"
           data-testid="daegu-seatmap-fullscreen-open"
           className={zoomButtonClass}
-          onClick={onFullscreenOpen}
+          onClick={onFullscreen}
           aria-label="대구 좌석도 전체화면"
         >
           <ExternalLink className="h-3.5 w-3.5" />
@@ -682,7 +877,7 @@ export default function DaeguSeatMapSvg({
   );
 
   if (
-    DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
+    (!isOperatorReferenceMode && DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL')
     || !seatMapImageUrl
     || imageWidth <= 0
     || imageHeight <= 0
@@ -731,29 +926,36 @@ export default function DaeguSeatMapSvg({
             transformOrigin: '50% 50%',
           }}
         >
-          <img
-            src={seatMapImageUrl}
-            alt="대구 삼성 라이온즈 파크 공식 좌석 배치도"
-            className="absolute inset-0 h-full w-full select-none object-contain"
-            draggable={false}
-            loading="eager"
-            decoding="async"
-            onError={() => setImageFailed(true)}
-            onDragStart={(event) => event.preventDefault()}
-          />
           <svg
+            ref={svgRef}
             data-testid="daegu-seatmap-svg"
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
+            data-image-view-mode={imageViewMode}
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
-            aria-label="대구 삼성 라이온즈 파크 좌석도 구역 선택"
-            onDoubleClick={handleDoubleClick}
+            aria-label={isOperatorReferenceMode ? '대구 삼성 라이온즈 파크 기존 좌석배치도 구역 선택' : '대구 삼성 라이온즈 파크 공식 이미지 보기'}
+            onDoubleClick={handleSvgDoubleClick}
             onMouseMove={handleDebugMouseMove}
             onMouseLeave={() => {
               setHover(null);
               if (showDebug) setDebugPoint(null);
             }}
           >
+            {!imageLoaded && !imageFailed && (
+              <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+            )}
+            <image
+              href={seatMapImageUrl}
+              x={0}
+              y={0}
+              width={imageWidth}
+              height={imageHeight}
+              preserveAspectRatio="none"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageFailed(true)}
+              pointerEvents="none"
+              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
+            />
             <defs>
               <filter id="daegu-hit-glow">
                 <feGaussianBlur stdDeviation="2.5" result="blur" />
@@ -771,15 +973,15 @@ export default function DaeguSeatMapSvg({
               </g>
             )}
             <g data-layer="daegu-seat-polygon-layer">
-              {renderInteractiveBlocks(renderSeatBlocks, 'seat')}
+              {shouldRenderInteractiveLayers && renderInteractiveBlocks(renderSeatBlocks, 'seat')}
             </g>
-            {showDebug && (
+            {showDebug && shouldRenderInteractiveLayers && (
               <g data-layer="daegu-review-polygon-layer" pointerEvents="none">
                 {renderReviewOnlyBlocks(renderReviewBlocks)}
               </g>
             )}
             <g data-layer="daegu-marker-layer">
-              {renderMarkerOnlyBlocks(renderMarkerBlocks)}
+              {shouldRenderInteractiveLayers && renderMarkerOnlyBlocks(renderMarkerBlocks)}
             </g>
             {showDebug && debugPoint && (
               <text
