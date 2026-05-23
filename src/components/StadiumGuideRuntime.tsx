@@ -14,7 +14,8 @@ import { SeatMapRuntimeShell } from './stadiumSeatMap/SeatMapRuntimeShell';
 import { getCategoryIcon } from '../utils/stadium';
 import { useStadiumGuide } from '../hooks/useStadiumGuide';
 import { useTheme } from '../hooks/useTheme';
-import { useAuthSession } from '../store/authStore';
+import { useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
+import AdSlot from './ads/AdSlot';
 import {
   formatOptionalText,
   hasValidCoordinates,
@@ -51,7 +52,7 @@ function StadiumGuideCategorySelector({
     ? 'rounded-full p-2.5'
     : 'rounded-full p-2.5 sm:p-3';
   const iconClass = compact ? 'h-6 w-6' : 'h-6 w-6 sm:h-8 sm:w-8';
-  const labelClass = compact ? 'text-sm font-black leading-tight' : 'text-sm font-bold sm:text-[17px]';
+  const labelClass = compact ? 'text-sm font-black leading-tight break-keep' : 'text-sm font-bold sm:text-[17px] break-keep';
 
   return (
     <div className={gridClass}>
@@ -121,6 +122,7 @@ export default function StadiumGuideRuntime() {
   } = useStadiumGuide();
 
   const { isLoggedIn } = useAuthSession();
+  const { userId: authUserId } = useAuthProfileSnapshot();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
   const seatMapEntry = resolveStadiumSeatMapEntry(selectedStadiumId, selectedStadium?.stadiumName);
   const seatMapBadgeLabel = seatMapEntry?.badgeLabel ?? '좌석도 준비 필요';
@@ -183,11 +185,11 @@ export default function StadiumGuideRuntime() {
               <div className="rounded-lg bg-primary/10 p-2">
                 <MapPinIcon className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="font-bold text-xl tracking-tight text-primary sm:text-2xl">
+              <h1 className="font-bold text-xl tracking-tight text-primary sm:text-2xl text-balance">
                 구장 가이드
               </h1>
             </div>
-            <p className="w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base">
+            <p className="w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base text-balance">
               전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
               직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
             </p>
@@ -215,7 +217,7 @@ export default function StadiumGuideRuntime() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           <div className="space-y-7 sm:space-y-8">
             <div>
-              <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+              <h3 className="text-xl mb-4 font-bold dark:text-gray-200 text-balance" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                 구장 선택
               </h3>
               <div className="relative">
@@ -265,7 +267,7 @@ export default function StadiumGuideRuntime() {
 
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
+                <h3 className="text-xl font-bold dark:text-gray-200 text-balance" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
                   구장 위치 & 단축 경로
                 </h3>
               </div>
@@ -422,6 +424,15 @@ export default function StadiumGuideRuntime() {
                 />
               </div>
 
+              <AdSlot
+                slotId="stadium_partner_1"
+                pageType="stadium"
+                contentId={selectedStadiumId !== null ? String(selectedStadiumId) : null}
+                disabled={!selectedStadiumId}
+                loggedIn={isLoggedIn}
+                userId={authUserId ? String(authUserId) : null}
+              />
+
               <div>
                 <Suspense fallback={null}>
                   <StadiumGuidePlacesRuntime
@@ -469,6 +480,15 @@ export default function StadiumGuideRuntime() {
               />
             </div>
 
+            <AdSlot
+              slotId="stadium_partner_1"
+              pageType="stadium"
+              contentId={selectedStadiumId !== null ? String(selectedStadiumId) : null}
+              disabled={!selectedStadiumId}
+              loggedIn={isLoggedIn}
+              userId={authUserId ? String(authUserId) : null}
+            />
+
             <div>
               <Suspense fallback={null}>
                 <StadiumGuidePlacesRuntime
@@ -490,7 +510,7 @@ export default function StadiumGuideRuntime() {
           </div>
         </div>
 
-        <div className="mt-8 hidden lg:block">
+        <div className="mt-8 hidden lg:block" data-testid="stadium-guide-seatmap">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: isDark ? '#e5e7eb' : THEME_COLORS.primary }}>
               좌석 배치도

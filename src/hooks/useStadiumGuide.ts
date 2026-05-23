@@ -86,7 +86,8 @@ export const useStadiumGuide = () => {
     }
   }, []);
 
-  const loadPlaces = useCallback(async () => {
+  // DB 기반 카테고리(food 등) 장소 로드: 지도와 무관하므로 isMapReady 의존 없음
+  const loadDbPlaces = useCallback(async () => {
     if (!selectedStadium) {
       setPlaces([]);
       setPlacesStatus('idle');
@@ -94,62 +95,19 @@ export const useStadiumGuide = () => {
       return;
     }
 
-    setSelectedPlace(null);
-    if (isMapReady) {
-      clearMarkers();
-    }
-
     if (selectedCategory === 'store' || selectedCategory === 'parking') {
       setPlacesStatus('idle');
       setPlacesError(null);
-
-      if (mapStatus === 'loading') {
-        setNearbyStatus('loading');
-        setNearbyError(null);
-        return;
-      }
-
-      if (!isMapReady || !map) {
-        setPlaces([]);
-        setNearbyStatus('error');
-        setNearbyError('지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.');
-        return;
-      }
-
-      if (!hasValidCoordinates(selectedStadium.lat, selectedStadium.lng)) {
-        setPlaces([]);
-        setNearbyStatus('error');
-        setNearbyError('구장 좌표 정보가 없어 주변 검색을 수행할 수 없습니다.');
-        return;
-      }
-
-      setNearbyStatus('loading');
-      setNearbyError(null);
-
-      searchNearbyPlaces(
-        selectedCategory === 'store' ? '편의점' : '주차장',
-        selectedCategory,
-        selectedStadium,
-        map,
-        (data) => {
-          setPlaces(data);
-          setNearbyStatus(data.length > 0 ? 'success' : 'empty');
-        },
-        (errorMessage) => {
-          console.error('주변 시설 검색 실패:', errorMessage);
-          setPlaces([]);
-          setNearbyStatus('error');
-          setNearbyError(`주변 ${selectedCategory === 'store' ? '편의점' : '주차장'} 검색에 실패했습니다.`);
-        }
-      );
       return;
     }
 
+    setSelectedPlace(null);
+    setNearbyStatus('idle');
+    setNearbyError(null);
+    setPlacesStatus('loading');
+    setPlacesError(null);
+
     try {
-      setNearbyStatus('idle');
-      setNearbyError(null);
-      setPlacesStatus('loading');
-      setPlacesError(null);
       const data = await fetchStadiumGuidePlaces(selectedStadium.stadiumId, selectedCategory);
       setPlaces(data);
       setPlacesStatus(data.length > 0 ? 'success' : 'empty');
@@ -159,14 +117,57 @@ export const useStadiumGuide = () => {
       setPlacesStatus('error');
       setPlacesError('장소 목록을 불러오지 못했습니다.');
     }
-  }, [selectedStadium, selectedCategory, isMapReady, clearMarkers, mapStatus, map]);
+  }, [selectedStadium, selectedCategory]);
 
-  // ========== 카카오맵 스크립트 로드 ==========
+  // Kakao 기반 카테고리(store/parking) 주변 검색: 지도 준비 완료 시에만 실행
+  const loadNearbyPlaces = useCallback(() => {
+    if (!selectedStadium || (selectedCategory !== 'store' && selectedCategory !== 'parking')) {
+      return;
+    }
+
+    setSelectedPlace(null);
+    clearMarkers();
+
+    if (!isMapReady || !map) {
+      setPlaces([]);
+      setNearbyStatus(mapStatus === 'loading' ? 'loading' : 'error');
+      setNearbyError(mapStatus === 'loading' ? null : '지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.');
+      return;
+    }
+
+    if (!hasValidCoordinates(selectedStadium.lat, selectedStadium.lng)) {
+      setPlaces([]);
+      setNearbyStatus('error');
+      setNearbyError('구장 좌표 정보가 없어 주변 검색을 수행할 수 없습니다.');
+      return;
+    }
+
+    setNearbyStatus('loading');
+    setNearbyError(null);
+
+    searchNearbyPlaces(
+      selectedCategory === 'store' ? '편의점' : '주차장',
+      selectedCategory,
+      selectedStadium,
+      map,
+      (data) => {
+        setPlaces(data);
+        setNearbyStatus(data.length > 0 ? 'success' : 'empty');
+      },
+      (errorMessage) => {
+        console.error('주변 시설 검색 실패:', errorMessage);
+        setPlaces([]);
+        setNearbyStatus('error');
+        setNearbyError(`주변 ${selectedCategory === 'store' ? '편의점' : '주차장'} 검색에 실패했습니다.`);
+      }
+    );
+  }, [selectedStadium, selectedCategory, isMapReady, map, mapStatus, clearMarkers]);
+
+  // ========== 카카오맵 스크립트 로드 + 구장 목록 (병렬) ==========
   useEffect(() => {
     loadMapSdk();
   }, [loadMapSdk]);
 
-  // ========== 구장 목록 가져오기 ==========
   useEffect(() => {
     void fetchStadiums();
   }, [fetchStadiums]);
@@ -189,10 +190,15 @@ export const useStadiumGuide = () => {
     }
   }, [selectedStadium, isMapReady, mapContainer, initializeMap]);
 
-  // ========== 장소 검색 ==========
+  // ========== DB 장소 로드 (지도 불필요 — SDK 준비 전에 선행 실행 가능) ==========
   useEffect(() => {
-    void loadPlaces();
-  }, [loadPlaces]);
+    void loadDbPlaces();
+  }, [loadDbPlaces]);
+
+  // ========== 주변 검색 (지도 준비 완료 후) ==========
+  useEffect(() => {
+    loadNearbyPlaces();
+  }, [loadNearbyPlaces]);
 
   // ========== 마커 업데이트 ==========
   useEffect(() => {
@@ -234,34 +240,13 @@ export const useStadiumGuide = () => {
   }, [fetchStadiums]);
 
   const retryPlaces = useCallback(() => {
-    void loadPlaces();
-  }, [loadPlaces]);
+    void loadDbPlaces();
+    loadNearbyPlaces();
+  }, [loadDbPlaces, loadNearbyPlaces]);
 
   const retryMap = useCallback(() => {
     loadMapSdk();
   }, [loadMapSdk]);
-
-  useEffect(() => {
-    const isNearbyCategory = selectedCategory === 'store' || selectedCategory === 'parking';
-
-    if (!selectedStadium || !isNearbyCategory) {
-      return;
-    }
-
-    if (mapStatus !== 'error' || isMapReady || map) {
-      return;
-    }
-
-    if (!hasValidCoordinates(selectedStadium.lat, selectedStadium.lng)) {
-      return;
-    }
-
-    setPlaces([]);
-    setPlacesStatus('idle');
-    setPlacesError(null);
-    setNearbyStatus('error');
-    setNearbyError('지도가 준비되지 않아 주변 검색을 수행할 수 없습니다.');
-  }, [selectedCategory, selectedStadium, mapStatus, isMapReady, map]);
 
   const loading = useMemo(
     () =>

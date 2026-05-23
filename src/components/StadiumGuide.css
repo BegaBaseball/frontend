@@ -38,6 +38,12 @@
   height: 550px;
 }
 
+@media (max-width: 639px) {
+  .stadium-guide-list-shell {
+    height: 420px;
+  }
+}
+
 .stadium-guide-scroll-area {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--primary)) hsl(var(--secondary));
