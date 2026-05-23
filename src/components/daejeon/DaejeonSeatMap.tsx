@@ -454,11 +454,20 @@ export default function DaejeonSeatMap() {
     filterId,
     setFilterId,
     filterCats,
+    filterSides,
+    filterLevels,
+    activeFilterGroup,
   } = useSeatMapSelectionState({
     sections: DAEJEON_BLOCKS,
     filterGroups: DAEJEON_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
+    isSectionVisible: (block, filterGroup, cats) => {
+      if (cats !== null && !cats.includes(block.category)) return false;
+      if (filterGroup?.sides != null && !filterGroup.sides.includes(block.side)) return false;
+      if (filterGroup?.levels != null && !filterGroup.levels.includes(block.level)) return false;
+      return true;
+    },
   });
   const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
   const hasOfficialBlocks = DAEJEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEJEON_BLOCKS.length > 0;
@@ -478,10 +487,9 @@ export default function DaejeonSeatMap() {
       .filter(Boolean);
 
     return orderedBlocks.filter((block) => {
-      if (filterCats !== null && !filterCats.includes(block.category)) {
-        return false;
-      }
-
+      if (filterCats !== null && !filterCats.includes(block.category)) return false;
+      if (activeFilterGroup?.sides != null && !activeFilterGroup.sides.includes(block.side)) return false;
+      if (activeFilterGroup?.levels != null && !activeFilterGroup.levels.includes(block.level)) return false;
       if (!normalizedSearch) {
         return true;
       }
@@ -499,7 +507,7 @@ export default function DaejeonSeatMap() {
       return searchableText.includes(normalizedSearch)
         || normalizedSearchTokens.every((token) => searchableText.includes(token));
     });
-  }, [filterCats, orderedBlocks, searchTerm]);
+  }, [filterCats, activeFilterGroup, orderedBlocks, searchTerm]);
   const visibleBlockIds = useMemo(() => visibleBlocks.map((block) => block.id), [visibleBlocks]);
   const canResetView = zoom !== 1 || pan.x !== 0 || pan.y !== 0;
 
@@ -602,9 +610,15 @@ export default function DaejeonSeatMap() {
       hover={hover}
       setHover={setHover}
       visibleBlockIds={visibleBlockIds}
+      filterCats={filterCats}
+      filterSides={filterSides}
+      filterLevels={filterLevels}
       zoom={zoom}
       pan={pan}
       onPanChange={setPan}
+      onZoom={setZoom}
+      minZoom={MIN_ZOOM}
+      maxZoom={MAX_ZOOM}
       focusBlockId={mapFocusRequest.blockId}
       focusRequestId={mapFocusRequest.requestId}
     />

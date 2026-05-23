@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type PointerEvent, type SetStateAction } from 'react';
+import { clampPan, clampZoom, getPointerDistance, getPointerMidpoint, panForZoomAtPoint, readViewportSize, type TrackedPointer, type ViewportPoint, type ViewportSize } from '../stadiumSeatMap/seatMapInteractionUtils';
 import {
   DAEJEON_BLOCKS,
   DAEJEON_BLOCK_GROUPS,
@@ -19,9 +20,15 @@ interface Props {
   hover: string | null;
   setHover: (id: string | null) => void;
   visibleBlockIds: string[];
+  filterCats?: readonly string[] | null;
+  filterSides?: readonly string[] | null;
+  filterLevels?: readonly string[] | null;
   zoom: number;
   pan: { x: number; y: number };
   onPanChange: Dispatch<SetStateAction<{ x: number; y: number }>>;
+  onZoom: (zoom: number) => void;
+  minZoom: number;
+  maxZoom: number;
   focusBlockId: string | null;
   focusRequestId: number;
 }
@@ -58,7 +65,7 @@ function resolveOfficialSeatMapImageUrl() {
     return null;
   }
 
-  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png', import.meta.url).href;
+  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp', import.meta.url).href;
 }
 
 function getSeatMapLayer(block: DaejeonBlock): number {
@@ -103,19 +110,43 @@ export default function DaejeonSeatMapSvg({
   hover,
   setHover,
   visibleBlockIds,
+  filterCats,
+  filterSides,
+  filterLevels,
   zoom,
   pan,
   onPanChange,
+  onZoom,
+  minZoom,
+  maxZoom,
   focusBlockId,
   focusRequestId,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [debugSvgRect, setDebugSvgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-  const [isPanning, setIsPanning] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef<{ pointerId: number; lastX: number; lastY: number; totalMove: number } | null>(null);
+  const dragStateRef = useRef<{
+    pointerId: number;
+    lastX: number;
+    lastY: number;
+    totalMove: number;
+    captureTarget: HTMLDivElement;
+    usesPointerCapture: boolean;
+  } | null>(null);
   const suppressClickRef = useRef(false);
+  const activePointersRef = useRef<Map<number, TrackedPointer>>(new Map());
+  const pinchStateRef = useRef<{
+    startDistance: number;
+    startZoom: number;
+    startPan: { x: number; y: number };
+    viewport: ViewportSize;
+    midpoint: ViewportPoint;
+    moved: boolean;
+  } | null>(null);
+  const lastTapRef = useRef<{ time: number; clientX: number; clientY: number } | null>(null);
   const { imageWidth, imageHeight } = DAEJEON_SEATMAP_IMAGE;
   const seatMapImageUrl = resolveOfficialSeatMapImageUrl();
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('daejeonDebug') === '1';
@@ -153,29 +184,6 @@ export default function DaejeonSeatMapSvg({
     image.src = seatMapImageUrl;
   }, [imageHeight, imageWidth, seatMapImageUrl]);
 
-  const getPanLimit = (targetZoom: number) => {
-    if (targetZoom <= 1) return { x: 0, y: 0 };
-
-    const rect = viewportRef.current?.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) {
-      const fallbackLimit = Math.max(0, Math.round((targetZoom - 1) * 180));
-      return { x: fallbackLimit, y: fallbackLimit };
-    }
-
-    return {
-      x: Math.max(0, Math.round(((targetZoom - 1) * rect.width) / 2)),
-      y: Math.max(0, Math.round(((targetZoom - 1) * rect.height) / 2)),
-    };
-  };
-
-  const clampPan = (value: { x: number; y: number }, targetZoom = zoom) => {
-    const limit = getPanLimit(targetZoom);
-    return {
-      x: Math.max(-limit.x, Math.min(limit.x, value.x)),
-      y: Math.max(-limit.y, Math.min(limit.y, value.y)),
-    };
-  };
-
   useEffect(() => {
     if (!focusBlockId || focusRequestId <= 0 || zoom <= 1) return;
 
@@ -188,36 +196,132 @@ export default function DaejeonSeatMapSvg({
     const nextPan = clampPan({
       x: -(labelX - (rect.width / 2)) * zoom,
       y: -(labelY - (rect.height / 2)) * zoom,
-    }, zoom);
+    }, zoom, { width: rect.width, height: rect.height });
 
     onPanChange(nextPan);
   }, [focusBlockId, focusRequestId, imageHeight, imageWidth, onPanChange, zoom]);
 
+  const beginPinchZoom = () => {
+    const pointers = [...activePointersRef.current.values()];
+    if (pointers.length !== 2) return;
+    const [first, second] = pointers as [TrackedPointer, TrackedPointer];
+    const node = viewportRef.current;
+    if (!node) return;
+    if (dragStateRef.current?.usesPointerCapture) {
+      dragStateRef.current.captureTarget.releasePointerCapture(dragStateRef.current.pointerId);
+    }
+    dragStateRef.current = null;
+    pinchStateRef.current = {
+      startDistance: getPointerDistance(first, second),
+      startZoom: zoom,
+      startPan: pan,
+      viewport: readViewportSize(node),
+      midpoint: getPointerMidpoint(first, second, node),
+      moved: false,
+    };
+    setIsDragging(true);
+  };
+
+  const updatePinchZoom = () => {
+    const pinchState = pinchStateRef.current;
+    if (!pinchState || pinchState.startDistance <= 0) return;
+    const pointers = [...activePointersRef.current.values()];
+    if (pointers.length < 2) return;
+    const [first, second] = pointers as [TrackedPointer, TrackedPointer];
+    const dist = getPointerDistance(first, second);
+    const rawZoom = pinchState.startZoom * (dist / pinchState.startDistance);
+    const nextZoom = clampZoom(rawZoom, minZoom, maxZoom);
+    const nextPan = panForZoomAtPoint(pinchState.startPan, pinchState.startZoom, nextZoom, pinchState.midpoint, pinchState.viewport);
+    pinchState.moved = true;
+    onZoom(nextZoom);
+    onPanChange(nextPan);
+  };
+
+  const updateZoomAtPoint = (nextZoom: number, clientX: number, clientY: number) => {
+    const node = viewportRef.current;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    const viewport = { width: rect.width, height: rect.height };
+    const point = { x: clientX - rect.left, y: clientY - rect.top };
+    onZoom(nextZoom);
+    onPanChange(panForZoomAtPoint(pan, zoom, nextZoom, point, viewport));
+  };
+
+  const handleDoubleTap = (event: PointerEvent<HTMLDivElement>): boolean => {
+    const last = lastTapRef.current;
+    const now = Date.now();
+    if (last && now - last.time <= 300 && Math.abs(event.clientX - last.clientX) <= 20 && Math.abs(event.clientY - last.clientY) <= 20) {
+      lastTapRef.current = null;
+      const nextZoom = zoom <= minZoom + 0.05 ? clampZoom(zoom * 1.5, minZoom, maxZoom) : minZoom;
+      updateZoomAtPoint(nextZoom, event.clientX, event.clientY);
+      return true;
+    }
+    lastTapRef.current = { time: now, clientX: event.clientX, clientY: event.clientY };
+    return false;
+  };
+
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (zoom <= 1) return;
+    activePointersRef.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerType: event.pointerType,
+    });
+
+    if (activePointersRef.current.size === 2) {
+      beginPinchZoom();
+      return;
+    }
+
+    if (pinchStateRef.current) return;
+    if (!canDrag) return;
+
+    const target = event.currentTarget;
     dragStateRef.current = {
       pointerId: event.pointerId,
       lastX: event.clientX,
       lastY: event.clientY,
       totalMove: 0,
+      captureTarget: target,
+      usesPointerCapture: true,
     };
-    setIsPanning(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDragging(true);
+    target.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerType: event.pointerType,
+    });
+
+    if (pinchStateRef.current) {
+      updatePinchZoom();
+      return;
+    }
+
     const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId || zoom <= 1) return;
+    if (!dragState || dragState.pointerId !== event.pointerId || !canDrag) return;
 
     const dx = event.clientX - dragState.lastX;
     const dy = event.clientY - dragState.lastY;
     dragState.lastX = event.clientX;
     dragState.lastY = event.clientY;
     dragState.totalMove += Math.abs(dx) + Math.abs(dy);
-    onPanChange((current) => clampPan({ x: current.x + dx, y: current.y + dy }));
+    onPanChange((current) => clampPan({ x: current.x + dx, y: current.y + dy }, zoom, readViewportSize(viewportRef.current)));
   };
 
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(event.pointerId);
+
+    if (pinchStateRef.current) {
+      if (activePointersRef.current.size < 2) {
+        pinchStateRef.current = null;
+        setIsDragging(false);
+      }
+      return;
+    }
+
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
@@ -226,10 +330,21 @@ export default function DaejeonSeatMapSvg({
       window.setTimeout(() => {
         suppressClickRef.current = false;
       }, 0);
+    } else if (event.type === 'pointerup') {
+      const wasDoubleTap = handleDoubleTap(event);
+      if (wasDoubleTap) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
+    }
+
+    if (dragState.usesPointerCapture) {
+      dragState.captureTarget.releasePointerCapture(event.pointerId);
     }
     dragStateRef.current = null;
-    setIsPanning(false);
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    setIsDragging(false);
   };
 
   const handleDebugMouseMove = (event: MouseEvent<SVGSVGElement>) => {
@@ -272,6 +387,8 @@ export default function DaejeonSeatMapSvg({
     );
   }
 
+  const canDrag = zoom > 1;
+
   return (
     <div
       ref={viewportRef}
@@ -283,11 +400,11 @@ export default function DaejeonSeatMapSvg({
         data-zoom={zoom.toFixed(2)}
         data-pan-x={pan.x.toFixed(1)}
         data-pan-y={pan.y.toFixed(1)}
-        className="absolute inset-0 transition-transform duration-200 ease-out"
+        className={`absolute inset-0 ${isDragging ? '' : 'transition-transform duration-200 ease-out'}`}
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: '50% 50%',
-          cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+          cursor: canDrag ? (isDragging ? 'grabbing' : 'grab') : 'default',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -308,6 +425,9 @@ export default function DaejeonSeatMapSvg({
             }
           }}
         >
+          {!imageLoaded && !imageFailed && (
+            <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+          )}
           <image
             href={seatMapImageUrl}
             x="0"
@@ -316,7 +436,9 @@ export default function DaejeonSeatMapSvg({
             height={imageHeight}
             preserveAspectRatio="none"
             aria-hidden="true"
+            onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
+            style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
           />
           <defs>
             <filter id="daejeon-hit-glow">
@@ -359,10 +481,24 @@ export default function DaejeonSeatMapSvg({
             const isPendingReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW';
             const isSelectable = isDaejeonSelectableSeatBlock(block);
             const canInteract = showDebug || (!isFiltered && isSelectable);
-            const baseColor = mode === 'dark' ? cat.dark : cat.light;
+            const isAnyFilterActive = filterCats != null || filterSides != null || filterLevels != null;
+            let fill = mode === 'dark' ? cat.dark : cat.light;
+            const baseColor = fill;
             const debugStroke = isPendingReview ? '#F97316' : '#22C55E';
             const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
-            const displayFillOpacity = showDebug ? (isPendingReview ? 0.18 : 0.12) : isActive && !isFiltered && isSelectable ? 0.34 : 0;
+            let displayFillOpacity: number;
+            if (showDebug) {
+              displayFillOpacity = isPendingReview ? 0.18 : 0.12;
+            } else if (isActive && !isFiltered && isSelectable) {
+              displayFillOpacity = 0.34;
+            } else if (isAnyFilterActive && !isFiltered && isSelectable) {
+              displayFillOpacity = 0.20;
+            } else if (isFiltered && !showDebug) {
+              fill = mode === 'dark' ? '#020617' : '#1e293b';
+              displayFillOpacity = 0.42;
+            } else {
+              displayFillOpacity = 0;
+            }
             const displayStrokeOpacity = showDebug ? 0.72 : isActive && !isFiltered && isSelectable ? 0.95 : 0;
             const traceStatusLabel = getDaejeonTraceStatusLabel(block.traceStatus);
             const traceMethodLabel = getDaejeonTraceMethodLabel(block.traceMethod);
@@ -373,7 +509,7 @@ export default function DaejeonSeatMapSvg({
                 <path
                   data-testid={`daejeon-seat-display-${block.id}`}
                   d={block.imageGeometry.d}
-                  fill={baseColor}
+                  fill={fill}
                   fillOpacity={displayFillOpacity}
                   stroke={stroke}
                   strokeOpacity={displayStrokeOpacity}
@@ -381,7 +517,7 @@ export default function DaejeonSeatMapSvg({
                   filter={isActive ? 'url(#daejeon-hit-glow)' : undefined}
                   pointerEvents="none"
                   vectorEffect="non-scaling-stroke"
-                  style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
+                  style={{ transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
                 />
                 <path
                   role="button"
