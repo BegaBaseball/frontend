@@ -30,6 +30,12 @@ export interface SajikSeatMapDatasetImage {
   height: number;
   viewBox: string;
   sha256: string;
+  renderImagePath?: string;
+  renderImageSha256?: string;
+  renderImageNaturalWidth?: number;
+  renderImageNaturalHeight?: number;
+  renderImageSourceUrl?: string;
+  renderImageSourceLabel?: string;
   sourceLabel: string;
   sourceUrl: string | null;
 }
@@ -237,20 +243,40 @@ function markerFromBlock(block: SajikBlock): SajikSeatMapDatasetMarker | null {
 export function buildSajikSeatMapDataset(blocks: SajikBlock[] = SAJIK_BLOCKS): SajikSeatMapDataset {
   const sections = blocks.map(sectionFromBlock).sort((left, right) => left.displayPriority - right.displayPriority);
   const markers = blocks.map(markerFromBlock).filter((marker): marker is SajikSeatMapDatasetMarker => Boolean(marker));
+  const image: SajikSeatMapDatasetImage = {
+    path: SAJIK_SEATMAP_IMAGE.imagePath,
+    width: SAJIK_SEATMAP_IMAGE.imageWidth,
+    height: SAJIK_SEATMAP_IMAGE.imageHeight,
+    viewBox: SAJIK_SEATMAP_IMAGE.viewBox,
+    sha256: SAJIK_SEATMAP_IMAGE.imageSha256,
+    sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
+    sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
+  };
+
+  if (SAJIK_SEATMAP_IMAGE.renderImagePath) {
+    image.renderImagePath = SAJIK_SEATMAP_IMAGE.renderImagePath;
+  }
+  if (SAJIK_SEATMAP_IMAGE.renderImageSha256) {
+    image.renderImageSha256 = SAJIK_SEATMAP_IMAGE.renderImageSha256;
+  }
+  if (SAJIK_SEATMAP_IMAGE.renderImageNaturalWidth) {
+    image.renderImageNaturalWidth = SAJIK_SEATMAP_IMAGE.renderImageNaturalWidth;
+  }
+  if (SAJIK_SEATMAP_IMAGE.renderImageNaturalHeight) {
+    image.renderImageNaturalHeight = SAJIK_SEATMAP_IMAGE.renderImageNaturalHeight;
+  }
+  if (SAJIK_SEATMAP_IMAGE.renderImageSourceUrl) {
+    image.renderImageSourceUrl = SAJIK_SEATMAP_IMAGE.renderImageSourceUrl;
+  }
+  if (SAJIK_SEATMAP_IMAGE.renderImageSourceLabel) {
+    image.renderImageSourceLabel = SAJIK_SEATMAP_IMAGE.renderImageSourceLabel;
+  }
 
   return {
     stadiumId: SAJIK_SEATMAP_IMAGE.stadiumId,
     mapVersion: SAJIK_SEATMAP_IMAGE.mapVersion,
     coordinateSystem: 'SVG_VIEW_BOX',
-    image: {
-      path: SAJIK_SEATMAP_IMAGE.imagePath,
-      width: SAJIK_SEATMAP_IMAGE.imageWidth,
-      height: SAJIK_SEATMAP_IMAGE.imageHeight,
-      viewBox: SAJIK_SEATMAP_IMAGE.viewBox,
-      sha256: SAJIK_SEATMAP_IMAGE.imageSha256,
-      sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
-      sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
-    },
+    image,
     summary: {
       totalSections: sections.length,
       enabledSections: sections.filter((section) => section.enabled).length,
