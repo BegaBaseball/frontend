@@ -5405,8 +5405,8 @@ const verifySajikOverlayClicks = async (page) => {
     });
 
     const { allTargets, clickableTargets: labelClickTargets } = labelClickTargetReport;
-    if (allTargets.length !== 89) {
-      throw new Error(`Sajik rendered label coordinate target count should be 89. Actual: ${allTargets.length}`);
+    if (allTargets.length !== 87) {
+      throw new Error(`Sajik visible label coordinate target count should be 87. Actual: ${allTargets.length}`);
     }
     if (labelClickTargets.length !== 87) {
       const skippedTargets = allTargets

@@ -649,7 +649,9 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
       "labelX": 1020,
       "labelY": 896,
       "labelFontSize": 9,
-      "shortLabel": "1-1"
+      "shortLabel": "1-1",
+      manualReviewed: true,
+      pixelAlignmentStatus: "PIXEL_ALIGNED",
     },
     traceStatus: "OFFICIAL_IMAGE_TRACED",
     traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
