@@ -95,6 +95,29 @@ const EXPECTED_OPERATOR_REQUIRED_FIELDS = [
   'reviewer',
   'reviewedAt',
 ];
+const DERIVED_AGGREGATE_BLOCK_IDS = new Set(['home-k7-seats', 'away-cheering-seats']);
+const DERIVED_AGGREGATE_SOURCE_IDS_BY_BLOCK_ID = new Map<string, Set<string>>([
+  ['home-k7-seats', new Set(GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS)],
+  ['away-cheering-seats', new Set(GWANGJU_AWAY_CHEERING_BLOCK_IDS)],
+]);
+
+function isDerivedAggregateBlockId(blockId: string): boolean {
+  return DERIVED_AGGREGATE_BLOCK_IDS.has(blockId);
+}
+
+function isAllowedDerivedAggregateOverlap(firstId: string, secondId: string): boolean {
+  if (isDerivedAggregateBlockId(firstId) && isDerivedAggregateBlockId(secondId)) {
+    return true;
+  }
+
+  const firstSources = DERIVED_AGGREGATE_SOURCE_IDS_BY_BLOCK_ID.get(firstId);
+  if (firstSources?.has(secondId)) {
+    return true;
+  }
+
+  const secondSources = DERIVED_AGGREGATE_SOURCE_IDS_BY_BLOCK_ID.get(secondId);
+  return secondSources?.has(firstId) ?? false;
+}
 
 function parsePolygonPoints(pathData: string): Array<[number, number]> {
   const numbers = pathData.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
@@ -177,6 +200,10 @@ function pointInPolygon(point: [number, number], polygon: Array<[number, number]
 
 function isPointInSubpath(point: Point, polygon: Point[]): boolean {
   return pointInPolygon([point.x, point.y], polygon.map(({ x, y }) => [x, y]));
+}
+
+function isPointInPath(point: Point, pathData: string): boolean {
+  return parsePathSubpaths(pathData).some((subpath) => isPointInSubpath(point, subpath));
 }
 
 function polygonArea(polygon: Point[]): number {
@@ -374,10 +401,10 @@ function extractOfficialComponents(
       const startIndex = ((y - bounds.minY) * width) + (x - bounds.minX);
       if (!mask[startIndex] || seen[startIndex]) continue;
 
-      let minX = x;
-      let maxX = x;
-      let minY = y;
-      let maxY = y;
+      let minX: number = x;
+      let maxX: number = x;
+      let minY: number = y;
+      let maxY: number = y;
       let area = 0;
       const pixelKeys = new Set<string>();
 
@@ -522,16 +549,17 @@ test('광주 좌석 카테고리는 공식 좌석도 입력 대기 상태에서�
     assert.ok(groupedCategories.includes(category), `${category} should stay visible in active category filters`);
   });
   assert.ok(groupedCategories.includes('K7'), 'K7 should be filterable after operator block-range confirmation');
-  assert.equal(groupedCategories.includes('AWAY'), false, 'away cheering should be represented by K7 block fanRole, not a duplicated filter polygon');
+  assert.ok(groupedCategories.includes('AWAY'), 'away cheering should expose the derived aggregate hit-area filter');
 
   const groupsById = new Map(GWANGJU_CATEGORY_GROUPS.map((group) => [group.id, group]));
   assert.deepEqual(groupsById.get('cheering')?.fanRoles, ['HOME', 'AWAY']);
+  assert.deepEqual(groupsById.get('cheering')?.cats, ['K7', 'AWAY']);
   assert.deepEqual(groupsById.get('k7')?.cats, ['K7']);
   assert.equal(groupsById.get('k7')?.fanRoles, undefined);
   assert.deepEqual(groupsById.get('home-cheering')?.fanRoles, ['HOME']);
   assert.deepEqual(groupsById.get('away-cheering')?.fanRoles, ['AWAY']);
   assert.deepEqual(groupsById.get('home-cheering')?.cats, ['K7']);
-  assert.deepEqual(groupsById.get('away-cheering')?.cats, ['K7']);
+  assert.deepEqual(groupsById.get('away-cheering')?.cats, ['AWAY']);
 
   ['EV', 'K3'].forEach((category) => {
     assert.equal(groupedCategories.includes(category), false, `${category} should not be exposed as an active filter without confirmed hit areas`);
@@ -612,7 +640,7 @@ test('광주 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     assert.ok(block.imageGeometry.d.startsWith('M '), `${block.id} image geometry path should exist`);
     const subpaths = parsePathSubpaths(block.imageGeometry.d);
     assert.ok(subpaths.length >= 1, `${block.id} image geometry should use closed polygon path data`);
-    if (!['bleachers-table-left', 'bleachers-table-right', 'skybox-seats', 'first-surprise-seats'].includes(block.id)) {
+    if (!['bleachers-table-left', 'bleachers-table-right', 'skybox-seats', 'first-surprise-seats', 'third-surprise-seats', 'third-wheelchair-seats', ...DERIVED_AGGREGATE_BLOCK_IDS].includes(block.id)) {
       assert.equal(subpaths.length, 1, `${block.id} should use a single official-image polygon subpath`);
     }
     assert.ok((block.imageGeometry.d.match(/L /g)?.length ?? 0) >= 3, `${block.id} image geometry should use polygon path data`);
@@ -651,9 +679,9 @@ test('광주 trace review summary는 active 블록의 수동 polygon trace 완�
   assert.equal(GWANGJU_TRACE_REVIEW_SUMMARY.manualReviewRequired, 0);
 });
 
-test('광주 manual-polygon-v8 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
-  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v8');
-  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v7');
+test('광주 manual-polygon-v86 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
+  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v86');
+  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v85');
 
   const worksetsById = new Map(GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) => [workset.id, workset]));
   const activeBlockIds = new Set(GWANGJU_BLOCKS.map((block) => block.id));
@@ -742,10 +770,8 @@ test('광주 official trace reference는 전 active 블록의 anchor와 bbox를 
 
 test('광주 블록 label 중심은 각 polygon 내부에 위치한다', () => {
   GWANGJU_BLOCKS.forEach((block) => {
-    const polygon = parsePolygonPoints(block.imageGeometry.d);
-
     assert.equal(
-      pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], polygon),
+      isPointInPath({ x: block.imageGeometry.labelX, y: block.imageGeometry.labelY }, block.imageGeometry.d),
       true,
       `${block.id} label should stay inside its polygon`,
     );
@@ -754,10 +780,10 @@ test('광주 블록 label 중심은 각 polygon 내부에 위치한다', () => {
 
 test('광주 블록 hit-area는 다른 블록 label 중심을 침범하지 않는다', () => {
   GWANGJU_BLOCKS.forEach((block) => {
-    const polygon = parsePolygonPoints(block.imageGeometry.d);
     const coveredLabels = GWANGJU_BLOCKS
       .filter((candidate) => candidate.id !== block.id)
-      .filter((candidate) => pointInPolygon([candidate.imageGeometry.labelX, candidate.imageGeometry.labelY], polygon))
+      .filter((candidate) => !isAllowedDerivedAggregateOverlap(block.id, candidate.id))
+      .filter((candidate) => isPointInPath({ x: candidate.imageGeometry.labelX, y: candidate.imageGeometry.labelY }, block.imageGeometry.d))
       .map((candidate) => candidate.block);
 
     assert.deepEqual(coveredLabels, [], `${block.id} should not cover other block label centers`);
@@ -771,6 +797,9 @@ test('광주 traced geometry는 polygon 간 sampled overlap 허용치를 넘지 
     for (let secondIndex = firstIndex + 1; secondIndex < GWANGJU_BLOCKS.length; secondIndex += 1) {
       const first = GWANGJU_BLOCKS[firstIndex];
       const second = GWANGJU_BLOCKS[secondIndex];
+      if (isAllowedDerivedAggregateOverlap(first.id, second.id)) {
+        continue;
+      }
       const overlapRatio = calculateSampledOverlapRatio(first.imageGeometry.d, second.imageGeometry.d);
 
       if (overlapRatio > 0.005) {
@@ -818,16 +847,21 @@ test('광주 블록 geometry는 정적 공식 이미지 좌표 map에서만 공�
   assert.equal(source.includes('APPROXIMATE_MANUAL_POLYGON'), false);
 });
 
-test('광주 구역별 정밀화 manifest와 package script는 v8 image alignment/workset 산출물을 고정한다', () => {
-  const manifestSource = readFileSync(new URL('../../scripts/gwangju-seatmap-review-manifest.mjs', import.meta.url), 'utf8');
-  const worksetSource = readFileSync(new URL('../../scripts/gwangju-seatmap-zone-precision-worksets.mjs', import.meta.url), 'utf8');
-  const lowMarginSource = readFileSync(new URL('../../scripts/gwangju-seatmap-low-margin-candidates.mjs', import.meta.url), 'utf8');
-  const imageAlignmentSource = readFileSync(new URL('../../scripts/gwangju-seatmap-image-alignment-audit.mjs', import.meta.url), 'utf8');
+test('광주 구역별 정밀화 manifest와 package script는 v44 image alignment/workset 산출물을 고정한다', () => {
+  const coreQaSource = readFileSync(new URL('../../scripts/gwangju-seatmap-core-qa.mjs', import.meta.url), 'utf8');
+  const manifestSource = coreQaSource;
+  const evidenceWorksetOpsSource = readFileSync(new URL('../../scripts/gwangju-seatmap-evidence-workset-ops.mjs', import.meta.url), 'utf8');
+  const worksetSource = evidenceWorksetOpsSource;
+  const lowMarginSource = evidenceWorksetOpsSource;
+  const imageAlignmentSource = coreQaSource;
+  const visualHitSplitAuditSource = coreQaSource;
+  const lowerInfieldIndependentAuditSource = readFileSync(new URL('../../scripts/gwangju-seatmap-lower-infield-independent-audit.mjs', import.meta.url), 'utf8');
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
   const svgSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMapSvg.tsx', import.meta.url), 'utf8');
   const componentSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMap.tsx', import.meta.url), 'utf8');
-  const runtimeLayerSource = readFileSync(new URL('../../scripts/gwangju-seatmap-runtime-layer-audit.mjs', import.meta.url), 'utf8');
+  const runtimeLayerSource = coreQaSource;
   const browserAuditSource = readFileSync(new URL('../../scripts/stadium-ux-audit.mjs', import.meta.url), 'utf8');
+  const browserEvidenceSource = evidenceWorksetOpsSource;
 
   [
     'GWANGJU_ZONE_PRECISION_WORKSETS',
@@ -848,26 +882,124 @@ test('광주 구역별 정밀화 manifest와 package script는 v8 image alignmen
   });
 
   [
-    'GWANGJU_IMAGE_ALIGNMENT_AUDIT_V4',
+    'GWANGJU_IMAGE_ALIGNMENT_AUDIT_V51',
     'gwangju-seatmap-image-alignment-audit.json',
     'gwangju-seatmap-image-alignment-audit.csv',
     'gwangju-seatmap-image-alignment-audit.md',
     'officialBlockMaskRecall',
     'componentIoU',
+    'visualPath',
+    'hasSeparateVisualPath',
+    'visualHitSplitBlocks',
+    'LOWER_INFIELD_VISUAL_HIT_SPLIT_REVIEW_BLOCK_IDS',
+    'lowerInfieldVisualHitSplitReview',
+    'lowerInfieldVisualHitSplitReviewNoChangeBlockIds',
+    'Visual/Hit Split Review',
+    'LOWER_INFIELD_J_SKY_BOUNDARY_REVIEW_BLOCK_IDS',
+    'lowerInfieldJSkyBoundaryReview',
+    'lowerInfieldJSkyBoundaryReviewNoChangeBlockIds',
+    'J/S Boundary Review',
+    'THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BLOCK_IDS',
+    'thirdBaseHIJGBoundaryReview',
+    'thirdBaseHIJGBoundaryReviewNoChangeBlockIds',
+    '121~127/H/I/J/G Boundary Review',
+    'THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCES',
+    'THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCE_SOURCE',
+    'official-numbered-independent-visual-reference',
+    'third-base-123-127-official-png-visual-reference',
+    'thirdBase123127IndependentVisualReview',
+    'thirdBase123127AdjacencyOverlapReview',
+    'thirdBase123127AdjacencyOverlapRows',
+    'gwangju-seatmap-official-121-127-raw.png',
+    '121~127 Independent Visual Reference',
+    'FORBIDDEN_ADJACENCY_OVERLAP',
+    'keep d',
+    'stroke-dasharray="6 4"',
     'skyPicnicColorCoverageRatio',
     'skyPicnicReviewRequiredBlocks',
+    'fiveTableColorCoverageRatio',
+    'fiveTableStrictFillCoverageRatio',
+    'fiveTableLocalFillBoundsMaxAbsDelta',
+    'fiveTableReviewRequiredBlocks',
+    'FIVE_TABLE_COLOR_SCAN_THRESHOLDS',
+    'FIVE_TABLE_LOCAL_FILL_BOUNDS_THRESHOLDS',
+    'FIVE_TABLE_STRICT_FILL_COLOR_SPEC',
+    'FIVE_TABLE_LOCAL_FILL_BOUNDS_DELTA_ABOVE_THRESHOLD',
+    'official-five-table-color-scan',
     'alphabetSectionColorCoverageRatio',
+    'ALPHABET_SECTION_OFFICIAL_MASK_REFERENCES',
+    "'third-family-seats': {",
+    'searchBounds: { minX: 560, minY: 150, maxX: 700, maxY: 315 }',
+    "excludeBlockIds: ['k5-126', 'k5-127']",
+    "'third-wheelchair-seats': {",
+    "'party-seats-third': {",
+    "maskStrategy: 'component-row-envelope-rings'",
+    'componentIndexGroups: [[0, 2]]',
+    'supplementalMaskRings',
+    'component-row-envelope-rings-official-png-color',
+    '[[430, 389], [438, 374], [452, 363], [470, 353], [482, 356], [489, 365], [489, 371], [467, 398], [446, 394]]',
+    'ALPHABET_SECTION_MASK_THRESHOLDS',
+    'official-alphabet-section-mask',
+    'row-envelope-official-png-color',
+    "maskStrategy: 'row-envelope'",
+    '공식 PNG 원본 색상에서 J/I/H 기준 mask를 추출',
+    'alphabet-section-official-png-mask-after-101-108',
+    'LOWER_INFIELD_SPECIAL_SPLIT_BLOCK_IDS',
+    'LOWER_INFIELD_ADJACENT_SKY_PICNIC_BLOCK_IDS',
+    'LOWER_INFIELD_I_BOUNDARY_FOCUS_BLOCK_IDS',
+    'LOWER_INFIELD_I_BOUNDARY_FOCUS_BOUNDS',
+    'lowerInfieldIBoundaryFocus',
+    'gwangju-seatmap-image-alignment-audit-104-105-i-j-boundary.png',
+    'LOWER_INFIELD_101_108_VISUAL_REVIEW_BLOCK_IDS',
+    'LOWER_INFIELD_101_108_VISUAL_REVIEW_BOUNDS',
+    'lowerInfield101108VisualReview',
+    'gwangju-seatmap-image-alignment-audit-101-108-h-i-j-e-f-visual-review.png',
+    'LOWER_INFIELD_P0_VISUAL_CHECKLIST_ITEMS',
+    'lowerInfieldP0VisualChecklist',
+    'lowerInfieldP0VisualChecklistStatus',
+    'gwangju-seatmap-image-alignment-audit-p0-101-102-h-boundary.png',
+    'gwangju-seatmap-image-alignment-audit-p0-103-104-105-i-boundary.png',
+    'gwangju-seatmap-image-alignment-audit-p0-106-107-108-e-j-boundary.png',
+    'gwangju-seatmap-image-alignment-audit-p0-s301-s304-j-boundary.png',
+    'nonSelectableOfficialLabels',
+    'LOWER_INFIELD_SPECIAL_SPLIT_MAX_OVERLAP_RATIO',
+    'lowerInfieldSpecialSplit',
+    'lowerInfieldSpecialSplitOverlapWarnings',
+    'lowerInfieldSpecialAdjacentOverlapWarnings',
+    'lower-infield-special-split',
+    'gwangju-seatmap-lower-infield-special-split-official.png',
+    'gwangju-seatmap-lower-infield-special-split-numbered-only.png',
+    'gwangju-seatmap-lower-infield-special-split-special-only.png',
+    'gwangju-seatmap-lower-infield-special-split-adjacent-sky-picnic-only.png',
+    'gwangju-seatmap-lower-infield-special-split-adjacent-overlap-heatmap.png',
+    'gwangju-seatmap-lower-infield-special-split-overlap-heatmap.png',
+    'NUMBERED_INFIELD_AUDIT_BLOCK_IDS',
+    'official-numbered-component-mask',
+    'official-numbered-boundary-mask',
+    "'k5-126': {\n      shape: 'official-coral-irregular-row'",
+    'official-png-crop-121-127-shared-boundary-v86',
+    'visualPoints: [[535, 286], [604, 305], [611, 316], [624, 299], [683, 314], [672, 362], [515, 329], [528, 300]]',
+    'numbered-infield-official-png-mask-101-127',
     'outsideBleedRatio',
-    'P0_OFFICIAL_BLOCK_MASKS',
+    'P0_OFFICIAL_COMPONENT_REFERENCES',
     'SKY_PICNIC_COLOR_SCAN_THRESHOLDS',
+    'SKY_PICNIC_LOCAL_FILL_BOUNDS_THRESHOLDS',
+    'SKY_PICNIC_STRICT_FILL_COLOR_SPEC',
+    'skyPicnicStrictFillCoverageRatio',
+    'skyPicnicLocalFillBoundsMaxAbsDelta',
+    'SKY_PICNIC_LOCAL_FILL_BOUNDS_DELTA_ABOVE_THRESHOLD',
     'ALPHABET_SECTION_COLOR_SCAN_THRESHOLDS',
     'official-sky-picnic-color-scan',
     'official-alphabet-section-color-scan',
     '--require-sky-picnic',
     '--require-alphabet-sections',
+    '--require-five-table',
     'blockers: requireSkyPicnicScan ? reviewWarnings : []',
+    'blockers: requireFiveTableScan ? reviewWarnings : []',
     'sky-picnic-s-301-315',
     'sky-picnic-s-316-335',
+    'five-table-501-518',
+    'five-table-519-535',
     'alphabet-special-seats-upper',
     'browser CSS pixels',
     'resized screenshots',
@@ -899,20 +1031,30 @@ test('광주 구역별 정밀화 manifest와 package script는 v8 image alignmen
 
   assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
   assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit"'));
-  assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-image-alignment-audit.mjs'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit'));
   assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-sky-picnic"'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-sky-picnic'));
   assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-alphabet-sections"'));
   assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-alphabet-sections'));
+  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-five-table"'));
+  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-five-table'));
   assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-release"'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-sky-picnic --require-alphabet-sections'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit:require-release && npm run stadium:gwangju:pixel-components && node --import tsx scripts/gwangju-seatmap-review-manifest.mjs'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-zone-precision-worksets.mjs'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit:require-release'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju zone-precision-worksets'));
+  assert.ok(packageSource.includes('"stadium:gwangju:evidence-inventory"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju evidence-inventory'));
+  assert.ok(packageSource.includes('"stadium:gwangju:browser-evidence"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju browser-evidence'));
   assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:trace-manifest && node --import tsx scripts/gwangju-seatmap-low-margin-candidates.mjs'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju low-margin-candidates'));
+  assert.ok(packageSource.includes('"stadium:gwangju:visual-hit-split-audit"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju visual-hit-split-audit'));
+  assert.ok(packageSource.includes('"stadium:gwangju:lower-infield-independent-audit"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju lower-infield-independent-audit'));
   assert.ok(packageSource.includes('"qa:stadium:gwangju:runtime-layer"'));
-  assert.ok(packageSource.includes('node --import tsx scripts/gwangju-seatmap-runtime-layer-audit.mjs'));
-  assert.ok(packageSource.includes('npm run qa:stadium:gwangju:mobile && npm run qa:stadium:gwangju:runtime-layer'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju release-gate'));
   [
     'GWANGJU_LOW_MARGIN_CANDIDATES_V1',
     'gwangju-seatmap-low-margin-candidates.json',
@@ -929,14 +1071,58 @@ test('광주 구역별 정밀화 manifest와 package script는 v8 image alignmen
   ].forEach((requiredText) => {
     assert.ok(lowMarginSource.includes(requiredText), `low-margin script should include ${requiredText}`);
   });
+  [
+    'GWANGJU_VISUAL_HIT_SPLIT_AUDIT_V1',
+    'gwangju-seatmap-visual-hit-split-audit.json',
+    'gwangju-seatmap-visual-hit-split-audit.csv',
+    'gwangju-seatmap-visual-hit-split-audit.md',
+    'gwangju-seatmap-visual-hit-split-audit-crops',
+    'runtimeHitPathMatchesData',
+    'runtimeVisualPathMatchesData',
+    'runtimeHitDataVisualPathMatchesData',
+    'visualPointerEventsNone',
+    'APPROVED_VISUAL_SPLIT_BLOCK_IDS',
+    'unexpectedVisualSplitViolations',
+    'UNAPPROVED_VISUAL_SPLIT',
+    'MISSING_APPROVED_VISUAL_SPLIT',
+    '101-108-h-i-j-visual-hit-split',
+    '121-127-h-i-j-g-visual-hit-split',
+    's301-j-visual-hit-split',
+    'browser CSS pixels as coordinate source',
+    'resized screenshots as coordinate source',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredText) => {
+    assert.ok(visualHitSplitAuditSource.includes(requiredText), `visual/hit split audit should include ${requiredText}`);
+  });
+  [
+    'GWANGJU_LOWER_INFIELD_INDEPENDENT_AUDIT_V1',
+    'OFFICIAL_VISUAL_REFERENCES',
+    'official-first-i-horizontal-band',
+    'official-third-h-irregular-block',
+    'gwangju-seatmap-lower-infield-independent-audit.json',
+    'gwangju-seatmap-lower-infield-independent-audit.csv',
+    'gwangju-seatmap-lower-infield-independent-audit.md',
+    'gwangju-seatmap-lower-infield-independent-audit-${region.id}-overlay.png',
+    'first-101-108-h-i-j',
+    'third-h-i-j',
+    'browser CSS pixels as coordinate source',
+    'resized screenshots as coordinate source',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredText) => {
+    assert.ok(lowerInfieldIndependentAuditSource.includes(requiredText), `lower infield independent audit should include ${requiredText}`);
+  });
   assert.ok(svgSource.includes('GWANGJU_BLOCKS.map'), 'runtime seat layer should render active blocks');
   assert.ok(svgSource.includes('d={block.imageGeometry.d}'), 'runtime seat layer should use release-ready block image geometry');
+  assert.ok(svgSource.includes('visualPathD = block.imageGeometry.visualD ?? block.imageGeometry.d'), 'runtime visual overlay should be separable from non-overlap hit geometry');
+  assert.ok(svgSource.includes('data-visual-path={visualPathD}'), 'runtime hit path should expose the official-image visual path for browser evidence');
   assert.equal(svgSource.includes('GWANGJU_IMAGE_GEOMETRY_DRAFTS'), false, 'runtime should not render draft geometry directly');
   assert.equal(svgSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'), false, 'runtime should not render reference geometry directly');
   assert.equal(svgSource.includes('GWANGJU_OPERATOR_SECTION_REQUIREMENTS'), false, 'runtime SVG should not render operator-only sections');
   assert.equal(svgSource.includes('gwangju-seatmap-operator-template'), false, 'runtime SVG should not read operator template data');
-  assert.equal(svgSource.includes('home-k7-seats'), false, 'runtime SVG should not render pending K7 aggregate geometry');
-  assert.equal(svgSource.includes('away-cheering-seats'), false, 'runtime SVG should not render pending away aggregate geometry');
+  assert.ok(svgSource.includes('AGGREGATE_FILTER_HIT_AREA_BY_ID'), 'runtime SVG should gate aggregate hit-areas by filter id');
+  assert.ok(svgSource.includes('SOURCE_BLOCK_IDS_HIDDEN_BY_AGGREGATE_FILTER'), 'runtime SVG should hide numbered source blocks when aggregate filters are active');
+  assert.ok(svgSource.includes('home-k7-seats'), 'runtime SVG should allow K7 aggregate geometry only in the K7 filter layer');
+  assert.ok(svgSource.includes('away-cheering-seats'), 'runtime SVG should allow away aggregate geometry only in the away filter layer');
   assert.ok(svgSource.includes('GWANGJU_NON_SELECTABLE_MARKER_ZONES.map'), 'runtime should keep marker-only zones in a separate marker layer');
   assert.ok(svgSource.includes('<circle'), 'marker-only zones should be rendered as non-seat marker geometry');
   assert.equal(componentSource.includes('GWANGJU_IMAGE_GEOMETRY_DRAFTS'), false, 'runtime component should not import draft geometry');
@@ -961,11 +1147,39 @@ test('광주 구역별 정밀화 manifest와 package script는 v8 image alignmen
     'readGwangjuTraceManifestBlocks',
     'Gwangju runtime layer must render release-ready manifest paths only',
     'pathMismatchCount',
+    'renderedVisualPathCount',
+    'visualPathMismatchCount',
+    'visualHitSplitRows',
+    'gwangju-seat-visual-',
     'forbiddenRenderedIds',
     'labelTopHitFailureCount',
+    '101-108-h-i-j-browser-coordinate-crop',
+    '121-127-h-i-j-browser-coordinate-crop',
+    'op-outfield-browser-coordinate-crop',
+    'five-table-browser-coordinate-crop',
+    'sky-picnic-browser-coordinate-crop',
     "type: 'gwangju-runtime-layer'",
   ].forEach((requiredText) => {
     assert.ok(browserAuditSource.includes(requiredText), `browser QA should include ${requiredText}`);
+  });
+  [
+    'GWANGJU_BROWSER_EVIDENCE_V1',
+    'gwangju-seatmap-browser-evidence.json',
+    'gwangju-seatmap-browser-evidence.csv',
+    'gwangju-seatmap-browser-evidence.md',
+    'EXPECTED_VIEWBOX = { x: 0, y: 0, width: 2200, height: 1159 }',
+    '101-108-h-i-j-browser-coordinate-crop',
+    '121-127-h-i-j-browser-coordinate-crop',
+    'op-outfield-browser-coordinate-crop',
+    'five-table-browser-coordinate-crop',
+    'sky-picnic-browser-coordinate-crop',
+    'gwangju-lower-infield-selected-sweep',
+    'gwangju-thirdbase-selected-sweep',
+    'browser CSS pixels as coordinate source',
+    'resized screenshots as coordinate source',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredText) => {
+    assert.ok(browserEvidenceSource.includes(requiredText), `browser evidence should include ${requiredText}`);
   });
 });
 
@@ -1045,12 +1259,11 @@ test('광주 공식 이미지 범례/시설 마커는 좌석 hit-area를 통과�
 
 test('광주 특수석 hit-area는 번호 블록 label 중심을 침범하지 않는다', () => {
   const numberedBlocks = GWANGJU_BLOCKS.filter(isNumberedSeatBlock);
-  const specialBlocks = GWANGJU_BLOCKS.filter((block) => !isNumberedSeatBlock(block));
+  const specialBlocks = GWANGJU_BLOCKS.filter((block) => !isNumberedSeatBlock(block) && !isDerivedAggregateBlockId(block.id));
 
   specialBlocks.forEach((specialBlock) => {
-    const polygon = parsePolygonPoints(specialBlock.imageGeometry.d);
     const swallowedLabels = numberedBlocks
-      .filter((numberedBlock) => pointInPolygon([numberedBlock.imageGeometry.labelX, numberedBlock.imageGeometry.labelY], polygon))
+      .filter((numberedBlock) => isPointInPath({ x: numberedBlock.imageGeometry.labelX, y: numberedBlock.imageGeometry.labelY }, specialBlock.imageGeometry.d))
       .map((numberedBlock) => numberedBlock.block);
 
     assert.deepEqual(swallowedLabels, [], `${specialBlock.id} should not cover numbered label centers`);
@@ -1063,13 +1276,13 @@ test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공
     'champion-seats': { minX: 461, minY: 740, maxX: 559, maxY: 843 },
     'central-table-seats': { minX: 397, minY: 755, maxX: 523, maxY: 895 },
     'first-surprise-seats': { minX: 714, minY: 772, maxX: 959, maxY: 848 },
-    'third-surprise-seats': { minX: 574, minY: 402, maxX: 656, maxY: 517 },
+    'third-surprise-seats': { minX: 515, minY: 392, maxX: 656, maxY: 585 },
   };
   const expectedSubpathCountByBlockId = {
     'champion-seats': 1,
     'central-table-seats': 1,
     'first-surprise-seats': 3,
-    'third-surprise-seats': 1,
+    'third-surprise-seats': 3,
   };
 
   Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
@@ -1100,6 +1313,195 @@ test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공
     calculateSampledOverlapRatio(champion.imageGeometry.d, centralTable.imageGeometry.d) <= 0.005,
     'champion and central table polygons should share a boundary without meaningful overlap',
   );
+});
+
+test('광주 3루 G/H/I/J와 121~127 shared boundary는 공식 PNG mask 기준을 유지한다', () => {
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const expectedBoundsByBlockId = {
+    'third-surprise-seats': { minX: 515, minY: 392, maxX: 656, maxY: 585 },
+    'third-family-seats': { minX: 569, minY: 158, maxX: 692, maxY: 307 },
+    'third-wheelchair-seats': { minX: 438, minY: 204, maxX: 607, maxY: 362 },
+    'party-seats-third': { minX: 430, minY: 353, maxX: 489, maxY: 398 },
+    'k7-121': { minX: 428, minY: 490, maxX: 520, maxY: 545 },
+    'k7-122': { minX: 455, minY: 452, maxX: 560, maxY: 507 },
+    'k8-123': { minX: 455, minY: 408, maxX: 600, maxY: 470 },
+    'k5-124': { minX: 474, minY: 370, maxX: 650, maxY: 437 },
+    'k5-125': { minX: 485, minY: 330, maxX: 640, maxY: 390 },
+    'k5-126': { minX: 515, minY: 294, maxX: 683, maxY: 362 },
+    'k5-127': { minX: 657, minY: 232, maxX: 692, maxY: 313 },
+  };
+
+  Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist for third-base H/126 boundary lock`);
+    const subpaths = parsePathSubpaths(block.imageGeometry.d);
+
+    assert.deepEqual(getPathBounds(subpaths), expectedBounds);
+    assert.deepEqual(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedBounds, expectedBounds);
+  });
+
+  ['k7-121', 'k7-122', 'k8-123', 'k5-124', 'k5-125', 'k5-126', 'k5-127'].forEach((blockId) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block?.imageGeometry.visualD, `${blockId} should use official PNG visualD while keeping a non-overlap hit-area`);
+    assert.notEqual(block.imageGeometry.visualD, block.imageGeometry.d, `${blockId} visualD should remain separate from the click hit-area`);
+  });
+
+  const thirdFamily = blocksById.get('third-family-seats')!;
+  const thirdWheelchair = blocksById.get('third-wheelchair-seats')!;
+  const partyThird = blocksById.get('party-seats-third')!;
+  const k5126 = blocksById.get('k5-126')!;
+  const k5127 = blocksById.get('k5-127')!;
+  const thirdFamilyPolygon = parsePolygonPoints(thirdFamily.imageGeometry.d);
+  const partyThirdPolygon = parsePolygonPoints(partyThird.imageGeometry.d);
+
+  assert.equal(
+    pointInPolygon([k5126.imageGeometry.labelX, k5126.imageGeometry.labelY], thirdFamilyPolygon),
+    false,
+    '3루 H hit-area should not swallow 126 label center',
+  );
+  assert.equal(
+    pointInPolygon([k5127.imageGeometry.labelX, k5127.imageGeometry.labelY], thirdFamilyPolygon),
+    false,
+    '3루 H hit-area should not swallow 127 label center',
+  );
+  assert.equal(
+    isPointInPath({ x: partyThird.imageGeometry.labelX, y: partyThird.imageGeometry.labelY }, thirdWheelchair.imageGeometry.d),
+    false,
+    '3루 I hit-area should not swallow J label center',
+  );
+  assert.equal(
+    pointInPolygon([thirdWheelchair.imageGeometry.labelX, thirdWheelchair.imageGeometry.labelY], partyThirdPolygon),
+    false,
+    '3루 J hit-area should not swallow I label center',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(thirdFamily.imageGeometry.d, k5126.imageGeometry.d) <= 0.005,
+    '3루 H and 126 polygons should stay split on the official PNG boundary',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(thirdFamily.imageGeometry.d, k5127.imageGeometry.d) <= 0.005,
+    '3루 H and 127 polygons should stay split on the official PNG boundary',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(thirdWheelchair.imageGeometry.d, partyThird.imageGeometry.d) <= 0.005,
+    '3루 I and J polygons should stay split on the official PNG boundary',
+  );
+  assert.equal(
+    calculateSampledOverlapRatio(blocksById.get('k8-123')!.imageGeometry.d, blocksById.get('third-surprise-seats')!.imageGeometry.d),
+    0,
+    '3루 G should not overlap 123 at the official PNG shared boundary',
+  );
+  assert.equal(
+    calculateSampledOverlapRatio(blocksById.get('k5-124')!.imageGeometry.d, partyThird.imageGeometry.d),
+    0,
+    '3루 J should not overlap 124 at the official PNG shared boundary',
+  );
+});
+
+test('광주 1루 101~108과 H/I/J/S-301~304 shared boundary는 공식 PNG mask 기준을 유지한다', () => {
+  const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
+  const expectedBoundsByBlockId = {
+    'k5-101': { minX: 1058, minY: 802, maxX: 1115, maxY: 825 },
+    'k5-102': { minX: 1009, minY: 794, maxX: 1057, maxY: 839 },
+    'k5-103': { minX: 961, minY: 789, maxX: 1013, maxY: 906 },
+    'k5-104': { minX: 918, minY: 797, maxX: 982, maxY: 917 },
+    'k5-105': { minX: 873, minY: 808, maxX: 938, maxY: 932 },
+    'k5-106': { minX: 829, minY: 819, maxX: 894, maxY: 943 },
+    'k7-107': { minX: 797, minY: 835, maxX: 850, maxY: 951 },
+    'k7-108': { minX: 736, minY: 847, maxX: 808, maxY: 953 },
+    'first-family-seats': { minX: 1007, minY: 812, maxX: 1185, maxY: 904 },
+    'first-wheelchair-seats': { minX: 958, minY: 893, maxX: 1112, maxY: 944 },
+    'party-seats-first': { minX: 867, minY: 930, maxX: 959, maxY: 966 },
+    'sky-picnic-s-301': { minX: 846, minY: 952, maxX: 867, maxY: 974 },
+    'sky-picnic-s-302': { minX: 822, minY: 957, maxX: 845, maxY: 978 },
+    'sky-picnic-s-303': { minX: 799, minY: 961, maxX: 822, maxY: 982 },
+    'sky-picnic-s-304': { minX: 778, minY: 965, maxX: 798, maxY: 984 },
+  };
+
+  Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block, `${blockId} should exist for first-base 101~108 lower boundary lock`);
+    const subpaths = parsePathSubpaths(block.imageGeometry.d);
+
+    assert.deepEqual(getPathBounds(subpaths), expectedBounds);
+    assert.deepEqual(GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedBounds, expectedBounds);
+  });
+
+  ['k5-105', 'sky-picnic-s-301'].forEach((blockId) => {
+    const block = blocksById.get(blockId);
+    assert.ok(block?.imageGeometry.visualD, `${blockId} should render the official-image visual outline separately from the clipped hit path`);
+    assert.notEqual(block.imageGeometry.visualD, block.imageGeometry.d, `${blockId} visual outline should not be forced to the non-overlap hit path`);
+  });
+
+  const specialIds = ['first-family-seats', 'first-wheelchair-seats', 'party-seats-first'];
+  const adjacentLabelIds = [
+    'k5-101',
+    'k5-102',
+    'k5-103',
+    'k5-104',
+    'k5-105',
+    'k5-106',
+    'k7-107',
+    'k7-108',
+    'sky-picnic-s-301',
+    'sky-picnic-s-302',
+    'sky-picnic-s-303',
+    'sky-picnic-s-304',
+  ];
+
+  specialIds.forEach((specialId) => {
+    const specialBlock = blocksById.get(specialId)!;
+    const specialPolygon = parsePolygonPoints(specialBlock.imageGeometry.d);
+    const swallowedLabels = adjacentLabelIds
+      .filter((blockId) => {
+        const adjacentBlock = blocksById.get(blockId)!;
+        return pointInPolygon([adjacentBlock.imageGeometry.labelX, adjacentBlock.imageGeometry.labelY], specialPolygon);
+      });
+
+    assert.deepEqual(swallowedLabels, [], `${specialId} should not swallow adjacent 101~108 or S-301~304 label centers`);
+  });
+
+  assert.equal(
+    pointInPolygon(
+      [blocksById.get('party-seats-first')!.imageGeometry.labelX, blocksById.get('party-seats-first')!.imageGeometry.labelY],
+      parsePolygonPoints(blocksById.get('first-wheelchair-seats')!.imageGeometry.d),
+    ),
+    false,
+    '1루 I hit-area should not swallow J label center',
+  );
+  assert.equal(
+    pointInPolygon(
+      [blocksById.get('first-wheelchair-seats')!.imageGeometry.labelX, blocksById.get('first-wheelchair-seats')!.imageGeometry.labelY],
+      parsePolygonPoints(blocksById.get('party-seats-first')!.imageGeometry.d),
+    ),
+    false,
+    '1루 J hit-area should not swallow I label center',
+  );
+
+  [
+    ['first-family-seats', 'k5-101'],
+    ['first-family-seats', 'k5-102'],
+    ['first-family-seats', 'k5-103'],
+    ['first-family-seats', 'k5-104'],
+    ['first-wheelchair-seats', 'k5-103'],
+    ['first-wheelchair-seats', 'k5-104'],
+    ['first-wheelchair-seats', 'k5-105'],
+    ['party-seats-first', 'k5-106'],
+    ['party-seats-first', 'k7-107'],
+    ['party-seats-first', 'k7-108'],
+    ['party-seats-first', 'sky-picnic-s-301'],
+    ['party-seats-first', 'sky-picnic-s-302'],
+    ['party-seats-first', 'sky-picnic-s-303'],
+    ['party-seats-first', 'sky-picnic-s-304'],
+    ['first-wheelchair-seats', 'party-seats-first'],
+  ].forEach(([firstId, secondId]) => {
+    const overlapRatio = calculateSampledOverlapRatio(
+      blocksById.get(firstId)!.imageGeometry.d,
+      blocksById.get(secondId)!.imageGeometry.d,
+    );
+
+    assert.ok(overlapRatio <= 0.005, `${firstId}/${secondId} should not overlap. Actual ratio: ${overlapRatio.toFixed(4)}`);
+  });
 });
 
 test('광주 외야석 hit-area는 외야테이블석 label을 삼키지 않는다', () => {
@@ -1272,13 +1674,13 @@ test('광주 공식 좌석도 데이터는 준비 완료 시 핵심 좌석 구�
   });
 
   assert.ok(categories.has('K7'), 'K7 numbered blocks should exist after operator block-range confirmation');
-  assert.equal(categories.has('AWAY'), false, 'away cheering should not duplicate K7 numbered block hit-areas');
-  assert.deepEqual([...GWANGJU_PENDING_OPERATOR_SECTIONS].sort(), ['K7석', '원정응원석'].sort());
-  assert.equal(officialBlocks.has('K7석'), false, 'K7 range should use existing numbered official blocks, not a duplicate aggregate official block');
-  assert.equal(officialBlocks.has('원정응원석'), false, 'away range should use existing numbered official blocks, not a duplicate aggregate official block');
+  assert.ok(categories.has('AWAY'), 'away cheering should expose an official derived aggregate hit-area');
+  assert.deepEqual([...GWANGJU_PENDING_OPERATOR_SECTIONS].sort(), []);
+  assert.ok(officialBlocks.has('K7석'), 'K7 range should have a filter-only aggregate official block');
+  assert.ok(officialBlocks.has('원정응원석'), 'away range should have a filter-only aggregate official block');
 });
 
-test('광주 K7/원정응원석 운영자 블럭 범위는 기존 번호 블럭 hit-area에 연결한다', () => {
+test('광주 K7/원정응원석 운영자 블럭 범위는 공식 번호 블럭 기반 aggregate hit-area에 연결한다', () => {
   assert.equal(GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE, true);
   assert.deepEqual(GWANGJU_K7_OFFICIAL_BLOCKS, ['107', '108', '109', '110', '111', '118', '119', '120', '121', '122']);
   assert.deepEqual(GWANGJU_AWAY_CHEERING_OFFICIAL_BLOCKS, ['107', '108', '109', '110']);
@@ -1311,10 +1713,12 @@ test('광주 K7/원정응원석 운영자 블럭 범위는 기존 번호 블럭 
 
   assert.equal(blocksByOfficialBlock.get('111')?.fanRole, 'NEUTRAL');
   assert.equal(blocksByOfficialBlock.get('123')?.category, 'K8');
-  assert.equal(GWANGJU_BLOCKS.filter((block) => block.category === 'AWAY').length, 0);
+  assert.equal(GWANGJU_BLOCKS.filter((block) => block.category === 'AWAY').length, 1);
+  assert.equal(GWANGJU_BLOCKS.find((block) => block.id === 'home-k7-seats')?.imageGeometry.d, GWANGJU_IMAGE_GEOMETRY_DRAFTS['home-k7-seats'].d);
+  assert.equal(GWANGJU_BLOCKS.find((block) => block.id === 'away-cheering-seats')?.imageGeometry.d, GWANGJU_IMAGE_GEOMETRY_DRAFTS['away-cheering-seats'].d);
 });
 
-test('광주 K7/AWAY derived range는 기존 traced block만 서비스 필터에 연결한다', () => {
+test('광주 K7/AWAY derived range는 기존 traced block과 aggregate hit-area를 서비스 필터에 연결한다', () => {
   const rangesById = new Map(GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.map((range) => [range.id, range]));
   const k7Range = rangesById.get('derived-k7-seats');
   const awayRange = rangesById.get('derived-away-cheering-seats');
@@ -1352,9 +1756,14 @@ test('광주 K7/AWAY derived range는 기존 traced block만 서비스 필터에
   );
   assert.deepEqual(getGwangjuDerivedOperatorRangesForBlock('k5-101'), []);
 
+  assert.equal(k7Range?.aggregateHitArea, 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE');
+  assert.equal(k7Range?.operatorPolygonStatus, 'OFFICIAL_DERIVED_READY');
+  assert.equal(awayRange?.aggregateHitArea, 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE');
+  assert.equal(awayRange?.operatorPolygonStatus, 'OFFICIAL_DERIVED_READY');
+  assert.equal(homeRange?.aggregateHitArea, 'REUSES_EXISTING_TRACE_ONLY');
+  assert.equal(homeRange?.operatorPolygonStatus, 'OFFICIAL_DERIVED_READY');
+
   GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.forEach((range) => {
-    assert.equal(range.aggregateHitArea, 'REUSES_EXISTING_TRACE_ONLY');
-    assert.equal(range.operatorPolygonStatus, 'PENDING_OPERATOR_INPUT');
     assert.ok(filterGroupIds.has(range.filterGroupId), `${range.id} should point to an active filter group`);
     range.blockIds.forEach((blockId) => {
       const block = GWANGJU_BLOCKS.find((candidate) => candidate.id === blockId);
@@ -1366,29 +1775,30 @@ test('광주 K7/AWAY derived range는 기존 traced block만 서비스 필터에
   });
 });
 
-test('광주 K7/AWAY는 operator polygon 승격 전까지 active 111개와 derived-only 상태를 유지한다', () => {
-  const pendingOperatorIds = ['home-k7-seats', 'away-cheering-seats'];
+test('광주 K7/AWAY는 공식 번호 블럭 aggregate로 active 113개 상태를 유지한다', () => {
+  const aggregateOperatorIds = ['home-k7-seats', 'away-cheering-seats'];
   const requirementsById = new Map(GWANGJU_OPERATOR_SECTION_REQUIREMENTS.map((requirement) => [requirement.id, requirement]));
 
   assert.equal(GWANGJU_BASE_TRACE_BLOCK_COUNT, 111);
-  assert.equal(GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 111);
-  assert.equal(GWANGJU_BLOCKS.length, 111);
+  assert.equal(GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 113);
+  assert.equal(GWANGJU_BLOCKS.length, 113);
+  assert.equal(GWANGJU_SEATMAP_COORDINATES_READY, true);
+  assert.deepEqual(GWANGJU_PENDING_OPERATOR_SECTIONS, []);
 
-  pendingOperatorIds.forEach((id) => {
-    assert.equal(Object.hasOwn(GWANGJU_IMAGE_GEOMETRY_DRAFTS, id), false, `${id} should not have independent geometry before operator write`);
-    assert.equal(GWANGJU_BLOCKS.some((block) => block.id === id), false, `${id} should not be an active hit-area before operator write`);
-    assert.equal(requirementsById.get(id)?.status, 'PENDING_OPERATOR_INPUT');
+  aggregateOperatorIds.forEach((id) => {
+    assert.equal(Object.prototype.hasOwnProperty.call(GWANGJU_IMAGE_GEOMETRY_DRAFTS, id), true, `${id} should have official derived aggregate geometry`);
+    assert.equal(GWANGJU_BLOCKS.some((block) => block.id === id), true, `${id} should be an active filter-only hit-area`);
+    assert.equal(requirementsById.get(id)?.status, 'READY');
   });
 
-  assert.equal(GWANGJU_BLOCKS.some((block) => block.officialBlocks.includes('K7석')), false);
-  assert.equal(GWANGJU_BLOCKS.some((block) => block.officialBlocks.includes('원정응원석')), false);
-  assert.equal(GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.some((range) => pendingOperatorIds.includes(range.id)), false);
+  assert.equal(GWANGJU_BLOCKS.some((block) => block.officialBlocks.includes('K7석')), true);
+  assert.equal(GWANGJU_BLOCKS.some((block) => block.officialBlocks.includes('원정응원석')), true);
+  assert.equal(GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.some((range) => aggregateOperatorIds.includes(range.id)), false);
 
   GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES.forEach((range) => {
-    assert.equal(range.aggregateHitArea, 'REUSES_EXISTING_TRACE_ONLY');
-    assert.equal(range.operatorPolygonStatus, 'PENDING_OPERATOR_INPUT');
+    assert.equal(range.operatorPolygonStatus, 'OFFICIAL_DERIVED_READY');
     range.sourceRequirementIds.forEach((id) => {
-      assert.equal(requirementsById.get(id)?.status, 'PENDING_OPERATOR_INPUT');
+      assert.equal(requirementsById.get(id)?.status, 'READY');
     });
   });
 });
@@ -1411,10 +1821,10 @@ test('광주 응원석 필터는 K7 번호 블럭을 fanRole 기준으로 분리
   const homeBlocks = GWANGJU_BLOCKS.filter((block) => matchesGwangjuCategoryGroup(block, homeGroup)).map((block) => block.block).sort();
   const awayBlocks = GWANGJU_BLOCKS.filter((block) => matchesGwangjuCategoryGroup(block, awayGroup)).map((block) => block.block).sort();
 
-  assert.deepEqual(k7Blocks, GWANGJU_K7_OFFICIAL_BLOCKS);
-  assert.deepEqual(cheeringBlocks, [...GWANGJU_AWAY_CHEERING_OFFICIAL_BLOCKS, ...GWANGJU_HOME_CHEERING_OFFICIAL_BLOCKS].sort());
+  assert.deepEqual(k7Blocks, [...GWANGJU_K7_OFFICIAL_BLOCKS, 'K7석'].sort());
+  assert.deepEqual(cheeringBlocks, [...GWANGJU_AWAY_CHEERING_OFFICIAL_BLOCKS, ...GWANGJU_HOME_CHEERING_OFFICIAL_BLOCKS, '원정응원석'].sort());
   assert.deepEqual(homeBlocks, GWANGJU_HOME_CHEERING_OFFICIAL_BLOCKS);
-  assert.deepEqual(awayBlocks, GWANGJU_AWAY_CHEERING_OFFICIAL_BLOCKS);
+  assert.deepEqual(awayBlocks, ['원정응원석']);
   assert.equal(matchesGwangjuCategoryGroup(blocksByOfficialBlock.get('111')!, k7Group), true);
   assert.equal(matchesGwangjuCategoryGroup(blocksByOfficialBlock.get('111')!, cheeringGroup), false);
   assert.equal(matchesGwangjuCategoryGroup(blocksByOfficialBlock.get('111')!, groupsById.get('infield')!), true);
