@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useAuthSession } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
+import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 import { loadStompModule, resolveStompBrokerUrl, type StompClient } from '../utils/stomp';
 
@@ -37,6 +38,11 @@ export const useNotificationSocket = (enabled = true) => {
         }
 
         void (async () => {
+            const isAuthReady = await ensureRealtimeAuthSession();
+            if (disposed || !enabled || !isLoggedIn || clientRef.current?.active || !isAuthReady) {
+                return;
+            }
+
             const { Client } = await loadStompModule();
             if (disposed || !enabled || !isLoggedIn || clientRef.current?.active) {
                 return;
