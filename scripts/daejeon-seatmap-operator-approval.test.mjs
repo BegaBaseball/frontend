@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { main } from './daejeon-seatmap-operator-approval.mjs';
+import { main } from './daejeon-seatmap-ops.mjs';
 
 const fixedNow = '2026-05-10T09:00:00.000Z';
 const approvedNow = '2026-05-10T09:05:00.000Z';
