@@ -25,7 +25,7 @@ import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
-import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
@@ -51,11 +51,6 @@ const incheonSectionAdapter: SeatMapSectionAdapter<IncheonBlock> = {
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
-}
-
-interface SeatMapPan {
-  x: number;
-  y: number;
 }
 
 function ZoomControls({
@@ -142,6 +137,8 @@ export default function IncheonSeatMap() {
     filterId,
     setFilterId,
     filterCats,
+    filterSides,
+    filterLevels,
     toast,
     showToast,
   } = useSeatMapSelectionState({
@@ -149,6 +146,12 @@ export default function IncheonSeatMap() {
     filterGroups: INCHEON_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
+    isSectionVisible: (block, filterGroup, cats) => {
+      if (cats !== null && !cats.includes(block.category)) return false;
+      if (filterGroup?.sides != null && !filterGroup.sides.includes(block.side)) return false;
+      if (filterGroup?.levels != null && !filterGroup.levels.includes(block.level)) return false;
+      return true;
+    },
   });
   const {
     isMobile,
@@ -208,12 +211,15 @@ export default function IncheonSeatMap() {
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
+      filterSides={filterSides}
+      filterLevels={filterLevels}
       zoom={zoom}
       pan={pan}
       onPanChange={setPan}
-      onZoomChange={handleZoomChange}
+      onZoom={handleZoomChange}
       minZoom={MIN_ZOOM}
       maxZoom={MAX_ZOOM}
+      zoomStep={ZOOM_STEP}
       enableAutoCenter={enableAutoCenter}
     />
   );
