@@ -133,19 +133,22 @@ export interface CategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
+  levels?: string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 const SOURCE_2026_LG_OFFICIAL = 'LG 트윈스 2026 공식 일반 티켓 좌석도 기준입니다.';
 const SOURCE_2025_OFFICIAL = 'LG 트윈스 공식 티켓 안내 기준';
 
 export const JAMSIL_SEATMAP_IMAGE: JamsilSeatMapImage = {
-  imagePath: 'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png',
+  imagePath: 'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.webp',
   imageWidth: 1570,
   imageHeight: 1570,
   sourceLabel: 'LG 트윈스 공식 티켓 안내 기준 좌석도',
   sourceUrl: 'https://www.lgtwins.com/ticket/general',
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'jamsil-lg-seatmap-default-2026.png',
+  requiredAssetFileName: 'jamsil-lg-seatmap-default-2026.webp',
 };
 
 export const JAMSIL_OFFICIAL_REFERENCES: JamsilOfficialReference[] = [
@@ -156,17 +159,17 @@ export const JAMSIL_OFFICIAL_REFERENCES: JamsilOfficialReference[] = [
     sourceLabel: 'LG 트윈스 공식 일반 티켓',
     sourceUrl: 'https://www.lgtwins.com/ticket/general',
     imagePaths: [
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-bg-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-premium-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-table-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-exciting-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-blue-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-orange-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-red-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-navy-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-green-cheer-2026.png',
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-green-outfield-2026.png',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-bg-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-premium-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-table-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-exciting-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-blue-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-orange-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-red-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-navy-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-green-cheer-2026.webp',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-green-outfield-2026.webp',
     ],
   },
   {
@@ -176,11 +179,11 @@ export const JAMSIL_OFFICIAL_REFERENCES: JamsilOfficialReference[] = [
     sourceLabel: '두산 베어스 공식 베어스 홈구장',
     sourceUrl: 'https://www.doosanbears.com/bears/stadium?tabId=seoul',
     imagePaths: [
-      'src/assets/stadiums/doosan/jamsil-doosan-stadium-overview.png',
-      'src/assets/stadiums/doosan/jamsil-doosan-floor-1f.jpg',
-      'src/assets/stadiums/doosan/jamsil-doosan-floor-2f.jpg',
-      'src/assets/stadiums/doosan/jamsil-doosan-floor-2-5f.jpg',
-      'src/assets/stadiums/doosan/jamsil-doosan-floor-3-4f.jpg',
+      'src/assets/stadiums/doosan/jamsil-doosan-stadium-overview.webp',
+      'src/assets/stadiums/doosan/jamsil-doosan-floor-1f.webp',
+      'src/assets/stadiums/doosan/jamsil-doosan-floor-2f.webp',
+      'src/assets/stadiums/doosan/jamsil-doosan-floor-2-5f.webp',
+      'src/assets/stadiums/doosan/jamsil-doosan-floor-3-4f.webp',
     ],
   },
 ];
@@ -194,7 +197,7 @@ export const JAMSIL_DOOSAN_STADIUM_GUIDE: JamsilDoosanStadiumGuide = {
   overviewImage: {
     id: 'overview',
     label: '잠실야구장 전경',
-    imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-stadium-overview.png',
+    imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-stadium-overview.webp',
     width: 800,
     height: 555,
   },
@@ -202,28 +205,28 @@ export const JAMSIL_DOOSAN_STADIUM_GUIDE: JamsilDoosanStadiumGuide = {
     {
       id: 'floor-1f',
       label: '1층 안내',
-      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-1f.jpg',
+      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-1f.webp',
       width: 1184,
       height: 1075,
     },
     {
       id: 'floor-2f',
       label: '2층 안내',
-      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-2f.jpg',
+      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-2f.webp',
       width: 1184,
       height: 894,
     },
     {
       id: 'floor-2-5f',
       label: '2.5층 안내',
-      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-2-5f.jpg',
+      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-2-5f.webp',
       width: 1184,
       height: 738,
     },
     {
       id: 'floor-3-4f',
       label: '3/4층 안내',
-      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-3-4f.jpg',
+      imagePath: 'src/assets/stadiums/doosan/jamsil-doosan-floor-3-4f.webp',
       width: 1184,
       height: 745,
     },
@@ -668,13 +671,24 @@ export const JAMSIL_DETAILED_RATINGS: Record<string, DetailedRatings> = {};
 
 // ===== Category filter groups =====
 export const JAMSIL_CATEGORY_GROUPS: CategoryGroup[] = [
-  { id: 'all',        label: '전체',     cats: null },
-  { id: 'cheer',      label: '응원석',   cats: ['ORANGE', 'OUTFIELD_CHEER'] },
-  { id: 'premium',    label: '프리미엄', cats: ['PREMIUM', 'TABLE'] },
-  { id: 'infield',    label: '내야석',   cats: ['BLUE', 'RED', 'EXCITING'] },
-  { id: 'outfield',   label: '외야석',   cats: ['OUTFIELD', 'OUTFIELD_CHEER'] },
-  { id: 'accessible', label: '휠체어석', cats: ['ACCESSIBLE'] },
-  { id: 'value',      label: '가성비',   cats: ['NAVY', 'OUTFIELD'] },
+  // 층수별 (메인 필터 — 항상 노출). '전체'는 리셋 버튼으로 이 행의 맨 앞에 배치
+  { id: 'all',        label: '전체',      cats: null,                           filterDimension: 'level' },
+  { id: 'lv-1f',      label: '1층',       cats: null, levels: ['1F'],           filterDimension: 'level' },
+  { id: 'lv-2f',      label: '2층',       cats: null, levels: ['2F'],           filterDimension: 'level' },
+  { id: 'lv-3f',      label: '3층',       cats: null, levels: ['3F'],           filterDimension: 'level' },
+  { id: 'lv-out',     label: '외야층',    cats: null, levels: ['OUTFIELD'],     filterDimension: 'level' },
+  // 등급별 (보조 필터 — 기본 접힘)
+  { id: 'premium',    label: '프리미엄',  cats: ['PREMIUM', 'TABLE'],           filterDimension: 'grade' },
+  { id: 'infield',    label: '내야석',    cats: ['BLUE', 'RED', 'EXCITING'],    filterDimension: 'grade' },
+  { id: 'cheer',      label: '응원석',    cats: ['ORANGE', 'OUTFIELD_CHEER'],   filterDimension: 'grade' },
+  { id: 'outfield',   label: '외야석',    cats: ['OUTFIELD', 'OUTFIELD_CHEER'], filterDimension: 'grade' },
+  { id: 'value',      label: '가성비',    cats: ['NAVY', 'OUTFIELD'],           filterDimension: 'grade' },
+  { id: 'accessible', label: '휠체어석',  cats: ['ACCESSIBLE'],                 filterDimension: 'grade' },
+  // 위치별 (보조 필터 — 기본 접힘)
+  { id: 'pos-first',  label: '1루 측',    cats: null, sides: ['FIRST_BASE'],    filterDimension: 'position' },
+  { id: 'pos-third',  label: '3루 측',    cats: null, sides: ['THIRD_BASE'],    filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙',      cats: null, sides: ['CENTER'],        filterDimension: 'position' },
+  { id: 'pos-out',    label: '외야',      cats: null, sides: ['OUTFIELD'],      filterDimension: 'position' },
 ];
 
 export function getJamsilSideLabel(side: JamsilSide): string {
