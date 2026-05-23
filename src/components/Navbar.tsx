@@ -1,6 +1,6 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import './NavigationMenu.css';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import {
   CloseIcon,
@@ -22,7 +22,7 @@ import NavbarNotificationControls from './NavbarNotificationControls';
 import { useAnimatedPresence } from '../hooks/useAnimatedPresence';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { useScrollStage } from '../hooks/useScrollStage';
+import { useScrollMetrics } from '../hooks/useScrollStage';
 import { cn } from '../lib/utils';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
@@ -53,7 +53,17 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const shouldShowTopThemeToggle = isDesktop;
   const shouldShowDesktopNotificationButton = authenticatedShell && isDesktop;
   const shouldShowMobileNotificationButton = authenticatedShell && !isDesktop && !shouldShowMobileMenuThemeToggle;
-  const scrollStage = useScrollStage();
+  const shouldDeferMobileBottomTabbar =
+    location.pathname === '/cheer'
+    || location.pathname === '/cheer/write'
+    || location.pathname === '/cheer/bookmarks';
+  const {
+    shrinkProgress,
+    compactProgress,
+    fastCompactProgress,
+  } = useScrollMetrics();
+  const desktopChromeProgress = isLoggedIn ? fastCompactProgress : compactProgress;
+  const logoSubtitleProgress = Math.min(1, shrinkProgress * 1.6);
   const navIconButtonClass = 'relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-2 transition-colors duration-200 focus:outline-none';
   const menuToggleButtonClass = 'relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 transition-colors duration-200 focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus-visible:ring-2 focus-visible:ring-primary/50 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8`;
@@ -201,24 +211,51 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     { id: 'mate', label: '같이가요', icon: UsersIcon }
   ];
 
-  const capsuleMaxW =
-    scrollStage === 0 ? 'md:max-w-[980px]' :
-    scrollStage === 1 ? 'md:max-w-[760px]' :
-    'md:max-w-[560px]';
+  const capsuleStyle = {
+    '--navbar-capsule-width': `${980 - (220 * shrinkProgress)}px`,
+    '--navbar-capsule-height': `${60 - (14 * shrinkProgress)}px`,
+    '--navbar-capsule-px': `${14 - (4 * shrinkProgress)}px`,
+  } as CSSProperties;
+
+  const navSegmentStyle: CSSProperties = {
+    padding: `${4 - (2 * desktopChromeProgress)}px`,
+  };
+
+  const navItemStyle: CSSProperties = {
+    height: `${36 - (4 * desktopChromeProgress)}px`,
+    paddingLeft: `${14 - (4 * desktopChromeProgress)}px`,
+    paddingRight: `${14 - (4 * desktopChromeProgress)}px`,
+    fontSize: `${14 - desktopChromeProgress}px`,
+  };
+
+  const accountTextStyle = (maxWidth: number): CSSProperties => ({
+    maxWidth: `${maxWidth * (1 - desktopChromeProgress)}px`,
+    opacity: 1 - desktopChromeProgress,
+  });
 
   const capsuleGlass = shouldShowMobileMenuThemeToggle
     ? 'bg-background border-gray-200/80 dark:border-gray-800'
-    : 'bg-white/72 dark:bg-black backdrop-blur-xl border-white/80 dark:border-white/12 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_20px_50px_-20px_rgba(15,120,85,0.18)]';
+    : 'bg-white/72 dark:bg-[rgba(22,24,28,.66)] backdrop-blur-xl border-white/80 dark:border-white/8 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.04),0_20px_50px_-20px_rgba(0,0,0,.65)]';
 
   return (
-    <header className="sticky top-0 z-[60] px-3 py-2 md:px-4 md:py-1.5">
+    <>
+    <header className="sticky top-0 z-[60] px-3 py-2 md:px-4 md:py-1.5 relative overflow-hidden">
+      {/* Backdrop tint — visible only at stage 0 */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-150 ease-out"
+        style={{
+          opacity: 1 - shrinkProgress,
+          backgroundColor: isDarkMode ? '#050505' : '#f7faf8',
+        }}
+      />
       {/* Glass capsule */}
       <div
         className={cn(
-          'flex h-12 md:h-[52px] items-center gap-2 md:gap-[14px] rounded-full border px-3 md:px-[14px] transition-all duration-[350ms] ease-[cubic-bezier(.16,1,.3,1)] md:mx-auto',
-          capsuleMaxW,
+          'relative flex h-12 items-center gap-2 md:gap-[14px] rounded-full border px-3 transition-[width,height,padding,background-color,border-color,box-shadow] duration-150 ease-out md:left-1/2 md:h-[var(--navbar-capsule-height)] md:w-[var(--navbar-capsule-width)] md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2 md:px-[var(--navbar-capsule-px)]',
           capsuleGlass,
         )}
+        style={capsuleStyle}
       >
         {/* 1. 로고 */}
         <button
@@ -235,10 +272,14 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
             <h1 className="font-black text-[17px] tracking-widest text-primary dark:text-primary-light leading-none">
               BEGA
             </h1>
-            <p className={cn(
-              'text-[10px] font-bold text-muted-foreground dark:text-gray-400 tracking-tight transition-all duration-300',
-              scrollStage >= 1 ? 'hidden' : 'hidden md:block',
-            )}>
+            <p
+              className="hidden overflow-hidden text-[10px] font-bold text-muted-foreground dark:text-gray-400 tracking-tight transition-[opacity,max-height,transform] duration-150 ease-out md:block"
+              style={{
+                maxHeight: `${10 * (1 - logoSubtitleProgress)}px`,
+                opacity: 1 - logoSubtitleProgress,
+                transform: `translateY(${-2 * logoSubtitleProgress}px)`,
+              }}
+            >
               BASEBALL GUIDE
             </p>
           </div>
@@ -247,7 +288,10 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         {/* 2. 데스크톱 세그먼트 네비게이션 */}
         {isDesktop && (
           <nav className="flex flex-1 items-center justify-center" aria-label="주 메뉴">
-            <div className="flex items-center gap-0.5 rounded-full bg-black/[.04] dark:bg-white/[.06] p-1">
+            <div
+              className="flex items-center gap-0.5 rounded-full bg-black/[.04] dark:bg-white/[.06] transition-[padding] duration-150 ease-out"
+              style={navSegmentStyle}
+            >
               {navItems.map((item) => {
                 const isActive = location.pathname === `/${item.id}`;
                 return (
@@ -260,11 +304,12 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={cn(
-                      'relative h-9 rounded-full px-3.5 font-bold text-[14px] transition-colors duration-150 whitespace-nowrap',
+                      'relative rounded-full font-bold transition-[height,padding,font-size,background-color,color,box-shadow] duration-150 ease-out whitespace-nowrap',
                       isActive
                         ? 'bg-white text-primary shadow-sm dark:bg-primary/70 dark:text-white'
                         : 'text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100',
                     )}
+                    style={navItemStyle}
                   >
                     {item.label}
                     {item.id === 'mate' && chatUnreadCount > 0 && (
@@ -296,13 +341,25 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                   <button
                     type="button"
                     onClick={() => navigate(userProfilePath)}
-                    className="group relative overflow-hidden flex items-center justify-center h-8 px-3 rounded-full border border-primary/50 dark:border-primary-light/50 text-primary dark:text-primary-light font-bold text-[14px] transition-all duration-300 hover:bg-primary hover:border-primary hover:text-white"
+                    aria-label="마이페이지로 이동"
+                    className={cn(
+                      'flex h-9 shrink-0 items-center rounded-full border border-[rgba(15,23,42,.08)] bg-white font-bold text-[13px] text-foreground transition-all duration-[350ms] hover:bg-gray-50 dark:bg-white/6 dark:border-white/10 dark:hover:bg-white/10',
+                      'justify-center gap-2 overflow-hidden',
+                    )}
+                    style={{
+                      width: `${36 + (92 * (1 - desktopChromeProgress))}px`,
+                      paddingLeft: `${4 * (1 - desktopChromeProgress)}px`,
+                      paddingRight: `${12 * (1 - desktopChromeProgress)}px`,
+                    }}
                   >
-                    <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:-translate-y-full group-hover:opacity-0">
-                      {scrollStage >= 2 ? (userName?.charAt(0) || '?') : `${userName || '회원'} 님`}
+                    <span className="w-[26px] h-[26px] rounded-full bg-primary flex items-center justify-center text-[11px] font-black text-white shrink-0">
+                      {userName?.charAt(0) || '?'}
                     </span>
-                    <span className="absolute inset-0 flex items-center justify-center translate-y-full opacity-0 transition-all duration-300 ease-in-out group-hover:translate-y-0 group-hover:opacity-100 text-white">
-                      마이페이지
+                    <span
+                      className="min-w-0 overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity] duration-150 ease-out"
+                      style={accountTextStyle(76)}
+                    >
+                      {userName || '회원'}
                     </span>
                   </button>
                   {isAdmin && (
@@ -310,20 +367,44 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                       type="button"
                       onClick={() => navigate('/admin')}
                       variant="outline"
-                      className="rounded-full h-8 px-2.5 text-[13px] flex items-center gap-1 text-red-600 border-red-500/80 dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      aria-label="관리자 페이지로 이동"
+                      className="rounded-full text-[13px] flex items-center gap-1 overflow-hidden text-red-600 border-red-500/80 transition-[width,padding] duration-150 ease-out dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      style={{
+                        width: `${36 + (42 * (1 - desktopChromeProgress))}px`,
+                        height: `${32 + (4 * desktopChromeProgress)}px`,
+                        paddingLeft: `${10 * (1 - desktopChromeProgress)}px`,
+                        paddingRight: `${10 * (1 - desktopChromeProgress)}px`,
+                      }}
                     >
-                      <ShieldAlertIcon className="w-3.5 h-3.5" />
-                      {scrollStage < 2 && '관리자'}
+                      <ShieldAlertIcon className="w-3.5 h-3.5 shrink-0" />
+                      <span
+                        className="overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-150 ease-out"
+                        style={accountTextStyle(42)}
+                      >
+                        관리자
+                      </span>
                     </Button>
                   )}
                   <Button
                     type="button"
                     onClick={handleLogout}
-                    className="rounded-full h-8 px-2.5 text-[13px] flex items-center gap-1 text-primary dark:text-primary-light border-primary/50 dark:border-primary-light/50"
+                    aria-label="로그아웃"
+                    className="rounded-full text-[13px] flex items-center gap-1 overflow-hidden text-primary transition-[width,padding] duration-150 ease-out dark:text-primary-light border-primary/50 dark:border-primary-light/50"
+                    style={{
+                      width: `${36 + (72 * (1 - desktopChromeProgress))}px`,
+                      height: `${32 + (4 * desktopChromeProgress)}px`,
+                      paddingLeft: `${10 * (1 - desktopChromeProgress)}px`,
+                      paddingRight: `${10 * (1 - desktopChromeProgress)}px`,
+                    }}
                     variant="outline"
                   >
-                    <LogOutIcon className="w-3.5 h-3.5" />
-                    {scrollStage < 2 && '로그아웃'}
+                    <LogOutIcon className="w-3.5 h-3.5 shrink-0" />
+                    <span
+                      className="overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-150 ease-out"
+                      style={accountTextStyle(64)}
+                    >
+                      로그아웃
+                    </span>
                   </Button>
                 </>
               ) : (
@@ -519,5 +600,45 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         </div>
       )}
     </header>
+
+    {!shouldShowMobileMenuThemeToggle && !shouldDeferMobileBottomTabbar && (
+      <nav
+        className="md:hidden fixed bottom-4 inset-x-3.5 z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        aria-label="하단 탭바"
+      >
+        <div className="h-16 rounded-3xl bg-white/85 dark:bg-[#16181c]/85 backdrop-blur-xl backdrop-saturate-150 border border-white/90 dark:border-white/10 shadow-[0_18px_40px_-16px_rgba(15,67,56,.32)] grid grid-cols-4 p-1.5 gap-0.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === `/${item.id}`;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => navigate(`/${item.id}`)}
+                onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
+                className={cn(
+                  'relative flex flex-col items-center justify-center gap-0.5 rounded-[18px] transition-colors duration-150',
+                  isActive
+                    ? 'bg-primary text-white dark:bg-primary/80'
+                    : 'text-muted-foreground hover:text-foreground dark:text-gray-400',
+                )}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className="text-[10.5px] font-bold leading-none">{item.label}</span>
+                {item.id === 'mate' && chatUnreadCount > 0 && (
+                  <span className="absolute top-1 right-2 inline-flex min-w-[14px] h-3.5 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white">
+                    {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    )}
+    </>
   );
 }
