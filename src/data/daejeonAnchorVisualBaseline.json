@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
-  "generatedAt": "2026-05-12T02:33:06.203Z",
+  "generatedAt": "2026-05-23T16:23:20.839Z",
   "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedCropCount": 28,
@@ -74,7 +74,7 @@
         "first-infield-b-101-108__108",
         "first-infield-a-109-112-201-212__109"
       ],
-      "sha256": "c555d5d2765bb42a9fb72d9394d720e9cc39f22a6952055361349c69088b7997"
+      "sha256": "1d1b67fe9dac15c75abe1377fd9631d9425355aadebde2b36ce25b96796fc299"
     },
     {
       "id": "first-104-106-detail",
@@ -101,7 +101,7 @@
         "first-infield-b-101-108__105",
         "first-infield-b-101-108__106"
       ],
-      "sha256": "50fb9a4e02f2074c143c33707c41cad86358c6eff675e2986d26eb57602294c6"
+      "sha256": "ac223104309ecdff38a88baa3810a97a6437525f63532fb8701761022f6bd055"
     },
     {
       "id": "first-107-110-detail",
@@ -207,7 +207,7 @@
         "third-infield-b-121-124__123",
         "third-infield-b-121-124__124"
       ],
-      "sha256": "b2f663fe1c815b57eba8d05322df0e13df5b3f72621761cdb5d5dc1bec683b08"
+      "sha256": "4b9494f5ea0e01150bf41536631845af1acb4f34a7c9c3667cb6d63d6ff843ca"
     },
     {
       "id": "third-120-122-detail",
@@ -233,7 +233,7 @@
         "third-infield-b-121-124__121",
         "third-infield-b-121-124__122"
       ],
-      "sha256": "63b759cff8bb0abf4bd15d935e0fae0ab45821168b90f022141d6ac2be9b0c4a"
+      "sha256": "026c0c9c09489d13a2b918e64ed3891fa0dce189969a0ecb0e31a8b4b5356ed3"
     },
     {
       "id": "third-119-121-detail",
@@ -259,7 +259,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "1797feb3ca7804b3e76f2287f9112b485f9638a9a8f5e45eb8b77c25c6ca0611"
+      "sha256": "123008431db357feab6ec15b3a5559fc103e97b88659812da04f53ed658cec02"
     },
     {
       "id": "third-113-120-sequence",
@@ -374,7 +374,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "03146430ff75ae963718fa898bdbb90ca6ac97431cb7349a166acb29fa342e9c"
+      "sha256": "ed1de6c6e60e999097effdb2fb23a9dc40601e94ef9310f9fb0b259d253a4eb8"
     },
     {
       "id": "third-113-114-detail",
@@ -568,7 +568,7 @@
         "first-table-4f-301-413__412",
         "first-table-4f-301-413__413"
       ],
-      "sha256": "f5cf9bb451664ca05e53cb48ea8fc41b16825cb9b61e93ead086329cc83a9a24"
+      "sha256": "e30035f8717ba03b06378c60cb3044075ec2d8585c28111df8a65f21ae563a58"
     },
     {
       "id": "third-4f-table-414-330-sequence",
