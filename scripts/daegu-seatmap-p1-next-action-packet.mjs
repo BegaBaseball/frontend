@@ -9,13 +9,13 @@ const defaultP1ReportDir = path.join(frontendRoot, 'reports/stadium/daegu-p1-ope
 const PACKET_VERSION = 'DAEGU_P1_NEXT_ACTION_PACKET_V1';
 const TARGET_BATCH_ID = 'BATCH_2_P1';
 const EXPECTED = {
-  expectedRows: 17,
-  boundaryAidRows: 5,
+  expectedRows: 12,
+  boundaryAidRows: 1,
   pairedRelabelRows: 2,
   manualSplitRows: 3,
-  singleCorrectedPathRows: 1,
-  sharedCandidateBoundaryRows: 11,
-  approvedRows: 0,
+  singleCorrectedPathRows: 2,
+  sharedCandidateBoundaryRows: 9,
+  approvedRows: 1,
 };
 
 const STAGES = {
@@ -43,6 +43,15 @@ const argValue = (name, fallback) => {
 };
 
 const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+const readOptionalJson = async (filePath) => {
+  try {
+    return await readJson(filePath);
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+};
 
 const csvEscape = (value) => {
   const text = String(value ?? '');
@@ -87,7 +96,9 @@ const summarizeBoundaryAid = (aidRow) => {
 
 const classifyRow = (row, boundaryAidByBlockId) => {
   if (boundaryAidByBlockId.has(row.blockId)) return STAGES.PAIR_BOUNDARY_FIRST;
-  if (row.operatorAction === 'OPERATOR_CORRECTED_PATH_REQUIRED') return STAGES.SINGLE_CORRECTED_PATH;
+  if (['OPERATOR_CORRECTED_PATH_REQUIRED', 'OPERATOR_MANUAL_TRACE_REQUIRED'].includes(row.operatorAction)) {
+    return STAGES.SINGLE_CORRECTED_PATH;
+  }
   return STAGES.DUPLICATE_CANDIDATE_SPLIT;
 };
 
@@ -122,7 +133,7 @@ const readinessPath = path.join(p1ReportDir, 'daegu-seatmap-p1-operator-readines
 const input = await readJson(inputPath);
 const decisionPacket = await readJson(decisionPacketPath);
 const boundaryAid = await readJson(boundaryAidPath);
-const readiness = await readJson(readinessPath);
+const readiness = await readOptionalJson(readinessPath);
 
 const inputRows = Array.isArray(input.corrections) ? input.corrections : [];
 const decisionRows = Array.isArray(decisionPacket.rows) ? decisionPacket.rows : [];
@@ -142,10 +153,12 @@ if (decisionPacket.summary?.packetVersion !== 'DAEGU_P1_DECISION_PACKET_V1') {
 if (boundaryAid.summary?.inputAidVersion !== 'DAEGU_P1_BOUNDARY_INPUT_AID_V1') {
   blockers.push(`P1_BOUNDARY_AID_VERSION_MISMATCH:${boundaryAid.summary?.inputAidVersion ?? ''}`);
 }
-if (readiness.summary?.readinessVersion !== 'DAEGU_P1_OPERATOR_READINESS_V1') {
+if (!readiness) {
+  warnings.push('P1_READINESS_REPORT_MISSING_NEXT_ACTION_BOOTSTRAP');
+} else if (readiness.summary?.readinessVersion !== 'DAEGU_P1_OPERATOR_READINESS_V1') {
   blockers.push(`P1_READINESS_VERSION_MISMATCH:${readiness.summary?.readinessVersion ?? ''}`);
 }
-if (readiness.summary?.readyForTemplateImport === true) {
+if (readiness?.summary?.readyForTemplateImport === true) {
   warnings.push('P1_READY_FOR_TEMPLATE_IMPORT_PRESENT_REVIEW_BEFORE_USING_NEXT_ACTION_PACKET');
 }
 
@@ -231,8 +244,8 @@ const summary = {
   singleCorrectedPathRows: countByStage.SINGLE_CORRECTED_PATH ?? 0,
   sharedCandidateBoundaryRows: countByStage.DUPLICATE_CANDIDATE_SPLIT ?? 0,
   approvedRows: approvedRows.length,
-  awaitingOperatorInput: readiness.summary?.awaitingOperatorInput === true,
-  readyForTemplateImport: readiness.summary?.readyForTemplateImport === true,
+  awaitingOperatorInput: readiness?.summary?.awaitingOperatorInput === true,
+  readyForTemplateImport: readiness?.summary?.readyForTemplateImport === true,
   productionWriteAllowed: false,
   writesOperatorDecision: false,
   writesCorrectionsTemplate: false,
