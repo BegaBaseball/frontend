@@ -8,6 +8,7 @@ import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import {
+  getMatePartyApplicationsQueryOptions,
   getMatePartyMyApplicationQueryOptions,
   useMatePartyFromRoute,
 } from '../hooks/mateDetailRoute';
@@ -87,6 +88,13 @@ export default function MateDetailRuntime() {
       ? getMatePartyMyApplicationQueryOptions(partyId, currentUserId)
       : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
     enabled: Boolean(partyId && currentUserId && !isHost),
+  });
+  useQuery({
+    ...(partyId != null
+      ? getMatePartyApplicationsQueryOptions(partyId)
+      : getMatePartyApplicationsQueryOptions('unknown')),
+    enabled: Boolean(partyId && isHost),
+    refetchOnMount: 'always',
   });
   const myApplication = myApplicationQuery.data ?? null;
 
