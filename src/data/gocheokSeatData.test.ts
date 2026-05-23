@@ -232,8 +232,8 @@ function calculateSeatColorOverlapRatio(image: DecodedPng, category: string, pat
 
 test('고척 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(GOCHEOK_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(GOCHEOK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png');
-  assert.equal(GOCHEOK_SEATMAP_IMAGE.requiredAssetFileName, 'gocheok-kiwoom-seatmap-official-2026.png');
+  assert.equal(GOCHEOK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp');
+  assert.equal(GOCHEOK_SEATMAP_IMAGE.requiredAssetFileName, 'gocheok-kiwoom-seatmap-official-2026.webp');
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageWidth, 653);
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageHeight, 960);
   assert.equal(GOCHEOK_SEATMAP_VIEW_BOX, '0 0 653 960');

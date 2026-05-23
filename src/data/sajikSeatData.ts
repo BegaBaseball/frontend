@@ -187,10 +187,10 @@ export const SAJIK_REFERENCE_URL = 'https://www.giantsclub.com/html/?pcode=340';
 export const SAJIK_STADIUM_ID = 'BUSAN_SAJIK';
 export const SAJIK_MAP_VERSION = 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2';
 export const SAJIK_VIEW_BOX = '0 0 960 640';
-export const SAJIK_IMAGE_SHA256 = 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa';
+export const SAJIK_IMAGE_SHA256 = 'd943cef6e4c86530c9568e3d50d43303aab3f0102a19dc76f828547c79a20b13';
 export const SAJIK_OPERATOR_REFERENCE_MAP_VERSION = 'BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1';
 export const SAJIK_OPERATOR_REFERENCE_VIEW_BOX = '0 0 1151 1367';
-export const SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256 = '794d957510240c786f4fce821814afbf01cc1f93fe7ec3ecca23846a8d753f6f';
+export const SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256 = 'b82d84a827c9b8aed64d8c0355e59e57fc00d54495d501e1fbd5a7866e304db0';
 
 export const SAJIK_SEATMAP_IMAGE: SajikSeatMapImage = {
   stadiumId: SAJIK_STADIUM_ID,
@@ -1319,7 +1319,6 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     displayPriority: 48,
     imageGeometry: {
       d: 'M 473 416 L 482 414 L 486 414 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 L 491 433 L 475 420 Z',
-      hitPath: 'M 492 425 L 497 425 L 532 451 L 534 453 L 529 458 L 528 458 L 521 454 L 516 451 L 504 443 L 500 440 L 495 436 L 492 433 Z',
       labelX: 525,
       labelY: 455,
       labelRotate: 13,
@@ -1336,7 +1335,7 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     officialBlocks: ['032'],
     side: 'CENTER',
     fanRole: 'NEUTRAL',
-    displayPriority: 54,
+    displayPriority: 53.5,
     imageGeometry: {
       d: 'M 569 464 L 570 462 L 572 459 L 575 455 L 577 453 L 579 453 L 582 454 L 584 455 L 598 464 L 599 465 L 596 471 L 595 472 L 592 472 L 584 470 L 575 467 L 570 465 Z',
       hitPath: 'M 572 464 L 605 467 L 608 473 L 604 494 L 568 491 L 569 473 Z',
@@ -1915,7 +1914,6 @@ const SAJIK_BLOCK_DEFINITIONS: SajikBlockDefinition[] = [
     displayPriority: 79,
     imageGeometry: {
       d: 'M 779 473 L 834 438 L 835 438 L 839 440 L 840 441 L 835 446 L 828 452 L 823 456 L 811 465 L 793 477 L 788 480 L 786 481 L 781 476 Z',
-      hitPath: 'M 779 473 L 814 453 L 822 452 L 822 456 L 819 459 L 811 465 L 793 477 L 788 480 L 786 481 L 781 476 Z',
       labelX: 795,
       labelY: 471,
       labelRotate: -14,

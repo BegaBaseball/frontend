@@ -405,6 +405,7 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.get('#stadium-guide-select').select('DAEGU');
     cy.wait('@getDaeguFoodPlaces');
+    cy.get('[data-testid="daegu-seatmap-mode-official-png"]').filter(':visible').click();
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
     cy.contains('button', '다이어리에서 시야 사진 공유하기').click();
@@ -427,6 +428,7 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.get('#stadium-guide-select').select('DAEGU');
     cy.wait('@getDaeguFoodPlaces');
+    cy.get('[data-testid="daegu-seatmap-mode-official-png"]').filter(':visible').click();
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
     cy.contains('button', '다이어리에서 시야 사진 공유하기').click();

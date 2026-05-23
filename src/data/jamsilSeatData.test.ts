@@ -54,10 +54,10 @@ test('잠실 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
 
 test('잠실 좌석도 이미지는 공식 asset 준비 상태를 명시한다', () => {
   assert.equal(JAMSIL_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(JAMSIL_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png');
+  assert.equal(JAMSIL_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.webp');
   assert.equal(JAMSIL_SEATMAP_IMAGE.imageWidth, 1570);
   assert.equal(JAMSIL_SEATMAP_IMAGE.imageHeight, 1570);
-  assert.equal(JAMSIL_SEATMAP_IMAGE.requiredAssetFileName, 'jamsil-lg-seatmap-default-2026.png');
+  assert.equal(JAMSIL_SEATMAP_IMAGE.requiredAssetFileName, 'jamsil-lg-seatmap-default-2026.webp');
   assert.ok(JAMSIL_SEATMAP_IMAGE.sourceLabel);
   assert.match(JAMSIL_SEATMAP_IMAGE.sourceUrl, /^https:\/\/www\.lgtwins\.com\/ticket\/general/);
 });

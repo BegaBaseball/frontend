@@ -391,8 +391,8 @@ function changwonGeometryReleaseLockFingerprint(): string {
 
 test('창원 좌석도 이미지는 공식 asset 준비 상태와 출처를 명시한다', () => {
   assert.equal(CHANGWON_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(CHANGWON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.png');
-  assert.equal(CHANGWON_SEATMAP_IMAGE.requiredAssetFileName, 'changwon-nc-seatmap-official-2026.png');
+  assert.equal(CHANGWON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.webp');
+  assert.equal(CHANGWON_SEATMAP_IMAGE.requiredAssetFileName, 'changwon-nc-seatmap-official-2026.webp');
   assert.equal(CHANGWON_SEATMAP_IMAGE.sourceLabel, 'NC 다이노스 공식 티켓 안내 좌석도');
   assert.equal(CHANGWON_SEATMAP_IMAGE.sourceUrl, 'https://www.ncdinos.com/dinos/stadium.do');
   assert.equal(CHANGWON_SEATMAP_IMAGE.imageWidth, 1960);

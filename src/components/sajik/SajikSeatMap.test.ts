@@ -30,7 +30,7 @@ test('SajikSeatMap은 1151x1367 기준 좌석도를 기본 source로 렌더링�
   assert.match(html, /data-reference-interactive-preview="true"/);
   assert.match(html, /data-testid="sajik-reference-seatmap-svg"/);
   assert.match(html, /viewBox="0 0 1151 1367"/);
-  assert.match(html, /sajik-seatmap-operator-reference-2026\.png/);
+  assert.match(html, /sajik-seatmap-operator-reference-2026\.webp/);
   assert.match(html, /data-testid="sajik-operator-reference-preview-layer"/);
   assert.equal(previewBlockMatches.length, SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections);
   assert.equal(previewMarkerMatches.length, SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers);
@@ -80,9 +80,9 @@ test('SajikSeatMapSvg는 secondary 공식 source에서 기존 960x640 polygon la
 
   assert.match(html, /data-seat-path-count="84"/);
   assert.match(html, /<svg[^>]+viewBox="0 0 960 640"/);
-  assert.match(html, /<image[^>]+href="[^"]*sajik-lotte-seatmap-official-2026\.png"/);
+  assert.match(html, /<image[^>]+href="[^"]*sajik-lotte-seatmap-official-2026\.webp"/);
   assert.match(html, /<image[^>]+width="960"[^>]+height="640"/);
-  assert.doesNotMatch(html, /<img[^>]+src="[^"]*sajik-lotte-seatmap-official-2026\.png"/);
+  assert.doesNotMatch(html, /<img[^>]+src="[^"]*sajik-lotte-seatmap-official-2026\.webp"/);
   assert.match(html, /data-section-kind="ACCESSIBILITY_MARKER"/);
   assert.match(html, /data-marker-type="WHEELCHAIR"/);
   assert.match(html, /data-testid="sajik-seat-section-layer"/);
@@ -102,7 +102,7 @@ test('SajikSeatMapSvg는 secondary 공식 source에서 기존 960x640 polygon la
   assert.doesNotMatch(html, /sajik-accessibility-marker-sajik-everytime-903/);
   assert.match(svgSource, /SAJIK_SEATMAP_IMAGE\.renderImagePath \?\? SAJIK_SEATMAP_IMAGE\.imagePath/);
   assert.doesNotMatch(svgSource, /\?\? block\.imageGeometry\.d/);
-  assert.match(html, /sajik-lotte-seatmap-official-2026\.png/);
+  assert.match(html, /sajik-lotte-seatmap-official-2026\.webp/);
   assert.doesNotMatch(html, /data-testid="sajik-official-seatmap-required"/);
   assert.doesNotMatch(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.doesNotMatch(html, /SAJIK SEAT VIEW/);
@@ -137,7 +137,7 @@ test('SajikSeatMapSvg는 operator reference source에서 공개 선택 미리보
   assert.match(html, /data-testid="sajik-reference-seatmap-image"/);
   assert.match(html, /data-testid="sajik-reference-seatmap-svg"/);
   assert.match(html, /viewBox="0 0 1151 1367"/);
-  assert.match(html, /sajik-seatmap-operator-reference-2026\.png/);
+  assert.match(html, /sajik-seatmap-operator-reference-2026\.webp/);
   assert.match(html, /data-testid="sajik-operator-reference-preview-layer"/);
   assert.match(html, /data-runtime-selection-enabled="reference-preview"/);
   assert.equal(previewBlockMatches.length, SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections);

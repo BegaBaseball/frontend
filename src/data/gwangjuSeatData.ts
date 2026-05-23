@@ -440,8 +440,8 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
 ];
 
 const SOURCE_NOTE = 'KIA 타이거즈 공식 광주-기아 챔피언스필드 경기장 안내 이미지의 visible block 경계를 기준으로 둔 선택 hit-area입니다.';
-export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v85';
-export const GWANGJU_FULL_RETRACE_VERSION = 'manual-polygon-v86';
+export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v86';
+export const GWANGJU_FULL_RETRACE_VERSION = 'manual-polygon-v87';
 export const GWANGJU_FULL_RETRACE_GENERATION: GwangjuTraceGeneration = 'FULL_ACTIVE_111_RETRACE';
 const TRACE_VERSION = GWANGJU_FULL_RETRACE_VERSION;
 const TRACE_REVIEW_NOTE = '공식 PNG 원본 좌표계(2200x1159)에서 111개 기본 active block과 K7/AWAY aggregate hit-area를 이미지 정렬 audit와 구역별 workset으로 재검수하고 debug overlay와 evidence crop을 대조해 수동 검수한 hit-area입니다.';
@@ -679,14 +679,14 @@ function blockGeometry(
   };
 }
 
-const THIRD_BASE_V86_VISUAL_POINTS: Record<string, readonly Point[]> = {
-  'k7-121': [[412, 562], [416, 542], [420, 525], [422, 518], [425, 508], [427, 502], [432, 502], [441, 504], [521, 522], [538, 526], [541, 528], [555, 543], [555, 544], [544, 567], [537, 581], [534, 586], [532, 586], [525, 585], [469, 576], [463, 575], [458, 574], [440, 570], [414, 564], [412, 563]],
-  'k7-122': [[426, 505], [427, 502], [438, 476], [442, 468], [449, 456], [451, 453], [452, 452], [454, 452], [481, 458], [512, 465], [565, 477], [569, 478], [612, 490], [612, 491], [611, 492], [607, 495], [584, 512], [573, 520], [565, 523], [540, 531], [534, 531], [529, 530], [520, 528], [480, 519], [449, 512], [427, 507], [426, 506]],
-  'k8-123': [[452, 451], [455, 446], [460, 438], [462, 435], [477, 413], [486, 400], [489, 400], [516, 406], [629, 432], [648, 438], [648, 440], [642, 469], [630, 478], [615, 489], [614, 489], [569, 479], [480, 459], [454, 453], [452, 452]],
-  'k5-124': [[454, 400], [473, 362], [477, 358], [484, 355], [489, 355], [494, 356], [503, 358], [561, 371], [641, 389], [649, 391], [653, 414], [653, 415], [650, 430], [618, 439], [614, 439], [569, 429], [458, 404], [454, 403]],
-  'k5-125': [[485, 353], [494, 339], [498, 333], [507, 322], [509, 320], [512, 320], [561, 331], [601, 340], [663, 354], [664, 355], [664, 359], [659, 381], [652, 390], [650, 392], [649, 392], [640, 390], [560, 372], [489, 356], [485, 355]],
-  'k5-126': [[535, 286], [604, 305], [611, 316], [624, 299], [683, 314], [672, 362], [515, 329], [528, 300]],
-  'k5-127': [[680, 215], [695, 211], [695, 236], [690, 276], [687, 305], [679, 309], [660, 298], [654, 280], [663, 249], [672, 230]],
+const THIRD_BASE_V87_VISUAL_POINTS: Record<string, readonly Point[]> = {
+  'k7-121': [[395, 652], [396, 643], [398, 632], [401, 619], [403, 616], [414, 616], [421, 617], [454, 622], [499, 629], [509, 632], [510, 634], [508, 652], [505, 666], [499, 668], [490, 667], [470, 664], [405, 654]],
+  'k7-122': [[404, 603], [407, 584], [409, 573], [437, 576], [444, 577], [483, 583], [507, 587], [517, 590], [518, 592], [519, 596], [515, 612], [512, 623], [510, 626], [420, 612], [409, 610], [404, 609]],
+  'k8-123': [[411, 565], [414, 548], [416, 539], [419, 526], [420, 522], [425, 507], [431, 491], [436, 479], [442, 467], [444, 464], [448, 464], [453, 466], [465, 472], [494, 487], [521, 501], [537, 510], [543, 514], [536, 539], [520, 571], [516, 578], [513, 582], [504, 581], [470, 576], [421, 568], [414, 566]],
+  'k5-124': [[449, 455], [451, 451], [461, 436], [484, 402], [487, 398], [492, 393], [494, 393], [504, 398], [544, 422], [586, 448], [591, 453], [574, 477], [563, 492], [553, 505], [549, 510], [464, 466], [454, 460]],
+  'k5-125': [[496, 387], [499, 380], [504, 372], [506, 369], [513, 359], [516, 357], [518, 356], [547, 372], [610, 410], [624, 419], [627, 423], [624, 428], [622, 431], [613, 444], [608, 451], [604, 450], [554, 421], [511, 396], [499, 389]],
+  'k5-126': [[520, 324], [521, 322], [526, 317], [532, 317], [543, 318], [629, 370], [652, 384], [651, 388], [646, 397], [644, 400], [635, 413], [627, 412], [618, 407], [597, 395], [558, 372], [523, 351], [520, 349]],
+  'k5-127': [[645, 283], [648, 278], [659, 261], [663, 255], [670, 247], [681, 235], [682, 234], [685, 232], [687, 232], [688, 236], [688, 237], [681, 276], [676, 300], [651, 287]],
 };
 
 function multiBlockGeometry(
@@ -805,13 +805,13 @@ const INFIELD_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
   'k7-118': blockGeometry([[395, 651], [402, 616], [403, 615], [406, 615], [476, 626], [495, 629], [507, 631], [512, 632], [512, 633], [511, 639], [505, 669], [503, 669], [462, 663], [422, 657], [396, 653], [395, 652]], 480, 650, '118'),
   'k7-119': blockGeometry([[404, 606], [407, 588], [410, 573], [415, 573], [422, 574], [517, 589], [520, 590], [520, 592], [514, 622], [513, 626], [509, 626], [470, 620], [412, 611], [406, 610], [404, 609]], 480, 604, '119'),
   'k7-120': blockGeometry([[412, 562], [416, 542], [418, 534], [419, 533], [423, 533], [450, 539], [516, 554], [519, 555], [519, 558], [515, 578], [514, 581], [513, 582], [509, 582], [502, 581], [469, 576], [417, 568], [412, 567]], 496, 558, '120'),
-  'k7-121': blockGeometry([[428, 490], [520, 515], [512, 545], [428, 525]], 438, 510, '121', 10, THIRD_BASE_V86_VISUAL_POINTS['k7-121']),
-  'k7-122': blockGeometry([[455, 452], [560, 476], [540, 507], [455, 486]], 470, 466, '122', 10, THIRD_BASE_V86_VISUAL_POINTS['k7-122']),
-  'k8-123': blockGeometry([[470, 408], [600, 430], [560, 470], [455, 445]], 505, 430, '123', 10, THIRD_BASE_V86_VISUAL_POINTS['k8-123']),
-  'k5-124': blockGeometry([[492, 370], [650, 399], [625, 437], [474, 400]], 530, 390, '124', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-124']),
-  'k5-125': blockGeometry([[510, 330], [640, 358], [620, 390], [485, 362]], 560, 345, '125', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-125']),
-  'k5-126': blockGeometry([[535, 294], [604, 309], [611, 318], [626, 310], [683, 314], [672, 362], [515, 329], [528, 304]], 595, 326, '126', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-126']),
-  'k5-127': blockGeometry([[678, 235], [692, 232], [692, 254], [688, 302], [680, 313], [662, 303], [657, 282], [668, 248]], 678, 264, '127', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-127']),
+  'k7-121': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k7-121'], 445, 640, '121', 10, THIRD_BASE_V87_VISUAL_POINTS['k7-121']),
+  'k7-122': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k7-122'], 456, 598, '122', 10, THIRD_BASE_V87_VISUAL_POINTS['k7-122']),
+  'k8-123': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k8-123'], 470, 508, '123', 10, THIRD_BASE_V87_VISUAL_POINTS['k8-123']),
+  'k5-124': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k5-124'], 500, 465, '124', 10, THIRD_BASE_V87_VISUAL_POINTS['k5-124']),
+  'k5-125': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k5-125'], 546, 391, '125', 10, THIRD_BASE_V87_VISUAL_POINTS['k5-125']),
+  'k5-126': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k5-126'], 614, 325, '126', 10, THIRD_BASE_V87_VISUAL_POINTS['k5-126']),
+  'k5-127': blockGeometry(THIRD_BASE_V87_VISUAL_POINTS['k5-127'], 668, 269, '127', 10, THIRD_BASE_V87_VISUAL_POINTS['k5-127']),
 };
 
 function aggregateGeometryFromDrafts(
@@ -1020,15 +1020,15 @@ export const GWANGJU_OFFICIAL_TRACE_REFERENCE: Record<string, GwangjuOfficialTra
   'k7-118': { numberAnchor: { x: 480, y: 650 }, expectedBounds: { minX: 395, minY: 615, maxX: 512, maxY: 669 }, expectedSubpathCount: 1 },
   'k7-119': { numberAnchor: { x: 480, y: 604 }, expectedBounds: { minX: 404, minY: 573, maxX: 520, maxY: 626 }, expectedSubpathCount: 1 },
   'k7-120': { numberAnchor: { x: 496, y: 558 }, expectedBounds: { minX: 412, minY: 533, maxX: 519, maxY: 582 }, expectedSubpathCount: 1 },
-  'k7-121': { numberAnchor: { x: 438, y: 510 }, expectedBounds: { minX: 428, minY: 490, maxX: 520, maxY: 545 }, expectedSubpathCount: 1 },
-  'k7-122': { numberAnchor: { x: 470, y: 466 }, expectedBounds: { minX: 455, minY: 452, maxX: 560, maxY: 507 }, expectedSubpathCount: 1 },
-  'home-k7-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 395, minY: 452, maxX: 850, maxY: 953 }, expectedSubpathCount: 10 },
+  'k7-121': { numberAnchor: { x: 445, y: 640 }, expectedBounds: { minX: 395, minY: 616, maxX: 510, maxY: 668 }, expectedSubpathCount: 1 },
+  'k7-122': { numberAnchor: { x: 456, y: 598 }, expectedBounds: { minX: 404, minY: 573, maxX: 519, maxY: 626 }, expectedSubpathCount: 1 },
+  'home-k7-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 395, minY: 533, maxX: 850, maxY: 953 }, expectedSubpathCount: 10 },
   'away-cheering-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 638.3, minY: 835, maxX: 850, maxY: 953 }, expectedSubpathCount: 4 },
-  'k8-123': { numberAnchor: { x: 505, y: 430 }, expectedBounds: { minX: 455, minY: 408, maxX: 600, maxY: 470 }, expectedSubpathCount: 1 },
-  'k5-124': { numberAnchor: { x: 530, y: 390 }, expectedBounds: { minX: 474, minY: 370, maxX: 650, maxY: 437 }, expectedSubpathCount: 1 },
-  'k5-125': { numberAnchor: { x: 560, y: 345 }, expectedBounds: { minX: 485, minY: 330, maxX: 640, maxY: 390 }, expectedSubpathCount: 1 },
-  'k5-126': { numberAnchor: { x: 595, y: 326 }, expectedBounds: { minX: 515, minY: 294, maxX: 683, maxY: 362 }, expectedSubpathCount: 1 },
-  'k5-127': { numberAnchor: { x: 678, y: 264 }, expectedBounds: { minX: 657, minY: 232, maxX: 692, maxY: 313 }, expectedSubpathCount: 1 },
+  'k8-123': { numberAnchor: { x: 470, y: 508 }, expectedBounds: { minX: 411, minY: 464, maxX: 543, maxY: 582 }, expectedSubpathCount: 1 },
+  'k5-124': { numberAnchor: { x: 500, y: 465 }, expectedBounds: { minX: 449, minY: 393, maxX: 591, maxY: 510 }, expectedSubpathCount: 1 },
+  'k5-125': { numberAnchor: { x: 546, y: 391 }, expectedBounds: { minX: 496, minY: 356, maxX: 627, maxY: 451 }, expectedSubpathCount: 1 },
+  'k5-126': { numberAnchor: { x: 614, y: 325 }, expectedBounds: { minX: 520, minY: 317, maxX: 652, maxY: 413 }, expectedSubpathCount: 1 },
+  'k5-127': { numberAnchor: { x: 668, y: 269 }, expectedBounds: { minX: 645, minY: 232, maxX: 688, maxY: 300 }, expectedSubpathCount: 1 },
   'sky-picnic-s-301': { numberAnchor: { x: 856, y: 963 }, expectedBounds: { minX: 846, minY: 952, maxX: 867, maxY: 974 }, expectedSubpathCount: 1 },
   'sky-picnic-s-302': { numberAnchor: { x: 834, y: 968 }, expectedBounds: { minX: 822, minY: 957, maxX: 845, maxY: 978 }, expectedSubpathCount: 1 },
   'sky-picnic-s-303': { numberAnchor: { x: 811, y: 972 }, expectedBounds: { minX: 799, minY: 961, maxX: 822, maxY: 982 }, expectedSubpathCount: 1 },

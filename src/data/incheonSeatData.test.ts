@@ -16,9 +16,9 @@ function numberedBlocks(start: number, end: number): string[] {
 
 test('인천 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(INCHEON_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(INCHEON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.png');
+  assert.equal(INCHEON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp');
   assert.equal(INCHEON_SEATMAP_IMAGE.optimizedImagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp');
-  assert.equal(INCHEON_SEATMAP_IMAGE.requiredAssetFileName, 'incheon-ssg-seatmap-official-2026.png');
+  assert.equal(INCHEON_SEATMAP_IMAGE.requiredAssetFileName, 'incheon-ssg-seatmap-official-2026.webp');
   assert.equal(INCHEON_SEATMAP_IMAGE.imageWidth, 3360);
   assert.equal(INCHEON_SEATMAP_IMAGE.imageHeight, 5328);
   assert.ok(INCHEON_SEATMAP_IMAGE.sourceLabel);

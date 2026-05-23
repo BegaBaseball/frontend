@@ -75,7 +75,46 @@ function imageDimensions(filePath: string): { width: number; height: number } {
     }
   }
 
-  throw new Error(`${filePath} should be a PNG or JPEG image`);
+  if (
+    buffer.toString('ascii', 0, 4) === 'RIFF'
+    && buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    let offset = 12;
+    while (offset + 8 <= buffer.length) {
+      const chunkType = buffer.toString('ascii', offset, offset + 4);
+      const chunkSize = buffer.readUInt32LE(offset + 4);
+      const dataOffset = offset + 8;
+
+      if (chunkType === 'VP8X' && dataOffset + 10 <= buffer.length) {
+        return {
+          width: buffer.readUIntLE(dataOffset + 4, 3) + 1,
+          height: buffer.readUIntLE(dataOffset + 7, 3) + 1,
+        };
+      }
+
+      if (chunkType === 'VP8L' && dataOffset + 5 <= buffer.length) {
+        const b0 = buffer[dataOffset + 1]!;
+        const b1 = buffer[dataOffset + 2]!;
+        const b2 = buffer[dataOffset + 3]!;
+        const b3 = buffer[dataOffset + 4]!;
+        return {
+          width: 1 + (((b1 & 0x3f) << 8) | b0),
+          height: 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6)),
+        };
+      }
+
+      if (chunkType === 'VP8 ' && dataOffset + 10 <= buffer.length) {
+        return {
+          width: buffer.readUInt16LE(dataOffset + 6) & 0x3fff,
+          height: buffer.readUInt16LE(dataOffset + 8) & 0x3fff,
+        };
+      }
+
+      offset += 8 + chunkSize + (chunkSize % 2);
+    }
+  }
+
+  throw new Error(`${filePath} should be a PNG, JPEG, or WebP image`);
 }
 
 async function readOfficialSuwonSeatmapPixels(): Promise<ImagePixelData> {

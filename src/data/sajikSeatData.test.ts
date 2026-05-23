@@ -91,10 +91,10 @@ function distanceToPolygon(px: number, py: number, points: SeatMapPoint[]): numb
 test('사직 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
   assert.equal(SAJIK_SEATMAP_IMAGE.stadiumId, 'BUSAN_SAJIK');
   assert.equal(SAJIK_SEATMAP_IMAGE.mapVersion, 'BUSAN_SAJIK_2026_MANUAL_POLYGON_V2');
-  assert.equal(SAJIK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png');
-  assert.equal(SAJIK_SEATMAP_IMAGE.requiredAssetFileName, 'sajik-lotte-seatmap-official-2026.png');
+  assert.equal(SAJIK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp');
+  assert.equal(SAJIK_SEATMAP_IMAGE.requiredAssetFileName, 'sajik-lotte-seatmap-official-2026.webp');
   assert.equal(SAJIK_SEATMAP_IMAGE.viewBox, '0 0 960 640');
-  assert.equal(SAJIK_SEATMAP_IMAGE.imageSha256, 'e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa');
+  assert.equal(SAJIK_SEATMAP_IMAGE.imageSha256, 'd943cef6e4c86530c9568e3d50d43303aab3f0102a19dc76f828547c79a20b13');
   assert.equal(SAJIK_SEATMAP_IMAGE.sourceUrl, SAJIK_REFERENCE_URL);
   assert.ok(SAJIK_SEATMAP_IMAGE.sourceLabel);
   assert.equal(SAJIK_SEATMAP_IMAGE.renderImagePath, undefined);
@@ -129,7 +129,7 @@ test('사직 좌석도 source references는 operator reference를 기본 좌표�
   assert.equal(operatorReference.kind, 'REFERENCE_IMAGE');
   assert.equal(operatorReference.assetStatus, 'OPERATOR_REFERENCE');
   assert.equal(operatorReference.polygonStatus, 'PRODUCTION_INTERACTIVE');
-  assert.equal(operatorReference.imagePath, 'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png');
+  assert.equal(operatorReference.imagePath, 'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp');
   assert.equal(operatorReference.imageWidth, 1151);
   assert.equal(operatorReference.imageHeight, 1367);
   assert.equal(operatorReference.viewBox, SAJIK_OPERATOR_REFERENCE_VIEW_BOX);
@@ -978,8 +978,8 @@ test('사직 alignment audit 기준값과 041 정정 alias를 고정한다', () 
   const retraced143 = SAJIK_BLOCKS.find((block) => block.block === '143');
   assert.ok(retraced143, '143 should remain explicit');
   assert.equal(retraced143.mapInteractionStatus, 'MAP_SELECTABLE');
-  assert.equal(pathToPoints(retraced143.imageGeometry.d).length, 12);
-  assert.deepEqual(pathBounds(retraced143.imageGeometry.d), { minX: 779, minY: 458, maxX: 814, maxY: 482 });
+  assert.equal(pathToPoints(retraced143.imageGeometry.d).length, 13);
+  assert.deepEqual(pathBounds(retraced143.imageGeometry.d), { minX: 779, minY: 438, maxX: 840, maxY: 481 });
 
   const central041 = SAJIK_BLOCKS.find((block) => block.block === '041');
   assert.ok(central041, '041 block should exist from official PNG');

@@ -65,7 +65,7 @@ function resolveOfficialSeatMapImageUrl() {
     return null;
   }
 
-  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp', import.meta.url).href;
+  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png', import.meta.url).href;
 }
 
 function getSeatMapLayer(block: DaejeonBlock): number {

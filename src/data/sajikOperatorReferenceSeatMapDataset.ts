@@ -132,7 +132,7 @@ export const SAJIK_OPERATOR_REFERENCE_IMAGE = {
   "width": 1151,
   "height": 1367,
   "viewBox": "0 0 1151 1367",
-  "sha256": "794d957510240c786f4fce821814afbf01cc1f93fe7ec3ecca23846a8d753f6f",
+  "sha256": "b82d84a827c9b8aed64d8c0355e59e57fc00d54495d501e1fbd5a7866e304db0",
   "sourceStatus": "OPERATOR_REFERENCE"
 } as const satisfies SajikOperatorReferenceImage;
 
