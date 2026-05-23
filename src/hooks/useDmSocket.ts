@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { DirectMessage } from '../types/dm';
+import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import { buildDmSocketDestination } from '../utils/socketDestinations';
 import { loadStompModule, resolveStompBrokerUrl, type StompClient, type StompMessage } from '../utils/stomp';
 
@@ -82,6 +83,11 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived }: UseDm
     }
 
     void (async () => {
+      const isAuthReady = await ensureRealtimeAuthSession();
+      if (disposed || !enabled || !roomId || !isAuthReady) {
+        return;
+      }
+
       const { Client } = await loadStompModule();
       if (disposed || !enabled || !roomId) {
         return;
