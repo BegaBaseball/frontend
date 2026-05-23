@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import seatMapImageUrl from '../../assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.jpg';
+import seatMapImageUrl from '../../assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp';
 import {
   SUWON_BLOCKS,
   SUWON_CATEGORIES,
@@ -154,6 +154,7 @@ export default function SuwonSeatMapSvg({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number; blockId: string | null } | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const zoomRef = useRef(zoom);
@@ -722,6 +723,9 @@ export default function SuwonSeatMapSvg({
             }}
           >
             <g data-layer="seatmap-content">
+              {!imageLoaded && !imageFailed && (
+                <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+              )}
               <image
                 href={seatMapImageUrl}
                 x={0}
@@ -729,7 +733,9 @@ export default function SuwonSeatMapSvg({
                 width={imageWidth}
                 height={imageHeight}
                 preserveAspectRatio="none"
+                onLoad={() => setImageLoaded(true)}
                 onError={() => setImageFailed(true)}
+                style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
               />
 
               <g data-layer="image-geometry-overlays" pointerEvents="none">
