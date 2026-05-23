@@ -19,6 +19,7 @@ import {
 } from '../hooks/mateDetailRoute';
 import type { Application, CancelReasonType, Party } from '../types/mate';
 import { getRefundPolicyMessage } from '../utils/paymentStatus';
+import AdSlot from './ads/AdSlot';
 import ViewportDeferred from './ViewportDeferred';
 import type { MateDetailActionButton, MateDetailActionContext } from './MateDetailActionSection';
 import { useConfirmDialog } from './contexts/confirmDialogCore';
@@ -431,6 +432,14 @@ export default function MateDetailContentRuntime({
               />
             </Suspense>
           </ViewportDeferred>
+
+          <AdSlot
+            slotId="mate_detail_1"
+            pageType="mate_detail"
+            contentId={party.id != null ? String(party.id) : null}
+            loggedIn={Boolean(currentUserId)}
+            userId={currentUserId ? String(currentUserId) : null}
+          />
 
           <ViewportDeferred
             rootMargin="0px 0px 240px 0px"
