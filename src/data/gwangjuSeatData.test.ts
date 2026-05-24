@@ -1331,13 +1331,13 @@ test('광주 3루 G/H/I/J와 121~127 shared boundary는 공식 PNG mask 기준�
     'k5-127': { minX: 675, minY: 243, maxX: 692, maxY: 313 },
   };
   const expectedVisualBoundsByBlockId: Record<string, Bounds> = {
-    'k7-121': { minX: 412, minY: 502, maxX: 555, maxY: 586 },
-    'k7-122': { minX: 426, minY: 452, maxX: 612, maxY: 531 },
-    'k8-123': { minX: 452, minY: 400, maxX: 648, maxY: 489 },
-    'k5-124': { minX: 454, minY: 355, maxX: 653, maxY: 439 },
+    'k7-121': { minX: 404, minY: 502, maxX: 555, maxY: 586 },
+    'k7-122': { minX: 426, minY: 452, maxX: 571, maxY: 508 },
+    'k8-123': { minX: 452, minY: 400, maxX: 610, maxY: 459 },
+    'k5-124': { minX: 465, minY: 358, maxX: 653, maxY: 439 },
     'k5-125': { minX: 485, minY: 320, maxX: 664, maxY: 392 },
     'k5-126': { minX: 515, minY: 286, maxX: 683, maxY: 362 },
-    'k5-127': { minX: 654, minY: 211, maxX: 695, maxY: 309 },
+    'k5-127': { minX: 672, minY: 216, maxX: 695, maxY: 309 },
   };
 
   Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
@@ -1405,6 +1405,26 @@ test('광주 3루 G/H/I/J와 121~127 shared boundary는 공식 PNG mask 기준�
     calculateSampledOverlapRatio(blocksById.get('k5-124')!.imageGeometry.d, partyThird.imageGeometry.d),
     0,
     '3루 J should not overlap 124 at the official PNG shared boundary',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(blocksById.get('k7-122')!.imageGeometry.visualD!, blocksById.get('third-surprise-seats')!.imageGeometry.d) <= 0.01,
+    '122 visual polygon should not swallow the 3루 G special area',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(blocksById.get('k8-123')!.imageGeometry.visualD!, blocksById.get('third-surprise-seats')!.imageGeometry.d) <= 0.01,
+    '123 visual polygon should not swallow the 3루 G special area',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(blocksById.get('k5-124')!.imageGeometry.visualD!, partyThird.imageGeometry.d) <= 0.08,
+    '124 visual polygon should not swallow the 3루 J special area',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(blocksById.get('k5-126')!.imageGeometry.visualD!, thirdFamily.imageGeometry.d) <= 0.08,
+    '126 visual polygon should stay on its side of the 3루 H shared boundary',
+  );
+  assert.ok(
+    calculateSampledOverlapRatio(blocksById.get('k5-127')!.imageGeometry.visualD!, thirdFamily.imageGeometry.d) <= 0.01,
+    '127 visual polygon should not swallow the 3루 H special area',
   );
 });
 
