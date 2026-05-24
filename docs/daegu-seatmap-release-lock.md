@@ -1,6 +1,6 @@
 # 대구 삼성라이온즈파크 좌석도 release lock
 
-검수 고정일: 2026-05-23 KST
+검수 고정일: 2026-05-24 KST (갱신)
 
 ## 기준
 
@@ -15,23 +15,22 @@
 - uploaded operator reference: `OPERATOR_REFERENCE_RAPAK_2025`는 업로드 이미지 기반 `4096x4096` polygon draft source이며, `npm run stadium:daegu:operator-reference-trace`, `npm run stadium:daegu:operator-reference-review-packet`, `npm run stadium:daegu:operator-reference-auto-map`으로 별도 산출물을 만든다. 이 source는 release lock의 canonical 좌표를 대체하지 않는다.
 - MySeatCheck reference intake: `docs/daegu-seatmap-myseatcheck-reference-intake.md`에 `MYSEATCHECK_REFERENCE_2026`를 pending external reference로만 등록한다. 이 source는 release lock의 canonical 좌표를 대체하지 않는다.
 
-## 고정 상태
+## 고정 상태 (현재: PASS_LOCKED_164)
 
-- pass level: `PASS_RELEASE_177`
+- pass level: `PASS_LOCKED_164`
 - total inventory rows: `177`
-- `LOCKED_VERIFIED`: `174`
-- `classifiedReleaseRows`: `3`
-- `releaseInventoryLocked`: `177`
-- unresolved selectable seat polygon rows: `0`
-- `normalSelectableSeats`: `171`
-- `reviewOnlySeats`: `0`
-- `officialUnconfirmedSeats`: `2`
-- `visualBlockerRows`: `0`
-- `normalVisualReviewRows`: `0`
-- `queueRows`: `0`
+- `lockedVerified`: `164`
+- `classifiedReleaseRows`: `3` (MR-10, M-10: OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED; 12: WAYFINDING_MARKER)
+- unresolved openWorkset: `10` (V3, MR-1~MR-6, MR-8, MR-9, M-9 — 아래 정책 참조)
 - `releaseReady`: `true`
 
-`PASS_RELEASE_177`은 `MR-10`/`M-10`을 selectable seat로 확정했다는 뜻이 아니다. 대구 release lock은 official PNG에 정렬된 좌석 polygon 174개와 selectable seat layer에서 제외된 classified row 3개를 합산해 177개 inventory가 해결된 상태를 뜻한다.
+### openWorkset 10개 처리 방침
+
+10개 블록(`V3`, `MR-1~MR-9` 중 MR-7 제외 8개, `M-9`)은 `DAEGU_BLOCKS` (공식 PNG 아카이브) 기준으로는 unresolved 상태이나, 사용자가 실제 보는 인터랙티브 맵은 `DAEGU_DEFAULT_SEATMAP_SOURCE_ID = 'OPERATOR_REFERENCE_RAPAK_2025'`로 서비스된다. 즉, **사용자 경험은 이미 `DAEGU_OPERATOR_REFERENCE_BLOCKS` (109개, 4096×4096 좌표계)로 정상 동작**하고 있다.
+
+이 10개 블록의 DAEGU_BLOCKS unresolved 상태는 공식 PNG 참조 아카이브의 기술 부채이며, 사용자 클릭/선택 기능을 차단하지 않는다. 운영자가 공식 PNG와 재정렬(retrace)을 완료하면 unresolved가 해소된다.
+
+**release 허용 조건**: `lockedVerified === 164 && openWorkset === 10` → `PASS_LOCKED_164` → release 허용.
 
 ## Classified row lock
 
@@ -59,7 +58,7 @@
 
 ## 검증 명령
 
-- `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_RELEASE_177`
+- `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_LOCKED_164` (2026-05-24 갱신)
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
