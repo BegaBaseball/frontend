@@ -5909,7 +5909,7 @@ const DAEGU_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
     sectionKind: "WAYFINDING_MARKER",
     sourceConfidence: "UNVERIFIED",
     sourceNote: `${COORDINATE_REVIEW_SOURCE_NOTE} official PNG crop x=610..740 y=1280..1375에서 12가 독립 좌석색 polygon이 아니라 SKY 블루존 사이의 흰색 번호/통로 marker임을 확인했습니다.`,
-    traceStatus: "OFFICIAL_IMAGE_TRACED",
+    traceStatus: "NEEDS_OPERATOR_REVIEW",
     traceMethod: "PATH_TRACED_FROM_OFFICIAL_IMAGE",
     reviewNote: "NON_SEAT_WAYFINDING_MARKER_REVIEW: 공식 PNG overlay에서 기존 12 좌석 polygon은 허공에 있었고, 실제 12 표식은 좌석색이 아닌 흰색 번호/통로 marker입니다. normal seat layer와 review-only seat layer에서 제외하고 marker layer에만 둡니다. evidence=/private/tmp/daegu-12-evidence-overlay.png; reviewer=CODEX_IMAGE_ANALYSIS; reviewedAt=2026-05-23T00:00:00.000Z.",
   },
