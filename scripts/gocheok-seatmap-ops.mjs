@@ -763,10 +763,126 @@ const runEvidence = async () => {
   console.log(`evidence_report:${reportPath}`);
 };
 
+const runReleaseGate = async () => {
+  const { default: fs } = await import('node:fs/promises');
+  const { createHash } = await import('node:crypto');
+  const {
+    GOCHEOK_BLOCKS,
+    GOCHEOK_SEATMAP_IMAGE,
+    GOCHEOK_TRACE_REVIEWED_BLOCK_IDS,
+    GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS,
+    GOCHEOK_OMITTED_OFFICIAL_BLOCKS,
+  } = await import('../src/data/gocheokSeatData.ts');
+
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const frontendRoot = path.resolve(scriptDir, '..');
+  const reportDir = path.join(frontendRoot, 'reports/stadium');
+  const reportJsonPath = path.join(reportDir, 'gocheok-seatmap-release-gate.json');
+  const reportMarkdownPath = path.join(reportDir, 'gocheok-seatmap-release-gate.md');
+
+  const EXPECTED_TOTAL_BLOCKS = 159;
+  const EXPECTED_TRACE_REVIEWED = 159;
+  const EXPECTED_MANUAL_TODO = 0;
+  const EXPECTED_OMITTED_OFFICIAL = 1;
+  const EXPECTED_OFFICIAL_ASSET_SHA256 = 'ea95249b6f121e65b13435616768e2de433090be734de5d86c1effa40cfd64bd';
+  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = 'c548e884fc548220b42df2a94753e14cee3636a2cdb04abd51702665b2a29670';
+
+  function sha256(value) {
+    return createHash('sha256').update(value).digest('hex');
+  }
+
+  function snapshotFixture() {
+    const blocks = GOCHEOK_BLOCKS
+      .map((b) => ({
+        id: b.id,
+        block: b.block,
+        level: b.level,
+        side: b.side,
+        category: b.category,
+        d: b.imageGeometry.d,
+        labelX: b.imageGeometry.labelX,
+        labelY: b.imageGeometry.labelY,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const tracedIds = [...GOCHEOK_TRACE_REVIEWED_BLOCK_IDS].sort();
+    return JSON.stringify({ blocks, tracedIds });
+  }
+
+  async function readText(relPath) {
+    return fs.readFile(path.join(frontendRoot, relPath), 'utf8');
+  }
+
+  const packageSource = await readText('package.json');
+  const assetBuffer = await fs.readFile(path.join(frontendRoot, GOCHEOK_SEATMAP_IMAGE.imagePath));
+
+  const releaseFixtureFingerprint = sha256(snapshotFixture());
+  const officialAssetSha256 = sha256(assetBuffer);
+
+  const summary = {
+    totalBlocks: GOCHEOK_BLOCKS.length,
+    traceReviewedBlockIds: GOCHEOK_TRACE_REVIEWED_BLOCK_IDS.length,
+    manualTodoBlocks: GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS.length,
+    omittedOfficialBlocks: GOCHEOK_OMITTED_OFFICIAL_BLOCKS.length,
+    releaseFixtureFingerprint,
+    officialAssetSha256,
+  };
+
+  const checks = [
+    ['total blocks', summary.totalBlocks === EXPECTED_TOTAL_BLOCKS],
+    ['trace reviewed block count', summary.traceReviewedBlockIds === EXPECTED_TRACE_REVIEWED],
+    ['manual todo blocks are empty', summary.manualTodoBlocks === EXPECTED_MANUAL_TODO],
+    ['omitted official block count', summary.omittedOfficialBlocks === EXPECTED_OMITTED_OFFICIAL],
+    ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
+    ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
+    ['package release lock script', packageSource.includes('"qa:stadium:gocheok:release-lock"')],
+    ['package trace manifest script', packageSource.includes('"stadium:gocheok:trace-manifest"')],
+  ].map(([label, passed]) => ({ label, passed }));
+
+  const failures = checks.filter((c) => !c.passed).map((c) => c.label);
+  const report = {
+    generatedAt: new Date().toISOString(),
+    status: failures.length === 0 ? 'passed' : 'failed',
+    summary,
+    checks,
+    failures,
+  };
+
+  const markdown = [
+    '# Gocheok Seatmap Release Gate',
+    '',
+    `- Generated at: ${report.generatedAt}`,
+    `- Status: ${report.status}`,
+    `- totalBlocks: ${summary.totalBlocks}`,
+    `- traceReviewedBlockIds: ${summary.traceReviewedBlockIds}`,
+    `- manualTodoBlocks: ${summary.manualTodoBlocks}`,
+    '',
+    '## Checks',
+    '',
+    ...checks.map((c) => `- ${c.passed ? 'PASS' : 'FAIL'} ${c.label}`),
+    '',
+    ...(failures.length > 0 ? ['## Failures', '', ...failures.map((f) => `- ${f}`), ''] : []),
+  ].join('\n');
+
+  await fs.mkdir(reportDir, { recursive: true });
+  await fs.writeFile(reportJsonPath, `${JSON.stringify(report, null, 2)}\n`);
+  await fs.writeFile(reportMarkdownPath, markdown);
+
+  if (failures.length > 0) {
+    failures.forEach((f) => console.error(`[gocheok-release-gate] failure: ${f}`));
+    console.error('[gocheok-release-gate] failed');
+    console.error(`[gocheok-release-gate] report=${reportJsonPath}`);
+    process.exit(1);
+  }
+
+  console.log('[gocheok-release-gate] passed');
+  console.log(`[gocheok-release-gate] report=${reportJsonPath}`);
+};
+
 const TASKS = {
   "pixel-components": runPixelComponents,
   "trace-manifest": runTraceManifest,
   "evidence": runEvidence,
+  "release-gate": runReleaseGate,
 };
 
 export const runGocheokSeatmapTask = async (task, args = process.argv.slice(2)) => {
