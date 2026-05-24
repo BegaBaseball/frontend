@@ -50,6 +50,10 @@ const DAEGU_OPERATOR_REFERENCE_P2C_APPROVAL_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p2c-approval.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_OPERATOR_REFERENCE_P3_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p3-approval.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
