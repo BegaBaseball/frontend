@@ -333,11 +333,6 @@ export default function PredictionMatchPreviewTab({
                 })}
               </div>
             </div>
-            <div
-              aria-hidden="true"
-              data-testid="prediction-schedule-match-list-fade"
-              className="pointer-events-none absolute inset-y-0 right-0 hidden w-12 bg-gradient-to-l from-white via-white/90 to-transparent dark:from-card dark:via-card/90 lg:block"
-            />
           </div>
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center px-5 py-10 text-center">

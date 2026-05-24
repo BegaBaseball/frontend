@@ -15,8 +15,8 @@
 ## 고정 상태
 
 - release phase: `OFFICIAL_DERIVED_AGGREGATE_READY`
-- trace version: `manual-polygon-v86`
-- previous trace version: `manual-polygon-v85`
+- trace version: `manual-polygon-v96`
+- previous trace version: `manual-polygon-v95`
 - trace generation: `FULL_ACTIVE_111_RETRACE`
 - `activeBlocks=113`
 - `GWANGJU_BASE_TRACE_BLOCK_COUNT === 111`
@@ -180,8 +180,8 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - 공식 PNG natural size는 `2200x1159`이어야 한다.
 - SVG overlay와 hit-area는 공식 PNG 원본 좌표계를 기준으로 유지한다.
 - active 113개 block은 모두 `OFFICIAL_IMAGE_TRACED`, `manualReviewed: true`, `PIXEL_ALIGNED` 상태여야 한다.
-- 기본 111개 active block은 `manual-polygon-v86` / `FULL_ACTIVE_111_RETRACE` 세대로 고정하고, K7/AWAY 2개 aggregate는 기존 공식 traced 번호 블럭 subpath로만 구성한다.
-- `manual-polygon-v85` 대비 재생성 결과는 trace manifest의 `previousTraceVersion`, `blocksChangedFromPreviousTrace`, `totalRetracePointDelta`, bbox/anchor/coverage delta, zone overlay crop 필드로 확인한다.
+- 기본 111개 active block은 `manual-polygon-v96` / `FULL_ACTIVE_111_RETRACE` 세대로 고정하고, K7/AWAY 2개 aggregate는 기존 공식 traced 번호 블럭 subpath로만 구성한다.
+- `manual-polygon-v95` 대비 재생성 결과는 trace manifest의 `previousTraceVersion`, `blocksChangedFromPreviousTrace`, `totalRetracePointDelta`, bbox/anchor/coverage delta, zone overlay crop 필드로 확인한다.
 - `GWANGJU_ZONE_PRECISION_WORKSETS`는 P1 O/P 외야, P2 하단 내야 저마진 K7/K9, P3 특수석, P4 SKY_PICNIC/FIVE_TABLE 반복 블럭, P5 전체 113개 reference 재고정 순서를 고정한다.
 - 일반 좌석 layer는 `GWANGJU_BLOCKS[].imageGeometry.d`만 hit-area로 렌더링하며 `GWANGJU_IMAGE_GEOMETRY_DRAFTS`, `GWANGJU_OFFICIAL_TRACE_REFERENCE`, operator template, marker-only zone은 런타임 hit-area source가 아니다. K7/AWAY aggregate는 `GWANGJU_BLOCKS`에 들어간 release-ready geometry만 filter 전용으로 렌더링한다.
 - 런타임 SVG는 `GWANGJU_BLOCKS.map`과 `d={block.imageGeometry.d}`만 일반 좌석 `<path>` source로 사용한다.
@@ -252,7 +252,7 @@ Commit readiness after explicit targeted staging:
 npm run stadium:gwangju:commit-readiness
 ```
 
-`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <40 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 40개 target file이 모두 staged 된 뒤에만 통과해야 한다.
+`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <17 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 17개 target file이 모두 staged 된 뒤에만 통과해야 한다.
 
 최종 판정은 preoperator 통과 + official derived aggregate release + scope guard 통과 상태를 함께 확인한다.
 
@@ -287,19 +287,19 @@ npm run build
 - release audit가 `passed`가 아니거나 release gate/package/status/trace/browser QA/handoff 산출물 stale 상태를 감지한다.
 - release verify가 `release-gate -> targeted-staging -> staged-scope-audit -> release-audit` 순서를 잃는다.
 - release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.
-- PR packaging manifest가 광주 release 후보 40개, separate dirty work baseline 95개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
-- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=40`, `actualIncludedFileCount=40`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
-- release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=95`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.
-- release scope guard의 `prPackagingManifest.releasePayloadFileCount=40`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
+- PR packaging manifest가 광주 release 후보 17개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
+- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=17`, `actualIncludedFileCount=17`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
+- release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=74`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.
+- release scope guard의 `prPackagingManifest.releasePayloadFileCount=17`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
 - release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.
 - patch separation readiness가 release payload files have unreviewed mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.
-- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=40`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
-- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=40`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
-- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=40`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=2` 계약을 잃는다.
+- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=17`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
+- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=17`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
+- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=17`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=4` 계약을 잃는다.
 - targeted staging report가 separate dirty work를 staging 대상으로 추천하거나 `git add .`, `git add -A`, `git commit -am`을 허용한다.
-- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=40`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
+- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=17`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
 - staged scope audit가 targeted staging 파일 외 staged 파일이나 separate dirty work staged 파일을 허용한다.
-- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 40-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
+- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 17-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
 - commit-readiness가 모든 targeted file staged 이후 `stagedScopeAudit.requireComplete=true`, `stagedScopeAudit.missingStagedTargetFileCount=0`, `readyForCommit=true` 계약을 고정하지 못한다.
 - release verify가 `activeBlocks=113`, `operatorStatus=ready`, `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 중 하나를 잃는다.
 - post-operator independent polygon acceptance는 별도 non-overlap operator target이 추가된 경우에만 실행한다.
@@ -320,7 +320,7 @@ npm run build
   - 광주 K7/원정응원석 block-range, fanRole 필터, 공식 derived aggregate 계약 포함
 - `npm run qa:stadium:gwangju:trace-review`: PASS
   - `activeBlocks=113`
-  - `traceVersion=manual-polygon-v86`
+  - `traceVersion=manual-polygon-v96`
   - `traceGeneration=FULL_ACTIVE_111_RETRACE`
   - `fullRetracedBlocks=113`
   - `blocksChangedFromPreviousTrace=113`
@@ -360,19 +360,19 @@ npm run build
   - `blockers=0`
   - `stale=0`
   - `scopeGuardStatus=passed`
-  - `scopeGuardIncludedFiles=40`
+  - `scopeGuardIncludedFiles=17`
   - `scopeGuardSeparateDirtyWorkFiles=<runtime>`
-  - `scopeGuardSeparateDirtyWorkBaselineFiles=95`
+  - `scopeGuardSeparateDirtyWorkBaselineFiles=74`
   - `classifiedSeparateDirtyWorkExpansionAllowed=true`
   - `scopeGuardUnexpectedFiles=0`
   - `scopeGuardBlockers=0`
 - `npm run stadium:gwangju:release-scope-guard`: PASS
   - `status=passed`
-  - `included=40`
+  - `included=17`
   - `separate=<runtime>`
   - `unexpected=0`
   - `inventoryDrift=0`
-  - `prPackagingManifest.releasePayloadFileCount=40`
+  - `prPackagingManifest.releasePayloadFileCount=17`
   - `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`
   - `prPackagingManifest.unexpectedDirtyFileCount=0`
   - `prPackagingManifest.inventoryDriftCount=0`
@@ -383,14 +383,14 @@ npm run build
   - `stagingPlan.status=ready-or-review-required`
   - `stagingPlan.doesNotRunGitAdd=true`
   - `stagingPlan.safeToRunBulkGitAdd=false`
-  - `stagingPlan.releasePayloadFileCount=40`
+  - `stagingPlan.releasePayloadFileCount=17`
   - `stagingPlan.separateDirtyWorkFileCount=<runtime>`
   - `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true`
 - `npm run stadium:gwangju:pr-staging-review`: PASS
   - `stagingReview.status=ready-or-review-required`
   - `stagingReview.doesNotRunGitAdd=true`
   - `stagingReview.safeToRunBulkGitAdd=false`
-  - `stagingReview.releasePayloadFileCount=40`
+  - `stagingReview.releasePayloadFileCount=17`
   - `stagingReview.recommendsOnlyIncludedFiles=true`
   - `stagingReview.doesNotRecommendSeparateDirtyWork=true`
   - current status: `ready`
@@ -402,15 +402,15 @@ npm run build
   - `targetedStaging.status=ready`
   - `targetedStaging.doesNotRunGitAdd=true`
   - `targetedStaging.safeToRunBulkGitAdd=false`
-  - `targetedStaging.targetFileCount=40`
-  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=2`
+  - `targetedStaging.targetFileCount=17`
+  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=4`
   - targeted staging excludes separate dirty work and recommends only explicit included release files.
 - `npm run stadium:gwangju:staged-scope-audit`: PASS
   - `stagedScopeAudit.status=ready`
   - `stagedScopeAudit.requireComplete=false`
   - `stagedScopeAudit.doesNotRunGitAdd=true`
   - `stagedScopeAudit.safeToRunBulkGitAdd=false`
-  - `stagedScopeAudit.expectedTargetFileCount=40`
+  - `stagedScopeAudit.expectedTargetFileCount=17`
   - `stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count>` before explicit staging
   - `stagedScopeAudit.stagedOutsideTargetFileCount=0`
   - `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0`

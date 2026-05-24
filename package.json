@@ -135,6 +135,7 @@
     "stadium:gwangju:operator-postwrite-gate": "node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate",
     "qa:stadium:gwangju:runtime-layer": "node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer",
     "qa:stadium:gwangju:trace-review": "node scripts/stadium-seatmap-ops.mjs gwangju trace-review",
+    "qa:stadium:gwangju:selected-sweep": "node scripts/stadium-seatmap-ops.mjs gwangju selected-sweep",
     "qa:stadium:gwangju:release-gate": "node scripts/stadium-seatmap-ops.mjs gwangju release-gate",
     "qa:stadium:gwangju:release-verify": "node scripts/stadium-seatmap-ops.mjs gwangju release-verify",
     "qa:stadium:gwangju:release-verify:preoperator": "node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator",

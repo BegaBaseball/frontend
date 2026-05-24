@@ -34,6 +34,8 @@ const shouldCaptureGocheokDebugOverlay = process.env.STADIUM_UX_GOCHEOK_DEBUG_CA
 const shouldRunGwangjuDeepCheck = process.env.STADIUM_UX_GWANGJU_DEEP_CHECK === '1';
 const shouldRunGwangjuVisualHitSplitOnly = process.env.STADIUM_UX_GWANGJU_VISUAL_HIT_SPLIT_ONLY === '1';
 const shouldCaptureGwangjuDebugOverlay = process.env.STADIUM_UX_GWANGJU_DEBUG_CAPTURE === '1';
+const shouldCaptureGwangjuExpandedEvidence = process.env.STADIUM_UX_GWANGJU_EXPANDED_EVIDENCE === '1';
+const shouldRunGwangjuSelectedSweepOnly = process.env.STADIUM_UX_GWANGJU_SELECTED_SWEEP_ONLY === '1';
 const GWANGJU_RUNTIME_LAYER_STATIC_CONTRACT = [
   'readGwangjuTraceManifestBlocks',
   'expectedLabelTargetCount',
@@ -45,6 +47,8 @@ const GWANGJU_RUNTIME_LAYER_STATIC_CONTRACT = [
   'visualPathMismatchCount',
   'visualHitSplitRows',
   'STADIUM_UX_GWANGJU_VISUAL_HIT_SPLIT_ONLY',
+  'STADIUM_UX_GWANGJU_EXPANDED_EVIDENCE',
+  'STADIUM_UX_GWANGJU_SELECTED_SWEEP_ONLY',
   'gwangju-seat-visual-',
   'forbiddenRenderedIds',
   'labelTopHitFailureCount',
@@ -1915,6 +1919,32 @@ const verifyGwangjuOverlayClicks = async (page) => {
     }
   };
 
+  const gwangjuThirdBaseSelectedSweepTargets = shouldCaptureGwangjuExpandedEvidence
+    ? [
+      { id: 'k9-116' },
+      { id: 'k7-121' },
+      { id: 'k7-122' },
+      { id: 'k8-123' },
+      { id: 'k5-124' },
+      { id: 'k5-125' },
+      { id: 'k5-126' },
+      { id: 'k5-127' },
+      { id: 'third-surprise-seats' },
+      { id: 'third-family-seats' },
+      { id: 'third-wheelchair-seats' },
+      { id: 'party-seats-third' },
+      { id: 'sky-picnic-s-335' },
+      { id: 'five-table-533' },
+      { id: 'five-table-534' },
+      { id: 'five-table-535' },
+      { id: 'skybox-seats' },
+    ]
+    : [
+      { id: 'k9-116' },
+      { id: 'k5-127' },
+      { id: 'skybox-seats' },
+    ];
+
   const gwangjuSelectedSweepGroups = [
     {
       filePrefix: 'gwangju-lower-infield-selected-sweep',
@@ -1925,11 +1955,8 @@ const verifyGwangjuOverlayClicks = async (page) => {
     },
     {
       filePrefix: 'gwangju-thirdbase-selected-sweep',
-      targets: [
-        { id: 'k9-116' },
-        { id: 'k5-127' },
-        { id: 'skybox-seats' },
-      ],
+      officialReferenceOverlayPath: path.join(frontendRoot, 'reports/stadium/gwangju-seatmap-third-base-independent-audit-overlay.png'),
+      targets: gwangjuThirdBaseSelectedSweepTargets,
     },
   ];
 
@@ -1950,9 +1977,14 @@ const verifyGwangjuOverlayClicks = async (page) => {
           return block?.getAttribute('aria-pressed') === 'true';
         }, target.id, { timeout: 5000 });
 
-        await page.locator('[data-testid="gwangju-bottom-sheet"]:visible').first().evaluate((element) => {
+        const hiddenBottomSheetStyle = await page.locator('[data-testid="gwangju-bottom-sheet"]:visible').first().evaluate((element) => {
+          const previousStyle = {
+            visibility: element.style.visibility,
+            pointerEvents: element.style.pointerEvents,
+          };
           element.style.visibility = 'hidden';
           element.style.pointerEvents = 'none';
+          return previousStyle;
         }).catch(() => undefined);
 
         const evidence = await page.evaluate((targetId) => {
@@ -1973,19 +2005,52 @@ const verifyGwangjuOverlayClicks = async (page) => {
           path: path.join(outputRoot, `${sweepGroup.filePrefix}-${target.id}-${suffix}.png`),
           animations: 'disabled',
         }).catch(() => undefined);
+
+        if (hiddenBottomSheetStyle) {
+          await page.locator('[data-testid="gwangju-bottom-sheet"]').first().evaluate((element, previousStyle) => {
+            element.style.visibility = previousStyle.visibility;
+            element.style.pointerEvents = previousStyle.pointerEvents;
+          }, hiddenBottomSheetStyle).catch(() => undefined);
+        }
       }
 
       await fsPromises.writeFile(
         path.join(outputRoot, `${sweepGroup.filePrefix}-${suffix}.json`),
-        `${JSON.stringify({ filePrefix: sweepGroup.filePrefix, suffix, selectedEvidence }, null, 2)}\n`,
+        `${JSON.stringify({
+          filePrefix: sweepGroup.filePrefix,
+          suffix,
+          officialReferenceOverlayPath: sweepGroup.officialReferenceOverlayPath ?? null,
+          selectedEvidence,
+        }, null, 2)}\n`,
+        'utf8',
+      ).catch(() => undefined);
+      await fsPromises.writeFile(
+        path.join(outputRoot, `${sweepGroup.filePrefix}-${suffix}.md`),
+        [
+          `# ${sweepGroup.filePrefix} ${suffix}`,
+          '',
+          sweepGroup.officialReferenceOverlayPath
+            ? `- official reference overlay: ${sweepGroup.officialReferenceOverlayPath}`
+            : '- official reference overlay: n/a',
+          '',
+          '| id | selected | label | trace | pixel | screenshot |',
+          '| --- | --- | --- | --- | --- | --- |',
+          ...selectedEvidence.map((row) => (
+            `| ${row.id} | ${row.selected ? 'true' : 'false'} | ${row.labelX},${row.labelY} | ${row.traceStatus ?? ''} | ${row.pixelAlignmentStatus ?? ''} | ${path.join(outputRoot, `${sweepGroup.filePrefix}-${row.id}-${suffix}.png`)} |`
+          )),
+          '',
+        ].join('\n'),
         'utf8',
       ).catch(() => undefined);
     }
   };
 
-  if (shouldCaptureGwangjuDebugOverlay) {
+  if (shouldCaptureGwangjuDebugOverlay || shouldRunGwangjuSelectedSweepOnly) {
     await captureGwangjuTraceReviewScreenshots();
     await captureGwangjuSelectedSeatmapEvidence();
+    if (shouldRunGwangjuSelectedSweepOnly) {
+      return;
+    }
   }
 
   const closeDetailPanel = async () => {

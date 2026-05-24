@@ -679,9 +679,9 @@ test('광주 trace review summary는 active 블록의 수동 polygon trace 완�
   assert.equal(GWANGJU_TRACE_REVIEW_SUMMARY.manualReviewRequired, 0);
 });
 
-test('광주 manual-polygon-v86 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
-  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v86');
-  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v85');
+test('광주 manual-polygon-v96 구역별 정밀화 workset은 111개 release 계약을 고정한다', () => {
+  assert.equal(GWANGJU_FULL_RETRACE_VERSION, 'manual-polygon-v96');
+  assert.equal(GWANGJU_PREVIOUS_TRACE_VERSION, 'manual-polygon-v95');
 
   const worksetsById = new Map(GWANGJU_ZONE_PRECISION_WORKSETS.map((workset) => [workset.id, workset]));
   const activeBlockIds = new Set(GWANGJU_BLOCKS.map((block) => block.id));
@@ -1323,12 +1323,21 @@ test('광주 3루 G/H/I/J와 121~127 shared boundary는 공식 PNG mask 기준�
     'third-wheelchair-seats': { minX: 438, minY: 204, maxX: 607, maxY: 362 },
     'party-seats-third': { minX: 430, minY: 353, maxX: 489, maxY: 398 },
     'k7-121': { minX: 428, minY: 490, maxX: 520, maxY: 545 },
-    'k7-122': { minX: 455, minY: 452, maxX: 560, maxY: 507 },
-    'k8-123': { minX: 455, minY: 408, maxX: 600, maxY: 470 },
-    'k5-124': { minX: 474, minY: 370, maxX: 650, maxY: 437 },
+    'k7-122': { minX: 455, minY: 452, maxX: 545, maxY: 501 },
+    'k8-123': { minX: 470, minY: 408, maxX: 565, maxY: 454 },
+    'k5-124': { minX: 490, minY: 370, maxX: 630, maxY: 430 },
     'k5-125': { minX: 485, minY: 330, maxX: 640, maxY: 390 },
-    'k5-126': { minX: 515, minY: 294, maxX: 683, maxY: 362 },
-    'k5-127': { minX: 657, minY: 232, maxX: 692, maxY: 313 },
+    'k5-126': { minX: 560, minY: 315, maxX: 683, maxY: 362 },
+    'k5-127': { minX: 675, minY: 243, maxX: 692, maxY: 313 },
+  };
+  const expectedVisualBoundsByBlockId: Record<string, Bounds> = {
+    'k7-121': { minX: 412, minY: 502, maxX: 555, maxY: 586 },
+    'k7-122': { minX: 426, minY: 452, maxX: 612, maxY: 531 },
+    'k8-123': { minX: 452, minY: 400, maxX: 648, maxY: 489 },
+    'k5-124': { minX: 454, minY: 355, maxX: 653, maxY: 439 },
+    'k5-125': { minX: 485, minY: 320, maxX: 664, maxY: 392 },
+    'k5-126': { minX: 515, minY: 286, maxX: 683, maxY: 362 },
+    'k5-127': { minX: 654, minY: 211, maxX: 695, maxY: 309 },
   };
 
   Object.entries(expectedBoundsByBlockId).forEach(([blockId, expectedBounds]) => {
@@ -1344,6 +1353,7 @@ test('광주 3루 G/H/I/J와 121~127 shared boundary는 공식 PNG mask 기준�
     const block = blocksById.get(blockId);
     assert.ok(block?.imageGeometry.visualD, `${blockId} should use official PNG visualD while keeping a non-overlap hit-area`);
     assert.notEqual(block.imageGeometry.visualD, block.imageGeometry.d, `${blockId} visualD should remain separate from the click hit-area`);
+    assert.deepEqual(getPathBounds(parsePathSubpaths(block.imageGeometry.visualD)), expectedVisualBoundsByBlockId[blockId]);
   });
 
   const thirdFamily = blocksById.get('third-family-seats')!;

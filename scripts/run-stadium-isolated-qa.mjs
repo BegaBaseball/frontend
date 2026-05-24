@@ -14,6 +14,11 @@ const DEFAULT_VIEWPORTS = 'mobile-390,desktop-1440';
 const SMOKE_VIEWPORTS = 'mobile-390';
 const FULL_VIEWPORTS = 'desktop-1440';
 const RESPONSIVE_VIEWPORTS = 'mobile-360,mobile-390,mobile-430,tablet-768,desktop-1038,desktop-1440';
+const DEFAULT_AUDIT_TIMEOUT_MS = 420000;
+const AUDIT_TIMEOUT_MS = Number.parseInt(
+  process.env.STADIUM_ISOLATED_QA_TIMEOUT_MS ?? String(DEFAULT_AUDIT_TIMEOUT_MS),
+  10,
+);
 
 const STADIUMS = {
   INCHEON: {
@@ -24,6 +29,12 @@ const STADIUMS = {
   GWANGJU: {
     basePort: 5192,
     env: { STADIUM_UX_GWANGJU_DEEP_CHECK: '1', STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1' },
+    evidenceEnv: {
+      STADIUM_UX_GWANGJU_DEEP_CHECK: '1',
+      STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1',
+      STADIUM_UX_GWANGJU_EXPANDED_EVIDENCE: '1',
+      STADIUM_UX_GWANGJU_SELECTED_SWEEP_ONLY: '1',
+    },
   },
   DAEJEON: {
     basePort: 5193,
@@ -79,7 +90,9 @@ function parseTarget(rawTarget) {
       ? 'smoke'
       : modeToken === 'RESPONSIVE'
         ? 'responsive'
-        : 'mobile';
+        : modeToken === 'EVIDENCE'
+          ? 'evidence'
+          : 'mobile';
   return { stadium: stadiumToken, mode };
 }
 
@@ -276,14 +289,59 @@ function runAudit({ env, outputDir }) {
       cwd: frontendRoot,
       env,
       stdio: 'inherit',
+      detached: true,
     });
     const childPid = child.pid ?? null;
+    let didResolve = false;
+    let didTimeOut = false;
+    let timeoutError = null;
+    let killTimer = null;
+
+    const clearTimers = () => {
+      if (timeout) clearTimeout(timeout);
+      if (killTimer) clearTimeout(killTimer);
+    };
+
+    const killAuditProcessGroup = (signal) => {
+      if (!childPid) {
+        child.kill(signal);
+        return;
+      }
+      try {
+        process.kill(-childPid, signal);
+      } catch (_error) {
+        child.kill(signal);
+      }
+    };
+
+    const resolveOnce = (result) => {
+      if (didResolve) return;
+      didResolve = true;
+      clearTimers();
+      resolve(result);
+    };
+
+    const timeout = Number.isFinite(AUDIT_TIMEOUT_MS) && AUDIT_TIMEOUT_MS > 0
+      ? setTimeout(() => {
+        didTimeOut = true;
+        timeoutError = new Error(`Stadium UX audit timed out after ${AUDIT_TIMEOUT_MS}ms.`);
+        killAuditProcessGroup('SIGTERM');
+        killTimer = setTimeout(() => {
+          killAuditProcessGroup('SIGKILL');
+        }, 5000);
+      }, AUDIT_TIMEOUT_MS)
+      : null;
 
     child.once('error', (error) => {
-      resolve({ status: 1, error, childPid });
+      resolveOnce({ status: 1, error, childPid });
     });
     child.once('close', (status, signal) => {
-      resolve({ status, signal, childPid });
+      resolveOnce({
+        status: didTimeOut ? 124 : status,
+        signal,
+        childPid,
+        error: timeoutError,
+      });
     });
   });
 }
@@ -392,6 +450,8 @@ function outputName(stadium, mode) {
       ? 'smoke'
       : mode === 'responsive'
         ? 'responsive'
+        : mode === 'evidence'
+          ? 'evidence'
         : 'validate';
   return `stadium-ux-${stadium.toLowerCase()}-${suffix}`;
 }
@@ -399,6 +459,9 @@ function outputName(stadium, mode) {
 function targetEnv(config, mode) {
   if (mode === 'full') {
     return { ...(config.fullEnv ?? config.env) };
+  }
+  if (mode === 'evidence') {
+    return { ...(config.evidenceEnv ?? config.env) };
   }
   return { ...config.env };
 }
@@ -412,6 +475,9 @@ function targetViewports(mode) {
   }
   if (mode === 'responsive') {
     return RESPONSIVE_VIEWPORTS;
+  }
+  if (mode === 'evidence') {
+    return SMOKE_VIEWPORTS;
   }
   return DEFAULT_VIEWPORTS;
 }
