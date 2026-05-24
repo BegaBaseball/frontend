@@ -650,6 +650,12 @@ const STADIUMS = {
           args: ['scripts/run-stadium-isolated-qa.mjs', 'CHANGWON'],
         },
       ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
     },
   },
   jamsil: {

@@ -1580,9 +1580,134 @@ const runUxReadiness = async () => {
   console.log(`status:ok searchableSelectableAreas=${searchableSelectableAreas} specialSelectableAreas=${report.summary.specialSelectableAreas} filterGroups=${filterCounts.length} lowCoverageApprovedExceptions=${lowCoverageApprovedExceptionBlocks.length} blockers=0`);
 };
 
+const runReleaseGate = async () => {
+  const { default: fs } = await import('node:fs/promises');
+  const { createHash } = await import('node:crypto');
+  const {
+    CHANGWON_BLOCKS,
+    CHANGWON_SEATMAP_IMAGE,
+    CHANGWON_SPECIAL_SELECTABLE_AREAS,
+    CHANGWON_LOW_COVERAGE_APPROVED_EXCEPTION_BLOCKS,
+  } = await import('../src/data/changwonSeatData.ts');
+
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const frontendRoot = path.resolve(scriptDir, '..');
+  const reportDir = path.join(frontendRoot, 'reports/stadium');
+  const reportJsonPath = path.join(reportDir, 'changwon-seatmap-release-gate.json');
+  const reportMarkdownPath = path.join(reportDir, 'changwon-seatmap-release-gate.md');
+
+  const EXPECTED_TOTAL_BLOCKS = 123;
+  const EXPECTED_OFFICIAL_IMAGE_TRACED = 123;
+  const EXPECTED_NEEDS_OPERATOR_REVIEW = 0;
+  const EXPECTED_SPECIAL_SELECTABLE_AREAS = 6;
+  const EXPECTED_LOW_COVERAGE_EXCEPTIONS = 8;
+  const EXPECTED_OFFICIAL_ASSET_SHA256 = 'b05b35473613c7814819941ec5f4866476f516bb4be1d69688db5d93685cafb5';
+  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = 'e5eaa0cc468fc31ae632b491bc34abe6e2063340a4ce5b1150e17499574a9e02';
+
+  function sha256(value) {
+    return createHash('sha256').update(value).digest('hex');
+  }
+
+  function snapshotFixture() {
+    const blocks = CHANGWON_BLOCKS
+      .map((b) => ({
+        id: b.id,
+        block: b.block,
+        level: b.level,
+        side: b.side,
+        category: b.category,
+        traceStatus: b.imageGeometry.traceStatus,
+        traceVersion: b.imageGeometry.traceVersion,
+        d: b.imageGeometry.d,
+        labelX: b.imageGeometry.labelX,
+        labelY: b.imageGeometry.labelY,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    return JSON.stringify({ blocks });
+  }
+
+  async function readText(relPath) {
+    return fs.readFile(path.join(frontendRoot, relPath), 'utf8');
+  }
+
+  const packageSource = await readText('package.json');
+  const releaseLockSource = await readText('docs/changwon-seatmap-release-lock.md');
+  const assetBuffer = await fs.readFile(path.join(frontendRoot, CHANGWON_SEATMAP_IMAGE.imagePath));
+
+  const officialImageTraced = CHANGWON_BLOCKS.filter((b) => b.imageGeometry.traceStatus === 'OFFICIAL_IMAGE_TRACED').length;
+  const needsOperatorReview = CHANGWON_BLOCKS.filter((b) => b.imageGeometry.traceStatus === 'NEEDS_OPERATOR_REVIEW').length;
+  const releaseFixtureFingerprint = sha256(snapshotFixture());
+  const officialAssetSha256 = sha256(assetBuffer);
+
+  const summary = {
+    totalBlocks: CHANGWON_BLOCKS.length,
+    officialImageTraced,
+    needsOperatorReview,
+    specialSelectableAreas: CHANGWON_SPECIAL_SELECTABLE_AREAS.length,
+    lowCoverageApprovedExceptions: CHANGWON_LOW_COVERAGE_APPROVED_EXCEPTION_BLOCKS.length,
+    releaseFixtureFingerprint,
+    officialAssetSha256,
+  };
+
+  const checks = [
+    ['total blocks', summary.totalBlocks === EXPECTED_TOTAL_BLOCKS],
+    ['official image traced count', summary.officialImageTraced === EXPECTED_OFFICIAL_IMAGE_TRACED],
+    ['needs operator review count', summary.needsOperatorReview === EXPECTED_NEEDS_OPERATOR_REVIEW],
+    ['special selectable area count', summary.specialSelectableAreas === EXPECTED_SPECIAL_SELECTABLE_AREAS],
+    ['low coverage approved exception count', summary.lowCoverageApprovedExceptions === EXPECTED_LOW_COVERAGE_EXCEPTIONS],
+    ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
+    ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
+    ['package release lock script', packageSource.includes('"qa:stadium:changwon:release-lock"')],
+    ['package trace manifest script', packageSource.includes('"stadium:changwon:trace-manifest"')],
+    ['package ux readiness script', packageSource.includes('"stadium:changwon:ux-readiness"')],
+    ['release lock document includes release gate script', releaseLockSource.includes('npm run qa:stadium:changwon:release-lock')],
+    ['release lock document includes trace manifest script', releaseLockSource.includes('npm run stadium:changwon:trace-manifest')],
+  ].map(([label, passed]) => ({ label, passed }));
+
+  const failures = checks.filter((c) => !c.passed).map((c) => c.label);
+  const report = {
+    generatedAt: new Date().toISOString(),
+    status: failures.length === 0 ? 'passed' : 'failed',
+    summary,
+    checks,
+    failures,
+  };
+
+  const markdown = [
+    '# Changwon Seatmap Release Gate',
+    '',
+    `- Generated at: ${report.generatedAt}`,
+    `- Status: ${report.status}`,
+    `- totalBlocks: ${summary.totalBlocks}`,
+    `- officialImageTraced: ${summary.officialImageTraced}`,
+    `- specialSelectableAreas: ${summary.specialSelectableAreas}`,
+    '',
+    '## Checks',
+    '',
+    ...checks.map((c) => `- ${c.passed ? 'PASS' : 'FAIL'} ${c.label}`),
+    '',
+    ...(failures.length > 0 ? ['## Failures', '', ...failures.map((f) => `- ${f}`), ''] : []),
+  ].join('\n');
+
+  await fs.mkdir(reportDir, { recursive: true });
+  await fs.writeFile(reportJsonPath, `${JSON.stringify(report, null, 2)}\n`);
+  await fs.writeFile(reportMarkdownPath, markdown);
+
+  if (failures.length > 0) {
+    failures.forEach((f) => console.error(`[changwon-release-gate] failure: ${f}`));
+    console.error(`[changwon-release-gate] failed`);
+    console.error(`[changwon-release-gate] report=${reportJsonPath}`);
+    process.exit(1);
+  }
+
+  console.log(`[changwon-release-gate] passed`);
+  console.log(`[changwon-release-gate] report=${reportJsonPath}`);
+};
+
 const taskRunners = {
   'trace-manifest': runTraceManifest,
   'ux-readiness': runUxReadiness,
+  'release-gate': runReleaseGate,
 };
 
 const withTaskArgs = async (args, runner) => {
