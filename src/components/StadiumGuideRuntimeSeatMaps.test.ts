@@ -4462,7 +4462,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.json'));
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.md'));
   assert.ok(releaseScopeGuardSource.includes('"stadium:gwangju:pr-staging-review"'));
-  assert.ok(releaseScopeGuardSource.includes('node --import tsx scripts/gwangju-seatmap-release-staging-ops.mjs pr-staging-plan --review'));
+  assert.ok(releaseScopeGuardSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review'));
   assert.ok(releaseScopeGuardSource.includes('prPackagingManifest'));
   assert.ok(releaseScopeGuardSource.includes('releasePayloadFileCount'));
   assert.ok(releaseScopeGuardSource.includes('separateDirtyWorkFileCount'));
