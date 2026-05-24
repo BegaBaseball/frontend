@@ -32,6 +32,23 @@
 
 **release 허용 조건**: `lockedVerified === 164 && openWorkset === 10` → `PASS_LOCKED_164` → release 허용.
 
+### 정밀 완료 목표
+
+`PASS_RELEASE_177`은 현재 `PASS_LOCKED_164` release 허용 상태와 구분되는 최종 정밀 완료 기준이다. 이 기준은 공식 PNG archive debt 10개가 해소된 뒤에만 사용한다.
+
+- `LOCKED_VERIFIED`: `174`
+- `classifiedReleaseRows`: `3`
+- `releaseInventoryLocked`: `177`
+- unresolved selectable seat polygon rows: `0`
+- `normalSelectableSeats`: `171`
+- `reviewOnlySeats`: `0`
+- `officialUnconfirmedSeats`: `2`
+- `visualBlockerRows`: `0`
+- `normalVisualReviewRows`: `0`
+- `queueRows`: `0`
+
+`PASS_RELEASE_177`은 `MR-10`/`M-10`을 selectable seat로 확정했다는 뜻이 아니다. 대구 precision-complete lock은 official PNG에 정렬된 좌석 polygon 174개와 selectable seat layer에서 제외된 classified row 3개를 합산해 177개 inventory가 해결된 상태를 뜻한다.
+
 ## Classified row lock
 
 | block | lock status | layer policy | 재진입 조건 |
