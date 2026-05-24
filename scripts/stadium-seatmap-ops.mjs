@@ -81,6 +81,12 @@ const STADIUMS = {
           env: { STADIUM_UX_GOCHEOK_DEBUG_CAPTURE: '1' },
         },
       ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
     },
   },
   gwangju: {
