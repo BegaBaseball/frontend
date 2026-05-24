@@ -55,6 +55,7 @@
 ## 릴리즈 게이트
 
 ```bash
+npm run qa:stadium:changwon:release-lock
 npm run stadium:changwon:trace-manifest
 npm run stadium:changwon:ux-readiness
 node --import tsx --test src/components/StadiumGuideRuntimeSeatMaps.test.ts
