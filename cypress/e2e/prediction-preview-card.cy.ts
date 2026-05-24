@@ -187,6 +187,18 @@ describe('Prediction preview schedule', () => {
                     });
                 });
 
+            if (!isCompact) {
+                cy.get('[data-game-id="20990501KIANC0"]').then(($row) => {
+                    cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-schedule-matchup"]').then(($matchup) => {
+                        const rowRect = $row[0].getBoundingClientRect();
+                        const matchupRect = $matchup[0].getBoundingClientRect();
+                        const rowCenter = rowRect.left + rowRect.width / 2;
+                        const matchupCenter = matchupRect.left + matchupRect.width / 2;
+                        expect(Math.abs(matchupCenter - rowCenter)).to.be.lessThan(10);
+                    });
+                });
+            }
+
             if (isCompact) {
                 cy.get('[data-testid="prediction-schedule-match-list"]').then(($list) => {
                     expect($list[0].scrollWidth).to.be.lessThan($list[0].clientWidth + 2);
