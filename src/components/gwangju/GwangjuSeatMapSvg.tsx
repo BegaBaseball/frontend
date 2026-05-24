@@ -486,12 +486,14 @@ export default function GwangjuSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);

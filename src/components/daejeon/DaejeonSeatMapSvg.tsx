@@ -282,10 +282,12 @@ export default function DaejeonSeatMapSvg({
       lastY: event.clientY,
       totalMove: 0,
       captureTarget: target,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
     setIsDragging(true);
-    target.setPointerCapture(event.pointerId);
+    if (event.pointerType !== 'mouse') {
+      target.setPointerCapture(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
