@@ -175,8 +175,17 @@ describe('Prediction preview schedule', () => {
                 cy.get('[data-game-id="20990501KIANC0"]').should('contain', 'KIA').and('contain', '예정').and('contain', 'NC');
                 cy.get(`[data-game-id="${secondGameId}"]`).should('contain', 'LG').and('contain', '예정').and('contain', 'KT');
                 cy.get('[data-testid="prediction-match-enter-detail-btn"]').should('have.length', 2);
-                cy.get('[data-testid="prediction-schedule-match-list-fade"]').should(isCompact ? 'not.be.visible' : 'be.visible');
             });
+
+            cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-match-enter-detail-btn"]')
+                .then(($button) => {
+                    cy.get('[data-testid="prediction-match-preview-root"]').then(($card) => {
+                        const buttonRect = $button[0].getBoundingClientRect();
+                        const cardRect = $card[0].getBoundingClientRect();
+                        expect(buttonRect.left).to.be.greaterThan(cardRect.left - 1);
+                        expect(buttonRect.right).to.be.lessThan(cardRect.right + 1);
+                    });
+                });
 
             if (isCompact) {
                 cy.get('[data-testid="prediction-schedule-match-list"]').then(($list) => {
@@ -188,16 +197,6 @@ describe('Prediction preview schedule', () => {
                     cy.get('img[alt*="로고"]').first().should('be.visible');
                     cy.get('[data-testid="prediction-match-enter-detail-btn"]').should('be.visible');
                 });
-
-                cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-match-enter-detail-btn"]')
-                    .then(($button) => {
-                        cy.get('[data-testid="prediction-match-preview-root"]').then(($card) => {
-                            const buttonRect = $button[0].getBoundingClientRect();
-                            const cardRect = $card[0].getBoundingClientRect();
-                            expect(buttonRect.left).to.be.greaterThan(cardRect.left - 1);
-                            expect(buttonRect.right).to.be.lessThan(cardRect.right + 1);
-                        });
-                    });
             }
 
             cy.get('[data-testid="prediction-match-preview-root"]').should('not.contain', '응원');

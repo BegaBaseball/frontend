@@ -520,6 +520,15 @@ const STADIUMS = {
           args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'runtime-layer-audit'],
         },
       ],
+      'selected-sweep': [
+        {
+          task: 'trace-manifest',
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU:EVIDENCE'],
+        },
+      ],
       'release-gate': [
         {
           command: 'node',
