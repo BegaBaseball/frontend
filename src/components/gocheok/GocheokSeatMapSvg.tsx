@@ -412,12 +412,14 @@ export default function GocheokSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
