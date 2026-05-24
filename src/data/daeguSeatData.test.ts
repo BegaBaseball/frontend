@@ -58,6 +58,30 @@ const DAEGU_OPERATOR_REFERENCE_P4_APPROVAL_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p4-approval.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_OPERATOR_REFERENCE_P7_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p7-approval.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P8_CLASSIFICATION_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p8-classification.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P9_MISSING_SCAN_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p9-missing-scan.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P10_CANDIDATE_CLASSIFICATION_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p10-candidate-classification.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P11_APPROVAL_PACKET_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p11-approval-packet.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P12_DRY_RUN_APPLY_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p12-dry-run-apply.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -401,7 +425,7 @@ test('대구 업로드 operator reference source는 4096 기본 선택 좌석도
   );
 });
 
-test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌표계에서만 selectable이다', () => {
+test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 4096 좌표계에서만 selectable이다', () => {
   const expectedP0Labels = new Set(['TR0', 'TR8', 'TR9', 'TR10']);
   const expectedP1Labels = new Set([
     'TR1',
@@ -438,6 +462,9 @@ test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌�
   const expectedP2CLabels = new Set(['S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'S30', 'S31']);
   const expectedP3Labels = new Set(['ML1', 'ML2', 'ML3', 'ML4', 'ML5', 'ML6', 'ML7', 'ML8', 'ML10', 'MR1', 'MR2', 'MR3', 'MR4', 'MR5', 'MR6', 'MR7', 'MR8']);
   const expectedP4Labels = new Set(['112', '111', '110', '19', '18', '17', '16', '312', '311', '310', '39', '38', '1E3', '1E2', '1E1', '3E3', '3E2', '3E1']);
+  const expectedP5Labels = new Set(['VIP3', 'VIP2', 'VIP1', 'TC3', 'TC2', 'TC1', 'T34', 'T33', 'T32', 'T31', 'T14', 'T13', 'T12', 'T11']);
+  const expectedP6Labels = new Set(['37', '36', '35', '34', '33', '32', '31', '15', '14', '13', '12', '11']);
+  const expectedP7Labels = new Set(['S1', 'S2', 'S3', 'S21', 'S22', 'S23']);
   const expectedLabels = new Set([
     ...expectedP0Labels,
     ...expectedP1Labels,
@@ -446,10 +473,13 @@ test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌�
     ...expectedP2CLabels,
     ...expectedP3Labels,
     ...expectedP4Labels,
+    ...expectedP5Labels,
+    ...expectedP6Labels,
+    ...expectedP7Labels,
   ]);
   const blockLabels = DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => block.block.replace('-', ''));
 
-  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 77);
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 109);
   assert.deepEqual(new Set(blockLabels), expectedLabels);
   assert.equal(blockLabels.filter((label) => expectedP0Labels.has(label)).length, 4);
   assert.equal(blockLabels.filter((label) => expectedP1Labels.has(label)).length, 17);
@@ -458,6 +488,9 @@ test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌�
   assert.equal(blockLabels.filter((label) => expectedP2CLabels.has(label)).length, 8);
   assert.equal(blockLabels.filter((label) => expectedP3Labels.has(label)).length, 17);
   assert.equal(blockLabels.filter((label) => expectedP4Labels.has(label)).length, 18);
+  assert.equal(blockLabels.filter((label) => expectedP5Labels.has(label)).length, 14);
+  assert.equal(blockLabels.filter((label) => expectedP6Labels.has(label)).length, 12);
+  assert.equal(blockLabels.filter((label) => expectedP7Labels.has(label)).length, 6);
 
   DAEGU_OPERATOR_REFERENCE_BLOCKS.forEach((block) => {
     const normalizedBlock = block.block.replace('-', '');
@@ -477,7 +510,13 @@ test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌�
               ? 'DAEGU_OPERATOR_REFERENCE_P3_APPROVED_DRY_RUN_V1'
               : expectedP4Labels.has(normalizedBlock)
                 ? 'DAEGU_OPERATOR_REFERENCE_P4_APPROVED_DRY_RUN_V1'
-                : 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1',
+                : expectedP5Labels.has(normalizedBlock)
+                  ? 'DAEGU_OPERATOR_REFERENCE_P5_APPROVED_DRY_RUN_V1'
+                  : expectedP6Labels.has(normalizedBlock)
+                    ? 'DAEGU_OPERATOR_REFERENCE_P6_APPROVED_DRY_RUN_V1'
+                    : expectedP7Labels.has(normalizedBlock)
+                      ? 'DAEGU_OPERATOR_REFERENCE_P7_APPROVED_DRY_RUN_V1'
+                      : 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1',
     );
     assert.equal(block.imageGeometry.traceVersion, block.imageGeometry.geometryVersion);
     assert.equal(block.imageGeometry.manualReviewed, true);
@@ -763,6 +802,247 @@ test('대구 operator reference P4 approval flow는 내야/익사이팅 18개 �
     assert.ok(
       DAEGU_OPERATOR_REFERENCE_P4_APPROVAL_SOURCE.includes(requiredText),
       `Daegu operator reference P4 approval flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P7 approval flow는 SKY 하단 6개와 pending strip 20개 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p7-approval-packet',
+    'stadium:daegu:operator-reference-p7-approval-gate',
+    'stadium:daegu:operator-reference-p7-approval-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'S-23',
+    'S-22',
+    'S-21',
+    'S-1',
+    'S-2',
+    'S-3',
+    'RAPAK_REF_102',
+    'RAPAK_REF_105',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    'EXCLUDE_NON_SEAT',
+    'PENDING_OPERATOR_DECISION',
+    'P7_OPERATOR_REFERENCE_UNLABELED_LOWER_BOWL_REVIEW',
+    'P7_REQUIRES_OPERATOR_BLOCK_LABEL',
+    'DAEGU_OPERATOR_REFERENCE_P7_APPROVED_DRY_RUN_V1',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedHitPath',
+    'reviewer',
+    'reviewedAt',
+    'p7-approval-packet-ready',
+    'p7-approval-gate-waiting-for-operator-input',
+    'p7-approval-gate-dry-run-ready',
+    'daegu-operator-reference-p7-dry-run-apply-plan.json',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'This packet creates 4096 operator-reference P7 unlabeled lower-bowl review evidence only. It never writes src/data/daeguSeatData.ts.',
+    'dry-run only; patch DAEGU_OPERATOR_REFERENCE_BLOCKS, not DAEGU_BLOCKS',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P7_APPROVAL_SOURCE.includes(requiredText),
+      `Daegu operator reference P7 approval flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P8 classification flow는 P7 pending 20개를 seat layer 밖으로 분류한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p8-classification-packet',
+    'stadium:daegu:operator-reference-p8-classification-gate',
+    'stadium:daegu:operator-reference-p8-classification-gate:require-classified',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'RAPAK_REF_104',
+    'RAPAK_REF_150',
+    'MARKER_OR_ACCESSIBILITY_REVIEW',
+    'UNLABELED_SEAT_STRIP_REVIEW',
+    'WHEELCHAIR_OR_ACCESSIBLE_STRIP',
+    'SKY_LOWER_UNLABELED_STRIP',
+    'KEEP_OUT_OF_SEAT_LAYER_AND_REVIEW_AS_NON_SEAT_LAYER',
+    'OPERATOR_LABEL_REQUIRED_BEFORE_SELECTABLE_SEAT',
+    'P8 classifies P7 pending components only. It does not add selectable seat polygons.',
+    'p8-classification-packet-ready',
+    'p8-classification-gate-passed',
+    'operatorDecision',
+    'APPROVED',
+    'reviewer',
+    'codex-image-review',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    '블럭명이 없는 SKY 하단 strip은 operator 라벨 없이는 선택 좌석으로 승격하지 않고',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P8_CLASSIFICATION_SOURCE.includes(requiredText),
+      `Daegu operator reference P8 classification flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P9 missing scan flow는 이미지 component와 active polygon 비교 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p9-missing-scan-packet',
+    'stadium:daegu:operator-reference-p9-missing-scan-gate',
+    'stadium:daegu:operator-reference-p9-missing-scan-gate:require-candidates',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'DAEGU_OPERATOR_REFERENCE_BLOCKS',
+    'daegu-operator-reference-trace.json',
+    'MISSING_BLOCK_CANDIDATE',
+    'ALREADY_COVERED_ACTIVE_SEAT',
+    'P8_CLASSIFIED_NON_SELECTABLE_OR_LABEL_REQUIRED',
+    'FLOATING_POLYGON_RISK',
+    'OPERATOR_LABEL_REQUIRED_BEFORE_SELECTABLE_SEAT',
+    'P9 scans the 4096 operator reference image components and compares them with the 109 active selectable polygons.',
+    "operatorDecision: 'PENDING'",
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p9-missing-scan-packet-ready',
+    'p9-missing-scan-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P9_MISSING_SCAN_SOURCE.includes(requiredText),
+      `Daegu operator reference P9 missing scan flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P10 candidate classification flow는 P9 누락 후보 54개를 P11 후보와 review row로 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p10-candidate-classification-packet',
+    'stadium:daegu:operator-reference-p10-candidate-classification-gate',
+    'stadium:daegu:operator-reference-p10-candidate-classification-gate:require-classified',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'LABEL_VISIBLE_SEAT_BLOCK',
+    'UNLABELED_SEAT_STRIP_REVIEW',
+    'MARKER_OR_ACCESSIBILITY_REVIEW',
+    'FACILITY_OR_NON_SEAT',
+    'LEGEND_OR_DECORATION',
+    'MERGE_WITH_EXISTING_REVIEW',
+    'P11_PROMOTION_CANDIDATE',
+    'PENDING_OPERATOR_LABEL',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET is forbidden in P10.',
+    'P10 classifies all 54 P9 missing candidates from image crop evidence. It does not add selectable seat polygons.',
+    "operatorDecision: 'PENDING'",
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p10-candidate-classification-packet-ready',
+    'p10-candidate-classification-gate-passed',
+    'daegu-operator-reference-p11-promotion-candidates.json',
+    'RAPAK_REF_155',
+    'SKY 지정석 S-4',
+    'RAPAK_REF_187',
+    'SKY요기보존',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P10_CANDIDATE_CLASSIFICATION_SOURCE.includes(requiredText),
+      `Daegu operator reference P10 classification flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P11 approval packet flow는 P10 승격 후보 22개의 승인 입력 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p11-approval-packet',
+    'stadium:daegu:operator-reference-p11-approval-gate',
+    'stadium:daegu:operator-reference-p11-approval-gate:require-ready',
+    'stadium:daegu:operator-reference-p11-approval-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P11 builds an approval packet from P10 label-visible missing candidates. It does not add selectable seat polygons.',
+    'P11 uses sourceDraftVisualPath/sourceDraftHitPath from the image component scan as draft evidence only.',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    "operatorDecision: 'PENDING'",
+    'correctedPath',
+    'correctedHitPath',
+    'correctedLabelX',
+    'correctedLabelY',
+    'reviewer',
+    'reviewedAt',
+    'p11-approval-packet-ready',
+    'p11-approval-gate-waiting-for-operator-input',
+    'p11-approval-gate-dry-run-ready',
+    'daegu-operator-reference-p11-approval-packet.json',
+    'daegu-operator-reference-p11-operator-input.json',
+    'daegu-operator-reference-p11-dry-run-apply-plan.json',
+    'RAPAK_REF_011',
+    '루프탑 테이블석',
+    'RAPAK_REF_187',
+    'SKY요기보존',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P11_APPROVAL_PACKET_SOURCE.includes(requiredText),
+      `Daegu operator reference P11 approval packet flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P12 dry-run apply flow는 승인 row 없을 때 source patch를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p12-dry-run-plan',
+    'stadium:daegu:operator-reference-p12-dry-run-gate',
+    'stadium:daegu:operator-reference-p12-dry-run-gate:require-ready',
+    'stadium:daegu:operator-reference-p12-dry-run-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P12 reads only P11 operator input rows and creates a dry-run apply plan.',
+    'P12 does not write src/data/daeguSeatData.ts.',
+    'readyForSourcePatch=false when approvedRows=0',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    'OPERATOR_DECISION_NOT_APPROVED',
+    'MISSING_CORRECTED_PATH',
+    'MISSING_CORRECTED_HIT_PATH',
+    'MISSING_CORRECTED_LABEL_X',
+    'MISSING_CORRECTED_LABEL_Y',
+    'MISSING_REVIEWER',
+    'MISSING_REVIEWED_AT',
+    'DUPLICATE_ACTIVE_OPERATOR_REFERENCE_BLOCK',
+    'DAEGU_OPERATOR_REFERENCE_P11_APPROVED_DRY_RUN_V1',
+    'p12-dry-run-apply-plan-ready',
+    'p12-dry-run-apply-gate-waiting-for-operator-approval',
+    'p12-dry-run-apply-gate-source-patch-ready',
+    'daegu-operator-reference-p12-dry-run-apply-plan.json',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P12_DRY_RUN_APPLY_SOURCE.includes(requiredText),
+      `Daegu operator reference P12 dry-run apply flow should include ${requiredText}`,
     );
   });
 });
