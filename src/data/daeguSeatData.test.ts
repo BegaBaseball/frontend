@@ -54,6 +54,10 @@ const DAEGU_OPERATOR_REFERENCE_P3_APPROVAL_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p3-approval.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_OPERATOR_REFERENCE_P4_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p4-approval.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -397,7 +401,7 @@ test('대구 업로드 operator reference source는 4096 기본 선택 좌석도
   );
 });
 
-test('대구 operator reference P0/P1/P2/P3 승인 블럭 59개는 4096 좌표계에서만 selectable이다', () => {
+test('대구 operator reference P0/P1/P2/P3/P4 승인 블럭 77개는 4096 좌표계에서만 selectable이다', () => {
   const expectedP0Labels = new Set(['TR0', 'TR8', 'TR9', 'TR10']);
   const expectedP1Labels = new Set([
     'TR1',
@@ -433,6 +437,7 @@ test('대구 operator reference P0/P1/P2/P3 승인 블럭 59개는 4096 좌표�
   const expectedP2BLabels = new Set(['F1', 'F2', 'MR10']);
   const expectedP2CLabels = new Set(['S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'S30', 'S31']);
   const expectedP3Labels = new Set(['ML1', 'ML2', 'ML3', 'ML4', 'ML5', 'ML6', 'ML7', 'ML8', 'ML10', 'MR1', 'MR2', 'MR3', 'MR4', 'MR5', 'MR6', 'MR7', 'MR8']);
+  const expectedP4Labels = new Set(['112', '111', '110', '19', '18', '17', '16', '312', '311', '310', '39', '38', '1E3', '1E2', '1E1', '3E3', '3E2', '3E1']);
   const expectedLabels = new Set([
     ...expectedP0Labels,
     ...expectedP1Labels,
@@ -440,10 +445,11 @@ test('대구 operator reference P0/P1/P2/P3 승인 블럭 59개는 4096 좌표�
     ...expectedP2BLabels,
     ...expectedP2CLabels,
     ...expectedP3Labels,
+    ...expectedP4Labels,
   ]);
   const blockLabels = DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => block.block.replace('-', ''));
 
-  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 59);
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 77);
   assert.deepEqual(new Set(blockLabels), expectedLabels);
   assert.equal(blockLabels.filter((label) => expectedP0Labels.has(label)).length, 4);
   assert.equal(blockLabels.filter((label) => expectedP1Labels.has(label)).length, 17);
@@ -451,6 +457,7 @@ test('대구 operator reference P0/P1/P2/P3 승인 블럭 59개는 4096 좌표�
   assert.equal(blockLabels.filter((label) => expectedP2BLabels.has(label)).length, 3);
   assert.equal(blockLabels.filter((label) => expectedP2CLabels.has(label)).length, 8);
   assert.equal(blockLabels.filter((label) => expectedP3Labels.has(label)).length, 17);
+  assert.equal(blockLabels.filter((label) => expectedP4Labels.has(label)).length, 18);
 
   DAEGU_OPERATOR_REFERENCE_BLOCKS.forEach((block) => {
     const normalizedBlock = block.block.replace('-', '');
@@ -466,8 +473,10 @@ test('대구 operator reference P0/P1/P2/P3 승인 블럭 59개는 4096 좌표�
             ? 'DAEGU_OPERATOR_REFERENCE_P2A_APPROVED_DRY_RUN_V1'
             : expectedP2BLabels.has(normalizedBlock)
               ? 'DAEGU_OPERATOR_REFERENCE_P2B_APPROVED_DRY_RUN_V1'
-              : expectedP3Labels.has(normalizedBlock)
-                ? 'DAEGU_OPERATOR_REFERENCE_P3_APPROVED_DRY_RUN_V1'
+            : expectedP3Labels.has(normalizedBlock)
+              ? 'DAEGU_OPERATOR_REFERENCE_P3_APPROVED_DRY_RUN_V1'
+              : expectedP4Labels.has(normalizedBlock)
+                ? 'DAEGU_OPERATOR_REFERENCE_P4_APPROVED_DRY_RUN_V1'
                 : 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1',
     );
     assert.equal(block.imageGeometry.traceVersion, block.imageGeometry.geometryVersion);
@@ -706,6 +715,54 @@ test('대구 operator reference P2C approval flow는 SKY S24~S31 8개 후보의 
     assert.ok(
       DAEGU_OPERATOR_REFERENCE_P2C_APPROVAL_SOURCE.includes(requiredText),
       `Daegu operator reference P2C approval flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P4 approval flow는 내야/익사이팅 18개 후보의 dry-run only 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p4-approval-packet',
+    'stadium:daegu:operator-reference-p4-approval-gate',
+    'stadium:daegu:operator-reference-p4-approval-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    '1-12',
+    '1-6',
+    '3-12',
+    '3-8',
+    '1E-3',
+    '1E-2',
+    '1E-1',
+    '3E-3',
+    '3E-1',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    'EXCLUDE_NON_SEAT',
+    'DAEGU_OPERATOR_REFERENCE_P4_APPROVED_DRY_RUN_V1',
+    'operatorDecision=APPROVED',
+    'correctedPath',
+    'correctedHitPath',
+    'reviewer',
+    'reviewedAt',
+    'p4-approval-packet-ready',
+    'p4-approval-gate-waiting-for-operator-input',
+    'p4-approval-gate-dry-run-ready',
+    'daegu-operator-reference-p4-dry-run-apply-plan.json',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'This packet creates 4096 operator-reference P4 infield/exciting review evidence only. It never writes src/data/daeguSeatData.ts.',
+    'P4_OPERATOR_REFERENCE_INFIELD_EXCITING_IMAGE_LABEL_REVIEW',
+    'MANUAL_SPLIT_FROM_IMAGE_COMPONENT',
+    'RAPAK_REF_080',
+    'dry-run only; patch DAEGU_OPERATOR_REFERENCE_BLOCKS, not DAEGU_BLOCKS',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P4_APPROVAL_SOURCE.includes(requiredText),
+      `Daegu operator reference P4 approval flow should include ${requiredText}`,
     );
   });
 });
