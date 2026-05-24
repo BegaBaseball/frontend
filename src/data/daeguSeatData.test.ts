@@ -82,6 +82,14 @@ const DAEGU_OPERATOR_REFERENCE_P12_DRY_RUN_APPLY_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p12-dry-run-apply.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_OPERATOR_REFERENCE_P13_SOURCE_APPLY_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p13-source-apply.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P14_REVIEW_WORKFLOW_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p14-review-workflow.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -1043,6 +1051,82 @@ test('대구 operator reference P12 dry-run apply flow는 승인 row 없을 때 
     assert.ok(
       DAEGU_OPERATOR_REFERENCE_P12_DRY_RUN_APPLY_SOURCE.includes(requiredText),
       `Daegu operator reference P12 dry-run apply flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P13 source apply flow는 승인 row 없을 때 source write를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p13-source-apply-plan',
+    'stadium:daegu:operator-reference-p13-source-apply-gate',
+    'stadium:daegu:operator-reference-p13-source-apply-gate:require-ready',
+    'stadium:daegu:operator-reference-p13-source-apply-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P13 reads the P12 dry-run apply plan and gates source application.',
+    'P13 does not write src/data/daeguSeatData.ts.',
+    'readyForSourceWrite=false when P12 readyForSourcePatch=false',
+    'DAEGU_OPERATOR_REFERENCE_BLOCKS',
+    'DAEGU_OPERATOR_REFERENCE_P11_BLOCK_ROWS',
+    'DAEGU_OPERATOR_REFERENCE_P11_APPROVED_DRY_RUN_V1',
+    'p13-source-apply-plan-ready',
+    'p13-source-apply-gate-waiting-for-approved-rows',
+    'p13-source-apply-gate-source-write-ready',
+    'p13-source-apply-gate-blocked',
+    'daegu-operator-reference-p13-source-apply-plan.json',
+    'currentSelectableRows',
+    'projectedSelectableRows',
+    'readyForSourceWrite',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P13_SOURCE_APPLY_SOURCE.includes(requiredText),
+      `Daegu operator reference P13 source apply flow should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P14 review workflow는 P11 후보 22개를 검수 그룹으로 재정렬한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p14-review-packet',
+    'stadium:daegu:operator-reference-p14-review-gate',
+    'stadium:daegu:operator-reference-p14-review-gate:require-ready',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P14 reorganizes the 22 P11 approval candidates into operator review groups.',
+    'P14 does not auto-fill correctedPath or correctedHitPath.',
+    'SPECIAL_ZONE_REVIEW',
+    'SKY_LOWER_SEQUENCE_REVIEW',
+    'draftPathRecommendedAsStartingPoint',
+    'draftLabelRecommendedAsStartingPoint',
+    'operatorAction',
+    'approvalChecklist',
+    "operatorDecision: 'PENDING'",
+    "correctedPath: ''",
+    "correctedHitPath: ''",
+    'p14-review-packet-ready',
+    'p14-review-gate-ready',
+    'p14-special-zone-overlay.svg',
+    'p14-sky-lower-overlay.svg',
+    'p14-review-checklist.md',
+    'currentSelectableRows=109',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P14_REVIEW_WORKFLOW_SOURCE.includes(requiredText),
+      `Daegu operator reference P14 review workflow should include ${requiredText}`,
     );
   });
 });
