@@ -697,6 +697,12 @@ const STADIUMS = {
           args: ['scripts/run-stadium-isolated-qa.mjs', 'JAMSIL:RESPONSIVE'],
         },
       ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
     },
   },
   daegu: {
@@ -2658,6 +2664,12 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['scripts/run-stadium-isolated-qa.mjs', 'INCHEON:FULL'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/incheon-seatmap-ops.mjs', 'release-gate'],
         },
       ],
     },
