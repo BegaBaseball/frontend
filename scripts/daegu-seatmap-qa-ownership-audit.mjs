@@ -12,57 +12,35 @@ const OUTPUT_FILES = {
   markdown: path.join(reportDir, 'daegu-seatmap-qa-ownership-audit.md'),
 };
 
-const AUDIT_VERSION = 'DAEGU_QA_OWNERSHIP_AUDIT_V1';
-const OFFICIAL_SOURCE_ID = 'SAMSUNG_OFFICIAL_2026';
-const OPERATOR_SOURCE_ID = 'OPERATOR_REFERENCE_RAPAK_2025';
+const AUDIT_VERSION = 'DAEGU_QA_OWNERSHIP_AUDIT_V2_CANONICAL';
+const CANONICAL_SOURCE_ID = 'DAEGU_CANONICAL_2026';
 
-const SOURCE_VALIDATION_OWNERS = {
-  [OFFICIAL_SOURCE_ID]: {
-    ownerId: 'OFFICIAL_PNG_RELEASE_VALIDATION',
-    commands: [
-      'stadium:daegu:precision-audit',
-      'stadium:daegu:render-safety-audit',
-      'qa:stadium:daegu:release-lock',
-    ],
-  },
-  [OPERATOR_SOURCE_ID]: {
-    ownerId: 'OPERATOR_REFERENCE_RELEASE_VALIDATION',
-    commands: [
-      'stadium:daegu:operator-reference-p34-visual-match-audit',
-      'stadium:daegu:operator-reference-p35-review-lock-audit',
-      'stadium:daegu:operator-reference-p40-release-lock-preflight',
-    ],
-  },
-};
-
-const GLOBAL_VALIDATION_OWNER_COMMANDS = [
-  'stadium:daegu:source-baseline-audit',
-  'stadium:daegu:canonical-decision-table',
-  'stadium:daegu:qa-ownership-audit',
-  'qa:stadium:daegu:mobile',
-  'qa:stadium:daegu:full',
-];
-
-const OPERATOR_PHASE_COMMANDS = {
-  P0: ['stadium:daegu:operator-reference-p0-approval-gate'],
-  P1: ['stadium:daegu:operator-reference-p1-approval-gate'],
-  P2A: ['stadium:daegu:operator-reference-p2a-approval-gate'],
-  P2B: ['stadium:daegu:operator-reference-p2b-approval-gate'],
-  P2C: ['stadium:daegu:operator-reference-p2c-approval-gate'],
-  P3: ['stadium:daegu:operator-reference-p3-approval-gate'],
-  P4: ['stadium:daegu:operator-reference-p4-approval-gate'],
-  P5: ['stadium:daegu:operator-reference-p5-approval-gate'],
-  P6: ['stadium:daegu:operator-reference-p6-approval-gate'],
-  P7: ['stadium:daegu:operator-reference-p7-approval-gate'],
-  P28: [
-    'stadium:daegu:operator-reference-p28-source-patch-preview',
-    'stadium:daegu:operator-reference-p29-source-postwrite',
+const CANONICAL_VALIDATION_OWNER = {
+  ownerId: 'DAEGU_CANONICAL_RELEASE_VALIDATION',
+  commands: [
+    'stadium:daegu:source-baseline-audit',
+    'stadium:daegu:canonical-block-decision-guard',
+    'stadium:daegu:qa-ownership-audit',
+    'qa:stadium:daegu:mobile',
+    'qa:stadium:daegu:full',
   ],
-  P30: ['stadium:daegu:operator-reference-p30-special-zone-postwrite'],
-  P31_FIRST_BASE: ['stadium:daegu:operator-reference-p31-sky-first-base-postwrite'],
-  P31_CENTER: ['stadium:daegu:operator-reference-p31-sky-center-postwrite'],
-  P31_THIRD_BASE: ['stadium:daegu:operator-reference-p31-sky-third-base-postwrite'],
 };
+
+const CANONICAL_TRACING_OWNER = {
+  ownerId: 'DAEGU_CANONICAL_OPERATOR_REFERENCE_TRACE',
+  commands: [
+    'stadium:daegu:canonical-official-only-retrace-workset',
+  ],
+};
+
+const LEGACY_EVIDENCE_OWNER_COMMANDS = [
+  'qa:stadium:daegu:release-lock',
+  'stadium:daegu:precision-audit',
+  'stadium:daegu:render-safety-audit',
+  'stadium:daegu:operator-reference-p34-visual-match-audit',
+  'stadium:daegu:operator-reference-p35-review-lock-audit',
+  'stadium:daegu:operator-reference-p40-release-lock-preflight',
+];
 
 const csvEscape = (value) => {
   const text = Array.isArray(value) ? value.join('|') : String(value ?? '');
@@ -94,93 +72,22 @@ const groupBy = (items, getKey) => {
   return groups;
 };
 
-const normalizeBlockKey = (value) => String(value ?? '')
-  .toUpperCase()
-  .replaceAll(/\s+/g, '')
-  .replaceAll('-', '')
-  .replaceAll('휠체어', '')
-  .replaceAll('장애인석', '');
-
 const classifyPackageScript = (scriptName, command) => {
   if (!scriptName.startsWith('stadium:daegu:') && !scriptName.startsWith('qa:stadium:daegu:')) {
     return 'outside-daegu';
   }
-  if (GLOBAL_VALIDATION_OWNER_COMMANDS.includes(scriptName)) return 'global-validation';
+  if (CANONICAL_VALIDATION_OWNER.commands.includes(scriptName)) return 'canonical-validation';
+  if (CANONICAL_TRACING_OWNER.commands.includes(scriptName)) return 'canonical-tracing';
   if (/packet|handoff|template|workset|candidate|guide|board|fixture|preview|dry-run|input|seed/i.test(scriptName)) {
     return 'historical-evidence';
   }
   if (/source-apply|source-copy|postwrite|write|approved-apply|prewrite|apply-plan/i.test(scriptName)) {
-    return 'active-tracing';
+    return 'historical-evidence';
   }
   if (/audit|gate|release-lock|preflight|validate|readiness|smoke|status/i.test(scriptName) || /--require/i.test(command)) {
-    return 'active-validation';
+    return 'historical-evidence';
   }
   return 'historical-evidence';
-};
-
-const traceOwnerForRow = (row) => {
-  const traceVersion = row.block.imageGeometry.traceVersion
-    ?? row.block.imageGeometry.geometryVersion
-    ?? 'UNKNOWN_TRACE_VERSION';
-
-  if (row.sourceId === OPERATOR_SOURCE_ID) {
-    if (traceVersion.includes('P31_SKY_FIRST_BASE')) {
-      return {
-        ownerId: 'OPERATOR_REFERENCE_P31_FIRST_BASE_TRACE',
-        traceVersion,
-        commands: OPERATOR_PHASE_COMMANDS.P31_FIRST_BASE,
-      };
-    }
-    if (traceVersion.includes('P31_SKY_CENTER')) {
-      return {
-        ownerId: 'OPERATOR_REFERENCE_P31_CENTER_TRACE',
-        traceVersion,
-        commands: OPERATOR_PHASE_COMMANDS.P31_CENTER,
-      };
-    }
-    if (traceVersion.includes('P31_SKY_THIRD_BASE')) {
-      return {
-        ownerId: 'OPERATOR_REFERENCE_P31_THIRD_BASE_TRACE',
-        traceVersion,
-        commands: OPERATOR_PHASE_COMMANDS.P31_THIRD_BASE,
-      };
-    }
-
-    const phase = traceVersion.match(/DAEGU_OPERATOR_REFERENCE_(P\d+[A-Z]?)/)?.[1] ?? 'UNKNOWN';
-    return {
-      ownerId: `OPERATOR_REFERENCE_${phase}_TRACE`,
-      traceVersion,
-      commands: OPERATOR_PHASE_COMMANDS[phase] ?? ['stadium:daegu:operator-reference-trace'],
-    };
-  }
-
-  if (traceVersion.startsWith('daegu-visual-match')) {
-    return {
-      ownerId: 'OFFICIAL_VISUAL_MATCH_TRACE',
-      traceVersion,
-      commands: ['stadium:daegu:visual-match-audit', 'stadium:daegu:visual-match-workset'],
-    };
-  }
-  if (traceVersion.startsWith('daegu-missing-block')) {
-    return {
-      ownerId: 'OFFICIAL_MISSING_BLOCK_TRACE',
-      traceVersion,
-      commands: ['stadium:daegu:missing-block-discovery', 'stadium:daegu:missing-block-p0-readiness-gate'],
-    };
-  }
-  if (traceVersion.startsWith('daegu-p1')) {
-    return {
-      ownerId: 'OFFICIAL_P1_OPERATOR_TRACE',
-      traceVersion,
-      commands: ['stadium:daegu:p1-operator-prewrite-gate', 'stadium:daegu:p1-boundary-first-postwrite-gate'],
-    };
-  }
-
-  return {
-    ownerId: 'OFFICIAL_MANUAL_POLYGON_TRACE',
-    traceVersion,
-    commands: ['stadium:daegu:precision-audit'],
-  };
 };
 
 const listGeneratedDaeguReports = async () => {
@@ -231,80 +138,65 @@ const summarizeScriptInventory = async () => {
 
 const main = async () => {
   const {
-    DAEGU_BLOCKS,
-    DAEGU_OPERATOR_REFERENCE_BLOCKS,
-    isDaeguNormalSelectableSeat,
-    isDaeguOfficialUnconfirmedSeat,
-  } = await import('../src/data/daeguSeatData.ts');
+    DAEGU_CANONICAL_BLOCK_DECISIONS,
+  } = await import('../src/data/daeguCanonicalBlockDecision.ts');
+  const {
+    DAEGU_CANONICAL_BLOCKS,
+    DAEGU_CANONICAL_BLOCKED_UNCONFIRMED_BLOCKS,
+    DAEGU_CANONICAL_MARKER_ALIASES,
+    DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS,
+    DAEGU_CANONICAL_SEATMAP_SUMMARY,
+  } = await import('../src/data/daeguCanonicalSeatMap.ts');
 
   await fs.mkdir(reportDir, { recursive: true });
 
   const scriptInventory = await summarizeScriptInventory();
   const generatedDaeguReports = await listGeneratedDaeguReports();
-  const dataRows = [
-    ...DAEGU_BLOCKS.map((block) => ({
-      sourceId: OFFICIAL_SOURCE_ID,
-      sourceRole: 'official-png-production-candidate',
-      block,
-    })),
-    ...DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => ({
-      sourceId: OPERATOR_SOURCE_ID,
-      sourceRole: 'operator-reference-approved-candidate',
-      block,
-    })),
-  ].map((row) => ({
-    ...row,
-    sectionId: row.block.id,
-    blockLabel: row.block.block,
-    blockKey: normalizeBlockKey(row.block.block),
-    selectable: isDaeguNormalSelectableSeat(row.block),
-    markerOrAlias: row.block.sectionKind !== 'SEAT_SECTION',
-    blockedUnconfirmed: isDaeguOfficialUnconfirmedSeat(row.block),
-  }));
+  const canonicalBlockByKey = new Map(DAEGU_CANONICAL_BLOCKS.map((block) => [block.canonicalBlockKey, block]));
+  const pendingByKey = new Map(DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.map((row) => [row.blockKey, row]));
+  const markerAliasByKey = new Map(DAEGU_CANONICAL_MARKER_ALIASES.map((row) => [row.blockKey, row]));
+  const blockedByKey = new Map(DAEGU_CANONICAL_BLOCKED_UNCONFIRMED_BLOCKS.map((row) => [row.blockKey, row]));
 
-  const rows = [...groupBy(dataRows, (row) => row.blockKey).entries()]
-    .map(([blockKey, groupRows]) => {
-      const activeRows = groupRows.filter((row) => row.selectable);
-      const markerRows = groupRows.filter((row) => row.markerOrAlias);
-      const unconfirmedRows = groupRows.filter((row) => row.blockedUnconfirmed);
-      const activeRuntimeSources = uniqueSorted(activeRows.map((row) => row.sourceId));
-      const activeValidationOwners = activeRows.map((row) => SOURCE_VALIDATION_OWNERS[row.sourceId])
-        .filter(Boolean);
-      const activeTracingOwners = activeRows.map(traceOwnerForRow);
-      const validationOwnerIds = uniqueSorted(activeValidationOwners.map((owner) => owner.ownerId));
-      const tracingOwnerIds = uniqueSorted(activeTracingOwners.map((owner) => owner.ownerId));
-      const flags = [];
+  const rows = DAEGU_CANONICAL_BLOCK_DECISIONS.map((decision) => {
+    const canonicalBlock = canonicalBlockByKey.get(decision.blockKey);
+    const pendingRow = pendingByKey.get(decision.blockKey);
+    const markerAlias = markerAliasByKey.get(decision.blockKey);
+    const blockedRow = blockedByKey.get(decision.blockKey);
+    const activeRuntimeSources = canonicalBlock ? [CANONICAL_SOURCE_ID] : [];
+    const activeValidationOwners = canonicalBlock ? [CANONICAL_VALIDATION_OWNER.ownerId] : [];
+    const activeTracingOwners = canonicalBlock ? [CANONICAL_TRACING_OWNER.ownerId] : [];
+    const flags = [];
 
-      if (validationOwnerIds.length > 1) flags.push('MULTIPLE_ACTIVE_QA_OWNERS_FOR_BLOCK');
-      if (tracingOwnerIds.length > 1) flags.push('MULTIPLE_ACTIVE_TRACING_WORKFLOWS_FOR_BLOCK');
-      if (activeRuntimeSources.length > 1) flags.push('ACTIVE_POLYGON_SOURCE_OVERLAP');
-      if (markerRows.length > 0 && activeRows.length > 0) flags.push('MARKER_IN_SEAT_QA');
-      if (unconfirmedRows.length > 0 && activeRows.length > 0) flags.push('UNCONFIRMED_BLOCK_HAS_SELECTABLE_TRACE');
+    if (activeRuntimeSources.length > 1) flags.push('ACTIVE_POLYGON_SOURCE_OVERLAP');
+    if (activeValidationOwners.length > 1) flags.push('MULTIPLE_ACTIVE_QA_OWNERS_FOR_BLOCK');
+    if (activeTracingOwners.length > 1) flags.push('MULTIPLE_ACTIVE_TRACING_WORKFLOWS_FOR_BLOCK');
+    if (markerAlias && canonicalBlock && canonicalBlock.sectionKind !== 'SEAT_SECTION') flags.push('MARKER_IN_SEAT_QA');
+    if (blockedRow && canonicalBlock) flags.push('UNCONFIRMED_BLOCK_HAS_SELECTABLE_TRACE');
 
-      return {
-        blockKey,
-        blockLabels: uniqueSorted(groupRows.map((row) => row.blockLabel)),
-        sectionIds: uniqueSorted(groupRows.map((row) => row.sectionId)),
-        names: uniqueSorted(groupRows.map((row) => row.block.name)),
-        categories: uniqueSorted(groupRows.map((row) => row.block.category)),
-        sectionKinds: uniqueSorted(groupRows.map((row) => row.block.sectionKind)),
-        activeRuntimeSources,
-        activeValidationOwners: validationOwnerIds,
-        activeValidationCommands: uniqueSorted(activeValidationOwners.flatMap((owner) => owner.commands)),
-        activeTracingOwners: tracingOwnerIds,
-        activeTracingCommands: uniqueSorted(activeTracingOwners.flatMap((owner) => owner.commands)),
-        traceVersions: uniqueSorted(activeTracingOwners.map((owner) => owner.traceVersion)),
-        historicalEvidenceOwners: uniqueSorted([
-          ...GLOBAL_VALIDATION_OWNER_COMMANDS,
-          `reports/stadium/daegu-* evidence-only files (${generatedDaeguReports.length})`,
-        ]),
-        selectableRowCount: activeRows.length,
-        markerOrAlias: markerRows.length > 0,
-        blockedUnconfirmed: unconfirmedRows.length > 0,
-        flags,
-      };
-    })
-    .sort((a, b) => a.blockKey.localeCompare(b.blockKey));
+    return {
+      blockKey: decision.blockKey,
+      blockLabels: decision.blockLabels,
+      sectionIds: decision.sectionIds,
+      names: decision.names,
+      categories: decision.categories,
+      sectionKinds: decision.sectionKinds,
+      canonicalDecisionStatus: decision.decisionStatus,
+      activeRuntimeSources,
+      activeValidationOwners,
+      activeValidationCommands: canonicalBlock ? CANONICAL_VALIDATION_OWNER.commands : [],
+      activeTracingOwners,
+      activeTracingCommands: canonicalBlock ? CANONICAL_TRACING_OWNER.commands : [],
+      historicalEvidenceOwners: uniqueSorted([
+        ...LEGACY_EVIDENCE_OWNER_COMMANDS,
+        `reports/stadium/daegu-* evidence-only files (${generatedDaeguReports.length})`,
+      ]),
+      selectableRowCount: canonicalBlock ? 1 : 0,
+      pendingOperatorTrace: Boolean(pendingRow),
+      markerOrAlias: Boolean(markerAlias),
+      blockedUnconfirmed: Boolean(blockedRow),
+      flags,
+    };
+  }).sort((a, b) => a.blockKey.localeCompare(b.blockKey));
 
   const rowsWithFlags = rows.filter((row) => row.flags.length > 0);
   const flagCounts = Object.fromEntries(
@@ -312,7 +204,7 @@ const main = async () => {
       .map(([flag, flagRows]) => [flag, flagRows.length])
       .sort(([a], [b]) => String(a).localeCompare(String(b))),
   );
-  const status = rowsWithFlags.length > 0 ? 'review-required' : 'passed';
+  const status = rowsWithFlags.length > 0 ? 'failed' : 'passed';
 
   const summary = {
     status,
@@ -323,8 +215,13 @@ const main = async () => {
     activeTracingOwnerConflictBlockKeys: flagCounts.MULTIPLE_ACTIVE_TRACING_WORKFLOWS_FOR_BLOCK ?? 0,
     markerInSeatQaBlockKeys: flagCounts.MARKER_IN_SEAT_QA ?? 0,
     unconfirmedSelectableTraceBlockKeys: flagCounts.UNCONFIRMED_BLOCK_HAS_SELECTABLE_TRACE ?? 0,
+    pendingOperatorTraceBlockKeys: rows.filter((row) => row.pendingOperatorTrace).length,
+    markerAliasBlockKeys: rows.filter((row) => row.markerOrAlias).length,
+    blockedUnconfirmedBlockKeys: rows.filter((row) => row.blockedUnconfirmed).length,
+    activeCanonicalSelectableBlocks: DAEGU_CANONICAL_SEATMAP_SUMMARY.activeSelectableBlocks,
+    targetCanonicalSelectableBlocks: DAEGU_CANONICAL_SEATMAP_SUMMARY.targetSelectableBlocks,
     rowsWithFlags: rowsWithFlags.length,
-    globalValidationOwnerCommands: GLOBAL_VALIDATION_OWNER_COMMANDS,
+    canonicalValidationOwnerCommands: CANONICAL_VALIDATION_OWNER.commands,
     packageScriptTierCounts: scriptInventory.packageScriptTierCounts,
     generatedDaeguReportEvidenceCount: generatedDaeguReports.length,
   };
@@ -334,12 +231,23 @@ const main = async () => {
     version: AUDIT_VERSION,
     status,
     policy: {
-      purpose: 'Read-only Daegu block-level QA and polygon tracing ownership audit.',
-      blockKeyNormalization: 'Uppercase block label with whitespace, hyphen, and accessibility marker suffixes removed.',
-      activeRuntimeSourceMeansSelectableDataRow: true,
+      purpose: 'Read-only Daegu canonical block-level QA and polygon tracing ownership audit.',
+      activeRuntimeSource: CANONICAL_SOURCE_ID,
+      activeRuntimeSourceMeansSelectableCanonicalRow: true,
+      activeValidationOwner: CANONICAL_VALIDATION_OWNER.ownerId,
+      activeTracingOwner: CANONICAL_TRACING_OWNER.ownerId,
+      historicalEvidenceOwner: LEGACY_EVIDENCE_OWNER_COMMANDS,
       globalValidationOwnersAreNotBlockOwners: true,
       generatedReportsAreEvidenceOnly: true,
       reportFilesMustNotBeStaged: true,
+      blockedAndMarkerRowsAreClassifiedEvidence: true,
+      forbiddenFlags: [
+        'MULTIPLE_ACTIVE_QA_OWNERS_FOR_BLOCK',
+        'MULTIPLE_ACTIVE_TRACING_WORKFLOWS_FOR_BLOCK',
+        'ACTIVE_POLYGON_SOURCE_OVERLAP',
+        'MARKER_IN_SEAT_QA',
+        'UNCONFIRMED_BLOCK_HAS_SELECTABLE_TRACE',
+      ],
     },
     summary,
     scriptInventory: {
@@ -355,10 +263,12 @@ const main = async () => {
     'blockKey',
     'blockLabels',
     'sectionIds',
+    'canonicalDecisionStatus',
     'activeRuntimeSources',
     'activeValidationOwners',
     'activeTracingOwners',
     'selectableRowCount',
+    'pendingOperatorTrace',
     'markerOrAlias',
     'blockedUnconfirmed',
     'flags',
@@ -369,24 +279,28 @@ const main = async () => {
       row.blockKey,
       row.blockLabels,
       row.sectionIds,
+      row.canonicalDecisionStatus,
       row.activeRuntimeSources,
       row.activeValidationOwners,
       row.activeTracingOwners,
       row.selectableRowCount,
+      row.pendingOperatorTrace,
       row.markerOrAlias,
       row.blockedUnconfirmed,
       row.flags,
     ].map(csvEscape).join(',')),
   ].join('\n');
 
-  const conflictRows = rowsWithFlags.map((row) => [
-    row.blockKey,
-    row.blockLabels.join(', '),
-    row.activeRuntimeSources.join(', ') || 'none',
-    row.activeValidationOwners.join(', ') || 'none',
-    row.activeTracingOwners.join(', ') || 'none',
-    row.flags.join(', '),
-  ]);
+  const classifiedRows = rows
+    .filter((row) => row.pendingOperatorTrace || row.markerOrAlias || row.blockedUnconfirmed)
+    .map((row) => [
+      row.blockKey,
+      row.blockLabels.join(', '),
+      row.canonicalDecisionStatus,
+      row.pendingOperatorTrace,
+      row.markerOrAlias,
+      row.blockedUnconfirmed,
+    ]);
 
   const markdown = [
     '# Daegu QA Ownership Audit',
@@ -401,14 +315,14 @@ const main = async () => {
     `- active tracing owner conflicts: \`${summary.activeTracingOwnerConflictBlockKeys}\``,
     `- marker in seat QA rows: \`${summary.markerInSeatQaBlockKeys}\``,
     `- unconfirmed selectable trace rows: \`${summary.unconfirmedSelectableTraceBlockKeys}\``,
+    `- pending operator trace block keys: \`${summary.pendingOperatorTraceBlockKeys}\``,
     `- generated Daegu report evidence files: \`${summary.generatedDaeguReportEvidenceCount}\``,
     '',
     '## Flag Counts',
     '',
-    markdownTable(
-      ['flag', 'count'],
-      Object.entries(flagCounts).map(([flag, count]) => [flag, count]),
-    ),
+    Object.entries(flagCounts).length > 0
+      ? markdownTable(['flag', 'count'], Object.entries(flagCounts).map(([flag, count]) => [flag, count]))
+      : 'none',
     '',
     '## Package Script Ownership Tiers',
     '',
@@ -417,21 +331,21 @@ const main = async () => {
       Object.entries(scriptInventory.packageScriptTierCounts).map(([tier, count]) => [tier, count]),
     ),
     '',
-    '## Rows Requiring Review',
+    '## Classified Evidence Rows',
     '',
-    conflictRows.length > 0
+    classifiedRows.length > 0
       ? markdownTable(
-        ['blockKey', 'labels', 'activeSources', 'validationOwners', 'tracingOwners', 'flags'],
-        conflictRows,
+        ['blockKey', 'labels', 'decision', 'pendingTrace', 'markerAlias', 'blockedUnconfirmed'],
+        classifiedRows,
       )
-      : 'No block-level ownership conflicts were found.',
+      : 'none',
     '',
     '## Policy',
     '',
-    '- Global smoke/audit commands are historical evidence for this ownership audit and are not counted as block owners.',
+    '- `DAEGU_CANONICAL_2026` is the only active runtime polygon source.',
+    '- Official PNG and raw operator-reference QA scripts are historical evidence after canonical consolidation.',
     '- Generated files under `reports/stadium/daegu-seatmap-qa-ownership-audit.*` are QA evidence only.',
     '- `reports/stadium/daegu-*` files must not be staged as PR payload.',
-    '- A block with official and operator selectable polygons is review-required until a single canonical polygon owner is chosen.',
     '',
   ].join('\n');
 
@@ -439,8 +353,12 @@ const main = async () => {
   await fs.writeFile(OUTPUT_FILES.csv, `${csv}\n`, 'utf8');
   await fs.writeFile(OUTPUT_FILES.markdown, `${markdown}\n`, 'utf8');
 
-  console.log(`status:${status} block_keys=${summary.totalBlockKeys} active_source_overlaps=${summary.activeRuntimeSourceOverlapBlockKeys} active_qa_owner_conflicts=${summary.activeValidationOwnerConflictBlockKeys} active_tracing_conflicts=${summary.activeTracingOwnerConflictBlockKeys} marker_in_seat_qa=${summary.markerInSeatQaBlockKeys} unconfirmed_selectable_trace=${summary.unconfirmedSelectableTraceBlockKeys}`);
+  console.log(`status:${status} block_keys=${summary.totalBlockKeys} active_source_overlaps=${summary.activeRuntimeSourceOverlapBlockKeys} active_qa_owner_conflicts=${summary.activeValidationOwnerConflictBlockKeys} active_tracing_conflicts=${summary.activeTracingOwnerConflictBlockKeys} marker_in_seat_qa=${summary.markerInSeatQaBlockKeys} unconfirmed_selectable_trace=${summary.unconfirmedSelectableTraceBlockKeys} pending_operator_trace=${summary.pendingOperatorTraceBlockKeys}`);
   console.log(`report:${OUTPUT_FILES.json}`);
+
+  if (status === 'failed') {
+    process.exitCode = 1;
+  }
 };
 
 await main();

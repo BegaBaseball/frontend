@@ -66,10 +66,10 @@ export type DaeguPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRE
 export type DaeguMarkerType = 'WHEELCHAIR' | 'GATE' | 'NURSING_ROOM' | 'KIDS_SHELTER';
 export type DaeguSectionKind = 'SEAT_SECTION' | 'ACCESSIBILITY_MARKER' | 'GATE_MARKER' | 'FACILITY_MARKER' | 'WAYFINDING_MARKER';
 export type DaeguSeatMapPoint = [number, number];
-export type DaeguSeatMapSourceId = 'SAMSUNG_OFFICIAL_2026' | 'OPERATOR_REFERENCE_RAPAK_2025' | 'MYSEATCHECK_REFERENCE_2026';
+export type DaeguSeatMapSourceId = 'DAEGU_CANONICAL_2026' | 'SAMSUNG_OFFICIAL_2026' | 'OPERATOR_REFERENCE_RAPAK_2025' | 'MYSEATCHECK_REFERENCE_2026';
 export type DaeguSeatMapSourceKind = 'INTERACTIVE_SEATMAP' | 'REFERENCE_IMAGE';
-export type DaeguSeatMapSourceStatus = 'OFFICIAL' | 'OPERATOR_REFERENCE' | 'EXTERNAL_REFERENCE_PENDING_ASSET';
-export type DaeguSeatMapSourcePolygonStatus = 'PRODUCTION_INTERACTIVE' | 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE' | 'REFERENCE_TRACE_DRAFT_READY' | 'REFERENCE_ONLY_PENDING_ASSET';
+export type DaeguSeatMapSourceStatus = 'CANONICAL' | 'OFFICIAL' | 'OPERATOR_REFERENCE' | 'EXTERNAL_REFERENCE_PENDING_ASSET';
+export type DaeguSeatMapSourcePolygonStatus = 'CANONICAL_INTERACTIVE' | 'PRODUCTION_INTERACTIVE' | 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE' | 'HISTORICAL_EVIDENCE_ONLY' | 'REFERENCE_TRACE_DRAFT_READY' | 'REFERENCE_ONLY_PENDING_ASSET';
 
 export interface DaeguImageGeometry {
   d: string;
@@ -191,6 +191,8 @@ type DaeguBlockDefinition = Omit<DaeguBlock, 'sourceConfidence' | 'sourceNote' |
 
 export const DAEGU_STADIUM_ID = 'DAEGU_SAMSUNG_LIONS_PARK';
 export const DAEGU_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1';
+export const DAEGU_CANONICAL_SEATMAP_SOURCE_ID = 'DAEGU_CANONICAL_2026';
+export const DAEGU_CANONICAL_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_CANONICAL_OPERATOR_REFERENCE_V1';
 export const DAEGU_VIEW_BOX = '0 0 1707 2048';
 export const DAEGU_IMAGE_SHA256 = '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0';
 export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME = 'daegu-operator-reference-rapak-2025-enhanced-transparent.webp';
@@ -224,9 +226,28 @@ export const DAEGU_SEATMAP_IMAGE: DaeguSeatMapImage = {
 
 export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
   {
+    id: 'DAEGU_CANONICAL_2026',
+    label: '대구 canonical 좌석도',
+    kind: 'INTERACTIVE_SEATMAP',
+    imagePath: `src/assets/stadiums/samsung/${DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME}`,
+    imageWidth: 4096,
+    imageHeight: 4096,
+    viewBox: '0 0 4096 4096',
+    imageSha256: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256,
+    sourceLabel: 'Operator-provided enhanced transparent RaPak reference image',
+    sourceUrl: null,
+    assetStatus: 'CANONICAL',
+    mapVersion: DAEGU_CANONICAL_MAP_VERSION,
+    polygonStatus: 'CANONICAL_INTERACTIVE',
+    requiredAssetFileName: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
+    attributionRequired: false,
+    productionCanonical: true,
+    notes: 'Single runtime source for Daegu canonical selectable polygons. Only operator-reference 4096x4096 approved polygons can be active here; official PNG coordinates remain historical evidence until retraced in this coordinate system.',
+  },
+  {
     id: 'SAMSUNG_OFFICIAL_2026',
     label: '공식 좌석도',
-    kind: 'INTERACTIVE_SEATMAP',
+    kind: 'REFERENCE_IMAGE',
     imagePath: DAEGU_SEATMAP_IMAGE.imagePath,
     imageWidth: DAEGU_SEATMAP_IMAGE.imageWidth,
     imageHeight: DAEGU_SEATMAP_IMAGE.imageHeight,
@@ -236,16 +257,16 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     sourceUrl: DAEGU_SEATMAP_IMAGE.sourceUrl,
     assetStatus: 'OFFICIAL',
     mapVersion: DAEGU_SEATMAP_IMAGE.mapVersion,
-    polygonStatus: 'PRODUCTION_INTERACTIVE',
+    polygonStatus: 'HISTORICAL_EVIDENCE_ONLY',
     requiredAssetFileName: DAEGU_SEATMAP_IMAGE.requiredAssetFileName,
     attributionRequired: false,
-    productionCanonical: true,
-    notes: 'Production canonical source for Daegu selectable seat polygons.',
+    productionCanonical: false,
+    notes: 'Historical official PNG evidence for Daegu seat polygons. It is no longer an active runtime polygon source after DAEGU_CANONICAL_2026 consolidation.',
   },
   {
     id: 'OPERATOR_REFERENCE_RAPAK_2025',
     label: '기존 좌석배치도',
-    kind: 'INTERACTIVE_SEATMAP',
+    kind: 'REFERENCE_IMAGE',
     imagePath: `src/assets/stadiums/samsung/${DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME}`,
     imageWidth: 4096,
     imageHeight: 4096,
@@ -255,11 +276,11 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     sourceUrl: null,
     assetStatus: 'OPERATOR_REFERENCE',
     mapVersion: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_MAP_VERSION,
-    polygonStatus: 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE',
+    polygonStatus: 'HISTORICAL_EVIDENCE_ONLY',
     requiredAssetFileName: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
     attributionRequired: false,
     productionCanonical: false,
-    notes: 'Operator-provided local reference for the default Daegu seatmap view. Only approved 4096x4096 operator-reference polygons are interactive here; do not overwrite official PNG production coordinates.',
+    notes: 'Historical operator-reference source rows used to build DAEGU_CANONICAL_2026. Do not expose this as a separate user runtime polygon source.',
   },
   {
     id: 'MYSEATCHECK_REFERENCE_2026',
@@ -282,7 +303,7 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
   },
 ];
 
-export const DAEGU_DEFAULT_SEATMAP_SOURCE_ID: DaeguSeatMapSourceId = 'OPERATOR_REFERENCE_RAPAK_2025';
+export const DAEGU_DEFAULT_SEATMAP_SOURCE_ID: DaeguSeatMapSourceId = DAEGU_CANONICAL_SEATMAP_SOURCE_ID;
 
 export const DAEGU_CATEGORIES: Record<string, DaeguCategory> = {
   VIP:       { label: 'VIP석',       light: '#1D4ED8', dark: '#60A5FA', textLight: '#172554', textDark: '#DBEAFE' },

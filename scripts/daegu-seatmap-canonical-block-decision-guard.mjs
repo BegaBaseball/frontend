@@ -86,9 +86,11 @@ const main = async () => {
     `- version: \`${DAEGU_CANONICAL_BLOCK_DECISION_GUARD_VERSION}\``,
     `- status: \`${status}\``,
     `- total block keys: \`${summary.totalBlockKeys}\``,
-    `- canonical selectable block keys: \`${summary.canonicalSelectableBlockKeys}\``,
+    `- active canonical selectable block keys: \`${summary.activeCanonicalSelectableBlockKeys}\``,
+    `- pending operator trace block keys: \`${summary.pendingOperatorTraceBlockKeys}\``,
+    `- target canonical selectable block keys: \`${summary.targetCanonicalSelectableBlockKeys}\``,
     `- operator overlap canonical block keys: \`${summary.operatorOverlapCanonicalBlockKeys}\``,
-    `- official-only canonical block keys: \`${summary.officialOnlyCanonicalBlockKeys}\``,
+    `- official-only historical block keys pending operator trace: \`${summary.pendingOperatorTraceBlockKeys}\``,
     `- operator-only canonical block keys: \`${summary.operatorOnlyCanonicalBlockKeys}\``,
     `- marker/alias-only block keys: \`${summary.markerOrAliasOnlyBlockKeys}\``,
     `- blocked unconfirmed block keys: \`${summary.blockedUnconfirmedBlockKeys}\``,
@@ -129,7 +131,7 @@ const main = async () => {
   await fs.writeFile(OUTPUT_FILES.csv, `${csv}\n`, 'utf8');
   await fs.writeFile(OUTPUT_FILES.markdown, `${markdown}\n`, 'utf8');
 
-  console.log(`status:${status} block_keys=${summary.totalBlockKeys} canonical_selectable=${summary.canonicalSelectableBlockKeys} operator_overlap=${summary.operatorOverlapCanonicalBlockKeys} official_only=${summary.officialOnlyCanonicalBlockKeys} operator_only=${summary.operatorOnlyCanonicalBlockKeys} marker_alias_separation=${summary.markerAliasSeparationRequiredBlockKeys} blocked_unconfirmed=${summary.blockedUnconfirmedBlockKeys} geometry_issues=${summary.geometryIssueBlockKeys}`);
+  console.log(`status:${status} block_keys=${summary.totalBlockKeys} active_canonical_selectable=${summary.activeCanonicalSelectableBlockKeys} pending_operator_trace=${summary.pendingOperatorTraceBlockKeys} target_canonical_selectable=${summary.targetCanonicalSelectableBlockKeys} operator_overlap=${summary.operatorOverlapCanonicalBlockKeys} operator_only=${summary.operatorOnlyCanonicalBlockKeys} marker_alias_separation=${summary.markerAliasSeparationRequiredBlockKeys} blocked_unconfirmed=${summary.blockedUnconfirmedBlockKeys} geometry_issues=${summary.geometryIssueBlockKeys}`);
   console.log(`report:${OUTPUT_FILES.json}`);
 
   if (status === 'failed') {

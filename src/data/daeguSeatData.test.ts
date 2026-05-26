@@ -6,6 +6,7 @@ import {
   DAEGU_BLOCKS,
   DAEGU_CATEGORIES,
   DAEGU_CATEGORY_GROUPS,
+  DAEGU_CANONICAL_SEATMAP_SOURCE_ID,
   DAEGU_REQUIRED_OFFICIAL_SECTIONS,
   DAEGU_DEFAULT_SEATMAP_SOURCE_ID,
   DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME,
@@ -32,6 +33,13 @@ import {
   DAEGU_CANONICAL_OPERATOR_SOURCE_ID,
   validateDaeguCanonicalBlockDecisions,
 } from './daeguCanonicalBlockDecision';
+import {
+  DAEGU_CANONICAL_BLOCKS,
+  DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS,
+  DAEGU_CANONICAL_SEATMAP_IMAGE,
+  DAEGU_CANONICAL_SEATMAP_SUMMARY,
+  validateDaeguCanonicalSeatMap,
+} from './daeguCanonicalSeatMap';
 import { validateSeatMapPolygonPath } from '../utils/seatMapPolygonValidator';
 
 const DAEGU_VISUAL_MATCH_SOURCE = readFileSync(
@@ -264,6 +272,10 @@ const DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE = readFileSync(
 );
 const DAEGU_CANONICAL_BLOCK_DECISION_SOURCE = readFileSync(
   new URL('./daeguCanonicalBlockDecision.ts', import.meta.url),
+  'utf8',
+);
+const DAEGU_CANONICAL_OFFICIAL_ONLY_RETRACE_WORKSET_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-seatmap-canonical-official-only-retrace-workset.mjs', import.meta.url),
   'utf8',
 );
 
@@ -550,15 +562,25 @@ test('대구 공식 PNG 실제 크기는 데이터 좌표계와 일치한다', (
   assert.equal(fileSha256(OFFICIAL_ASSET_URL), DAEGU_SEATMAP_IMAGE.imageSha256);
 });
 
-test('대구 MySeatCheck reference source는 공식 좌석도와 분리된 pending asset으로만 등록된다', () => {
+test('대구 MySeatCheck reference source는 canonical 좌석도와 분리된 pending asset으로만 등록된다', () => {
+  const canonicalSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'DAEGU_CANONICAL_2026');
   const officialSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'SAMSUNG_OFFICIAL_2026');
   const mySeatCheckSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'MYSEATCHECK_REFERENCE_2026');
 
-  assert.equal(DAEGU_DEFAULT_SEATMAP_SOURCE_ID, 'OPERATOR_REFERENCE_RAPAK_2025');
+  assert.equal(DAEGU_DEFAULT_SEATMAP_SOURCE_ID, DAEGU_CANONICAL_SEATMAP_SOURCE_ID);
+  assert.ok(canonicalSource, 'canonical Daegu source reference should exist');
   assert.ok(officialSource, 'official Daegu source reference should exist');
   assert.ok(mySeatCheckSource, 'MySeatCheck reference source should exist');
-  assert.equal(officialSource.productionCanonical, true, 'official source should remain the production canonical source');
-  assert.equal(officialSource.polygonStatus, 'PRODUCTION_INTERACTIVE');
+  assert.equal(canonicalSource.kind, 'INTERACTIVE_SEATMAP');
+  assert.equal(canonicalSource.assetStatus, 'CANONICAL');
+  assert.equal(canonicalSource.polygonStatus, 'CANONICAL_INTERACTIVE');
+  assert.equal(canonicalSource.productionCanonical, true, 'canonical source should be the only production runtime source');
+  assert.equal(canonicalSource.imageWidth, 4096);
+  assert.equal(canonicalSource.imageHeight, 4096);
+  assert.equal(canonicalSource.imageSha256, DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256);
+  assert.equal(officialSource.kind, 'REFERENCE_IMAGE');
+  assert.equal(officialSource.productionCanonical, false, 'official source should stay historical after canonical consolidation');
+  assert.equal(officialSource.polygonStatus, 'HISTORICAL_EVIDENCE_ONLY');
   assert.equal(mySeatCheckSource.kind, 'REFERENCE_IMAGE');
   assert.equal(mySeatCheckSource.assetStatus, 'EXTERNAL_REFERENCE_PENDING_ASSET');
   assert.equal(mySeatCheckSource.polygonStatus, 'REFERENCE_ONLY_PENDING_ASSET');
@@ -578,14 +600,14 @@ test('대구 MySeatCheck reference source는 공식 좌석도와 분리된 pendi
   );
 });
 
-test('대구 업로드 operator reference source는 4096 기본 선택 좌석도로 등록된다', () => {
+test('대구 업로드 operator reference source는 canonical builder용 historical evidence로 등록된다', () => {
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
   const source = DAEGU_SEATMAP_SOURCE_REFERENCES.find((candidate) => candidate.id === 'OPERATOR_REFERENCE_RAPAK_2025');
 
   assert.ok(source, 'uploaded RaPak operator reference source should exist');
-  assert.equal(source.kind, 'INTERACTIVE_SEATMAP');
+  assert.equal(source.kind, 'REFERENCE_IMAGE');
   assert.equal(source.assetStatus, 'OPERATOR_REFERENCE');
-  assert.equal(source.polygonStatus, 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE');
+  assert.equal(source.polygonStatus, 'HISTORICAL_EVIDENCE_ONLY');
   assert.equal(source.productionCanonical, false);
   assert.equal(source.imageWidth, 4096);
   assert.equal(source.imageHeight, 4096);
@@ -604,8 +626,8 @@ test('대구 업로드 operator reference source는 4096 기본 선택 좌석도
   assert.ok(packageSource.includes('"stadium:daegu:operator-reference-p0-approval-gate"'), 'operator reference P0 approval gate script should be exposed');
   assert.match(
     source.notes,
-    /Only approved 4096x4096 operator-reference polygons are interactive/,
-    'uploaded reference should only expose approved 4096 polygons',
+    /Do not expose this as a separate user runtime polygon source/,
+    'uploaded reference should not compete with the canonical runtime source',
   );
 });
 
@@ -3846,13 +3868,16 @@ test('대구 QA ownership audit는 active owner와 historical evidence를 분리
 
   [
     '## QA ownership audit (2026-05-26)',
-    '`npm run stadium:daegu:qa-ownership-audit`: `review-required`',
+    '`npm run stadium:daegu:qa-ownership-audit`: `passed`',
     '`reports/stadium/daegu-seatmap-qa-ownership-audit.{json,csv,md}`',
-    'active runtime source overlaps: `108` block keys',
-    'active QA owner conflicts: `108` block keys',
-    'active tracing owner conflicts: `108` block keys',
-    'marker-in-seat-QA rows: `3` (`09`, `12`, `U22`)',
-    'unconfirmed selectable trace rows: `1` (`MR-10`)',
+    'active runtime source overlaps: `0` block keys',
+    'active QA owner conflicts: `0` block keys',
+    'active tracing owner conflicts: `0` block keys',
+    'marker-in-seat-QA rows: `0`',
+    'unconfirmed selectable trace rows: `0`',
+    'pending operator trace block keys: `58`',
+    'active canonical selectable blocks: `130`',
+    'target canonical selectable blocks: `188`',
     'generated ownership reports are QA evidence only and must not be staged as PR payload',
   ].forEach((requiredText) => {
     assert.ok(
@@ -3877,18 +3902,32 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
     'canonical block decision guard should use the shared data builder',
   );
   assert.deepEqual(validateDaeguCanonicalBlockDecisions(), []);
+  assert.deepEqual(validateDaeguCanonicalSeatMap(), []);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.status, 'review-required');
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.totalBlockKeys, 191);
-  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSelectableBlockKeys, 188);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSelectableBlockKeys, 130);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.activeCanonicalSelectableBlockKeys, 130);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.pendingOperatorTraceBlockKeys, 58);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.targetCanonicalSelectableBlockKeys, 188);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.operatorOverlapCanonicalBlockKeys, 108);
-  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.officialOnlyCanonicalBlockKeys, 58);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.officialOnlyCanonicalBlockKeys, 0);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.operatorOnlyCanonicalBlockKeys, 22);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.markerAliasSeparationRequiredBlockKeys, 3);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.blockedUnconfirmedBlockKeys, 2);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.geometryIssueBlockKeys, 0);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSourceCounts[DAEGU_CANONICAL_OPERATOR_SOURCE_ID], 130);
-  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSourceCounts[DAEGU_CANONICAL_OFFICIAL_SOURCE_ID], 58);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSourceCounts[DAEGU_CANONICAL_OFFICIAL_SOURCE_ID] ?? 0, 0);
+  assert.equal(DAEGU_CANONICAL_BLOCKS.length, 130);
+  assert.equal(DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.length, 58);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_SUMMARY.activeSelectableBlocks, 130);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_SUMMARY.pendingOperatorTraceBlocks, 58);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_SUMMARY.targetSelectableBlocks, 188);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_SUMMARY.mixedCoordinateRuntimePolygons, 0);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_IMAGE.imageWidth, 4096);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_IMAGE.imageHeight, 4096);
+  assert.equal(DAEGU_CANONICAL_SEATMAP_IMAGE.imageSha256, DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256);
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_POLICY.overlapDefault, DAEGU_CANONICAL_OPERATOR_SOURCE_ID);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_POLICY.officialOnlyDefault, 'PENDING_OPERATOR_TRACE');
   assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_POLICY.generatedReportsAreEvidenceOnly, true);
   assert.equal(
     new Set(DAEGU_CANONICAL_BLOCK_DECISIONS.map((decision) => decision.blockKey)).size,
@@ -3913,10 +3952,13 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
     'overlapDefault',
     'markerAliasRowsStayOutOfSelectableLayer',
     'unconfirmedRowsBlockSelectableCanonical',
+    'PENDING_OPERATOR_TRACE',
     'ACTIVE_POLYGON_SOURCE_OVERLAP_RESOLVED_TO_OPERATOR',
     'BLOCKED_UNCONFIRMED_NO_SELECTABLE_CANONICAL',
     'MARKER_ALIAS_SEPARATION_REQUIRED',
     'Every selectable canonical block key resolves to at most one source.',
+    'pending operator trace block keys',
+    'target canonical selectable block keys',
     'daegu-seatmap-canonical-block-decision-guard.json',
     'daegu-seatmap-canonical-block-decision-guard.csv',
     'daegu-seatmap-canonical-block-decision-guard.md',
@@ -3932,9 +3974,11 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
     '`npm run stadium:daegu:canonical-block-decision-guard`: `review-required`',
     'canonical decision builder: `src/data/daeguCanonicalBlockDecision.ts`; the guard script only serializes generated evidence.',
     '`reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`',
-    'canonical selectable block keys: `188`',
+    'active canonical selectable block keys: `130`',
+    'pending operator trace block keys: `58`',
+    'target canonical selectable block keys: `188`',
     '`CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys',
-    '`CANONICAL_OFFICIAL_ONLY`: `58` block keys',
+    '`PENDING_OPERATOR_TRACE`: `58` block keys',
     '`CANONICAL_OPERATOR_ONLY`: `22` block keys',
     '`BLOCKED_UNCONFIRMED`: `2` block keys (`MR-10`, `M-10`)',
     'marker alias separation required: `3` block keys (`09`, `12`, `U22`)',
@@ -3947,22 +3991,70 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
   });
 });
 
-test('대구 좌석도는 기존 좌석배치도 4096 데이터와 공식 PNG 1707 데이터를 모드별로 분리한다', () => {
+test('대구 official-only retrace workset은 58개 블럭을 4096 operator 좌표 승인 전까지 runtime에서 제외한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const releaseLockSource = readFileSync(new URL('../../docs/daegu-seatmap-release-lock.md', import.meta.url), 'utf8');
+
+  assert.ok(
+    packageSource.includes('"stadium:daegu:canonical-official-only-retrace-workset"'),
+    'official-only retrace workset package script should exist',
+  );
+  assert.ok(
+    packageSource.includes('"stadium:daegu:canonical-official-only-retrace-workset": "node --import tsx scripts/daegu-seatmap-canonical-official-only-retrace-workset.mjs"'),
+    'official-only retrace workset should run through tsx so it can import canonical TS data',
+  );
+
+  [
+    'DAEGU_CANONICAL_OFFICIAL_ONLY_RETRACE_WORKSET_V1',
+    'simpleScaleOrCopyAllowed: false',
+    'sourceDataWritePerformed: false',
+    'PENDING_OPERATOR_TRACE',
+    'pending_operator_trace',
+    'target_canonical_selectable',
+    'daegu-seatmap-canonical-official-only-retrace-workset.json',
+    'daegu-seatmap-canonical-official-only-retrace-workset.csv',
+    'daegu-seatmap-canonical-official-only-retrace-workset.md',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_CANONICAL_OFFICIAL_ONLY_RETRACE_WORKSET_SOURCE.includes(requiredText),
+      `Daegu official-only retrace workset should include ${requiredText}`,
+    );
+  });
+
+  [
+    '## Official-only operator retrace workset (2026-05-26)',
+    '`npm run stadium:daegu:canonical-official-only-retrace-workset`: `review-required`',
+    '`reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/`',
+    'pending operator trace block keys: `58`',
+    'simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden',
+    'generated retrace workset reports are QA evidence only and must not be staged as PR payload',
+  ].forEach((requiredText) => {
+    assert.ok(
+      releaseLockSource.includes(requiredText),
+      `Daegu release lock should summarize retrace workset evidence: ${requiredText}`,
+    );
+  });
+});
+
+test('대구 좌석도는 DAEGU_CANONICAL_2026 단일 4096 source만 렌더링한다', () => {
   const seatMapSource = readFileSync(new URL('../components/daegu/DaeguSeatMap.tsx', import.meta.url), 'utf8');
   const svgSource = readFileSync(new URL('../components/daegu/DaeguSeatMapSvg.tsx', import.meta.url), 'utf8');
 
-  assert.ok(seatMapSource.includes('data-testid="daegu-seatmap-image-mode-toggle"'), 'Daegu seatmap should expose an image mode toggle');
-  assert.ok(seatMapSource.includes("useState<DaeguSeatMapImageViewMode>('operatorReference')"), 'operator reference mode should be the default');
-  assert.ok(seatMapSource.includes('DAEGU_OPERATOR_REFERENCE_BLOCKS'), 'operator reference mode should use a separate 4096 block dataset');
-  assert.ok(seatMapSource.includes('daegu-seatmap-mode-operator-reference'), 'existing seatmap button should be testable');
-  assert.ok(seatMapSource.includes('daegu-seatmap-mode-official-png'), 'official image button should be testable');
-  assert.ok(seatMapSource.includes("'기존 좌석배치도'"), 'existing seatmap label should be visible');
-  assert.ok(seatMapSource.includes("'공식 이미지'"), 'official image label should be visible');
-  assert.ok(svgSource.includes("imageViewMode === 'operatorReference'"), 'SVG renderer should branch for the operator reference mode');
-  assert.ok(svgSource.includes('DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT'), 'operator reference renderer should use the 4096 viewport');
-  assert.ok(svgSource.includes(DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME), 'operator reference mode should use the uploaded reference asset');
-  assert.ok(svgSource.includes('renderBlocks.length > 0'), 'interactive layers should be driven by the active mode dataset');
-  assert.ok(svgSource.includes('data-image-view-mode={imageViewMode}'), 'SVG should expose the active image mode for QA');
+  assert.ok(seatMapSource.includes('DAEGU_CANONICAL_BLOCKS'), 'Daegu seatmap should use the canonical runtime block dataset');
+  assert.ok(seatMapSource.includes('DAEGU_CANONICAL_SEATMAP_IMAGE'), 'Daegu seatmap attribution should use the canonical image');
+  assert.ok(seatMapSource.includes('canonical 좌석도'), 'Daegu seatmap subtitle should expose canonical runtime status');
+  assert.ok(svgSource.includes('DAEGU_CANONICAL_SEATMAP_VIEWPORT'), 'SVG renderer should use the canonical 4096 viewport');
+  assert.ok(svgSource.includes(DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME), 'canonical renderer should use the uploaded operator-reference asset');
+  assert.ok(svgSource.includes('data-image-view-mode="canonical"'), 'SVG should expose fixed canonical mode for QA');
+  assert.ok(svgSource.includes('renderBlocks.length > 0'), 'interactive layers should be driven by the canonical dataset');
+  assert.equal(seatMapSource.includes('data-testid="daegu-seatmap-image-mode-toggle"'), false, 'Daegu seatmap should not expose a user source toggle');
+  assert.equal(seatMapSource.includes('setImageViewMode'), false, 'Daegu seatmap should not keep image view mode state');
+  assert.equal(seatMapSource.includes('DAEGU_OPERATOR_REFERENCE_BLOCKS'), false, 'operator source rows should not compete in the user runtime');
+  assert.equal(seatMapSource.includes('DAEGU_BLOCKS'), false, 'official source rows should not compete in the user runtime');
+  assert.equal(seatMapSource.includes('daegu-seatmap-mode-operator-reference'), false, 'operator source toggle should be removed');
+  assert.equal(seatMapSource.includes('daegu-seatmap-mode-official-png'), false, 'official source toggle should be removed');
+  assert.equal(svgSource.includes("imageViewMode === 'operatorReference'"), false, 'SVG renderer should not branch by legacy source mode');
+  assert.equal(svgSource.includes('data-image-view-mode={imageViewMode}'), false, 'SVG should not expose mutable source mode');
   assert.equal(seatMapSource.includes('이 모드에서는 좌석 polygon 선택을 비활성화합니다'), false, 'operator reference mode should no longer describe polygon selection as disabled');
 });
 

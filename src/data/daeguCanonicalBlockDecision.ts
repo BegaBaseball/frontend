@@ -22,6 +22,7 @@ export type DaeguCanonicalBlockDecisionStatus =
   | 'CANONICAL_OPERATOR_FROM_OVERLAP'
   | 'CANONICAL_OPERATOR_ONLY'
   | 'CANONICAL_OFFICIAL_ONLY'
+  | 'PENDING_OPERATOR_TRACE'
   | 'MARKER_OR_ALIAS_ONLY'
   | 'BLOCKED_UNCONFIRMED'
   | 'NO_SELECTABLE_CANONICAL_SOURCE';
@@ -67,8 +68,11 @@ export interface DaeguCanonicalBlockDecisionSummary {
   status: 'passed' | 'review-required' | 'failed';
   totalBlockKeys: number;
   canonicalSelectableBlockKeys: number;
+  activeCanonicalSelectableBlockKeys: number;
+  targetCanonicalSelectableBlockKeys: number;
   operatorOverlapCanonicalBlockKeys: number;
   officialOnlyCanonicalBlockKeys: number;
+  pendingOperatorTraceBlockKeys: number;
   operatorOnlyCanonicalBlockKeys: number;
   markerOrAliasOnlyBlockKeys: number;
   blockedUnconfirmedBlockKeys: number;
@@ -91,7 +95,7 @@ export interface DaeguCanonicalBlockDecisionReport {
 export const DAEGU_CANONICAL_BLOCK_DECISION_POLICY = {
   purpose: 'Read-only Daegu block-key canonical decision guard before runtime single-source consolidation.',
   overlapDefault: DAEGU_CANONICAL_OPERATOR_SOURCE_ID,
-  officialOnlyDefault: DAEGU_CANONICAL_OFFICIAL_SOURCE_ID,
+  officialOnlyDefault: 'PENDING_OPERATOR_TRACE',
   operatorOnlyDefault: DAEGU_CANONICAL_OPERATOR_SOURCE_ID,
   markerAliasRowsStayOutOfSelectableLayer: true,
   unconfirmedRowsBlockSelectableCanonical: true,
@@ -185,7 +189,6 @@ function chooseDaeguCanonicalRow(
   if (blockedUnconfirmed) return null;
 
   return activeRows.find((row) => row.sourceId === DAEGU_CANONICAL_OPERATOR_SOURCE_ID)
-    ?? activeRows.find((row) => row.sourceId === DAEGU_CANONICAL_OFFICIAL_SOURCE_ID)
     ?? null;
 }
 
@@ -217,9 +220,9 @@ export function buildDaeguCanonicalBlockDecision(
   } else if (canonicalRow?.sourceId === DAEGU_CANONICAL_OPERATOR_SOURCE_ID) {
     decisionStatus = 'CANONICAL_OPERATOR_ONLY';
     nextAction = 'Keep operator-reference polygon as canonical candidate after metadata and label ownership review.';
-  } else if (canonicalRow?.sourceId === DAEGU_CANONICAL_OFFICIAL_SOURCE_ID) {
-    decisionStatus = 'CANONICAL_OFFICIAL_ONLY';
-    nextAction = 'Keep official PNG polygon as canonical candidate until operator-reference retrace evidence exists.';
+  } else if (activeRows.some((row) => row.sourceId === DAEGU_CANONICAL_OFFICIAL_SOURCE_ID)) {
+    decisionStatus = 'PENDING_OPERATOR_TRACE';
+    nextAction = 'Keep official PNG polygon as historical evidence and trace this block on the 4096 operator-reference image before canonical selectable promotion.';
   } else if (markerRows.length > 0) {
     decisionStatus = 'MARKER_OR_ALIAS_ONLY';
     nextAction = 'Keep outside selectable seat polygon layer and model as marker or alias if needed.';
@@ -274,8 +277,11 @@ export function buildDaeguCanonicalBlockDecisionSummary(
     status,
     totalBlockKeys: decisions.length,
     canonicalSelectableBlockKeys: decisions.filter((row) => row.canonicalSourceId !== null).length,
+    activeCanonicalSelectableBlockKeys: decisions.filter((row) => row.canonicalSourceId !== null).length,
+    targetCanonicalSelectableBlockKeys: decisions.filter((row) => row.canonicalSourceId !== null || row.decisionStatus === 'PENDING_OPERATOR_TRACE').length,
     operatorOverlapCanonicalBlockKeys: decisions.filter((row) => row.decisionStatus === 'CANONICAL_OPERATOR_FROM_OVERLAP').length,
     officialOnlyCanonicalBlockKeys: decisions.filter((row) => row.decisionStatus === 'CANONICAL_OFFICIAL_ONLY').length,
+    pendingOperatorTraceBlockKeys: decisions.filter((row) => row.decisionStatus === 'PENDING_OPERATOR_TRACE').length,
     operatorOnlyCanonicalBlockKeys: decisions.filter((row) => row.decisionStatus === 'CANONICAL_OPERATOR_ONLY').length,
     markerOrAliasOnlyBlockKeys: decisions.filter((row) => row.decisionStatus === 'MARKER_OR_ALIAS_ONLY').length,
     blockedUnconfirmedBlockKeys: blockedUnconfirmedRows.length,

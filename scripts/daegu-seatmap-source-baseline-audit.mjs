@@ -14,8 +14,7 @@ const OUTPUT_FILES = {
 
 const AUDIT_VERSION = 'DAEGU_SOURCE_BASELINE_AUDIT_V1';
 const ACTIVE_INTERACTIVE_POLYGON_STATUSES = new Set([
-  'PRODUCTION_INTERACTIVE',
-  'OPERATOR_REFERENCE_APPROVED_INTERACTIVE',
+  'CANONICAL_INTERACTIVE',
 ]);
 
 const csvEscape = (value) => {
@@ -115,6 +114,13 @@ const main = async () => {
     isDaeguReviewOnlySeat,
   } = await import('../src/data/daeguSeatData.ts');
   const {
+    DAEGU_CANONICAL_BLOCKS,
+    DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS,
+    DAEGU_CANONICAL_SEATMAP_IMAGE,
+    DAEGU_CANONICAL_SEATMAP_SUMMARY,
+    DAEGU_CANONICAL_SEATMAP_VIEWPORT,
+  } = await import('../src/data/daeguCanonicalSeatMap.ts');
+  const {
     validateSeatMapPolygonPath,
   } = await import('../src/utils/seatMapPolygonValidator.ts');
 
@@ -123,15 +129,22 @@ const main = async () => {
   const sourceReferencesById = new Map(DAEGU_SEATMAP_SOURCE_REFERENCES.map((source) => [source.id, source]));
   const datasets = [
     {
+      sourceId: 'DAEGU_CANONICAL_2026',
+      sourceRole: 'canonical-runtime-source',
+      blocks: DAEGU_CANONICAL_BLOCKS,
+      imageWidth: DAEGU_CANONICAL_SEATMAP_VIEWPORT.width || DAEGU_CANONICAL_SEATMAP_IMAGE.imageWidth,
+      imageHeight: DAEGU_CANONICAL_SEATMAP_VIEWPORT.height || DAEGU_CANONICAL_SEATMAP_IMAGE.imageHeight,
+    },
+    {
       sourceId: 'SAMSUNG_OFFICIAL_2026',
-      sourceRole: 'official-png-production-candidate',
+      sourceRole: 'official-png-historical-evidence',
       blocks: DAEGU_BLOCKS,
       imageWidth: DAEGU_SEATMAP_VIEWPORT.width || DAEGU_SEATMAP_IMAGE.imageWidth,
       imageHeight: DAEGU_SEATMAP_VIEWPORT.height || DAEGU_SEATMAP_IMAGE.imageHeight,
     },
     {
       sourceId: 'OPERATOR_REFERENCE_RAPAK_2025',
-      sourceRole: 'operator-reference-approved-candidate',
+      sourceRole: 'operator-reference-historical-evidence',
       blocks: DAEGU_OPERATOR_REFERENCE_BLOCKS,
       imageWidth: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.width,
       imageHeight: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.height,
@@ -165,7 +178,11 @@ const main = async () => {
     };
   });
 
-  const activeRows = datasets.flatMap((dataset) => dataset.blocks
+  const activeDatasetIds = new Set(sourceRows
+    .filter((row) => row.interactiveRuntimeSource)
+    .map((row) => row.sourceId));
+
+  const activeRows = datasets.filter((dataset) => activeDatasetIds.has(dataset.sourceId)).flatMap((dataset) => dataset.blocks
     .filter(isDaeguNormalSelectableSeat)
     .map((block) => ({
       sourceId: dataset.sourceId,
@@ -250,8 +267,12 @@ const main = async () => {
     referenceOnlySources,
     officialTotalBlocks: DAEGU_BLOCKS.length,
     operatorReferenceTotalBlocks: DAEGU_OPERATOR_REFERENCE_BLOCKS.length,
+    canonicalRuntimeBlocks: DAEGU_CANONICAL_BLOCKS.length,
+    pendingOperatorTraceBlocks: DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.length,
+    targetCanonicalSelectableBlocks: DAEGU_CANONICAL_SEATMAP_SUMMARY.targetSelectableBlocks,
     officialSelectableBlocks: sourceRows.find((row) => row.sourceId === 'SAMSUNG_OFFICIAL_2026')?.selectableBlocks ?? 0,
     operatorReferenceSelectableBlocks: sourceRows.find((row) => row.sourceId === 'OPERATOR_REFERENCE_RAPAK_2025')?.selectableBlocks ?? 0,
+    canonicalSelectableBlocks: sourceRows.find((row) => row.sourceId === 'DAEGU_CANONICAL_2026')?.selectableBlocks ?? 0,
     activeSelectableRows: activeRows.length,
     activeSectionIdSourceOverlapCount: activeSectionIdSourceOverlaps.length,
     activeBlockLabelSourceOverlapCount: activeBlockLabelSourceOverlaps.length,
@@ -279,10 +300,10 @@ const main = async () => {
     version: AUDIT_VERSION,
     status,
     policy: {
-      purpose: 'Baseline only. This report measures current Daegu source ownership before canonical consolidation.',
+      purpose: 'Baseline only. This report measures current Daegu source ownership after canonical consolidation.',
       doesNotWriteProductionData: true,
       generatedReportsAreEvidenceOnly: true,
-      canonicalTarget: 'One active polygon source per selectable Daegu block after a future canonical decision.',
+      canonicalTarget: 'One active DAEGU_CANONICAL_2026 polygon source per selectable Daegu block; official-only rows remain pending operator-reference retrace.',
     },
     summary,
     sourceRows,
@@ -349,6 +370,9 @@ const main = async () => {
     `- status: \`${status}\``,
     `- default source: \`${summary.defaultSeatmapSourceId}\``,
     `- active interactive source references: \`${summary.activeRuntimeSourceReferenceCount}\` (${summary.activeRuntimeSourceReferences.join(', ') || 'none'})`,
+    `- canonical selectable blocks: \`${summary.canonicalSelectableBlocks}\``,
+    `- pending operator trace blocks: \`${summary.pendingOperatorTraceBlocks}\``,
+    `- target canonical selectable blocks: \`${summary.targetCanonicalSelectableBlocks}\``,
     `- official selectable blocks: \`${summary.officialSelectableBlocks}\``,
     `- operator-reference selectable blocks: \`${summary.operatorReferenceSelectableBlocks}\``,
     `- active section-id source overlaps: \`${summary.activeSectionIdSourceOverlapCount}\``,
@@ -395,7 +419,8 @@ const main = async () => {
     '',
     '- This is a baseline report, not a staging command.',
     '- Generated files under `reports/stadium/daegu-seatmap-source-baseline-audit.*` are QA evidence only.',
-    '- Future canonical work should reduce active interactive source ownership to one source per selectable block.',
+    '- Active runtime ownership must remain `DAEGU_CANONICAL_2026` only.',
+    '- Official PNG and raw operator-reference datasets are historical evidence, not active runtime polygon sources.',
     '- `MYSEATCHECK_REFERENCE_2026` remains reference-only and must not become an active runtime polygon source without operator-provided approval.',
     '',
   ].join('\n');
