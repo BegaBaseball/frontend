@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
   SAJIK_CATEGORY_GROUPS,
-  SAJIK_DEFAULT_SEATMAP_SOURCE_ID,
   SAJIK_SEATMAP_IMAGE,
-  SAJIK_SEATMAP_SOURCE_REFERENCES,
   SAJIK_VIEW_INFO,
   getSajikFanRoleLabel,
   getSajikGuideMatches,
@@ -15,9 +12,11 @@ import {
   getSajikSourceLabel,
   type SajikBlock,
   type SajikGuideIntent,
-  type SajikSeatMapSourceId,
 } from '../../data/sajikSeatData';
-import { SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET } from '../../data/sajikOperatorReferenceSeatMapDataset';
+import {
+  SAJIK_CANONICAL_BLOCKS,
+  SAJIK_CANONICAL_SEATMAP_IMAGE,
+} from '../../data/sajikCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
@@ -295,7 +294,6 @@ export default function SajikSeatMap() {
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
-  const [seatMapSourceId, setSeatMapSourceId] = useState<SajikSeatMapSourceId>(SAJIK_DEFAULT_SEATMAP_SOURCE_ID);
   const [guideIntent, setGuideIntent] = useState<SajikGuideIntent>('all');
   const [guideQuery, setGuideQuery] = useState('');
   const {
@@ -309,7 +307,7 @@ export default function SajikSeatMap() {
     filterCats,
     activeFilterGroup,
   } = useSeatMapSelectionState({
-    sections: SAJIK_BLOCKS,
+    sections: SAJIK_CANONICAL_BLOCKS,
     filterGroups: SAJIK_CATEGORY_GROUPS,
     getId: (section) => section.id,
     getCategoryId: (section) => section.category,
@@ -326,37 +324,25 @@ export default function SajikSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
-  const hasOfficialBlocks = SAJIK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && SAJIK_BLOCKS.length > 0;
-  const activeSeatMapSource = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === seatMapSourceId)
-    ?? SAJIK_SEATMAP_SOURCE_REFERENCES[0]!;
-  const isReferenceSourceActive = activeSeatMapSource.kind === 'REFERENCE_IMAGE';
-  const isOperatorReferenceInteractivePreviewEnabled = isReferenceSourceActive
-    && (
-      activeSeatMapSource.polygonStatus === 'PRODUCTION_INTERACTIVE'
-      || activeSeatMapSource.polygonStatus === 'REFERENCE_INTERACTIVE_PREVIEW_READY'
-    )
-    && SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.runtimeSelectionEnabled;
-  const hasOfficialInteractiveSeatMap = hasOfficialBlocks && !isReferenceSourceActive;
-  const hasReferenceInteractivePreview = isReferenceSourceActive && isOperatorReferenceInteractivePreviewEnabled;
-  const hasInteractiveSeatMap = hasOfficialInteractiveSeatMap || hasReferenceInteractivePreview;
-  const visibleSajikBlocks = useMemo(() => SAJIK_BLOCKS.filter((block) => {
+  const hasInteractiveSeatMap = SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && SAJIK_CANONICAL_BLOCKS.length > 0;
+  const visibleSajikBlocks = useMemo(() => SAJIK_CANONICAL_BLOCKS.filter((block) => {
     if (filterCats !== null && !filterCats.includes(block.category)) return false;
     if (activeFilterGroup?.sides != null && !activeFilterGroup.sides.includes(block.side)) return false;
     if (activeFilterGroup?.levels != null && !activeFilterGroup.levels.includes(block.level)) return false;
     return true;
   }), [filterCats, activeFilterGroup]);
   const guideMatches = useMemo(
-    () => (hasOfficialInteractiveSeatMap ? getSajikGuideMatches(guideIntent, guideQuery, SAJIK_BLOCKS) : []),
-    [guideIntent, guideQuery, hasOfficialInteractiveSeatMap],
+    () => (hasInteractiveSeatMap ? getSajikGuideMatches(guideIntent, guideQuery, SAJIK_CANONICAL_BLOCKS) : []),
+    [guideIntent, guideQuery, hasInteractiveSeatMap],
   );
-  const guideActive = hasOfficialInteractiveSeatMap && (guideIntent !== 'all' || guideQuery.trim().length > 0);
+  const guideActive = hasInteractiveSeatMap && (guideIntent !== 'all' || guideQuery.trim().length > 0);
   const guideMatchedBlockIds = useMemo(
     () => (guideActive ? guideMatches.map((match) => match.block.id) : []),
     [guideActive, guideMatches],
   );
   const hoveredCategory = hoveredSection ? SAJIK_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#041E42';
-  const usedCategories = useMemo(() => [...new Set(SAJIK_BLOCKS.map((block) => block.category))], []);
+  const usedCategories = useMemo(() => [...new Set(SAJIK_CANONICAL_BLOCKS.map((block) => block.category))], []);
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -371,15 +357,6 @@ export default function SajikSeatMap() {
       setPan({ x: 0, y: 0 });
     }
   }, []);
-
-  const handleSeatMapSourceChange = useCallback((nextSourceId: SajikSeatMapSourceId) => {
-    setSeatMapSourceId(nextSourceId);
-    setSelected(null);
-    setHover(null);
-    setZoom(MIN_ZOOM);
-    setPan({ x: 0, y: 0 });
-    setFilterId('all');
-  }, [setFilterId, setHover, setSelected]);
 
   const handleGuideIntentChange = useCallback((nextIntent: SajikGuideIntent) => {
     setGuideIntent(nextIntent);
@@ -427,8 +404,6 @@ export default function SajikSeatMap() {
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <SajikSeatMapSvg
       mode={mode}
-      seatMapSourceId={seatMapSourceId}
-      onSeatMapSourceChange={handleSeatMapSourceChange}
       selected={hasInteractiveSeatMap ? selected : null}
       setSelected={setSelected}
       hover={hasInteractiveSeatMap ? hover : null}
@@ -445,11 +420,10 @@ export default function SajikSeatMap() {
       onFullscreen={allowFullscreen && hasInteractiveSeatMap ? openFullscreen : undefined}
       guideMatchedBlockIds={guideMatchedBlockIds}
       guideActive={guideActive}
-      enableOperatorReferenceInteractivePreview={hasReferenceInteractivePreview}
     />
   );
 
-  const guidePanel = hasOfficialInteractiveSeatMap ? (
+  const guidePanel = hasInteractiveSeatMap ? (
     <SajikFirstVisitGuide
       intent={guideIntent}
       query={guideQuery}
@@ -461,7 +435,7 @@ export default function SajikSeatMap() {
     />
   ) : null;
 
-  const sectionFinder = hasOfficialInteractiveSeatMap ? (
+  const sectionFinder = hasInteractiveSeatMap ? (
     <SeatMapSectionFinder
       blocks={visibleSajikBlocks}
       adapter={sajikSectionAdapter}
@@ -477,7 +451,7 @@ export default function SajikSeatMap() {
     />
   ) : null;
 
-  const secondaryPanel = hasOfficialInteractiveSeatMap ? (
+  const secondaryPanel = hasInteractiveSeatMap ? (
     <>
       {guidePanel}
       {sectionFinder}
@@ -486,22 +460,18 @@ export default function SajikSeatMap() {
 
   const attribution = (
     <SeatMapAttribution
-      source={isReferenceSourceActive ? {
+      source={{
         prefixLabel: '기준 이미지:',
-        sourceLabel: activeSeatMapSource.sourceLabel,
-        sourceUrl: activeSeatMapSource.sourceUrl,
-        assetStatus: activeSeatMapSource.assetStatus,
-      } : {
-        sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
-        sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
-        assetStatus: SAJIK_SEATMAP_IMAGE.assetStatus,
+        sourceLabel: SAJIK_CANONICAL_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: SAJIK_CANONICAL_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus,
       }}
-      secondarySources={isReferenceSourceActive ? [{
+      secondarySources={[{
         prefixLabel: '공식 이미지:',
         sourceLabel: SAJIK_SEATMAP_IMAGE.sourceLabel,
         sourceUrl: SAJIK_SEATMAP_IMAGE.sourceUrl,
         assetStatus: SAJIK_SEATMAP_IMAGE.assetStatus,
-      }] : undefined}
+      }]}
     />
   );
 
@@ -509,7 +479,7 @@ export default function SajikSeatMap() {
     <SeatMapLegend categoryIds={usedCategories} categories={SAJIK_CATEGORIES} mode={mode} />
   );
 
-  const filterBar = hasOfficialInteractiveSeatMap ? (
+  const filterBar = hasInteractiveSeatMap ? (
     <SeatMapFilterBar
       groups={SAJIK_CATEGORY_GROUPS}
       selectedId={filterId}
@@ -552,10 +522,10 @@ export default function SajikSeatMap() {
       <SeatMapTemplateShell
         mode={mode}
         title="부산 사직야구장"
-        subtitle={isReferenceSourceActive ? '사직 기준 좌석도' : '롯데 공식 좌석도'}
+        subtitle="사직 기준 좌석도"
         titleAccentColor="#041E42"
         isMobile={isMobile}
-        isAuxiliaryGuideActive={isReferenceSourceActive && !hasReferenceInteractivePreview}
+        isAuxiliaryGuideActive={false}
         filterBar={filterBar}
         mobileFilterBar={filterBar ? <div className="overflow-x-auto">{filterBar}</div> : undefined}
         desktopFilterBar={filterBar && <div className="overflow-x-auto">{filterBar}</div>}
@@ -582,7 +552,7 @@ export default function SajikSeatMap() {
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(
           <div className="w-full">
-            <div className="mx-auto flex h-full w-full max-w-[calc((100vh-120px)*1.5)] items-center justify-center">
+            <div className="mx-auto flex h-full w-full max-w-[calc((100vh-120px)*0.9)] items-center justify-center">
               <div className="w-full">
                 {renderMapSvg(true, false)}
               </div>
@@ -592,7 +562,7 @@ export default function SajikSeatMap() {
         fullscreenDialogTestId="sajik-seatmap-fullscreen"
         fullscreenCloseTestId="sajik-seatmap-fullscreen-close"
         fullscreenTitle="부산 사직야구장"
-        fullscreenSubtitle={isReferenceSourceActive ? '사직 기준 좌석도 전체화면' : '롯데 공식 좌석도 전체화면'}
+        fullscreenSubtitle="사직 기준 좌석도 전체화면"
       />
     </>
   );

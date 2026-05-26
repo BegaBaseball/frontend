@@ -2366,6 +2366,18 @@ const STADIUMS = {
           args: ['scripts/run-stadium-isolated-qa.mjs', 'SAJIK'],
         },
       ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SAJIK:FULL'],
+        },
+      ],
+      'block-source-duplication-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-block-source-duplication-audit.mjs'],
+        },
+      ],
       'pixel-components': [
         {
           command: 'node',

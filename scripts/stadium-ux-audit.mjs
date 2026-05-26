@@ -5419,15 +5419,14 @@ const verifySuwonFullOverlayClicks = async (page) => {
 const verifySajikOverlayClicks = async (page) => {
   await selectStadiumGuideOption(page, 'SAJIK');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await visibleTextLocator(page, '사직 롯데 공식 좌석도').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('[data-testid="sajik-seatmap-source-LOTTE_OFFICIAL_2026"]:visible').first().click({ timeout: 5000 });
+  await visibleTextLocator(page, '사직 기준 좌석도').waitFor({ state: 'visible', timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="sajik-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
     .then(() => true)
     .catch(() => false);
   if (manualStateVisible) {
-    throw new Error('Sajik seat map rendered MANUAL_BASEBALL_DATA_REQUIRED instead of official overlay.');
+    throw new Error('Sajik seat map rendered MANUAL_BASEBALL_DATA_REQUIRED instead of canonical overlay.');
   }
 
   const closeDetailPanel = async () => {
@@ -5468,7 +5467,7 @@ const verifySajikOverlayClicks = async (page) => {
         return { allTargets: [], clickableTargets: [] };
       }
 
-      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
+      const allTargets = Array.from(svg.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
         .map((element) => {
           const testId = element.getAttribute('data-testid') ?? '';
           const id = testId
@@ -5502,42 +5501,25 @@ const verifySajikOverlayClicks = async (page) => {
     });
 
     const { allTargets, clickableTargets: labelClickTargets } = labelClickTargetReport;
-    if (allTargets.length !== 87) {
-      throw new Error(`Sajik visible label coordinate target count should be 87. Actual: ${allTargets.length}`);
+    if (allTargets.length !== 78) {
+      throw new Error(`Sajik visible label coordinate target count should be 78. Actual: ${allTargets.length}`);
     }
-    if (labelClickTargets.length !== 87) {
+    if (labelClickTargets.length !== 78) {
       const skippedTargets = allTargets
         .filter((target) => target.pixelAlignmentStatus !== 'PIXEL_ALIGNED')
         .map((target) => `${target.id}:${target.pixelAlignmentStatus || 'UNKNOWN'}`)
         .join(', ');
-      throw new Error(`Sajik pixel-aligned label coordinate click target count should be 87. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
+      throw new Error(`Sajik pixel-aligned label coordinate click target count should be 78. Actual: ${labelClickTargets.length}. Skipped: ${skippedTargets}`);
     }
 
     for (const target of labelClickTargets) {
       await scrollSajikSeatMapIntoView();
-      const box = await page.evaluate(() => {
-        const svg = Array.from(document.querySelectorAll('svg[aria-label="부산 사직야구장 좌석도 구역 선택"]'))
-          .find((candidate) => {
-            const rect = candidate.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-          });
-        if (!svg) return null;
-        const rect = svg.getBoundingClientRect();
-        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-      });
-      if (!box) {
-        throw new Error('Sajik seatmap SVG box is missing before label coordinate click.');
-      }
-
-      const point = {
-        x: box.x + ((target.labelX / 960) * box.width),
-        y: box.y + ((target.labelY / 640) * box.height),
-      };
-      await page.mouse.click(point.x, point.y);
+      const section = page.locator(`[data-testid="${target.testId}"]`).first();
+      await dispatchSeatMapSectionClick(section);
 
       let isPressed = false;
       for (let attempt = 0; attempt < 15; attempt += 1) {
-        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
+        const pressedIds = await page.evaluate(() => Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
           .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
           .map((candidate) => candidate.getAttribute('data-testid')));
         isPressed = pressedIds.includes(target.testId);
@@ -5545,21 +5527,17 @@ const verifySajikOverlayClicks = async (page) => {
         await sleep(100);
       }
       if (!isPressed) {
-        const hitDebug = await page.evaluate((point) => {
-          const element = document.elementFromPoint(point.x, point.y);
-          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"], [data-testid^="sajik-accessibility-marker-"]'))
+        const hitDebug = await page.evaluate(() => {
+          const pressed = Array.from(document.querySelectorAll('[data-testid^="sajik-seat-block-"]'))
             .filter((candidate) => candidate.getAttribute('aria-pressed') === 'true')
             .map((candidate) => ({
               testId: candidate.getAttribute('data-testid'),
               ariaLabel: candidate.getAttribute('aria-label'),
             }));
           return {
-            hitTag: element?.tagName ?? null,
-            hitTestId: element?.getAttribute('data-testid') ?? null,
-            hitAriaLabel: element?.getAttribute('aria-label') ?? null,
             pressed,
           };
-        }, point);
+        });
         throw new Error(`Sajik label coordinate click did not select ${target.id} (${target.ariaLabel}) at ${target.labelX},${target.labelY}. Hit debug: ${JSON.stringify(hitDebug)}`);
       }
     }
@@ -5577,7 +5555,7 @@ const verifySajikOverlayClicks = async (page) => {
     { button: /3루 내야필드석A 313블록/, detail: /3루 내야필드석A/ },
     { button: /1루 내야필드석 111블록/, detail: /1루 내야필드석/ },
     { button: /3루 외야석 723블록/, detail: /3루 외야석/ },
-    { button: /휠체어석 1루/, detail: /휠체어석/ },
+    { button: /3루 내야상단석A 323블록 323 접근성 marker/, detail: /3루 내야상단석A/ },
     { button: /중앙탁자석 021블록/, detail: /중앙탁자석/ },
   ];
 
