@@ -110,6 +110,21 @@
 - global smoke/audit commands are historical evidence for this ownership audit and are not counted as per-block owners.
 - generated ownership reports are QA evidence only and must not be staged as PR payload.
 
+## Canonical block decision guard (2026-05-26)
+
+- `npm run stadium:daegu:canonical-block-decision-guard`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`
+- total normalized block keys: `191`
+- canonical selectable block keys: `188`
+- `CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys; official PNG polygons become historical evidence
+- `CANONICAL_OFFICIAL_ONLY`: `58` block keys; keep official PNG polygon until operator-reference retrace/approval exists
+- `CANONICAL_OPERATOR_ONLY`: `22` block keys; keep operator-reference polygon after metadata/label ownership review
+- `MARKER_OR_ALIAS_ONLY`: `1` block key (`TC`)
+- `BLOCKED_UNCONFIRMED`: `2` block keys (`MR-10`, `M-10`)
+- marker alias separation required: `3` block keys (`09`, `12`, `U22`)
+- geometry issues: `0`
+- generated canonical block decision reports are QA evidence only and must not be staged as PR payload.
+
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
@@ -119,6 +134,7 @@
 - `reports/stadium/daegu-seatmap-source-baseline-audit.md`
 - `reports/stadium/daegu-seatmap-canonical-decision-table.md`
 - `reports/stadium/daegu-seatmap-qa-ownership-audit.md`
+- `reports/stadium/daegu-seatmap-canonical-block-decision-guard.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
@@ -127,6 +143,7 @@
 - `npm run stadium:daegu:source-baseline-audit`: PASS, `review-required`, `geometry_issues=0`
 - `npm run stadium:daegu:canonical-decision-table`: PASS, `review-required`, `canonical_ready=101`, `geometry_issues=0`
 - `npm run stadium:daegu:qa-ownership-audit`: PASS, `review-required`, `active_source_overlaps=108`, `marker_in_seat_qa=3`
+- `npm run stadium:daegu:canonical-block-decision-guard`: PASS, `review-required`, `canonical_selectable=188`, `operator_overlap=108`, `geometry_issues=0`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
