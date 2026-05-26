@@ -94,6 +94,10 @@ const DAEGU_QA_OWNERSHIP_AUDIT_SOURCE = readFileSync(
   new URL('../../scripts/daegu-seatmap-qa-ownership-audit.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-seatmap-canonical-block-decision-guard.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -1973,6 +1977,54 @@ test('대구 QA ownership audit는 active owner와 historical evidence를 분리
     assert.ok(
       releaseLockSource.includes(requiredText),
       `Daegu release lock should summarize QA ownership audit evidence: ${requiredText}`,
+    );
+  });
+});
+
+test('대구 canonical block decision guard는 block key당 canonical 후보 1개 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const releaseLockSource = readFileSync(new URL('../../docs/daegu-seatmap-release-lock.md', import.meta.url), 'utf8');
+
+  assert.ok(packageSource.includes('"stadium:daegu:canonical-block-decision-guard"'), 'canonical block decision guard package script should exist');
+  assert.ok(
+    packageSource.includes('"stadium:daegu:canonical-block-decision-guard": "node --import tsx scripts/daegu-seatmap-canonical-block-decision-guard.mjs"'),
+    'canonical block decision guard should run through tsx so it can import Daegu TS data',
+  );
+
+  [
+    'DAEGU_CANONICAL_BLOCK_DECISION_GUARD_V1',
+    'overlapDefault',
+    'markerAliasRowsStayOutOfSelectableLayer',
+    'unconfirmedRowsBlockSelectableCanonical',
+    'ACTIVE_POLYGON_SOURCE_OVERLAP_RESOLVED_TO_OPERATOR',
+    'BLOCKED_UNCONFIRMED_NO_SELECTABLE_CANONICAL',
+    'MARKER_ALIAS_SEPARATION_REQUIRED',
+    'Every selectable canonical block key resolves to at most one source.',
+    'daegu-seatmap-canonical-block-decision-guard.json',
+    'daegu-seatmap-canonical-block-decision-guard.csv',
+    'daegu-seatmap-canonical-block-decision-guard.md',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE.includes(requiredText),
+      `Daegu canonical block decision guard should include ${requiredText}`,
+    );
+  });
+
+  [
+    '## Canonical block decision guard (2026-05-26)',
+    '`npm run stadium:daegu:canonical-block-decision-guard`: `review-required`',
+    '`reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`',
+    'canonical selectable block keys: `188`',
+    '`CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys',
+    '`CANONICAL_OFFICIAL_ONLY`: `58` block keys',
+    '`CANONICAL_OPERATOR_ONLY`: `22` block keys',
+    '`BLOCKED_UNCONFIRMED`: `2` block keys (`MR-10`, `M-10`)',
+    'marker alias separation required: `3` block keys (`09`, `12`, `U22`)',
+    'generated canonical block decision reports are QA evidence only and must not be staged as PR payload',
+  ].forEach((requiredText) => {
+    assert.ok(
+      releaseLockSource.includes(requiredText),
+      `Daegu release lock should summarize canonical block decision guard evidence: ${requiredText}`,
     );
   });
 });

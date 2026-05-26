@@ -175,6 +175,7 @@
     "stadium:daegu:source-baseline-audit": "node --import tsx scripts/daegu-seatmap-source-baseline-audit.mjs",
     "stadium:daegu:canonical-decision-table": "node --import tsx scripts/daegu-seatmap-canonical-decision-table.mjs",
     "stadium:daegu:qa-ownership-audit": "node --import tsx scripts/daegu-seatmap-qa-ownership-audit.mjs",
+    "stadium:daegu:canonical-block-decision-guard": "node --import tsx scripts/daegu-seatmap-canonical-block-decision-guard.mjs",
     "stadium:daegu:status": "node scripts/stadium-seatmap-ops.mjs daegu status",
     "stadium:daegu:pixel-components": "node scripts/stadium-seatmap-ops.mjs daegu pixel-components",
     "stadium:daegu:trace-manifest": "node scripts/stadium-seatmap-ops.mjs daegu trace-manifest",
