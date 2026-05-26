@@ -90,6 +90,10 @@ const DAEGU_OPERATOR_REFERENCE_P14_REVIEW_WORKFLOW_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p14-review-workflow.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_QA_OWNERSHIP_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-seatmap-qa-ownership-audit.mjs', import.meta.url),
+  'utf8',
+);
 
 const REQUIRED_CORE_CATEGORIES = [
   'VIP',
@@ -1920,6 +1924,57 @@ test('대구 marker-only 항목은 seat polygon layer와 분리되어 렌더링�
   assert.ok(source.includes('renderReviewOnlyBlocks(renderReviewBlocks)'), 'review-only seats should use a non-interactive debug renderer');
   assert.ok(source.includes('renderMarkerOnlyBlocks(renderMarkerBlocks)'), 'marker-only rows should render through a non-seat marker layer');
   assert.ok(source.includes('pointerEvents="none"'), 'review and marker-only layers should not participate in seat selection');
+});
+
+test('대구 QA ownership audit는 active owner와 historical evidence를 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const releaseLockSource = readFileSync(new URL('../../docs/daegu-seatmap-release-lock.md', import.meta.url), 'utf8');
+
+  assert.ok(packageSource.includes('"stadium:daegu:qa-ownership-audit"'), 'QA ownership audit package script should exist');
+  assert.ok(
+    packageSource.includes('"stadium:daegu:qa-ownership-audit": "node --import tsx scripts/daegu-seatmap-qa-ownership-audit.mjs"'),
+    'QA ownership audit should run through tsx so it can import Daegu TS data',
+  );
+
+  [
+    'activeRuntimeSource',
+    'activeValidationOwner',
+    'activeTracingOwner',
+    'historicalEvidenceOwner',
+    'globalValidationOwnersAreNotBlockOwners',
+    'generatedReportsAreEvidenceOnly',
+    'reportFilesMustNotBeStaged',
+    'MULTIPLE_ACTIVE_QA_OWNERS_FOR_BLOCK',
+    'MULTIPLE_ACTIVE_TRACING_WORKFLOWS_FOR_BLOCK',
+    'ACTIVE_POLYGON_SOURCE_OVERLAP',
+    'MARKER_IN_SEAT_QA',
+    'UNCONFIRMED_BLOCK_HAS_SELECTABLE_TRACE',
+    'daegu-seatmap-qa-ownership-audit.json',
+    'daegu-seatmap-qa-ownership-audit.csv',
+    'daegu-seatmap-qa-ownership-audit.md',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_QA_OWNERSHIP_AUDIT_SOURCE.includes(requiredText),
+      `Daegu QA ownership audit should include ${requiredText}`,
+    );
+  });
+
+  [
+    '## QA ownership audit (2026-05-26)',
+    '`npm run stadium:daegu:qa-ownership-audit`: `review-required`',
+    '`reports/stadium/daegu-seatmap-qa-ownership-audit.{json,csv,md}`',
+    'active runtime source overlaps: `108` block keys',
+    'active QA owner conflicts: `108` block keys',
+    'active tracing owner conflicts: `108` block keys',
+    'marker-in-seat-QA rows: `3` (`09`, `12`, `U22`)',
+    'unconfirmed selectable trace rows: `1` (`MR-10`)',
+    'generated ownership reports are QA evidence only and must not be staged as PR payload',
+  ].forEach((requiredText) => {
+    assert.ok(
+      releaseLockSource.includes(requiredText),
+      `Daegu release lock should summarize QA ownership audit evidence: ${requiredText}`,
+    );
+  });
 });
 
 test('대구 좌석도는 기존 좌석배치도 4096 데이터와 공식 PNG 1707 데이터를 모드별로 분리한다', () => {

@@ -65,17 +65,68 @@
 - `WAYFINDING_MARKER`와 marker-only row는 seat polygon layer에 들어가면 안 된다.
 - renderer 클릭 기준은 계속 `hitPath ?? visualPath ?? d`이지만, 이 기준은 normal selectable predicate 이후에만 적용한다.
 
+## Source baseline audit (2026-05-26)
+
+- `npm run stadium:daegu:source-baseline-audit`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-source-baseline-audit.{json,csv,md}`
+- active runtime source references: `2` (`SAMSUNG_OFFICIAL_2026`, `OPERATOR_REFERENCE_RAPAK_2025`)
+- default source: `OPERATOR_REFERENCE_RAPAK_2025`
+- official selectable blocks: `171`
+- operator-reference selectable blocks: `131`
+- active section-id source overlaps: `101`
+- active block-label source overlaps: `77`
+- official-only active sections: `70`
+- operator-only active sections: `30`
+- geometry issues: `0`
+- `MYSEATCHECK_REFERENCE_2026` remains reference-only and must not become an active runtime polygon source without operator-provided approval.
+- generated baseline reports are QA evidence only and must not be staged as PR payload.
+
+## Canonical decision table (2026-05-26)
+
+- `npm run stadium:daegu:canonical-decision-table`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-decision-table.{json,csv,md}`
+- total decision rows: `206`
+- `CANONICAL_READY`: `101` overlap rows; recommended source `OPERATOR_REFERENCE_RAPAK_2025`
+- `OFFICIAL_ONLY_REVIEW`: `70` rows; recommended source `SAMSUNG_OFFICIAL_2026` until retrace/operator approval exists
+- `OPERATOR_ONLY_REVIEW`: `29` rows; metadata/label ownership review required before promotion
+- `ALIAS_OR_MARKER_REVIEW`: `4` rows; keep outside normal seat polygon layer
+- `BLOCKED_UNCONFIRMED`: `2` rows (`MR-10`, `M-10`); no selectable canonical polygon until independent component evidence is approved
+- geometry issues: `0`
+- recommended source totals: `OPERATOR_REFERENCE_RAPAK_2025=130`, `SAMSUNG_OFFICIAL_2026=70`, `NO_CANONICAL_SOURCE=6`
+- generated decision-table reports are QA evidence only and must not be staged as PR payload.
+
+## QA ownership audit (2026-05-26)
+
+- `npm run stadium:daegu:qa-ownership-audit`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-qa-ownership-audit.{json,csv,md}`
+- total normalized block keys: `191`
+- selectable block keys: `189`
+- active runtime source overlaps: `108` block keys
+- active QA owner conflicts: `108` block keys
+- active tracing owner conflicts: `108` block keys
+- marker-in-seat-QA rows: `3` (`09`, `12`, `U22`)
+- unconfirmed selectable trace rows: `1` (`MR-10`)
+- package script ownership tiers: `active-tracing=47`, `active-validation=169`, `global-validation=5`, `historical-evidence=287`
+- global smoke/audit commands are historical evidence for this ownership audit and are not counted as per-block owners.
+- generated ownership reports are QA evidence only and must not be staged as PR payload.
+
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
 - `reports/stadium/daegu-seatmap-render-safety-audit.md`
 - `reports/stadium/daegu-visual-match-audit/daegu-seatmap-visual-match-audit.md`
 - `reports/stadium/daegu-visual-match-workset/daegu-seatmap-visual-match-workset.md`
+- `reports/stadium/daegu-seatmap-source-baseline-audit.md`
+- `reports/stadium/daegu-seatmap-canonical-decision-table.md`
+- `reports/stadium/daegu-seatmap-qa-ownership-audit.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
 
 - `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_LOCKED_164` (2026-05-24 갱신)
+- `npm run stadium:daegu:source-baseline-audit`: PASS, `review-required`, `geometry_issues=0`
+- `npm run stadium:daegu:canonical-decision-table`: PASS, `review-required`, `canonical_ready=101`, `geometry_issues=0`
+- `npm run stadium:daegu:qa-ownership-audit`: PASS, `review-required`, `active_source_overlaps=108`, `marker_in_seat_qa=3`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
