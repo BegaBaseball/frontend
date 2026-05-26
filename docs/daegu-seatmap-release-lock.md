@@ -151,6 +151,20 @@
 - source data write performed: `false`
 - generated retrace workset reports are QA evidence only and must not be staged as PR payload.
 
+## Canonical SKY upper retrace batch (2026-05-27)
+
+- batch key: `SKY_UPPER_01_10`
+- `npm run stadium:daegu:canonical-sky-upper-retrace-batch`: `review-required`
+- `npm run stadium:daegu:canonical-sky-upper-retrace-gate`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/`
+- block keys: `01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`, `10`
+- pending operator trace rows: `10`
+- marker/seat split row: `09`; trace only the seat polygon and keep the accessibility marker out of canonical selectable runtime.
+- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
+- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
+- source data write performed: `false`
+- generated SKY upper batch and gate reports are QA evidence only and must not be staged as PR payload.
+
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
@@ -162,6 +176,8 @@
 - `reports/stadium/daegu-seatmap-qa-ownership-audit.md`
 - `reports/stadium/daegu-seatmap-canonical-block-decision-guard.md`
 - `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/daegu-seatmap-canonical-official-only-retrace-workset.md`
+- `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/daegu-seatmap-canonical-sky-upper-retrace-batch.md`
+- `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/gate/daegu-seatmap-canonical-sky-upper-retrace-gate.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
@@ -172,6 +188,8 @@
 - `npm run stadium:daegu:qa-ownership-audit`: PASS, `active_source_overlaps=0`, `active_qa_owner_conflicts=0`, `pending_operator_trace=58`
 - `npm run stadium:daegu:canonical-block-decision-guard`: PASS, `review-required`, `active_canonical_selectable=130`, `pending_operator_trace=58`, `target_canonical_selectable=188`, `geometry_issues=0`
 - `npm run stadium:daegu:canonical-official-only-retrace-workset`: PASS, `review-required`, `pending_operator_trace=58`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-sky-upper-retrace-batch`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-sky-upper-retrace-gate`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `invalid=0`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
