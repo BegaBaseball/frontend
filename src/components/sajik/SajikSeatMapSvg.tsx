@@ -1,23 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
-  SAJIK_BLOCKS,
   SAJIK_CATEGORIES,
-  SAJIK_SEATMAP_SOURCE_REFERENCES,
-  SAJIK_SEATMAP_IMAGE,
-  SAJIK_TRACE_REVIEW_SUMMARY,
   getSajikTraceStatusLabel,
   type SajikBlock,
-  type SajikSeatMapSourceId,
 } from '../../data/sajikSeatData';
 import {
-  SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET,
-  SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES,
-} from '../../data/sajikOperatorReferenceSeatMapDataset';
+  SAJIK_CANONICAL_ACCESSIBILITY_MARKERS,
+  SAJIK_CANONICAL_BLOCKS,
+  SAJIK_CANONICAL_BLOCK_BY_SECTION_ID,
+  SAJIK_CANONICAL_SEATMAP_IMAGE,
+  SAJIK_CANONICAL_SEATMAP_SOURCE_ID,
+  SAJIK_CANONICAL_SEATMAP_SUMMARY,
+} from '../../data/sajikCanonicalSeatMap';
 import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
 import {
   clampPan,
@@ -33,12 +31,8 @@ import {
 } from '../stadiumSeatMap/seatMapInteractionUtils';
 
 interface SajikExtraProps {
-  seatMapSourceId: SajikSeatMapSourceId;
-  onSeatMapSourceChange: (sourceId: SajikSeatMapSourceId) => void;
   guideMatchedBlockIds?: readonly string[];
   guideActive?: boolean;
-  showOperatorReferenceDebugOverlay?: boolean;
-  enableOperatorReferenceInteractivePreview?: boolean;
 }
 
 type Props = SeatMapSvgBaseProps<SajikBlock> & SajikExtraProps;
@@ -57,15 +51,15 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         MANUAL_BASEBALL_DATA_REQUIRED
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
-        사직 롯데 공식 좌석도 이미지가 필요합니다
+        사직 canonical 좌석도 이미지가 필요합니다
       </h4>
       <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-        공식 또는 사용 허가된 좌석도 파일이 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
+        operator-reference 기준 이미지 파일이 제공되면 canonical polygon 위에서 블록 단위 선택을 활성화합니다.
       </p>
       <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-slate-300">
-        <div>필요 파일: {SAJIK_SEATMAP_IMAGE.requiredAssetFileName}</div>
-        <div>저장 위치: {SAJIK_SEATMAP_IMAGE.imagePath}</div>
-        <div>참고: {SAJIK_SEATMAP_IMAGE.sourceLabel}</div>
+        <div>필요 파일: {SAJIK_CANONICAL_SEATMAP_IMAGE.requiredAssetFileName}</div>
+        <div>저장 위치: {SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath}</div>
+        <div>참고: {SAJIK_CANONICAL_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
       <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
@@ -74,72 +68,16 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   );
 }
 
-function SourceTabs({
-  value,
-  onChange,
-  mode,
-}: {
-  value: SajikSeatMapSourceId;
-  onChange: (value: SajikSeatMapSourceId) => void;
-  mode: 'light' | 'dark';
-}) {
-  return (
-    <div
-      data-testid="sajik-seatmap-source-tabs"
-      className="pointer-events-auto absolute left-3 top-3 z-20 flex w-fit max-w-[calc(100%-1.5rem)] gap-1 overflow-x-auto rounded-xl bg-white/92 p-1 shadow-sm ring-1 ring-slate-200 backdrop-blur dark:bg-slate-950/88 dark:ring-slate-700"
-    >
-      {SAJIK_SEATMAP_SOURCE_REFERENCES.map((option) => {
-        const active = value === option.id;
-        return (
-          <button
-            key={option.id}
-            type="button"
-            data-testid={`sajik-seatmap-source-${option.id}`}
-            data-source-kind={option.kind}
-            data-polygon-status={option.polygonStatus}
-            onClick={() => onChange(option.id)}
-            className="rounded-lg border-0 px-2.5 py-1.5 text-[11px] font-black transition-colors"
-            style={{
-              background: active ? '#041E42' : 'transparent',
-              color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
-            }}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function resolveSeatMapSourceImageUrl(sourceId: SajikSeatMapSourceId) {
-  if (sourceId === 'LOTTE_OFFICIAL_2026' && SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
-    return null;
-  }
-
+function resolveCanonicalSeatMapImageUrl() {
   const seatMapImageUrls: Record<string, string> = {
-    [SAJIK_SEATMAP_IMAGE.imagePath]: new URL('../../assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp', import.meta.url).href,
-    'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp': new URL('../../assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp', import.meta.url).href,
+    [SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath]: new URL('../../assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp', import.meta.url).href,
   };
-  const sourceReference = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === sourceId);
-  const imagePath = sourceId === 'LOTTE_OFFICIAL_2026'
-    ? SAJIK_SEATMAP_IMAGE.renderImagePath ?? SAJIK_SEATMAP_IMAGE.imagePath
-    : sourceReference?.imagePath;
 
-  return imagePath ? seatMapImageUrls[imagePath] ?? null : null;
+  return seatMapImageUrls[SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath] ?? null;
 }
-
-const OPERATOR_REFERENCE_STAGE_COLORS: Record<string, string> = {
-  stage01: '#F43F5E',
-  stage02: '#0EA5E9',
-  stage03: '#22C55E',
-  stage04: '#A855F7',
-};
 
 export default function SajikSeatMapSvg({
   mode,
-  seatMapSourceId,
-  onSeatMapSourceChange,
   selected,
   setSelected,
   hover,
@@ -158,8 +96,6 @@ export default function SajikSeatMapSvg({
   onFullscreen,
   guideMatchedBlockIds = [],
   guideActive = false,
-  showOperatorReferenceDebugOverlay = false,
-  enableOperatorReferenceInteractivePreview = false,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -189,24 +125,9 @@ export default function SajikSeatMapSvg({
     captureTarget: HTMLDivElement;
     usesPointerCapture: boolean;
   } | null>(null);
-
-  const activeSourceReference = SAJIK_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === seatMapSourceId)
-    ?? SAJIK_SEATMAP_SOURCE_REFERENCES[0]!;
-  const isReferenceSource = activeSourceReference.kind === 'REFERENCE_IMAGE';
-  const { imageWidth, imageHeight } = SAJIK_SEATMAP_IMAGE;
-  const seatMapImageUrl = resolveSeatMapSourceImageUrl(activeSourceReference.id);
+  const { imageWidth, imageHeight } = SAJIK_CANONICAL_SEATMAP_IMAGE;
+  const seatMapImageUrl = resolveCanonicalSeatMapImageUrl();
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sajikDebug') === '1';
-  const showReferenceDebugOverlay = isReferenceSource && (showOperatorReferenceDebugOverlay || showDebug);
-  const showReferenceInteractivePreview = isReferenceSource && (
-    enableOperatorReferenceInteractivePreview
-    || (
-      (
-        activeSourceReference.polygonStatus === 'PRODUCTION_INTERACTIVE'
-        || activeSourceReference.polygonStatus === 'REFERENCE_INTERACTIVE_PREVIEW_READY'
-      )
-      && SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.runtimeSelectionEnabled
-    )
-  );
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
     : readViewportSize(viewportRef.current);
@@ -214,93 +135,18 @@ export default function SajikSeatMapSvg({
   const canDrag = zoom > minZoom;
 
   const zoomBtnCls = 'pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800';
-  const mapSelectableBlocks = [...SAJIK_BLOCKS]
+  const mapSelectableBlocks = [...SAJIK_CANONICAL_BLOCKS]
     .filter((block) => block.mapInteractionStatus === 'MAP_SELECTABLE')
     .sort((a, b) => a.displayPriority - b.displayPriority);
-  const seatSectionBlocks = isReferenceSource ? [] : mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION');
-  const accessibilityMarkerBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER');
+  const seatSectionBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'SEAT_SECTION');
+  const accessibilityMarkerAliasBlocks = mapSelectableBlocks.filter((block) => block.sectionKind === 'ACCESSIBILITY_MARKER');
+  const accessibilityMarkerBlocks = SAJIK_CANONICAL_ACCESSIBILITY_MARKERS;
   const guideMatchedBlockIdSet = useMemo(() => new Set(guideMatchedBlockIds), [guideMatchedBlockIds]);
-  const operatorReferenceBlockBySectionId = useMemo(() => {
-    const blockBySectionId = new Map<string, SajikBlock>();
-    SAJIK_BLOCKS.forEach((block) => {
-      blockBySectionId.set(block.block, block);
-      block.officialBlocks.forEach((officialBlock) => {
-        blockBySectionId.set(officialBlock, block);
-      });
-    });
-    const overrideBySectionId = new Map(
-      SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES.map(
-        (override): [string, typeof override] => [override.sectionId, override],
-      ),
-    );
-    SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.forEach((section) => {
-      if (blockBySectionId.has(section.sectionId)) return;
-
-      const override = overrideBySectionId.get(section.sectionId);
-      if (!override) return;
-
-      const [labelX, labelY] = section.labelPoint;
-      const categoryLabel = SAJIK_CATEGORIES[override.category]?.label ?? override.name;
-      blockBySectionId.set(section.sectionId, {
-        id: `sajik-operator-reference-${section.sectionId}`,
-        level: override.level,
-        category: override.category,
-        name: override.name,
-        block: section.sectionId,
-        officialBlocks: [section.sectionId],
-        side: override.side,
-        fanRole: override.fanRole,
-        traceStatus: 'NEEDS_OPERATOR_REVIEW',
-        reviewNote: 'Operator reference source primary metadata. Official 960x640 Sajik map remains available as a secondary source.',
-        displayPriority: 10000 + Number(section.sectionId.replace(/\D/g, '') || 0),
-        mapInteractionStatus: 'MAP_SELECTABLE',
-        sourceConfidence: 'UNVERIFIED',
-        sourceNote: override.sourceNote,
-        seatViewSections: [
-          `sajik-operator-reference-${section.sectionId}`,
-          override.name,
-          section.sectionId,
-          `${section.sectionId}블록`,
-          categoryLabel,
-          '사직',
-          '사직야구장',
-          '부산 사직야구장',
-          '롯데',
-          '롯데 자이언츠',
-        ],
-        sectionKind: 'SEAT_SECTION',
-        imageGeometry: {
-          d: section.visualPath,
-          visualPath: section.visualPath,
-          hitPath: section.hitPath,
-          labelX,
-          labelY,
-          labelPoint: [labelX, labelY],
-          labelFontSize: 12,
-          shortLabel: section.sectionId,
-          traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
-          traceSource: 'OFFICIAL_PNG_MANUAL_POLYGON',
-          traceVersion: 'manual-polygon-v2',
-          manualReviewed: true,
-          pixelAlignmentStatus: 'MANUAL_REVIEW_REQUIRED',
-          manualReviewNote: 'Operator reference source coordinates use the primary 1151x1367 viewBox. The official 960x640 map remains a secondary source.',
-        },
-      });
-    });
-    return blockBySectionId;
-  }, []);
-  const operatorReferenceLinkedSectionCount = useMemo(() => (
-    SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.filter((section) => (
-      operatorReferenceBlockBySectionId.has(section.sectionId)
-    )).length
-  ), [operatorReferenceBlockBySectionId]);
-  const operatorReferenceMetadataMissingCount = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections - operatorReferenceLinkedSectionCount;
-  const operatorReferenceLinkedMarkerCount = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.filter((marker) => marker.enabled).length;
 
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
-  }, [activeSourceReference.id]);
+  }, [SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath]);
 
   useIsomorphicLayoutEffect(() => {
     const node = viewportRef.current;
@@ -741,399 +587,27 @@ export default function SajikSeatMapSvg({
   );
 
   if (
-    (!isReferenceSource && SAJIK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL')
+    SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
     || !seatMapImageUrl
-    || (!isReferenceSource && imageWidth <= 0)
-    || (!isReferenceSource && imageHeight <= 0)
+    || imageWidth <= 0
+    || imageHeight <= 0
     || imageFailed
   ) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#050810]">
-        <SourceTabs
-          value={activeSourceReference.id}
-          onChange={(value) => {
-            setSelected(null);
-            setHover(null);
-            onSeatMapSourceChange(value);
-          }}
-          mode={mode}
-        />
         <MissingOfficialSeatMap mode={mode} />
       </div>
     );
   }
 
-  if (isReferenceSource) {
-    const referenceImage = SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.image;
-
-    return (
-      <div
-        data-testid="sajik-reference-seatmap-panel"
-        data-source-id={activeSourceReference.id}
-        data-source-kind={activeSourceReference.kind}
-        data-polygon-status={activeSourceReference.polygonStatus}
-        data-reference-debug-overlay={showReferenceDebugOverlay ? 'true' : 'false'}
-        data-reference-interactive-preview={showReferenceInteractivePreview ? 'true' : 'false'}
-        className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
-      >
-        <SourceTabs
-          value={activeSourceReference.id}
-          onChange={(value) => {
-            setSelected(null);
-            setHover(null);
-            onSeatMapSourceChange(value);
-          }}
-          mode={mode}
-        />
-        <div
-          data-testid="sajik-reference-seatmap-viewport"
-          className="relative w-full overflow-hidden bg-white dark:bg-slate-950"
-          style={{ aspectRatio: `${activeSourceReference.imageWidth} / ${activeSourceReference.imageHeight}` }}
-        >
-          <svg
-            data-testid="sajik-reference-seatmap-svg"
-            viewBox={referenceImage.viewBox}
-            className="absolute inset-0 h-full w-full select-none"
-            preserveAspectRatio="xMidYMid meet"
-            aria-label="부산 사직야구장 참고 좌석 배치도"
-          >
-            {!imageLoaded && !imageFailed && (
-              <rect x={0} y={0} width={referenceImage.width} height={referenceImage.height} fill="#e5e7eb" />
-            )}
-            <image
-              data-testid="sajik-reference-seatmap-image"
-              href={seatMapImageUrl}
-              x={0}
-              y={0}
-              width={referenceImage.width}
-              height={referenceImage.height}
-              preserveAspectRatio="none"
-              pointerEvents="none"
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageFailed(true)}
-              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
-            />
-            {showReferenceDebugOverlay && (
-              <g
-                data-testid="sajik-operator-reference-debug-overlay"
-                data-overlay-kind="operator-reference-approved-polygons"
-                data-runtime-selection-enabled="false"
-                data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
-                data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
-                aria-hidden="true"
-                pointerEvents="none"
-              >
-                <g
-                  data-testid="sajik-operator-reference-section-layer"
-                  data-layer="operator-reference-sections"
-                  data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
-                >
-                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.map((section) => {
-                    const stroke = OPERATOR_REFERENCE_STAGE_COLORS[section.stageId] ?? '#0F172A';
-                    return (
-                      <path
-                        key={section.sectionId}
-                        data-testid={`sajik-operator-reference-block-${section.sectionId}`}
-                        data-section-id={section.sectionId}
-                        data-stage-id={section.stageId}
-                        data-geometry-version={section.geometryVersion}
-                        data-trace-status={section.traceStatus}
-                        d={section.visualPath}
-                        fill={stroke}
-                        fillOpacity="0.16"
-                        stroke={stroke}
-                        strokeOpacity="0.95"
-                        strokeWidth="3"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    );
-                  })}
-                </g>
-                <g
-                  data-testid="sajik-operator-reference-marker-layer"
-                  data-layer="operator-reference-markers"
-                  data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
-                >
-                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.map((marker) => (
-                    <circle
-                      key={marker.markerId}
-                      data-testid={`sajik-operator-reference-marker-${marker.markerId}`}
-                      data-marker-id={marker.markerId}
-                      data-marker-type={marker.markerType}
-                      data-marker-interaction-status={marker.markerInteractionStatus}
-                      data-related-section-id={marker.relatedSectionId}
-                      data-stage-id={marker.stageId}
-                      data-enabled={String(marker.enabled)}
-                      cx={marker.position[0]}
-                      cy={marker.position[1]}
-                      r="14"
-                      fill="#A3E635"
-                      fillOpacity="0.35"
-                      stroke="#0F172A"
-                      strokeOpacity="0.9"
-                      strokeWidth="3"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  ))}
-                </g>
-              </g>
-            )}
-            {showReferenceInteractivePreview && (
-              <g
-                data-testid="sajik-operator-reference-preview-layer"
-                data-overlay-kind="operator-reference-interactive-preview"
-                data-runtime-selection-enabled={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.runtimeSelectionEnabled ? 'reference-preview' : 'preview-only'}
-                data-linked-section-count={operatorReferenceLinkedSectionCount}
-                data-metadata-missing-count={operatorReferenceMetadataMissingCount}
-                data-marker-policy="display-only-with-linked-section-markers"
-              >
-                <g
-                  data-testid="sajik-operator-reference-preview-section-layer"
-                  data-layer="operator-reference-preview-sections"
-                  data-section-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.sections}
-                >
-                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.sections.map((section) => {
-                    const block = operatorReferenceBlockBySectionId.get(section.sectionId);
-                    const cat = block ? SAJIK_CATEGORIES[block.category] : null;
-                    const isLinked = Boolean(block && cat);
-                    const isFilteredByFilter = isLinked && Boolean(block && (
-                      (filterCats !== null && !filterCats.includes(block.category)) ||
-                      (filterSides != null && !filterSides.includes(block.side)) ||
-                      (filterLevels != null && !filterLevels.includes(block.level))
-                    ));
-                    const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
-                    const isActive = Boolean(block && !isFilteredByFilter && (hover === block.id || selected?.id === block.id));
-                    let refFill = block && cat
-                      ? (mode === 'dark' ? cat.dark : cat.light)
-                      : '#EF4444';
-                    let refFillOpacity: number;
-                    let refStrokeOpacity: number;
-                    if (!isLinked) {
-                      refFillOpacity = 0.18;
-                      refStrokeOpacity = 0.9;
-                    } else if (isFilteredByFilter) {
-                      refFill = mode === 'dark' ? '#020617' : '#1e293b';
-                      refFillOpacity = 0.42;
-                      refStrokeOpacity = 0;
-                    } else if (isActive) {
-                      refFillOpacity = 0.34;
-                      refStrokeOpacity = 0.95;
-                    } else if (isAnyFilterActive) {
-                      refFillOpacity = 0.20;
-                      refStrokeOpacity = 0.62;
-                    } else {
-                      refFillOpacity = 0.09;
-                      refStrokeOpacity = 0.62;
-                    }
-                    const [labelX, labelY] = section.labelPoint;
-
-                    return (
-                      <g key={section.sectionId}>
-                        <path
-                          role={isLinked && !isFilteredByFilter ? 'button' : undefined}
-                          data-testid={`sajik-operator-reference-preview-block-${section.sectionId}`}
-                          data-section-id={section.sectionId}
-                          data-mapped-block-id={block?.id}
-                          data-metadata-status={isLinked ? 'linked' : 'missing'}
-                          data-stage-id={section.stageId}
-                          data-geometry-version={section.geometryVersion}
-                          data-trace-status={section.traceStatus}
-                          data-visual-path={section.visualPath}
-                          data-hit-path={section.hitPath}
-                          tabIndex={isLinked && !isFilteredByFilter ? 0 : -1}
-                          aria-label={block ? `${block.name} ${block.block} reference preview` : `reference metadata missing ${section.sectionId}`}
-                          aria-disabled={isLinked && !isFilteredByFilter ? undefined : true}
-                          aria-pressed={isActive}
-                          d={section.hitPath}
-                          fill={refFill}
-                          fillOpacity={refFillOpacity}
-                          stroke={refFill}
-                          strokeOpacity={refStrokeOpacity}
-                          strokeWidth={isActive ? 4 : 2.5}
-                          pointerEvents={isLinked && !isFilteredByFilter ? 'fill' : 'none'}
-                          vectorEffect="non-scaling-stroke"
-                          style={{
-                            cursor: isLinked && !isFilteredByFilter ? 'pointer' : 'default',
-                            transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
-                          }}
-                          onMouseEnter={() => {
-                            if (block) setHover(block.id);
-                          }}
-                          onMouseLeave={() => {
-                            if (block) setHover(null);
-                          }}
-                          onClick={(event) => {
-                            if (!block || isFilteredByFilter || suppressClickRef.current || event.detail > 1) {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              return;
-                            }
-                            setSelected(selected?.id === block.id ? null : block);
-                          }}
-                          onKeyDown={(event) => {
-                            if (!block || isFilteredByFilter) return;
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              setSelected(selected?.id === block.id ? null : block);
-                            }
-                          }}
-                        />
-                        {isActive && (
-                          <text
-                            x={labelX}
-                            y={labelY}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize="16"
-                            fontWeight="900"
-                            fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                            stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
-                            strokeWidth="4"
-                            paintOrder="stroke"
-                            style={{ pointerEvents: 'none' }}
-                          >
-                            {section.sectionId}
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-                </g>
-                <g
-                  data-testid="sajik-operator-reference-preview-marker-layer"
-                  data-layer="operator-reference-preview-markers"
-                  data-runtime-selection-enabled={operatorReferenceLinkedMarkerCount > 0 ? 'linked-section-selectable' : 'false'}
-                  data-marker-count={SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.summary.markers}
-                  data-linked-marker-count={operatorReferenceLinkedMarkerCount}
-                >
-                  {SAJIK_OPERATOR_REFERENCE_SEATMAP_DATASET.markers.map((marker) => {
-                    const block = operatorReferenceBlockBySectionId.get(marker.relatedSectionId);
-                    const isSelectableMarker = Boolean(marker.enabled && block);
-                    const isActive = Boolean(block && (hover === block.id || selected?.id === block.id));
-                    const markerFillOpacity = isSelectableMarker ? (isActive ? 0.72 : 0.44) : 0.28;
-                    const markerStrokeOpacity = isSelectableMarker ? 0.96 : 0.88;
-                    const visualRadius = isActive ? 17 : 14;
-                    const hitRadius = isSelectableMarker ? 26 : visualRadius;
-
-                    const markerInteractionHandlers = isSelectableMarker && block
-                      ? {
-                          onMouseEnter: () => {
-                            setHover(block.id);
-                          },
-                          onMouseLeave: () => {
-                            setHover(null);
-                          },
-                          onClick: (event: ReactMouseEvent<SVGCircleElement>) => {
-                            if (suppressClickRef.current || event.detail > 1) {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              return;
-                            }
-                            setSelected(selected?.id === block.id ? null : block);
-                          },
-                          onKeyDown: (event: ReactKeyboardEvent<SVGCircleElement>) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              setSelected(selected?.id === block.id ? null : block);
-                            }
-                          },
-                        }
-                      : {
-                          onMouseEnter: () => {
-                            if (block) setHover(block.id);
-                          },
-                          onMouseLeave: () => {
-                            if (block) setHover(null);
-                          },
-                          onClick: (event: ReactMouseEvent<SVGCircleElement>) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          },
-                        };
-
-                    return (
-                      <g key={marker.markerId}>
-                        <circle
-                          role={isSelectableMarker ? 'button' : undefined}
-                          tabIndex={isSelectableMarker ? 0 : -1}
-                          aria-label={block ? `${block.name} ${block.block} 접근성 marker` : undefined}
-                          aria-pressed={isSelectableMarker ? isActive : undefined}
-                          data-testid={`sajik-operator-reference-preview-marker-${marker.markerId}`}
-                          data-marker-id={marker.markerId}
-                          data-marker-type={marker.markerType}
-                          data-marker-interaction-status={marker.markerInteractionStatus}
-                          data-related-section-id={marker.relatedSectionId}
-                          data-mapped-block-id={block?.id}
-                          data-stage-id={marker.stageId}
-                          data-enabled={String(marker.enabled)}
-                          data-hit-target-radius={hitRadius}
-                          data-visual-radius={visualRadius}
-                          cx={marker.position[0]}
-                          cy={marker.position[1]}
-                          r={hitRadius}
-                          fill={isSelectableMarker ? '#FFFFFF' : '#A3E635'}
-                          fillOpacity={isSelectableMarker ? 0.001 : markerFillOpacity}
-                          stroke={isSelectableMarker ? 'transparent' : '#111827'}
-                          strokeOpacity={isSelectableMarker ? 0 : markerStrokeOpacity}
-                          strokeWidth={isSelectableMarker ? 0 : 3}
-                          pointerEvents={isSelectableMarker ? 'all' : 'none'}
-                          vectorEffect="non-scaling-stroke"
-                          style={{
-                            cursor: isSelectableMarker ? 'pointer' : 'default',
-                            transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s',
-                          }}
-                          {...markerInteractionHandlers}
-                        />
-                        {isSelectableMarker && (
-                          <circle
-                            data-testid={`sajik-operator-reference-linked-marker-visual-${marker.markerId}`}
-                            data-marker-id={marker.markerId}
-                            data-related-section-id={marker.relatedSectionId}
-                            aria-hidden="true"
-                            cx={marker.position[0]}
-                            cy={marker.position[1]}
-                            r={visualRadius}
-                            fill="#A3E635"
-                            fillOpacity={markerFillOpacity}
-                            stroke="#041E42"
-                            strokeOpacity={markerStrokeOpacity}
-                            strokeWidth={isActive ? 4 : 3}
-                            pointerEvents="none"
-                            vectorEffect="non-scaling-stroke"
-                            style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s' }}
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
-                </g>
-              </g>
-            )}
-          </svg>
-        </div>
-        <div
-          data-testid="sajik-reference-seatmap-trace-note"
-          className="border-t border-slate-200 bg-white/92 px-3 py-2 text-[11px] font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-950/90 dark:text-slate-400"
-        >
-          {showReferenceInteractivePreview
-            ? `기준 좌석도 선택 레이어입니다. ${operatorReferenceLinkedSectionCount}개 구역이 사직 메타데이터와 연결되어 있고 ${operatorReferenceMetadataMissingCount}개 구역은 메타데이터 보강이 필요합니다. 접근성 원형 마커 ${operatorReferenceLinkedMarkerCount}개는 관련 구역 선택으로 연결됩니다.`
-            : 'Operator reference image. Polygon tracing is pending, so seat selection is disabled for this source.'}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]">
-      <SourceTabs
-        value={activeSourceReference.id}
-        onChange={(value) => {
-          setSelected(null);
-          setHover(null);
-          onSeatMapSourceChange(value);
-        }}
-        mode={mode}
-      />
+    <div
+      data-testid="sajik-seatmap-panel"
+      data-source-id={SAJIK_CANONICAL_SEATMAP_SOURCE_ID}
+      data-map-version={SAJIK_CANONICAL_SEATMAP_IMAGE.mapVersion}
+      data-coordinate-source="operator-reference-1151x1367"
+      className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
+    >
       <div
         ref={viewportRef}
         data-testid="sajik-seatmap-viewport"
@@ -1172,7 +646,7 @@ export default function SajikSeatMapSvg({
         >
           <svg
             ref={svgRef}
-            viewBox={SAJIK_SEATMAP_IMAGE.viewBox}
+            viewBox={SAJIK_CANONICAL_SEATMAP_IMAGE.viewBox}
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             aria-label="부산 사직야구장 좌석도 구역 선택"
@@ -1196,6 +670,7 @@ export default function SajikSeatMapSvg({
               <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
             )}
             <image
+              data-testid="sajik-canonical-seatmap-image"
               href={seatMapImageUrl ?? undefined}
               x={0}
               y={0}
@@ -1296,6 +771,7 @@ export default function SajikSeatMapSvg({
                       vectorEffect="non-scaling-stroke"
                       style={{
                         cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                        outline: 'none',
                         transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
                       }}
                       onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
@@ -1350,120 +826,91 @@ export default function SajikSeatMapSvg({
               data-testid="sajik-accessibility-markers-layer"
               data-layer="accessibility-markers"
               data-marker-count={accessibilityMarkerBlocks.length}
+              data-marker-alias-block-count={accessibilityMarkerAliasBlocks.length}
+              data-linked-marker-count={accessibilityMarkerBlocks.filter((marker) => marker.enabled).length}
             >
-              {accessibilityMarkerBlocks.map((block) => {
-                const cat = SAJIK_CATEGORIES[block.category];
-                const labelPoint = block.imageGeometry.labelPoint;
-                const visualPath = block.imageGeometry.visualPath;
-                const hitPath = block.imageGeometry.hitPath;
-                if (!cat || !labelPoint || !visualPath || !hitPath) return null;
-
-                const isFiltered =
-                  (filterCats !== null && !filterCats.includes(block.category)) ||
-                  (filterSides != null && !filterSides.includes(block.side)) ||
-                  (filterLevels != null && !filterLevels.includes(block.level));
-                const isActive = hover === block.id || selected?.id === block.id;
-                const isGuideMatched = guideActive && guideMatchedBlockIdSet.has(block.id);
-                const needsPrecisionReview = block.traceStatus === 'NEEDS_OPERATOR_REVIEW' || block.imageGeometry.pixelAlignmentStatus !== 'PIXEL_ALIGNED';
-                const baseColor = mode === 'dark' ? cat.dark : cat.light;
-                const debugStroke = needsPrecisionReview ? '#F97316' : '#22C55E';
-                const markerOpacity = isFiltered ? 0.001 : isActive ? 0.86 : isGuideMatched ? 0.72 : showDebug ? 0.42 : 0.001;
-                const stroke = showDebug ? debugStroke : mode === 'dark' ? '#F8FAFC' : '#0F172A';
-                const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isGuideMatched ? 0.76 : showDebug ? 0.62 : 0;
-                const traceStatusLabel = getSajikTraceStatusLabel(block.traceStatus);
-                const [labelX, labelY] = labelPoint;
+              {accessibilityMarkerBlocks.map((marker) => {
+                const block = SAJIK_CANONICAL_BLOCK_BY_SECTION_ID.get(marker.relatedSectionId);
+                const isSelectableMarker = Boolean(marker.enabled && block);
+                const isActive = Boolean(block && (hover === block.id || selected?.id === block.id));
+                const visualRadius = isActive ? 17 : 14;
+                const hitRadius = isSelectableMarker ? 26 : visualRadius;
+                const markerFillOpacity = isSelectableMarker ? (isActive ? 0.72 : 0.44) : 0.28;
+                const markerStrokeOpacity = isSelectableMarker ? 0.96 : 0.88;
+                const [markerX, markerY] = marker.position;
 
                 return (
-                  <g key={block.id}>
-                    <path
-                      role="button"
-                      data-testid={`sajik-accessibility-marker-${block.id}`}
-                      data-label-x={labelX}
-                      data-label-y={labelY}
-                      data-guide-match={isGuideMatched ? 'true' : undefined}
-                      data-trace-method={block.imageGeometry.traceMethod}
-                      data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
-                      data-map-interaction-status={block.mapInteractionStatus}
-                      data-manual-reviewed={block.imageGeometry.manualReviewed ? 'true' : 'false'}
-                      data-geometry-version={block.imageGeometry.geometryVersion}
-                      data-section-kind={block.sectionKind}
-                      data-marker-type={block.markerType}
-                      data-related-section-id={block.block}
-                      data-visual-path={visualPath}
-                      data-hit-path={hitPath}
-                      tabIndex={isFiltered ? -1 : 0}
-                      aria-label={`${block.name} ${block.block}`}
-                      aria-pressed={isActive}
-                      d={hitPath}
-                      fill={baseColor}
-                      fillOpacity={markerOpacity}
-                      stroke={stroke}
-                      strokeOpacity={strokeOpacity}
-                      strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
-                      filter={isActive ? 'url(#sajik-hit-glow)' : undefined}
-                      pointerEvents={isFiltered ? 'none' : 'fill'}
+                  <g key={marker.markerId}>
+                    <circle
+                      role={isSelectableMarker ? 'button' : undefined}
+                      tabIndex={isSelectableMarker ? 0 : -1}
+                      aria-label={block ? `${block.name} ${block.block} 접근성 marker` : undefined}
+                      aria-pressed={isSelectableMarker ? isActive : undefined}
+                      data-testid={`sajik-accessibility-marker-${marker.markerId}`}
+                      data-marker-id={marker.markerId}
+                      data-marker-type={marker.markerType}
+                      data-marker-interaction-status={marker.markerInteractionStatus}
+                      data-related-section-id={marker.relatedSectionId}
+                      data-mapped-block-id={block?.id}
+                      data-stage-id={marker.stageId}
+                      data-enabled={String(marker.enabled)}
+                      data-hit-target-radius={hitRadius}
+                      data-visual-radius={visualRadius}
+                      cx={markerX}
+                      cy={markerY}
+                      r={hitRadius}
+                      fill={isSelectableMarker ? '#FFFFFF' : '#A3E635'}
+                      fillOpacity={isSelectableMarker ? 0.001 : markerFillOpacity}
+                      stroke={isSelectableMarker ? 'transparent' : '#111827'}
+                      strokeOpacity={isSelectableMarker ? 0 : markerStrokeOpacity}
+                      strokeWidth={isSelectableMarker ? 0 : 3}
+                      pointerEvents={isSelectableMarker ? 'all' : 'none'}
                       vectorEffect="non-scaling-stroke"
                       style={{
-                        cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s',
+                        cursor: isSelectableMarker ? 'pointer' : 'default',
+                        outline: 'none',
+                        transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s',
                       }}
-                      onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
+                      onMouseEnter={() => {
+                        if (block && !isDragging) setHover(block.id);
+                      }}
+                      onMouseLeave={() => {
+                        if (block) setHover(null);
+                      }}
                       onClick={(event) => {
-                        if (suppressClickRef.current || event.detail > 1) {
+                        if (!block || !isSelectableMarker || suppressClickRef.current || event.detail > 1) {
                           event.preventDefault();
                           event.stopPropagation();
                           return;
                         }
-                        if (!isFiltered) {
-                          setSelected(selected?.id === block.id ? null : block);
-                        }
+                        setSelected(selected?.id === block.id ? null : block);
                       }}
                       onDoubleClick={handleSvgDoubleClick}
                       onKeyDown={(event) => {
-                        if (isFiltered) return;
+                        if (!block || !isSelectableMarker) return;
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
                           setSelected(selected?.id === block.id ? null : block);
                         }
                       }}
-                    >
-                      {showDebug && (
-                        <title>
-                          {`${block.id} · ${block.name} · ${traceStatusLabel} · ${block.imageGeometry.traceMethod} · ${block.imageGeometry.pixelAlignmentStatus}`}
-                        </title>
-                      )}
-                    </path>
-                    {(isActive || isGuideMatched || showDebug) && !isFiltered && (
-                      <circle
-                        cx={labelX}
-                        cy={labelY}
-                        r={isActive || isGuideMatched ? 11 : 9}
-                        fill={baseColor}
-                        fillOpacity={markerOpacity}
-                        stroke={stroke}
-                        strokeOpacity={strokeOpacity}
-                        strokeWidth={isActive ? 4 : isGuideMatched ? 3 : 2}
-                        vectorEffect="non-scaling-stroke"
-                        pointerEvents="none"
-                      />
-                    )}
-                    {(isActive || isGuideMatched || showDebug) && !isFiltered && (
-                      <text
-                        x={labelX}
-                        y={labelY - 15}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontSize={block.imageGeometry.labelFontSize ?? 11}
-                        fontWeight="800"
-                        fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                        stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
-                        strokeWidth="3"
-                        paintOrder="stroke"
-                        style={{ pointerEvents: 'none' }}
-                      >
-                        {block.imageGeometry.shortLabel}
-                      </text>
-                    )}
+                    />
+                    <circle
+                      data-testid={`sajik-accessibility-marker-visual-${marker.markerId}`}
+                      data-marker-id={marker.markerId}
+                      data-related-section-id={marker.relatedSectionId}
+                      aria-hidden="true"
+                      cx={markerX}
+                      cy={markerY}
+                      r={visualRadius}
+                      fill="#A3E635"
+                      fillOpacity={markerFillOpacity}
+                      stroke="#041E42"
+                      strokeOpacity={markerStrokeOpacity}
+                      strokeWidth={isActive ? 4 : 3}
+                      pointerEvents="none"
+                      vectorEffect="non-scaling-stroke"
+                      style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s, r 0.15s' }}
+                    />
                   </g>
                 );
               })}
@@ -1482,15 +929,15 @@ export default function SajikSeatMapSvg({
       </div>
       {showDebug && (
         <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-slate-100">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Sajik trace debug</div>
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Sajik canonical debug</div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            <span>blocks {SAJIK_TRACE_REVIEW_SUMMARY.totalBlocks}</span>
-            <span className="text-emerald-600 dark:text-emerald-300">traced {SAJIK_TRACE_REVIEW_SUMMARY.officialImageTraced}</span>
-            <span className="text-emerald-600 dark:text-emerald-300">pixel {SAJIK_TRACE_REVIEW_SUMMARY.pixelAligned}</span>
-            <span className="text-sky-600 dark:text-sky-300">reviewed {SAJIK_TRACE_REVIEW_SUMMARY.manualReviewed}</span>
-            <span className="text-orange-600 dark:text-orange-300">review {SAJIK_TRACE_REVIEW_SUMMARY.needsOperatorReview}</span>
+            <span>blocks {SAJIK_CANONICAL_SEATMAP_SUMMARY.activeBlocks}</span>
+            <span className="text-emerald-600 dark:text-emerald-300">sections {SAJIK_CANONICAL_SEATMAP_SUMMARY.activeSeatSections}</span>
+            <span className="text-sky-600 dark:text-sky-300">markers {SAJIK_CANONICAL_SEATMAP_SUMMARY.accessibilityMarkers}</span>
+            <span className="text-sky-600 dark:text-sky-300">linked {SAJIK_CANONICAL_SEATMAP_SUMMARY.linkedAccessibilityMarkers}</span>
+            <span className="text-orange-600 dark:text-orange-300">legacy {SAJIK_CANONICAL_SEATMAP_SUMMARY.legacyAliasOnlyBlocks}</span>
           </div>
-          <div className="mt-1 text-slate-500 dark:text-slate-400">orange = needs review, green = pixel aligned</div>
+          <div className="mt-1 text-slate-500 dark:text-slate-400">single runtime source: operator-reference 1151x1367</div>
         </div>
       )}
     </div>

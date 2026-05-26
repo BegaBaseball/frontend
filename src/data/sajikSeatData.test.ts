@@ -57,6 +57,18 @@ import {
   validateSajikOperatorReferenceSeatMapDataset,
 } from './sajikOperatorReferenceSeatMapDataset';
 import {
+  SAJIK_CANONICAL_ACCESSIBILITY_MARKERS,
+  SAJIK_CANONICAL_ACCESSIBILITY_MARKER_ALIASES,
+  SAJIK_CANONICAL_BLOCKS,
+  SAJIK_CANONICAL_LEGACY_ALIAS_ONLY_BLOCKS,
+  SAJIK_CANONICAL_OPERATOR_ONLY_SECTION_IDS,
+  SAJIK_CANONICAL_SEATMAP_IMAGE,
+  SAJIK_CANONICAL_SEATMAP_SOURCE_ID,
+  SAJIK_CANONICAL_SEATMAP_SUMMARY,
+  SAJIK_CANONICAL_SOURCE_POLICY,
+  validateSajikCanonicalSeatMap,
+} from './sajikCanonicalSeatMap';
+import {
   distanceToPolygon as distanceToSeatMapPolygon,
   isSingleClosedPolygonPath,
   pathBounds,
@@ -312,6 +324,76 @@ test('사직 operator reference polygon dataset은 선택 미리보기 runtime �
     assert.equal(containingSections[0].sectionId, marker.relatedSectionId, `${marker.markerId} relatedSectionId should match containing section`);
   });
   assert.equal(markerIds.size, expectedMarkerSectionIds.size);
+});
+
+test('사직 canonical 좌석도는 operator-reference 1151x1367 좌표계의 단일 runtime source다', () => {
+  assert.equal(SAJIK_CANONICAL_SEATMAP_SOURCE_ID, 'SAJIK_CANONICAL_2026');
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.mapVersion, 'BUSAN_SAJIK_2026_CANONICAL_OPERATOR_REFERENCE_V1');
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp');
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.imageWidth, 1151);
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.imageHeight, 1367);
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.viewBox, '0 0 1151 1367');
+  assert.equal(SAJIK_CANONICAL_SEATMAP_IMAGE.imageSha256, SAJIK_OPERATOR_REFERENCE_IMAGE_SHA256);
+  assert.deepEqual(validateSajikCanonicalSeatMap(), []);
+  assert.deepEqual(SAJIK_CANONICAL_SEATMAP_SUMMARY, {
+    sourceId: 'SAJIK_CANONICAL_2026',
+    mapVersion: 'BUSAN_SAJIK_2026_CANONICAL_OPERATOR_REFERENCE_V1',
+    activeBlocks: 78,
+    activeSeatSections: 78,
+    accessibilityMarkers: 14,
+    linkedAccessibilityMarkers: 8,
+    legacyAliasOnlyBlocks: 11,
+    legacyAccessibilityMarkerAliases: 3,
+    operatorOnlyBlocks: 3,
+  });
+
+  const canonicalSectionIds = SAJIK_CANONICAL_BLOCKS.map((block) => block.block);
+  const duplicateCanonicalSectionIds = canonicalSectionIds.filter((sectionId, index) => (
+    canonicalSectionIds.indexOf(sectionId) !== index
+  ));
+  assert.deepEqual(duplicateCanonicalSectionIds, []);
+  assert.deepEqual(
+    [...SAJIK_CANONICAL_OPERATOR_ONLY_SECTION_IDS].sort(),
+    ['322', '323', '921'],
+  );
+  assert.deepEqual(
+    [...SAJIK_CANONICAL_OPERATOR_ONLY_SECTION_IDS].filter((sectionId) => !canonicalSectionIds.includes(sectionId)),
+    [],
+  );
+  assert.equal(
+    SAJIK_CANONICAL_BLOCKS.every((block) => (
+      block.canonicalSourceId === 'SAJIK_CANONICAL_2026'
+      && block.mapInteractionStatus === 'MAP_SELECTABLE'
+      && block.sectionKind === 'SEAT_SECTION'
+    )),
+    true,
+  );
+  assert.equal(SAJIK_CANONICAL_ACCESSIBILITY_MARKERS.length, 14);
+  assert.equal(SAJIK_CANONICAL_ACCESSIBILITY_MARKERS.filter((marker) => marker.enabled).length, 8);
+  assert.deepEqual(
+    SAJIK_CANONICAL_LEGACY_ALIAS_ONLY_BLOCKS.map((block) => block.block).sort(),
+    [
+      '011',
+      '012',
+      '013',
+      '901',
+      '902',
+      '903',
+      '911',
+      '912',
+      '913',
+      '914',
+      '935',
+    ],
+  );
+  assert.deepEqual(
+    SAJIK_CANONICAL_ACCESSIBILITY_MARKER_ALIASES.map((marker) => marker.markerId).sort(),
+    ['휠체어석-1루', '휠체어석-3루', '휠체어석-중앙'],
+  );
+  assert.equal(SAJIK_CANONICAL_ACCESSIBILITY_MARKER_ALIASES.every((marker) => marker.runtimePolygon === false), true);
+  assert.equal(SAJIK_CANONICAL_SOURCE_POLICY.legacyOfficialImageRuntimeRole, 'historical QA/reference only');
+  assert.equal(SAJIK_CANONICAL_SOURCE_POLICY.missingOperatorImageBlockPolicy, 'legacy alias only; no runtime polygon until operator-reference trace exists');
+  assert.equal(SAJIK_CANONICAL_SOURCE_POLICY.legacyOfficialWheelchairMarkerPolicy, 'canonical marker alias only; no seat polygon runtime source');
 });
 
 test('사직 공식 asset 파일과 데이터 상태는 함께 전환되어야 한다', () => {

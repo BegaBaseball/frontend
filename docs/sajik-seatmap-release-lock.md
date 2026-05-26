@@ -2,6 +2,29 @@
 
 검수 고정일: 2026-05-12 KST
 
+## 현재 runtime 기준 (2026-05-25 canonical 통합)
+
+아래 기존 `960x640` 공식 PNG v2와 `OPERATOR_REFERENCE_2026` 섹션은 historical 검수 근거로 보존한다. 사용자 runtime은 이제 source tab 없이 `SAJIK_CANONICAL_2026` 한 벌만 렌더링한다.
+
+- canonical source id: `SAJIK_CANONICAL_2026`
+- canonical map version: `BUSAN_SAJIK_2026_CANONICAL_OPERATOR_REFERENCE_V1`
+- canonical 배경 asset: `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp`
+- canonical 좌표계/viewBox: `1151x1367`, `0 0 1151 1367`
+- canonical source of truth: `src/data/sajikCanonicalSeatMap.ts`
+- runtime renderer: `SajikSeatMap.tsx`와 `SajikSeatMapSvg.tsx`는 `SAJIK_CANONICAL_BLOCKS`, `SAJIK_CANONICAL_ACCESSIBILITY_MARKERS`, `SAJIK_CANONICAL_SEATMAP_IMAGE`만 사용한다.
+- source tab policy: 사용자 화면에서 `LOTTE_OFFICIAL_2026`/`OPERATOR_REFERENCE_2026` 전환 UI를 렌더링하지 않는다.
+- active selectable blocks: `78`
+- active seat sections: `78`
+- operator-only promoted sections: `322`, `323`, `921`
+- operator accessibility markers: `14`, linked selectable markers `8`
+- legacy official-only alias blocks: `935`, `013`, `012`, `011`, `914`, `913`, `912`, `911`, `903`, `902`, `901`
+- wheelchair pseudo-blocks: `휠체어석-3루`, `휠체어석-중앙`, `휠체어석-1루`은 seat polygon이 아니라 canonical accessibility marker alias이며 `runtimePolygon=false`로 유지한다.
+- official-only 11개 블럭은 operator-reference trace가 생기기 전까지 `ALIAS_ONLY`이며, 공식 PNG 좌표를 runtime fallback polygon으로 복사하지 않는다.
+- duplication guard: `npm run stadium:sajik:block-source-duplication-audit`
+- guard pass criteria: `status=passed`, `active_canonical_blocks=78`, `active_polygon_source_per_block=1`, duplicate active section id `0`
+- full visual QA: `npm run qa:stadium:sajik:full`
+- production build: 사직 canonical gate와 별개로 Mate bundle budget 같은 다른 dirty workstream blocker는 별도 트랙으로 분리한다.
+
 ## 기준
 
 - 공식 asset: `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png`
@@ -83,7 +106,7 @@
 - `011`은 현재 5점 polygon 기준 reference로 고정한다: bounds `620,466-666,492`, area `1079.5`, label anchor `644,479`.
 - `903`은 alias-only 상태를 유지하되 label anchor `899,267` reference와 `MANUAL_REVIEW_REQUIRED` 계약을 함께 유지한다.
 - 사직 회귀는 수원 polygon 문제가 아니라 `011/903` alias-only 계약과 trace reference drift에서 발생한 데이터 계약 불일치였으며, 수원 release 판단과 분리해 해결했다.
-- `releasePayloadFileCount=62`, `stagingManifest`, `stage01PartialReadinessGate` 문서 계약은 현재 `StadiumGuideRuntimeSeatMaps.test.ts`의 사직 release lock 테스트를 통과한다.
+- `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `stagingManifest`, `stage01PartialReadinessGate` 문서 계약은 현재 `StadiumGuideRuntimeSeatMaps.test.ts`의 사직 release lock 테스트를 통과한다.
 
 Green verification:
 
@@ -127,12 +150,33 @@ Operator reference verification:
 - `npm run qa:stadium:sajik:operator-reference-release`: PASS, scope audit `unexpected=0`, interactive preview `mobile-390`/`desktop-1440`, hit areas `78`
 - `env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS, `bundle-guard ok`, `CoachBriefing content runtime=1807/8000`
 
+## 2026-05-25 canonical single-source verification
+
+- `npm run stadium:sajik:block-source-duplication-audit`: PASS, `active_canonical_blocks=78`, `active_polygon_source_per_block=1`, `legacy_alias_only=11`
+- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts`: PASS, `37/37`
+- `node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS
+- `npm run qa:stadium:sajik:full`: PASS, output `output/playwright/stadium-ux-sajik-full/stadium-mobile-smoke-summary.md`
+- `env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS, `bundle-guard ok`, `seo:prerender` 9 routes, sitemap generated.
+
+## Canonical QA Evidence Summary
+
+- generated QA report files stay out of the PR payload: `reports/stadium/sajik-seatmap-*.{json,csv,md,png}`, `reports/stadium/sajik-stage01-operator/*`, `dist/*`, `output/playwright/*`
+- block source duplication report: `reports/stadium/sajik-seatmap-block-source-duplication-audit.{json,csv,md}`; latest summary `active_canonical_blocks=78`, `active_polygon_source_per_block=1`, `legacy_alias_only=11`
+- scope guard report: `reports/stadium/sajik-seatmap-pr-scope-guard.{json,md}`; latest summary `included=17`, `unexpected=0`, `blockers=0`
+- scope guard smoke report: `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`; full/partial guard snapshots pass
+- full visual QA summary: `output/playwright/stadium-ux-sajik-full/stadium-mobile-smoke-summary.md`; report path is evidence only and is not staged
+- build reports `reports/bundle-guard-report.json` and `reports/dist-assets-report.json` are regenerated evidence and stay unstaged
+- generated report 원문은 복사하지 않는다
+
 ## 기준 산출물
 
 - Alignment audit JSON: `reports/stadium/sajik-seatmap-alignment-audit.json`
 - Alignment audit CSV: `reports/stadium/sajik-seatmap-alignment-audit.csv`
 - Alignment audit summary: `reports/stadium/sajik-seatmap-alignment-audit.md`
 - Alignment audit SVG: `reports/stadium/sajik-seatmap-alignment-audit.svg`
+- Block source duplication audit JSON: `reports/stadium/sajik-seatmap-block-source-duplication-audit.json`
+- Block source duplication audit CSV: `reports/stadium/sajik-seatmap-block-source-duplication-audit.csv`
+- Block source duplication audit summary: `reports/stadium/sajik-seatmap-block-source-duplication-audit.md`
 - Trace manifest JSON: `reports/stadium/sajik-seatmap-trace-review.json`
 - Trace manifest CSV: `reports/stadium/sajik-seatmap-trace-review.csv`
 - Trace summary: `reports/stadium/sajik-seatmap-trace-review.md`
@@ -307,10 +351,11 @@ Operator reference verification:
 - `npm run qa:stadium:sajik:stage01-readiness`: PASS, partial-worktree-safe Stage 01 gate. Runs real approval readiness, target apply precheck, prewrite smoke, approved/applied dry-runs, 131 lifecycle smoke, 131 apply path status, the Sajik-focused static contract test, review board, next-action packet, target review packet, target image-analysis smoke, all-target official PNG review packets, all-target image-analysis smoke, target entry template readiness smoke, target entry preflight, target entry preflight smoke, target approval gate, target approval smoke, all-target approval readiness, all-target approval readiness smoke, all-target approval input guide, all-target approval input guide smoke, operator input intake gate, intake gate smoke, readiness summary, readiness summary smoke, completion gate, completion gate smoke, and staged scope audit smoke without `pr-scope-guard` or build.
 - `npm run stadium:sajik:marker-transition-review`: PASS, `markers=3`, `sections=3`, `seatPaths=84`, `markerLayer=3`, `aliasRendered=0`, `positionLocks=3`, `selectableCompat=3`, `markerOnlyApplied=false`, `blockers=0`
 - `npm run stadium:sajik:editor-regression`: PASS, editor v1.7 browser regression `status:passed checks=11`
-- `npm run stadium:sajik:pr-scope-guard`: BLOCKED in current partial worktree, `status=blocked`, `fullRelease=blocked`, `stage01PartialScope=passed`, `stage01PartialStagingVerdict=ready-for-partial-stage01-staging`, `mode=full-release`, `commandExit=1`, `included=<runtime>`, `separate=<runtime>`, `unexpected=0`, `blockers=22`, `partialBlockers=0`, patch separation `blocked`, `stage01ReadinessAvailable=true`; blocker cause is 22 missing expected full Sajik v2 release payload files, not Stage 01 readiness failure. All 22 are present on disk and classified in `missingExpectedIncludedFileDetails` as `clean-full-release-payload`, meaning they are expected for the full release payload but not dirty in the current partial Stage 01 worktree. `included` and `separate` are advisory dirty-worktree counts and may drift as unrelated workstreams change; Stage 01 partial pass criteria are `unexpected=0`, `partialBlockers=0`, and `absent-from-worktree=0`. Shared home ranking and toast UI files, including `TeamRankRow`, `sonner`, and `shims/sonner`, are classified as separate workstreams rather than unexpected Sajik PR payload. The report recommends `npm run qa:stadium:sajik:stage01-readiness`, `npm run stadium:sajik:stage01-pr-scope-guard`, `npm run stadium:sajik:stage01-staged-scope-audit-smoke`, and `npm run stadium:sajik:stage01-staged-scope-audit:complete` for partial Stage 01 verification, while `partialVerificationAfterStaging` and `fullReleaseVerificationAfterStaging` remain separate release-lock contracts.
-- `npm run stadium:sajik:stage01-pr-scope-guard`: PASS in current partial worktree, `status=blocked`, `fullRelease=blocked`, `stage01PartialScope=passed`, `partialBlockers=0`, `mode=stage01-partial`, `commandExit=0`.
+- `npm run stadium:sajik:pr-scope-guard`: PASS in current mixed worktree, `status=passed`, `fullRelease=passed`, `stage01PartialScope=passed`, `stage01PartialStagingVerdict=ready-for-partial-stage01-staging`, `mode=full-release`, `commandExit=0`, `included=<runtime>`, `separate=<runtime>`, `unexpected=0`, `blockers=0`, `partialBlockers=0`, patch separation `review-required`, `stage01ReadinessAvailable=true`; clean official PNG/operator-reference/stage01 evidence is tracked in `historicalReferenceFiles` with `productionSource=false`, not as missing release payload. `included` and `separate` are advisory dirty-worktree counts and may drift as unrelated workstreams change; pass criteria are `unexpected=0`, `blockers=0`, and missing canonical payload files `0`. Shared home ranking and toast UI files, including `TeamRankRow`, `sonner`, and `shims/sonner`, are classified as separate workstreams rather than unexpected Sajik PR payload. The report recommends manual hunk review for shared files and keeps `partialVerificationAfterStaging` and `fullReleaseVerificationAfterStaging` as separate release-lock contracts.
+- `npm run stadium:sajik:stage01-pr-scope-guard`: PASS in current mixed worktree, `status=passed`, `fullRelease=passed`, `stage01PartialScope=passed`, `partialBlockers=0`, `mode=stage01-partial`, `commandExit=0`.
 - `npm run stadium:sajik:stage01-staged-scope-audit-smoke`: PASS, fixture smoke over partial/complete/blocked staged-index branches, `cases=7/7`, `expectedStage01PartialTargetFileCount=40`, `sourceDataWritePerformed=false`, `writesOperatorInput=false`, `writesProductionData=false`.
-- `npm run stadium:sajik:pr-scope-guard-smoke`: PASS, structural smoke over generated scope guard reports and writes `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`. Snapshot summary: `fullReleaseRun.exitCode=1`, `fullReleaseRun.executionMode=full-release`, `partialRun.exitCode=0`, `partialRun.executionMode=stage01-partial`, `stage01PartialScope=passed`, `stage01PartialExit=0`, `releasePayloadFileCount=62`, `stage01ReadinessAvailable=true`.
+- `npm run stadium:sajik:stage01-staged-scope-audit:complete`: retained as the post-staging complete index verification command when assembling a Stage 01 partial package.
+- `npm run stadium:sajik:pr-scope-guard-smoke`: PASS, structural smoke over generated scope guard reports and writes `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`. Snapshot summary: `fullReleaseRun.exitCode=0`, `fullReleaseRun.executionMode=full-release`, `partialRun.exitCode=0`, `partialRun.executionMode=stage01-partial`, `stage01PartialScope=passed`, `stage01PartialExit=0`, `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `stage01ReadinessAvailable=true`.
 - `npm run qa:stadium:sajik:polygon-v2`: BLOCKED at `stadium:sajik:pr-scope-guard` in current partial worktree after dataset/export/alignment/evidence/hitPath review/Stage 01 operator-input-aid/review-board/next-action packet/target review packet/target image-analysis smoke/all-target official PNG review packets/all-target image-analysis smoke/target entry template readiness smoke/target entry preflight/target entry preflight smoke/target approval gate/target approval smoke/all-target approval readiness/all-target approval readiness smoke/all-target approval input guide/input intake gate/prewrite/apply-ready/post-apply/operator-status/manual-patch-plan/readiness/target apply precheck/smoke/approved dry-run/applied dry-run/131 lifecycle smoke/131 apply path status/readiness summary/readiness summary smoke/completion gate/completion gate smoke/marker transition review/Sajik-focused node tests/editor regression passed.
 - `VITE_SITE_URL=http://127.0.0.1:5176 VITE_API_BASE_URL=/api npm run build`: PASS
 - `npm run build`: PASS
@@ -344,7 +389,7 @@ Operator reference verification:
 - Editor v1.7 patch preview는 `mapVersion`, `sectionId`, `sectionKind`, `markerType`, `before`, `after`, `validation.status=PASS`를 포함한다.
 - Editor v1.7 browser regression은 대표 section nudge/reset, vertex add/delete, vertex drag, validation FAIL export lock, labelPoint edit mode, hit-candidate filter, wheelchair marker export, alias-only export 계약을 검증한다.
 - PR scope guard는 mixed worktree에서 사직 PR 포함 파일, 별도 작업 파일, 부분 staging 필요 파일을 report로 고정하며 git staging을 수행하지 않는다.
-- PR scope guard report는 `stagingManifest`와 `stage01PartialReadinessGate`를 포함해야 하며 `releasePayloadFileCount=62`, `doesNotRunGitAdd=true`, `safeToRunBulkGitAdd=false`, `requiresManualHunkReview=true`, `stage01ReadinessAvailable=true`를 고정해야 한다.
+- PR scope guard report는 `stagingManifest`와 `stage01PartialReadinessGate`를 포함해야 하며 `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `doesNotRunGitAdd=true`, `safeToRunBulkGitAdd=false`, `requiresManualHunkReview=true`, `stage01ReadinessAvailable=true`를 고정해야 한다.
 - PR scope guard report는 `Untracked Included Files` 섹션을 별도로 출력해야 한다. untracked included file은 `expectedPayload=true`, `manualReviewRequired=true`, `unexpectedFile=false`, `UNTRACKED_INCLUDED_FILE:<path>` review-required reason, `manual whole-file review` staging action을 가져야 한다.
 - `qa:stadium:sajik:polygon-v2`는 dataset export check, alignment audit, evidence, hitPath review, Stage 01 operator-input-aid/review-board/next-action packet/target review packet/target image-analysis smoke/all-target official PNG review packets/all-target image-analysis smoke/target entry template readiness smoke/target entry preflight/target entry preflight smoke/target approval gate/target approval smoke/all-target approval readiness/all-target approval readiness smoke/all-target approval input guide/all-target approval input guide smoke/operator input intake gate/intake gate smoke/prewrite/apply-ready/post-apply/operator-status/manual-patch-plan/readiness/target apply precheck/smoke/approved dry-run/applied dry-run/131 lifecycle smoke/131 apply path status/readiness summary/readiness summary smoke/completion gate/completion gate smoke/staged scope audit smoke, marker transition review, 사직 focused node tests, editor regression, scope guard, scope guard smoke, build를 한 번에 실행하는 release gate다.
 - P0 `143` boundary-lock evidence에서 `143` overlay는 공식 파란 블럭 후보 경계 안에 잠기며 흰 여백/어두운 배경으로 내려가지 않는다.
@@ -392,7 +437,7 @@ Operator reference verification:
 - Stage 01 readiness summary는 operator package, operator input, review board, real approval readiness, prewrite smoke, approved dry-run, applied dry-run, target entry preflight, target entry preflight smoke, target approval gate 산출물이 최근 생성됐고 `operatorInputRows=16`, `operatorInputApproved=0`, `packageImageHighRisk=8`, `reviewBoardImageHighRisk=8`, `packageImagePriority=131>032>133>143>135>134>122>123>132>031>022>142>121>124>125>021`, `reviewBoardImagePriority=131>032>133>143>135>134>122>123>132>031>022>142>121>124>125>021`, `packageReviewBoardImagePriorityMatched=true`, `waiting-for-operator`, `passed`, `APPROVED_NOT_APPLIED`, `APPROVED_APPLIED`, `targetEntryPreflight=waiting-for-operator:PENDING`, `targetEntryPreflightReady=false`, `targetEntryPreflightSmoke=passed:12/12`, `targetApprovalGate=waiting-for-operator:PENDING`, `targetApprovalReady=false`, `sourceDataWritePerformed=false` 계약을 유지하는지 검증해야 한다. Operator package image analysis는 `imageAnalysisMetadataRegenerated=true`, `imageCandidateReferenceOnly=true`, risk rows `8/4/4`, `source=reports/stadium/sajik-seatmap-pixel-components.json`을 유지해야 한다. Review board image analysis는 `candidateReferenceOnly=true`, `officialPngOnly=true`, `stage01RowsWithPixelCandidate=16`, risk rows `8/4/4`, `source=reports/stadium/sajik-seatmap-pixel-components.json`을 유지해야 한다.
 - Stage 01 readiness summary smoke는 valid/missing/review-board-missing/stale/readiness drift/review-board image drift/package image drift/package-review-board mismatch/target entry preflight drift/target approval gate drift/source write drift/operator input drift fixture를 검증하고 `REPORT_MISSING`, `REPORT_NOT_FRESH`, `APPROVED_DRY_RUN_READINESS_ROW_CHANGED`, `APPLIED_DRY_RUN_READINESS_ROW_CHANGED`, `REVIEW_BOARD_IMAGE_PRIORITY_CHANGED`, `REVIEW_BOARD_IMAGE_RISK_COUNTS_CHANGED`, `REVIEW_BOARD_IMAGE_REFERENCE_ONLY_DISABLED`, `REVIEW_BOARD_PIXEL_COMPONENT_SOURCE_CHANGED`, `OPERATOR_PACKAGE_IMAGE_PRIORITY_CHANGED`, `OPERATOR_PACKAGE_IMAGE_RISK_COUNTS_CHANGED`, `OPERATOR_PACKAGE_IMAGE_REFERENCE_ONLY_DISABLED`, `OPERATOR_PACKAGE_PIXEL_COMPONENT_SOURCE_CHANGED`, `OPERATOR_INPUT_IMAGE_PRIORITY_CHANGED`, `OPERATOR_INPUT_FIRST_IMAGE_PRIORITY_ROW_CHANGED`, `PACKAGE_REVIEW_BOARD_IMAGE_PRIORITY_MISMATCH`, `PACKAGE_REVIEW_BOARD_IMAGE_RISK_COUNTS_MISMATCH`, `PACKAGE_OPERATOR_INPUT_IMAGE_PRIORITY_MISMATCH`, `TARGET_ENTRY_PREFLIGHT_SOURCE_DATA_WRITE_PERFORMED`, `TARGET_ENTRY_PREFLIGHT_STATUS_CHANGED`, `TARGET_ENTRY_PREFLIGHT_SECTION_CHANGED`, `TARGET_ENTRY_PREFLIGHT_SMOKE_STATUS_CHANGED`, `TARGET_ENTRY_PREFLIGHT_SMOKE_CASE_COUNT_CHANGED`, `TARGET_APPROVAL_GATE_SOURCE_DATA_WRITE_PERFORMED`, `TARGET_APPROVAL_GATE_STATUS_CHANGED`, `SOURCE_DATA_WRITE_PERFORMED`, `OPERATOR_INPUT_ROW_COUNT_CHANGED` 회귀를 차단해야 한다.
 - `qa:stadium:sajik:stage01-readiness`는 부분 작업 트리에서 Stage 01 승인 readiness, smoke, approved/applied dry-run, `131` lifecycle smoke, `131` apply path status, 사직 focused static contract, review board, next-action packet, target review packet, target image-analysis smoke, all-target official PNG review packets, all-target image-analysis smoke, target entry template readiness smoke, target entry preflight, target entry preflight smoke, target approval gate, target approval smoke, all-target approval readiness, all-target approval readiness smoke, all-target approval input guide, all-target approval input guide smoke, operator input intake gate, intake gate smoke, readiness summary, readiness summary smoke, completion gate, completion gate smoke, staged scope audit smoke를 묶어 검증하는 전용 게이트다. 이 게이트는 `pr-scope-guard`, editor regression, build를 실행하지 않으며 전체 release gate인 `qa:stadium:sajik:polygon-v2`를 대체하지 않는다.
-- PR scope guard report는 `executionMode`, `commandExitCode`, `commandExitSummary`, `fullReleaseStatus`, `stage01PartialScopeStatus`, `stage01PartialStagingVerdict`, `stage01PartialScopeGate`, `includedInventory.missingExpectedIncludedFileDetails`, `partialVerificationAfterStaging`, `fullReleaseVerificationAfterStaging`, markdown `## Stage 01 Partial Scope Status`, `## Missing Expected Included Files`, `### Partial Verification After Staging`, `### Full Release Verification After Staging` 섹션을 유지해야 한다. Partial Stage 01 worktree의 missing expected file은 `clean-full-release-payload`와 `absent-from-worktree`를 구분해서 표시하며, `clean-full-release-payload`는 full release payload에는 필요하지만 현재 partial worktree에서 dirty가 아닌 파일이라는 뜻이다.
+- PR scope guard report는 `executionMode`, `commandExitCode`, `commandExitSummary`, `fullReleaseStatus`, `stage01PartialScopeStatus`, `stage01PartialStagingVerdict`, `stage01PartialScopeGate`, `includedInventory.missingExpectedIncludedFileDetails`, `historicalReferenceFileDetails`, `partialVerificationAfterStaging`, `fullReleaseVerificationAfterStaging`, markdown `## Stage 01 Partial Scope Status`, `## Missing Expected Included Files`, `## Historical Reference Files`, `### Partial Verification After Staging`, `### Full Release Verification After Staging` 섹션을 유지해야 한다. Clean historical/operator-reference evidence는 `historicalReferenceFiles`로 추적하고 `productionSource=false`여야 한다.
 - Stage 01 handoff 문서는 approval input contract, manual patch checklist, Stage 02 entry conditions를 고정해야 한다.
 - 좌표는 공식 PNG 좌표계 기준이며, 새 좌표는 소수 1자리 px 정밀도 안에서 관리한다.
 - `visualPath`는 공식 이미지 경계 기준 polygon, `hitPath`는 클릭/터치 hit-area polygon이다. 현재 사직 v2+ 기준에서는 승인된 별도 확장 hit-area가 없으므로 모든 `hitPath`가 `visualPath`와 동일해야 한다.
@@ -410,11 +455,11 @@ Operator reference verification:
 - Editor v1.7 patch payload는 선택 section의 `visualPath`, `hitPath`, `labelPoint`, polygon points를 `before`/`after`에 모두 담는다. 사용자 조작 전에는 두 값이 같아야 하며, vertex/labelPoint drag, nudge, add/delete 이후에는 `after`만 draft geometry로 달라져야 한다.
 - Editor v1.7 vertex delete는 3점 미만 polygon을 만들 수 없어야 하며, visualPath topology edit은 sync 설정이 켜져 있고 visual/hit point count가 같을 때 hitPath에도 반영된다.
 - Editor v1.7 copy/export는 validation PASS 상태에서만 가능해야 하고, FAIL 상태에서는 export lock을 표시해야 한다.
-- PR scope guard는 `doesNotRunGitAdd=true`, `safeToRunBulkGitAdd=false` 상태를 유지해야 하며, `package.json`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `scripts/stadium-ux-audit.mjs`, `src/components/AppRoutes.tsx`를 부분 staging review 대상으로 표시해야 한다.
+- PR scope guard는 `doesNotRunGitAdd=true`, `safeToRunBulkGitAdd=false` 상태를 유지해야 하며, `package.json`, `scripts/stadium-seatmap-ops.mjs`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `scripts/stadium-ux-audit.mjs`를 부분 staging review 대상으로 표시해야 한다.
 - PR scope guard의 `stagingManifest`는 whole-file review 대상, partial hunk review 대상, excluded artifacts, forbidden staging commands, `stage01PartialStagingVerdict=ready-for-partial-stage01-staging`, partial staging 후 verification commands, full release staging 후 verification commands를 Markdown/JSON report에 함께 기록해야 한다.
 - PR scope guard의 `stage01PartialReadinessGate`는 `npm run qa:stadium:sajik:stage01-readiness`가 `pr-scope-guard`, editor regression, build를 실행하지 않는 부분 작업 트리용 사전 검증이며, `qa:stadium:sajik:polygon-v2` 전체 release gate를 대체하지 않는다고 기록해야 한다.
-- PR scope guard의 `stage01PartialScopeGate`는 `npm run stadium:sajik:stage01-pr-scope-guard`가 `--stage01-partial` mode로 실행될 때 `fullReleaseStatus=blocked`와 `stage01PartialScopeStatus=passed`를 동시에 표현할 수 있어야 한다. Partial scope pass 조건은 `unexpectedFileCount=0`, `extraIncludedFileCount=0`, missing expected file classification이 모두 `clean-full-release-payload`, `absentFromWorktreeCount=0`, `stage01ReadinessAvailable=true`, `safeToRunBulkGitAdd=false`다.
-- PR scope guard smoke는 scope guard exit code `0/1`을 모두 구조 검증 대상으로 허용하되, `executionMode`, `commandExitCode`, `commandExitSummary`, `stage01PartialStagingVerdict`, `stage01PartialReadinessGate`, `stage01PartialScopeGate`, `stage01PartialScopeStatus`, `partialVerificationAfterStaging`, `fullReleaseVerificationAfterStaging`, `stage01ReadinessAvailable=true`, `releasePayloadFileCount=62`, `safeToRunBulkGitAdd=false`가 빠지면 실패해야 한다. `stage01PartialScopeStatus=passed`이면 `--stage01-partial` guard exit code는 `0`이어야 한다. Smoke report는 `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`에 `fullReleaseRun`과 `partialRun` snapshot을 따로 기록해야 한다.
+- PR scope guard의 `stage01PartialScopeGate`는 `npm run stadium:sajik:stage01-pr-scope-guard`가 `--stage01-partial` mode로 실행될 때 `fullReleaseStatus=passed`와 `stage01PartialScopeStatus=passed`를 동시에 표현할 수 있어야 한다. Partial scope pass 조건은 `unexpectedFileCount=0`, `extraIncludedFileCount=0`, `missingExpectedFileCount=0`, `absentFromWorktreeCount=0`, `stage01ReadinessAvailable=true`, `safeToRunBulkGitAdd=false`다.
+- PR scope guard smoke는 scope guard exit code `0/1`을 모두 구조 검증 대상으로 허용하되, `executionMode`, `commandExitCode`, `commandExitSummary`, `stage01PartialStagingVerdict`, `stage01PartialReadinessGate`, `stage01PartialScopeGate`, `stage01PartialScopeStatus`, `partialVerificationAfterStaging`, `fullReleaseVerificationAfterStaging`, `stage01ReadinessAvailable=true`, `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `safeToRunBulkGitAdd=false`가 빠지면 실패해야 한다. `stage01PartialScopeStatus=passed`이면 `--stage01-partial` guard exit code는 `0`이어야 한다. Smoke report는 `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`에 `fullReleaseRun`과 `partialRun` snapshot을 따로 기록해야 한다.
 - Stage 01 staged scope audit report는 blocked staged index에서 `stagingRemediation`을 포함해야 하며, `stagedFilesToKeep`, `stagedFilesToUnstage`, `stagedFilesToUnstageWithReasons`, `stagedManualHunkReviewFiles`, `missingTargetFilesForCompleteMode`, `nextActions`, `doesNotRunGitCommands=true`, `actionMode=operator-manual-index-cleanup`을 유지해야 한다. `stagedFilesToUnstageWithReasons`는 `OUTSIDE_STAGE01_TARGET`, `SEPARATE_DIRTY_WORK`, `UNEXPECTED_DIRTY_FILE`, `DELETED_STAGE01_TARGET` cleanup reason을 보존해야 한다.
 - PR scope guard는 공통 seatmap shell migration, 비사직 구장 UI, home/game card UI, prediction, Mate, shared navigation/style, local assistant config, `src/components/sajik/SajikSeatMap.tsx` first-visit/runtime UX 변경을 사직 polygon v2 release-lock PR 외부 작업으로 분류해야 한다.
 - PR scope guard는 `.gitignore` 변경을 공유 repo config 작업으로 분류하고 사직 polygon v2 release-lock PR 외부에 둬야 한다.
@@ -507,7 +552,7 @@ npm run build
 - editor regression이 vertex add/delete, vertex drag, validation FAIL export lock을 검증하지 않는다.
 - editor v1.8 구현 파일이 이번 사직 polygon v2 release-lock PR에 섞인다.
 - PR scope guard가 git staging을 직접 수행하거나 부분 staging review 대상 파일을 숨긴다.
-- PR scope guard report 또는 smoke에서 `stagingManifest`, `stage01PartialReadinessGate`, `stage01ReadinessAvailable=true`, `releasePayloadFileCount=62`, `safeToRunBulkGitAdd=false`, forbidden staging commands 중 하나가 누락된다.
+- PR scope guard report 또는 smoke에서 `stagingManifest`, `stage01PartialReadinessGate`, `stage01ReadinessAvailable=true`, `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `safeToRunBulkGitAdd=false`, forbidden staging commands 중 하나가 누락된다.
 - `HIT_POLYGON_TOO_SMALL` issue가 발생한다.
 - `needsOperatorReview`, `unreviewedBlocks` 중 하나라도 `0`이 아니다.
 - `refinedPolygons=83`이 유지되지 않는다.
