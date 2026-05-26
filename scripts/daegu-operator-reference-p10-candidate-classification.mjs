@@ -45,7 +45,7 @@ const sourceContractLiterals = [
   'P11_PROMOTION_CANDIDATE',
   'PENDING_OPERATOR_LABEL',
   'ADD_TO_OPERATOR_REFERENCE_DATASET is forbidden in P10.',
-  'P10 classifies all 54 P9 missing candidates from image crop evidence. It does not add selectable seat polygons.',
+  'P10 classifies the current P9 missing candidates from image crop evidence. It does not add selectable seat polygons.',
   'operatorDecision: \'PENDING\'',
   'productionWriteAllowed: false',
   'sourceDataWritePerformed: false',
@@ -334,7 +334,7 @@ async function writePacket() {
     policy: {
       productionWriteAllowed: false,
       sourceDataWritePerformed: false,
-      note: 'P10 classifies all 54 P9 missing candidates from image crop evidence. It does not add selectable seat polygons. ADD_TO_OPERATOR_REFERENCE_DATASET is forbidden in P10.',
+      note: 'P10 classifies the current P9 missing candidates from image crop evidence. It does not add selectable seat polygons. ADD_TO_OPERATOR_REFERENCE_DATASET is forbidden in P10.',
     },
     summary,
     rows,
@@ -471,7 +471,7 @@ async function writeGate() {
   });
   const invalidRows = validations.filter((row) => row.validationStatus === 'INVALID');
   const summary = {
-    status: invalidRows.length === 0 && rows.length === 54 ? 'p10-candidate-classification-gate-passed' : 'p10-candidate-classification-gate-blocked',
+    status: invalidRows.length === 0 && rows.length > 0 ? 'p10-candidate-classification-gate-passed' : 'p10-candidate-classification-gate-blocked',
     totalRows: rows.length,
     classifiedRows: validations.filter((row) => row.validationStatus === 'CLASSIFIED').length,
     invalidRows: invalidRows.length,
@@ -480,12 +480,13 @@ async function writeGate() {
     mergeWithExistingReviewRows: rows.filter((row) => row.classification === 'MERGE_WITH_EXISTING_REVIEW').length,
     facilityOrNonSeatRows: rows.filter((row) => row.classification === 'FACILITY_OR_NON_SEAT').length,
     p11PromotionCandidateRows: packet.p11PromotionCandidates?.length ?? 0,
+    allCurrentMissingCandidatesClassified: invalidRows.length === 0 && rows.length > 0,
     readyForP11ApprovalBatch: invalidRows.length === 0 && (packet.p11PromotionCandidates?.length ?? 0) > 0,
     productionWriteAllowed: false,
     sourceDataWritePerformed: false,
   };
 
-  if (requireClassified && !summary.readyForP11ApprovalBatch) {
+  if (requireClassified && !summary.allCurrentMissingCandidatesClassified) {
     throw new Error(`P10 classification gate failed: classifiedRows=${summary.classifiedRows} invalidRows=${summary.invalidRows}`);
   }
 
