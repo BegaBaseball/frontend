@@ -90,6 +90,162 @@ const DAEGU_OPERATOR_REFERENCE_P14_REVIEW_WORKFLOW_SOURCE = readFileSync(
   new URL('../../scripts/daegu-operator-reference-p14-review-workflow.mjs', import.meta.url),
   'utf8',
 );
+const DAEGU_OPERATOR_REFERENCE_P27_CANONICAL_APPROVAL_WRITE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p27-canonical-approval-write.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P28_SOURCE_PATCH_PREVIEW_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p28-source-patch-preview.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P29_SOURCE_POSTWRITE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p29-source-postwrite.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p30-special-zone-source-apply.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p31-sky-first-base-source-apply.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p31-sky-center-source-apply.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p31-sky-third-base-source-apply.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P32_POST_P31_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p32-post-p31-audit.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P33_LABEL_COVERAGE_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p33-label-coverage-audit.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P34_VISUAL_MATCH_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p34-visual-match-audit.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P35_REVIEW_LOCK_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p35-review-lock-audit.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P36_REVIEW_TEMPLATE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p36-review-template.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P37_REVIEW_STATUS_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p37-review-status.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P38_REVIEW_INPUT_SEED_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p38-review-input-seed.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P39_REVIEW_INPUT_STATUS_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p39-review-input-status.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P40_RELEASE_LOCK_PREFLIGHT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p40-release-lock-preflight.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P41_REVIEW_HANDOFF_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p41-review-handoff.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INTAKE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p42-review-intake.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P43_RELEASE_CANDIDATE_PREFLIGHT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p43-release-candidate-preflight.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P44_DECISION_FIXTURES_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p44-decision-fixtures.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P45_REAL_INPUT_GUARD_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p45-real-input-guard.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P46_RELEASE_INPUT_PREFLIGHT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p46-release-input-preflight.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P47_SOURCE_APPLY_PREVIEW_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p47-source-apply-preview.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P48_SOURCE_APPLY_GUARD_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p48-source-apply-guard.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P49_POSTWRITE_RELEASE_AUDIT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p49-postwrite-release-audit.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P50_FINAL_REVIEW_PACK_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p50-final-review-pack.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P51_REAL_REVIEW_INPUT_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p51-real-review-input.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P52_SOURCE_PATCH_PREVIEW_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p52-source-patch-preview.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P53_SOURCE_APPLY_GUARD_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p53-source-apply-guard.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P54_PARTIAL_APPROVAL_FIXTURE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p54-partial-approval-fixture.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P55_OPERATOR_HANDOFF_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p55-operator-handoff.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P56_REAL_INPUT_INTAKE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p56-real-input-intake.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P57_P52_HANDOFF_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p57-p52-handoff.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P58_READY_FIXTURE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p58-ready-fixture.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P59_READINESS_COMPARISON_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p59-readiness-comparison.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P60_PRODUCTION_PILOT_APPROVAL_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p60-production-pilot-approval.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P61_POST_P60_READINESS_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p61-post-p60-readiness.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P62_SINGLE_ROW_APPLY_PREVIEW_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p62-single-row-apply-preview.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_OPERATOR_REFERENCE_P63_SINGLE_ROW_SOURCE_POSTWRITE_SOURCE = readFileSync(
+  new URL('../../scripts/daegu-operator-reference-p63-single-row-source-postwrite.mjs', import.meta.url),
+  'utf8',
+);
 const DAEGU_QA_OWNERSHIP_AUDIT_SOURCE = readFileSync(
   new URL('../../scripts/daegu-seatmap-qa-ownership-audit.mjs', import.meta.url),
   'utf8',
@@ -441,7 +597,7 @@ test('대구 업로드 operator reference source는 4096 기본 선택 좌석도
   );
 });
 
-test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 4096 좌표계에서만 selectable이다', () => {
+test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7/P28/P30/P31 승인 블럭 131개는 4096 좌표계에서만 selectable이다', () => {
   const expectedP0Labels = new Set(['TR0', 'TR8', 'TR9', 'TR10']);
   const expectedP1Labels = new Set([
     'TR1',
@@ -481,6 +637,11 @@ test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 
   const expectedP5Labels = new Set(['VIP3', 'VIP2', 'VIP1', 'TC3', 'TC2', 'TC1', 'T34', 'T33', 'T32', 'T31', 'T14', 'T13', 'T12', 'T11']);
   const expectedP6Labels = new Set(['37', '36', '35', '34', '33', '32', '31', '15', '14', '13', '12', '11']);
   const expectedP7Labels = new Set(['S1', 'S2', 'S3', 'S21', 'S22', 'S23']);
+  const expectedP28Labels = new Set(['루프탑']);
+  const expectedP30Labels = new Set(['파티플로어', '잔디석', 'IM뱅크 캠핑존', 'SKY요기보존']);
+  const expectedP31Labels = new Set(['S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10']);
+  const expectedP31BLabels = new Set(['S11', 'S12', 'S13', 'S14', 'S15']);
+  const expectedP31CLabels = new Set(['S16', 'S17', 'S18', 'S19', 'S20']);
   const expectedLabels = new Set([
     ...expectedP0Labels,
     ...expectedP1Labels,
@@ -492,10 +653,15 @@ test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 
     ...expectedP5Labels,
     ...expectedP6Labels,
     ...expectedP7Labels,
+    ...expectedP28Labels,
+    ...expectedP30Labels,
+    ...expectedP31Labels,
+    ...expectedP31BLabels,
+    ...expectedP31CLabels,
   ]);
   const blockLabels = DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => block.block.replace('-', ''));
 
-  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 109);
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
   assert.deepEqual(new Set(blockLabels), expectedLabels);
   assert.equal(blockLabels.filter((label) => expectedP0Labels.has(label)).length, 4);
   assert.equal(blockLabels.filter((label) => expectedP1Labels.has(label)).length, 17);
@@ -507,6 +673,11 @@ test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 
   assert.equal(blockLabels.filter((label) => expectedP5Labels.has(label)).length, 14);
   assert.equal(blockLabels.filter((label) => expectedP6Labels.has(label)).length, 12);
   assert.equal(blockLabels.filter((label) => expectedP7Labels.has(label)).length, 6);
+  assert.equal(blockLabels.filter((label) => expectedP28Labels.has(label)).length, 1);
+  assert.equal(blockLabels.filter((label) => expectedP30Labels.has(label)).length, 4);
+  assert.equal(blockLabels.filter((label) => expectedP31Labels.has(label)).length, 7);
+  assert.equal(blockLabels.filter((label) => expectedP31BLabels.has(label)).length, 5);
+  assert.equal(blockLabels.filter((label) => expectedP31CLabels.has(label)).length, 5);
 
   DAEGU_OPERATOR_REFERENCE_BLOCKS.forEach((block) => {
     const normalizedBlock = block.block.replace('-', '');
@@ -532,6 +703,16 @@ test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7 승인 블럭 109개는 
                     ? 'DAEGU_OPERATOR_REFERENCE_P6_APPROVED_DRY_RUN_V1'
                     : expectedP7Labels.has(normalizedBlock)
                       ? 'DAEGU_OPERATOR_REFERENCE_P7_APPROVED_DRY_RUN_V1'
+                      : expectedP28Labels.has(normalizedBlock)
+                        ? 'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1'
+                        : expectedP30Labels.has(normalizedBlock)
+                          ? 'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1'
+                          : expectedP31Labels.has(normalizedBlock)
+                            ? 'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1'
+                            : expectedP31BLabels.has(normalizedBlock)
+                              ? 'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1'
+                              : expectedP31CLabels.has(normalizedBlock)
+                                ? 'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1'
                       : 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1',
     );
     assert.equal(block.imageGeometry.traceVersion, block.imageGeometry.geometryVersion);
@@ -926,7 +1107,7 @@ test('대구 operator reference P9 missing scan flow는 이미지 component와 a
     'P8_CLASSIFIED_NON_SELECTABLE_OR_LABEL_REQUIRED',
     'FLOATING_POLYGON_RISK',
     'OPERATOR_LABEL_REQUIRED_BEFORE_SELECTABLE_SEAT',
-    'P9 scans the 4096 operator reference image components and compares them with the 109 active selectable polygons.',
+    'P9 scans the 4096 operator reference image components and compares them with the current active selectable polygons.',
     "operatorDecision: 'PENDING'",
     'productionWriteAllowed: false',
     'sourceDataWritePerformed: false',
@@ -940,7 +1121,7 @@ test('대구 operator reference P9 missing scan flow는 이미지 component와 a
   });
 });
 
-test('대구 operator reference P10 candidate classification flow는 P9 누락 후보 54개를 P11 후보와 review row로 분리한다', () => {
+test('대구 operator reference P10 candidate classification flow는 현재 P9 누락 후보를 P11 후보와 review row로 분리한다', () => {
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
 
   [
@@ -961,7 +1142,7 @@ test('대구 operator reference P10 candidate classification flow는 P9 누락 �
     'P11_PROMOTION_CANDIDATE',
     'PENDING_OPERATOR_LABEL',
     'ADD_TO_OPERATOR_REFERENCE_DATASET is forbidden in P10.',
-    'P10 classifies all 54 P9 missing candidates from image crop evidence. It does not add selectable seat polygons.',
+    'P10 classifies the current P9 missing candidates from image crop evidence. It does not add selectable seat polygons.',
     "operatorDecision: 'PENDING'",
     'productionWriteAllowed: false',
     'sourceDataWritePerformed: false',
@@ -1137,6 +1318,1694 @@ test('대구 operator reference P14 review workflow는 P11 후보 22개를 검�
       `Daegu operator reference P14 review workflow should include ${requiredText}`,
     );
   });
+});
+
+test('대구 operator reference P27 canonical approval write는 P21 템플릿 1건만 승인 반영한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p27-canonical-approval-plan',
+    'stadium:daegu:operator-reference-p27-canonical-approval-gate',
+    'stadium:daegu:operator-reference-p27-canonical-approval-gate:require-ready',
+    'stadium:daegu:operator-reference-p27-canonical-approval-write',
+    'stadium:daegu:operator-reference-p27-canonical-approval-postwrite',
+    'stadium:daegu:operator-reference-p27-canonical-approval-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P27 reads P26 approval input preview and writes only the P21 operator approval template.',
+    'P27 changes only operatorDecision, reviewer, reviewedAt on RAPAK_REF_011.',
+    'P27 does not modify reports/stadium/daegu-operator-reference-p14-review-workflow/operator-input/daegu-operator-reference-p14-review-input.json.',
+    'P27 does not modify reports/stadium/daegu-operator-reference-p26-approval-input-preview/daegu-operator-reference-p26-approval-input-preview.json.',
+    'P27 does not write src/data/daeguSeatData.ts.',
+    'RAPAK_REF_011',
+    'operatorDecision=APPROVED',
+    'reviewer=codex-image-review',
+    'reviewedAt=2026-05-24T23:15:00+09:00',
+    'CANONICAL_APPROVAL_TEMPLATE_WRITE_ONLY',
+    'P26_PREVIEW_READY',
+    'P26_PREVIEW_APPROVED_ONE_ROW',
+    'TARGET_ROW_MATCHES_RAPAK_REF_011',
+    'P21_TEMPLATE_HAS_22_ROWS',
+    'P21_TEMPLATE_TARGET_PENDING_OR_ALREADY_APPLIED',
+    'CANONICAL_WRITE_CHANGES_APPROVAL_METADATA_ONLY',
+    'OTHER_ROWS_REMAIN_PENDING',
+    'CORRECTED_GEOMETRY_UNCHANGED',
+    'P14_OPERATOR_INPUT_UNCHANGED',
+    'P26_PREVIEW_UNCHANGED',
+    'SOURCE_WRITE_BLOCKED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p27-canonical-approval-write-ready',
+    'p27-canonical-approval-write-already-applied',
+    'p27-canonical-approval-write-blocked',
+    'p27-canonical-approval-write-gate-ready',
+    'p27-canonical-approval-write-gate-already-applied',
+    'p27-canonical-approval-write-gate-blocked',
+    'p27-canonical-approval-write-applied',
+    'p27-canonical-approval-write-noop-already-applied',
+    'p27-canonical-approval-postwrite-applied',
+    'daegu-operator-reference-p27-canonical-approval-write-plan.json',
+    'daegu-operator-reference-p27-canonical-approval-template-candidate.json',
+    'daegu-operator-reference-p27-canonical-approval-write.patch.txt',
+    'approvedRows=1',
+    'pendingRows=21',
+    'canonicalApprovalTemplateWritePerformed: true',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+    'p14OperatorInputWritePerformed: false',
+    'p26PreviewWritePerformed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P27_CANONICAL_APPROVAL_WRITE_SOURCE.includes(requiredText),
+      `Daegu operator reference P27 canonical approval write should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P28 source patch preview는 승인 row 1건만 source patch 후보로 만든다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p28-source-patch-preview',
+    'stadium:daegu:operator-reference-p28-source-patch-preview-gate',
+    'stadium:daegu:operator-reference-p28-source-patch-preview-gate:require-ready',
+    'stadium:daegu:operator-reference-p28-source-patch-preview-gate:require-approved',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P28 reads P21 canonical approved rows and creates source patch preview only.',
+    'P28 requires P27 canonical approval postwrite to be applied.',
+    'P28 uses only operatorDecision=APPROVED rows from P21.',
+    'P28 excludes the remaining 21 PENDING rows from sourcePatchRows.',
+    'P28 does not write src/data/daeguSeatData.ts.',
+    'RAPAK_REF_011',
+    '루프탑 테이블석',
+    'ADD_TO_OPERATOR_REFERENCE_DATASET',
+    'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1',
+    'DAEGU_OPERATOR_REFERENCE_P28_BLOCK_ROWS',
+    'OPERATOR_REFERENCE_P28_REVIEW_NOTE',
+    'createOperatorReferenceApprovedBlockWithTrace',
+    'P27_POSTWRITE_APPLIED',
+    'P21_APPROVED_ROWS_ONE',
+    'PENDING_ROWS_EXCLUDED_FROM_SOURCE_PATCH',
+    'NO_DUPLICATE_ACTIVE_OPERATOR_REFERENCE_BLOCK',
+    'APPROVED_ROW_GEOMETRY_VALID',
+    'APPROVED_ROW_LABEL_TOP_HIT_VALID',
+    'SOURCE_PATCH_PREVIEW_ONLY',
+    'SOURCE_WRITE_BLOCKED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'readyForSourcePatch=true',
+    'p28-source-patch-preview-ready',
+    'p28-source-patch-preview-blocked',
+    'p28-source-patch-preview-gate-ready',
+    'p28-source-patch-preview-gate-blocked',
+    'daegu-operator-reference-p28-source-patch-preview.json',
+    'daegu-operator-reference-p28-approved-block-rows.json',
+    'daegu-operator-reference-p28-source-patch-preview.patch.txt',
+    'approvedRows=1',
+    'pendingRows=21',
+    'sourcePatchRows=1',
+    'currentSelectableRows=109',
+    'projectedSelectableRows=110',
+    'sourceDataWritePerformed: false',
+    'productionWriteAllowed: false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P28_SOURCE_PATCH_PREVIEW_SOURCE.includes(requiredText),
+      `Daegu operator reference P28 source patch preview should include ${requiredText}`,
+    );
+  });
+});
+
+test('대구 operator reference P29 source postwrite는 P28 승인 row 1건만 source에 반영된 상태를 검증한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const targetBlock = DAEGU_OPERATOR_REFERENCE_BLOCKS.find((block) => block.id === 'daegu-operator-reference-rooftop-table');
+
+  [
+    'stadium:daegu:operator-reference-p29-source-postwrite',
+    'stadium:daegu:operator-reference-p29-source-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P29 verifies that the P28 approved row was applied to src/data/daeguSeatData.ts.',
+    'P29 source write applies only RAPAK_REF_011.',
+    'P29 keeps the 21 pending P21 rows out of DAEGU_OPERATOR_REFERENCE_BLOCKS.',
+    'RAPAK_REF_011',
+    '루프탑 테이블석',
+    'daegu-operator-reference-rooftop-table',
+    'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1',
+    'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P28_APPROVED_V1',
+    'P28_SOURCE_PATCH_PREVIEW_READY',
+    'P28_APPROVED_ROWS_JSON_ONE',
+    'APPROVED_BLOCK_SOURCE_APPLIED',
+    'CURRENT_SELECTABLE_ROWS_110',
+    'TARGET_BLOCK_SELECTABLE',
+    'TARGET_TRACE_VERSION_P28',
+    'TARGET_GEOMETRY_VALID',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'PENDING_21_ROWS_NOT_APPLIED',
+    'OFFICIAL_DATASET_STAYS_177',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p29-source-postwrite-applied',
+    'p29-source-postwrite-blocked',
+    'daegu-operator-reference-p29-source-postwrite.json',
+    'approvedRows=1',
+    'pendingRows=21',
+    'currentSelectableRows=110',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed=false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P29_SOURCE_POSTWRITE_SOURCE.includes(requiredText),
+      `Daegu operator reference P29 source postwrite should include ${requiredText}`,
+    );
+  });
+
+  assert.ok(targetBlock, '루프탑 테이블석 should be present in the operator reference source dataset');
+  assert.equal(targetBlock.name, '루프탑 테이블석');
+  assert.equal(targetBlock.block, '루프탑');
+  assert.equal(targetBlock.imageGeometry.geometryVersion, 'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1');
+  assert.equal(targetBlock.imageGeometry.traceVersion, 'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1');
+  assert.equal(targetBlock.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+  assert.equal(isDaeguOperatorReferenceSelectableSeat(targetBlock), true);
+});
+
+test('대구 operator reference P30 special zone source apply는 특수/대형 4개 row만 승인 반영한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const targetBlocks = DAEGU_OPERATOR_REFERENCE_BLOCKS.filter((block) => (
+    ['파티플로어', '잔디석', 'IM뱅크 캠핑존', 'SKY요기보존'].includes(block.block)
+  ));
+
+  [
+    'stadium:daegu:operator-reference-p30-special-zone-approval-write',
+    'stadium:daegu:operator-reference-p30-special-zone-postwrite',
+    'stadium:daegu:operator-reference-p30-special-zone-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P30 approves only four special/large-zone P21 rows.',
+    'P30 source write applies RAPAK_REF_054, RAPAK_REF_057, RAPAK_REF_058, RAPAK_REF_187 only.',
+    'P30 keeps the remaining 17 SKY S-4~S-20 rows pending.',
+    'RAPAK_REF_054',
+    'RAPAK_REF_057',
+    'RAPAK_REF_058',
+    'RAPAK_REF_187',
+    '파티플로어석',
+    '잔디석',
+    'IM뱅크 캠핑존',
+    'SKY요기보존',
+    'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1',
+    'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1',
+    'P21_APPROVED_ROWS_FIVE',
+    'P21_PENDING_ROWS_SEVENTEEN',
+    'TARGET_FOUR_ROWS_APPROVED',
+    'APPROVED_FOUR_BLOCKS_SOURCE_APPLIED',
+    'CURRENT_SELECTABLE_ROWS_114',
+    'TARGET_GEOMETRY_VALID',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'PENDING_17_ROWS_NOT_APPLIED',
+    'OFFICIAL_DATASET_STAYS_177',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p30-special-zone-approval-write-applied',
+    'p30-special-zone-approval-write-noop-already-applied',
+    'p30-special-zone-approval-write-blocked',
+    'p30-special-zone-postwrite-applied',
+    'p30-special-zone-postwrite-blocked',
+    'daegu-operator-reference-p30-special-zone-approval-write.json',
+    'daegu-operator-reference-p30-special-zone-postwrite.json',
+    'approvedRows=5',
+    'pendingRows=17',
+    'targetApprovedRows=4',
+    'currentSelectableRows=114',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed=false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_SOURCE.includes(requiredText),
+      `Daegu operator reference P30 special zone source apply should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(targetBlocks.length, 4);
+  targetBlocks.forEach((block) => {
+    assert.equal(block.imageGeometry.geometryVersion, 'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceVersion, 'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+    assert.equal(isDaeguOperatorReferenceSelectableSeat(block), true);
+  });
+});
+
+test('대구 operator reference P31-A SKY first-base source apply는 S-4~S-10 7개 row만 승인 반영한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const targetBlocks = DAEGU_OPERATOR_REFERENCE_BLOCKS.filter((block) => (
+    ['S-4', 'S-5', 'S-6', 'S-7', 'S-8', 'S-9', 'S-10'].includes(block.block)
+  ));
+
+  [
+    'stadium:daegu:operator-reference-p31-sky-first-base-approval-write',
+    'stadium:daegu:operator-reference-p31-sky-first-base-postwrite',
+    'stadium:daegu:operator-reference-p31-sky-first-base-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P31-A approves seven SKY S-4~S-10 P21 rows.',
+    'P31-A source write applies RAPAK_REF_155, RAPAK_REF_160, RAPAK_REF_164, RAPAK_REF_168, RAPAK_REF_172, RAPAK_REF_176, RAPAK_REF_186 only.',
+    'P31-A keeps the remaining 10 SKY S-11~S-20 rows pending.',
+    'RAPAK_REF_155',
+    'RAPAK_REF_160',
+    'RAPAK_REF_164',
+    'RAPAK_REF_168',
+    'RAPAK_REF_172',
+    'RAPAK_REF_176',
+    'RAPAK_REF_186',
+    'SKY 하단 지정석 S-4',
+    'SKY 하단 지정석 S-10',
+    'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1',
+    'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1',
+    'P21_APPROVED_ROWS_TWELVE',
+    'P21_PENDING_ROWS_TEN',
+    'TARGET_SEVEN_ROWS_APPROVED',
+    'APPROVED_SEVEN_BLOCKS_SOURCE_APPLIED',
+    'CURRENT_SELECTABLE_ROWS_121',
+    'TARGET_GEOMETRY_VALID',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'PENDING_10_ROWS_NOT_APPLIED',
+    'OFFICIAL_DATASET_STAYS_177',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p31-sky-first-base-approval-write-applied',
+    'p31-sky-first-base-approval-write-noop-already-applied',
+    'p31-sky-first-base-approval-write-blocked',
+    'p31-sky-first-base-postwrite-applied',
+    'p31-sky-first-base-postwrite-blocked',
+    'daegu-operator-reference-p31-sky-first-base-approval-write.json',
+    'daegu-operator-reference-p31-sky-first-base-postwrite.json',
+    'approvedRows=12',
+    'pendingRows=10',
+    'targetApprovedRows=7',
+    'currentSelectableRows=121',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed=false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_SOURCE.includes(requiredText),
+      `Daegu operator reference P31-A SKY first-base source apply should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(targetBlocks.length, 7);
+  targetBlocks.forEach((block) => {
+    assert.equal(block.imageGeometry.geometryVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+    assert.equal(isDaeguOperatorReferenceSelectableSeat(block), true);
+  });
+});
+
+test('대구 operator reference P31-B SKY center source apply는 S-11~S-15 5개 row만 승인 반영한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const targetBlocks = DAEGU_OPERATOR_REFERENCE_BLOCKS.filter((block) => (
+    ['S-11', 'S-12', 'S-13', 'S-14', 'S-15'].includes(block.block)
+  ));
+
+  [
+    'stadium:daegu:operator-reference-p31-sky-center-approval-write',
+    'stadium:daegu:operator-reference-p31-sky-center-postwrite',
+    'stadium:daegu:operator-reference-p31-sky-center-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P31-B approves five SKY S-11~S-15 P21 rows.',
+    'P31-B source write applies RAPAK_REF_185, RAPAK_REF_184, RAPAK_REF_183, RAPAK_REF_182, RAPAK_REF_175 only.',
+    'P31-B keeps the remaining 5 SKY S-16~S-20 rows pending.',
+    'RAPAK_REF_185',
+    'RAPAK_REF_184',
+    'RAPAK_REF_183',
+    'RAPAK_REF_182',
+    'RAPAK_REF_175',
+    'SKY 하단 지정석 S-11',
+    'SKY 하단 지정석 S-15',
+    'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1',
+    'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1',
+    'P21_APPROVED_ROWS_SEVENTEEN',
+    'P21_PENDING_ROWS_FIVE',
+    'TARGET_FIVE_ROWS_APPROVED',
+    'APPROVED_FIVE_BLOCKS_SOURCE_APPLIED',
+    'CURRENT_SELECTABLE_ROWS_126',
+    'TARGET_GEOMETRY_VALID',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'PENDING_5_ROWS_NOT_APPLIED',
+    'OFFICIAL_DATASET_STAYS_177',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p31-sky-center-approval-write-applied',
+    'p31-sky-center-approval-write-noop-already-applied',
+    'p31-sky-center-approval-write-blocked',
+    'p31-sky-center-postwrite-applied',
+    'p31-sky-center-postwrite-blocked',
+    'daegu-operator-reference-p31-sky-center-approval-write.json',
+    'daegu-operator-reference-p31-sky-center-postwrite.json',
+    'approvedRows=17',
+    'pendingRows=5',
+    'targetApprovedRows=5',
+    'currentSelectableRows=126',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed=false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_SOURCE.includes(requiredText),
+      `Daegu operator reference P31-B SKY center source apply should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(targetBlocks.length, 5);
+  targetBlocks.forEach((block) => {
+    assert.equal(block.imageGeometry.geometryVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+    assert.equal(isDaeguOperatorReferenceSelectableSeat(block), true);
+  });
+});
+
+test('대구 operator reference P31-C SKY third-base source apply는 S-16~S-20 5개 row만 승인 반영한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const targetBlocks = DAEGU_OPERATOR_REFERENCE_BLOCKS.filter((block) => (
+    ['S-16', 'S-17', 'S-18', 'S-19', 'S-20'].includes(block.block)
+  ));
+
+  [
+    'stadium:daegu:operator-reference-p31-sky-third-base-approval-write',
+    'stadium:daegu:operator-reference-p31-sky-third-base-postwrite',
+    'stadium:daegu:operator-reference-p31-sky-third-base-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P31-C approves five SKY S-16~S-20 P21 rows.',
+    'P31-C source write applies RAPAK_REF_171, RAPAK_REF_167, RAPAK_REF_163, RAPAK_REF_159, RAPAK_REF_156 only.',
+    'P31-C clears all remaining SKY S-16~S-20 pending rows.',
+    'RAPAK_REF_171',
+    'RAPAK_REF_167',
+    'RAPAK_REF_163',
+    'RAPAK_REF_159',
+    'RAPAK_REF_156',
+    'SKY 하단 지정석 S-16',
+    'SKY 하단 지정석 S-20',
+    'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1',
+    'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1',
+    'P21_APPROVED_ROWS_TWENTY_TWO',
+    'P21_PENDING_ROWS_ZERO',
+    'TARGET_FIVE_ROWS_APPROVED',
+    'APPROVED_FIVE_BLOCKS_SOURCE_APPLIED',
+    'CURRENT_SELECTABLE_ROWS_131',
+    'TARGET_GEOMETRY_VALID',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'NO_PENDING_ROWS_LEFT',
+    'OFFICIAL_DATASET_STAYS_177',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PRODUCTION_WRITE_BLOCKED',
+    'p31-sky-third-base-approval-write-applied',
+    'p31-sky-third-base-approval-write-noop-already-applied',
+    'p31-sky-third-base-approval-write-blocked',
+    'p31-sky-third-base-postwrite-applied',
+    'p31-sky-third-base-postwrite-blocked',
+    'daegu-operator-reference-p31-sky-third-base-approval-write.json',
+    'daegu-operator-reference-p31-sky-third-base-postwrite.json',
+    'approvedRows=22',
+    'pendingRows=0',
+    'targetApprovedRows=5',
+    'currentSelectableRows=131',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed=false',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_SOURCE.includes(requiredText),
+      `Daegu operator reference P31-C SKY third-base source apply should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(targetBlocks.length, 5);
+  targetBlocks.forEach((block) => {
+    assert.equal(block.imageGeometry.geometryVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceVersion, 'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1');
+    assert.equal(block.imageGeometry.traceSource, 'OPERATOR_REFERENCE_RAPAK_2025');
+    assert.equal(isDaeguOperatorReferenceSelectableSeat(block), true);
+  });
+});
+
+test('대구 operator reference P32 post-P31 audit는 남은 image component 분류 상태를 source write 없이 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p32-post-p31-audit',
+    'stadium:daegu:operator-reference-p32-post-p31-audit-gate',
+    'stadium:daegu:operator-reference-p32-post-p31-audit-gate:require-classified',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P32 consolidates the post-P31 P9/P10 image-component evidence.',
+    'POST_P31_REVIEW_ONLY_STRIP',
+    'POST_P31_DUPLICATE_OR_STRIP_REVIEW',
+    'POST_P31_NON_SEAT_COMPONENT',
+    'POST_P31_NEXT_BATCH_CANDIDATE',
+    'NO_LABEL_VISIBLE_SEAT_CANDIDATES_LEFT_AFTER_P31',
+    'DAEGU_OPERATOR_REFERENCE_BLOCKS',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p32-post-p31-audit-ready',
+    'p32-post-p31-audit-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P32_POST_P31_AUDIT_SOURCE.includes(requiredText),
+      `Daegu operator reference P32 post-P31 audit should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P33 label coverage audit는 이미지 visible seat label 131개 커버리지를 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p33-label-coverage-audit',
+    'stadium:daegu:operator-reference-p33-label-coverage-audit-gate',
+    'stadium:daegu:operator-reference-p33-label-coverage-audit-gate:require-covered',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P33 transcribes visible seat labels from the 4096 operator reference image and compares them with DAEGU_OPERATOR_REFERENCE_BLOCKS.',
+    'VISIBLE_SEAT_LABEL_ACTIVE',
+    'MISSING_LABEL_BLOCK',
+    'GROUP_LABEL_ONLY',
+    'NON_SEAT_LABEL',
+    'EXPECTED_VISIBLE_SEAT_LABELS_131',
+    'NO_MISSING_VISIBLE_SEAT_LABELS',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p33-label-coverage-audit-ready',
+    'p33-label-coverage-audit-gate-passed',
+    'OUTFIELD_TABLE_TOP_RIGHT',
+    'OUTFIELD_RESERVED_RIGHT',
+    'OUTFIELD_MINI_TABLE_RIGHT',
+    'OUTFIELD_RESERVED_LEFT',
+    'OUTFIELD_MINI_TABLE_LEFT',
+    'SKY_YOGIBO',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P33_LABEL_COVERAGE_AUDIT_SOURCE.includes(requiredText),
+      `Daegu operator reference P33 label coverage audit should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P34 visual match audit는 131개 selectable polygon별 overlay evidence 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p34-visual-match-audit',
+    'stadium:daegu:operator-reference-p34-visual-match-audit-gate',
+    'stadium:daegu:operator-reference-p34-visual-match-audit-gate:require-audited',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P34 audits all 131 operator-reference selectable polygons against the 4096 image component scan.',
+    'PASS_VISUAL_MATCH_CANDIDATE',
+    'LOW_COLOR_COVERAGE',
+    'OVERLAP_REVIEW_REQUIRED',
+    'LABEL_POINT_OUTSIDE',
+    'HITPATH_TOO_LARGE',
+    'BOUNDS_OR_SELF_INTERSECTION_INVALID',
+    'MANUAL_RETRACE_REQUIRED',
+    'PASS_VISUAL_MATCH_FORBIDDEN_WHILE_BLOCKERS_REMAIN',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p34-visual-match-audit-ready',
+    'p34-visual-match-audit-gate-passed',
+    'block-crops',
+    'daegu-operator-reference-p34-visual-match-overlay.png',
+    'daegu-operator-reference-p34-risk-contact-sheet.png',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P34_VISUAL_MATCH_AUDIT_SOURCE.includes(requiredText),
+      `Daegu operator reference P34 visual match audit should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P35 review lock audit는 131개 evidence와 187개 component disposition 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p35-review-lock-audit',
+    'stadium:daegu:operator-reference-p35-review-lock-audit-gate',
+    'stadium:daegu:operator-reference-p35-review-lock-audit-gate:require-evidence',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P35 locks P34 crop/overlay evidence and component disposition before any release wording.',
+    'AUTO_VISUAL_MATCH_READY',
+    'OPERATOR_VISUAL_REVIEW_PENDING',
+    'OPERATOR_VISUAL_REVIEW_NOT_COMPLETE',
+    'SELECTABLE_COMPONENT_EVIDENCE',
+    'SELECTABLE_COMPONENT_SHARED_OR_MERGED',
+    'P32_REVIEW_ONLY_COMPONENT',
+    'P8_NON_SELECTABLE_OR_LABEL_REQUIRED',
+    'ALL_187_COMPONENTS_DISPOSITIONED',
+    'PASS_RELEASE_177_FORBIDDEN',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p35-review-lock-audit-ready',
+    'p35-review-lock-audit-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P35_REVIEW_LOCK_AUDIT_SOURCE.includes(requiredText),
+      `Daegu operator reference P35 review lock audit should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P36 review template은 131개 crop evidence operator 승인 입력 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p36-review-template',
+    'stadium:daegu:operator-reference-p36-review-gate',
+    'stadium:daegu:operator-reference-p36-review-gate:require-template',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P36 creates an operator visual review template from 131 P35 evidence rows.',
+    'OPERATOR_DECISION_PENDING',
+    'APPROVED_REQUIRES_REVIEWER_AND_REVIEWED_AT',
+    'APPROVED_REQUIRES_REVIEW_NOTE',
+    'REJECTED_REQUIRES_REVIEW_NOTE_AND_NEXT_ACTION',
+    'PENDING_ROWS_BLOCK_RELEASE_LOCK',
+    'OPERATOR_REVIEW_TEMPLATE_ROWS_131',
+    'RELEASE_LOCK_CANDIDATE_REQUIRES_131_APPROVED_ROWS',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p36-review-template-ready',
+    'p36-review-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P36_REVIEW_TEMPLATE_SOURCE.includes(requiredText),
+      `Daegu operator reference P36 review template should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P37 review status는 operator 승인 결과와 release lock 후보 상태를 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p37-review-status',
+    'stadium:daegu:operator-reference-p37-review-status-gate',
+    'stadium:daegu:operator-reference-p37-review-status-gate:require-status',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P37 reads operator review decisions from the P36 CSV/JSON template and computes release-lock readiness.',
+    'APPROVED_131_REQUIRED_FOR_RELEASE_LOCK',
+    'REJECTED_ROWS_CREATE_RETRACE_BATCH',
+    'PENDING_ROWS_KEEP_REVIEW_OPEN',
+    'INVALID_OPERATOR_DECISION_BLOCKS_RELEASE_LOCK',
+    'APPROVED_REQUIRES_REVIEWER_AND_REVIEWED_AT',
+    'REJECTED_REQUIRES_REVIEW_NOTE_AND_NEXT_ACTION',
+    'RELEASE_LOCK_ALLOWED_FALSE_UNTIL_ALL_APPROVED',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p37-review-status-ready',
+    'p37-review-status-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P37_REVIEW_STATUS_SOURCE.includes(requiredText),
+      `Daegu operator reference P37 review status should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P38 review input seed는 operator 입력 파일과 승인 샘플 fixture를 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p38-review-input-seed',
+    'stadium:daegu:operator-reference-p38-review-input-seed-gate',
+    'stadium:daegu:operator-reference-p38-review-input-seed-gate:require-seed',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P38 creates a separate operator input seed and sample fixtures without modifying P36 evidence.',
+    'OPERATOR_INPUT_SEED_ROWS_131',
+    'P37_REVIEW_INPUT_OVERRIDE_SUPPORTED',
+    'VALID_APPROVED_SAMPLE_PASSES',
+    'INVALID_APPROVED_SAMPLE_BLOCKED',
+    'VALID_REJECTED_SAMPLE_CREATES_RETRACE_CANDIDATE',
+    'INVALID_REJECTED_SAMPLE_BLOCKED',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p38-review-input-seed-ready',
+    'p38-review-input-seed-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P38_REVIEW_INPUT_SEED_SOURCE.includes(requiredText),
+      `Daegu operator reference P38 review input seed should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P39 review input status는 운영 input과 evidence immutable 계약을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p39-review-input-status',
+    'stadium:daegu:operator-reference-p39-review-input-status-gate',
+    'stadium:daegu:operator-reference-p39-review-input-status-gate:require-status',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P39_OPERATOR_INPUT_STATUS_USES_EXTERNAL_REVIEW_INPUT',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'EVIDENCE_COLUMNS_IMMUTABLE',
+    'SOURCE_WRITE_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'DAEGU_OPERATOR_REFERENCE_REVIEW_INPUT',
+    'DAEGU_OPERATOR_REFERENCE_P37_REVIEW_INPUT',
+    'P39_DEFAULT_OPERATOR_INPUT_IS_P38_SEED_CSV',
+    'APPROVED_131_REQUIRED_FOR_RELEASE_LOCK',
+    'REJECTED_ROWS_CREATE_RETRACE_BATCH',
+    'PENDING_ROWS_KEEP_REVIEW_OPEN',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p39-review-input-status-ready',
+    'p39-review-input-status-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P39_REVIEW_INPUT_STATUS_SOURCE.includes(requiredText),
+      `Daegu operator reference P39 review input status should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P40 release lock preflight는 승인 미완료를 blocker로 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p40-release-lock-preflight',
+    'stadium:daegu:operator-reference-p40-release-lock-preflight-gate',
+    'stadium:daegu:operator-reference-p40-release-lock-preflight-gate:require-preflight',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P40_OPERATOR_REFERENCE_131_RELEASE_PREFLIGHT',
+    'OPERATOR_REVIEW_PENDING_ROWS_BLOCK_RELEASE_LOCK',
+    'APPROVED_131_REJECTED_0_PENDING_0_REQUIRED',
+    'IMMUTABLE_CHANGES_BLOCK_RELEASE_LOCK',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'P40_READS_P39_REVIEW_INPUT_STATUS',
+    'P40_PREFLIGHT_DOES_NOT_WRITE_SOURCE_DATA',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p40-release-lock-preflight-ready',
+    'p40-release-lock-preflight-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P40_RELEASE_LOCK_PREFLIGHT_SOURCE.includes(requiredText),
+      `Daegu operator reference P40 release lock preflight should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P41 review handoff는 pending 131개를 구역별 operator 큐로 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p41-review-handoff',
+    'stadium:daegu:operator-reference-p41-review-handoff-gate',
+    'stadium:daegu:operator-reference-p41-review-handoff-gate:require-handoff',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P41_OPERATOR_REVIEW_HANDOFF_FROM_P40_BLOCKERS',
+    'PENDING_131_ROWS_SPLIT_BY_REVIEW_ZONE',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'EVIDENCE_LINKS_PRESERVED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'P41_HANDOFF_DOES_NOT_APPROVE_ROWS',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p41-review-handoff-ready',
+    'p41-review-handoff-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P41_REVIEW_HANDOFF_SOURCE.includes(requiredText),
+      `Daegu operator reference P41 review handoff should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P42 review intake는 operator 입력을 검증하고 source write를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p42-review-intake',
+    'stadium:daegu:operator-reference-p42-review-intake-gate',
+    'stadium:daegu:operator-reference-p42-review-intake-gate:require-intake',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P42_OPERATOR_REVIEW_INTAKE_FROM_P41_HANDOFF',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'P42_DEFAULT_OPERATOR_INPUT_IS_P41_HANDOFF_CSV',
+    'P41_ZONE_CSV_INPUT_SUPPORTED',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'EVIDENCE_COLUMNS_IMMUTABLE',
+    'APPROVED_REQUIRES_REVIEWER_REVIEWED_AT_REVIEW_NOTE',
+    'REJECTED_ROWS_CREATE_RETRACE_QUEUE',
+    'PENDING_ROWS_KEEP_REVIEW_OPEN',
+    'APPROVED_131_REJECTED_0_PENDING_0_REQUIRED_FOR_P43',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p42-review-intake-ready',
+    'p42-review-intake-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INTAKE_SOURCE.includes(requiredText),
+      `Daegu operator reference P42 review intake should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P43 release candidate preflight는 승인 완료 전 후보 승격을 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p43-release-candidate-preflight',
+    'stadium:daegu:operator-reference-p43-release-candidate-preflight-gate',
+    'stadium:daegu:operator-reference-p43-release-candidate-preflight-gate:require-preflight',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P43_OPERATOR_REFERENCE_131_RELEASE_CANDIDATE_PREFLIGHT',
+    'P43_READS_P42_REVIEW_INTAKE',
+    'PENDING_ROWS_BLOCK_P43',
+    'REJECTED_ROWS_REQUIRE_RETRACE',
+    'INVALID_ROWS_BLOCK_P43',
+    'IMMUTABLE_CHANGES_BLOCK_P43',
+    'APPROVED_131_REQUIRED',
+    'APPROVED_131_REJECTED_0_PENDING_0_REQUIRED_FOR_OPERATOR_REFERENCE_RELEASE',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'P43_PREFLIGHT_DOES_NOT_WRITE_SOURCE_DATA',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p43-release-candidate-preflight-ready',
+    'p43-release-candidate-preflight-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P43_RELEASE_CANDIDATE_PREFLIGHT_SOURCE.includes(requiredText),
+      `Daegu operator reference P43 release candidate preflight should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P44 decision fixtures는 승인/반려/오류/전체승인 경로를 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p44-decision-fixtures',
+    'stadium:daegu:operator-reference-p44-decision-fixtures-gate',
+    'stadium:daegu:operator-reference-p44-decision-fixtures-gate:require-fixtures',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P44_OPERATOR_DECISION_FIXTURES',
+    'VALID_APPROVED_SAMPLE_PASSES_P42',
+    'VALID_REJECTED_SAMPLE_CREATES_RETRACE_QUEUE',
+    'INVALID_APPROVED_SAMPLE_BLOCKED',
+    'INVALID_IMMUTABLE_CHANGE_SAMPLE_BLOCKED',
+    'FULL_APPROVED_131_SAMPLE_ALLOWS_P43_CANDIDATE',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'P43_CANDIDATE_ALLOWED_ONLY_FOR_FULL_APPROVED_131',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'EVIDENCE_COLUMNS_IMMUTABLE',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p44-decision-fixtures-ready',
+    'p44-decision-fixtures-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P44_DECISION_FIXTURES_SOURCE.includes(requiredText),
+      `Daegu operator reference P44 decision fixtures should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P45 real input guard는 fixture와 실제 operator 입력을 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p45-real-input-guard',
+    'stadium:daegu:operator-reference-p45-real-input-guard-gate',
+    'stadium:daegu:operator-reference-p45-real-input-guard-gate:require-real-input',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P45_REAL_OPERATOR_INPUT_GUARD',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'P44_FIXTURE_INPUT_BLOCKED_FOR_RELEASE',
+    'P45_DEFAULT_P41_HANDOFF_NOT_RELEASE_INPUT',
+    'REAL_OPERATOR_INPUT_REQUIRED_FOR_P46',
+    'INPUT_SHA256_RECORDED',
+    'APPROVED_131_REQUIRED_FOR_P46',
+    'PENDING_ROWS_KEEP_REVIEW_OPEN',
+    'REJECTED_ROWS_REQUIRE_RETRACE',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p45-real-input-guard-ready',
+    'p45-real-input-guard-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P45_REAL_INPUT_GUARD_SOURCE.includes(requiredText),
+      `Daegu operator reference P45 real input guard should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P46 release input preflight는 실제 승인 입력 전 source write를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p46-release-input-preflight',
+    'stadium:daegu:operator-reference-p46-release-input-preflight-gate',
+    'stadium:daegu:operator-reference-p46-release-input-preflight-gate:require-preflight',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P46_RELEASE_INPUT_PREFLIGHT',
+    'P45_REAL_OPERATOR_INPUT_GUARD',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'REAL_OPERATOR_INPUT_REQUIRED',
+    'APPROVED_131_REQUIRED',
+    'REJECTED_0_REQUIRED',
+    'PENDING_0_REQUIRED',
+    'INVALID_0_REQUIRED',
+    'IMMUTABLE_0_REQUIRED',
+    'FIXTURE_INPUT_BLOCKED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p46-release-input-preflight-ready',
+    'p46-release-input-preflight-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P46_RELEASE_INPUT_PREFLIGHT_SOURCE.includes(requiredText),
+      `Daegu operator reference P46 release input preflight should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P47 source apply preview는 release 후보 전 patch 생성을 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p47-source-apply-preview',
+    'stadium:daegu:operator-reference-p47-source-apply-preview-gate',
+    'stadium:daegu:operator-reference-p47-source-apply-preview-gate:require-preview',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P47_SOURCE_APPLY_PREVIEW',
+    'P46_RELEASE_INPUT_PREFLIGHT',
+    'RELEASE_CANDIDATE_REQUIRED',
+    'REAL_OPERATOR_INPUT_REQUIRED',
+    'APPROVED_CANDIDATES_131_REQUIRED',
+    'OPERATOR_REFERENCE_131_ONLY',
+    'OFFICIAL_177_UNCHANGED',
+    'FIXTURE_INPUT_BLOCKED',
+    'PATCH_PREVIEW_ONLY',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p47-source-apply-preview-ready',
+    'p47-source-apply-preview-blocked',
+    'p47-source-apply-preview-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P47_SOURCE_APPLY_PREVIEW_SOURCE.includes(requiredText),
+      `Daegu operator reference P47 source apply preview should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P48 source apply guard는 명시적 apply 전 source write를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p48-source-apply-guard',
+    'stadium:daegu:operator-reference-p48-source-apply-guard-gate',
+    'stadium:daegu:operator-reference-p48-source-apply-guard-gate:require-guard',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P48_SOURCE_APPLY_GUARD',
+    'P47_SOURCE_APPLY_PREVIEW',
+    'P47_SOURCE_PATCH_ALLOWED_REQUIRED',
+    'SOURCE_PATCH_ROWS_131_REQUIRED',
+    'REAL_OPERATOR_INPUT_REQUIRED',
+    'SOURCE_TARGET_DAEGU_SEAT_DATA',
+    'APPLY_READY_REQUIRES_OPERATOR_RELEASE',
+    'WRITE_APPROVAL_REQUIRED',
+    'SOURCE_WRITE_FORBIDDEN_UNTIL_EXPLICIT_APPLY',
+    'PATCH_PREVIEW_ONLY',
+    'OPERATOR_REFERENCE_131_ONLY',
+    'OFFICIAL_177_UNCHANGED',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p48-source-apply-guard-ready',
+    'p48-source-apply-guard-blocked',
+    'p48-source-apply-guard-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P48_SOURCE_APPLY_GUARD_SOURCE.includes(requiredText),
+      `Daegu operator reference P48 source apply guard should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P49 postwrite release audit는 source write 전 release lock을 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p49-postwrite-release-audit',
+    'stadium:daegu:operator-reference-p49-postwrite-release-audit-gate',
+    'stadium:daegu:operator-reference-p49-postwrite-release-audit-gate:require-audit',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P49_POSTWRITE_RELEASE_AUDIT',
+    'P48_SOURCE_APPLY_GUARD',
+    'SOURCE_WRITE_REQUIRED_FOR_POSTWRITE',
+    'OPERATOR_REFERENCE_131_REQUIRED',
+    'OFFICIAL_177_UNCHANGED',
+    'INPUT_SHA256_REQUIRED',
+    'SOURCE_TARGET_DAEGU_SEAT_DATA',
+    'RELEASE_LOCK_REQUIRES_POSTWRITE_AUDIT',
+    'SOURCE_WRITE_AUDIT_ONLY',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'postwriteAuditReady=false',
+    'releaseLockAllowed=false',
+    'p49-postwrite-release-audit-ready',
+    'p49-postwrite-release-audit-blocked',
+    'p49-postwrite-release-audit-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P49_POSTWRITE_RELEASE_AUDIT_SOURCE.includes(requiredText),
+      `Daegu operator reference P49 postwrite release audit should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P50 final review pack은 operator 입력용 131개 row를 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p50-final-review-pack',
+    'stadium:daegu:operator-reference-p50-final-review-pack-gate',
+    'stadium:daegu:operator-reference-p50-final-review-pack-gate:require-pack',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P50_FINAL_REVIEW_PACK',
+    'P41_REVIEW_HANDOFF_ROWS_131',
+    'P49_RELEASE_BLOCKERS_INCLUDED',
+    'OPERATOR_WRITABLE_COLUMNS_ONLY',
+    'IMMUTABLE_EVIDENCE_COLUMNS_PRESERVED',
+    'ZONE_CSVS_GENERATED',
+    'APPROVED_REQUIRES_CROP_OVERLAY_MATCH',
+    'REJECTED_REQUIRES_RETRACE',
+    'PENDING_BLOCKS_RELEASE',
+    'REAL_OPERATOR_INPUT_NEXT_COMMAND',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p50-final-review-pack-ready',
+    'p50-final-review-pack-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P50_FINAL_REVIEW_PACK_SOURCE.includes(requiredText),
+      `Daegu operator reference P50 final review pack should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P51 real review input은 operator 수정 파일을 P50 산출물과 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p51-real-review-input',
+    'stadium:daegu:operator-reference-p51-real-review-input-gate',
+    'stadium:daegu:operator-reference-p51-real-review-input-gate:require-input',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P51_REAL_REVIEW_INPUT',
+    'P50_FINAL_REVIEW_PACK_SOURCE',
+    'P51_REAL_INPUT_FILE_SEPARATED_FROM_P41_P50',
+    'P51_OPERATOR_EDITABLE_FILE_NOT_OVERWRITTEN',
+    'DAEGU_OPERATOR_REFERENCE_P51_REVIEW_INPUT',
+    'DAEGU_OPERATOR_REFERENCE_P42_REVIEW_INPUT',
+    'OPERATOR_WRITABLE_COLUMNS_INCLUDE_CORRECTED_GEOMETRY',
+    'APPROVED_REQUIRES_CORRECTED_PATH_LABEL_REVIEWER_REVIEWED_AT',
+    'REJECTED_REQUIRES_RETRACE',
+    'PENDING_ROWS_BLOCK_SOURCE_WRITE',
+    'IMMUTABLE_EVIDENCE_COLUMNS_PRESERVED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p51-real-review-input-ready',
+    'p51-real-review-input-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P51_REAL_REVIEW_INPUT_SOURCE.includes(requiredText),
+      `Daegu operator reference P51 real review input should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P52 source patch preview는 승인 row만 patch 후보로 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p52-source-patch-preview',
+    'stadium:daegu:operator-reference-p52-source-patch-preview-gate',
+    'stadium:daegu:operator-reference-p52-source-patch-preview-gate:require-preview',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P52_SOURCE_PATCH_PREVIEW',
+    'P51_REAL_REVIEW_INPUT_SOURCE',
+    'DAEGU_OPERATOR_REFERENCE_P51_REVIEW_INPUT',
+    'APPROVED_ROWS_ONLY',
+    'APPROVED_REQUIRES_CORRECTED_PATH_LABEL_REVIEWER_REVIEWED_AT',
+    'PENDING_ROWS_BLOCK_SOURCE_WRITE',
+    'REJECTED_ROWS_REQUIRE_RETRACE',
+    'INVALID_ROWS_BLOCK_PREVIEW',
+    'PATCH_PREVIEW_ONLY',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'sourcePatchAllowed=false',
+    'p52-source-patch-preview-ready',
+    'p52-source-patch-preview-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P52_SOURCE_PATCH_PREVIEW_SOURCE.includes(requiredText),
+      `Daegu operator reference P52 source patch preview should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P53 source apply guard는 명시적 apply 전 source write를 차단한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p53-source-apply-guard',
+    'stadium:daegu:operator-reference-p53-source-apply-guard-gate',
+    'stadium:daegu:operator-reference-p53-source-apply-guard-gate:require-guard',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P53_SOURCE_APPLY_GUARD',
+    'P52_SOURCE_PATCH_PREVIEW_SOURCE',
+    'SOURCE_PATCH_ROWS_REQUIRED',
+    'PENDING_ROWS_BLOCK_SOURCE_APPLY',
+    'SOURCE_PATCH_ALLOWED_REQUIRED',
+    'APPROVED_ROWS_MATCH_PATCH_ROWS_REQUIRED',
+    'REJECTED_ROWS_REQUIRE_RETRACE',
+    'INVALID_ROWS_BLOCK_SOURCE_APPLY',
+    'EXPLICIT_APPLY_STEP_REQUIRED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceApplyAllowed=false',
+    'sourceDataWritePerformed: false',
+    'p53-source-apply-guard-ready',
+    'p53-source-apply-guard-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P53_SOURCE_APPLY_GUARD_SOURCE.includes(requiredText),
+      `Daegu operator reference P53 source apply guard should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P54 partial approval fixture는 production 입력 없이 부분 승인 dry-run을 검증한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p54-partial-approval-fixture',
+    'stadium:daegu:operator-reference-p54-partial-approval-fixture-gate',
+    'stadium:daegu:operator-reference-p54-partial-approval-fixture-gate:require-fixture',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P54_PARTIAL_APPROVAL_FIXTURE',
+    'PRODUCTION_P51_INPUT_UNCHANGED',
+    'PARTIAL_APPROVED_ROWS_CREATE_PATCH_PREVIEW',
+    'PENDING_ROWS_REMAIN_BLOCKED',
+    'P53_SOURCE_APPLY_STILL_FORBIDDEN',
+    'INVALID_APPROVED_SAMPLE_BLOCKED',
+    'INVALID_IMMUTABLE_CHANGE_SAMPLE_BLOCKED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p54-partial-approval-fixture-ready',
+    'p54-partial-approval-fixture-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P54_PARTIAL_APPROVAL_FIXTURE_SOURCE.includes(requiredText),
+      `Daegu operator reference P54 partial approval fixture should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P55 operator handoff는 실제 검수 입력 파일과 검증 명령을 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p55-operator-handoff',
+    'stadium:daegu:operator-reference-p55-operator-handoff-gate',
+    'stadium:daegu:operator-reference-p55-operator-handoff-gate:require-handoff',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P55_OPERATOR_HANDOFF',
+    'P51_REAL_REVIEW_INPUT_EDIT_TARGET',
+    'OPERATOR_WRITABLE_COLUMNS_DOCUMENTED',
+    'IMMUTABLE_COLUMNS_DOCUMENTED',
+    'P54_FIXTURE_REFERENCE_INCLUDED',
+    'VALIDATION_COMMAND_CHECKLIST_INCLUDED',
+    'P52_P53_SOURCE_WRITE_BLOCKED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p55-operator-handoff-ready',
+    'p55-operator-handoff-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P55_OPERATOR_HANDOFF_SOURCE.includes(requiredText),
+      `Daegu operator reference P55 operator handoff should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P56 real input intake는 P55 기준 hash와 승인 좌표 gate를 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p56-real-input-intake',
+    'stadium:daegu:operator-reference-p56-real-input-intake-gate',
+    'stadium:daegu:operator-reference-p56-real-input-intake-gate:require-ready',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P56_REAL_INPUT_INTAKE',
+    'P55_HANDOFF_HASH_BASELINE',
+    'NO_OPERATOR_INPUT',
+    'INPUT_EDITED_PENDING_APPROVAL',
+    'APPROVED_READY_FOR_PREVIEW',
+    'INVALID_OPERATOR_INPUT_BLOCKED',
+    'OPERATOR_WRITABLE_ONLY',
+    'IMMUTABLE_COLUMNS_UNCHANGED',
+    'APPROVED_GEOMETRY_WITHIN_4096_VIEWBOX',
+    'APPROVED_GEOMETRY_SELF_INTERSECTION_0',
+    'APPROVED_LABEL_POINT_TOP_HIT',
+    'P52_PREVIEW_READY_REQUIRES_APPROVED_ROWS',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'p56-no-operator-input',
+    'p56-approved-ready-for-preview',
+    'p56-real-input-intake-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P56_REAL_INPUT_INTAKE_SOURCE.includes(requiredText),
+      `Daegu operator reference P56 real input intake should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P57 P52 handoff는 P56 승인 row만 preview 진입 후보로 고정한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p57-p52-handoff',
+    'stadium:daegu:operator-reference-p57-p52-handoff-gate',
+    'stadium:daegu:operator-reference-p57-p52-handoff-gate:require-ready',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P57_P52_HANDOFF',
+    'P56_GATE_RESULT_REQUIRED',
+    'P56_APPROVED_PREVIEW_ROWS_SOURCE',
+    'APPROVED_PREVIEW_READY_ROWS_ONLY',
+    'READY_FOR_P52_REQUIRES_APPROVED_ROWS',
+    'INVALID_P56_ROWS_BLOCK_P52',
+    'PENDING_P56_ROWS_BLOCK_P52',
+    'P52_ENTRY_GATE_STRENGTHENED',
+    'P52_PREVIEW_BLOCKED_WHEN_APPROVED_ROWS_0',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'readyForP52=false',
+    'p57-p52-handoff-ready',
+    'p57-p52-handoff-blocked',
+    'p57-p52-handoff-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P57_P52_HANDOFF_SOURCE.includes(requiredText),
+      `Daegu operator reference P57 P52 handoff should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P58 ready fixture는 승인 1건으로 P56/P57 ready 경로만 검증한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p58-ready-fixture',
+    'stadium:daegu:operator-reference-p58-ready-fixture-gate',
+    'stadium:daegu:operator-reference-p58-ready-fixture-gate:require-ready',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P58_READY_FIXTURE',
+    'P51_REAL_INPUT_UNCHANGED',
+    'P56_FIXTURE_INTAKE_SIMULATION',
+    'P57_FIXTURE_HANDOFF_SIMULATION',
+    'APPROVED_1_READY_FOR_P52',
+    'P58_FIXTURE_APPROVED_ROWS_ONLY',
+    'P58_FIXTURE_DOES_NOT_WRITE_REAL_P51',
+    'P52_PREVIEW_READY_TRUE_WITH_APPROVED_1',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'readyForP52=true',
+    'p58-ready-fixture-ready',
+    'p58-ready-fixture-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P58_READY_FIXTURE_SOURCE.includes(requiredText),
+      `Daegu operator reference P58 ready fixture should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P59 readiness comparison은 fixture ready와 production pending을 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p59-readiness-comparison',
+    'stadium:daegu:operator-reference-p59-readiness-comparison-gate',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P59_READINESS_COMPARISON',
+    'P58_FIXTURE_READY_SOURCE',
+    'P57_PRODUCTION_NOT_READY_SOURCE',
+    'TECHNICAL_PATH_VERIFIED',
+    'FIXTURE_READY_FOR_P52_TRUE',
+    'PRODUCTION_READY_FOR_P52_FALSE',
+    'PRODUCTION_INPUT_STILL_PENDING',
+    'NEXT_REQUIRED_ACTION_OPERATOR_APPROVE_P51',
+    'P51_REAL_REVIEW_INPUT_EDIT_TARGET',
+    'SOURCE_WRITE_STILL_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'technicalPathVerified=true',
+    'productionReadyForP52=false',
+    'p59-readiness-comparison-ready',
+    'p59-readiness-comparison-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P59_READINESS_COMPARISON_SOURCE.includes(requiredText),
+      `Daegu operator reference P59 readiness comparison should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P60 production pilot approval은 P51 운영 입력 1건만 승인한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p60-production-pilot-approval',
+    'stadium:daegu:operator-reference-p60-production-pilot-approval-gate',
+    'stadium:daegu:operator-reference-p60-production-pilot-approval-gate:require-approval',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P60_PRODUCTION_PILOT_APPROVAL',
+    'P51_REAL_INPUT_WRITE_ALLOWED_FOR_PILOT',
+    'TR9_PRODUCTION_APPROVED_1',
+    'ONLY_WRITABLE_COLUMNS_CHANGED',
+    'IMMUTABLE_COLUMNS_UNCHANGED',
+    'PRODUCTION_P51_INPUT_WRITE_PERFORMED',
+    'P56_PRODUCTION_EXPECTED_READY',
+    'P57_PRODUCTION_EXPECTED_READY',
+    'P52_SOURCE_PATCH_EXPECTED_1',
+    'P53_SOURCE_APPLY_GUARD_EXPECTED',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'productionP51InputWritePerformed: true',
+    'sourceDataWritePerformed: false',
+    'p60-production-pilot-approval-ready',
+    'p60-production-pilot-approval-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P60_PRODUCTION_PILOT_APPROVAL_SOURCE.includes(requiredText),
+      `Daegu operator reference P60 production pilot approval should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P61 post-P60 readiness는 단건 후보와 전체 apply 차단을 분리한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p61-post-p60-readiness',
+    'stadium:daegu:operator-reference-p61-post-p60-readiness-gate',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P61_POST_P60_READINESS',
+    'P60_PRODUCTION_PILOT_SOURCE',
+    'P52_PATCH_PREVIEW_SOURCE',
+    'P53_SOURCE_APPLY_GUARD_SOURCE',
+    'PILOT_PATCH_READY',
+    'SINGLE_ROW_APPLY_CANDIDATE',
+    'FULL_RELEASE_BLOCKED',
+    'PENDING_ROWS_BLOCK_FULL_APPLY',
+    'SOURCE_WRITE_STILL_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'BUILD_BLOCKER_TRACKED_SEPARATELY',
+    'pilotPatchReady=true',
+    'singleRowApplyCandidate=true',
+    'fullReleaseBlocked=true',
+    'sourceDataWritePerformed: false',
+    'p61-post-p60-readiness-ready',
+    'p61-post-p60-readiness-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P61_POST_P60_READINESS_SOURCE.includes(requiredText),
+      `Daegu operator reference P61 post-P60 readiness should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P62 single-row apply preview는 TR-9 단건 source preview만 허용한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+
+  [
+    'stadium:daegu:operator-reference-p62-single-row-apply-preview',
+    'stadium:daegu:operator-reference-p62-single-row-apply-preview-gate',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P62_SINGLE_ROW_APPLY_PREVIEW',
+    'P61_POST_P60_READINESS_SOURCE',
+    'SINGLE_ROW_PILOT_APPLY_ALLOWED',
+    'TR9_ONLY_SOURCE_PATCH_CANDIDATE',
+    'PATCH_PREVIEW_ONLY',
+    'SOURCE_WRITE_FORBIDDEN',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'PENDING_ROWS_DO_NOT_BLOCK_SINGLE_ROW_PREVIEW',
+    'FULL_RELEASE_STILL_BLOCKED',
+    'SOURCE_HASH_UNCHANGED',
+    'productionWriteAllowed: false',
+    'sourceDataWritePerformed: false',
+    'singleRowPilotApplyAllowed=true',
+    'p62-single-row-apply-preview-ready',
+    'p62-single-row-apply-preview-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P62_SINGLE_ROW_APPLY_PREVIEW_SOURCE.includes(requiredText),
+      `Daegu operator reference P62 single-row apply preview should include ${requiredText}`,
+    );
+  });
+
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
+});
+
+test('대구 operator reference P63 single-row source postwrite는 TR-9 hitPath 적용만 검증한다', () => {
+  const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
+  const tr9Block = DAEGU_OPERATOR_REFERENCE_BLOCKS.find((block) => block.id === 'daegu-outfield-table-tr-tr-9');
+
+  [
+    'stadium:daegu:operator-reference-p63-single-row-source-postwrite',
+    'stadium:daegu:operator-reference-p63-single-row-source-postwrite-gate',
+    'stadium:daegu:operator-reference-p63-single-row-source-postwrite:require-applied',
+  ].forEach((scriptName) => {
+    assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
+  });
+
+  [
+    'P63_SINGLE_ROW_SOURCE_POSTWRITE',
+    'P62_SINGLE_ROW_APPLY_PREVIEW_SOURCE',
+    'TR9_ONLY_SOURCE_WRITE_APPLIED',
+    'HIT_PATH_ONLY_SOURCE_DELTA',
+    'SOURCE_HASH_CHANGED_FROM_P62',
+    'TARGET_GEOMETRY_MATCHES_P62',
+    'TARGET_LABEL_TOP_HIT_VALID',
+    'SOURCE_DATA_WRITE_PERFORMED',
+    'PENDING_ROWS_STILL_BLOCK_FULL_RELEASE',
+    'PASS_RELEASE_177_REMAINS_FORBIDDEN',
+    'PRODUCTION_WRITE_BLOCKED',
+    'sourceDataWritePerformed=true',
+    'productionWriteAllowed: false',
+    'p63-single-row-source-postwrite-applied',
+    'p63-single-row-source-postwrite-gate-passed',
+  ].forEach((requiredText) => {
+    assert.ok(
+      DAEGU_OPERATOR_REFERENCE_P63_SINGLE_ROW_SOURCE_POSTWRITE_SOURCE.includes(requiredText),
+      `Daegu operator reference P63 single-row source postwrite should include ${requiredText}`,
+    );
+  });
+
+  assert.ok(tr9Block, 'TR-9 operator reference block should exist');
+  assert.equal(tr9Block?.imageGeometry.hitPath, tr9Block?.imageGeometry.visualPath);
+  assert.equal(DAEGU_OPERATOR_REFERENCE_BLOCKS.length, 131);
+  assert.equal(DAEGU_BLOCKS.length, 177);
 });
 
 test('대구 좌석 카테고리는 공식 좌석도 입력 대기 상태에서도 핵심 구역명을 보존한다', () => {
