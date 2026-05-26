@@ -4,15 +4,21 @@
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png`
-- 공식 이미지 좌표계: `1707x2048`
+- canonical asset: `src/assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.png`
+- canonical 이미지 좌표계: `4096x4096`
+- historical official asset: `src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png`
+- historical official 이미지 좌표계: `1707x2048`
 - stadium id: `DAEGU_SAMSUNG_LIONS_PARK`
-- map version: `DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1`
-- image sha256: `8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0`
-- canonical data source: `src/data/daeguSeatData.ts`
+- map version: `DAEGU_SAMSUNG_LIONS_PARK_2026_CANONICAL_OPERATOR_REFERENCE_V1`
+- image sha256: `3639199465e7f6f48dd17fa61a254fc90c6c53ec4ff8c5d19d2662cbb197f5d5`
+- historical official map version: `DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1`
+- historical official image sha256: `8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0`
+- canonical data source: `src/data/daeguCanonicalSeatMap.ts`
 - renderer: `src/components/daegu/DaeguSeatMapSvg.tsx`
-- data policy: 외부 야구 crawling/search 없이 공식 PNG와 operator-approved 좌표만 사용한다.
-- uploaded operator reference: `OPERATOR_REFERENCE_RAPAK_2025`는 업로드 이미지 기반 `4096x4096` polygon draft source이며, `npm run stadium:daegu:operator-reference-trace`, `npm run stadium:daegu:operator-reference-review-packet`, `npm run stadium:daegu:operator-reference-auto-map`으로 별도 산출물을 만든다. 이 source는 release lock의 canonical 좌표를 대체하지 않는다.
+- runtime source: `DAEGU_CANONICAL_2026` 단일 source만 사용자 화면에서 렌더링한다.
+- data policy: 외부 야구 crawling/search 없이 operator-approved 좌표만 canonical runtime으로 사용한다.
+- uploaded operator reference: `OPERATOR_REFERENCE_RAPAK_2025`는 historical source rows로 보존하고, 사용자 runtime에서는 `DAEGU_CANONICAL_2026` builder 입력으로만 사용한다.
+- official PNG reference: `SAMSUNG_OFFICIAL_2026`는 historical QA evidence로만 보존한다. `1707x2048` polygon은 `4096x4096` operator-reference 좌표로 retrace/승인되기 전까지 selectable canonical runtime에 들어갈 수 없다.
 - MySeatCheck reference intake: `docs/daegu-seatmap-myseatcheck-reference-intake.md`에 `MYSEATCHECK_REFERENCE_2026`를 pending external reference로만 등록한다. 이 source는 release lock의 canonical 좌표를 대체하지 않는다.
 
 ## 고정 상태 (현재: PASS_LOCKED_164)
@@ -67,16 +73,19 @@
 
 ## Source baseline audit (2026-05-26)
 
-- `npm run stadium:daegu:source-baseline-audit`: `review-required`
+- `npm run stadium:daegu:source-baseline-audit`: `passed`
 - generated evidence: `reports/stadium/daegu-seatmap-source-baseline-audit.{json,csv,md}`
-- active runtime source references: `2` (`SAMSUNG_OFFICIAL_2026`, `OPERATOR_REFERENCE_RAPAK_2025`)
-- default source: `OPERATOR_REFERENCE_RAPAK_2025`
-- official selectable blocks: `171`
-- operator-reference selectable blocks: `131`
-- active section-id source overlaps: `101`
-- active block-label source overlaps: `77`
-- official-only active sections: `70`
-- operator-only active sections: `30`
+- active runtime source references: `1` (`DAEGU_CANONICAL_2026`)
+- default source: `DAEGU_CANONICAL_2026`
+- canonical selectable blocks: `130`
+- pending operator trace blocks: `58`
+- target canonical selectable blocks: `188`
+- official selectable blocks: historical evidence only
+- operator-reference selectable blocks: historical builder input only
+- active section-id source overlaps: `0`
+- active block-label source overlaps: `0`
+- official-only active sections: `0`
+- operator-only active sections: `0`
 - geometry issues: `0`
 - `MYSEATCHECK_REFERENCE_2026` remains reference-only and must not become an active runtime polygon source without operator-provided approval.
 - generated baseline reports are QA evidence only and must not be staged as PR payload.
@@ -97,16 +106,19 @@
 
 ## QA ownership audit (2026-05-26)
 
-- `npm run stadium:daegu:qa-ownership-audit`: `review-required`
+- `npm run stadium:daegu:qa-ownership-audit`: `passed`
 - generated evidence: `reports/stadium/daegu-seatmap-qa-ownership-audit.{json,csv,md}`
 - total normalized block keys: `191`
-- selectable block keys: `189`
-- active runtime source overlaps: `108` block keys
-- active QA owner conflicts: `108` block keys
-- active tracing owner conflicts: `108` block keys
-- marker-in-seat-QA rows: `3` (`09`, `12`, `U22`)
-- unconfirmed selectable trace rows: `1` (`MR-10`)
-- package script ownership tiers: `active-tracing=47`, `active-validation=169`, `global-validation=5`, `historical-evidence=287`
+- selectable block keys: `130`
+- active runtime source overlaps: `0` block keys
+- active QA owner conflicts: `0` block keys
+- active tracing owner conflicts: `0` block keys
+- marker-in-seat-QA rows: `0`
+- unconfirmed selectable trace rows: `0`
+- pending operator trace block keys: `58`
+- active canonical selectable blocks: `130`
+- target canonical selectable blocks: `188`
+- package script ownership tiers: canonical validation/tracing owners만 active owner로 계산하고 legacy script는 historical evidence로 분류한다.
 - global smoke/audit commands are historical evidence for this ownership audit and are not counted as per-block owners.
 - generated ownership reports are QA evidence only and must not be staged as PR payload.
 
@@ -116,15 +128,28 @@
 - canonical decision builder: `src/data/daeguCanonicalBlockDecision.ts`; the guard script only serializes generated evidence.
 - generated evidence: `reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`
 - total normalized block keys: `191`
-- canonical selectable block keys: `188`
+- active canonical selectable block keys: `130`
+- pending operator trace block keys: `58`
+- target canonical selectable block keys: `188`
 - `CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys; official PNG polygons become historical evidence
-- `CANONICAL_OFFICIAL_ONLY`: `58` block keys; keep official PNG polygon until operator-reference retrace/approval exists
+- `PENDING_OPERATOR_TRACE`: `58` block keys; no runtime polygon until operator-reference retrace/approval exists
 - `CANONICAL_OPERATOR_ONLY`: `22` block keys; keep operator-reference polygon after metadata/label ownership review
 - `MARKER_OR_ALIAS_ONLY`: `1` block key (`TC`)
 - `BLOCKED_UNCONFIRMED`: `2` block keys (`MR-10`, `M-10`)
 - marker alias separation required: `3` block keys (`09`, `12`, `U22`)
 - geometry issues: `0`
 - generated canonical block decision reports are QA evidence only and must not be staged as PR payload.
+
+## Official-only operator retrace workset (2026-05-26)
+
+- `npm run stadium:daegu:canonical-official-only-retrace-workset`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/`
+- active canonical selectable block keys: `130`
+- pending operator trace block keys: `58`
+- target canonical selectable block keys: `188`
+- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden
+- source data write performed: `false`
+- generated retrace workset reports are QA evidence only and must not be staged as PR payload.
 
 ## Evidence
 
@@ -136,15 +161,17 @@
 - `reports/stadium/daegu-seatmap-canonical-decision-table.md`
 - `reports/stadium/daegu-seatmap-qa-ownership-audit.md`
 - `reports/stadium/daegu-seatmap-canonical-block-decision-guard.md`
+- `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/daegu-seatmap-canonical-official-only-retrace-workset.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
 
 - `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_LOCKED_164` (2026-05-24 갱신)
-- `npm run stadium:daegu:source-baseline-audit`: PASS, `review-required`, `geometry_issues=0`
+- `npm run stadium:daegu:source-baseline-audit`: PASS, `active_runtime_sources=1`, `active_source_overlaps=0`, `geometry_issues=0`
 - `npm run stadium:daegu:canonical-decision-table`: PASS, `review-required`, `canonical_ready=101`, `geometry_issues=0`
-- `npm run stadium:daegu:qa-ownership-audit`: PASS, `review-required`, `active_source_overlaps=108`, `marker_in_seat_qa=3`
-- `npm run stadium:daegu:canonical-block-decision-guard`: PASS, `review-required`, `canonical_selectable=188`, `operator_overlap=108`, `geometry_issues=0`
+- `npm run stadium:daegu:qa-ownership-audit`: PASS, `active_source_overlaps=0`, `active_qa_owner_conflicts=0`, `pending_operator_trace=58`
+- `npm run stadium:daegu:canonical-block-decision-guard`: PASS, `review-required`, `active_canonical_selectable=130`, `pending_operator_trace=58`, `target_canonical_selectable=188`, `geometry_issues=0`
+- `npm run stadium:daegu:canonical-official-only-retrace-workset`: PASS, `review-required`, `pending_operator_trace=58`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25

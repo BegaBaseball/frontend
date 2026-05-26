@@ -4540,7 +4540,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
 const verifyDaeguOverlayClicks = async (page) => {
   await selectStadiumGuideOption(page, 'DAEGU');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await visibleTextLocator(page, '기존 좌석배치도').waitFor({ state: 'visible', timeout: 5000 });
+  await visibleTextLocator(page, 'canonical 좌석도').waitFor({ state: 'visible', timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="daegu-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
@@ -4551,21 +4551,14 @@ const verifyDaeguOverlayClicks = async (page) => {
     return;
   }
 
-  await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-mode-official-png"]'));
-    const button = buttons.find((candidate) => {
-      const rect = candidate.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    }) ?? buttons[0];
-    button?.click();
-  });
   await page.waitForFunction(() => (
     Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
       .some((svg) => {
         const rect = svg.getBoundingClientRect();
         return rect.width > 0
           && rect.height > 0
-          && svg.getAttribute('data-image-view-mode') === 'officialPng';
+          && svg.getAttribute('data-image-view-mode') === 'canonical'
+          && svg.querySelectorAll('[role="button"]').length >= 120;
       })
   ), null, { timeout: 5000 });
 
@@ -4588,11 +4581,10 @@ const verifyDaeguOverlayClicks = async (page) => {
   const representativeSections = [
     { ariaLabel: '블루존 3-1 3-1' },
     { ariaLabel: '원정 응원석 1-1 1-1' },
-    { ariaLabel: 'VIP석 M-1 M-1' },
+    { ariaLabel: 'VIP석 VIP-1 VIP-1' },
     { ariaLabel: '1루 테이블석 T1-1 T1-1' },
-    { ariaLabel: 'SKY 하단 지정석 S22 S22' },
+    { ariaLabel: 'SKY 하단 지정석 S22 S-22' },
     { ariaLabel: '외야 지정석 LF-1 LF-1' },
-    { ariaLabel: '휠체어 장애인석 U22 U22 휠체어' },
   ];
 
   for (const sectionName of representativeSections) {
@@ -4629,7 +4621,7 @@ const verifyDaeguFullOverlayClicks = async (page) => {
 
   await selectStadiumGuideOption(page, 'DAEGU');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await visibleTextLocator(page, '기존 좌석배치도').waitFor({ state: 'visible', timeout: 5000 });
+  await visibleTextLocator(page, 'canonical 좌석도').waitFor({ state: 'visible', timeout: 5000 });
 
   const manualStateVisible = await page.locator('[data-testid="daegu-official-seatmap-required"]:visible').first()
     .waitFor({ state: 'visible', timeout: 5000 })
@@ -4664,13 +4656,13 @@ const verifyDaeguFullOverlayClicks = async (page) => {
         const rect = svg.getBoundingClientRect();
         return rect.width > 0
           && rect.height > 0
-          && svg.getAttribute('data-image-view-mode') === 'operatorReference'
-          && svg.querySelectorAll('[role="button"]').length >= 59;
+          && svg.getAttribute('data-image-view-mode') === 'canonical'
+          && svg.querySelectorAll('[role="button"]').length >= 120;
       })
   ), null, { timeout: 10000 });
 
-  const operatorReferenceHitArea = visibleSeatMapHitAreaByLabel(page, '외야 테이블석 TR-9 TR-9');
-  await dispatchSeatMapSectionClick(operatorReferenceHitArea);
+  const canonicalHitArea = visibleSeatMapHitAreaByLabel(page, '외야 테이블석 TR-9 TR-9');
+  await dispatchSeatMapSectionClick(canonicalHitArea);
   await page.waitForFunction(() => (
     Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"] [role="button"]'))
       .some((button) => (
@@ -4680,35 +4672,21 @@ const verifyDaeguFullOverlayClicks = async (page) => {
   ), null, { timeout: 5000 });
   await closeDetailPanel();
 
-  await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-mode-official-png"]'));
-    const button = buttons.find((candidate) => {
-      const rect = candidate.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    }) ?? buttons[0];
-    button?.click();
-  });
   await page.waitForFunction(() => (
     Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
       .some((svg) => {
         const rect = svg.getBoundingClientRect();
         return rect.width > 0
           && rect.height > 0
-          && svg.getAttribute('data-image-view-mode') === 'officialPng';
-      })
-  ), null, { timeout: 5000 });
-  await page.waitForFunction(() => (
-    Array.from(document.querySelectorAll('[data-testid="daegu-seatmap-svg"]'))
-      .some((svg) => {
-        const rect = svg.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0 && svg.querySelectorAll('[role="button"]').length >= 150;
+          && svg.getAttribute('data-image-view-mode') === 'canonical'
+          && svg.querySelectorAll('[role="button"]').length >= 120;
       })
   ), null, { timeout: 10000 });
 
   const hitAreas = seatMapSvg.locator('[role="button"]');
   const hitAreaCount = await hitAreas.count();
-  if (hitAreaCount < 150) {
-    throw new Error(`Daegu official seatmap full click check expected at least 150 hit areas, got ${hitAreaCount}.`);
+  if (hitAreaCount < 120) {
+    throw new Error(`Daegu canonical seatmap full click check expected at least 120 hit areas, got ${hitAreaCount}.`);
   }
 
   const verifyDaeguFilterInteractions = async () => {
@@ -4731,7 +4709,6 @@ const verifyDaeguFullOverlayClicks = async (page) => {
     const markerOnlyFilterTargets = [
       {
         filterTestId: 'daegu-filter-accessible',
-        markerTestId: 'daegu-seatmap-marker-daegu-accessible-u22',
         ariaLabel: '휠체어 장애인석 U22 U22 휠체어',
       },
     ];
@@ -4758,10 +4735,6 @@ const verifyDaeguFullOverlayClicks = async (page) => {
     for (const target of markerOnlyFilterTargets) {
       await closeDetailPanel();
       await clickVisibleSeatMapFilter(page, target.filterTestId);
-      await page
-        .locator(`[data-testid="stadium-seat-map"]:visible [data-testid="${target.markerTestId}"]`)
-        .first()
-        .waitFor({ state: 'attached', timeout: 5000 });
       const selectableHitCount = await visibleSeatMapHitAreaByLabel(page, target.ariaLabel).count();
       if (selectableHitCount !== 0) {
         throw new Error(`Daegu marker-only filter ${target.filterTestId} exposed ${target.ariaLabel} as a selectable seat hit-area.`);
