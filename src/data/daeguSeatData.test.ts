@@ -24,6 +24,14 @@ import {
   isDaeguOfficialUnconfirmedSeat,
   isDaeguReviewOnlySeat,
 } from './daeguSeatData';
+import {
+  DAEGU_CANONICAL_BLOCK_DECISIONS,
+  DAEGU_CANONICAL_BLOCK_DECISION_POLICY,
+  DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY,
+  DAEGU_CANONICAL_OFFICIAL_SOURCE_ID,
+  DAEGU_CANONICAL_OPERATOR_SOURCE_ID,
+  validateDaeguCanonicalBlockDecisions,
+} from './daeguCanonicalBlockDecision';
 import { validateSeatMapPolygonPath } from '../utils/seatMapPolygonValidator';
 
 const DAEGU_VISUAL_MATCH_SOURCE = readFileSync(
@@ -252,6 +260,10 @@ const DAEGU_QA_OWNERSHIP_AUDIT_SOURCE = readFileSync(
 );
 const DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE = readFileSync(
   new URL('../../scripts/daegu-seatmap-canonical-block-decision-guard.mjs', import.meta.url),
+  'utf8',
+);
+const DAEGU_CANONICAL_BLOCK_DECISION_SOURCE = readFileSync(
+  new URL('./daeguCanonicalBlockDecision.ts', import.meta.url),
   'utf8',
 );
 
@@ -3853,11 +3865,47 @@ test('대구 QA ownership audit는 active owner와 historical evidence를 분리
 test('대구 canonical block decision guard는 block key당 canonical 후보 1개 계약을 고정한다', () => {
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
   const releaseLockSource = readFileSync(new URL('../../docs/daegu-seatmap-release-lock.md', import.meta.url), 'utf8');
+  const canonicalGuardContractSource = `${DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE}\n${DAEGU_CANONICAL_BLOCK_DECISION_SOURCE}`;
 
   assert.ok(packageSource.includes('"stadium:daegu:canonical-block-decision-guard"'), 'canonical block decision guard package script should exist');
   assert.ok(
     packageSource.includes('"stadium:daegu:canonical-block-decision-guard": "node --import tsx scripts/daegu-seatmap-canonical-block-decision-guard.mjs"'),
     'canonical block decision guard should run through tsx so it can import Daegu TS data',
+  );
+  assert.ok(
+    DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE.includes("buildDaeguCanonicalBlockDecisionReport"),
+    'canonical block decision guard should use the shared data builder',
+  );
+  assert.deepEqual(validateDaeguCanonicalBlockDecisions(), []);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.status, 'review-required');
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.totalBlockKeys, 191);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSelectableBlockKeys, 188);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.operatorOverlapCanonicalBlockKeys, 108);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.officialOnlyCanonicalBlockKeys, 58);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.operatorOnlyCanonicalBlockKeys, 22);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.markerAliasSeparationRequiredBlockKeys, 3);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.blockedUnconfirmedBlockKeys, 2);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.geometryIssueBlockKeys, 0);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSourceCounts[DAEGU_CANONICAL_OPERATOR_SOURCE_ID], 130);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_SUMMARY.canonicalSourceCounts[DAEGU_CANONICAL_OFFICIAL_SOURCE_ID], 58);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_POLICY.overlapDefault, DAEGU_CANONICAL_OPERATOR_SOURCE_ID);
+  assert.equal(DAEGU_CANONICAL_BLOCK_DECISION_POLICY.generatedReportsAreEvidenceOnly, true);
+  assert.equal(
+    new Set(DAEGU_CANONICAL_BLOCK_DECISIONS.map((decision) => decision.blockKey)).size,
+    DAEGU_CANONICAL_BLOCK_DECISIONS.length,
+    'canonical builder should emit exactly one decision per normalized block key',
+  );
+  assert.equal(
+    DAEGU_CANONICAL_BLOCK_DECISIONS.filter((decision) => decision.activeSourceCount > 1)
+      .every((decision) => decision.canonicalSourceId === DAEGU_CANONICAL_OPERATOR_SOURCE_ID),
+    true,
+    'official/operator overlap rows should resolve to operator reference',
+  );
+  assert.deepEqual(
+    DAEGU_CANONICAL_BLOCK_DECISIONS.filter((decision) => decision.decisionStatus === 'BLOCKED_UNCONFIRMED')
+      .flatMap((decision) => decision.blockLabels)
+      .sort(),
+    ['M-10', 'MR-10'],
   );
 
   [
@@ -3874,7 +3922,7 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
     'daegu-seatmap-canonical-block-decision-guard.md',
   ].forEach((requiredText) => {
     assert.ok(
-      DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE.includes(requiredText),
+      canonicalGuardContractSource.includes(requiredText),
       `Daegu canonical block decision guard should include ${requiredText}`,
     );
   });
@@ -3882,6 +3930,7 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
   [
     '## Canonical block decision guard (2026-05-26)',
     '`npm run stadium:daegu:canonical-block-decision-guard`: `review-required`',
+    'canonical decision builder: `src/data/daeguCanonicalBlockDecision.ts`; the guard script only serializes generated evidence.',
     '`reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`',
     'canonical selectable block keys: `188`',
     '`CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys',

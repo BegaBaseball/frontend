@@ -113,6 +113,7 @@
 ## Canonical block decision guard (2026-05-26)
 
 - `npm run stadium:daegu:canonical-block-decision-guard`: `review-required`
+- canonical decision builder: `src/data/daeguCanonicalBlockDecision.ts`; the guard script only serializes generated evidence.
 - generated evidence: `reports/stadium/daegu-seatmap-canonical-block-decision-guard.{json,csv,md}`
 - total normalized block keys: `191`
 - canonical selectable block keys: `188`
