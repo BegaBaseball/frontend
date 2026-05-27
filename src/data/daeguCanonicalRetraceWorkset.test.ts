@@ -8,6 +8,7 @@ const BATCH_BLOCK_KEYS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', 
 const SPECIAL_ZONE_BATCH_BLOCK_KEYS = ['3루4층', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'MR9'];
 const SKY_LOWER_BATCH_BLOCK_KEYS = ['U1', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19'];
 const SKY_BLUE_BATCH_BLOCK_KEYS = ['U2', 'U20', 'U21', 'U22', 'U23', 'U24', 'U25', 'U26', 'U27', 'U28', 'U29', 'U30', 'U31'];
+const REMAINING_BATCH_BLOCK_KEYS = ['U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9', 'V1', 'V2', 'V3', '외야3루측', '우측외야', '중앙외야'];
 
 const RETRACE_BATCH_SOURCE = readFileSync(
   new URL('../../scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs', import.meta.url),
@@ -73,6 +74,18 @@ test('대구 canonical SKY/BLUE retrace batch는 pending U2/U20~U31 13개만 대
   assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), ['ACCESSIBLE', 'BLUE', 'SKY']);
 });
 
+test('대구 canonical remaining retrace batch는 마지막 pending 13개만 대상으로 한다', () => {
+  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => REMAINING_BATCH_BLOCK_KEYS.includes(row.blockKey));
+
+  assert.deepEqual(rows.map((row) => row.blockKey), REMAINING_BATCH_BLOCK_KEYS);
+  assert.equal(rows.length, 13);
+  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
+  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
+  assert.equal(rows.every((row) => row.sourceCoordinateSystem === 'SAMSUNG_OFFICIAL_2026_1707x2048'), true);
+  assert.equal(rows.every((row) => row.sectionKinds.length === 1 && row.sectionKinds[0] === 'SEAT_SECTION'), true);
+  assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), ['OUTFIELD', 'PARTY', 'SKY', 'TABLE']);
+});
+
 test('대구 canonical retrace batch script는 source write 없이 operator-reference 직접 trace 계약을 고정한다', () => {
   [
     'DAEGU_CANONICAL_SKY_UPPER_RETRACE_BATCH_V1',
@@ -83,6 +96,8 @@ test('대구 canonical retrace batch script는 source write 없이 operator-refe
     'SKY_LOWER_U1_U19',
     'DAEGU_CANONICAL_SKY_BLUE_RETRACE_BATCH_V1',
     'SKY_BLUE_U2_U20_U31',
+    'DAEGU_CANONICAL_REMAINING_RETRACE_BATCH_V1',
+    'REMAINING_U3_U9_V1_V3_OUTFIELD',
     'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
     'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
     'MARKER_SEAT_SPLIT_REQUIRED:09',
@@ -101,6 +116,8 @@ test('대구 canonical retrace batch script는 source write 없이 operator-refe
     'daegu-seatmap-canonical-sky-lower-retrace',
     'daegu-seatmap-canonical-sky-blue-retrace-batch',
     'daegu-seatmap-canonical-sky-blue-retrace',
+    'daegu-seatmap-canonical-remaining-retrace-batch',
+    'daegu-seatmap-canonical-remaining-retrace',
   ].forEach((literal) => {
     assert.match(RETRACE_BATCH_SOURCE, new RegExp(literal.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
@@ -155,6 +172,18 @@ test('대구 canonical retrace package/docs 계약은 generated report를 eviden
     PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-blue-retrace-gate:require-approved'],
     'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SKY_BLUE_U2_U20_U31 --require-approved',
   );
+  assert.equal(
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-batch'],
+    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch REMAINING_U3_U9_V1_V3_OUTFIELD',
+  );
+  assert.equal(
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-gate'],
+    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate REMAINING_U3_U9_V1_V3_OUTFIELD',
+  );
+  assert.equal(
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-gate:require-approved'],
+    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate REMAINING_U3_U9_V1_V3_OUTFIELD --require-approved',
+  );
 
   [
     'Canonical SKY upper retrace batch (2026-05-27)',
@@ -178,6 +207,10 @@ test('대구 canonical retrace package/docs 계약은 generated report를 eviden
     'reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/',
     'marker/seat split row: `U22`',
     'generated SKY/BLUE batch and gate reports are QA evidence only and must not be staged as PR payload',
+    'Canonical remaining retrace batch (2026-05-27)',
+    'REMAINING_U3_U9_V1_V3_OUTFIELD',
+    'reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/',
+    'generated remaining batch and gate reports are QA evidence only and must not be staged as PR payload',
   ].forEach((literal) => {
     assert.ok(RELEASE_LOCK_SOURCE.includes(literal), `${literal} should be documented`);
   });

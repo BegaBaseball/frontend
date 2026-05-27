@@ -72,6 +72,18 @@ const BATCHES = {
     inputSlug: 'daegu-seatmap-canonical-sky-blue-retrace',
     inputEnvName: 'DAEGU_CANONICAL_SKY_BLUE_RETRACE_INPUT',
   },
+  REMAINING_U3_U9_V1_V3_OUTFIELD: {
+    version: 'DAEGU_CANONICAL_REMAINING_RETRACE_BATCH_V1',
+    key: 'REMAINING_U3_U9_V1_V3_OUTFIELD',
+    title: 'Daegu Canonical Remaining Retrace Batch',
+    gateTitle: 'Daegu Canonical Remaining Retrace Gate',
+    blockKeys: ['U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9', 'V1', 'V2', 'V3', '외야3루측', '우측외야', '중앙외야'],
+    markerSplitBlockKeys: [],
+    markerSplitPolicyByBlockKey: {},
+    outputSlug: 'daegu-seatmap-canonical-remaining-retrace-batch',
+    inputSlug: 'daegu-seatmap-canonical-remaining-retrace',
+    inputEnvName: 'DAEGU_CANONICAL_REMAINING_RETRACE_INPUT',
+  },
 };
 
 const batchConfig = BATCHES[requestedBatchKey];
@@ -108,6 +120,8 @@ const sourceContractLiterals = [
   'SKY_LOWER_U1_U19',
   'DAEGU_CANONICAL_SKY_BLUE_RETRACE_BATCH_V1',
   'SKY_BLUE_U2_U20_U31',
+  'DAEGU_CANONICAL_REMAINING_RETRACE_BATCH_V1',
+  'REMAINING_U3_U9_V1_V3_OUTFIELD',
   'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
   'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
   'MARKER_SEAT_SPLIT_REQUIRED:09',
