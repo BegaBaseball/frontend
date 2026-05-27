@@ -11,33 +11,73 @@ import { validateSeatMapPolygonPath } from '../src/utils/seatMapPolygonValidator
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
-const outputDir = path.join(frontendRoot, 'reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch');
-const operatorInputDir = path.join(outputDir, 'operator-input');
-const gateDir = path.join(outputDir, 'gate');
-
-const batchJsonPath = path.join(outputDir, 'daegu-seatmap-canonical-sky-upper-retrace-batch.json');
-const batchCsvPath = path.join(outputDir, 'daegu-seatmap-canonical-sky-upper-retrace-batch.csv');
-const batchMdPath = path.join(outputDir, 'daegu-seatmap-canonical-sky-upper-retrace-batch.md');
-const operatorInputJsonPath = path.join(operatorInputDir, 'daegu-seatmap-canonical-sky-upper-retrace-input.json');
-const operatorInputCsvPath = path.join(operatorInputDir, 'daegu-seatmap-canonical-sky-upper-retrace-input.csv');
-const gateJsonPath = path.join(gateDir, 'daegu-seatmap-canonical-sky-upper-retrace-gate.json');
-const gateCsvPath = path.join(gateDir, 'daegu-seatmap-canonical-sky-upper-retrace-gate.csv');
-const gateMdPath = path.join(gateDir, 'daegu-seatmap-canonical-sky-upper-retrace-gate.md');
 
 const task = process.argv[2] ?? 'batch';
 const requireApproved = process.argv.includes('--require-approved');
-const inputPath = process.env.DAEGU_CANONICAL_SKY_UPPER_RETRACE_INPUT
-  ? path.resolve(frontendRoot, process.env.DAEGU_CANONICAL_SKY_UPPER_RETRACE_INPUT)
-  : operatorInputJsonPath;
-
-const BATCH_VERSION = 'DAEGU_CANONICAL_SKY_UPPER_RETRACE_BATCH_V1';
-const BATCH_KEY = 'SKY_UPPER_01_10';
-const BATCH_BLOCK_KEYS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'];
+const requestedBatchKey = process.argv.find((arg, index) => index > 2 && !arg.startsWith('--'))
+  ?? process.env.DAEGU_CANONICAL_RETRACE_BATCH_KEY
+  ?? 'SKY_UPPER_01_10';
 const ALLOWED_DECISIONS = new Set(['PENDING', 'APPROVED', 'REJECTED']);
+
+const BATCHES = {
+  SKY_UPPER_01_10: {
+    version: 'DAEGU_CANONICAL_SKY_UPPER_RETRACE_BATCH_V1',
+    key: 'SKY_UPPER_01_10',
+    title: 'Daegu Canonical SKY Upper Retrace Batch',
+    gateTitle: 'Daegu Canonical SKY Upper Retrace Gate',
+    blockKeys: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'],
+    markerSplitBlockKeys: ['09'],
+    markerSplitPolicyByBlockKey: {
+      '09': 'MARKER_SEAT_SPLIT_REQUIRED:09; trace only the seat polygon and keep accessibility marker outside canonical selectable runtime.',
+    },
+    outputSlug: 'daegu-seatmap-canonical-sky-upper-retrace-batch',
+    inputSlug: 'daegu-seatmap-canonical-sky-upper-retrace',
+    inputEnvName: 'DAEGU_CANONICAL_SKY_UPPER_RETRACE_INPUT',
+  },
+  SPECIAL_ZONE_3F4F_M1_MR9: {
+    version: 'DAEGU_CANONICAL_SPECIAL_ZONE_RETRACE_BATCH_V1',
+    key: 'SPECIAL_ZONE_3F4F_M1_MR9',
+    title: 'Daegu Canonical Special Zone Retrace Batch',
+    gateTitle: 'Daegu Canonical Special Zone Retrace Gate',
+    blockKeys: ['3루4층', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'MR9'],
+    markerSplitBlockKeys: [],
+    markerSplitPolicyByBlockKey: {},
+    outputSlug: 'daegu-seatmap-canonical-special-zone-retrace-batch',
+    inputSlug: 'daegu-seatmap-canonical-special-zone-retrace',
+    inputEnvName: 'DAEGU_CANONICAL_SPECIAL_ZONE_RETRACE_INPUT',
+  },
+};
+
+const batchConfig = BATCHES[requestedBatchKey];
+if (!batchConfig) {
+  throw new Error(`Unknown Daegu canonical retrace batch key: ${requestedBatchKey}`);
+}
+
+const BATCH_VERSION = batchConfig.version;
+const BATCH_KEY = batchConfig.key;
+const BATCH_BLOCK_KEYS = batchConfig.blockKeys;
+const markerSplitBlockKeys = new Set(batchConfig.markerSplitBlockKeys);
+const outputDir = path.join(frontendRoot, 'reports/stadium', batchConfig.outputSlug);
+const operatorInputDir = path.join(outputDir, 'operator-input');
+const gateDir = path.join(outputDir, 'gate');
+
+const batchJsonPath = path.join(outputDir, `${batchConfig.outputSlug}.json`);
+const batchCsvPath = path.join(outputDir, `${batchConfig.outputSlug}.csv`);
+const batchMdPath = path.join(outputDir, `${batchConfig.outputSlug}.md`);
+const operatorInputJsonPath = path.join(operatorInputDir, `${batchConfig.inputSlug}-input.json`);
+const operatorInputCsvPath = path.join(operatorInputDir, `${batchConfig.inputSlug}-input.csv`);
+const gateJsonPath = path.join(gateDir, `${batchConfig.inputSlug}-gate.json`);
+const gateCsvPath = path.join(gateDir, `${batchConfig.inputSlug}-gate.csv`);
+const gateMdPath = path.join(gateDir, `${batchConfig.inputSlug}-gate.md`);
+const inputPath = process.env[batchConfig.inputEnvName]
+  ? path.resolve(frontendRoot, process.env[batchConfig.inputEnvName])
+  : operatorInputJsonPath;
 
 const sourceContractLiterals = [
   'DAEGU_CANONICAL_SKY_UPPER_RETRACE_BATCH_V1',
   'SKY_UPPER_01_10',
+  'DAEGU_CANONICAL_SPECIAL_ZONE_RETRACE_BATCH_V1',
+  'SPECIAL_ZONE_3F4F_M1_MR9',
   'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
   'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
   'MARKER_SEAT_SPLIT_REQUIRED:09',
@@ -97,6 +137,8 @@ function buildBatchRows() {
     const seatSectionIds = row.sourceSectionIds.filter((_, rowIndex) => row.sectionKinds[rowIndex] === 'SEAT_SECTION');
     const markerSectionIds = row.sourceSectionIds.filter((_, rowIndex) => row.sectionKinds[rowIndex] !== 'SEAT_SECTION');
     const markerSeatSplitRequired = markerSectionIds.length > 0;
+    const markerSplitPolicy = batchConfig.markerSplitPolicyByBlockKey[blockKey]
+      ?? `MARKER_SEAT_SPLIT_REQUIRED:${blockKey}; trace only the seat polygon and keep marker evidence outside canonical selectable runtime.`;
 
     return {
       reviewId: `DAEGU-CANONICAL-${BATCH_KEY}-${blockKey}`,
@@ -112,7 +154,7 @@ function buildBatchRows() {
       sectionKinds: row.sectionKinds,
       markerSeatSplitRequired,
       tracePolicy: markerSeatSplitRequired
-        ? 'MARKER_SEAT_SPLIT_REQUIRED:09; trace only the seat polygon and keep accessibility marker outside canonical selectable runtime.'
+        ? markerSplitPolicy
         : 'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
       sourceCoordinateSystem: row.sourceCoordinateSystem,
       targetCoordinateSystem: row.targetCoordinateSystem,
@@ -179,7 +221,12 @@ function validateRows(rows) {
     if (!ALLOWED_DECISIONS.has(row.operatorDecision)) failures.push('INVALID_OPERATOR_DECISION');
     if (row.targetCoordinateSystem !== 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096') failures.push('INVALID_TARGET_COORDINATE_SYSTEM');
     if (row.simpleScaleOrCopyAllowed !== false) failures.push('SIMPLE_SCALE_OR_COPY_FORBIDDEN');
-    if (row.blockKey === '09' && row.markerSeatSplitRequired !== true) failures.push('MARKER_SEAT_SPLIT_REQUIRED:09');
+    if (markerSplitBlockKeys.has(row.blockKey) && row.markerSeatSplitRequired !== true) {
+      failures.push(`MARKER_SEAT_SPLIT_REQUIRED:${row.blockKey}`);
+    }
+    if (!markerSplitBlockKeys.has(row.blockKey) && row.markerSeatSplitRequired === true) {
+      failures.push(`UNDECLARED_MARKER_SEAT_SPLIT_ROW:${row.blockKey}`);
+    }
 
     if (row.operatorDecision === 'APPROVED') {
       if (!row.correctedPath) failures.push('CORRECTED_PATH_REQUIRED_FOR_APPROVED_ROW');
@@ -269,7 +316,7 @@ async function writeBatch() {
       directOperatorReferenceTraceRequired: true,
       officialPngCoordinatesAreHistoricalEvidenceOnly: true,
       simpleScaleOrCopyForbidden: true,
-      markerSeatSplitRequired: ['09'],
+      markerSeatSplitRequired: batchConfig.markerSplitBlockKeys,
       approvalRequiredFields: ['operatorDecision=APPROVED', 'correctedPath', 'correctedHitPath', 'correctedLabelX', 'correctedLabelY', 'reviewer', 'reviewedAt'],
       sourceDataWritePerformed: false,
       generatedReportsAreEvidenceOnly: true,
@@ -299,7 +346,7 @@ async function writeBatch() {
   }, null, 2)}\n`, 'utf8');
   await fs.writeFile(operatorInputCsvPath, buildCsv(rows, columns), 'utf8');
   await fs.writeFile(batchMdPath, [
-    '# Daegu Canonical SKY Upper Retrace Batch',
+    `# ${batchConfig.title}`,
     '',
     `- status: \`${summary.status}\``,
     `- version: \`${BATCH_VERSION}\``,
@@ -321,7 +368,7 @@ async function writeBatch() {
     '',
     '- `DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED`: trace every row directly on the 4096 operator-reference image.',
     '- `SIMPLE_SCALE_OR_COPY_FORBIDDEN`: do not scale or copy 1707x2048 official PNG coordinates.',
-    '- `MARKER_SEAT_SPLIT_REQUIRED:09`: row 09 must keep accessibility marker evidence outside the selectable seat polygon.',
+    ...batchConfig.markerSplitBlockKeys.map((blockKey) => `- \`MARKER_SEAT_SPLIT_REQUIRED:${blockKey}\`: this row must keep marker evidence outside the selectable seat polygon.`),
     '- `SOURCE_WRITE_FORBIDDEN`: this batch creates review evidence only.',
     '',
   ].join('\n'), 'utf8');
@@ -358,7 +405,7 @@ async function writeGate() {
   await fs.writeFile(gateJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   await fs.writeFile(gateCsvPath, buildCsv(validations, ['reviewId', 'blockKey', 'operatorDecision', 'validationStatus', 'failures', 'warnings']), 'utf8');
   await fs.writeFile(gateMdPath, [
-    '# Daegu Canonical SKY Upper Retrace Gate',
+    `# ${batchConfig.gateTitle}`,
     '',
     `- status: \`${summary.status}\``,
     `- input path: \`${report.inputPath}\``,

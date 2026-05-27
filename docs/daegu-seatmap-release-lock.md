@@ -165,6 +165,20 @@
 - source data write performed: `false`
 - generated SKY upper batch and gate reports are QA evidence only and must not be staged as PR payload.
 
+## Canonical special zone retrace batch (2026-05-27)
+
+- batch key: `SPECIAL_ZONE_3F4F_M1_MR9`
+- `npm run stadium:daegu:canonical-special-zone-retrace-batch`: `review-required`
+- `npm run stadium:daegu:canonical-special-zone-retrace-gate`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/`
+- block keys: `3루4층`, `M1`, `M2`, `M3`, `M4`, `M5`, `M6`, `M7`, `M8`, `M9`, `MR9`
+- pending operator trace rows: `11`
+- marker/seat split rows: `0`
+- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
+- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
+- source data write performed: `false`
+- generated special-zone batch and gate reports are QA evidence only and must not be staged as PR payload.
+
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
@@ -178,6 +192,8 @@
 - `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/daegu-seatmap-canonical-official-only-retrace-workset.md`
 - `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/daegu-seatmap-canonical-sky-upper-retrace-batch.md`
 - `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/gate/daegu-seatmap-canonical-sky-upper-retrace-gate.md`
+- `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/daegu-seatmap-canonical-special-zone-retrace-batch.md`
+- `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/gate/daegu-seatmap-canonical-special-zone-retrace-gate.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
@@ -190,6 +206,8 @@
 - `npm run stadium:daegu:canonical-official-only-retrace-workset`: PASS, `review-required`, `pending_operator_trace=58`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:canonical-sky-upper-retrace-batch`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:canonical-sky-upper-retrace-gate`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `invalid=0`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-special-zone-retrace-batch`: PASS, `review-required`, `batch=SPECIAL_ZONE_3F4F_M1_MR9`, `pending=11`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-special-zone-retrace-gate`: PASS, `review-required`, `batch=SPECIAL_ZONE_3F4F_M1_MR9`, `pending=11`, `invalid=0`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
