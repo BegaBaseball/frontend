@@ -58,6 +58,20 @@ const BATCHES = {
     inputSlug: 'daegu-seatmap-canonical-sky-lower-retrace',
     inputEnvName: 'DAEGU_CANONICAL_SKY_LOWER_RETRACE_INPUT',
   },
+  SKY_BLUE_U2_U20_U31: {
+    version: 'DAEGU_CANONICAL_SKY_BLUE_RETRACE_BATCH_V1',
+    key: 'SKY_BLUE_U2_U20_U31',
+    title: 'Daegu Canonical SKY/BLUE Retrace Batch',
+    gateTitle: 'Daegu Canonical SKY/BLUE Retrace Gate',
+    blockKeys: ['U2', 'U20', 'U21', 'U22', 'U23', 'U24', 'U25', 'U26', 'U27', 'U28', 'U29', 'U30', 'U31'],
+    markerSplitBlockKeys: ['U22'],
+    markerSplitPolicyByBlockKey: {
+      U22: 'MARKER_SEAT_SPLIT_REQUIRED:U22; trace only the BLUE seat polygon and keep accessibility marker outside canonical selectable runtime.',
+    },
+    outputSlug: 'daegu-seatmap-canonical-sky-blue-retrace-batch',
+    inputSlug: 'daegu-seatmap-canonical-sky-blue-retrace',
+    inputEnvName: 'DAEGU_CANONICAL_SKY_BLUE_RETRACE_INPUT',
+  },
 };
 
 const batchConfig = BATCHES[requestedBatchKey];
@@ -92,6 +106,8 @@ const sourceContractLiterals = [
   'SPECIAL_ZONE_3F4F_M1_MR9',
   'DAEGU_CANONICAL_SKY_LOWER_RETRACE_BATCH_V1',
   'SKY_LOWER_U1_U19',
+  'DAEGU_CANONICAL_SKY_BLUE_RETRACE_BATCH_V1',
+  'SKY_BLUE_U2_U20_U31',
   'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
   'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
   'MARKER_SEAT_SPLIT_REQUIRED:09',
