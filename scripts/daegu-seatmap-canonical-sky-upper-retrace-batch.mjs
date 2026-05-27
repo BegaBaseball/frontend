@@ -46,6 +46,18 @@ const BATCHES = {
     inputSlug: 'daegu-seatmap-canonical-special-zone-retrace',
     inputEnvName: 'DAEGU_CANONICAL_SPECIAL_ZONE_RETRACE_INPUT',
   },
+  SKY_LOWER_U1_U19: {
+    version: 'DAEGU_CANONICAL_SKY_LOWER_RETRACE_BATCH_V1',
+    key: 'SKY_LOWER_U1_U19',
+    title: 'Daegu Canonical SKY Lower Retrace Batch',
+    gateTitle: 'Daegu Canonical SKY Lower Retrace Gate',
+    blockKeys: ['U1', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19'],
+    markerSplitBlockKeys: [],
+    markerSplitPolicyByBlockKey: {},
+    outputSlug: 'daegu-seatmap-canonical-sky-lower-retrace-batch',
+    inputSlug: 'daegu-seatmap-canonical-sky-lower-retrace',
+    inputEnvName: 'DAEGU_CANONICAL_SKY_LOWER_RETRACE_INPUT',
+  },
 };
 
 const batchConfig = BATCHES[requestedBatchKey];
@@ -78,6 +90,8 @@ const sourceContractLiterals = [
   'SKY_UPPER_01_10',
   'DAEGU_CANONICAL_SPECIAL_ZONE_RETRACE_BATCH_V1',
   'SPECIAL_ZONE_3F4F_M1_MR9',
+  'DAEGU_CANONICAL_SKY_LOWER_RETRACE_BATCH_V1',
+  'SKY_LOWER_U1_U19',
   'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
   'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
   'MARKER_SEAT_SPLIT_REQUIRED:09',
