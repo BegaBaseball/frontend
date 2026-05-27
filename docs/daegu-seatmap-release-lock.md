@@ -207,6 +207,20 @@
 - source data write performed: `false`
 - generated SKY/BLUE batch and gate reports are QA evidence only and must not be staged as PR payload.
 
+## Canonical remaining retrace batch (2026-05-27)
+
+- batch key: `REMAINING_U3_U9_V1_V3_OUTFIELD`
+- `npm run stadium:daegu:canonical-remaining-retrace-batch`: `review-required`
+- `npm run stadium:daegu:canonical-remaining-retrace-gate`: `review-required`
+- generated evidence: `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/`
+- block keys: `U3`, `U4`, `U5`, `U6`, `U7`, `U8`, `U9`, `V1`, `V2`, `V3`, `외야3루측`, `우측외야`, `중앙외야`
+- pending operator trace rows: `13`
+- marker/seat split rows: `0`
+- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
+- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
+- source data write performed: `false`
+- generated remaining batch and gate reports are QA evidence only and must not be staged as PR payload.
+
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
@@ -226,6 +240,8 @@
 - `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/gate/daegu-seatmap-canonical-sky-lower-retrace-gate.md`
 - `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/daegu-seatmap-canonical-sky-blue-retrace-batch.md`
 - `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/gate/daegu-seatmap-canonical-sky-blue-retrace-gate.md`
+- `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/daegu-seatmap-canonical-remaining-retrace-batch.md`
+- `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/gate/daegu-seatmap-canonical-remaining-retrace-gate.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
@@ -244,6 +260,8 @@
 - `npm run stadium:daegu:canonical-sky-lower-retrace-gate`: PASS, `review-required`, `batch=SKY_LOWER_U1_U19`, `pending=11`, `invalid=0`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:canonical-sky-blue-retrace-batch`: PASS, `review-required`, `batch=SKY_BLUE_U2_U20_U31`, `pending=13`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:canonical-sky-blue-retrace-gate`: PASS, `review-required`, `batch=SKY_BLUE_U2_U20_U31`, `pending=13`, `invalid=0`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-remaining-retrace-batch`: PASS, `review-required`, `batch=REMAINING_U3_U9_V1_V3_OUTFIELD`, `pending=13`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-remaining-retrace-gate`: PASS, `review-required`, `batch=REMAINING_U3_U9_V1_V3_OUTFIELD`, `pending=13`, `invalid=0`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
