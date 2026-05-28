@@ -20,21 +20,27 @@ These files look like reusable source, UI, or QA infrastructure and should be re
 - `src/utils/seatMapPolygonValidator.ts`
 - `src/components/DaejeonStadiumUxAuditContract.test.ts`
 
+## Daegu cleanup decision
+
+Daegu no longer keeps historical/operator-reference stage scripts in the working tree. The retained runtime/release scripts are:
+
+- `scripts/daegu-seatmap-ops.mjs`
+- `scripts/daegu-seatmap-core-qa.mjs`
+- `scripts/daegu-seatmap-source-baseline-audit.mjs`
+- `scripts/daegu-seatmap-canonical-decision-table.mjs`
+- `scripts/daegu-seatmap-qa-ownership-audit.mjs`
+- `scripts/daegu-seatmap-canonical-block-decision-guard.mjs`
+- `scripts/daegu-seatmap-canonical-official-only-retrace-workset.mjs`
+- `scripts/daegu-seatmap-canonical-retrace-batch.mjs`
+- `scripts/daegu-seatmap-precision-audit.mjs`
+- `scripts/daegu-seatmap-render-safety-audit.mjs`
+
+Deleted Daegu operator-reference, missing-block, p0/p1/p2/p3-p4, visual-match, evidence crop, retrace queue, and zone precision scripts are historical evidence only and should be restored from Git history only if an operator explicitly reopens that workflow.
+
 ## Review before commit
 
 These files appear to be operator, release, or QA automation scripts. Keep only if the corresponding `package.json` command or runbook depends on them.
 
-- `scripts/daegu-seatmap-p1-boundary-first-*.mjs`
-- `scripts/daegu-seatmap-p1-boundary-input-aid.mjs`
-- `scripts/daegu-seatmap-p1-next-action-packet.mjs`
-- `scripts/daegu-seatmap-p1-paired-boundary-review.mjs`
-- `scripts/daegu-seatmap-p1-precision-workset.mjs`
-- `scripts/daegu-seatmap-p1-stage-order-regression.mjs`
-- `scripts/daegu-seatmap-p2*.mjs`
-- `scripts/daegu-seatmap-precision-audit.mjs`
-- `scripts/daegu-seatmap-render-safety-audit.mjs`
-- `scripts/daegu-seatmap-zone-precision-worksets.mjs`
-- `scripts/gwangju-seatmap-evidence-workset-ops.mjs`
 - `scripts/gwangju-seatmap-evidence-workset-ops.mjs`
 - `scripts/sajik-seatmap-*.mjs`
 - `scripts/stadium-seatmap-standard-shell-pr-scope-guard.mjs`

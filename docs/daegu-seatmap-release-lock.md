@@ -151,118 +151,44 @@
 - source data write performed: `false`
 - generated retrace workset reports are QA evidence only and must not be staged as PR payload.
 
-## Canonical SKY upper retrace batch (2026-05-27)
+## Canonical retrace batch (2026-05-27)
 
-- batch key: `SKY_UPPER_01_10`
-- `npm run stadium:daegu:canonical-sky-upper-retrace-batch`: `review-required`
-- `npm run stadium:daegu:canonical-sky-upper-retrace-gate`: `review-required`
-- generated evidence: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/`
-- block keys: `01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`, `10`
-- pending operator trace rows: `10`
-- marker/seat split row: `09`; trace only the seat polygon and keep the accessibility marker out of canonical selectable runtime.
+통합 진입점은 `npm run stadium:daegu:canonical-retrace-batch -- <batchKey>`와 `npm run stadium:daegu:canonical-retrace-gate -- <batchKey>`다. 기존 SKY/special/remaining 단계별 package alias와 스크립트 파일은 삭제했고, historical/operator-reference 단계별 스크립트는 Git history로만 복구한다.
+
+| batch key | batch command | gate command | pending rows | marker split |
+| --- | --- | --- | --- | --- |
+| `SKY_UPPER_01_10` | `npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10` | `npm run stadium:daegu:canonical-retrace-gate -- SKY_UPPER_01_10` | 10 | `09` |
+| `SPECIAL_ZONE_3F4F_M1_MR9` | `npm run stadium:daegu:canonical-retrace-batch -- SPECIAL_ZONE_3F4F_M1_MR9` | `npm run stadium:daegu:canonical-retrace-gate -- SPECIAL_ZONE_3F4F_M1_MR9` | 11 | none |
+| `SKY_LOWER_U1_U19` | `npm run stadium:daegu:canonical-retrace-batch -- SKY_LOWER_U1_U19` | `npm run stadium:daegu:canonical-retrace-gate -- SKY_LOWER_U1_U19` | 11 | none |
+| `SKY_BLUE_U2_U20_U31` | `npm run stadium:daegu:canonical-retrace-batch -- SKY_BLUE_U2_U20_U31` | `npm run stadium:daegu:canonical-retrace-gate -- SKY_BLUE_U2_U20_U31` | 13 | `U22` |
+| `REMAINING_U3_U9_V1_V3_OUTFIELD` | `npm run stadium:daegu:canonical-retrace-batch -- REMAINING_U3_U9_V1_V3_OUTFIELD` | `npm run stadium:daegu:canonical-retrace-gate -- REMAINING_U3_U9_V1_V3_OUTFIELD` | 13 | none |
+
 - simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
 - approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
-- source data write performed: `false`
-- generated SKY upper batch and gate reports are QA evidence only and must not be staged as PR payload.
-
-## Canonical special zone retrace batch (2026-05-27)
-
-- batch key: `SPECIAL_ZONE_3F4F_M1_MR9`
-- `npm run stadium:daegu:canonical-special-zone-retrace-batch`: `review-required`
-- `npm run stadium:daegu:canonical-special-zone-retrace-gate`: `review-required`
-- generated evidence: `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/`
-- block keys: `3루4층`, `M1`, `M2`, `M3`, `M4`, `M5`, `M6`, `M7`, `M8`, `M9`, `MR9`
-- pending operator trace rows: `11`
-- marker/seat split rows: `0`
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
-- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
-- source data write performed: `false`
-- generated special-zone batch and gate reports are QA evidence only and must not be staged as PR payload.
-
-## Canonical SKY lower retrace batch (2026-05-27)
-
-- batch key: `SKY_LOWER_U1_U19`
-- `npm run stadium:daegu:canonical-sky-lower-retrace-batch`: `review-required`
-- `npm run stadium:daegu:canonical-sky-lower-retrace-gate`: `review-required`
-- generated evidence: `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/`
-- block keys: `U1`, `U10`, `U11`, `U12`, `U13`, `U14`, `U15`, `U16`, `U17`, `U18`, `U19`
-- pending operator trace rows: `11`
-- marker/seat split rows: `0`
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
-- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
-- source data write performed: `false`
-- generated SKY lower batch and gate reports are QA evidence only and must not be staged as PR payload.
-
-## Canonical SKY/BLUE retrace batch (2026-05-27)
-
-- batch key: `SKY_BLUE_U2_U20_U31`
-- `npm run stadium:daegu:canonical-sky-blue-retrace-batch`: `review-required`
-- `npm run stadium:daegu:canonical-sky-blue-retrace-gate`: `review-required`
-- generated evidence: `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/`
-- block keys: `U2`, `U20`, `U21`, `U22`, `U23`, `U24`, `U25`, `U26`, `U27`, `U28`, `U29`, `U30`, `U31`
-- pending operator trace rows: `13`
-- marker/seat split row: `U22`; trace only the BLUE seat polygon and keep the accessibility marker out of canonical selectable runtime.
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
-- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
-- source data write performed: `false`
-- generated SKY/BLUE batch and gate reports are QA evidence only and must not be staged as PR payload.
-
-## Canonical remaining retrace batch (2026-05-27)
-
-- batch key: `REMAINING_U3_U9_V1_V3_OUTFIELD`
-- `npm run stadium:daegu:canonical-remaining-retrace-batch`: `review-required`
-- `npm run stadium:daegu:canonical-remaining-retrace-gate`: `review-required`
-- generated evidence: `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/`
-- block keys: `U3`, `U4`, `U5`, `U6`, `U7`, `U8`, `U9`, `V1`, `V2`, `V3`, `외야3루측`, `우측외야`, `중앙외야`
-- pending operator trace rows: `13`
-- marker/seat split rows: `0`
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
-- approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
-- source data write performed: `false`
-- generated remaining batch and gate reports are QA evidence only and must not be staged as PR payload.
-
+- source data write performed: `false`.
+- generated retrace batch and gate reports are QA evidence only and must not be staged as PR payload.
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
 - `reports/stadium/daegu-seatmap-render-safety-audit.md`
-- `reports/stadium/daegu-visual-match-audit/daegu-seatmap-visual-match-audit.md`
-- `reports/stadium/daegu-visual-match-workset/daegu-seatmap-visual-match-workset.md`
 - `reports/stadium/daegu-seatmap-source-baseline-audit.md`
 - `reports/stadium/daegu-seatmap-canonical-decision-table.md`
 - `reports/stadium/daegu-seatmap-qa-ownership-audit.md`
 - `reports/stadium/daegu-seatmap-canonical-block-decision-guard.md`
 - `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/daegu-seatmap-canonical-official-only-retrace-workset.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/daegu-seatmap-canonical-sky-upper-retrace-batch.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/gate/daegu-seatmap-canonical-sky-upper-retrace-gate.md`
-- `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/daegu-seatmap-canonical-special-zone-retrace-batch.md`
-- `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/gate/daegu-seatmap-canonical-special-zone-retrace-gate.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/daegu-seatmap-canonical-sky-lower-retrace-batch.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/gate/daegu-seatmap-canonical-sky-lower-retrace-gate.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/daegu-seatmap-canonical-sky-blue-retrace-batch.md`
-- `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/gate/daegu-seatmap-canonical-sky-blue-retrace-gate.md`
-- `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/daegu-seatmap-canonical-remaining-retrace-batch.md`
-- `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/gate/daegu-seatmap-canonical-remaining-retrace-gate.md`
 - `output/playwright/stadium-ux-daegu-full/stadium-mobile-smoke-summary.md`
 
 ## 검증 명령
 
+- `npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10`: PASS, `review-required`, `pending=10`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-gate -- SKY_UPPER_01_10`: PASS, `review-required`, `invalid=0`, `sourceDataWritePerformed=false`
 - `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_LOCKED_164` (2026-05-24 갱신)
+- `npm run stadium:daegu:render-safety-audit`: PASS
 - `npm run stadium:daegu:source-baseline-audit`: PASS, `active_runtime_sources=1`, `active_source_overlaps=0`, `geometry_issues=0`
 - `npm run stadium:daegu:canonical-decision-table`: PASS, `review-required`, `canonical_ready=101`, `geometry_issues=0`
 - `npm run stadium:daegu:qa-ownership-audit`: PASS, `active_source_overlaps=0`, `active_qa_owner_conflicts=0`, `pending_operator_trace=58`
 - `npm run stadium:daegu:canonical-block-decision-guard`: PASS, `review-required`, `active_canonical_selectable=130`, `pending_operator_trace=58`, `target_canonical_selectable=188`, `geometry_issues=0`
 - `npm run stadium:daegu:canonical-official-only-retrace-workset`: PASS, `review-required`, `pending_operator_trace=58`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-upper-retrace-batch`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-upper-retrace-gate`: PASS, `review-required`, `batch=SKY_UPPER_01_10`, `pending=10`, `invalid=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-special-zone-retrace-batch`: PASS, `review-required`, `batch=SPECIAL_ZONE_3F4F_M1_MR9`, `pending=11`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-special-zone-retrace-gate`: PASS, `review-required`, `batch=SPECIAL_ZONE_3F4F_M1_MR9`, `pending=11`, `invalid=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-lower-retrace-batch`: PASS, `review-required`, `batch=SKY_LOWER_U1_U19`, `pending=11`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-lower-retrace-gate`: PASS, `review-required`, `batch=SKY_LOWER_U1_U19`, `pending=11`, `invalid=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-blue-retrace-batch`: PASS, `review-required`, `batch=SKY_BLUE_U2_U20_U31`, `pending=13`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-sky-blue-retrace-gate`: PASS, `review-required`, `batch=SKY_BLUE_U2_U20_U31`, `pending=13`, `invalid=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-remaining-retrace-batch`: PASS, `review-required`, `batch=REMAINING_U3_U9_V1_V3_OUTFIELD`, `pending=13`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:canonical-remaining-retrace-gate`: PASS, `review-required`, `batch=REMAINING_U3_U9_V1_V3_OUTFIELD`, `pending=13`, `invalid=0`, `sourceDataWritePerformed=false`
-- `npm run stadium:daegu:visual-match-workset`: PASS, `queueRows=0`
 - `npm run qa:stadium:daegu:full`: PASS
 - `node --import tsx --test --test-concurrency=1 --test-name-pattern=대구 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/daeguSeatData.test.ts`: PASS, 25/25
 - `env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS
