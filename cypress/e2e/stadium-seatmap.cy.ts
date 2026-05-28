@@ -24,10 +24,26 @@ const interceptBaseApis = () => {
   cy.intercept('GET', '**/api/stadiums', { statusCode: 200, body: ALL_STADIUMS }).as('getStadiums');
   cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=food', { statusCode: 200, body: [] }).as('getJamsilPlaces');
   cy.intercept('GET', '**/api/stadiums/DAEGU/places?category=food', { statusCode: 200, body: [] }).as('getDaeguPlaces');
+  cy.intercept('GET', '**/api/stadiums/DAEJEON/places?category=food', { statusCode: 200, body: [] }).as('getDaejeonPlaces');
+  cy.intercept('GET', '**/api/stadiums/GOCHEOK/places?category=food', { statusCode: 200, body: [] }).as('getGocheokPlaces');
   cy.intercept('GET', '**/api/stadiums/GWANGJU/places?category=food', { statusCode: 200, body: [] }).as('getGwangjuPlaces');
   cy.intercept('GET', '**/api/stadiums/INCHEON/places?category=food', { statusCode: 200, body: [] }).as('getIncheonPlaces');
   cy.intercept('GET', '**/api/stadiums/favorites', { statusCode: 200, body: { stadiumIds: [] } }).as('getFavorites');
   cy.intercept('GET', '**/api/diary/seat-views*', { statusCode: 200, body: [] }).as('getSeatViews');
+};
+
+const visitStadiumGuide = () => {
+  interceptGuestSession();
+  interceptBaseApis();
+  cy.visit('/stadium');
+  cy.wait('@getStadiums');
+  cy.wait('@getJamsilPlaces');
+};
+
+const selectDaejeonStadium = () => {
+  cy.get('#stadium-guide-select').select('DAEJEON');
+  cy.wait('@getDaejeonPlaces');
+  cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).scrollIntoView();
 };
 
 // -----------------------------------------------------------------
@@ -238,6 +254,271 @@ describe('Stadium SeatMap — Block Selection', () => {
 });
 
 // -----------------------------------------------------------------
+// Suite 2-B — Daejeon Search / Detail UX
+// -----------------------------------------------------------------
+function selectDaejeonBlock(query: string, itemTestId: string) {
+  cy.get('[data-testid="daejeon-block-search"]', { timeout: 10000 })
+    .filter(':visible')
+    .first()
+    .clear()
+    .type(query);
+  cy.get(`[data-testid="${itemTestId}"]`, { timeout: 10000 })
+    .filter(':visible')
+    .first()
+    .click();
+}
+
+function assertDaejeonDetailMeta(block: string, officialSection: string) {
+  cy.get('[data-testid="daejeon-seatmap-extra-meta"]', { timeout: 10000 })
+    .first()
+    .scrollIntoView()
+    .should('contain', '공식 섹션')
+    .and('contain', officialSection)
+    .and('contain', '정확 블록')
+    .and('contain', block)
+    .and('contain', '부모 구역')
+    .and('contain', 'source confidence')
+    .and('contain', '공식 확인');
+  cy.get('[data-testid="daejeon-seatmap-coverage-status"]').first().should('contain', 'coverage status');
+  cy.get('[data-testid="daejeon-seatmap-trace-status"]').first().should('contain', 'trace status');
+  cy.get('[data-testid="daejeon-seatmap-accessibility-note"]').first().should('contain', '접근성 메모');
+}
+
+describe('Stadium SeatMap — Daejeon Search / Detail UX', () => {
+  beforeEach(() => {
+    cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
+  });
+
+  it('대전 선택 시 canonical SVG label과 줌 컨트롤을 유지한다', () => {
+    visitStadiumGuide();
+    selectDaejeonStadium();
+
+    cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
+      cy.get('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]').should('be.visible');
+      cy.get('[data-testid="daejeon-seatmap-zoom-in"]').should('exist');
+      cy.get('[data-testid="daejeon-seatmap-zoom-out"]').should('exist');
+      cy.get('[data-testid="daejeon-seatmap-zoom-reset"]').should('exist');
+    });
+  });
+
+  it('대전 구역 찾기 검색어 104, 100A, 카스존, 스카이박스, 휠체어석이 상세 메타로 연결된다', () => {
+    const cases = [
+      { query: '104', item: 'daejeon-section-finder-item-first-infield-b-101-108__104', block: '104', officialSection: '내야 지정석B' },
+      { query: '100A', item: 'daejeon-section-finder-item-central-reserved-100__100a', block: '100A', officialSection: '중앙 지정석' },
+      { query: '카스존', item: 'daejeon-section-finder-item-cass-cheering-200__200', block: '200', officialSection: '카스존(응원단석)' },
+      { query: '스카이박스', item: 'daejeon-section-finder-item-skybox-s01-s37__s01', block: 'S01', officialSection: '스카이박스' },
+      { query: '휠체어석', item: 'daejeon-section-finder-item-central-accessible__center', block: '중앙', officialSection: '중앙 휠체어석' },
+    ];
+
+    visitStadiumGuide();
+    selectDaejeonStadium();
+
+    cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
+      cases.forEach(({ query, item, block, officialSection }) => {
+        selectDaejeonBlock(query, item);
+        assertDaejeonDetailMeta(block, officialSection);
+      });
+    });
+  });
+
+  it('대전 검색 결과가 없으면 검색어와 선택 필터 기준을 명확히 보여준다', () => {
+    visitStadiumGuide();
+    selectDaejeonStadium();
+
+    cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
+      cy.get('[data-testid="daejeon-filter-secondary-toggle"]').click();
+      cy.get('[data-testid="daejeon-filter-cheer"]').click();
+      cy.get('[data-testid="daejeon-block-search"]').clear().type('없는구역');
+      cy.get('[data-testid="daejeon-section-finder-empty"]')
+        .should('be.visible')
+        .and('contain', '검색어와 선택한 필터에 맞는 구역이 없습니다')
+        .and('contain', '검색어: 없는구역');
+    });
+  });
+});
+
+// -----------------------------------------------------------------
+// Suite 2-C — Daejeon Filter Interaction
+// -----------------------------------------------------------------
+describe('Stadium SeatMap — Daejeon Filter Interaction', () => {
+  beforeEach(() => {
+    cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
+  });
+
+  it('대전 핵심 보조 필터가 섹션파인더 결과 수를 줄인다', () => {
+    const filters = ['cheer', 'table', 'sky', 'accessible', 'pos-first', 'pos-third'];
+
+    visitStadiumGuide();
+    selectDaejeonStadium();
+
+    cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
+      cy.get('[data-testid^="daejeon-section-finder-item-"]')
+        .should('have.length.greaterThan', 0)
+        .then(($allItems) => {
+          const allCount = $allItems.length;
+
+          cy.get('[data-testid="daejeon-filter-secondary-toggle"]').click();
+          filters.forEach((filter) => {
+            cy.get(`[data-testid="daejeon-filter-${filter}"]`).click();
+            cy.get('[data-testid^="daejeon-section-finder-item-"]')
+              .should('have.length.lessThan', allCount);
+          });
+        });
+    });
+  });
+});
+
+// -----------------------------------------------------------------
+// Suite 2-D — Incheon First Visit UX
+// -----------------------------------------------------------------
+function withinVisibleStadiumSeatMap(callback: () => void) {
+  cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 })
+    .filter(':visible')
+    .last()
+    .within(callback);
+}
+
+function assertIncheonDetailContains(values: string[]) {
+  withinVisibleStadiumSeatMap(() => {
+    cy.get('[data-testid="incheon-seatmap-detail-panel"]', { timeout: 10000 })
+      .should(($panel) => {
+        const panel = $panel[0] as HTMLElement | undefined;
+        const text = panel?.textContent ?? '';
+        values.forEach((value) => {
+          expect(text, `Incheon detail panel should contain ${value}`).to.include(value);
+        });
+      });
+  });
+}
+
+function selectIncheonBlock(query: string, itemTestId: string) {
+  withinVisibleStadiumSeatMap(() => {
+    cy.get('[data-testid="incheon-block-search"]', { timeout: 10000 })
+      .clear()
+      .type(query);
+    cy.get(`[data-testid="${itemTestId}"]`, { timeout: 10000 })
+      .click();
+  });
+}
+
+describe('Stadium SeatMap — Incheon First Visit UX', () => {
+  beforeEach(() => {
+    cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
+  });
+
+  it('101B 검색 선택 후 상세 패널과 다이어리 공유 CTA를 제공한다', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('INCHEON');
+    cy.wait('@getIncheonPlaces');
+
+    withinVisibleStadiumSeatMap(() => {
+      cy.get('[data-testid="incheon-first-visit-guide"]', { timeout: 10000 })
+        .should('contain', '처음 인천 가이드');
+      cy.get('[data-testid="incheon-section-finder"]')
+        .should('contain', '블록 검색');
+    });
+
+    selectIncheonBlock('101B', 'incheon-section-finder-item-incheon-101b');
+
+    assertIncheonDetailContains([
+      '101B 내야 필드석',
+      '블록 101B',
+      '내야 필드석',
+      '1루',
+      '홈 응원',
+      '다이어리에서 시야 사진 공유하기',
+    ]);
+  });
+
+  it('처음 가이드 101B 검색 결과는 선택 블록 focus zoom과 상세 패널로 연결한다', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('INCHEON');
+    cy.wait('@getIncheonPlaces');
+
+    withinVisibleStadiumSeatMap(() => {
+      cy.get('[data-testid="incheon-guide-search"]', { timeout: 10000 })
+        .clear()
+        .type('101B');
+      cy.get('[data-testid="incheon-guide-result-incheon-101b"]', { timeout: 10000 })
+        .click();
+    });
+
+    withinVisibleStadiumSeatMap(() => {
+      cy.get('[data-testid="incheon-seatmap-transform-layer"]')
+        .invoke('attr', 'data-zoom')
+        .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.45));
+    });
+    assertIncheonDetailContains(['101B 내야 필드석', '블록 101B']);
+  });
+
+  it('처음 가이드 검색은 휠체어석 결과를 선택 가능한 블록으로 연결한다', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('INCHEON');
+    cy.wait('@getIncheonPlaces');
+
+    withinVisibleStadiumSeatMap(() => {
+      cy.get('[data-testid="incheon-guide-search"]', { timeout: 10000 })
+        .clear()
+        .type('휠체어');
+      cy.get('[data-testid="incheon-guide-result-incheon-accessible-9b"]', { timeout: 10000 })
+        .click();
+    });
+
+    assertIncheonDetailContains([
+      '휠체어석 9B',
+      '접근성',
+      '다이어리에 공유된 사진만 표시합니다.',
+    ]);
+  });
+
+  it('비로그인 공유 CTA는 인천 다이어리 draft와 /mypage 로그인 redirect를 남긴다', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('INCHEON');
+    cy.wait('@getIncheonPlaces');
+
+    selectIncheonBlock('101B', 'incheon-section-finder-item-incheon-101b');
+    withinVisibleStadiumSeatMap(() => {
+      cy.contains('button', '다이어리에서 시야 사진 공유하기', { timeout: 10000 })
+        .click();
+    });
+
+    cy.contains('로그인 필요').should('be.visible');
+    cy.window().then((win) => {
+      expect(win.sessionStorage.getItem('pendingLoginRedirect')).to.eq('/mypage');
+
+      const rawDraft = win.sessionStorage.getItem('diary-draft-storage');
+      expect(rawDraft).to.be.a('string');
+      const pendingDraft = JSON.parse(rawDraft!).state.pendingDraft;
+      expect(pendingDraft).to.deep.include({
+        stadium: 'INCHEON',
+        team: 'SSG',
+        section: '101B 내야 필드석',
+        block: '101B',
+        seatRow: '',
+        seatNumber: '',
+      });
+      expect(pendingDraft.date).to.match(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+});
+
+// -----------------------------------------------------------------
 // Suite 3 — Filter Interaction (Daegu)
 // -----------------------------------------------------------------
 describe('Stadium SeatMap — Filter Interaction', () => {
@@ -384,7 +665,79 @@ describe('Stadium SeatMap — Filter Interaction (Jamsil)', () => {
 });
 
 // -----------------------------------------------------------------
-// Suite 4 — SVG Render Smoke (all 9 stadiums)
+// Suite 4 — Gocheok Visit UX
+// -----------------------------------------------------------------
+function selectGocheokBlock(query: string, itemTestId: string) {
+  cy.get('[data-testid="gocheok-block-search"]', { timeout: 10000 })
+    .filter(':visible')
+    .first()
+    .clear()
+    .type(query);
+  cy.get(`[data-testid="${itemTestId}"]`, { timeout: 10000 })
+    .filter(':visible')
+    .first()
+    .click();
+}
+
+function assertGocheokVisitCheck(block: string, level: string, side: string, facilityTab: string) {
+  cy.get('[data-testid="gocheok-visit-check"]', { timeout: 10000 })
+    .filter(':visible')
+    .first()
+    .within(() => {
+      cy.contains('직관 체크').should('be.visible');
+      cy.contains(block).should('be.visible');
+      cy.contains(level).should('be.visible');
+      cy.contains(side).should('be.visible');
+      cy.contains(facilityTab).should('be.visible');
+      cy.contains('현장 최종 안내 확인').should('be.visible');
+      cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('be.visible');
+    });
+}
+
+describe('Stadium SeatMap — Gocheok Visit UX', () => {
+  beforeEach(() => {
+    cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
+  });
+
+  it('D04와 430 검색 선택 후 직관 체크와 시설현황 전환을 제공한다', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('GOCHEOK');
+    cy.wait('@getGocheokPlaces');
+
+    selectGocheokBlock('D04', 'gocheok-section-finder-item-gocheok-d04');
+    assertGocheokVisitCheck('D04', '1F', '중앙', '시설 개요');
+
+    cy.get('[data-testid="gocheok-facility-guide-open"]').first().scrollIntoView().should('be.visible').click();
+    cy.get('[data-testid="gocheok-facility-tab-overview"]', { timeout: 10000 })
+      .should('have.attr', 'aria-pressed', 'true');
+    cy.get('[data-testid="gocheok-operator-data-required"]')
+      .should('be.visible')
+      .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+    cy.get('[data-testid="stadium-guide-seatmap"]').scrollIntoView();
+    cy.contains('button:visible', '공식 좌석도').click();
+    cy.get('[data-testid="gocheok-block-search"]', { timeout: 10000 }).filter(':visible').first().should('be.visible');
+
+    selectGocheokBlock('430', 'gocheok-section-finder-item-gocheok-430');
+    assertGocheokVisitCheck('430', '외야층', '외야', '출입구');
+
+    cy.get('[data-testid="gocheok-facility-guide-open"]').first().scrollIntoView().should('be.visible').click();
+    cy.get('[data-testid="gocheok-facility-tab-entrances"]', { timeout: 10000 })
+      .should('have.attr', 'aria-pressed', 'true');
+    cy.get('[data-testid="gocheok-operator-data-status"]').should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+    cy.get('[data-testid="stadium-guide-seatmap"]').scrollIntoView();
+    cy.contains('button:visible', '공식 좌석도').click();
+    cy.get('[data-testid="gocheok-seatmap-svg"]', { timeout: 10000 }).filter(':visible').first().should('be.visible');
+  });
+});
+
+// -----------------------------------------------------------------
+// Suite 5 — SVG Render Smoke (all 9 stadiums)
 // -----------------------------------------------------------------
 const SMOKE_STADIUMS = [
   { stadiumId: 'JAMSIL',   name: '잠실',  ariaLabel: '잠실 좌석도 구역 선택',                    prefix: 'jamsil'   },
