@@ -1601,7 +1601,7 @@ test('수원 301-328 3층 경계 probe는 기대 블록으로 해석된다', () 
   });
 });
 
-test('수원 SB1-SB35 스카이박스는 명시 compact hit polygon과 전체 브라우저 QA 좌표를 가진다', () => {
+test('수원 SB1-SB35 스카이박스는 visual polygon과 hit polygon이 일치하고 브라우저 QA 좌표를 가진다', () => {
   const sourcePath = path.resolve(process.cwd(), 'src/data/suwonSeatData.ts');
   const source = fs.readFileSync(sourcePath, 'utf8');
   const expectedSkyboxIds = numberedBlocks(1, 35).map((block) => `suwon-sb${block}`);
@@ -1614,18 +1614,37 @@ test('수원 SB1-SB35 스카이박스는 명시 compact hit polygon과 전체 �
     .filter((probe) => /^suwon-sb\d+$/.test(probe.id))
     .map((probe) => probe.id);
 
-  assert.ok(source.includes('const SKYBOX_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should use an explicit compact polygon map');
-  assert.ok(!source.includes('SKYBOX_COMPACT_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should not retain generated compact hit geometry');
-  assert.ok(!source.includes('Object.entries(officialSkyboxGeometries).map'), 'Suwon skybox hit geometry should not be generated from visual geometry entries');
+  assert.ok(!source.includes('const SKYBOX_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should not keep compact hit overrides');
+  assert.ok(source.includes('const HIT_GEOMETRY_OVERRIDES: Record<string, GeometryDraft> = {};'), 'Suwon skybox hit geometry should fall back to visual geometry');
   assert.ok(!source.includes('rectGeometry('), 'Suwon skybox hit geometry should not use rectangle helpers');
-  assert.deepEqual(browserProbeIds, expectedSkyboxIds);
+  assert.deepEqual(Array.from(new Set(browserProbeIds)), expectedSkyboxIds);
+  assert.equal(browserProbeIds.length, expectedSkyboxIds.length + 3, 'Suwon skybox browser probes should include three off-center regression probes');
 
   skyboxBlocks.forEach((block) => {
-    assert.ok(block.imageGeometry.d !== block.hitGeometry.d, `${block.id} should keep compact hit geometry separate from visual geometry`);
-    assert.ok(pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)), `${block.id} label should stay inside visual polygon`);
-    assert.ok(pointInPolygon([block.hitGeometry.labelX, block.hitGeometry.labelY], pathPoints(block.hitGeometry.d)), `${block.id} hit label should stay inside compact hit polygon`);
-    assert.equal(topHitBlockAt([block.hitGeometry.labelX, block.hitGeometry.labelY])?.id, block.id, `${block.id} compact hit label should resolve to itself`);
+    const visualPoints = pathPoints(block.imageGeometry.d);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+    const center = centroid(visualPoints);
+    const internalProbe = visualProbePoints(block).find((point) => (
+      point[0] !== label[0]
+      && point[1] !== label[1]
+      && point[0] !== center[0]
+      && point[1] !== center[1]
+    )) ?? center;
+
+    assert.equal(block.hitGeometry.d, block.imageGeometry.d, `${block.id} should use its visual polygon as hit polygon`);
+    assert.equal(block.hitPriority, 120, `${block.id} should keep skybox hover priority`);
+    assert.equal(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[block.id], undefined, `${block.id} should not keep a hit geometry exception note`);
+    [label, center, internalProbe].forEach((point) => {
+      assert.ok(pointInPolygon(point, visualPoints), `${block.id} ${point.join(',')} should stay inside visual polygon`);
+      assert.equal(topHitBlockAt(point)?.id, block.id, `${block.id} ${point.join(',')} should resolve to itself`);
+    });
   });
+
+  assertVisualEdgeProbes([
+    { id: 'suwon-sb4', point: [3352, 2960], note: '스카이박스 04 off-center 브라우저 좌표' },
+    { id: 'suwon-sb22', point: [2255, 4528], note: '스카이박스 22 off-center 브라우저 좌표' },
+    { id: 'suwon-sb35', point: [900, 3395], note: '스카이박스 35 off-center 브라우저 좌표' },
+  ]);
 });
 
 test('수원 401-432 스카이존은 전체 브라우저 QA 좌표와 경계 probe를 가진다', () => {

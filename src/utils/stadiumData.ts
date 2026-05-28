@@ -470,7 +470,7 @@ export const KBO_STADIUMS: Record<string, StadiumConfig> = {
     },
     'Daejeon': {
         id: 'Daejeon',
-        name: '대전한화생명이글스파크',
+        name: '대전 한화생명볼파크',
         homeTeam: 'Hanwha',
         zones: [
             {

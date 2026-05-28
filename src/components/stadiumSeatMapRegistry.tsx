@@ -67,9 +67,9 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
   },
   {
     id: 'daejeon',
-    label: '대전 한화 공식 좌석도',
-    badgeLabel: '대전 한화 공식 좌석도',
-    matchers: ['DAEJEON', 'HANWHA', '대전', '한화', '이글스'],
+    label: '대전 한화생명볼파크 공식 좌석도',
+    badgeLabel: '대전 한화생명볼파크 공식 좌석도',
+    matchers: ['DAEJEON', 'HANWHA', '대전', '한화', '이글스', '볼파크', '한화생명볼파크', '대전 한화생명볼파크', '한화생명 이글스파크', '대전 한화생명 이글스파크', '이글스파크'],
     folder: 'daejeon',
     componentName: 'DaejeonSeatMap',
     Component: lazySeatMap(() => import('./daejeon/DaejeonSeatMap')),

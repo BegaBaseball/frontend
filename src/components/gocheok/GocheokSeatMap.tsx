@@ -8,7 +8,9 @@ import {
   getGocheokFanRoleLabel,
   getGocheokSideLabel,
   getGocheokSourceLabel,
+  getGocheokVisitHint,
   type GocheokBlock,
+  type GocheokFacilityTab,
 } from '../../data/gocheokSeatData';
 import { useTheme } from '../../hooks/useTheme';
 import SeatViewGallery from '../SeatViewGallery';
@@ -21,6 +23,7 @@ import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
+import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
@@ -54,6 +57,7 @@ const gocheokSectionAdapter: SeatMapSectionAdapter<GocheokBlock> = {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
+const FINDER_FOCUS_ZOOM = 1.35;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
@@ -196,6 +200,7 @@ export default function GocheokSeatMap() {
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [activeGuideMode, setActiveGuideMode] = useState<GocheokGuideMode>('seatmap');
+  const [activeFacilityTab, setActiveFacilityTab] = useState<GocheokFacilityTab>('overview');
   const [uploadFor, setUploadFor] = useState<GocheokBlock | null>(null);
   const {
     selected,
@@ -263,7 +268,90 @@ export default function GocheokSeatMap() {
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     closeFullscreen();
-  }, []);
+  }, [closeFullscreen, setHover, setSelected]);
+
+  const handleOpenFacilityGuide = useCallback((facilityTab: GocheokFacilityTab) => {
+    setActiveFacilityTab(facilityTab);
+    setActiveGuideMode('facility');
+    setSelected(null);
+    setHover(null);
+    setUploadFor(null);
+    setZoom(MIN_ZOOM);
+    setPan({ x: 0, y: 0 });
+    closeFullscreen();
+  }, [closeFullscreen, setHover, setSelected]);
+
+  const handleSelectFromFinder = useCallback((block: GocheokBlock) => {
+    setActiveGuideMode('seatmap');
+    setSelected(block);
+    setHover(block.id);
+    setZoom(clampZoom(FINDER_FOCUS_ZOOM));
+    closeFullscreen();
+  }, [closeFullscreen, setHover, setSelected]);
+
+  const renderVisitCheckMeta = useCallback((section: GocheokBlock, accent: string) => {
+    const hint = getGocheokVisitHint(section);
+    const tiles = [
+      { label: '블록', value: hint.blockLabel },
+      { label: '층', value: hint.levelLabel },
+      { label: '측', value: hint.sideLabel },
+      { label: '팬 구분', value: hint.fanRoleLabel },
+      { label: '시설현황', value: hint.facilityTabLabel },
+      { label: '자료상태', value: hint.operatorDataStatus },
+    ];
+
+    return (
+      <div
+        data-testid="gocheok-visit-check"
+        className="border-t border-slate-100 px-5 py-4 dark:border-slate-800"
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
+            <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+              {hint.context}
+            </p>
+          </div>
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+            style={{ background: `${accent}18`, color: accent }}
+          >
+            {hint.finalCheckLabel}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {tiles.map((tile) => (
+            <div key={tile.label} className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
+              <div className="text-[9px] font-bold tracking-widest text-slate-400">{tile.label}</div>
+              <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
+                {tile.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        <ul className="mt-3 space-y-1.5">
+          {hint.checklist.map((item) => (
+            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          {hint.operatorDataPendingLabel}
+        </p>
+        <button
+          type="button"
+          data-testid="gocheok-facility-guide-open"
+          onClick={() => handleOpenFacilityGuide(hint.facilityTab)}
+          className="mt-3 w-full rounded-xl border-0 px-4 py-2.5 text-sm font-black text-white transition-opacity hover:opacity-90"
+          style={{ background: accent }}
+        >
+          시설현황 보기
+        </button>
+      </div>
+    );
+  }, [handleOpenFacilityGuide]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <GocheokSeatMapSvg
@@ -318,6 +406,22 @@ export default function GocheokSeatMap() {
     />
   ) : undefined;
 
+  const sectionFinder = hasOfficialBlocks && isSeatMapMode ? (
+    <SeatMapSectionFinder
+      blocks={visibleGocheokBlocks}
+      adapter={gocheokSectionAdapter}
+      categories={GOCHEOK_CATEGORIES}
+      filterCats={null}
+      selected={selected}
+      onSelect={handleSelectFromFinder}
+      onHoverChange={setHover}
+      mode={mode}
+      testIdPrefix="gocheok"
+      accentColor="#820024"
+      stadiumShortLabel="고척"
+    />
+  ) : null;
+
   const mapContent = (
     <div>
       {guideModeBar}
@@ -334,7 +438,11 @@ export default function GocheokSeatMap() {
           />
         </div>
       ) : (
-        <GocheokFacilityGuide mode={mode} />
+        <GocheokFacilityGuide
+          mode={mode}
+          activeTab={activeFacilityTab}
+          onTabChange={setActiveFacilityTab}
+        />
       )}
       </div>
   );
@@ -348,6 +456,8 @@ export default function GocheokSeatMap() {
       stadiumKey="GOCHEOK"
       onClose={() => setSelected(null)}
       onUpload={() => selected && setUploadFor(selected)}
+      copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
+      extraMeta={renderVisitCheckMeta}
     />
   ) : null;
 
@@ -366,6 +476,7 @@ export default function GocheokSeatMap() {
         mapContent={mapContent}
         attribution={isSeatMapMode ? attribution : null}
         legend={hasOfficialBlocks && isSeatMapMode ? legend : undefined}
+        mobileSecondaryPanel={sectionFinder}
         mobileBottomSheet={hasOfficialBlocks && isSeatMapMode && selected && (
           <SeatMapBottomSheet
             section={selected}
@@ -375,10 +486,13 @@ export default function GocheokSeatMap() {
             stadiumKey="GOCHEOK"
             onClose={() => setSelected(null)}
             onUpload={() => selected && setUploadFor(selected)}
+            copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
+            extraMeta={renderVisitCheckMeta}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && isSeatMapMode && selected)}
         desktopSidePanel={detailPanel}
+        desktopSecondaryPanel={sectionFinder}
         toast={toast}
         isFullscreenOpen={isSeatMapMode && isFullscreenOpen}
         onFullscreenClose={closeFullscreen}

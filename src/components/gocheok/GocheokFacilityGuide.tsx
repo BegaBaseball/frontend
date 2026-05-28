@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   GOCHEOK_FACILITY_GUIDE,
+  GOCHEOK_FACILITY_TAB_LABELS,
+  GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT,
+  type GocheokFacilityTab,
   type GocheokFacilityGuideImage,
 } from '../../data/gocheokSeatData';
 
@@ -10,10 +13,11 @@ const FACILITY_IMAGE_URLS = import.meta.glob('../../assets/stadiums/kiwoom/goche
   import: 'default',
 }) as Record<string, string>;
 
-type FacilityTab = 'overview' | 'entrances' | 'floors';
-
 interface GocheokFacilityGuideProps {
   mode: 'light' | 'dark';
+  activeTab?: GocheokFacilityTab;
+  defaultTab?: GocheokFacilityTab;
+  onTabChange?: (tab: GocheokFacilityTab) => void;
 }
 
 interface FacilityImageWithSrc extends GocheokFacilityGuideImage {
@@ -34,6 +38,23 @@ function FacilityInfoList({ items }: { items: string[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function OperatorDataPendingPanel() {
+  return (
+    <div
+      data-testid="gocheok-operator-data-required"
+      className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] font-bold leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100"
+    >
+      <div
+        data-testid="gocheok-operator-data-status"
+        className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300"
+      >
+        {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}
+      </div>
+      <p>{GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}</p>
+    </div>
   );
 }
 
@@ -209,15 +230,27 @@ function FacilityImageDialog({
   );
 }
 
-export default function GocheokFacilityGuide({ mode }: GocheokFacilityGuideProps) {
-  const [activeTab, setActiveTab] = useState<FacilityTab>('overview');
+export default function GocheokFacilityGuide({
+  mode,
+  activeTab: controlledActiveTab,
+  defaultTab = 'overview',
+  onTabChange,
+}: GocheokFacilityGuideProps) {
+  const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<GocheokFacilityTab>(defaultTab);
   const [expandedImage, setExpandedImage] = useState<FacilityImageWithSrc | null>(null);
   const [expandedImageZoom, setExpandedImageZoom] = useState(1);
   const guide = GOCHEOK_FACILITY_GUIDE;
-  const tabs: { id: FacilityTab; label: string }[] = [
-    { id: 'overview', label: '개요' },
-    { id: 'entrances', label: '출입구' },
-    { id: 'floors', label: '층별/편의시설' },
+  const activeTab = controlledActiveTab ?? uncontrolledActiveTab;
+  const handleTabChange = useCallback((tab: GocheokFacilityTab) => {
+    if (controlledActiveTab === undefined) {
+      setUncontrolledActiveTab(tab);
+    }
+    onTabChange?.(tab);
+  }, [controlledActiveTab, onTabChange]);
+  const tabs: { id: GocheokFacilityTab; label: string }[] = [
+    { id: 'overview', label: GOCHEOK_FACILITY_TAB_LABELS.overview },
+    { id: 'entrances', label: GOCHEOK_FACILITY_TAB_LABELS.entrances },
+    { id: 'floors', label: GOCHEOK_FACILITY_TAB_LABELS.floors },
   ];
   const summaryStats = [
     { label: '관람석', value: `${guide.totalSeats.toLocaleString()}석` },
@@ -260,7 +293,9 @@ export default function GocheokFacilityGuide({ mode }: GocheokFacilityGuideProps
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                data-testid={`gocheok-facility-tab-${tab.id}`}
+                aria-pressed={active}
+                onClick={() => handleTabChange(tab.id)}
                 className="shrink-0 rounded-lg border-0 px-3 py-2 text-[11px] font-black transition-colors"
                 style={{
                   background: active ? '#820024' : 'transparent',
@@ -272,6 +307,7 @@ export default function GocheokFacilityGuide({ mode }: GocheokFacilityGuideProps
             );
           })}
         </div>
+        <OperatorDataPendingPanel />
       </div>
 
       {activeTab === 'overview' && (

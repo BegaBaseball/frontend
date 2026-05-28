@@ -61,7 +61,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     folder: 'daejeon',
     componentName: 'DaejeonSeatMap',
     dataFile: 'daejeonSeatData.ts',
-    badgeLabel: '대전 한화 공식 좌석도',
+    badgeLabel: '대전 한화생명볼파크 공식 좌석도',
     requiredFiles: ['src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png'],
   },
   {
@@ -297,6 +297,66 @@ test('좌석도 registry는 운영 DB와 UI 별칭을 모두 매칭한다', () =
   assert.equal(resolveStadiumSeatMapEntry('NC', 'NC 다이노스')?.id, 'changwon');
   assert.equal(resolveStadiumSeatMapEntry('BUSAN', '부산 사직야구장')?.id, 'sajik');
   assert.equal(resolveStadiumSeatMapEntry('KTWIZ', '수원 kt wiz 파크')?.id, 'suwon');
+  assert.equal(resolveStadiumSeatMapEntry('DAEJEON', '대전 한화생명볼파크')?.id, 'daejeon');
+  assert.equal(resolveStadiumSeatMapEntry('HANWHA', '한화생명 이글스파크')?.id, 'daejeon');
+  assert.equal(resolveStadiumSeatMapEntry('HH', '이글스파크')?.id, 'daejeon');
+  assert.equal(resolveStadiumSeatMapEntry('HH', '한화')?.id, 'daejeon');
+});
+
+test('대전 좌석도는 canonical registry, 구역 찾기, 공식 메타 상세 패널 계약을 제공한다', () => {
+  const registryEntry = STADIUM_SEAT_MAP_ENTRIES.find((entry) => entry.id === 'daejeon');
+  const registrySource = readProjectFile('src/components/stadiumSeatMapRegistry.tsx');
+  const daejeonSource = readProjectFile('src/components/daejeon/DaejeonSeatMap.tsx');
+  const daejeonDataSource = readProjectFile('src/data/daejeonSeatData.ts');
+
+  assert.ok(registryEntry, 'Daejeon registry entry should exist');
+  assert.equal(registryEntry.label, '대전 한화생명볼파크 공식 좌석도');
+  assert.equal(registryEntry.badgeLabel, '대전 한화생명볼파크 공식 좌석도');
+  ['볼파크', '한화생명볼파크', '한화생명 이글스파크', '이글스파크'].forEach((matcher) => {
+    assert.ok(registryEntry.matchers.includes(matcher), `Daejeon matcher should include ${matcher}`);
+    assert.ok(registrySource.includes(`'${matcher}'`), `Daejeon registry source should keep ${matcher}`);
+  });
+
+  [
+    'data-testid="daejeon-block-search"',
+    'data-testid="daejeon-section-finder-empty"',
+    'data-testid={`daejeon-section-finder-item-${block.id}`}',
+    'data-block-code={block.blockCode}',
+    'data-official-section={block.officialSectionName}',
+    '검색어와 선택한 필터에 맞는 구역이 없습니다',
+    '검색어: {searchTerm.trim()}',
+  ].forEach((token) => {
+    assert.ok(daejeonSource.includes(token), `Daejeon finder contract should include ${token}`);
+  });
+
+  [
+    'function DaejeonExtraMeta',
+    'data-testid="daejeon-seatmap-extra-meta"',
+    'data-testid="daejeon-seatmap-coverage-status"',
+    'data-testid="daejeon-seatmap-trace-status"',
+    'data-testid="daejeon-seatmap-accessibility-note"',
+    '<InfoTile label="공식 섹션"',
+    '<InfoTile label="정확 블록"',
+    '<InfoTile label="부모 구역"',
+    '<InfoTile label="source confidence"',
+    'extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}',
+  ].forEach((token) => {
+    assert.ok(daejeonSource.includes(token), `Daejeon detail metadata contract should include ${token}`);
+  });
+
+  [
+    "{ id: 'table', label: '테이블석'",
+    "{ id: 'sky', label: '스카이박스'",
+    '`대전 한화생명볼파크 ${name}`',
+    '`한화생명 이글스파크 ${name}`',
+    '`대전 한화생명 이글스파크 ${name}`',
+    '`대전 한화생명볼파크 ${block}`',
+    '`한화생명 이글스파크 ${block}`',
+    '`대전 한화생명 이글스파크 ${block}`',
+    '`이글스파크 ${block}`',
+  ].forEach((token) => {
+    assert.ok(daejeonDataSource.includes(token), `Daejeon data contract should include ${token}`);
+  });
 });
 
 test('구장별 전용 좌석도 파일과 공식 asset은 런타임 계약에 맞게 존재한다', () => {
@@ -487,7 +547,7 @@ test('Suwon runtime contract 임포트는 좌표 fixture를 변경하지 않는�
   );
 });
 
-test('인천 전용 guide/quick-action 계약은 표준 좌석도에서 제거된 상태를 유지한다', () => {
+test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 유지한다', () => {
   const runtimeSource = readProjectFile('src/components/StadiumGuideRuntime.tsx');
   const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
   const incheonSvgSource = readProjectFile('src/components/incheon/IncheonSeatMapSvg.tsx');
@@ -509,12 +569,15 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도에서 제거�
     'IncheonFirstVisitGuide',
     'incheon-first-visit-guide',
     'incheon-guide-',
-    'guideMatchedBlockIds',
     'getIncheonGuideMatches',
+    'SeatMapSectionFinder',
     'mobileSecondaryPanel',
     'desktopSecondaryPanel',
-  ].forEach((removedToken) => {
-    assert.equal(incheonSource.includes(removedToken), false, `IncheonSeatMap should not include ${removedToken}`);
+    'setPendingDraft',
+    "stadium: 'INCHEON'",
+    "team: 'SSG'",
+  ].forEach((requiredToken) => {
+    assert.ok(incheonSource.includes(requiredToken), `IncheonSeatMap should include ${requiredToken}`);
   });
 
   [
@@ -527,11 +590,11 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도에서 제거�
 
   [
     'IncheonGuideIntent',
-    'IncheonBlockMatch',
+    'IncheonGuideMatch',
     'getIncheonGuideMatches',
-    'getIncheonGuideSearch',
-  ].forEach((removedToken) => {
-    assert.equal(incheonDataSource.includes(removedToken), false, `incheonSeatData should not include ${removedToken}`);
+    'getIncheonDecisionTags',
+  ].forEach((requiredToken) => {
+    assert.ok(incheonDataSource.includes(requiredToken), `incheonSeatData should include ${requiredToken}`);
   });
 
   [
@@ -540,11 +603,12 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도에서 제거�
     'SeatMapAttribution',
     'SeatMapDetailPanel',
     'SeatMapBottomSheet',
-    'IncheonUploadFlowModal',
     'fullscreenDialogTestId="incheon-seatmap-fullscreen"',
   ].forEach((requiredToken) => {
     assert.ok(incheonSource.includes(requiredToken), `IncheonSeatMap should keep standard UX token ${requiredToken}`);
   });
+
+  assert.equal(incheonSource.includes('IncheonUploadFlowModal'), false, 'IncheonSeatMap should remove the demo upload modal');
 });
 
 test('구장별 전용 좌석도는 시야/preview 연결 계약을 유지한다', () => {
@@ -648,7 +712,7 @@ test('구장별 전용 모바일 바텀시트 파일은 재도입하지 않는�
 });
 
 test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
-  const secondaryPanelPresetIds = new Set(['daegu', 'daejeon', 'sajik']);
+  const secondaryPanelPresetIds = new Set(['incheon', 'daegu', 'daejeon', 'gocheok', 'sajik']);
 
   STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
     const componentSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
@@ -666,15 +730,73 @@ test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
   const daejeonSource = readProjectFile('src/components/daejeon/DaejeonSeatMap.tsx');
   const sajikSource = readProjectFile('src/components/sajik/SajikSeatMap.tsx');
   const gocheokSource = readProjectFile('src/components/gocheok/GocheokSeatMap.tsx');
+  const gocheokFacilityGuideSource = readProjectFile('src/components/gocheok/GocheokFacilityGuide.tsx');
   const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
 
   assert.ok(daeguSource.includes('data-testid="daegu-section-finder"'), 'Daegu finder should remain the documented secondary panel exception');
   assert.ok(daejeonSource.includes('data-testid="daejeon-section-finder"'), 'Daejeon finder should remain the documented secondary panel exception');
   assert.ok(sajikSource.includes('data-testid="sajik-first-visit-guide"'), 'Sajik first-visit guide should remain the documented secondary panel exception');
+  assert.ok(gocheokSource.includes('SeatMapSectionFinder'), 'Gocheok should use the shared section finder');
+  assert.ok(gocheokSource.includes('testIdPrefix="gocheok"'), 'Gocheok section finder should keep its test id prefix');
+  assert.ok(gocheokSource.includes('mobileSecondaryPanel='), 'Gocheok should expose finder below the map on mobile');
+  assert.ok(gocheokSource.includes('desktopSecondaryPanel='), 'Gocheok should expose finder above the side panel on desktop');
+  assert.ok(gocheokSource.includes('getGocheokVisitHint'), 'Gocheok details should derive visit checks from static data');
+  assert.ok(gocheokSource.includes('renderVisitCheckMeta'), 'Gocheok details should render the visit check meta area');
+  assert.ok(gocheokSource.includes('data-testid="gocheok-visit-check"'), 'Gocheok visit check test id should stay stable');
+  assert.ok(gocheokSource.includes('activeFacilityTab'), 'Gocheok should hold the controlled facility tab state');
+  assert.ok(gocheokSource.includes('activeTab={activeFacilityTab}'), 'Gocheok should pass the selected facility tab to the guide');
+  assert.ok(gocheokSource.includes('onTabChange={setActiveFacilityTab}'), 'Gocheok should let the guide update the selected facility tab');
   assert.ok(gocheokSource.includes('GocheokFacilityGuide'), 'Gocheok facility mode should remain the documented auxiliary guide exception');
   assert.ok(gocheokSource.includes('isAuxiliaryGuideActive={!isSeatMapMode}'), 'Gocheok facility mode should use the shared auxiliary guide flag');
-  assert.equal(incheonSource.includes('mobileSecondaryPanel='), false, 'Incheon should not use mobile secondary guide slots');
-  assert.equal(incheonSource.includes('desktopSecondaryPanel='), false, 'Incheon should not use desktop secondary guide slots');
+  assert.ok(gocheokFacilityGuideSource.includes('activeTab: controlledActiveTab'), 'Gocheok facility guide should support a controlled tab prop');
+  assert.ok(gocheokFacilityGuideSource.includes('onTabChange'), 'Gocheok facility guide should notify parent tab changes');
+  assert.ok(gocheokFacilityGuideSource.includes('data-testid="gocheok-operator-data-required"'), 'Gocheok facility guide should surface operator data pending status');
+  assert.ok(incheonSource.includes('data-testid="incheon-first-visit-guide"'), 'Incheon first-visit guide should remain the documented secondary panel exception');
+  assert.ok(incheonSource.includes('testIdPrefix="incheon"'), 'Incheon section finder should keep its test id prefix');
+  assert.ok(incheonSource.includes('mobileSecondaryPanel={secondaryPanel}'), 'Incheon should expose guide and finder below the map on mobile');
+  assert.ok(incheonSource.includes('desktopSecondaryPanel={secondaryPanel}'), 'Incheon should expose guide and finder above the side panel on desktop');
+});
+
+test('고척 직관 UX Cypress spec은 기존 stadium-seatmap 회귀 파일에서 검증한다', () => {
+  const stadiumSeatmapSpec = readProjectFile('cypress/e2e/stadium-seatmap.cy.ts');
+
+  [
+    'Stadium SeatMap — Gocheok Visit UX',
+    'getGocheokPlaces',
+    'gocheok-block-search',
+    'gocheok-section-finder-item-gocheok-d04',
+    'gocheok-section-finder-item-gocheok-430',
+    'gocheok-visit-check',
+    'gocheok-facility-guide-open',
+    'gocheok-facility-tab-overview',
+    'gocheok-facility-tab-entrances',
+    'gocheok-operator-data-status',
+    'gocheok-seatmap-svg',
+  ].forEach((requiredText) => {
+    assert.ok(stadiumSeatmapSpec.includes(requiredText), `Stadium seatmap Cypress spec should include ${requiredText}`);
+  });
+});
+
+test('인천 직관 UX Cypress spec은 기존 stadium-seatmap 회귀 파일에서 검증한다', () => {
+  const stadiumSeatmapSpec = readProjectFile('cypress/e2e/stadium-seatmap.cy.ts');
+
+  [
+    'Stadium SeatMap — Incheon First Visit UX',
+    'selectIncheonBlock',
+    'incheon-first-visit-guide',
+    'incheon-section-finder',
+    'incheon-seatmap-detail-panel',
+    'incheon-block-search',
+    'incheon-section-finder-item-incheon-101b',
+    'incheon-guide-search',
+    'incheon-guide-result-incheon-101b',
+    'incheon-guide-result-incheon-accessible-9b',
+    '다이어리에서 시야 사진 공유하기',
+    'diary-draft-storage',
+    'pendingLoginRedirect',
+  ].forEach((requiredText) => {
+    assert.ok(stadiumSeatmapSpec.includes(requiredText), `Stadium seatmap Cypress spec should include ${requiredText}`);
+  });
 });
 
 test('대구 좌석도 release lock 문서는 classified row 계약을 고정한다', () => {
@@ -713,7 +835,8 @@ test('대구 좌석도 release lock 문서는 classified row 계약을 고정한
     'docs/daegu-seatmap-myseatcheck-reference-intake.md',
     'canonical 좌표를 대체하지 않는다',
     'npm run qa:stadium:daegu:release-lock',
-    'npm run stadium:daegu:visual-match-workset',
+    'npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10',
+    'npm run stadium:daegu:render-safety-audit',
     'npm run qa:stadium:daegu:full',
   ].forEach((requiredText) => {
     assert.ok(releaseLockSource.includes(requiredText), `Daegu release lock should include ${requiredText}`);
@@ -855,11 +978,19 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(gwangjuSvgSource.includes('<image'), 'Gwangju should render the official PNG inside the same SVG coordinate plane as hit areas');
   assert.ok(gwangjuSvgSource.includes('preserveAspectRatio="none"'), 'Gwangju official PNG should map directly to the 2200x1159 SVG coordinates');
   assert.ok(gwangjuSvgSource.includes('const strokeWidth = isActive ? (isSmallVisual ? 0.75 : 1.5) : 1'), 'Gwangju visual overlay stroke should not inflate small H/I/J/S blocks');
+  assert.ok(gwangjuSvgSource.includes('fillOpacity = showHitAreaDebug ? 0.08 : 0;'), 'Gwangju filtered source blocks should not render black dim overlays in normal seatmap mode');
+  assert.ok(gwangjuSvgSource.includes('fillOpacity={0}'), 'Gwangju invisible hit paths should not paint black rectangles in normal seatmap mode');
+  assert.equal(gwangjuSvgSource.includes("fill = mode === 'dark' ? '#020617' : '#1e293b'"), false, 'Gwangju filtered source blocks should stay invisible instead of painting dark rectangles');
   assert.ok(gwangjuSvgSource.includes("'k5-101'"), 'Gwangju lower infield 101~108 blocks should use the same small visual overlay cap as H/I/J');
   assert.ok(gwangjuSvgSource.includes("'k7-108'"), 'Gwangju lower infield 101~108 blocks should use the same small visual overlay cap as H/I/J');
-  assert.ok(gwangjuSvgSource.includes("'k9-116'"), 'Gwangju third-base lower infield 116~127 blocks should use the same small visual overlay cap');
-  assert.ok(gwangjuSvgSource.includes("'k5-127'"), 'Gwangju third-base lower infield 116~127 blocks should use the same small visual overlay cap');
-  assert.ok(gwangjuSvgSource.includes("'third-wheelchair-seats'"), 'Gwangju third-base alphabet blocks should use the same small visual overlay cap');
+  assert.ok(gwangjuSvgSource.includes("'k9-116'"), 'Gwangju third-base lower infield 116~125 blocks should use the same small visual overlay cap');
+  assert.ok(gwangjuSvgSource.includes("'k5-126'"), 'Gwangju restored 126 K5 should use the small visual overlay cap');
+  assert.ok(gwangjuSvgSource.includes("'k5-127'"), 'Gwangju restored 127 K5 should use the small visual overlay cap');
+  assert.ok(gwangjuSvgSource.includes('POLYGON_STROKE_HIDDEN_IDS'), 'Gwangju 121~127 polygon hit areas should hide always-on blue outlines');
+  assert.ok(gwangjuSvgSource.includes('const shouldHidePolygonStroke = POLYGON_STROKE_HIDDEN_IDS.has(block.id)'), 'Gwangju polygon stroke hiding should be block-scoped');
+  assert.ok(gwangjuSvgSource.includes('shouldHidePolygonStroke\n              ? 0'), 'Gwangju 121~127 blue outlines should stay hidden even while hover/click hit areas remain active');
+  assert.ok(gwangjuSvgSource.includes("'third-wheelchair-seats'"), 'Gwangju restored third-base I should use the small visual overlay cap');
+  assert.ok(gwangjuSvgSource.includes("'party-seats-third'"), 'Gwangju restored third-base J should use the small visual overlay cap');
   assert.ok(gwangjuSvgSource.includes("filter={isActive && !isSmallVisual ? 'url(#gwangju-hit-glow)' : undefined}"), 'Gwangju small H/I/J/S blocks should not render glow filters that inflate selected polygons');
   assert.ok(gwangjuSvgSource.includes('const showLabel = isActive && !isFiltered'), 'Gwangju debug overlay should not duplicate official PNG labels over every block');
   assert.equal(gwangjuSvgSource.includes('strokeWidth={isActive ? 4 : 2}'), false, 'Gwangju should not use thick active strokes that make small polygons look oversized');
@@ -871,7 +1002,7 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(stadiumUxAuditSource.includes('`${sweepGroup.filePrefix}-${suffix}.json`'), 'Gwangju browser QA should persist selected sweep JSON evidence for every sweep group');
   assert.ok(stadiumUxAuditSource.includes('`${sweepGroup.filePrefix}-${suffix}.md`'), 'Gwangju browser QA should persist selected sweep Markdown evidence for every sweep group');
   assert.ok(stadiumUxAuditSource.includes('`${sweepGroup.filePrefix}-${target.id}-${suffix}.png`'), 'Gwangju browser QA should persist per-target selected sweep crops for every sweep group');
-  assert.ok(stadiumUxAuditSource.includes('officialReferenceOverlayPath'), 'Gwangju browser QA should link official PNG reference overlays next to browser evidence');
+  assert.equal(stadiumUxAuditSource.includes('gwangju-seatmap-third-base-independent-audit-overlay.png'), false, 'Gwangju browser QA should not link deleted third-base legacy reference overlays');
   assert.ok(stadiumUxAuditSource.includes('STADIUM_UX_GWANGJU_EXPANDED_EVIDENCE'), 'Gwangju expanded selected sweep evidence should be gated separately from default trace-review');
   assert.ok(stadiumUxAuditSource.includes('STADIUM_UX_GWANGJU_SELECTED_SWEEP_ONLY'), 'Gwangju selected sweep evidence should support a browser evidence-only mode');
   assert.ok(stadiumUxAuditSource.includes('gwangjuThirdBaseSelectedSweepTargets'), 'Gwangju selected sweep should keep default and expanded third-base target sets separate');
@@ -879,23 +1010,24 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(stadiumUxAuditSource.includes('[data-testid="gwangju-bottom-sheet"]'), 'Gwangju selected evidence crops should target the mobile bottom sheet by test id');
   assert.ok(stadiumUxAuditSource.includes("'k5-104'"), 'Gwangju lower infield selected sweep should include 104 near H/I/J');
   assert.ok(stadiumUxAuditSource.includes("'k7-108'"), 'Gwangju lower infield selected sweep should include 108 near J/I/H');
-  assert.ok(stadiumUxAuditSource.includes("'k9-116'"), 'Gwangju third-base selected sweep should include 116 near A/B/C/G/H/I/J/K');
-  assert.ok(stadiumUxAuditSource.includes("'k7-121'"), 'Gwangju third-base selected sweep should include 121 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k7-122'"), 'Gwangju third-base selected sweep should include 122 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k8-123'"), 'Gwangju third-base selected sweep should include 123 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k5-124'"), 'Gwangju third-base selected sweep should include 124 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k5-125'"), 'Gwangju third-base selected sweep should include 125 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k5-126'"), 'Gwangju third-base selected sweep should include 126 near G/H/I/J');
-  assert.ok(stadiumUxAuditSource.includes("'k5-127'"), 'Gwangju third-base selected sweep should include 127 near A/B/C/G/H/I/J/K');
+  assert.ok(stadiumUxAuditSource.includes("'k9-116'"), 'Gwangju third-base selected sweep should include 116 near A/B/C/G/H/I/J/L');
+  assert.ok(stadiumUxAuditSource.includes("'k7-121'"), 'Gwangju third-base selected sweep should include restored 121');
+  assert.ok(stadiumUxAuditSource.includes("'k7-122'"), 'Gwangju third-base selected sweep should include restored 122');
+  assert.ok(stadiumUxAuditSource.includes("'k8-123'"), 'Gwangju third-base selected sweep should include restored 123');
+  assert.ok(stadiumUxAuditSource.includes("'k5-124'"), 'Gwangju third-base selected sweep should include restored 124');
+  assert.ok(stadiumUxAuditSource.includes("'k5-125'"), 'Gwangju third-base selected sweep should include restored 125');
+  assert.ok(stadiumUxAuditSource.includes("'k5-126'"), 'Gwangju third-base selected sweep should include restored 126');
+  assert.ok(stadiumUxAuditSource.includes("'k5-127'"), 'Gwangju third-base selected sweep should include restored 127');
   assert.ok(stadiumUxAuditSource.includes("'third-surprise-seats'"), 'Gwangju third-base selected sweep should include G');
   assert.ok(stadiumUxAuditSource.includes("'third-family-seats'"), 'Gwangju third-base selected sweep should include H');
-  assert.ok(stadiumUxAuditSource.includes("'third-wheelchair-seats'"), 'Gwangju third-base selected sweep should include I');
-  assert.ok(stadiumUxAuditSource.includes("'party-seats-third'"), 'Gwangju third-base selected sweep should include J');
+  assert.ok(stadiumUxAuditSource.includes("'third-wheelchair-seats'"), 'Gwangju third-base selected sweep should include restored I');
+  assert.ok(stadiumUxAuditSource.includes("'party-seats-third'"), 'Gwangju third-base selected sweep should include restored J');
+  assert.ok(stadiumUxAuditSource.includes("'sky-picnic-L'"), 'Gwangju third-base selected sweep should include restored L');
   assert.ok(stadiumUxAuditSource.includes("'sky-picnic-s-335'"), 'Gwangju third-base selected sweep should include S-335');
   assert.ok(stadiumUxAuditSource.includes("'five-table-533'"), 'Gwangju third-base selected sweep should include 533');
   assert.ok(stadiumUxAuditSource.includes("'five-table-534'"), 'Gwangju third-base selected sweep should include 534');
   assert.ok(stadiumUxAuditSource.includes("'five-table-535'"), 'Gwangju third-base selected sweep should include 535');
-  assert.ok(stadiumUxAuditSource.includes("'skybox-seats'"), 'Gwangju third-base selected sweep should include K');
+  assert.equal(stadiumUxAuditSource.includes("'skybox-seats'"), false, 'Gwangju third-base selected sweep should not include removed K/skybox');
 });
 
 test('창원 trace review 스크립트는 117개 숫자 블록과 특수 선택 구역 검수 산출물을 고정한다', () => {
@@ -1554,60 +1686,33 @@ test('사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정
   });
 
   [
-    '"stadium:sajik:evidence": "node scripts/stadium-seatmap-ops.mjs sajik evidence"',
-    '"stadium:sajik:advisory-playwright": "node scripts/stadium-seatmap-ops.mjs sajik advisory-playwright"',
-    '"stadium:sajik:hitpath-review": "node --import tsx scripts/sajik-seatmap-hitpath-candidate-review.mjs"',
-    '"stadium:sajik:zone-precision-worksets": "npm run stadium:sajik:hitpath-review && node --import tsx scripts/sajik-seatmap-zone-precision-worksets.mjs"',
-    '"stadium:sajik:stage01-operator-package": "node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-package"',
-    '"stadium:sajik:stage01-operator-input-aid": "node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-input-aid"',
-    '"stadium:sajik:stage01-review-board": "node scripts/stadium-seatmap-ops.mjs sajik stage01-review-board"',
-    '"stadium:sajik:stage01-next-action-packet": "node scripts/stadium-seatmap-ops.mjs sajik stage01-next-action-packet"',
-    '"stadium:sajik:stage01-target-review-packet": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-review-packet"',
-    '"stadium:sajik:stage01-target-image-analysis-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-image-analysis-smoke"',
-    '"stadium:sajik:stage01-all-target-review-packets": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-review-packets"',
-    '"stadium:sajik:stage01-all-target-image-analysis-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-image-analysis-smoke"',
-    '"stadium:sajik:stage01-target-entry-template-readiness-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-template-readiness-smoke"',
-    '"stadium:sajik:stage01-target-entry-preflight": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-preflight"',
-    '"stadium:sajik:stage01-target-entry-preflight-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-preflight-smoke"',
-    '"stadium:sajik:stage01-target-approval-gate": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-approval-gate"',
-    '"stadium:sajik:stage01-target-approval-gate-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-approval-gate-smoke"',
-    '"stadium:sajik:stage01-all-target-approval-readiness": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-readiness"',
-    '"stadium:sajik:stage01-all-target-approval-readiness-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-readiness-smoke"',
-    '"stadium:sajik:stage01-all-target-approval-input-guide": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-input-guide"',
-    '"stadium:sajik:stage01-all-target-approval-input-guide-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-input-guide-smoke"',
-    '"stadium:sajik:stage01-operator-input-intake-gate": "node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-input-intake-gate"',
-    '"stadium:sajik:stage01-operator-input-intake-gate-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-input-intake-gate-smoke"',
-    '"stadium:sajik:stage01-prewrite": "node scripts/stadium-seatmap-ops.mjs sajik stage01-prewrite"',
-    '"stadium:sajik:stage01-apply-ready": "node scripts/stadium-seatmap-ops.mjs sajik stage01-apply-ready"',
-    '"stadium:sajik:stage01-post-apply-audit": "node scripts/stadium-seatmap-ops.mjs sajik stage01-post-apply-audit"',
-    '"stadium:sajik:stage01-operator-status": "node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-status"',
-    '"stadium:sajik:stage01-manual-patch-plan": "node scripts/stadium-seatmap-ops.mjs sajik stage01-manual-patch-plan"',
-    '"stadium:sajik:stage01-real-approval-readiness": "node scripts/stadium-seatmap-ops.mjs sajik stage01-real-approval-readiness"',
-    '"stadium:sajik:stage01-target-apply-precheck": "node scripts/stadium-seatmap-ops.mjs sajik stage01-target-apply-precheck"',
-    '"stadium:sajik:stage01-131-apply-path-status": "node scripts/stadium-seatmap-ops.mjs sajik stage01-131-apply-path-status"',
-    '"stadium:sajik:stage01-prewrite-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-prewrite-smoke"',
-    '"stadium:sajik:stage01-approved-dry-run": "node scripts/stadium-seatmap-ops.mjs sajik stage01-approved-dry-run"',
-    '"stadium:sajik:stage01-applied-dry-run": "node scripts/stadium-seatmap-ops.mjs sajik stage01-applied-dry-run"',
-    '"stadium:sajik:stage01-131-lifecycle-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-131-lifecycle-smoke"',
-    '"stadium:sajik:stage01-readiness-summary": "node scripts/stadium-seatmap-ops.mjs sajik stage01-readiness-summary"',
-    '"stadium:sajik:stage01-readiness-summary-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-readiness-summary-smoke"',
-    '"stadium:sajik:stage01-completion-gate": "node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate"',
-    '"stadium:sajik:stage01-completion-gate:complete": "node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate:complete"',
-    '"stadium:sajik:stage01-completion-gate-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate-smoke"',
-    '"stadium:sajik:stage01-staged-scope-audit": "node scripts/stadium-seatmap-ops.mjs sajik stage01-staged-scope-audit"',
-    '"stadium:sajik:stage01-staged-scope-audit:complete": "node scripts/stadium-seatmap-ops.mjs sajik stage01-staged-scope-audit:complete"',
-    '"stadium:sajik:stage01-staged-scope-audit-smoke": "node scripts/stadium-seatmap-ops.mjs sajik stage01-staged-scope-audit-smoke"',
-    '"qa:stadium:sajik:stage01-readiness": "npm run stadium:sajik:stage01-real-approval-readiness && npm run stadium:sajik:stage01-target-apply-precheck && npm run stadium:sajik:stage01-prewrite-smoke && npm run stadium:sajik:stage01-approved-dry-run && npm run stadium:sajik:stage01-applied-dry-run && npm run stadium:sajik:stage01-131-lifecycle-smoke && npm run stadium:sajik:stage01-131-apply-path-status && node --import tsx --test --test-name-pattern \\"사직|Sajik\\" src/components/StadiumGuideRuntimeSeatMaps.test.ts && npm run stadium:sajik:stage01-review-board && npm run stadium:sajik:stage01-next-action-packet && npm run stadium:sajik:stage01-target-review-packet && npm run stadium:sajik:stage01-target-image-analysis-smoke && npm run stadium:sajik:stage01-all-target-review-packets && npm run stadium:sajik:stage01-all-target-image-analysis-smoke && npm run stadium:sajik:stage01-target-entry-template-readiness-smoke && npm run stadium:sajik:stage01-target-entry-preflight && npm run stadium:sajik:stage01-target-entry-preflight-smoke && npm run stadium:sajik:stage01-target-approval-gate && npm run stadium:sajik:stage01-target-approval-gate-smoke && npm run stadium:sajik:stage01-all-target-approval-readiness && npm run stadium:sajik:stage01-all-target-approval-readiness-smoke && npm run stadium:sajik:stage01-all-target-approval-input-guide && npm run stadium:sajik:stage01-all-target-approval-input-guide-smoke && npm run stadium:sajik:stage01-operator-input-intake-gate && npm run stadium:sajik:stage01-operator-input-intake-gate-smoke && npm run stadium:sajik:stage01-target-apply-precheck && npm run stadium:sajik:stage01-131-apply-path-status && npm run stadium:sajik:stage01-readiness-summary && npm run stadium:sajik:stage01-readiness-summary-smoke && npm run stadium:sajik:stage01-completion-gate && npm run stadium:sajik:stage01-completion-gate-smoke && npm run stadium:sajik:stage01-staged-scope-audit-smoke"',
+    '"stadium:sajik:pixel-components": "node scripts/stadium-seatmap-ops.mjs sajik pixel-components"',
+    '"stadium:sajik:alignment-audit": "node scripts/stadium-seatmap-ops.mjs sajik alignment-audit"',
+    '"stadium:sajik:trace-manifest": "node scripts/stadium-seatmap-ops.mjs sajik trace-manifest"',
+    '"stadium:sajik:dataset-export": "node --import tsx scripts/sajik-seatmap-export-dataset.mjs"',
+    '"stadium:sajik:source-audit": "node scripts/sajik-seatmap-source-audit.mjs"',
+    '"stadium:sajik:block-source-duplication-audit": "node scripts/stadium-seatmap-ops.mjs sajik block-source-duplication-audit"',
+    '"stadium:sajik:editor-regression": "node scripts/stadium-seatmap-ops.mjs sajik editor-regression"',
     '"stadium:sajik:marker-transition-review": "node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review"',
     '"stadium:sajik:pr-scope-guard": "node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard"',
-    '"stadium:sajik:stage01-pr-scope-guard": "node scripts/stadium-seatmap-ops.mjs sajik stage01-pr-scope-guard"',
     '"stadium:sajik:pr-scope-guard-smoke": "node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke"',
-    '"stadium:sajik:block-source-duplication-audit": "node scripts/stadium-seatmap-ops.mjs sajik block-source-duplication-audit"',
-    '"qa:stadium:sajik:trace-review": "node scripts/stadium-seatmap-ops.mjs sajik trace-review"',
-    '"qa:stadium:sajik:polygon-v2": "npm run stadium:sajik:block-source-duplication-audit && npm run stadium:sajik:dataset-export -- --check && npm run stadium:sajik:alignment-audit && npm run stadium:sajik:evidence && npm run stadium:sajik:hitpath-review && npm run stadium:sajik:zone-precision-worksets && npm run stadium:sajik:stage01-operator-input-aid && npm run stadium:sajik:stage01-review-board && npm run stadium:sajik:stage01-next-action-packet && npm run stadium:sajik:stage01-target-review-packet && npm run stadium:sajik:stage01-target-image-analysis-smoke && npm run stadium:sajik:stage01-all-target-review-packets && npm run stadium:sajik:stage01-all-target-image-analysis-smoke && npm run stadium:sajik:stage01-target-entry-template-readiness-smoke && npm run stadium:sajik:stage01-target-entry-preflight && npm run stadium:sajik:stage01-target-entry-preflight-smoke && npm run stadium:sajik:stage01-target-approval-gate && npm run stadium:sajik:stage01-target-approval-gate-smoke && npm run stadium:sajik:stage01-all-target-approval-readiness && npm run stadium:sajik:stage01-all-target-approval-readiness-smoke && npm run stadium:sajik:stage01-all-target-approval-input-guide && npm run stadium:sajik:stage01-all-target-approval-input-guide-smoke && npm run stadium:sajik:stage01-operator-input-intake-gate && npm run stadium:sajik:stage01-operator-input-intake-gate-smoke && npm run stadium:sajik:stage01-prewrite && npm run stadium:sajik:stage01-apply-ready && npm run stadium:sajik:stage01-post-apply-audit && npm run stadium:sajik:stage01-operator-status && npm run stadium:sajik:stage01-manual-patch-plan && npm run stadium:sajik:stage01-real-approval-readiness && npm run stadium:sajik:stage01-target-apply-precheck && npm run stadium:sajik:stage01-prewrite-smoke && npm run stadium:sajik:stage01-approved-dry-run && npm run stadium:sajik:stage01-applied-dry-run && npm run stadium:sajik:stage01-131-lifecycle-smoke && npm run stadium:sajik:stage01-131-apply-path-status && npm run stadium:sajik:stage01-readiness-summary && npm run stadium:sajik:stage01-readiness-summary-smoke && npm run stadium:sajik:stage01-completion-gate && npm run stadium:sajik:stage01-completion-gate-smoke && npm run stadium:sajik:stage01-staged-scope-audit-smoke && npm run stadium:sajik:marker-transition-review && node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts && node --import tsx --test --test-name-pattern \\"사직|Sajik\\" src/components/StadiumGuideRuntimeSeatMaps.test.ts && npm run stadium:sajik:editor-regression && npm run stadium:sajik:pr-scope-guard && npm run stadium:sajik:pr-scope-guard-smoke && npm run build"',
     '"qa:stadium:sajik:full": "node scripts/stadium-seatmap-ops.mjs sajik full"',
+    '"qa:stadium:sajik:release-lock": "node scripts/stadium-seatmap-ops.mjs sajik release-lock"',
+    '"qa:stadium:sajik:mobile": "node scripts/stadium-seatmap-ops.mjs sajik mobile"',
+    '"stadium:sajik:status": "node scripts/stadium-seatmap-ops.mjs sajik status"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
+  });
+
+  [
+    '"stadium:sajik:stage01-',
+    '"qa:stadium:sajik:stage01-',
+    '"stadium:sajik:operator-reference-',
+    '"qa:stadium:sajik:operator-reference-',
+    '"qa:stadium:sajik:polygon-v2"',
+    '"qa:stadium:sajik:trace-review"',
+  ].forEach((removedText) => {
+    assert.ok(!packageSource.includes(removedText), `package script should not expose historical Sajik command ${removedText}`);
   });
 
   [
@@ -4193,6 +4298,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   const operatorWriteGuardSource = operatorIntakeWriteOpsSource;
   const pixelComponentSource = coreQaSource;
   const evidenceWorksetOpsSource = readProjectFile('scripts/gwangju-seatmap-evidence-workset-ops.mjs');
+  const artifactScopeAuditSource = readProjectFile('scripts/gwangju-seatmap-artifact-scope-audit.mjs');
   const imageTraceCandidateSource = evidenceWorksetOpsSource;
   const lowMarginCandidateSource = evidenceWorksetOpsSource;
   const operatorRunbookSource = readProjectFile('docs/gwangju-seatmap-operator-runbook.md');
@@ -4214,6 +4320,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(packageSource.includes('"stadium:gwangju:pixel-components"'));
   assert.ok(packageSource.includes('"stadium:gwangju:image-trace-candidates"'));
   assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju image-trace-candidates'));
+  assert.ok(packageSource.includes('"stadium:gwangju:artifact-scope-audit"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju artifact-scope-audit'));
   assert.ok(packageSource.includes('"stadium:gwangju:trace-manifest"'));
   assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-template"'));
@@ -4222,6 +4330,13 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(packageSource.includes('"stadium:gwangju:operator-template:apply-plan"'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-template:apply-plan:require-ready"'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-template:gate"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-dataset"'));
+  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju precision-editor-dataset'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-patch:validate"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-patch:apply-plan"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-patch:gate"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-patch:write-guard"'));
+  assert.ok(packageSource.includes('"stadium:gwangju:precision-editor-patch:postwrite-gate"'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-handoff"'));
   assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju operator-handoff'));
   assert.ok(packageSource.includes('"stadium:gwangju:operator-status"'));
@@ -4262,7 +4377,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju selected-sweep'));
   assert.ok(packageSource.includes('"test:stadium:gwangju:seatmaps"'));
   assert.ok(packageSource.includes('--test-name-pattern \\"광주|Gwangju\\"'));
-  assert.ok(packageSource.includes('src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/gwangjuSeatData.test.ts'));
+  assert.ok(packageSource.includes('src/components/StadiumGuideRuntimeSeatMaps.test.ts src/components/gwangju/GwangjuSeatMapEditor.test.tsx src/data/gwangjuSeatData.test.ts'));
   assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
   assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju zone-precision-worksets'));
   assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
@@ -4275,6 +4390,28 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1'"));
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_EXPANDED_EVIDENCE: '1'"));
   assert.ok(runnerSource.includes("STADIUM_UX_GWANGJU_SELECTED_SWEEP_ONLY: '1'"));
+  assert.ok(auditSource.includes('selectedSweepStatus'));
+  assert.ok(auditSource.includes('selectedSweepBlockers'));
+  assert.ok(auditSource.includes('SELECTED_SWEEP_TARGET_NOT_SELECTED'));
+  assert.ok(auditSource.includes('SELECTED_SWEEP_MISSING_VISUAL_PATH'));
+  assert.ok(evidenceWorksetOpsSource.includes('FORBIDDEN_RELEASE_ARTIFACT_PATTERNS'));
+  assert.ok(evidenceWorksetOpsSource.includes('FORBIDDEN_RELEASE_ARTIFACT'));
+  assert.ok(evidenceWorksetOpsSource.includes('gwangju-seatmap-artifact-scope-audit.json'));
+  assert.ok(evidenceWorksetOpsSource.includes('ARTIFACT_SCOPE_NOT_PASSED'));
+  assert.ok(artifactScopeAuditSource.includes('GWANGJU_ARTIFACT_SCOPE_AUDIT_V1'));
+  assert.ok(artifactScopeAuditSource.includes('gwangju-seatmap-artifact-scope-audit.json'));
+  assert.ok(artifactScopeAuditSource.includes('_archive/gwangju-legacy-candidates'));
+  assert.ok(artifactScopeAuditSource.includes('archive-manifest.json'));
+  assert.ok(artifactScopeAuditSource.includes('legacy-third-base-retrace'));
+  assert.ok(artifactScopeAuditSource.includes('legacy-third-base-independent-audit'));
+  assert.ok(artifactScopeAuditSource.includes('LEGACY_DELETED_BLOCK_ID_IN_ACTIVE_THIRD_BASE_ARTIFACT'));
+  assert.equal(evidenceWorksetOpsSource.includes('gwangju-v99-visual-baseline'), false);
+  assert.equal(evidenceWorksetOpsSource.includes('VERSIONED_GWANGJU_VISUAL_BASELINE_ARCHIVE_ONLY'), false);
+  assert.equal(evidenceWorksetOpsSource.includes('gwangju*-v[0-9]*'), false);
+  assert.equal(evidenceWorksetOpsSource.includes('VERSIONED_GWANGJU_ARTIFACT_ARCHIVE_ONLY'), false);
+  assert.equal(evidenceWorksetOpsSource.includes('gwangju*visual-hit-split*'), false);
+  assert.equal(evidenceWorksetOpsSource.includes('VISUAL_HIT_SPLIT_AUDIT_ARCHIVE_ONLY'), false);
+  assert.ok(evidenceWorksetOpsSource.includes('forbiddenReleaseArtifactCount'));
   assert.ok(runnerSource.includes("modeToken === 'EVIDENCE'"));
   assert.ok(runnerSource.includes("mode === 'evidence'"));
   assert.ok(pixelComponentSource.includes('gwangju-seatmap-pixel-components.json'));
@@ -4465,7 +4602,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseGateSource.includes("requiredOperatorStatus: 'ready'"));
   assert.ok(releaseGateSource.includes("requiredBrowserQaStatus: 'passed'"));
   assert.ok(releaseGateSource.includes("requiredRuntimeLayerAuditStatus: 'passed'"));
-  assert.ok(releaseGateSource.includes('requiredActiveTraceBlocks: 113'));
+  assert.ok(releaseGateSource.includes('requiredActiveTraceBlocks: GWANGJU_EXPECTED_TRACE_BLOCK_COUNT'));
   assert.ok(releaseGateSource.includes('completedSteps'));
   assert.ok(releaseGateSource.includes('totalSteps'));
   assert.ok(releaseGateSource.includes("['check', 'expected', 'actual']"));
@@ -4533,17 +4670,17 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseAuditSource.includes('missingExpectedSeparateDirtyWorkCount'));
   assert.ok(releaseAuditSource.includes('classifiedSeparateDirtyWorkExpansionAllowed'));
   assert.ok(releaseAuditSource.includes('classifiedAdditionalSeparateDirtyWorkCount'));
-  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=17'));
+  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=31'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true'));
   assert.ok(releaseAuditSource.includes('PR Packaging Manifest'));
-  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=17'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=31'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.separateDirtyWorkFileCount='));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.unexpectedDirtyFileCount=0'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.inventoryDriftCount=0'));
   assert.ok(releaseAuditSource.includes('Patch Separation Readiness'));
   assert.ok(releaseAuditSource.includes('patchSeparationReadiness.status=ready-or-review-required'));
-  assert.ok(releaseAuditSource.includes('stagedScopeAudit.expectedTargetFileCount=17'));
+  assert.ok(releaseAuditSource.includes('stagedScopeAudit.expectedTargetFileCount=31'));
   assert.ok(releaseAuditSource.includes('STAGED_SCOPE_AUDIT_OUTSIDE_TARGETS_PRESENT'));
   assert.ok(releaseAuditSource.includes('STAGED_SCOPE_AUDIT_SEPARATE_DIRTY_WORK_PRESENT'));
   assert.ok(releaseAuditSource.includes('clean release payload files are not packaging blockers'));
@@ -4561,8 +4698,9 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-operator-intake-write-ops.mjs'));
   assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-release-staging-ops.mjs'));
   assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-core-qa.mjs'));
-  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-release-staging-ops.mjs'));
-  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-release-staging-ops.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-artifact-scope-audit.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('scripts/gwangju-seatmap-block-source-duplication-audit.mjs'));
+  assert.ok(releaseScopeGuardSource.includes('src/components/gwangju/GwangjuSeatMapSvg.tsx'));
   assert.ok(releaseScopeGuardSource.includes('src/components/MateResultsRuntime.tsx'));
   assert.ok(releaseScopeGuardSource.includes('src/components/ChatBotFloatingButton.tsx'));
   assert.ok(releaseScopeGuardSource.includes('src/components/ChatBotRuntime.tsx'));
@@ -4595,8 +4733,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('PR staging plan'));
   assert.ok(releaseScopeGuardSource.includes('stagingPlan.status=ready-or-review-required'));
   assert.ok(releaseScopeGuardSource.includes('stagingPlan.doesNotRunGitAdd=true'));
-  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=17'));
-  assert.ok(releaseScopeGuardSource.includes('stagedScopeAudit.expectedTargetFileCount=17'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=31'));
+  assert.ok(releaseScopeGuardSource.includes('stagedScopeAudit.expectedTargetFileCount=31'));
   assert.ok(releaseScopeGuardSource.includes('Release Candidate Inventory'));
   assert.ok(releaseScopeGuardSource.includes('Expected Included Release Files'));
   assert.ok(releaseScopeGuardSource.includes('Separate Workstream Baseline'));
@@ -4619,7 +4757,6 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('suwon-files'));
   assert.ok(releaseScopeGuardSource.includes('cross-stadium-utilities'));
   assert.ok(releaseScopeGuardSource.includes('src/components/AppRoutes.tsx'));
-  assert.ok(releaseScopeGuardSource.includes('scripts/daegu-seatmap-p1-operator-boundary.mjs'));
   assert.ok(releaseScopeGuardSource.includes('operator-provided official PNG coordinates only'));
   assert.ok(releaseScopeGuardSource.includes('browser CSS pixels'));
   assert.ok(releaseScopeGuardSource.includes('web-search-based baseball data'));
@@ -4650,11 +4787,11 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(prStagingPlanSource.includes('stagingPlan.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.safeToRunBulkGitAdd=false'));
   assert.ok(prStagingPlanSource.includes("stagingPlan.packageJsonStatus=${packageMixedStatus ?? 'none'}"));
-  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=17'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=31'));
   assert.ok(prStagingPlanSource.includes('stagingReview.status=ready-or-review-required'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.safeToRunBulkGitAdd=false'));
-  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=17'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=31'));
   assert.ok(prStagingPlanSource.includes('stagingReview.recommendsOnlyIncludedFiles=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRecommendSeparateDirtyWork=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}'));
@@ -4780,7 +4917,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
     'coordinate system: `2200x1159`',
     'active block count: `113`',
     'aggregate hit-area mode: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY`',
-    'K7/AWAY active block target `113` is enabled through official numbered-block aggregate geometry.',
+    'K7/AWAY aggregate hit-areas are enabled within the current `113` active block release through official numbered-block aggregate geometry.',
     'release gate status: `passed`',
     'release gate blockers: `0`',
     'release gate steps: `5/5`',
@@ -4872,9 +5009,9 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`OFFICIAL_IMAGE_PIXEL_TRACE`',
     '`OFFICIAL_IMAGE_TRACED`',
     '`PIXEL_ALIGNED`',
-    '`manual-polygon-v96`',
-    '`manual-polygon-v95`',
-    '`FULL_ACTIVE_111_RETRACE`',
+    '`gwangju-precision-v1`',
+    '`manual-polygon-v113`',
+    '`GWANGJU_PRECISION_V1`',
     '`activeBlocks=113`',
     '`GWANGJU_BASE_TRACE_BLOCK_COUNT === 111`',
     '`GWANGJU_EXPECTED_TRACE_BLOCK_COUNT === 113`',
@@ -4884,7 +5021,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`pixelAlignedBlocks=113`',
     '`fullRetracedBlocks=113`',
     '`blocksChangedFromPreviousTrace=113`',
-    '`totalRetracePointDelta=7184`',
+    '`totalRetracePointDelta=7222`',
     '`overlapWarnings=0`',
     '`minimumPixelCoverageRatio=1.0000`',
     '`componentCoverageWarnings=0`',
@@ -4912,7 +5049,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '현재 release 기준은 active 113개이다.',
     '`home-k7-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
     '`away-cheering-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
-    'K7/AWAY aggregate hit-area는 공식 PNG `2200x1159` 기준 기존 번호 블럭 subpath만 합성한다.',
+    'K7/AWAY aggregate hit-area는 공식 PNG `2200x1159` 기준 검수 완료 번호 블럭 subpath만 합성한다.',
     'active block 기준은 `111`에서 `113`으로 전환되어 있다.',
     'O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 공식 색상 영역 내부에 있을 때 통과할 수 있으므로',
     '최소 공식 component recall: `0.78`',
@@ -4962,12 +5099,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`derivedRanges=3`',
     '`status=passed`',
     '`steps=5/5`',
-    '`included=17`',
+    '`included=31`',
     '`separate=<runtime>`',
     '`unexpected=0`',
     '`inventoryDrift=0`',
     '`scopeGuardStatus=passed`',
-    '`scopeGuardIncludedFiles=17`',
+    '`scopeGuardIncludedFiles=31`',
     '`scopeGuardSeparateDirtyWorkFiles=<runtime>`',
     '`scopeGuardSeparateDirtyWorkBaselineFiles=74`',
     '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
@@ -4983,21 +5120,21 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'release-gate -> targeted-staging -> staged-scope-audit -> release-audit',
     '`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다.',
     'release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.',
-    'PR packaging manifest가 광주 release 후보 17개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
-    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=17`, `actualIncludedFileCount=17`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
+    'PR packaging manifest가 광주 release 후보 31개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
+    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=31`, `actualIncludedFileCount=31`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
     'release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=74`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.',
-    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=17`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
+    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=31`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
     'release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.',
     'patch separation readiness가 release payload files have unreviewed mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.',
-    'PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=17`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
-    'PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=17`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
-    'targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=17`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=4` 계약을 잃는다.',
+    'PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=31`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
+    'PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=31`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
+    'targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=31`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=6` 계약을 잃는다.',
     'targeted staging report가 separate dirty work를 staging 대상으로 추천하거나 `git add .`, `git add -A`, `git commit -am`을 허용한다.',
-    'staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=17`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.',
+    'staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=31`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.',
     'staged scope audit가 targeted staging 파일 외 staged 파일이나 separate dirty work staged 파일을 허용한다.',
-    'commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 17-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.',
+    'commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 31-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.',
     'commit-readiness가 모든 targeted file staged 이후 `stagedScopeAudit.requireComplete=true`, `stagedScopeAudit.missingStagedTargetFileCount=0`, `readyForCommit=true` 계약을 고정하지 못한다.',
-    '`prPackagingManifest.releasePayloadFileCount=17`',
+    '`prPackagingManifest.releasePayloadFileCount=31`',
     '`prPackagingManifest.separateDirtyWorkFileCount=<runtime>`',
     '`prPackagingManifest.unexpectedDirtyFileCount=0`',
     '`prPackagingManifest.inventoryDriftCount=0`',
@@ -5009,7 +5146,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=17',
+    'stagingReview.releasePayloadFileCount=31',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
     '## 남은 작업',
@@ -5025,8 +5162,9 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
 
   [
     "export const GWANGJU_OPERATOR_BLOCK_RANGE_REUSES_EXISTING_TRACE = true",
-    "export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v95'",
-    "export const GWANGJU_FULL_RETRACE_VERSION = 'manual-polygon-v96'",
+    "export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v113'",
+    "export const GWANGJU_FULL_RETRACE_VERSION = 'gwangju-precision-v1'",
+    "export const GWANGJU_FULL_RETRACE_GENERATION: GwangjuTraceGeneration = 'GWANGJU_PRECISION_V1'",
     'export const GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES',
     'export const GWANGJU_ZONE_PRECISION_WORKSETS',
     "'p1-op-outfield-component'",
@@ -5108,13 +5246,13 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
   });
 
   [
-    'K7석`은 `107~111`, `118~122`',
-    '`원정응원석`은 `107~110`',
+    '`K7석`: `107~111`, `118~122`',
+    '`원정응원석`: `107~110`',
     '`홈 응원석`: `118~122`',
     '선택된 파생 필터는 `displayBlocks` 요약을 표시한다',
     '현재 production data는 이 공식 번호 블럭 polygon을 multi-subpath aggregate로 묶어 `home-k7-seats`, `away-cheering-seats` filter 전용 hit-area를 제공하므로 active block 수는 `113`이다.',
     '현재 최종 trace 기준은 기본 111개 + 공식 derived aggregate 2개, 총 active 113개이다.',
-    '기존 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다.',
+    '공식 PNG 검수 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다.',
     '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
     'non-overlap 구역만 별도 operator target',
     'npm run stadium:gwangju:release-package',
@@ -5155,7 +5293,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'runtime layer audit status: `passed`',
     'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
     'release scope guard status: `passed`',
-    'release scope guard included release files: `17`',
+    'release scope guard included release files: `31`',
     'release scope guard dirty files: runtime classified count',
     'release scope guard dirty included release files: runtime classified count',
     'release scope guard separate dirty work files: runtime classified count',
@@ -5170,12 +5308,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'PR staging plan does not run git add: `true`',
     'PR staging plan bulk git add allowed: `false`',
     'staged scope audit require complete: `false`',
-    'staged scope audit missing staged target files: `17` before explicit staging',
+    'staged scope audit missing staged target files: `31` before explicit staging',
     'commit readiness before explicit staging: `blocked expected`',
-    'commit readiness after explicit 17-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`',
+    'commit readiness after explicit 31-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`',
     '`release-verify` runs `release-gate -> targeted-staging -> staged-scope-audit -> release-audit`.',
     '`releaseScopeGuardStatus=passed`',
-    '`releaseScopeGuardIncludedFiles=17`',
+    '`releaseScopeGuardIncludedFiles=31`',
     '`releaseScopeGuardDirtyFiles=runtime`',
     '`releaseScopeGuardDirtyIncludedFiles=runtime`',
     '`releaseScopeGuardSeparateDirtyWorkFiles=runtime`',
@@ -5190,7 +5328,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`stagingPlanDoesNotRunGitAdd=true`',
     '`stagingPlanSafeToRunBulkGitAdd=false`',
     '`stagedScopeAuditRequireComplete=false`',
-    '`stagedScopeAuditMissingTargetFiles=17-before-staging`',
+    '`stagedScopeAuditMissingTargetFiles=31-before-staging`',
     'gwangju-seatmap-release-scope-guard.json',
     'gwangju-seatmap-release-scope-guard.md',
     'gwangju-seatmap-runtime-layer-audit.json',
@@ -5217,16 +5355,16 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
     'Release PR scope: Gwangju official derived aggregate release package and build verification reports.',
     'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-    'Included release candidate files: `17`',
+    'Included release candidate files: `31`',
     'Separate dirty work files: runtime classified count',
     'Separate dirty work baseline files: `74`',
     'Classified separate dirty work expansion allowed: `true`',
     'Inventory drift: `0`',
-    'releaseCandidateInventory.expectedIncludedFileCount=17',
+    'releaseCandidateInventory.expectedIncludedFileCount=31',
     'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74',
     'actualSeparateDirtyWorkCount=<runtime>',
     'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'prPackagingManifest.releasePayloadFileCount=17',
+    'prPackagingManifest.releasePayloadFileCount=31',
     'prPackagingManifest.separateDirtyWorkFileCount=<runtime>',
     'prPackagingManifest.unexpectedDirtyFileCount=0',
     'prPackagingManifest.inventoryDriftCount=0',
@@ -5239,12 +5377,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'stagingPlan.status=ready-or-review-required',
     'stagingPlan.doesNotRunGitAdd=true',
     'stagingPlan.safeToRunBulkGitAdd=false',
-    'stagingPlan.releasePayloadFileCount=17',
+    'stagingPlan.releasePayloadFileCount=31',
     'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=17',
+    'stagingReview.releasePayloadFileCount=31',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
     'Targeted Staging Report',
@@ -5253,8 +5391,8 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'targetedStaging.safeToRunBulkGitAdd=false',
     'targetedStaging.recommendsOnlyIncludedFiles=true',
     'targetedStaging.doesNotRecommendSeparateDirtyWork=true',
-    'targetedStaging.targetFileCount=17',
-    'targetedStaging.reviewedUntrackedSatisfiedFileCount=4',
+    'targetedStaging.targetFileCount=31',
+    'targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
     'Staged Scope Audit',
     'stagedScopeAudit.status=ready',
     'stagedScopeAudit.requireComplete=false',
@@ -5262,13 +5400,13 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'stagedScopeAudit.safeToRunBulkGitAdd=false',
     'stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
     'stagedScopeAudit.blocksSeparateDirtyWork=true',
-    'stagedScopeAudit.expectedTargetFileCount=17',
+    'stagedScopeAudit.expectedTargetFileCount=31',
     'stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count> before explicit staging',
     'stagedScopeAudit.stagedOutsideTargetFileCount=0',
     'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
     'strict commit-readiness mode: `npm run stadium:gwangju:commit-readiness`',
     'strict commit-readiness adds `--require-complete` and blocks with `STAGED_TARGET_FILE_MISSING` until all dirty targeted release files are staged.',
-    'Run `npm run stadium:gwangju:pre-pr-final-gate` before staging. Run `npm run stadium:gwangju:commit-readiness` only after explicit `git add -- <17 target files>`.',
+    'Run `npm run stadium:gwangju:pre-pr-final-gate` before staging. Run `npm run stadium:gwangju:commit-readiness` only after explicit `git add -- <31 target files>`.',
     'explicit-file-list-only',
     'Review focus files: `package.json`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `src/components/ChatBotFloatingButton.tsx`, `src/components/ChatBotRuntime.tsx`, `src/components/MateResultsRuntime.tsx`, `reports/bundle-guard-report.json`, `reports/dist-assets-report.json`.',
     'RELEASE_CANDIDATE_FILE_MISSING',
@@ -5279,12 +5417,9 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'Sajik files',
     'Suwon files',
     'Daegu files',
-    'scripts/daegu-seatmap-p1-next-action-packet.mjs',
-    'scripts/daegu-seatmap-p1-operator-boundary.mjs',
-    'scripts/daegu-seatmap-p2-operators.mjs',
     'src/components/AppRoutes.tsx',
     'src/utils/seatMapPolygonValidator.ts',
-    'K7/AWAY active block target `113` is enabled through official numbered-block aggregate geometry.',
+    'K7/AWAY aggregate hit-areas are enabled within the current `113` active block release through official numbered-block aggregate geometry.',
     '`SPECIAL_BLOCKS` includes K7/AWAY aggregate block definitions.',
     '`GWANGJU_IMAGE_GEOMETRY_DRAFTS` includes `home-k7-seats` and `away-cheering-seats` geometry generated from official traced source blocks.',
     'Do not replace the current `113` active block aggregate release with new operator geometry unless',

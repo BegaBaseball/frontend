@@ -20,8 +20,8 @@ Do not author hit-area coordinates from browser CSS pixels, screenshots, or resi
 
 Trace review workflow:
 
-1. Run `npm run stadium:daegu:evidence`.
-2. Review `reports/stadium/daegu-seatmap-trace-review.csv`, `reports/stadium/daegu-seatmap-evidence-crops.md`, and the debug overlay screenshot.
+1. Run `npm run stadium:daegu:operator-handoff` and `npm run stadium:daegu:handoff-evidence`.
+2. Review `reports/stadium/daegu-seatmap-operator-handoff.json`, `reports/stadium/daegu-seatmap-handoff-evidence.md`, and the canonical retrace batch reports.
 3. Treat `candidateOuterBoundaryPath`, `candidateBoundaryPath`, and `candidateHullPath` as pixel-derived review candidates only; do not auto-promote them to `imageGeometry.d`.
 4. Promote a block to official confidence only after its path has been manually checked against the official PNG in `?daeguDebug=1`.
 
@@ -45,26 +45,26 @@ Image contract:
 Generate draft polygons from this image with:
 
 ```bash
-npm run stadium:daegu:operator-reference-trace
+npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10
 ```
 
-The script writes `reports/stadium/daegu-operator-reference-trace/daegu-operator-reference-trace.{json,csv,md,svg}`. These polygons are 4096x4096 reference-image drafts. They are not written into `DAEGU_BLOCKS` and do not replace the official PNG release lock.
+The script writes under `reports/stadium/daegu-seatmap-canonical-*-retrace-batch/`. These polygons are 4096x4096 reference-image drafts. They are not written into `DAEGU_BLOCKS` and do not replace the release lock.
 
 Generate the operator mapping review packet with:
 
 ```bash
-npm run stadium:daegu:operator-reference-review-packet
+npm run stadium:daegu:canonical-retrace-gate -- SKY_UPPER_01_10
 ```
 
-The review packet writes contact sheets plus `daegu-operator-reference-mapping-template.{csv,json}` under `reports/stadium/daegu-operator-reference-review/`. Operators must fill block mapping and approval fields before any draft polygon can be promoted.
+The gate validates the matching operator-input file under the batch report directory. Operators must fill decision, corrected path, reviewer, and timestamp fields before any draft polygon can be promoted.
 
 Generate automatic mapping candidates with:
 
 ```bash
-npm run stadium:daegu:operator-reference-auto-map
+npm run stadium:daegu:canonical-official-only-retrace-workset
 ```
 
-The auto-map step writes `reports/stadium/daegu-operator-reference-auto-map/daegu-operator-reference-auto-map.{csv,json}` and an existing block alias index. These rows are suggestions only; even exact matches require operator approval before production use.
+The workset step writes `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/`. These rows are suggestions only; even exact matches require operator approval before production use.
 
 ## MySeatCheck reference intake
 

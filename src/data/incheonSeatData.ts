@@ -74,6 +74,21 @@ export interface IncheonCategoryGroup {
   filterDimension?: 'grade' | 'position' | 'level';
 }
 
+export type IncheonGuideIntent =
+  | '전체'
+  | '홈 응원'
+  | '원정/3루'
+  | '중앙/테이블'
+  | '외야/가족'
+  | '접근성';
+
+export interface IncheonGuideMatch {
+  block: IncheonBlock;
+  reasons: string[];
+  tags: string[];
+  score: number;
+}
+
 type IncheonBlockDefinition = Omit<IncheonBlock, 'imageGeometry'>;
 
 export const INCHEON_SEATMAP_IMAGE: IncheonSeatMapImage = {
@@ -4788,4 +4803,153 @@ export function getIncheonFanRoleLabel(role: IncheonFanRole): string {
 
 export function getIncheonSourceLabel(confidence: IncheonSourceConfidence): string {
   return confidence === 'OFFICIAL' ? '공식 확인' : '공식 확인 필요';
+}
+
+function normalizeIncheonGuideSearch(value: string): string {
+  return value.toLowerCase().replace(/[\s\-_/()·.]/g, '');
+}
+
+function isIncheonTableBlock(block: IncheonBlock): boolean {
+  const categoryLabel = INCHEON_CATEGORIES[block.category]?.label ?? '';
+  return block.side === 'CENTER'
+    || block.category.includes('TABLE')
+    || block.category === 'SKYBOX'
+    || block.category === 'MINI_SKYBOX'
+    || categoryLabel.includes('테이블')
+    || categoryLabel.includes('탁자')
+    || categoryLabel.includes('스카이박스');
+}
+
+function isIncheonOutfieldFamilyBlock(block: IncheonBlock): boolean {
+  const categoryLabel = INCHEON_CATEGORIES[block.category]?.label ?? '';
+  return block.level === 'OUTFIELD'
+    || block.side === 'OUTFIELD'
+    || block.category.startsWith('OUTFIELD')
+    || block.category === 'FAMILY'
+    || block.category === 'FAMILY_TABLE'
+    || block.category === 'FRIENDLY'
+    || block.category === 'GREEN'
+    || block.category === 'HOME_RUN'
+    || block.category === 'PARTY_DECK'
+    || block.category === 'CHOGA'
+    || block.category.startsWith('BBQ')
+    || categoryLabel.includes('외야')
+    || categoryLabel.includes('패밀리')
+    || categoryLabel.includes('바비큐');
+}
+
+function isIncheonAccessibleBlock(block: IncheonBlock): boolean {
+  return block.category === 'ACCESSIBLE' || Boolean(block.accessibilityNote);
+}
+
+function getIncheonGuideSearchAliases(block: IncheonBlock): string[] {
+  const categoryLabel = INCHEON_CATEGORIES[block.category]?.label;
+  return getIncheonSeatViewAliases(block).concat([
+    block.id,
+    block.name,
+    block.block,
+    categoryLabel ?? '',
+    getIncheonSideLabel(block.side),
+    getIncheonFanRoleLabel(block.fanRole),
+    block.level,
+    ...getIncheonDecisionTags(block),
+  ]);
+}
+
+function getIncheonGuideIntentReasons(intent: IncheonGuideIntent, block: IncheonBlock): string[] {
+  const reasons: string[] = [];
+
+  if (intent === '전체') reasons.push('전체');
+  if (intent === '홈 응원' && block.fanRole === 'HOME') reasons.push('홈 응원');
+  if (intent === '원정/3루' && (block.fanRole === 'AWAY' || block.side === 'THIRD_BASE')) {
+    reasons.push(block.fanRole === 'AWAY' ? '원정 응원' : '3루');
+  }
+  if (intent === '중앙/테이블' && isIncheonTableBlock(block)) {
+    reasons.push(block.side === 'CENTER' ? '중앙' : '테이블/탁자');
+  }
+  if (intent === '외야/가족' && isIncheonOutfieldFamilyBlock(block)) {
+    reasons.push(block.side === 'OUTFIELD' ? '외야' : '가족/외야형');
+  }
+  if (intent === '접근성' && isIncheonAccessibleBlock(block)) reasons.push('휠체어석');
+
+  return Array.from(new Set(reasons));
+}
+
+function getIncheonGuideSearchScore(block: IncheonBlock, normalizedQuery: string): number {
+  if (!normalizedQuery) return 0;
+
+  const normalizedBlock = normalizeIncheonGuideSearch(block.block);
+  const normalizedName = normalizeIncheonGuideSearch(block.name);
+  const normalizedOfficialBlocks = block.officialBlocks.map(normalizeIncheonGuideSearch);
+  const normalizedAliases = getIncheonGuideSearchAliases(block).map(normalizeIncheonGuideSearch).filter(Boolean);
+  const normalizedMetadata = [
+    INCHEON_CATEGORIES[block.category]?.label ?? '',
+    getIncheonSideLabel(block.side),
+    getIncheonFanRoleLabel(block.fanRole),
+    ...getIncheonDecisionTags(block),
+  ].map(normalizeIncheonGuideSearch).filter(Boolean);
+
+  if (!normalizedAliases.some((alias) => alias.includes(normalizedQuery))) return -1;
+  if (normalizedBlock === normalizedQuery) return 1000;
+  if (normalizedOfficialBlocks.some((officialBlock) => officialBlock === normalizedQuery)) return 980;
+  if (normalizedName === normalizedQuery) return 940;
+  if (normalizedAliases.some((alias) => alias === normalizedQuery)) return 900;
+  if (normalizedMetadata.some((alias) => alias.includes(normalizedQuery))) return 700;
+  return 500;
+}
+
+export function getIncheonDecisionTags(block: IncheonBlock): string[] {
+  const categoryLabel = INCHEON_CATEGORIES[block.category]?.label;
+  const tags = [
+    categoryLabel,
+    getIncheonSideLabel(block.side),
+    getIncheonFanRoleLabel(block.fanRole),
+    block.level,
+  ];
+
+  if (block.fanRole === 'HOME') tags.push('홈 응원');
+  if (block.fanRole === 'AWAY' || block.side === 'THIRD_BASE') tags.push('원정/3루');
+  if (isIncheonTableBlock(block)) tags.push('중앙/테이블');
+  if (isIncheonOutfieldFamilyBlock(block)) tags.push('외야/가족');
+  if (block.category.startsWith('BBQ') || Boolean(categoryLabel?.includes('바비큐'))) tags.push('바비큐');
+  if (isIncheonAccessibleBlock(block)) tags.push('접근성', '휠체어석');
+
+  return Array.from(new Set(
+    tags
+      .map((tag) => tag?.trim())
+      .filter((tag): tag is string => Boolean(tag)),
+  ));
+}
+
+export function getIncheonGuideMatches(
+  intent: IncheonGuideIntent,
+  query: string,
+  blocks: IncheonBlock[] = INCHEON_BLOCKS,
+): IncheonGuideMatch[] {
+  const normalizedQuery = normalizeIncheonGuideSearch(query.trim());
+
+  return blocks
+    .map((block, index) => {
+      const intentReasons = getIncheonGuideIntentReasons(intent, block);
+      const matchesIntent = intent === '전체' || intentReasons.length > 0;
+      if (!matchesIntent) return null;
+
+      const searchScore = getIncheonGuideSearchScore(block, normalizedQuery);
+      if (searchScore < 0) return null;
+
+      const reasons = intentReasons.length > 0 ? intentReasons : ['검색'];
+      if (normalizedQuery) reasons.push('검색 일치');
+
+      return {
+        block,
+        reasons: Array.from(new Set(reasons)),
+        tags: getIncheonDecisionTags(block),
+        score: (intent === '전체' ? 0 : 300) + searchScore + Math.max(0, blocks.length - index) / 1000,
+      };
+    })
+    .filter((match): match is IncheonGuideMatch => Boolean(match))
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return left.block.block.localeCompare(right.block.block, 'ko');
+    });
 }
