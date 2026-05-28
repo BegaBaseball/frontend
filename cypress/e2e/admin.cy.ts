@@ -241,7 +241,7 @@ describe('Admin page coverage', () => {
         },
         {
             stadiumId: 'daejeon',
-            stadiumName: '대전 한화생명 이글스파크',
+            stadiumName: '대전 한화생명볼파크',
             team: 'HH',
             lat: 36.317,
             lng: 127.428,
@@ -556,7 +556,7 @@ describe('Admin page coverage', () => {
             daejeon: [
                 {
                     id: 902,
-                    stadiumName: '대전 한화생명 이글스파크',
+                    stadiumName: '대전 한화생명볼파크',
                     category: '카페',
                     name: '이글스 카페',
                     description: '경기 전 커피',
@@ -1575,7 +1575,7 @@ describe('Admin page coverage', () => {
         cy.wait('@getAdminStadiums');
         cy.wait('@getStadiumPlaces');
 
-        selectOption('admin-stadium-select-trigger', '대전 한화생명 이글스파크 (HH)');
+        selectOption('admin-stadium-select-trigger', '대전 한화생명볼파크 (HH)');
         cy.wait('@getStadiumPlaces');
         cy.contains('이글스 카페').should('be.visible');
 

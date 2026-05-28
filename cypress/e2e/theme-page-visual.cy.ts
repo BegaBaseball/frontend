@@ -197,7 +197,7 @@ describe('Theme visual checks for public pages', () => {
     },
     {
       stadiumId: 'SAESIN',
-      stadiumName: '대전한화생명 이글스파크',
+      stadiumName: '대전 한화생명볼파크',
       lat: 36.318,
       lng: 127.43,
       address: '대전광역시',
