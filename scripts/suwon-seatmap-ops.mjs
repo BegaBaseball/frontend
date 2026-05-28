@@ -625,7 +625,7 @@ const runPrecisionWorkset = async () => {
       return {
         priority: 'LOCKED',
         candidateStatus: 'locked-review-reference',
-        reviewFocus: 'SB compact hit-area와 401-432 스카이존은 현재 release gate 계약으로 잠겨 있어 회귀 감시 대상으로 유지합니다.',
+        reviewFocus: 'SB visual hit-area와 401-432 스카이존은 현재 release gate 계약으로 잠겨 있어 회귀 감시 대상으로 유지합니다.',
       };
     }
 
@@ -934,13 +934,12 @@ const runReleaseGate = async () => {
   const EXPECTED_SKYZONE_BLOCKS = 32;
   const EXPECTED_SPECIAL_BLOCKS = 15;
   const EXPECTED_ALIGNMENT_PROBES = 429;
-  const EXPECTED_BROWSER_QA_PROBES = 176;
-  const EXPECTED_HIT_TEST_PROBES = 605;
-  // visual/hit split: 스카이박스 35블록은 좌석 경계상 개별 hit polygon이 필요해 split 처리됨.
-  // 전체 mismatch = 35, 전부 approved, unresolved = 0
-  const EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS = 35;
-  const EXPECTED_HIT_GEOMETRY_EXCEPTIONS = 35;
-  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = '28eb88a3ad717353c97725fc43fd0bc95d9db5043c3f3771e684a3c34e96f3c9';
+  const EXPECTED_BROWSER_QA_PROBES = 179;
+  const EXPECTED_HIT_TEST_PROBES = 608;
+  // SB1-SB35는 visual polygon 전체를 hit polygon으로 사용하므로 승인된 visual/hit split이 없다.
+  const EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS = 0;
+  const EXPECTED_HIT_GEOMETRY_EXCEPTIONS = 0;
+  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = 'c69ad1aa260bf48c23634d0f07bcb9d13491c45c70acc0bd0edd7fc079485e5a';
   const EXPECTED_OFFICIAL_ASSET_SHA256 = '30ebfe637f42e674d7761af7739e61aa0751813e0f72bd9cde4f8135b91a3523';
 
   function probeKey(id, point) {

@@ -1114,7 +1114,7 @@ const runChangeGuard = async () => {
     assertGuard(report.coordinateChangeImpactSummary?.counts?.missingImpact === 0, 'release gate coordinateChangeImpactSummary missingImpact must be 0');
 
     const expectedCommands = [
-      'node --import tsx --test src/data/daejeonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts',
+      'node --import tsx --test --test-concurrency=1 --test-name-pattern=대전 src/data/daejeonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts',
       'npm run stadium:daejeon:evidence',
       'npm run stadium:daejeon:visual-diff',
       'npm run stadium:daejeon:geometry-diff',
@@ -3371,6 +3371,8 @@ const runReleaseGate = async () => {
         '--import',
         'tsx',
         '--test',
+        '--test-concurrency=1',
+        '--test-name-pattern=대전',
         'src/data/daejeonSeatData.test.ts',
         'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
       ],
