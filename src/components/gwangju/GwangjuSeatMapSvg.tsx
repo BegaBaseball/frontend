@@ -62,10 +62,19 @@ const SMALL_VISUAL_HIT_AREA_IDS = new Set([
   'third-family-seats',
   'third-wheelchair-seats',
   'party-seats-third',
-  'skybox-seats',
   'first-family-seats',
   'first-wheelchair-seats',
   'party-seats-first',
+]);
+
+const POLYGON_STROKE_HIDDEN_IDS = new Set([
+  'k7-121',
+  'k7-122',
+  'k8-123',
+  'k5-124',
+  'k5-125',
+  'k5-126',
+  'k5-127',
 ]);
 
 const isSmallVisualHitArea = (block: GwangjuBlock) => (
@@ -182,6 +191,42 @@ export default function GwangjuSeatMapSvg({
     : readViewportSize(viewportRef.current);
   const effectivePan = clampPan(pan, zoom, measuredViewportSize);
   const canDrag = zoom > minZoom;
+
+  useEffect(() => {
+    if (!seatMapImageUrl) {
+      setImageLoaded(false);
+      setImageFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    setImageLoaded(false);
+    setImageFailed(false);
+
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled) return;
+      setImageLoaded(true);
+
+      if (image.naturalWidth !== imageWidth || image.naturalHeight !== imageHeight) {
+        console.warn('[gwangju-seatmap] official image size mismatch', {
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+          dataWidth: imageWidth,
+          dataHeight: imageHeight,
+        });
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) setImageFailed(true);
+    };
+    image.src = seatMapImageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageHeight, imageWidth, seatMapImageUrl]);
+
   const updateZoom = useCallback((nextZoom: number) => {
     const clamped = Math.min(maxZoom, Math.max(minZoom, Number(nextZoom.toFixed(2))));
     onZoom(clamped);
@@ -542,7 +587,7 @@ export default function GwangjuSeatMapSvg({
     zoomFromDoubleClick(event.clientX, event.clientY);
   }, [zoomFromDoubleClick]);
 
-  const handleSvgDoubleClick = useCallback((event: ReactMouseEvent<SVGElement | SVGPathElement>) => {
+  const handleSvgDoubleClick = useCallback((event: ReactMouseEvent<SVGElement>) => {
     event.preventDefault();
     event.stopPropagation();
     zoomFromDoubleClick(event.clientX, event.clientY);
@@ -679,8 +724,7 @@ export default function GwangjuSeatMapSvg({
             } else if (isAnyFilterActive && !isFiltered) {
               fillOpacity = 0.20;
             } else if (isFiltered) {
-              fill = mode === 'dark' ? '#020617' : '#1e293b';
-              fillOpacity = 0.42;
+              fillOpacity = showHitAreaDebug ? 0.08 : 0;
             } else {
               fillOpacity = showHitAreaDebug ? 0.08 : 0.001;
             }
@@ -689,63 +733,136 @@ export default function GwangjuSeatMapSvg({
             const strokeWidth = isActive ? (isSmallVisual ? 0.75 : 1.5) : 1;
             const showLabel = isActive && !isFiltered;
             const visualPathD = block.imageGeometry.visualD ?? block.imageGeometry.d;
+            const polygonPointString = block.imageGeometry.polygonPoints
+              ?.map(([x, y]) => `${x},${y}`)
+              .join(' ');
+            const hasPolygonPoints = Boolean(polygonPointString);
+            const polygonFill = isActive ? 'rgba(59, 130, 246, 0.3)' : 'transparent';
+            const shouldHidePolygonStroke = POLYGON_STROKE_HIDDEN_IDS.has(block.id);
+            const polygonStrokeOpacity = shouldHidePolygonStroke
+              ? 0
+              : isFiltered ? (showHitAreaDebug ? 0.3 : 0) : 1;
 
             return (
               <g key={block.id}>
-                <path
-                  data-testid={`gwangju-seat-visual-${block.id}`}
-                  aria-hidden="true"
-                  d={visualPathD}
-                  fill={fill}
-                  fillOpacity={fillOpacity}
-                  stroke={stroke}
-                  strokeOpacity={strokeOpacity}
-                  strokeWidth={strokeWidth}
-                  filter={isActive && !isSmallVisual ? 'url(#gwangju-hit-glow)' : undefined}
-                  vectorEffect="non-scaling-stroke"
-                  pointerEvents="none"
-                  style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
-                />
-                <path
-                  role={isInteractive ? 'button' : undefined}
-                  data-testid={`gwangju-seat-block-${block.id}`}
-                  data-label-x={block.imageGeometry.labelX}
-                  data-label-y={block.imageGeometry.labelY}
-                  data-visual-path={visualPathD}
-                  data-trace-status={block.imageGeometry.traceStatus}
-                  data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
-                  tabIndex={isInteractive ? 0 : -1}
-                  aria-label={`${block.name} ${block.block}`}
-                  aria-pressed={isInteractive ? selected?.id === block.id : undefined}
-                  d={block.imageGeometry.d}
-                  fill="#000000"
-                  fillOpacity={0.001}
-                  stroke="transparent"
-                  strokeOpacity={0}
-                  strokeWidth={0}
-                  vectorEffect="non-scaling-stroke"
-                  pointerEvents={isInteractive ? 'all' : 'none'}
-                  style={{ cursor: isInteractive ? 'pointer' : 'default' }}
-                  onMouseEnter={() => isInteractive && !isDragging && setHover(block.id)}
-                  onClick={(event) => {
-                    if (!isInteractive) return;
-                    if (suppressClickRef.current || event.detail > 1) {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      return;
-                    }
-                    event.preventDefault();
-                    setSelected(selected?.id === block.id ? null : block);
-                  }}
-                  onDoubleClick={handleSvgDoubleClick}
-                  onKeyDown={(event) => {
-                    if (!isInteractive) return;
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      setSelected(block);
-                    }
-                  }}
-                />
+                {hasPolygonPoints && polygonPointString ? (
+                  <>
+                    <polygon
+                      data-testid={`gwangju-seat-visual-${block.id}`}
+                      aria-hidden="true"
+                      data-visual-path={visualPathD}
+                      points={polygonPointString}
+                      fill={polygonFill}
+                      stroke="#3b82f6"
+                      strokeOpacity={polygonStrokeOpacity}
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                      style={{ transition: 'fill 0.15s, stroke-opacity 0.15s' }}
+                    />
+                    <polygon
+                      role={isInteractive ? 'button' : undefined}
+                      data-testid={`gwangju-seat-block-${block.id}`}
+                      data-hit-path={block.imageGeometry.d}
+                      data-label-x={block.imageGeometry.labelX}
+                      data-label-y={block.imageGeometry.labelY}
+                      data-visual-path={visualPathD}
+                      data-visual-points={polygonPointString}
+                      data-trace-status={block.imageGeometry.traceStatus}
+                      data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                      tabIndex={isInteractive ? 0 : -1}
+                      aria-label={`${block.name} ${block.block}`}
+                      aria-pressed={isInteractive ? selected?.id === block.id : undefined}
+                      points={polygonPointString}
+                      fill="transparent"
+                      stroke="transparent"
+                      strokeWidth={0}
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents={isInteractive ? 'all' : 'none'}
+                      style={{ cursor: isInteractive ? 'pointer' : 'default', outline: 'none' }}
+                      onMouseEnter={() => isInteractive && !isDragging && setHover(block.id)}
+                      onClick={(event) => {
+                        if (!isInteractive) return;
+                        if (suppressClickRef.current || event.detail > 1) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          return;
+                        }
+                        event.preventDefault();
+                        setSelected(selected?.id === block.id ? null : block);
+                      }}
+                      onDoubleClick={handleSvgDoubleClick}
+                      onKeyDown={(event) => {
+                        if (!isInteractive) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelected(block);
+                        }
+                      }}
+                    >
+                      <title>{`${block.name} ${block.block}`}</title>
+                    </polygon>
+                  </>
+                ) : (
+                  <>
+                    <path
+                      data-testid={`gwangju-seat-visual-${block.id}`}
+                      aria-hidden="true"
+                      d={visualPathD}
+                      fill={fill}
+                      fillOpacity={fillOpacity}
+                      stroke={stroke}
+                      strokeOpacity={strokeOpacity}
+                      strokeWidth={strokeWidth}
+                      filter={isActive && !isSmallVisual ? 'url(#gwangju-hit-glow)' : undefined}
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                      style={{ transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
+                    />
+                    <path
+                      role={isInteractive ? 'button' : undefined}
+                      data-testid={`gwangju-seat-block-${block.id}`}
+                      data-label-x={block.imageGeometry.labelX}
+                      data-label-y={block.imageGeometry.labelY}
+                      data-visual-path={visualPathD}
+                      data-trace-status={block.imageGeometry.traceStatus}
+                      data-pixel-alignment-status={block.imageGeometry.pixelAlignmentStatus}
+                      tabIndex={isInteractive ? 0 : -1}
+                      aria-label={`${block.name} ${block.block}`}
+                      aria-pressed={isInteractive ? selected?.id === block.id : undefined}
+                      d={block.imageGeometry.d}
+                      fill="#000000"
+                      fillOpacity={0}
+                      stroke="transparent"
+                      strokeOpacity={0}
+                      strokeWidth={0}
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents={isInteractive ? 'all' : 'none'}
+                      style={{ cursor: isInteractive ? 'pointer' : 'default', outline: 'none' }}
+                      onMouseEnter={() => isInteractive && !isDragging && setHover(block.id)}
+                      onClick={(event) => {
+                        if (!isInteractive) return;
+                        if (suppressClickRef.current || event.detail > 1) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          return;
+                        }
+                        event.preventDefault();
+                        setSelected(selected?.id === block.id ? null : block);
+                      }}
+                      onDoubleClick={handleSvgDoubleClick}
+                      onKeyDown={(event) => {
+                        if (!isInteractive) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelected(block);
+                        }
+                      }}
+                    >
+                      <title>{`${block.name} ${block.block}`}</title>
+                    </path>
+                  </>
+                )}
                 {showLabel && (
                   <text
                     x={block.imageGeometry.labelX}
@@ -781,7 +898,7 @@ export default function GwangjuSeatMapSvg({
               strokeWidth={showDebug ? 2 : 0}
               pointerEvents={shouldRenderHitAreas ? 'all' : 'none'}
               vectorEffect="non-scaling-stroke"
-              style={{ cursor: shouldRenderHitAreas ? 'default' : 'inherit' }}
+              style={{ cursor: shouldRenderHitAreas ? 'default' : 'inherit', outline: 'none' }}
               onMouseEnter={() => shouldRenderHitAreas && setHover(null)}
               onPointerDown={(event) => {
                 if (!shouldRenderHitAreas) return;

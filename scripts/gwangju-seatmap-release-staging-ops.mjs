@@ -111,12 +111,12 @@ const runReleasePackage = async () => {
   }
   
   if (traceReview) {
-    if (traceSummary.totalBlocks !== 113) blockers.push(`TRACE_TOTAL_BLOCKS_CHANGED:${traceSummary.totalBlocks}`);
-    if (traceSummary.baseTraceBlocks !== 111) blockers.push(`TRACE_BASE_BLOCKS_CHANGED:${traceSummary.baseTraceBlocks}`);
-    if (traceSummary.officialImageTracedBlocks !== 113) blockers.push(`TRACE_OFFICIAL_IMAGE_TRACED_CHANGED:${traceSummary.officialImageTracedBlocks}`);
-    if (traceSummary.directOfficialTraceBlocks !== 113) blockers.push(`TRACE_DIRECT_OFFICIAL_TRACE_CHANGED:${traceSummary.directOfficialTraceBlocks}`);
-    if (traceSummary.manualReviewedBlocks !== 113) blockers.push(`TRACE_MANUAL_REVIEWED_CHANGED:${traceSummary.manualReviewedBlocks}`);
-    if (traceSummary.pixelAlignedBlocks !== 113) blockers.push(`TRACE_PIXEL_ALIGNED_CHANGED:${traceSummary.pixelAlignedBlocks}`);
+    if (traceSummary.totalBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) blockers.push(`TRACE_TOTAL_BLOCKS_CHANGED:${traceSummary.totalBlocks}`);
+    if (traceSummary.baseTraceBlocks !== GWANGJU_BASE_TRACE_BLOCK_COUNT) blockers.push(`TRACE_BASE_BLOCKS_CHANGED:${traceSummary.baseTraceBlocks}`);
+    if (traceSummary.officialImageTracedBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) blockers.push(`TRACE_OFFICIAL_IMAGE_TRACED_CHANGED:${traceSummary.officialImageTracedBlocks}`);
+    if (traceSummary.directOfficialTraceBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) blockers.push(`TRACE_DIRECT_OFFICIAL_TRACE_CHANGED:${traceSummary.directOfficialTraceBlocks}`);
+    if (traceSummary.manualReviewedBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) blockers.push(`TRACE_MANUAL_REVIEWED_CHANGED:${traceSummary.manualReviewedBlocks}`);
+    if (traceSummary.pixelAlignedBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) blockers.push(`TRACE_PIXEL_ALIGNED_CHANGED:${traceSummary.pixelAlignedBlocks}`);
     if (traceSummary.overlapWarningCount !== 0) blockers.push(`TRACE_OVERLAP_WARNINGS_PRESENT:${traceSummary.overlapWarningCount}`);
     if (traceSummary.aggregateHitAreaMode !== 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY') {
       blockers.push(`TRACE_AGGREGATE_HIT_AREA_MODE_CHANGED:${traceSummary.aggregateHitAreaMode}`);
@@ -248,7 +248,7 @@ const runReleasePackage = async () => {
     '- 좌표계: official PNG 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
-    '- 좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다.',
+    `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
     '',
     '## Gate Commands',
     '',
@@ -318,7 +318,7 @@ const runReleaseAudit = async () => {
   const expectedPendingOperatorSections = [];
   const STALE_TOLERANCE_MS = 1000;
   const SEPARATE_DIRTY_WORK_BASELINE_FILE_COUNT = 74;
-  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 17;
+  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 31;
   const allowedPatchSeparationStatuses = new Set(['ready', 'review-required']);
   
   const markdownCell = (value) => String(value ?? '-')
@@ -455,7 +455,7 @@ const runReleaseAudit = async () => {
   addCheck('release gate package status', 'ready', releaseGate?.finalChecks?.releasePackageStatus, releaseGate?.finalChecks?.releasePackageStatus === 'ready', 'RELEASE_GATE_PACKAGE_NOT_READY');
   addCheck('release gate operator status', 'ready', releaseGate?.finalChecks?.operatorStatus, releaseGate?.finalChecks?.operatorStatus === 'ready', 'RELEASE_GATE_OPERATOR_STATUS_NOT_READY');
   addCheck('release gate browser QA', 'passed', releaseGate?.finalChecks?.browserQaStatus, releaseGate?.finalChecks?.browserQaStatus === 'passed', 'RELEASE_GATE_BROWSER_QA_NOT_PASSED');
-  addCheck('release gate active trace blocks', 113, releaseGate?.finalChecks?.activeTraceBlocks, releaseGate?.finalChecks?.activeTraceBlocks === 113, 'RELEASE_GATE_ACTIVE_TRACE_BLOCKS_CHANGED');
+  addCheck('release gate active trace blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, releaseGate?.finalChecks?.activeTraceBlocks, releaseGate?.finalChecks?.activeTraceBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'RELEASE_GATE_ACTIVE_TRACE_BLOCKS_CHANGED');
   addCheck('release gate aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', releaseGate?.activeBlockContract?.aggregateHitArea, releaseGate?.activeBlockContract?.aggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'RELEASE_GATE_AGGREGATE_HIT_AREA_CHANGED');
   addCheck('release gate official aggregate ready', true, releaseGate?.activeBlockContract?.officialDerivedAggregateReady, releaseGate?.activeBlockContract?.officialDerivedAggregateReady === true, 'RELEASE_GATE_OFFICIAL_AGGREGATE_NOT_READY');
   
@@ -463,17 +463,17 @@ const runReleaseAudit = async () => {
   addCheck('release package blockers', 0, releasePackage?.blockers?.length, (releasePackage?.blockers ?? []).length === 0, 'RELEASE_PACKAGE_BLOCKERS_PRESENT');
   addCheck('release package release mode', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', releasePackage?.releaseMode, releasePackage?.releaseMode === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', 'RELEASE_PACKAGE_MODE_CHANGED');
   addCheck('release package aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', releasePackage?.activeBlockContract?.aggregateHitArea, releasePackage?.activeBlockContract?.aggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'RELEASE_PACKAGE_AGGREGATE_HIT_AREA_CHANGED');
-  addCheck('release package expected trace blocks', 113, releasePackage?.activeBlockContract?.expectedTraceBlocks, releasePackage?.activeBlockContract?.expectedTraceBlocks === 113, 'RELEASE_PACKAGE_ACTIVE_TRACE_BLOCKS_CHANGED');
+  addCheck('release package expected trace blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, releasePackage?.activeBlockContract?.expectedTraceBlocks, releasePackage?.activeBlockContract?.expectedTraceBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'RELEASE_PACKAGE_ACTIVE_TRACE_BLOCKS_CHANGED');
   addCheck('release package pending sections', expectedPendingOperatorSections.join(','), releasePackage?.activeBlockContract?.pendingOperatorSections?.join(','), sameSet(releasePackage?.activeBlockContract?.pendingOperatorSections, expectedPendingOperatorSections), 'RELEASE_PACKAGE_PENDING_SECTIONS_CHANGED');
   
   addCheck('operator status', 'ready', operatorStatus?.summary?.status, operatorStatus?.summary?.status === 'ready', 'OPERATOR_STATUS_NOT_READY');
   addCheck('operator status blockers', 0, operatorStatus?.summary?.blockers?.length, (operatorStatus?.summary?.blockers ?? []).length === 0, 'OPERATOR_STATUS_BLOCKERS_PRESENT');
   addCheck('operator valid data diff', 0, operatorStatus?.summary?.validDataDiffSections, operatorStatus?.summary?.validDataDiffSections === 0, 'OPERATOR_VALID_DATA_DIFF_NOT_ZERO');
-  addCheck('operator active trace blocks', 113, operatorStatus?.summary?.activeTraceBlocks, operatorStatus?.summary?.activeTraceBlocks === 113, 'OPERATOR_ACTIVE_TRACE_BLOCKS_CHANGED');
+  addCheck('operator active trace blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, operatorStatus?.summary?.activeTraceBlocks, operatorStatus?.summary?.activeTraceBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'OPERATOR_ACTIVE_TRACE_BLOCKS_CHANGED');
   
   addCheck('trace review status', 'READY', traceReview?.summary?.traceStatus, traceReview?.summary?.traceStatus === 'READY', 'TRACE_REVIEW_NOT_READY');
-  addCheck('trace review total blocks', 113, traceReview?.summary?.totalBlocks, traceReview?.summary?.totalBlocks === 113, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
-  addCheck('trace review pixel aligned', 113, traceReview?.summary?.pixelAlignedBlocks, traceReview?.summary?.pixelAlignedBlocks === 113, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
+  addCheck('trace review total blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceReview?.summary?.totalBlocks, traceReview?.summary?.totalBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
+  addCheck('trace review pixel aligned', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceReview?.summary?.pixelAlignedBlocks, traceReview?.summary?.pixelAlignedBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
   addCheck('trace review overlap warnings', 0, traceReview?.summary?.overlapWarningCount, traceReview?.summary?.overlapWarningCount === 0, 'TRACE_REVIEW_OVERLAP_WARNINGS_PRESENT');
   addCheck('trace review O/P component coverage warnings', 0, traceReview?.summary?.componentCoverageWarningCount, traceReview?.summary?.componentCoverageWarningCount === 0, 'TRACE_REVIEW_OP_COMPONENT_COVERAGE_WARNINGS_PRESENT');
   addCheck('trace review aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', traceReview?.summary?.aggregateHitAreaMode, traceReview?.summary?.aggregateHitAreaMode === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'TRACE_REVIEW_AGGREGATE_HIT_AREA_CHANGED');
@@ -481,7 +481,7 @@ const runReleaseAudit = async () => {
   addCheck('runtime layer audit version', 'GWANGJU_RUNTIME_LAYER_AUDIT_V1', runtimeLayerAudit?.version, runtimeLayerAudit?.version === 'GWANGJU_RUNTIME_LAYER_AUDIT_V1', 'RUNTIME_LAYER_AUDIT_VERSION_CHANGED');
   addCheck('runtime layer audit status', 'passed', runtimeLayerAudit?.status, runtimeLayerAudit?.status === 'passed', 'RUNTIME_LAYER_AUDIT_NOT_PASSED');
   addCheck('runtime layer source', 'GWANGJU_BLOCKS[].imageGeometry.d', runtimeLayerAudit?.runtimeSeatLayerSource, runtimeLayerAudit?.runtimeSeatLayerSource === 'GWANGJU_BLOCKS[].imageGeometry.d', 'RUNTIME_LAYER_SOURCE_CHANGED');
-  addCheck('runtime rendered path count', 113, runtimeLayerAudit?.summary?.renderedPathCount, runtimeLayerAudit?.summary?.renderedPathCount === 113, 'RUNTIME_LAYER_RENDERED_PATH_COUNT_CHANGED');
+  addCheck('runtime rendered path count', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, runtimeLayerAudit?.summary?.renderedPathCount, runtimeLayerAudit?.summary?.renderedPathCount === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'RUNTIME_LAYER_RENDERED_PATH_COUNT_CHANGED');
   addCheck('runtime path mismatches', 0, runtimeLayerAudit?.summary?.pathMismatchCount, runtimeLayerAudit?.summary?.pathMismatchCount === 0, 'RUNTIME_LAYER_PATH_MISMATCHES_PRESENT');
   addCheck('runtime forbidden rendered ids', 0, runtimeLayerAudit?.summary?.forbiddenRenderedIdCount, runtimeLayerAudit?.summary?.forbiddenRenderedIdCount === 0, 'RUNTIME_LAYER_FORBIDDEN_IDS_PRESENT');
   addCheck('runtime label top-hit failures', 0, runtimeLayerAudit?.summary?.labelTopHitFailureCount, runtimeLayerAudit?.summary?.labelTopHitFailureCount === 0, 'RUNTIME_LAYER_LABEL_TOP_HIT_FAILURES_PRESENT');
@@ -490,7 +490,7 @@ const runReleaseAudit = async () => {
   addCheck('release scope guard status', 'passed', releaseScopeGuard?.status, releaseScopeGuard?.status === 'passed', 'RELEASE_SCOPE_GUARD_NOT_PASSED');
   addCheck('release scope guard blockers', 0, releaseScopeGuard?.summary?.blockerCount, releaseScopeGuard?.summary?.blockerCount === 0, 'RELEASE_SCOPE_GUARD_BLOCKERS_PRESENT');
   addCheck('release scope guard unexpected files', 0, releaseScopeGuard?.summary?.unexpectedFileCount, releaseScopeGuard?.summary?.unexpectedFileCount === 0, 'RELEASE_SCOPE_GUARD_UNEXPECTED_FILES_PRESENT');
-  addCheck('release scope guard active block count', 113, releaseScopeGuard?.scopeContract?.activeBlockCount, releaseScopeGuard?.scopeContract?.activeBlockCount === 113, 'RELEASE_SCOPE_GUARD_ACTIVE_BLOCK_COUNT_CHANGED');
+  addCheck('release scope guard active block count', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, releaseScopeGuard?.scopeContract?.activeBlockCount, releaseScopeGuard?.scopeContract?.activeBlockCount === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'RELEASE_SCOPE_GUARD_ACTIVE_BLOCK_COUNT_CHANGED');
   addCheck('release scope guard aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', releaseScopeGuard?.scopeContract?.k7AwayAggregateHitArea, releaseScopeGuard?.scopeContract?.k7AwayAggregateHitArea === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE', 'RELEASE_SCOPE_GUARD_AGGREGATE_HIT_AREA_CHANGED');
   addCheck('release scope guard included release files', EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, releaseScopeGuard?.releaseCandidateInventory?.actualIncludedFileCount, releaseScopeGuard?.releaseCandidateInventory?.actualIncludedFileCount === EXPECTED_RELEASE_PAYLOAD_FILE_COUNT, 'RELEASE_SCOPE_GUARD_INCLUDED_FILE_COUNT_CHANGED');
   addCheck('release scope guard missing included files', 0, releaseScopeGuard?.releaseCandidateInventory?.missingExpectedIncludedFiles?.length, (releaseScopeGuard?.releaseCandidateInventory?.missingExpectedIncludedFiles ?? []).length === 0, 'RELEASE_SCOPE_GUARD_INCLUDED_FILES_MISSING');
@@ -581,9 +581,9 @@ const runReleaseAudit = async () => {
     'release gate: `npm run qa:stadium:gwangju:release-gate`',
     'runtime layer audit: `npm run qa:stadium:gwangju:runtime-layer`',
     'coordinate system: `2200x1159`',
-    'active block count: `113`',
+    `active block count: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     'aggregate hit-area mode: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY`',
-    'K7/AWAY active block target `113` is enabled through official numbered-block aggregate geometry.',
+    `K7/AWAY aggregate hit-areas are enabled within the current \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\` active block release through official numbered-block aggregate geometry.`,
     'release gate status: `passed`',
     'release gate blockers: `0`',
     'release gate steps: `5/5`',
@@ -591,7 +591,7 @@ const runReleaseAudit = async () => {
     'operator status: `ready`',
     'browser QA status: `passed`',
     'runtime layer audit status: `passed`',
-    'active trace blocks: `113`',
+    `active trace blocks: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     'missing baseball data contract: `MANUAL_BASEBALL_DATA_REQUIRED`',
     '`status=passed`',
     '`blockers=0`',
@@ -600,30 +600,30 @@ const runReleaseAudit = async () => {
     '`operatorStatus=ready`',
     '`browserQaStatus=passed`',
     '`runtimeLayerAuditStatus=passed`',
-    '`activeTraceBlocks=113`',
+    `\`activeTraceBlocks=${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
     'gwangju-seatmap-release-scope-guard.json',
     'gwangju-seatmap-release-scope-guard.md',
     'gwangju-seatmap-runtime-layer-audit.json',
     'gwangju-seatmap-runtime-layer-audit.csv',
     'gwangju-seatmap-runtime-layer-audit.md',
-    'release scope guard included release files: `17`',
+    'release scope guard included release files: `31`',
     'release scope guard separate dirty work baseline files: `74`',
     'classified separate dirty work expansion allowed: `true`',
     'release scope guard inventory drift: `0`',
-    '`releaseScopeGuardIncludedFiles=17`',
+    '`releaseScopeGuardIncludedFiles=31`',
     '`releaseScopeGuardSeparateDirtyWorkBaselineFiles=74`',
     '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
     '`releaseScopeGuardInventoryDrift=0`',
     'Release Candidate Inventory',
-    'releaseCandidateInventory.expectedIncludedFileCount=17',
+    'releaseCandidateInventory.expectedIncludedFileCount=31',
     'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74',
     'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
     'PR Packaging Manifest',
     'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
     'Release PR scope: Gwangju official derived aggregate release package and build verification reports.',
     'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-    'prPackagingManifest.releasePayloadFileCount=17',
+    'prPackagingManifest.releasePayloadFileCount=31',
     'prPackagingManifest.separateDirtyWorkFileCount=',
     'prPackagingManifest.unexpectedDirtyFileCount=0',
     'prPackagingManifest.inventoryDriftCount=0',
@@ -649,7 +649,7 @@ const runReleaseAudit = async () => {
     'stagedScopeAudit.safeToRunBulkGitAdd=false',
     'stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
     'stagedScopeAudit.blocksSeparateDirtyWork=true',
-    'stagedScopeAudit.expectedTargetFileCount=17',
+    'stagedScopeAudit.expectedTargetFileCount=31',
     'stagedScopeAudit.stagedOutsideTargetFileCount=0',
     'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
     'targetedStaging.status=ready',
@@ -657,12 +657,12 @@ const runReleaseAudit = async () => {
     'targetedStaging.safeToRunBulkGitAdd=false',
     'targetedStaging.recommendsOnlyIncludedFiles=true',
     'targetedStaging.doesNotRecommendSeparateDirtyWork=true',
-    'targetedStaging.targetFileCount=17',
-    'targetedStaging.reviewedUntrackedSatisfiedFileCount=4',
+    'targetedStaging.targetFileCount=31',
+    'targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
     'stagingPlan.status=ready-or-review-required',
     'stagingPlan.doesNotRunGitAdd=true',
     'stagingPlan.safeToRunBulkGitAdd=false',
-    'stagingPlan.releasePayloadFileCount=17',
+    'stagingPlan.releasePayloadFileCount=31',
     'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
     '`K7석`: `107~111`, `118~122`',
     '`원정응원석`: `107~110`',
@@ -676,7 +676,7 @@ const runReleaseAudit = async () => {
     'external crawling',
     'web-search-based baseball data',
     'third-party copied seatmap images',
-    'Do not replace the current `113` active block aggregate release with new operator geometry unless',
+    `Do not replace the current \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\` active block aggregate release with new operator geometry unless`,
   ];
   
   const missingHandoffSnippets = requiredHandoffSnippets.filter((snippet) => !releaseHandoff.text.includes(snippet));
@@ -765,7 +765,7 @@ const runReleaseAudit = async () => {
       requiredOperatorStatus: 'ready',
       requiredBrowserQaStatus: 'passed',
       requiredRuntimeLayerAuditStatus: 'passed',
-      requiredActiveTraceBlocks: 113,
+      requiredActiveTraceBlocks: GWANGJU_EXPECTED_TRACE_BLOCK_COUNT,
       requiredAggregateHitArea: 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY',
       requiredScopeGuardStatus: 'passed',
       requiredScopeGuardUnexpectedFiles: 0,
@@ -1004,7 +1004,7 @@ const runReleaseAudit = async () => {
     '- 좌표계: official PNG 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
-    '- 좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다.',
+    `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
     '',
   ].join('\n');
   
@@ -1033,6 +1033,9 @@ const runReleaseScopeGuard = async () => {
   const {
     promisify
   } = await import('node:util');
+  const {
+    GWANGJU_EXPECTED_TRACE_BLOCK_COUNT,
+  } = await import('../src/data/gwangjuSeatData.ts');
 
   const execFileAsync = promisify(execFile);
   
@@ -1058,7 +1061,7 @@ const runReleaseScopeGuard = async () => {
   };
   
   const expectedIncludedReleaseFiles = [
-  'scripts/gwangju-seatmap-release-staging-ops.mjs',
+    'scripts/gwangju-seatmap-release-staging-ops.mjs',
     'docs/gwangju-seatmap-operator-runbook.md',
     'docs/gwangju-seatmap-release-handoff.md',
     'docs/gwangju-seatmap-release-lock.md',
@@ -1068,19 +1071,37 @@ const runReleaseScopeGuard = async () => {
     'src/components/ChatBotFloatingButton.tsx',
     'src/components/ChatBotRuntime.tsx',
     'src/components/MateResultsRuntime.tsx',
+    'scripts/gwangju-seatmap-artifact-scope-audit.mjs',
+    'scripts/gwangju-seatmap-block-source-duplication-audit.mjs',
+    'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs',
     'scripts/gwangju-seatmap-core-qa.mjs',
-  'scripts/gwangju-seatmap-evidence-workset-ops.mjs',
+    'scripts/gwangju-seatmap-evidence-workset-ops.mjs',
+    'scripts/gwangju-seatmap-lower-infield-independent-audit.mjs',
     'scripts/gwangju-seatmap-operator-template-ops.mjs',
     'scripts/gwangju-seatmap-operator-intake-write-ops.mjs',
+    'scripts/gwangju-manual-v87-evidence.mjs',
+    'scripts/gwangju-seatmap-third-base-boundary-overlay.mjs',
+    'scripts/gwangju-seatmap-third-base-independent-audit.mjs',
+    'scripts/stadium-seatmap-ops.mjs',
+    'scripts/stadium-ux-audit.mjs',
+    'src/components/AppRoutes.tsx',
     'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
+    'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+    'src/components/gwangju/GwangjuSeatMapEditor.tsx',
+    'src/components/gwangju/GwangjuSeatMapSvg.tsx',
+    'src/data/gwangjuSeatMapEditorDataset.ts',
     'src/data/gwangjuSeatData.test.ts',
     'src/data/gwangjuSeatData.ts',
   ];
   const expectedIncludedReleaseFileSet = new Set(expectedIncludedReleaseFiles);
   
   const reviewedUntrackedIncludedReleaseFiles = [
-    'scripts/gwangju-seatmap-core-qa.mjs',
-    'scripts/gwangju-seatmap-operator-template-ops.mjs',
+    'scripts/gwangju-seatmap-artifact-scope-audit.mjs',
+    'scripts/gwangju-seatmap-block-source-duplication-audit.mjs',
+    'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs',
+    'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+    'src/components/gwangju/GwangjuSeatMapEditor.tsx',
+    'src/data/gwangjuSeatMapEditorDataset.ts',
   ];
   
   const expectedSeparateDirtyWorkFiles = [
@@ -1159,8 +1180,13 @@ const runReleaseScopeGuard = async () => {
   
   const nonStadiumFrontendSeparateWorkFiles = new Set([
     '.claude/',
+    'cypress/e2e/admin.cy.ts',
+    'cypress/e2e/home-to-prediction.cy.ts',
+    'cypress/e2e/mate.cy.ts',
     'cypress/e2e/prediction-coach-briefing.cy.ts',
     'cypress/e2e/prediction-preview-card.cy.ts',
+    'cypress/e2e/theme-page-visual.cy.ts',
+    'cypress/support/commands.ts',
     'src/api/coach.ts',
     'src/api/ranking.ts',
     'src/components/AuthenticatedLayoutChrome.tsx',
@@ -1185,6 +1211,7 @@ const runReleaseScopeGuard = async () => {
     'src/components/ui/sonner.tsx',
     'src/hooks/predictionScheduleAdjacentPrefetch.test.ts',
     'src/hooks/useDmSocket.ts',
+    'src/hooks/useDiaryView.ts',
     'src/hooks/useNotificationSocket.ts',
     'src/hooks/usePredictionGameData.ts',
     'src/hooks/useRankingPrediction.ts',
@@ -1198,13 +1225,12 @@ const runReleaseScopeGuard = async () => {
     'src/utils/predictionDeferredWork.test.ts',
     'src/utils/realtimeAuth.test.ts',
     'src/utils/realtimeAuth.ts',
+    'docs/stadium-seatmap-untracked-file-triage-2026-05-15.md',
   ]);
   
   // Temporary one-off diagnostic outputs and probes used during stadium analysis work.
   const temporaryDiagnosticSeparateWorkFiles = new Set([
     'cypress/e2e/url-debug.cy.ts',
-    'scripts/gwangju-seatmap-third-base-boundary-overlay.mjs',
-    'scripts/gwangju-seatmap-third-base-independent-audit.mjs',
   ]);
   
   const includedRules = [
@@ -1219,14 +1245,23 @@ const runReleaseScopeGuard = async () => {
       match: (file) => file.startsWith('scripts/gwangju-seatmap-') && expectedIncludedReleaseFileSet.has(file),
     },
     {
-      id: 'gwangju-browser-evidence-runtime',
-      reason: 'Shared browser QA script contains Gwangju-specific browser crop evidence generation',
-      match: (file) => file === 'scripts/stadium-ux-audit.mjs' && expectedIncludedReleaseFileSet.has(file),
+      id: 'gwangju-legacy-release-script-cleanup',
+      reason: 'Deprecated Gwangju release evidence script removed from the official aggregate payload',
+      match: (file) => file === 'scripts/gwangju-manual-v87-evidence.mjs' && expectedIncludedReleaseFileSet.has(file),
+    },
+    {
+      id: 'gwangju-shared-release-ops',
+      reason: 'Shared ops scripts contain Gwangju-specific release dispatch and browser crop evidence generation',
+      match: (file) => [
+        'scripts/stadium-seatmap-ops.mjs',
+        'scripts/stadium-ux-audit.mjs',
+      ].includes(file) && expectedIncludedReleaseFileSet.has(file),
     },
     {
       id: 'gwangju-data-contract',
       reason: 'Gwangju seatmap data and tests contract',
       match: (file) => [
+        'src/data/gwangjuSeatMapEditorDataset.ts',
         'src/data/gwangjuSeatData.ts',
         'src/data/gwangjuSeatData.test.ts',
       ].includes(file),
@@ -1235,6 +1270,20 @@ const runReleaseScopeGuard = async () => {
       id: 'shared-static-seatmap-contract',
       reason: 'Static tests lock the Gwangju handoff contract',
       match: (file) => file === 'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
+    },
+    {
+      id: 'gwangju-dev-editor-route',
+      reason: 'App routes expose the Gwangju precision editor only in dev mode',
+      match: (file) => file === 'src/components/AppRoutes.tsx' && expectedIncludedReleaseFileSet.has(file),
+    },
+    {
+      id: 'gwangju-runtime-component-contract',
+      reason: 'Gwangju runtime and dev-only precision editor render official aggregate hit-area geometry',
+      match: (file) => [
+        'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+        'src/components/gwangju/GwangjuSeatMapEditor.tsx',
+        'src/components/gwangju/GwangjuSeatMapSvg.tsx',
+      ].includes(file) && expectedIncludedReleaseFileSet.has(file),
     },
     {
       id: 'package-script-contract',
@@ -1272,6 +1321,7 @@ const runReleaseScopeGuard = async () => {
       match: (file) => (
         file.startsWith('docs/daegu-')
         || file.startsWith('scripts/daegu-')
+        || file.startsWith('src/assets/stadiums/samsung/')
         || file.startsWith('src/components/daegu/')
         || file.startsWith('src/components/StadiumGuideRuntimeSeatMaps.daegu')
         || file.startsWith('src/data/daegu')
@@ -1340,6 +1390,16 @@ const runReleaseScopeGuard = async () => {
       ),
     },
     {
+      id: 'incheon-files',
+      reason: 'Incheon work is explicitly outside the Gwangju release handoff scope',
+      match: (file) => (
+        file.startsWith('docs/incheon-')
+        || file.startsWith('scripts/incheon-')
+        || file.startsWith('src/components/incheon/')
+        || file.startsWith('src/data/incheon')
+      ),
+    },
+    {
       id: 'cross-stadium-utilities',
       reason: 'Shared or cross-stadium work is tracked separately from the Gwangju release handoff',
       match: (file) => [
@@ -1387,11 +1447,14 @@ const runReleaseScopeGuard = async () => {
         'src/components/stadiumSeatMapRegistry.tsx',
         'src/hooks/useStadiumGuide.ts',
         'src/components/suwon/SuwonSeatMap.tsx',
+        'src/data/stadiums.ts',
         'src/data/incheonSeatData.test.ts',
         'src/data/incheonSeatData.ts',
         'src/data/incheonVisitGuide.test.ts',
         'src/data/incheonVisitGuide.ts',
         'src/utils/kakaoMap.ts',
+        'src/utils/constants.ts',
+        'src/utils/stadiumData.ts',
         'src/utils/seatMapPolygonValidator.ts',
       ].includes(file),
     },
@@ -1422,15 +1485,15 @@ const runReleaseScopeGuard = async () => {
     'gwangju-seatmap-release-scope-guard.md',
     'PR Packaging Manifest',
     'Release Candidate Inventory',
-    'Included release candidate files: `17`',
+    'Included release candidate files: `31`',
     'Separate dirty work files:',
     'Separate dirty work baseline files: `74`',
     'Classified separate dirty work expansion allowed: `true`',
     'Inventory drift: `0`',
-    'releaseCandidateInventory.expectedIncludedFileCount=17',
+    'releaseCandidateInventory.expectedIncludedFileCount=31',
     'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74',
     'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'prPackagingManifest.releasePayloadFileCount=17',
+    'prPackagingManifest.releasePayloadFileCount=31',
     'prPackagingManifest.separateDirtyWorkFileCount=',
     'prPackagingManifest.unexpectedDirtyFileCount=0',
     'prPackagingManifest.inventoryDriftCount=0',
@@ -1454,21 +1517,21 @@ const runReleaseScopeGuard = async () => {
     'stagedScopeAudit.safeToRunBulkGitAdd=false',
     'stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
     'stagedScopeAudit.blocksSeparateDirtyWork=true',
-    'stagedScopeAudit.expectedTargetFileCount=17',
+    'stagedScopeAudit.expectedTargetFileCount=31',
     'stagedScopeAudit.stagedOutsideTargetFileCount=0',
     'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
     'stagingPlan.status=ready-or-review-required',
     'stagingPlan.doesNotRunGitAdd=true',
-    'stagingPlan.releasePayloadFileCount=17',
+    'stagingPlan.releasePayloadFileCount=31',
     'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=17',
+    'stagingReview.releasePayloadFileCount=31',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
-    'targetedStaging.targetFileCount=17',
-    'targetedStaging.reviewedUntrackedSatisfiedFileCount=4',
+    'targetedStaging.targetFileCount=31',
+    'targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
     'RELEASE_CANDIDATE_FILE_MISSING',
     'CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED',
     'scripts/daegu-seatmap-p1-operator-boundary.mjs',
@@ -1605,13 +1668,13 @@ const runReleaseScopeGuard = async () => {
     'scope guard',
     'npm run stadium:gwangju:release-scope-guard',
     'preoperator 통과 + official derived aggregate release + scope guard 통과',
-    'scopeGuardIncludedFiles=17',
+    'scopeGuardIncludedFiles=31',
     'scopeGuardSeparateDirtyWorkFiles=',
     'scopeGuardSeparateDirtyWorkBaselineFiles=74',
     'classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'expectedIncludedFileCount=17',
+    'expectedIncludedFileCount=31',
     'expectedSeparateDirtyWorkCount baseline=74',
-    'prPackagingManifest.releasePayloadFileCount=17',
+    'prPackagingManifest.releasePayloadFileCount=31',
     'prPackagingManifest.separateDirtyWorkFileCount=',
     'patchSeparationReadiness.status=ready-or-review-required',
     'clean release payload files are not packaging blockers',
@@ -1619,9 +1682,9 @@ const runReleaseScopeGuard = async () => {
     'stagingPlan.doesNotRunGitAdd=true',
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
-    'stagingReview.releasePayloadFileCount=17',
-    'targetedStaging.targetFileCount=17',
-    'stagedScopeAudit.expectedTargetFileCount=17',
+    'stagingReview.releasePayloadFileCount=31',
+    'targetedStaging.targetFileCount=31',
+    'stagedScopeAudit.expectedTargetFileCount=31',
     'stagedScopeAudit.stagedOutsideTargetFileCount=0',
     'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
   ].filter((snippet) => !releaseLockSource.includes(snippet));
@@ -1703,6 +1766,10 @@ const runReleaseScopeGuard = async () => {
     {
       file: 'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
       reason: 'Shared static test file contains multiple stadium contracts and should be reviewed before staging.',
+    },
+    {
+      file: 'scripts/stadium-seatmap-ops.mjs',
+      reason: 'Shared stadium dispatcher can include unrelated stadium command migration; confirm only Gwangju release hunks are intended before staging.',
     },
     {
       file: 'src/components/ChatBotFloatingButton.tsx',
@@ -1804,7 +1871,7 @@ const runReleaseScopeGuard = async () => {
     },
     scopeContract: {
       releaseMode: 'OFFICIAL_DERIVED_AGGREGATE_RELEASE',
-      activeBlockCount: 113,
+      activeBlockCount: GWANGJU_EXPECTED_TRACE_BLOCK_COUNT,
       k7AwayAggregateHitArea: 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE',
     },
     sourcePolicy,
@@ -1860,7 +1927,7 @@ const runReleaseScopeGuard = async () => {
     `- status: \`${report.status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
     '- release mode: `OFFICIAL_DERIVED_AGGREGATE_RELEASE`',
-    '- active block count: `113`',
+    `- active block count: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     '- K7/AWAY aggregate hit-area: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`',
     '- source coordinate system: `2200x1159`',
     '- missing baseball data contract: `MANUAL_BASEBALL_DATA_REQUIRED`',
@@ -2052,13 +2119,16 @@ const runPrStagingPlan = async () => {
   const reviewMarkdownPath = path.join(reportDir, 'gwangju-seatmap-pr-staging-review.md');
   const scopeGuardPath = path.join(reportDir, 'gwangju-seatmap-release-scope-guard.json');
   const prStagingPlanPath = jsonPath;
-  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 17;
+  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 31;
   const isReviewMode = process.argv.includes('--review');
   const allowedPatchSeparationStatuses = new Set(['ready', 'review-required']);
   const reviewedUntrackedIncludedReleaseFiles = new Set([
-    'scripts/gwangju-seatmap-operator-intake-write-ops.mjs',
-    'scripts/gwangju-seatmap-core-qa.mjs',
-    'scripts/gwangju-seatmap-operator-template-ops.mjs',
+    'scripts/gwangju-seatmap-artifact-scope-audit.mjs',
+    'scripts/gwangju-seatmap-block-source-duplication-audit.mjs',
+    'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs',
+    'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+    'src/components/gwangju/GwangjuSeatMapEditor.tsx',
+    'src/data/gwangjuSeatMapEditorDataset.ts',
   ]);
   
   const sourcePolicy = {
@@ -2308,7 +2378,7 @@ const runPrStagingPlan = async () => {
     '- stagingPlan.doesNotRunGitAdd=true',
     '- stagingPlan.safeToRunBulkGitAdd=false',
     `- stagingPlan.packageJsonStatus=${packageMixedStatus ?? 'none'}`,
-    '- stagingPlan.releasePayloadFileCount=17',
+    '- stagingPlan.releasePayloadFileCount=31',
     `- stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}`,
     `- stagingPlan.separateDirtyWorkBaselineFileCount=${separateDirtyWorkBaselineFileCount ?? '-'}`,
     `- stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=${classifiedSeparateDirtyWorkExpansionAllowed}`,
@@ -2502,7 +2572,7 @@ const runPrStagingPlan = async () => {
       '- stagingReview.status=ready-or-review-required',
       '- stagingReview.doesNotRunGitAdd=true',
       '- stagingReview.safeToRunBulkGitAdd=false',
-      '- stagingReview.releasePayloadFileCount=17',
+      '- stagingReview.releasePayloadFileCount=31',
       '- stagingReview.recommendsOnlyIncludedFiles=true',
       '- stagingReview.doesNotRecommendSeparateDirtyWork=true',
       '- Clean release payload files are not packaging blockers; review included files with `manual-hunk-review-required`, `untracked-review-required`, or `generated-report-review-required` before staging when present.',
@@ -2596,11 +2666,14 @@ const runTargetedStaging = async () => {
   const reportDir = path.join(frontendRoot, 'reports/stadium');
   
   const REPORT_VERSION = 'GWANGJU_TARGETED_STAGING_V1';
-  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 17;
+  const EXPECTED_RELEASE_PAYLOAD_FILE_COUNT = 31;
   const EXPECTED_REVIEWED_UNTRACKED_FILES = [
-    'scripts/gwangju-seatmap-operator-intake-write-ops.mjs',
-    'scripts/gwangju-seatmap-core-qa.mjs',
-    'scripts/gwangju-seatmap-operator-template-ops.mjs',
+    'scripts/gwangju-seatmap-artifact-scope-audit.mjs',
+    'scripts/gwangju-seatmap-block-source-duplication-audit.mjs',
+    'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs',
+    'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+    'src/components/gwangju/GwangjuSeatMapEditor.tsx',
+    'src/data/gwangjuSeatMapEditorDataset.ts',
   ];
   const allowedReviewStatuses = new Set(['ready', 'review-required']);
   const blockingReviewClasses = new Set(['untracked-review-required']);
@@ -2688,6 +2761,7 @@ const runTargetedStaging = async () => {
   const blockingReviewRows = reviewFiles.filter((entry) => blockingReviewClasses.has(entry.reviewClass));
   const manualReviewRows = reviewFiles.filter((entry) => entry.reviewClass === 'manual-hunk-review-required');
   const generatedReportReviewRows = reviewFiles.filter((entry) => entry.reviewClass === 'generated-report-review-required');
+  const manualScopeConfirmRows = reviewFiles.filter((entry) => entry.stagingAction === 'manual-confirm-scope-before-staging');
   
   const blockers = [
     ...(reviewError ? [`${reviewError}:reports/stadium/gwangju-seatmap-pr-staging-review.json`] : []),
@@ -2753,6 +2827,7 @@ const runTargetedStaging = async () => {
       unexpectedDirtyFileCount: review?.summary?.unexpectedDirtyFileCount ?? unexpectedFiles.length,
       readyToStageCount: reviewClassCounts['ready-to-stage'] ?? 0,
       manualReviewRequiredTargetFileCount: manualReviewRows.length,
+      manualScopeConfirmTargetFileCount: manualScopeConfirmRows.length,
       generatedReportReviewTargetFileCount: generatedReportReviewRows.length,
       untrackedReviewRequiredCount: reviewClassCounts['untracked-review-required'] ?? 0,
       reviewedUntrackedReadyFileCount: reviewedUntrackedReadyFiles.length,
@@ -2776,6 +2851,7 @@ const runTargetedStaging = async () => {
     reviewedUntrackedStagedFiles,
     reviewedUntrackedSatisfiedFiles,
     manualReviewRows,
+    manualScopeConfirmRows,
     generatedReportReviewRows,
     legacyReadyToStageDiagnosticNames,
     separateDirtyWork,
@@ -2822,10 +2898,11 @@ const runTargetedStaging = async () => {
     '- targetedStaging.safeToRunBulkGitAdd=false',
     '- targetedStaging.recommendsOnlyIncludedFiles=true',
     '- targetedStaging.doesNotRecommendSeparateDirtyWork=true',
-    '- targetedStaging.releasePayloadFileCount=17',
-    '- targetedStaging.targetFileCount=17',
-    '- targetedStaging.reviewedUntrackedSatisfiedFileCount=4',
+    '- targetedStaging.releasePayloadFileCount=31',
+    '- targetedStaging.targetFileCount=31',
+    '- targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
     '- New release scripts may be either reviewed untracked files before staging or staged added files after explicit staging.',
+    `- Manual scope confirmation target files: \`${manualScopeConfirmRows.length}\``,
     '- Recommended command kind: `explicit-file-list-only`',
     '- Do not use `git add .`, `git add -A`, or `git commit -am` for this release payload.',
     '',
@@ -2866,6 +2943,20 @@ const runTargetedStaging = async () => {
       ? markdownTable(
         ['file', 'git status', 'review class', 'staging action'],
         manualReviewRows.map((entry) => [
+          `\`${entry.file}\``,
+          `\`${entry.gitStatus}\``,
+          `\`${entry.reviewClass}\``,
+          `\`${entry.stagingAction}\``,
+        ]),
+      )
+      : '- none',
+    '',
+    '## Manual Scope Confirm Target Files',
+    '',
+    manualScopeConfirmRows.length > 0
+      ? markdownTable(
+        ['file', 'git status', 'review class', 'staging action'],
+        manualScopeConfirmRows.map((entry) => [
           `\`${entry.file}\``,
           `\`${entry.gitStatus}\``,
           `\`${entry.reviewClass}\``,
@@ -2927,8 +3018,13 @@ const runStagedScopeAudit = async () => {
   const reportDir = path.join(frontendRoot, 'reports/stadium');
   
   const REPORT_VERSION = 'GWANGJU_STAGED_SCOPE_AUDIT_V1';
-  const EXPECTED_TARGET_FILE_COUNT = 17;
-  const EXPECTED_REVIEWED_UNTRACKED_READY_FILE_COUNT = 4;
+  const EXPECTED_TARGET_FILE_COUNT = 31;
+  const EXPECTED_REVIEWED_UNTRACKED_READY_FILE_COUNT = 6;
+  const expectedDeletedTargetFiles = new Set([
+    'scripts/gwangju-manual-v87-evidence.mjs',
+    'scripts/gwangju-seatmap-third-base-boundary-overlay.mjs',
+    'scripts/gwangju-seatmap-third-base-independent-audit.mjs',
+  ]);
   const requireComplete = process.argv.includes('--require-complete');
   const targetedStagingJsonPath = path.join(reportDir, 'gwangju-seatmap-targeted-staging.json');
   const outputPaths = {
@@ -3031,6 +3127,7 @@ const runStagedScopeAudit = async () => {
   const stagedSeparateDirtyWork = stagedEntries.filter((entry) => separateDirtyWorkSet.has(entry.file));
   const stagedUnexpectedFiles = stagedEntries.filter((entry) => unexpectedFileSet.has(entry.file));
   const deletedTargetFiles = stagedEntries.filter((entry) => targetFileSet.has(entry.file) && entry.status === 'D');
+  const unexpectedDeletedTargetFiles = deletedTargetFiles.filter((entry) => !expectedDeletedTargetFiles.has(entry.file));
   const stagedTargetFileSet = new Set(stagedEntries
     .filter((entry) => targetFileSet.has(entry.file))
     .map((entry) => entry.file));
@@ -3058,7 +3155,7 @@ const runStagedScopeAudit = async () => {
     ...stagedOutsideTargets.map((entry) => `STAGED_FILE_OUTSIDE_TARGETS:${entry.file}`),
     ...stagedSeparateDirtyWork.map((entry) => `STAGED_SEPARATE_DIRTY_WORK:${entry.file}`),
     ...stagedUnexpectedFiles.map((entry) => `STAGED_UNEXPECTED_DIRTY_FILE:${entry.file}`),
-    ...deletedTargetFiles.map((entry) => `STAGED_TARGET_DELETED:${entry.file}`),
+    ...unexpectedDeletedTargetFiles.map((entry) => `STAGED_TARGET_DELETED:${entry.file}`),
     ...strictCompletionBlockers,
   ];
   
@@ -3099,6 +3196,8 @@ const runStagedScopeAudit = async () => {
       stagedOutsideTargetFileCount: stagedOutsideTargets.length,
       stagedSeparateDirtyWorkFileCount: stagedSeparateDirtyWork.length,
       stagedUnexpectedDirtyFileCount: stagedUnexpectedFiles.length,
+      stagedDeletedTargetFileCount: deletedTargetFiles.length,
+      unexpectedDeletedTargetFileCount: unexpectedDeletedTargetFiles.length,
       reviewedUntrackedReadyFileCount: targetedStaging?.summary?.reviewedUntrackedReadyFileCount ?? null,
       reviewedUntrackedStagedFileCount: targetedStaging?.summary?.reviewedUntrackedStagedFileCount ?? null,
       reviewedUntrackedSatisfiedFileCount: targetedStaging?.summary?.reviewedUntrackedSatisfiedFileCount ?? null,
@@ -3121,6 +3220,7 @@ const runStagedScopeAudit = async () => {
     },
     targetFiles,
     requiredStagedTargetFiles,
+    expectedDeletedTargetFiles: [...expectedDeletedTargetFiles],
     stagedRows,
     missingStagedTargetFiles,
     stagedOutsideTargets,
@@ -3168,7 +3268,7 @@ const runStagedScopeAudit = async () => {
     '- stagedScopeAudit.safeToRunBulkGitAdd=false',
     '- stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
     '- stagedScopeAudit.blocksSeparateDirtyWork=true',
-    '- stagedScopeAudit.expectedTargetFileCount=17',
+    '- stagedScopeAudit.expectedTargetFileCount=31',
     `- stagedScopeAudit.requiredStagedTargetFileCount=${requiredStagedTargetFiles.length}`,
     `- stagedScopeAudit.missingStagedTargetFileCount=${missingStagedTargetFiles.length}`,
     '- stagedScopeAudit.stagedOutsideTargetFileCount=0',

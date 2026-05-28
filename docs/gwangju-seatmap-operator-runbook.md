@@ -2,19 +2,21 @@
 
 ## 목적
 
-광주 기본 111개 블럭은 공식 PNG 기준 `manual-polygon-v96` / `FULL_ACTIVE_111_RETRACE` 세대로 구역별 재검수되어 있다. 2026-05-11 운영자 입력으로 `K7석`은 `107~111`, `118~122`, `원정응원석`은 `107~110` 번호 블럭 범위로 확정했다. 현재 production data는 이 공식 번호 블럭 polygon을 multi-subpath aggregate로 묶어 `home-k7-seats`, `away-cheering-seats` filter 전용 hit-area를 제공하므로 active block 수는 `113`이다.
+광주 기본 111개 블럭은 공식 PNG 기준 `gwangju-precision-v1` / `GWANGJU_PRECISION_V1` 세대로 구역별 재검수되어 있다. 121~127 번호 블럭과 3루 `I/J/L` 블럭은 공식 PNG crop을 새로 분석한 `gwangju-seatmap-official-third-infield-trace` 경로로 production data와 QA 실행 경로에 복구했다. 2026-05-11 운영자 입력에서 유지되는 범위는 `K7석` `107~111`, `118~122`, `원정응원석` `107~110`이다. 현재 production data는 이 공식 번호 블럭 polygon을 multi-subpath aggregate로 묶어 `home-k7-seats`, `away-cheering-seats` filter 전용 hit-area를 제공하므로 active block 수는 `113`이다.
 
-trace manifest는 `previousTraceVersion=manual-polygon-v95`, `baseTracedBlocks=111`, `activeBlocks=113`, `fullRetracedBlocks=113`, `blocksChangedFromPreviousTrace=113`, bbox/anchor/coverage delta, zone precision workset, zone crop, O/P component recall/IoU gate 결과를 남긴다. 101~109 하단 내야 구간은 trace manifest 전 `gwangju-seatmap-image-alignment-audit`로 `officialBlockMaskRecall`, `componentIoU`, `outsideBleedRatio`를 확인한다. 101~127 번호 내야 구간은 `official-numbered-component-mask`, `official-numbered-boundary-mask`, `official-numbered-independent-visual-reference`로 전수 검수한다. v77에서는 `gwangju-seatmap-lower-infield-independent-audit`를 추가해 1루 `101~108/H/I/J`와 3루 `H/I/J` visible polygon을 공식 PNG crop 독립 reference로 다시 확인하고, H/J/I처럼 맞닿는 구역은 browser visual polygon과 non-overlap hit-area를 분리한다. v78에서는 3루 `126`을 공식 PNG `121~127` crop에서 125와의 shared edge 기준으로 다시 찍었고, v79/v80에서는 `127`의 오른쪽/하단 과대 hit-area를 단계적으로 줄여 `G/J/H/S-335/533~535` sampled overlap 0을 유지하는 reference로 고정했다. v84에서는 3루 `S-333~335`, `121~125`의 기존 polygon을 폐기하고 공식 PNG crop에서 다시 트레이싱한 뒤 독립 visual reference로 검수했고, v85에서는 `126/127` hit-area를 같은 공식 crop의 불규칙 coral 경계 기준으로 다시 배치했으며, v86에서는 `126/127`도 공식 표시 경계 `visualD`와 non-overlap hit-area를 분리해 `official-png-crop-121-127-shared-boundary-v86`으로 고정한다. v96에서는 121~127 전체를 같은 원칙으로 재분리해 브라우저 visual은 공식 PNG 독립 reference를 따르고 click hit-area는 G/H/I/J/S-335/533~535와 겹치지 않는 비간섭 polygon으로 고정한다. v70 이후 3루 `123~127`은 `NUMBERED_INFIELD_MANUAL_MASK_REFERENCES`에서 분리해 독립 visual reference로 검수하고, G/H/I/J/S-335/533~535 forbidden adjacency overlap을 1px sample 기준 `0`으로 차단한다. J/I/H 하단 특수석은 101~108 polygon 배치 후 좌표 복사 mask가 아니라 공식 PNG 색상에서 추출한 `official-alphabet-section-mask`로 독립 mask recall/IoU/outside bleed를 확인한다. 같은 audit는 `lower-infield-special-split` evidence로 공식 PNG crop, 101~108 번호 블럭 only overlay, J/I/H 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 남기며 두 layer의 sampled overlap이 1개라도 있으면 release를 차단한다.
+trace manifest는 `previousTraceVersion=manual-polygon-v113`, `baseTracedBlocks=111`, `activeBlocks=113`, `fullRetracedBlocks=113`, `blocksChangedFromPreviousTrace=113`, bbox/anchor/coverage delta, zone precision workset, zone crop, O/P component recall/IoU gate 결과를 남긴다. 101~127 번호 내야 구간은 `gwangju-seatmap-image-alignment-audit`의 `official-numbered-component-mask`와 `official-numbered-boundary-mask`로 검수한다. `gwangju-seatmap-lower-infield-independent-audit`는 1루 `101~108/H/I/J`와 3루 `H/I/J/L` visible polygon을 공식 PNG crop 독립 reference로 다시 확인한다.
 
-v71에서는 3루 `I`를 기존 하단 작은 polygon 복사 mask에서 상단 공식 PNG 색상 component `[[0,2]]` row-envelope와 하단 marker subpath의 multi-subpath로 재산출해 bbox `438,204,607,362`, subpath `2`로 고정한다. v72에서는 3루 `J`를 아이콘 둘레가 아니라 공식 PNG에서 보이는 J 띠 영역으로 재트레이싱해 bbox `430,353,489,398`로 고정한다. v73에서는 3루 `H`를 공식 빨간 component row-envelope 3px 간격으로 재산출해 bbox `569,158,692,305`로 고정한다. 이 단계는 123~127, H, J, 533~535 exclusion ring을 먼저 적용한 뒤 남는 공식 PNG I 색상 component만 사용한다.
+v106에서는 3루 `I/J`와 121~127을 archived candidate 좌표 없이 공식 PNG crop 기준으로 다시 트레이싱한다. 과거 3루 `I/J` candidate polygon은 production/QA/release evidence에서 제거했으며, 재사용하지 않는다.
 
 브라우저 실제 렌더링은 `qa:stadium:gwangju:trace-review`/`qa:stadium:gwangju:mobile` 실행 시 `output/playwright/stadium-ux-gwangju-validate/gwangju-browser-coordinate-audit-<viewport>.json`과 `gwangju-browser-101-108-h-i-j-browser-coordinate-crop-*.png`로 별도 확인한다. 이 JSON은 SVG `viewBox`, 공식 PNG `<image>` bbox/preserveAspectRatio, 101~108/H/I/J path local bbox와 screen rect를 함께 남겨서 “테스트 통과 = 브라우저 렌더링 일치”가 깨지는 경우를 분리한다.
 
-3루 하단 보정은 공식 PNG crop에서 `third-family-seats`가 `569,158,692,305` bbox 안의 빨간 row-envelope임을 기준으로 한다. `third-family-seats` mask는 `k5-126`, `k5-127`을 제외한 공식 색상 row-envelope이고, `k5-126`은 `[[535,298],[570,296],[626,309],[683,319],[674,356],[506,326],[526,318]]`, `k5-127`은 `[[678,239],[692,235],[690,257],[685,301],[679,313],[663,304],[661,280],[669,247]]` 번호 mask를 사용해 H 영역과 533/534 상단 방향을 침범하지 않도록 잠근다. 이 보정은 기본 111개 좌표와 K7/AWAY aggregate filter 계약을 바꾸지 않는다.
+3루 하단 보정은 공식 PNG crop에서 `third-family-seats`가 `569,158,692,307` bbox 안의 빨간 row-envelope임을 기준으로 한다. 복구된 121~127/I/J는 `gwangju-seatmap-official-third-infield-trace` 산출물과 selected-sweep 검증 경로에 포함한다.
 
-후속 3루 `I/J` 보정은 공식 PNG crop에서 보이는 marker/strip 외곽을 기준으로 한다. v71에서 `third-wheelchair-seats`는 공식 PNG 색상 component `[[0,2]]` row-envelope와 하단 marker subpath bbox `438,204,607,362`로 잠그고, v72에서 `party-seats-third`는 `[[430,389],[438,374],[452,363],[470,353],[482,356],[489,365],[489,371],[467,398],[446,394]]`로 잠그며, 두 label center가 서로의 hit-area에 들어가면 release를 차단한다.
+후속 3루 보정이 필요하면 공식 PNG crop에서 보이는 marker/strip 외곽을 처음부터 다시 트레이싱한 뒤 별도 release로 승격한다. 과거 candidate/reference polygon을 복사해 production 또는 QA 근거로 사용하지 않는다.
 
-현재 `home-k7-seats`, `away-cheering-seats`는 새 좌표를 추정한 독립 polygon이 아니라 공식 PNG 기준 기존 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다. 별도의 non-overlap 운영자 polygon이 필요해지는 경우에만 아래 좌표 입력 자동화 경로를 다시 사용한다.
+현재 `home-k7-seats`, `away-cheering-seats`는 새 좌표를 추정한 독립 polygon이 아니라 공식 PNG 검수 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다. 별도의 non-overlap 운영자 polygon이 필요해지는 경우에만 아래 좌표 입력 자동화 경로를 다시 사용한다.
+
+Precision v1 수동 보정은 `/internal/gwangju-seatmap-editor`에서 진행한다. editor는 공식 PNG natural 좌표계 `2200x1159`만 사용하고 repo 파일을 직접 쓰지 않으며, patch payload 검증은 `npm run stadium:gwangju:precision-editor-patch:validate`, 변경 계획 검토는 `npm run stadium:gwangju:precision-editor-patch:apply-plan`, 적용 후 계약 검증은 `npm run stadium:gwangju:precision-editor-patch:postwrite-gate`로 수행한다.
 
 ## 좌표 입력 원칙
 
@@ -31,8 +33,8 @@ v71에서는 3루 `I`를 기존 하단 작은 polygon 복사 mask에서 상단 �
    - `K7석`: `107`, `108`, `109`, `110`, `111`, `118`, `119`, `120`, `121`, `122`
    - `원정응원석`: `107`, `108`, `109`, `110`
    - `홈 응원석`: `118`, `119`, `120`, `121`, `122`
-2. 기존 번호 블럭 polygon id를 `K7` 카테고리로 연결하고, `107~110`은 `fanRole: AWAY`, `118~122`는 `fanRole: HOME`, `111`은 `fanRole: NEUTRAL`로 둔다.
-3. `officialBlocks`는 번호 블럭과 aggregate official block을 함께 유지한다. `K7석`, `원정응원석` aggregate는 기존 번호 블럭 subpath를 합성한 filter 전용 hit-area다.
+2. 공식 PNG 검수 번호 블럭 polygon id를 `K7` 카테고리로 연결하고, `107~110`은 `fanRole: AWAY`, `118~122`은 `fanRole: HOME`, `111`은 `fanRole: NEUTRAL`로 둔다.
+3. `officialBlocks`는 번호 블럭과 aggregate official block을 함께 유지한다. `K7석`, `원정응원석` aggregate는 검수 완료 번호 블럭 subpath를 합성한 filter 전용 hit-area다.
 4. UI 필터는 category와 fanRole을 함께 본다.
    - `내야석`: K7 `107~111`, `118~122` 전체를 포함한다.
    - `K7석`: `home-k7-seats` aggregate hit-area를 노출하고 source 번호 블럭 hit-area는 해당 필터에서 숨긴다.
@@ -80,7 +82,7 @@ v71에서는 3루 `I`를 기존 하단 작은 polygon 복사 mask에서 상단 �
 - `pending`: trace는 안전하지만 독립 K7/원정응원석 polygon 입력, strict validation, ready apply-plan, valid data diff 중 하나가 아직 남아 있다.
 - `ready`: 두 운영자 polygon 구역 모두 strict validation과 apply-plan ready 조건을 통과해 data diff 후보가 있다.
 - block-range 반영 상태의 trace 기준은 active 113개이다.
-- K7/AWAY aggregate 기준은 active 113개, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`, 기존 111개 traced block 무수정 상태이다.
+- K7/AWAY aggregate 기준은 active 113개, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`, 기본 111개 traced block 유지 상태이다.
 - 별도 non-overlap operator target을 새로 추가하는 경우에만 `operator-apply:write`와 `operator-postwrite-gate` 경로를 사용한다.
 
 ## 승격 전 Guard
