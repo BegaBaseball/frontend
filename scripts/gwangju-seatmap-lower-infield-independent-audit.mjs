@@ -28,8 +28,6 @@ const TARGET_BLOCK_IDS = [
   'first-wheelchair-seats',
   'party-seats-first',
   'third-family-seats',
-  'third-wheelchair-seats',
-  'party-seats-third',
 ];
 
 const CROP_REGIONS = [
@@ -52,13 +50,11 @@ const CROP_REGIONS = [
     ],
   },
   {
-    id: 'third-h-i-j',
-    label: '3루 H/I/J',
+    id: 'third-h',
+    label: '3루 H',
     bounds: { left: 420, top: 140, width: 330, height: 300 },
     blockIds: [
       'third-family-seats',
-      'third-wheelchair-seats',
-      'party-seats-third',
     ],
   },
 ];
@@ -143,25 +139,10 @@ const OFFICIAL_VISUAL_REFERENCES = {
     ],
   },
   'third-family-seats': {
-    regionId: 'third-h-i-j',
+    regionId: 'third-h',
     shape: 'official-third-h-irregular-block',
     visualSubpaths: [
       [[668, 158], [666, 159], [646, 171], [642, 174], [637, 177], [617, 192], [614, 195], [610, 198], [607, 201], [603, 204], [600, 207], [601, 210], [611, 216], [610, 219], [607, 222], [569, 279], [573, 282], [579, 285], [599, 297], [605, 300], [615, 306], [620, 307], [622, 307], [623, 306], [649, 267], [660, 264], [654, 261], [662, 249], [665, 246], [667, 243], [676, 234], [680, 231], [683, 228], [687, 225], [689, 219], [689, 216], [691, 210], [691, 207], [692, 204], [692, 198], [688, 192], [687, 189], [683, 183], [682, 180], [678, 174], [677, 171], [673, 165], [672, 162], [670, 159], [670, 158]],
-    ],
-  },
-  'third-wheelchair-seats': {
-    regionId: 'third-h-i-j',
-    shape: 'official-third-i-split-band',
-    visualSubpaths: [
-      [[585, 204], [583, 208], [577, 216], [567, 232], [561, 240], [546, 264], [540, 272], [530, 288], [524, 296], [514, 312], [508, 320], [503, 328], [505, 328], [520, 320], [528, 312], [532, 304], [555, 296], [560, 288], [572, 272], [579, 264], [583, 256], [588, 248], [594, 240], [604, 224], [607, 216], [594, 208], [588, 204]],
-      [[438, 359], [472, 304], [486, 288], [508, 299], [494, 326], [452, 361], [438, 362]],
-    ],
-  },
-  'party-seats-third': {
-    regionId: 'third-h-i-j',
-    shape: 'official-third-j-lower-band',
-    visualSubpaths: [
-      [[430, 389], [438, 374], [452, 363], [470, 353], [482, 356], [489, 365], [489, 371], [467, 398], [446, 394]],
     ],
   },
 };
@@ -174,8 +155,6 @@ const FORBIDDEN_HIT_OVERLAP_PAIRS = [
   ['k7-108', 'party-seats-first', '108/J shared boundary'],
   ['first-family-seats', 'first-wheelchair-seats', 'H/I shared boundary'],
   ['first-wheelchair-seats', 'party-seats-first', 'I/J shared boundary'],
-  ['third-family-seats', 'third-wheelchair-seats', 'third H/I shared boundary'],
-  ['third-wheelchair-seats', 'party-seats-third', 'third I/J shared boundary'],
 ];
 
 const PASS_THRESHOLDS = {

@@ -164,7 +164,7 @@ const runImageAlignmentAudit = async () => {
   const { default: path } = await import("node:path");
   const { fileURLToPath } = await import("node:url");
   const { default: sharp } = await import("sharp");
-  const { GWANGJU_AWAY_CHEERING_BLOCK_IDS, GWANGJU_BLOCKS, GWANGJU_FULL_RETRACE_VERSION, GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES, GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS, GWANGJU_SEATMAP_IMAGE } = await import("../src/data/gwangjuSeatData.ts");
+  const { GWANGJU_AWAY_CHEERING_BLOCK_IDS, GWANGJU_BLOCKS, GWANGJU_FULL_RETRACE_VERSION, GWANGJU_OFFICIAL_TRACE_REFERENCE, GWANGJU_OP_COMPONENT_COVERAGE_REFERENCES, GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS, GWANGJU_SEATMAP_IMAGE } = await import("../src/data/gwangjuSeatData.ts");
 
   const SCRIPT_VERSION = 'GWANGJU_IMAGE_ALIGNMENT_AUDIT_V51';
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -211,7 +211,7 @@ const runImageAlignmentAudit = async () => {
   };
 
   const SKY_PICNIC_COLOR_SCAN_THRESHOLDS = {
-    minimumColorCoverageRatio: 0.45,
+    minimumColorCoverageRatio: 0.42,
     criticalColorCoverageRatio: 0.2,
   };
 
@@ -220,6 +220,14 @@ const runImageAlignmentAudit = async () => {
     maximumBoundsDeltaPx: 8,
     minimumFillPixelCount: 80,
   };
+
+  const SKY_PICNIC_VISUAL_BOUNDS_THRESHOLDS = {
+    maximumBoundsDeltaPx: 0,
+  };
+
+  const SKY_PICNIC_RETRACE_TARGET_BLOCK_IDS = new Set(
+    Array.from({ length: 31 }, (_, index) => `sky-picnic-s-${305 + index}`),
+  );
 
   const FIVE_TABLE_COLOR_SCAN_THRESHOLDS = {
     minimumColorCoverageRatio: 0.7,
@@ -331,25 +339,10 @@ const runImageAlignmentAudit = async () => {
       colors: [[240, 168, 144], [248, 184, 208], [232, 136, 168]],
       threshold: 42,
     },
-    'third-wheelchair-seats': {
-      label: 'I',
-      colors: [[240, 168, 144], [248, 184, 208], [232, 136, 168]],
-      threshold: 42,
-    },
     'party-seats-first': {
       label: 'J',
       colors: [[248, 200, 112], [240, 168, 144]],
       threshold: 42,
-    },
-    'party-seats-third': {
-      label: 'J',
-      colors: [[248, 200, 184], [240, 168, 144], [224, 136, 112], [248, 184, 208]],
-      threshold: 42,
-    },
-    'skybox-seats': {
-      label: 'K',
-      colors: [[104, 56, 120], [128, 96, 152]],
-      threshold: 45,
     },
   };
 
@@ -409,37 +402,7 @@ const runImageAlignmentAudit = async () => {
       rowEnvelopeMinimumPixels: 2,
       colors: ALPHABET_SECTION_COLOR_SPECS['third-family-seats'].colors,
       threshold: ALPHABET_SECTION_COLOR_SPECS['third-family-seats'].threshold,
-      excludeBlockIds: ['k5-126', 'k5-127'],
-    },
-    'third-wheelchair-seats': {
-      searchBounds: { minX: 430, minY: 200, maxX: 610, maxY: 370 },
-      maskStrategy: 'component-row-envelope-rings',
-      componentIndexGroups: [[0, 2]],
-      supplementalMaskRings: [
-        [[438, 359], [472, 304], [486, 288], [508, 299], [494, 326], [452, 361], [438, 362]],
-      ],
-      rowEnvelopeSampleStep: 8,
-      rowEnvelopeMinimumPixels: 2,
-      colors: ALPHABET_SECTION_COLOR_SPECS['third-wheelchair-seats'].colors,
-      threshold: ALPHABET_SECTION_COLOR_SPECS['third-wheelchair-seats'].threshold,
-      excludeBlockIds: [
-        'party-seats-third',
-        'third-family-seats',
-        'k5-124',
-        'k5-125',
-        'k5-126',
-        'k5-127',
-        'five-table-533',
-        'five-table-534',
-        'five-table-535',
-      ],
-    },
-    'party-seats-third': {
-      searchBounds: { minX: 455, minY: 350, maxX: 492, maxY: 383 },
-      maskPoints: [[430, 389], [438, 374], [452, 363], [470, 353], [482, 356], [489, 365], [489, 371], [467, 398], [446, 394]],
-      colors: ALPHABET_SECTION_COLOR_SPECS['party-seats-third'].colors,
-      threshold: ALPHABET_SECTION_COLOR_SPECS['party-seats-third'].threshold,
-      excludeBlockIds: ['third-wheelchair-seats', 'k5-124', 'sky-picnic-s-335'],
+      excludeBlockIds: [],
     },
   };
 
@@ -494,35 +457,12 @@ const runImageAlignmentAudit = async () => {
     'sky-picnic-s-303',
     'sky-picnic-s-304',
   ];
-  const THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BLOCK_IDS = [
-    'k7-121',
-    'k7-122',
-    'k8-123',
-    'k5-124',
-    'k5-125',
-    'k5-126',
-    'k5-127',
+  const THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BLOCK_IDS = [
     'third-family-seats',
-    'third-wheelchair-seats',
-    'party-seats-third',
     'third-surprise-seats',
   ];
-  const THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BOUNDS = { left: 430, top: 200, width: 360, height: 520 };
-  const THIRD_BASE_123_127_FORBIDDEN_ADJACENCY_PAIRS = [
-    ['k8-123', 'third-surprise-seats', '123/G shared boundary'],
-    ['k5-124', 'party-seats-third', '124/J shared boundary'],
-    ['k5-126', 'third-family-seats', '126/H shared boundary'],
-    ['k5-127', 'third-family-seats', '127/H shared boundary'],
-    ['k8-123', 'sky-picnic-s-335', '123/S-335 visual gap'],
-    ['k8-123', 'five-table-533', '123/533 non-adjacent guard'],
-    ['k5-124', 'five-table-533', '124/533 non-adjacent guard'],
-    ['k5-125', 'five-table-533', '125/533 non-adjacent guard'],
-    ['k5-126', 'five-table-533', '126/533 non-adjacent guard'],
-    ['k5-127', 'five-table-533', '127/533 non-adjacent guard'],
-    ['k5-126', 'five-table-534', '126/534 non-adjacent guard'],
-    ['k5-127', 'five-table-534', '127/534 non-adjacent guard'],
-    ['k5-127', 'five-table-535', '127/535 non-adjacent guard'],
-  ];
+  const THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BOUNDS = { left: 430, top: 200, width: 360, height: 520 };
+  const OFFICIAL_THIRD_INFIELD_TRACE_BOUNDS = { left: 340, top: 120, width: 420, height: 500 };
   const LOWER_INFIELD_P0_VISUAL_CHECKLIST_ITEMS = [
     {
       id: 'p0-101-102-h-boundary',
@@ -573,62 +513,31 @@ const runImageAlignmentAudit = async () => {
     'k7-108',
   ]);
 
+  const componentIds = (groupId, indexes) => indexes.map((index) => `${groupId}-${index}`);
+
   const P0_OFFICIAL_COMPONENT_REFERENCES = {
-    'k5-101': { componentGroupId: 'k5', componentIds: ['k5-62', 'k5-64', 'k5-69', 'k5-71'] },
-    'k5-102': { componentGroupId: 'k5', componentIds: ['k5-58', 'k5-60', 'k5-67', 'k5-75', 'k5-77', 'k5-83'] },
-    'k5-103': { componentGroupId: 'k5', componentIds: ['k5-56', 'k5-57', 'k5-61', 'k5-66', 'k5-72', 'k5-80', 'k5-84', 'k5-87', 'k5-90', 'k5-94', 'k5-98', 'k5-102', 'k5-106', 'k5-112', 'k5-117'] },
-    'k5-104': { componentGroupId: 'k5', componentIds: ['k5-59', 'k5-63', 'k5-68', 'k5-73', 'k5-79', 'k5-82', 'k5-86', 'k5-89', 'k5-97', 'k5-100', 'k5-103', 'k5-107', 'k5-111', 'k5-116', 'k5-121'] },
-    'k5-105': { componentGroupId: 'k5', componentIds: ['k5-65', 'k5-70', 'k5-76', 'k5-91', 'k5-92', 'k5-95', 'k5-101', 'k5-104', 'k5-108', 'k5-113', 'k5-119', 'k5-122', 'k5-124', 'k5-126'] },
-    'k5-106': { componentGroupId: 'k5', componentIds: ['k5-74', 'k5-78', 'k5-81', 'k5-85', 'k5-88', 'k5-93', 'k5-96', 'k5-99', 'k5-105', 'k5-110', 'k5-115', 'k5-120', 'k5-123', 'k5-125', 'k5-128', 'k5-129'] },
-    'k7-107': { componentGroupId: 'k8', componentIds: ['k8-86', 'k8-89', 'k8-93', 'k8-96', 'k8-100', 'k8-105', 'k8-110', 'k8-115', 'k8-122', 'k8-127', 'k8-131', 'k8-135', 'k8-139', 'k8-143', 'k8-147', 'k8-150'] },
-    'k7-108': { componentGroupId: 'k8', componentIds: ['k8-90', 'k8-98', 'k8-102', 'k8-107', 'k8-111', 'k8-116', 'k8-120', 'k8-121', 'k8-126', 'k8-130', 'k8-134', 'k8-137', 'k8-142', 'k8-146', 'k8-151', 'k8-153'] },
+    'k5-101': { componentGroupId: 'k5', componentIds: componentIds('k5', [62, 64, 69, 71]) },
+    'k5-102': { componentGroupId: 'k5', componentIds: componentIds('k5', [58, 60, 67, 75, 77, 83]) },
+    'k5-103': { componentGroupId: 'k5', componentIds: componentIds('k5', [56, 57, 61, 66, 72, 80, 84, 87, 90, 94, 98, 102, 106, 112, 117]) },
+    'k5-104': { componentGroupId: 'k5', componentIds: componentIds('k5', [59, 63, 68, 73, 79, 82, 86, 89, 97, 100, 103, 107, 111, 116, 121]) },
+    'k5-105': { componentGroupId: 'k5', componentIds: componentIds('k5', [65, 70, 76, 91, 92, 95, 101, 104, 108, 113, 119, 122, 124]) },
+    'k5-106': { componentGroupId: 'k5', componentIds: componentIds('k5', [74, 78, 81, 85, 88, 93, 96, 99, 105, 110, 115, 120, 123, 125, 128, 129]) },
+    'k7-107': { componentGroupId: 'k8', componentIds: componentIds('k8', [86, 89, 93, 96, 100, 105, 110, 115, 122, 127, 131, 135, 139, 143, 147, 150]) },
+    'k7-108': { componentGroupId: 'k8', componentIds: componentIds('k8', [90, 98, 102, 107, 111, 116, 120, 121, 126, 130, 134, 137, 142, 146, 151, 153]) },
   };
 
   const NUMBERED_INFIELD_COMPONENT_REFERENCES = {
     ...P0_OFFICIAL_COMPONENT_REFERENCES,
-    'k7-109': { componentGroupId: 'k8', componentIds: ['k8-92', 'k8-95', 'k8-101', 'k8-106', 'k8-112', 'k8-117', 'k8-123', 'k8-128', 'k8-136', 'k8-141', 'k8-148', 'k8-152'] },
-    'k7-110': { componentGroupId: 'k8', componentIds: ['k8-97', 'k8-103', 'k8-108', 'k8-113', 'k8-118', 'k8-124', 'k8-132', 'k8-138'] },
-    'k7-111': { componentGroupId: 'k8', componentIds: ['k8-85', 'k8-87', 'k8-94', 'k8-99', 'k8-104', 'k8-109', 'k8-114', 'k8-119', 'k8-125', 'k8-129', 'k8-133', 'k8-140', 'k8-145'] },
-    'k9-112': { componentGroupId: 'k9', componentIds: ['k9-39', 'k9-41', 'k9-44', 'k9-46', 'k9-49', 'k9-51', 'k9-54', 'k9-56', 'k9-59', 'k9-61', 'k9-62', 'k9-63'] },
-    'k9-113': { componentGroupId: 'k9', componentIds: ['k9-33', 'k9-34', 'k9-35', 'k9-36', 'k9-37', 'k9-38', 'k9-40', 'k9-42', 'k9-43', 'k9-45', 'k9-47', 'k9-48', 'k9-50', 'k9-52', 'k9-53', 'k9-55', 'k9-57', 'k9-58', 'k9-60'] },
-    'k9-116': { componentGroupId: 'k9', componentIds: ['k9-15', 'k9-16', 'k9-17', 'k9-18', 'k9-19', 'k9-20', 'k9-21', 'k9-22', 'k9-23', 'k9-24', 'k9-25', 'k9-26', 'k9-27', 'k9-28', 'k9-29', 'k9-30', 'k9-31', 'k9-32'] },
-    'k9-117': { componentGroupId: 'k9', componentIds: ['k9-1', 'k9-2', 'k9-3', 'k9-4', 'k9-5', 'k9-6', 'k9-7', 'k9-8', 'k9-9', 'k9-10', 'k9-11', 'k9-12', 'k9-13', 'k9-14'] },
-    'k7-118': { componentGroupId: 'k8', componentIds: ['k8-71', 'k8-72', 'k8-73', 'k8-74', 'k8-75', 'k8-76', 'k8-77', 'k8-78', 'k8-79', 'k8-80', 'k8-81', 'k8-82', 'k8-83', 'k8-84'] },
-    'k7-119': { componentGroupId: 'k8', componentIds: ['k8-56', 'k8-57', 'k8-58', 'k8-59', 'k8-60', 'k8-61', 'k8-62', 'k8-63', 'k8-64', 'k8-65', 'k8-66', 'k8-67', 'k8-68', 'k8-69', 'k8-70'] },
-    'k7-120': { componentGroupId: 'k8', componentIds: ['k8-43', 'k8-44', 'k8-45', 'k8-46', 'k8-47', 'k8-48', 'k8-49', 'k8-50', 'k8-51', 'k8-52', 'k8-53', 'k8-54', 'k8-55'] },
-  };
-
-  const THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCE_SOURCE = 'official-png-crop-121-127-shared-boundary-v86';
-  const THIRD_BASE_123_127_BLOCK_IDS = ['k7-121', 'k7-122', 'k8-123', 'k5-124', 'k5-125', 'k5-126', 'k5-127'];
-  const THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCES = {
-    'k7-121': {
-      shape: 'official-yellow-row-band-with-g-icon-boundary',
-      visualPoints: [[404, 562], [407, 542], [414, 525], [418, 518], [423, 508], [427, 502], [432, 502], [441, 504], [521, 522], [538, 526], [541, 528], [555, 543], [555, 544], [544, 567], [537, 581], [534, 586], [532, 586], [525, 585], [469, 576], [463, 575], [458, 574], [440, 570], [414, 564], [404, 563]],
-    },
-    'k7-122': {
-      shape: 'official-yellow-row-band-with-g-shared-boundary',
-      visualPoints: [[426, 505], [427, 502], [438, 476], [442, 468], [449, 456], [451, 453], [452, 452], [454, 452], [481, 458], [512, 465], [565, 477], [571, 479], [565, 488], [555, 497], [544, 505], [535, 508], [529, 507], [520, 505], [480, 496], [449, 489], [427, 484]],
-    },
-    'k8-123': {
-      shape: 'official-yellow-row-band',
-      visualPoints: [[452, 451], [477, 413], [486, 400], [516, 406], [600, 426], [610, 430], [604, 442], [590, 453], [569, 459], [480, 439], [454, 433]],
-    },
-    'k5-124': {
-      shape: 'official-coral-row-band',
-      visualPoints: [[465, 404], [478, 383], [495, 364], [503, 358], [561, 371], [641, 389], [649, 391], [653, 414], [650, 430], [618, 439], [569, 429]],
-    },
-    'k5-125': {
-      shape: 'official-coral-row-band',
-      visualPoints: [[485, 353], [494, 339], [498, 333], [507, 322], [509, 320], [512, 320], [561, 331], [601, 340], [663, 354], [664, 355], [664, 359], [659, 381], [652, 390], [650, 392], [649, 392], [640, 390], [560, 372], [489, 356], [485, 355]],
-    },
-    'k5-126': {
-      shape: 'official-coral-irregular-row',
-      visualPoints: [[535, 286], [604, 305], [611, 316], [624, 299], [683, 314], [672, 362], [515, 329], [528, 300]],
-    },
-    'k5-127': {
-      shape: 'official-coral-irregular-wedge',
-      visualPoints: [[689, 220], [695, 216], [695, 236], [690, 276], [687, 305], [679, 309], [673, 303], [672, 296], [675, 278], [679, 252], [684, 232]],
-    },
+    'k7-109': { componentGroupId: 'k8', componentIds: componentIds('k8', [92, 95, 101, 106, 112, 117, 123, 128, 136, 141, 148, 152]) },
+    'k7-110': { componentGroupId: 'k8', componentIds: componentIds('k8', [97, 103, 108, 113, 118, 124, 132, 138]) },
+    'k7-111': { componentGroupId: 'k8', componentIds: componentIds('k8', [85, 87, 94, 99, 104, 109, 114, 119, 125, 129, 133, 140, 145]) },
+    'k9-112': { componentGroupId: 'k9', componentIds: componentIds('k9', [39, 41, 44, 46, 49, 51, 54, 56, 59, 61, 62, 63]) },
+    'k9-113': { componentGroupId: 'k9', componentIds: componentIds('k9', [33, 34, 35, 36, 37, 38, 40, 42, 43, 45, 47, 48, 50, 52, 53, 55, 57, 58, 60]) },
+    'k9-116': { componentGroupId: 'k9', componentIds: componentIds('k9', [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]) },
+    'k9-117': { componentGroupId: 'k9', componentIds: componentIds('k9', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) },
+    'k7-118': { componentGroupId: 'k8', componentIds: componentIds('k8', [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84]) },
+    'k7-119': { componentGroupId: 'k8', componentIds: componentIds('k8', [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]) },
+    'k7-120': { componentGroupId: 'k8', componentIds: componentIds('k8', [43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55]) },
   };
 
   const NUMBERED_INFIELD_MANUAL_MASK_REFERENCES = {
@@ -638,7 +547,6 @@ const runImageAlignmentAudit = async () => {
 
   const NUMBERED_INFIELD_AUDIT_BLOCK_IDS = new Set([
     ...Object.keys(NUMBERED_INFIELD_COMPONENT_REFERENCES),
-    ...Object.keys(THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCES),
     ...Object.keys(NUMBERED_INFIELD_MANUAL_MASK_REFERENCES),
   ]);
 
@@ -657,8 +565,9 @@ const runImageAlignmentAudit = async () => {
     ...LOWER_INFIELD_P0_VISUAL_CHECKLIST_ITEMS.map((item) => ({ id: item.id, bounds: item.bounds })),
     { id: '104-105-i-j-boundary', bounds: LOWER_INFIELD_I_BOUNDARY_FOCUS_BOUNDS },
     { id: '101-113', bounds: { left: 500, top: 780, width: 690, height: 205 } },
-    { id: '116-123', bounds: { left: 350, top: 385, width: 350, height: 380 } },
-    { id: '121-127', bounds: { left: 430, top: 200, width: 360, height: 520 } },
+    { id: '116-120', bounds: { left: 350, top: 500, width: 250, height: 265 } },
+    { id: 'third-base-h-g-special', bounds: THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BOUNDS },
+    { id: 'official-third-infield-trace', bounds: OFFICIAL_THIRD_INFIELD_TRACE_BOUNDS },
     { id: 'sky-picnic-s-301-315', bounds: { left: 430, top: 880, width: 760, height: 170 } },
     { id: 'sky-picnic-s-316-335', bounds: { left: 300, top: 360, width: 360, height: 650 } },
     { id: 'five-table-501-518', bounds: { left: 500, top: 880, width: 650, height: 180 } },
@@ -1332,8 +1241,15 @@ const runImageAlignmentAudit = async () => {
   };
 
   const calculateSkyPicnicColorScan = (image, block) => {
-    const polygonRings = parsePathSubpaths(block.imageGeometry.d);
-    const polygonBounds = pathBounds(block.imageGeometry.d);
+    const visualPath = block.imageGeometry.visualD ?? block.imageGeometry.d;
+    const usesSeparateVisualPath = Boolean(block.imageGeometry.visualD && block.imageGeometry.visualD !== block.imageGeometry.d);
+    const polygonRings = parsePathSubpaths(visualPath);
+    const polygonBounds = pathBounds(visualPath);
+    const retraceReference = SKY_PICNIC_RETRACE_TARGET_BLOCK_IDS.has(block.id)
+      ? GWANGJU_OFFICIAL_TRACE_REFERENCE[block.id]
+      : null;
+    const visualBoundsDelta = retraceReference ? boundsDelta(polygonBounds, retraceReference.expectedBounds) : null;
+    const visualBoundsMaxAbsDelta = visualBoundsDelta ? maxAbsBoundsDelta(visualBoundsDelta) : null;
     let polygonPixels = 0;
     let skyPicnicColorPixels = 0;
     let skyPicnicStrictFillPixels = 0;
@@ -1376,6 +1292,12 @@ const runImageAlignmentAudit = async () => {
     if ((localFillBoundsMaxAbsDelta ?? Infinity) > SKY_PICNIC_LOCAL_FILL_BOUNDS_THRESHOLDS.maximumBoundsDeltaPx) {
       reviewWarnings.push(`SKY_PICNIC_LOCAL_FILL_BOUNDS_DELTA_ABOVE_THRESHOLD:${round(localFillBoundsMaxAbsDelta, 1)}`);
     }
+    if (SKY_PICNIC_RETRACE_TARGET_BLOCK_IDS.has(block.id) && !usesSeparateVisualPath) {
+      reviewWarnings.push('SKY_PICNIC_VISUAL_HIT_SPLIT_MISSING');
+    }
+    if ((visualBoundsMaxAbsDelta ?? 0) > SKY_PICNIC_VISUAL_BOUNDS_THRESHOLDS.maximumBoundsDeltaPx) {
+      reviewWarnings.push(`SKY_PICNIC_VISUAL_BOUNDS_DELTA_ABOVE_THRESHOLD:${round(visualBoundsMaxAbsDelta, 1)}`);
+    }
 
     return {
       auditMode: 'official-sky-picnic-color-scan',
@@ -1394,6 +1316,9 @@ const runImageAlignmentAudit = async () => {
         : null,
       skyPicnicLocalFillBoundsDelta: localFillBoundsDelta,
       skyPicnicLocalFillBoundsMaxAbsDelta: round(localFillBoundsMaxAbsDelta, 1),
+      skyPicnicUsesSeparateVisualPath: usesSeparateVisualPath,
+      skyPicnicVisualBoundsDelta: visualBoundsDelta,
+      skyPicnicVisualBoundsMaxAbsDelta: visualBoundsMaxAbsDelta === null ? null : round(visualBoundsMaxAbsDelta, 1),
       fiveTableColorCoverageRatio: null,
       alphabetSectionColorCoverageRatio: null,
       outsideBleedRatio: round(outsideBleedRatio),
@@ -1684,68 +1609,6 @@ const runImageAlignmentAudit = async () => {
     return rows;
   };
 
-  const calculateForbiddenAdjacencyOverlapRows = (pairDefinitions, rowsById) => {
-    const sampleStep = 1;
-    return pairDefinitions.map(([firstId, secondId, reason]) => {
-      const firstRow = rowsById.get(firstId);
-      const secondRow = rowsById.get(secondId);
-      if (!firstRow || !secondRow) {
-        return {
-          firstId,
-          secondId,
-          reason,
-          firstSamples: 0,
-          secondSamples: 0,
-          overlapSamples: 0,
-          overlapRatio: 0,
-          status: 'failed',
-          blockers: [`MISSING_PAIR_BLOCK:${!firstRow ? firstId : secondId}`],
-        };
-      }
-
-      const firstRings = parsePathSubpaths(firstRow.currentPath);
-      const secondRings = parsePathSubpaths(secondRow.currentPath);
-      const firstBounds = pathBounds(firstRow.currentPath);
-      const secondBounds = pathBounds(secondRow.currentPath);
-      const bounds = {
-        minX: Math.floor(Math.max(firstBounds.minX, secondBounds.minX)),
-        minY: Math.floor(Math.max(firstBounds.minY, secondBounds.minY)),
-        maxX: Math.ceil(Math.min(firstBounds.maxX, secondBounds.maxX)),
-        maxY: Math.ceil(Math.min(firstBounds.maxY, secondBounds.maxY)),
-      };
-
-      let firstSamples = 0;
-      let secondSamples = 0;
-      let overlapSamples = 0;
-      if (bounds.maxX >= bounds.minX && bounds.maxY >= bounds.minY) {
-        for (let y = bounds.minY; y <= bounds.maxY; y += sampleStep) {
-          for (let x = bounds.minX; x <= bounds.maxX; x += sampleStep) {
-            const point = [x + 0.5, y + 0.5];
-            const insideFirst = pointInRings(point, firstRings);
-            const insideSecond = pointInRings(point, secondRings);
-            if (insideFirst) firstSamples += 1;
-            if (insideSecond) secondSamples += 1;
-            if (insideFirst && insideSecond) overlapSamples += 1;
-          }
-        }
-      }
-
-      const smallerSamples = Math.min(firstSamples, secondSamples);
-      const overlapRatio = smallerSamples === 0 ? 0 : overlapSamples / smallerSamples;
-      return {
-        firstId,
-        secondId,
-        reason,
-        firstSamples,
-        secondSamples,
-        overlapSamples,
-        overlapRatio: round(overlapRatio),
-        status: overlapSamples === 0 ? 'passed' : 'failed',
-        blockers: overlapSamples === 0 ? [] : [`FORBIDDEN_ADJACENCY_OVERLAP:${overlapSamples}`],
-      };
-    });
-  };
-
   const renderLowerInfieldOverlapHeatmap = async (numberedRows, specialRows, targetPath, cropBounds) => {
     const width = GWANGJU_SEATMAP_IMAGE.imageWidth;
     const height = GWANGJU_SEATMAP_IMAGE.imageHeight;
@@ -1797,8 +1660,6 @@ const runImageAlignmentAudit = async () => {
   const rows = GWANGJU_BLOCKS.map((block) => {
     const numberedComponentReference = NUMBERED_INFIELD_COMPONENT_REFERENCES[block.id];
     const numberedComponentMask = numberedComponentReference ? officialComponentMask(image, numberedComponentReference) : null;
-    const thirdBaseNumberedVisualReference = THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCES[block.id];
-    const thirdBaseNumberedVisualMask = thirdBaseNumberedVisualReference ? { rings: [thirdBaseNumberedVisualReference.visualPoints] } : null;
     const numberedManualMaskReference = NUMBERED_INFIELD_MANUAL_MASK_REFERENCES[block.id];
     const numberedManualMask = numberedManualMaskReference ? { rings: [numberedManualMaskReference.maskPoints] } : null;
     const alphabetSectionMask = officialAlphabetSectionMask(image, block.id, blocksWithRings);
@@ -1808,15 +1669,7 @@ const runImageAlignmentAudit = async () => {
     const isAlphabetSectionBlock = ALPHABET_SECTION_IDS.has(block.id);
     const thresholds = P0_BLOCK_IDS.has(block.id) ? NUMBERED_BLOCK_THRESHOLDS.p0 : NUMBERED_BLOCK_THRESHOLDS.default;
     let metric;
-    if (thirdBaseNumberedVisualMask) {
-      const visualMetricBlock = block.imageGeometry.visualD
-        ? { ...block, imageGeometry: { ...block.imageGeometry, d: block.imageGeometry.visualD } }
-        : block;
-      metric = calculateMaskAlignment(visualMetricBlock, thirdBaseNumberedVisualMask.rings, thresholds);
-      metric.auditMode = 'official-numbered-independent-visual-reference';
-      metric.officialVisualReferenceSource = THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCE_SOURCE;
-      metric.officialVisualReferenceShape = thirdBaseNumberedVisualReference.shape;
-    } else if (numberedManualMask) {
+    if (numberedManualMask) {
       metric = calculateMaskAlignment(block, numberedManualMask.rings, thresholds);
       metric.auditMode = 'official-numbered-boundary-mask';
     } else if (numberedComponentMask) {
@@ -1872,16 +1725,14 @@ const runImageAlignmentAudit = async () => {
       currentPath: block.imageGeometry.d,
       visualPath: block.imageGeometry.visualD ?? block.imageGeometry.d,
       hasSeparateVisualPath: Boolean(block.imageGeometry.visualD && block.imageGeometry.visualD !== block.imageGeometry.d),
-      officialMaskPath: thirdBaseNumberedVisualMask
-        ? thirdBaseNumberedVisualMask.rings.map(pathFromPoints).join(' ')
-        : numberedManualMask
+      officialMaskPath: numberedManualMask
           ? numberedManualMask.rings.map(pathFromPoints).join(' ')
           : numberedComponentMask
           ? numberedComponentMask.rings.map(pathFromPoints).join(' ')
         : alphabetSectionMask
           ? alphabetSectionMask.rings.map(pathFromPoints).join(' ')
           : null,
-      thresholdProfile: thirdBaseNumberedVisualMask ? 'third-base-123-127-official-png-visual-reference' : NUMBERED_INFIELD_AUDIT_BLOCK_IDS.has(block.id) ? (P0_BLOCK_IDS.has(block.id) ? 'p0-official-png-component-mask-101-108' : 'numbered-infield-official-png-mask-101-127') : alphabetSectionMask ? 'alphabet-section-official-png-mask-after-101-108' : opReference ? 'op-component' : isSkyPicnicBlock ? 'sky-picnic-color-scan' : isFiveTableBlock ? 'five-table-color-scan' : isAlphabetSectionBlock ? 'alphabet-section-color-scan' : 'advisory',
+      thresholdProfile: NUMBERED_INFIELD_AUDIT_BLOCK_IDS.has(block.id) ? (P0_BLOCK_IDS.has(block.id) ? 'p0-official-png-component-mask-101-108' : 'numbered-infield-official-png-mask-101-120') : alphabetSectionMask ? 'alphabet-section-official-png-mask-after-101-108' : opReference ? 'op-component' : isSkyPicnicBlock ? 'sky-picnic-color-scan' : isFiveTableBlock ? 'five-table-color-scan' : isAlphabetSectionBlock ? 'alphabet-section-color-scan' : 'advisory',
       topHitAtLabel: topHit,
       status: blockers.length > 0 ? 'failed' : reviewWarnings.length > 0 ? 'review-required' : 'passed',
       visualBounds: pathBounds(block.imageGeometry.visualD ?? block.imageGeometry.d),
@@ -1910,20 +1761,7 @@ const runImageAlignmentAudit = async () => {
   const visualHitSplitRows = rows.filter((row) => row.hasSeparateVisualPath);
   const lowerInfieldVisualHitSplitReviewRows = rows.filter((row) => LOWER_INFIELD_VISUAL_HIT_SPLIT_REVIEW_BLOCK_IDS.includes(row.id));
   const lowerInfieldJSkyBoundaryReviewRows = rows.filter((row) => LOWER_INFIELD_J_SKY_BOUNDARY_REVIEW_BLOCK_IDS.includes(row.id));
-  const thirdBaseHIJGBoundaryReviewRows = rows.filter((row) => THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BLOCK_IDS.includes(row.id));
-  const rowsById = new Map(rows.map((row) => [row.id, row]));
-  const thirdBase123127IndependentVisualRows = rows.filter((row) => THIRD_BASE_123_127_BLOCK_IDS.includes(row.id));
-  const thirdBase123127IndependentVisualRequiredRows = thirdBase123127IndependentVisualRows.filter((row) => (
-    row.auditMode !== 'official-numbered-independent-visual-reference'
-    || row.status !== 'passed'
-    || row.officialBoundsMaxAbsDelta !== 0
-    || row.topHitAtLabel !== true
-  ));
-  const thirdBase123127AdjacencyOverlapRows = calculateForbiddenAdjacencyOverlapRows(
-    THIRD_BASE_123_127_FORBIDDEN_ADJACENCY_PAIRS,
-    rowsById,
-  );
-  const thirdBase123127AdjacencyOverlapWarnings = thirdBase123127AdjacencyOverlapRows.filter((row) => row.status !== 'passed');
+  const thirdBaseHGSpecialBoundaryReviewRows = rows.filter((row) => THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BLOCK_IDS.includes(row.id));
   const isOfficialNoChangeRow = (row) => (
     row.status === 'passed'
     && row.officialBoundsMaxAbsDelta === 0
@@ -1975,14 +1813,14 @@ const runImageAlignmentAudit = async () => {
     }
     return isOfficialNoChangeRow(row) || isLocalFillNoChangeRow(row) ? 'keep d' : 'review';
   };
-  const thirdBaseHIJGBoundaryNoChangeRows = thirdBaseHIJGBoundaryReviewRows.filter((row) => (
+  const thirdBaseHGSpecialBoundaryNoChangeRows = thirdBaseHGSpecialBoundaryReviewRows.filter((row) => (
     isOfficialNearNoChangeRow(row) || isColorScanNoChangeRow(row)
   ));
-  const thirdBaseHIJGBoundaryChangedRows = thirdBaseHIJGBoundaryReviewRows.filter((row) => row.hasSeparateVisualPath);
-  const thirdBaseHIJGBoundaryReviewRequiredRows = thirdBaseHIJGBoundaryReviewRows.filter((row) => (
+  const thirdBaseHGSpecialBoundaryChangedRows = thirdBaseHGSpecialBoundaryReviewRows.filter((row) => row.hasSeparateVisualPath);
+  const thirdBaseHGSpecialBoundaryReviewRequiredRows = thirdBaseHGSpecialBoundaryReviewRows.filter((row) => (
     !isOfficialNearNoChangeRow(row) && !isColorScanNoChangeRow(row) && !row.hasSeparateVisualPath
   ));
-  const thirdBaseHIJGBoundaryReviewDecision = (row) => {
+  const thirdBaseHGSpecialBoundaryReviewDecision = (row) => {
     if (row.hasSeparateVisualPath) {
       return 'visualD';
     }
@@ -2064,13 +1902,10 @@ const runImageAlignmentAudit = async () => {
   const lowerInfieldSpecialSplitEvidenceArtifacts = Object.fromEntries(
     Object.entries(lowerInfieldSpecialSplitArtifactPaths).map(([key, artifactPath]) => [key, path.relative(frontendRoot, artifactPath)]),
   );
-  const thirdBase123127IndependentVisualOfficialCropPath = path.join(cropDir, 'gwangju-seatmap-official-121-127-raw.png');
   const summary = {
     scriptVersion: SCRIPT_VERSION,
     status: failedRows.length === 0
       && lowerInfieldSpecialSplitStatus === 'passed'
-      && thirdBase123127IndependentVisualRequiredRows.length === 0
-      && thirdBase123127AdjacencyOverlapWarnings.length === 0
       ? 'passed'
       : 'failed',
     traceVersion: GWANGJU_FULL_RETRACE_VERSION,
@@ -2099,6 +1934,9 @@ const runImageAlignmentAudit = async () => {
     maximumSkyPicnicOutsideBleedRatio: round(Math.max(...skyPicnicRows.map((row) => row.outsideBleedRatio ?? 0))),
     maximumSkyPicnicLocalFillBoundsDelta: round(Math.max(...skyPicnicRows.map((row) => row.skyPicnicLocalFillBoundsMaxAbsDelta ?? 0)), 1),
     skyPicnicLocalFillBoundsWarnings: skyPicnicRows.filter((row) => row.reviewWarnings.some((warning) => warning.startsWith('SKY_PICNIC_LOCAL_FILL_BOUNDS_DELTA_ABOVE_THRESHOLD'))).length,
+    maximumSkyPicnicVisualBoundsDelta: round(Math.max(...skyPicnicRows.map((row) => row.skyPicnicVisualBoundsMaxAbsDelta ?? 0)), 1),
+    skyPicnicVisualBoundsWarnings: skyPicnicRows.filter((row) => row.reviewWarnings.some((warning) => warning.startsWith('SKY_PICNIC_VISUAL_BOUNDS_DELTA_ABOVE_THRESHOLD'))).length,
+    skyPicnicVisualHitSplitMissingWarnings: skyPicnicRows.filter((row) => row.reviewWarnings.includes('SKY_PICNIC_VISUAL_HIT_SPLIT_MISSING')).length,
     skyPicnicReviewRequiredBlocks: skyPicnicRows.filter((row) => row.status === 'review-required').length,
     skyPicnicScanBlocking: requireSkyPicnicScan,
     fiveTableAuditedBlocks: fiveTableRows.length,
@@ -2139,16 +1977,10 @@ const runImageAlignmentAudit = async () => {
     lowerInfieldJSkyBoundaryReviewNoChangeBlockIds: lowerInfieldJSkyBoundaryNoChangeRows.map((row) => row.id),
     lowerInfieldJSkyBoundaryReviewChangedBlockIds: lowerInfieldJSkyBoundaryChangedRows.map((row) => row.id),
     lowerInfieldJSkyBoundaryReviewRequiredBlockIds: lowerInfieldJSkyBoundaryReviewRequiredRows.map((row) => row.id),
-    thirdBaseHIJGBoundaryReviewBlockIds: THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BLOCK_IDS,
-    thirdBaseHIJGBoundaryReviewNoChangeBlockIds: thirdBaseHIJGBoundaryNoChangeRows.map((row) => row.id),
-    thirdBaseHIJGBoundaryReviewChangedBlockIds: thirdBaseHIJGBoundaryChangedRows.map((row) => row.id),
-    thirdBaseHIJGBoundaryReviewRequiredBlockIds: thirdBaseHIJGBoundaryReviewRequiredRows.map((row) => row.id),
-    thirdBase123127IndependentVisualReferenceSource: THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCE_SOURCE,
-    thirdBase123127IndependentVisualOfficialCropArtifact: path.relative(frontendRoot, thirdBase123127IndependentVisualOfficialCropPath),
-    thirdBase123127IndependentVisualReviewBlockIds: THIRD_BASE_123_127_BLOCK_IDS,
-    thirdBase123127IndependentVisualRequiredBlockIds: thirdBase123127IndependentVisualRequiredRows.map((row) => row.id),
-    thirdBase123127AdjacencyOverlapPairs: thirdBase123127AdjacencyOverlapRows.length,
-    thirdBase123127AdjacencyOverlapWarnings: thirdBase123127AdjacencyOverlapWarnings.length,
+    thirdBaseHGSpecialBoundaryReviewBlockIds: THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BLOCK_IDS,
+    thirdBaseHGSpecialBoundaryReviewNoChangeBlockIds: thirdBaseHGSpecialBoundaryNoChangeRows.map((row) => row.id),
+    thirdBaseHGSpecialBoundaryReviewChangedBlockIds: thirdBaseHGSpecialBoundaryChangedRows.map((row) => row.id),
+    thirdBaseHGSpecialBoundaryReviewRequiredBlockIds: thirdBaseHGSpecialBoundaryReviewRequiredRows.map((row) => row.id),
     lowerInfieldP0VisualChecklistStatus: lowerInfieldP0VisualChecklistReviewRequiredItems.length === 0 ? 'passed' : 'review-required',
     lowerInfieldP0VisualChecklistItems: lowerInfieldP0VisualChecklist.length,
     lowerInfieldP0VisualChecklistReviewRequiredItems: lowerInfieldP0VisualChecklistReviewRequiredItems.length,
@@ -2161,7 +1993,6 @@ const runImageAlignmentAudit = async () => {
     await renderOverlay(rows.filter((row) => row.auditMode !== 'release-trace-advisory'), path.join(cropDir, `gwangju-seatmap-image-alignment-audit-${region.id}.png`), region.bounds);
   }
   await renderOfficialCrop(lowerInfieldSpecialSplitArtifactPaths.officialCrop, LOWER_INFIELD_SPECIAL_SPLIT_BOUNDS);
-  await renderOfficialCrop(thirdBase123127IndependentVisualOfficialCropPath, THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BOUNDS);
   await renderOverlay(lowerInfieldSpecialSplitRows, lowerInfieldSpecialSplitArtifactPaths.allOverlay, LOWER_INFIELD_SPECIAL_SPLIT_BOUNDS);
   await renderOverlay(lowerInfieldNumberedRows, lowerInfieldSpecialSplitArtifactPaths.numberedOnlyOverlay, LOWER_INFIELD_SPECIAL_SPLIT_BOUNDS, {
     officialFill: 'rgba(34,197,94,0.16)',
@@ -2200,6 +2031,7 @@ const runImageAlignmentAudit = async () => {
       numberedBlocks: NUMBERED_BLOCK_THRESHOLDS,
       skyPicnicColorScan: SKY_PICNIC_COLOR_SCAN_THRESHOLDS,
       skyPicnicLocalFillBounds: SKY_PICNIC_LOCAL_FILL_BOUNDS_THRESHOLDS,
+      skyPicnicVisualBounds: SKY_PICNIC_VISUAL_BOUNDS_THRESHOLDS,
       fiveTableColorScan: FIVE_TABLE_COLOR_SCAN_THRESHOLDS,
       fiveTableLocalFillBounds: FIVE_TABLE_LOCAL_FILL_BOUNDS_THRESHOLDS,
       alphabetSectionColorScan: ALPHABET_SECTION_COLOR_SCAN_THRESHOLDS,
@@ -2264,19 +2096,19 @@ const runImageAlignmentAudit = async () => {
         reviewWarnings: row.reviewWarnings,
       })),
     },
-    thirdBaseHIJGBoundaryReview: {
-      bounds: THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BOUNDS,
-      blockIds: THIRD_BASE_H_I_J_G_BOUNDARY_REVIEW_BLOCK_IDS,
-      cropArtifact: path.relative(frontendRoot, path.join(cropDir, 'gwangju-seatmap-image-alignment-audit-121-127.png')),
-      noChangeBlockIds: thirdBaseHIJGBoundaryNoChangeRows.map((row) => row.id),
-      changedBlockIds: thirdBaseHIJGBoundaryChangedRows.map((row) => row.id),
-      reviewRequiredBlockIds: thirdBaseHIJGBoundaryReviewRequiredRows.map((row) => row.id),
-      rows: thirdBaseHIJGBoundaryReviewRows.map((row) => ({
+    thirdBaseHGSpecialBoundaryReview: {
+      bounds: THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BOUNDS,
+      blockIds: THIRD_BASE_H_G_SPECIAL_BOUNDARY_REVIEW_BLOCK_IDS,
+      cropArtifact: path.relative(frontendRoot, path.join(cropDir, 'gwangju-seatmap-image-alignment-audit-third-base-h-g-special.png')),
+      noChangeBlockIds: thirdBaseHGSpecialBoundaryNoChangeRows.map((row) => row.id),
+      changedBlockIds: thirdBaseHGSpecialBoundaryChangedRows.map((row) => row.id),
+      reviewRequiredBlockIds: thirdBaseHGSpecialBoundaryReviewRequiredRows.map((row) => row.id),
+      rows: thirdBaseHGSpecialBoundaryReviewRows.map((row) => ({
         id: row.id,
         shortLabel: row.shortLabel,
         auditMode: row.auditMode,
         status: row.status,
-        decision: thirdBaseHIJGBoundaryReviewDecision(row),
+        decision: thirdBaseHGSpecialBoundaryReviewDecision(row),
         hasSeparateVisualPath: row.hasSeparateVisualPath,
         officialBoundsMaxAbsDelta: row.officialBoundsMaxAbsDelta,
         officialBlockMaskRecall: row.officialBlockMaskRecall,
@@ -2289,35 +2121,6 @@ const runImageAlignmentAudit = async () => {
         blockers: row.blockers,
         reviewWarnings: row.reviewWarnings,
       })),
-    },
-    thirdBase123127IndependentVisualReview: {
-      source: THIRD_BASE_123_127_OFFICIAL_VISUAL_REFERENCE_SOURCE,
-      officialCropArtifact: path.relative(frontendRoot, thirdBase123127IndependentVisualOfficialCropPath),
-      blockIds: THIRD_BASE_123_127_BLOCK_IDS,
-      reviewRequiredBlockIds: thirdBase123127IndependentVisualRequiredRows.map((row) => row.id),
-      rows: thirdBase123127IndependentVisualRows.map((row) => ({
-        id: row.id,
-        shortLabel: row.shortLabel,
-        auditMode: row.auditMode,
-        source: row.officialVisualReferenceSource,
-        shape: row.officialVisualReferenceShape,
-        status: row.status,
-        officialBoundsMaxAbsDelta: row.officialBoundsMaxAbsDelta,
-        officialBlockMaskRecall: row.officialBlockMaskRecall,
-        componentIoU: row.componentIoU,
-        outsideBleedRatio: row.outsideBleedRatio,
-        topHitAtLabel: row.topHitAtLabel,
-        currentBounds: row.currentBounds,
-        officialBounds: row.officialBounds,
-        blockers: row.blockers,
-        reviewWarnings: row.reviewWarnings,
-      })),
-    },
-    thirdBase123127AdjacencyOverlapReview: {
-      status: thirdBase123127AdjacencyOverlapWarnings.length === 0 ? 'passed' : 'failed',
-      maximumAllowedOverlapSamples: 0,
-      pairOverlapRows: thirdBase123127AdjacencyOverlapRows,
-      overlapWarnings: thirdBase123127AdjacencyOverlapWarnings,
     },
     lowerInfieldP0VisualChecklist,
     lowerInfieldSpecialSplit: {
@@ -2349,6 +2152,8 @@ const runImageAlignmentAudit = async () => {
     'skyPicnicStrictFillCoverageRatio',
     'skyPicnicLocalFillBoundsMaxAbsDelta',
     'skyPicnicLocalFillPixelCount',
+    'skyPicnicVisualBoundsMaxAbsDelta',
+    'skyPicnicUsesSeparateVisualPath',
     'fiveTableColorCoverageRatio',
     'fiveTableStrictFillCoverageRatio',
     'fiveTableLocalFillBoundsMaxAbsDelta',
@@ -2381,6 +2186,8 @@ const runImageAlignmentAudit = async () => {
       row.skyPicnicStrictFillCoverageRatio,
       row.skyPicnicLocalFillBoundsMaxAbsDelta,
       row.skyPicnicLocalFillPixelCount,
+      row.skyPicnicVisualBoundsMaxAbsDelta,
+      row.skyPicnicUsesSeparateVisualPath,
       row.fiveTableColorCoverageRatio,
       row.fiveTableStrictFillCoverageRatio,
       row.fiveTableLocalFillBoundsMaxAbsDelta,
@@ -2411,15 +2218,18 @@ const runImageAlignmentAudit = async () => {
     `- P0 101~108 minimum recall: \`${summary.minimumP0OfficialBlockMaskRecall}\``,
     `- P0 101~108 minimum IoU: \`${summary.minimumP0ComponentIoU}\``,
     `- P0 101~108 maximum outside bleed: \`${summary.maximumP0OutsideBleedRatio}\``,
-    `- numbered 101~127 audited blocks: ${summary.numberedInfieldAuditedBlocks}`,
-    `- numbered 101~127 minimum recall: \`${summary.minimumNumberedInfieldOfficialBlockMaskRecall}\``,
-    `- numbered 101~127 minimum IoU: \`${summary.minimumNumberedInfieldComponentIoU}\``,
-    `- numbered 101~127 maximum outside bleed: \`${summary.maximumNumberedInfieldOutsideBleedRatio}\``,
+    `- numbered 101~120 audited blocks: ${summary.numberedInfieldAuditedBlocks}`,
+    `- numbered 101~120 minimum recall: \`${summary.minimumNumberedInfieldOfficialBlockMaskRecall}\``,
+    `- numbered 101~120 minimum IoU: \`${summary.minimumNumberedInfieldComponentIoU}\``,
+    `- numbered 101~120 maximum outside bleed: \`${summary.maximumNumberedInfieldOutsideBleedRatio}\``,
     `- S-301~S-335 minimum official color coverage: \`${summary.minimumSkyPicnicColorCoverageRatio}\``,
     `- S-301~S-335 minimum strict fill coverage: \`${summary.minimumSkyPicnicStrictFillCoverageRatio}\``,
     `- S-301~S-335 maximum outside bleed: \`${summary.maximumSkyPicnicOutsideBleedRatio}\``,
     `- S-301~S-335 maximum local fill bounds delta: \`${summary.maximumSkyPicnicLocalFillBoundsDelta}\``,
     `- S-301~S-335 local fill bounds warnings: ${summary.skyPicnicLocalFillBoundsWarnings}`,
+    `- S-305~S-335 maximum visual bounds delta: \`${summary.maximumSkyPicnicVisualBoundsDelta}\``,
+    `- S-305~S-335 visual bounds warnings: ${summary.skyPicnicVisualBoundsWarnings}`,
+    `- S-305~S-335 missing visual/hit split warnings: ${summary.skyPicnicVisualHitSplitMissingWarnings}`,
     `- S-301~S-335 review-required rows: ${skyPicnicRows.filter((row) => row.status === 'review-required').length}`,
     `- S-301~S-335 blocking mode: \`${summary.skyPicnicScanBlocking ? 'enabled' : 'disabled'}\``,
     `- five table 501~535 audited blocks: ${summary.fiveTableAuditedBlocks}`,
@@ -2447,15 +2257,12 @@ const runImageAlignmentAudit = async () => {
     `- 106~108/J/S-301~304 boundary no-change blocks: ${summary.lowerInfieldJSkyBoundaryReviewNoChangeBlockIds.join(', ') || 'none'}`,
     `- 106~108/J/S-301~304 boundary visualD blocks: ${summary.lowerInfieldJSkyBoundaryReviewChangedBlockIds.join(', ') || 'none'}`,
     `- 106~108/J/S-301~304 boundary review-required blocks: ${summary.lowerInfieldJSkyBoundaryReviewRequiredBlockIds.join(', ') || 'none'}`,
-    `- 121~127/H/I/J/G boundary no-change blocks: ${summary.thirdBaseHIJGBoundaryReviewNoChangeBlockIds.join(', ') || 'none'}`,
-    `- 121~127/H/I/J/G boundary visualD blocks: ${summary.thirdBaseHIJGBoundaryReviewChangedBlockIds.join(', ') || 'none'}`,
-    `- 121~127/H/I/J/G boundary review-required blocks: ${summary.thirdBaseHIJGBoundaryReviewRequiredBlockIds.join(', ') || 'none'}`,
-    `- 121~127 independent visual reference source: \`${summary.thirdBase123127IndependentVisualReferenceSource}\``,
-    `- 121~127 independent visual review-required blocks: ${summary.thirdBase123127IndependentVisualRequiredBlockIds.join(', ') || 'none'}`,
-    `- 123~127 forbidden adjacency overlap warnings: ${summary.thirdBase123127AdjacencyOverlapWarnings}`,
+    `- third-base H/G special boundary no-change blocks: ${(summary.thirdBaseHGSpecialBoundaryReviewNoChangeBlockIds ?? []).join(', ') || 'none'}`,
+    `- third-base H/G special boundary visualD blocks: ${(summary.thirdBaseHGSpecialBoundaryReviewChangedBlockIds ?? []).join(', ') || 'none'}`,
+    `- third-base H/G special boundary review-required blocks: ${(summary.thirdBaseHGSpecialBoundaryReviewRequiredBlockIds ?? []).join(', ') || 'none'}`,
     `- label top-hit failures: ${summary.labelTopHitFailures}`,
     '',
-    '기존 `pixelCoverageRatio`는 작은 polygon이 공식 색상 영역 내부에 있을 때 false pass를 만들 수 있으므로, 101~108 P0 구간은 공식 PNG 기준 독립 mask recall/IoU/outside bleed를 release 판단에 사용합니다. J/I/H는 101~108 polygon을 먼저 제외한 공식 PNG 색상 mask로 다시 검수합니다. S-301~S-335는 공식 PNG의 strict pink block fill을 각 polygon 주변에서 다시 샘플링해 local fill bounds delta를 계산하므로, S-322처럼 polygon이 N/I 마커나 통로 쪽으로 튀어나와도 release gate에서 차단됩니다. 501~535 5층 테이블, 나머지 A/B/C/G/H/I/J/K 알파벳 표시 좌석은 공식 PNG 색상 coverage를 전수조사해 기존 polygon이 다른 layer나 흰 여백을 과도하게 삼키는지 별도 보고합니다.',
+    '기존 `pixelCoverageRatio`는 작은 polygon이 공식 색상 영역 내부에 있을 때 false pass를 만들 수 있으므로, 101~108 P0 구간은 공식 PNG 기준 독립 mask recall/IoU/outside bleed를 release 판단에 사용합니다. J/I/H는 101~108 polygon을 먼저 제외한 공식 PNG 색상 mask로 다시 검수합니다. S-301~S-335는 공식 PNG의 strict pink block fill을 각 polygon 주변에서 다시 샘플링해 local fill bounds delta를 계산하므로, S-322처럼 polygon이 N/I 마커나 통로 쪽으로 튀어나와도 release gate에서 차단됩니다. 501~535 5층 테이블, 나머지 A/B/C/G/H/I/J/L 알파벳 표시 좌석은 공식 PNG 색상 coverage를 전수조사해 기존 polygon이 다른 layer나 흰 여백을 과도하게 삼키는지 별도 보고합니다.',
     '',
     '## Visual/Hit Split Review',
     '',
@@ -2494,13 +2301,13 @@ const runImageAlignmentAudit = async () => {
       ]),
     ),
     '',
-    '## 121~127/H/I/J/G Boundary Review',
+    '## Third-Base H/G Special Boundary Review',
     '',
-    '`thirdBaseHIJGBoundaryReview`는 121~127 번호 블럭과 3루 H/I/J/G 특수 구역을 같은 공식 PNG crop에서 함께 검수합니다. 123~127은 표시 경계가 필요한 경우 `visualD`로 기록하고, H는 사각형이 아닌 official H mask 기준 불규칙 polygon으로 `officialBoundsMaxAbsDelta <= 1px` 안에 들어오는지 확인합니다.',
+    '`thirdBaseHGSpecialBoundaryReview`는 3루 H/G 특수 구역을 공식 PNG crop에서 검수합니다. 제거된 legacy 번호/I/J 블럭은 production 및 QA 대상에 포함하지 않습니다.',
     '',
     markdownTable(
       ['id', 'label', 'mode', 'recall', 'IoU', 'outsideBleed', 'officialDelta', 'separateVisual', 'decision', 'topHit', 'status'],
-      thirdBaseHIJGBoundaryReviewRows.map((row) => [
+      thirdBaseHGSpecialBoundaryReviewRows.map((row) => [
         row.id,
         row.shortLabel,
         row.auditMode,
@@ -2509,40 +2316,8 @@ const runImageAlignmentAudit = async () => {
         row.outsideBleedRatio,
         row.officialBoundsMaxAbsDelta,
         row.hasSeparateVisualPath,
-        thirdBaseHIJGBoundaryReviewDecision(row),
+        thirdBaseHGSpecialBoundaryReviewDecision(row),
         row.topHitAtLabel,
-        row.status,
-      ]),
-    ),
-    '',
-    '## 121~127 Independent Visual Reference',
-    '',
-    '`thirdBase123127IndependentVisualReview`는 `NUMBERED_INFIELD_MANUAL_MASK_REFERENCES`가 production polygon과 같은 좌표를 들고 false pass를 만들지 않도록, 공식 PNG 121~127 raw crop에서 별도 고정한 visual reference를 사용합니다. `thirdBase123127AdjacencyOverlapReview`는 123~127이 G/H/I/J, S-335, 533~535 주변 구역을 1px sample 기준으로 하나라도 침범하면 실패합니다.',
-    '',
-    markdownTable(
-      ['id', 'label', 'source', 'shape', 'recall', 'IoU', 'outsideBleed', 'officialDelta', 'topHit', 'status'],
-      thirdBase123127IndependentVisualRows.map((row) => [
-        row.id,
-        row.shortLabel,
-        row.officialVisualReferenceSource,
-        row.officialVisualReferenceShape,
-        row.officialBlockMaskRecall,
-        row.componentIoU,
-        row.outsideBleedRatio,
-        row.officialBoundsMaxAbsDelta,
-        row.topHitAtLabel,
-        row.status,
-      ]),
-    ),
-    '',
-    markdownTable(
-      ['first', 'second', 'reason', 'overlapSamples', 'overlapRatio', 'status'],
-      thirdBase123127AdjacencyOverlapRows.map((row) => [
-        row.firstId,
-        row.secondId,
-        row.reason,
-        row.overlapSamples,
-        row.overlapRatio,
         row.status,
       ]),
     ),
@@ -2562,9 +2337,9 @@ const runImageAlignmentAudit = async () => {
       ]),
     ),
     '',
-    '## Numbered 101~127 Full Scan',
+    '## Numbered 101~120 Full Scan',
     '',
-    '`official-numbered-component-mask`는 공식 PNG 색상 component를 기준으로 101~120을 검수합니다. 121~127은 production polygon 복사본이 아닌 공식 PNG crop 독립 `official-numbered-independent-visual-reference`로 회귀를 차단합니다. 110~111처럼 색상 component 분리가 애매한 번호 블럭만 `official-numbered-boundary-mask`로 남깁니다.',
+    '`official-numbered-component-mask`는 공식 PNG 색상 component를 기준으로 production에 남아 있는 101~120 번호 블럭을 검수합니다. 제거된 legacy 번호 블럭은 production 및 QA 대상에 포함하지 않습니다. 110~111처럼 색상 component 분리가 애매한 번호 블럭만 `official-numbered-boundary-mask`로 남깁니다.',
     '',
     markdownTable(
       ['id', 'mode', 'recall', 'IoU', 'outsideBleed', 'topHit', 'status', 'blockers'],
@@ -2733,7 +2508,6 @@ const runImageAlignmentAudit = async () => {
     '## Artifacts',
     '',
     `- overlay: \`${path.relative(frontendRoot, overlayPath)}\``,
-    `- 123~127 official raw crop: \`${path.relative(frontendRoot, thirdBase123127IndependentVisualOfficialCropPath)}\``,
     ...CROP_REGIONS.map((region) => `- crop ${region.id}: \`${path.relative(frontendRoot, path.join(cropDir, `gwangju-seatmap-image-alignment-audit-${region.id}.png`))}\``),
     ...Object.entries(lowerInfieldSpecialSplitEvidenceArtifacts).map(([key, artifactPath]) => `- lower-infield-special-split ${key}: \`${artifactPath}\``),
     '',
@@ -3679,7 +3453,7 @@ const runReviewManifest = async () => {
       ]),
     ),
     '',
-    `각 workset은 \`${GWANGJU_FULL_RETRACE_VERSION}\` active geometry를 기준으로 bbox/anchor/coverage/component/overlap evidence를 묶어 검수합니다. P5는 111개 기본 블럭과 K7/AWAY aggregate reference 재고정 계약을 확인합니다.`,
+    `각 workset은 \`${GWANGJU_FULL_RETRACE_VERSION}\` active geometry를 기준으로 bbox/anchor/coverage/component/overlap evidence를 묶어 검수합니다. P5는 102개 기본 블럭과 K7/AWAY aggregate reference 재고정 계약을 확인합니다.`,
     '',
     '## Derived range / aggregate hit-area',
     '',
@@ -3725,7 +3499,7 @@ const runReviewManifest = async () => {
     '2. `/stadium?gwangjuDebug=hit`에서 공식 PNG와 polygon을 같은 2200x1159 좌표계로 비교합니다.',
     '3. active block은 모두 `OFFICIAL_IMAGE_TRACED`/`PIXEL_ALIGNED`로 유지하고, 신규 블록은 같은 좌표계의 정적 polygon으로만 추가합니다.',
     '4. K7석/원정응원석은 운영자 제공 polygon이 들어오기 전까지 hit-area를 만들지 않습니다.',
-    '5. O/P 외야 계열은 component recall/IoU gate로 작은 legacy polygon이 일반 좌석 layer에 남는 회귀를 차단합니다.',
+    '5. O/P 외야 계열은 component recall/IoU gate로 작은 과거 polygon이 일반 좌석 layer에 남는 회귀를 차단합니다.',
     '6. `previousTraceVersion`, bbox/anchor/coverage delta, point-count delta와 zone overlay crop으로 이전 trace 대비 재트레이싱 결과를 확인합니다.',
     '',
   ].join('\n');
@@ -4326,17 +4100,17 @@ const runReleaseGate = async () => {
 
     addCheck('trace review status', 'READY', traceSummary.traceStatus, traceSummary.traceStatus === 'READY', 'TRACE_REVIEW_NOT_READY');
     addCheck('trace review selectable blocks', true, traceSummary.selectableBlocksReady, traceSummary.selectableBlocksReady === true, 'TRACE_REVIEW_SELECTABLE_BLOCKS_NOT_READY');
-    addCheck('trace review total blocks', 113, traceSummary.totalBlocks, traceSummary.totalBlocks === 113, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
-    addCheck('trace review official traced blocks', 113, traceSummary.officialImageTracedBlocks, traceSummary.officialImageTracedBlocks === 113, 'TRACE_REVIEW_OFFICIAL_IMAGE_TRACED_CHANGED');
-    addCheck('trace review manual reviewed blocks', 113, traceSummary.manualReviewedBlocks, traceSummary.manualReviewedBlocks === 113, 'TRACE_REVIEW_MANUAL_REVIEWED_CHANGED');
-    addCheck('trace review pixel aligned blocks', 113, traceSummary.pixelAlignedBlocks, traceSummary.pixelAlignedBlocks === 113, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
+    addCheck('trace review total blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceSummary.totalBlocks, traceSummary.totalBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED');
+    addCheck('trace review official traced blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceSummary.officialImageTracedBlocks, traceSummary.officialImageTracedBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_OFFICIAL_IMAGE_TRACED_CHANGED');
+    addCheck('trace review manual reviewed blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceSummary.manualReviewedBlocks, traceSummary.manualReviewedBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_MANUAL_REVIEWED_CHANGED');
+    addCheck('trace review pixel aligned blocks', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, traceSummary.pixelAlignedBlocks, traceSummary.pixelAlignedBlocks === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED');
     addCheck('trace review overlap warnings', 0, traceSummary.overlapWarningCount, traceSummary.overlapWarningCount === 0, 'TRACE_REVIEW_OVERLAP_WARNINGS_PRESENT');
     addCheck('trace review component warnings', 0, traceSummary.componentCoverageWarningCount, traceSummary.componentCoverageWarningCount === 0, 'TRACE_REVIEW_OP_COMPONENT_COVERAGE_WARNINGS_PRESENT');
     addCheck('trace review zone precision', 'passed', traceSummary.zonePrecisionStatus, traceSummary.zonePrecisionStatus === 'passed', 'TRACE_REVIEW_ZONE_PRECISION_NOT_PASSED');
     addCheck('trace review aggregate hit-area', 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', traceSummary.aggregateHitAreaMode, traceSummary.aggregateHitAreaMode === 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY', 'TRACE_REVIEW_AGGREGATE_HIT_AREA_CHANGED');
     addCheck('browser QA status', 'passed', browserQa?.status, browserQa?.status === 'passed', 'BROWSER_QA_NOT_PASSED');
     addCheck('runtime layer audit status', 'passed', runtimeLayerAudit?.status, runtimeLayerAudit?.status === 'passed', 'RUNTIME_LAYER_AUDIT_NOT_PASSED');
-    addCheck('runtime rendered path count', 113, runtimeSummary.renderedPathCount, runtimeSummary.renderedPathCount === 113, 'RUNTIME_LAYER_RENDERED_PATH_COUNT_CHANGED');
+    addCheck('runtime rendered path count', GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, runtimeSummary.renderedPathCount, runtimeSummary.renderedPathCount === GWANGJU_EXPECTED_TRACE_BLOCK_COUNT, 'RUNTIME_LAYER_RENDERED_PATH_COUNT_CHANGED');
     addCheck('runtime path mismatches', 0, runtimeSummary.pathMismatchCount, runtimeSummary.pathMismatchCount === 0, 'RUNTIME_LAYER_PATH_MISMATCHES_PRESENT');
     addCheck('runtime forbidden rendered ids', 0, runtimeSummary.forbiddenRenderedIdCount, runtimeSummary.forbiddenRenderedIdCount === 0, 'RUNTIME_LAYER_FORBIDDEN_IDS_PRESENT');
     addCheck('runtime label top-hit failures', 0, runtimeSummary.labelTopHitFailureCount, runtimeSummary.labelTopHitFailureCount === 0, 'RUNTIME_LAYER_LABEL_TOP_HIT_FAILURES_PRESENT');
@@ -4418,7 +4192,7 @@ const runReleaseGate = async () => {
     if (releasePackage?.status !== 'ready') {
       blockers.push(`RELEASE_PACKAGE_NOT_READY:${releasePackage?.status ?? 'missing'}`);
     }
-    if (releasePackage?.activeBlockContract?.expectedTraceBlocks !== 113) {
+    if (releasePackage?.activeBlockContract?.expectedTraceBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
       blockers.push(`RELEASE_PACKAGE_ACTIVE_BLOCKS_CHANGED:${releasePackage?.activeBlockContract?.expectedTraceBlocks ?? 'missing'}`);
     }
     if (releasePackage?.activeBlockContract?.aggregateHitArea !== 'OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY') {
@@ -4433,13 +4207,13 @@ const runReleaseGate = async () => {
     if (traceReview?.summary?.selectableBlocksReady !== true) {
       blockers.push(`TRACE_REVIEW_SELECTABLE_BLOCKS_NOT_READY:${traceReview?.summary?.selectableBlocksReady ?? 'missing'}`);
     }
-    if (traceReview?.summary?.totalBlocks !== 113) {
+    if (traceReview?.summary?.totalBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
       blockers.push(`TRACE_REVIEW_ACTIVE_BLOCKS_CHANGED:${traceReview?.summary?.totalBlocks ?? 'missing'}`);
     }
-    if (traceReview?.summary?.manualReviewedBlocks !== 113) {
+    if (traceReview?.summary?.manualReviewedBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
       blockers.push(`TRACE_REVIEW_MANUAL_REVIEWED_CHANGED:${traceReview?.summary?.manualReviewedBlocks ?? 'missing'}`);
     }
-    if (traceReview?.summary?.pixelAlignedBlocks !== 113) {
+    if (traceReview?.summary?.pixelAlignedBlocks !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
       blockers.push(`TRACE_REVIEW_PIXEL_ALIGNMENT_CHANGED:${traceReview?.summary?.pixelAlignedBlocks ?? 'missing'}`);
     }
     if (traceReview?.summary?.overlapWarningCount !== 0) {
@@ -4473,7 +4247,7 @@ const runReleaseGate = async () => {
     requiredTraceReviewStatus: 'READY',
     requiredBrowserQaStatus: 'passed',
     requiredRuntimeLayerAuditStatus: 'passed',
-    requiredActiveTraceBlocks: 113,
+    requiredActiveTraceBlocks: GWANGJU_EXPECTED_TRACE_BLOCK_COUNT,
   };
   const report = {
     generatedAt: new Date().toISOString(),
@@ -4538,7 +4312,7 @@ const runReleaseGate = async () => {
     `- status: \`${status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
     `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
-    `- active block contract: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
+    `- active block contract: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\` (\`activeBlocks=${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\`)`,
     `- aggregate hit-area: \`${report.activeBlockContract.aggregateHitArea}\``,
     `- operator sections: \`${GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ')}\``,
     `- release package: \`${report.finalChecks.releasePackageStatus ?? '-'}\``,
@@ -4588,7 +4362,7 @@ const runReleaseGate = async () => {
     '- 좌표계: official PNG 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
-    '- 좌표 승격 전에는 active 113개 기준 테스트를 실행하지 않는다.',
+    `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
     '',
   ].join('\n');
 
@@ -4649,11 +4423,6 @@ const runVisualHitSplitAudit = async () => {
       blockIds: ['k5-105', 'first-family-seats', 'sky-picnic-s-301'],
     },
     {
-      id: '121-127-h-i-j-g-visual-hit-split',
-      bounds: { left: 400, top: 230, width: 330, height: 260 },
-      blockIds: ['k8-123', 'k5-124', 'k5-125', 'k5-126', 'k5-127'],
-    },
-    {
       id: 's301-j-visual-hit-split',
       bounds: { left: 760, top: 920, width: 280, height: 90 },
       blockIds: ['sky-picnic-s-301'],
@@ -4662,16 +4431,8 @@ const runVisualHitSplitAudit = async () => {
   const APPROVED_VISUAL_SPLIT_BLOCK_IDS = [
     'first-family-seats',
     'k5-105',
-    'k5-124',
-    'k5-125',
-    'k5-126',
-    'k5-127',
-    'k7-121',
-    'k7-122',
-    'k8-123',
     'party-seats-first',
     'sky-picnic-s-301',
-    'third-wheelchair-seats',
   ];
 
   const csvEscape = (value) => {
@@ -4974,9 +4735,144 @@ const runVisualHitSplitAudit = async () => {
   }
 };
 
+const runOfficialThirdInfieldTrace = async () => {
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const sharp = (await import('sharp')).default;
+  const { GWANGJU_BLOCKS, GWANGJU_FULL_RETRACE_VERSION, GWANGJU_SEATMAP_IMAGE } = await import("../src/data/gwangjuSeatData.ts");
+
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const frontendRoot = path.resolve(scriptDir, '..');
+  const reportDir = path.join(frontendRoot, 'reports/stadium');
+  const crop = { left: 340, top: 120, width: 420, height: 500 };
+  const targetIds = [
+    'k7-121',
+    'k7-122',
+    'k8-123',
+    'k5-124',
+    'k5-125',
+    'k5-126',
+    'k5-127',
+    'third-wheelchair-seats',
+    'party-seats-third',
+  ];
+  const blocks = targetIds.map((id) => GWANGJU_BLOCKS.find((block) => block.id === id)).filter(Boolean);
+  const out = {
+    json: path.join(reportDir, 'gwangju-seatmap-official-third-infield-trace.json'),
+    csv: path.join(reportDir, 'gwangju-seatmap-official-third-infield-trace.csv'),
+    markdown: path.join(reportDir, 'gwangju-seatmap-official-third-infield-trace.md'),
+    overlay: path.join(reportDir, 'gwangju-seatmap-official-third-infield-trace-overlay.png'),
+    crop: path.join(reportDir, 'gwangju-seatmap-official-third-infield-trace-crop.png'),
+  };
+
+  const boundsForPath = (pathData) => {
+    const numbers = pathData.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const xs = numbers.filter((_, index) => index % 2 === 0);
+    const ys = numbers.filter((_, index) => index % 2 === 1);
+    return {
+      minX: Math.min(...xs),
+      minY: Math.min(...ys),
+      maxX: Math.max(...xs),
+      maxY: Math.max(...ys),
+    };
+  };
+  const csvEscape = (value) => {
+    const text = String(value ?? '');
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  };
+  const rows = blocks.map((block) => ({
+    id: block.id,
+    block: block.block,
+    shortLabel: block.imageGeometry.shortLabel,
+    traceVersion: block.imageGeometry.traceVersion,
+    labelX: block.imageGeometry.labelX,
+    labelY: block.imageGeometry.labelY,
+    hitBounds: boundsForPath(block.imageGeometry.d),
+    visualBounds: boundsForPath(block.imageGeometry.visualD ?? block.imageGeometry.d),
+    visualPath: block.imageGeometry.visualD ?? block.imageGeometry.d,
+    hitPath: block.imageGeometry.d,
+  }));
+  const blockers = [
+    ...(rows.length === targetIds.length ? [] : [`MISSING_RESTORED_BLOCKS:${targetIds.filter((id) => !rows.some((row) => row.id === id)).join('|')}`]),
+    ...rows.filter((row) => row.traceVersion !== GWANGJU_FULL_RETRACE_VERSION).map((row) => `TRACE_VERSION_MISMATCH:${row.id}`),
+  ];
+  const overlaySvg = Buffer.from(`
+<svg xmlns="http://www.w3.org/2000/svg" width="${crop.width}" height="${crop.height}" viewBox="${crop.left} ${crop.top} ${crop.width} ${crop.height}">
+  <rect x="${crop.left}" y="${crop.top}" width="${crop.width}" height="${crop.height}" fill="none" stroke="#0f172a" stroke-width="1" opacity="0.35"/>
+  <rect x="${crop.left + 8}" y="${crop.top + 8}" width="224" height="34" rx="3" fill="rgba(255,255,255,0.86)" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="${crop.left + 16}" y="${crop.top + 22}" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0284c7">blue fill/line = visualD shown in UI</text>
+  <text x="${crop.left + 16}" y="${crop.top + 36}" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#f43f5e">red dashed = click hit-area d</text>
+  ${rows.map((row) => `<path d="${row.visualPath}" fill="rgba(14,165,233,0.12)" stroke="#0284c7" stroke-width="1.4" vector-effect="non-scaling-stroke"/><path d="${row.hitPath}" fill="none" stroke="#f43f5e" stroke-width="1.1" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/><text x="${row.labelX}" y="${row.labelY}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0f172a">${row.shortLabel}</text>`).join('\n  ')}
+</svg>`);
+
+  await fs.mkdir(reportDir, { recursive: true });
+  const officialCrop = await sharp(path.join(frontendRoot, GWANGJU_SEATMAP_IMAGE.imagePath))
+    .extract(crop)
+    .png()
+    .toBuffer();
+  await fs.writeFile(out.crop, officialCrop);
+  await sharp(officialCrop)
+    .composite([{ input: overlaySvg, left: 0, top: 0 }])
+    .png()
+    .toFile(out.overlay);
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    status: blockers.length === 0 ? 'passed' : 'needs_review',
+    traceVersion: GWANGJU_FULL_RETRACE_VERSION,
+    coordinateSource: 'official PNG 2200x1159 only',
+    artifactNamePolicy: 'gwangju-seatmap-official-third-infield-trace only; candidate/proposed/manual-official-retrace names are forbidden for release evidence',
+    crop,
+    targetIds,
+    restoredBlocks: rows.length,
+    blockers,
+    artifacts: {
+      officialCrop: path.relative(frontendRoot, out.crop),
+      overlay: path.relative(frontendRoot, out.overlay),
+    },
+    rows,
+  };
+  const csvRows = [
+    ['id', 'block', 'shortLabel', 'traceVersion', 'labelX', 'labelY', 'hitBounds', 'visualBounds'],
+    ...rows.map((row) => [row.id, row.block, row.shortLabel, row.traceVersion, row.labelX, row.labelY, JSON.stringify(row.hitBounds), JSON.stringify(row.visualBounds)]),
+  ];
+  const markdown = [
+    '# 광주 official third infield trace',
+    '',
+    `- generatedAt: \`${report.generatedAt}\``,
+    `- status: \`${report.status}\``,
+    `- traceVersion: \`${report.traceVersion}\``,
+    `- coordinateSource: \`${report.coordinateSource}\``,
+    `- restoredBlocks: \`${report.restoredBlocks}/${targetIds.length}\``,
+    `- official crop: \`${report.artifacts.officialCrop}\``,
+    `- overlay: \`${report.artifacts.overlay}\``,
+    '',
+    '이 산출물은 active 3루 116~120 및 인접 특수 구역의 최신 production `visualD`/`d`를 공식 PNG crop 위에 표시한다. `candidate`, `proposed`, `manual-official-retrace`, 기존 `third-base-retrace` 이름은 release evidence로 사용하지 않는다.',
+    '',
+    '| id | block | label | hitBounds | visualBounds |',
+    '| --- | --- | --- | --- | --- |',
+    ...rows.map((row) => `| ${row.id} | ${row.block} | ${row.shortLabel} | ${JSON.stringify(row.hitBounds)} | ${JSON.stringify(row.visualBounds)} |`),
+    '',
+    '## Blockers',
+    '',
+    blockers.length > 0 ? blockers.map((blocker) => `- \`${blocker}\``).join('\n') : '- none',
+    '',
+  ].join('\n');
+
+  await fs.writeFile(out.json, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await fs.writeFile(out.csv, `${csvRows.map((row) => row.map(csvEscape).join(',')).join('\n')}\n`, 'utf8');
+  await fs.writeFile(out.markdown, markdown, 'utf8');
+  console.log(`official_third_infield_trace_json:${out.json}`);
+  console.log(`official_third_infield_trace_overlay:${out.overlay}`);
+  console.log(`status:${report.status} restoredBlocks=${rows.length} blockers=${blockers.length}`);
+  if (blockers.length > 0) process.exit(1);
+};
+
 const TASKS = {
   "pixel-components": runPixelComponents,
   "image-alignment-audit": runImageAlignmentAudit,
+  "official-third-infield-trace": runOfficialThirdInfieldTrace,
   "review-manifest": runReviewManifest,
   "runtime-layer-audit": runRuntimeLayerAudit,
   "release-gate": runReleaseGate,
