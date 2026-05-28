@@ -37,9 +37,12 @@ const LEGACY_EVIDENCE_OWNER_COMMANDS = [
   'qa:stadium:daegu:release-lock',
   'stadium:daegu:precision-audit',
   'stadium:daegu:render-safety-audit',
-  'stadium:daegu:operator-reference-p34-visual-match-audit',
-  'stadium:daegu:operator-reference-p35-review-lock-audit',
-  'stadium:daegu:operator-reference-p40-release-lock-preflight',
+  'stadium:daegu:source-baseline-audit',
+  'stadium:daegu:canonical-decision-table',
+  'stadium:daegu:canonical-block-decision-guard',
+  'stadium:daegu:canonical-official-only-retrace-workset',
+  'stadium:daegu:canonical-retrace-batch',
+  'stadium:daegu:canonical-retrace-gate',
 ];
 
 const csvEscape = (value) => {
@@ -343,7 +346,7 @@ const main = async () => {
     '## Policy',
     '',
     '- `DAEGU_CANONICAL_2026` is the only active runtime polygon source.',
-    '- Official PNG and raw operator-reference QA scripts are historical evidence after canonical consolidation.',
+    '- Deleted stage-specific operator-reference scripts are historical evidence after canonical consolidation and recoverable from Git history only.',
     '- Generated files under `reports/stadium/daegu-seatmap-qa-ownership-audit.*` are QA evidence only.',
     '- `reports/stadium/daegu-*` files must not be staged as PR payload.',
     '',
