@@ -57,7 +57,7 @@ const GWANGJU_RUNTIME_LAYER_STATIC_CONTRACT = [
   "type: 'gwangju-runtime-layer'",
   'gwangju-browser-coordinate-audit',
   '101-108-h-i-j-browser-coordinate-crop',
-  '121-127-h-i-j-browser-coordinate-crop',
+  'third-base-h-i-j-browser-coordinate-crop',
   'op-outfield-browser-coordinate-crop',
   'five-table-browser-coordinate-crop',
   'sky-picnic-browser-coordinate-crop',
@@ -92,8 +92,6 @@ const GWANGJU_DERIVED_AGGREGATE_LABEL_FALLBACKS = {
     'gwangju-seat-block-k7-118',
     'gwangju-seat-block-k7-119',
     'gwangju-seat-block-k7-120',
-    'gwangju-seat-block-k7-121',
-    'gwangju-seat-block-k7-122',
   ],
   'away-cheering-seats': [
     'gwangju-seat-block-k7-107',
@@ -182,13 +180,13 @@ const seatMapReviewStadiums = [
   },
   {
     stadiumId: 'DAEJEON',
-    stadiumName: '대전한화생명이글스파크',
+    stadiumName: '대전 한화생명볼파크',
     team: '한화',
     lat: 36.3183,
     lng: 127.4285,
     address: '대전광역시 중구 대종로 373',
     phone: null,
-    expectedSeatMapLabel: '대전 한화 공식 좌석도',
+    expectedSeatMapLabel: '대전 한화생명볼파크 공식 좌석도',
     expectedHomeSide: null,
   },
   {
@@ -1922,6 +1920,10 @@ const verifyGwangjuOverlayClicks = async (page) => {
   const gwangjuThirdBaseSelectedSweepTargets = shouldCaptureGwangjuExpandedEvidence
     ? [
       { id: 'k9-116' },
+      { id: 'k9-117' },
+      { id: 'k7-118' },
+      { id: 'k7-119' },
+      { id: 'k7-120' },
       { id: 'k7-121' },
       { id: 'k7-122' },
       { id: 'k8-123' },
@@ -1929,20 +1931,24 @@ const verifyGwangjuOverlayClicks = async (page) => {
       { id: 'k5-125' },
       { id: 'k5-126' },
       { id: 'k5-127' },
-      { id: 'third-surprise-seats' },
-      { id: 'third-family-seats' },
       { id: 'third-wheelchair-seats' },
       { id: 'party-seats-third' },
+      { id: 'sky-picnic-L' },
+      { id: 'third-surprise-seats' },
+      { id: 'third-family-seats' },
       { id: 'sky-picnic-s-335' },
       { id: 'five-table-533' },
       { id: 'five-table-534' },
       { id: 'five-table-535' },
-      { id: 'skybox-seats' },
     ]
     : [
       { id: 'k9-116' },
-      { id: 'k5-127' },
-      { id: 'skybox-seats' },
+      { id: 'k7-120' },
+      { id: 'k5-124' },
+      { id: 'third-wheelchair-seats' },
+      { id: 'party-seats-third' },
+      { id: 'sky-picnic-L' },
+      { id: 'third-family-seats' },
     ];
 
   const gwangjuSelectedSweepGroups = [
@@ -1955,7 +1961,6 @@ const verifyGwangjuOverlayClicks = async (page) => {
     },
     {
       filePrefix: 'gwangju-thirdbase-selected-sweep',
-      officialReferenceOverlayPath: path.join(frontendRoot, 'reports/stadium/gwangju-seatmap-third-base-independent-audit-overlay.png'),
       targets: gwangjuThirdBaseSelectedSweepTargets,
     },
   ];
@@ -1977,15 +1982,18 @@ const verifyGwangjuOverlayClicks = async (page) => {
           return block?.getAttribute('aria-pressed') === 'true';
         }, target.id, { timeout: 5000 });
 
-        const hiddenBottomSheetStyle = await page.locator('[data-testid="gwangju-bottom-sheet"]:visible').first().evaluate((element) => {
-          const previousStyle = {
-            visibility: element.style.visibility,
-            pointerEvents: element.style.pointerEvents,
-          };
-          element.style.visibility = 'hidden';
-          element.style.pointerEvents = 'none';
-          return previousStyle;
-        }).catch(() => undefined);
+        const visibleBottomSheet = page.locator('[data-testid="gwangju-bottom-sheet"]:visible').first();
+        const hiddenBottomSheetStyle = await visibleBottomSheet.count() > 0
+          ? visibleBottomSheet.evaluate((element) => {
+            const previousStyle = {
+              visibility: element.style.visibility,
+              pointerEvents: element.style.pointerEvents,
+            };
+            element.style.visibility = 'hidden';
+            element.style.pointerEvents = 'none';
+            return previousStyle;
+          }).catch(() => undefined)
+          : undefined;
 
         const evidence = await page.evaluate((targetId) => {
           const block = document.querySelector(`[data-testid="gwangju-seat-block-${targetId}"]`);
@@ -2014,11 +2022,23 @@ const verifyGwangjuOverlayClicks = async (page) => {
         }
       }
 
+      const selectedSweepBlockers = selectedEvidence.flatMap((row) => [
+        ...(row.selected ? [] : [`SELECTED_SWEEP_TARGET_NOT_SELECTED:${row.id}`]),
+        ...(row.visualPath ? [] : [`SELECTED_SWEEP_MISSING_VISUAL_PATH:${row.id}`]),
+        ...(row.traceStatus === 'OFFICIAL_IMAGE_TRACED' ? [] : [`SELECTED_SWEEP_TRACE_STATUS:${row.id}:${row.traceStatus ?? 'missing'}`]),
+        ...(row.pixelAlignmentStatus === 'PIXEL_ALIGNED' ? [] : [`SELECTED_SWEEP_PIXEL_ALIGNMENT:${row.id}:${row.pixelAlignmentStatus ?? 'missing'}`]),
+      ]);
+      const selectedSweepStatus = selectedSweepBlockers.length === 0 ? 'passed' : 'failed';
+
       await fsPromises.writeFile(
         path.join(outputRoot, `${sweepGroup.filePrefix}-${suffix}.json`),
         `${JSON.stringify({
           filePrefix: sweepGroup.filePrefix,
           suffix,
+          status: selectedSweepStatus,
+          targetCount: selectedEvidence.length,
+          blockerCount: selectedSweepBlockers.length,
+          blockers: selectedSweepBlockers,
           officialReferenceOverlayPath: sweepGroup.officialReferenceOverlayPath ?? null,
           selectedEvidence,
         }, null, 2)}\n`,
@@ -2029,9 +2049,17 @@ const verifyGwangjuOverlayClicks = async (page) => {
         [
           `# ${sweepGroup.filePrefix} ${suffix}`,
           '',
+          `- status: ${selectedSweepStatus}`,
+          `- targetCount: ${selectedEvidence.length}`,
+          `- blockerCount: ${selectedSweepBlockers.length}`,
+          '',
           sweepGroup.officialReferenceOverlayPath
             ? `- official reference overlay: ${sweepGroup.officialReferenceOverlayPath}`
             : '- official reference overlay: n/a',
+          '',
+          selectedSweepBlockers.length > 0
+            ? ['## Blockers', '', ...selectedSweepBlockers.map((blocker) => `- ${blocker}`), ''].join('\n')
+            : '## Blockers\n\n- none\n',
           '',
           '| id | selected | label | trace | pixel | screenshot |',
           '| --- | --- | --- | --- | --- | --- |',
@@ -2493,7 +2521,7 @@ const verifyGwangjuOverlayClicks = async (page) => {
     { name: /101 K5석|101/, expectedText: '101 K5석' },
     { name: /113 K9석|113/, expectedText: '113 K9석' },
     { name: /118 K7석|118/, expectedText: '118 K7석' },
-    { name: /127 K5석|127/, expectedText: '127 K5석' },
+    { name: /120 K7석|120/, expectedText: '120 K7석' },
     { name: /S-303 스카이피크닉석|S-303/, expectedText: 'S-303 스카이피크닉석' },
     { name: /S-335 스카이피크닉석|S-335/, expectedText: 'S-335 스카이피크닉석' },
     { name: /501 5층 테이블석|501/, expectedText: '501 5층 테이블석' },
@@ -2569,7 +2597,7 @@ const collectGwangjuRuntimeLayerCheck = async (page) => {
         return {
           id,
           testId,
-          d: element.getAttribute('d') ?? '',
+          d: element.getAttribute('d') ?? element.getAttribute('data-hit-path') ?? '',
           role: element.getAttribute('role') ?? null,
           pointerEvents: element.getAttribute('pointer-events') ?? null,
           dataVisualPath: element.getAttribute('data-visual-path') ?? '',
@@ -2582,7 +2610,7 @@ const collectGwangjuRuntimeLayerCheck = async (page) => {
     const visualRows = Array.from(svg.querySelectorAll('[data-testid^="gwangju-seat-visual-"]'))
       .map((element) => ({
         id: (element.getAttribute('data-testid') ?? '').replace('gwangju-seat-visual-', ''),
-        d: element.getAttribute('d') ?? '',
+        d: element.getAttribute('d') ?? element.getAttribute('data-visual-path') ?? '',
         pointerEvents: element.getAttribute('pointer-events') ?? null,
       }));
     const labelHitFailures = renderedRows
@@ -3608,7 +3636,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
 
   await selectStadiumGuideOption(page, 'DAEJEON');
   await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-  await waitForVisibleSeatMapText(page, '대전 한화 공식 좌석도');
+  await waitForVisibleSeatMapText(page, '대전 한화생명볼파크 공식 좌석도');
 
   const manualStateVisible = await page.getByTestId('daejeon-official-seatmap-required').first()
     .waitFor({ state: 'visible', timeout: 2500 })
@@ -3797,7 +3825,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
       await page.goto(normalUrl.toString(), { waitUntil: 'domcontentloaded' });
       await selectStadiumGuideOption(page, 'DAEJEON');
       await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
-      await waitForVisibleSeatMapText(page, '대전 한화 공식 좌석도');
+      await waitForVisibleSeatMapText(page, '대전 한화생명볼파크 공식 좌석도');
     }
   };
 
@@ -5069,6 +5097,9 @@ const verifySuwonOverlayClicks = async (page) => {
     { id: 'suwon-sb33', button: /33 스카이박스|SB33/, detail: '33 스카이박스', point: [1044, 3572] },
     { id: 'suwon-sb34', button: /34 스카이박스|SB34/, detail: '34 스카이박스', point: [994, 3481] },
     { id: 'suwon-sb35', button: /35 스카이박스|SB35/, detail: '35 스카이박스', point: [945, 3391] },
+    { id: 'suwon-sb4', button: /04 스카이박스|SB4/, detail: '04 스카이박스', point: [3352, 2960] },
+    { id: 'suwon-sb22', button: /22 스카이박스|SB22/, detail: '22 스카이박스', point: [2255, 4528] },
+    { id: 'suwon-sb35', button: /35 스카이박스|SB35/, detail: '35 스카이박스', point: [900, 3395] },
     { id: 'suwon-genie', button: /지니존\/BC카드존|지니존/, detail: '지니존/BC카드존', point: [2005, 3830] },
     { id: 'suwon-3b-highfive', button: /3루 하이파이브존|3B-HIGHFIVE/, detail: '3루 하이파이브존', point: [1518, 3060] },
     { id: 'suwon-1b-highfive', button: /1루 하이파이브존|1B-HIGHFIVE/, detail: '1루 하이파이브존', point: [2600, 3060] },
@@ -5774,7 +5805,9 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
       throw new Error(`Initial stadium page heading did not become visible. lifecycle=${pageLifecycleEvents.join(',') || 'none'}. ${error instanceof Error ? error.message : String(error)}`);
     });
     await page.locator('h4:visible', { hasText: '통밥' }).first().waitFor({ state: 'visible', timeout: 15000 });
-    await page.getByText('지도 표시 불가').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator(':visible', { hasText: /지도 표시 불가|지도 설정 필요/ })
+      .first()
+      .waitFor({ state: 'visible', timeout: 15000 });
 
     if (shouldRunInitialJamsilProbe) {
       await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 15000 });
