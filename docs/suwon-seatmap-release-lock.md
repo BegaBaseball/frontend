@@ -1,10 +1,10 @@
 # 수원 kt 위즈 파크 좌석도 release lock
 
-검수 고정일: 2026-05-14 KST
+검수 고정일: 2026-05-28 KST
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.jpg`
+- 공식 asset: `src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp`
 - 공식 이미지 좌표계: `4290x9679`
 - viewport crop: `cropY=1000`, `cropHeight=4550`
 - stadium id: `SUWON`
@@ -29,16 +29,16 @@
 - `officialImageTraced=176`
 - `draftApproximate=0`
 - `pendingBlockIds=[]`
-- `browserQaProbes=176`
-- `alignmentProbes=556`
-- `hitTestProbes=732`
+- `browserQaProbes=179`
+- `alignmentProbes=429`
+- `hitTestProbes=608`
 - `visualHitMismatchBlocks=0`
 - `approvedVisualHitSplitBlocks=0`
 - `unresolvedVisualHitMismatchBlocks=0`
 - `hitGeometryExceptions=0`
 - `unusedHitGeometryExceptionNotes=0`
-- `releaseFixtureFingerprint=94f0ac1923b681f23cde6eb77dc6181ba52435cce46272c04bb7a56d1833bd42`
-- `officialAssetSha256=a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627`
+- `releaseFixtureFingerprint=c69ad1aa260bf48c23634d0f07bcb9d13491c45c70acc0bd0edd7fc079485e5a`
+- `officialAssetSha256=30ebfe637f42e674d7761af7739e61aa0751813e0f72bd9cde4f8135b91a3523`
 
 ## 범위별 lock
 
@@ -52,6 +52,8 @@
 - `suwon-lf-grass` 승인 bounds 기준은 공식 픽셀 검수 `1032,1825-1850,2379`이며, 7 PUB/위즈테라스와 상단 통로 exclusion probe 계약을 함께 유지한다.
 
 ## targeted patch closeout
+
+2026-05-28 KST 스카이박스 hit-area follow-up은 `SB1-SB35`의 compact hit polygon override를 제거하고, 표시되는 visual polygon 전체를 hover/click hit polygon으로 사용하도록 고정했다. 스카이박스 hover 우선순위는 `120`으로 유지하고 `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES`의 스카이박스 예외는 제거했다. 1루/중앙/3루 대표 off-center 브라우저 QA 좌표로 `suwon-sb4`, `suwon-sb22`, `suwon-sb35`를 추가했으며, targeted 검증은 `node --import tsx --test --test-concurrency=1 src/data/suwonSeatData.test.ts`, `npm run qa:stadium:suwon:release-lock`, `npm run qa:stadium:suwon:full` 통과 상태다.
 
 2026-05-17 KST 패치는 전체 좌표 재작성 없이 공식 이미지 픽셀 근거가 명확한 4개 블록만 열었다.
 
@@ -140,8 +142,8 @@ lsof -nP -iTCP:5196 -sTCP:LISTEN
 - `draftApproximate`가 `0`이 아니다.
 - `pendingBlockIds`가 비어 있지 않다.
 - `SUWON_BLOCKS.length`가 `176`이 아니다.
-- `SUWON_BROWSER_QA_PROBES.length`가 `176`이 아니다.
-- `SUWON_HIT_TEST_PROBES.length`가 `732`가 아니다.
+- `SUWON_BROWSER_QA_PROBES.length`가 `179`가 아니다.
+- `SUWON_HIT_TEST_PROBES.length`가 `608`가 아니다.
 - 어떤 블록에서든 `imageGeometry.d !== hitGeometry.d`가 문서화된 예외 없이 발생한다.
 - visual review manifest의 `unresolvedVisualHitMismatchBlocks`가 `0`이 아니다.
 - `APPROVED_VISUAL_HIT_SPLIT`이 새로 붙거나 visual/hit split 사유가 `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES`와 어긋난다.

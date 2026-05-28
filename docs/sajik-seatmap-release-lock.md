@@ -6,6 +6,25 @@
 
 아래 기존 `960x640` 공식 PNG v2와 `OPERATOR_REFERENCE_2026` 섹션은 historical 검수 근거로 보존한다. 사용자 runtime은 이제 source tab 없이 `SAJIK_CANONICAL_2026` 한 벌만 렌더링한다.
 
+현재 public npm command는 canonical/runtime release 검수만 노출한다. `stage01-*`, `operator-reference-*`, `polygon-v2`, `trace-review` alias는 historical workflow로 내려갔고, 필요한 경우 Git history 또는 `scripts/stadium-seatmap-ops.mjs sajik <task>` 직접 실행으로 별도 branch에서만 재검토한다.
+
+Current public commands:
+
+- `npm run qa:stadium:sajik:mobile`
+- `npm run qa:stadium:sajik:full`
+- `npm run qa:stadium:sajik:release-lock`
+- `npm run stadium:sajik:status`
+- `npm run stadium:sajik:pixel-components`
+- `npm run stadium:sajik:trace-manifest`
+- `npm run stadium:sajik:alignment-audit`
+- `npm run stadium:sajik:dataset-export`
+- `npm run stadium:sajik:source-audit`
+- `npm run stadium:sajik:block-source-duplication-audit`
+- `npm run stadium:sajik:editor-regression`
+- `npm run stadium:sajik:marker-transition-review`
+- `npm run stadium:sajik:pr-scope-guard`
+- `npm run stadium:sajik:pr-scope-guard-smoke`
+
 - canonical source id: `SAJIK_CANONICAL_2026`
 - canonical map version: `BUSAN_SAJIK_2026_CANONICAL_OPERATOR_REFERENCE_V1`
 - canonical 배경 asset: `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp`
