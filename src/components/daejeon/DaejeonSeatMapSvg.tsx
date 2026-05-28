@@ -43,7 +43,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         MANUAL_BASEBALL_DATA_REQUIRED
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
-        대전 한화 공식 좌석도 이미지를 추가해야 합니다
+        대전 한화생명볼파크 공식 좌석도 이미지를 추가해야 합니다
       </h4>
       <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
         공식 좌석도 파일과 블록 좌표가 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.

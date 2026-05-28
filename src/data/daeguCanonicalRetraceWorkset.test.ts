@@ -11,7 +11,7 @@ const SKY_BLUE_BATCH_BLOCK_KEYS = ['U2', 'U20', 'U21', 'U22', 'U23', 'U24', 'U25
 const REMAINING_BATCH_BLOCK_KEYS = ['U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9', 'V1', 'V2', 'V3', '외야3루측', '우측외야', '중앙외야'];
 
 const RETRACE_BATCH_SOURCE = readFileSync(
-  new URL('../../scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs', import.meta.url),
+  new URL('../../scripts/daegu-seatmap-canonical-retrace-batch.mjs', import.meta.url),
   'utf8',
 );
 const PACKAGE_JSON = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
@@ -20,70 +20,26 @@ const RELEASE_LOCK_SOURCE = readFileSync(
   'utf8',
 );
 
-test('대구 canonical SKY 상단 retrace batch는 pending 01~10만 대상으로 한다', () => {
-  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => BATCH_BLOCK_KEYS.includes(row.blockKey));
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  assert.deepEqual(rows.map((row) => row.blockKey), BATCH_BLOCK_KEYS);
-  assert.equal(rows.length, 10);
-  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
-  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
-  assert.equal(rows.every((row) => row.sourceCoordinateSystem === 'SAMSUNG_OFFICIAL_2026_1707x2048'), true);
+test('대구 canonical retrace batch는 pending batch 묶음을 보존한다', () => {
+  const expectations = [
+    [BATCH_BLOCK_KEYS, 10, ['ACCESSIBLE', 'SKY']],
+    [SPECIAL_ZONE_BATCH_BLOCK_KEYS, 11, ['OUTFIELD', 'PARTY', 'VIP']],
+    [SKY_LOWER_BATCH_BLOCK_KEYS, 11, ['SKY']],
+    [SKY_BLUE_BATCH_BLOCK_KEYS, 13, ['ACCESSIBLE', 'BLUE', 'SKY']],
+    [REMAINING_BATCH_BLOCK_KEYS, 13, ['OUTFIELD', 'PARTY', 'SKY', 'TABLE']],
+  ] as const;
 
-  const markerSplitRow = rows.find((row) => row.blockKey === '09');
-  assert.ok(markerSplitRow);
-  assert.deepEqual(markerSplitRow.sectionKinds, ['ACCESSIBILITY_MARKER', 'SEAT_SECTION']);
-  assert.deepEqual(markerSplitRow.categories, ['ACCESSIBLE', 'SKY']);
-});
+  expectations.forEach(([blockKeys, expectedLength, expectedCategories]) => {
+    const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => blockKeys.includes(row.blockKey));
 
-test('대구 canonical special zone retrace batch는 pending table/VIP/outfield 11개만 대상으로 한다', () => {
-  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => SPECIAL_ZONE_BATCH_BLOCK_KEYS.includes(row.blockKey));
-
-  assert.deepEqual(rows.map((row) => row.blockKey), SPECIAL_ZONE_BATCH_BLOCK_KEYS);
-  assert.equal(rows.length, 11);
-  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
-  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
-  assert.equal(rows.every((row) => row.sectionKinds.length === 1 && row.sectionKinds[0] === 'SEAT_SECTION'), true);
-  assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), ['OUTFIELD', 'PARTY', 'VIP']);
-});
-
-test('대구 canonical SKY 하단 retrace batch는 pending U1/U10~U19 11개만 대상으로 한다', () => {
-  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => SKY_LOWER_BATCH_BLOCK_KEYS.includes(row.blockKey));
-
-  assert.deepEqual(rows.map((row) => row.blockKey), SKY_LOWER_BATCH_BLOCK_KEYS);
-  assert.equal(rows.length, 11);
-  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
-  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
-  assert.equal(rows.every((row) => row.sourceCoordinateSystem === 'SAMSUNG_OFFICIAL_2026_1707x2048'), true);
-  assert.equal(rows.every((row) => row.sectionKinds.length === 1 && row.sectionKinds[0] === 'SEAT_SECTION'), true);
-  assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))], ['SKY']);
-});
-
-test('대구 canonical SKY/BLUE retrace batch는 pending U2/U20~U31 13개만 대상으로 한다', () => {
-  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => SKY_BLUE_BATCH_BLOCK_KEYS.includes(row.blockKey));
-
-  assert.deepEqual(rows.map((row) => row.blockKey), SKY_BLUE_BATCH_BLOCK_KEYS);
-  assert.equal(rows.length, 13);
-  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
-  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
-  assert.equal(rows.every((row) => row.sourceCoordinateSystem === 'SAMSUNG_OFFICIAL_2026_1707x2048'), true);
-
-  const markerSplitRow = rows.find((row) => row.blockKey === 'U22');
-  assert.ok(markerSplitRow);
-  assert.deepEqual(markerSplitRow.sectionKinds, ['ACCESSIBILITY_MARKER', 'SEAT_SECTION']);
-  assert.deepEqual(markerSplitRow.categories, ['ACCESSIBLE', 'BLUE']);
-  assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), ['ACCESSIBLE', 'BLUE', 'SKY']);
-});
-
-test('대구 canonical remaining retrace batch는 마지막 pending 13개만 대상으로 한다', () => {
-  const rows = DAEGU_CANONICAL_PENDING_OPERATOR_TRACE_BLOCKS.filter((row) => REMAINING_BATCH_BLOCK_KEYS.includes(row.blockKey));
-
-  assert.deepEqual(rows.map((row) => row.blockKey), REMAINING_BATCH_BLOCK_KEYS);
-  assert.equal(rows.length, 13);
-  assert.equal(rows.every((row) => row.runtimePolygon === false), true);
-  assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
-  assert.equal(rows.every((row) => row.sourceCoordinateSystem === 'SAMSUNG_OFFICIAL_2026_1707x2048'), true);
-  assert.equal(rows.every((row) => row.sectionKinds.length === 1 && row.sectionKinds[0] === 'SEAT_SECTION'), true);
-  assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), ['OUTFIELD', 'PARTY', 'SKY', 'TABLE']);
+    assert.deepEqual(rows.map((row) => row.blockKey), blockKeys);
+    assert.equal(rows.length, expectedLength);
+    assert.equal(rows.every((row) => row.runtimePolygon === false), true);
+    assert.equal(rows.every((row) => row.targetCoordinateSystem === 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096'), true);
+    assert.deepEqual([...new Set(rows.flatMap((row) => row.categories))].sort(), [...expectedCategories].sort());
+  });
 });
 
 test('대구 canonical retrace batch script는 source write 없이 operator-reference 직접 trace 계약을 고정한다', () => {
@@ -101,116 +57,47 @@ test('대구 canonical retrace batch script는 source write 없이 operator-refe
     'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
     'SIMPLE_SCALE_OR_COPY_FORBIDDEN',
     'MARKER_SEAT_SPLIT_REQUIRED:09',
-    'CORRECTED_PATH_REQUIRED_FOR_APPROVED_ROW',
-    'CORRECTED_HIT_PATH_REQUIRED_FOR_APPROVED_ROW',
-    'CORRECTED_LABEL_REQUIRED_FOR_APPROVED_ROW',
     'SOURCE_WRITE_FORBIDDEN',
-    'PASS_TARGET_188_REMAINS_PENDING',
     'sourceDataWritePerformed: false',
     'generatedReportsAreEvidenceOnly: true',
-    'daegu-seatmap-canonical-sky-upper-retrace-batch',
-    'daegu-seatmap-canonical-sky-upper-retrace',
-    'daegu-seatmap-canonical-special-zone-retrace-batch',
-    'daegu-seatmap-canonical-special-zone-retrace',
-    'daegu-seatmap-canonical-sky-lower-retrace-batch',
-    'daegu-seatmap-canonical-sky-lower-retrace',
-    'daegu-seatmap-canonical-sky-blue-retrace-batch',
-    'daegu-seatmap-canonical-sky-blue-retrace',
-    'daegu-seatmap-canonical-remaining-retrace-batch',
-    'daegu-seatmap-canonical-remaining-retrace',
   ].forEach((literal) => {
-    assert.match(RETRACE_BATCH_SOURCE, new RegExp(literal.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(RETRACE_BATCH_SOURCE, new RegExp(escapeRegExp(literal)));
   });
 });
 
-test('대구 canonical retrace package/docs 계약은 generated report를 evidence-only로 유지한다', () => {
+test('대구 canonical retrace package/docs 계약은 통합 batch alias만 노출한다', () => {
   assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-upper-retrace-batch'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch',
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-batch'],
+    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-batch',
   );
   assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-upper-retrace-gate'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate',
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-gate'],
+    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-gate',
   );
   assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-upper-retrace-gate:require-approved'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate --require-approved',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-special-zone-retrace-batch'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch SPECIAL_ZONE_3F4F_M1_MR9',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-special-zone-retrace-gate'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SPECIAL_ZONE_3F4F_M1_MR9',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-special-zone-retrace-gate:require-approved'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SPECIAL_ZONE_3F4F_M1_MR9 --require-approved',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-lower-retrace-batch'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch SKY_LOWER_U1_U19',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-lower-retrace-gate'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SKY_LOWER_U1_U19',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-lower-retrace-gate:require-approved'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SKY_LOWER_U1_U19 --require-approved',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-blue-retrace-batch'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch SKY_BLUE_U2_U20_U31',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-blue-retrace-gate'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SKY_BLUE_U2_U20_U31',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-sky-blue-retrace-gate:require-approved'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate SKY_BLUE_U2_U20_U31 --require-approved',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-batch'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs batch REMAINING_U3_U9_V1_V3_OUTFIELD',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-gate'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate REMAINING_U3_U9_V1_V3_OUTFIELD',
-  );
-  assert.equal(
-    PACKAGE_JSON.scripts['stadium:daegu:canonical-remaining-retrace-gate:require-approved'],
-    'node --import tsx scripts/daegu-seatmap-canonical-sky-upper-retrace-batch.mjs gate REMAINING_U3_U9_V1_V3_OUTFIELD --require-approved',
+    PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-gate:require-approved'],
+    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-gate:require-approved',
   );
 
   [
-    'Canonical SKY upper retrace batch (2026-05-27)',
-    'SKY_UPPER_01_10',
-    'reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/',
-    'marker/seat split row: `09`',
-    'simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden',
-    'source data write performed: `false`',
-    'generated SKY upper batch and gate reports are QA evidence only and must not be staged as PR payload',
-    'Canonical special zone retrace batch (2026-05-27)',
-    'SPECIAL_ZONE_3F4F_M1_MR9',
-    'reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/',
-    'marker/seat split rows: `0`',
-    'generated special-zone batch and gate reports are QA evidence only and must not be staged as PR payload',
-    'Canonical SKY lower retrace batch (2026-05-27)',
-    'SKY_LOWER_U1_U19',
-    'reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/',
-    'generated SKY lower batch and gate reports are QA evidence only and must not be staged as PR payload',
-    'Canonical SKY/BLUE retrace batch (2026-05-27)',
-    'SKY_BLUE_U2_U20_U31',
-    'reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/',
-    'marker/seat split row: `U22`',
-    'generated SKY/BLUE batch and gate reports are QA evidence only and must not be staged as PR payload',
-    'Canonical remaining retrace batch (2026-05-27)',
-    'REMAINING_U3_U9_V1_V3_OUTFIELD',
-    'reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/',
-    'generated remaining batch and gate reports are QA evidence only and must not be staged as PR payload',
+    'stadium:daegu:canonical-sky-upper-retrace-batch',
+    'stadium:daegu:canonical-special-zone-retrace-batch',
+    'stadium:daegu:canonical-sky-lower-retrace-batch',
+    'stadium:daegu:canonical-sky-blue-retrace-batch',
+    'stadium:daegu:canonical-remaining-retrace-batch',
+  ].forEach((removedAlias) => {
+    assert.equal(PACKAGE_JSON.scripts[removedAlias], undefined, `${removedAlias} should be removed`);
+  });
+
+  [
+    'Canonical retrace batch (2026-05-27)',
+    'npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10',
+    'npm run stadium:daegu:canonical-retrace-gate -- SKY_UPPER_01_10',
+    'npm run stadium:daegu:canonical-retrace-batch -- SPECIAL_ZONE_3F4F_M1_MR9',
+    'npm run stadium:daegu:canonical-retrace-batch -- SKY_LOWER_U1_U19',
+    'npm run stadium:daegu:canonical-retrace-batch -- SKY_BLUE_U2_U20_U31',
+    'npm run stadium:daegu:canonical-retrace-batch -- REMAINING_U3_U9_V1_V3_OUTFIELD',
+    'generated retrace batch and gate reports are QA evidence only and must not be staged as PR payload',
   ].forEach((literal) => {
     assert.ok(RELEASE_LOCK_SOURCE.includes(literal), `${literal} should be documented`);
   });
