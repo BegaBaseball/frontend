@@ -1939,7 +1939,7 @@ const runOperatorWriteGuard = async () => {
     guardedDataDiffAction: 'Promote only validForDataDiff=true operator rows to gwangjuSeatData.ts after this guard passes.',
     postDataDiffGate: [
       'npm run test:stadium:seatmaps',
-      'npm run qa:stadium:gwangju:trace-review',
+      'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
       'npm run build',
     ],
   };

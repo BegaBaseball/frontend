@@ -3495,7 +3495,7 @@ const runReviewManifest = async () => {
     '',
     '## 검수 방법',
     '',
-    '1. `npm run qa:stadium:gwangju:trace-review`를 실행해 debug overlay screenshot과 CSV를 생성합니다.',
+    '1. `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`를 실행해 debug overlay screenshot과 CSV를 생성합니다.',
     '2. `/stadium?gwangjuDebug=hit`에서 공식 PNG와 polygon을 같은 2200x1159 좌표계로 비교합니다.',
     '3. active block은 모두 `OFFICIAL_IMAGE_TRACED`/`PIXEL_ALIGNED`로 유지하고, 신규 블록은 같은 좌표계의 정적 polygon으로만 추가합니다.',
     '4. K7석/원정응원석은 운영자 제공 polygon이 들어오기 전까지 hit-area를 만들지 않습니다.',
@@ -3776,12 +3776,12 @@ const runRuntimeLayerAudit = async () => {
       detail: 'K7/AWAY aggregate hit-areas are interactive only in their matching filter layer.',
     },
     {
-      id: 'package-runtime-layer-script',
+      id: 'package-release-verify-script',
       status: statusFor(
-        packageSource.text.includes('"qa:stadium:gwangju:runtime-layer"')
-        && packageSource.text.includes('node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer'),
+        packageSource.text.includes('"qa:stadium:gwangju:release-verify"')
+        && packageSource.text.includes('node scripts/stadium-seatmap-ops.mjs gwangju release-verify'),
       ),
-      detail: 'package.json exposes the runtime layer audit command.',
+      detail: 'package.json exposes the canonical Gwangju release verification command.',
     },
     ...FORBIDDEN_RUNTIME_SOURCES.map((source) => ({
       id: `component-forbidden-source-${source}`,
@@ -4000,8 +4000,18 @@ const runReleaseGate = async () => {
     },
     {
       label: 'gwangju seatmap tests',
-      command: 'npm',
-      args: ['run', 'test:stadium:gwangju:seatmaps'],
+      command: 'node',
+      args: [
+        '--import',
+        'tsx',
+        '--test',
+        '--test-concurrency=1',
+        '--test-name-pattern',
+        '광주|Gwangju',
+        'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
+        'src/components/gwangju/GwangjuSeatMapEditor.test.tsx',
+        'src/data/gwangjuSeatData.test.ts',
+      ],
     },
     {
       label: 'trace review artifacts',
@@ -4011,8 +4021,8 @@ const runReleaseGate = async () => {
     },
     {
       label: 'release package',
-      command: 'npm',
-      args: ['run', 'stadium:gwangju:release-package'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'gwangju', 'release-package'],
     },
     {
       label: 'build',

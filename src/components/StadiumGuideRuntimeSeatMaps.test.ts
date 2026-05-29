@@ -4274,6 +4274,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
 
 test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 고정한다', () => {
   const packageSource = readProjectFile('package.json');
+  const dispatcherSource = readProjectFile('scripts/stadium-seatmap-ops.mjs');
   const runnerSource = readProjectFile('scripts/run-stadium-isolated-qa.mjs');
   const gwangjuDataSource = readProjectFile('src/data/gwangjuSeatData.ts');
   const coreQaSource = readProjectFile('scripts/gwangju-seatmap-core-qa.mjs');
@@ -4318,50 +4319,63 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   ];
 
   [
+    '"qa:stadium:gwangju:mobile"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju mobile',
+    '"stadium:gwangju:status"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju status',
     '"stadium:gwangju:pixel-components"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju pixel-components',
     '"stadium:gwangju:trace-manifest"',
     'node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest',
-    '"stadium:gwangju:image-alignment-audit"',
-    '"stadium:gwangju:image-alignment-audit:require-release"',
-    '"stadium:gwangju:block-source-duplication-audit"',
     '"stadium:gwangju:operator-handoff"',
     'node scripts/stadium-seatmap-ops.mjs gwangju operator-handoff',
     '"stadium:gwangju:operator-status"',
     'node scripts/stadium-seatmap-ops.mjs gwangju operator-status',
-    '"stadium:gwangju:release-package"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-package',
-    '"stadium:gwangju:release-scope-guard"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard',
-    '"stadium:gwangju:pr-staging-plan"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan',
-    '"stadium:gwangju:pr-staging-review"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review',
-    '"stadium:gwangju:targeted-staging"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging',
-    '"stadium:gwangju:staged-scope-audit"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit',
-    '"stadium:gwangju:pre-pr-final-gate"',
-    'npm run stadium:gwangju:targeted-staging && npm run stadium:gwangju:staged-scope-audit && npm run stadium:gwangju:release-audit',
-    '"stadium:gwangju:commit-readiness"',
-    'npm run stadium:gwangju:targeted-staging && npm run stadium:gwangju:staged-scope-audit -- --require-complete && npm run stadium:gwangju:release-audit',
-    '"qa:stadium:gwangju:trace-review"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
-    '"test:stadium:gwangju:seatmaps"',
-    '--test-name-pattern \\"광주|Gwangju\\"',
-    'src/components/StadiumGuideRuntimeSeatMaps.test.ts src/components/gwangju/GwangjuSeatMapEditor.test.tsx src/data/gwangjuSeatData.test.ts',
-    '"qa:stadium:gwangju:runtime-layer"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer',
     '"qa:stadium:gwangju:release-gate"',
     'node scripts/stadium-seatmap-ops.mjs gwangju release-gate',
     '"qa:stadium:gwangju:release-verify"',
     'node scripts/stadium-seatmap-ops.mjs gwangju release-verify',
-    '"qa:stadium:gwangju:release-verify:preoperator"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `Gwangju public package script should include ${requiredText}`);
   });
 
   [
+    "'image-alignment-audit': [",
+    "'image-alignment-audit:require-release': [",
+    "'block-source-duplication-audit': [",
+    "'trace-review': [",
+    "'runtime-layer': [",
+    "'release-package': [",
+    "'release-audit': [",
+    "'release-scope-guard': [",
+    "'pr-staging-plan': [",
+    "'pr-staging-review': [",
+    "'targeted-staging': [",
+    "'staged-scope-audit': [",
+    "'pre-pr-final-gate': [",
+    "'commit-readiness': [",
+    "'release-verify:preoperator': [",
+  ].forEach((requiredText) => {
+    assert.ok(dispatcherSource.includes(requiredText), `Gwangju dispatcher should keep internal task ${requiredText}`);
+  });
+
+  [
+    '"test:stadium:gwangju:seatmaps"',
+    '"stadium:gwangju:image-alignment-audit"',
+    '"stadium:gwangju:image-alignment-audit:require-release"',
+    '"stadium:gwangju:block-source-duplication-audit"',
+    '"stadium:gwangju:release-package"',
+    '"stadium:gwangju:release-audit"',
+    '"stadium:gwangju:release-scope-guard"',
+    '"stadium:gwangju:pr-staging-plan"',
+    '"stadium:gwangju:pr-staging-review"',
+    '"stadium:gwangju:targeted-staging"',
+    '"stadium:gwangju:staged-scope-audit"',
+    '"stadium:gwangju:pre-pr-final-gate"',
+    '"stadium:gwangju:commit-readiness"',
+    '"qa:stadium:gwangju:runtime-layer"',
+    '"qa:stadium:gwangju:trace-review"',
+    '"qa:stadium:gwangju:release-verify:preoperator"',
     '"stadium:gwangju:image-trace-candidates"',
     '"stadium:gwangju:artifact-scope-audit"',
     '"stadium:gwangju:operator-template"',
@@ -4616,11 +4630,13 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseGateSource.includes('gwangju-seatmap-release-gate.json'));
   assert.ok(releaseGateSource.includes('gwangju-seatmap-release-gate.md'));
   assert.ok(releaseGateSource.includes("args: ['run', 'stadium:gwangju:operator-status']"));
-  assert.ok(releaseGateSource.includes("args: ['run', 'test:stadium:gwangju:seatmaps']"));
+  assert.ok(releaseGateSource.includes("command: 'node'"));
+  assert.ok(releaseGateSource.includes("'--test-name-pattern'"));
+  assert.ok(releaseGateSource.includes("'광주|Gwangju'"));
   assert.ok(releaseGateSource.includes("label: 'trace review artifacts'"));
   assert.ok(releaseGateSource.includes("args: ['existing', 'gwangju', 'trace-review', 'artifacts']"));
   assert.ok(releaseGateSource.includes('validateTraceReviewArtifacts'));
-  assert.ok(releaseGateSource.includes("args: ['run', 'stadium:gwangju:release-package']"));
+  assert.ok(releaseGateSource.includes("args: ['scripts/stadium-seatmap-ops.mjs', 'gwangju', 'release-package']"));
   assert.ok(releaseGateSource.includes("args: ['run', 'build']"));
   assert.ok(releaseGateSource.includes('doesNotModifyDataFile'));
   assert.ok(releaseGateSource.includes('RELEASE_PACKAGE_NOT_READY'));
@@ -4677,17 +4693,17 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseAuditSource.includes('missingExpectedSeparateDirtyWorkCount'));
   assert.ok(releaseAuditSource.includes('classifiedSeparateDirtyWorkExpansionAllowed'));
   assert.ok(releaseAuditSource.includes('classifiedAdditionalSeparateDirtyWorkCount'));
-  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=30'));
+  assert.ok(releaseAuditSource.includes('releaseCandidateInventory.expectedIncludedFileCount=26'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74'));
   assert.ok(releaseAuditSource.includes('separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true'));
   assert.ok(releaseAuditSource.includes('PR Packaging Manifest'));
-  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=30'));
+  assert.ok(releaseAuditSource.includes('prPackagingManifest.releasePayloadFileCount=26'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.separateDirtyWorkFileCount='));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.unexpectedDirtyFileCount=0'));
   assert.ok(releaseAuditSource.includes('prPackagingManifest.inventoryDriftCount=0'));
   assert.ok(releaseAuditSource.includes('Patch Separation Readiness'));
   assert.ok(releaseAuditSource.includes('patchSeparationReadiness.status=ready-or-review-required'));
-  assert.ok(releaseAuditSource.includes('stagedScopeAudit.expectedTargetFileCount=30'));
+  assert.ok(releaseAuditSource.includes('stagedScopeAudit.expectedTargetFileCount=26'));
   assert.ok(releaseAuditSource.includes('STAGED_SCOPE_AUDIT_OUTSIDE_TARGETS_PRESENT'));
   assert.ok(releaseAuditSource.includes('STAGED_SCOPE_AUDIT_SEPARATE_DIRTY_WORK_PRESENT'));
   assert.ok(releaseAuditSource.includes('clean release payload files are not packaging blockers'));
@@ -4715,7 +4731,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('non-stadium-frontend-work'));
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.json'));
   assert.ok(releaseScopeGuardSource.includes('gwangju-seatmap-pr-staging-review.md'));
-  assert.ok(releaseScopeGuardSource.includes('"stadium:gwangju:pr-staging-review"'));
+  assert.ok(releaseScopeGuardSource.includes("'pr-staging-review': ["));
   assert.ok(releaseScopeGuardSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review'));
   assert.ok(releaseScopeGuardSource.includes('prPackagingManifest'));
   assert.ok(releaseScopeGuardSource.includes('releasePayloadFileCount'));
@@ -4740,8 +4756,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('PR staging plan'));
   assert.ok(releaseScopeGuardSource.includes('stagingPlan.status=ready-or-review-required'));
   assert.ok(releaseScopeGuardSource.includes('stagingPlan.doesNotRunGitAdd=true'));
-  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=30'));
-  assert.ok(releaseScopeGuardSource.includes('stagedScopeAudit.expectedTargetFileCount=30'));
+  assert.ok(releaseScopeGuardSource.includes('stagingPlan.releasePayloadFileCount=26'));
+  assert.ok(releaseScopeGuardSource.includes('stagedScopeAudit.expectedTargetFileCount=26'));
   assert.ok(releaseScopeGuardSource.includes('Release Candidate Inventory'));
   assert.ok(releaseScopeGuardSource.includes('Expected Included Release Files'));
   assert.ok(releaseScopeGuardSource.includes('Separate Workstream Baseline'));
@@ -4757,7 +4773,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('RELEASE_CANDIDATE_FILE_MISSING'));
   assert.ok(releaseScopeGuardSource.includes('RELEASE_CANDIDATE_FILE_UNEXPECTED'));
   assert.ok(releaseScopeGuardSource.includes('HANDOFF_SCOPE_SNIPPET_MISSING'));
-  assert.ok(releaseScopeGuardSource.includes('PACKAGE_SCOPE_GUARD_SCRIPT_MISSING'));
+  assert.ok(releaseScopeGuardSource.includes('DISPATCHER_SCOPE_GUARD_TASK_MISSING'));
   assert.ok(releaseScopeGuardSource.includes('RELEASE_LOCK_SCOPE_GUARD_SNIPPET_MISSING'));
   assert.ok(releaseScopeGuardSource.includes('daegu-files'));
   assert.ok(releaseScopeGuardSource.includes('sajik-files'));
@@ -4794,11 +4810,11 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(prStagingPlanSource.includes('stagingPlan.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.safeToRunBulkGitAdd=false'));
   assert.ok(prStagingPlanSource.includes("stagingPlan.packageJsonStatus=${packageMixedStatus ?? 'none'}"));
-  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=30'));
+  assert.ok(prStagingPlanSource.includes('stagingPlan.releasePayloadFileCount=26'));
   assert.ok(prStagingPlanSource.includes('stagingReview.status=ready-or-review-required'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRunGitAdd=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.safeToRunBulkGitAdd=false'));
-  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=30'));
+  assert.ok(prStagingPlanSource.includes('stagingReview.releasePayloadFileCount=26'));
   assert.ok(prStagingPlanSource.includes('stagingReview.recommendsOnlyIncludedFiles=true'));
   assert.ok(prStagingPlanSource.includes('stagingReview.doesNotRecommendSeparateDirtyWork=true'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}'));
@@ -4933,8 +4949,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
     'browser QA status: `passed`',
     'runtime layer audit status: `passed`',
     'active trace blocks: `113`',
-    'runtime layer audit: `npm run qa:stadium:gwangju:runtime-layer`',
-    'commit readiness gate: `npm run stadium:gwangju:commit-readiness`',
+    'runtime layer audit: `node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer`',
+    'commit readiness gate: `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness`',
     'missing baseball data contract: `MANUAL_BASEBALL_DATA_REQUIRED`',
     '`K7석`: `107~111`, `118~122`',
     '`원정응원석`: `107~110`',
@@ -5091,12 +5107,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`MANUAL_BASEBALL_DATA_REQUIRED`',
     'npm run stadium:gwangju:operator-status',
     'npm run test:stadium:seatmaps',
-    'npm run qa:stadium:gwangju:trace-review',
-    'npm run stadium:gwangju:release-package',
+    'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-package',
     'npm run qa:stadium:gwangju:release-gate',
-    'npm run stadium:gwangju:release-scope-guard',
-    'npm run stadium:gwangju:targeted-staging',
-    'npm run stadium:gwangju:commit-readiness',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard',
+    'node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging',
+    'node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness',
     'npm run build',
     '`pending=0`',
     '`validDataDiff=2`',
@@ -5106,12 +5122,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`derivedRanges=3`',
     '`status=passed`',
     '`steps=5/5`',
-    '`included=30`',
+    '`included=26`',
     '`separate=<runtime>`',
     '`unexpected=0`',
     '`inventoryDrift=0`',
     '`scopeGuardStatus=passed`',
-    '`scopeGuardIncludedFiles=30`',
+    '`scopeGuardIncludedFiles=26`',
     '`scopeGuardSeparateDirtyWorkFiles=<runtime>`',
     '`scopeGuardSeparateDirtyWorkBaselineFiles=74`',
     '`classifiedSeparateDirtyWorkExpansionAllowed=true`',
@@ -5127,33 +5143,33 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'release-gate -> targeted-staging -> staged-scope-audit -> release-audit',
     '`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다.',
     'release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.',
-    'PR packaging manifest가 광주 release 후보 30개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
-    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=30`, `actualIncludedFileCount=30`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
+    'PR packaging manifest가 광주 release 후보 26개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.',
+    'release scope guard의 release candidate inventory가 `expectedIncludedFileCount=26`, `actualIncludedFileCount=26`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.',
     'release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=74`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.',
-    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=30`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
+    'release scope guard의 `prPackagingManifest.releasePayloadFileCount=26`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.',
     'release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.',
     'patch separation readiness가 release payload files have unreviewed mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.',
-    'PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=30`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
-    'PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=30`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
-    'targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=30`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=6` 계약을 잃는다.',
+    'PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=26`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.',
+    'PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=26`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.',
+    'targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=26`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=5` 계약을 잃는다.',
     'targeted staging report가 separate dirty work를 staging 대상으로 추천하거나 `git add .`, `git add -A`, `git commit -am`을 허용한다.',
-    'staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=30`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.',
+    'staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=26`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.',
     'staged scope audit가 targeted staging 파일 외 staged 파일이나 separate dirty work staged 파일을 허용한다.',
-    'commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 30-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.',
+    'commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 26-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.',
     'commit-readiness가 모든 targeted file staged 이후 `stagedScopeAudit.requireComplete=true`, `stagedScopeAudit.missingStagedTargetFileCount=0`, `readyForCommit=true` 계약을 고정하지 못한다.',
-    '`prPackagingManifest.releasePayloadFileCount=30`',
+    '`prPackagingManifest.releasePayloadFileCount=26`',
     '`prPackagingManifest.separateDirtyWorkFileCount=<runtime>`',
     '`prPackagingManifest.unexpectedDirtyFileCount=0`',
     '`prPackagingManifest.inventoryDriftCount=0`',
     '`patchSeparationReadiness.status=ready-or-review-required`',
     'clean release payload files are not packaging blockers',
-    'npm run stadium:gwangju:pr-staging-review',
+    'node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review',
     'gwangju-seatmap-pr-staging-review.json',
     'gwangju-seatmap-pr-staging-review.md',
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=30',
+    'stagingReview.releasePayloadFileCount=26',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
     '## 남은 작업',
@@ -5262,7 +5278,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '공식 PNG 검수 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다.',
     '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
     'non-overlap 구역만 별도 operator target',
-    'npm run stadium:gwangju:release-package',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-package',
     'npm run qa:stadium:gwangju:release-gate',
     'reports/stadium/gwangju-seatmap-release-package.json',
     'reports/stadium/gwangju-seatmap-release-gate.json',
@@ -5296,11 +5312,11 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`browserQaStatus=passed`',
     '`runtimeLayerAuditStatus=passed`',
     '`activeTraceBlocks=113`',
-    'runtime layer audit: `npm run qa:stadium:gwangju:runtime-layer`',
+    'runtime layer audit: `node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer`',
     'runtime layer audit status: `passed`',
-    'release scope guard: `npm run stadium:gwangju:release-scope-guard`',
+    'release scope guard: `node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard`',
     'release scope guard status: `passed`',
-    'release scope guard included release files: `30`',
+    'release scope guard included release files: `26`',
     'release scope guard dirty files: runtime classified count',
     'release scope guard dirty included release files: runtime classified count',
     'release scope guard separate dirty work files: runtime classified count',
@@ -5315,12 +5331,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'PR staging plan does not run git add: `true`',
     'PR staging plan bulk git add allowed: `false`',
     'staged scope audit require complete: `false`',
-    'staged scope audit missing staged target files: `30` before explicit staging',
+    'staged scope audit missing staged target files: `<dirty-target-count>` before explicit staging',
     'commit readiness before explicit staging: `blocked expected`',
-    'commit readiness after explicit 30-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`',
+    'commit readiness after explicit 26-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`',
     '`release-verify` runs `release-gate -> targeted-staging -> staged-scope-audit -> release-audit`.',
     '`releaseScopeGuardStatus=passed`',
-    '`releaseScopeGuardIncludedFiles=30`',
+    '`releaseScopeGuardIncludedFiles=26`',
     '`releaseScopeGuardDirtyFiles=runtime`',
     '`releaseScopeGuardDirtyIncludedFiles=runtime`',
     '`releaseScopeGuardSeparateDirtyWorkFiles=runtime`',
@@ -5335,7 +5351,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '`stagingPlanDoesNotRunGitAdd=true`',
     '`stagingPlanSafeToRunBulkGitAdd=false`',
     '`stagedScopeAuditRequireComplete=false`',
-    '`stagedScopeAuditMissingTargetFiles=30-before-staging`',
+    '`stagedScopeAuditMissingTargetFiles=<dirty-target-count>-before-staging`',
     'gwangju-seatmap-release-scope-guard.json',
     'gwangju-seatmap-release-scope-guard.md',
     'gwangju-seatmap-runtime-layer-audit.json',
@@ -5351,27 +5367,27 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'gwangju-seatmap-staged-scope-audit.json',
     'gwangju-seatmap-staged-scope-audit.csv',
     'gwangju-seatmap-staged-scope-audit.md',
-    'npm run stadium:gwangju:pr-staging-plan',
-    'npm run stadium:gwangju:pr-staging-review',
-    'npm run stadium:gwangju:targeted-staging',
-    'npm run stadium:gwangju:staged-scope-audit',
-    'npm run stadium:gwangju:commit-readiness',
-    'npm run stadium:gwangju:release-scope-guard',
+    'node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan',
+    'node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review',
+    'node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging',
+    'node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit',
+    'node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard',
     'Release Candidate Inventory',
     'PR Packaging Manifest',
     'PR packaging manifest source of truth: `reports/stadium/gwangju-seatmap-release-scope-guard.md`',
     'Release PR scope: Gwangju official derived aggregate release package and build verification reports.',
     'Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.',
-    'Included release candidate files: `30`',
+    'Included release candidate files: `26`',
     'Separate dirty work files: runtime classified count',
     'Separate dirty work baseline files: `74`',
     'Classified separate dirty work expansion allowed: `true`',
     'Inventory drift: `0`',
-    'releaseCandidateInventory.expectedIncludedFileCount=30',
+    'releaseCandidateInventory.expectedIncludedFileCount=26',
     'separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74',
     'actualSeparateDirtyWorkCount=<runtime>',
     'separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true',
-    'prPackagingManifest.releasePayloadFileCount=30',
+    'prPackagingManifest.releasePayloadFileCount=26',
     'prPackagingManifest.separateDirtyWorkFileCount=<runtime>',
     'prPackagingManifest.unexpectedDirtyFileCount=0',
     'prPackagingManifest.inventoryDriftCount=0',
@@ -5384,12 +5400,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'stagingPlan.status=ready-or-review-required',
     'stagingPlan.doesNotRunGitAdd=true',
     'stagingPlan.safeToRunBulkGitAdd=false',
-    'stagingPlan.releasePayloadFileCount=30',
+    'stagingPlan.releasePayloadFileCount=26',
     'stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true',
     'stagingReview.status=ready-or-review-required',
     'stagingReview.doesNotRunGitAdd=true',
     'stagingReview.safeToRunBulkGitAdd=false',
-    'stagingReview.releasePayloadFileCount=30',
+    'stagingReview.releasePayloadFileCount=26',
     'stagingReview.recommendsOnlyIncludedFiles=true',
     'stagingReview.doesNotRecommendSeparateDirtyWork=true',
     'Targeted Staging Report',
@@ -5398,8 +5414,8 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'targetedStaging.safeToRunBulkGitAdd=false',
     'targetedStaging.recommendsOnlyIncludedFiles=true',
     'targetedStaging.doesNotRecommendSeparateDirtyWork=true',
-    'targetedStaging.targetFileCount=30',
-    'targetedStaging.reviewedUntrackedSatisfiedFileCount=6',
+    'targetedStaging.targetFileCount=26',
+    'targetedStaging.reviewedUntrackedSatisfiedFileCount=5',
     'Staged Scope Audit',
     'stagedScopeAudit.status=ready',
     'stagedScopeAudit.requireComplete=false',
@@ -5407,13 +5423,13 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'stagedScopeAudit.safeToRunBulkGitAdd=false',
     'stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true',
     'stagedScopeAudit.blocksSeparateDirtyWork=true',
-    'stagedScopeAudit.expectedTargetFileCount=30',
+    'stagedScopeAudit.expectedTargetFileCount=26',
     'stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count> before explicit staging',
     'stagedScopeAudit.stagedOutsideTargetFileCount=0',
     'stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0',
-    'strict commit-readiness mode: `npm run stadium:gwangju:commit-readiness`',
+    'strict commit-readiness mode: `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness`',
     'strict commit-readiness adds `--require-complete` and blocks with `STAGED_TARGET_FILE_MISSING` until all dirty targeted release files are staged.',
-    'Run `npm run stadium:gwangju:pre-pr-final-gate` before staging. Run `npm run stadium:gwangju:commit-readiness` only after explicit `git add -- <30 target files>`.',
+    'Run `node scripts/stadium-seatmap-ops.mjs gwangju pre-pr-final-gate` before staging. Run `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness` only after explicit `git add -- <26 target files>`.',
     'explicit-file-list-only',
     'Review focus files: `package.json`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, `src/components/ChatBotFloatingButton.tsx`, `src/components/ChatBotRuntime.tsx`, `src/components/MateResultsRuntime.tsx`, `reports/bundle-guard-report.json`, `reports/dist-assets-report.json`.',
     'RELEASE_CANDIDATE_FILE_MISSING',
