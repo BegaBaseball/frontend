@@ -341,7 +341,7 @@ const runAnchorVisualDiff = async () => {
 
   const buildCurrentSnapshot = async () => {
     if (!(await fileExists(anchorIndexPath))) {
-      throw new Error(`Missing Daejeon anchor crop index. Run npm run stadium:daejeon:anchor-crops first: ${anchorIndexPath}`);
+      throw new Error(`Missing Daejeon anchor crop index. Run node scripts/stadium-seatmap-ops.mjs daejeon anchor-crops first: ${anchorIndexPath}`);
     }
 
     const index = await readJson(anchorIndexPath);
@@ -530,7 +530,7 @@ const runAnchorVisualDiff = async () => {
       '- baseline crop hash가 바뀌면 좌표/path/공식 PNG 변경 영향으로 보고 release-lock을 실패시킨다.',
       '- P0 crop은 regressionTestIds가 반드시 있어야 한다.',
       '- P2 MANUAL_CROP_ONLY 변경은 수동 검수 대상으로 report에 남긴다.',
-      '- baseline 갱신은 운영자 검수 후 `npm run stadium:daejeon:visual-baseline`로만 수행한다.',
+      '- baseline 갱신은 운영자 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon visual-baseline`로만 수행한다.',
       '',
     ].join('\n'), 'utf8');
   };
@@ -1115,11 +1115,11 @@ const runChangeGuard = async () => {
 
     const expectedCommands = [
       'node --import tsx --test --test-concurrency=1 --test-name-pattern=대전 src/data/daejeonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-      'npm run stadium:daejeon:evidence',
-      'npm run stadium:daejeon:visual-diff',
-      'npm run stadium:daejeon:geometry-diff',
-      'npm run stadium:daejeon:coverage-report',
-      'npm run qa:stadium:daejeon:trace-review',
+      'node scripts/stadium-seatmap-ops.mjs daejeon evidence',
+      'node scripts/stadium-seatmap-ops.mjs daejeon visual-diff',
+      'node scripts/stadium-seatmap-ops.mjs daejeon geometry-diff',
+      'node scripts/stadium-seatmap-ops.mjs daejeon coverage-report',
+      'node scripts/stadium-seatmap-ops.mjs daejeon trace-review',
       'npm run build',
     ];
     const commands = report.commands ?? [];
@@ -2152,7 +2152,7 @@ const runGeometryDiff = async () => {
       '',
       '- baseline block fingerprint가 바뀌면 좌표/path/trace 계약 변경 영향으로 보고 release-lock을 실패시킨다.',
       '- 변경 block은 anchorCropIds, regressionTestIds, reviewPriority 기준으로 재검수한다.',
-      '- baseline 갱신은 운영자 검수 후 `npm run stadium:daejeon:geometry-baseline`로만 수행한다.',
+      '- baseline 갱신은 운영자 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon geometry-baseline`로만 수행한다.',
       '',
     ].join('\n'), 'utf8');
   };
@@ -2566,8 +2566,8 @@ const runOperatorHandoff = async () => {
   const approvalCommands = [
     'npm run qa:stadium:daejeon:release-lock',
     'npm run stadium:daejeon:operator-approval',
-    'npm run stadium:daejeon:operator-approval:status',
-    'npm run stadium:daejeon:operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
+    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status',
+    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
     'npm run qa:stadium:daejeon:release-approved',
   ];
 
@@ -3379,28 +3379,28 @@ const runReleaseGate = async () => {
     },
     {
       label: 'evidence',
-      command: 'npm',
-      args: ['run', 'stadium:daejeon:evidence'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'daejeon', 'evidence'],
     },
     {
       label: 'visual diff',
-      command: 'npm',
-      args: ['run', 'stadium:daejeon:visual-diff'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'daejeon', 'visual-diff'],
     },
     {
       label: 'geometry diff',
-      command: 'npm',
-      args: ['run', 'stadium:daejeon:geometry-diff'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'daejeon', 'geometry-diff'],
     },
     {
       label: 'coverage report',
-      command: 'npm',
-      args: ['run', 'stadium:daejeon:coverage-report'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'daejeon', 'coverage-report'],
     },
     {
       label: 'browser QA',
-      command: 'npm',
-      args: ['run', 'qa:stadium:daejeon:trace-review'],
+      command: 'node',
+      args: ['scripts/stadium-seatmap-ops.mjs', 'daejeon', 'trace-review'],
     },
     {
       label: 'build',

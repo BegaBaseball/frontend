@@ -3727,11 +3727,10 @@ test('대전 trace review QA는 P2 retired alias 제거 계약과 145개 traced 
     'utf8',
   );
 
-  assert.ok(packageSource.includes('"stadium:daejeon:evidence"'));
-  assert.ok(packageSource.includes('"stadium:daejeon:anchor-crops"'));
-  assert.ok(packageSource.includes('"stadium:daejeon:evidence": "node scripts/stadium-seatmap-ops.mjs daejeon evidence"'));
-  assert.ok(packageSource.includes('"qa:stadium:daejeon:trace-review"'));
-  assert.ok(packageSource.includes('"qa:stadium:daejeon:trace-review": "node scripts/stadium-seatmap-ops.mjs daejeon trace-review"'));
+  assert.ok(packageSource.includes('"stadium:daejeon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs daejeon trace-manifest"'));
+  assert.equal(packageSource.includes('"stadium:daejeon:evidence"'), false);
+  assert.equal(packageSource.includes('"stadium:daejeon:anchor-crops"'), false);
+  assert.equal(packageSource.includes('"qa:stadium:daejeon:trace-review"'), false);
   assert.ok(evidenceSource.includes('clearGeneratedCropImages'));
   assert.ok(evidenceSource.includes('DAEJEON_P2_DEDUPLICATED_ALIASES'));
   assert.ok(evidenceSource.includes('Retired alias has no operational geometry'));
@@ -3824,13 +3823,13 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '클릭/터치 hit path는 `hitAreaD ?? imageGeometry.d`만 사용한다.',
     '외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.',
     'npm run qa:stadium:daejeon:release-lock',
-    'npm run qa:stadium:daejeon:change-guard',
-    'npm run test:stadium:daejeon:operator-approval',
+    'node scripts/stadium-seatmap-ops.mjs daejeon change-guard',
+    'node --test scripts/daejeon-seatmap-operator-approval.test.mjs',
     'npm run stadium:daejeon:operator-handoff',
     'npm run stadium:daejeon:operator-approval',
-    'npm run stadium:daejeon:operator-approval:status',
-    'npm run stadium:daejeon:operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
-    'npm run stadium:daejeon:operator-approval:verify',
+    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status',
+    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
+    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify',
     'npm run qa:stadium:daejeon:release-approved',
     '`reports/stadium/daejeon-seatmap-operator-handoff.md`',
     '`reports/stadium/daejeon-seatmap-operator-handoff.json`',
@@ -3856,7 +3855,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '`third-116-121-detail`',
     'visual diff changedCropCount=0',
     'geometry diff changedBlockCount=0',
-    'npm run stadium:daejeon:block-crops -- --codes 104,105',
+    'node scripts/stadium-seatmap-ops.mjs daejeon block-crops -- --codes 104,105',
     '파란 overlay는 visible `imageGeometry.d`, 빨간 dashed overlay는 click-only `hitAreaD`',
     '`PENDING_OPERATOR_APPROVAL`을 배포 승인으로 인정하지 않는다.',
     '승인된 handoff/release gate hash가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패하고 운영 릴리즈를 차단한다.',
@@ -3866,22 +3865,35 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
   });
 
   [
+    '"qa:stadium:daejeon:mobile": "node scripts/stadium-seatmap-ops.mjs daejeon mobile"',
+    '"stadium:daejeon:status": "node scripts/stadium-seatmap-ops.mjs daejeon status"',
+    '"stadium:daejeon:pixel-components": "node scripts/stadium-seatmap-ops.mjs daejeon pixel-components"',
+    '"stadium:daejeon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs daejeon trace-manifest"',
     '"qa:stadium:daejeon:release-lock": "node scripts/stadium-seatmap-ops.mjs daejeon release-lock"',
-    '"stadium:daejeon:block-crops": "node scripts/stadium-seatmap-ops.mjs daejeon block-crops"',
-    '"stadium:daejeon:visual-diff": "node scripts/stadium-seatmap-ops.mjs daejeon visual-diff"',
-    '"stadium:daejeon:visual-baseline": "node scripts/stadium-seatmap-ops.mjs daejeon visual-baseline"',
-    '"stadium:daejeon:geometry-diff": "node scripts/stadium-seatmap-ops.mjs daejeon geometry-diff"',
-    '"stadium:daejeon:geometry-baseline": "node scripts/stadium-seatmap-ops.mjs daejeon geometry-baseline"',
-    '"qa:stadium:daejeon:change-guard": "node scripts/stadium-seatmap-ops.mjs daejeon change-guard"',
-    '"test:stadium:daejeon:operator-approval": "node --test scripts/daejeon-seatmap-operator-approval.test.mjs"',
     '"stadium:daejeon:operator-handoff": "node scripts/stadium-seatmap-ops.mjs daejeon operator-handoff"',
     '"stadium:daejeon:operator-approval": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval"',
-    '"stadium:daejeon:operator-approval:status": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status"',
-    '"stadium:daejeon:operator-approval:approve": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve"',
-    '"stadium:daejeon:operator-approval:verify": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify"',
     '"qa:stadium:daejeon:release-approved": "node scripts/stadium-seatmap-ops.mjs daejeon release-approved"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
+  });
+
+  [
+    '"stadium:daejeon:anchor-crops"',
+    '"stadium:daejeon:block-crops"',
+    '"stadium:daejeon:visual-diff"',
+    '"stadium:daejeon:visual-baseline"',
+    '"stadium:daejeon:geometry-diff"',
+    '"stadium:daejeon:geometry-baseline"',
+    '"stadium:daejeon:coverage-report"',
+    '"stadium:daejeon:evidence"',
+    '"qa:stadium:daejeon:trace-review"',
+    '"qa:stadium:daejeon:change-guard"',
+    '"test:stadium:daejeon:operator-approval"',
+    '"stadium:daejeon:operator-approval:status"',
+    '"stadium:daejeon:operator-approval:approve"',
+    '"stadium:daejeon:operator-approval:verify"',
+  ].forEach((removedText) => {
+    assert.equal(packageSource.includes(removedText), false, `package script should not expose ${removedText}`);
   });
 
   [
@@ -3893,9 +3905,10 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     "'src/data/daejeonSeatData.test.ts'",
     "'src/components/StadiumGuideRuntimeSeatMaps.test.ts'",
     "'npm'",
-    "'stadium:daejeon:visual-diff'",
-    "'stadium:daejeon:geometry-diff'",
-    "'qa:stadium:daejeon:trace-review'",
+    "'scripts/stadium-seatmap-ops.mjs'",
+    "'visual-diff'",
+    "'geometry-diff'",
+    "'trace-review'",
     "'build'",
     'daejeon-seatmap-release-gate.json',
     'daejeon-seatmap-release-gate.md',

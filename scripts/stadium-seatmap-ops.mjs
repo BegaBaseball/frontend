@@ -1224,6 +1224,17 @@ const STADIUMS = {
     legacyArtifacts: [
       'scripts/daejeon-seatmap-ops.mjs',
     ],
+    publicTasks: [
+      'mobile',
+      'operator-approval',
+      'operator-handoff',
+      'pixel-components',
+      'release-approved',
+      'release-lock',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'anchor crop, block crop, evidence, visual/geometry diff, baseline, change-guard, trace-review, and granular approval status/approve/verify tasks remain dispatcher-internal; package aliases expose runtime release and current operator gates only.',
     migrationBuckets: [
       {
         id: 'seatmap-ops',
@@ -1415,6 +1426,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile/runtime release, current operator handoff/approval, status, pixel components, and trace manifest; crop/diff/baseline/evidence/change-guard/trace-review tasks stay available through the integrated dispatcher',
   },
   incheon: {
     label: 'Incheon SSG Landers Field',
