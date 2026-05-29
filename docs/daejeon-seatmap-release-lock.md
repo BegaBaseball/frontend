@@ -100,11 +100,11 @@
 - anchor visual baseline은 `src/data/daejeonAnchorVisualBaseline.json`이 source of truth다.
 - anchor visual baseline은 `expectedCropCount=28`이며, `first-104-106-detail`, `third-116-121-detail`, `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s37-sequence`를 자동 owner-point 회귀 crop으로 포함한다.
 - anchor crop hash 또는 metadata가 baseline과 다르면 `reports/stadium/daejeon-seatmap-visual-diff.md`에 변경 crop이 표시되고 release-lock은 실패한다.
-- baseline 갱신은 운영자 육안 검수 후 `npm run stadium:daejeon:visual-baseline`로만 수행한다.
+- baseline 갱신은 운영자 육안 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon visual-baseline`로만 수행한다.
 - geometry baseline은 `src/data/daejeonGeometryBaseline.json`이 source of truth다.
 - geometry fingerprint가 baseline과 다르면 `reports/stadium/daejeon-seatmap-geometry-diff.md`에 변경 block, changed field, anchor crop, regression test가 표시되고 release-lock은 실패한다.
-- geometry baseline 갱신은 운영자 육안 검수 후 `npm run stadium:daejeon:geometry-baseline`로만 수행한다.
-- 블록 단위 좌표 수정 전후 검수는 `npm run stadium:daejeon:block-crops -- --codes 104,105` 또는 `--blocks exact-id`로 생성한 block evidence crop을 먼저 확인한다.
+- geometry baseline 갱신은 운영자 육안 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon geometry-baseline`로만 수행한다.
+- 블록 단위 좌표 수정 전후 검수는 `node scripts/stadium-seatmap-ops.mjs daejeon block-crops -- --codes 104,105` 또는 `--blocks exact-id`로 생성한 block evidence crop을 먼저 확인한다.
 - block evidence crop에서 파란 overlay는 visible `imageGeometry.d`, 빨간 dashed overlay는 click-only `hitAreaD`이며, 빨간 영역이 넓어도 visible highlight가 커지면 안 된다.
 
 ## 릴리즈 게이트
@@ -118,7 +118,7 @@ npm run qa:stadium:daejeon:release-lock
 빠른 변경 감지:
 
 ```bash
-npm run qa:stadium:daejeon:change-guard
+node scripts/stadium-seatmap-ops.mjs daejeon change-guard
 ```
 
 change guard는 대전 좌석 데이터, 대전 전용 컴포넌트, 공식 PNG, `scripts/daejeon-*`, release lock 문서가 마지막 release gate 이후 변경됐는지 mtime으로 확인한다. stale 상태이면 전체 gate를 다시 실행해야 한다.
@@ -126,9 +126,9 @@ change guard는 대전 좌석 데이터, 대전 전용 컴포넌트, 공식 PNG,
 블록 단위 좌표 검수:
 
 ```bash
-npm run stadium:daejeon:block-crops
-npm run stadium:daejeon:block-crops -- --codes 100A,100B,100C,104,105,106,107,108,109
-npm run stadium:daejeon:block-crops -- --blocks first-infield-b-101-108__104
+node scripts/stadium-seatmap-ops.mjs daejeon block-crops
+node scripts/stadium-seatmap-ops.mjs daejeon block-crops -- --codes 100A,100B,100C,104,105,106,107,108,109
+node scripts/stadium-seatmap-ops.mjs daejeon block-crops -- --blocks first-infield-b-101-108__104
 ```
 
 기본 실행은 최근 drift/split 이슈가 있었던 `100A/100B/100C`, `104-109`, `121-124`를 생성한다. 산출물은 `reports/stadium/daejeon-seatmap-block-evidence-crops.md`와 `../output/playwright/daejeon-block-review/*.png`에 기록된다.
@@ -146,23 +146,23 @@ operator handoff는 change guard를 먼저 통과한 뒤 `reports/stadium/daejeo
 
 ```bash
 npm run stadium:daejeon:operator-approval
-npm run stadium:daejeon:operator-approval:status
-npm run stadium:daejeon:operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"
+node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status
+node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"
 ```
 
-operator approval은 handoff를 최신화한 뒤 `reports/stadium/daejeon-seatmap-operator-approval.json`을 생성하거나 검증한다. 기본 상태는 `PENDING_OPERATOR_APPROVAL`이며, 운영자는 JSON을 직접 편집하지 않고 `stadium:daejeon:operator-approval:approve`로 `APPROVED`, `approvedBy`, `approvedAt`, `notes`를 기록한다. 승인된 handoff/release gate hash가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패하고 운영 릴리즈를 차단한다.
+operator approval은 handoff를 최신화한 뒤 `reports/stadium/daejeon-seatmap-operator-approval.json`을 생성하거나 검증한다. 기본 상태는 `PENDING_OPERATOR_APPROVAL`이며, 운영자는 JSON을 직접 편집하지 않고 `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve`로 `APPROVED`, `approvedBy`, `approvedAt`, `notes`를 기록한다. 승인된 handoff/release gate hash가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패하고 운영 릴리즈를 차단한다.
 
 승인 명령의 `--approved-by`는 필수이며, `--notes`는 운영 검수 메모를 남길 때 사용한다.
 
 배포 승인 확인:
 
 ```bash
-npm run test:stadium:daejeon:operator-approval
-npm run stadium:daejeon:operator-approval:verify
+node --test scripts/daejeon-seatmap-operator-approval.test.mjs
+node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify
 npm run qa:stadium:daejeon:release-approved
 ```
 
-`test:stadium:daejeon:operator-approval`은 임시 디렉터리 fixture에서 approval 생성/status/approve/verify/stale 동작을 검증하며 운영 approval JSON을 수정하지 않는다. `stadium:daejeon:operator-approval:verify`는 `--require-approved` 모드로 실행되며 `PENDING_OPERATOR_APPROVAL`을 배포 승인으로 인정하지 않는다. `qa:stadium:daejeon:release-approved`는 마지막 release gate 이후 watched 파일 변경 여부를 먼저 확인한 뒤, 현재 handoff/release gate hash와 승인 파일 hash가 같은지 검증한다.
+`node --test scripts/daejeon-seatmap-operator-approval.test.mjs`는 임시 디렉터리 fixture에서 approval 생성/status/approve/verify/stale 동작을 검증하며 운영 approval JSON을 수정하지 않는다. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify`는 `--require-approved` 모드로 실행되며 `PENDING_OPERATOR_APPROVAL`을 배포 승인으로 인정하지 않는다. `qa:stadium:daejeon:release-approved`는 마지막 release gate 이후 watched 파일 변경 여부를 먼저 확인한 뒤, 현재 handoff/release gate hash와 승인 파일 hash가 같은지 검증한다.
 
 release gate 리포트의 `operatorApproval` 섹션은 approval 파일 경로, 현재 상태, 승인자, 승인시각을 요약해 보여준다. release-lock does not require operator approval; 최종 hash 검증과 승인 완료 강제는 `npm run qa:stadium:daejeon:release-approved`에서만 수행한다.
 
@@ -170,9 +170,9 @@ release gate 리포트의 `operatorApproval` 섹션은 approval 파일 경로, �
 
 1. `npm run qa:stadium:daejeon:release-lock`
 2. `npm run stadium:daejeon:operator-approval`
-3. `npm run stadium:daejeon:operator-approval:status`
+3. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status`
 4. 운영자가 handoff/evidence/browser QA summary를 검토한다.
-5. `npm run stadium:daejeon:operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"`
+5. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"`
 6. `npm run qa:stadium:daejeon:release-approved`
 7. 위 명령이 통과한 산출물만 배포 승인 상태로 본다.
 
