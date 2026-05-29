@@ -274,7 +274,7 @@ function validatePatchPayload(options) {
       highRiskWorksetIds: candidatePayload?.highRiskWorksetIds ?? [],
       geometryStats: stats,
       sampledOverlapWarnings: overlapWarnings,
-      officialPngCoverageGate: 'delegated:npm run stadium:gwangju:image-alignment-audit:require-release',
+      officialPngCoverageGate: 'delegated:node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit:require-release',
       sourceDataWritePerformed: false,
     },
     blockers,
@@ -383,7 +383,7 @@ function createPostwriteGateReport() {
     blockers,
     warnings: [],
     nextAction: blockers.length === 0
-      ? 'Run npm run test:stadium:gwangju:seatmaps and npm run build.'
+      ? 'Run node --import tsx --test --test-concurrency=1 --test-name-pattern "광주|Gwangju" src/components/StadiumGuideRuntimeSeatMaps.test.ts src/components/gwangju/GwangjuSeatMapEditor.test.tsx src/data/gwangjuSeatData.test.ts and npm run build.'
       : 'Fix postwrite gate blockers before release verification.',
   };
 }

@@ -121,7 +121,8 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - 3루 `H` reference bbox는 `569,158,692,307`이다. 3루 `121~127/I/J`는 active production data와 selected-sweep QA에 포함한다.
 - 3루 `I/J`는 현재 production data, selected-sweep QA, release evidence에 복구된 상태다. 과거 `I/J` candidate/reference polygon은 release 근거로 사용하지 않는다.
 - dispatcher-internal `artifact-scope-audit`가 active reports/output에 남은 3루 legacy retrace, independent audit, boundary overlay, mask probe, proposed/manual retrace artifact를 차단한다. 과거 산출물은 `reports/stadium/_archive/gwangju-legacy-candidates/archive-manifest.json`에만 기록한다.
-- `stadium:gwangju:block-source-duplication-audit`에서 release 판단 owner는 core image-alignment audit 하나로 고정한다. 과거 lower-infield independent audit는 Git history 복구 대상으로만 남긴다.
+- `node scripts/stadium-seatmap-ops.mjs gwangju block-source-duplication-audit`에서 release 판단 owner는 core image-alignment audit 하나로 고정한다. 과거 lower-infield independent audit는 Git history 복구 대상으로만 남긴다.
+- retired lower-infield/third-base independent audit script 파일은 release payload가 아니며, active release 차단은 dispatcher-internal artifact-scope 및 block-source duplication audit가 담당한다.
 - 기본 실행은 알파벳 좌석 mismatch를 `review-required`로 보고하고, trace manifest는 `--require-sky-picnic --require-alphabet-sections --require-five-table` release gate로 같은 결과를 차단한다.
 - 알파벳 evidence crop: `gwangju-seatmap-image-alignment-audit-special-seats.png`, `gwangju-seatmap-image-alignment-audit-alphabet-special-seats-upper.png`
 - 하단 내야 split evidence: `lower-infield-special-split/` 아래 공식 PNG crop, `101~108` 번호 블럭 only overlay, `J/I/H` 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 생성한다. 두 layer의 sampled overlap이 1개라도 있으면 번호 블럭과 특수석이 각각 mask gate를 통과해도 release를 실패시킨다.
@@ -225,7 +226,7 @@ npm run qa:stadium:gwangju:release-verify
 현재 `release-verify`는 pre-operator alias이며, 명시 명령은 다음과 같다.
 
 ```bash
-npm run qa:stadium:gwangju:release-verify:preoperator
+node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator
 ```
 
 후속 post-operator 검증 skeleton:
@@ -257,18 +258,18 @@ node scripts/stadium-seatmap-ops.mjs gwangju operator-intake
 
 ```bash
 npm run qa:stadium:gwangju:release-gate
-npm run stadium:gwangju:targeted-staging
-npm run stadium:gwangju:staged-scope-audit
-npm run stadium:gwangju:release-audit
+node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging
+node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit
+node scripts/stadium-seatmap-ops.mjs gwangju release-audit
 ```
 
 Commit readiness after explicit targeted staging:
 
 ```bash
-npm run stadium:gwangju:commit-readiness
+node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness
 ```
 
-`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <30 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 30개 target file이 모두 staged 된 뒤에만 통과해야 한다.
+`commit-readiness`는 `targeted-staging -> staged-scope-audit --require-complete -> release-audit` 순서이다. 수동 `git add -- <26 target files>` 전에는 `STAGED_TARGET_FILE_MISSING`으로 실패하는 것이 정상이고, 26개 target file이 모두 staged 된 뒤에만 통과해야 한다.
 
 최종 판정은 preoperator 통과 + official derived aggregate release + scope guard 통과 상태를 함께 확인한다.
 
@@ -277,8 +278,8 @@ Release gate 내부 실행 순서:
 ```bash
 npm run stadium:gwangju:operator-status
 npm run test:stadium:seatmaps
-npm run qa:stadium:gwangju:trace-review
-npm run stadium:gwangju:release-package
+node scripts/stadium-seatmap-ops.mjs gwangju trace-review
+node scripts/stadium-seatmap-ops.mjs gwangju release-package
 npm run build
 ```
 
@@ -303,19 +304,19 @@ npm run build
 - release audit가 `passed`가 아니거나 release gate/package/status/trace/browser QA/handoff 산출물 stale 상태를 감지한다.
 - release verify가 `release-gate -> targeted-staging -> staged-scope-audit -> release-audit` 순서를 잃는다.
 - release scope guard가 광주 release package와 Daegu/Daejeon/Sajik/Suwon 분리 범위를 구분하지 못하거나 알 수 없는 dirty file을 감지한다.
-- PR packaging manifest가 광주 release 후보 30개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
-- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=30`, `actualIncludedFileCount=30`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
+- PR packaging manifest가 광주 release 후보 26개, separate dirty work baseline 74개, runtime classified separate dirty work, unexpected 0, blockers 0 기준을 한 문서로 고정하지 못한다.
+- release scope guard의 release candidate inventory가 `expectedIncludedFileCount=26`, `actualIncludedFileCount=26`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]` 상태를 잃는다.
 - release scope guard의 separate work inventory가 `expectedSeparateDirtyWorkCount baseline=74`, `classifiedSeparateDirtyWorkExpansionAllowed=true` 상태를 잃거나 classified separate dirty work를 blocker로 처리한다.
-- release scope guard의 `prPackagingManifest.releasePayloadFileCount=30`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
+- release scope guard의 `prPackagingManifest.releasePayloadFileCount=26`, `separateDirtyWorkFileCount=<runtime>`, `unexpectedDirtyFileCount=0`, `inventoryDriftCount=0` 상태를 잃는다.
 - release scope guard의 `patchSeparationReadiness.status=ready-or-review-required` 상태를 잃거나 clean release payload files are not packaging blockers 계약을 숨긴다.
 - patch separation readiness가 release payload files have unreviewed mixed or untracked diffs 상태에서만 review-required가 됨을 문서화하지 않는다.
-- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=30`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
-- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=30`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
-- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=30`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=6` 계약을 잃는다.
+- PR staging plan이 `stagingPlan.status=ready-or-review-required`, `stagingPlan.doesNotRunGitAdd=true`, `stagingPlan.safeToRunBulkGitAdd=false`, `stagingPlan.releasePayloadFileCount=26`, `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true` 계약을 잃는다.
+- PR staging review가 `stagingReview.status=ready-or-review-required`, `stagingReview.doesNotRunGitAdd=true`, `stagingReview.safeToRunBulkGitAdd=false`, `stagingReview.releasePayloadFileCount=26`, `stagingReview.recommendsOnlyIncludedFiles=true`, `stagingReview.doesNotRecommendSeparateDirtyWork=true` 계약을 잃는다.
+- targeted staging report가 `targetedStaging.status=ready`, `targetedStaging.doesNotRunGitAdd=true`, `targetedStaging.safeToRunBulkGitAdd=false`, `targetedStaging.targetFileCount=26`, `targetedStaging.reviewedUntrackedSatisfiedFileCount=5` 계약을 잃는다.
 - targeted staging report가 separate dirty work를 staging 대상으로 추천하거나 `git add .`, `git add -A`, `git commit -am`을 허용한다.
-- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=30`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
+- staged scope audit가 `stagedScopeAudit.status=ready`, `stagedScopeAudit.doesNotRunGitAdd=true`, `stagedScopeAudit.safeToRunBulkGitAdd=false`, `stagedScopeAudit.expectedTargetFileCount=26`, `stagedScopeAudit.stagedOutsideTargetFileCount=0`, `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0` 계약을 잃는다.
 - staged scope audit가 targeted staging 파일 외 staged 파일이나 separate dirty work staged 파일을 허용한다.
-- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 30-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
+- commit-readiness가 `--require-complete` strict mode를 잃거나, 명시적 26-file staging 전 `STAGED_TARGET_FILE_MISSING`으로 실패하지 않는다.
 - commit-readiness가 모든 targeted file staged 이후 `stagedScopeAudit.requireComplete=true`, `stagedScopeAudit.missingStagedTargetFileCount=0`, `readyForCommit=true` 계약을 고정하지 못한다.
 - release verify가 `activeBlocks=113`, `operatorStatus=ready`, `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 중 하나를 잃는다.
 - post-operator independent polygon acceptance는 별도 non-overlap operator target이 추가된 경우에만 실행한다.
@@ -334,7 +335,7 @@ npm run build
   - `blockers=0`
 - `npm run test:stadium:seatmaps`: 광주 계약 PASS
   - 광주 K7/원정응원석 block-range, fanRole 필터, 공식 derived aggregate 계약 포함
-- `npm run qa:stadium:gwangju:trace-review`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`: PASS
   - `activeBlocks=113`
   - `traceVersion=gwangju-precision-v1`
   - `traceGeneration=GWANGJU_PRECISION_V1`
@@ -351,7 +352,7 @@ npm run build
   - `minimumComponentIoU=0.9255`
   - `repeatedNumberedBlockMinimumPixelCoverageRatio=1.0000`
   - mobile 390, desktop 1440 isolated QA passed
-- `npm run stadium:gwangju:release-package`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju release-package`: PASS
   - `status=ready`
   - `blockers=0`
   - `activeBlocks=113`
@@ -365,73 +366,73 @@ npm run build
   - `browserQaStatus=passed`
   - `runtimeLayerAuditStatus=passed`
   - `activeTraceBlocks=113`
-- `npm run qa:stadium:gwangju:runtime-layer`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer`: PASS
   - `status=passed`
   - `renderedPathCount=113`
   - `pathMismatchCount=0`
   - `forbiddenRenderedIds=0`
   - `labelTopHitFailureCount=0`
-- `npm run stadium:gwangju:release-audit`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju release-audit`: PASS
   - `status=passed`
   - `blockers=0`
   - `stale=0`
   - `scopeGuardStatus=passed`
-  - `scopeGuardIncludedFiles=30`
+  - `scopeGuardIncludedFiles=26`
   - `scopeGuardSeparateDirtyWorkFiles=<runtime>`
   - `scopeGuardSeparateDirtyWorkBaselineFiles=74`
   - `classifiedSeparateDirtyWorkExpansionAllowed=true`
   - `scopeGuardUnexpectedFiles=0`
   - `scopeGuardBlockers=0`
-- `npm run stadium:gwangju:release-scope-guard`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard`: PASS
   - `status=passed`
-  - `included=30`
+  - `included=26`
   - `separate=<runtime>`
   - `unexpected=0`
   - `inventoryDrift=0`
-  - `prPackagingManifest.releasePayloadFileCount=30`
+  - `prPackagingManifest.releasePayloadFileCount=26`
   - `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`
   - `prPackagingManifest.unexpectedDirtyFileCount=0`
   - `prPackagingManifest.inventoryDriftCount=0`
   - `patchSeparationReadiness.status=ready-or-review-required`
   - clean release payload files are not packaging blockers
   - 광주 release package, 별도 Daegu/Daejeon/Sajik/Suwon dirty work 분리
-- `npm run stadium:gwangju:pr-staging-plan`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan`: PASS
   - `stagingPlan.status=ready-or-review-required`
   - `stagingPlan.doesNotRunGitAdd=true`
   - `stagingPlan.safeToRunBulkGitAdd=false`
-  - `stagingPlan.releasePayloadFileCount=30`
+  - `stagingPlan.releasePayloadFileCount=26`
   - `stagingPlan.separateDirtyWorkFileCount=<runtime>`
   - `stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true`
-- `npm run stadium:gwangju:pr-staging-review`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review`: PASS
   - `stagingReview.status=ready-or-review-required`
   - `stagingReview.doesNotRunGitAdd=true`
   - `stagingReview.safeToRunBulkGitAdd=false`
-  - `stagingReview.releasePayloadFileCount=30`
+  - `stagingReview.releasePayloadFileCount=26`
   - `stagingReview.recommendsOnlyIncludedFiles=true`
   - `stagingReview.doesNotRecommendSeparateDirtyWork=true`
   - current status: `ready`
   - `blockers=0`
   - `reviewClassCounts.ready-to-stage=<runtime>`
   - `reviewClassCounts.untracked-review-required=0`
-  - reviewed expected untracked release files: `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`, `scripts/gwangju-seatmap-precision-v1-editor-ops.mjs`, `src/components/gwangju/GwangjuSeatMapEditor.test.tsx`, `src/components/gwangju/GwangjuSeatMapEditor.tsx`, `src/data/gwangjuSeatMapEditorDataset.ts`
-- `npm run stadium:gwangju:targeted-staging`: PASS
+  - reviewed expected untracked release files: `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`, `src/components/gwangju/GwangjuSeatMapEditor.test.tsx`, `src/components/gwangju/GwangjuSeatMapEditor.tsx`, `src/data/gwangjuSeatMapEditorDataset.ts`
+- `node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging`: PASS
   - `targetedStaging.status=ready`
   - `targetedStaging.doesNotRunGitAdd=true`
   - `targetedStaging.safeToRunBulkGitAdd=false`
-  - `targetedStaging.targetFileCount=30`
-  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=6`
+  - `targetedStaging.targetFileCount=26`
+  - `targetedStaging.reviewedUntrackedSatisfiedFileCount=5`
   - targeted staging excludes separate dirty work and recommends only explicit included release files.
-- `npm run stadium:gwangju:staged-scope-audit`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit`: PASS
   - `stagedScopeAudit.status=ready`
   - `stagedScopeAudit.requireComplete=false`
   - `stagedScopeAudit.doesNotRunGitAdd=true`
   - `stagedScopeAudit.safeToRunBulkGitAdd=false`
-  - `stagedScopeAudit.expectedTargetFileCount=30`
+  - `stagedScopeAudit.expectedTargetFileCount=26`
   - `stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count>` before explicit staging
   - `stagedScopeAudit.stagedOutsideTargetFileCount=0`
   - `stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0`
   - staged scope audit blocks staged files outside targeted staging and separate dirty work.
-- `npm run stadium:gwangju:commit-readiness`: BLOCKED EXPECTED before explicit staging, PASS only after all dirty target files are staged.
+- `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness`: BLOCKED EXPECTED before explicit staging, PASS only after all dirty target files are staged.
   - strict mode: `--require-complete`
   - pre-staging blocker: `STAGED_TARGET_FILE_MISSING`
   - commit-ready state: `stagedScopeAudit.requireComplete=true`
@@ -453,7 +454,7 @@ npm run build
   - `status=passed`
   - `blockers=0`
   - `stale=0`
-- `npm run qa:stadium:gwangju:release-verify:preoperator`: PASS
+- `node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator`: PASS
   - `activeBlocks=113`
   - `operatorStatus=ready`
   - `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`

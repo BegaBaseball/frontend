@@ -6,17 +6,17 @@ Handoff date: 2026-05-16 KST
 
 - release mode: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`
 - release verification: `npm run qa:stadium:gwangju:release-verify`
-- pre-operator release verification: `npm run qa:stadium:gwangju:release-verify:preoperator`
+- pre-operator release verification: `node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator`
 - post-operator release verification skeleton: `node scripts/stadium-seatmap-ops.mjs gwangju release-verify:postoperator`
 - operator input/write subtasks are dispatcher-internal for future non-overlap polygon work.
 - release gate: `npm run qa:stadium:gwangju:release-gate`
-- runtime layer audit: `npm run qa:stadium:gwangju:runtime-layer`
-- release scope guard: `npm run stadium:gwangju:release-scope-guard`
-- PR staging plan: `npm run stadium:gwangju:pr-staging-plan`
-- targeted staging report: `npm run stadium:gwangju:targeted-staging`
-- staged scope audit: `npm run stadium:gwangju:staged-scope-audit`
-- pre-PR final gate: `npm run stadium:gwangju:pre-pr-final-gate`
-- commit readiness gate: `npm run stadium:gwangju:commit-readiness`
+- runtime layer audit: `node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer`
+- release scope guard: `node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard`
+- PR staging plan: `node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan`
+- targeted staging report: `node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging`
+- staged scope audit: `node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit`
+- pre-PR final gate: `node scripts/stadium-seatmap-ops.mjs gwangju pre-pr-final-gate`
+- commit readiness gate: `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness`
 - official PNG: `gwangju-kia-seatmap-official-2026.png`
 - coordinate system: `2200x1159`
 - trace version: `gwangju-precision-v1`
@@ -38,7 +38,8 @@ Handoff date: 2026-05-16 KST
 - 3루 121~127/I/J restored trace: `gwangju-seatmap-official-third-infield-trace`; active production data, selected-sweep QA, trace manifest, and runtime layer all include the restored blocks.
 - 과거 third-base retrace candidate/proposed 산출물은 release evidence로 유지하지 않는다.
 - `gwangju artifact-scope-audit` keeps legacy/candidate/proposed Gwangju artifacts out of active release evidence. Archived files are tracked only under `reports/stadium/_archive/gwangju-legacy-candidates/archive-manifest.json`.
-- `stadium:gwangju:block-source-duplication-audit` uses core image-alignment as the canonical release QA owner; lower-infield independent audit is retired to Git history and no longer counts as active release evidence.
+- `node scripts/stadium-seatmap-ops.mjs gwangju block-source-duplication-audit` uses core image-alignment as the canonical release QA owner; lower-infield independent audit is retired to Git history and no longer counts as active release evidence.
+- Retired lower-infield/third-base independent audit script files are not release payload members; active release blocking is owned by the dispatcher-internal artifact-scope and block-source duplication audits.
 - zone precision worksets: `5`
 - zone precision status: `passed`
 - zone precision warnings: `0`
@@ -53,7 +54,7 @@ Handoff date: 2026-05-16 KST
 - release gate steps: `5/5`
 - release package status: `ready`
 - release scope guard status: `passed`
-- release scope guard included release files: `30`
+- release scope guard included release files: `26`
 - release scope guard dirty files: runtime classified count
 - release scope guard dirty included release files: runtime classified count
 - release scope guard separate dirty work files: runtime classified count
@@ -70,20 +71,20 @@ Handoff date: 2026-05-16 KST
 - PR staging review status: `ready`
 - PR staging review blockers: `0`
 - PR staging review class counts: `ready-to-stage=<runtime>`, `untracked-review-required=0`
-- PR staging review reviewed untracked files: `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`
+- PR staging review reviewed expected untracked file set: `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`, `src/components/gwangju/GwangjuSeatMapEditor.test.tsx`, `src/components/gwangju/GwangjuSeatMapEditor.tsx`, `src/data/gwangjuSeatMapEditorDataset.ts`
 - targeted staging status: `ready`
-- targeted staging target files: `28`
-- targeted staging reviewed untracked ready files: `6`
+- targeted staging target files: `26`
+- targeted staging reviewed untracked satisfied files: `5`
 - targeted staging runs git add: `false`
 - staged scope audit status: `ready`
 - staged scope audit require complete: `false`
-- staged scope audit expected target files: `30`
-- staged scope audit missing staged target files: `30` before explicit staging
+- staged scope audit expected target files: `26`
+- staged scope audit missing staged target files: `<dirty-target-count>` before explicit staging
 - staged scope audit outside target files: `0`
 - staged scope audit separate dirty work files: `0`
 - staged scope audit runs git add: `false`
 - commit readiness before explicit staging: `blocked expected`
-- commit readiness after explicit 30-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`
+- commit readiness after explicit 26-file staging: must pass with `stagedScopeAudit.requireComplete=true` and `stagedScopeAudit.missingStagedTargetFileCount=0`
 - operator status: `ready`
 - browser QA status: `passed`
 - runtime layer audit status: `passed`
@@ -105,7 +106,7 @@ Acceptance shorthand:
 - `steps=5/5`
 - `releasePackageStatus=ready`
 - `releaseScopeGuardStatus=passed`
-- `releaseScopeGuardIncludedFiles=30`
+- `releaseScopeGuardIncludedFiles=26`
 - `releaseScopeGuardDirtyFiles=runtime`
 - `releaseScopeGuardDirtyIncludedFiles=runtime`
 - `releaseScopeGuardSeparateDirtyWorkFiles=runtime`
@@ -124,11 +125,11 @@ Acceptance shorthand:
 - `stagingReviewReadyToStage=<runtime>`
 - `stagingReviewUntrackedReviewRequired=0`
 - `targetedStagingStatus=ready`
-- `targetedStagingTargetFiles=30`
+- `targetedStagingTargetFiles=26`
 - `targetedStagingDoesNotRunGitAdd=true`
 - `stagedScopeAuditStatus=ready`
 - `stagedScopeAuditRequireComplete=false`
-- `stagedScopeAuditMissingTargetFiles=30-before-staging`
+- `stagedScopeAuditMissingTargetFiles=<dirty-target-count>-before-staging`
 - `stagedScopeAuditOutsideTargets=0`
 - `stagedScopeAuditSeparateDirtyWork=0`
 - `operatorStatus=ready`
@@ -214,7 +215,7 @@ Included in this handoff:
 
 Separate dirty work that must not be judged by this handoff:
 
-- The isolated Gwangju release worktree must not carry Sajik, Daegu, Mate, or other stadium dirty files. If they appear, the scope guard classifies them outside the 30-file Gwangju targeted staging list.
+- The isolated Gwangju release worktree must not carry Sajik, Daegu, Mate, or other stadium dirty files. If they appear, the scope guard classifies them outside the 26-file Gwangju targeted staging list.
 - Sajik files such as `docs/sajik-seatmap-release-lock.md`, `docs/sajik-seatmap-editor-v17-operator-guide.md`, `docs/sajik-seatmap-hitpath-candidate-review.md`, `docs/sajik-seatmap-marker-only-transition.md`, `scripts/sajik-seatmap-core-qa.mjs`, `scripts/sajik-seatmap-editor-scope.mjs`, `scripts/sajik-seatmap-editor-scope.mjs`, `scripts/sajik-seatmap-core-qa.mjs`, `src/components/sajik/*`, and `src/data/sajikSeatData*`.
 - Suwon files such as `src/data/suwonSeatData.ts` and `src/data/suwonSeatData.test.ts`.
 - Daegu files such as `docs/daegu-seatmap-operator-corrections-runbook.md`, `scripts/daegu-seatmap-p1-next-action-packet.mjs`, `scripts/daegu-seatmap-p1-operator-boundary.mjs`, `scripts/daegu-seatmap-p1-paired-boundary-review.mjs`, `scripts/daegu-seatmap-p1-precision-workset.mjs`, `scripts/daegu-seatmap-p2-operators.mjs`, `scripts/daegu-seatmap-precision-audit.mjs`, `src/components/daegu/DaeguSeatMapSvg.tsx`, `src/data/daeguSeatData.ts`, and `src/data/daeguSeatData.test.ts`.
@@ -228,18 +229,18 @@ Separate dirty work that must not be judged by this handoff:
 - PR packaging manifest JSON: `reports/stadium/gwangju-seatmap-release-scope-guard.json`
 - Release PR scope: Gwangju official derived aggregate release package and build verification reports.
 - Excluded PR scope: Daegu work, Daejeon work, Sajik work, Suwon work, and cross-stadium utilities.
-- Included release candidate files: `30`
+- Included release candidate files: `26`
 - Separate dirty work files: runtime classified count
 - Separate dirty work baseline files: `74`
 - Classified separate dirty work expansion allowed: `true`
 - Unexpected dirty files: `0`
 - Inventory drift: `0`
-- Release Candidate Inventory: `expectedIncludedFileCount=30`, `actualIncludedFileCount=30`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]`
-- The authoritative inventory is regenerated by `npm run stadium:gwangju:release-scope-guard`.
-- The manifest keeps the full 30-file included list, the 74-file excluded baseline, and the current runtime classified separate dirty work count in one reviewer-facing document.
-- `gwangju-seatmap-release-scope-guard.json` records `releaseCandidateInventory.expectedIncludedFileCount=30`, `actualIncludedFileCount=30`, `missingExpectedIncludedFiles=[]`, and `extraIncludedFiles=[]`.
+- Release Candidate Inventory: `expectedIncludedFileCount=26`, `actualIncludedFileCount=26`, `missingExpectedIncludedFiles=[]`, `extraIncludedFiles=[]`
+- The authoritative inventory is regenerated by `node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard`.
+- The manifest keeps the full 26-file included list, the 74-file excluded baseline, and the current runtime classified separate dirty work count in one reviewer-facing document.
+- `gwangju-seatmap-release-scope-guard.json` records `releaseCandidateInventory.expectedIncludedFileCount=26`, `actualIncludedFileCount=26`, `missingExpectedIncludedFiles=[]`, and `extraIncludedFiles=[]`.
 - `gwangju-seatmap-release-scope-guard.json` records `separateWorkInventory.expectedSeparateDirtyWorkCount baseline=74`, `actualSeparateDirtyWorkCount=<runtime>`, `classifiedSeparateDirtyWorkExpansionAllowed=true`, and `separateWorkInventory.classifiedSeparateDirtyWorkExpansionAllowed=true`.
-- `gwangju-seatmap-release-scope-guard.json` records `prPackagingManifest.releasePayloadFileCount=30`, `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`, `prPackagingManifest.unexpectedDirtyFileCount=0`, and `prPackagingManifest.inventoryDriftCount=0`.
+- `gwangju-seatmap-release-scope-guard.json` records `prPackagingManifest.releasePayloadFileCount=26`, `prPackagingManifest.separateDirtyWorkFileCount=<runtime>`, `prPackagingManifest.unexpectedDirtyFileCount=0`, and `prPackagingManifest.inventoryDriftCount=0`.
 - Reviewers should treat any `RELEASE_CANDIDATE_FILE_MISSING`, `RELEASE_CANDIDATE_FILE_UNEXPECTED`, or `UNCLASSIFIED_DIRTY_FILE` blocker as a release packaging failure. `CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED` is warning-only because the file is already covered by a separate workstream rule.
 
 ## Patch Separation Readiness
@@ -253,8 +254,8 @@ Separate dirty work that must not be judged by this handoff:
 
 ## PR Staging Plan
 
-- PR staging plan: `npm run stadium:gwangju:pr-staging-plan`
-- PR staging review: `npm run stadium:gwangju:pr-staging-review`
+- PR staging plan: `node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan`
+- PR staging review: `node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-review`
 - PR staging plan JSON: `reports/stadium/gwangju-seatmap-pr-staging-plan.json`
 - PR staging plan markdown: `reports/stadium/gwangju-seatmap-pr-staging-plan.md`
 - PR staging review JSON: `reports/stadium/gwangju-seatmap-pr-staging-review.json`
@@ -262,23 +263,23 @@ Separate dirty work that must not be judged by this handoff:
 - stagingPlan.status=ready-or-review-required
 - stagingPlan.doesNotRunGitAdd=true
 - stagingPlan.safeToRunBulkGitAdd=false
-- stagingPlan.releasePayloadFileCount=30
+- stagingPlan.releasePayloadFileCount=26
 - stagingPlan.separateDirtyWorkFileCount=<runtime>
 - stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=true
 - stagingReview.status=ready-or-review-required
 - stagingReview.doesNotRunGitAdd=true
 - stagingReview.safeToRunBulkGitAdd=false
-- stagingReview.releasePayloadFileCount=30
+- stagingReview.releasePayloadFileCount=26
 - stagingReview.recommendsOnlyIncludedFiles=true
 - stagingReview.doesNotRecommendSeparateDirtyWork=true
 - Current review class counts: `ready-to-stage=<runtime>`, `untracked-review-required=0`.
-- The reviewed expected untracked release files are `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`, `scripts/gwangju-seatmap-precision-v1-editor-ops.mjs`, `src/components/gwangju/GwangjuSeatMapEditor.test.tsx`, `src/components/gwangju/GwangjuSeatMapEditor.tsx`, and `src/data/gwangjuSeatMapEditorDataset.ts`.
+- The reviewed expected untracked release files are `scripts/gwangju-seatmap-artifact-scope-audit.mjs`, `scripts/gwangju-seatmap-block-source-duplication-audit.mjs`, `src/components/gwangju/GwangjuSeatMapEditor.test.tsx`, `src/components/gwangju/GwangjuSeatMapEditor.tsx`, and `src/data/gwangjuSeatMapEditorDataset.ts`.
 - The staging plan is report-only and must not run `git add`.
 - Review unreviewed mixed/untracked included files before staging the release PR when present.
 
 ## Targeted Staging Report
 
-- targeted staging report: `npm run stadium:gwangju:targeted-staging`
+- targeted staging report: `node scripts/stadium-seatmap-ops.mjs gwangju targeted-staging`
 - targeted staging JSON: `reports/stadium/gwangju-seatmap-targeted-staging.json`
 - targeted staging CSV: `reports/stadium/gwangju-seatmap-targeted-staging.csv`
 - targeted staging markdown: `reports/stadium/gwangju-seatmap-targeted-staging.md`
@@ -287,9 +288,9 @@ Separate dirty work that must not be judged by this handoff:
 - targetedStaging.safeToRunBulkGitAdd=false
 - targetedStaging.recommendsOnlyIncludedFiles=true
 - targetedStaging.doesNotRecommendSeparateDirtyWork=true
-- targetedStaging.releasePayloadFileCount=30
-- targetedStaging.targetFileCount=30
-- targetedStaging.reviewedUntrackedSatisfiedFileCount=6
+- targetedStaging.releasePayloadFileCount=26
+- targetedStaging.targetFileCount=26
+- targetedStaging.reviewedUntrackedSatisfiedFileCount=5
 - targetedStaging command kind is `explicit-file-list-only`.
 - targeted staging report only recommends the included release payload files and excludes separate dirty work.
 - The report must not run `git add`; manual staging must use only the explicit target file list.
@@ -297,7 +298,7 @@ Separate dirty work that must not be judged by this handoff:
 
 ## Staged Scope Audit
 
-- staged scope audit: `npm run stadium:gwangju:staged-scope-audit`
+- staged scope audit: `node scripts/stadium-seatmap-ops.mjs gwangju staged-scope-audit`
 - staged scope audit JSON: `reports/stadium/gwangju-seatmap-staged-scope-audit.json`
 - staged scope audit CSV: `reports/stadium/gwangju-seatmap-staged-scope-audit.csv`
 - staged scope audit markdown: `reports/stadium/gwangju-seatmap-staged-scope-audit.md`
@@ -307,15 +308,15 @@ Separate dirty work that must not be judged by this handoff:
 - stagedScopeAudit.safeToRunBulkGitAdd=false
 - stagedScopeAudit.acceptsOnlyTargetedStagingFiles=true
 - stagedScopeAudit.blocksSeparateDirtyWork=true
-- stagedScopeAudit.expectedTargetFileCount=30
+- stagedScopeAudit.expectedTargetFileCount=26
 - stagedScopeAudit.missingStagedTargetFileCount=<dirty-target-count> before explicit staging
 - stagedScopeAudit.stagedOutsideTargetFileCount=0
 - stagedScopeAudit.stagedSeparateDirtyWorkFileCount=0
 - staged scope audit only inspects `git diff --cached`; it does not run `git add`.
 - staged files outside targeted staging or separate dirty work are blocking failures.
-- strict commit-readiness mode: `npm run stadium:gwangju:commit-readiness`
+- strict commit-readiness mode: `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness`
 - strict commit-readiness adds `--require-complete` and blocks with `STAGED_TARGET_FILE_MISSING` until all dirty targeted release files are staged.
-- Run `npm run stadium:gwangju:pre-pr-final-gate` before staging. Run `npm run stadium:gwangju:commit-readiness` only after explicit `git add -- <30 target files>`.
+- Run `node scripts/stadium-seatmap-ops.mjs gwangju pre-pr-final-gate` before staging. Run `node scripts/stadium-seatmap-ops.mjs gwangju commit-readiness` only after explicit `git add -- <26 target files>`.
 
 ## K7/AWAY Contract
 
@@ -379,7 +380,7 @@ npm run qa:stadium:gwangju:release-verify
 Explicit pre-operator verification:
 
 ```bash
-npm run qa:stadium:gwangju:release-verify:preoperator
+node scripts/stadium-seatmap-ops.mjs gwangju release-verify:preoperator
 ```
 
 Post-operator verification skeleton:
@@ -425,9 +426,9 @@ Equivalent final order:
 
 ```bash
 npm run qa:stadium:gwangju:release-gate
-npm run stadium:gwangju:release-scope-guard
-npm run stadium:gwangju:pr-staging-plan
-npm run stadium:gwangju:release-audit
+node scripts/stadium-seatmap-ops.mjs gwangju release-scope-guard
+node scripts/stadium-seatmap-ops.mjs gwangju pr-staging-plan
+node scripts/stadium-seatmap-ops.mjs gwangju release-audit
 ```
 
 Release gate expanded order:
@@ -435,8 +436,8 @@ Release gate expanded order:
 ```bash
 npm run stadium:gwangju:operator-status
 npm run test:stadium:seatmaps
-npm run qa:stadium:gwangju:trace-review
-npm run stadium:gwangju:release-package
+node scripts/stadium-seatmap-ops.mjs gwangju trace-review
+node scripts/stadium-seatmap-ops.mjs gwangju release-package
 npm run build
 ```
 

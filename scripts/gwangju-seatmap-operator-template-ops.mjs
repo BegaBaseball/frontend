@@ -636,7 +636,7 @@ const runOperatorTemplateValidate = async () => {
       nonAutomaticPromotion: true,
       requiredAfterDataDiff: [
         'npm run test:stadium:seatmaps',
-        'npm run qa:stadium:gwangju:trace-review',
+        'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
         'npm run build',
       ],
       note: 'This validator does not modify gwangjuSeatData.ts. It only verifies operator-provided K7/AWAY coordinates before a reviewed data diff.',
@@ -733,7 +733,7 @@ const runOperatorTemplateValidate = async () => {
     '1. 이 검증은 `gwangjuSeatData.ts`를 수정하지 않습니다.',
     '2. `validForPromotion=true`인 구역만 별도 data diff로 승격할 수 있습니다.',
     '3. 좌표는 공식 PNG 원본 2200x1159 기준만 허용합니다.',
-    '4. 승격 후에는 `npm run test:stadium:seatmaps`, `npm run qa:stadium:gwangju:trace-review`, `npm run build`를 다시 통과해야 합니다.',
+    '4. 승격 후에는 `npm run test:stadium:seatmaps`, `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`, `npm run build`를 다시 통과해야 합니다.',
     '',
   ].join('\n'), 'utf8');
   
@@ -967,7 +967,7 @@ const runOperatorTemplateApplyPlan = async () => {
     blockers,
     requiredPostApplyGate: [
       'npm run test:stadium:seatmaps',
-      'npm run qa:stadium:gwangju:trace-review',
+      'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
       'npm run build',
     ],
   };
@@ -1059,7 +1059,7 @@ const runOperatorTemplateApplyPlan = async () => {
     '2. validation report의 `inputSha256`이 현재 template input과 다르면 차단합니다.',
     '3. 좌표는 공식 PNG 원본 2200x1159 기준만 허용합니다.',
     '4. level 등 승격에 필요한 야구 운영 데이터가 비어 있으면 `MANUAL_BASEBALL_DATA_REQUIRED`로 남깁니다.',
-    '5. data diff 반영 후에는 `npm run test:stadium:seatmaps`, `npm run qa:stadium:gwangju:trace-review`, `npm run build`를 다시 통과해야 합니다.',
+    '5. data diff 반영 후에는 `npm run test:stadium:seatmaps`, `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`, `npm run build`를 다시 통과해야 합니다.',
     '',
     '## Blockers',
     '',
@@ -1297,7 +1297,7 @@ const runOperatorHandoff = async () => {
       'node scripts/stadium-seatmap-ops.mjs gwangju operator-template:validate:strict',
       'node scripts/stadium-seatmap-ops.mjs gwangju operator-template:apply-plan:require-ready',
       'npm run test:stadium:seatmaps',
-      'npm run qa:stadium:gwangju:trace-review',
+      'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
       'npm run build',
     ],
     workItems,
@@ -1737,7 +1737,7 @@ const runOperatorStatus = async () => {
       postWriteGate: 'node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate',
       postDataDiffGate: [
         'npm run test:stadium:seatmaps',
-        'npm run qa:stadium:gwangju:trace-review',
+        'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
         'npm run build',
       ],
     },
@@ -1875,7 +1875,7 @@ const runOperatorStatus = async () => {
     '- `node scripts/stadium-seatmap-ops.mjs gwangju operator-apply`',
     '- `node scripts/stadium-seatmap-ops.mjs gwangju operator-apply:write`',
     '- `node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate`',
-    '- `npm run qa:stadium:gwangju:trace-review`',
+    '- `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`',
     '- `npm run build`',
     '',
   ].join('\n'), 'utf8');
