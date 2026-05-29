@@ -1342,6 +1342,13 @@ const STADIUMS = {
     order: 9,
     qaToken: 'INCHEON',
     legacyArtifacts: [],
+    publicTasks: [
+      'full',
+      'mobile',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'package aliases expose only mobile/full runtime QA, release lock, and status; no responsive, trace-review, or pixel-components public aliases are required for the current official-source map.',
     tasks: {
       mobile: [
         {
@@ -1362,6 +1369,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; additional review modes must stay dispatcher-internal unless a release gate explicitly promotes them',
   },
 };
 

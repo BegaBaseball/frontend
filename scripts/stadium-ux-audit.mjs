@@ -755,6 +755,10 @@ const visibleSeatMapHitAreaByPartialLabel = (page, label) =>
   page.locator(`[data-testid="stadium-seat-map"]:visible svg [role="button"][aria-label*=${JSON.stringify(label)}]`).first();
 const visibleIncheonSeatMapTestId = (page, testId) =>
   page.locator(`[data-testid="stadium-seat-map"]:visible [data-testid="${testId}"]`).first();
+const visibleIncheonPanelTestId = (page, testId) =>
+  page.locator(`[data-testid="${testId}"]:visible`).first();
+const visibleIncheonCompareTestId = (page, testId) =>
+  visibleIncheonPanelTestId(page, testId);
 const visibleJamsilSeatMapTestId = (page, testId) =>
   page.locator(`[data-testid="stadium-seat-map"]:visible [data-testid="${testId}"]`).first();
 const visibleSeatMapFilterButton = (page, testId) =>
@@ -825,6 +829,7 @@ const readIncheonZoomState = async (page) => visibleIncheonSeatMapTestId(page, '
   zoom: Number(node.getAttribute('data-zoom') ?? '1'),
   panX: Number(node.getAttribute('data-pan-x') ?? '0'),
   panY: Number(node.getAttribute('data-pan-y') ?? '0'),
+  gestureMode: node.getAttribute('data-gesture-mode') ?? 'unknown',
   transform: window.getComputedStyle(node).transform,
 }));
 const readJamsilZoomState = async (page) => visibleJamsilSeatMapTestId(page, 'jamsil-seatmap-transform-layer').evaluate((node) => ({
@@ -841,6 +846,165 @@ const readSuwonZoomState = async (page) => visibleSuwonSeatMapTestId(page, 'suwo
   panY: Number(node.getAttribute('data-pan-y') ?? '0'),
   transform: window.getComputedStyle(node).transform,
 }));
+
+const waitForIncheonGestureMode = async (page, expectedMode) => {
+  await page.waitForFunction((mode) => {
+    const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+      .find((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const viewport = seatMap?.querySelector('[data-testid="incheon-seatmap-viewport"]');
+    const layer = seatMap?.querySelector('[data-testid="incheon-seatmap-transform-layer"]');
+    return viewport?.getAttribute('data-gesture-mode') === mode
+      && layer?.getAttribute('data-gesture-mode') === mode;
+  }, expectedMode, { timeout: 5000 });
+};
+
+const waitForIncheonZoomAtLeast = async (page, minZoom) => {
+  await page.waitForFunction((zoomThreshold) => {
+    const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+      .find((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const layer = seatMap?.querySelector('[data-testid="incheon-seatmap-transform-layer"]');
+    return Number(layer?.getAttribute('data-zoom') ?? '1') >= zoomThreshold;
+  }, minZoom, { timeout: 5000 });
+};
+
+const waitForIncheonSelectedSection = async (page, ariaLabel) => {
+  await page.waitForFunction((label) => {
+    const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+      .find((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const buttons = Array.from(seatMap?.querySelectorAll('svg [role="button"]') ?? []);
+    return buttons.some((button) => button.getAttribute('aria-label') === label
+      && button.getAttribute('aria-pressed') === 'true');
+  }, ariaLabel, { timeout: 5000 });
+};
+
+const waitForIncheonComparedSection = async (page, ariaLabel) => {
+  await page.waitForFunction((label) => {
+    const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+      .find((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const buttons = Array.from(seatMap?.querySelectorAll('svg [role="button"]') ?? []);
+    return buttons.some((button) => button.getAttribute('aria-label') === label
+      && button.getAttribute('data-compared') === 'true');
+  }, ariaLabel, { timeout: 5000 });
+};
+
+const clickVisibleIncheonCompareAdd = async (page) => {
+  const bottomSheetAdd = page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible [data-testid="incheon-compare-add"]:visible').first();
+  if (await bottomSheetAdd.isVisible().catch(() => false)) {
+    await bottomSheetAdd.evaluate((button) => {
+      button.scrollIntoView({ block: 'center', inline: 'nearest' });
+      if (button instanceof HTMLButtonElement) {
+        button.click();
+      }
+    });
+    await sleep(120);
+    return;
+  }
+
+  const detailPanelAdd = page.locator('[data-testid="incheon-seatmap-detail-panel"]:visible [data-testid="incheon-compare-add"]:visible').first();
+  if (await detailPanelAdd.isVisible().catch(() => false)) {
+    await detailPanelAdd.evaluate((button) => {
+      button.scrollIntoView({ block: 'center', inline: 'nearest' });
+      if (button instanceof HTMLButtonElement) {
+        button.click();
+      }
+    });
+    await sleep(120);
+    return;
+  }
+
+  throw new Error('Incheon compare add button was not visible.');
+};
+
+const closeVisibleIncheonSeatPanel = async (page) => {
+  const closeButton = page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible [aria-label="닫기"], [data-testid="incheon-seatmap-detail-panel"]:visible [aria-label="닫기"]').first();
+  if (await closeButton.isVisible().catch(() => false)) {
+    await closeButton.click({ timeout: 5000 }).catch(() => undefined);
+    await sleep(180);
+  }
+};
+
+const verifyIncheonComparisonFlow = async (page) => {
+  const compareTray = visibleIncheonCompareTestId(page, 'incheon-compare-tray');
+  await compareTray.waitFor({ state: 'visible', timeout: 5000 });
+
+  const mobilePanel = page.locator('[data-testid="incheon-mobile-secondary-panel"]:visible').first();
+  const isMobile = await mobilePanel.isVisible().catch(() => false);
+
+  if (isMobile) {
+    const guideTab = mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-guide"]').first();
+    if (await guideTab.getAttribute('aria-selected').catch(() => null) !== 'true') {
+      await guideTab.click({ timeout: 5000 });
+    }
+    const guideSearch = mobilePanel.locator('[data-testid="incheon-guide-search"]').first();
+    await guideSearch.fill('101B');
+    await mobilePanel.locator('[data-testid="incheon-guide-result-incheon-101b"]').first().click({ timeout: 5000 });
+    await page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
+    await clickVisibleIncheonCompareAdd(page);
+    await visibleIncheonCompareTestId(page, 'incheon-compare-card-incheon-101b').waitFor({ state: 'visible', timeout: 5000 });
+    await closeVisibleIncheonSeatPanel(page);
+
+    const finderTab = mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-finder"]').first();
+    await finderTab.click({ timeout: 5000 });
+    const finderSearch = mobilePanel.locator('[data-testid="incheon-block-search"]').first();
+    await finderSearch.fill('102B');
+    await mobilePanel.locator('[data-testid="incheon-section-finder-item-incheon-102b"]').first().click({ timeout: 5000 });
+    await page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
+    await clickVisibleIncheonCompareAdd(page);
+  } else {
+    const finderSearch = visibleIncheonPanelTestId(page, 'incheon-block-search');
+    await finderSearch.fill('101B');
+    await visibleIncheonPanelTestId(page, 'incheon-section-finder-item-incheon-101b').click({ timeout: 5000 });
+    await page.locator('[data-testid="incheon-seatmap-detail-panel"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
+    await clickVisibleIncheonCompareAdd(page);
+
+    await finderSearch.fill('102B');
+    await visibleIncheonPanelTestId(page, 'incheon-section-finder-item-incheon-102b').click({ timeout: 5000 });
+    await page.locator('[data-testid="incheon-seatmap-detail-panel"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
+    await clickVisibleIncheonCompareAdd(page);
+  }
+
+  const card101 = visibleIncheonCompareTestId(page, 'incheon-compare-card-incheon-101b');
+  const card102 = visibleIncheonCompareTestId(page, 'incheon-compare-card-incheon-102b');
+  await card101.waitFor({ state: 'visible', timeout: 5000 });
+  await card102.waitFor({ state: 'visible', timeout: 5000 });
+  const trayText = await compareTray.textContent({ timeout: 5000 });
+  if (!trayText?.includes('101B') || !trayText.includes('102B')) {
+    throw new Error(`Incheon compare tray did not retain expected candidates: ${trayText}`);
+  }
+
+  await closeVisibleIncheonSeatPanel(page);
+  await card101.locator('[data-testid="incheon-compare-view"]').first().click({ timeout: 5000 });
+  await waitForIncheonZoomAtLeast(page, 1.5);
+  await waitForIncheonSelectedSection(page, '101B 내야 필드석 101B');
+  await waitForIncheonComparedSection(page, '101B 내야 필드석 101B');
+
+  await visibleIncheonCompareTestId(page, 'incheon-compare-clear').click({ timeout: 5000 });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('[data-testid^="incheon-compare-card-"]'))
+      .every((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width === 0 || rect.height === 0;
+      });
+  }, null, { timeout: 5000 });
+  await closeVisibleIncheonSeatPanel(page);
+  await visibleIncheonSeatMapTestId(page, 'incheon-seatmap-zoom-reset').click({ timeout: 5000 });
+
+  if (await page.getByText('사진은 데모 상태').isVisible().catch(() => false)) {
+    throw new Error('Incheon compare flow rendered the removed demo upload copy.');
+  }
+};
 
 const collectMetrics = async (page) => page.evaluate(() => {
   const doc = document.documentElement;
@@ -1286,6 +1450,86 @@ const verifyIncheonOverlayClicks = async (page) => {
     }
   };
 
+  const verifyMobileDecisionFlow = async () => {
+    const mobilePanel = page.locator('[data-testid="incheon-mobile-secondary-panel"]:visible').first();
+    if (!await mobilePanel.isVisible().catch(() => false)) {
+      return;
+    }
+
+    const guideTab = mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-guide"]').first();
+    const finderTab = mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-finder"]').first();
+    const guidePanel = mobilePanel.locator('[data-testid="incheon-first-visit-guide"]').first();
+    const guideSearch = mobilePanel.locator('[data-testid="incheon-guide-search"]').first();
+    const guideResult = mobilePanel.locator('[data-testid="incheon-guide-result-incheon-101b"]').first();
+    const finderSearch = mobilePanel.locator('[data-testid="incheon-block-search"]').first();
+    const finderResult = mobilePanel.locator('[data-testid="incheon-section-finder-item-incheon-101b"]').first();
+    const bottomSheet = page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible').first();
+    const closeBottomSheet = async () => {
+      const closeButton = page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible [aria-label="닫기"]').first();
+      if (await closeButton.isVisible().catch(() => false)) {
+        await closeButton.click({ timeout: 5000 });
+        await bottomSheet.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => undefined);
+      }
+    };
+
+    await visibleIncheonSeatMapTestId(page, 'incheon-seatmap-viewport').waitFor({ state: 'visible', timeout: 5000 });
+    await waitForIncheonGestureMode(page, 'idle');
+    await guideTab.waitFor({ state: 'visible', timeout: 5000 });
+    if (await guideTab.getAttribute('aria-selected') !== 'true') {
+      throw new Error('Incheon mobile guide tab should be selected by default.');
+    }
+    await guidePanel.waitFor({ state: 'visible', timeout: 5000 });
+    const visibleFinderCount = await page.locator('[data-testid="incheon-section-finder"]:visible').count();
+    if (visibleFinderCount !== 0) {
+      throw new Error(`Incheon mobile guide tab should hide finder panel, got ${visibleFinderCount} visible finder panels.`);
+    }
+
+    await guideSearch.fill('101B');
+    await guideResult.click({ timeout: 5000 });
+    await waitForIncheonZoomAtLeast(page, 1.45);
+    await waitForIncheonSelectedSection(page, '101B 내야 필드석 101B');
+    await bottomSheet.waitFor({ state: 'visible', timeout: 5000 });
+    const guideBottomSheetText = await bottomSheet.textContent({ timeout: 5000 });
+    if (!guideBottomSheetText?.includes('다이어리에서 시야 사진 공유하기')) {
+      throw new Error('Incheon mobile guide selection did not expose the diary share CTA.');
+    }
+    await closeBottomSheet();
+
+    await finderTab.click({ timeout: 5000 });
+    if (await finderTab.getAttribute('aria-selected') !== 'true') {
+      throw new Error('Incheon mobile finder tab did not become selected.');
+    }
+    await mobilePanel.locator('[data-testid="incheon-section-finder"]').first().waitFor({ state: 'visible', timeout: 5000 });
+    await finderSearch.fill('101B');
+    await finderResult.click({ timeout: 5000 });
+    await waitForIncheonZoomAtLeast(page, 1.5);
+    await waitForIncheonSelectedSection(page, '101B 내야 필드석 101B');
+    await bottomSheet.waitFor({ state: 'visible', timeout: 5000 });
+    const finderBottomSheetText = await bottomSheet.textContent({ timeout: 5000 });
+    if (!finderBottomSheetText?.includes('다이어리에서 시야 사진 공유하기')) {
+      throw new Error('Incheon mobile finder selection did not expose the diary share CTA.');
+    }
+    if (await page.getByText('사진은 데모 상태').isVisible().catch(() => false)) {
+      throw new Error('Incheon mobile flow rendered the removed demo upload copy.');
+    }
+
+    await closeBottomSheet();
+    await visibleIncheonSeatMapTestId(page, 'incheon-seatmap-zoom-reset').click({ timeout: 5000 });
+    await page.waitForFunction(() => {
+      const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+        .find((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      const layer = seatMap?.querySelector('[data-testid="incheon-seatmap-transform-layer"]');
+      const zoom = Number(layer?.getAttribute('data-zoom') ?? '1');
+      const panX = Number(layer?.getAttribute('data-pan-x') ?? '0');
+      const panY = Number(layer?.getAttribute('data-pan-y') ?? '0');
+      return zoom === 1 && panX === 0 && panY === 0;
+    }, null, { timeout: 5000 });
+    await waitForIncheonGestureMode(page, 'idle');
+  };
+
   const verifyZoomInteraction = async () => {
     const zoomIn = visibleIncheonSeatMapTestId(page, 'incheon-seatmap-zoom-in');
     const zoomReset = visibleIncheonSeatMapTestId(page, 'incheon-seatmap-zoom-reset');
@@ -1333,6 +1577,7 @@ const verifyIncheonOverlayClicks = async (page) => {
     await page.mouse.down();
     await page.mouse.move(startX + 70, startY + 40, { steps: 6 });
     await page.mouse.up();
+    await waitForIncheonGestureMode(page, 'idle');
     await page.waitForFunction(() => {
       const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
         .find((node) => {
@@ -1385,15 +1630,8 @@ const verifyIncheonOverlayClicks = async (page) => {
     const doubleClickX = Math.min(Math.max(doubleClickBox.x + doubleClickBox.width * 0.45, 80), pageViewport.width - 80);
     const doubleClickY = Math.min(Math.max(doubleClickBox.y + doubleClickBox.height * 0.25, 120), pageViewport.height - 120);
     await page.mouse.dblclick(doubleClickX, doubleClickY);
-    await page.waitForFunction(() => {
-      const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
-        .find((node) => {
-          const rect = node.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const layer = seatMap?.querySelector('[data-testid="incheon-seatmap-transform-layer"]');
-      return Number(layer?.getAttribute('data-zoom') ?? '1') >= 1.7;
-    }, null, { timeout: 5000 });
+    await waitForIncheonZoomAtLeast(page, 1.7);
+    await waitForIncheonGestureMode(page, 'idle');
 
     await zoomReset.click({ timeout: 5000 });
     await page.waitForFunction(() => {
@@ -1471,6 +1709,7 @@ const verifyIncheonOverlayClicks = async (page) => {
       const layer = seatMap?.querySelector('[data-testid="incheon-seatmap-transform-layer"]');
       return Number(layer?.getAttribute('data-zoom') ?? '1') > 1.2;
     }, null, { timeout: 5000 });
+    await waitForIncheonGestureMode(page, 'idle');
     await zoomReset.click({ timeout: 5000 });
     await page.waitForFunction(() => {
       const seatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
@@ -1516,6 +1755,8 @@ const verifyIncheonOverlayClicks = async (page) => {
     await sleep(180);
   };
 
+  await verifyMobileDecisionFlow();
+  await verifyIncheonComparisonFlow(page);
   await verifyZoomInteraction();
 
   const representativeSections = [
@@ -1619,6 +1860,7 @@ const verifyIncheonFullOverlayClicks = async (page) => {
     await clickVisibleSeatMapFilter(page, 'incheon-filter-all');
   };
 
+  await verifyIncheonComparisonFlow(page);
   await verifyIncheonFilterInteractions();
 
   try {

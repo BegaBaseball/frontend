@@ -55,6 +55,8 @@ const runReleaseGate = async () => {
   const reportMarkdownPath = path.join(reportDir, 'incheon-seatmap-release-gate.md');
 
   const packageSource = await fs.readFile(path.join(frontendRoot, 'package.json'), 'utf8');
+  const dispatcherSource = await fs.readFile(path.join(frontendRoot, 'scripts/stadium-seatmap-ops.mjs'), 'utf8');
+  const releaseLockSource = await fs.readFile(path.join(frontendRoot, 'docs/incheon-seatmap-release-lock.md'), 'utf8');
   const assetBuffer = await fs.readFile(path.join(frontendRoot, INCHEON_SEATMAP_IMAGE.imagePath));
 
   const officialBlocks = INCHEON_BLOCKS.filter((b) => b.sourceConfidence === 'OFFICIAL');
@@ -73,7 +75,16 @@ const runReleaseGate = async () => {
     ['official blocks (all 156 must be OFFICIAL)', summary.officialBlocks === EXPECTED_OFFICIAL_BLOCKS],
     ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
     ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
-    ['package release lock script', packageSource.includes('"qa:stadium:incheon:release-lock"')],
+    ['package mobile script', packageSource.includes('"qa:stadium:incheon:mobile": "node scripts/stadium-seatmap-ops.mjs incheon mobile"')],
+    ['package full script', packageSource.includes('"qa:stadium:incheon:full": "node scripts/stadium-seatmap-ops.mjs incheon full"')],
+    ['package release lock script', packageSource.includes('"qa:stadium:incheon:release-lock": "node scripts/stadium-seatmap-ops.mjs incheon release-gate"')],
+    ['package status script', packageSource.includes('"stadium:incheon:status": "node scripts/stadium-seatmap-ops.mjs incheon status"')],
+    ['package responsive script absent', !packageSource.includes('"qa:stadium:incheon:responsive"')],
+    ['package trace review script absent', !packageSource.includes('"qa:stadium:incheon:trace-review"')],
+    ['package pixel components script absent', !packageSource.includes('"stadium:incheon:pixel-components"')],
+    ['dispatcher public task policy', dispatcherSource.includes('package aliases expose only mobile/full runtime QA, release lock, and status')],
+    ['release lock document includes public commands', releaseLockSource.includes('## 공개 명령')],
+    ['release lock document includes current fixture fingerprint', releaseLockSource.includes(EXPECTED_RELEASE_FIXTURE_FINGERPRINT)],
   ].map(([label, passed]) => ({ label, passed }));
 
   const failures = checks.filter((c) => !c.passed).map((c) => c.label);
