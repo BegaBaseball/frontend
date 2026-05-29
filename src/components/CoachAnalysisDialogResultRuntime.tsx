@@ -21,6 +21,7 @@ import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
     normalizeStructuredInlineText,
     normalizeStructuredInsightList,
+    normalizeVerdictText,
     sanitizeMarkdown,
 } from '../utils/coachAnalysisText';
 import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
@@ -341,7 +342,7 @@ export const getAnalysisData = ({
         uncertainty?: string[];
     }) => ({
         summary: normalizeStructuredInlineText(analysis?.summary || '', ''),
-        verdict: normalizeStructuredInlineText(analysis?.verdict || '', ''),
+        verdict: normalizeVerdictText(analysis?.verdict || '', ''),
         strengths: normalizeStructuredInsightList(analysis?.strengths),
         weaknesses: normalizeStructuredInsightList(analysis?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null),
@@ -520,7 +521,7 @@ export const getAnalysisData = ({
             });
         }),
         analysis_summary: normalizeStructuredInlineText(typeof data?.analysis_summary === 'string' ? data.analysis_summary : '', ''),
-        verdict: normalizeStructuredInlineText(typeof data?.verdict === 'string' ? data.verdict : '', ''),
+        verdict: normalizeVerdictText(typeof data?.verdict === 'string' ? data.verdict : '', ''),
         strengths: normalizeStructuredInsightList(data?.strengths),
         weaknesses: normalizeStructuredInsightList(data?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(data?.risks) ? data.risks : null),
@@ -630,6 +631,8 @@ interface CoachAnalysisDialogResultRuntimeProps {
     errorAction: 'login' | null;
     onLoginAction: () => void;
     loadingFallbackMessage: string;
+    homeTeamId?: string;
+    awayTeamId?: string;
 }
 
 export default function CoachAnalysisDialogResultRuntime({
@@ -643,6 +646,8 @@ export default function CoachAnalysisDialogResultRuntime({
     errorAction,
     onLoginAction,
     loadingFallbackMessage,
+    homeTeamId,
+    awayTeamId,
 }: CoachAnalysisDialogResultRuntimeProps) {
     const analysisData = useMemo(
         () => getAnalysisData({ result, isPastGame, isFutureGame, gameStatusBucket }),
@@ -790,7 +795,11 @@ export default function CoachAnalysisDialogResultRuntime({
 
             {analysisData && (
                 <Suspense fallback={null}>
-                    <CoachAnalysisResultView analysisData={analysisData} />
+                    <CoachAnalysisResultView
+                        analysisData={analysisData}
+                        homeTeamId={homeTeamId}
+                        awayTeamId={awayTeamId}
+                    />
                 </Suspense>
             )}
 
