@@ -6,6 +6,7 @@ import {
   type GocheokFacilityTab,
   type GocheokFacilityGuideImage,
 } from '../../data/gocheokSeatData';
+import { getGocheokActiveOperationNotices } from '../../data/gocheokOperatorVisitGuide';
 
 const FACILITY_IMAGE_URLS = import.meta.glob('../../assets/stadiums/kiwoom/gocheok-sisul-facility-*.jpg', {
   eager: true,
@@ -54,6 +55,38 @@ function OperatorDataPendingPanel() {
         {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}
       </div>
       <p>{GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}</p>
+    </div>
+  );
+}
+
+function OperationNoticePanel() {
+  const activeNotices = getGocheokActiveOperationNotices();
+
+  return (
+    <div
+      data-testid="gocheok-operation-notice-panel"
+      className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
+    >
+      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">운영 안내</div>
+      {activeNotices.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {activeNotices.map((notice) => (
+            <div key={notice.id} className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                {notice.validFrom} ~ {notice.validTo}
+              </div>
+              <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{notice.message}</div>
+              <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                자료 갱신일 {notice.lastUpdatedAt}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-[12px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          오늘 유효한 운영자 제공 동선 공지가 없습니다. {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}
+        </div>
+      )}
     </div>
   );
 }
@@ -251,6 +284,7 @@ export default function GocheokFacilityGuide({
     { id: 'overview', label: GOCHEOK_FACILITY_TAB_LABELS.overview },
     { id: 'entrances', label: GOCHEOK_FACILITY_TAB_LABELS.entrances },
     { id: 'floors', label: GOCHEOK_FACILITY_TAB_LABELS.floors },
+    { id: 'operations', label: GOCHEOK_FACILITY_TAB_LABELS.operations },
   ];
   const summaryStats = [
     { label: '관람석', value: `${guide.totalSeats.toLocaleString()}석` },
@@ -363,6 +397,8 @@ export default function GocheokFacilityGuide({
           ))}
         </div>
       )}
+
+      {activeTab === 'operations' && <OperationNoticePanel />}
 
       <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
         {guide.implementationNote} {guide.openLicenseLabel} 기준으로 출처를 표시합니다.
