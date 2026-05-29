@@ -62,13 +62,14 @@ export interface GocheokFacilityGuide {
   implementationNote: string;
 }
 
-export type GocheokFacilityTab = 'overview' | 'entrances' | 'floors';
+export type GocheokFacilityTab = 'overview' | 'entrances' | 'floors' | 'operations';
 export type GocheokOperatorFacilityDataStatus = 'MANUAL_BASEBALL_DATA_REQUIRED' | 'OPERATOR_PROVIDED';
 
 export const GOCHEOK_FACILITY_TAB_LABELS: Record<GocheokFacilityTab, string> = {
   overview: '시설 개요',
   entrances: '출입구',
   floors: '층별/편의시설',
+  operations: '운영 안내',
 };
 
 export interface GocheokOperatorFacilityDataRequirement {

@@ -24,6 +24,19 @@ const STADIUMS = {
     legacyArtifacts: [
       'scripts/gocheok-seatmap-ops.mjs',
     ],
+    publicTasks: [
+      'full',
+      'mobile',
+      'operator-apply-plan',
+      'operator-handoff',
+      'operator-intake',
+      'operator-validate',
+      'pixel-components',
+      'release-gate',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'evidence crop generation and trace-review bundles remain dispatcher-internal; package aliases expose runtime release, status, pixel components, trace manifest, and no-source-write operator intake reporting tasks.',
     migrationBuckets: [
       {
         id: 'core-qa',
@@ -35,6 +48,41 @@ const STADIUMS = {
       },
     ],
     tasks: {
+      'operator-template': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-template'],
+          passArgs: true,
+        },
+      ],
+      'operator-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-validate'],
+          passArgs: true,
+        },
+      ],
+      'operator-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-handoff'],
+          passArgs: true,
+        },
+      ],
+      'operator-intake': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-intake'],
+          passArgs: true,
+        },
+      ],
       'pixel-components': [
         {
           command: 'node',
@@ -88,6 +136,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, status, pixel components, trace manifest, and no-source-write operator intake reporting; evidence and trace-review tasks stay available through the integrated dispatcher',
   },
   gwangju: {
     label: 'Gwangju-Kia Champions Field',

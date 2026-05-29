@@ -31,6 +31,22 @@
 - 사람이 명확한 시각 불일치나 클릭 충돌을 발견하면 해당 block만 `MANUAL_REVIEW_REQUIRED`로 분류한다.
 - 외부 야구 데이터 수집, 웹 검색, 제3자 좌석도 복사는 사용하지 않는다.
 - 좌표 변경이 발생하면 trace manifest와 isolated browser QA를 다시 생성한다.
+- public npm command는 runtime QA/release lock/status/pixel/trace manifest만 노출한다.
+- evidence crop과 trace-review bundle 생성은 dispatcher 내부 task로 유지한다.
+
+## Public commands
+
+- `npm run qa:stadium:gocheok:mobile`
+- `npm run qa:stadium:gocheok:full`
+- `npm run qa:stadium:gocheok:release-lock`
+- `npm run stadium:gocheok:status`
+- `npm run stadium:gocheok:pixel-components`
+- `npm run stadium:gocheok:trace-manifest`
+
+## Internal dispatcher tasks
+
+- `node scripts/stadium-seatmap-ops.mjs gocheok evidence`
+- `node scripts/stadium-seatmap-ops.mjs gocheok trace-review`
 
 ## 릴리즈 게이트
 

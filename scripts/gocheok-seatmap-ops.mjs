@@ -1,6 +1,671 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const GOCHEOK_OPERATOR_GATE_VERSION = 'GOCHEOK_OPERATOR_VISIT_GUIDE_GATE_V1';
+const GOCHEOK_SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const GOCHEOK_FRONTEND_ROOT = path.resolve(GOCHEOK_SCRIPT_DIR, '..');
+const GOCHEOK_OPERATOR_REPORT_DIR = path.join(GOCHEOK_FRONTEND_ROOT, 'reports/stadium');
+const GOCHEOK_OPERATOR_INPUT_FILE = 'gocheok-operator-visit-guide-input.csv';
+const GOCHEOK_OPERATOR_VALIDATION_BASENAME = 'gocheok-operator-visit-guide-validation';
+const GOCHEOK_OPERATOR_APPLY_PLAN_BASENAME = 'gocheok-operator-visit-guide-apply-plan';
+const GOCHEOK_OPERATOR_HANDOFF_BASENAME = 'gocheok-operator-visit-guide-handoff';
+const GOCHEOK_OPERATOR_TEMPLATE_BASENAME = 'gocheok-operator-visit-guide-template';
+const GOCHEOK_OPERATOR_VALIDATION_JSON = 'gocheok-operator-visit-guide-validation.json';
+const GOCHEOK_OPERATOR_VALIDATION_CSV = 'gocheok-operator-visit-guide-validation.csv';
+const GOCHEOK_OPERATOR_VALIDATION_MARKDOWN = 'gocheok-operator-visit-guide-validation.md';
+const GOCHEOK_OPERATOR_APPLY_PLAN_JSON = 'gocheok-operator-visit-guide-apply-plan.json';
+const GOCHEOK_OPERATOR_APPLY_PLAN_MARKDOWN = 'gocheok-operator-visit-guide-apply-plan.md';
+const GOCHEOK_OPERATOR_APPLY_PLAN_TS_FRAGMENT = 'gocheok-operator-visit-guide-apply-plan.ts-fragment';
+const GOCHEOK_OPERATOR_HANDOFF_JSON = 'gocheok-operator-visit-guide-handoff.json';
+const GOCHEOK_OPERATOR_HANDOFF_MARKDOWN = 'gocheok-operator-visit-guide-handoff.md';
+const GOCHEOK_OPERATOR_SOURCE_FILE = path.join(GOCHEOK_FRONTEND_ROOT, 'src/data/gocheokOperatorVisitGuide.ts');
+
+const GOCHEOK_OPERATOR_REQUIRED_COLUMNS = [
+  'recordType',
+  'stadium',
+  'sourceDocumentId',
+  'lastUpdatedAt',
+  'pointId',
+  'kind',
+  'label',
+  'blockId',
+  'recommendedEntrancePointIds',
+  'nearbyFacilityPointIds',
+  'cautionNotes',
+  'noticeId',
+  'validFrom',
+  'validTo',
+  'priority',
+  'affectedBlockIds',
+  'message',
+];
+
+const GOCHEOK_OPERATOR_FACILITY_KINDS = new Set(['ENTRANCE', 'CONCESSION', 'RESTROOM', 'ELEVATOR', 'PARKING', 'TRANSIT']);
+const GOCHEOK_OPERATOR_SOURCE_ID_PATTERN = /^gocheok-operator-\d{8}-[a-z0-9-]+$/;
+const GOCHEOK_OPERATOR_FACILITY_ID_PATTERN = /^gocheok-facility-(entrance|concession|restroom|elevator|parking|transit)-[a-z0-9-]+$/;
+const GOCHEOK_OPERATOR_NOTICE_ID_PATTERN = /^gocheok-operation-notice-\d{8}-[a-z0-9-]+$/;
+const GOCHEOK_OPERATOR_ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const GOCHEOK_OPERATOR_FORBIDDEN_PATTERN = /https?:\/\/|www\.|크롤|스크래핑|scrap|crawl|web\s*search|웹\s*검색/i;
+const GOCHEOK_OPERATOR_PLACEHOLDER_PATTERN = /YYYY|YYYY-MM-DD|operator-provided|operator-block-id|operator-id|source-id|<[^>]+>/i;
+
+const operatorArgValue = (name, fallback) => {
+  const index = process.argv.indexOf(name);
+  if (index === -1 || !process.argv[index + 1]) return fallback;
+  return process.argv[index + 1];
+};
+
+const operatorHasFlag = (name) => process.argv.includes(name);
+
+const resolveOperatorPath = (value) => path.resolve(GOCHEOK_FRONTEND_ROOT, value);
+
+const operatorGatePaths = () => {
+  const outDir = resolveOperatorPath(operatorArgValue('--out-dir', GOCHEOK_OPERATOR_REPORT_DIR));
+  const inputPath = resolveOperatorPath(operatorArgValue('--input', path.join(outDir, GOCHEOK_OPERATOR_INPUT_FILE)));
+  return {
+    outDir,
+    inputPath,
+    templateJsonPath: path.join(outDir, `${GOCHEOK_OPERATOR_TEMPLATE_BASENAME}.json`),
+    templateMarkdownPath: path.join(outDir, `${GOCHEOK_OPERATOR_TEMPLATE_BASENAME}.md`),
+    validationJsonPath: path.join(outDir, GOCHEOK_OPERATOR_VALIDATION_JSON),
+    validationCsvPath: path.join(outDir, GOCHEOK_OPERATOR_VALIDATION_CSV),
+    validationMarkdownPath: path.join(outDir, GOCHEOK_OPERATOR_VALIDATION_MARKDOWN),
+    applyPlanJsonPath: path.join(outDir, GOCHEOK_OPERATOR_APPLY_PLAN_JSON),
+    applyPlanMarkdownPath: path.join(outDir, GOCHEOK_OPERATOR_APPLY_PLAN_MARKDOWN),
+    applyPlanTsFragmentPath: path.join(outDir, GOCHEOK_OPERATOR_APPLY_PLAN_TS_FRAGMENT),
+    handoffJsonPath: path.join(outDir, GOCHEOK_OPERATOR_HANDOFF_JSON),
+    handoffMarkdownPath: path.join(outDir, GOCHEOK_OPERATOR_HANDOFF_MARKDOWN),
+  };
+};
+
+function parseCsvLine(line) {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"') {
+      if (inQuotes && line[index + 1] === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      values.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current);
+  return values;
+}
+
+function parseCsv(text) {
+  const lines = text
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0);
+  if (lines.length === 0) return { header: [], rows: [] };
+
+  const header = parseCsvLine(lines[0]).map((column) => column.trim());
+  const rows = lines.slice(1).map((line, index) => {
+    const values = parseCsvLine(line);
+    return {
+      rowNumber: index + 2,
+      raw: line,
+      values: Object.fromEntries(header.map((column, columnIndex) => [
+        column,
+        (values[columnIndex] ?? '').trim(),
+      ])),
+    };
+  });
+
+  return { header, rows };
+}
+
+const csvEscape = (value) => {
+  const text = Array.isArray(value) ? value.join(';') : String(value ?? '');
+  if (!/[",\n]/.test(text)) return text;
+  return `"${text.replaceAll('"', '""')}"`;
+};
+
+const csvLine = (values) => values.map(csvEscape).join(',');
+
+const splitOperatorList = (value) => String(value ?? '')
+  .split(';')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const rowHasOperatorPlaceholder = (row) => Object.values(row.values)
+  .filter(Boolean)
+  .some((value) => GOCHEOK_OPERATOR_PLACEHOLDER_PATTERN.test(value));
+
+const markdownCell = (value) => String(value ?? '-')
+  .replaceAll('|', '\\|')
+  .replaceAll('\n', '<br>');
+
+const markdownTable = (headers, rows) => [
+  `| ${headers.join(' | ')} |`,
+  `| ${headers.map(() => '---').join(' | ')} |`,
+  ...rows.map((row) => `| ${row.map(markdownCell).join(' | ')} |`),
+].join('\n');
+
+const sha256Text = async (filePath) => {
+  const { createHash } = await import('node:crypto');
+  const { default: fs } = await import('node:fs/promises');
+  return createHash('sha256').update(await fs.readFile(filePath)).digest('hex');
+};
+
+function validateOperatorSourceFields(record, rowNumber, addBlocker) {
+  if (!GOCHEOK_OPERATOR_SOURCE_ID_PATTERN.test(record.sourceDocumentId ?? '')) {
+    addBlocker('INVALID_SOURCE_DOCUMENT_ID', `row ${rowNumber} sourceDocumentId must match gocheok-operator-YYYYMMDD-*`);
+  }
+  if (!GOCHEOK_OPERATOR_ISO_DATE_PATTERN.test(record.lastUpdatedAt ?? '')) {
+    addBlocker('INVALID_LAST_UPDATED_AT', `row ${rowNumber} lastUpdatedAt must be YYYY-MM-DD`);
+  }
+  if (GOCHEOK_OPERATOR_FORBIDDEN_PATTERN.test(JSON.stringify(record))) {
+    addBlocker('FORBIDDEN_OPERATOR_DATA', `row ${rowNumber} contains URL/crawling/scraping/web-search text`);
+  }
+}
+
+async function validateGocheokOperatorInput({ writeReports = true } = {}) {
+  const { default: fs } = await import('node:fs/promises');
+  const { GOCHEOK_BLOCKS } = await import('../src/data/gocheokSeatData.ts');
+  const paths = operatorGatePaths();
+  const blockIds = new Set(GOCHEOK_BLOCKS.map((block) => block.id));
+  const sourceSha256Before = await sha256Text(GOCHEOK_OPERATOR_SOURCE_FILE);
+  let header = [];
+  let rows = [];
+  const blockers = [];
+  const rowReports = [];
+  const normalized = {
+    facilityPoints: [],
+    blockGuidance: [],
+    operationNotices: [],
+  };
+
+  try {
+    ({ header, rows } = parseCsv(await fs.readFile(paths.inputPath, 'utf8')));
+  } catch (error) {
+    blockers.push(`INPUT_CSV_MISSING:${path.relative(GOCHEOK_FRONTEND_ROOT, paths.inputPath)}`);
+  }
+
+  const missingColumns = GOCHEOK_OPERATOR_REQUIRED_COLUMNS.filter((column) => !header.includes(column));
+  missingColumns.forEach((column) => blockers.push(`MISSING_COLUMN:${column}`));
+
+  const gocheokRows = rows.filter((row) => row.values.stadium === 'GOCHEOK');
+  const nonGocheokRows = rows.filter((row) => row.values.stadium && row.values.stadium !== 'GOCHEOK');
+  nonGocheokRows.forEach((row) => blockers.push(`NON_GOCHEOK_ROW:row ${row.rowNumber}`));
+
+  const placeholderRows = gocheokRows.filter(rowHasOperatorPlaceholder);
+  const realRows = gocheokRows.filter((row) => !rowHasOperatorPlaceholder(row));
+
+  placeholderRows.forEach((row) => {
+    rowReports.push({
+      rowNumber: row.rowNumber,
+      recordType: row.values.recordType || '-',
+      status: 'waiting_for_operator',
+      blockers: ['PLACEHOLDER_ROW'],
+    });
+  });
+
+  if (placeholderRows.length > 0 && realRows.length > 0) {
+    placeholderRows.forEach((row) => blockers.push(`PLACEHOLDER_ROW_PRESENT:row ${row.rowNumber}`));
+  }
+
+  const pointRowsById = new Map();
+  const noticeIds = new Set();
+  const guidanceBlockIds = new Set();
+  const pendingBlockReferenceChecks = [];
+
+  realRows.forEach((row) => {
+    const record = row.values;
+    const rowBlockers = [];
+    const addBlocker = (code, detail) => {
+      rowBlockers.push(code);
+      blockers.push(`${code}:${detail}`);
+    };
+
+    validateOperatorSourceFields(record, row.rowNumber, addBlocker);
+
+    if (!['facility', 'block', 'notice'].includes(record.recordType)) {
+      addBlocker('INVALID_RECORD_TYPE', `row ${row.rowNumber} recordType must be facility/block/notice`);
+    }
+
+    if (record.recordType === 'facility') {
+      if (!GOCHEOK_OPERATOR_FACILITY_ID_PATTERN.test(record.pointId ?? '')) {
+        addBlocker('INVALID_FACILITY_POINT_ID', `row ${row.rowNumber} pointId must match gocheok-facility-*`);
+      }
+      if (!GOCHEOK_OPERATOR_FACILITY_KINDS.has(record.kind)) {
+        addBlocker('INVALID_FACILITY_KIND', `row ${row.rowNumber} kind must be a known facility kind`);
+      }
+      if (record.kind && record.pointId && !record.pointId.startsWith(`gocheok-facility-${record.kind.toLowerCase()}-`)) {
+        addBlocker('FACILITY_ID_KIND_MISMATCH', `row ${row.rowNumber} pointId prefix must match kind`);
+      }
+      if (!record.label) {
+        addBlocker('MISSING_FACILITY_LABEL', `row ${row.rowNumber} facility label is required`);
+      }
+      if (pointRowsById.has(record.pointId)) {
+        addBlocker('DUPLICATE_FACILITY_POINT_ID', `row ${row.rowNumber} duplicate pointId ${record.pointId}`);
+      }
+
+      if (rowBlockers.length === 0) {
+        const point = {
+          id: record.pointId,
+          kind: record.kind,
+          label: record.label,
+          dataStatus: 'OPERATOR_PROVIDED',
+          sourceDocumentId: record.sourceDocumentId,
+          lastUpdatedAt: record.lastUpdatedAt,
+        };
+        pointRowsById.set(point.id, point);
+        normalized.facilityPoints.push(point);
+      }
+    }
+
+    if (record.recordType === 'block') {
+      if (!blockIds.has(record.blockId)) {
+        addBlocker('UNKNOWN_BLOCK_ID', `row ${row.rowNumber} blockId ${record.blockId || '-'} is not in GOCHEOK_BLOCKS`);
+      }
+      if (guidanceBlockIds.has(record.blockId)) {
+        addBlocker('DUPLICATE_BLOCK_GUIDANCE', `row ${row.rowNumber} duplicate blockId ${record.blockId}`);
+      }
+
+      const recommendedEntrancePointIds = splitOperatorList(record.recommendedEntrancePointIds);
+      const nearbyFacilityPointIds = splitOperatorList(record.nearbyFacilityPointIds);
+      const cautionNotes = splitOperatorList(record.cautionNotes);
+      if (rowBlockers.length === 0) {
+        guidanceBlockIds.add(record.blockId);
+        const guidance = {
+          blockId: record.blockId,
+          recommendedEntrancePointIds,
+          nearbyFacilityPointIds,
+          cautionNotes,
+          sourceDocumentId: record.sourceDocumentId,
+          lastUpdatedAt: record.lastUpdatedAt,
+        };
+        normalized.blockGuidance.push(guidance);
+        pendingBlockReferenceChecks.push({ rowNumber: row.rowNumber, guidance });
+      }
+    }
+
+    if (record.recordType === 'notice') {
+      if (!GOCHEOK_OPERATOR_NOTICE_ID_PATTERN.test(record.noticeId ?? '')) {
+        addBlocker('INVALID_OPERATION_NOTICE_ID', `row ${row.rowNumber} noticeId must match gocheok-operation-notice-YYYYMMDD-*`);
+      }
+      if (noticeIds.has(record.noticeId)) {
+        addBlocker('DUPLICATE_OPERATION_NOTICE_ID', `row ${row.rowNumber} duplicate noticeId ${record.noticeId}`);
+      }
+      if (!GOCHEOK_OPERATOR_ISO_DATE_PATTERN.test(record.validFrom ?? '')) {
+        addBlocker('INVALID_NOTICE_VALID_FROM', `row ${row.rowNumber} validFrom must be YYYY-MM-DD`);
+      }
+      if (!GOCHEOK_OPERATOR_ISO_DATE_PATTERN.test(record.validTo ?? '')) {
+        addBlocker('INVALID_NOTICE_VALID_TO', `row ${row.rowNumber} validTo must be YYYY-MM-DD`);
+      }
+      if (record.validFrom && record.validTo && record.validFrom > record.validTo) {
+        addBlocker('INVALID_NOTICE_DATE_RANGE', `row ${row.rowNumber} validFrom must be <= validTo`);
+      }
+      if (!/^-?\d+$/.test(record.priority ?? '')) {
+        addBlocker('INVALID_NOTICE_PRIORITY', `row ${row.rowNumber} priority must be an integer`);
+      }
+      if (!record.message) {
+        addBlocker('MISSING_NOTICE_MESSAGE', `row ${row.rowNumber} message is required`);
+      }
+      splitOperatorList(record.affectedBlockIds).forEach((blockId) => {
+        if (!blockIds.has(blockId)) {
+          addBlocker('UNKNOWN_NOTICE_BLOCK_ID', `row ${row.rowNumber} affectedBlockId ${blockId} is not in GOCHEOK_BLOCKS`);
+        }
+      });
+
+      if (rowBlockers.length === 0) {
+        noticeIds.add(record.noticeId);
+        normalized.operationNotices.push({
+          id: record.noticeId,
+          validFrom: record.validFrom,
+          validTo: record.validTo,
+          priority: Number(record.priority),
+          affectedBlockIds: splitOperatorList(record.affectedBlockIds),
+          message: record.message,
+          lastUpdatedAt: record.lastUpdatedAt,
+          sourceDocumentId: record.sourceDocumentId,
+        });
+      }
+    }
+
+    rowReports.push({
+      rowNumber: row.rowNumber,
+      recordType: record.recordType || '-',
+      status: rowBlockers.length === 0 ? 'valid' : 'blocked',
+      blockers: rowBlockers,
+    });
+  });
+
+  pendingBlockReferenceChecks.forEach(({ rowNumber, guidance }) => {
+    guidance.recommendedEntrancePointIds.forEach((pointId) => {
+      const point = pointRowsById.get(pointId);
+      if (!point) {
+        blockers.push(`MISSING_FACILITY_REFERENCE:row ${rowNumber} ${pointId}`);
+      } else if (point.kind !== 'ENTRANCE') {
+        blockers.push(`NON_ENTRANCE_RECOMMENDED_REFERENCE:row ${rowNumber} ${pointId}`);
+      }
+    });
+    guidance.nearbyFacilityPointIds.forEach((pointId) => {
+      const point = pointRowsById.get(pointId);
+      if (!point) {
+        blockers.push(`MISSING_FACILITY_REFERENCE:row ${rowNumber} ${pointId}`);
+      } else if (point.kind === 'ENTRANCE') {
+        blockers.push(`ENTRANCE_USED_AS_NEARBY_FACILITY:row ${rowNumber} ${pointId}`);
+      }
+    });
+  });
+
+  const status = blockers.length > 0
+    ? 'blocked'
+    : realRows.length === 0
+      ? 'waiting_for_operator'
+      : 'ready_for_manual_apply';
+  const sourceSha256After = await sha256Text(GOCHEOK_OPERATOR_SOURCE_FILE);
+  const report = {
+    version: GOCHEOK_OPERATOR_GATE_VERSION,
+    status,
+    generatedAt: new Date().toISOString(),
+    sourceDataWritePerformed: false,
+    sourceFile: {
+      path: 'src/data/gocheokOperatorVisitGuide.ts',
+      sha256Before: sourceSha256Before,
+      sha256After: sourceSha256After,
+      unchanged: sourceSha256Before === sourceSha256After,
+    },
+    input: {
+      path: path.relative(GOCHEOK_FRONTEND_ROOT, paths.inputPath),
+      totalRows: rows.length,
+      gocheokRows: gocheokRows.length,
+      realRows: realRows.length,
+      placeholderRows: placeholderRows.length,
+      missingColumns,
+    },
+    sourcePolicy: {
+      runtimeReadsStaticTsOnly: true,
+      manualMissingContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
+      disallowedSources: ['external URL', 'crawling', 'scraping', 'web-search-based baseball data'],
+    },
+    summary: {
+      facilityPoints: normalized.facilityPoints.length,
+      blockGuidance: normalized.blockGuidance.length,
+      operationNotices: normalized.operationNotices.length,
+      blockerCount: blockers.length,
+    },
+    blockers,
+    rows: rowReports,
+    normalizedData: status === 'ready_for_manual_apply' ? normalized : {
+      facilityPoints: [],
+      blockGuidance: [],
+      operationNotices: [],
+    },
+  };
+
+  if (writeReports) {
+    await fs.mkdir(paths.outDir, { recursive: true });
+    await fs.writeFile(paths.validationJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    await fs.writeFile(paths.validationCsvPath, `${[
+      csvLine(['rowNumber', 'recordType', 'status', 'blockers']),
+      ...rowReports.map((row) => csvLine([row.rowNumber, row.recordType, row.status, row.blockers.join(';')])),
+    ].join('\n')}\n`, 'utf8');
+    await fs.writeFile(paths.validationMarkdownPath, [
+      '# Gocheok Operator Visit Guide Validation',
+      '',
+      `- status: \`${status}\``,
+      `- input: \`${path.relative(GOCHEOK_FRONTEND_ROOT, paths.inputPath)}\``,
+      `- sourceDataWritePerformed: \`${report.sourceDataWritePerformed}\``,
+      `- blockerCount: \`${blockers.length}\``,
+      '',
+      '## Rows',
+      '',
+      markdownTable(
+        ['row', 'type', 'status', 'blockers'],
+        rowReports.map((row) => [row.rowNumber, row.recordType, row.status, row.blockers.join(';') || '-']),
+      ),
+      '',
+      ...(blockers.length > 0 ? ['## Blockers', '', ...blockers.map((blocker) => `- ${blocker}`), ''] : []),
+    ].join('\n'), 'utf8');
+  }
+
+  return { report, paths };
+}
+
+function formatOperatorTsFragment(normalizedData, status) {
+  if (status !== 'ready_for_manual_apply') {
+    return [
+      '// Manual apply fragment for src/data/gocheokOperatorVisitGuide.ts',
+      `// status: ${status}`,
+      '// No operator-provided data is ready for manual application.',
+      '',
+    ].join('\n');
+  }
+
+  return [
+    '// Manual apply fragment for src/data/gocheokOperatorVisitGuide.ts',
+    '// Review this fragment, then replace only the matching arrays in the source file.',
+    '// Do not add external URLs, crawling, scraping, or web-search-derived baseball data.',
+    '',
+    `export const GOCHEOK_OPERATOR_FACILITY_POINTS: readonly GocheokFacilityPoint[] = ${JSON.stringify(normalizedData.facilityPoints, null, 2)};`,
+    '',
+    `export const GOCHEOK_BLOCK_VISIT_GUIDANCE: readonly GocheokBlockVisitGuidance[] = ${JSON.stringify(normalizedData.blockGuidance, null, 2)};`,
+    '',
+    `export const GOCHEOK_OPERATION_NOTICES: readonly GocheokOperationNotice[] = ${JSON.stringify(normalizedData.operationNotices, null, 2)};`,
+    '',
+  ].join('\n');
+}
+
+const runOperatorTemplate = async () => {
+  const { default: fs } = await import('node:fs/promises');
+  const paths = operatorGatePaths();
+  const templatePath = path.join(GOCHEOK_FRONTEND_ROOT, 'docs/stadium/operator-visit-guide-intake-template.csv');
+  const force = operatorHasFlag('--force');
+  const { header, rows } = parseCsv(await fs.readFile(templatePath, 'utf8'));
+  const gocheokRows = rows.filter((row) => row.values.stadium === 'GOCHEOK');
+  let action = 'created';
+
+  await fs.mkdir(paths.outDir, { recursive: true });
+  try {
+    await fs.access(paths.inputPath);
+    if (!force) {
+      action = 'preserved_existing';
+    }
+  } catch {
+    action = 'created';
+  }
+
+  if (action === 'created' || force) {
+    await fs.writeFile(paths.inputPath, `${[
+      csvLine(header),
+      ...gocheokRows.map((row) => csvLine(header.map((column) => row.values[column] ?? ''))),
+    ].join('\n')}\n`, 'utf8');
+    action = force ? 'overwritten_by_force' : action;
+  }
+
+  const report = {
+    version: GOCHEOK_OPERATOR_GATE_VERSION,
+    status: 'ok',
+    action,
+    generatedAt: new Date().toISOString(),
+    sourceDataWritePerformed: false,
+    inputPath: path.relative(GOCHEOK_FRONTEND_ROOT, paths.inputPath),
+    rows: gocheokRows.length,
+  };
+
+  await fs.writeFile(paths.templateJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await fs.writeFile(paths.templateMarkdownPath, [
+    '# Gocheok Operator Visit Guide Input Template',
+    '',
+    `- status: \`${report.status}\``,
+    `- action: \`${action}\``,
+    `- input: \`${report.inputPath}\``,
+    '- sourceDataWritePerformed: `false`',
+    '',
+    '운영자 자료가 들어오기 전 placeholder 값은 검증 단계에서 `waiting_for_operator`로 유지합니다.',
+    '',
+  ].join('\n'), 'utf8');
+
+  console.log(`[gocheok-operator-template] ${action}`);
+  console.log(`[gocheok-operator-template] input=${paths.inputPath}`);
+  return { report, paths };
+};
+
+const runOperatorValidate = async ({ exitOnBlocked = true } = {}) => {
+  const { report, paths } = await validateGocheokOperatorInput({ writeReports: true });
+  console.log(`[gocheok-operator-validate] status=${report.status}`);
+  console.log(`[gocheok-operator-validate] report=${paths.validationJsonPath}`);
+  if (exitOnBlocked && report.status === 'blocked') {
+    process.exit(1);
+  }
+  return { report, paths };
+};
+
+const runOperatorApplyPlan = async ({ exitOnBlocked = true } = {}) => {
+  const { default: fs } = await import('node:fs/promises');
+  const { report: validation, paths } = await validateGocheokOperatorInput({ writeReports: true });
+  const plan = {
+    version: GOCHEOK_OPERATOR_GATE_VERSION,
+    status: validation.status,
+    generatedAt: new Date().toISOString(),
+    sourceDataWritePerformed: false,
+    sourceFile: validation.sourceFile,
+    targetSourceFile: 'src/data/gocheokOperatorVisitGuide.ts',
+    tsFragmentPath: path.relative(GOCHEOK_FRONTEND_ROOT, paths.applyPlanTsFragmentPath),
+    validationReportPath: path.relative(GOCHEOK_FRONTEND_ROOT, paths.validationJsonPath),
+    normalizedData: validation.status === 'ready_for_manual_apply' ? validation.normalizedData : {
+      facilityPoints: [],
+      blockGuidance: [],
+      operationNotices: [],
+    },
+    blockers: validation.blockers,
+    nextAction: validation.status === 'ready_for_manual_apply'
+      ? 'Review the TS fragment and manually apply only the three operator data arrays.'
+      : 'Keep MANUAL_BASEBALL_DATA_REQUIRED until operator-provided data validates.',
+  };
+  const fragment = formatOperatorTsFragment(plan.normalizedData, plan.status);
+
+  await fs.mkdir(paths.outDir, { recursive: true });
+  await fs.writeFile(paths.applyPlanJsonPath, `${JSON.stringify(plan, null, 2)}\n`, 'utf8');
+  await fs.writeFile(paths.applyPlanTsFragmentPath, fragment, 'utf8');
+  await fs.writeFile(paths.applyPlanMarkdownPath, [
+    '# Gocheok Operator Visit Guide Apply Plan',
+    '',
+    `- status: \`${plan.status}\``,
+    `- sourceDataWritePerformed: \`${plan.sourceDataWritePerformed}\``,
+    `- target source file: \`${plan.targetSourceFile}\``,
+    `- TS fragment: \`${plan.tsFragmentPath}\``,
+    `- next action: ${plan.nextAction}`,
+    '',
+    '## Summary',
+    '',
+    `- facility points: ${plan.normalizedData.facilityPoints.length}`,
+    `- block guidance rows: ${plan.normalizedData.blockGuidance.length}`,
+    `- operation notices: ${plan.normalizedData.operationNotices.length}`,
+    '',
+    ...(plan.blockers.length > 0 ? ['## Blockers', '', ...plan.blockers.map((blocker) => `- ${blocker}`), ''] : []),
+  ].join('\n'), 'utf8');
+
+  console.log(`[gocheok-operator-apply-plan] status=${plan.status}`);
+  console.log(`[gocheok-operator-apply-plan] report=${paths.applyPlanJsonPath}`);
+  if (exitOnBlocked && plan.status === 'blocked') {
+    process.exit(1);
+  }
+  return { report: plan, paths };
+};
+
+const runOperatorHandoff = async ({ exitOnBlocked = true } = {}) => {
+  const { default: fs } = await import('node:fs/promises');
+  const paths = operatorGatePaths();
+  const readJson = async (filePath) => {
+    try {
+      return JSON.parse(await fs.readFile(filePath, 'utf8'));
+    } catch {
+      return null;
+    }
+  };
+  const template = await readJson(paths.templateJsonPath);
+  const validation = await readJson(paths.validationJsonPath);
+  const applyPlan = await readJson(paths.applyPlanJsonPath);
+  const missingInputs = [
+    ['template', template, paths.templateJsonPath],
+    ['validation', validation, paths.validationJsonPath],
+    ['applyPlan', applyPlan, paths.applyPlanJsonPath],
+  ].filter(([, value]) => !value);
+  const status = missingInputs.length > 0
+    ? 'blocked'
+    : validation.status === 'blocked' || applyPlan.status === 'blocked'
+      ? 'blocked'
+      : validation.status === 'ready_for_manual_apply' && applyPlan.status === 'ready_for_manual_apply'
+        ? 'ready_for_manual_apply'
+        : 'waiting_for_operator';
+  const blockers = [
+    ...missingInputs.map(([label, , filePath]) => `MISSING_${label.toUpperCase()}_REPORT:${path.relative(GOCHEOK_FRONTEND_ROOT, filePath)}`),
+    ...(validation?.blockers ?? []),
+    ...(applyPlan?.blockers ?? []),
+  ];
+  const handoff = {
+    version: GOCHEOK_OPERATOR_GATE_VERSION,
+    status,
+    generatedAt: new Date().toISOString(),
+    sourceDataWritePerformed: false,
+    reports: {
+      template: path.relative(GOCHEOK_FRONTEND_ROOT, paths.templateJsonPath),
+      validation: path.relative(GOCHEOK_FRONTEND_ROOT, paths.validationJsonPath),
+      applyPlan: path.relative(GOCHEOK_FRONTEND_ROOT, paths.applyPlanJsonPath),
+      tsFragment: path.relative(GOCHEOK_FRONTEND_ROOT, paths.applyPlanTsFragmentPath),
+    },
+    summary: {
+      validationStatus: validation?.status ?? null,
+      applyPlanStatus: applyPlan?.status ?? null,
+      facilityPoints: applyPlan?.normalizedData?.facilityPoints?.length ?? 0,
+      blockGuidance: applyPlan?.normalizedData?.blockGuidance?.length ?? 0,
+      operationNotices: applyPlan?.normalizedData?.operationNotices?.length ?? 0,
+      blockerCount: blockers.length,
+    },
+    blockers,
+    nextAction: status === 'ready_for_manual_apply'
+      ? 'Review and manually apply the generated TS fragment.'
+      : 'Collect operator-provided Gocheok entrance/facility/operation data and rerun operator-intake.',
+  };
+
+  await fs.mkdir(paths.outDir, { recursive: true });
+  await fs.writeFile(paths.handoffJsonPath, `${JSON.stringify(handoff, null, 2)}\n`, 'utf8');
+  await fs.writeFile(paths.handoffMarkdownPath, [
+    '# Gocheok Operator Visit Guide Handoff',
+    '',
+    `- status: \`${handoff.status}\``,
+    `- sourceDataWritePerformed: \`${handoff.sourceDataWritePerformed}\``,
+    `- validation: \`${handoff.summary.validationStatus ?? 'missing'}\``,
+    `- apply plan: \`${handoff.summary.applyPlanStatus ?? 'missing'}\``,
+    `- TS fragment: \`${handoff.reports.tsFragment}\``,
+    `- next action: ${handoff.nextAction}`,
+    '',
+    ...(blockers.length > 0 ? ['## Blockers', '', ...blockers.map((blocker) => `- ${blocker}`), ''] : []),
+  ].join('\n'), 'utf8');
+
+  console.log(`[gocheok-operator-handoff] status=${handoff.status}`);
+  console.log(`[gocheok-operator-handoff] report=${paths.handoffJsonPath}`);
+  if (exitOnBlocked && handoff.status === 'blocked') {
+    process.exit(1);
+  }
+  return { report: handoff, paths };
+};
+
+const runOperatorIntake = async () => {
+  await runOperatorTemplate();
+  const validation = await runOperatorValidate({ exitOnBlocked: false });
+  await runOperatorApplyPlan({ exitOnBlocked: false });
+  const handoff = await runOperatorHandoff({ exitOnBlocked: false });
+  if (validation.report.status === 'blocked' || handoff.report.status === 'blocked') {
+    process.exit(1);
+  }
+};
+
 const runPixelComponents = async () => {
   const { default: fs } = await import("node:fs/promises");
   const { default: path } = await import("node:path");
@@ -480,10 +1145,10 @@ const runTraceManifest = async () => {
     ...omittedOfficialBlocksTable,
     '## 사용 방법',
     '',
-    '1. `npm run qa:stadium:gocheok:trace-review`를 실행해 manifest, evidence crop, debug overlay screenshot을 생성합니다.',
+    '1. `node scripts/stadium-seatmap-ops.mjs gocheok trace-review`를 실행해 manifest, evidence crop, debug overlay screenshot을 생성합니다.',
     '2. CSV의 `candidateHullPath`와 현재 `path`를 비교하고, 공식 PNG 경계가 불명확하면 TODO에 남깁니다.',
     '3. 승인된 블록만 `GOCHEOK_TRACE_REVIEWED_BLOCK_IDS`에 추가합니다.',
-    '4. `npm run stadium:gocheok:evidence`로 주요 crop overlay 증빙을 갱신합니다.',
+    '4. `node scripts/stadium-seatmap-ops.mjs gocheok evidence`로 주요 crop overlay 증빙을 갱신합니다.',
     '5. 좌표 변경 후 `node --import tsx --test src/data/gocheokSeatData.test.ts`로 overlap/bounds/self-intersection을 확인합니다.',
     '',
   ].join('\n');
@@ -879,6 +1544,11 @@ const runReleaseGate = async () => {
 };
 
 const TASKS = {
+  "operator-template": runOperatorTemplate,
+  "operator-validate": runOperatorValidate,
+  "operator-apply-plan": runOperatorApplyPlan,
+  "operator-handoff": runOperatorHandoff,
+  "operator-intake": runOperatorIntake,
   "pixel-components": runPixelComponents,
   "trace-manifest": runTraceManifest,
   "evidence": runEvidence,
