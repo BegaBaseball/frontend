@@ -606,6 +606,8 @@ export default function CoachAnalysisDialogRuntime({
                                 errorAction={errorAction}
                                 onLoginAction={handleLoginAction}
                                 loadingFallbackMessage={ANALYSIS_LOADING_FALLBACK_MESSAGE}
+                                homeTeamId={homeTeamId}
+                                awayTeamId={awayTeamId}
                             />
                         </Suspense>
                     ) : null}

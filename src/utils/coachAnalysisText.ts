@@ -33,6 +33,51 @@ export const normalizeStructuredInlineText = (
     return normalized || fallback;
 };
 
+// Preserve **bold** spans for the verdict highlighter while stripping other inline markdown.
+const BOLD_OPEN_SENTINEL = '@@BEGA-BOLD-OPEN@@';
+const BOLD_CLOSE_SENTINEL = '@@BEGA-BOLD-CLOSE@@';
+
+const stripInlineMarkdownKeepBold = (value: string): string => {
+    const protectedValue = value.replace(
+        /\*\*(.*?)\*\*/g,
+        (_match, inner: string) => `${BOLD_OPEN_SENTINEL}${inner}${BOLD_CLOSE_SENTINEL}`,
+    );
+    const stripped = protectedValue
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .replace(/~~(.*?)~~/g, '$1')
+        .replace(/`([^`]+)`/g, '$1');
+    return stripped
+        .split(BOLD_OPEN_SENTINEL).join('**')
+        .split(BOLD_CLOSE_SENTINEL).join('**');
+};
+
+const normalizeVerdictLine = (value: string): string => (
+    stripInlineMarkdownKeepBold(
+        value
+            .replace(/^\s*#{1,6}\s*/, '')
+            .replace(/^\s*[-+]\s+/, '')
+            .replace(/^\s*\d+\.\s+/, ''),
+    )
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+);
+
+export const normalizeVerdictText = (
+    value: string,
+    fallback = '',
+): string => {
+    const normalized = normalizeVerdictLine(
+        String(value || '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\n+/g, ' '),
+    );
+
+    return normalized || fallback;
+};
+
 export const normalizeStructuredMultilineText = (
     value: string,
     fallback = '',

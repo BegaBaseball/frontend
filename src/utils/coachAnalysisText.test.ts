@@ -5,6 +5,7 @@ import {
     normalizeStructuredInlineText,
     normalizeStructuredInsightList,
     normalizeStructuredMultilineText,
+    normalizeVerdictText,
     sanitizeMarkdown,
 } from './coachAnalysisText';
 
@@ -45,6 +46,13 @@ test('normalizeStructuredInsightList는 scheduled swing factor 문구를 훼손�
     assert.deepEqual(
         normalizeStructuredInsightList([swingFactor, '', null]),
         [swingFactor],
+    );
+});
+
+test('normalizeVerdictText는 verdict bold marker만 보존한다', () => {
+    assert.equal(
+        normalizeVerdictText('- **한화 초반 흐름**이 _핵심_ 변수입니다.'),
+        '**한화 초반 흐름**이 핵심 변수입니다.',
     );
 });
 
