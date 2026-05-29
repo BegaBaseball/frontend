@@ -717,7 +717,7 @@ test('대구 블록 데이터는 지도 렌더링과 시야 사진 연결에 필
     }
     assert.ok(block.officialBlocks.length > 0, `${block.id} official blocks should exist`);
     assert.ok(block.seatViewSections.length > 0, `${block.id} seat view aliases should exist`);
-    ['대구', '삼성', '라팍', block.block, block.name].forEach((alias) => {
+    ['대구', '삼성', '라팍', '라이온즈파크', '삼성라이온즈파크', '대구삼성라이온즈파크', '대구 삼성 라이온즈파크', '대구 삼성 라이온즈 파크', block.block, block.name].forEach((alias) => {
       assert.ok(block.seatViewSections.includes(alias), `${block.id} aliases should include ${alias}`);
     });
     assert.equal(block.imageGeometry.visualPath, block.imageGeometry.d, `${block.id} visual path should keep d as the canonical display polygon`);

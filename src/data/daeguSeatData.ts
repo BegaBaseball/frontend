@@ -409,7 +409,11 @@ function blockAliases(block: DaeguBlockDefinition) {
     '대구',
     '삼성',
     '라팍',
+    '라이온즈파크',
+    '삼성라이온즈파크',
+    '대구삼성라이온즈파크',
     '대구 삼성 라이온즈파크',
+    '대구 삼성 라이온즈 파크',
   ];
   return Array.from(new Set([...baseAliases, ...(block.seatViewSections ?? [])]));
 }
