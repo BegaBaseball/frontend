@@ -1109,7 +1109,6 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
   const lowMarginSource = evidenceWorksetOpsSource;
   const imageAlignmentSource = coreQaSource;
   const visualHitSplitAuditSource = coreQaSource;
-  const lowerInfieldIndependentAuditSource = readFileSync(new URL('../../scripts/gwangju-seatmap-lower-infield-independent-audit.mjs', import.meta.url), 'utf8');
   const artifactScopeAuditSource = readFileSync(new URL('../../scripts/gwangju-seatmap-artifact-scope-audit.mjs', import.meta.url), 'utf8');
   const packageSource = readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
   const svgSource = readFileSync(new URL('../components/gwangju/GwangjuSeatMapSvg.tsx', import.meta.url), 'utf8');
@@ -1271,34 +1270,46 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
     assert.ok(worksetSource.includes(requiredText), `zone workset script should include ${requiredText}`);
   });
 
-  assert.ok(packageSource.includes('"stadium:gwangju:zone-precision-worksets"'));
-  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit'));
-  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-sky-picnic"'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-sky-picnic'));
-  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-alphabet-sections"'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-alphabet-sections'));
-  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-five-table"'));
-  assert.ok(packageSource.includes('npm run stadium:gwangju:image-alignment-audit -- --require-five-table'));
-  assert.ok(packageSource.includes('"stadium:gwangju:image-alignment-audit:require-release"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit:require-release'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju zone-precision-worksets'));
-  assert.ok(packageSource.includes('"stadium:gwangju:artifact-scope-audit"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju artifact-scope-audit'));
-  assert.ok(packageSource.includes('"stadium:gwangju:evidence-inventory"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju evidence-inventory'));
-  assert.ok(packageSource.includes('"stadium:gwangju:browser-evidence"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju browser-evidence'));
-  assert.ok(packageSource.includes('"stadium:gwangju:low-margin-candidates"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju low-margin-candidates'));
-  assert.ok(packageSource.includes('"stadium:gwangju:visual-hit-split-audit"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju visual-hit-split-audit'));
-  assert.ok(packageSource.includes('"stadium:gwangju:lower-infield-independent-audit"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju lower-infield-independent-audit'));
-  assert.ok(packageSource.includes('"qa:stadium:gwangju:runtime-layer"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju release-gate'));
+  [
+    '"stadium:gwangju:image-alignment-audit"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit',
+    '"stadium:gwangju:image-alignment-audit:require-release"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju image-alignment-audit:require-release',
+    '"stadium:gwangju:trace-manifest"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest',
+    '"qa:stadium:gwangju:runtime-layer"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju runtime-layer',
+    '"qa:stadium:gwangju:release-gate"',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-gate',
+  ].forEach((requiredText) => {
+    assert.ok(packageSource.includes(requiredText), `Gwangju public package script should include ${requiredText}`);
+  });
+
+  [
+    '"stadium:gwangju:zone-precision-worksets"',
+    '"stadium:gwangju:artifact-scope-audit"',
+    '"stadium:gwangju:evidence-inventory"',
+    '"stadium:gwangju:browser-evidence"',
+    '"stadium:gwangju:low-margin-candidates"',
+    '"stadium:gwangju:visual-hit-split-audit"',
+    '"stadium:gwangju:lower-infield-independent-audit"',
+    '"stadium:gwangju:operator-input-aid"',
+    '"stadium:gwangju:operator-input-packet"',
+    '"stadium:gwangju:operator-intake"',
+    '"stadium:gwangju:operator-template:validate:strict"',
+    '"stadium:gwangju:operator-template:apply-plan:require-ready"',
+    '"stadium:gwangju:operator-apply"',
+    '"stadium:gwangju:operator-write-smoke"',
+    '"stadium:gwangju:operator-write-guard:require-ready"',
+    '"stadium:gwangju:operator-prewrite-gate"',
+    '"stadium:gwangju:operator-apply:write"',
+    '"stadium:gwangju:operator-postwrite-gate"',
+    '"stadium:gwangju:image-alignment-audit:require-sky-picnic"',
+    '"stadium:gwangju:image-alignment-audit:require-alphabet-sections"',
+    '"stadium:gwangju:image-alignment-audit:require-five-table"',
+  ].forEach((removedText) => {
+    assert.equal(packageSource.includes(removedText), false, `Gwangju public package script should not expose ${removedText}`);
+  });
   [
     'GWANGJU_ARTIFACT_SCOPE_AUDIT_V1',
     'gwangju-seatmap-artifact-scope-audit.json',
@@ -1355,23 +1366,6 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
     'MANUAL_BASEBALL_DATA_REQUIRED',
   ].forEach((requiredText) => {
     assert.ok(visualHitSplitAuditSource.includes(requiredText), `visual/hit split audit should include ${requiredText}`);
-  });
-  [
-    'GWANGJU_LOWER_INFIELD_INDEPENDENT_AUDIT_V1',
-    'OFFICIAL_VISUAL_REFERENCES',
-    'official-first-i-horizontal-band',
-    'official-third-h-irregular-block',
-    'gwangju-seatmap-lower-infield-independent-audit.json',
-    'gwangju-seatmap-lower-infield-independent-audit.csv',
-    'gwangju-seatmap-lower-infield-independent-audit.md',
-    'gwangju-seatmap-lower-infield-independent-audit-${region.id}-overlay.png',
-    'first-101-108-h-i-j',
-    'third-h',
-    'browser CSS pixels as coordinate source',
-    'resized screenshots as coordinate source',
-    'MANUAL_BASEBALL_DATA_REQUIRED',
-  ].forEach((requiredText) => {
-    assert.ok(lowerInfieldIndependentAuditSource.includes(requiredText), `lower infield independent audit should include ${requiredText}`);
   });
   assert.ok(svgSource.includes('GWANGJU_BLOCKS.map'), 'runtime seat layer should render active blocks');
   assert.ok(svgSource.includes('d={block.imageGeometry.d}'), 'runtime seat layer should use release-ready block image geometry');

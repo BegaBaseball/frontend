@@ -100,6 +100,32 @@ const STADIUMS = {
       'scripts/gwangju-seatmap-operator-intake-write-ops.mjs',
       'scripts/gwangju-seatmap-release-staging-ops.mjs',
     ],
+    publicTasks: [
+      'block-source-duplication-audit',
+      'commit-readiness',
+      'image-alignment-audit',
+      'image-alignment-audit:require-release',
+      'mobile',
+      'operator-handoff',
+      'operator-status',
+      'pixel-components',
+      'pr-staging-plan',
+      'pr-staging-review',
+      'pre-pr-final-gate',
+      'release-audit',
+      'release-gate',
+      'release-package',
+      'release-scope-guard',
+      'release-verify',
+      'release-verify:preoperator',
+      'runtime-layer',
+      'staged-scope-audit',
+      'status',
+      'targeted-staging',
+      'trace-manifest',
+      'trace-review',
+    ],
+    historicalTaskPolicy: 'candidate/evidence/workset/editor patch and operator write/intake commands remain dispatcher-internal or Git-history/reference workflows; package aliases expose only runtime release, PR staging, and current operator status/handoff gates.',
     migrationBuckets: [
       {
         id: 'core-qa',
@@ -182,12 +208,6 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'official-third-infield-trace'],
-        },
-      ],
-      'lower-infield-independent-audit': [
-        {
-          command: 'node',
-          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-lower-infield-independent-audit.mjs'],
         },
       ],
       'block-source-duplication-audit': [
@@ -680,6 +700,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose runtime release, current operator status/handoff, and PR staging gates; granular evidence/workset/editor patch/operator write-intake aliases are not public commands',
   },
   changwon: {
     label: 'Changwon NC Park',

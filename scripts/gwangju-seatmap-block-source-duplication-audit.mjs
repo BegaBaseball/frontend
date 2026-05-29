@@ -122,14 +122,6 @@ const classifyScriptRoles = (relativePath, text) => {
     }
   }
 
-  if (relativePath.endsWith('gwangju-seatmap-lower-infield-independent-audit.mjs')) {
-    roles.push({
-      id: 'lower-infield-context-reference',
-      label: 'lower-infield context/reference QA; core image-alignment owns release judgment',
-      independentReference: false,
-    });
-  }
-
   if (relativePath.endsWith('gwangju-seatmap-evidence-workset-ops.mjs')) {
     roles.push({
       id: 'evidence-workset',
