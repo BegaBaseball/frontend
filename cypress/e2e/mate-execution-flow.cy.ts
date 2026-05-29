@@ -1,6 +1,11 @@
 /// <reference types="cypress" />
 
 describe('Mate execution flow UI', () => {
+  const revealDeferredMateDetailContent = () => {
+    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.scrollTo(0, 900);
+  };
+
   const buildParty = (overrides: Partial<Record<string, unknown>> = {}) => ({
     id: 920,
     hostId: 123,
@@ -341,7 +346,8 @@ describe('Mate execution flow UI', () => {
       expect(baselinePartyRequestCount).to.be.greaterThan(0);
     });
 
-    cy.contains('button', '신청 관리 (1)').click();
+    revealDeferredMateDetailContent();
+    cy.contains('button', '신청 관리 (1)').should('be.visible').click();
     cy.contains('Host Control').should('be.visible');
     cy.get('@getRouteParty.all').should((calls) => {
       expect(calls).to.have.length(baselinePartyRequestCount);
