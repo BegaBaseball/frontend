@@ -55,10 +55,12 @@ Use this checklist when adding or refining a stadium seat map with the official 
 - Runtime image: `src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp`
 - Source URL: `https://www.ssglanders.com/game/ticket`
 - Native coordinate system: `3360x5328`
-- Clickable coverage: 155 official blocks and special zones
+- Clickable coverage: 156 official blocks and special zones
 - Visual review: no large overlay drift found in the debug overlay as of 2026-04-30.
 - Representative QA: `npm run qa:stadium:incheon:mobile`
 - Full hit-area QA: `npm run qa:stadium:incheon:full`
+- Release lock: `npm run qa:stadium:incheon:release-lock`
+- Public status: `npm run stadium:incheon:status`
 
 ## Gocheok Kiwoom Current Status
 
@@ -74,9 +76,9 @@ Use this checklist when adding or refining a stadium seat map with the official 
 - Omitted official/synthetic blocks: `335` (official PNG boundary/label not visible in the right-top outfield crop)
 - Manual TODO source: `GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS` in `src/data/gocheokSeatData.ts`
 - Pixel candidate report: `npm run stadium:gocheok:pixel-components`
-- Evidence crops: `npm run stadium:gocheok:evidence`
+- Evidence crops: `node scripts/stadium-seatmap-ops.mjs gocheok evidence`
 - Trace manifest: `npm run stadium:gocheok:trace-manifest`
 - Representative QA: `npm run qa:stadium:gocheok:mobile`
 - Full hit-area QA: `npm run qa:stadium:gocheok:full`
-- Trace review bundle: `npm run qa:stadium:gocheok:trace-review` (manifest + evidence crops + debug overlay capture)
+- Trace review bundle: `node scripts/stadium-seatmap-ops.mjs gocheok trace-review` (manifest + evidence crops + debug overlay capture)
 - PNG replacement policy: if the source PNG hash changes, verify native dimensions, re-run `?gocheokDebug=1`, and update `imageGeometry.d`, `labelX`, `labelY`, and `imageSha256` together.

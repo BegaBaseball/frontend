@@ -8,14 +8,16 @@
 
 ## Guard Snapshot Contract
 
-- scope guard command: `npm run stadium:sajik:pr-scope-guard`
-- smoke command: `npm run stadium:sajik:pr-scope-guard-smoke`
-- expected status: `fullRelease=passed`, `stage01PartialScope=passed`
-- canonical payload file count: `17`
-- historical reference file count: `17`
+- scope guard command: `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard`
+- smoke command: `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke`
+- expected guard version: `SAJIK_PR_SCOPE_GUARD_V3_CANONICAL_RUNTIME_ONLY`
+- expected smoke version: `SAJIK_PR_SCOPE_GUARD_SMOKE_V3_CANONICAL_RUNTIME_ONLY`
+- expected status: `passed` when no unexpected dirty files or forbidden historical public aliases exist
+- public Sajik alias count: `8`
+- removed historical script count: `4`
 - unexpected dirty files: `0`
 - blockers: `0`
-- patch separation: `review-required`
+- historical replay policy: `Git history` only
 - safe bulk staging: `false`
 - git commands executed by guard: `0`
 
@@ -119,8 +121,8 @@ Reviewed at: `2026-05-26 KST`
 ## QA Evidence Summary
 
 - `npm run stadium:sajik:block-source-duplication-audit`: PASS; report `reports/stadium/sajik-seatmap-block-source-duplication-audit.{json,csv,md}`; latest summary `active_canonical_blocks=78`, `active_polygon_source_per_block=1`, `legacy_alias_only=11`
-- `npm run stadium:sajik:pr-scope-guard`: PASS; report `reports/stadium/sajik-seatmap-pr-scope-guard.{json,md}`; latest summary `included=17`, `unexpected=0`, `blockers=0`
-- `npm run stadium:sajik:pr-scope-guard-smoke`: PASS; report `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`; full/partial guard snapshots pass
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard`: PASS; report `reports/stadium/sajik-seatmap-pr-scope-guard.{json,md}`; latest summary `included=17`, `unexpected=0`, `blockers=0`
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke`: PASS; report `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`; full/partial guard snapshots pass
 - `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts`: PASS, `37/37`
 - `node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS
 - `npm run qa:stadium:sajik:full`: PASS; summary path `output/playwright/stadium-ux-sajik-full/stadium-mobile-smoke-summary.md`
@@ -153,8 +155,8 @@ The 17 historical reference files stay available for audit evidence. They are no
 
 Run these after the dry-run manifest is updated:
 
-- `npm run stadium:sajik:pr-scope-guard`
-- `npm run stadium:sajik:pr-scope-guard-smoke`
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard`
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke`
 - `npm run stadium:sajik:block-source-duplication-audit`
 - `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts`
 - `node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts`

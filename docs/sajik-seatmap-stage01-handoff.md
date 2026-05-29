@@ -2,7 +2,7 @@
 
 상태: historical operator workflow
 
-Stage 01 npm aliases는 canonical/runtime release 표면에서 제거되었다. 이 문서는 과거 operator 승인 입력 계약과 산출물 해석을 보존하는 archive이며, 재실행이 필요하면 Git history 또는 `node scripts/stadium-seatmap-ops.mjs sajik <stage01-task>` 직접 실행을 별도 branch에서 검토한다.
+Stage 01 npm aliases와 관련 스크립트는 canonical/runtime release 표면에서 제거되었다. 이 문서는 과거 operator 승인 입력 계약과 산출물 해석을 보존하는 archive이며, 재실행이 필요하면 Git history에서 해당 시점의 스크립트와 입력 파일을 복구한 별도 branch에서 검토한다.
 
 ## Scope
 

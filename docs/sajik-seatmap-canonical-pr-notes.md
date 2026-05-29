@@ -34,8 +34,8 @@ This PR consolidates Sajik seatmap runtime ownership into one canonical source. 
 
 - generated QA report files stay out of the PR payload: `reports/stadium/sajik-seatmap-*.{json,csv,md,png}`, `reports/stadium/sajik-stage01-operator/*`, `dist/*`, `output/playwright/*`
 - block source duplication report: `reports/stadium/sajik-seatmap-block-source-duplication-audit.{json,csv,md}`; latest summary `active_canonical_blocks=78`, `active_polygon_source_per_block=1`, `legacy_alias_only=11`
-- scope guard report: `reports/stadium/sajik-seatmap-pr-scope-guard.{json,md}`; latest summary `included=17`, `unexpected=0`, `blockers=0`
-- scope guard smoke report: `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`; full/partial guard snapshots pass
+- scope guard report: `reports/stadium/sajik-seatmap-pr-scope-guard.{json,md}`; latest contract is `SAJIK_PR_SCOPE_GUARD_V3_CANONICAL_RUNTIME_ONLY`, public Sajik aliases `8`, removed historical scripts `4`, unexpected dirty files `0`, blockers `0`
+- scope guard smoke report: `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`; canonical public alias list and Git-history-only historical replay policy pass
 - full visual QA summary: `output/playwright/stadium-ux-sajik-full/stadium-mobile-smoke-summary.md`; report path is evidence only and is not staged
 - build reports such as `reports/bundle-guard-report.json` and `reports/dist-assets-report.json` are regenerated evidence and are not part of this payload
 

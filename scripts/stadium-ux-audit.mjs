@@ -197,7 +197,7 @@ const seatMapReviewStadiums = [
     lng: 128.6815,
     address: '대구광역시 수성구 야구전설로 1',
     phone: null,
-    expectedSeatMapLabel: '대구 삼성 공식 좌석도',
+    expectedSeatMapLabel: '대구 삼성 라이온즈파크 공식 좌석도',
     expectedHomeSide: null,
   },
   {

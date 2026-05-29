@@ -23,7 +23,7 @@ production 사용자 UI가 아니며, 파일을 자동으로 수정하지 않는
 4. 필요한 경우 `add`로 현재 vertex 뒤에 중간점을 추가하고, `delete`로 현재 vertex를 제거한다.
 5. `PATCH PASS`와 `before != after` 상태를 확인한다.
 6. JSON 또는 TS preview를 copy해서 사람이 `SAJIK_BLOCKS` 변경에 반영한다.
-7. 반영 후 `npm run qa:stadium:sajik:polygon-v2`를 실행한다.
+7. 반영 후 현재 public release gate인 `npm run qa:stadium:sajik:release-lock`를 실행한다.
 
 ## 편집 규칙
 
@@ -66,6 +66,6 @@ editor regression은 다음 report를 재생성한다.
 ## 필수 검증
 
 ```bash
-npm run stadium:sajik:editor-regression
+node scripts/stadium-seatmap-ops.mjs sajik editor-regression
 npm run qa:stadium:sajik:polygon-v2
 ```

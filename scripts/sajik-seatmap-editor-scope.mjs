@@ -479,11 +479,11 @@ const runMarkerTransitionReview = async () => {
     '',
     '## Verification Commands',
     '',
-    '- `npm run stadium:sajik:marker-transition-review`',
-    '- `npm run stadium:sajik:dataset-export -- --check`',
+    '- `node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review`',
+    '- `node scripts/stadium-seatmap-ops.mjs sajik dataset-export --check`',
     '- `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts`',
-    '- `npm run stadium:sajik:editor-regression`',
-    '- `npm run stadium:sajik:pr-scope-guard`',
+    '- `node scripts/stadium-seatmap-ops.mjs sajik editor-regression`',
+    '- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard`',
     '',
   ].join('\n');
 
@@ -519,526 +519,43 @@ const runPrScopeGuard = async () => {
   const { promisify } = await import("node:util");
 
   const execFileAsync = promisify(execFile);
-
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const frontendRoot = path.resolve(scriptDir, '..');
   const reportDir = path.join(frontendRoot, 'reports/stadium');
   const jsonPath = path.join(reportDir, 'sajik-seatmap-pr-scope-guard.json');
   const markdownPath = path.join(reportDir, 'sajik-seatmap-pr-scope-guard.md');
 
-  const SCOPE_GUARD_VERSION = 'SAJIK_PR_SCOPE_GUARD_V2_CANONICAL_SINGLE_SOURCE';
-  const isStage01PartialMode = process.argv.includes('--stage01-partial');
-  const executionMode = isStage01PartialMode ? 'stage01-partial' : 'full-release';
-
-  const expectedIncludedFiles = [
-    'docs/sajik-seatmap-canonical-pr-notes.md',
-    'docs/sajik-seatmap-canonical-staging-rehearsal.md',
-    'docs/sajik-seatmap-marker-only-transition.md',
-    'docs/sajik-seatmap-pr-packaging-inventory.md',
-    'docs/sajik-seatmap-release-lock.md',
-    'package.json',
-    'scripts/sajik-seatmap-block-source-duplication-audit.mjs',
-    'scripts/sajik-seatmap-editor-scope.mjs',
-    'scripts/stadium-seatmap-ops.mjs',
-    'scripts/stadium-ux-audit.mjs',
-    'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-    'src/components/sajik/SajikSeatMap.test.ts',
-    'src/components/sajik/SajikSeatMap.tsx',
-    'src/components/sajik/SajikSeatMapSvg.tsx',
-    'src/data/sajikCanonicalSeatMap.ts',
-    'src/data/sajikSeatData.test.ts',
-    'src/data/sajikSeatData.ts',
-  ];
-
-  const historicalReferenceFiles = [
-    'docs/sajik-seatmap-editor-v17-operator-guide.md',
-    'docs/sajik-seatmap-editor-v18-roadmap.md',
-    'docs/sajik-seatmap-hitpath-candidate-review.md',
-    'docs/sajik-seatmap-stage01-handoff.md',
-    'scripts/sajik-seatmap-core-qa.mjs',
-    'scripts/sajik-seatmap-export-dataset.mjs',
+  const GUARD_VERSION = 'SAJIK_PR_SCOPE_GUARD_V3_CANONICAL_RUNTIME_ONLY';
+  const publicSajikAliases = [
+    'qa:stadium:sajik:full',
+    'qa:stadium:sajik:mobile',
+    'qa:stadium:sajik:release-lock',
+    'stadium:sajik:alignment-audit',
+    'stadium:sajik:block-source-duplication-audit',
+    'stadium:sajik:pixel-components',
+    'stadium:sajik:status',
+    'stadium:sajik:trace-manifest',
+  ].sort();
+  const removedHistoricalScriptFiles = [
     'scripts/sajik-seatmap-hitpath-candidate-review.mjs',
     'scripts/sajik-seatmap-operator-reference.mjs',
     'scripts/sajik-seatmap-stage01.mjs',
     'scripts/sajik-seatmap-zone-precision-worksets.mjs',
-    'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png',
-    'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp',
-    'src/components/AppRoutes.tsx',
-    'src/components/sajik/SajikSeatMapEditor.tsx',
-    'src/data/sajikOperatorReferenceSeatMapDataset.ts',
-    'src/data/sajikSeatMapDataset.ts',
-    'src/utils/seatMapPolygonValidator.ts',
   ];
-
-  const partialStagingRequiredFiles = [
-    {
-      file: 'package.json',
-      reason: 'Package scripts are shared and currently contain unrelated stadium script changes.',
-      includeOnly: [
-        'stadium:sajik:dataset-export',
-        'stadium:sajik:editor-regression',
-        'stadium:sajik:hitpath-review',
-        'stadium:sajik:zone-precision-worksets',
-        'stadium:sajik:stage01-operator-package',
-        'stadium:sajik:stage01-operator-input-aid',
-        'stadium:sajik:stage01-review-board',
-        'stadium:sajik:stage01-next-action-packet',
-        'stadium:sajik:stage01-target-review-packet',
-        'stadium:sajik:stage01-target-image-analysis-smoke',
-        'stadium:sajik:stage01-all-target-review-packets',
-        'stadium:sajik:stage01-all-target-image-analysis-smoke',
-        'stadium:sajik:stage01-target-entry-template-readiness-smoke',
-        'stadium:sajik:stage01-target-entry-preflight',
-        'stadium:sajik:stage01-target-entry-preflight-smoke',
-        'stadium:sajik:stage01-target-approval-gate',
-        'stadium:sajik:stage01-target-approval-gate-smoke',
-        'stadium:sajik:stage01-all-target-approval-readiness',
-        'stadium:sajik:stage01-all-target-approval-readiness-smoke',
-        'stadium:sajik:stage01-all-target-approval-input-guide',
-        'stadium:sajik:stage01-all-target-approval-input-guide-smoke',
-        'stadium:sajik:stage01-operator-input-intake-gate',
-        'stadium:sajik:stage01-operator-input-intake-gate-smoke',
-        'stadium:sajik:stage01-prewrite',
-        'stadium:sajik:stage01-apply-ready',
-        'stadium:sajik:stage01-post-apply-audit',
-        'stadium:sajik:stage01-operator-status',
-        'stadium:sajik:stage01-manual-patch-plan',
-        'stadium:sajik:stage01-real-approval-readiness',
-        'stadium:sajik:stage01-target-apply-precheck',
-        'stadium:sajik:stage01-131-apply-path-status',
-        'stadium:sajik:stage01-prewrite-smoke',
-        'stadium:sajik:stage01-approved-dry-run',
-        'stadium:sajik:stage01-applied-dry-run',
-        'stadium:sajik:stage01-131-lifecycle-smoke',
-        'stadium:sajik:stage01-readiness-summary',
-        'stadium:sajik:stage01-readiness-summary-smoke',
-        'stadium:sajik:stage01-completion-gate',
-        'stadium:sajik:stage01-completion-gate:complete',
-        'stadium:sajik:stage01-completion-gate-smoke',
-        'stadium:sajik:stage01-staged-scope-audit',
-        'stadium:sajik:stage01-staged-scope-audit:complete',
-        'stadium:sajik:stage01-staged-scope-audit-smoke',
-        'qa:stadium:sajik:stage01-readiness',
-        'stadium:sajik:marker-transition-review',
-        'stadium:sajik:pr-scope-guard',
-        'stadium:sajik:stage01-pr-scope-guard',
-        'stadium:sajik:pr-scope-guard-smoke',
-        'stadium:sajik:block-source-duplication-audit',
-        'qa:stadium:sajik:polygon-v2',
-        'qa:stadium:sajik:full',
-      ],
-      exclude: [
-        'stadium:gwangju:*',
-        'qa:stadium:gwangju:*',
-        'stadium:daegu:*',
-        'qa:stadium:daegu:*',
-      ],
-    },
-    {
-      file: 'scripts/stadium-seatmap-ops.mjs',
-      reason: 'Shared stadium ops dispatcher contains non-Sajik task mappings; stage only Sajik canonical task wiring.',
-      includeOnly: [
-        'sajik block-source-duplication-audit task',
-        'sajik full visual QA task',
-        'sajik pr-scope-guard task argument forwarding',
-        'sajik pr-scope-guard-smoke task argument forwarding',
-      ],
-      exclude: [
-        'non-Sajik stadium task mappings',
-        'global ops behavior changes',
-      ],
-    },
-    {
-      file: 'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-      reason: 'Static contract tests are shared across stadiums; stage only Sajik-focused hunks.',
-      includeOnly: [
-        'test("사직 좌석도 release lock 문서는 v2 polygon 검수 계약을 고정한다") additions',
-        'Sajik package script assertions',
-        'Sajik release lock document assertions',
-        'Sajik editor v1.8 roadmap exclusion assertion',
-      ],
-      exclude: [
-        'common seatmap shell assertions',
-        'Daejeon anchor crop assertions',
-        'Gwangju release/operator assertions',
-        'Daegu operator/precision assertions',
-      ],
-    },
-    {
-      file: 'scripts/stadium-ux-audit.mjs',
-      reason: 'Shared browser QA script may contain non-Sajik stadium changes; stage only Sajik label-coordinate hunks.',
-      includeOnly: [
-        'Sajik label-coordinate QA mapInteractionStatus read/return',
-        'Sajik alias-only hit-area exclusion checks',
-      ],
-      exclude: [
-        'non-Sajik viewport, click, or QA flow changes',
-        'Suwon-specific QA extensions',
-      ],
-    },
+  const forbiddenPublicAliasFragments = [
+    ':sajik:stage01',
+    ':sajik:operator-reference',
+    ':sajik:hitpath-review',
+    ':sajik:zone-precision-worksets',
+    ':sajik:polygon-v2',
+    ':sajik:trace-review',
   ];
-
-  const sourcePolicy = {
-    allowedCoordinateSource: 'SAJIK_CANONICAL_2026 runtime on operator-reference 1151x1367; official PNG remains historical QA/reference only',
-    coordinateSystem: 'runtime SVG viewBox 0 0 1151 1367; legacy official PNG evidence remains 960x640',
-    missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
-    disallowedSources: [
-      'runtime source tabs',
-      'LOTTE_OFFICIAL_2026 runtime polygon source',
-      'OPERATOR_REFERENCE_2026 runtime polygon source outside canonical builder',
-      'external crawling',
-      'web-search-based baseball data',
-      'resized screenshots',
-      'browser CSS pixels as source coordinates',
-      'third-party copied seatmap images',
-    ],
+  const historicalPolicy = {
+    runtimeSurface: 'canonical/runtime public commands only',
+    removedWorkflows: ['stage01', 'operator-reference', 'hitpath-review', 'zone-precision-worksets', 'polygon-v2', 'trace-review alias'],
+    restoreFrom: 'Git history',
+    generatedArtifactsOutOfScope: ['reports/', 'output/', 'dist/'],
   };
-
-  const stage01PartialReadinessGate = {
-    available: true,
-    command: 'npm run qa:stadium:sajik:stage01-readiness',
-    purpose: 'Partial-worktree-safe Stage 01 regression gate for real approval readiness, target apply precheck, prewrite smoke, approved/applied dry-runs, 131 lifecycle smoke, the Sajik-focused static contract test, next-action packet, target review packet, target image-analysis smoke, all-target official PNG review packets, all-target image-analysis smoke, target entry template readiness smoke, target entry preflight, target entry preflight smoke, target approval gate, target approval smoke, all-target approval readiness, all-target approval readiness smoke, all-target approval input guide, all-target approval input guide smoke, operator input intake gate, intake gate smoke, target apply precheck, 131 apply path status, readiness summary, summary smoke, Stage 01 completion gate, completion gate smoke, and staged scope audit smoke.',
-    includes: [
-      'npm run stadium:sajik:stage01-real-approval-readiness',
-      'npm run stadium:sajik:stage01-target-apply-precheck',
-      'npm run stadium:sajik:stage01-prewrite-smoke',
-      'npm run stadium:sajik:stage01-approved-dry-run',
-      'npm run stadium:sajik:stage01-applied-dry-run',
-      'npm run stadium:sajik:stage01-131-lifecycle-smoke',
-      'node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-      'npm run stadium:sajik:stage01-next-action-packet',
-      'npm run stadium:sajik:stage01-target-review-packet',
-      'npm run stadium:sajik:stage01-target-image-analysis-smoke',
-      'npm run stadium:sajik:stage01-all-target-review-packets',
-      'npm run stadium:sajik:stage01-all-target-image-analysis-smoke',
-      'npm run stadium:sajik:stage01-target-entry-template-readiness-smoke',
-      'npm run stadium:sajik:stage01-target-entry-preflight',
-      'npm run stadium:sajik:stage01-target-entry-preflight-smoke',
-      'npm run stadium:sajik:stage01-target-approval-gate',
-      'npm run stadium:sajik:stage01-target-approval-gate-smoke',
-      'npm run stadium:sajik:stage01-all-target-approval-readiness',
-      'npm run stadium:sajik:stage01-all-target-approval-readiness-smoke',
-      'npm run stadium:sajik:stage01-all-target-approval-input-guide',
-      'npm run stadium:sajik:stage01-all-target-approval-input-guide-smoke',
-      'npm run stadium:sajik:stage01-operator-input-intake-gate',
-      'npm run stadium:sajik:stage01-operator-input-intake-gate-smoke',
-      'npm run stadium:sajik:stage01-target-apply-precheck',
-      'npm run stadium:sajik:stage01-131-apply-path-status',
-      'npm run stadium:sajik:stage01-readiness-summary',
-      'npm run stadium:sajik:stage01-readiness-summary-smoke',
-      'npm run stadium:sajik:stage01-completion-gate',
-      'npm run stadium:sajik:stage01-completion-gate-smoke',
-      'npm run stadium:sajik:stage01-staged-scope-audit-smoke',
-    ],
-    excludes: [
-      'npm run stadium:sajik:pr-scope-guard',
-      'npm run stadium:sajik:editor-regression',
-      'npm run build',
-    ],
-    doesNotRunPrScopeGuard: true,
-    doesNotRunEditorRegression: true,
-    doesNotRunBuild: true,
-    doesNotReplaceFullReleaseGate: true,
-    fullReleaseGate: 'npm run qa:stadium:sajik:polygon-v2',
-    fullReleaseBlockerMeaning: 'When pr-scope-guard blocks, treat it as unexpected dirty files, unexpected included files, or absent canonical payload files; clean historical reference files are not blockers.',
-  };
-
-  const includedSajikComponentFiles = new Set([
-    'src/components/sajik/SajikSeatMap.test.ts',
-    'src/components/sajik/SajikSeatMap.tsx',
-    'src/components/sajik/SajikSeatMapEditor.tsx',
-    'src/components/sajik/SajikSeatMapSvg.tsx',
-  ]);
-
-  const includedRules = [
-    {
-      id: 'sajik-docs',
-      reason: 'Sajik release lock, PR packaging, and operator guidance docs',
-      match: (file) => file.startsWith('docs/sajik-seatmap-'),
-    },
-    {
-      id: 'sajik-scripts',
-      reason: 'Sajik export, audit, manifest, editor regression, and PR scope scripts',
-      match: (file) => file.startsWith('scripts/sajik-seatmap-'),
-    },
-    {
-      id: 'sajik-components',
-      reason: 'Sajik SVG renderer, internal editor, and component tests',
-      match: (file) => includedSajikComponentFiles.has(file),
-    },
-    {
-      id: 'sajik-data',
-      reason: 'Sajik data, normalized dataset, and data tests',
-      match: (file) => file.startsWith('src/data/sajik'),
-    },
-    {
-      id: 'shared-validator',
-      reason: 'Common polygon validator used by Sajik data and scripts',
-      match: (file) => file === 'src/utils/seatMapPolygonValidator.ts',
-    },
-    {
-      id: 'shared-route-contract',
-      reason: 'Dev-only Sajik editor route hunk',
-      match: (file) => file === 'src/components/AppRoutes.tsx',
-    },
-    {
-      id: 'shared-static-test-contract',
-      reason: 'Sajik release lock and package-script static test hunks',
-      match: (file) => file === 'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-    },
-    {
-      id: 'shared-browser-qa-contract',
-      reason: 'Sajik label-coordinate QA reads mapInteractionStatus',
-      match: (file) => file === 'scripts/stadium-ux-audit.mjs',
-    },
-    {
-      id: 'shared-stadium-ops-contract',
-      reason: 'Sajik canonical audit and full QA task wiring in shared stadium ops dispatcher',
-      match: (file) => file === 'scripts/stadium-seatmap-ops.mjs',
-    },
-    {
-      id: 'sajik-assets',
-      reason: 'Sajik operator-reference canonical runtime image assets',
-      match: (file) => [
-        'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png',
-        'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp',
-      ].includes(file),
-    },
-    {
-      id: 'package-script-contract',
-      reason: 'Package scripts expose Sajik dataset export, hitPath review, zone precision worksets, Stage 01 operator gates, marker transition review, editor regression, PR scope guard, and polygon-v2 gate',
-      match: (file) => file === 'package.json',
-    },
-  ];
-
-  const separateRules = [
-    {
-      id: 'sajik-ux-files',
-      reason: 'Sajik first-visit/runtime UX work outside canonical source selection is outside the polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/sajik/SajikBottomSheet.tsx',
-    },
-    {
-      id: 'shared-seatmap-shell',
-      reason: 'Common seatmap shell and home runtime work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/StadiumGuideRuntime.tsx'
-        || file === 'src/components/StadiumGuidePlacesRuntime.tsx'
-        || file === 'src/components/HomeRuntime.tsx'
-        || file === 'src/components/home/HomeSecondaryPanels.tsx'
-        || file === 'src/hooks/useStadiumGuide.ts'
-        || file === 'src/hooks/useScrollStage.ts'
-        || file === 'src/components/stadiumSeatMapRegistry.tsx'
-        || file.startsWith('src/components/stadiumSeatMap/'),
-    },
-  	  {
-  	    id: 'home-card-ui',
-  	    reason: 'Home/game card UI work is outside the Sajik polygon v2 release-lock PR',
-  	    match: (file) => file === 'src/components/GameCard.tsx'
-  	      || file === 'src/components/home/GameCardSkeleton.tsx'
-  	      || file === 'src/components/home/HomeMatchPanel.tsx'
-  	      || file === 'src/components/home/TeamRankRow.tsx',
-  	  },
-  	  {
-  	    id: 'shared-notification-ui',
-  	    reason: 'Shared toast/notification UI work is outside the Sajik polygon v2 release-lock PR',
-  	    match: (file) => file === 'src/components/ui/sonner.tsx'
-  	      || file === 'src/shims/sonner.tsx',
-  	  },
-    {
-      id: 'shared-navigation-ui',
-      reason: 'Shared navigation UI work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/CheerMobileBottomNav.tsx'
-        || file === 'src/components/Navbar.tsx'
-        || file === 'src/components/PublicNavbar.tsx'
-        || file === 'src/components/PublicNavbarDesktopAuthControls.tsx',
-    },
-    {
-      id: 'shared-layout-chatbot-ui',
-      reason: 'Shared layout and chatbot UI work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/AuthenticatedLayoutChrome.tsx'
-        || file === 'src/components/ChatBotFloatingButton.tsx'
-        || file === 'src/components/ChatBotRuntime.tsx',
-    },
-    {
-      id: 'mate-files',
-      reason: 'Mate feature work is outside the Sajik PR scope',
-      match: (file) => file === 'src/components/MatePartyCard.tsx'
-        || file === 'src/components/Mate.tsx'
-        || file === 'src/components/MateDateFilterRail.tsx'
-        || file === 'src/components/MateMobileDateFilter.tsx'
-        || file === 'src/components/MateFilterBottomSheet.tsx'
-        || file === 'src/components/MateSeatFilterButtons.tsx'
-        || file === 'src/components/MateStatusTabs.tsx'
-        || file === 'src/components/MateResultsRuntime.tsx'
-        || file === 'src/components/mypage/MateHistoryCard.tsx'
-        || file === 'src/utils/mate.ts',
-    },
-    {
-      id: 'prediction-files',
-      reason: 'Prediction feature work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file.startsWith('src/components/prediction/')
-        || file === 'src/hooks/usePredictionGameData.ts'
-        || file === 'src/hooks/usePredictionSchedule.ts'
-        || file === 'src/utils/predictionRangeWindow.ts'
-        || file === 'src/utils/prediction.ts'
-        || file === 'src/utils/predictionDataQuality.test.ts'
-        || file === 'src/hooks/predictionScheduleBoundaryLoaders.ts',
-    },
-    {
-      id: 'coach-files',
-      reason: 'Coach briefing UI work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/CoachBriefingAutoRuntime.tsx',
-    },
-    {
-      id: 'mypage-files',
-      reason: 'MyPage/profile feature work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'cypress/e2e/mypage.cy.ts'
-        || file === 'src/hooks/useMyPage.ts'
-        || file === 'src/components/mypage/MyPageProfileCardRuntime.tsx'
-        || file === 'src/utils/userProfileFormatting.ts'
-        || file === 'src/utils/userProfileFormatting.test.ts',
-    },
-    {
-      id: 'shared-app-constants',
-      reason: 'Shared app constants and stadium floor utilities are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/utils/constants.ts'
-        || file === 'src/utils/stadiumFloorData.ts',
-    },
-    {
-      id: 'ranking-files',
-      reason: 'Ranking prediction work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/api/ranking.ts'
-        || file === 'src/hooks/useRankingPrediction.ts'
-        || file === 'src/types/ranking.ts',
-    },
-    {
-      id: 'shared-stadium-favorite-files',
-      reason: 'Shared stadium favorite UI work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/components/AuthenticatedStadiumFavoriteToggle.tsx',
-    },
-    {
-      id: 'shared-map-files',
-      reason: 'Shared Kakao map utility work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/utils/kakaoMap.ts',
-    },
-    {
-      id: 'shared-logging-files',
-      reason: 'Shared logging utility work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/utils/safeLogger.ts'
-        || file === 'src/utils/safeLogger.test.ts',
-    },
-    {
-      id: 'shared-realtime-files',
-      reason: 'Shared realtime socket/auth work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/hooks/useDmSocket.ts'
-        || file === 'src/hooks/useNotificationSocket.ts'
-        || file === 'src/hooks/useWebSocket.ts'
-        || file === 'src/utils/realtimeAuth.ts'
-        || file === 'src/utils/realtimeAuth.test.ts',
-    },
-    {
-      id: 'shared-repo-config',
-      reason: 'Shared repository config changes are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === '.gitignore',
-    },
-    {
-      id: 'shared-html-shell',
-      reason: 'Shared HTML shell theme bootstrap work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'index.html',
-    },
-    {
-      id: 'shared-styles',
-      reason: 'Shared stylesheet changes are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'src/index.css',
-    },
-    {
-      id: 'assistant-local-config',
-      reason: 'Local assistant configuration is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === '.claude/' || file.startsWith('.claude/'),
-    },
-    {
-      id: 'environment-files',
-      reason: 'Environment file changes are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === '.env.production',
-    },
-    {
-      id: 'non-sajik-stadium-ui',
-      reason: 'Non-Sajik stadium UI work is outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file.startsWith('src/components/changwon/')
-        || file.startsWith('src/components/daejeon/')
-        || file.startsWith('src/components/gocheok/')
-        || file.startsWith('src/components/incheon/')
-        || file.startsWith('src/components/jamsil/')
-        || file.startsWith('src/components/suwon/'),
-    },
-    {
-      id: 'daegu-files',
-      reason: 'Daegu seatmap/operator work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('docs/daegu-')
-        || file.startsWith('scripts/daegu-')
-        || file.startsWith('src/components/daegu/')
-        || file.startsWith('src/data/daegu'),
-    },
-    {
-      id: 'daejeon-files',
-      reason: 'Daejeon anchor/operator work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('docs/daejeon-')
-        || file.startsWith('scripts/daejeon-')
-        || file.startsWith('src/data/daejeon')
-        || file === 'src/components/DaejeonStadiumUxAuditContract.test.ts',
-    },
-    {
-      id: 'gwangju-files',
-      reason: 'Gwangju release/operator work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('docs/gwangju-')
-        || file.startsWith('scripts/gwangju-')
-        || file.startsWith('src/data/gwangju')
-        || file.startsWith('src/components/gwangju/')
-        || file.startsWith('src/assets/stadiums/kia/'),
-    },
-    {
-      id: 'suwon-files',
-      reason: 'Suwon baseline and hit geometry work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('docs/suwon-')
-        || file.startsWith('scripts/suwon-')
-        || file.startsWith('src/data/suwon'),
-    },
-    {
-      id: 'jamsil-files',
-      reason: 'Jamsil seatmap work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('src/data/jamsil'),
-    },
-    {
-      id: 'shared-isolated-qa-runner',
-      reason: 'Shared isolated stadium QA runner changes are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file === 'scripts/run-stadium-isolated-qa.mjs'
-        || file === 'scripts/stadium-seatmap-standard-shell-pr-scope-guard.mjs'
-        || file === 'docs/stadium-seatmap-standard-shell-pr-scope.md',
-    },
-    {
-      id: 'temporary-analysis-files',
-      reason: 'Temporary local analysis scripts are outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file.startsWith('scripts/.tmp_')
-        || file.startsWith('tmp-'),
-    },
-    {
-      id: 'incheon-files',
-      reason: 'Incheon seatmap/visit-guide work is outside the Sajik PR scope',
-      match: (file) => file.startsWith('src/data/incheon'),
-    },
-    {
-      id: 'generated-build-reports',
-      reason: 'Build reports are regenerated artifacts and should not be staged with the Sajik polygon PR by default',
-      match: (file) => [
-        'reports/bundle-guard-report.json',
-        'reports/dist-assets-report.json',
-      ].includes(file),
-    },
-    {
-      id: 'non-sajik-generated-reports',
-      reason: 'Non-Sajik report artifacts are regenerated outputs outside the Sajik polygon v2 release-lock PR',
-      match: (file) => file.startsWith('reports/'),
-    },
-  ];
 
   const markdownCell = (value) => String(value ?? '-')
     .replaceAll('|', '\\|')
@@ -1050,7 +567,14 @@ const runPrScopeGuard = async () => {
     ...rows.map((row) => `| ${row.map(markdownCell).join(' | ')} |`),
   ].join('\n');
 
-  const sorted = (values) => [...values].sort();
+  const pathExists = async (relativePath) => {
+    try {
+      await fs.access(path.join(frontendRoot, relativePath));
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const parseStatusLine = (line) => {
     const status = line.slice(0, 2);
@@ -1059,42 +583,81 @@ const runPrScopeGuard = async () => {
     return { status, file };
   };
 
+  const isCanonicalSajikFile = (file) => file === 'package.json'
+    || file === 'scripts/stadium-seatmap-ops.mjs'
+    || file === 'scripts/stadium-ux-audit.mjs'
+    || file === 'src/components/AppRoutes.tsx'
+    || file === 'src/components/StadiumGuideRuntimeSeatMaps.test.ts'
+    || file === 'src/utils/seatMapPolygonValidator.ts'
+    || file.startsWith('docs/sajik-seatmap-')
+    || file.startsWith('scripts/sajik-seatmap-')
+    || file.startsWith('src/components/sajik/')
+    || file.startsWith('src/data/sajik')
+    || file.startsWith('src/assets/stadiums/lotte/sajik-');
+
+  const isSeparatedWorkstreamFile = (file) => file.startsWith('reports/')
+    || file.startsWith('output/')
+    || file.startsWith('dist/')
+    || file.startsWith('cypress/')
+    || file === 'docs/stadium-seatmap-overlay-checklist.md'
+    || file.startsWith('docs/daegu-')
+    || file.startsWith('docs/daejeon-')
+    || file.startsWith('docs/gwangju-')
+    || file.startsWith('docs/incheon-')
+    || file.startsWith('docs/jamsil-')
+    || file.startsWith('docs/suwon-')
+    || file.startsWith('scripts/daegu-')
+    || file.startsWith('scripts/daejeon-')
+    || file.startsWith('scripts/gwangju-')
+    || file.startsWith('scripts/incheon-')
+    || file.startsWith('scripts/jamsil-')
+    || file.startsWith('scripts/suwon-')
+    || file.startsWith('src/components/daegu/')
+    || file.startsWith('src/components/daejeon/')
+    || file.startsWith('src/components/gwangju/')
+    || file.startsWith('src/components/incheon/')
+    || file.startsWith('src/components/jamsil/')
+    || file.startsWith('src/components/suwon/')
+    || file.startsWith('src/data/daegu')
+    || file.startsWith('src/data/daejeon')
+    || file.startsWith('src/data/gwangju')
+    || file.startsWith('src/data/incheon')
+    || file.startsWith('src/data/jamsil')
+    || file.startsWith('src/data/suwon')
+    || file.startsWith('src/assets/stadiums/kia/')
+    || file === '.env.production'
+    || file === '.gitignore';
+
   const classifyFile = (entry) => {
-    const includedRule = includedRules.find((rule) => rule.match(entry.file));
-    if (includedRule) {
-      return { ...entry, scope: 'included', rule: includedRule.id, reason: includedRule.reason };
+    if (removedHistoricalScriptFiles.includes(entry.file)) {
+      return {
+        ...entry,
+        scope: 'historical-removal',
+        reason: 'Deleted historical Sajik workflow script; recover from Git history only.',
+      };
     }
 
-    const separateRule = separateRules.find((rule) => rule.match(entry.file));
-    if (separateRule) {
-      return { ...entry, scope: 'separate', rule: separateRule.id, reason: separateRule.reason };
+    if (isCanonicalSajikFile(entry.file)) {
+      return {
+        ...entry,
+        scope: 'canonical-sajik',
+        reason: 'Canonical/runtime Sajik release payload or public QA command support.',
+      };
+    }
+
+    if (isSeparatedWorkstreamFile(entry.file)) {
+      return {
+        ...entry,
+        scope: 'separate-workstream',
+        reason: 'Dirty file belongs to a generated artifact, another stadium, or another feature stream.',
+      };
     }
 
     return {
       ...entry,
       scope: 'unexpected',
-      rule: 'unclassified',
-      reason: 'Dirty file is neither documented as Sajik PR payload nor a separated workstream.',
+      reason: 'Dirty file is not part of the Sajik canonical/runtime cleanup scope.',
     };
-  };
-
-  const diffFileList = (expected, actual) => {
-    const actualSet = new Set(actual);
-    const expectedSet = new Set(expected);
-    return {
-      missing: sorted(expected.filter((file) => !actualSet.has(file))),
-      extra: sorted(actual.filter((file) => !expectedSet.has(file))),
-    };
-  };
-
-  const isMixedGitStatus = (status) => status !== '??' && status[0] !== ' ' && status[1] !== ' ';
-  const pathExists = async (file) => {
-    try {
-      await fs.access(path.join(frontendRoot, file));
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   const { stdout } = await execFileAsync('git', ['status', '--short'], { cwd: frontendRoot });
@@ -1105,588 +668,86 @@ const runPrScopeGuard = async () => {
     .map(parseStatusLine)
     .map(classifyFile);
 
-  const includedFiles = dirtyEntries.filter((entry) => entry.scope === 'included');
-  const separateDirtyWork = dirtyEntries.filter((entry) => entry.scope === 'separate');
-  const unexpectedFiles = dirtyEntries.filter((entry) => entry.scope === 'unexpected');
-  const includedDiff = diffFileList(expectedIncludedFiles, includedFiles.map((entry) => entry.file));
-  const missingExpectedIncludedFileDetails = await Promise.all(includedDiff.missing.map(async (file) => {
-    const existsOnDisk = await pathExists(file);
-    return {
-      file,
-      existsOnDisk,
-      dirtyStatus: '-',
-      classification: existsOnDisk ? 'clean-full-release-payload' : 'absent-from-worktree',
-      partialWorktreeInterpretation: existsOnDisk
-        ? 'Expected for the full Sajik release payload, but not dirty in the current partial Stage 01 worktree.'
-        : 'Expected for the full Sajik release payload, but the file is absent from this checkout.',
-      action: existsOnDisk
-        ? 'No partial Stage 01 edit is required; include only when assembling the full Sajik release payload or when the file has a Sajik hunk.'
-        : 'Restore or apply this file before staging the full Sajik release payload.',
-    };
-  }));
-  const missingExpectedIncludedFileDetailsByFile = new Map(
-    missingExpectedIncludedFileDetails.map((entry) => [entry.file, entry]),
-  );
-
-  const entriesByFile = new Map(dirtyEntries.map((entry) => [entry.file, entry]));
-  const mixedStatusFiles = includedFiles
-    .filter((entry) => isMixedGitStatus(entry.status))
-    .map((entry) => ({
-      file: entry.file,
-      status: entry.status,
-      reason: 'Included file has both index and worktree changes; review with git add -p before staging.',
-    }));
-  const untrackedIncludedFiles = includedFiles
-    .filter((entry) => entry.status === '??')
-    .map((entry) => ({
-      file: entry.file,
-      status: entry.status,
-      reason: 'Included file is untracked and must be reviewed before staging.',
-    }));
-  const untrackedIncludedReviewRows = untrackedIncludedFiles.map((entry) => ({
-    ...entry,
-    expectedPayload: expectedIncludedFiles.includes(entry.file),
-    manualReviewRequired: true,
-    stagingAction: 'manual whole-file review, then explicit git add <file> or apply the file in a clean worktree',
-    unexpectedFile: false,
-  }));
-
-  const partialStagingReviewFiles = partialStagingRequiredFiles.map((focus) => {
-    const entry = entriesByFile.get(focus.file);
-    return {
-      file: focus.file,
-      status: entry?.status ?? '-',
-      scope: entry?.scope ?? 'clean-or-missing',
-      rule: entry?.rule ?? '-',
-      reason: focus.reason,
-      includeOnly: focus.includeOnly,
-      exclude: focus.exclude,
-    };
-  });
-  const partialStagingFileSet = new Set(partialStagingRequiredFiles.map((focus) => focus.file));
-  const historicalReferenceFileDetails = await Promise.all(historicalReferenceFiles.map(async (file) => ({
+  const packageJson = JSON.parse(await fs.readFile(path.join(frontendRoot, 'package.json'), 'utf8'));
+  const actualPublicSajikAliases = Object.keys(packageJson.scripts ?? {})
+    .filter((scriptName) => scriptName.includes(':sajik'))
+    .sort();
+  const missingPublicAliases = publicSajikAliases.filter((scriptName) => !actualPublicSajikAliases.includes(scriptName));
+  const extraPublicAliases = actualPublicSajikAliases.filter((scriptName) => !publicSajikAliases.includes(scriptName));
+  const forbiddenPublicAliases = actualPublicSajikAliases.filter((scriptName) => (
+    forbiddenPublicAliasFragments.some((fragment) => scriptName.includes(fragment))
+  ));
+  const removedHistoricalFiles = await Promise.all(removedHistoricalScriptFiles.map(async (file) => ({
     file,
     existsOnDisk: await pathExists(file),
-    dirtyStatus: entriesByFile.get(file)?.status ?? '-',
-    role: 'historical-reference',
-    productionSource: false,
-    action: 'Do not stage for the canonical PR unless a reviewed Sajik hunk exists.',
+    policy: 'removed-from-working-tree',
   })));
-  const wholeFileReviewBeforeStaging = expectedIncludedFiles
-    .filter((file) => !partialStagingFileSet.has(file))
-    .map((file) => {
-      const entry = entriesByFile.get(file);
-      const missingDetail = missingExpectedIncludedFileDetailsByFile.get(file);
-      return {
-        file,
-        status: entry?.status ?? '-',
-        scope: entry?.scope ?? missingDetail?.classification ?? 'missing',
-        rule: entry?.rule ?? '-',
-        action: entry?.status === '??'
-          ? 'manual whole-file review, then explicit git add <file>'
-          : entry
-            ? 'review full file diff, then explicit git add <file>'
-            : missingDetail?.action ?? 'missing from dirty worktree; apply Sajik patch before staging',
-      };
-    });
-  const partialHunkReviewBeforeStaging = partialStagingReviewFiles.map((entry) => ({
-    file: entry.file,
-    status: entry.status,
-    scope: entry.scope,
-    rule: entry.rule,
-    includeOnly: entry.includeOnly,
-    exclude: entry.exclude,
-    action: entry.status === '-'
-      ? 'no dirty hunk currently detected; re-check before staging'
-      : 'manual hunk review with git add -p or clean-worktree patch split',
-  }));
-  const excludedArtifacts = [
-    'reports/stadium/sajik-seatmap-*.json',
-    'reports/stadium/sajik-seatmap-*.md',
-    'reports/stadium/sajik-seatmap-*.png',
-    'reports/stadium/sajik-stage01-operator/*',
-    'reports/bundle-guard-report.json',
-    'reports/dist-assets-report.json',
-    'dist/*',
-    'output/playwright/*',
-    '../output/playwright/*',
-  ];
-  const forbiddenStagingCommands = [
-    'git add .',
-    'git add package.json src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-    'git add reports dist output',
-    'git add reports/bundle-guard-report.json reports/dist-assets-report.json',
-  ];
-
+  const unexpectedFiles = dirtyEntries.filter((entry) => entry.scope === 'unexpected');
   const blockers = [
-    ...unexpectedFiles.map((entry) => `UNCLASSIFIED_DIRTY_FILE:${entry.file}`),
-    ...includedDiff.missing.map((file) => `SAJIK_PR_FILE_MISSING:${file}`),
-    ...includedDiff.extra.map((file) => `SAJIK_PR_FILE_UNEXPECTED:${file}`),
-  ];
-
-  const missingExpectedClassificationCounts = missingExpectedIncludedFileDetails.reduce((counts, entry) => {
-    counts[entry.classification] = (counts[entry.classification] ?? 0) + 1;
-    return counts;
-  }, {});
-  const stage01PartialScopeBlockers = [
-    ...unexpectedFiles.map((entry) => `STAGE01_PARTIAL_UNEXPECTED_DIRTY_FILE:${entry.file}`),
-    ...includedDiff.extra.map((file) => `STAGE01_PARTIAL_UNEXPECTED_INCLUDED_FILE:${file}`),
-    ...missingExpectedIncludedFileDetails
-      .map((entry) => `STAGE01_PARTIAL_MISSING_EXPECTED_FILE:${entry.file}:${entry.classification}`),
-    ...(!stage01PartialReadinessGate.available ? ['STAGE01_PARTIAL_READINESS_GATE_UNAVAILABLE'] : []),
-  ];
-  const fullReleaseStatus = blockers.length === 0 ? 'passed' : 'blocked';
-  const stage01PartialScopeStatus = stage01PartialScopeBlockers.length === 0 ? 'passed' : 'blocked';
-  const commandExitSummary = {
-    fullReleaseCommand: 'npm run stadium:sajik:pr-scope-guard',
-    fullReleaseCommandExit: fullReleaseStatus === 'passed' ? 0 : 1,
-    stage01PartialCommand: 'npm run stadium:sajik:stage01-pr-scope-guard',
-    stage01PartialCommandExit: stage01PartialScopeStatus === 'passed' ? 0 : 1,
-  };
-  const commandExitCode = isStage01PartialMode
-    ? commandExitSummary.stage01PartialCommandExit
-    : commandExitSummary.fullReleaseCommandExit;
-  const stage01PartialScopeGate = {
-    status: stage01PartialScopeStatus,
-    command: 'npm run stadium:sajik:stage01-pr-scope-guard',
-    modeArgument: '--stage01-partial',
-    commandExitCode: commandExitSummary.stage01PartialCommandExit,
-    fullReleaseStatus,
-    doesNotReplaceFullReleaseGate: true,
-    fullReleaseGate: 'npm run qa:stadium:sajik:polygon-v2',
-    passCriteria: {
-      unexpectedFileCount: 0,
-      extraIncludedFileCount: 0,
-      missingExpectedFileCount: 0,
-      absentFromWorktreeCount: 0,
-      stage01ReadinessAvailable: true,
-      safeToRunBulkGitAdd: false,
-    },
-    missingExpectedClassificationCounts,
-    blockerCount: stage01PartialScopeBlockers.length,
-    blockers: stage01PartialScopeBlockers,
-    interpretation: stage01PartialScopeStatus === 'passed'
-      ? 'Stage 01 partial PR scope is acceptable because the canonical payload has no missing, extra, or unexpected files.'
-      : 'Stage 01 partial PR scope is blocked by unexpected files, unexpected included files, absent expected payload files, or unavailable readiness metadata.',
-  };
-
-  const reviewRequiredReasons = [
-    ...mixedStatusFiles.map((entry) => `MIXED_GIT_STATUS:${entry.file}:${entry.status}`),
-    ...untrackedIncludedFiles.map((entry) => `UNTRACKED_INCLUDED_FILE:${entry.file}`),
-    ...partialStagingReviewFiles
-      .filter((entry) => entry.status !== '-')
-      .map((entry) => `PARTIAL_STAGING_REVIEW:${entry.file}:${entry.status}`),
-  ];
-
-  const patchSeparationStatus = blockers.length > 0
-    ? 'blocked'
-    : reviewRequiredReasons.length > 0
-      ? 'review-required'
-      : 'ready';
-  const absentExpectedFileCount = missingExpectedClassificationCounts['absent-from-worktree'] ?? 0;
-  const stage01PartialStagingVerdict = unexpectedFiles.length > 0
-    ? 'blocked-by-unexpected-files'
-    : includedDiff.extra.length > 0
-      ? 'blocked-by-unexpected-included-files'
-      : absentExpectedFileCount > 0
-        ? 'blocked-by-absent-expected-files'
-        : !stage01PartialReadinessGate.available
-          ? 'blocked-by-readiness-unavailable'
-          : stage01PartialScopeStatus === 'passed'
-            ? 'ready-for-partial-stage01-staging'
-            : 'blocked-by-partial-scope';
-  const partialVerificationAfterStaging = [
-    'npm run qa:stadium:sajik:stage01-readiness',
-    'npm run stadium:sajik:stage01-pr-scope-guard',
-    'npm run stadium:sajik:stage01-staged-scope-audit:complete',
-    'node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-    'git diff --check',
-  ];
-  const fullReleaseVerificationAfterStaging = [
-    'npm run stadium:sajik:pr-scope-guard',
-    'npm run stadium:sajik:block-source-duplication-audit',
-    'node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts',
-    'node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts',
-    'npm run stadium:sajik:editor-regression',
-    'npm run stadium:sajik:pr-scope-guard-smoke',
-    'npm run qa:stadium:sajik:full',
-    'npm run qa:stadium:sajik:polygon-v2',
-    'npm run build',
-    'git diff --check',
+    ...unexpectedFiles.map((entry) => `UNEXPECTED_DIRTY_FILE:${entry.file}`),
+    ...missingPublicAliases.map((scriptName) => `MISSING_PUBLIC_ALIAS:${scriptName}`),
+    ...extraPublicAliases.map((scriptName) => `EXTRA_PUBLIC_ALIAS:${scriptName}`),
+    ...forbiddenPublicAliases.map((scriptName) => `FORBIDDEN_PUBLIC_ALIAS:${scriptName}`),
+    ...removedHistoricalFiles.filter((entry) => entry.existsOnDisk).map((entry) => `REMOVED_HISTORICAL_SCRIPT_STILL_EXISTS:${entry.file}`),
   ];
 
   const report = {
     generatedAt: new Date().toISOString(),
-    version: SCOPE_GUARD_VERSION,
-    executionMode,
-    commandExitCode,
-    commandExitSummary,
-    status: fullReleaseStatus,
-    fullReleaseStatus,
-    stage01PartialScopeStatus,
-    doesNotRunGitAdd: true,
-    sourcePolicy,
-    stage01PartialReadinessGate,
-    stage01PartialScopeGate,
+    version: GUARD_VERSION,
+    status: blockers.length === 0 ? 'passed' : 'blocked',
+    historicalPolicy,
     summary: {
-      dirtyFileCount: dirtyEntries.length,
-      includedFileCount: includedFiles.length,
-      separateDirtyWorkCount: separateDirtyWork.length,
-      unexpectedFileCount: unexpectedFiles.length,
-      blockerCount: blockers.length,
-      reviewRequiredReasonCount: reviewRequiredReasons.length,
-      historicalReferenceFileCount: historicalReferenceFiles.length,
-      stage01ReadinessAvailable: stage01PartialReadinessGate.available,
-      executionMode,
-      commandExitCode,
-      fullReleaseStatus,
-      stage01PartialScopeStatus,
+      dirtyFiles: dirtyEntries.length,
+      canonicalSajikFiles: dirtyEntries.filter((entry) => entry.scope === 'canonical-sajik').length,
+      historicalRemovals: dirtyEntries.filter((entry) => entry.scope === 'historical-removal').length,
+      separateWorkstreamFiles: dirtyEntries.filter((entry) => entry.scope === 'separate-workstream').length,
+      unexpectedFiles: unexpectedFiles.length,
+      publicAliasCount: actualPublicSajikAliases.length,
+      removedHistoricalScriptCount: removedHistoricalScriptFiles.length,
+      blockers: blockers.length,
     },
-    prScope: {
-      releasePrScope: [
-      'Sajik official 2026 PNG manual-polygon-v2 release lock',
-      'Sajik canonical single runtime source on operator-reference 1151x1367',
-      'Sajik normalized dataset/export/editor foundation',
-      'Sajik block-source duplication audit guard',
-      'Sajik dev-only editor v1.7 and browser regression',
-        'Sajik hitPath candidate review report',
-        'Sajik Stage 01 prewrite/apply-ready operator gates',
-        'Sajik Stage 01 handoff and Stage 02 entry contract',
-        'Sajik wheelchair marker layer split and transition readiness report',
-        'Sajik editor v1.8 follow-up roadmap documentation',
-        'Sajik focused QA gate and release documentation',
-      ],
-      excludedPrScope: [
-        'Daegu work',
-        'Daejeon work',
-        'Gwangju work',
-        'Suwon work',
-        'non-Sajik stadium UI work',
-        'common seatmap shell migration',
-        'Sajik unrelated first-visit copy/layout UX work',
-        'generated build reports by default',
-        'complete marker-only data model conversion',
-        'actual expanded hitPath coordinates',
-        'editor v1.8 implementation',
-      ],
-    },
-    stagingManifest: {
-      status: patchSeparationStatus,
-      stage01PartialStagingVerdict,
-      releasePayloadFileCount: expectedIncludedFiles.length,
-      historicalReferenceFileCount: historicalReferenceFiles.length,
-      doesNotRunGitAdd: true,
-      safeToRunBulkGitAdd: false,
-      requiresManualHunkReview: partialHunkReviewBeforeStaging.some((entry) => entry.status !== '-'),
-      wholeFileReviewBeforeStaging,
-      partialHunkReviewBeforeStaging,
-      excludedArtifacts,
-      forbiddenStagingCommands,
-      partialVerificationAfterStaging,
-      fullReleaseVerificationAfterStaging,
-    },
-    patchSeparationReadiness: {
-      status: patchSeparationStatus,
-      manualReviewRequired: patchSeparationStatus === 'review-required',
-      safeToRunBulkGitAdd: false,
-      mixedStatusFiles,
-      untrackedIncludedFiles,
-      untrackedIncludedReviewRows,
-      partialStagingReviewFiles,
-      reviewRequiredReasons,
-      recommendedStagingFlow: [
-        'Run npm run stadium:sajik:pr-scope-guard.',
-        'For partial Stage 01 changes, run npm run qa:stadium:sajik:stage01-readiness and npm run stadium:sajik:stage01-pr-scope-guard before staging.',
-        'Use git add -p for package.json, scripts/stadium-seatmap-ops.mjs, src/components/StadiumGuideRuntimeSeatMaps.test.ts, and scripts/stadium-ux-audit.mjs.',
-        'Stage untracked Sajik files explicitly after reviewing them.',
-        'Run npm run stadium:sajik:block-source-duplication-audit before the full release gate.',
-        'Do not stage reports/*, dist/*, or non-Sajik stadium files in the Sajik PR.',
-        'Run npm run qa:stadium:sajik:polygon-v2 after applying the selected patch in a clean worktree.',
-      ],
-    },
-    expectedIncludedFiles,
-    historicalReferenceFiles,
-    historicalReferenceFileDetails,
-    includedInventory: {
-      expectedIncludedFileCount: expectedIncludedFiles.length,
-      actualIncludedFileCount: includedFiles.length,
-      missingExpectedIncludedFiles: includedDiff.missing,
-      missingExpectedIncludedFileDetails,
-      extraIncludedFiles: includedDiff.extra,
-    },
-    includedFiles,
-    separateDirtyWork,
-    unexpectedFiles,
+    publicSajikAliases,
+    actualPublicSajikAliases,
+    missingPublicAliases,
+    extraPublicAliases,
+    forbiddenPublicAliases,
+    removedHistoricalFiles,
+    dirtyEntries,
     blockers,
   };
 
-  const inventoryRows = expectedIncludedFiles.map((file) => {
-    const entry = entriesByFile.get(file);
-    const missingDetail = missingExpectedIncludedFileDetailsByFile.get(file);
-    return [
-      `\`${file}\``,
-      `\`${entry?.status ?? '-'}\``,
-      `\`${entry?.scope ?? missingDetail?.classification ?? 'missing'}\``,
-      `\`${entry?.rule ?? '-'}\``,
-      missingDetail ? `\`${missingDetail.classification}\`` : '`present`',
-    ];
-  });
-  const historicalReferenceRows = historicalReferenceFileDetails.map((entry) => [
-    `\`${entry.file}\``,
-    `\`${entry.existsOnDisk}\``,
-    `\`${entry.dirtyStatus}\``,
-    `\`${entry.role}\``,
-    `\`${entry.productionSource}\``,
-    entry.action,
-  ]);
-
+  const dirtyRows = dirtyEntries.map((entry) => [entry.status, `\`${entry.file}\``, `\`${entry.scope}\``, entry.reason]);
   const markdown = [
     '# Sajik seatmap PR scope guard',
     '',
-    `- version: \`${SCOPE_GUARD_VERSION}\``,
-    `- execution mode: \`${report.executionMode}\``,
+    `- version: \`${GUARD_VERSION}\``,
     `- status: \`${report.status}\``,
-    `- full release status: \`${report.fullReleaseStatus}\``,
-    `- stage 01 partial scope status: \`${report.stage01PartialScopeStatus}\``,
-    `- current command expected exit: \`${report.commandExitCode}\``,
-    `- full release command exit: \`${report.commandExitSummary.fullReleaseCommandExit}\``,
-    `- stage 01 partial command exit: \`${report.commandExitSummary.stage01PartialCommandExit}\``,
-    `- does not run git add: \`${report.doesNotRunGitAdd}\``,
-    `- patch separation readiness: \`${patchSeparationStatus}\``,
-    `- coordinate system: \`${sourcePolicy.coordinateSystem}\``,
-    `- missing baseball data contract: \`${sourcePolicy.missingBaseballDataContract}\``,
+    `- runtime surface: \`${historicalPolicy.runtimeSurface}\``,
+    `- historical replay: restore Stage 01/operator-reference workflows from \`${historicalPolicy.restoreFrom}\` only`,
     '',
     '## Summary',
     '',
-    markdownTable(
-      ['metric', 'value'],
-      Object.entries(report.summary).map(([key, value]) => [key, `\`${value}\``]),
-    ),
+    markdownTable(['metric', 'value'], Object.entries(report.summary).map(([key, value]) => [key, `\`${value}\``])),
+    '',
+    '## Public Sajik Aliases',
+    '',
+    publicSajikAliases.map((scriptName) => `- \`${scriptName}\``).join('\n'),
+    '',
+    '## Removed Historical Scripts',
+    '',
+    markdownTable(['file', 'existsOnDisk', 'policy'], removedHistoricalFiles.map((entry) => [
+      `\`${entry.file}\``,
+      `\`${entry.existsOnDisk}\``,
+      entry.policy,
+    ])),
+    '',
+    '## Dirty Worktree Classification',
+    '',
+    dirtyRows.length > 0 ? markdownTable(['status', 'file', 'scope', 'reason'], dirtyRows) : 'No dirty files.',
     '',
     '## Blockers',
     '',
     blockers.length > 0 ? blockers.map((blocker) => `- \`${blocker}\``).join('\n') : 'No blocking failures.',
-    '',
-    '## Missing Expected Included Files',
-    '',
-    missingExpectedIncludedFileDetails.length > 0
-      ? markdownTable(
-        ['file', 'exists on disk', 'classification', 'partial worktree interpretation', 'action'],
-        missingExpectedIncludedFileDetails.map((entry) => [
-          `\`${entry.file}\``,
-          `\`${entry.existsOnDisk}\``,
-          `\`${entry.classification}\``,
-          entry.partialWorktreeInterpretation,
-          entry.action,
-        ]),
-      )
-      : 'No missing expected included files.',
-    '',
-    '## Historical Reference Files',
-    '',
-    historicalReferenceRows.length > 0
-      ? markdownTable(
-        ['file', 'exists on disk', 'git status', 'role', 'production source', 'action'],
-        historicalReferenceRows,
-      )
-      : 'No historical reference files.',
-    '',
-    '## Stage 01 Partial Scope Status',
-    '',
-    `- status: \`${report.stage01PartialScopeGate.status}\``,
-    `- command: \`${report.stage01PartialScopeGate.command}\``,
-    `- mode argument: \`${report.stage01PartialScopeGate.modeArgument}\``,
-    `- full release status: \`${report.stage01PartialScopeGate.fullReleaseStatus}\``,
-    `- does not replace full release gate: \`${report.stage01PartialScopeGate.doesNotReplaceFullReleaseGate}\``,
-    `- full release gate: \`${report.stage01PartialScopeGate.fullReleaseGate}\``,
-    `- missing expected canonical payload files: \`${report.includedInventory.missingExpectedIncludedFiles.length}\``,
-    `- missing expected absent files: \`${report.stage01PartialScopeGate.missingExpectedClassificationCounts['absent-from-worktree'] ?? 0}\``,
-    `- blocker count: \`${report.stage01PartialScopeGate.blockerCount}\``,
-    `- interpretation: ${report.stage01PartialScopeGate.interpretation}`,
-    '',
-    report.stage01PartialScopeGate.blockers.length > 0
-      ? report.stage01PartialScopeGate.blockers.map((blocker) => `- \`${blocker}\``).join('\n')
-      : 'No Stage 01 partial scope blockers.',
-    '',
-    '## Stage 01 Partial Readiness Gate',
-    '',
-    `- available: \`${report.stage01PartialReadinessGate.available}\``,
-    `- command: \`${report.stage01PartialReadinessGate.command}\``,
-    `- does not run PR scope guard: \`${report.stage01PartialReadinessGate.doesNotRunPrScopeGuard}\``,
-    `- does not run editor regression: \`${report.stage01PartialReadinessGate.doesNotRunEditorRegression}\``,
-    `- does not run build: \`${report.stage01PartialReadinessGate.doesNotRunBuild}\``,
-    `- does not replace full release gate: \`${report.stage01PartialReadinessGate.doesNotReplaceFullReleaseGate}\``,
-    `- full release gate: \`${report.stage01PartialReadinessGate.fullReleaseGate}\``,
-    `- partial blocker interpretation: ${report.stage01PartialReadinessGate.fullReleaseBlockerMeaning}`,
-    '',
-    '### Stage 01 Partial Gate Includes',
-    '',
-    report.stage01PartialReadinessGate.includes.map((command) => `- \`${command}\``).join('\n'),
-    '',
-    '### Stage 01 Partial Gate Excludes',
-    '',
-    report.stage01PartialReadinessGate.excludes.map((command) => `- \`${command}\``).join('\n'),
-    '',
-    '## Patch Separation Readiness',
-    '',
-    `- status: \`${patchSeparationStatus}\``,
-    `- manual review required: \`${report.patchSeparationReadiness.manualReviewRequired}\``,
-    `- safe to run bulk git add: \`${report.patchSeparationReadiness.safeToRunBulkGitAdd}\``,
-    `- mixed status files: \`${mixedStatusFiles.length}\``,
-    `- untracked included files: \`${untrackedIncludedFiles.length}\``,
-    `- partial staging review files: \`${partialStagingReviewFiles.filter((entry) => entry.status !== '-').length}\``,
-    '',
-    reviewRequiredReasons.length > 0
-      ? reviewRequiredReasons.map((reason) => `- \`${reason}\``).join('\n')
-      : 'No patch separation review reasons.',
-    '',
-    '### Untracked Included Files',
-    '',
-    untrackedIncludedReviewRows.length > 0
-      ? markdownTable(
-        ['file', 'git status', 'expected payload', 'manual review required', 'unexpected file', 'staging action', 'reason'],
-        untrackedIncludedReviewRows.map((entry) => [
-          `\`${entry.file}\``,
-          `\`${entry.status}\``,
-          `\`${entry.expectedPayload}\``,
-          `\`${entry.manualReviewRequired}\``,
-          `\`${entry.unexpectedFile}\``,
-          entry.stagingAction,
-          entry.reason,
-        ]),
-      )
-      : 'No untracked included files.',
-    '',
-    '## PR Staging Manifest',
-    '',
-    `- status: \`${report.stagingManifest.status}\``,
-    `- release payload files: \`${report.stagingManifest.releasePayloadFileCount}\``,
-    `- stage 01 partial staging verdict: \`${report.stagingManifest.stage01PartialStagingVerdict}\``,
-    `- does not run git add: \`${report.stagingManifest.doesNotRunGitAdd}\``,
-    `- safe to run bulk git add: \`${report.stagingManifest.safeToRunBulkGitAdd}\``,
-    `- requires manual hunk review: \`${report.stagingManifest.requiresManualHunkReview}\``,
-    '',
-    '### Whole-File Review Before Staging',
-    '',
-    markdownTable(
-      ['file', 'git status', 'scope', 'rule', 'action'],
-      wholeFileReviewBeforeStaging.map((entry) => [
-        `\`${entry.file}\``,
-        `\`${entry.status}\``,
-        `\`${entry.scope}\``,
-        `\`${entry.rule}\``,
-        entry.action,
-      ]),
-    ),
-    '',
-    '### Partial Hunk Review Before Staging',
-    '',
-    markdownTable(
-      ['file', 'git status', 'scope', 'rule', 'include only', 'exclude', 'action'],
-      partialHunkReviewBeforeStaging.map((entry) => [
-        `\`${entry.file}\``,
-        `\`${entry.status}\``,
-        `\`${entry.scope}\``,
-        `\`${entry.rule}\``,
-        entry.includeOnly.map((item) => `\`${item}\``).join('<br>'),
-        entry.exclude.map((item) => `\`${item}\``).join('<br>'),
-        entry.action,
-      ]),
-    ),
-    '',
-    '### Excluded Artifacts',
-    '',
-    excludedArtifacts.map((artifact) => `- \`${artifact}\``).join('\n'),
-    '',
-    '### Forbidden Staging Commands',
-    '',
-    forbiddenStagingCommands.map((command) => `- \`${command}\``).join('\n'),
-    '',
-    '### Partial Verification After Staging',
-    '',
-    report.stagingManifest.partialVerificationAfterStaging.map((command) => `- \`${command}\``).join('\n'),
-    '',
-    '### Full Release Verification After Staging',
-    '',
-    report.stagingManifest.fullReleaseVerificationAfterStaging.map((command) => `- \`${command}\``).join('\n'),
-    '',
-    '### Partial Staging Review Files',
-    '',
-    markdownTable(
-      ['file', 'git status', 'scope', 'rule', 'include only', 'exclude', 'reason'],
-      partialStagingReviewFiles.map((entry) => [
-        `\`${entry.file}\``,
-        `\`${entry.status}\``,
-        `\`${entry.scope}\``,
-        `\`${entry.rule}\``,
-        entry.includeOnly.map((item) => `\`${item}\``).join('<br>'),
-        entry.exclude.map((item) => `\`${item}\``).join('<br>'),
-        entry.reason,
-      ]),
-    ),
-    '',
-    '## Expected Sajik PR Files',
-    '',
-    markdownTable(
-      ['file', 'git status', 'scope', 'rule', 'state'],
-      inventoryRows,
-    ),
-    '',
-    '## Included Dirty Files',
-    '',
-    includedFiles.length > 0
-      ? markdownTable(
-        ['status', 'file', 'rule', 'reason'],
-        includedFiles.map((entry) => [
-          `\`${entry.status}\``,
-          `\`${entry.file}\``,
-          `\`${entry.rule}\``,
-          entry.reason,
-        ]),
-      )
-      : 'No included dirty files.',
-    '',
-    '## Separate Dirty Work',
-    '',
-    separateDirtyWork.length > 0
-      ? markdownTable(
-        ['status', 'file', 'rule', 'reason'],
-        separateDirtyWork.map((entry) => [
-          `\`${entry.status}\``,
-          `\`${entry.file}\``,
-          `\`${entry.rule}\``,
-          entry.reason,
-        ]),
-      )
-      : 'No separate dirty work detected.',
-    '',
-    '## Unexpected Dirty Files',
-    '',
-    unexpectedFiles.length > 0
-      ? markdownTable(
-        ['status', 'file', 'reason'],
-        unexpectedFiles.map((entry) => [
-          `\`${entry.status}\``,
-          `\`${entry.file}\``,
-          entry.reason,
-        ]),
-      )
-      : 'No unexpected dirty files.',
-    '',
-    '## Clean Worktree Patch Flow',
-    '',
-    '1. Run `npm run stadium:sajik:pr-scope-guard` in the mixed worktree.',
-    '2. Review `reports/stadium/sajik-seatmap-pr-scope-guard.md`.',
-    '3. In the Sajik clean worktree, apply only the included Sajik files and selected hunks.',
-    '4. Use `git add -p` for `package.json`, `scripts/stadium-seatmap-ops.mjs`, `src/components/StadiumGuideRuntimeSeatMaps.test.ts`, and `scripts/stadium-ux-audit.mjs`.',
-    '5. Run `npm run qa:stadium:sajik:polygon-v2` before opening the PR.',
-    '',
-    '## Source Policy',
-    '',
-    `- Allowed coordinate source: ${sourcePolicy.allowedCoordinateSource}.`,
-    `- Allowed coordinate system: ${sourcePolicy.coordinateSystem}.`,
-    `- Missing or unclear baseball data uses \`${sourcePolicy.missingBaseballDataContract}\`.`,
-    `- Disallowed sources: ${sourcePolicy.disallowedSources.join(', ')}.`,
     '',
   ].join('\n');
 
@@ -1696,9 +757,9 @@ const runPrScopeGuard = async () => {
 
   console.log(`scope_guard_json:${jsonPath}`);
   console.log(`scope_guard_markdown:${markdownPath}`);
-  console.log(`status:${report.status} fullRelease=${fullReleaseStatus} stage01PartialScope=${stage01PartialScopeStatus} mode=${executionMode} commandExit=${commandExitCode} included=${includedFiles.length} separate=${separateDirtyWork.length} unexpected=${unexpectedFiles.length} blockers=${blockers.length} partialBlockers=${stage01PartialScopeBlockers.length} patchSeparation=${patchSeparationStatus}`);
+  console.log(`status:${report.status} dirty=${report.summary.dirtyFiles} canonical=${report.summary.canonicalSajikFiles} historicalRemovals=${report.summary.historicalRemovals} separate=${report.summary.separateWorkstreamFiles} unexpected=${report.summary.unexpectedFiles} publicAliases=${report.summary.publicAliasCount} blockers=${report.summary.blockers}`);
 
-  if (commandExitCode !== 0) {
+  if (blockers.length > 0) {
     process.exitCode = 1;
   }
 };
@@ -1713,43 +774,25 @@ const runPrScopeGuardSmoke = async () => {
   const frontendRoot = path.resolve(scriptDir, '..');
   const guardScript = path.join(scriptDir, 'sajik-seatmap-editor-scope.mjs');
   const reportJsonPath = path.join(frontendRoot, 'reports/stadium/sajik-seatmap-pr-scope-guard.json');
-  const reportMarkdownPath = path.join(frontendRoot, 'reports/stadium/sajik-seatmap-pr-scope-guard.md');
   const smokeJsonPath = path.join(frontendRoot, 'reports/stadium/sajik-seatmap-pr-scope-guard-smoke.json');
   const smokeMarkdownPath = path.join(frontendRoot, 'reports/stadium/sajik-seatmap-pr-scope-guard-smoke.md');
   const packageJsonPath = path.join(frontendRoot, 'package.json');
-
-  const stage01SummaryScriptFiles = [    'scripts/sajik-seatmap-stage01.mjs',
+  const expectedPublicAliases = [
+    'qa:stadium:sajik:full',
+    'qa:stadium:sajik:mobile',
+    'qa:stadium:sajik:release-lock',
+    'stadium:sajik:alignment-audit',
+    'stadium:sajik:block-source-duplication-audit',
+    'stadium:sajik:pixel-components',
+    'stadium:sajik:status',
+    'stadium:sajik:trace-manifest',
+  ].sort();
+  const removedHistoricalScriptFiles = [
+    'scripts/sajik-seatmap-hitpath-candidate-review.mjs',
+    'scripts/sajik-seatmap-operator-reference.mjs',
+    'scripts/sajik-seatmap-stage01.mjs',
+    'scripts/sajik-seatmap-zone-precision-worksets.mjs',
   ];
-
-  const stage01SummaryPackageScripts = {
-    'stadium:sajik:stage01-next-action-packet': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-next-action-packet',
-    'stadium:sajik:stage01-target-review-packet': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-review-packet',
-    'stadium:sajik:stage01-target-image-analysis-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-image-analysis-smoke',
-    'stadium:sajik:stage01-all-target-review-packets': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-review-packets',
-    'stadium:sajik:stage01-all-target-image-analysis-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-image-analysis-smoke',
-    'stadium:sajik:stage01-target-entry-template-readiness-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-template-readiness-smoke',
-    'stadium:sajik:stage01-target-entry-preflight': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-preflight',
-    'stadium:sajik:stage01-target-entry-preflight-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-entry-preflight-smoke',
-    'stadium:sajik:stage01-target-approval-gate': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-approval-gate',
-    'stadium:sajik:stage01-target-approval-gate-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-approval-gate-smoke',
-    'stadium:sajik:stage01-all-target-approval-readiness': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-readiness',
-    'stadium:sajik:stage01-all-target-approval-readiness-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-readiness-smoke',
-    'stadium:sajik:stage01-all-target-approval-input-guide': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-input-guide',
-    'stadium:sajik:stage01-all-target-approval-input-guide-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-all-target-approval-input-guide-smoke',
-    'stadium:sajik:stage01-operator-input-intake-gate': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-input-intake-gate',
-    'stadium:sajik:stage01-operator-input-intake-gate-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-operator-input-intake-gate-smoke',
-    'stadium:sajik:stage01-readiness-summary': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-readiness-summary',
-    'stadium:sajik:stage01-readiness-summary-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-readiness-summary-smoke',
-    'stadium:sajik:stage01-target-apply-precheck': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-target-apply-precheck',
-    'stadium:sajik:stage01-131-apply-path-status': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-131-apply-path-status',
-    'stadium:sajik:stage01-completion-gate': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate',
-    'stadium:sajik:stage01-completion-gate:complete': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate:complete',
-    'stadium:sajik:stage01-completion-gate-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-completion-gate-smoke',
-    'stadium:sajik:stage01-staged-scope-audit-smoke': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-staged-scope-audit-smoke',
-    'stadium:sajik:stage01-pr-scope-guard': 'node scripts/stadium-seatmap-ops.mjs sajik stage01-pr-scope-guard',
-    'stadium:sajik:block-source-duplication-audit': 'node scripts/stadium-seatmap-ops.mjs sajik block-source-duplication-audit',
-    'qa:stadium:sajik:full': 'node scripts/stadium-seatmap-ops.mjs sajik full',
-  };
 
   const failures = [];
   const expect = (condition, message) => {
@@ -1758,307 +801,67 @@ const runPrScopeGuardSmoke = async () => {
     }
   };
 
-  const runGuardSnapshot = (label, args) => {
-    const result = spawnSync(process.execPath, [guardScript, ...args], {
-      cwd: frontendRoot,
-      encoding: 'utf8',
-    });
+  const result = spawnSync(process.execPath, [guardScript, 'pr-scope-guard'], {
+    cwd: frontendRoot,
+    encoding: 'utf8',
+  });
 
-    if (result.stdout) {
-      process.stdout.write(result.stdout);
-    }
-
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
-
-    if (result.error) {
-      failures.push(`${label} scope guard spawn failed: ${result.error.message}`);
-    }
-
-    expect([0, 1].includes(result.status), `unexpected ${label} scope guard exit status: ${result.status}`);
-    expect(fs.existsSync(reportJsonPath), `missing ${label} scope guard JSON report: ${reportJsonPath}`);
-    expect(fs.existsSync(reportMarkdownPath), `missing ${label} scope guard markdown report: ${reportMarkdownPath}`);
-
-    const report = fs.existsSync(reportJsonPath)
-      ? JSON.parse(fs.readFileSync(reportJsonPath, 'utf8'))
-      : null;
-    const markdown = fs.existsSync(reportMarkdownPath)
-      ? fs.readFileSync(reportMarkdownPath, 'utf8')
-      : '';
-
-    return {
-      label,
-      args,
-      exitCode: result.status,
-      report,
-      markdown,
-    };
-  };
-
-  const fullReleaseRun = runGuardSnapshot('full-release', ['pr-scope-guard']);
-  const partialRun = runGuardSnapshot('stage01-partial', ['pr-scope-guard', '--stage01-partial']);
-  const guardResult = { status: fullReleaseRun.exitCode };
-  const partialGuardResult = { status: partialRun.exitCode };
-  const report = partialRun.report;
-  const markdown = partialRun.markdown;
-  const fullReleaseReport = fullReleaseRun.report;
-  const partialReport = partialRun.report;
-
-  if (report) {
-    const gate = report.stage01PartialReadinessGate;
-    const partialScopeGate = report.stage01PartialScopeGate;
-    const expectedIncludedFiles = report.expectedIncludedFiles ?? [];
-    const historicalReferenceFiles = report.historicalReferenceFiles ?? [];
-    const historicalReferenceFileDetails = report.historicalReferenceFileDetails ?? [];
-    const missingExpectedIncludedFiles = report.includedInventory?.missingExpectedIncludedFiles ?? [];
-    const missingExpectedIncludedFileDetails = report.includedInventory?.missingExpectedIncludedFileDetails ?? [];
-    const partialVerificationAfterStaging = report.stagingManifest?.partialVerificationAfterStaging ?? [];
-    const fullReleaseVerificationAfterStaging = report.stagingManifest?.fullReleaseVerificationAfterStaging ?? [];
-    const recommendedStagingFlow = report.patchSeparationReadiness?.recommendedStagingFlow ?? [];
-    const untrackedIncludedFiles = report.patchSeparationReadiness?.untrackedIncludedFiles ?? [];
-    const untrackedIncludedReviewRows = report.patchSeparationReadiness?.untrackedIncludedReviewRows ?? [];
-    const reviewRequiredReasons = report.patchSeparationReadiness?.reviewRequiredReasons ?? [];
-    const missingExpectedIncludedFilesOnDisk = expectedIncludedFiles
-      .filter((file) => !fs.existsSync(path.join(frontendRoot, file)));
-    const missingHistoricalReferenceFilesOnDisk = historicalReferenceFiles
-      .filter((file) => !fs.existsSync(path.join(frontendRoot, file)));
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-
-    expect(fullReleaseReport?.executionMode === 'full-release', 'fullReleaseRun.executionMode must be full-release');
-    expect(partialReport?.executionMode === 'stage01-partial', 'partialRun.executionMode must be stage01-partial');
-    expect(fullReleaseRun.exitCode === fullReleaseReport?.commandExitCode, 'fullReleaseRun.exitCode must match commandExitCode');
-    expect(partialRun.exitCode === partialReport?.commandExitCode, 'partialRun.exitCode must match commandExitCode');
-    expect(fullReleaseReport?.commandExitSummary?.fullReleaseCommandExit === fullReleaseRun.exitCode, 'fullReleaseRun command summary must mirror exit code');
-    expect(partialReport?.commandExitSummary?.stage01PartialCommandExit === partialRun.exitCode, 'partialRun command summary must mirror exit code');
-    expect(fullReleaseReport?.commandExitSummary?.stage01PartialCommandExit === partialReport?.commandExitSummary?.stage01PartialCommandExit, 'full and partial reports must agree on stage01 partial command exit');
-    expect(fullReleaseReport?.stage01PartialScopeStatus === partialReport?.stage01PartialScopeStatus, 'full and partial reports must agree on stage01PartialScopeStatus');
-    expect(report.executionMode === 'stage01-partial', 'latest report snapshot must be from stage01-partial executionMode');
-    expect(report.doesNotRunGitAdd === true, 'scope guard must not run git add');
-    expect(typeof report.commandExitCode === 'number', 'scope guard report must include commandExitCode');
-    expect(report.commandExitCode === partialRun.exitCode, 'latest report commandExitCode must match stage01 partial exit');
-    expect(report.commandExitSummary?.fullReleaseCommandExit === guardResult.status, 'commandExitSummary must preserve full release exit code');
-    expect(report.commandExitSummary?.stage01PartialCommandExit === partialGuardResult.status, 'commandExitSummary must preserve stage01 partial exit code');
-    expect(['passed', 'blocked'].includes(report.fullReleaseStatus), 'fullReleaseStatus must be passed or blocked');
-    expect(['passed', 'blocked'].includes(report.stage01PartialScopeStatus), 'stage01PartialScopeStatus must be passed or blocked');
-    expect(report.fullReleaseStatus === report.status, 'top-level status must match fullReleaseStatus');
-    expect(report.stagingManifest?.releasePayloadFileCount === 17, 'releasePayloadFileCount must be 17');
-    expect(report.stagingManifest?.historicalReferenceFileCount === 17, 'historicalReferenceFileCount must be 17');
-    expect(report.stagingManifest?.stage01PartialStagingVerdict === 'ready-for-partial-stage01-staging', 'stage01PartialStagingVerdict must be ready-for-partial-stage01-staging');
-    expect(expectedIncludedFiles.length === 17, 'expectedIncludedFiles must contain 17 release payload files');
-    expect(historicalReferenceFiles.length === 17, 'historicalReferenceFiles must contain 17 historical reference files');
-    expect(historicalReferenceFileDetails.length === historicalReferenceFiles.length, 'historical reference file details must mirror historical reference files');
-    expect(missingExpectedIncludedFilesOnDisk.length === 0, `expected included files must exist on disk: ${missingExpectedIncludedFilesOnDisk.join(', ')}`);
-    expect(missingHistoricalReferenceFilesOnDisk.length === 0, `historical reference files must exist on disk: ${missingHistoricalReferenceFilesOnDisk.join(', ')}`);
-    for (const entry of historicalReferenceFileDetails) {
-      expect(historicalReferenceFiles.includes(entry.file), `historical reference detail must be part of historicalReferenceFiles: ${entry.file}`);
-      expect(entry.existsOnDisk === true, `historical reference file must exist on disk: ${entry.file}`);
-      expect(entry.productionSource === false, `historical reference file must not be marked as production source: ${entry.file}`);
-      expect(!expectedIncludedFiles.includes(entry.file), `historical reference file must not be release payload: ${entry.file}`);
-    }
-    expect(report.summary?.unexpectedFileCount === 0, 'scope guard smoke expects zero unexpected dirty files in the Sajik PR inventory');
-    expect(report.stagingManifest?.safeToRunBulkGitAdd === false, 'safeToRunBulkGitAdd must be false');
-    expect(report.summary?.stage01ReadinessAvailable === true, 'stage01ReadinessAvailable must be true');
-    expect(report.summary?.stage01PartialScopeStatus === report.stage01PartialScopeStatus, 'summary must mirror stage01PartialScopeStatus');
-    expect(Boolean(partialScopeGate), 'stage01PartialScopeGate is required');
-    expect(partialScopeGate?.command === 'npm run stadium:sajik:stage01-pr-scope-guard', 'stage01 partial scope command mismatch');
-    expect(partialScopeGate?.modeArgument === '--stage01-partial', 'stage01 partial mode argument mismatch');
-    expect(partialScopeGate?.doesNotReplaceFullReleaseGate === true, 'stage01 partial scope gate must not replace full release gate');
-    expect(partialScopeGate?.fullReleaseGate === 'npm run qa:stadium:sajik:polygon-v2', 'stage01 partial scope full release gate mismatch');
-    expect(partialScopeGate?.passCriteria?.unexpectedFileCount === 0, 'stage01 partial scope pass criteria must require zero unexpected files');
-    expect(partialScopeGate?.passCriteria?.missingExpectedFileCount === 0, 'stage01 partial scope pass criteria must require zero missing canonical payload files');
-    expect(partialScopeGate?.passCriteria?.absentFromWorktreeCount === 0, 'stage01 partial scope pass criteria must require absentFromWorktreeCount zero');
-    expect(partialScopeGate?.passCriteria?.safeToRunBulkGitAdd === false, 'stage01 partial scope pass criteria must keep bulk git add unsafe');
-    expect(partialScopeGate?.fullReleaseStatus === report.fullReleaseStatus, 'stage01 partial scope gate must mirror fullReleaseStatus');
-    expect(partialScopeGate?.status === report.stage01PartialScopeStatus, 'stage01 partial scope gate must mirror stage01PartialScopeStatus');
-    expect(
-      report.stage01PartialScopeStatus === 'passed' ? partialGuardResult.status === 0 : partialGuardResult.status === 1,
-      `stage01 partial scope guard exit must match partial status: ${report.stage01PartialScopeStatus}`,
-    );
-    expect(
-      report.stage01PartialScopeStatus !== 'passed' || partialScopeGate?.blockerCount === 0,
-      'passed stage01 partial scope must have zero blockers',
-    );
-    expect(
-      missingExpectedIncludedFileDetails.length === missingExpectedIncludedFiles.length,
-      'missing expected included file details must mirror missing expected included files',
-    );
-    for (const entry of missingExpectedIncludedFileDetails) {
-      expect(expectedIncludedFiles.includes(entry.file), `missing expected detail must be part of expectedIncludedFiles: ${entry.file}`);
-      expect(typeof entry.existsOnDisk === 'boolean', `missing expected detail must include existsOnDisk: ${entry.file}`);
-      expect(
-        ['clean-full-release-payload', 'absent-from-worktree'].includes(entry.classification),
-        `missing expected detail must include a known classification: ${entry.file}`,
-      );
-      expect(
-        String(entry.partialWorktreeInterpretation ?? '').includes('full Sajik release payload'),
-        `missing expected detail must explain full release payload meaning: ${entry.file}`,
-      );
-    }
-    for (const entry of untrackedIncludedFiles) {
-      expect(expectedIncludedFiles.includes(entry.file), `untracked included file must be part of expectedIncludedFiles: ${entry.file}`);
-      expect(
-        reviewRequiredReasons.includes(`UNTRACKED_INCLUDED_FILE:${entry.file}`),
-        `untracked included file must be represented as a review-required reason: ${entry.file}`,
-      );
-    }
-    expect(
-      untrackedIncludedReviewRows.length === untrackedIncludedFiles.length,
-      'untracked included review rows must mirror untracked included files',
-    );
-    for (const entry of untrackedIncludedReviewRows) {
-      expect(entry.expectedPayload === true, `untracked included review row must be expected payload: ${entry.file}`);
-      expect(entry.manualReviewRequired === true, `untracked included review row must require manual review: ${entry.file}`);
-      expect(entry.unexpectedFile === false, `untracked included review row must not be treated as unexpected: ${entry.file}`);
-      expect(String(entry.stagingAction ?? '').includes('manual whole-file review'), `untracked included review row must explain whole-file review: ${entry.file}`);
-    }
-    for (const file of stage01SummaryScriptFiles) {
-      expect(historicalReferenceFiles.includes(file), `historicalReferenceFiles must include ${file}`);
-      expect(fs.existsSync(path.join(frontendRoot, file)), `Stage 01 summary script must exist on disk: ${file}`);
-    }
-    for (const [scriptName, expectedCommand] of Object.entries(stage01SummaryPackageScripts)) {
-      expect(packageJson.scripts?.[scriptName] === expectedCommand, `package script ${scriptName} must point to ${expectedCommand}`);
-    }
-    expect(Boolean(gate), 'stage01PartialReadinessGate is required');
-    expect(gate?.available === true, 'stage01PartialReadinessGate.available must be true');
-    expect(gate?.command === 'npm run qa:stadium:sajik:stage01-readiness', 'stage01 partial readiness command mismatch');
-    expect(gate?.doesNotRunPrScopeGuard === true, 'stage01 partial readiness gate must not run pr-scope-guard');
-    expect(gate?.doesNotRunEditorRegression === true, 'stage01 partial readiness gate must not run editor regression');
-    expect(gate?.doesNotRunBuild === true, 'stage01 partial readiness gate must not run build');
-    expect(gate?.doesNotReplaceFullReleaseGate === true, 'stage01 partial readiness gate must not replace full release gate');
-    expect(gate?.fullReleaseGate === 'npm run qa:stadium:sajik:polygon-v2', 'full release gate mismatch');
-    expect(gate?.fullReleaseBlockerMeaning?.includes('clean historical reference files are not blockers'), 'full release blocker meaning must separate clean historical reference files from canonical blockers');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-real-approval-readiness'), 'partial gate must include real approval readiness');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-prewrite-smoke'), 'partial gate must include prewrite smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-approved-dry-run'), 'partial gate must include approved dry-run');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-applied-dry-run'), 'partial gate must include applied dry-run');
-    expect(gate?.includes?.includes('node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts'), 'partial gate must include Sajik-focused static contract test');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-next-action-packet'), 'partial gate must include next-action packet');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-review-packet'), 'partial gate must include target review packet');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-image-analysis-smoke'), 'partial gate must include target image-analysis smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-review-packets'), 'partial gate must include all-target official PNG review packets');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-image-analysis-smoke'), 'partial gate must include all-target image-analysis smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-entry-template-readiness-smoke'), 'partial gate must include target entry template readiness smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-entry-preflight'), 'partial gate must include target entry preflight');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-entry-preflight-smoke'), 'partial gate must include target entry preflight smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-approval-gate'), 'partial gate must include target approval gate');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-approval-gate-smoke'), 'partial gate must include target approval gate smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-approval-readiness'), 'partial gate must include all-target approval readiness');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-approval-readiness-smoke'), 'partial gate must include all-target approval readiness smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-approval-input-guide'), 'partial gate must include all-target approval input guide');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-all-target-approval-input-guide-smoke'), 'partial gate must include all-target approval input guide smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-operator-input-intake-gate'), 'partial gate must include operator input intake gate');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-operator-input-intake-gate-smoke'), 'partial gate must include operator input intake gate smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-target-apply-precheck'), 'partial gate must include target apply precheck');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-131-apply-path-status'), 'partial gate must include 131 apply path status');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-completion-gate'), 'partial gate must include completion gate');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-completion-gate-smoke'), 'partial gate must include completion gate smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-staged-scope-audit-smoke'), 'partial gate must include staged scope audit smoke');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-readiness-summary'), 'partial gate must include readiness summary');
-    expect(gate?.includes?.includes('npm run stadium:sajik:stage01-readiness-summary-smoke'), 'partial gate must include readiness summary smoke');
-    expect(gate?.excludes?.includes('npm run stadium:sajik:pr-scope-guard'), 'partial gate must exclude pr-scope-guard');
-    expect(gate?.excludes?.includes('npm run stadium:sajik:editor-regression'), 'partial gate must exclude editor regression');
-    expect(gate?.excludes?.includes('npm run build'), 'partial gate must exclude build');
-    expect(partialVerificationAfterStaging.includes('npm run qa:stadium:sajik:stage01-readiness'), 'partialVerificationAfterStaging must include partial readiness gate');
-    expect(partialVerificationAfterStaging.includes('npm run stadium:sajik:stage01-pr-scope-guard'), 'partialVerificationAfterStaging must include stage01 partial scope guard');
-    expect(partialVerificationAfterStaging.includes('npm run stadium:sajik:stage01-staged-scope-audit:complete'), 'partialVerificationAfterStaging must include staged scope audit complete gate');
-    expect(partialVerificationAfterStaging.includes('node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts'), 'partialVerificationAfterStaging must include focused Sajik static test');
-    expect(partialVerificationAfterStaging.includes('git diff --check'), 'partialVerificationAfterStaging must include git diff --check');
-    expect(!partialVerificationAfterStaging.includes('npm run qa:stadium:sajik:polygon-v2'), 'partialVerificationAfterStaging must not include full release gate');
-    expect(!partialVerificationAfterStaging.includes('npm run build'), 'partialVerificationAfterStaging must not include build');
-    expect(fullReleaseVerificationAfterStaging.includes('npm run qa:stadium:sajik:polygon-v2'), 'fullReleaseVerificationAfterStaging must include full release gate');
-    expect(fullReleaseVerificationAfterStaging.includes('npm run stadium:sajik:editor-regression'), 'fullReleaseVerificationAfterStaging must include editor regression');
-    expect(fullReleaseVerificationAfterStaging.includes('npm run build'), 'fullReleaseVerificationAfterStaging must include build');
-    expect(!fullReleaseVerificationAfterStaging.includes('npm run qa:stadium:sajik:stage01-readiness'), 'fullReleaseVerificationAfterStaging must not include partial readiness gate');
-    expect(fullReleaseVerificationAfterStaging.includes('npm run stadium:sajik:block-source-duplication-audit'), 'fullReleaseVerificationAfterStaging must include block source duplication audit');
-    expect(fullReleaseVerificationAfterStaging.includes('npm run qa:stadium:sajik:full'), 'fullReleaseVerificationAfterStaging must include Sajik full visual QA');
-    expect(recommendedStagingFlow.some((line) => line.includes('qa:stadium:sajik:stage01-readiness')), 'recommended staging flow must mention partial readiness gate');
-    expect(recommendedStagingFlow.some((line) => line.includes('stadium:sajik:stage01-pr-scope-guard')), 'recommended staging flow must mention partial scope guard');
-    expect(guardResult.status === 0 || report.status === 'blocked', 'nonzero scope guard exit is allowed only for blocked reports');
+  if (result.stdout) {
+    process.stdout.write(result.stdout);
+  }
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
+  if (result.error) {
+    failures.push(`scope guard spawn failed: ${result.error.message}`);
   }
 
-  expect(markdown.includes('## Stage 01 Partial Scope Status'), 'markdown must include Stage 01 Partial Scope Status section');
-  expect(markdown.includes('execution mode'), 'markdown must include execution mode summary');
-  expect(markdown.includes('current command expected exit'), 'markdown must include current command expected exit summary');
-  expect(markdown.includes('full release command exit'), 'markdown must include full release command exit summary');
-  expect(markdown.includes('stage 01 partial command exit'), 'markdown must include stage01 partial command exit summary');
-  expect(markdown.includes('stage01PartialScopeStatus'), 'markdown must include stage01PartialScopeStatus summary');
-  expect(markdown.includes('stage 01 partial staging verdict'), 'markdown must include stage01 partial staging verdict');
-  expect(markdown.includes('ready-for-partial-stage01-staging'), 'markdown must include ready partial staging verdict');
-  expect(markdown.includes('### Partial Verification After Staging'), 'markdown must include Partial Verification After Staging section');
-  expect(markdown.includes('### Full Release Verification After Staging'), 'markdown must include Full Release Verification After Staging section');
-  expect(markdown.includes('npm run stadium:sajik:stage01-pr-scope-guard'), 'markdown must mention stage01 partial scope command');
-  expect(markdown.includes('No Stage 01 partial scope blockers.') || markdown.includes('STAGE01_PARTIAL_'), 'markdown must explain stage01 partial scope blockers');
-  expect(markdown.includes('## Stage 01 Partial Readiness Gate'), 'markdown must include Stage 01 Partial Readiness Gate section');
-  expect(markdown.includes('## Missing Expected Included Files'), 'markdown must include Missing Expected Included Files section');
-  expect(markdown.includes('clean-full-release-payload') || markdown.includes('No missing expected included files.'), 'markdown must classify missing full release payload files');
-  expect(markdown.includes('## Historical Reference Files'), 'markdown must include Historical Reference Files section');
-  expect(markdown.includes('historical-reference'), 'markdown must classify preserved historical reference files');
-  expect(markdown.includes('production source'), 'markdown must show historical files are not production source');
-  expect(markdown.includes('### Untracked Included Files'), 'markdown must include Untracked Included Files section');
-  const latestUntrackedIncludedFiles = report?.patchSeparationReadiness?.untrackedIncludedFiles ?? [];
-  expect(
-    latestUntrackedIncludedFiles.length === 0 || markdown.includes('manual whole-file review'),
-    'markdown must describe manual whole-file review for untracked included files',
-  );
-  expect(markdown.includes('stage01ReadinessAvailable'), 'markdown must include stage01ReadinessAvailable summary');
-  expect(markdown.includes('npm run qa:stadium:sajik:stage01-readiness'), 'markdown must mention partial readiness command');
-  expect(markdown.includes('does not replace full release gate'), 'markdown must state partial gate does not replace full release gate');
+  const report = fs.existsSync(reportJsonPath)
+    ? JSON.parse(fs.readFileSync(reportJsonPath, 'utf8'))
+    : null;
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const actualPublicAliases = Object.keys(packageJson.scripts ?? {})
+    .filter((scriptName) => scriptName.includes(':sajik'))
+    .sort();
 
-  const buildRunSnapshot = (run) => ({
-    label: run.label,
-    args: run.args,
-    exitCode: run.exitCode,
-    executionMode: run.report?.executionMode ?? null,
-    commandExitCode: run.report?.commandExitCode ?? null,
-    status: run.report?.status ?? null,
-    fullReleaseStatus: run.report?.fullReleaseStatus ?? null,
-    stage01PartialScopeStatus: run.report?.stage01PartialScopeStatus ?? null,
-    stage01PartialStagingVerdict: run.report?.stagingManifest?.stage01PartialStagingVerdict ?? null,
-    blockerCount: run.report?.summary?.blockerCount ?? null,
-    stage01PartialBlockerCount: run.report?.stage01PartialScopeGate?.blockerCount ?? null,
-    unexpectedFileCount: run.report?.summary?.unexpectedFileCount ?? null,
-    missingExpectedFileCount: run.report?.includedInventory?.missingExpectedIncludedFiles?.length ?? null,
-    cleanFullReleasePayloadMissingCount: run.report?.stage01PartialScopeGate?.missingExpectedClassificationCounts?.['clean-full-release-payload'] ?? 0,
-    absentFromWorktreeCount: run.report?.stage01PartialScopeGate?.missingExpectedClassificationCounts?.['absent-from-worktree'] ?? 0,
-    partialVerificationAfterStaging: run.report?.stagingManifest?.partialVerificationAfterStaging ?? [],
-    fullReleaseVerificationAfterStaging: run.report?.stagingManifest?.fullReleaseVerificationAfterStaging ?? [],
-  });
+  expect(Boolean(report), `missing scope guard report: ${reportJsonPath}`);
+  expect([0, 1].includes(result.status), `scope guard exit must be 0 or 1, got ${result.status}`);
+  if (report) {
+    expect(report.version === 'SAJIK_PR_SCOPE_GUARD_V3_CANONICAL_RUNTIME_ONLY', 'scope guard version mismatch');
+    expect(['passed', 'blocked'].includes(report.status), 'scope guard status must be passed or blocked');
+    expect((report.status === 'passed' ? 0 : 1) === result.status, 'scope guard exit must match report status');
+    expect(report.historicalPolicy?.restoreFrom === 'Git history', 'historical workflows must be restored from Git history only');
+    expect(JSON.stringify(report.publicSajikAliases) === JSON.stringify(expectedPublicAliases), 'expected public alias list mismatch');
+    expect(JSON.stringify(actualPublicAliases) === JSON.stringify(expectedPublicAliases), 'package Sajik aliases must match canonical public list');
+    expect((report.forbiddenPublicAliases ?? []).length === 0, 'forbidden historical Sajik aliases must not be public');
+    expect((report.missingPublicAliases ?? []).length === 0, 'canonical public Sajik aliases must not be missing');
+    expect((report.extraPublicAliases ?? []).length === 0, 'package must not expose extra Sajik aliases');
+    for (const file of removedHistoricalScriptFiles) {
+      expect(!fs.existsSync(path.join(frontendRoot, file)), `removed historical script must stay absent: ${file}`);
+    }
+    for (const entry of report.removedHistoricalFiles ?? []) {
+      expect(entry.existsOnDisk === false, `removed historical script still exists on disk: ${entry.file}`);
+    }
+  }
 
   const smokeReport = {
     generatedAt: new Date().toISOString(),
-    status: failures.length > 0 ? 'failed' : 'passed',
-    reportJsonPath,
-    reportMarkdownPath,
-    fullReleaseRun: buildRunSnapshot(fullReleaseRun),
-    partialRun: buildRunSnapshot(partialRun),
+    version: 'SAJIK_PR_SCOPE_GUARD_SMOKE_V3_CANONICAL_RUNTIME_ONLY',
+    status: failures.length === 0 ? 'passed' : 'failed',
+    guardExitCode: result.status,
+    guardStatus: report?.status ?? 'missing',
+    publicAliasCount: actualPublicAliases.length,
+    removedHistoricalScriptFiles,
     failures,
   };
-
   const smokeMarkdown = [
     '# Sajik seatmap PR scope guard smoke',
     '',
     `- status: \`${smokeReport.status}\``,
-    `- full release run exit: \`${smokeReport.fullReleaseRun.exitCode}\``,
-    `- full release run status: \`${smokeReport.fullReleaseRun.status}\``,
-    `- full release run execution mode: \`${smokeReport.fullReleaseRun.executionMode}\``,
-    `- partial run exit: \`${smokeReport.partialRun.exitCode}\``,
-    `- partial run status: \`${smokeReport.partialRun.status}\``,
-    `- partial run execution mode: \`${smokeReport.partialRun.executionMode}\``,
-    `- partial run stage01 scope: \`${smokeReport.partialRun.stage01PartialScopeStatus}\``,
-    `- partial run staging verdict: \`${smokeReport.partialRun.stage01PartialStagingVerdict}\``,
-    '',
-    '## Full Release Run',
-    '',
-    '```json',
-    JSON.stringify(smokeReport.fullReleaseRun, null, 2),
-    '```',
-    '',
-    '## Stage 01 Partial Run',
-    '',
-    '```json',
-    JSON.stringify(smokeReport.partialRun, null, 2),
-    '```',
+    `- guard exit: \`${smokeReport.guardExitCode}\``,
+    `- guard status: \`${smokeReport.guardStatus}\``,
+    `- public aliases: \`${smokeReport.publicAliasCount}\``,
+    `- historical replay: \`Git history\` only`,
     '',
     '## Failures',
     '',
@@ -2080,7 +883,7 @@ const runPrScopeGuardSmoke = async () => {
     process.exit(1);
   }
 
-  console.log(`status:passed guardStatus=${report?.status ?? 'unknown'} guardExit=${guardResult.status} stage01PartialScope=${report?.stage01PartialScopeStatus ?? 'unknown'} stage01PartialExit=${partialGuardResult.status} releasePayloadFileCount=${report?.stagingManifest?.releasePayloadFileCount ?? 'unknown'} stage01ReadinessAvailable=${report?.summary?.stage01ReadinessAvailable ?? 'unknown'}`);
+  console.log(`status:passed guardStatus=${smokeReport.guardStatus} guardExit=${smokeReport.guardExitCode} publicAliases=${smokeReport.publicAliasCount}`);
 };
 
 const TASKS = {
