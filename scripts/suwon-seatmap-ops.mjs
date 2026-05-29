@@ -994,6 +994,7 @@ const runReleaseGate = async () => {
     const source = await readText('src/data/suwonSeatData.ts');
     const releaseLockSource = await readText('docs/suwon-seatmap-release-lock.md');
     const packageSource = await readText('package.json');
+    const dispatcherSource = await readText('scripts/stadium-seatmap-ops.mjs');
     const auditSource = await readText('scripts/stadium-ux-audit.mjs');
     const visualReviewSource = await readText('scripts/suwon-seatmap-ops.mjs');
     const precisionWorksetSource = await readText('scripts/suwon-seatmap-ops.mjs');
@@ -1056,12 +1057,20 @@ const runReleaseGate = async () => {
       ['unused hit exception notes are empty', unusedHitExceptionIds.length === 0],
       ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
       ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
+      ['package mobile script', packageSource.includes('"qa:stadium:suwon:mobile": "node scripts/stadium-seatmap-ops.mjs suwon mobile"')],
+      ['package full script', packageSource.includes('"qa:stadium:suwon:full": "node scripts/stadium-seatmap-ops.mjs suwon full"')],
       ['package release lock script', packageSource.includes('"qa:stadium:suwon:release-lock": "node scripts/stadium-seatmap-ops.mjs suwon release-gate"')],
-      ['package visual review script', packageSource.includes('"stadium:suwon:visual-review": "node scripts/stadium-seatmap-ops.mjs suwon visual-review"')],
-      ['package precision workset script', packageSource.includes('"stadium:suwon:precision-workset": "node scripts/stadium-seatmap-ops.mjs suwon precision-workset"')],
-      ['package visual review qa script', packageSource.includes('"qa:stadium:suwon:visual-review": "npm run stadium:suwon:visual-review && npm run qa:stadium:suwon:release-lock"')],
+      ['package status script', packageSource.includes('"stadium:suwon:status": "node scripts/stadium-seatmap-ops.mjs suwon status"')],
+      ['package responsive script removed', !packageSource.includes('"qa:stadium:suwon:responsive"')],
+      ['package visual review script removed', !packageSource.includes('"stadium:suwon:visual-review"')],
+      ['package precision workset script removed', !packageSource.includes('"stadium:suwon:precision-workset"')],
+      ['package visual review qa script removed', !packageSource.includes('"qa:stadium:suwon:visual-review"')],
+      ['dispatcher responsive task', dispatcherSource.includes('responsive: [')],
+      ['dispatcher visual review task', dispatcherSource.includes("'visual-review': [")],
+      ['dispatcher precision workset task', dispatcherSource.includes("'precision-workset': [")],
       ['release lock document includes release gate script', releaseLockSource.includes('npm run qa:stadium:suwon:release-lock')],
-      ['release lock document includes visual review script', releaseLockSource.includes('npm run stadium:suwon:visual-review')],
+      ['release lock document includes internal visual review task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs suwon visual-review')],
+      ['release lock document includes internal precision workset task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs suwon precision-workset')],
       ['visual review artifact contract', visualReviewSource.includes('suwon-seatmap-visual-review.json') && visualReviewSource.includes('suwon-infield-1f-overlay.svg') && visualReviewSource.includes('suwon-infield-2f-overlay.svg') && visualReviewSource.includes('suwon-infield-3f-overlay.svg') && visualReviewSource.includes('suwon-center-accessible-overlay.svg') && visualReviewSource.includes('suwon-outfield-special-overlay.svg') && visualReviewSource.includes('suwon-highfive-overlay.svg') && visualReviewSource.includes('suwon-205-215-overlay.svg') && visualReviewSource.includes('suwon-skybox-skyzone-overlay.svg')],
       ['visual review full coverage contract', visualReviewSource.includes('EXPECTED_REVIEWED_BLOCKS') && visualReviewSource.includes('missingReviewRows') && visualReviewSource.includes('missingReviewBlocks') && visualReviewSource.includes('duplicateReviewBlocks')],
       ['visual review split approval contract', visualReviewSource.includes('APPROVED_VISUAL_HIT_SPLIT') && visualReviewSource.includes('UNRESOLVED_VISUAL_HIT_MISMATCH') && visualReviewSource.includes('approvedVisualHitSplitBlocks') && visualReviewSource.includes('unresolvedVisualHitMismatchBlocks')],

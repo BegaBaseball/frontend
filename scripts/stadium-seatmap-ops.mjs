@@ -747,6 +747,13 @@ const STADIUMS = {
     order: 4,
     qaToken: 'JAMSIL',
     legacyArtifacts: [],
+    publicTasks: [
+      'full',
+      'mobile',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'responsive QA remains dispatcher-internal; package aliases expose only mobile/full runtime QA, release lock, and status.',
     tasks: {
       mobile: [
         {
@@ -773,6 +780,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; responsive QA stays available through the integrated dispatcher',
   },
   daegu: {
     label: 'Daegu Samsung Lions Park',
@@ -832,6 +840,13 @@ const STADIUMS = {
     legacyArtifacts: [
       'scripts/suwon-seatmap-ops.mjs',
     ],
+    publicTasks: [
+      'full',
+      'mobile',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'responsive QA, visual review, and precision workset generation remain dispatcher-internal; package aliases expose only mobile/full runtime QA, release lock, and status.',
     migrationBuckets: [
       {
         id: 'review-release',
@@ -853,6 +868,12 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['scripts/run-stadium-isolated-qa.mjs', 'SUWON:FULL'],
+        },
+      ],
+      responsive: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SUWON:RESPONSIVE'],
         },
       ],
       'visual-review': [
@@ -877,6 +898,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; responsive, visual-review, and precision-workset tasks stay available through the integrated dispatcher',
   },
   sajik: {
     label: 'Busan Sajik Baseball Stadium',
