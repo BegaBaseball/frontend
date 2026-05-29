@@ -712,7 +712,7 @@ test('구장별 전용 모바일 바텀시트 파일은 재도입하지 않는�
 });
 
 test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
-  const secondaryPanelPresetIds = new Set(['incheon', 'daegu', 'daejeon', 'gocheok', 'sajik']);
+  const secondaryPanelPresetIds = new Set(['jamsil', 'incheon', 'daegu', 'daejeon', 'gocheok', 'sajik', 'suwon']);
 
   STADIUM_SEATMAP_CONTRACTS.forEach((contract) => {
     const componentSource = readProjectFile(`src/components/${contract.folder}/${contract.componentName}.tsx`);
@@ -732,7 +732,17 @@ test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
   const gocheokSource = readProjectFile('src/components/gocheok/GocheokSeatMap.tsx');
   const gocheokFacilityGuideSource = readProjectFile('src/components/gocheok/GocheokFacilityGuide.tsx');
   const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
+  const jamsilSource = readProjectFile('src/components/jamsil/JamsilSeatMap.tsx');
+  const suwonSource = readProjectFile('src/components/suwon/SuwonSeatMap.tsx');
 
+  assert.ok(jamsilSource.includes('SeatMapSectionFinder'), 'Jamsil should use the shared section finder');
+  assert.ok(jamsilSource.includes('testIdPrefix="jamsil"'), 'Jamsil section finder should keep its test id prefix');
+  assert.ok(jamsilSource.includes('mobileSecondaryPanel={sectionFinder}'), 'Jamsil should expose finder below the map on mobile');
+  assert.ok(jamsilSource.includes('desktopSecondaryPanel={sectionFinder}'), 'Jamsil should expose finder above the side panel on desktop');
+  assert.ok(suwonSource.includes('SeatMapSectionFinder'), 'Suwon should use the shared section finder');
+  assert.ok(suwonSource.includes('testIdPrefix="suwon"'), 'Suwon section finder should keep its test id prefix');
+  assert.ok(suwonSource.includes('mobileSecondaryPanel={sectionFinder}'), 'Suwon should expose finder below the map on mobile');
+  assert.ok(suwonSource.includes('desktopSecondaryPanel={sectionFinder}'), 'Suwon should expose finder above the side panel on desktop');
   assert.ok(daeguSource.includes('data-testid="daegu-section-finder"'), 'Daegu finder should remain the documented secondary panel exception');
   assert.ok(daejeonSource.includes('data-testid="daejeon-section-finder"'), 'Daejeon finder should remain the documented secondary panel exception');
   assert.ok(sajikSource.includes('data-testid="sajik-first-visit-guide"'), 'Sajik first-visit guide should remain the documented secondary panel exception');

@@ -19,6 +19,7 @@ import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
+import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
@@ -27,6 +28,7 @@ import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
+const FINDER_FOCUS_ZOOM = 1.35;
 
 interface SeatMapPan {
   x: number;
@@ -133,7 +135,19 @@ export default function JamsilSeatMap() {
     }
   }, [closeFullscreen]);
 
+  const handleSelectFromFinder = useCallback((block: JamsilBlock) => {
+    setSelected(block);
+    setHover(null);
+    setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
+  }, [setHover, setSelected]);
+
   const usedCategories = [...new Set(JAMSIL_BLOCKS.map(b => b.category))];
+  const visibleJamsilBlocks = useMemo(() => JAMSIL_BLOCKS.filter((block) => {
+    if (filterCats !== null && !filterCats.includes(block.category)) return false;
+    if (filterSides != null && !filterSides.includes(block.side)) return false;
+    if (filterLevels != null && !filterLevels.includes(block.level)) return false;
+    return true;
+  }), [filterCats, filterLevels, filterSides]);
 
   const isDoosanGuideActive = officialSource === 'DOOSAN';
   const displaySection: JamsilBlock | null = isDoosanGuideActive
@@ -243,6 +257,21 @@ export default function JamsilSeatMap() {
       onUpload={() => displaySection && setUploadFor(displaySection)}
     />
   );
+  const sectionFinder = isDoosanGuideActive ? null : (
+    <SeatMapSectionFinder
+      blocks={visibleJamsilBlocks}
+      adapter={jamsilSectionAdapter}
+      categories={JAMSIL_CATEGORIES}
+      filterCats={filterCats}
+      selected={selected}
+      onSelect={handleSelectFromFinder}
+      onHoverChange={setHover}
+      mode={mode}
+      testIdPrefix="jamsil"
+      accentColor="#1F5C4A"
+      stadiumShortLabel="잠실"
+    />
+  );
 
   return (
     <>
@@ -259,8 +288,10 @@ export default function JamsilSeatMap() {
         mapContent={mapContent}
         attribution={attribution}
         legend={isDoosanGuideActive ? undefined : legend}
+        mobileSecondaryPanel={sectionFinder}
         mobileBottomSheet={mobileBottomSheet}
         mobileHasSidePanel={Boolean(mobileBottomSheet)}
+        desktopSecondaryPanel={sectionFinder}
         desktopSidePanel={desktopSidePanel}
         toast={toast}
         isFullscreenOpen={isFullscreenOpen}
