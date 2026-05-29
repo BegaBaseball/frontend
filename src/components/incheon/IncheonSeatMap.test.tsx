@@ -55,9 +55,13 @@ test('IncheonSeatMap은 공식 인천 좌석도와 표준 좌석도 markup을 �
   assert.match(html, /처음 인천 가이드/);
   assert.match(html, /블록\/좌석 검색/);
   assert.match(html, /블록 검색/);
+  assert.match(html, /후보 비교/);
+  assert.match(html, /비교에 추가/);
   assert.match(html, /data-testid="incheon-first-visit-guide"/);
   assert.match(html, /data-testid="incheon-section-finder"/);
+  assert.match(html, /data-testid="incheon-compare-tray"/);
   assert.doesNotMatch(html, /사진은 데모 상태/);
+  assert.doesNotMatch(html, /incheon-operator-visit-check/);
   assert.doesNotMatch(html, /data-testid="incheon-official-seatmap-required"/);
   assert.doesNotMatch(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
 });
