@@ -76,11 +76,11 @@
 
 ```bash
 npm run stadium:changwon:trace-manifest
-npm run stadium:changwon:ux-readiness
+node scripts/stadium-seatmap-ops.mjs changwon ux-readiness
 node --import tsx --test src/data/changwonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts
-npm run qa:stadium:changwon:trace-review
+node scripts/stadium-seatmap-ops.mjs changwon trace-review
 npm run test:stadium:seatmaps
-npm run build
+env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build
 ```
 
 ## 운영 규칙

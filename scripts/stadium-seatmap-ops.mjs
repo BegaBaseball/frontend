@@ -740,6 +740,13 @@ const STADIUMS = {
     legacyArtifacts: [
       'scripts/changwon-seatmap-ops.mjs',
     ],
+    publicTasks: [
+      'mobile',
+      'release-gate',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'UX readiness and trace-review bundles remain dispatcher-internal; package aliases expose only mobile runtime QA, release lock, status, and trace manifest tasks.',
     migrationBuckets: [
       {
         id: 'seatmap-ops',
@@ -790,6 +797,7 @@ const STADIUMS = {
         },
       ],
     },
+    cleanupPolicy: 'public package aliases expose only mobile runtime QA, release lock, status, and trace manifest; ux-readiness and trace-review tasks stay available through the integrated dispatcher',
   },
   jamsil: {
     label: 'Jamsil Baseball Stadium',

@@ -51,17 +51,29 @@
 - `NEEDS_TRACE_ADJUSTMENT` 항목은 targeted polygon adjustment로 처리하고, 전체 좌표 재작성 범위로 확대하지 않는다.
 - 외부 야구 데이터 수집, 웹 검색, 제3자 좌석도 복사는 사용하지 않는다.
 - 좌표 변경이 발생하면 trace manifest, visual approval package, isolated browser QA를 다시 생성한다.
+- public npm command는 mobile runtime QA, release lock, status, trace manifest만 노출한다.
+- UX readiness와 trace-review bundle은 dispatcher 내부 task로 유지한다.
+
+## Public commands
+
+- `npm run qa:stadium:changwon:mobile`
+- `npm run qa:stadium:changwon:release-lock`
+- `npm run stadium:changwon:status`
+- `npm run stadium:changwon:trace-manifest`
+
+## Internal dispatcher tasks
+
+- `node scripts/stadium-seatmap-ops.mjs changwon ux-readiness`
+- `node scripts/stadium-seatmap-ops.mjs changwon trace-review`
 
 ## 릴리즈 게이트
 
 ```bash
 npm run qa:stadium:changwon:release-lock
 npm run stadium:changwon:trace-manifest
-npm run stadium:changwon:ux-readiness
 node --import tsx --test src/components/StadiumGuideRuntimeSeatMaps.test.ts
-npm run qa:stadium:changwon:trace-review
 npm run test:stadium:seatmaps
-npm run build
+env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build
 ```
 
 릴리즈 차단 조건:
@@ -90,14 +102,14 @@ npm run build
   - `needsTraceAdjustment=0`
   - `visualApprovalConfirmedHumanSignoff=11`
   - `visualApprovalPendingHumanSignoff=0`
-- `npm run stadium:changwon:ux-readiness`: PASS
+- `node scripts/stadium-seatmap-ops.mjs changwon ux-readiness`: PASS
   - `searchableSelectableAreas=123`
   - `specialSelectableAreas=6`
   - `filterGroups=7`
   - `lowCoverageApprovedExceptions=8`
   - `blockers=0`
 - `node --import tsx --test src/data/changwonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, 55 tests
-- `npm run qa:stadium:changwon:trace-review`: PASS
+- `node scripts/stadium-seatmap-ops.mjs changwon trace-review`: PASS
   - `Scenarios=2`
   - `Overflow failures=0`
   - `Actionable failed requests=0`
@@ -105,7 +117,7 @@ npm run build
   - output: `output/playwright/stadium-ux-changwon-validate/stadium-mobile-smoke-summary.md`
 - `npm run test:stadium:seatmaps`: PASS, 219 tests
   - Changwon release-lock, UX readiness, coordinate fingerprint, and stadium-wide seatmap contracts all passed.
-- `npm run build`: PASS
+- `env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS
   - 기존 `clientErrorReporter.ts` dynamic/static import warning은 exit code 0이면 release lock 차단 조건으로 보지 않는다.
 
 ## PR 포함 범위

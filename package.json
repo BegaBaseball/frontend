@@ -102,8 +102,6 @@
     "qa:stadium:changwon:mobile": "node scripts/stadium-seatmap-ops.mjs changwon mobile",
     "stadium:changwon:status": "node scripts/stadium-seatmap-ops.mjs changwon status",
     "stadium:changwon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs changwon trace-manifest",
-    "stadium:changwon:ux-readiness": "node scripts/stadium-seatmap-ops.mjs changwon ux-readiness",
-    "qa:stadium:changwon:trace-review": "node scripts/stadium-seatmap-ops.mjs changwon trace-review",
     "qa:stadium:changwon:release-lock": "node scripts/stadium-seatmap-ops.mjs changwon release-gate",
     "qa:stadium:changwon:diary-draft": "npm run cy:run:global -- --spec cypress/e2e/stadium-changwon-diary-draft.cy.ts --auto-docker --self-heal",
     "qa:stadium:daejeon:mobile": "node scripts/stadium-seatmap-ops.mjs daejeon mobile",
