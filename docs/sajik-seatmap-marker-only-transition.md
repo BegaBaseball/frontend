@@ -31,7 +31,7 @@ canonical runtime에서는 휠체어석 기존 공식 PNG pseudo-block 3개를 s
 
 - JSON: `reports/stadium/sajik-seatmap-marker-transition-review.json`
 - Markdown: `reports/stadium/sajik-seatmap-marker-transition-review.md`
-- command: `npm run stadium:sajik:marker-transition-review`
+- command: `node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review`
 
 현재 자동 리포트 기준:
 

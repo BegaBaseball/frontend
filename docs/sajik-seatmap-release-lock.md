@@ -6,7 +6,7 @@
 
 아래 기존 `960x640` 공식 PNG v2와 `OPERATOR_REFERENCE_2026` 섹션은 historical 검수 근거로 보존한다. 사용자 runtime은 이제 source tab 없이 `SAJIK_CANONICAL_2026` 한 벌만 렌더링한다.
 
-현재 public npm command는 canonical/runtime release 검수만 노출한다. `stage01-*`, `operator-reference-*`, `polygon-v2`, `trace-review` alias는 historical workflow로 내려갔고, 필요한 경우 Git history 또는 `scripts/stadium-seatmap-ops.mjs sajik <task>` 직접 실행으로 별도 branch에서만 재검토한다.
+현재 public npm command는 canonical/runtime release 검수와 핵심 runtime guard만 노출한다. `dataset-export`, `source-audit`, `editor-regression`, `marker-transition-review`, `pr-scope-guard` 계열은 dispatcher 내부 task로만 유지한다. `stage01-*`, `operator-reference-*`, `polygon-v2`, `trace-review` alias와 관련 스크립트는 historical workflow로 내려갔고, 재실행이 필요하면 Git history에서 해당 시점의 스크립트와 입력 파일을 복구한 별도 branch에서만 검토한다.
 
 Current public commands:
 
@@ -17,13 +17,7 @@ Current public commands:
 - `npm run stadium:sajik:pixel-components`
 - `npm run stadium:sajik:trace-manifest`
 - `npm run stadium:sajik:alignment-audit`
-- `npm run stadium:sajik:dataset-export`
-- `npm run stadium:sajik:source-audit`
 - `npm run stadium:sajik:block-source-duplication-audit`
-- `npm run stadium:sajik:editor-regression`
-- `npm run stadium:sajik:marker-transition-review`
-- `npm run stadium:sajik:pr-scope-guard`
-- `npm run stadium:sajik:pr-scope-guard-smoke`
 
 - canonical source id: `SAJIK_CANONICAL_2026`
 - canonical map version: `BUSAN_SAJIK_2026_CANONICAL_OPERATOR_REFERENCE_V1`
@@ -330,7 +324,7 @@ Operator reference verification:
   - 최종 alignment audit PASS, `total=89 mapSelectable=87 aliasOnlyNotVisible=2 locked=87 notVisible=2 retrace=0 officialFailures=0 thinOutsideFailures=0`
 - `node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts`: PASS, `24/24`
 - `node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, focused StadiumGuide Sajik contract
-- `npm run stadium:sajik:dataset-export -- --check`: PASS, `sections=89 enabled=87 aliasOnly=2 markers=3`
+- `node scripts/stadium-seatmap-ops.mjs sajik dataset-export --check`: PASS, `sections=89 enabled=87 aliasOnly=2 markers=3`
 - `npm run stadium:sajik:hitpath-review`: PASS, `candidates=22`, `p0=16`, `p1=5`, `p2=1`, `aliasOnly=2`, `visualEqualsHit=21`, `expanded=1`, `approvedHitPathExpansionSectionIds=032`, `blockers=0`
 - `npm run stadium:sajik:zone-precision-worksets`: PASS, `status=waiting-for-operator`, `candidates=22`, `p0=16`, `p1=5`, `p2=1`, `guards=3`, `expanded=1`, `approvedHitPathExpansionSectionIds=032`, `blockers=0`
 - `npm run stadium:sajik:stage01-operator-package`: PASS, `status=waiting-for-operator`, `rows=16`, `approved=0`, `preserved=0`, `preservation=no-existing-input`, `blockers=0`, `imageRiskCounts=HIGH=8/MEDIUM=4/LOW=4`, `imagePriority=131>032>133>143>135>134>122>123>132>031>022>142>121>124>125>021`
@@ -368,13 +362,13 @@ Operator reference verification:
 - `npm run stadium:sajik:stage01-readiness-summary-smoke`: PASS, `cases=27/27`, fixtures `valid-summary`, `missing-report`, `review-board-missing`, `stale-report`, `approved-readiness-drift`, `applied-readiness-drift`, `image-analysis-priority-drift`, `image-analysis-risk-count-drift`, `candidate-reference-drift`, `pixel-component-source-drift`, `package-image-priority-drift`, `package-image-risk-count-drift`, `package-candidate-reference-drift`, `package-pixel-component-source-drift`, `operator-input-image-priority-drift`, `package-review-board-image-mismatch`, `target-entry-preflight-missing`, `target-entry-preflight-stale`, `target-entry-preflight-source-write-drift`, `target-entry-preflight-status-drift`, `target-entry-preflight-smoke-failed`, `target-entry-preflight-target-mismatch`, `target-approval-gate-missing`, `target-approval-source-write-drift`, `target-approval-status-drift`, `source-write-drift`, `operator-input-drift`
 - `npm run stadium:sajik:stage01-completion-gate`: PASS, `status=waiting-for-operator`, `pending=16`, `approvedApplied=0`, `manualPatchRows=0`, `next=131`, `readyForStage01Close=false`, `sourceDataWritePerformed=false`
 - `npm run qa:stadium:sajik:stage01-readiness`: PASS, partial-worktree-safe Stage 01 gate. Runs real approval readiness, target apply precheck, prewrite smoke, approved/applied dry-runs, 131 lifecycle smoke, 131 apply path status, the Sajik-focused static contract test, review board, next-action packet, target review packet, target image-analysis smoke, all-target official PNG review packets, all-target image-analysis smoke, target entry template readiness smoke, target entry preflight, target entry preflight smoke, target approval gate, target approval smoke, all-target approval readiness, all-target approval readiness smoke, all-target approval input guide, all-target approval input guide smoke, operator input intake gate, intake gate smoke, readiness summary, readiness summary smoke, completion gate, completion gate smoke, and staged scope audit smoke without `pr-scope-guard` or build.
-- `npm run stadium:sajik:marker-transition-review`: PASS, `markers=3`, `sections=3`, `seatPaths=84`, `markerLayer=3`, `aliasRendered=0`, `positionLocks=3`, `selectableCompat=3`, `markerOnlyApplied=false`, `blockers=0`
-- `npm run stadium:sajik:editor-regression`: PASS, editor v1.7 browser regression `status:passed checks=11`
-- `npm run stadium:sajik:pr-scope-guard`: PASS in current mixed worktree, `status=passed`, `fullRelease=passed`, `stage01PartialScope=passed`, `stage01PartialStagingVerdict=ready-for-partial-stage01-staging`, `mode=full-release`, `commandExit=0`, `included=<runtime>`, `separate=<runtime>`, `unexpected=0`, `blockers=0`, `partialBlockers=0`, patch separation `review-required`, `stage01ReadinessAvailable=true`; clean official PNG/operator-reference/stage01 evidence is tracked in `historicalReferenceFiles` with `productionSource=false`, not as missing release payload. `included` and `separate` are advisory dirty-worktree counts and may drift as unrelated workstreams change; pass criteria are `unexpected=0`, `blockers=0`, and missing canonical payload files `0`. Shared home ranking and toast UI files, including `TeamRankRow`, `sonner`, and `shims/sonner`, are classified as separate workstreams rather than unexpected Sajik PR payload. The report recommends manual hunk review for shared files and keeps `partialVerificationAfterStaging` and `fullReleaseVerificationAfterStaging` as separate release-lock contracts.
+- `node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review`: PASS, `markers=3`, `sections=3`, `seatPaths=84`, `markerLayer=3`, `aliasRendered=0`, `positionLocks=3`, `selectableCompat=3`, `markerOnlyApplied=false`, `blockers=0`
+- `node scripts/stadium-seatmap-ops.mjs sajik editor-regression`: PASS, editor v1.7 browser regression `status:passed checks=11`
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard`: PASS in current mixed worktree, `status=passed`, `fullRelease=passed`, `stage01PartialScope=passed`, `stage01PartialStagingVerdict=ready-for-partial-stage01-staging`, `mode=full-release`, `commandExit=0`, `included=<runtime>`, `separate=<runtime>`, `unexpected=0`, `blockers=0`, `partialBlockers=0`, patch separation `review-required`, `stage01ReadinessAvailable=true`; clean official PNG/operator-reference/stage01 evidence is tracked in `historicalReferenceFiles` with `productionSource=false`, not as missing release payload. `included` and `separate` are advisory dirty-worktree counts and may drift as unrelated workstreams change; pass criteria are `unexpected=0`, `blockers=0`, and missing canonical payload files `0`. Shared home ranking and toast UI files, including `TeamRankRow`, `sonner`, and `shims/sonner`, are classified as separate workstreams rather than unexpected Sajik PR payload. The report recommends manual hunk review for shared files and keeps `partialVerificationAfterStaging` and `fullReleaseVerificationAfterStaging` as separate release-lock contracts.
 - `npm run stadium:sajik:stage01-pr-scope-guard`: PASS in current mixed worktree, `status=passed`, `fullRelease=passed`, `stage01PartialScope=passed`, `partialBlockers=0`, `mode=stage01-partial`, `commandExit=0`.
 - `npm run stadium:sajik:stage01-staged-scope-audit-smoke`: PASS, fixture smoke over partial/complete/blocked staged-index branches, `cases=7/7`, `expectedStage01PartialTargetFileCount=40`, `sourceDataWritePerformed=false`, `writesOperatorInput=false`, `writesProductionData=false`.
 - `npm run stadium:sajik:stage01-staged-scope-audit:complete`: retained as the post-staging complete index verification command when assembling a Stage 01 partial package.
-- `npm run stadium:sajik:pr-scope-guard-smoke`: PASS, structural smoke over generated scope guard reports and writes `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`. Snapshot summary: `fullReleaseRun.exitCode=0`, `fullReleaseRun.executionMode=full-release`, `partialRun.exitCode=0`, `partialRun.executionMode=stage01-partial`, `stage01PartialScope=passed`, `stage01PartialExit=0`, `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `stage01ReadinessAvailable=true`.
+- `node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke`: PASS, structural smoke over generated scope guard reports and writes `reports/stadium/sajik-seatmap-pr-scope-guard-smoke.{json,md}`. Snapshot summary: `fullReleaseRun.exitCode=0`, `fullReleaseRun.executionMode=full-release`, `partialRun.exitCode=0`, `partialRun.executionMode=stage01-partial`, `stage01PartialScope=passed`, `stage01PartialExit=0`, `releasePayloadFileCount=17`, `historicalReferenceFileCount=17`, `stage01ReadinessAvailable=true`.
 - `npm run qa:stadium:sajik:polygon-v2`: BLOCKED at `stadium:sajik:pr-scope-guard` in current partial worktree after dataset/export/alignment/evidence/hitPath review/Stage 01 operator-input-aid/review-board/next-action packet/target review packet/target image-analysis smoke/all-target official PNG review packets/all-target image-analysis smoke/target entry template readiness smoke/target entry preflight/target entry preflight smoke/target approval gate/target approval smoke/all-target approval readiness/all-target approval readiness smoke/all-target approval input guide/input intake gate/prewrite/apply-ready/post-apply/operator-status/manual-patch-plan/readiness/target apply precheck/smoke/approved dry-run/applied dry-run/131 lifecycle smoke/131 apply path status/readiness summary/readiness summary smoke/completion gate/completion gate smoke/marker transition review/Sajik-focused node tests/editor regression passed.
 - `VITE_SITE_URL=http://127.0.0.1:5176 VITE_API_BASE_URL=/api npm run build`: PASS
 - `npm run build`: PASS
@@ -502,7 +496,7 @@ Operator reference verification:
 ```bash
 npm run stadium:sajik:alignment-audit
 npm run stadium:sajik:evidence
-npm run stadium:sajik:dataset-export -- --check
+node scripts/stadium-seatmap-ops.mjs sajik dataset-export --check
 npm run stadium:sajik:hitpath-review
 npm run stadium:sajik:zone-precision-worksets
 npm run stadium:sajik:stage01-operator-input-aid
@@ -535,14 +529,14 @@ npm run stadium:sajik:stage01-completion-gate
 npm run stadium:sajik:stage01-completion-gate-smoke
 npm run stadium:sajik:stage01-staged-scope-audit-smoke
 npm run qa:stadium:sajik:stage01-readiness
-npm run stadium:sajik:marker-transition-review
+node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review
 node --import tsx --test src/data/sajikSeatData.test.ts src/components/sajik/SajikSeatMap.test.ts
 node --import tsx --test --test-name-pattern "사직|Sajik" src/components/StadiumGuideRuntimeSeatMaps.test.ts
 npm run qa:stadium:sajik:trace-review
-npm run stadium:sajik:editor-regression
-npm run stadium:sajik:pr-scope-guard
+node scripts/stadium-seatmap-ops.mjs sajik editor-regression
+node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard
 npm run stadium:sajik:stage01-pr-scope-guard
-npm run stadium:sajik:pr-scope-guard-smoke
+node scripts/stadium-seatmap-ops.mjs sajik pr-scope-guard-smoke
 npm run qa:stadium:sajik:polygon-v2
 npm run build
 ```
