@@ -60,6 +60,13 @@ test('대구 canonical retrace batch script는 source write 없이 operator-refe
     'SOURCE_WRITE_FORBIDDEN',
     'sourceDataWritePerformed: false',
     'generatedReportsAreEvidenceOnly: true',
+    'operatorReviewContract',
+    'DAEGU_CANONICAL_RETRACE_OPERATOR_REVIEW_CONTRACT_V1',
+    'productionPromotionRequiresGateStatus',
+    'pendingRowsMayContainDraftGeometryButAreIgnoredUntilApproved',
+    'OPERATOR_REVIEW_CONTRACT_REQUIRED',
+    'OPERATOR_INPUT_SOURCE_WRITE_CHANGED',
+    'BATCH_ROW_COUNT_CHANGED',
   ].forEach((literal) => {
     assert.match(RETRACE_BATCH_SOURCE, new RegExp(escapeRegExp(literal)));
   });
@@ -97,6 +104,15 @@ test('대구 canonical retrace package/docs 계약은 통합 batch alias만 노�
     'npm run stadium:daegu:canonical-retrace-batch -- SKY_LOWER_U1_U19',
     'npm run stadium:daegu:canonical-retrace-batch -- SKY_BLUE_U2_U20_U31',
     'npm run stadium:daegu:canonical-retrace-batch -- REMAINING_U3_U9_V1_V3_OUTFIELD',
+    'Operator input contract verification (2026-05-30)',
+    'reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.json',
+    'reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/operator-input/daegu-seatmap-canonical-special-zone-retrace-input.json',
+    'reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/operator-input/daegu-seatmap-canonical-sky-lower-retrace-input.json',
+    'reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/operator-input/daegu-seatmap-canonical-sky-blue-retrace-input.json',
+    'reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/operator-input/daegu-seatmap-canonical-remaining-retrace-input.json',
+    'operator input JSON carries `operatorReviewContract`',
+    'production promotion requires gate status `ready-for-source-preview`',
+    '`contract validation` and `input shape validation` both pass',
     'generated retrace batch and gate reports are QA evidence only and must not be staged as PR payload',
   ].forEach((literal) => {
     assert.ok(RELEASE_LOCK_SOURCE.includes(literal), `${literal} should be documented`);

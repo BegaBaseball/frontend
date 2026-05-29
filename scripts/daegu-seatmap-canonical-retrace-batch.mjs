@@ -95,6 +95,18 @@ const BATCH_VERSION = batchConfig.version;
 const BATCH_KEY = batchConfig.key;
 const BATCH_BLOCK_KEYS = batchConfig.blockKeys;
 const markerSplitBlockKeys = new Set(batchConfig.markerSplitBlockKeys);
+const OPERATOR_REVIEW_CONTRACT_VERSION = 'DAEGU_CANONICAL_RETRACE_OPERATOR_REVIEW_CONTRACT_V1';
+const SOURCE_COORDINATE_SYSTEM = 'SAMSUNG_OFFICIAL_2026_1707x2048';
+const TARGET_COORDINATE_SYSTEM = 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096';
+const APPROVAL_REQUIRED_FIELDS = Object.freeze([
+  'operatorDecision=APPROVED',
+  'correctedPath',
+  'correctedHitPath',
+  'correctedLabelX',
+  'correctedLabelY',
+  'reviewer',
+  'reviewedAt',
+]);
 const outputDir = path.join(frontendRoot, 'reports/stadium', batchConfig.outputSlug);
 const operatorInputDir = path.join(outputDir, 'operator-input');
 const gateDir = path.join(outputDir, 'gate');
@@ -132,6 +144,12 @@ const sourceContractLiterals = [
   'PASS_TARGET_188_REMAINS_PENDING',
   'sourceDataWritePerformed: false',
   'generatedReportsAreEvidenceOnly: true',
+  'operatorReviewContract',
+  'DAEGU_CANONICAL_RETRACE_OPERATOR_REVIEW_CONTRACT_V1',
+  'productionPromotionRequiresGateStatus',
+  'pendingRowsMayContainDraftGeometryButAreIgnoredUntilApproved',
+  'OPERATOR_INPUT_SOURCE_WRITE_CHANGED',
+  'BATCH_ROW_COUNT_CHANGED',
 ];
 
 void sourceContractLiterals;
@@ -166,8 +184,33 @@ function toFrontendRelative(filePath) {
   return path.relative(frontendRoot, filePath);
 }
 
+function arraysEqual(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 function finiteNumber(value) {
   return value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
+}
+
+function buildOperatorReviewContract() {
+  return {
+    version: OPERATOR_REVIEW_CONTRACT_VERSION,
+    batchKey: BATCH_KEY,
+    directOperatorReferenceTraceRequired: true,
+    officialPngCoordinatesAreHistoricalEvidenceOnly: true,
+    sourceCoordinateSystem: SOURCE_COORDINATE_SYSTEM,
+    targetCoordinateSystem: TARGET_COORDINATE_SYSTEM,
+    operatorReferenceImagePath: DAEGU_CANONICAL_SEATMAP_IMAGE.imagePath,
+    operatorReferenceImageSha256: DAEGU_CANONICAL_SEATMAP_IMAGE.imageSha256,
+    approvalRequiredFields: APPROVAL_REQUIRED_FIELDS,
+    markerSeatSplitRequired: batchConfig.markerSplitBlockKeys,
+    markerSeatSplitPolicyByBlockKey: batchConfig.markerSplitPolicyByBlockKey,
+    simpleScaleOrCopyAllowed: false,
+    sourceDataWritePerformed: false,
+    generatedReportsAreEvidenceOnly: true,
+    productionPromotionRequiresGateStatus: 'ready-for-source-preview',
+    pendingRowsMayContainDraftGeometryButAreIgnoredUntilApproved: true,
+  };
 }
 
 function buildBatchRows() {
@@ -201,7 +244,7 @@ function buildBatchRows() {
         ? markerSplitPolicy
         : 'DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED',
       sourceCoordinateSystem: row.sourceCoordinateSystem,
-      targetCoordinateSystem: row.targetCoordinateSystem,
+      targetCoordinateSystem: TARGET_COORDINATE_SYSTEM,
       operatorReferenceImagePath: DAEGU_CANONICAL_SEATMAP_IMAGE.imagePath,
       operatorReferenceImageSha256: DAEGU_CANONICAL_SEATMAP_IMAGE.imageSha256,
       simpleScaleOrCopyAllowed: false,
@@ -218,7 +261,7 @@ function buildBatchRows() {
   });
 }
 
-function summarize(rows, validations) {
+function summarize(rows, validations, contractFailures = []) {
   const invalidRows = validations.filter((row) => row.validationStatus === 'INVALID');
   const approvedRows = rows.filter((row) => row.operatorDecision === 'APPROVED');
   const rejectedRows = rows.filter((row) => row.operatorDecision === 'REJECTED');
@@ -227,7 +270,7 @@ function summarize(rows, validations) {
   const allApproved = rows.length === BATCH_BLOCK_KEYS.length && approvedRows.length === rows.length && invalidRows.length === 0;
 
   return {
-    status: invalidRows.length > 0 || (requireApproved && !allApproved)
+    status: contractFailures.length > 0 || invalidRows.length > 0 || (requireApproved && !allApproved)
       ? 'failed'
       : allApproved
         ? 'ready-for-source-preview'
@@ -241,10 +284,12 @@ function summarize(rows, validations) {
     rejectedRows: rejectedRows.length,
     pendingRows: pendingRows.length,
     invalidRows: invalidRows.length,
+    contractValidationStatus: contractFailures.length > 0 ? 'INVALID' : 'PASS',
+    contractFailures: contractFailures.length,
     markerSeatSplitRows: markerSplitRows.length,
     markerSeatSplitBlockKeys: markerSplitRows.map((row) => row.blockKey),
-    sourceCoordinateSystem: 'SAMSUNG_OFFICIAL_2026_1707x2048',
-    targetCoordinateSystem: 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096',
+    sourceCoordinateSystem: SOURCE_COORDINATE_SYSTEM,
+    targetCoordinateSystem: TARGET_COORDINATE_SYSTEM,
     simpleScaleOrCopyAllowed: false,
     productionWriteAllowed: false,
     sourceDataWritePerformed: false,
@@ -263,7 +308,7 @@ function validateRows(rows) {
     if (seen.has(row.blockKey)) failures.push('DUPLICATE_BLOCK_KEY');
     seen.add(row.blockKey);
     if (!ALLOWED_DECISIONS.has(row.operatorDecision)) failures.push('INVALID_OPERATOR_DECISION');
-    if (row.targetCoordinateSystem !== 'OPERATOR_REFERENCE_RAPAK_2025_4096x4096') failures.push('INVALID_TARGET_COORDINATE_SYSTEM');
+    if (row.targetCoordinateSystem !== TARGET_COORDINATE_SYSTEM) failures.push('INVALID_TARGET_COORDINATE_SYSTEM');
     if (row.simpleScaleOrCopyAllowed !== false) failures.push('SIMPLE_SCALE_OR_COPY_FORBIDDEN');
     if (markerSplitBlockKeys.has(row.blockKey) && row.markerSeatSplitRequired !== true) {
       failures.push(`MARKER_SEAT_SPLIT_REQUIRED:${row.blockKey}`);
@@ -321,10 +366,81 @@ function validateRows(rows) {
   });
 }
 
+function validateInputShape(rows) {
+  const failures = [];
+  const rowBlockKeys = rows.map((row) => row.blockKey);
+
+  if (rows.length !== BATCH_BLOCK_KEYS.length) failures.push(`BATCH_ROW_COUNT_CHANGED:${rows.length}`);
+  BATCH_BLOCK_KEYS.forEach((blockKey) => {
+    if (!rowBlockKeys.includes(blockKey)) failures.push(`BATCH_ROW_MISSING:${blockKey}`);
+  });
+
+  return {
+    status: failures.length > 0 ? 'INVALID' : 'PASS',
+    failures,
+  };
+}
+
+function buildInputShapeValidationRows(inputShapeValidation) {
+  return inputShapeValidation.failures.map((failure, index) => ({
+    reviewId: `DAEGU-CANONICAL-${BATCH_KEY}-INPUT-SHAPE-${index + 1}`,
+    blockKey: 'INPUT',
+    operatorDecision: 'PENDING',
+    validationStatus: 'INVALID',
+    failures: failure,
+    warnings: '',
+  }));
+}
+
+function validateOperatorReviewContract(payload) {
+  const failures = [];
+  const contract = payload.operatorReviewContract;
+
+  if (!contract) {
+    failures.push('OPERATOR_REVIEW_CONTRACT_REQUIRED');
+  } else {
+    if (contract.version !== OPERATOR_REVIEW_CONTRACT_VERSION) failures.push('OPERATOR_REVIEW_CONTRACT_VERSION_CHANGED');
+    if (contract.batchKey !== BATCH_KEY) failures.push('OPERATOR_REVIEW_CONTRACT_BATCH_CHANGED');
+    if (contract.sourceCoordinateSystem !== SOURCE_COORDINATE_SYSTEM) failures.push('OPERATOR_REVIEW_CONTRACT_SOURCE_COORDINATE_CHANGED');
+    if (contract.targetCoordinateSystem !== TARGET_COORDINATE_SYSTEM) failures.push('OPERATOR_REVIEW_CONTRACT_TARGET_COORDINATE_CHANGED');
+    if (contract.operatorReferenceImageSha256 !== DAEGU_CANONICAL_SEATMAP_IMAGE.imageSha256) failures.push('OPERATOR_REVIEW_CONTRACT_IMAGE_SHA_CHANGED');
+    if (!Array.isArray(contract.approvalRequiredFields) || !arraysEqual(contract.approvalRequiredFields, APPROVAL_REQUIRED_FIELDS)) {
+      failures.push('OPERATOR_REVIEW_CONTRACT_APPROVAL_FIELDS_CHANGED');
+    }
+    if (!Array.isArray(contract.markerSeatSplitRequired) || !arraysEqual(contract.markerSeatSplitRequired, batchConfig.markerSplitBlockKeys)) {
+      failures.push('OPERATOR_REVIEW_CONTRACT_MARKER_SPLIT_CHANGED');
+    }
+    if (contract.simpleScaleOrCopyAllowed !== false) failures.push('OPERATOR_REVIEW_CONTRACT_SIMPLE_SCALE_ENABLED');
+    if (contract.sourceDataWritePerformed !== false) failures.push('OPERATOR_REVIEW_CONTRACT_SOURCE_WRITE_CHANGED');
+    if (contract.generatedReportsAreEvidenceOnly !== true) failures.push('OPERATOR_REVIEW_CONTRACT_EVIDENCE_ONLY_CHANGED');
+    if (contract.productionPromotionRequiresGateStatus !== 'ready-for-source-preview') {
+      failures.push('OPERATOR_REVIEW_CONTRACT_PROMOTION_STATUS_CHANGED');
+    }
+    if (contract.pendingRowsMayContainDraftGeometryButAreIgnoredUntilApproved !== true) {
+      failures.push('OPERATOR_REVIEW_CONTRACT_PENDING_DRAFT_POLICY_CHANGED');
+    }
+  }
+  if (payload.sourceDataWritePerformed !== false) failures.push('OPERATOR_INPUT_SOURCE_WRITE_CHANGED');
+
+  return {
+    status: failures.length > 0 ? 'INVALID' : 'PASS',
+    failures,
+  };
+}
+
 async function writeBatch() {
   const rows = buildBatchRows();
-  const validations = validateRows(rows);
-  const summary = summarize(rows, validations);
+  const inputShapeValidation = validateInputShape(rows);
+  const validations = [
+    ...validateRows(rows),
+    ...buildInputShapeValidationRows(inputShapeValidation),
+  ];
+  const operatorReviewContract = buildOperatorReviewContract();
+  const contractValidation = validateOperatorReviewContract({
+    operatorReviewContract,
+    sourceDataWritePerformed: false,
+  });
+  const summary = summarize(rows, validations, contractValidation.failures);
   const columns = [
     'reviewId',
     'batchKey',
@@ -356,16 +472,12 @@ async function writeBatch() {
     version: BATCH_VERSION,
     status: summary.status,
     policy: {
-      batchKey: BATCH_KEY,
-      directOperatorReferenceTraceRequired: true,
-      officialPngCoordinatesAreHistoricalEvidenceOnly: true,
+      ...operatorReviewContract,
       simpleScaleOrCopyForbidden: true,
-      markerSeatSplitRequired: batchConfig.markerSplitBlockKeys,
-      approvalRequiredFields: ['operatorDecision=APPROVED', 'correctedPath', 'correctedHitPath', 'correctedLabelX', 'correctedLabelY', 'reviewer', 'reviewedAt'],
-      sourceDataWritePerformed: false,
-      generatedReportsAreEvidenceOnly: true,
     },
     summary,
+    contractValidation,
+    inputShapeValidation,
     rows,
     validations,
     outputs: {
@@ -385,6 +497,7 @@ async function writeBatch() {
   await fs.writeFile(operatorInputJsonPath, `${JSON.stringify({
     version: BATCH_VERSION,
     batchKey: BATCH_KEY,
+    operatorReviewContract,
     sourceDataWritePerformed: false,
     rows,
   }, null, 2)}\n`, 'utf8');
@@ -400,6 +513,8 @@ async function writeBatch() {
     `- pending rows: \`${summary.pendingRows}\``,
     `- marker seat split rows: \`${summary.markerSeatSplitRows}\` (${summary.markerSeatSplitBlockKeys.join(', ') || 'none'})`,
     `- source data write performed: \`${summary.sourceDataWritePerformed}\``,
+    `- operator input JSON: \`${toFrontendRelative(operatorInputJsonPath)}\``,
+    `- operator input CSV: \`${toFrontendRelative(operatorInputCsvPath)}\``,
     '',
     '## Rows',
     '',
@@ -413,6 +528,9 @@ async function writeBatch() {
     '- `DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED`: trace every row directly on the 4096 operator-reference image.',
     '- `SIMPLE_SCALE_OR_COPY_FORBIDDEN`: do not scale or copy 1707x2048 official PNG coordinates.',
     ...batchConfig.markerSplitBlockKeys.map((blockKey) => `- \`MARKER_SEAT_SPLIT_REQUIRED:${blockKey}\`: this row must keep marker evidence outside the selectable seat polygon.`),
+    `- operator input JSON carries \`operatorReviewContract\`; production promotion requires gate status \`${operatorReviewContract.productionPromotionRequiresGateStatus}\`.`,
+    `- approved promotion requires \`${APPROVAL_REQUIRED_FIELDS.join('`, `')}\`.`,
+    '- pending rows may contain draft geometry, but draft geometry is ignored until `operatorDecision=APPROVED`.',
     '- `SOURCE_WRITE_FORBIDDEN`: this batch creates review evidence only.',
     '',
   ].join('\n'), 'utf8');
@@ -421,25 +539,39 @@ async function writeBatch() {
   console.log(`report:${batchJsonPath}`);
 }
 
-async function readInputRows() {
+async function readInputPayload() {
   try {
-    const payload = JSON.parse(await fs.readFile(inputPath, 'utf8'));
-    return Array.isArray(payload.rows) ? payload.rows : [];
+    return JSON.parse(await fs.readFile(inputPath, 'utf8'));
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
-    return buildBatchRows();
+    return {
+      version: BATCH_VERSION,
+      batchKey: BATCH_KEY,
+      operatorReviewContract: buildOperatorReviewContract(),
+      sourceDataWritePerformed: false,
+      rows: buildBatchRows(),
+    };
   }
 }
 
 async function writeGate() {
-  const rows = await readInputRows();
-  const validations = validateRows(rows);
-  const summary = summarize(rows, validations);
+  const inputPayload = await readInputPayload();
+  const rows = Array.isArray(inputPayload.rows) ? inputPayload.rows : [];
+  const inputShapeValidation = validateInputShape(rows);
+  const validations = [
+    ...validateRows(rows),
+    ...buildInputShapeValidationRows(inputShapeValidation),
+  ];
+  const contractValidation = validateOperatorReviewContract(inputPayload);
+  const summary = summarize(rows, validations, contractValidation.failures);
   const report = {
     generatedAt: new Date().toISOString(),
     version: BATCH_VERSION,
     status: summary.status,
     inputPath: toFrontendRelative(inputPath),
+    operatorReviewContract: inputPayload.operatorReviewContract ?? null,
+    contractValidation,
+    inputShapeValidation,
     summary,
     validations,
     rows,
@@ -457,7 +589,15 @@ async function writeGate() {
     `- approved rows: \`${summary.approvedRows}\``,
     `- pending rows: \`${summary.pendingRows}\``,
     `- invalid rows: \`${summary.invalidRows}\``,
+    `- contract validation: \`${summary.contractValidationStatus}\``,
+    `- input shape validation: \`${inputShapeValidation.status}\``,
     `- source data write performed: \`${summary.sourceDataWritePerformed}\``,
+    '',
+    '## Contract',
+    '',
+    contractValidation.failures.length > 0
+      ? contractValidation.failures.map((failure) => `- ${failure}`).join('\n')
+      : '- `operatorReviewContract`: PASS',
     '',
     '## Validations',
     '',

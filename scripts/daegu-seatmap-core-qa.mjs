@@ -2409,7 +2409,16 @@ const runHandoffEvidence = async () => {
 
     await Promise.all(entries
       .filter((entry) => entry.isFile() && entry.name.endsWith('.png'))
-      .map((entry) => fs.unlink(path.join(directory, entry.name))));
+      .map(async (entry) => {
+        try {
+          await fs.unlink(path.join(directory, entry.name));
+        } catch (error) {
+          if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+            return;
+          }
+          throw error;
+        }
+      }));
   };
 
   const gridLines = (crop, step) => {

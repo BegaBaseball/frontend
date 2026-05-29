@@ -165,8 +165,25 @@
 
 - simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
 - approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
+- operator input JSON: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.json`
+- operator input CSV: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.csv`
+- operator input JSON carries `operatorReviewContract`; production promotion requires gate status `ready-for-source-preview`.
+- pending rows may contain draft geometry, but draft geometry is ignored until `operatorDecision=APPROVED`.
+- marker split rows (`09`, `U22`) require an operator note when approved.
 - source data write performed: `false`.
 - generated retrace batch and gate reports are QA evidence only and must not be staged as PR payload.
+
+### Operator input contract verification (2026-05-30)
+
+All canonical retrace batch operator input JSON files were regenerated with `operatorReviewContract`. Each gate remains `review-required` until operator approval, while `contract validation` and `input shape validation` both pass.
+
+| batch key | operator input JSON | gate report | contract validation | input shape validation |
+| --- | --- | --- | --- | --- |
+| `SKY_UPPER_01_10` | `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/gate/daegu-seatmap-canonical-sky-upper-retrace-gate.md` | `PASS` | `PASS` |
+| `SPECIAL_ZONE_3F4F_M1_MR9` | `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/operator-input/daegu-seatmap-canonical-special-zone-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-special-zone-retrace-batch/gate/daegu-seatmap-canonical-special-zone-retrace-gate.md` | `PASS` | `PASS` |
+| `SKY_LOWER_U1_U19` | `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/operator-input/daegu-seatmap-canonical-sky-lower-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/gate/daegu-seatmap-canonical-sky-lower-retrace-gate.md` | `PASS` | `PASS` |
+| `SKY_BLUE_U2_U20_U31` | `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/operator-input/daegu-seatmap-canonical-sky-blue-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/gate/daegu-seatmap-canonical-sky-blue-retrace-gate.md` | `PASS` | `PASS` |
+| `REMAINING_U3_U9_V1_V3_OUTFIELD` | `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/operator-input/daegu-seatmap-canonical-remaining-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/gate/daegu-seatmap-canonical-remaining-retrace-gate.md` | `PASS` | `PASS` |
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`
@@ -182,6 +199,14 @@
 
 - `npm run stadium:daegu:canonical-retrace-batch -- SKY_UPPER_01_10`: PASS, `review-required`, `pending=10`, `sourceDataWritePerformed=false`
 - `npm run stadium:daegu:canonical-retrace-gate -- SKY_UPPER_01_10`: PASS, `review-required`, `invalid=0`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-batch -- SPECIAL_ZONE_3F4F_M1_MR9`: PASS, `review-required`, `pending=11`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-gate -- SPECIAL_ZONE_3F4F_M1_MR9`: PASS, `review-required`, `invalid=0`, `contract validation=PASS`, `input shape validation=PASS`
+- `npm run stadium:daegu:canonical-retrace-batch -- SKY_LOWER_U1_U19`: PASS, `review-required`, `pending=11`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-gate -- SKY_LOWER_U1_U19`: PASS, `review-required`, `invalid=0`, `contract validation=PASS`, `input shape validation=PASS`
+- `npm run stadium:daegu:canonical-retrace-batch -- SKY_BLUE_U2_U20_U31`: PASS, `review-required`, `pending=13`, `marker_split=1`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-gate -- SKY_BLUE_U2_U20_U31`: PASS, `review-required`, `invalid=0`, `contract validation=PASS`, `input shape validation=PASS`
+- `npm run stadium:daegu:canonical-retrace-batch -- REMAINING_U3_U9_V1_V3_OUTFIELD`: PASS, `review-required`, `pending=13`, `sourceDataWritePerformed=false`
+- `npm run stadium:daegu:canonical-retrace-gate -- REMAINING_U3_U9_V1_V3_OUTFIELD`: PASS, `review-required`, `invalid=0`, `contract validation=PASS`, `input shape validation=PASS`
 - `npm run qa:stadium:daegu:release-lock`: PASS, `PASS_LOCKED_164` (2026-05-24 갱신)
 - `npm run stadium:daegu:render-safety-audit`: PASS
 - `npm run stadium:daegu:source-baseline-audit`: PASS, `active_runtime_sources=1`, `active_source_overlaps=0`, `geometry_issues=0`
