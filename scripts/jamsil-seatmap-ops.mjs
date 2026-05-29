@@ -54,6 +54,8 @@ const runReleaseGate = async () => {
   const reportMarkdownPath = path.join(reportDir, 'jamsil-seatmap-release-gate.md');
 
   const packageSource = await fs.readFile(path.join(frontendRoot, 'package.json'), 'utf8');
+  const dispatcherSource = await fs.readFile(path.join(frontendRoot, 'scripts/stadium-seatmap-ops.mjs'), 'utf8');
+  const releaseLockSource = await fs.readFile(path.join(frontendRoot, 'docs/jamsil-seatmap-release-lock.md'), 'utf8');
   const assetBuffer = await fs.readFile(path.join(frontendRoot, JAMSIL_SEATMAP_IMAGE.imagePath));
 
   const releaseFixtureFingerprint = sha256(snapshotFixture(JAMSIL_BLOCKS));
@@ -69,7 +71,14 @@ const runReleaseGate = async () => {
     ['total blocks', summary.totalBlocks === EXPECTED_TOTAL_BLOCKS],
     ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
     ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
-    ['package release lock script', packageSource.includes('"qa:stadium:jamsil:release-lock"')],
+    ['package mobile script', packageSource.includes('"qa:stadium:jamsil:mobile": "node scripts/stadium-seatmap-ops.mjs jamsil mobile"')],
+    ['package full script', packageSource.includes('"qa:stadium:jamsil:full": "node scripts/stadium-seatmap-ops.mjs jamsil full"')],
+    ['package release lock script', packageSource.includes('"qa:stadium:jamsil:release-lock": "node scripts/stadium-seatmap-ops.mjs jamsil release-gate"')],
+    ['package status script', packageSource.includes('"stadium:jamsil:status": "node scripts/stadium-seatmap-ops.mjs jamsil status"')],
+    ['package responsive script removed', !packageSource.includes('"qa:stadium:jamsil:responsive"')],
+    ['dispatcher responsive task', dispatcherSource.includes('responsive: [')],
+    ['dispatcher responsive policy', dispatcherSource.includes('responsive QA remains dispatcher-internal')],
+    ['release lock document includes internal responsive task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs jamsil responsive')],
   ].map(([label, passed]) => ({ label, passed }));
 
   const failures = checks.filter((c) => !c.passed).map((c) => c.label);
