@@ -1141,7 +1141,7 @@ const runTraceManifest = async () => {
     '',
     '## 사용 방법',
     '',
-    '1. `npm run qa:stadium:changwon:trace-review`를 실행해 manifest와 debug overlay/crop 산출물을 함께 갱신합니다.',
+    '1. `node scripts/stadium-seatmap-ops.mjs changwon trace-review`를 실행해 manifest와 debug overlay/crop 산출물을 함께 갱신합니다.',
     '2. P0 블록은 렌더 좌표계와 기존 mismatch 발견 구역을 우선 검수합니다.',
     '3. `generated/scaled trace`, `foreign label anchors`, `overlap warnings`, `non-allowed multi-path`는 모두 0이어야 합니다.',
     '4. `top-hit mismatches`, `expanded hit-area intercept warnings`, `representative probe mismatches`는 모두 0이어야 합니다.',
@@ -1632,6 +1632,7 @@ const runReleaseGate = async () => {
 
   const packageSource = await readText('package.json');
   const releaseLockSource = await readText('docs/changwon-seatmap-release-lock.md');
+  const dispatcherSource = await readText('scripts/stadium-seatmap-ops.mjs');
   const assetBuffer = await fs.readFile(path.join(frontendRoot, CHANGWON_SEATMAP_IMAGE.imagePath));
 
   const officialImageTraced = CHANGWON_BLOCKS.filter((b) => b.imageGeometry.traceStatus === 'OFFICIAL_IMAGE_TRACED').length;
@@ -1657,11 +1658,19 @@ const runReleaseGate = async () => {
     ['low coverage approved exception count', summary.lowCoverageApprovedExceptions === EXPECTED_LOW_COVERAGE_EXCEPTIONS],
     ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
     ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
+    ['package mobile script', packageSource.includes('"qa:stadium:changwon:mobile": "node scripts/stadium-seatmap-ops.mjs changwon mobile"')],
     ['package release lock script', packageSource.includes('"qa:stadium:changwon:release-lock"')],
+    ['package status script', packageSource.includes('"stadium:changwon:status": "node scripts/stadium-seatmap-ops.mjs changwon status"')],
     ['package trace manifest script', packageSource.includes('"stadium:changwon:trace-manifest"')],
-    ['package ux readiness script', packageSource.includes('"stadium:changwon:ux-readiness"')],
+    ['package ux readiness script removed', !packageSource.includes('"stadium:changwon:ux-readiness"')],
+    ['package trace review script removed', !packageSource.includes('"qa:stadium:changwon:trace-review"')],
+    ['package diary draft script retained', packageSource.includes('"qa:stadium:changwon:diary-draft"')],
+    ['dispatcher ux readiness task', dispatcherSource.includes("'ux-readiness': [")],
+    ['dispatcher trace review task', dispatcherSource.includes("'trace-review': [")],
     ['release lock document includes release gate script', releaseLockSource.includes('npm run qa:stadium:changwon:release-lock')],
     ['release lock document includes trace manifest script', releaseLockSource.includes('npm run stadium:changwon:trace-manifest')],
+    ['release lock document includes internal ux readiness task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs changwon ux-readiness')],
+    ['release lock document includes internal trace review task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs changwon trace-review')],
   ].map(([label, passed]) => ({ label, passed }));
 
   const failures = checks.filter((c) => !c.passed).map((c) => c.label);

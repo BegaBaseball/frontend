@@ -59,8 +59,6 @@ PR A에서 `package.json`은 아래 변경만 포함한다.
 "test:stadium:seatmaps": "node --import tsx --test --test-concurrency=1 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/*SeatData.test.ts src/components/ui/stadiumSeatMapModel.test.ts",
 "qa:stadium:changwon:mobile": "node scripts/stadium-seatmap-ops.mjs changwon mobile",
 "stadium:changwon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs changwon trace-manifest",
-"stadium:changwon:ux-readiness": "node scripts/stadium-seatmap-ops.mjs changwon ux-readiness",
-"qa:stadium:changwon:trace-review": "node scripts/stadium-seatmap-ops.mjs changwon trace-review",
 "qa:stadium:mobile:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs",
 "qa:stadium:mobile:smoke:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_VIEWPORTS=mobile-390 STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs"
 ```
@@ -74,8 +72,8 @@ PR A에서 제외할 `package.json` 변경:
 - `stadium:daejeon:*` release/operator/anchor/block crop script
 - `stadium:daegu:*` operator/corrections/retrace script
 - `stadium:sajik:*` pixel/alignment/advisory script
-- `qa:stadium:jamsil:full`, `qa:stadium:jamsil:responsive`
-- `qa:stadium:suwon:full`, `qa:stadium:suwon:responsive`
+- Jamsil responsive QA package alias cleanup
+- `qa:stadium:suwon:full`, `node scripts/stadium-seatmap-ops.mjs suwon responsive`
 - 다른 구장 trace-review flow 변경
 
 ## `StadiumGuideRuntimeSeatMaps.test.ts` PR A target
@@ -157,9 +155,9 @@ PR A-only 상태에서 다시 실행할 명령:
 node --check scripts/stadium-ux-audit.mjs
 node --check scripts/run-stadium-isolated-qa.mjs
 npm run stadium:changwon:trace-manifest
-npm run stadium:changwon:ux-readiness
+node scripts/stadium-seatmap-ops.mjs changwon ux-readiness
 node --import tsx --test src/data/changwonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts
-npm run qa:stadium:changwon:trace-review
+node scripts/stadium-seatmap-ops.mjs changwon trace-review
 npm run test:stadium:seatmaps
 npm run build
 ```
