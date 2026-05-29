@@ -16,6 +16,7 @@ import {
 import {
   DAEGU_CANONICAL_BLOCKS,
   DAEGU_CANONICAL_SEATMAP_IMAGE,
+  type DaeguCanonicalBlock,
 } from '../../data/daeguCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
@@ -33,13 +34,14 @@ import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import { filterAndRankDaeguSeatMapBlocks } from './daeguSeatMapSearch';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.25;
 const FINDER_FOCUS_ZOOM = 1.6;
 
-const daeguSectionAdapter: SeatMapSectionAdapter<DaeguBlock> = {
+const daeguSectionAdapter: SeatMapSectionAdapter<DaeguCanonicalBlock> = {
   getId: (section) => section.id,
   getName: (section) => section.name,
   getBlock: (section) => section.block,
@@ -68,26 +70,9 @@ function formatDraftDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function normalizeSearchText(value: string): string {
-  return value.replace(/\s+/g, '').toLowerCase();
-}
-
-function blockSearchText(block: DaeguBlock): string {
-  const category = DAEGU_CATEGORIES[block.category];
-  return [
-    block.id,
-    block.name,
-    block.block,
-    `${block.block}블록`,
-    ...block.officialBlocks,
-    ...block.seatViewSections,
-    category?.label,
-    getDaeguSideLabel(block.side),
-    getDaeguFanRoleLabel(block.fanRole),
-    getDaeguTraceStatusLabel(block.traceStatus),
-  ]
-    .filter(Boolean)
-    .join(' ');
+function getDaeguCanonicalDecisionStatusLabel(status: DaeguCanonicalBlock['canonicalDecisionStatus']): string {
+  if (status === 'CANONICAL_OPERATOR_FROM_OVERLAP') return 'operator overlap canonical';
+  return 'operator-only canonical';
 }
 
 function clampZoom(value: number) {
@@ -100,20 +85,23 @@ function SectionFinder({
   selected,
   mode,
   searchTerm,
+  activeFilterLabel,
   onSearchChange,
   onSelect,
   onHover,
 }: {
-  blocks: DaeguBlock[];
+  blocks: DaeguCanonicalBlock[];
   totalCount: number;
-  selected: DaeguBlock | null;
+  selected: DaeguCanonicalBlock | null;
   mode: 'light' | 'dark';
   searchTerm: string;
+  activeFilterLabel: string;
   onSearchChange: (value: string) => void;
-  onSelect: (block: DaeguBlock) => void;
+  onSelect: (block: DaeguCanonicalBlock) => void;
   onHover: (id: string | null) => void;
 }) {
   const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
+  const hasSearch = searchTerm.trim().length > 0;
 
   return (
     <aside
@@ -192,11 +180,18 @@ function SectionFinder({
             })}
           </div>
         ) : (
-          <div className="flex min-h-[180px] flex-col items-center justify-center px-4 text-center">
-            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색 결과가 없습니다</p>
+          <div
+            data-testid="daegu-section-finder-empty"
+            className="flex min-h-[180px] flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800"
+          >
+            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색어와 선택한 필터에 맞는 구역이 없습니다</p>
             <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
               블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
             </p>
+            {hasSearch && (
+              <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-slate-500">검색어: {searchTerm.trim()}</p>
+            )}
+            <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">필터: {activeFilterLabel}</p>
           </div>
         )}
       </div>
@@ -310,6 +305,55 @@ function DetailPanel({
   );
 }
 
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+      <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">{label}</div>
+      <div className="text-base font-black text-slate-800 dark:text-white">{value}</div>
+    </div>
+  );
+}
+
+function DaeguExtraMeta({ section, accent }: { section: DaeguCanonicalBlock; accent: string }) {
+  const traceSource = section.imageGeometry.traceSource ?? '-';
+  const officialBlocks = section.officialBlocks.length > 0 ? section.officialBlocks.join(', ') : '-';
+
+  return (
+    <div data-testid="daegu-seatmap-extra-meta" className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
+      <div className="grid grid-cols-2 gap-2.5">
+        <InfoTile label="canonical block key" value={section.canonicalBlockKey} />
+        <InfoTile label="정확 블록" value={section.block} />
+        <InfoTile label="공식 블록" value={officialBlocks} />
+        <InfoTile label="source confidence" value={getDaeguSourceLabel(section.sourceConfidence)} />
+      </div>
+      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+        <div
+          data-testid="daegu-seatmap-canonical-decision-status"
+          className="rounded-xl px-3 py-2"
+          style={{ background: `${accent}12` }}
+        >
+          canonical decision status: {getDaeguCanonicalDecisionStatusLabel(section.canonicalDecisionStatus)}
+        </div>
+        <div data-testid="daegu-seatmap-trace-status" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          trace status: {getDaeguTraceStatusLabel(section.traceStatus)}
+        </div>
+        <div data-testid="daegu-seatmap-trace-method" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          trace method: {getDaeguTraceMethodLabel(section.traceMethod)}
+        </div>
+        <div data-testid="daegu-seatmap-coordinate-source" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          coordinate source: {traceSource}
+        </div>
+        <div data-testid="daegu-seatmap-source-confidence" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          source confidence: {getDaeguSourceLabel(section.sourceConfidence)}
+        </div>
+        <div data-testid="daegu-seatmap-accessibility-note" className="rounded-xl bg-cyan-50 px-3 py-2 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          접근성 메모: {section.accessibilityNote ?? '별도 접근성 메모 없음'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DaeguSeatMap() {
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
@@ -372,15 +416,15 @@ export default function DaeguSeatMap() {
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#074CA1';
   const usedCategories = useMemo(() => [...new Set(selectableDaeguBlocks.map((block) => block.category))], [selectableDaeguBlocks]);
   const visibleBlocks = useMemo(() => {
-    const normalizedQuery = normalizeSearchText(searchTerm);
-    return selectableDaeguBlocks.filter((block) => {
+    const filteredBlocks = selectableDaeguBlocks.filter((block) => {
       if (filterCats !== null && !filterCats.includes(block.category)) return false;
       if (activeFilterGroup?.sides != null && !activeFilterGroup.sides.includes(block.side)) return false;
       if (activeFilterGroup?.levels != null && !activeFilterGroup.levels.includes(block.level)) return false;
-      if (!normalizedQuery) return true;
-      return normalizeSearchText(blockSearchText(block)).includes(normalizedQuery);
+      return true;
     });
+    return filterAndRankDaeguSeatMapBlocks(filteredBlocks, searchTerm);
   }, [filterCats, activeFilterGroup, searchTerm, selectableDaeguBlocks]);
+  const activeFilterLabel = activeFilterGroup?.label ?? '전체';
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -412,7 +456,7 @@ export default function DaeguSeatMap() {
     }
   }, []);
 
-  const handleSelectSection = useCallback((section: DaeguBlock) => {
+  const handleSelectSection = useCallback((section: DaeguCanonicalBlock) => {
     if (!selectableDaeguBlockIds.has(section.id)) {
       return;
     }
@@ -425,7 +469,7 @@ export default function DaeguSeatMap() {
     }));
   }, [selectableDaeguBlockIds, setHover, setSelected]);
 
-  const handleShareSeatView = useCallback((section: DaeguBlock | null) => {
+  const handleShareSeatView = useCallback((section: DaeguCanonicalBlock | null) => {
     if (!section) return;
 
     setPendingDraft({
@@ -519,6 +563,7 @@ export default function DaeguSeatMap() {
       selected={selected}
       mode={mode}
       searchTerm={searchTerm}
+      activeFilterLabel={activeFilterLabel}
       onSearchChange={setSearchTerm}
       onSelect={handleSelectSection}
       onHover={setHover}
@@ -533,7 +578,8 @@ export default function DaeguSeatMap() {
       stadiumKey="DAEGU"
       onClose={() => setSelected(null)}
       onUpload={() => handleShareSeatView(selected)}
-      copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
     />
   ) : null;
 
@@ -541,8 +587,8 @@ export default function DaeguSeatMap() {
     <>
       <SeatMapTemplateShell
         mode={mode}
-        title="대구삼성라이온즈파크"
-        subtitle="canonical 좌석도"
+        title="대구 삼성 라이온즈파크"
+        subtitle="대구 삼성 라이온즈파크 공식 좌석도 · canonical 좌석도"
         titleAccentColor="#074CA1"
         isMobile={isMobile}
         isAuxiliaryGuideActive={false}
@@ -562,7 +608,8 @@ export default function DaeguSeatMap() {
             stadiumKey="DAEGU"
             onClose={() => setSelected(null)}
             onUpload={() => handleShareSeatView(selected)}
-            copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
           />
         )}
         mobileHasSidePanel={Boolean(mapToolsEnabled && selected)}
@@ -589,8 +636,8 @@ export default function DaeguSeatMap() {
         )}
         fullscreenDialogTestId="daegu-seatmap-fullscreen"
         fullscreenCloseTestId="daegu-seatmap-fullscreen-close"
-        fullscreenTitle="대구삼성라이온즈파크"
-        fullscreenSubtitle="canonical 좌석도 전체화면"
+        fullscreenTitle="대구 삼성 라이온즈파크"
+        fullscreenSubtitle="대구 삼성 라이온즈파크 공식 좌석도 · canonical 좌석도 전체화면"
       />
     </>
   );

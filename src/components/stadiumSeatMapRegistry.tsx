@@ -55,9 +55,9 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
   },
   {
     id: 'daegu',
-    label: '대구 삼성 공식 좌석도',
-    badgeLabel: '대구 삼성 공식 좌석도',
-    matchers: ['DAEGU', 'SAMSUNG', '대구', '삼성', '라이온즈'],
+    label: '대구 삼성 라이온즈파크 공식 좌석도',
+    badgeLabel: '대구 삼성 라이온즈파크 공식 좌석도',
+    matchers: ['DAEGU', 'SAMSUNG', '대구', '삼성', '라이온즈', '라팍', '라이온즈파크', '삼성라이온즈파크', '대구삼성라이온즈파크', '대구 삼성 라이온즈파크', '대구 삼성 라이온즈 파크'],
     folder: 'daegu',
     componentName: 'DaeguSeatMap',
     Component: lazySeatMap(() => import('./daegu/DaeguSeatMap')),

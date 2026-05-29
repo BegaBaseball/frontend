@@ -50,9 +50,9 @@ export const STADIUM_DATA: Record<string, StadiumMapData> = {
         name: '광주 기아 챔피언스 필드',
         mapImage: kiaImg
     },
-    '대구 삼성 라이온즈 파크': {
+    '대구 삼성 라이온즈파크': {
         id: 'samsung',
-        name: '대구 삼성 라이온즈 파크',
+        name: '대구 삼성 라이온즈파크',
         mapImage: samsungImg
     },
     '수원 KT 위즈파크': {

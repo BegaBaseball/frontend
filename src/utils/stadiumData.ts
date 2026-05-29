@@ -153,7 +153,7 @@ export const KBO_STADIUMS: Record<string, StadiumConfig> = {
     },
     'Daegu': {
         id: 'Daegu',
-        name: '대구삼성라이온즈파크',
+        name: '대구 삼성 라이온즈파크',
         homeTeam: 'Samsung',
         zones: [
             {

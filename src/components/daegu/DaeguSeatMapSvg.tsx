@@ -921,7 +921,7 @@ export default function DaeguSeatMapSvg({
             data-image-view-mode="canonical"
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
-            aria-label="대구 삼성 라이온즈 파크 canonical 좌석도 구역 선택"
+            aria-label="대구 삼성 라이온즈파크 canonical 좌석도 구역 선택"
             onDoubleClick={handleSvgDoubleClick}
             onMouseMove={handleDebugMouseMove}
             onMouseLeave={() => {
