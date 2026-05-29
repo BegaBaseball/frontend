@@ -45,6 +45,7 @@ const expectedIncludedFiles = [
   'src/components/stadiumSeatMap/SeatMapFilterBar.tsx',
   'src/components/stadiumSeatMap/SeatMapLegend.tsx',
   'src/components/stadiumSeatMap/SeatMapRuntimeShell.tsx',
+  'src/components/stadiumSeatMap/SeatMapSectionFinder.tsx',
   'src/components/stadiumSeatMap/SeatMapTemplateShell.tsx',
   'src/components/stadiumSeatMap/seatMapCommonTypes.ts',
   'src/components/stadiumSeatMap/useSeatMapSelectionState.ts',
@@ -61,13 +62,15 @@ const expectedIncludedFiles = [
 const partialStagingRequiredFiles = [
   {
     file: 'package.json',
-    reason: 'Package scripts contain unrelated Gwangju, Daegu, Sajik, and Suwon release/operator script additions.',
+    reason: 'Package scripts contain unrelated Gwangju, Daejeon, Daegu, Sajik, and Suwon release/operator script additions or removals.',
     includeOnly: [
       'stadium:seatmap:standard-shell-pr-scope-guard',
     ],
     exclude: [
       'stadium:gwangju:*',
       'qa:stadium:gwangju:*',
+      'stadium:daejeon:*',
+      'qa:stadium:daejeon:*',
       'stadium:daegu:*',
       'qa:stadium:daegu:*',
       'stadium:sajik:*',
@@ -77,7 +80,7 @@ const partialStagingRequiredFiles = [
     ],
     hunkGuide: [
       'Stage only the added stadium:seatmap:standard-shell-pr-scope-guard script line.',
-      'Skip Gwangju, Daegu, Sajik, and Suwon release/operator/QA script additions.',
+      'Skip Gwangju, Daejeon, Daegu, Sajik, and Suwon release/operator/QA script additions or removals.',
     ],
   },
   {
@@ -112,11 +115,110 @@ const partialStagingRequiredFiles = [
     ],
     exclude: [
       'review-only or marker-only precision behavior that depends on Daegu operator data changes',
+      'Daegu canonical naming, alias, search ranking, and extra metadata UX changes',
     ],
     hunkGuide: [
       'Stage shared SeatMapAttribution, SeatMapBottomSheet, SeatMapDetailPanel, SeatMapFilterBar, SeatMapLegend, SeatMapSectionAdapter, and useSeatMapSelectionState wiring.',
       'Stage only the shell slot plumbing that keeps the existing Daegu finder in mobileSecondaryPanel and desktopSecondaryPanel.',
-      'Skip isDaeguNormalSelectableSeat, selectableDaeguBlocks, selectableDaeguBlockIds, review-only/marker-only selection limits, and operator precision data dependent filter/count changes.',
+      'Skip isDaeguNormalSelectableSeat, selectableDaeguBlocks, selectableDaeguBlockIds, review-only/marker-only selection limits, operator precision data dependent filter/count changes, daeguSeatMapSearch, canonical display-name, alias, search ranking, and DaeguExtraMeta hunks.',
+    ],
+  },
+  {
+    file: 'src/components/gocheok/GocheokSeatMap.tsx',
+    reason: 'Gocheok shell migration can be mixed with operator visit guidance and facility-operation UX.',
+    includeOnly: [
+      'shared filter/legend/attribution/detail/bottom-sheet wiring',
+      'SeatMapTemplateShell secondary panel slot wiring when present',
+    ],
+    exclude: [
+      'operator visit guidance imports or data-testid additions',
+      'facility operation guide buttons or operation notice wiring',
+    ],
+    hunkGuide: [
+      'Stage only shared standard shell plumbing if it appears in this file.',
+      'Skip getGocheokOperatorVisitGuidance, gocheok-operator-* test ids, and operations facility guide transitions.',
+    ],
+  },
+  {
+    file: 'src/components/incheon/IncheonSeatMap.test.tsx',
+    reason: 'Incheon runtime markup assertions can mix standard shell coverage with comparison tray and operator guide separation checks.',
+    includeOnly: [
+      'standard shell markup assertions',
+      'Incheon section finder presence',
+      'dedicated demo/upload placeholder absence',
+    ],
+    exclude: [
+      'comparison tray assertions',
+      'operator visit guidance assertions',
+    ],
+    hunkGuide: [
+      'Stage only shell markup, section finder, and demo placeholder removal assertions.',
+      'Skip 후보 비교, 비교에 추가, incheon-compare-tray, and incheon-operator-visit-check assertions.',
+    ],
+  },
+  {
+    file: 'src/components/incheon/IncheonSeatMap.tsx',
+    reason: 'Incheon shell migration can be mixed with first-visit guide, operator visit guidance, mobile tabs, and diary draft UX.',
+    includeOnly: [
+      'shared filter/legend/attribution/detail/bottom-sheet wiring',
+      'SeatMapTemplateShell secondary panel slot wiring when present',
+    ],
+    exclude: [
+      'Incheon first-visit guide expansion',
+      'operator visit guidance imports or data-testid additions',
+      'mobile guide/finder tabs',
+      'comparison tray or recent selection workflow',
+      'diary pending draft CTA flow changes',
+    ],
+    hunkGuide: [
+      'Stage only shared standard shell plumbing if it appears in this file.',
+      'Skip IncheonMobileSecondaryPanel, IncheonCompareTray, comparisonIds, recentSelectionIds, getIncheonOperatorVisitGuidance, incheon-operator-* test ids, and diary draft handoff hunks.',
+    ],
+  },
+  {
+    file: 'src/components/incheon/IncheonSeatMapSvg.tsx',
+    reason: 'Incheon SVG changes can be gesture-specific mobile UX work rather than standard shell migration.',
+    includeOnly: [
+      'standard shell SVG contract preservation when present',
+    ],
+    exclude: [
+      'gesture mode state',
+      'double tap, pinch, or touch tap suppression changes',
+      'data-gesture-mode QA attributes',
+    ],
+    hunkGuide: [
+      'Stage only standard shell preservation hunks if they appear.',
+      'Skip GestureMode, touchTapStateRef, data-gesture-mode, and pointer gesture behavior changes.',
+    ],
+  },
+  {
+    file: 'src/components/stadiumSeatMapRegistry.tsx',
+    reason: 'Registry standard shell changes can be mixed with stadium-specific Daegu naming and alias updates.',
+    includeOnly: [
+      'standard shell registry contract changes',
+    ],
+    exclude: [
+      'Daegu display label or matcher alias updates',
+    ],
+    hunkGuide: [
+      'Stage only registry changes that are required for the standard shell split.',
+      'Skip Daegu label, badgeLabel, and matcher alias expansion hunks.',
+    ],
+  },
+  {
+    file: 'src/components/jamsil/JamsilSeatMap.tsx',
+    reason: 'Jamsil shell migration is mixed with operator visit guidance runtime UI.',
+    includeOnly: [
+      'shared filter/legend/attribution/detail/bottom-sheet wiring',
+      'SeatMapSectionFinder secondary panel slot wiring',
+    ],
+    exclude: [
+      'operator visit guidance imports, metadata, and test ids',
+      'manual baseball data fallback display',
+    ],
+    hunkGuide: [
+      'Stage only shared shell plumbing, SeatMapSectionFinder import/use, finder focus selection, and secondaryPanel slot wiring.',
+      'Skip getJamsilOperatorVisitGuidance, JamsilOperatorVisitMeta, renderOperatorVisitMeta, extraMeta, MANUAL_BASEBALL_DATA_REQUIRED, and jamsil-operator-* hunks.',
     ],
   },
   {
@@ -133,6 +235,23 @@ const partialStagingRequiredFiles = [
       'Stage shared filter, legend, attribution, detail panel, bottom sheet, adapter, selection state, and isAuxiliaryGuideActive shell wiring.',
       'Stage only the existing derived range summary connection when it is preserved through standard shell slots.',
       'Skip Gwangju release/operator data contract, precision workset, and low-margin candidate changes.',
+    ],
+  },
+  {
+    file: 'src/components/suwon/SuwonSeatMap.tsx',
+    reason: 'Suwon shell migration is mixed with first-visit guide and operator visit guidance runtime UI.',
+    includeOnly: [
+      'shared filter/legend/attribution/detail/bottom-sheet wiring',
+      'SeatMapSectionFinder secondary panel slot wiring',
+    ],
+    exclude: [
+      'first-visit guide intent UI and mobile tool tabs',
+      'operator visit guidance imports, metadata, and test ids',
+      'manual baseball data fallback display',
+    ],
+    hunkGuide: [
+      'Stage only shared shell plumbing, SeatMapSectionFinder import/use, finder focus selection, and standard secondaryPanel slot wiring.',
+      'Skip SuwonFirstVisitGuide, SuwonMobileSecondaryPanel, guide intent ranking, getSuwonOperatorVisitGuidance, SuwonOperatorVisitMeta, renderOperatorVisitMeta, extraMeta, MANUAL_BASEBALL_DATA_REQUIRED, and suwon-operator-* hunks.',
     ],
   },
   {
@@ -234,10 +353,90 @@ const separateRules = [
     match: (file) => generatedOrRegenerateLaterFiles.includes(file),
   },
   {
+    id: 'seatmap-cypress-regression-work',
+    reason: 'Cross-stadium Cypress regression additions belong in a separate verification PR.',
+    match: (file) => file === 'cypress/e2e/stadium-seatmap.cy.ts'
+      || /^cypress\/e2e\/stadium-seatmap-.+\.cy\.ts$/.test(file)
+      || file === 'cypress/support/stadiumSeatmap.ts',
+  },
+  {
+    id: 'mate-flow-e2e-work',
+    reason: 'Mate flow Cypress and mobile bar adjustments are unrelated to the stadium standard shell split.',
+    match: (file) => file.startsWith('cypress/e2e/mate-')
+      || file === 'src/utils/mateFlowUi.ts',
+  },
+  {
+    id: 'non-stadium-frontend-work',
+    reason: 'Non-stadium frontend UI changes are unrelated to the stadium standard shell split.',
+    match: (file) => file.startsWith('src/components/prediction/')
+      || file === 'src/components/CoachAnalysisDialogResultRuntime.tsx'
+      || file === 'src/components/CoachAnalysisDialogRuntime.tsx'
+      || file === 'src/utils/coachAnalysisText.ts',
+  },
+  {
+    id: 'operator-visit-guide-work',
+    reason: 'Operator visit guide docs/data/runtime changes belong in a separate PR from the standard shell split.',
+    match: (file) => file === 'docs/stadium/'
+      || file.startsWith('docs/stadium/')
+      || file === 'docs/incheon-seatmap-release-handoff.md'
+      || file === 'src/components/gocheok/GocheokFacilityGuide.tsx'
+      || file === 'src/data/gocheokOperatorVisitGuide.ts'
+      || file === 'src/data/gocheokOperatorVisitGuideSeatData.test.ts'
+      || file === 'src/data/incheonOperatorVisitGuide.ts'
+      || file === 'src/data/incheonOperatorVisitGuideSeatData.test.ts'
+      || file === 'src/data/jamsilOperatorVisitGuide.ts'
+      || file === 'src/data/jamsilOperatorVisitGuideSeatData.test.ts'
+      || file === 'src/data/gocheokSeatData.ts'
+      || file === 'scripts/gocheok-operator-visit-guide-gate.test.mjs',
+  },
+  {
+    id: 'changwon-patch-preview-work',
+    reason: 'Changwon release and patch preview documentation belongs in a separate release follow-up from the standard shell split.',
+    match: (file) => file.startsWith('docs/changwon-seatmap-')
+      || file === 'scripts/changwon-seatmap-ops.mjs',
+  },
+  {
+    id: 'gocheok-release-lock-work',
+    reason: 'Gocheok release lock and ops changes belong in a separate stadium release PR.',
+    match: (file) => file === 'docs/gocheok-seatmap-release-lock.md'
+      || file === 'scripts/gocheok-seatmap-ops.mjs',
+  },
+  {
+    id: 'incheon-release-lock-work',
+    reason: 'Incheon release lock and ops changes belong in a separate stadium release PR.',
+    match: (file) => file === 'docs/incheon-seatmap-release-lock.md'
+      || file === 'scripts/incheon-seatmap-ops.mjs',
+  },
+  {
+    id: 'jamsil-release-lock-work',
+    reason: 'Jamsil release lock and ops changes belong in a separate stadium release PR.',
+    match: (file) => file === 'docs/jamsil-seatmap-release-lock.md'
+      || file === 'scripts/jamsil-seatmap-ops.mjs',
+  },
+  {
+    id: 'seatmap-overlay-review-work',
+    reason: 'Cross-stadium overlay checklist updates belong in a separate review PR.',
+    match: (file) => file === 'docs/stadium-seatmap-overlay-checklist.md',
+  },
+  {
+    id: 'cross-stadium-dispatcher-cleanup',
+    reason: 'Shared dispatcher cleanup spans multiple stadium release workflows and belongs in a separate PR.',
+    match: (file) => file === 'scripts/stadium-seatmap-ops.mjs',
+  },
+  {
+    id: 'daegu-search-and-naming-work',
+    reason: 'Daegu search helper and naming alias work belongs in a separate PR.',
+    match: (file) => file === 'src/components/daegu/daeguSeatMapSearch.ts'
+      || file === 'src/data/stadiums.ts'
+      || file === 'src/utils/constants.ts'
+      || file === 'src/utils/stadiumData.ts',
+  },
+  {
     id: 'daegu-release-operator-work',
     reason: 'Daegu precision, release, and operator workflow belongs in a separate PR.',
     match: (file) => file.startsWith('docs/daegu-')
       || file.startsWith('scripts/daegu-')
+      || file === 'src/components/StadiumGuideRuntimeSeatMaps.daegu-review.test.ts'
       || file === 'src/components/daegu/DaeguSeatMapSvg.tsx'
       || file.startsWith('src/data/daegu'),
   },

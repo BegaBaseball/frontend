@@ -117,6 +117,12 @@ export function SeatMapSectionFinder<TSection>({
                   type="button"
                   data-testid={`${testIdPrefix}-section-finder-item-${adapter.getId(block)}`}
                   onClick={() => onSelect(block)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelect(block);
+                    }
+                  }}
                   onMouseEnter={() => onHoverChange(adapter.getId(block))}
                   onMouseLeave={() => onHoverChange(null)}
                   className="w-full cursor-pointer rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800"

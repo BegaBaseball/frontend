@@ -20,6 +20,7 @@ import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
+import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
@@ -28,6 +29,7 @@ import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
+const FINDER_FOCUS_ZOOM = 1.35;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
@@ -91,6 +93,9 @@ export default function SuwonSeatMap() {
   const hoveredCategory = hoveredSection ? SUWON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#0B57A7';
   const usedCategories = useMemo(() => [...new Set(SUWON_BLOCKS.map((block) => block.category))], []);
+  const visibleSuwonBlocks = useMemo(() => SUWON_BLOCKS.filter((block) => (
+    filterCats === null || filterCats.includes(block.category)
+  )), [filterCats]);
 
   const traceSummaryText = useMemo(() => {
     if (SUWON_TRACE_REVIEW_SUMMARY.draftApproximate === 0) return '전체 공식 이미지 트레이싱 완료';
@@ -110,6 +115,12 @@ export default function SuwonSeatMap() {
       setPan({ x: 0, y: 0 });
     }
   }, []);
+
+  const handleSelectFromFinder = useCallback((block: SuwonBlock) => {
+    setSelected(block);
+    setHover(null);
+    setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
+  }, [setHover, setSelected]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <SuwonSeatMapSvg
@@ -177,6 +188,21 @@ export default function SuwonSeatMap() {
     />
   );
   const legend = <SeatMapLegend categoryIds={usedCategories} categories={SUWON_CATEGORIES} mode={mode} />;
+  const sectionFinder = (
+    <SeatMapSectionFinder
+      blocks={visibleSuwonBlocks}
+      adapter={suwonSectionAdapter}
+      categories={SUWON_CATEGORIES}
+      filterCats={filterCats}
+      selected={selected}
+      onSelect={handleSelectFromFinder}
+      onHoverChange={setHover}
+      mode={mode}
+      testIdPrefix="suwon"
+      accentColor="#0B57A7"
+      stadiumShortLabel="수원"
+    />
+  );
 
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
@@ -206,6 +232,7 @@ export default function SuwonSeatMap() {
         mapContent={mapContent}
         attribution={attribution}
         legend={legend}
+        mobileSecondaryPanel={sectionFinder}
         mobileBottomSheet={selected && (
           <SeatMapBottomSheet
             section={selected}
@@ -218,6 +245,7 @@ export default function SuwonSeatMap() {
           />
         )}
         mobileHasSidePanel={Boolean(selected)}
+        desktopSecondaryPanel={sectionFinder}
         desktopSidePanel={detailPanel}
         toast={toast}
         isFullscreenOpen={isFullscreenOpen}
