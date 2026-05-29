@@ -12,6 +12,7 @@ import {
 import {
   DAEGU_CANONICAL_SEATMAP_IMAGE,
   DAEGU_CANONICAL_SEATMAP_VIEWPORT,
+  type DaeguCanonicalBlock,
 } from '../../data/daeguCanonicalSeatMap';
 import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
 import {
@@ -28,12 +29,12 @@ import {
 } from '../stadiumSeatMap/seatMapInteractionUtils';
 
 interface DaeguExtraProps {
-  blocks: DaeguBlock[];
+  blocks: DaeguCanonicalBlock[];
   focusBlockId: string | null;
   focusRequestId: number;
 }
 
-type Props = SeatMapSvgBaseProps<DaeguBlock> & DaeguExtraProps;
+type Props = SeatMapSvgBaseProps<DaeguCanonicalBlock> & DaeguExtraProps;
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   return (
@@ -593,7 +594,7 @@ export default function DaeguSeatMapSvg({
     setDebugPoint({ x: Math.round(mapped.x), y: Math.round(mapped.y) });
   };
 
-  const renderInteractiveBlocks = (blocks: DaeguBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
+  const renderInteractiveBlocks = (blocks: DaeguCanonicalBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
     const cat = DAEGU_CATEGORIES[block.category];
     if (!cat) return null;
 
