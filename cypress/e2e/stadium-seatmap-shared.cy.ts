@@ -337,6 +337,12 @@ describe('Stadium SeatMap — Daejeon Search / Detail UX', () => {
 
     cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
       cy.get('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]').should('be.visible');
+      cy.get('[data-testid="daejeon-seatmap-official-image"]')
+        .should('be.visible')
+        .and(($image) => {
+          expect($image.css('opacity')).to.eq('1');
+          expect($image.attr('href')).to.include('daejeon-hanwha-life-eagles-park-seatmap-official-2026');
+        });
       cy.get('[data-testid="daejeon-seatmap-zoom-in"]').should('exist');
       cy.get('[data-testid="daejeon-seatmap-zoom-out"]').should('exist');
       cy.get('[data-testid="daejeon-seatmap-zoom-reset"]').should('exist');

@@ -167,10 +167,21 @@ export default function DaejeonSeatMapSvg({
   ), []);
 
   useEffect(() => {
-    if (!seatMapImageUrl) return;
+    if (!seatMapImageUrl) {
+      setImageLoaded(false);
+      setImageFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    setImageLoaded(false);
+    setImageFailed(false);
 
     const image = new Image();
     image.onload = () => {
+      if (cancelled) return;
+      setImageLoaded(true);
+
       if (image.naturalWidth !== imageWidth || image.naturalHeight !== imageHeight) {
         console.warn('[daejeon-seatmap] official image size mismatch', {
           naturalWidth: image.naturalWidth,
@@ -180,8 +191,14 @@ export default function DaejeonSeatMapSvg({
         });
       }
     };
-    image.onerror = () => setImageFailed(true);
+    image.onerror = () => {
+      if (!cancelled) setImageFailed(true);
+    };
     image.src = seatMapImageUrl;
+
+    return () => {
+      cancelled = true;
+    };
   }, [imageHeight, imageWidth, seatMapImageUrl]);
 
   useEffect(() => {
@@ -431,6 +448,7 @@ export default function DaejeonSeatMapSvg({
             <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
           )}
           <image
+            data-testid="daejeon-seatmap-official-image"
             href={seatMapImageUrl}
             x="0"
             y="0"
@@ -440,6 +458,7 @@ export default function DaejeonSeatMapSvg({
             aria-hidden="true"
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
+            pointerEvents="none"
             style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
           />
           <defs>
