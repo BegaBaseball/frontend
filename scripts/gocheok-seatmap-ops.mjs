@@ -40,9 +40,9 @@ const GOCHEOK_OPERATOR_REQUIRED_COLUMNS = [
   'message',
 ];
 
-const GOCHEOK_OPERATOR_FACILITY_KINDS = new Set(['ENTRANCE', 'CONCESSION', 'RESTROOM', 'ELEVATOR', 'PARKING', 'TRANSIT']);
+const GOCHEOK_OPERATOR_FACILITY_KINDS = new Set(['ENTRANCE', 'CONCESSION', 'RESTROOM', 'ELEVATOR', 'PARKING', 'TRANSIT', 'SHOP']);
 const GOCHEOK_OPERATOR_SOURCE_ID_PATTERN = /^gocheok-operator-\d{8}-[a-z0-9-]+$/;
-const GOCHEOK_OPERATOR_FACILITY_ID_PATTERN = /^gocheok-facility-(entrance|concession|restroom|elevator|parking|transit)-[a-z0-9-]+$/;
+const GOCHEOK_OPERATOR_FACILITY_ID_PATTERN = /^gocheok-facility-(entrance|concession|restroom|elevator|parking|transit|shop)-[a-z0-9-]+$/;
 const GOCHEOK_OPERATOR_NOTICE_ID_PATTERN = /^gocheok-operation-notice-\d{8}-[a-z0-9-]+$/;
 const GOCHEOK_OPERATOR_ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const GOCHEOK_OPERATOR_FORBIDDEN_PATTERN = /https?:\/\/|www\.|크롤|스크래핑|scrap|crawl|web\s*search|웹\s*검색/i;

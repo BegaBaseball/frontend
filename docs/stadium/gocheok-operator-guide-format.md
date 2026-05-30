@@ -82,6 +82,7 @@ no-source-write 계약:
 - `ELEVATOR`
 - `PARKING`
 - `TRANSIT`
+- `SHOP`
 
 ## Block Visit Guidance
 
@@ -102,7 +103,7 @@ no-source-write 계약:
 
 - `blockId`는 실제 `GOCHEOK_BLOCKS`에 존재해야 한다.
 - `recommendedEntrancePointIds`는 `ENTRANCE` 지점만 참조한다.
-- `nearbyFacilityPointIds`는 `CONCESSION`, `RESTROOM`, `ELEVATOR`, `PARKING`, `TRANSIT` 지점을 참조할 수 있다.
+- `nearbyFacilityPointIds`는 `CONCESSION`, `RESTROOM`, `ELEVATOR`, `PARKING`, `TRANSIT`, `SHOP` 지점을 참조할 수 있다.
 - 참조할 운영자 지점이 없으면 배열을 비워 두고 UI fallback을 유지한다.
 
 ## Operation Notice
