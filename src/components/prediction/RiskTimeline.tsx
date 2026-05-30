@@ -7,6 +7,7 @@ import {
     riskSevColor,
     useIsDark,
 } from './coachRiskHelpers';
+import { getCoachTokens, IMPACT } from './coachStyleTokens';
 
 function PitchIcon(props: SVGProps<SVGSVGElement>) {
     return (
@@ -74,15 +75,16 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
     });
 
     // 색상 토큰
-    const bg          = isDark ? '#1c1f28' : '#fff';
-    const border      = isDark ? '#2d3748' : '#e5e7eb';
-    const axisColor   = isDark ? '#374151' : '#e5e7eb';
-    const tickColor   = isDark ? '#4b5563' : '#cbd5e1';
-    const tickLabel   = isDark ? '#6b7280' : '#94a3b8';
-    const rowBorder   = isDark ? '#1f2937' : '#f1f5f9';
-    const textColor   = isDark ? '#e5e7eb' : '#0f1419';
-    const subColor    = isDark ? '#6b7280' : '#64748b';
-    const headerColor = isDark ? '#9ca3af' : '#475569';
+    const t = getCoachTokens(isDark);
+    const bg          = t.cardBg;
+    const border      = t.cardBorder;
+    const axisColor   = t.axisColor;
+    const tickColor   = t.tickColor;
+    const tickLabel   = t.tickLabel;
+    const rowBorder   = t.rowBorder;
+    const textColor   = t.textColor;
+    const subColor    = t.subColor;
+    const headerColor = t.headerColor;
 
     return (
         <div style={{
@@ -111,9 +113,9 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                     color: subColor,
                 }}>
                     {([
-                        ['#dc2626', '높음'],
-                        ['#d97706', '중간'],
-                        ['#059669', '낮음'],
+                        [riskSevColor(0), '높음'],
+                        [riskSevColor(1), '중간'],
+                        [riskSevColor(2), '낮음'],
                     ] as const).map(([c, l]) => (
                         <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ width: 7, height: 7, borderRadius: 999, background: c, display: 'inline-block' }} />
@@ -193,7 +195,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                 {risks.map((r, idx) => {
                     const color       = riskSevColor(r.level);
                     const impactTo    = riskImpactTo(r.level, isPositive);
-                    const impactColor = impactTo === 'home' ? '#b91c1c' : impactTo === 'away' ? '#047857' : '#64748b';
+                    const impactColor = impactTo === 'home' ? IMPACT.home : impactTo === 'away' ? IMPACT.away : IMPACT.bothText;
                     const impactText  = impactTo === 'home' ? '−높음' : impactTo === 'away' ? '−낮음' : '±중간';
 
                     return (
@@ -218,7 +220,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                 height: 22,
                                 borderRadius: 6,
                                 flexShrink: 0,
-                                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                background: t.iconChipBg,
                                 color,
                                 display: 'inline-flex',
                                 alignItems: 'center',

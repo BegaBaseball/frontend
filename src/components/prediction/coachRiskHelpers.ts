@@ -1,5 +1,6 @@
 import { createElement, type ReactNode, useEffect, useState } from 'react';
 import { getFullTeamName } from '../../constants/teams';
+import { RISK_SEV } from './coachStyleTokens';
 
 export function useIsDark(): boolean {
     const [isDark, setIsDark] = useState<boolean>(() => {
@@ -33,7 +34,7 @@ export function riskInning(level: 0 | 1 | 2): string {
 }
 
 export function riskSevColor(level: 0 | 1 | 2): string {
-    return level === 0 ? '#dc2626' : level === 1 ? '#d97706' : '#059669';
+    return level === 0 ? RISK_SEV.high : level === 1 ? RISK_SEV.mid : RISK_SEV.low;
 }
 
 export function riskImpactTo(
