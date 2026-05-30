@@ -9,6 +9,7 @@ import {
     shortTeamName,
     useIsDark,
 } from './coachRiskHelpers';
+import { getCoachTokens, IMPACT } from './coachStyleTokens';
 
 function PitchIcon(props: SVGProps<SVGSVGElement>) {
     return (
@@ -69,14 +70,15 @@ export default function RiskVersus({
     const homeName = shortTeamName(homeTeamId) || '홈팀';
     const awayName = shortTeamName(awayTeamId) || '원정팀';
 
-    const bg           = isDark ? '#1c1f28' : '#fff';
-    const border       = isDark ? '#2d3748' : '#e5e7eb';
-    const headerBg     = isDark ? '#111827' : '#fafafa';
-    const headerBorder = isDark ? '#1f2937' : '#eef2f0';
-    const rowBorder    = isDark ? '#1f2937' : '#f1f5f9';
-    const textColor    = isDark ? '#e5e7eb' : '#0f1419';
-    const subColor     = isDark ? '#6b7280' : '#475569';
-    const headerText   = isDark ? '#6b7280' : '#64748b';
+    const t = getCoachTokens(isDark);
+    const bg           = t.cardBg;
+    const border       = t.cardBorder;
+    const headerBg     = t.headerBg;
+    const headerBorder = t.headerBorder;
+    const rowBorder    = t.rowBorder;
+    const textColor    = t.textColor;
+    const subColor     = t.subColorStrong;
+    const headerText   = t.headerText;
 
     return (
         <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden' }}>
@@ -119,12 +121,8 @@ export default function RiskVersus({
                 const isBoth    = impactTo === 'both';
                 const sevColor  = riskSevColor(r.level);
                 const pillText  = isHome ? `${homeName} 불리` : isAway ? `${awayName} 불리` : '양 팀 변수';
-                const pillColor = isHome ? '#b91c1c' : isAway ? '#047857' : '#854d0e';
-                const pillBg    = isHome
-                    ? (isDark ? 'rgba(220,38,38,0.15)' : '#fef2f2')
-                    : isAway
-                        ? (isDark ? 'rgba(5,150,105,0.15)' : '#ecfdf5')
-                        : (isDark ? 'rgba(133,77,14,0.15)' : '#fffbeb');
+                const pillColor = isHome ? IMPACT.home : isAway ? IMPACT.away : IMPACT.bothPill;
+                const pillBg    = isHome ? t.pillBgHome : isAway ? t.pillBgAway : t.pillBgBoth;
 
                 return (
                     <div
@@ -146,7 +144,7 @@ export default function RiskVersus({
                             {isHome && (
                                 <div style={{
                                     width: '50%',
-                                    background: isDark ? 'rgba(254,202,202,0.3)' : '#fecaca',
+                                    background: t.accentHome,
                                     transform: 'translateY(-1.5px)',
                                 }} />
                             )}
@@ -154,14 +152,14 @@ export default function RiskVersus({
                                 <div style={{
                                     width: '50%',
                                     marginLeft: 'auto',
-                                    background: isDark ? 'rgba(167,243,208,0.3)' : '#a7f3d0',
+                                    background: t.accentAway,
                                     transform: 'translateY(-1.5px)',
                                 }} />
                             )}
                             {isBoth && (
                                 <div style={{
                                     width: '100%',
-                                    background: isDark ? 'rgba(253,230,138,0.2)' : '#fde68a',
+                                    background: t.accentBoth,
                                     transform: 'translateY(-1.5px)',
                                 }} />
                             )}
@@ -179,7 +177,7 @@ export default function RiskVersus({
                                 height: 26,
                                 borderRadius: 8,
                                 flexShrink: 0,
-                                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                background: t.iconChipBg,
                                 color: sevColor,
                                 display: 'inline-flex',
                                 alignItems: 'center',
