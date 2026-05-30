@@ -15,11 +15,7 @@ import {
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import PlainDialog from './ui/plain-dialog';
 import {
-    PredictionBarChartIcon,
     PredictionLoaderIcon,
-    PredictionShieldIcon,
-    PredictionTrendingUpIcon,
-    PredictionUsersIcon,
     PredictionZapIcon,
 } from './prediction/PredictionShellIcons';
 
@@ -141,15 +137,10 @@ export default function CoachAnalysisDialogRuntime({
         return TEAM_LIST.find(t => t.includes(teamId)) || teamId;
     };
 
-    const selectableTeamNames = useMemo(() => {
-        if (homeTeamId && awayTeamId) {
-            return Array.from(new Set([
-                getInitialTeamName(homeTeamId),
-                getInitialTeamName(awayTeamId),
-            ]));
-        }
-        return TEAM_LIST.slice(1);
-    }, [awayTeamId, homeTeamId]);
+    const fallbackTeamName = useMemo(
+        () => getInitialTeamName(homeTeamId || initialTeam),
+        [homeTeamId, initialTeam],
+    );
 
     const buildDefaultFocus = () => {
         const defaults = ['recent_form', 'bullpen', 'batting'];
@@ -162,8 +153,6 @@ export default function CoachAnalysisDialogRuntime({
         return Array.from(new Set(defaults));
     };
 
-    const [selectedTeam, setSelectedTeam] = useState<string>(getInitialTeamName(initialTeam));
-    const [focus, setFocus] = useState<string[]>(buildDefaultFocus());
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<CoachAnalyzeResponse | null>(null);
     const [analysisStep, setAnalysisStep] = useState<string>('');
@@ -175,6 +164,7 @@ export default function CoachAnalysisDialogRuntime({
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const isMountedRef = useRef(true);
     const analysisRequestIdRef = useRef(0);
+    const autoStartedKeyRef = useRef('');
 
     const clearAnalysisInterval = () => {
         if (intervalRef.current) {
@@ -206,27 +196,50 @@ export default function CoachAnalysisDialogRuntime({
 
     useEffect(() => {
         if (isOpen) {
-            setSelectedTeam(getInitialTeamName(initialTeam));
-            setFocus(normalizeFocusLocal(buildDefaultFocus()));
+            autoStartedKeyRef.current = '';
             setLoading(false);
             setResult(null);
             setAnalysisStep('');
             setErrorAction(null);
             setHasMountedResultRuntime(false);
+            setPreviewText('');
         } else {
+            autoStartedKeyRef.current = '';
             invalidateActiveAnalysis();
             setLoading(false);
             setAnalysisStep('');
         }
     }, [isOpen, initialTeam, homeTeamId, awayTeamId, gameId, homePitcher, awayPitcher]);
 
-    const focusOptions = [
-        { id: 'recent_form', label: '최근 전력', icon: PredictionTrendingUpIcon, desc: '최근 5경기 승률 및 타격감' },
-        { id: 'bullpen', label: '불펜 상태', icon: PredictionShieldIcon, desc: '필승조 가동 가능 여부' },
-        { id: 'matchup', label: '상대 전적', icon: PredictionUsersIcon, desc: '이번 시즌 상대 승률' },
-        { id: 'starter', label: '선발 투수', icon: PredictionZapIcon, desc: '선발 맞대결 분석' },
-        { id: 'batting', label: '타격 생산성', icon: PredictionBarChartIcon, desc: 'OPS·wRC+ 등 타격 지표 분석' },
-    ];
+    const autoRunKey = useMemo(
+        () => [
+            homeTeamId || '',
+            awayTeamId || '',
+            gameId || '',
+            gameDate || '',
+            String(seasonId ?? ''),
+            leagueType || '',
+            round || '',
+            String(gameNo ?? ''),
+            homePitcher || '',
+            awayPitcher || '',
+            gameStatusBucket || '',
+        ].join('|'),
+        [
+            awayPitcher,
+            awayTeamId,
+            gameDate,
+            gameId,
+            gameNo,
+            gameStatusBucket,
+            homePitcher,
+            homeTeamId,
+            leagueType,
+            round,
+            seasonId,
+        ],
+    );
+
     const focusOrder = ['recent_form', 'bullpen', 'starter', 'matchup', 'batting'];
     const normalizeFocusLocal = (values: string[]) => {
         const seen = new Set<string>();
@@ -328,18 +341,14 @@ export default function CoachAnalysisDialogRuntime({
         try {
             const seasonYear = resolveSeasonYear();
             const leagueTypeCode = resolveLeagueTypeCode(leagueType, round);
-            const selectedTeamId = TEAM_NAME_TO_ID[selectedTeam] || selectedTeam;
-            const opponentTeamId = selectedTeamId === homeTeamId
-                ? awayTeamId
-                : selectedTeamId === awayTeamId
-                    ? homeTeamId
-                    : undefined;
+            const selectedTeamId = homeTeamId || TEAM_NAME_TO_ID[fallbackTeamName] || initialTeam || fallbackTeamName;
+            const opponentTeamId = homeTeamId && awayTeamId ? awayTeamId : undefined;
 
             await analyzeTeam({
                 home_team_id: selectedTeamId,
                 away_team_id: opponentTeamId,
                 request_mode: 'manual_detail',
-                focus: normalizeFocusLocal(focus),
+                focus: normalizeFocusLocal(buildDefaultFocus()),
                 game_id: gameId,
                 league_context: {
                     season: seasonId,
@@ -417,176 +426,104 @@ export default function CoachAnalysisDialogRuntime({
         }
     };
 
-    const toggleFocus = (id: string) => {
-        setFocus(prev =>
-            prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
-        );
-    };
     const shouldRenderResultRuntime = hasMountedResultRuntime || loading || Boolean(result);
     const handleLoginAction = () => {
         navigate(buildLoginPath(getCurrentRelativeUrl()));
     };
+    const dialogSubtitle = homeTeamId && awayTeamId
+        ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} ${defaultPresentation.descriptionWithMatchup}`
+        : `${fallbackTeamName} ${defaultPresentation.descriptionWithTeam}`;
+    const footerStatusText = loading
+        ? (analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE)
+        : result?.error
+            ? '분석 오류 · 재시도 가능'
+            : result
+            ? '실데이터 기반 · 홈팀 기준 분석'
+            : '홈팀 기준 분석 준비';
+
+    useEffect(() => {
+        if (!isOpen) return;
+        if (autoStartedKeyRef.current === autoRunKey) return;
+        autoStartedKeyRef.current = autoRunKey;
+        void handleAnalyze();
+    }, [autoRunKey, isOpen]);
 
     return (
         <PlainDialog
             open={isOpen}
             onClose={onRequestClose}
-            title={defaultPresentation.title}
-            description={homeTeamId && awayTeamId
-                ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} ${defaultPresentation.descriptionWithMatchup}`
-                : `${selectedTeam} ${defaultPresentation.descriptionWithTeam}`}
+            ariaLabel={defaultPresentation.title}
             contentTestId="coach-analysis-dialog"
-            className="sm:max-w-[700px] max-h-[90vh] overflow-hidden border-none bg-white p-0 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] dark:bg-secondary"
-            bodyClassName="flex max-h-[calc(90vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-secondary"
+            hideHeader
+            className="max-h-[90vh] overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white p-0 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.06)] sm:max-w-[1080px] dark:border-slate-800 dark:bg-[#16181c]"
+            bodyClassName="flex max-h-[90vh] flex-col overflow-hidden bg-white p-0 dark:bg-[#16181c]"
         >
-            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-7 sm:space-y-8 bg-gray-50/60 dark:bg-black/40 relative">
-                    {/* Team Selection Section */}
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between px-1">
-                            <p className="flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                {homeTeamId && awayTeamId ? '분석 기준 팀 선택' : '분석 대상 팀 선택'}
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
-                            {selectableTeamNames.map((teamName) => {
-                                const isSelected = selectedTeam === teamName;
-                                return (
-                                    <button
-                                        key={teamName}
-                                        type="button"
-                                        disabled={loading}
-                                        onClick={() => {
-                                            if (loading) return;
-                                            setSelectedTeam(teamName);
-                                        }}
-                                        className={`
-                                            relative flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border
-                                                ${isSelected
-                                                ? 'bg-white dark:bg-card border-primary/30 shadow-sm ring-2 ring-primary'
-                                                : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
-                                            }
-                                            ${loading ? 'opacity-60 cursor-not-allowed' : 'active:scale-[0.98]'}
-                                        `}
-                                    >
-                                        <div className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 relative flex items-center justify-center">
-                                            <TeamLogo team={teamName} size={48} className={`w-full h-full transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'opacity-60 grayscale-[0.5]'}`} />
-                                        </div>
-                                        <span className={`text-[16px] font-semibold ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
-                                            {teamName}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+            <div className="flex items-center gap-[14px] border-b border-[#eef2f0] bg-white px-6 py-[18px] dark:border-white/10 dark:bg-[#16181c]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2d5f4f] to-[#173b34] text-[#d6f0e5] shadow-[0_4px_12px_-4px_rgba(23,59,52,0.5)]">
+                    <PredictionZapIcon aria-hidden="true" className="h-[18px] w-[18px]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-[#0f1419] dark:text-slate-100">
+                        {defaultPresentation.title}
+                    </h2>
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] font-bold leading-snug text-[#536471] dark:text-slate-400">
+                        {homeTeamId && <TeamLogo teamId={homeTeamId} size={14} className="!rounded-none !bg-transparent p-0" />}
+                        <span className="truncate">{dialogSubtitle}</span>
+                        {awayTeamId && <TeamLogo teamId={awayTeamId} size={14} className="!rounded-none !bg-transparent p-0" />}
                     </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={onRequestClose}
+                    aria-label="닫기"
+                    className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#e5e7eb] bg-transparent text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" className="h-3.5 w-3.5">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                </button>
+            </div>
 
-                    {/* Focus Points Section */}
-                    <div className="space-y-6">
-                        <p className="flex items-center gap-2 px-1 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                            분석 집중 항목
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {focusOptions.map((opt) => {
-                                const isActive = focus.includes(opt.id);
-                                return (
-                                    <button
-                                        key={opt.id}
-                                        type="button"
-                                        disabled={loading}
-                                        onClick={() => {
-                                            if (loading) return;
-                                            toggleFocus(opt.id);
-                                        }}
-                                        className={`
-                                            flex items-start gap-4 p-4 sm:p-5 rounded-2xl transition-all border
-                                            ${isActive
-                                                ? 'bg-white dark:bg-emerald-950/10 border-primary/30 shadow-sm ring-1 ring-primary'
-                                                : 'bg-white dark:bg-card/50 border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-700'
-                                            }
-                                            ${loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-[0.99]'}
-                                        `}
-                                    >
-                                        <div className={`p-2.5 sm:p-3 rounded-xl transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-secondary text-gray-500'}`}>
-                                            <opt.icon className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={`font-semibold text-[16px] mb-1 ${isActive ? 'text-primary' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                {opt.label}
-                                            </p>
-                                            <p className="text-[16px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                                                {opt.desc}
-                                            </p>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Action Button Section */}
-                    <div className="p-1">
-                        {unavailableAnalysisMessage ? (
-                            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[16px] text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-                                <PredictionShieldIcon className="mt-0.5 h-5 w-5 shrink-0" />
-                                <span>{unavailableAnalysisMessage}</span>
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-[#16181c]">
+                    {!result ? (
+                    <div className="p-6">
+                        <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                            <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
+                                <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
+                                <span className="text-[15px] font-extrabold">{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
                             </div>
-                        ) : null}
-                        <Button
-                            onClick={handleAnalyze}
-                            disabled={loading || Boolean(unavailableAnalysisMessage)}
-                            data-testid="coach-analysis-run-button"
-                            className={`w-full h-12 sm:h-14 text-[16px] sm:text-base font-semibold rounded-2xl transition-all active:scale-[0.99] ${
-                                unavailableAnalysisMessage
-                                    ? 'bg-gray-200 text-gray-500 shadow-none hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400'
-                                    : 'bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20'
-                            }`}
-                        >
-                            {loading ? (
-                                <div className="flex min-w-0 items-center gap-4">
-                                    <PredictionLoaderIcon className="h-6 w-6 text-white animate-spin" />
-                                    <span className="min-w-0 text-[16px] font-semibold">
-                                        {analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}
-                                    </span>
-                                    <span className="ml-auto flex min-w-[34px] justify-end gap-1 text-white/85" aria-hidden="true">
-                                        {[0, 150, 300].map((delay) => (
-                                            <span
-                                                key={delay}
-                                                className="h-1.5 w-1.5 rounded-full bg-white animate-pulse"
-                                                style={{ animationDelay: `${delay}ms` }}
-                                            />
-                                        ))}
-                                    </span>
-                                </div>
-                            ) : unavailableAnalysisMessage ? (
-                                <div className="flex items-center gap-3 px-4">
-                                    <PredictionShieldIcon className="w-5 h-5" />
-                                    <span>분석 불가</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-3 px-4">
-                                    <PredictionZapIcon className="w-5 h-5 text-white" />
-                                    <span>{defaultPresentation.runButtonLabel}</span>
-                                </div>
-                            )}
-                        </Button>
+                            <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-slate-400">
+                                C1 코치 분석을 홈팀 기준으로 자동 생성하고 있습니다.
+                            </p>
+                            <div className="mt-5 space-y-3">
+                                {[1, 2, 3, 4].map((i) => (
+                                    <div
+                                        key={i}
+                                        className="h-4 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"
+                                        style={{ width: `${95 - i * 12}%` }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
+                    ) : null}
 
                     {loading && previewText ? (
-                        <div
-                            data-testid="coach-analysis-preview"
-                            className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 px-4 py-3 text-[13px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
-                        >
-                            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
-                                <span className="rounded bg-amber-200/70 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">초안</span>
-                                <span className="text-amber-700/80 dark:text-amber-200/70">근거 검증 전 생성 중 · 확정 결과로 대체됩니다</span>
+                        <div className="px-6 pb-6">
+                            <div
+                                data-testid="coach-analysis-preview"
+                                className="rounded-[14px] border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+                            >
+                                <div className="mb-1 flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-wider">
+                                    <span className="rounded bg-amber-200 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">초안</span>
+                                    <span className="text-amber-700 dark:text-amber-200">근거 검증 전 생성 중 · 확정 결과로 대체됩니다</span>
+                                </div>
+                                <p className="whitespace-pre-wrap break-words font-semibold">{previewText}</p>
                             </div>
-                            <p className="whitespace-pre-wrap break-words text-amber-900/90 dark:text-amber-100/90">{previewText}</p>
                         </div>
                     ) : null}
 
-                    {shouldRenderResultRuntime ? (
+                    {shouldRenderResultRuntime && (Boolean(result) || !loading) ? (
                         <Suspense
                             fallback={(
                                 <CoachAnalysisDialogResultRuntimeFallback
@@ -599,7 +536,6 @@ export default function CoachAnalysisDialogRuntime({
                                 loading={loading}
                                 analysisStep={analysisStep}
                                 result={result}
-                                selectedFocus={focus}
                                 isPastGame={isPastGame}
                                 isFutureGame={isFutureGame}
                                 gameStatusBucket={gameStatusBucket}
@@ -608,9 +544,24 @@ export default function CoachAnalysisDialogRuntime({
                                 loadingFallbackMessage={ANALYSIS_LOADING_FALLBACK_MESSAGE}
                                 homeTeamId={homeTeamId}
                                 awayTeamId={awayTeamId}
+                                onRetry={handleAnalyze}
                             />
                         </Suspense>
                     ) : null}
+            </div>
+            <div className="flex items-center gap-2 border-t border-[#eef2f0] bg-[#fafcfb] px-[22px] py-3.5 dark:border-white/10 dark:bg-white/[0.02]">
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#536471] dark:text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {footerStatusText}
+                </span>
+                <span className="flex-1" />
+                <Button
+                    type="button"
+                    onClick={onRequestClose}
+                    className="h-9 rounded-[14px] bg-[#2d5f4f] px-5 text-[13px] font-extrabold text-white hover:bg-[#2f6c5c]"
+                >
+                    닫기
+                </Button>
             </div>
         </PlainDialog>
     );
