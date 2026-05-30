@@ -58,6 +58,7 @@ const expectedIncludedFiles = [
   'src/data/incheonVisitGuide.test.ts',
   'src/data/incheonVisitGuide.ts',
   'src/data/jamsilSeatData.test.ts',
+  'src/data/suwonSeatData.test.ts',
 ];
 
 const partialStagingRequiredFiles = [
@@ -272,6 +273,21 @@ const partialStagingRequiredFiles = [
     ],
   },
   {
+    file: 'src/data/suwonSeatData.test.ts',
+    reason: 'Suwon data tests mix static SVG UI contracts with release-lock geometry assertions.',
+    includeOnly: [
+      'Suwon SVG non-coordinate rendering contract assertions',
+      'comparison hit-layer state assertions',
+    ],
+    exclude: [
+      'seat coordinate, polygon, probe, release-lock, or geometry fixture assertions',
+    ],
+    hunkGuide: [
+      'Stage only the SuwonSeatMapSvg source string assertions that reflect comparison visual state.',
+      'Skip coordinate, path, probe, fixture, and release-lock data assertions.',
+    ],
+  },
+  {
     file: 'src/components/sajik/SajikSeatMap.tsx',
     reason: 'Sajik shell migration keeps the first-visit guide slot, while polygon/editor work is separate.',
     includeOnly: [
@@ -352,6 +368,7 @@ const includedRules = [
     match: (file) => [
       'src/components/StadiumGuideRuntimeSeatMaps.test.ts',
       'src/data/jamsilSeatData.test.ts',
+      'src/data/suwonSeatData.test.ts',
     ].includes(file),
   },
   {
