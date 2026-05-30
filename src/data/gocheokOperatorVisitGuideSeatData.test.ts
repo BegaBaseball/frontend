@@ -13,7 +13,7 @@ import {
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SOURCE_DOCUMENT_ID_PATTERN = /^gocheok-operator-\d{8}-[a-z0-9-]+$/;
-const FACILITY_POINT_ID_PATTERN = /^gocheok-facility-(entrance|concession|restroom|elevator|parking|transit)-[a-z0-9-]+$/;
+const FACILITY_POINT_ID_PATTERN = /^gocheok-facility-(entrance|concession|restroom|elevator|parking|transit|shop)-[a-z0-9-]+$/;
 const OPERATION_NOTICE_ID_PATTERN = /^gocheok-operation-notice-\d{8}-[a-z0-9-]+$/;
 const FORBIDDEN_OPERATOR_DATA_PATTERN = /https?:\/\/|www\.|크롤|스크래핑|scrap|crawl|web\s*search|웹\s*검색/i;
 const REQUIRED_INTAKE_COLUMNS = [
@@ -105,6 +105,17 @@ test('고척 운영자 직관 데이터는 원본/검수 메타데이터와 ID �
     assert.match(notice.lastUpdatedAt, ISO_DATE_PATTERN, `${notice.id} should keep YYYY-MM-DD lastUpdatedAt`);
     assert.doesNotMatch(JSON.stringify(notice), FORBIDDEN_OPERATOR_DATA_PATTERN);
   });
+});
+
+test('고척 운영자 직관 데이터는 히어로즈샵을 SHOP 시설로 분리한다', () => {
+  const heroesShop = GOCHEOK_OPERATOR_FACILITY_POINTS.find((point) => point.id === 'gocheok-facility-shop-heroes-shop');
+
+  assert.ok(heroesShop, 'Heroes Shop facility point should exist');
+  assert.equal(heroesShop.kind, 'SHOP');
+  assert.equal(heroesShop.label, '히어로즈샵');
+  assert.equal(heroesShop.dataStatus, 'OPERATOR_PROVIDED');
+  assert.equal(heroesShop.sourceDocumentId, 'gocheok-operator-20260530-user-provided-summary');
+  assert.equal(heroesShop.lastUpdatedAt, '2026-05-30');
 });
 
 test('고척 운영자 직관 guide 참조 ID는 실제 facility/notice 데이터만 가리킨다', () => {
@@ -205,6 +216,7 @@ test('고척 운영자 직관 입력 포맷 문서는 정적 데이터 계약을
   assert.match(doc, /ready_for_manual_apply/);
   assert.match(doc, /no-source-write/);
   assert.match(doc, /gocheok-operator-visit-guide-apply-plan\.ts-fragment/);
+  assert.match(doc, /SHOP/);
   assert.match(doc, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.match(doc, /sourceDocumentId/);
   assert.match(doc, /lastUpdatedAt/);
@@ -220,6 +232,7 @@ test('고척 운영자 공통 intake 템플릿은 필수 컬럼과 placeholder-o
     assert.ok(columns.includes(column), `operator intake template should include ${column}`);
   });
   assert.ok(gocheokRows.some((row) => row.startsWith('facility,')), 'Gocheok template should include a facility placeholder row');
+  assert.ok(gocheokRows.some((row) => row.includes('gocheok-facility-shop-operator-id,SHOP')), 'Gocheok template should include a shop placeholder row');
   assert.ok(gocheokRows.some((row) => row.startsWith('block,')), 'Gocheok template should include a block placeholder row');
   assert.ok(gocheokRows.some((row) => row.startsWith('notice,')), 'Gocheok template should include a notice placeholder row');
   assert.match(template, /operator-provided-label/);

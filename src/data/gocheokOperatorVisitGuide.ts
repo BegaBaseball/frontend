@@ -3,7 +3,7 @@ import {
   type GocheokBlock,
 } from './gocheokSeatData';
 
-export type GocheokFacilityPointKind = 'ENTRANCE' | 'CONCESSION' | 'RESTROOM' | 'ELEVATOR' | 'PARKING' | 'TRANSIT';
+export type GocheokFacilityPointKind = 'ENTRANCE' | 'CONCESSION' | 'RESTROOM' | 'ELEVATOR' | 'PARKING' | 'TRANSIT' | 'SHOP';
 
 export interface GocheokFacilityPoint {
   id: string;
@@ -54,7 +54,152 @@ const MANUAL_REQUIRED = GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status;
 const OPERATOR_DATA_REQUIRED_LABEL = '운영자 제공 자료 필요';
 const OPERATOR_DATA_PENDING_VALUE = `${OPERATOR_DATA_REQUIRED_LABEL} · ${MANUAL_REQUIRED}`;
 
-export const GOCHEOK_OPERATOR_FACILITY_POINTS: readonly GocheokFacilityPoint[] = [];
+export const GOCHEOK_OPERATOR_FACILITY_POINTS: readonly GocheokFacilityPoint[] = [
+  {
+    id: 'gocheok-facility-entrance-a-home',
+    kind: 'ENTRANCE',
+    label: 'A 홈 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-b-home',
+    kind: 'ENTRANCE',
+    label: 'B 홈 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-d-away',
+    kind: 'ENTRANCE',
+    label: 'D 원정 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-e-away',
+    kind: 'ENTRANCE',
+    label: 'E 원정 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-f-outfield',
+    kind: 'ENTRANCE',
+    label: 'F 외야 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-g-outfield',
+    kind: 'ENTRANCE',
+    label: 'G 외야 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-internal-1-30',
+    kind: 'ENTRANCE',
+    label: '내부통로 1-30번대 게이트',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-vip',
+    kind: 'ENTRANCE',
+    label: 'VIP 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-entrance-skybox',
+    kind: 'ENTRANCE',
+    label: '스카이박스 출입문',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-elevator-accessible',
+    kind: 'ELEVATOR',
+    label: '장애인 엘리베이터',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-transit-infield-ticket-office',
+    kind: 'TRANSIT',
+    label: '내야 매표소',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-transit-outfield-ticket-office',
+    kind: 'TRANSIT',
+    label: '외야 매표소',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-concession-2f',
+    kind: 'CONCESSION',
+    label: '2F 매점',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-concession-3f',
+    kind: 'CONCESSION',
+    label: '3F 매점',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-concession-4f',
+    kind: 'CONCESSION',
+    label: '4F 매점',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-concession-convenience-store',
+    kind: 'CONCESSION',
+    label: '편의점',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-concession-food-court',
+    kind: 'CONCESSION',
+    label: '푸드코트 계열 공간',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+  {
+    id: 'gocheok-facility-shop-heroes-shop',
+    kind: 'SHOP',
+    label: '히어로즈샵',
+    dataStatus: 'OPERATOR_PROVIDED',
+    sourceDocumentId: 'gocheok-operator-20260530-user-provided-summary',
+    lastUpdatedAt: '2026-05-30',
+  },
+];
 export const GOCHEOK_BLOCK_VISIT_GUIDANCE: readonly GocheokBlockVisitGuidance[] = [];
 export const GOCHEOK_OPERATION_NOTICES: readonly GocheokOperationNotice[] = [];
 

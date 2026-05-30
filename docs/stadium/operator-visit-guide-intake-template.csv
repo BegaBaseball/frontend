@@ -1,6 +1,7 @@
 recordType,stadium,sourceDocumentId,lastUpdatedAt,pointId,kind,label,blockId,recommendedEntrancePointIds,nearbyFacilityPointIds,cautionNotes,noticeId,validFrom,validTo,priority,affectedBlockIds,message
 facility,GOCHEOK,gocheok-operator-YYYYMMDD-source-id,YYYY-MM-DD,gocheok-facility-entrance-operator-id,ENTRANCE,operator-provided-label,,,,,,,,,
 facility,GOCHEOK,gocheok-operator-YYYYMMDD-source-id,YYYY-MM-DD,gocheok-facility-concession-operator-id,CONCESSION,operator-provided-label,,,,,,,,,
+facility,GOCHEOK,gocheok-operator-YYYYMMDD-source-id,YYYY-MM-DD,gocheok-facility-shop-operator-id,SHOP,operator-provided-label,,,,,,,,,
 block,GOCHEOK,gocheok-operator-YYYYMMDD-source-id,YYYY-MM-DD,,,,operator-block-id,gocheok-facility-entrance-operator-id,gocheok-facility-concession-operator-id,operator-provided-caution,,,,,,
 notice,GOCHEOK,gocheok-operator-YYYYMMDD-source-id,YYYY-MM-DD,,,,,,,,gocheok-operation-notice-YYYYMMDD-main,YYYY-MM-DD,YYYY-MM-DD,100,operator-block-id,operator-provided-operation-message
 facility,INCHEON,incheon-operator-YYYYMMDD-source-id,YYYY-MM-DD,incheon-facility-entrance-operator-id,ENTRANCE,operator-provided-label,,,,,,,,,

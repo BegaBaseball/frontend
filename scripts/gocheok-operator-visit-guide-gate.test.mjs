@@ -81,6 +81,15 @@ const validRows = () => [
     label: '운영자 제공 내야 매점',
   },
   {
+    recordType: 'facility',
+    stadium: 'GOCHEOK',
+    sourceDocumentId: 'gocheok-operator-20260529-valid-guide',
+    lastUpdatedAt: '2026-05-29',
+    pointId: 'gocheok-facility-shop-heroes-shop',
+    kind: 'SHOP',
+    label: '히어로즈샵',
+  },
+  {
     recordType: 'block',
     stadium: 'GOCHEOK',
     sourceDocumentId: 'gocheok-operator-20260529-valid-guide',
@@ -114,7 +123,7 @@ test('고척 운영자 입력 게이트는 유효 fixture를 ready_for_manual_ap
   assert.equal(validate.status, 0, validate.stderr || validate.stdout);
   const validation = await readJson(path.join(outDir, 'gocheok-operator-visit-guide-validation.json'));
   assert.equal(validation.status, 'ready_for_manual_apply');
-  assert.equal(validation.normalizedData.facilityPoints.length, 2);
+  assert.equal(validation.normalizedData.facilityPoints.length, 3);
   assert.equal(validation.normalizedData.blockGuidance.length, 1);
   assert.equal(validation.normalizedData.operationNotices.length, 1);
   assert.equal(validation.sourceDataWritePerformed, false);
@@ -130,6 +139,7 @@ test('고척 운영자 입력 게이트는 유효 fixture를 ready_for_manual_ap
   assert.match(fragment, /GOCHEOK_BLOCK_VISIT_GUIDANCE/);
   assert.match(fragment, /GOCHEOK_OPERATION_NOTICES/);
   assert.match(fragment, /gocheok-facility-entrance-main/);
+  assert.match(fragment, /gocheok-facility-shop-heroes-shop/);
   assert.equal(await sha256File(sourcePath), beforeHash);
 });
 
@@ -185,6 +195,15 @@ test('고척 operator-validate는 잘못된 운영자 입력을 blocker로 차�
       recommendedEntrancePointIds: 'gocheok-facility-entrance-missing',
     },
     {
+      recordType: 'facility',
+      stadium: 'GOCHEOK',
+      sourceDocumentId: 'gocheok-operator-20260529-invalid-guide',
+      lastUpdatedAt: '2026-05-29',
+      pointId: 'gocheok-facility-concession-shop-mismatch',
+      kind: 'SHOP',
+      label: '운영자 제공 굿즈샵',
+    },
+    {
       recordType: 'notice',
       stadium: 'GOCHEOK',
       sourceDocumentId: 'gocheok-operator-20260529-invalid-notice',
@@ -208,6 +227,7 @@ test('고척 operator-validate는 잘못된 운영자 입력을 blocker로 차�
   assert.match(blockers, /FORBIDDEN_OPERATOR_DATA/);
   assert.match(blockers, /UNKNOWN_BLOCK_ID/);
   assert.match(blockers, /MISSING_FACILITY_REFERENCE/);
+  assert.match(blockers, /FACILITY_ID_KIND_MISMATCH/);
   assert.match(blockers, /INVALID_OPERATION_NOTICE_ID/);
   assert.match(blockers, /INVALID_NOTICE_DATE_RANGE/);
   assert.match(blockers, /INVALID_NOTICE_PRIORITY/);
