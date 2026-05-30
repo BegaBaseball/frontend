@@ -34,6 +34,9 @@ export default function CoachVerdictMemo({
     const isDark   = useIsDark();
     const isNarrow = useMediaQuery('(max-width: 640px)');
 
+    const text = verdict?.trim();
+    if (!text) return null;
+
     const paperBg      = isDark ? '#1a1810' : '#fffdf5';
     const paperBorder  = isDark ? '#3a3420' : '#e9e2c8';
     const ruleColor    = isDark ? '#2a2416' : '#f0e8c8';
@@ -102,7 +105,7 @@ export default function CoachVerdictMemo({
                 color: textColor,
                 letterSpacing: 0,
             }}>
-                {parseHighlight(verdict)}
+                {parseHighlight(text)}
             </p>
 
             {/* 서명 */}
