@@ -107,7 +107,9 @@ const APPROVAL_REQUIRED_FIELDS = Object.freeze([
   'reviewer',
   'reviewedAt',
 ]);
-const outputDir = path.join(frontendRoot, 'reports/stadium', batchConfig.outputSlug);
+const outputDir = process.env.DAEGU_CANONICAL_RETRACE_REPORT_ROOT
+  ? path.resolve(frontendRoot, process.env.DAEGU_CANONICAL_RETRACE_REPORT_ROOT)
+  : path.join(frontendRoot, 'reports/stadium', batchConfig.outputSlug);
 const operatorInputDir = path.join(outputDir, 'operator-input');
 const gateDir = path.join(outputDir, 'gate');
 
@@ -150,6 +152,7 @@ const sourceContractLiterals = [
   'pendingRowsMayContainDraftGeometryButAreIgnoredUntilApproved',
   'OPERATOR_INPUT_SOURCE_WRITE_CHANGED',
   'BATCH_ROW_COUNT_CHANGED',
+  'DAEGU_CANONICAL_RETRACE_REPORT_ROOT',
 ];
 
 void sourceContractLiterals;
