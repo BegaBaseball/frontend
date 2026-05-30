@@ -1,10 +1,10 @@
 # 인천 SSG 랜더스필드 좌석도 release handoff
 
-Handoff date: 2026-05-29 KST
+Handoff date: 2026-05-30 KST
 
 ## Release State
 
-- release scope: frontend decision UX upgrade only
+- release scope: frontend decision UX and operator-guidance handoff UI only
 - official asset: `src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp`
 - coordinate/data source: `INCHEON_BLOCKS`
 - total blocks: `156`
@@ -31,6 +31,8 @@ Included in this handoff:
 - Block comparison now supports up to 3 session-only candidates, 5 recent selections, desktop/mobile compare trays, and selected block focus from comparison cards without persisting user data.
 - Compared blocks are highlighted on the SVG with `data-compared="true"` while preserving the official hit-area geometry and keyboard selection behavior.
 - The isolated Incheon mobile/full QA gates now include the comparison flow: add `101B` and `102B`, verify compare cards, focus `101B` from the tray at zoom `>= 1.5`, assert SVG `data-compared="true"`, clear the tray, and keep the removed demo upload copy absent.
+- The selected block detail panel and mobile bottom sheet now render `직관 동선 안내` from `getIncheonOperatorVisitGuidance`.
+- The current operator arrays are empty, so the UI shows `MANUAL_BASEBALL_DATA_REQUIRED` pending labels for entrance, nearby facilities, operation notice, updated-at, and caution rows instead of inventing gate or route data.
 - The old Incheon upload demo flow is removed. Seat view sharing now hands off to diary draft storage with `stadium='INCHEON'`, `team='SSG'`, selected section/block, and the current date.
 - The share CTA copy is unified as `다이어리에서 시야 사진 공유하기`.
 - Cypress now verifies both guest and logged-in Incheon CTA handoff: guests keep `/mypage` as the pending login redirect with an exact local-date draft, and logged-in users land on `/mypage` with the Incheon block prefilled in the diary form.
@@ -44,27 +46,23 @@ Explicitly excluded:
 ## Dirty Worktree Scope Note
 
 - Incheon release scope files are the Incheon component/SVG/tests/docs/operator guide files plus shared stadium QA gates that explicitly assert Incheon behavior.
-- Current non-Incheon dirty worktree entries include mate Cypress specs, non-Incheon stadium docs/scripts/components, Sajik script deletions, prediction UI changes, and generated `reports/*` files. They are intentionally out of this Incheon handoff and were not reverted.
-- The shared `cypress/e2e/stadium-seatmap.cy.ts` and `src/components/StadiumGuideRuntimeSeatMaps.test.ts` files contain mixed-stadium changes in the worktree; this handoff only relies on their Incheon-specific assertions, the Incheon split Cypress spec, and the isolated Incheon QA commands below.
+- Current non-Incheon dirty worktree entries are generated `reports/*` files. They are intentionally out of this Incheon handoff and were not reverted.
+- The shared `src/components/StadiumGuideRuntimeSeatMaps.test.ts` file contains stadium-wide source contracts; this handoff only changed the Incheon-specific assertions, the Incheon split Cypress spec, and the isolated Incheon QA commands below.
 
 ## Verification
 
-Latest targeted checks run during this handoff:
+Latest checks run during this handoff cleanup on 2026-05-30 KST:
 
-- `node --check scripts/stadium-ux-audit.mjs`: PASS
-- `node --import tsx --test --test-name-pattern "인천|Incheon|검수 중인 전용 좌석도" src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/incheonSeatData.test.ts src/components/incheon/IncheonSeatMap.test.tsx`: PASS (`20/20`)
-- `npm run cy:run -- --spec cypress/e2e/stadium-seatmap-incheon.cy.ts --auto-docker`: PASS (`10/10`; dev server on `5176`)
-- `npm run cy:run -- --spec "cypress/e2e/stadium-seatmap.cy.ts"`: PASS (`51/51`)
-- `npm run test:stadium:seatmaps`: PASS (`323/323`)
-- `npm run stadium:incheon:status`: PASS
-- `npm run qa:stadium:incheon:release-lock`: PASS
-- `npm run qa:stadium:incheon:mobile`: PASS (`39s`; summary: `output/playwright/stadium-ux-incheon-validate/stadium-mobile-smoke-summary.md`)
-- `npm run qa:stadium:incheon:full`: PASS (`15s`; summary: `output/playwright/stadium-ux-incheon-full/stadium-mobile-smoke-summary.md`)
+- `node --import tsx --test --test-concurrency=1 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/components/incheon/IncheonSeatMap.test.tsx`: PASS (`44/44`)
+- `npm run test:stadium:seatmaps`: PASS (`332/332`)
 - `VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS
+
+The Cypress and Playwright release gates below remain the release rerun checklist and were not rerun in this documentation cleanup.
 
 Release rerun checklist:
 
 ```bash
+node --import tsx --test --test-name-pattern "인천|Incheon|operator" src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/incheonSeatData.test.ts src/data/incheonOperatorVisitGuideSeatData.test.ts src/components/incheon/IncheonSeatMap.test.tsx
 npm run test:stadium:seatmaps
 # with Vite dev server on 5176
 npm run cy:run -- --spec cypress/e2e/stadium-seatmap-incheon.cy.ts --auto-docker
