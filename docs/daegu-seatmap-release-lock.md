@@ -184,6 +184,23 @@ All canonical retrace batch operator input JSON files were regenerated with `ope
 | `SKY_LOWER_U1_U19` | `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/operator-input/daegu-seatmap-canonical-sky-lower-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-sky-lower-retrace-batch/gate/daegu-seatmap-canonical-sky-lower-retrace-gate.md` | `PASS` | `PASS` |
 | `SKY_BLUE_U2_U20_U31` | `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/operator-input/daegu-seatmap-canonical-sky-blue-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-sky-blue-retrace-batch/gate/daegu-seatmap-canonical-sky-blue-retrace-gate.md` | `PASS` | `PASS` |
 | `REMAINING_U3_U9_V1_V3_OUTFIELD` | `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/operator-input/daegu-seatmap-canonical-remaining-retrace-input.json` | `reports/stadium/daegu-seatmap-canonical-remaining-retrace-batch/gate/daegu-seatmap-canonical-remaining-retrace-gate.md` | `PASS` | `PASS` |
+
+### Gate failure fixture smoke (2026-05-30)
+
+The Daegu canonical retrace gate has a temp-only fixture smoke that uses `DAEGU_CANONICAL_RETRACE_REPORT_ROOT` and does not write repo `reports/`, source data, or production coordinates.
+
+| fixture | expected gate failure |
+| --- | --- |
+| `missing-contract` | `OPERATOR_REVIEW_CONTRACT_REQUIRED` |
+| `source-write-tamper` | `OPERATOR_INPUT_SOURCE_WRITE_CHANGED` |
+| `row-missing` | `BATCH_ROW_COUNT_CHANGED:*`, `BATCH_ROW_MISSING:*` |
+| `marker-split-contract-drift` | `OPERATOR_REVIEW_CONTRACT_MARKER_SPLIT_CHANGED` |
+| `approved-missing-fields` | `CORRECTED_PATH_REQUIRED_FOR_APPROVED_ROW`, `CORRECTED_HIT_PATH_REQUIRED_FOR_APPROVED_ROW`, `CORRECTED_LABEL_REQUIRED_FOR_APPROVED_ROW` |
+| `marker-note-required` | `MARKER_SEAT_SPLIT_NOTE_REQUIRED` |
+
+### Gate readiness fixture smoke (2026-05-31)
+
+The temp-only readiness smoke verifies both gate edges without writing source data or repo reports: pending input fails `--require-approved`, while an approved-all temp input reaches `ready-for-source-preview` through both normal gate and `--require-approved`.
 ## Evidence
 
 - `reports/stadium/daegu-seatmap-precision-audit.md`

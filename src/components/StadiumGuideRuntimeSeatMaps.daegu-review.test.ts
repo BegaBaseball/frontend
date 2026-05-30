@@ -63,6 +63,12 @@ test('대구 review docs는 통합 canonical retrace batch 명령을 안내한�
     'operator input JSON carries `operatorReviewContract`',
     'production promotion requires gate status `ready-for-source-preview`',
     '`contract validation` and `input shape validation` both pass',
+    'Gate failure fixture smoke (2026-05-30)',
+    'DAEGU_CANONICAL_RETRACE_REPORT_ROOT',
+    'MARKER_SEAT_SPLIT_NOTE_REQUIRED',
+    'Gate readiness fixture smoke (2026-05-31)',
+    'pending input fails `--require-approved`',
+    'approved-all temp input reaches `ready-for-source-preview`',
     'historical/operator-reference 단계별 스크립트는 Git history로만 복구한다',
   ].forEach((requiredText) => {
     assert.ok(releaseLockSource.includes(requiredText), `release lock should document ${requiredText}`);
