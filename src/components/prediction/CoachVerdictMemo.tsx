@@ -1,6 +1,7 @@
 import { type SVGProps } from 'react';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { parseHighlight, useIsDark } from './coachRiskHelpers';
+import { getCoachTokens } from './coachStyleTokens';
 
 function PenIcon(props: SVGProps<SVGSVGElement>) {
     return (
@@ -37,12 +38,13 @@ export default function CoachVerdictMemo({
     const text = verdict?.trim();
     if (!text) return null;
 
-    const paperBg      = isDark ? '#1a1810' : '#fffdf5';
-    const paperBorder  = isDark ? '#3a3420' : '#e9e2c8';
-    const ruleColor    = isDark ? '#2a2416' : '#f0e8c8';
-    const accentColor  = isDark ? '#c4a055' : '#7c5f1a';
-    const textColor    = isDark ? '#ede8d8' : '#1f1812';
-    const dashedBorder = isDark ? '#4a3c1a' : '#d6c884';
+    const t = getCoachTokens(isDark);
+    const paperBg      = t.paperBg;
+    const paperBorder  = t.paperBorder;
+    const ruleColor    = t.ruleColor;
+    const accentColor  = t.paperAccent;
+    const textColor    = t.paperText;
+    const dashedBorder = t.dashedBorder;
 
     return (
         <div
@@ -52,9 +54,7 @@ export default function CoachVerdictMemo({
                 background: paperBg,
                 border: `1px solid ${paperBorder}`,
                 borderRadius: 4,
-                boxShadow: isDark
-                    ? `0 1px 0 ${paperBorder}, 0 8px 24px -16px rgba(0,0,0,0.5)`
-                    : '0 1px 0 #e9e2c8, 0 8px 24px -16px rgba(120,95,30,0.25)',
+                boxShadow: t.paperShadow,
                 padding: isNarrow ? '18px 16px' : '20px 24px 22px',
                 position: 'relative',
                 backgroundImage: `repeating-linear-gradient(
@@ -76,7 +76,7 @@ export default function CoachVerdictMemo({
                     top: -8,
                     width: 60,
                     height: 13,
-                    background: isDark ? 'rgba(180,150,80,0.10)' : 'rgba(180,150,80,0.18)',
+                    background: t.tapeBg,
                     transform: 'rotate(-2deg)',
                     borderRadius: 1,
                 }}
