@@ -1,5 +1,3 @@
-// Shared inline style tokens for coach analysis detail components.
-
 export const RISK_SEV = {
     high: '#dc2626', // level 0
     mid: '#d97706',  // level 1
