@@ -55,6 +55,8 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
     const isDark   = useIsDark();
     const isNarrow = useMediaQuery('(max-width: 640px)');
 
+    if (!risks || risks.length === 0) return null;
+
     const innings = isNarrow
         ? [1, 3, 5, 7, 9]
         : [1, 2, 3, 4, 5, 6, 7, 8, 9];
