@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Eye, Minus, Plus, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Eye, Minus, Plus, Trash2, X } from 'lucide-react';
 import {
   INCHEON_BLOCKS,
   INCHEON_CATEGORIES,
@@ -19,6 +19,7 @@ import {
   type IncheonGuideIntent,
   type IncheonGuideMatch,
 } from '../../data/incheonSeatData';
+import { getIncheonOperatorVisitGuidance } from '../../data/incheonOperatorVisitGuide';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
@@ -129,6 +130,97 @@ function IncheonCompareAction({
         {isCompared ? '비교에서 제거' : disabled ? '비교는 3개까지' : '비교에 추가'}
       </button>
     </div>
+  );
+}
+
+function IncheonOperatorGuideRow({
+  testId,
+  label,
+  value,
+}: {
+  testId: string;
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div data-testid={testId} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+      <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </div>
+      <div className="break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function IncheonOperatorVisitGuidePanel({
+  section,
+  accent,
+}: {
+  section: IncheonBlock;
+  accent: string;
+}) {
+  const guidance = getIncheonOperatorVisitGuidance(section);
+  const isOperatorProvided = guidance.operatorDataStatus === 'OPERATOR_PROVIDED';
+  const cautionLabel = guidance.cautionNotes.length > 0
+    ? guidance.cautionNotes.join(' / ')
+    : guidance.operatorDataPendingLabel;
+
+  return (
+    <section
+      data-testid="incheon-operator-visit-guide"
+      className="border-t border-slate-100 px-5 py-4 dark:border-slate-800"
+    >
+      <div className="mb-3 flex flex-col gap-2">
+        <div>
+          <h3 className="text-sm font-black text-slate-900 dark:text-white">직관 동선 안내</h3>
+          <p className="mt-1 text-[11px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">
+            운영자 검수 자료가 있는 항목만 표시합니다.
+          </p>
+        </div>
+        <span
+          data-testid="incheon-operator-data-status"
+          className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black break-all"
+          style={{
+            borderColor: isOperatorProvided ? `${accent}66` : '#cbd5e1',
+            background: isOperatorProvided ? `${accent}14` : '#f8fafc',
+            color: isOperatorProvided ? accent : '#64748b',
+          }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {isOperatorProvided ? '운영자 자료 반영' : guidance.operatorDataStatus}
+        </span>
+      </div>
+
+      <div className="grid gap-2">
+        <IncheonOperatorGuideRow
+          testId="incheon-operator-row-entrance"
+          label="권장 출입구"
+          value={guidance.recommendedEntranceLabel}
+        />
+        <IncheonOperatorGuideRow
+          testId="incheon-operator-row-facilities"
+          label="가까운 시설"
+          value={guidance.nearbyFacilitiesLabel}
+        />
+        <IncheonOperatorGuideRow
+          testId="incheon-operator-row-notice"
+          label="날짜별 운영 공지"
+          value={guidance.operationNoticeLabel}
+        />
+        <IncheonOperatorGuideRow
+          testId="incheon-operator-row-updated"
+          label="최종 검수일"
+          value={guidance.lastUpdatedAtLabel}
+        />
+        <IncheonOperatorGuideRow
+          testId="incheon-operator-row-cautions"
+          label="주의 문구"
+          value={cautionLabel}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -729,15 +821,18 @@ export default function IncheonSeatMap() {
     navigate('/mypage');
   }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
 
-  const renderCompareMeta = useCallback((section: IncheonBlock, accent: string) => (
-    <IncheonCompareAction
-      section={section}
-      isCompared={comparisonIds.includes(section.id)}
-      canAdd={comparisonIds.length < COMPARISON_LIMIT}
-      accent={accent}
-      onAdd={handleAddComparison}
-      onRemove={handleRemoveComparison}
-    />
+  const renderIncheonExtraMeta = useCallback((section: IncheonBlock, accent: string) => (
+    <>
+      <IncheonOperatorVisitGuidePanel section={section} accent={accent} />
+      <IncheonCompareAction
+        section={section}
+        isCompared={comparisonIds.includes(section.id)}
+        canAdd={comparisonIds.length < COMPARISON_LIMIT}
+        accent={accent}
+        onAdd={handleAddComparison}
+        onRemove={handleRemoveComparison}
+      />
+    </>
   ), [comparisonIds, handleAddComparison, handleRemoveComparison]);
 
   const renderMapSvg = (enableAutoCenter = true) => (
@@ -774,7 +869,7 @@ export default function IncheonSeatMap() {
         onClose={() => selectIncheonBlock(null)}
         onUpload={() => handleShareSeatView(selected)}
         copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
-        extraMeta={renderCompareMeta}
+        extraMeta={renderIncheonExtraMeta}
       />
     </div>
   ) : null;
@@ -919,7 +1014,7 @@ export default function IncheonSeatMap() {
             onUpload={() => handleShareSeatView(selected)}
             testId="incheon-seatmap-bottom-sheet"
             copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
-            extraMeta={renderCompareMeta}
+            extraMeta={renderIncheonExtraMeta}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}

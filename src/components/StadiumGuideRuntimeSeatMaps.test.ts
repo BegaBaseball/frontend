@@ -672,6 +672,7 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
   const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
   const incheonSvgSource = readProjectFile('src/components/incheon/IncheonSeatMapSvg.tsx');
   const incheonDataSource = readProjectFile('src/data/incheonSeatData.ts');
+  const incheonOperatorSource = readProjectFile('src/data/incheonOperatorVisitGuide.ts');
   const stadiumUxAuditSource = readProjectFile('scripts/stadium-ux-audit.mjs');
 
   assert.equal(fs.existsSync(path.join(projectRoot, 'src/data/incheonVisitGuide.ts')), false);
@@ -694,8 +695,10 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
     'SeatMapSectionFinder',
     'mobileSecondaryPanel',
     'desktopSecondaryPanel',
-    'renderCompareMeta',
-    'extraMeta={renderCompareMeta}',
+    'IncheonOperatorVisitGuidePanel',
+    'getIncheonOperatorVisitGuidance',
+    'renderIncheonExtraMeta',
+    'extraMeta={renderIncheonExtraMeta}',
     'IncheonCompareTray',
     'comparisonIds',
     'recentSelectionIds',
@@ -704,6 +707,12 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
     'incheon-compare-remove',
     'incheon-compare-clear',
     'incheon-recent-card-',
+    'incheon-operator-visit-guide',
+    'incheon-operator-data-status',
+    'incheon-operator-row-entrance',
+    'incheon-operator-row-facilities',
+    'incheon-operator-row-notice',
+    'incheon-operator-row-updated',
     'setPendingDraft',
     "stadium: 'INCHEON'",
     "team: 'SSG'",
@@ -729,10 +738,15 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
   });
 
   [
-    'incheonOperatorVisitGuide',
+    'IncheonOperatorVisitGuidanceResult',
     'getIncheonOperatorVisitGuidance',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
+  ].forEach((requiredToken) => {
+    assert.ok(incheonOperatorSource.includes(requiredToken), `incheonOperatorVisitGuide should include ${requiredToken}`);
+  });
+
+  [
     'incheon-operator-visit-check',
-    'incheon-operator-data-status',
   ].forEach((excludedToken) => {
     assert.equal(incheonSource.includes(excludedToken), false, `IncheonSeatMap should exclude operator guide token ${excludedToken}`);
   });
@@ -1063,6 +1077,13 @@ test('인천 직관 UX Cypress spec은 전용 stadium-seatmap 회귀 파일에�
     'incheon-compare-tray',
     'incheon-compare-add',
     'incheon-compare-remove',
+    'incheon-operator-visit-guide',
+    'incheon-operator-data-status',
+    'incheon-operator-row-entrance',
+    'incheon-operator-row-facilities',
+    'incheon-operator-row-notice',
+    'incheon-operator-row-updated',
+    'MANUAL_BASEBALL_DATA_REQUIRED',
     'incheon-mobile-tool-tab-guide',
     'incheon-mobile-tool-tab-finder',
     '다이어리에서 시야 사진 공유하기',
@@ -1196,6 +1217,8 @@ test('수원 Finder UX Cypress spec은 전용 stadium-seatmap 회귀 파일에�
     'aria-pressed={selectedId === block.id}',
     'tabIndex={isFiltered ? -1 : 0}',
     "event.key === 'Enter' || event.key === ' '",
+    'comparisonIds',
+    "data-compared={isCompared ? 'true' : undefined}",
   ].forEach((requiredText) => {
     assert.ok(suwonSvgSource.includes(requiredText), `SuwonSeatMapSvg should include ${requiredText}`);
   });
@@ -1203,6 +1226,14 @@ test('수원 Finder UX Cypress spec은 전용 stadium-seatmap 회귀 파일에�
   [
     'getSuwonOperatorVisitGuidance',
     'renderOperatorVisitMeta',
+    'SuwonCompareTray',
+    'comparisonIds',
+    'recentSelectionIds',
+    'suwon-compare-tray',
+    'suwon-compare-add',
+    'suwon-compare-remove',
+    'suwon-compare-clear',
+    'suwon-recent-card-',
     'suwon-operator-visit-check',
     'suwon-operator-data-status',
     'MANUAL_OPERATOR_GUIDANCE_STATUS',
@@ -1254,6 +1285,18 @@ test('수원 Finder UX Cypress spec은 전용 stadium-seatmap 회귀 파일에�
     'suwon-filter-sky',
     'suwon-seatmap-transform-layer',
     'suwon-seatmap-bottom-sheet',
+    'suwon-compare-tray',
+    'suwon-compare-card-suwon-117',
+    'suwon-compare-card-suwon-118',
+    'suwon-compare-card-suwon-sb22',
+    'suwon-compare-add',
+    'suwon-compare-view',
+    'suwon-compare-remove',
+    'suwon-compare-clear',
+    'suwon-recent-card-suwon-107',
+    'suwon-recent-view',
+    'suwon-recent-add',
+    'data-compared',
     'suwon-operator-visit-check',
     'suwon-operator-data-status',
     'assertSuwonOperatorFallbackFields',

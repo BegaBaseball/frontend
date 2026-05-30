@@ -52,6 +52,7 @@ const expectedIncludedFiles = [
   'src/components/stadiumSeatMapRegistry.tsx',
   'src/components/suwon/SuwonBottomSheet.tsx',
   'src/components/suwon/SuwonSeatMap.tsx',
+  'src/components/suwon/SuwonSeatMapSvg.tsx',
   'src/data/incheonSeatData.test.ts',
   'src/data/incheonSeatData.ts',
   'src/data/incheonVisitGuide.test.ts',
@@ -255,6 +256,22 @@ const partialStagingRequiredFiles = [
     ],
   },
   {
+    file: 'src/components/suwon/SuwonSeatMapSvg.tsx',
+    reason: 'Suwon SVG shell work can be mixed with comparison highlighting and hit-layer state.',
+    includeOnly: [
+      'comparisonIds prop plumbing',
+      'data-compared hit-layer attribute',
+      'non-coordinate visual highlighting for compared blocks',
+    ],
+    exclude: [
+      'coordinate, polygon, path, hit geometry, or release-lock numeric changes',
+    ],
+    hunkGuide: [
+      'Stage only comparisonIds, comparisonIdSet, compared block visual state, and data-compared hunks.',
+      'Skip any d/path coordinate, transform, bounds, or hit geometry numeric edits.',
+    ],
+  },
+  {
     file: 'src/components/sajik/SajikSeatMap.tsx',
     reason: 'Sajik shell migration keeps the first-visit guide slot, while polygon/editor work is separate.',
     includeOnly: [
@@ -310,6 +327,7 @@ const includedRules = [
       'src/components/jamsil/JamsilSeatMap.tsx',
       'src/components/sajik/SajikSeatMap.tsx',
       'src/components/suwon/SuwonSeatMap.tsx',
+      'src/components/suwon/SuwonSeatMapSvg.tsx',
     ].includes(file),
   },
   {

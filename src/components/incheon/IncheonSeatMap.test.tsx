@@ -19,7 +19,7 @@ import {
 } from '../../data/incheonSeatData';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
-import IncheonSeatMap from './IncheonSeatMap';
+import IncheonSeatMap, { IncheonOperatorVisitGuidePanel } from './IncheonSeatMap';
 
 const incheonSectionAdapter: SeatMapSectionAdapter<IncheonBlock> = {
   getId: (section) => section.id,
@@ -66,7 +66,7 @@ test('IncheonSeatMap은 공식 인천 좌석도와 표준 좌석도 markup을 �
   assert.doesNotMatch(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
 });
 
-test('IncheonSeatMap detail panel은 다이어리 시야 사진 공유 CTA를 사용한다', () => {
+test('IncheonSeatMap detail panel은 운영자 직관 안내와 다이어리 시야 사진 공유 CTA를 사용한다', () => {
   const selectedBlock = INCHEON_BLOCKS.find((block) => block.block === '101B');
   assert.ok(selectedBlock);
   const IncheonDetailPanel = SeatMapDetailPanel<IncheonBlock>;
@@ -93,11 +93,21 @@ test('IncheonSeatMap detail panel은 다이어리 시야 사진 공유 CTA를 �
         onClose: () => undefined,
         onUpload: () => undefined,
         copy: { uploadLabel: '다이어리에서 시야 사진 공유하기' },
+        extraMeta: (section, accent) => createElement(IncheonOperatorVisitGuidePanel, { section, accent }),
       }),
     ),
   ));
   queryClient.clear();
 
+  assert.match(html, /직관 동선 안내/);
+  assert.match(html, /data-testid="incheon-operator-visit-guide"/);
+  assert.match(html, /data-testid="incheon-operator-data-status"/);
+  assert.match(html, /data-testid="incheon-operator-row-entrance"/);
+  assert.match(html, /data-testid="incheon-operator-row-facilities"/);
+  assert.match(html, /data-testid="incheon-operator-row-notice"/);
+  assert.match(html, /data-testid="incheon-operator-row-updated"/);
+  assert.match(html, /운영자 제공 출입구\/매점\/동선 자료 필요/);
+  assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.match(html, /다이어리에서 시야 사진 공유하기/);
   assert.doesNotMatch(html, /사진은 데모 상태/);
 });

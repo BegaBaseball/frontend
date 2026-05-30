@@ -12,6 +12,7 @@ import {
 interface SuwonSeatMapSvgProps {
   selectedId: string | null;
   hoveredId: string | null;
+  comparisonIds?: readonly string[];
   filterCats: string[] | null;
   onSelect: (block: SuwonBlock) => void;
   onHover: (block: SuwonBlock | null) => void;
@@ -48,6 +49,7 @@ interface TrackedPointer {
 }
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+const EMPTY_COMPARISON_IDS: readonly string[] = [];
 
 function isDebugEnabled(): boolean {
   if (typeof window === 'undefined') return false;
@@ -137,6 +139,7 @@ function panForZoomAtPoint(
 export default function SuwonSeatMapSvg({
   selectedId,
   hoveredId,
+  comparisonIds = EMPTY_COMPARISON_IDS,
   filterCats,
   onSelect,
   onHover,
@@ -190,6 +193,7 @@ export default function SuwonSeatMapSvg({
   const canDrag = zoom > minZoom;
   const selectedBlock = selectedId ? (SUWON_BLOCKS.find((block) => block.id === selectedId) ?? null) : null;
   const zoomBtnCls = 'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-neutral-300 dark:hover:bg-neutral-800';
+  const comparisonIdSet = useMemo(() => new Set(comparisonIds), [comparisonIds]);
 
   useEffect(() => {
     zoomRef.current = zoom;
@@ -744,10 +748,11 @@ export default function SuwonSeatMapSvg({
                 {SUWON_BLOCKS.map((block) => {
                   const category = SUWON_CATEGORIES[block.category];
                   const active = block.id === selectedId || block.id === hoveredId;
+                  const isCompared = comparisonIdSet.has(block.id);
                   const isFiltered = Boolean(filterCats && !filterCats.includes(block.category));
-                  const fillOpacity = isFiltered ? 0 : active ? 0.12 : showDebug ? 0.18 : 0;
-                  const stroke = active ? '#facc15' : showDebug ? (category?.dark ?? '#0284c7') : 'transparent';
-                  const strokeWidth = active ? 4 : showDebug ? 4 : 0;
+                  const fillOpacity = isFiltered ? 0 : active ? 0.12 : isCompared ? 0.08 : showDebug ? 0.18 : 0;
+                  const stroke = active ? '#facc15' : isCompared ? (category?.dark ?? '#0284c7') : showDebug ? (category?.dark ?? '#0284c7') : 'transparent';
+                  const strokeWidth = active ? 4 : isCompared ? 3 : showDebug ? 4 : 0;
                   return (
                     <path
                       key={block.id}
@@ -769,18 +774,21 @@ export default function SuwonSeatMapSvg({
                 {hitBlocks.map((block) => {
                   const isFiltered = Boolean(filterCats && !filterCats.includes(block.category));
                   const category = SUWON_CATEGORIES[block.category];
+                  const isCompared = comparisonIdSet.has(block.id);
                   return (
                     <path
                       key={block.id}
                       data-testid={`suwon-seat-hit-${block.id}`}
                       data-block-id={block.id}
+                      data-compared={isCompared ? 'true' : undefined}
                       data-layer="hit-targets"
                       d={block.hitGeometry.d}
                       fill={category?.light ?? '#38bdf8'}
-                      fillOpacity={isFiltered ? 0 : showDebug ? 0.08 : 0.001}
-                      stroke={showDebug ? '#22d3ee' : 'transparent'}
-                      strokeDasharray={showDebug ? '5 4' : undefined}
-                      strokeWidth={showDebug ? 5 : 0}
+                      fillOpacity={isFiltered ? 0 : showDebug ? 0.08 : isCompared ? 0.006 : 0.001}
+                      stroke={showDebug ? '#22d3ee' : isCompared ? (category?.dark ?? '#0B57A7') : 'transparent'}
+                      strokeDasharray={showDebug ? '5 4' : isCompared ? '8 6' : undefined}
+                      strokeOpacity={showDebug ? 1 : isCompared ? 0.65 : 0}
+                      strokeWidth={showDebug ? 5 : isCompared ? 3 : 0}
                       vectorEffect="non-scaling-stroke"
                       pointerEvents={isFiltered ? 'none' : 'fill'}
                       style={{ cursor: isFiltered ? 'default' : 'pointer' }}
