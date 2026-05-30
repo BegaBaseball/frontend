@@ -62,6 +62,17 @@ function selectSuwonBlock(query: string, itemTestId: string) {
     .click();
 }
 
+function addVisibleSuwonSelectionToCompare() {
+  getSuwonScrollable('suwon-compare-add')
+    .click({ scrollBehavior: 'center' });
+}
+
+function assertSuwonFocusZoom() {
+  getVisibleSuwon('suwon-seatmap-transform-layer')
+    .invoke('attr', 'data-zoom')
+    .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.35));
+}
+
 describe('Stadium SeatMap — Suwon Finder UX', () => {
   beforeEach(() => {
     cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
@@ -115,6 +126,68 @@ describe('Stadium SeatMap — Suwon Finder UX', () => {
       .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.35));
   });
 
+  it('후보 비교 트레이는 3개 비교, 보기, 제거, 비우기 흐름을 지원한다', () => {
+    cy.viewport(1440, 1000);
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    selectSuwonStadium();
+
+    getVisibleSuwon('suwon-compare-tray')
+      .should('contain', '후보 비교')
+      .and('contain', '0/3개 선택')
+      .and('contain', '블록 상세에서 비교에 추가');
+
+    selectSuwonBlock('117', 'suwon-section-finder-item-suwon-117');
+    addVisibleSuwonSelectionToCompare();
+    getVisibleSuwon('suwon-compare-card-suwon-117')
+      .should('contain', '117')
+      .and('contain', '중앙지정석');
+
+    selectSuwonBlock('118', 'suwon-section-finder-item-suwon-118');
+    addVisibleSuwonSelectionToCompare();
+    getVisibleSuwon('suwon-compare-card-suwon-118')
+      .should('contain', '118')
+      .and('contain', '중앙지정석');
+
+    selectSuwonBlock('스카이박스 22', 'suwon-section-finder-item-suwon-sb22');
+    addVisibleSuwonSelectionToCompare();
+    getVisibleSuwon('suwon-compare-tray')
+      .should('contain', '3/3개 선택');
+    getVisibleSuwon('suwon-compare-card-suwon-sb22')
+      .should('contain', 'SB22')
+      .and('contain', '22 스카이박스');
+
+    selectSuwonBlock('107', 'suwon-section-finder-item-suwon-107');
+    getSuwonScrollable('suwon-compare-add')
+      .scrollIntoView()
+      .should('be.disabled')
+      .and('contain', '비교는 3개까지');
+
+    getVisibleSuwon('suwon-compare-card-suwon-118')
+      .find('[data-testid="suwon-compare-view"]')
+      .click();
+    cy.contains('h2', '118 중앙지정석', { timeout: 10000 }).should('exist');
+    cy.contains('p', '블록 118').should('exist');
+    assertSuwonFocusZoom();
+    getVisibleSuwon('suwon-seat-hit-suwon-118')
+      .should('have.attr', 'data-compared', 'true');
+
+    getVisibleSuwon('suwon-compare-card-suwon-117')
+      .find('[data-testid="suwon-compare-remove"]')
+      .click();
+    cy.get('[data-testid="suwon-compare-card-suwon-117"]').should('not.exist');
+
+    getVisibleSuwon('suwon-compare-clear')
+      .click();
+    cy.get('[data-testid^="suwon-compare-card-"]').should('not.exist');
+    getVisibleSuwon('suwon-compare-tray')
+      .should('contain', '0/3개 선택')
+      .and('contain', '블록 상세에서 비교에 추가');
+  });
+
   it('처음 수원 가이드는 홈 응원 대표 블록을 상세 패널로 연결한다', () => {
     cy.viewport(1440, 1000);
     interceptGuestSession();
@@ -134,7 +207,7 @@ describe('Stadium SeatMap — Suwon Finder UX', () => {
       .click();
 
     cy.contains('h2', '107 1루 응원지정석', { timeout: 10000 }).should('be.visible');
-    cy.contains('p', '블록 107').should('be.visible');
+    cy.contains('p', '블록 107').should('exist');
     getVisibleSuwon('suwon-seatmap-transform-layer')
       .invoke('attr', 'data-zoom')
       .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.35));
@@ -241,6 +314,63 @@ describe('Stadium SeatMap — Suwon Finder UX', () => {
       .and('contain', '117')
       .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
     assertSuwonOperatorFallbackFields();
+  });
+
+  it('모바일 후보 비교는 가이드와 finder 선택을 유지하고 카드 보기로 하단 시트를 연다', () => {
+    cy.viewport(390, 844);
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    selectSuwonStadium();
+
+    getVisibleSuwon('suwon-mobile-secondary-panel')
+      .should('be.visible');
+    getSuwonScrollable('suwon-guide-intent-home')
+      .scrollIntoView()
+      .should('be.visible')
+      .click();
+    getSuwonScrollable('suwon-guide-result-suwon-107')
+      .scrollIntoView()
+      .should('be.visible')
+      .click();
+    getVisibleSuwon('suwon-seatmap-bottom-sheet')
+      .should('contain', '107 1루 응원지정석');
+    getVisibleSuwon('suwon-recent-card-suwon-107')
+      .should('contain', '107 1루 응원지정석');
+    getVisibleSuwon('suwon-recent-card-suwon-107')
+      .find('[data-testid="suwon-recent-view"]')
+      .should('be.visible');
+    getVisibleSuwon('suwon-recent-card-suwon-107')
+      .find('[data-testid="suwon-recent-add"]')
+      .should('be.visible');
+    addVisibleSuwonSelectionToCompare();
+    getVisibleSuwon('suwon-compare-card-suwon-107')
+      .should('contain', '107')
+      .and('contain', '1루 응원지정석');
+
+    openSuwonMobileToolTab('finder');
+    selectSuwonBlock('117', 'suwon-section-finder-item-suwon-117');
+    getVisibleSuwon('suwon-seatmap-bottom-sheet')
+      .should('contain', '117 중앙지정석');
+    addVisibleSuwonSelectionToCompare();
+
+    getVisibleSuwon('suwon-compare-tray')
+      .should('contain', '2/3개 선택');
+    getVisibleSuwon('suwon-compare-card-suwon-117')
+      .should('contain', '117')
+      .and('contain', '중앙지정석');
+
+    getSuwonScrollable('suwon-compare-card-suwon-107')
+      .scrollIntoView()
+      .find('[data-testid="suwon-compare-view"]')
+      .click();
+    assertSuwonFocusZoom();
+    getVisibleSuwon('suwon-seatmap-bottom-sheet')
+      .should('contain', '107 1루 응원지정석')
+      .and('contain', '블록')
+      .and('contain', '107');
   });
 
   it('모바일 처음 수원 가이드는 휠체어석을 하단 시트로 연결한다', () => {

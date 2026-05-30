@@ -89,13 +89,27 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       '내야 필드석',
       '1루',
       '홈 응원',
+      '직관 동선 안내',
+      'MANUAL_BASEBALL_DATA_REQUIRED',
       '비교에 추가',
       '다이어리에서 시야 사진 공유하기',
     ]);
 
+    withinVisibleStadiumSeatMap(() => {
+      cy.get('[data-testid="incheon-operator-visit-guide"]')
+        .should('contain', '직관 동선 안내');
+      cy.get('[data-testid="incheon-operator-data-status"]')
+        .should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+      cy.get('[data-testid="incheon-operator-row-entrance"]')
+        .should('contain', '운영자 제공 자료 필요');
+      cy.get('[data-testid="incheon-operator-row-facilities"]')
+        .should('contain', '운영자 제공 자료 필요');
+      cy.get('[data-testid="incheon-operator-row-notice"]')
+        .should('contain', '운영자 제공 자료 필요');
+      cy.get('[data-testid="incheon-operator-row-updated"]')
+        .should('contain', '운영자 제공 자료 필요');
+    });
     cy.get('[data-testid="incheon-operator-visit-check"]').should('not.exist');
-    cy.get('[data-testid="incheon-operator-data-status"]').should('not.exist');
-    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
   });
 
   it('처음 가이드 101B 검색 결과는 선택 블록 focus zoom과 상세 패널로 연결한다', () => {
@@ -348,8 +362,9 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
 
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
       .should('contain', '다이어리에서 시야 사진 공유하기')
-      .and('contain', '비교에 추가');
-    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
+      .and('contain', '비교에 추가')
+      .and('contain', '직관 동선 안내')
+      .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
     cy.get('[data-testid="incheon-seatmap-bottom-sheet"] [aria-label="닫기"]')
       .filter(':visible')
       .first()
@@ -369,7 +384,8 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.5));
 
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
-      .should('contain', '다이어리에서 시야 사진 공유하기');
+      .should('contain', '다이어리에서 시야 사진 공유하기')
+      .and('contain', '직관 동선 안내');
     cy.contains('사진은 데모 상태').should('not.exist');
   });
 
