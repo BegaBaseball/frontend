@@ -75,6 +75,11 @@ function getDaeguCanonicalDecisionStatusLabel(status: DaeguCanonicalBlock['canon
   return 'operator-only canonical';
 }
 
+function getDaeguCanonicalDecisionStatusLabel(status: DaeguCanonicalBlock['canonicalDecisionStatus']): string {
+  if (status === 'CANONICAL_OPERATOR_FROM_OVERLAP') return 'operator overlap canonical';
+  return 'operator-only canonical';
+}
+
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
 }
