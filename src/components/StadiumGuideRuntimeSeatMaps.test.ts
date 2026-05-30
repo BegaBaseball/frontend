@@ -375,6 +375,7 @@ test('대전 좌석도는 canonical registry, 구역 찾기, 공식 메타 상�
   const registryEntry = STADIUM_SEAT_MAP_ENTRIES.find((entry) => entry.id === 'daejeon');
   const registrySource = readProjectFile('src/components/stadiumSeatMapRegistry.tsx');
   const daejeonSource = readProjectFile('src/components/daejeon/DaejeonSeatMap.tsx');
+  const daejeonSvgSource = readProjectFile('src/components/daejeon/DaejeonSeatMapSvg.tsx');
   const daejeonDataSource = readProjectFile('src/data/daejeonSeatData.ts');
 
   assert.ok(registryEntry, 'Daejeon registry entry should exist');
@@ -410,6 +411,15 @@ test('대전 좌석도는 canonical registry, 구역 찾기, 공식 메타 상�
     'extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}',
   ].forEach((token) => {
     assert.ok(daejeonSource.includes(token), `Daejeon detail metadata contract should include ${token}`);
+  });
+
+  [
+    'data-testid="daejeon-seatmap-official-image"',
+    'setImageLoaded(true);',
+    'image.onerror = () => {',
+    'pointerEvents="none"',
+  ].forEach((token) => {
+    assert.ok(daejeonSvgSource.includes(token), `Daejeon official image visibility contract should include ${token}`);
   });
 
   [
