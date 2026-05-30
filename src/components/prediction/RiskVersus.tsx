@@ -64,6 +64,8 @@ export default function RiskVersus({
     const isDark   = useIsDark();
     const isNarrow = useMediaQuery('(max-width: 640px)');
 
+    if (!risks || risks.length === 0) return null;
+
     const homeName = shortTeamName(homeTeamId) || '홈팀';
     const awayName = shortTeamName(awayTeamId) || '원정팀';
 
