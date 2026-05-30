@@ -47,15 +47,12 @@ npm run qa:stadium:incheon:full
 - `releaseFixtureFingerprint`가 고정값과 다르다.
 - `qa:stadium:incheon:responsive`, `qa:stadium:incheon:trace-review`, `stadium:incheon:pixel-components` package alias가 공개된다.
 
-## 최종 검증 결과
+## 최신 문서화 검증 결과
 
-검증 실행일: 2026-05-29 KST
+검증 실행일: 2026-05-30 KST
 
-- `npm run stadium:incheon:status`: PASS
-- `npm run qa:stadium:incheon:release-lock`: PASS
-  - `totalBlocks=156`
-  - `officialBlocks=156`
-  - `officialAssetSha256=e1b0a20680f6b9ce8832a4af92d19c09a5abec987f5b8378d619f6746487b8d5`
-  - `releaseFixtureFingerprint=ff1421f842dba83886df3a06eb800ed6b155391045705a3db29156d67e171852`
-- `npm run qa:stadium:incheon:mobile`: PASS
-- `npm run qa:stadium:incheon:full`: PASS
+- `node --import tsx --test --test-concurrency=1 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/components/incheon/IncheonSeatMap.test.tsx`: PASS (`44/44`)
+- `npm run test:stadium:seatmaps`: PASS (`332/332`)
+- `VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build`: PASS
+
+릴리즈 전에는 위 릴리즈 게이트 명령을 다시 실행한다.
