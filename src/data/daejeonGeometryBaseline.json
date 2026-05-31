@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-31T09:47:58.155Z",
+  "generatedAt": "2026-05-31T11:24:29.191Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedBlockCount": 145,
   "policy": {
@@ -1773,7 +1773,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 403",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "e3bfe8c10115cb1dabf645536b8aa89fd5826596d17c5472c0804ac77891967e",
+      "fingerprint": "5bd593e8b7b3db2e50d8e4b1163f20366b1889b2de74ef631ba82f23ef34a7df",
       "geometry": {
         "id": "first-table-4f-301-413__403",
         "parentId": "first-table-4f-301-413",
@@ -1786,14 +1786,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 796 571 L 813 533 L 823 533 L 812 573 Z",
-          "labelX": 801,
-          "labelY": 560,
+          "d": "M 786 534 L 811 536 L 798 568 L 772 563 Z",
+          "labelX": 785,
+          "labelY": 552,
           "shortLabel": "403",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 796 571 L 813 533 L 823 533 L 812 573 Z"
+        "hitAreaD": "M 786 534 L 811 536 L 798 568 L 772 563 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1816,7 +1816,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 404",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "539759f4ca60b28c84fa37b3914e3680692a52008ec88c7cec0faa91d3deee0b",
+      "fingerprint": "f93e64652db01509e68eeb7fd3ccc66db09878c395e9b6f70ca0dadc4c15e0b8",
       "geometry": {
         "id": "first-table-4f-301-413__404",
         "parentId": "first-table-4f-301-413",
@@ -1829,14 +1829,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 794 577 L 801 607 L 801 614 L 780 608 Z",
-          "labelX": 784,
-          "labelY": 600,
+          "d": "M 764 569 L 788 574 L 774 622 L 747 613 Z",
+          "labelX": 765,
+          "labelY": 596,
           "shortLabel": "404",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 794 577 L 801 607 L 801 614 L 780 608 Z"
+        "hitAreaD": "M 764 569 L 788 574 L 774 622 L 747 613 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
