@@ -651,6 +651,8 @@ export default function IncheonSeatMap() {
   const [mobileToolTab, setMobileToolTab] = useState<IncheonMobileToolTab>('guide');
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [recentSelectionIds, setRecentSelectionIds] = useState<string[]>([]);
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -680,6 +682,12 @@ export default function IncheonSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasOfficialBlocks = INCHEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && INCHEON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? INCHEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#C8102E';
@@ -748,6 +756,8 @@ export default function IncheonSeatMap() {
 
   const selectIncheonBlock = useCallback((block: IncheonBlock | null) => {
     setSelected(block);
+    setIsSectionFinderOpen(!block);
+    setSectionFinderAutoFocus(false);
     if (block) {
       recordRecentSelection(block);
     }
@@ -782,6 +792,24 @@ export default function IncheonSeatMap() {
     setHover(null);
     setZoom((currentZoom) => Math.max(currentZoom, COMPARE_FOCUS_ZOOM));
   }, [selectIncheonBlock, setFilterId, setHover]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    setMobileToolTab('finder');
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMobileToolTabChange = useCallback((tab: IncheonMobileToolTab) => {
+    setMobileToolTab(tab);
+    if (tab === 'finder') {
+      setIsSectionFinderOpen(true);
+      setSectionFinderAutoFocus(false);
+    }
+  }, []);
 
   const handleAddComparison = useCallback((block: IncheonBlock) => {
     setComparisonIds((currentIds) => {
@@ -870,6 +898,12 @@ export default function IncheonSeatMap() {
         onUpload={() => handleShareSeatView(selected)}
         copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
         extraMeta={renderIncheonExtraMeta}
+        searchAction={{
+          label: '구역 검색',
+          ariaLabel: '인천 구역 검색 열기',
+          onClick: handleOpenSectionFinderSearch,
+          testId: 'incheon-seatmap-search-open',
+        }}
       />
     </div>
   ) : null;
@@ -910,7 +944,7 @@ export default function IncheonSeatMap() {
     />
   ) : null;
 
-  const sectionFinder = hasOfficialBlocks ? (
+  const sectionFinder = hasOfficialBlocks && isSectionFinderOpen ? (
     <SeatMapSectionFinder
       blocks={visibleIncheonBlocks}
       adapter={incheonSectionAdapter}
@@ -923,6 +957,7 @@ export default function IncheonSeatMap() {
       testIdPrefix="incheon"
       accentColor="#C8102E"
       stadiumShortLabel="인천"
+      autoFocusInput={sectionFinderAutoFocus}
     />
   ) : null;
 
@@ -954,7 +989,7 @@ export default function IncheonSeatMap() {
         guidePanel={guidePanel}
         finderPanel={sectionFinder}
         mode={mode}
-        onTabChange={setMobileToolTab}
+        onTabChange={handleMobileToolTabChange}
       />
     </>
   ) : null;
@@ -1015,6 +1050,12 @@ export default function IncheonSeatMap() {
             testId="incheon-seatmap-bottom-sheet"
             copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
             extraMeta={renderIncheonExtraMeta}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '인천 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'incheon-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}

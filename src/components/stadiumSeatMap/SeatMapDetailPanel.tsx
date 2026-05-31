@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
+import { Search } from 'lucide-react';
 
 import SeatViewGallery from '../SeatViewGallery';
 import type {
   SeatMapCategoryMeta,
   SeatMapCommonCopy,
   SeatMapSectionAdapter,
+  SeatMapSearchAction,
   SeatMapThemeMode,
 } from './seatMapCommonTypes';
 
@@ -21,6 +23,7 @@ interface SeatMapDetailPanelProps<TSection> {
   footerExtra?: (section: TSection, accent: string) => ReactNode;
   isUploadDisabled?: (section: TSection) => boolean;
   getUploadLabel?: (section: TSection) => ReactNode;
+  searchAction?: SeatMapSearchAction;
 }
 
 function EmptyState({ copy }: { copy?: SeatMapCommonCopy }) {
@@ -64,6 +67,7 @@ export function SeatMapDetailPanel<TSection>({
   footerExtra,
   isUploadDisabled,
   getUploadLabel,
+  searchAction,
 }: SeatMapDetailPanelProps<TSection>) {
   if (!section) {
     return (
@@ -127,6 +131,19 @@ export function SeatMapDetailPanel<TSection>({
         <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
           {blockLabel} {adapter.getBlock(section)}
         </p>
+        {searchAction && (
+          <button
+            type="button"
+            data-testid={searchAction.testId}
+            aria-label={searchAction.ariaLabel ?? '구역 검색'}
+            onClick={searchAction.onClick}
+            className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition-opacity hover:opacity-85"
+            style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
+          >
+            <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.4} />
+            {searchAction.label ?? '구역 검색'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">

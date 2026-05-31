@@ -5,6 +5,7 @@ import type {
   SeatMapCategoryMeta,
   SeatMapCommonCopy,
   SeatMapSectionAdapter,
+  SeatMapSearchAction,
   SeatMapThemeMode,
 } from './seatMapCommonTypes';
 
@@ -24,6 +25,7 @@ interface SeatMapBottomSheetProps<TSection> {
   preferFull?: boolean;
   isUploadDisabled?: (section: TSection) => boolean;
   getUploadLabel?: (section: TSection) => ReactNode;
+  searchAction?: SeatMapSearchAction;
 }
 
 export function SeatMapBottomSheet<TSection>({
@@ -40,6 +42,7 @@ export function SeatMapBottomSheet<TSection>({
   preferFull = false,
   isUploadDisabled,
   getUploadLabel,
+  searchAction,
 }: SeatMapBottomSheetProps<TSection>) {
   const [snap, setSnap] = useState<Snap>('peek');
   const startY = useRef(0);
@@ -126,6 +129,18 @@ export function SeatMapBottomSheet<TSection>({
             {category.label} · {adapter.getSideLabel(section)} · {adapter.getFanRoleLabel(section)}
           </div>
         </div>
+        {searchAction && (
+          <button
+            type="button"
+            data-testid={searchAction.testId}
+            aria-label={searchAction.ariaLabel ?? '구역 검색'}
+            onClick={searchAction.onClick}
+            className="shrink-0 cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-opacity hover:opacity-85"
+            style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
+          >
+            {searchAction.label ?? '구역 검색'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
