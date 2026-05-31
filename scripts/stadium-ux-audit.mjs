@@ -935,6 +935,24 @@ const closeVisibleIncheonSeatPanel = async (page) => {
   }
 };
 
+const openVisibleIncheonFinderSearch = async (page, mobilePanel = null) => {
+  const visibleSearch = page.locator('[data-testid="incheon-block-search"]:visible').first();
+  if (!await visibleSearch.isVisible().catch(() => false)) {
+    const searchButton = page.locator('[data-testid="incheon-seatmap-search-open"]:visible, [data-testid="incheon-seatmap-mobile-search-open"]:visible').first();
+    if (await searchButton.isVisible().catch(() => false)) {
+      await searchButton.click({ timeout: 5000 });
+    } else if (mobilePanel && await mobilePanel.isVisible().catch(() => false)) {
+      await mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-finder"]').first().click({ timeout: 5000 });
+    }
+  }
+
+  const finderSearch = mobilePanel && await mobilePanel.isVisible().catch(() => false)
+    ? mobilePanel.locator('[data-testid="incheon-block-search"]').first()
+    : visibleIncheonPanelTestId(page, 'incheon-block-search');
+  await finderSearch.waitFor({ state: 'visible', timeout: 5000 });
+  return finderSearch;
+};
+
 const verifyIncheonComparisonFlow = async (page) => {
   const compareTray = visibleIncheonCompareTestId(page, 'incheon-compare-tray');
   await compareTray.waitFor({ state: 'visible', timeout: 5000 });
@@ -957,18 +975,19 @@ const verifyIncheonComparisonFlow = async (page) => {
 
     const finderTab = mobilePanel.locator('[data-testid="incheon-mobile-tool-tab-finder"]').first();
     await finderTab.click({ timeout: 5000 });
-    const finderSearch = mobilePanel.locator('[data-testid="incheon-block-search"]').first();
+    const finderSearch = await openVisibleIncheonFinderSearch(page, mobilePanel);
     await finderSearch.fill('102B');
     await mobilePanel.locator('[data-testid="incheon-section-finder-item-incheon-102b"]').first().click({ timeout: 5000 });
     await page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
     await clickVisibleIncheonCompareAdd(page);
   } else {
-    const finderSearch = visibleIncheonPanelTestId(page, 'incheon-block-search');
+    let finderSearch = await openVisibleIncheonFinderSearch(page);
     await finderSearch.fill('101B');
     await visibleIncheonPanelTestId(page, 'incheon-section-finder-item-incheon-101b').click({ timeout: 5000 });
     await page.locator('[data-testid="incheon-seatmap-detail-panel"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });
     await clickVisibleIncheonCompareAdd(page);
 
+    finderSearch = await openVisibleIncheonFinderSearch(page);
     await finderSearch.fill('102B');
     await visibleIncheonPanelTestId(page, 'incheon-section-finder-item-incheon-102b').click({ timeout: 5000 });
     await page.locator('[data-testid="incheon-seatmap-detail-panel"]:visible').first().waitFor({ state: 'visible', timeout: 5000 });

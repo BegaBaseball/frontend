@@ -34,6 +34,7 @@ interface SeatMapSectionFinderProps<TSection> {
   testIdPrefix: string;
   accentColor: string;
   stadiumShortLabel: string;
+  autoFocusInput?: boolean;
 }
 
 export function SeatMapSectionFinder<TSection>({
@@ -48,6 +49,7 @@ export function SeatMapSectionFinder<TSection>({
   testIdPrefix,
   accentColor,
   stadiumShortLabel,
+  autoFocusInput = false,
 }: SeatMapSectionFinderProps<TSection>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
@@ -96,6 +98,7 @@ export function SeatMapSectionFinder<TSection>({
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
+            autoFocus={autoFocusInput}
             placeholder="블록, 구역명 검색"
             className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:bg-white dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
             style={{ borderColor: inputFocused ? accentColor : borderColor }}

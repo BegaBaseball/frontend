@@ -19,6 +19,18 @@ function assertIncheonDetailContains(values: string[]) {
 
 function selectIncheonBlock(query: string, itemTestId: string) {
   withinVisibleStadiumSeatMap(() => {
+    cy.root().then(($root) => {
+      if ($root.find('[data-testid="incheon-block-search"]:visible').length > 0) {
+        return;
+      }
+
+      const searchButton = $root
+        .find('[data-testid="incheon-seatmap-search-open"]:visible, [data-testid="incheon-seatmap-mobile-search-open"]:visible')
+        .first();
+      if (searchButton.length > 0) {
+        cy.wrap(searchButton).click({ force: true });
+      }
+    });
     cy.get('[data-testid="incheon-block-search"]', { timeout: 10000 })
       .clear()
       .type(query);

@@ -19,6 +19,7 @@ import {
 } from '../../data/incheonSeatData';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import IncheonSeatMap, { IncheonOperatorVisitGuidePanel } from './IncheonSeatMap';
 
 const incheonSectionAdapter: SeatMapSectionAdapter<IncheonBlock> = {
@@ -94,6 +95,12 @@ test('IncheonSeatMap detail panel은 운영자 직관 안내와 다이어리 시
         onUpload: () => undefined,
         copy: { uploadLabel: '다이어리에서 시야 사진 공유하기' },
         extraMeta: (section, accent) => createElement(IncheonOperatorVisitGuidePanel, { section, accent }),
+        searchAction: {
+          label: '구역 검색',
+          ariaLabel: '인천 구역 검색 열기',
+          onClick: () => undefined,
+          testId: 'incheon-seatmap-search-open',
+        },
       }),
     ),
   ));
@@ -109,5 +116,48 @@ test('IncheonSeatMap detail panel은 운영자 직관 안내와 다이어리 시
   assert.match(html, /운영자 제공 출입구\/매점\/동선 자료 필요/);
   assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.match(html, /다이어리에서 시야 사진 공유하기/);
+  assert.match(html, /data-testid="incheon-seatmap-search-open"/);
+  assert.match(html, /구역 검색/);
   assert.doesNotMatch(html, /사진은 데모 상태/);
+});
+
+test('SeatMapBottomSheet는 searchAction 전달 시 구역 검색 버튼을 렌더링한다', () => {
+  const selectedBlock = INCHEON_BLOCKS.find((block) => block.block === '101B');
+  assert.ok(selectedBlock);
+  const IncheonBottomSheet = SeatMapBottomSheet<IncheonBlock>;
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const sectionQueries = Array.from(new Set(
+    [selectedBlock.name, ...getIncheonSeatViewAliases(selectedBlock)]
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ));
+  queryClient.setQueryData(['seat-views', 'INCHEON', sectionQueries], []);
+
+  const html = renderToStaticMarkup(createElement(
+    MemoryRouter,
+    null,
+    createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      createElement(IncheonBottomSheet, {
+        section: selectedBlock,
+        mode: 'light',
+        categories: INCHEON_CATEGORIES,
+        adapter: incheonSectionAdapter,
+        stadiumKey: 'INCHEON',
+        onClose: () => undefined,
+        onUpload: () => undefined,
+        searchAction: {
+          label: '구역 검색',
+          ariaLabel: '인천 구역 검색 열기',
+          onClick: () => undefined,
+          testId: 'incheon-seatmap-mobile-search-open',
+        },
+      }),
+    ),
+  ));
+  queryClient.clear();
+
+  assert.match(html, /data-testid="incheon-seatmap-mobile-search-open"/);
+  assert.match(html, /구역 검색/);
 });
