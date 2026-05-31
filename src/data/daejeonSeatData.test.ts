@@ -1206,9 +1206,9 @@ test('대전 3루 4층 탁자석 414-423/326-330은 공식 셀 bounds와 owner p
     },
     {
       id: 'third-table-4f-414-330__423',
-      bounds: { minX: 182, minY: 723, maxX: 207, maxY: 742 },
-      labelPoint: [195.7, 732.6] as const,
-      ownerPoints: [[195.7, 732.6], [195, 732], [195, 736]] as const,
+      bounds: { minX: 167, minY: 708, maxX: 209, maxY: 745 },
+      labelPoint: [184, 733] as const,
+      ownerPoints: [[170, 720], [190, 735], [201, 730]] as const,
       excludedPoints: [[154, 733], [214, 733]] as const,
     },
     {
@@ -1453,7 +1453,7 @@ test('대전 특수석/휠체어석은 공식 셀 bounds와 owner point를 유�
     },
     {
       id: 'splash-jacuzzi-425__425',
-      bounds: { minX: 127, minY: 642, maxX: 156, maxY: 682 },
+      bounds: { minX: 126, minY: 641, maxX: 156, maxY: 683 },
       labelPoint: [143, 663] as const,
       ownerPoints: [[135, 655], [148, 678]] as const,
       excludedPoints: [[118, 657], [129, 697], [160, 660]] as const,
