@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
-  "generatedAt": "2026-05-31T11:42:36.808Z",
+  "generatedAt": "2026-05-31T09:47:51.819Z",
   "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedCropCount": 28,
@@ -74,7 +74,7 @@
         "first-infield-b-101-108__108",
         "first-infield-a-109-112-201-212__109"
       ],
-      "sha256": "1d1b67fe9dac15c75abe1377fd9631d9425355aadebde2b36ce25b96796fc299"
+      "sha256": "3c3826b1038110927aa574aa29be535dcb220938e074150ff316c081eca999c6"
     },
     {
       "id": "first-104-106-detail",
@@ -128,7 +128,7 @@
         "first-infield-a-109-112-201-212__109",
         "first-infield-a-109-112-201-212__110"
       ],
-      "sha256": "26c60c2268a00b3264856d2c9677e6e27aa205175865f0a18a8c5d6c2a36cc05"
+      "sha256": "f35518a15d893010353dce99aa55e4702130cf2ad4507db90f5140bb76538f63"
     },
     {
       "id": "first-109-112-sequence",
@@ -155,7 +155,7 @@
         "first-infield-a-109-112-201-212__111",
         "first-infield-a-109-112-201-212__112"
       ],
-      "sha256": "29622368902426f101dcabf9236c8f8d12defb3e4c5568e90050a01cc7a1fb1c"
+      "sha256": "5e0e75e10183de93301f54a0f1784708192e77358c1b61c35dc974d3b5ebf0d4"
     },
     {
       "id": "cass-200-detail",
@@ -233,7 +233,7 @@
         "third-infield-b-121-124__121",
         "third-infield-b-121-124__122"
       ],
-      "sha256": "026c0c9c09489d13a2b918e64ed3891fa0dce189969a0ecb0e31a8b4b5356ed3"
+      "sha256": "8136f7c13536a3ac59098a538a2eb6521723dfccb57be481db11ebf44345eea9"
     },
     {
       "id": "third-119-121-detail",
@@ -259,7 +259,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "123008431db357feab6ec15b3a5559fc103e97b88659812da04f53ed658cec02"
+      "sha256": "be070f700acc00aaf1d4f0b79aaf837d35390e475176f89b29e1cbfff7d3e585"
     },
     {
       "id": "third-113-120-sequence",
@@ -290,7 +290,7 @@
         "third-infield-a-113-120-213-225__119",
         "third-infield-a-113-120-213-225__120"
       ],
-      "sha256": "b9e44f7544d54bb0030abc0f5a5ae699cf69888423461c2aeb022c46cc219ffc"
+      "sha256": "a63486be99ccd294a97b2a30dea31068efbb0904db477c82f5818533489e5fff"
     },
     {
       "id": "third-113-117-wide",
@@ -318,7 +318,7 @@
         "third-infield-a-113-120-213-225__116",
         "third-infield-a-113-120-213-225__117"
       ],
-      "sha256": "f9bd0012dac047c706f3a9486029c7ca510accb9e03f75aafca9532f6995cf83"
+      "sha256": "8268992b7c6d02a209ff92180da125e263054e3fcdbc44cb56a698bbe9064d9e"
     },
     {
       "id": "third-115-117-detail",
@@ -344,7 +344,7 @@
         "third-infield-a-113-120-213-225__116",
         "third-infield-a-113-120-213-225__117"
       ],
-      "sha256": "4f58bba8267e4709d400ff34be5d6e57e50d4501e11ca76cf45f051ed1942261"
+      "sha256": "c96fd346567042bea47b5b2bfcaf69863c2ef2bc95e43ed49381a25d1f58f7ae"
     },
     {
       "id": "third-116-121-detail",
@@ -374,7 +374,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "ed1de6c6e60e999097effdb2fb23a9dc40601e94ef9310f9fb0b259d253a4eb8"
+      "sha256": "d8772830ffa45ccba5ba42232eec46c5549fd2ff0f01b10b9a0160eac4fef002"
     },
     {
       "id": "third-113-114-detail",
@@ -400,7 +400,7 @@
         "third-infield-a-113-120-213-225__114",
         "central-table-100__100c"
       ],
-      "sha256": "6fca4410042ed8d28b9ca283ea35b176d280372a33874669006837d9041aacf6"
+      "sha256": "69b04b7ece3568498ab6ded5d3227eec8ad43b0ccbb8bbc005216cbfebddac24"
     },
     {
       "id": "third-213-225-sequence",
@@ -436,7 +436,7 @@
         "third-infield-a-113-120-213-225__224",
         "third-infield-a-113-120-213-225__225"
       ],
-      "sha256": "49a07ed4e0dd799fd3499a669763ce0a464a3a25064033c32b254bbb82b48c3c"
+      "sha256": "5c175c5e9864dee9245a2f30ed57900715141197be56fed7d2db486ab99d2b3a"
     },
     {
       "id": "third-221-225-detail",
@@ -464,7 +464,7 @@
         "third-infield-a-113-120-213-225__224",
         "third-infield-a-113-120-213-225__225"
       ],
-      "sha256": "44bc7883aa6086070038c6de14a6139e53db6021970f83cfe31117833f569864"
+      "sha256": "c62e6ea03ac4b81801f7fff87be2087d318fda1f0e5ff1853a8394e1fc6d2686"
     },
     {
       "id": "third-213-219-detail",
@@ -494,7 +494,7 @@
         "third-infield-a-113-120-213-225__218",
         "third-infield-a-113-120-213-225__219"
       ],
-      "sha256": "ce2f4809a8b05678e79129abc93a08b27614404a2f9d8403350d0c8ceceac8bc"
+      "sha256": "868b9d2757128cd68b8f251ced6c995ef06438aae8d5de5fa355b43b2ee0c382"
     },
     {
       "id": "first-201-212-sequence",
@@ -529,7 +529,7 @@
         "first-infield-a-109-112-201-212__211",
         "first-infield-a-109-112-201-212__212"
       ],
-      "sha256": "1dc173fc4c31078ff264f1a7f39b8170824980eadfe807c7a2d92a66294a1dbe"
+      "sha256": "c2107a44f7dc729edb0c34b8339fc215f4d0f61bd7511bd70da014e988ef448f"
     },
     {
       "id": "first-4f-table-301-413-sequence",
@@ -568,7 +568,7 @@
         "first-table-4f-301-413__412",
         "first-table-4f-301-413__413"
       ],
-      "sha256": "fbf3d3e09f47b9648568c8692028e803deab84b6a61064ad13d5ae77fc6a1b06"
+      "sha256": "1e2ab27a00e3207497d1b700bcc3df1d804c70e537fda907b94a09b4b05498d4"
     },
     {
       "id": "third-4f-table-414-330-sequence",
@@ -606,7 +606,7 @@
         "third-table-4f-414-330__329",
         "third-table-4f-414-330__330"
       ],
-      "sha256": "c5ff7f02fb68187ca71e77a05e210ee08642277d30aa43186b8fe6626aa264a9"
+      "sha256": "3f5b754c9b95e7f792fce495f55fa3ebfe2aaf3e1def4db736371ceb4dbb2040"
     },
     {
       "id": "outfield-upper-500-509-sequence",
@@ -675,7 +675,7 @@
         "skybox-s01-s37__s11",
         "skybox-s01-s37__s12"
       ],
-      "sha256": "a29e4adfe55f54ad76cd22f5d426a5fab3b14967a4a4791653028c020d1c449f"
+      "sha256": "2c1c7911db2ea1691ba6e5abe84bd02cc5190163bed4db5d3fbbd6d038f6f7f2"
     },
     {
       "id": "skybox-s13-s25-sequence",
@@ -712,7 +712,7 @@
         "skybox-s01-s37__s24",
         "skybox-s01-s37__s25"
       ],
-      "sha256": "116b4e57571568187f48ea1ec52ffbf2676e56c3b15b0b506bd82dd2856ffac1"
+      "sha256": "038494cbd04ef13bdd7b653794b9ebf447b0449b2fd788bb66f43e6feae5ce28"
     },
     {
       "id": "skybox-s26-s37-sequence",
@@ -748,7 +748,7 @@
         "skybox-s01-s37__s36",
         "skybox-s01-s37__s37"
       ],
-      "sha256": "49289c761f1079438b0466a9eb7ce01c22468dcaa79261f9a8a1fc753b74519a"
+      "sha256": "3365b4b8780489022da665b968cb7777433203ba987fe7113001b9f90df49373"
     },
     {
       "id": "special-400-accessible-first",
@@ -803,7 +803,7 @@
         "third-infield-accessible__third-infield",
         "outfield-reserved-third-423-330__424"
       ],
-      "sha256": "2cdc925b32842b12d467ed3b99215b4edf9d08dffb1c3392b027757c990b82c4"
+      "sha256": "95f092a4eda32c0f768c3f0e9a966a66464565e1f23e8320163f823af683caf9"
     },
     {
       "id": "special-accessible-center",
