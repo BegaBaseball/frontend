@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
-  "generatedAt": "2026-05-31T09:47:51.819Z",
+  "generatedAt": "2026-05-31T11:24:17.800Z",
   "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedCropCount": 28,
@@ -568,7 +568,7 @@
         "first-table-4f-301-413__412",
         "first-table-4f-301-413__413"
       ],
-      "sha256": "1e2ab27a00e3207497d1b700bcc3df1d804c70e537fda907b94a09b4b05498d4"
+      "sha256": "c185c68b749aab177749b357c5ea631bdc69730e411db858d8f2af1c2f3c613d"
     },
     {
       "id": "third-4f-table-414-330-sequence",
