@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-31T11:24:29.191Z",
+  "generatedAt": "2026-05-31T11:42:35.717Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedBlockCount": 145,
   "policy": {
@@ -4475,7 +4475,7 @@
       "parentId": "splash-jacuzzi-425",
       "officialBlockLabel": "스플래쉬 자쿠지(인피니티 풀) 425",
       "officialSectionName": "스플래쉬 자쿠지(인피니티 풀)",
-      "fingerprint": "9da2e287f1ae5cc8c6290216142c6f6d8773c05d2f1c95a2edffc146343cf21b",
+      "fingerprint": "74674566269d317ba7594a289350b9278db13a6006a3e7fb29affcdf93b1c18a",
       "geometry": {
         "id": "splash-jacuzzi-425__425",
         "parentId": "splash-jacuzzi-425",
@@ -4488,14 +4488,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 142 642 L 156 673 L 142 682 L 127 649 Z",
+          "d": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z",
           "labelX": 143,
           "labelY": 663,
           "shortLabel": "자쿠지",
           "labelFontSize": 8,
           "labelRotate": -74
         },
-        "hitAreaD": "M 142 642 L 156 673 L 142 682 L 127 649 Z"
+        "hitAreaD": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -6337,7 +6337,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 423",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "71f757b03fb5ef0c84a3a14d5971ef40f6a957140ba6d33a5400afdba465f1b1",
+      "fingerprint": "422d6e455698fa1c3d0979f139735700482cc2aab493ba706fc4b47808b551bb",
       "geometry": {
         "id": "third-table-4f-414-330__423",
         "parentId": "third-table-4f-414-330",
@@ -6350,14 +6350,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 182 728 L 199 723 L 207 733 L 194 742 Z",
-          "labelX": 195.7,
-          "labelY": 732.6,
+          "d": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z",
+          "labelX": 184,
+          "labelY": 733,
           "shortLabel": "423",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 182 728 L 199 723 L 207 733 L 194 742 Z"
+        "hitAreaD": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"

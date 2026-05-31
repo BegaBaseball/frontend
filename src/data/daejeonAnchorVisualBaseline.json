@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
-  "generatedAt": "2026-05-31T11:24:17.800Z",
+  "generatedAt": "2026-05-31T11:42:36.808Z",
   "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedCropCount": 28,
@@ -568,7 +568,7 @@
         "first-table-4f-301-413__412",
         "first-table-4f-301-413__413"
       ],
-      "sha256": "c185c68b749aab177749b357c5ea631bdc69730e411db858d8f2af1c2f3c613d"
+      "sha256": "fbf3d3e09f47b9648568c8692028e803deab84b6a61064ad13d5ae77fc6a1b06"
     },
     {
       "id": "third-4f-table-414-330-sequence",
@@ -606,7 +606,7 @@
         "third-table-4f-414-330__329",
         "third-table-4f-414-330__330"
       ],
-      "sha256": "3f5b754c9b95e7f792fce495f55fa3ebfe2aaf3e1def4db736371ceb4dbb2040"
+      "sha256": "c5ff7f02fb68187ca71e77a05e210ee08642277d30aa43186b8fe6626aa264a9"
     },
     {
       "id": "outfield-upper-500-509-sequence",
@@ -803,7 +803,7 @@
         "third-infield-accessible__third-infield",
         "outfield-reserved-third-423-330__424"
       ],
-      "sha256": "95f092a4eda32c0f768c3f0e9a966a66464565e1f23e8320163f823af683caf9"
+      "sha256": "2cdc925b32842b12d467ed3b99215b4edf9d08dffb1c3392b027757c990b82c4"
     },
     {
       "id": "special-accessible-center",
