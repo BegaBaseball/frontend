@@ -1,6 +1,6 @@
 import { loadEnv } from 'vite';
 
-const loadedEnv = loadEnv('production', process.cwd(), '');
+const loadedEnv = loadEnv('prod', process.cwd(), '');
 for (const [key, value] of Object.entries(loadedEnv)) {
   if (process.env[key] == null || String(process.env[key]).trim() === '') {
     process.env[key] = value;
