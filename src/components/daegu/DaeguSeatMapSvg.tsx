@@ -3,16 +3,17 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent }
 import { ExternalLink, Minus, Plus } from 'lucide-react';
 import {
   DAEGU_CATEGORIES,
-  DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT,
-  DAEGU_SEATMAP_IMAGE,
-  DAEGU_SEATMAP_SOURCE_REFERENCES,
-  DAEGU_SEATMAP_VIEWPORT,
   getDaeguTraceMethodLabel,
   getDaeguTraceStatusLabel,
   isDaeguNormalSelectableSeat,
   isDaeguReviewOnlySeat,
   type DaeguBlock,
 } from '../../data/daeguSeatData';
+import {
+  DAEGU_CANONICAL_SEATMAP_IMAGE,
+  DAEGU_CANONICAL_SEATMAP_VIEWPORT,
+  type DaeguCanonicalBlock,
+} from '../../data/daeguCanonicalSeatMap';
 import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
 import {
   clampPan,
@@ -28,15 +29,12 @@ import {
 } from '../stadiumSeatMap/seatMapInteractionUtils';
 
 interface DaeguExtraProps {
-  blocks: DaeguBlock[];
+  blocks: DaeguCanonicalBlock[];
   focusBlockId: string | null;
   focusRequestId: number;
-  imageViewMode?: DaeguSeatMapImageViewMode;
 }
 
-export type DaeguSeatMapImageViewMode = 'operatorReference' | 'officialPng';
-
-type Props = SeatMapSvgBaseProps<DaeguBlock> & DaeguExtraProps;
+type Props = SeatMapSvgBaseProps<DaeguCanonicalBlock> & DaeguExtraProps;
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   return (
@@ -48,15 +46,15 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         MANUAL_BASEBALL_DATA_REQUIRED
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
-        대구 삼성 공식 좌석도 이미지가 필요합니다
+        대구 삼성 canonical 좌석도 이미지가 필요합니다
       </h4>
       <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-        공식 좌석도 파일이 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
+        canonical 좌석도 파일이 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
       </p>
       <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-slate-300">
-        <div>필요 파일: {DAEGU_SEATMAP_IMAGE.requiredAssetFileName}</div>
-        <div>저장 위치: {DAEGU_SEATMAP_IMAGE.imagePath}</div>
-        <div>출처: {DAEGU_SEATMAP_IMAGE.sourceLabel}</div>
+        <div>필요 파일: {DAEGU_CANONICAL_SEATMAP_IMAGE.requiredAssetFileName}</div>
+        <div>저장 위치: {DAEGU_CANONICAL_SEATMAP_IMAGE.imagePath}</div>
+        <div>출처: {DAEGU_CANONICAL_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
       <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
@@ -65,15 +63,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   );
 }
 
-function resolveOfficialSeatMapImageUrl() {
-  if (DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
-    return null;
-  }
-
-  return new URL('../../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp', import.meta.url).href;
-}
-
-function resolveOperatorReferenceSeatMapImageUrl() {
+function resolveCanonicalSeatMapImageUrl() {
   return new URL('../../assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.webp', import.meta.url).href;
 }
 
@@ -133,7 +123,6 @@ export default function DaeguSeatMapSvg({
   zoomStep,
   focusBlockId,
   focusRequestId,
-  imageViewMode = 'operatorReference',
   enableAutoCenter = true,
   onFullscreen,
 }: Props) {
@@ -165,12 +154,10 @@ export default function DaeguSeatMapSvg({
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
-  const operatorReferenceSource = DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'OPERATOR_REFERENCE_RAPAK_2025');
-  const isOperatorReferenceMode = imageViewMode === 'operatorReference';
-  const imageWidth = isOperatorReferenceMode ? operatorReferenceSource?.imageWidth ?? 0 : DAEGU_SEATMAP_IMAGE.imageWidth;
-  const imageHeight = isOperatorReferenceMode ? operatorReferenceSource?.imageHeight ?? 0 : DAEGU_SEATMAP_IMAGE.imageHeight;
-  const viewport = isOperatorReferenceMode ? DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT : DAEGU_SEATMAP_VIEWPORT;
-  const seatMapImageUrl = isOperatorReferenceMode ? resolveOperatorReferenceSeatMapImageUrl() : resolveOfficialSeatMapImageUrl();
+  const imageWidth = DAEGU_CANONICAL_SEATMAP_IMAGE.imageWidth;
+  const imageHeight = DAEGU_CANONICAL_SEATMAP_IMAGE.imageHeight;
+  const viewport = DAEGU_CANONICAL_SEATMAP_VIEWPORT;
+  const seatMapImageUrl = resolveCanonicalSeatMapImageUrl();
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('daeguDebug') === '1';
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
@@ -209,7 +196,7 @@ export default function DaeguSeatMapSvg({
   useEffect(() => {
     setImageFailed(false);
     setDebugPoint(null);
-  }, [imageViewMode]);
+  }, []);
 
   useIsomorphicLayoutEffect(() => {
     const node = viewportRef.current;
@@ -533,12 +520,14 @@ export default function DaeguSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
@@ -605,7 +594,7 @@ export default function DaeguSeatMapSvg({
     setDebugPoint({ x: Math.round(mapped.x), y: Math.round(mapped.y) });
   };
 
-  const renderInteractiveBlocks = (blocks: DaeguBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
+  const renderInteractiveBlocks = (blocks: DaeguCanonicalBlock[], layerKind: 'seat' | 'marker') => blocks.map((block) => {
     const cat = DAEGU_CATEGORIES[block.category];
     if (!cat) return null;
 
@@ -678,6 +667,7 @@ export default function DaeguSeatMapSvg({
             vectorEffect="non-scaling-stroke"
             style={{
               cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+              outline: 'none',
               transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
             }}
             onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
@@ -877,8 +867,7 @@ export default function DaeguSeatMapSvg({
   );
 
   if (
-    (!isOperatorReferenceMode && DAEGU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL')
-    || !seatMapImageUrl
+    !seatMapImageUrl
     || imageWidth <= 0
     || imageHeight <= 0
     || imageFailed
@@ -930,10 +919,10 @@ export default function DaeguSeatMapSvg({
             ref={svgRef}
             data-testid="daegu-seatmap-svg"
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
-            data-image-view-mode={imageViewMode}
+            data-image-view-mode="canonical"
             className="absolute inset-0 h-full w-full"
             preserveAspectRatio="xMidYMid meet"
-            aria-label={isOperatorReferenceMode ? '대구 삼성 라이온즈 파크 기존 좌석배치도 구역 선택' : '대구 삼성 라이온즈 파크 공식 이미지 보기'}
+            aria-label="대구 삼성 라이온즈파크 canonical 좌석도 구역 선택"
             onDoubleClick={handleSvgDoubleClick}
             onMouseMove={handleDebugMouseMove}
             onMouseLeave={() => {

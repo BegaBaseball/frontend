@@ -1,10 +1,10 @@
 # 수원 kt 위즈 파크 좌석도 release lock
 
-검수 고정일: 2026-05-14 KST
+검수 고정일: 2026-05-28 KST
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.jpg`
+- 공식 asset: `src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp`
 - 공식 이미지 좌표계: `4290x9679`
 - viewport crop: `cropY=1000`, `cropHeight=4550`
 - stadium id: `SUWON`
@@ -17,6 +17,24 @@
 - debug UX: `?suwonDebug=1`에서만 전체 visual/hit polygon을 노출한다.
 - hit exception rule: 스카이박스 SB1-SB35는 visual polygon 전체를 hit polygon으로 사용한다.
 - data policy: 외부 야구 데이터 수집, 웹 검색, 크롤링, 핫링크 좌석도 복사는 사용하지 않는다.
+- operator visit-guide source: `src/data/suwonOperatorVisitGuide.ts`
+- operator visit-guide policy: `docs/stadium/operator-visit-guide-policy.md`
+- current operator visit-guide state: 운영자 제공 출입구/매점/동선 자료는 비어 있으며, 좌석 상세 패널은 항목 단위로 `MANUAL_BASEBALL_DATA_REQUIRED`만 표시한다.
+- public npm command는 runtime QA, release lock, status만 노출한다.
+- responsive QA, visual review, precision workset 재생성은 dispatcher 내부 task로 유지한다.
+
+## Public commands
+
+- `npm run qa:stadium:suwon:mobile`
+- `npm run qa:stadium:suwon:full`
+- `npm run qa:stadium:suwon:release-lock`
+- `npm run stadium:suwon:status`
+
+## Internal dispatcher tasks
+
+- `node scripts/stadium-seatmap-ops.mjs suwon responsive`
+- `node scripts/stadium-seatmap-ops.mjs suwon visual-review`
+- `node scripts/stadium-seatmap-ops.mjs suwon precision-workset`
 
 ## 고정 상태
 
@@ -29,16 +47,16 @@
 - `officialImageTraced=176`
 - `draftApproximate=0`
 - `pendingBlockIds=[]`
-- `browserQaProbes=176`
-- `alignmentProbes=556`
-- `hitTestProbes=732`
+- `browserQaProbes=179`
+- `alignmentProbes=429`
+- `hitTestProbes=608`
 - `visualHitMismatchBlocks=0`
 - `approvedVisualHitSplitBlocks=0`
 - `unresolvedVisualHitMismatchBlocks=0`
 - `hitGeometryExceptions=0`
 - `unusedHitGeometryExceptionNotes=0`
-- `releaseFixtureFingerprint=94f0ac1923b681f23cde6eb77dc6181ba52435cce46272c04bb7a56d1833bd42`
-- `officialAssetSha256=a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627`
+- `releaseFixtureFingerprint=c69ad1aa260bf48c23634d0f07bcb9d13491c45c70acc0bd0edd7fc079485e5a`
+- `officialAssetSha256=30ebfe637f42e674d7761af7739e61aa0751813e0f72bd9cde4f8135b91a3523`
 
 ## 범위별 lock
 
@@ -52,6 +70,8 @@
 - `suwon-lf-grass` 승인 bounds 기준은 공식 픽셀 검수 `1032,1825-1850,2379`이며, 7 PUB/위즈테라스와 상단 통로 exclusion probe 계약을 함께 유지한다.
 
 ## targeted patch closeout
+
+2026-05-28 KST 스카이박스 hit-area follow-up은 `SB1-SB35`의 compact hit polygon override를 제거하고, 표시되는 visual polygon 전체를 hover/click hit polygon으로 사용하도록 고정했다. 스카이박스 hover 우선순위는 `120`으로 유지하고 `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES`의 스카이박스 예외는 제거했다. 1루/중앙/3루 대표 off-center 브라우저 QA 좌표로 `suwon-sb4`, `suwon-sb22`, `suwon-sb35`를 추가했으며, targeted 검증은 `node --import tsx --test --test-concurrency=1 src/data/suwonSeatData.test.ts`, `npm run qa:stadium:suwon:release-lock`, `npm run qa:stadium:suwon:full` 통과 상태다.
 
 2026-05-17 KST 패치는 전체 좌표 재작성 없이 공식 이미지 픽셀 근거가 명확한 4개 블록만 열었다.
 
@@ -89,8 +109,9 @@
 이전 targeted patch 검증 결과. 2층 image-only follow-up 이후에는 사용자 요청에 따라 자동 QA 스크립트를 돌리지 않았다:
 
 - `node --import tsx --test src/data/suwonSeatData.test.ts`: 통과, `55/55`
-- `npm run stadium:suwon:visual-review`: 통과, `reviewedBlocks=176`, `unresolvedVisualHitMismatchBlocks=0`
-- `npm run stadium:suwon:precision-workset`: 통과, `candidateBlocks=0`, `lockedReviewBlocks=176`
+- `node --import tsx --test --test-concurrency=1 src/data/suwonOperatorVisitGuideSeatData.test.ts`: PASS, operator guide fallback contract `11/11` (2026-05-29 KST)
+- `node scripts/stadium-seatmap-ops.mjs suwon visual-review`: 통과, `reviewedBlocks=176`, `unresolvedVisualHitMismatchBlocks=0`
+- `node scripts/stadium-seatmap-ops.mjs suwon precision-workset`: 통과, `candidateBlocks=0`, `lockedReviewBlocks=176`
 - `npm run qa:stadium:suwon:release-lock`: 통과
 - `npm run qa:stadium:suwon:full`: 통과, 첫 포트 SVG 대기 timeout 후 `5196` 재시도 통과
 - `npm run test:stadium:seatmaps`: 수원 구간 `208-262` 통과
@@ -114,25 +135,18 @@
 visual review 산출물은 production geometry를 수정하지 않는 재생성 가능한 검수 자료다. 공식 이미지 위에 `imageGeometry.d`, label anchor, browser/alignment probe를 얹어 visual mismatch 후보를 사람이 확인할 수 있게 한다.
 현재 visual review 기준은 `reviewedBlocks=176`, `missingReviewBlocks=0`, `duplicateReviewBlocks=0`, `visualHitMismatchBlocks=0`, `approvedVisualHitSplitBlocks=0`, `unresolvedVisualHitMismatchBlocks=0`, `largeVisualAreaBlocks=0`, `approvedLargeVisualAreaBlocks=1`이다. 승인된 visual/hit split은 없다. 승인된 large area는 `suwon-lf-grass`만 허용한다.
 
-precision workset 산출물은 다음 targeted polygon adjustment 순서를 고정하는 검수 큐다. 현재 기준은 `worksetBlocks=176`, `candidateBlocks=0`, `lockedReviewBlocks=176`, `p0Blocks=0`, `p1Blocks=0`, `p2Blocks=0`, `p3Blocks=0`, `missingWorksetBlocks=0`, `duplicateWorksetBlocks=0`, `requiredP0MissingBlocks=0`, `requiredP1MissingBlocks=0`, `requiredP2MissingBlocks=0`, `requiredP3MissingBlocks=0`이다. P0 외야 특수석/잔디석 9개는 LOCKED 회귀 감시로 이동했고, P1 하이파이브존 2개와 `205-215` 11개는 LOCKED 회귀 감시로 이동했다. P2 중앙 하단/휠체어/지니존 11개도 LOCKED 회귀 감시로 이동했다. P3 1층/2층/3층 숫자 블록 sweep 76개도 LOCKED 회귀 감시로 이동했다. 남은 precision workset 후보는 없으며, 이후 작업은 사람이 발견한 mismatch만 targeted adjustment로 연다.
+precision workset 산출물은 다음 targeted polygon adjustment 순서를 고정하는 검수 큐다. 현재 기준은 `worksetBlocks=176`, `candidateBlocks=85`, `lockedReviewBlocks=91`, `p0Blocks=0`, `p1Blocks=12`, `p2Blocks=0`, `p3Blocks=73`, `missingWorksetBlocks=0`, `duplicateWorksetBlocks=0`, `requiredP0MissingBlocks=0`, `requiredP1MissingBlocks=0`, `requiredP2MissingBlocks=0`, `requiredP3MissingBlocks=0`이다. 후보는 release blocker가 아니라 dispatcher 내부 workset에서 재생성하는 후속 검토 큐다. 이후 작업은 사람이 발견한 mismatch만 targeted adjustment로 연다.
 
 ## 릴리즈 게이트
 
 ```bash
-npm run stadium:suwon:visual-review
-npm run stadium:suwon:visual-review
-npm run stadium:suwon:precision-workset
-npm run qa:stadium:suwon:visual-review
-npm run qa:stadium:suwon:release-lock
 npm run qa:stadium:suwon:release-lock
 node --import tsx --test src/data/suwonSeatData.test.ts
+node --import tsx --test --test-concurrency=1 src/data/suwonOperatorVisitGuideSeatData.test.ts
 npm run test:stadium:seatmaps
 npm run qa:stadium:suwon:mobile
 npm run qa:stadium:suwon:full
-npm run build
 env VITE_SITE_URL=https://example.com VITE_API_BASE_URL=https://api.example.com npm run build
-lsof -nP -iTCP:5195 -sTCP:LISTEN
-lsof -nP -iTCP:5196 -sTCP:LISTEN
 ```
 
 릴리즈 차단 조건:
@@ -140,8 +154,8 @@ lsof -nP -iTCP:5196 -sTCP:LISTEN
 - `draftApproximate`가 `0`이 아니다.
 - `pendingBlockIds`가 비어 있지 않다.
 - `SUWON_BLOCKS.length`가 `176`이 아니다.
-- `SUWON_BROWSER_QA_PROBES.length`가 `176`이 아니다.
-- `SUWON_HIT_TEST_PROBES.length`가 `732`가 아니다.
+- `SUWON_BROWSER_QA_PROBES.length`가 `179`가 아니다.
+- `SUWON_HIT_TEST_PROBES.length`가 `608`가 아니다.
 - 어떤 블록에서든 `imageGeometry.d !== hitGeometry.d`가 문서화된 예외 없이 발생한다.
 - visual review manifest의 `unresolvedVisualHitMismatchBlocks`가 `0`이 아니다.
 - `APPROVED_VISUAL_HIT_SPLIT`이 새로 붙거나 visual/hit split 사유가 `SUWON_HIT_GEOMETRY_EXCEPTION_NOTES`와 어긋난다.
@@ -154,6 +168,9 @@ lsof -nP -iTCP:5196 -sTCP:LISTEN
 - precision workset manifest의 `worksetBlocks`가 `176`이 아니거나 `missingWorksetBlocks`, `duplicateWorksetBlocks`, `requiredP0MissingBlocks`, `requiredP1MissingBlocks`, `requiredP2MissingBlocks`, `requiredP3MissingBlocks`가 `0`이 아니다.
 - 승인되지 않은 `LARGE_VISUAL_AREA`가 visual review manifest에 남는다.
 - `APPROVED_LARGE_VISUAL_AREA`가 `suwon-lf-grass` 외 블록에 붙는다.
+- `src/data/suwonOperatorVisitGuide.ts`가 운영자 제공 배열 외의 외부 URL, crawling, scraping, web search, 원본 파일 runtime parsing 계약을 포함한다.
+- 좌석 상세 패널의 직관 안내 영역이 운영자 제공 값 또는 `MANUAL_BASEBALL_DATA_REQUIRED`가 아닌 추정 출입구/매점/동선 값을 표시한다.
+- 운영자 자료가 없는 상태에서 `suwon-operator-entrance`, `suwon-operator-facilities`, `suwon-operator-notice`, `suwon-operator-updated-at` 중 하나라도 `MANUAL_BASEBALL_DATA_REQUIRED` fallback을 잃는다.
 
 수원 release 판단에서 분리된 사직 후속 작업은 2026-05-17 KST에 해결됐다:
 
@@ -169,6 +186,8 @@ lsof -nP -iTCP:5196 -sTCP:LISTEN
 - 사람이 명확한 시각 불일치나 클릭 충돌을 발견하면 해당 block 또는 인접 경계만 targeted polygon adjustment로 처리한다.
 - 좌표 변경이 발생하면 `releaseFixtureFingerprint`를 의도적으로 갱신하고 정적/브라우저 QA를 모두 다시 실행한다.
 - QA runner flake는 좌표를 완화하지 않고 hover 재시도/렌더 안정화 계약으로만 처리한다.
+- 권장 출입구, 가까운 매점/편의시설, 날짜별 운영 동선 공지는 운영자 제공 정적 데이터만 사용한다.
+- 운영자 자료가 없거나 불명확한 항목은 좌석 위치/지도 이미지로 추정하지 않고 `MANUAL_BASEBALL_DATA_REQUIRED` 상태를 유지한다.
 - release gate 결과는 `reports/stadium/suwon-seatmap-release-gate.json`과 `reports/stadium/suwon-seatmap-release-gate.md`에 기록한다.
 - visual review 결과는 `reports/stadium/suwon-seatmap-visual-review.json`과 `reports/stadium/suwon-seatmap-visual-review.md`에 기록한다.
 - precision workset 결과는 `reports/stadium/suwon-seatmap-precision-workset.json`과 `reports/stadium/suwon-seatmap-precision-workset.md`에 기록한다.

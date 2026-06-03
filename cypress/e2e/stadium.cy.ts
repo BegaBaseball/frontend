@@ -4,7 +4,7 @@ describe('Stadium Guide Quality Flow', () => {
   const stadiums = [
     {
       stadiumId: 'JAMSIL',
-      stadiumName: '잠실야구장',
+      stadiumName: '서울 · 잠실야구장',
       team: 'LG/두산',
       lat: 37.5122,
       lng: 127.0719,
@@ -13,7 +13,7 @@ describe('Stadium Guide Quality Flow', () => {
     },
     {
       stadiumId: 'GOCHEOK',
-      stadiumName: '고척 스카이돔',
+      stadiumName: '서울 · 고척스카이돔',
       team: '키움',
       lat: 37.4981,
       lng: 126.8671,
@@ -22,7 +22,7 @@ describe('Stadium Guide Quality Flow', () => {
     },
     {
       stadiumId: 'DAEGU',
-      stadiumName: '대구 삼성 라이온즈파크',
+      stadiumName: '대구 · 삼성 라이온즈파크',
       team: '삼성',
       lat: 35.8411,
       lng: 128.6819,
@@ -305,7 +305,7 @@ describe('Stadium Guide Quality Flow', () => {
     cy.contains('button', '재시도').click();
     cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');
-    cy.get('#stadium-guide-select').should('contain', '잠실야구장');
+    cy.get('#stadium-guide-select').should('contain', '서울 · 잠실야구장');
 
     let placeCallCount = 0;
     cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=delivery', (req) => {
@@ -405,6 +405,7 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.get('#stadium-guide-select').select('DAEGU');
     cy.wait('@getDaeguFoodPlaces');
+    cy.get('[data-testid="daegu-section-finder"]').filter(':visible').should('exist');
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
     cy.contains('button', '다이어리에서 시야 사진 공유하기').click();
@@ -427,6 +428,7 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.get('#stadium-guide-select').select('DAEGU');
     cy.wait('@getDaeguFoodPlaces');
+    cy.get('[data-testid="daegu-section-finder"]').filter(':visible').should('exist');
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
     cy.contains('button', '다이어리에서 시야 사진 공유하기').click();

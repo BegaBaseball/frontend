@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '../ui/table';
 import type { AdminSeatView, AdminSeatViewFilters } from '../../types/admin';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { AdminEyeIcon } from './AdminDetailIcons';
 import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
@@ -147,7 +148,7 @@ export function AdminSeatViewsPanel({
                     />
                   </TableCell>
                   <TableCell className="text-[14px] text-slate-300">
-                    <div>{seatView.stadium}</div>
+                    <div>{formatStadiumDisplayName(seatView.stadium)}</div>
                     <div className="text-slate-500">
                       {[seatView.section, seatView.block, seatView.seatRow, seatView.seatNumber].filter(Boolean).join(' / ') || '-'}
                     </div>

@@ -111,7 +111,7 @@ describe('MateDetail QR refresh', () => {
 
     visitWithAuth('/mate/777');
     cy.wait('@getPartyById');
-    cy.contains('QR 자동 갱신 검증용 파티').should('be.visible');
+    cy.contains('CHECK-IN QR').should('be.visible');
     cy.contains('button', '체크인 QR 보기').click();
     cy.wait('@createCheckinQrSession');
 

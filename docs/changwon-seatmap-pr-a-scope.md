@@ -43,9 +43,12 @@
 - `qa:stadium:mobile`, `qa:stadium:mobile:smoke`를 `scripts/run-stadium-isolated-qa.mjs` 기반으로 전환
 - `qa:stadium:changwon:mobile`
 - `stadium:changwon:trace-manifest`
-- `stadium:changwon:ux-readiness`
-- `qa:stadium:changwon:trace-review`
 - `qa:stadium:mobile:attached`, `qa:stadium:mobile:smoke:attached`의 `scripts/stadium-ux-audit.mjs` 경로 전환
+
+dispatcher 내부 task로만 유지:
+
+- `node scripts/stadium-seatmap-ops.mjs changwon ux-readiness`
+- `node scripts/stadium-seatmap-ops.mjs changwon trace-review`
 
 제외할 변경:
 
@@ -124,9 +127,9 @@ PR A 범위만 분리한 뒤 아래 순서로 다시 확인한다.
 node --check scripts/stadium-ux-audit.mjs
 node --check scripts/run-stadium-isolated-qa.mjs
 npm run stadium:changwon:trace-manifest
-npm run stadium:changwon:ux-readiness
+node scripts/stadium-seatmap-ops.mjs changwon ux-readiness
 node --import tsx --test src/data/changwonSeatData.test.ts src/components/StadiumGuideRuntimeSeatMaps.test.ts
-npm run qa:stadium:changwon:trace-review
+node scripts/stadium-seatmap-ops.mjs changwon trace-review
 npm run test:stadium:seatmaps
 npm run build
 ```

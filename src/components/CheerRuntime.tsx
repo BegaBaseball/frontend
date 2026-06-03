@@ -25,6 +25,7 @@ import {
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import CheerMobileBottomNav from './CheerMobileBottomNav';
 
 const LazyCheerComposerRuntime = lazy(() => import('./CheerComposerRuntime'));
@@ -231,7 +232,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         if (teamMetadata.description) return teamMetadata.description;
 
         const metadataFields = [
-            teamMetadata.homeStadium ? `홈구장: ${teamMetadata.homeStadium}` : '',
+            teamMetadata.homeStadium ? `홈구장: ${formatStadiumDisplayName(teamMetadata.homeStadium)}` : '',
             teamMetadata.foundedYear ? `창단: ${teamMetadata.foundedYear}` : '',
             teamMetadata.owner ? `구단주: ${teamMetadata.owner}` : '',
             teamMetadata.homepage ? `홈페이지: ${teamMetadata.homepage}` : '',

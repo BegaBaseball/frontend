@@ -140,7 +140,9 @@ const precisionUnresolvedRows = precisionAudit?.unresolvedWorkset ?? [];
 const expectedReviewOnlySeats = Array.isArray(precisionUnresolvedRows)
   ? precisionUnresolvedRows.filter((row) => {
     const block = blockById.get(row.id);
-    return block?.sectionKind === 'SEAT_SECTION' && !isDaeguOfficialUnconfirmedSeat(block);
+    return block?.sectionKind === 'SEAT_SECTION'
+      && isDaeguReviewOnlySeat(block)
+      && !isDaeguOfficialUnconfirmedSeat(block);
   }).length
   : null;
 
@@ -153,9 +155,9 @@ const sourceContracts = {
   markerLayerUsesNonSeatRenderer: svgSource.includes('renderMarkerOnlyBlocks(renderMarkerBlocks)'),
   markerLayerPointerDisabled: svgSource.includes('data-layer="marker-only"') && svgSource.includes('pointerEvents="none"'),
   sectionFinderUsesSelectableBlocks: pageSource.includes('sections: selectableDaeguBlocks')
-    && pageSource.includes('return selectableDaeguBlocks.filter'),
-  hiddenSelectionGuard: pageSource.includes('!isDaeguNormalSelectableSeat(selected)')
-    && pageSource.includes('!selectableDaeguBlockIds.has(hover)'),
+    && pageSource.includes('selectableDaeguBlocks.filter'),
+  hiddenSelectionGuard: pageSource.includes('selected && !selectableDaeguBlockIds.has(selected.id)')
+    && pageSource.includes('hover && !selectableDaeguBlockIds.has(hover)'),
 };
 
 const rows = reviewOnlySeats.map((block) => {
@@ -301,7 +303,7 @@ const report = {
     officialUnconfirmedSeats: officialUnconfirmedSeats.length,
     classifiedReleaseRows: classifiedReleaseRows.length,
     expectedReviewOnlySeats,
-    expectedReviewOnlySource: 'reports/stadium/daegu-seatmap-precision-audit.json unresolvedWorkset filtered to sectionKind=SEAT_SECTION',
+    expectedReviewOnlySource: 'reports/stadium/daegu-seatmap-precision-audit.json unresolvedWorkset filtered to current review-only seat predicate',
     hiddenFromNormalUiRows: hiddenRows.length,
     sourceContracts,
     failureFlagCounts: flagCounts(hiddenRows),

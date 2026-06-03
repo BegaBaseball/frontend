@@ -5,8 +5,10 @@ import type {
   SeatMapCategoryMeta,
   SeatMapCommonCopy,
   SeatMapSectionAdapter,
+  SeatMapSearchAction,
   SeatMapThemeMode,
 } from './seatMapCommonTypes';
+import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
 type Snap = 'peek' | 'half' | 'full';
 
@@ -24,6 +26,7 @@ interface SeatMapBottomSheetProps<TSection> {
   preferFull?: boolean;
   isUploadDisabled?: (section: TSection) => boolean;
   getUploadLabel?: (section: TSection) => ReactNode;
+  searchAction?: SeatMapSearchAction;
 }
 
 export function SeatMapBottomSheet<TSection>({
@@ -40,9 +43,11 @@ export function SeatMapBottomSheet<TSection>({
   preferFull = false,
   isUploadDisabled,
   getUploadLabel,
+  searchAction,
 }: SeatMapBottomSheetProps<TSection>) {
   const [snap, setSnap] = useState<Snap>('peek');
   const startY = useRef(0);
+  const isDark = mode === 'dark';
 
   useEffect(() => {
     setSnap(section ? (preferFull ? 'full' : 'half') : 'peek');
@@ -63,20 +68,30 @@ export function SeatMapBottomSheet<TSection>({
     return (
       <div
         data-testid={testId}
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2.5 border-t border-slate-200 bg-white px-5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:border-slate-700 dark:bg-slate-900"
-        style={{ height: 80 }}
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2.5 border-t border-slate-200 bg-white px-5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+        style={{
+          height: 80,
+          backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
+          borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined,
+        }}
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-400 dark:bg-slate-800">
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-400"
+          style={{
+            backgroundColor: isDark ? 'rgba(126, 211, 179, 0.08)' : undefined,
+            color: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : undefined,
+          }}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
         </div>
         <div>
-          <div className="text-sm font-bold text-slate-800 dark:text-slate-100">
+          <div className="text-sm font-bold text-slate-800 dark:text-slate-100" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
             {copy?.emptyTitle ?? '구역을 탭하세요'}
           </div>
-          <div className="text-[11px] text-slate-500">블록 정보와 실제 시야 사진을 확인하세요</div>
+          <div className="text-[11px] text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>블록 정보와 실제 시야 사진을 확인하세요</div>
         </div>
       </div>
     );
@@ -95,12 +110,15 @@ export function SeatMapBottomSheet<TSection>({
   return (
     <div
       data-testid={testId}
-      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col overflow-hidden bg-white dark:bg-slate-900"
+      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col overflow-hidden bg-white"
       style={{
         height: heights[snap],
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        boxShadow: '0 -8px 30px rgba(0,0,0,0.18)',
+        backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
+        border: isDark ? `1px solid ${STADIUM_SEATMAP_DARK_COLORS.borderStrong}` : undefined,
+        borderBottom: isDark ? '0' : undefined,
+        boxShadow: isDark ? '0 -18px 42px rgba(0,0,0,0.46)' : '0 -8px 30px rgba(0,0,0,0.18)',
         transition: 'height 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
       }}
     >
@@ -110,27 +128,46 @@ export function SeatMapBottomSheet<TSection>({
         onClick={() => setSnap((value) => value === 'half' ? 'full' : value === 'full' ? 'peek' : 'half')}
         className="flex shrink-0 cursor-pointer flex-col items-center pb-1.5 pt-2.5"
       >
-        <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+        <div
+          className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600"
+          style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined }}
+        />
       </div>
 
       <div className="flex shrink-0 items-center gap-3 px-4 pb-3">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-black text-white"
-          style={{ background: `linear-gradient(135deg, ${accent}, ${accent}88)` }}
+          style={{ backgroundColor: accent }}
         >
           {adapter.getOfficialBlocks(section)[0] ?? adapter.getBlock(section)}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-black text-slate-800 dark:text-white">{adapter.getName(section)}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <div className="truncate text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getName(section)}</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             {category.label} · {adapter.getSideLabel(section)} · {adapter.getFanRoleLabel(section)}
           </div>
         </div>
+        {searchAction && (
+          <button
+            type="button"
+            data-testid={searchAction.testId}
+            aria-label={searchAction.ariaLabel ?? '구역 검색'}
+            onClick={searchAction.onClick}
+            className="shrink-0 cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-opacity hover:opacity-85"
+            style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
+          >
+            {searchAction.label ?? '구역 검색'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
           aria-label="닫기"
-          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-slate-100 text-slate-400 dark:bg-slate-800"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-slate-100 text-slate-400"
+          style={{
+            backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined,
+            color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
+          }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M18 6 6 18M6 6l12 12" />
@@ -146,7 +183,13 @@ export function SeatMapBottomSheet<TSection>({
           <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
             {category.label} · {adapter.getLevel(section)}
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span
+            className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800"
+            style={{
+              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : undefined,
+              color: isDark ? '#fcd34d' : undefined,
+            }}
+          >
             {adapter.getSourceLabel(section)}
           </span>
         </div>
@@ -154,21 +197,21 @@ export function SeatMapBottomSheet<TSection>({
         {extraMeta?.(section, accent)}
 
         <div className="mb-4 grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-            <div className="text-[9px] font-bold tracking-widest text-slate-400">{blockLabel}</div>
-            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{adapter.getBlock(section)}</div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
+            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{blockLabel}</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getBlock(section)}</div>
           </div>
-          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-            <div className="text-[9px] font-bold tracking-widest text-slate-400">위치</div>
-            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{adapter.getSideLabel(section)}</div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
+            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>위치</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getSideLabel(section)}</div>
           </div>
-          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-            <div className="text-[9px] font-bold tracking-widest text-slate-400">팬 구분</div>
-            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{adapter.getFanRoleLabel(section)}</div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
+            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>팬 구분</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getFanRoleLabel(section)}</div>
           </div>
-          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-            <div className="text-[9px] font-bold tracking-widest text-slate-400">시야 거리</div>
-            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white">{adapter.getDistance?.(section) ?? '-'}</div>
+          <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
+            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>시야 거리</div>
+            <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getDistance?.(section) ?? '-'}</div>
           </div>
         </div>
 
@@ -187,7 +230,7 @@ export function SeatMapBottomSheet<TSection>({
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             {adapter.getSourceNote(section)}
           </p>
           {accessibilityNote && (
@@ -211,8 +254,14 @@ export function SeatMapBottomSheet<TSection>({
       </div>
 
       <div
-        className="absolute bottom-0 left-0 right-0 border-t border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-        style={{ opacity: snap === 'peek' ? 0 : 1, transition: 'opacity 0.2s', pointerEvents: snap === 'peek' ? 'none' : 'auto' }}
+        className="shrink-0 border-t border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+        style={{
+          opacity: snap === 'peek' ? 0 : 1,
+          transition: 'opacity 0.2s',
+          pointerEvents: snap === 'peek' ? 'none' : 'auto',
+          backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
+          borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.border : undefined,
+        }}
       >
         <button
           type="button"

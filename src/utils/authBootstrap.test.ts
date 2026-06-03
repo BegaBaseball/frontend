@@ -257,6 +257,17 @@ test('인증 페이지는 persisted auth hint가 없으면 skip을 유지한다'
   );
 });
 
+test('OAuth 콜백 페이지는 자체 state 소비 전역 부트스트랩을 실행하지 않는다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/oauth/callback', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    'skip',
+  );
+});
+
 test('인증 페이지는 persisted auth hint가 있으면 즉시 세션 확인을 시작한다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/signup', {

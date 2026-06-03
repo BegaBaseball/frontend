@@ -72,6 +72,11 @@ test('HTML 태그는 skipHtml로 인해 렌더되지 않는다', () => {
     assert.doesNotMatch(html, /<b>/);
 });
 
+test('javascript: 링크는 href로 렌더되지 않는다', () => {
+    const html = render('[나쁜 링크](javascript:alert)');
+    assert.doesNotMatch(html, /href="javascript:/i);
+});
+
 test('GFM 표는 스크롤 가능한 표 컨테이너로 렌더된다', () => {
     const html = render([
         '| 지표 | 수치 |',

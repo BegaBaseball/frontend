@@ -15,6 +15,7 @@ import {
   formatHostAverageRating,
   getHostAverageRating,
 } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { cn } from '../lib/utils';
 
 type MatePartyCardVariant = 'compact' | 'rich';
@@ -203,6 +204,7 @@ export default function MatePartyCard({
   const statusConfig = getStatusConfig(party);
   const dDayLabel = getGameDayLabel(party.gameDate);
   const priceLabel = formatTicketAmount(party);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   // Zero-pad D-day number: "D-3" → "D-03", keep "D-DAY" as-is
   const formattedDDay = dDayLabel && dDayLabel !== 'D-Day' && /^D[+-]\d+$/.test(dDayLabel)
@@ -260,7 +262,7 @@ export default function MatePartyCard({
     return (
       <button
         type="button"
-        aria-label={`${zoneName} ${party.stadium} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
+        aria-label={`${zoneName} ${stadiumDisplayName} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
         className={cn(
           'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[18px] border border-gray-200/80 bg-white text-left transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:focus-visible:ring-offset-[#0a0a0a]',
           className,
@@ -292,7 +294,7 @@ export default function MatePartyCard({
             <span className="text-[12px] font-black text-slate-400 dark:text-slate-500">VS</span>
             <TeamLogo teamId={party.awayTeam} size={30} className="shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">{party.stadium}</p>
+              <p className="truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">{stadiumDisplayName}</p>
               <p className="truncate text-[12px] font-semibold text-gray-500 dark:text-zinc-400">{zoneName}</p>
             </div>
           </div>
@@ -328,7 +330,7 @@ export default function MatePartyCard({
   return (
     <button
       type="button"
-      aria-label={`${zoneName} ${party.stadium} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
+      aria-label={`${zoneName} ${stadiumDisplayName} ${formatGameDate(party.gameDate)} ${statusConfig.accessibleLabel} 파티 상세 보기`}
       className={cn(
         'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[22px] border border-gray-200/80 bg-white text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:border-white/15 dark:bg-[#16181c] dark:hover:border-white/25 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] dark:focus-visible:ring-offset-[#0a0a0a]',
         className,
@@ -343,7 +345,7 @@ export default function MatePartyCard({
               {getWeatherIcon(party.gameDate)}
             </span>
             <span className="inline-flex max-w-full min-w-0 rounded-md border border-gray-200/80 bg-primary/5 px-2.5 py-1 text-[15px] font-semibold text-gray-700 dark:border-white/10 dark:text-zinc-300">
-              <span className="truncate">{party.stadium}</span>
+              <span className="truncate">{stadiumDisplayName}</span>
             </span>
           </div>
           <div className="shrink-0">{statusBadge}</div>

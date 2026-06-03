@@ -11,7 +11,7 @@
 ## 우선순위
 
 1. 운영자 검수 패키지 확정
-   - 입력: `reports/stadium/daegu-seatmap-trace-review.csv`, evidence crop, `?daeguDebug=1` 비교 결과.
+   - 입력: `npm run stadium:daegu:operator-handoff`, `npm run stadium:daegu:handoff-evidence`, `npm run stadium:daegu:canonical-retrace-batch -- <batchKey>` 산출물. 삭제된 historical 단계별 스크립트는 Git history로만 복구한다.
    - 출력: 블록별 승인/반려, 보정 path, 검수자, 검수일.
    - 완료 기준: 승인된 블록만 `imageGeometry.d`, `sourceConfidence`, `traceStatus`, `reviewNote` 갱신.
 
@@ -59,7 +59,8 @@
 ## 권장 검증
 
 - `npm run test:stadium:seatmaps`
-- `npm run qa:stadium:daegu:full`
 - `npm run qa:stadium:daegu:mobile`
+- `npm run qa:stadium:daegu:full`
+- `npm run qa:stadium:daegu:release-lock`
 - `npm run cy:run -- --spec cypress/e2e/stadium.cy.ts`
 - `npm run build`

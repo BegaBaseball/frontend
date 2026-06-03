@@ -811,7 +811,7 @@ const runTraceManifest = async () => {
     '2. `/stadium?sajikDebug=1`에서 P0 -> P1 -> P2 순서로 공식 이미지와 overlay를 비교합니다.',
     '3. 모든 블럭은 `PATH_TRACED_FROM_OFFICIAL_IMAGE`, `OFFICIAL_PNG_MANUAL_POLYGON`, `manual-polygon-v2`, `manualReviewed=true` 상태여야 하며, 공식 PNG 색상 블럭이 확인되는 블럭은 `PIXEL_ALIGNED` 상태여야 합니다.',
     '4. 공식 PNG에서 색상 블럭이 보이지 않는 운영 호환 블럭은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 보존하고 SVG hit-area에서는 렌더링하지 않습니다.',
-    '5. 좌표 변경 후 `npm run stadium:sajik:evidence`, `npm run test:stadium:seatmaps`, `npm run qa:stadium:sajik:trace-review`를 통과시킵니다.',
+    '5. 좌표 변경 후 public gate인 `npm run stadium:sajik:trace-manifest`, `npm run test:stadium:seatmaps`, `npm run qa:stadium:sajik:release-lock`를 통과시킵니다.',
     '',
   ].join('\n');
 

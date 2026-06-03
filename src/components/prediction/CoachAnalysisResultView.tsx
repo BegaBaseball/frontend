@@ -1,86 +1,193 @@
-import { type ComponentType, type SVGProps, useEffect, useState } from 'react';
+import { type ComponentType, type SVGProps, useCallback, useEffect, useState } from 'react';
 import {
     CoachAnalysisData,
+    CoachDataQuality,
+    CoachGenerationMode,
     CoachMetric,
-    CoachRiskItem,
     DashboardStat,
 } from '../../api/coach';
-import CoachStatCard from './CoachStatCard';
-import CoachMetricCard from './CoachMetricCard';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import CoachMarkdown from '../common/CoachMarkdown';
+import TeamLogo from '../TeamLogo';
+import { evidenceSourceLabel } from './coachEvidenceLabels';
 import {
     PredictionBarChartIcon,
     PredictionCheckCircleIcon,
     PredictionCrosshairIcon,
     PredictionEyeIcon,
     PredictionHelpCircleIcon,
-    PredictionRadarIcon,
     PredictionTrophyIcon,
     PredictionWarningTriangleIcon,
 } from './PredictionShellIcons';
+import CoachVerdictMemo from './CoachVerdictMemo';
+import RiskTimeline from './RiskTimeline';
+import RiskVersus from './RiskVersus';
+import { shortTeamName, useIsDark } from './coachRiskHelpers';
+import { getCoachTokens, IMPACT } from './coachStyleTokens';
 
 interface CoachAnalysisResultViewProps {
     analysisData: CoachAnalysisData | null;
+    homeTeamId?: string;
+    awayTeamId?: string;
+    winProbabilityHome?: number | null;
+    dataQualityLabel?: string;
+    dataQualityMessage?: string;
+    supportedFactCount?: number;
+    usedEvidence?: string[];
+    dataQuality?: CoachDataQuality;
+    generationMode?: CoachGenerationMode;
 }
 
-interface InsightSectionProps {
+/** data_quality 별 톤(칩/사이드바 행). 신규 하드코딩 hex 없이 Tailwind arbitrary class 재사용. */
+const DATA_QUALITY_TONE: Record<CoachDataQuality, { chip: string; row: string }> = {
+    grounded: {
+        chip: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200',
+        row: 'text-emerald-700 dark:text-emerald-300',
+    },
+    partial: {
+        chip: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
+        row: 'text-amber-700 dark:text-amber-300',
+    },
+    insufficient: {
+        chip: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200',
+        row: 'text-rose-700 dark:text-rose-300',
+    },
+};
+
+const NEUTRAL_TONE = {
+    chip: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300',
+    row: 'text-slate-700 dark:text-slate-200',
+};
+
+/** 가짜 합산 카운트 대신 실데이터 근거 수: 검증 fact 수 우선, 없으면 사용한 근거 소스 수. */
+function resolveEvidenceCount(supportedFactCount?: number, usedEvidence?: string[]): number {
+    if (typeof supportedFactCount === 'number' && supportedFactCount > 0) return supportedFactCount;
+    return usedEvidence?.length ?? 0;
+}
+
+interface SectionHeadingProps {
     icon: ComponentType<SVGProps<SVGSVGElement>>;
     title: string;
-    items: string[];
-    tone?: 'default' | 'warning';
+    subtitle?: string;
+    tone?: 'default' | 'risk';
 }
 
-function useIsDark(): boolean {
-    const [isDark, setIsDark] = useState<boolean>(() => {
-        if (typeof document === 'undefined') return false;
-        return document.documentElement.classList.contains('dark');
-    });
-    useEffect(() => {
-        const obs = new MutationObserver(() => {
-            setIsDark(document.documentElement.classList.contains('dark'));
-        });
-        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        return () => obs.disconnect();
-    }, []);
-    return isDark;
+interface SignalItem {
+    label: string;
+    value: string;
+    detail: string;
+    tone: 'danger' | 'warning' | 'success' | 'neutral';
 }
 
-function PenIcon(props: SVGProps<SVGSVGElement>) {
+function toPercent(value: number): number {
+    const pct = value <= 1 ? value * 100 : value;
+    return Math.max(0, Math.min(100, Math.round(pct)));
+}
+
+function metricTone(riskLevel: CoachMetric['risk_level']): SignalItem['tone'] {
+    if (riskLevel === 0) return 'danger';
+    if (riskLevel === 1) return 'warning';
+    return 'success';
+}
+
+function statTone(stat: DashboardStat): SignalItem['tone'] {
+    if (stat.is_critical) return 'danger';
+    if (stat.trend === 'up') return 'success';
+    if (stat.trend === 'down') return 'warning';
+    return 'neutral';
+}
+
+function buildSignals(analysisData: CoachAnalysisData): SignalItem[] {
+    const stats = analysisData.dashboard.stats.map((stat) => ({
+        label: stat.label,
+        value: stat.value,
+        detail: stat.status,
+        tone: statTone(stat),
+    }));
+
+    const metrics = analysisData.metrics.map((metric) => ({
+        label: metric.category || metric.name,
+        value: metric.value || metric.name,
+        detail: metric.description,
+        tone: metricTone(metric.risk_level),
+    }));
+
+    return [...stats, ...metrics].filter((item) => item.label || item.value || item.detail);
+}
+
+function SectionHeading({
+    icon: Icon,
+    title,
+    subtitle,
+    tone = 'default',
+}: SectionHeadingProps) {
+    const t = getCoachTokens(useIsDark());
+    const chipStyle = tone === 'risk'
+        ? { background: t.c1SecChipRiskBg, color: t.c1SecChipRiskFg }
+        : { background: t.c1SecChipDefBg, color: t.c1SecChipDefFg };
     return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-            <path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-        </svg>
+        <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={chipStyle}>
+                <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+                <h4 className="text-[15.5px] font-extrabold leading-tight" style={{ color: t.c1TextHeading }}>
+                    {title}
+                </h4>
+                {subtitle && (
+                    <p className="mt-0.5 text-[12.5px] font-bold leading-snug" style={{ color: t.c1TextSub }}>
+                        {subtitle}
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
 
-function InsightSection({ icon: Icon, title, items, tone = 'default' }: InsightSectionProps) {
-    if (items.length === 0) {
-        return null;
+type InsightTone = 'default' | 'warning' | 'critical' | 'positive';
+
+interface InsightCardProps {
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    title: string;
+    items: string[];
+    tone?: InsightTone;
+}
+
+// 컨테이너 border/bg 와 default 아이콘만 토큰화. icon/item 색은 named Tailwind 클래스(이미 디자인 토큰) 유지.
+const INSIGHT_TONE_CLS: Record<InsightTone, { icon: string; item: string }> = {
+    critical: { icon: 'text-rose-600 dark:text-rose-300', item: 'text-rose-900 dark:text-rose-100' },
+    warning: { icon: 'text-amber-600 dark:text-amber-300', item: 'text-amber-900 dark:text-amber-100' },
+    positive: { icon: 'text-emerald-600 dark:text-emerald-300', item: 'text-emerald-900/90 dark:text-emerald-100/90' },
+    default: { icon: '', item: 'text-slate-700 dark:text-slate-300' },
+};
+
+function insightContainerStyle(tone: InsightTone, t: ReturnType<typeof getCoachTokens>) {
+    switch (tone) {
+        case 'critical': return { borderColor: t.c1InsCritBorder, background: t.c1InsCritBg };
+        case 'warning': return { borderColor: t.c1InsWarnBorder, background: t.c1InsWarnBg };
+        case 'positive': return { borderColor: t.c1InsPosBorder, background: t.c1InsPosBg };
+        default: return { borderColor: t.c1InsDefBorder, background: t.c1InsDefBg };
     }
+}
 
-    const toneClassName = tone === 'warning'
-        ? 'border-amber-200 bg-amber-50/80 dark:border-amber-900/50 dark:bg-amber-950/20'
-        : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800';
-    const iconClassName = tone === 'warning'
-        ? 'text-amber-600 dark:text-amber-300'
-        : 'text-gray-600 dark:text-gray-300';
-    const textClassName = tone === 'warning'
-        ? 'text-amber-900 dark:text-amber-100'
-        : 'text-gray-700 dark:text-gray-300';
-
+function InsightCard({ icon: Icon, title, items, tone = 'default' }: InsightCardProps) {
+    const t = getCoachTokens(useIsDark());
+    if (items.length === 0) return null;
+    const cls = INSIGHT_TONE_CLS[tone];
+    const iconStyle = tone === 'default' ? { color: t.c1InsDefIcon } : undefined;
     return (
-        <div className={`space-y-3 rounded-2xl border p-5 ${toneClassName}`}>
+        <div className="space-y-2.5 rounded-[18px] border px-[18px] py-4" style={insightContainerStyle(tone, t)}>
             <div className="flex items-center gap-2">
-                <Icon aria-hidden="true" className={`h-4 w-4 ${iconClassName}`} />
-                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h4>
+                <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${cls.icon}`} style={iconStyle} />
+                <h5 className="text-[13.5px] font-extrabold leading-tight" style={{ color: t.c1TextHeading }}>
+                    {title}
+                </h5>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
                 {items.map((item, idx) => (
-                    <li key={`${title}-${idx}`} className={`flex gap-2 text-[16px] leading-relaxed ${textClassName}`}>
-                        <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
-                        <span>
-                            {item}
-                        </span>
+                    <li key={`${title}-${idx}`} className={`flex gap-2 text-[13.5px] font-semibold leading-[1.55] ${cls.item}`}>
+                        <span aria-hidden="true" className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-current opacity-50" />
+                        <span className="min-w-0">{item}</span>
                     </li>
                 ))}
             </ul>
@@ -88,531 +195,494 @@ function InsightSection({ icon: Icon, title, items, tone = 'default' }: InsightS
     );
 }
 
-/* ── A · 코치 메모 노트 — notebook/memo style verdict ── */
-function CoachVerdictMemo({ verdict, isReviewMode, isFallback = false }: { verdict: string; isReviewMode: boolean; isFallback?: boolean }) {
-    const isDark = useIsDark();
+interface SectionNavItem {
+    id: string;
+    label: string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    count: number | null;
+}
 
-    const paperBg = isDark ? '#1a1810' : '#fffdf5';
-    const paperBorder = isDark ? '#3a3420' : '#e9e2c8';
-    const ruleColor = isDark ? '#2a2416' : '#f0e8c8';
-    const accentColor = isDark ? '#c4a055' : '#7c5f1a';
-    const textColor = isDark ? '#ede8d8' : '#1f1812';
-    const dashedBorder = isDark ? '#4a3c1a' : '#d6c884';
+/** 본문 스크롤 조상을 root 로 삼아 현재 노출 섹션을 추적 (다이얼로그 셸의 overflow-y-auto). */
+function useActiveSection(ids: string[]): string {
+    const key = ids.join('|');
+    const [active, setActive] = useState<string>(ids[0] ?? '');
+    useEffect(() => {
+        if (typeof document === 'undefined' || ids.length === 0) return;
+        const els = ids
+            .map((id) => document.getElementById(id))
+            .filter((el): el is HTMLElement => Boolean(el));
+        if (els.length === 0) return;
+        let root: HTMLElement | null = els[0].parentElement;
+        while (root) {
+            const oy = getComputedStyle(root).overflowY;
+            if (oy === 'auto' || oy === 'scroll') break;
+            root = root.parentElement;
+        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const visible = entries
+                    .filter((e) => e.isIntersecting)
+                    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+                if (visible[0]) setActive(visible[0].target.id);
+            },
+            { root, rootMargin: '0px 0px -55% 0px', threshold: 0 },
+        );
+        els.forEach((el) => observer.observe(el));
+        return () => observer.disconnect();
+    }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+    return active;
+}
+
+function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function C1SummaryRail({
+    analysisData,
+    homeTeamId,
+    awayTeamId,
+    winProbabilityHome,
+    isReviewMode,
+    dataQualityLabel,
+    dataQualityMessage,
+    dataQuality,
+    generationMode,
+    supportedFactCount,
+    usedEvidence,
+    sections,
+    activeId,
+    onJump,
+}: {
+    analysisData: CoachAnalysisData;
+    homeTeamId?: string;
+    awayTeamId?: string;
+    winProbabilityHome: number | null;
+    isReviewMode: boolean;
+    dataQualityLabel?: string;
+    dataQualityMessage?: string;
+    dataQuality?: CoachDataQuality;
+    generationMode?: CoachGenerationMode;
+    supportedFactCount?: number;
+    usedEvidence?: string[];
+    sections: SectionNavItem[];
+    activeId: string;
+    onJump: (id: string) => void;
+}) {
+    const t = getCoachTokens(useIsDark());
+    const hasWinProbability = typeof winProbabilityHome === 'number' && Number.isFinite(winProbabilityHome);
+    const homePct = hasWinProbability ? toPercent(winProbabilityHome as number) : null;
+    const awayPct = homePct === null ? null : 100 - homePct;
+    const homeName = shortTeamName(homeTeamId) || '홈팀';
+    const awayName = shortTeamName(awayTeamId) || '원정팀';
+    const favoredIsHome = homePct !== null ? homePct >= (awayPct ?? 0) : analysisData.dashboard.sentiment !== 'negative';
+    const favoredName = favoredIsHome ? homeName : awayName;
+    const diff = homePct !== null && awayPct !== null ? Math.abs(homePct - awayPct) : null;
+    // 실데이터 근거 수(가짜 합산 제거): 검증 fact 수 우선, 없으면 근거 소스 수.
+    const evidenceCount = resolveEvidenceCount(supportedFactCount, usedEvidence);
+    const qualityRowTone = (dataQuality && DATA_QUALITY_TONE[dataQuality]?.row) || NEUTRAL_TONE.row;
+    const evidenceSources = (usedEvidence ?? []).filter((code) => typeof code === 'string' && code.length > 0);
+
+    // A3: 승률 큰 % + split 바 제거. versus hero 가 팀별 %를 소유하므로 사이드바는 한 줄 요약만.
+    const favoredLine = diff === null
+        ? `${favoredName} 흐름 분석`
+        : diff <= 8
+            ? '박빙 매치업'
+            : `${favoredName} 우세 · ${diff}%p`;
 
     return (
-        <div
-            role="note"
-            aria-label={isReviewMode ? '코치 리뷰 노트' : 'AI 코치 분석 메모'}
-            style={{
-                background: paperBg,
-                border: `1px solid ${paperBorder}`,
-                borderRadius: 4,
-                boxShadow: isDark
-                    ? `0 1px 0 ${paperBorder}, 0 8px 24px -16px rgba(0,0,0,0.5)`
-                    : `0 1px 0 ${paperBorder}, 0 8px 24px -16px rgba(120,95,30,0.25)`,
-                padding: '20px 24px 22px',
-                position: 'relative',
-                backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent 23px, ${ruleColor} 23px, ${ruleColor} 24px)`,
-                backgroundPosition: '0 36px',
-            }}
+        <aside
+            className="r3-side min-w-0 border-b px-[22px] py-6 sm:sticky sm:top-0 sm:self-start sm:border-b-0 sm:border-r"
+            style={{ borderColor: t.c1RailBorder, background: t.c1RailBg }}
         >
-            {/* tape decoration */}
-            <div
-                aria-hidden="true"
-                style={{
-                    position: 'absolute',
-                    left: 20,
-                    top: -8,
-                    width: 64,
-                    height: 14,
-                    background: isDark ? 'rgba(180,150,80,0.10)' : 'rgba(180,150,80,0.18)',
-                    transform: 'rotate(-2deg)',
-                    borderRadius: 1,
-                }}
-            />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <PenIcon style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
-                <span style={{
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    color: accentColor,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                }}>
-                    {isReviewMode ? '코치 리뷰 노트' : 'AI 코치 메모'}
-                </span>
+            <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
+                    {isReviewMode ? '경기 리뷰' : '예측 결과'}
+                </p>
+                <p className="mt-1.5 text-[15px] font-black leading-snug text-slate-950 dark:text-slate-50">
+                    {favoredLine}
+                </p>
             </div>
-
-            <p style={{
-                margin: 0,
-                fontSize: 15.5,
-                lineHeight: 1.55,
-                fontWeight: 600,
-                color: textColor,
-                letterSpacing: '-0.005em',
-            }}>
-                {verdict}
-            </p>
-
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginTop: 14,
-                paddingTop: 12,
-                borderTop: `1px dashed ${dashedBorder}`,
-            }}>
-                <span style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: accentColor,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                }}>
-                    {isFallback
-                        ? '— BEGA AI 분석 (구체적 판단은 상세 리포트 참고)'
-                        : '— BEGA 코치 분석'
-                    }
-                </span>
-            </div>
-        </div>
-    );
-}
-
-/* ── D · 리스크 회차 타임라인 ── */
-function RiskTimeline({ risks }: { risks: CoachRiskItem[] }) {
-    const isDark = useIsDark();
-    const innings = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-    const levelCount = [0, 0, 0];
-    const riskDots = risks.map((risk) => {
-        const offset = levelCount[risk.level]++;
-        let x: number;
-        if (risk.level === 0) x = 2 + offset;
-        else if (risk.level === 1) x = 5 + offset;
-        else x = 7 + offset;
-        return { risk, x: Math.min(x, 9) };
-    });
-
-    const sevColor = (level: 0 | 1 | 2) =>
-        level === 0 ? '#dc2626' : level === 1 ? '#d97706' : '#059669';
-
-    const inningRangeLabel = (level: 0 | 1 | 2) =>
-        level === 0 ? '1~5회' : level === 1 ? '5~7회' : '7~9회';
-
-    const bg = isDark ? '#1c1f28' : '#fff';
-    const borderColor = isDark ? '#2d3748' : '#e5e7eb';
-    const axisColor = isDark ? '#374151' : '#e5e7eb';
-    const tickColor = isDark ? '#4b5563' : '#cbd5e1';
-    const tickLabelColor = isDark ? '#6b7280' : '#94a3b8';
-    const rowBorderColor = isDark ? '#1f2937' : '#f1f5f9';
-    const textColor = isDark ? '#e5e7eb' : '#0f1419';
-    const subColor = isDark ? '#6b7280' : '#64748b';
-    const headerColor = isDark ? '#9ca3af' : '#475569';
-
-    return (
-        <div style={{ background: bg, border: `1px solid ${borderColor}`, borderRadius: 16, padding: '18px 22px 8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: headerColor, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                    리스크 회차 분포
-                </span>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 11.5, fontWeight: 700, color: subColor }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#dc2626', display: 'inline-block', flexShrink: 0 }} />
-                        높음
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#d97706', display: 'inline-block', flexShrink: 0 }} />
-                        중간
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 999, background: '#059669', display: 'inline-block', flexShrink: 0 }} />
-                        낮음
+            <div className="mt-5 space-y-2">
+                <div className="flex items-center justify-between text-[13px]">
+                    <span className="font-bold text-slate-500 dark:text-slate-400">근거</span>
+                    <span data-testid="coach-evidence-count" className="font-extrabold text-slate-900 dark:text-slate-100">
+                        {evidenceCount > 0 ? `${evidenceCount}건` : '확인 중'}
                     </span>
                 </div>
-            </div>
-
-            {/* 9-inning axis */}
-            <div style={{ position: 'relative', height: 60, margin: '0 12px' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, top: 30, height: 2, background: axisColor }} />
-                {innings.map((n, i) => (
-                    <div key={n} style={{ position: 'absolute', left: `${(i / 8) * 100}%`, top: 26, transform: 'translateX(-50%)' }}>
-                        <div style={{ width: 1, height: 10, background: tickColor, margin: '0 auto' }} />
-                        <div style={{ fontSize: 10.5, color: tickLabelColor, fontWeight: 700, textAlign: 'center', marginTop: 4 }}>
-                            {n}회
-                        </div>
-                    </div>
-                ))}
-                {riskDots.map(({ risk, x }, i) => {
-                    const color = sevColor(risk.level);
-                    const leftPct = ((x - 1) / 8) * 100;
-                    return (
-                        <div key={i} style={{ position: 'absolute', left: `${leftPct}%`, top: 16, transform: 'translateX(-50%)' }}>
-                            <div style={{
-                                width: 14,
-                                height: 14,
-                                borderRadius: 999,
-                                background: color,
-                                border: `3px solid ${bg}`,
-                                boxShadow: `0 0 0 1px ${color}`,
-                                margin: '0 auto',
-                            }} />
-                            <div style={{
-                                fontSize: 10.5,
-                                fontWeight: 800,
-                                color: textColor,
-                                whiteSpace: 'nowrap',
-                                position: 'absolute',
-                                top: -22,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                            }}>
-                                {risk.area}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* compact list */}
-            <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column' }}>
-                {risks.map((r, idx) => (
-                    <div
-                        key={`tl-${idx}`}
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: '64px 1fr auto',
-                            gap: 12,
-                            padding: '10px 0',
-                            borderTop: idx === 0 ? 'none' : `1px solid ${rowBorderColor}`,
-                            alignItems: 'center',
-                        }}
-                    >
-                        <span style={{ fontSize: 11.5, color: subColor, fontWeight: 800, fontFamily: 'ui-monospace, monospace' }}>
-                            {inningRangeLabel(r.level)}
-                        </span>
-                        <span style={{ fontSize: 13.5, fontWeight: 700, color: textColor, lineHeight: 1.4 }}>
-                            <strong style={{ fontWeight: 800 }}>{r.area}</strong>
-                            <span style={{ color: subColor, fontWeight: 600 }}> · {r.description}</span>
-                        </span>
-                        <span style={{
-                            fontSize: 11.5,
-                            fontWeight: 800,
-                            minWidth: 'max-content',
-                            color: sevColor(r.level),
-                            padding: '2px 8px',
-                            borderRadius: 999,
-                            background: r.level === 0
-                                ? (isDark ? 'rgba(220,38,38,0.15)' : '#fef2f2')
-                                : r.level === 1
-                                    ? (isDark ? 'rgba(217,119,6,0.15)' : '#fffbeb')
-                                    : (isDark ? 'rgba(5,150,105,0.15)' : '#ecfdf5'),
-                        }}>
-                            {r.level === 0 ? '위험' : r.level === 1 ? '주의' : '관찰'}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-/* ── E · 영향 방향 (versus-aware) ── */
-function RiskVersus({ risks, isPositive }: { risks: CoachRiskItem[]; isPositive: boolean }) {
-    const isDark = useIsDark();
-
-    const getImpactTo = (level: 0 | 1 | 2): 'home' | 'away' | 'both' => {
-        if (level === 1) return 'both';
-        // level 0 (critical): risks that threaten the predicted-losing side's ability to upset
-        // if home team is positive (favored), level 0 critical risks hurt the away team most
-        return level === 0 ? (isPositive ? 'away' : 'home') : 'both';
-    };
-
-    const sevColor = (level: 0 | 1 | 2) =>
-        level === 0 ? '#dc2626' : level === 1 ? '#d97706' : '#059669';
-
-    const bg = isDark ? '#1c1f28' : '#fff';
-    const borderColor = isDark ? '#2d3748' : '#e5e7eb';
-    const headerBg = isDark ? '#111827' : '#fafafa';
-    const headerBorderColor = isDark ? '#1f2937' : '#eef2f0';
-    const rowBorderColor = isDark ? '#1f2937' : '#f1f5f9';
-    const textColor = isDark ? '#e5e7eb' : '#0f1419';
-    const subColor = isDark ? '#6b7280' : '#475569';
-    const headerTextColor = isDark ? '#6b7280' : '#64748b';
-
-    return (
-        <div style={{ background: bg, border: `1px solid ${borderColor}`, borderRadius: 16, overflow: 'hidden' }}>
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                background: headerBg,
-                padding: '10px 18px',
-                fontSize: 11,
-                fontWeight: 800,
-                color: headerTextColor,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                borderBottom: `1px solid ${headerBorderColor}`,
-            }}>
-                <span>홈팀 리스크</span>
-                <span style={{ textAlign: 'right' }}>원정팀 리스크</span>
-            </div>
-
-            {risks.map((r, idx) => {
-                const impactTo = getImpactTo(r.level);
-                const isHome = impactTo === 'home';
-                const isAway = impactTo === 'away';
-                const isBoth = impactTo === 'both';
-
-                return (
-                    <div
-                        key={`vs-${idx}`}
-                        style={{ padding: '14px 18px', borderTop: `1px solid ${rowBorderColor}`, position: 'relative' }}
-                    >
-                        {/* impact accent bar */}
-                        <div style={{ position: 'absolute', left: 18, right: 18, top: 0, height: 3, display: 'flex' }}>
-                            {isHome && (
-                                <div style={{ width: '50%', background: isDark ? 'rgba(254,202,202,0.25)' : '#fecaca' }} />
-                            )}
-                            {isAway && (
-                                <div style={{ width: '50%', marginLeft: 'auto', background: isDark ? 'rgba(167,243,208,0.25)' : '#a7f3d0' }} />
-                            )}
-                            {isBoth && (
-                                <div style={{ width: '100%', background: isDark ? 'rgba(253,230,138,0.15)' : '#fde68a' }} />
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: textColor }}>{r.area}</span>
-                            <span style={{
-                                marginLeft: 'auto',
-                                fontSize: 12,
-                                fontWeight: 800,
-                                color: isHome ? '#b91c1c' : isAway ? '#047857' : '#854d0e',
-                                padding: '3px 8px',
-                                borderRadius: 999,
-                                background: isHome
-                                    ? (isDark ? 'rgba(220,38,38,0.15)' : '#fef2f2')
-                                    : isAway
-                                        ? (isDark ? 'rgba(5,150,105,0.15)' : '#ecfdf5')
-                                        : (isDark ? 'rgba(133,77,14,0.15)' : '#fffbeb'),
-                                whiteSpace: 'nowrap',
-                            }}>
-                                {isHome ? '홈팀 불리' : isAway ? '원정팀 불리' : '공통 변수'}
-                            </span>
-                            <span style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                color: sevColor(r.level),
-                                fontFamily: 'ui-monospace, monospace',
-                            }}>
-                                L{r.level}
-                            </span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: 13, color: subColor, fontWeight: 600, lineHeight: 1.5, paddingLeft: 0 }}>
-                            {r.description}
-                        </p>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-
-export default function CoachAnalysisResultView({ analysisData }: CoachAnalysisResultViewProps) {
-    if (!analysisData) return null;
-
-    const isReviewMode = analysisData.game_status_bucket === 'COMPLETED';
-    const isPositive = analysisData.dashboard.sentiment === 'positive';
-    const toneLabel = isPositive
-        ? isReviewMode ? '리뷰 결과 · 우세 근거' : '우세 근거'
-        : isReviewMode ? '리뷰 결과 · 주의 변수' : '주의 변수';
-    const toneDescription = isPositive
-        ? isReviewMode
-            ? '실제 승패에 유리하게 작용한 근거를 요약했습니다.'
-            : '경기 전 유리하게 볼 수 있는 근거를 요약했습니다.'
-        : isReviewMode
-            ? '실제 경기에서 흐름을 흔든 위험 요인을 요약했습니다.'
-            : '경기 중 우선 확인해야 할 위험 요인을 요약했습니다.';
-    const criticalFactors = analysisData.metrics.filter((metric: CoachMetric) => metric.risk_level === 0);
-    const strategicFactors = analysisData.metrics.filter((metric: CoachMetric) => metric.risk_level !== 0);
-    const hasAnyMetric = criticalFactors.length > 0 || strategicFactors.length > 0;
-    const hasDetailedReport = Boolean(analysisData.detailed_analysis) || Boolean(analysisData.coach_note);
-    // verdict → analysis_summary → dashboard.context (항상 non-empty) 순으로 폴백
-    const verdictText = analysisData.verdict
-        || analysisData.analysis_summary
-        || analysisData.dashboard.context;
-
-    return (
-        <div
-            role="article"
-            className="space-y-8 pb-10"
-        >
-            <div
-                className={`rounded-2xl border p-5 shadow-sm sm:p-7 ${
-                    isPositive
-                        ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20'
-                        : 'border-red-200/80 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/20'
-                }`}
-            >
-                <div className="flex flex-col gap-2">
-                    <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[16px] font-bold ${
-                        isPositive
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
-                    }`}>
-                        <span aria-hidden="true" className={`h-2 w-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        {toneLabel}
+                <div className="flex items-center justify-between text-[13px]">
+                    <span className="font-bold text-slate-500 dark:text-slate-400">리스크</span>
+                    <span className="font-extrabold text-slate-900 dark:text-slate-100">{analysisData.risks.length}건</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                    <span className="font-bold text-slate-500 dark:text-slate-400">상태</span>
+                    <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
+                        {isReviewMode ? '실경기 기반' : '경기 전'}
                     </span>
-                    <p className="max-w-3xl text-[16px] font-semibold leading-relaxed text-gray-700 dark:text-gray-200">
-                        {toneDescription}
-                    </p>
                 </div>
-
-                <div className="mt-5 mb-8">
-                    <h3 className="mb-4 flex items-start gap-3 break-keep text-xl font-bold leading-tight text-gray-900 dark:text-white sm:text-2xl">
-                        {isPositive ? (
-                            <PredictionTrophyIcon aria-hidden="true" className="mt-0.5 h-7 w-7 shrink-0 text-emerald-500 sm:h-8 sm:w-8" />
-                        ) : (
-                            <PredictionWarningTriangleIcon aria-hidden="true" className="mt-0.5 h-7 w-7 shrink-0 text-red-500 sm:h-8 sm:w-8" />
-                        )}
-                        <span>{analysisData.dashboard.headline}</span>
-                    </h3>
-                    <p className="break-keep text-[16px] font-bold leading-relaxed text-gray-700 dark:text-gray-200 sm:text-base">
-                        {analysisData.dashboard.context}
-                    </p>
-                </div>
-
-                {analysisData.dashboard.stats.length > 0 && (
-                    <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-                        {analysisData.dashboard.stats.map((stat: DashboardStat, idx: number) => (
-                            <CoachStatCard key={idx} stat={stat} />
-                        ))}
+                {dataQualityLabel && (
+                    <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-bold text-slate-500 dark:text-slate-400">데이터</span>
+                        <span className={`font-extrabold ${qualityRowTone}`}>{dataQualityLabel}</span>
                     </div>
                 )}
             </div>
-
-            {/* 코치 판단 — A · 일지 메모 노트 (항상 렌더: verdictText는 dashboard.context로 폴백 보장) */}
-            <CoachVerdictMemo
-                verdict={verdictText}
-                isReviewMode={isReviewMode}
-                isFallback={!analysisData.verdict && !analysisData.analysis_summary}
-            />
-
-            {hasAnyMetric && (
-                <div className="space-y-10">
-                    {criticalFactors.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
-                                <div>
-                                    <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과를 가른 변수' : '즉시 확인할 변수'}</h4>
-                                    <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
-                                        {isReviewMode ? '실제 경기 흐름에 가장 큰 영향을 준 항목입니다.' : '경기 흐름에 가장 큰 영향을 줄 수 있는 항목입니다.'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {criticalFactors.map((item: CoachMetric, idx: number) => (
-                                    <CoachMetricCard key={`risk-${idx}`} data={item} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {strategicFactors.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <PredictionCheckCircleIcon aria-hidden="true" className="h-5 w-5 text-emerald-500" />
-                                <div>
-                                    <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{isReviewMode ? '결과로 이어진 우위 지표' : '우위 근거 지표'}</h4>
-                                    <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
-                                        {isReviewMode ? '실제 결과로 연결된 강점이 보인 항목입니다.' : '지속적으로 관리할 수 있는 장점이 보이는 항목입니다.'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {strategicFactors.map((item: CoachMetric, idx: number) => (
-                                    <CoachMetricCard key={`norm-${idx}`} data={item} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
+            {generationMode === 'evidence_fallback' && (
+                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-amber-700 dark:text-amber-300">
+                    근거가 제한적이라 보수적으로 요약했습니다.
+                </p>
             )}
+            {dataQualityMessage && (
+                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">
+                    {dataQualityMessage}
+                </p>
+            )}
+            <div className="my-4 h-px bg-slate-200 dark:bg-slate-700" />
+            {/* A1: 실제 존재 섹션과 1:1, 클릭 점프 + scroll-spy active */}
+            <nav className="space-y-1" aria-label="섹션 이동">
+                {sections.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.id === activeId;
+                    return (
+                        <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => onJump(item.id)}
+                            aria-current={active ? 'location' : undefined}
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-extrabold transition-colors ${
+                                active
+                                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100'
+                                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5'
+                            }`}
+                        >
+                            <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            {item.count !== null && (
+                                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                                    {item.count}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </nav>
+            {evidenceSources.length > 0 && (
+                <details
+                    data-testid="coach-evidence-sources"
+                    className="group mt-4 rounded-lg border border-slate-200 bg-white/60 dark:border-slate-700 dark:bg-white/[0.03]"
+                >
+                    <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12px] font-extrabold text-slate-600 dark:text-slate-300">
+                        <span className="flex-1">분석에 사용한 근거 {evidenceSources.length}개</span>
+                        <span className="text-[11px] font-bold text-slate-400 group-open:hidden">펼치기</span>
+                        <span className="hidden text-[11px] font-bold text-slate-400 group-open:inline">접기</span>
+                    </summary>
+                    <ul className="flex flex-wrap gap-1.5 px-3 pb-3 pt-1">
+                        {evidenceSources.map((code, idx) => (
+                            <li
+                                key={`${code}-${idx}`}
+                                className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                                {evidenceSourceLabel(code)}
+                            </li>
+                        ))}
+                    </ul>
+                </details>
+            )}
+        </aside>
+    );
+}
 
-            <div className="grid gap-6 sm:grid-cols-2">
-                <InsightSection
-                    icon={PredictionBarChartIcon}
-                    title={isReviewMode ? '결과를 가른 이유' : '왜 중요한가'}
-                    items={analysisData.why_it_matters}
-                />
-                <InsightSection
-                    icon={PredictionCrosshairIcon}
-                    title={isReviewMode ? '실제 전환점' : '승부 스윙 포인트'}
-                    items={analysisData.swing_factors}
-                />
-                <InsightSection
-                    icon={PredictionEyeIcon}
-                    title={isReviewMode ? '다시 볼 장면' : '체크 포인트'}
-                    items={analysisData.watch_points}
-                />
-                <InsightSection
-                    icon={PredictionHelpCircleIcon}
-                    title="불확실성"
-                    items={analysisData.uncertainty}
-                    tone="warning"
-                />
-                <InsightSection
-                    icon={PredictionCheckCircleIcon}
-                    title={isReviewMode ? '잘 풀린 지점' : '강점 유지 포인트'}
-                    items={analysisData.strengths}
-                />
-                <InsightSection
-                    icon={PredictionWarningTriangleIcon}
-                    title={isReviewMode ? '흔들린 지점' : '약점 관리 포인트'}
-                    items={analysisData.weaknesses}
-                />
+function C1VersusHero({
+    analysisData,
+    homeTeamId,
+    awayTeamId,
+    winProbabilityHome,
+}: {
+    analysisData: CoachAnalysisData;
+    homeTeamId?: string;
+    awayTeamId?: string;
+    winProbabilityHome: number | null;
+}) {
+    const t = getCoachTokens(useIsDark());
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+    const hasWinProbability = typeof winProbabilityHome === 'number' && Number.isFinite(winProbabilityHome);
+    const homePct = hasWinProbability ? toPercent(winProbabilityHome as number) : null;
+    const awayPct = homePct === null ? null : 100 - homePct;
+    const favoredIsHome = homePct !== null ? homePct >= (awayPct ?? 0) : analysisData.dashboard.sentiment !== 'negative';
+    const homeName = shortTeamName(homeTeamId) || '홈팀';
+    const awayName = shortTeamName(awayTeamId) || '원정팀';
+    const signals = buildSignals(analysisData);
+    const rowCount = isNarrow ? 2 : 3;
+    const homeRows = signals.slice(0, rowCount);
+    const awayRows = (signals.length > rowCount ? signals.slice(rowCount, rowCount * 2) : signals.slice(0, rowCount));
+
+    const renderTeamColumn = ({
+        teamId,
+        name,
+        pct,
+        isWinner,
+        rows,
+    }: {
+        teamId?: string;
+        name: string;
+        pct: number | null;
+        isWinner: boolean;
+        rows: SignalItem[];
+    }) => (
+        <div
+            className="flex flex-col gap-4 p-[22px]"
+            style={{
+                background: isWinner
+                    ? `linear-gradient(to bottom, ${t.c1HeroWinnerFrom}, ${t.c1HeroWinnerTo})`
+                    : t.c1HeroLoserBg,
+            }}
+        >
+            <div className="flex items-center gap-2.5 text-[16px] font-black" style={{ color: t.c1TextStrong }}>
+                {teamId && <TeamLogo teamId={teamId} size={32} className="!rounded-none !bg-transparent p-0" />}
+                <span className="min-w-0 truncate">{name}</span>
             </div>
-
-            {/* 리스크 관리 — D · 회차 타임라인 + E · 영향 방향 */}
-            {analysisData.risks.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <PredictionWarningTriangleIcon aria-hidden="true" className="h-5 w-5 text-red-500" />
-                        <div>
-                            <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">리스크 관리 포인트</h4>
-                            <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
-                                {isReviewMode ? '실제 결과에 영향을 준 위험 구간입니다.' : '경기 전개에서 즉시 확인이 필요한 구간입니다.'}
-                            </p>
-                        </div>
-                    </div>
-                    <RiskTimeline risks={analysisData.risks} />
-                    <RiskVersus risks={analysisData.risks} isPositive={isPositive} />
+            <div className="text-[38px] font-black leading-none" style={{ color: isWinner ? IMPACT.away : IMPACT.home }}>
+                {pct === null ? '--' : pct}
+                {pct !== null && <span className="ml-0.5 text-[18px]">%</span>}
+            </div>
+            {rows.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                    {rows.slice(0, 2).map((row, idx) => (
+                        <span
+                            key={`${name}-tag-${row.label}-${idx}`}
+                            className="rounded-full px-2 py-1 text-[11.5px] font-extrabold"
+                            style={isWinner
+                                ? { background: t.c1TagWinBg, color: t.c1TagWinFg }
+                                : { background: t.c1TagLoseBg, color: t.c1TagLoseFg }}
+                        >
+                            {row.label || row.value}
+                        </span>
+                    ))}
                 </div>
             )}
-
-            {hasDetailedReport && (
-                <div className="space-y-4 pt-2">
-                    <div className="flex items-center gap-3">
-                        <PredictionBarChartIcon aria-hidden="true" className="h-5 w-5 text-blue-500" />
-                        <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">상세 리포트</h4>
+            <div className="h-px" style={{ background: t.c1HeroInnerDivider }} />
+            <div>
+                {(rows.length > 0 ? rows : [{ label: '분석', value: analysisData.dashboard.sentiment, detail: analysisData.dashboard.context, tone: 'neutral' as const }]).map((row, idx) => (
+                    <div
+                        key={`${name}-row-${row.label}-${idx}`}
+                        className="flex items-center justify-between gap-3 border-t border-dashed py-2 text-[13px] font-bold first:border-t-0"
+                        style={{ borderColor: t.c1HeroRowBorder }}
+                    >
+                        <span className="min-w-0 truncate" style={{ color: t.c1TextSub }}>{row.label}</span>
+                        <span
+                            className="shrink-0 text-right"
+                            style={{ color: row.tone === 'success' ? IMPACT.away : row.tone === 'danger' ? IMPACT.home : t.c1TextStrong }}
+                        >
+                            {row.value}
+                        </span>
                     </div>
+                ))}
+            </div>
+        </div>
+    );
 
-                    {analysisData.detailed_analysis && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <CoachMarkdown>{analysisData.detailed_analysis}</CoachMarkdown>
-                        </div>
+    return (
+        <section
+            className="versus grid overflow-hidden rounded-[20px] border md:grid-cols-[1fr_64px_1fr]"
+            style={{ borderColor: t.c1HeroOuterBorder, background: t.c1HeroCardBg }}
+        >
+            {renderTeamColumn({
+                teamId: homeTeamId,
+                name: homeName,
+                pct: homePct,
+                isWinner: favoredIsHome,
+                rows: homeRows,
+            })}
+            <div
+                className="flex items-center justify-center border-y px-3 py-2 font-serif text-[20px] font-bold italic md:border-x md:border-y-0"
+                style={{ borderColor: t.c1HeroVsBorder, background: t.c1HeroVsBg, color: t.c1TextSub }}
+            >
+                VS
+            </div>
+            {renderTeamColumn({
+                teamId: awayTeamId,
+                name: awayName,
+                pct: awayPct,
+                isWinner: !favoredIsHome,
+                rows: awayRows,
+            })}
+        </section>
+    );
+}
+
+export default function CoachAnalysisResultView({
+    analysisData,
+    homeTeamId,
+    awayTeamId,
+    winProbabilityHome = null,
+    dataQualityLabel,
+    dataQualityMessage,
+    supportedFactCount,
+    usedEvidence,
+    dataQuality,
+    generationMode,
+}: CoachAnalysisResultViewProps) {
+    const isReviewMode = analysisData?.game_status_bucket === 'COMPLETED';
+    const isPositive = analysisData?.dashboard.sentiment === 'positive';
+    // 근거 신뢰 칩: 실데이터 근거 수 + 데이터 품질 라벨. 둘 다 없으면 미렌더.
+    const evidenceCount = resolveEvidenceCount(supportedFactCount, usedEvidence);
+    const evidenceChipTone = (dataQuality && DATA_QUALITY_TONE[dataQuality]?.chip) || NEUTRAL_TONE.chip;
+    const showEvidenceChip = evidenceCount > 0 || Boolean(dataQualityLabel);
+    const hasDetailedReport = Boolean(analysisData?.detailed_analysis) || Boolean(analysisData?.coach_note);
+    const verdictText = analysisData
+        ? (analysisData.verdict || analysisData.analysis_summary || analysisData.dashboard.context)
+        : '';
+    const isFallbackVerdict = !analysisData?.verdict && !analysisData?.analysis_summary;
+    const safeWinProbabilityHome = typeof winProbabilityHome === 'number' && Number.isFinite(winProbabilityHome)
+        ? winProbabilityHome
+        : null;
+
+    // A4: 위험계열(약점·불확실성) 먼저+강조, 중립 근거 중간, 긍정(강점) 마지막+차분.
+    const insights: (InsightCardProps & { id: string })[] = analysisData ? [
+        { id: 'weak',   icon: PredictionWarningTriangleIcon, title: isReviewMode ? '흔들린 지점' : '약점 관리 포인트',    items: analysisData.weaknesses,    tone: 'critical' as const },
+        { id: 'uncert', icon: PredictionHelpCircleIcon,      title: '불확실성',                                          items: analysisData.uncertainty,   tone: 'warning' as const },
+        { id: 'why',    icon: PredictionBarChartIcon,        title: isReviewMode ? '결과를 가른 이유' : '왜 중요한가',    items: analysisData.why_it_matters, tone: 'default' as const },
+        { id: 'swing',  icon: PredictionCrosshairIcon,        title: isReviewMode ? '실제 전환점' : '승부 스윙 포인트',    items: analysisData.swing_factors,  tone: 'default' as const },
+        { id: 'watch',  icon: PredictionEyeIcon,             title: isReviewMode ? '다시 볼 장면' : '체크 포인트',        items: analysisData.watch_points,   tone: 'default' as const },
+        { id: 'strong', icon: PredictionCheckCircleIcon,     title: isReviewMode ? '잘 풀린 지점' : '강점 유지 포인트',   items: analysisData.strengths,      tone: 'positive' as const },
+    ].filter((s) => Array.isArray(s.items) && s.items.length > 0) : [];
+
+    // A1: 본문에 실제 렌더되는 섹션만 nav/scroll-spy 대상으로.
+    const SEC = { verdict: 'coach-section-verdict', insights: 'coach-section-insights', risks: 'coach-section-risks', detail: 'coach-section-detail' };
+    const sections: SectionNavItem[] = analysisData ? [
+        { id: SEC.verdict, label: '코치 판단', icon: isPositive ? PredictionTrophyIcon : PredictionCrosshairIcon, count: null },
+        ...(insights.length > 0 ? [{ id: SEC.insights, label: '인사이트', icon: PredictionBarChartIcon, count: insights.length }] : []),
+        ...(analysisData.risks.length > 0 ? [{ id: SEC.risks, label: '리스크', icon: PredictionWarningTriangleIcon, count: analysisData.risks.length }] : []),
+        ...(hasDetailedReport ? [{ id: SEC.detail, label: '상세 리포트', icon: PredictionEyeIcon, count: null }] : []),
+    ] : [];
+    // 훅은 early-return 앞에서 무조건 호출 (Rules of Hooks)
+    const activeId = useActiveSection(sections.map((s) => s.id));
+    const handleJump = useCallback((id: string) => scrollToSection(id), []);
+
+    if (!analysisData) return null;
+
+    return (
+        <div role="article" className="dlg">
+            <div className="r3-layout grid min-h-0 sm:grid-cols-[280px_minmax(0,1fr)]">
+                <C1SummaryRail
+                    analysisData={analysisData}
+                    homeTeamId={homeTeamId}
+                    awayTeamId={awayTeamId}
+                    winProbabilityHome={safeWinProbabilityHome}
+                    isReviewMode={isReviewMode}
+                    dataQualityLabel={dataQualityLabel}
+                    dataQualityMessage={dataQualityMessage}
+                    dataQuality={dataQuality}
+                    generationMode={generationMode}
+                    supportedFactCount={supportedFactCount}
+                    usedEvidence={usedEvidence}
+                    sections={sections}
+                    activeId={activeId}
+                    onJump={handleJump}
+                />
+
+                <div className="r3-body min-w-0 p-6">
+                    {/* 근거 투명성 칩: AI 환각이 아닌 실데이터 기반임을 첫 시선 위치에서 신호 */}
+                    {showEvidenceChip && (
+                        <span
+                            data-testid="coach-evidence-chip"
+                            className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-extrabold ${evidenceChipTone}`}
+                        >
+                            <PredictionCheckCircleIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            {evidenceCount > 0 ? `${evidenceCount}개 실데이터 근거` : '실데이터 근거'}
+                            {dataQualityLabel && <span className="opacity-70">· {dataQualityLabel}</span>}
+                        </span>
                     )}
 
-                    {analysisData.coach_note && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <p className="mb-2 text-[16px] font-bold text-gray-900 dark:text-gray-100">코치의 한마디</p>
-                            <CoachMarkdown>{analysisData.coach_note}</CoachMarkdown>
-                        </div>
+                    {/* A2: 핵심 결론 한 줄 — 첫 시선 집중 */}
+                    <p className={`mb-4 break-keep text-[17px] font-black leading-snug tracking-[-0.01em] sm:text-[19px] ${
+                        isPositive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
+                    }`}>
+                        {analysisData.dashboard.headline}
+                    </p>
+
+                    <C1VersusHero
+                        analysisData={analysisData}
+                        homeTeamId={homeTeamId}
+                        awayTeamId={awayTeamId}
+                        winProbabilityHome={safeWinProbabilityHome}
+                    />
+
+                    {/* A2: 균일 리듬 → 1차 섹션 사이 큰 여백(mt-9)으로 그룹 경계 강화 */}
+                    <section id={SEC.verdict} data-testid="coach-section-verdict" aria-label="코치 판단" className="mt-9 scroll-mt-4 space-y-3">
+                        <SectionHeading
+                            icon={isPositive ? PredictionTrophyIcon : PredictionCrosshairIcon}
+                            title="코치 판단"
+                            subtitle={isReviewMode ? 'AI 코치 메모 · 경기 리뷰' : 'AI 코치 메모 · 경기 전 분석'}
+                        />
+                        <CoachVerdictMemo
+                            verdict={verdictText}
+                            isReviewMode={isReviewMode}
+                            isFallback={isFallbackVerdict}
+                        />
+                    </section>
+
+                    {insights.length > 0 && (
+                        <section id={SEC.insights} data-testid="coach-section-insights" aria-label="인사이트" className="mt-9 scroll-mt-4 space-y-3">
+                            <SectionHeading
+                                icon={PredictionBarChartIcon}
+                                title="인사이트"
+                                subtitle={`${insights.length}개 항목 · 판단 근거와 관전 포인트`}
+                            />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {insights.map(({ id, icon, title, items, tone }) => (
+                                    <InsightCard key={id} icon={icon} title={title} items={items} tone={tone} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {analysisData.risks.length > 0 && (
+                        <section id={SEC.risks} data-testid="coach-section-risks" aria-label="리스크 관리" className="mt-9 scroll-mt-4 space-y-3">
+                            <SectionHeading
+                                icon={PredictionWarningTriangleIcon}
+                                title="리스크 관리"
+                                subtitle={`${analysisData.risks.length}건 · 회차 분포 + 영향 방향`}
+                                tone="risk"
+                            />
+                            <RiskTimeline risks={analysisData.risks} isPositive={isPositive} />
+                            <RiskVersus
+                                risks={analysisData.risks}
+                                isPositive={isPositive}
+                                homeTeamId={homeTeamId}
+                                awayTeamId={awayTeamId}
+                            />
+                        </section>
+                    )}
+
+                    {hasDetailedReport && (
+                        <section id={SEC.detail} data-testid="coach-section-detail" aria-label="상세 리포트" className="mt-9 scroll-mt-4">
+                            {/* A2: 길고 밀도 높은 원문은 기본 접기 — 첫 스캔 부담 제거 */}
+                            <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
+                                <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-[15px] font-extrabold text-slate-950 dark:text-slate-50">
+                                    <PredictionBarChartIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-blue-500 dark:text-blue-300" />
+                                    <span className="flex-1">상세 리포트</span>
+                                    <span className="text-[12.5px] font-bold text-slate-500 dark:text-slate-400 group-open:hidden">원문 분석 보기</span>
+                                    <span className="hidden text-[12.5px] font-bold text-slate-500 dark:text-slate-400 group-open:inline">접기</span>
+                                </summary>
+                                <div className="space-y-4 px-5 pb-5 pt-1">
+                                    {analysisData.detailed_analysis && (
+                                        <CoachMarkdown>{analysisData.detailed_analysis}</CoachMarkdown>
+                                    )}
+                                    {analysisData.coach_note && (
+                                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                                            <div className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-slate-950 dark:text-slate-50">
+                                                <PredictionCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                                                코치의 한마디
+                                            </div>
+                                            <CoachMarkdown>{analysisData.coach_note}</CoachMarkdown>
+                                        </div>
+                                    )}
+                                </div>
+                            </details>
+                        </section>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

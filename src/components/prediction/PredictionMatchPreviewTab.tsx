@@ -60,6 +60,8 @@ const getStatusToneClass = (tone: PredictionScheduleStatusTone) => {
   return 'text-blue-600 dark:text-sky-300';
 };
 
+const PREDICTION_SCHEDULE_INITIAL_RECT = { width: 920, height: 640 };
+
 export default function PredictionMatchPreviewTab({
   currentDateGames,
   currentDate,
@@ -88,8 +90,16 @@ export default function PredictionMatchPreviewTab({
     count: rowViewModels.length,
     getScrollElement: () => matchListScrollRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    initialRect: PREDICTION_SCHEDULE_INITIAL_RECT,
     overscan: 3,
   });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const renderedRows = virtualRows.length > 0
+    ? virtualRows
+    : rowViewModels.map((_, index) => ({
+      index,
+      start: index * ESTIMATED_ROW_HEIGHT,
+    }));
 
   useEffect(() => {
     selectedDateButtonRef.current?.scrollIntoView({
@@ -224,7 +234,7 @@ export default function PredictionMatchPreviewTab({
                 className="relative min-w-0 lg:min-w-[920px] lg:pr-16"
                 style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
               >
-                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                {renderedRows.map((virtualItem) => {
                   const { game, viewModel } = rowViewModels[virtualItem.index];
                   const compactScoreLabel = viewModel.status.scoreLabel?.replace(/\s+/g, '') || '';
 
@@ -248,7 +258,7 @@ export default function PredictionMatchPreviewTab({
                         data-testid="prediction-schedule-match-row"
                         data-game-id={game.gameId}
                         aria-label={viewModel.ariaLabel}
-                        className="grid min-h-[4.75rem] grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-2 py-3 sm:min-h-[5.25rem] sm:grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] sm:gap-3 sm:px-4 lg:min-h-[6.25rem] lg:grid-cols-[5rem_5rem_minmax(32rem,1fr)_5.75rem] lg:gap-4 lg:px-6 lg:py-4"
+                        className="grid min-h-[4.75rem] grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-2 py-3 sm:min-h-[5.25rem] sm:grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] sm:gap-3 sm:px-4 lg:min-h-[6.25rem] lg:grid-cols-[5rem_5rem_minmax(32rem,1fr)_11rem] lg:gap-4 lg:px-6 lg:py-4"
                       >
                         <div className="min-w-0 lg:hidden">
                           <p className="text-[13px] font-black leading-tight tabular-nums text-slate-900 dark:text-gray-100 sm:text-[15px]">
@@ -333,11 +343,6 @@ export default function PredictionMatchPreviewTab({
                 })}
               </div>
             </div>
-            <div
-              aria-hidden="true"
-              data-testid="prediction-schedule-match-list-fade"
-              className="pointer-events-none absolute inset-y-0 right-0 hidden w-12 bg-gradient-to-l from-white via-white/90 to-transparent dark:from-card dark:via-card/90 lg:block"
-            />
           </div>
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center px-5 py-10 text-center">

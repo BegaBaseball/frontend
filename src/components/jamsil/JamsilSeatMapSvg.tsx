@@ -519,7 +519,11 @@ export default function JamsilSeatMapSvg({
   const canDrag = zoom > minZoom;
 
   const zoomBtnCls = 'pointer-events-auto w-7 h-7 rounded-md bg-transparent border-0 flex items-center justify-center cursor-pointer text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
-  const sortedBlocks = JAMSIL_BLOCKS;
+  const sortedBlocks = [...JAMSIL_BLOCKS].sort((a, b) => {
+    if (a.category === 'ACCESSIBLE' && b.category !== 'ACCESSIBLE') return -1;
+    if (a.category !== 'ACCESSIBLE' && b.category === 'ACCESSIBLE') return 1;
+    return 0;
+  });
 
   useLayoutEffect(() => {
     const node = viewportRef.current;
@@ -816,12 +820,14 @@ export default function JamsilSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
@@ -1129,6 +1135,7 @@ export default function JamsilSeatMapSvg({
                     strokeWidth={strokeWidth}
                     filter={isActive ? 'url(#jamsil-hit-glow)' : undefined}
                     vectorEffect="non-scaling-stroke"
+                    pointerEvents={isFiltered ? 'none' : undefined}
                     style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
                     onMouseEnter={() => !isFiltered && !isDragging && setHover(b.id)}
                     onClick={(event) => {

@@ -26,7 +26,7 @@ const runBrowserEvidence = async () => {
   const EXPECTED_BROWSER_CROPS = [
     '101-108-h-i-j-browser-coordinate-crop',
     '104-105-i-j-browser-coordinate-crop',
-    '121-127-h-i-j-browser-coordinate-crop',
+    'third-base-h-i-j-browser-coordinate-crop',
     'op-outfield-browser-coordinate-crop',
     'five-table-browser-coordinate-crop',
     'sky-picnic-browser-coordinate-crop',
@@ -193,6 +193,7 @@ const runBrowserEvidence = async () => {
   
   const traceReview = await readJson(path.join(reportDir, 'gwangju-seatmap-trace-review.json'));
   const runtimeLayer = await readJson(path.join(reportDir, 'gwangju-seatmap-runtime-layer-audit.json'));
+  const artifactScope = await readJson(path.join(reportDir, 'gwangju-seatmap-artifact-scope-audit.json'));
   const evidenceInventory = await readJson(path.join(reportDir, 'gwangju-seatmap-evidence-inventory.json'));
   const browserSummary = await readJson(path.join(outputRoot, 'stadium-mobile-smoke-summary.json'));
   
@@ -204,6 +205,7 @@ const runBrowserEvidence = async () => {
   const blockers = [
     ...(traceReview.data?.summary?.traceStatus === 'READY' ? [] : [`TRACE_REVIEW_NOT_READY:${traceReview.data?.summary?.traceStatus ?? 'missing'}`]),
     ...(runtimeLayer.data?.status === 'passed' ? [] : [`RUNTIME_LAYER_NOT_PASSED:${runtimeLayer.data?.status ?? 'missing'}`]),
+    ...(artifactScope.data?.status === 'passed' ? [] : [`ARTIFACT_SCOPE_NOT_PASSED:${artifactScope.data?.status ?? 'missing'}`]),
     ...(evidenceInventory.data?.status === 'passed' ? [] : [`EVIDENCE_INVENTORY_NOT_PASSED:${evidenceInventory.data?.status ?? 'missing'}`]),
     ...(browserSummary.data?.status === 'passed' ? [] : [`BROWSER_SUMMARY_NOT_PASSED:${browserSummary.data?.status ?? 'missing'}`]),
     ...suffixReports.flatMap((suffixReport) => suffixReport.blockers.map((blocker) => `${suffixReport.suffix}:${blocker}`)),
@@ -219,6 +221,8 @@ const runBrowserEvidence = async () => {
       traceReviewStatus: traceReview.data?.summary?.traceStatus ?? null,
       runtimeLayer: rel(path.join(reportDir, 'gwangju-seatmap-runtime-layer-audit.json')),
       runtimeLayerStatus: runtimeLayer.data?.status ?? null,
+      artifactScope: rel(path.join(reportDir, 'gwangju-seatmap-artifact-scope-audit.json')),
+      artifactScopeStatus: artifactScope.data?.status ?? null,
       evidenceInventory: rel(path.join(reportDir, 'gwangju-seatmap-evidence-inventory.json')),
       evidenceInventoryStatus: evidenceInventory.data?.status ?? null,
       browserSummary: path.relative(frontendRoot, path.join(outputRoot, 'stadium-mobile-smoke-summary.json')),
@@ -311,6 +315,7 @@ const runBrowserEvidence = async () => {
     `- status: \`${report.status}\``,
     `- traceReview: \`${report.upstream.traceReviewStatus}\``,
     `- runtimeLayer: \`${report.upstream.runtimeLayerStatus}\``,
+    `- artifactScope: \`${report.upstream.artifactScopeStatus}\``,
     `- evidenceInventory: \`${report.upstream.evidenceInventoryStatus}\``,
     `- browserSummary: \`${report.upstream.browserSummaryStatus}\``,
     `- coordinate source: \`${SOURCE_POLICY.coordinateSource}\``,
@@ -388,6 +393,17 @@ const runEvidenceInventory = async () => {
   const outputBase = path.join(reportDir, 'gwangju-seatmap-evidence-inventory');
   
   const INVENTORY_VERSION = 'GWANGJU_EVIDENCE_INVENTORY_V1';
+  const FORBIDDEN_RELEASE_ARTIFACT_PATTERNS = [
+    /candidate/i,
+    /proposed/i,
+    /manual-official-retrace/i,
+    /gwangju-v\d+/i,
+    /gwangju.*[-_]v\d+/i,
+    /gwangju-seatmap-v\d+/i,
+    /gwangju-official-crop-.*-v\d+/i,
+    /gwangju.*selected-sweep.*-v\d+/i,
+    /gwangju.*visual-hit-split/i,
+  ];
   
   const ZONES = [
     {
@@ -411,13 +427,15 @@ const runEvidenceInventory = async () => {
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-101-108-h-i-j-e-f-visual-review.png',
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-104-105-i-j-boundary.png',
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/lower-infield-special-split/gwangju-seatmap-lower-infield-special-split-all-overlay.png',
-        'reports/stadium/gwangju-101-108-trace/current-h-i-j-overlay-v44-x880-y780-4x.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k5-104-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k7-108-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-first-family-seats-clean-overlay.png',
       ],
     },
     {
       id: 'middle-lower-infield-109-120',
-      label: 'Middle lower infield 109-120',
-      statusNote: 'Official PNG image check for 109-113 and 116-120 boundaries.',
+      label: 'Middle/third lower infield 109-120',
+      statusNote: 'Official PNG image check for 109-113 and 116-120 active third-base boundaries.',
       blockIds: [
         'k7-109',
         'k7-110',
@@ -431,39 +449,17 @@ const runEvidenceInventory = async () => {
         'k7-120',
       ],
       artifacts: [
-        'reports/stadium/gwangju-109-120-trace/current-109-113-overlay-v50-x475-y770-10x.png',
-        'reports/stadium/gwangju-109-120-trace/current-116-120-overlay-v50-x350-y500-10x.png',
-        'reports/stadium/gwangju-109-120-trace/current-109-120-overlay-v50-x350-y500-6x.png',
-      ],
-    },
-    {
-      id: 'third-base-121-127-hij',
-      label: 'Third-base 121-127 and upper H/I/J adjacency',
-      statusNote: 'Priority recheck area; 121-127 must not be swallowed by H/I/J polygons.',
-      blockIds: [
-        'k7-121',
-        'k7-122',
-        'k8-123',
-        'k5-124',
-        'k5-125',
-        'k5-126',
-        'k5-127',
-        'third-family-seats',
-        'third-wheelchair-seats',
-        'party-seats-third',
-      ],
-      artifacts: [
-        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-121-127.png',
-        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k5-126-clean-overlay.png',
-        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k5-127-clean-overlay.png',
-        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-third-family-seats-clean-overlay.png',
-        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-third-wheelchair-seats-clean-overlay.png',
-        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-party-seats-third-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-101-113.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-official-third-infield-trace.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k7-109-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k9-112-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k9-116-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-k7-120-clean-overlay.png',
       ],
     },
     {
       id: 'official-special-sections',
-      label: 'Official special sections A/B/C/G/H/I/J/K',
+      label: 'Official special sections A/B/C/G/H/I/J/L',
       statusNote: 'Alphabet sections must match the official image, not only pass label top-hit checks.',
       blockIds: [
         'champion-seats',
@@ -474,17 +470,16 @@ const runEvidenceInventory = async () => {
         'first-family-seats',
         'third-family-seats',
         'first-wheelchair-seats',
-        'third-wheelchair-seats',
         'party-seats-first',
-        'party-seats-third',
-        'skybox-seats',
+        'sky-picnic-L',
       ],
       artifacts: [
-        'reports/stadium/gwangju-special-sections-trace/current-center-special-overlay-v50-x360-y710-8x.png',
-        'reports/stadium/gwangju-special-sections-trace/current-firstbase-special-overlay-v50-x680-y750-6x.png',
-        'reports/stadium/gwangju-special-sections-trace/current-thirdbase-special-overlay-v50-x420-y130-6x.png',
-        'reports/stadium/gwangju-special-sections-trace/current-skybox-special-overlay-v50-x300-y780-10x.png',
-        'reports/stadium/gwangju-special-sections-trace/current-special-full-overlay-v50-x300-y120-3x.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-special-seats.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-alphabet-special-seats-upper.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-champion-seats-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-central-table-seats-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-first-surprise-seats-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-third-surprise-seats-clean-overlay.png',
       ],
     },
     {
@@ -498,9 +493,11 @@ const runEvidenceInventory = async () => {
         'bleachers-table-right',
       ],
       artifacts: [
-        'reports/stadium/gwangju-op-outfield-trace/current-left-op-overlay-v50-x650-y70-6x.png',
-        'reports/stadium/gwangju-op-outfield-trace/current-right-op-overlay-v50-x1120-y300-5x.png',
-        'reports/stadium/gwangju-op-outfield-trace/current-op-full-overlay-v50-x650-y70-3x.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-op-outfield.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-outfield-left-seats-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-outfield-right-seats-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-bleachers-table-left-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-bleachers-table-right-clean-overlay.png',
       ],
     },
     {
@@ -509,10 +506,12 @@ const runEvidenceInventory = async () => {
       statusNote: 'Full repeated 5F table sequence evidence by official PNG crop.',
       blockIds: Array.from({ length: 35 }, (_, index) => `five-table-${501 + index}`),
       artifacts: [
-        'reports/stadium/gwangju-five-table-trace/current-five-table-501-509-overlay-v50-x690-y920-8x.png',
-        'reports/stadium/gwangju-five-table-trace/current-five-table-510-518-overlay-v50-x300-y820-8x.png',
-        'reports/stadium/gwangju-five-table-trace/current-five-table-519-527-overlay-v50-x230-y520-8x.png',
-        'reports/stadium/gwangju-five-table-trace/current-five-table-528-535-overlay-v50-x290-y160-8x.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-five-table-501-518.png',
+        'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-five-table-519-535.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-five-table-501-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-five-table-518-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-five-table-519-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-five-table-535-clean-overlay.png',
       ],
     },
     {
@@ -521,11 +520,12 @@ const runEvidenceInventory = async () => {
       statusNote: 'S-series seats use official image color scan and staged overlay evidence.',
       blockIds: Array.from({ length: 35 }, (_, index) => `sky-picnic-s-${301 + index}`),
       artifacts: [
-        'reports/stadium/gwangju-105-108-s301-trace/current-s301-s304-overlay-v45-x760-y930-10x.png',
-        'reports/stadium/gwangju-s305-s317-trace/current-s305-s317-overlay-v50-x430-y860-12x.png',
-        'reports/stadium/gwangju-s318-s335-trace/current-s318-s335-overlay-v46-x320-y390-4x.png',
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-sky-picnic-s-301-315.png',
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-sky-picnic-s-316-335.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-sky-picnic-s-301-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-sky-picnic-s-315-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-sky-picnic-s-316-clean-overlay.png',
+        'reports/stadium/gwangju-seatmap-trace-review-clean-crops/gwangju-seatmap-trace-review-sky-picnic-s-335-clean-overlay.png',
       ],
     },
   ];
@@ -609,6 +609,9 @@ const runEvidenceInventory = async () => {
     for (const artifact of zone.artifacts) {
       if (!(await exists(artifact))) missingArtifacts.push(artifact);
     }
+    const forbiddenReleaseArtifacts = zone.artifacts.filter((artifact) => (
+      FORBIDDEN_RELEASE_ARTIFACT_PATTERNS.some((pattern) => pattern.test(artifact))
+    ));
   
     const failedRows = rows.filter((row) => row.status !== 'passed');
     const topHitFailures = rows.filter((row) => row.topHitAtLabel === false);
@@ -621,6 +624,7 @@ const runEvidenceInventory = async () => {
       ...missingAuditRows.map((blockId) => `MISSING_IMAGE_AUDIT_ROW:${blockId}`),
       ...missingTraceRows.map((blockId) => `MISSING_TRACE_REVIEW_ROW:${blockId}`),
       ...missingArtifacts.map((artifact) => `MISSING_ARTIFACT:${artifact}`),
+      ...forbiddenReleaseArtifacts.map((artifact) => `FORBIDDEN_RELEASE_ARTIFACT:${artifact}`),
       ...failedRows.map((row) => `IMAGE_AUDIT_NOT_PASSED:${row.id}:${row.status}`),
       ...topHitFailures.map((row) => `TOP_HIT_FAILED:${row.id}`),
       ...traceFailures.map((row) => `TRACE_REVIEW_NOT_RELEASE_READY:${row.id}`),
@@ -647,6 +651,7 @@ const runEvidenceInventory = async () => {
         'fiveTableLocalFillBoundsMaxAbsDelta',
       ]),
       labelTopHitFailures: topHitFailures.length,
+      forbiddenReleaseArtifactCount: forbiddenReleaseArtifacts.length,
       blockers,
       blockIds: zone.blockIds,
       artifacts: zone.artifacts,
@@ -690,6 +695,8 @@ const runEvidenceInventory = async () => {
       passedZones: zoneRows.filter((zone) => zone.status === 'passed').length,
       failedZones: zoneRows.filter((zone) => zone.status !== 'passed').length,
       totalInventoryArtifacts: zoneRows.reduce((total, zone) => total + zone.artifacts.length, 0),
+      forbiddenReleaseArtifactPatterns: FORBIDDEN_RELEASE_ARTIFACT_PATTERNS.map((pattern) => pattern.source),
+      forbiddenReleaseArtifactCount: zoneRows.reduce((total, zone) => total + zone.forbiddenReleaseArtifactCount, 0),
       blockers,
     },
     zones: zoneRows,
@@ -711,6 +718,7 @@ const runEvidenceInventory = async () => {
       'minimumScanCoverageRatio',
       'maximumLocalFillBoundsMaxAbsDelta',
       'labelTopHitFailures',
+      'forbiddenReleaseArtifactCount',
       'artifactCount',
       'blockers',
     ],
@@ -727,6 +735,7 @@ const runEvidenceInventory = async () => {
       zone.minimumScanCoverageRatio,
       zone.maximumLocalFillBoundsMaxAbsDelta,
       zone.labelTopHitFailures,
+      zone.forbiddenReleaseArtifactCount,
       zone.artifacts.length,
       zone.blockers.join(';'),
     ]),
@@ -743,6 +752,8 @@ const runEvidenceInventory = async () => {
     `- upstream image alignment audit: \`${report.upstream.imageAlignmentStatus}\``,
     `- upstream trace review: \`${report.upstream.traceReviewStatus}\``,
     `- total blocks: \`${report.upstream.totalBlocks}\``,
+    `- forbidden release artifact patterns: \`${report.summary.forbiddenReleaseArtifactPatterns.join(', ')}\``,
+    `- forbidden release artifact count: \`${report.summary.forbiddenReleaseArtifactCount}\``,
     '',
     '## Zone Summary',
     '',
@@ -759,6 +770,7 @@ const runEvidenceInventory = async () => {
         'Min Scan Coverage',
         'Max Fill Delta',
         'Top Hit Failures',
+        'Forbidden Artifacts',
         'Blockers',
       ],
       zoneRows.map((zone) => [
@@ -773,6 +785,7 @@ const runEvidenceInventory = async () => {
         zone.minimumScanCoverageRatio,
         zone.maximumLocalFillBoundsMaxAbsDelta,
         zone.labelTopHitFailures,
+        zone.forbiddenReleaseArtifactCount,
         zone.blockers.length ? zone.blockers.join('<br>') : '-',
       ]),
     ),
@@ -826,20 +839,52 @@ const runImageTraceCandidates = async () => {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const frontendRoot = path.resolve(scriptDir, '..');
   const repoRoot = path.resolve(frontendRoot, '..');
+  const reportDir = path.join(frontendRoot, 'reports/stadium');
   const defaultOutDir = path.join(repoRoot, 'output/playwright');
   
   const argValue = (name, fallback) => {
+    const inlineArg = process.argv.find((arg) => arg.startsWith(`${name}=`));
+    if (inlineArg) return inlineArg.slice(name.length + 1);
     const index = process.argv.indexOf(name);
     if (index === -1 || !process.argv[index + 1]) return fallback;
     return process.argv[index + 1];
   };
   
-  const outDir = path.resolve(frontendRoot, argValue('--out-dir', defaultOutDir));
-  const cropDir = path.join(outDir, 'gwangju-seatmap-image-trace-candidates-crops');
-  const jsonPath = path.join(outDir, 'gwangju-seatmap-image-trace-candidates.json');
-  const csvPath = path.join(outDir, 'gwangju-seatmap-image-trace-candidates.csv');
-  const markdownPath = path.join(outDir, 'gwangju-seatmap-image-trace-candidates.md');
-  const overlayPath = path.join(outDir, 'gwangju-seatmap-image-trace-candidates-overlay.png');
+  const worksetFilter = argValue('--workset', null);
+  const SKY_PICNIC_RETRACE_WORKSET = {
+    id: 'sky-picnic-s305-s335',
+    blockIds: Array.from({ length: 31 }, (_, index) => `sky-picnic-s-${305 + index}`),
+  };
+  const DEFAULT_OUTPUT_FILE_NAMES = {
+    json: 'gwangju-seatmap-image-trace-candidates.json',
+    csv: 'gwangju-seatmap-image-trace-candidates.csv',
+    markdown: 'gwangju-seatmap-image-trace-candidates.md',
+    overlay: 'gwangju-seatmap-image-trace-candidates-overlay.png',
+    cropDir: 'gwangju-seatmap-image-trace-candidates-crops',
+  };
+  const SKY_PICNIC_RETRACE_OUTPUT_FILE_NAMES = {
+    json: 'gwangju-seatmap-sky-picnic-s305-s335-retrace-candidates.json',
+    csv: 'gwangju-seatmap-sky-picnic-s305-s335-retrace-candidates.csv',
+    markdown: 'gwangju-seatmap-sky-picnic-s305-s335-retrace-candidates.md',
+    overlay: 'gwangju-seatmap-sky-picnic-s305-s335-retrace-candidates-overlay.png',
+    cropDir: 'gwangju-seatmap-sky-picnic-s305-s335-retrace-candidates-crops',
+  };
+  const filteredWorkset = worksetFilter === SKY_PICNIC_RETRACE_WORKSET.id
+    ? SKY_PICNIC_RETRACE_WORKSET
+    : GWANGJU_ZONE_PRECISION_WORKSETS.find((workset) => workset.id === worksetFilter);
+  if (worksetFilter && !filteredWorkset) {
+    throw new Error(`Unknown Gwangju image trace candidate workset: ${worksetFilter}`);
+  }
+  const filteredBlockIds = filteredWorkset ? new Set(filteredWorkset.blockIds) : null;
+  const outputFileNames = worksetFilter === SKY_PICNIC_RETRACE_WORKSET.id
+    ? SKY_PICNIC_RETRACE_OUTPUT_FILE_NAMES
+    : DEFAULT_OUTPUT_FILE_NAMES;
+  const outDir = path.resolve(frontendRoot, argValue('--out-dir', worksetFilter === SKY_PICNIC_RETRACE_WORKSET.id ? reportDir : defaultOutDir));
+  const cropDir = path.join(outDir, outputFileNames.cropDir);
+  const jsonPath = path.join(outDir, outputFileNames.json);
+  const csvPath = path.join(outDir, outputFileNames.csv);
+  const markdownPath = path.join(outDir, outputFileNames.markdown);
+  const overlayPath = path.join(outDir, outputFileNames.overlay);
   const imagePath = path.resolve(frontendRoot, GWANGJU_SEATMAP_IMAGE.imagePath);
   
   const SEATMAP_BOUNDS = { minX: 250, maxX: 1370, minY: 90, maxY: 1090 };
@@ -900,8 +945,6 @@ const runImageTraceCandidates = async () => {
     'k7-118',
     'k7-119',
     'k7-120',
-    'k7-121',
-    'k7-122',
   ]);
   const P2_ROW_STRIPE_REFERENCE_AREA_RATIO = 0.45;
   const P2_MERGED_COMPONENT_REFERENCES = {
@@ -940,10 +983,7 @@ const runImageTraceCandidates = async () => {
   };
   const P2_MERGED_COMPONENT_RECALL_THRESHOLD = 0.96;
   const P2_MERGED_COMPONENT_IOU_THRESHOLD = 0.35;
-  const P2_PRODUCTION_REVIEWED_CURRENT_PATH_BLOCK_IDS = new Set([
-    'k7-121',
-    'k7-122',
-  ]);
+  const P2_PRODUCTION_REVIEWED_CURRENT_PATH_BLOCK_IDS = new Set([]);
   
   const round = (value, digits = 3) => Number(Number(value || 0).toFixed(digits));
   const pixelKey = (x, y) => `${x},${y}`;
@@ -1745,6 +1785,8 @@ const runImageTraceCandidates = async () => {
       `- official image: \`${GWANGJU_SEATMAP_IMAGE.imagePath}\``,
       `- coordinate source: \`${SOURCE_POLICY.allowedCoordinateSource}\``,
       `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
+      `- workset filter: \`${report.worksetFilter ?? 'none'}\``,
+      `- production path used for candidate: \`${report.productionPathUsedForCandidate}\``,
       `- candidate rows: \`${rowsWithCrops.length}\``,
       `- expected active trace blocks: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
       `- derived K7/AWAY aggregate mode: \`${report.derivedOperatorAggregateMode}\``,
@@ -1794,7 +1836,10 @@ const runImageTraceCandidates = async () => {
   }
   
   const componentIndex = buildComponentIndex(image);
-  const rows = GWANGJU_BLOCKS.map((block) => blockCandidate(block, componentIndex));
+  const candidateBlocks = filteredBlockIds
+    ? GWANGJU_BLOCKS.filter((block) => filteredBlockIds.has(block.id))
+    : GWANGJU_BLOCKS;
+  const rows = candidateBlocks.map((block) => blockCandidate(block, componentIndex));
   const statusCounts = hashRows(rows);
   const manualReviewRows = rows.filter((row) => row.requiresManualReview);
   const opRows = rows.filter((row) => ['outfield-left-seats', 'outfield-right-seats', 'bleachers-table-left', 'bleachers-table-right'].includes(row.id));
@@ -1805,6 +1850,14 @@ const runImageTraceCandidates = async () => {
     generatedAt: new Date().toISOString(),
     doesNotModifyDataFile: true,
     writesOnlyArtifacts: true,
+    productionPathUsedForCandidate: false,
+    worksetFilter: worksetFilter ?? null,
+    filteredWorkset: filteredWorkset
+      ? {
+        id: filteredWorkset.id,
+        blockIds: [...filteredBlockIds],
+      }
+      : null,
     sourcePolicy: SOURCE_POLICY,
     image: {
       path: GWANGJU_SEATMAP_IMAGE.imagePath,
@@ -2516,7 +2569,7 @@ const runZonePrecisionWorksets = async () => {
   if (GWANGJU_PENDING_OPERATOR_SECTIONS.length !== 0) {
     blockers.push(`PENDING_OPERATOR_SECTIONS_CHANGED:${GWANGJU_PENDING_OPERATOR_SECTIONS.join(',')}`);
   }
-  if (GWANGJU_BLOCKS.length !== 113) {
+  if (GWANGJU_BLOCKS.length !== GWANGJU_EXPECTED_TRACE_BLOCK_COUNT) {
     blockers.push(`ACTIVE_DATA_BLOCK_COUNT_CHANGED:${GWANGJU_BLOCKS.length}`);
   }
   

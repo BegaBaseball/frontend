@@ -36,6 +36,7 @@ import {
   mateSectionCardClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const MateChatConversationPanel = lazy(() => import('./MateChatConversationPanel'));
 
@@ -133,6 +134,7 @@ export default function MateChatViewRuntime({
 }: MateChatViewRuntimeProps) {
   const statusMeta = getPartyStatusMeta(party.status);
   const flowLabel = getPartyFlowLabel(party.status);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
   const headerTitle = isHost ? '호스트 채팅' : '메이트 채팅';
   const heroHeading = isHost ? '채팅과 체크인 조율' : '호스트와 만남 조율 채팅';
   const headerDescription = isHost
@@ -242,7 +244,7 @@ export default function MateChatViewRuntime({
                       <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
                         <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
-                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">{party.stadium}</p>
+                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">{stadiumDisplayName}</p>
                         <p className="text-[16px] text-gray-500 dark:text-gray-300">{party.section}</p>
                       </div>
                     </div>

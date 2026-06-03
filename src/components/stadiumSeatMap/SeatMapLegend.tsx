@@ -1,4 +1,5 @@
 import type { SeatMapCategoryMeta, SeatMapThemeMode } from './seatMapCommonTypes';
+import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
 interface SeatMapLegendProps {
   categoryIds: readonly string[];
@@ -16,7 +17,11 @@ export function SeatMapLegend({ categoryIds, categories, mode }: SeatMapLegendPr
         return (
           <span
             key={categoryId}
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500"
+            style={{
+              backgroundColor: mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined,
+              color: mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
+            }}
           >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
             {category.label}

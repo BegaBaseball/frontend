@@ -625,7 +625,7 @@ const runPrecisionWorkset = async () => {
       return {
         priority: 'LOCKED',
         candidateStatus: 'locked-review-reference',
-        reviewFocus: 'SB compact hit-area와 401-432 스카이존은 현재 release gate 계약으로 잠겨 있어 회귀 감시 대상으로 유지합니다.',
+        reviewFocus: 'SB visual hit-area와 401-432 스카이존은 현재 release gate 계약으로 잠겨 있어 회귀 감시 대상으로 유지합니다.',
       };
     }
 
@@ -933,11 +933,14 @@ const runReleaseGate = async () => {
   const EXPECTED_SKYBOX_BLOCKS = 35;
   const EXPECTED_SKYZONE_BLOCKS = 32;
   const EXPECTED_SPECIAL_BLOCKS = 15;
-  const EXPECTED_ALIGNMENT_PROBES = 556;
-  const EXPECTED_BROWSER_QA_PROBES = 176;
-  const EXPECTED_HIT_TEST_PROBES = 732;
-  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = '94f0ac1923b681f23cde6eb77dc6181ba52435cce46272c04bb7a56d1833bd42';
-  const EXPECTED_OFFICIAL_ASSET_SHA256 = 'a66c73dcf2a228015b51bd3627ed2288340410369bbaeebedb236c5630877627';
+  const EXPECTED_ALIGNMENT_PROBES = 429;
+  const EXPECTED_BROWSER_QA_PROBES = 179;
+  const EXPECTED_HIT_TEST_PROBES = 608;
+  // SB1-SB35는 visual polygon 전체를 hit polygon으로 사용하므로 승인된 visual/hit split이 없다.
+  const EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS = 0;
+  const EXPECTED_HIT_GEOMETRY_EXCEPTIONS = 0;
+  const EXPECTED_RELEASE_FIXTURE_FINGERPRINT = 'c69ad1aa260bf48c23634d0f07bcb9d13491c45c70acc0bd0edd7fc079485e5a';
+  const EXPECTED_OFFICIAL_ASSET_SHA256 = '30ebfe637f42e674d7761af7739e61aa0751813e0f72bd9cde4f8135b91a3523';
 
   function probeKey(id, point) {
     return `${id}:${point[0]},${point[1]}`;
@@ -991,6 +994,7 @@ const runReleaseGate = async () => {
     const source = await readText('src/data/suwonSeatData.ts');
     const releaseLockSource = await readText('docs/suwon-seatmap-release-lock.md');
     const packageSource = await readText('package.json');
+    const dispatcherSource = await readText('scripts/stadium-seatmap-ops.mjs');
     const auditSource = await readText('scripts/stadium-ux-audit.mjs');
     const visualReviewSource = await readText('scripts/suwon-seatmap-ops.mjs');
     const precisionWorksetSource = await readText('scripts/suwon-seatmap-ops.mjs');
@@ -1046,19 +1050,27 @@ const runReleaseGate = async () => {
       ['browser QA probe count', summary.browserQaProbes === EXPECTED_BROWSER_QA_PROBES],
       ['alignment probe count', summary.alignmentProbes === EXPECTED_ALIGNMENT_PROBES],
       ['hit test probe count', summary.hitTestProbes === EXPECTED_HIT_TEST_PROBES],
-      ['visual/hit mismatch ids are empty', visualHitMismatchIds.length === 0],
-      ['approved visual/hit split ids are empty', approvedVisualHitSplitIds.length === 0],
+      ['visual/hit mismatch block count', visualHitMismatchIds.length === EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS],
+      ['approved visual/hit split block count', approvedVisualHitSplitIds.length === EXPECTED_VISUAL_HIT_MISMATCH_BLOCKS],
       ['unresolved visual/hit mismatch ids are empty', unresolvedVisualHitMismatchIds.length === 0],
-      ['hit exception ids are empty', hitExceptionIds.length === 0],
+      ['hit exception count', hitExceptionIds.length === EXPECTED_HIT_GEOMETRY_EXCEPTIONS],
       ['unused hit exception notes are empty', unusedHitExceptionIds.length === 0],
       ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
       ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
+      ['package mobile script', packageSource.includes('"qa:stadium:suwon:mobile": "node scripts/stadium-seatmap-ops.mjs suwon mobile"')],
+      ['package full script', packageSource.includes('"qa:stadium:suwon:full": "node scripts/stadium-seatmap-ops.mjs suwon full"')],
       ['package release lock script', packageSource.includes('"qa:stadium:suwon:release-lock": "node scripts/stadium-seatmap-ops.mjs suwon release-gate"')],
-      ['package visual review script', packageSource.includes('"stadium:suwon:visual-review": "node scripts/stadium-seatmap-ops.mjs suwon visual-review"')],
-      ['package precision workset script', packageSource.includes('"stadium:suwon:precision-workset": "node scripts/stadium-seatmap-ops.mjs suwon precision-workset"')],
-      ['package visual review qa script', packageSource.includes('"qa:stadium:suwon:visual-review": "npm run stadium:suwon:visual-review && npm run qa:stadium:suwon:release-lock"')],
+      ['package status script', packageSource.includes('"stadium:suwon:status": "node scripts/stadium-seatmap-ops.mjs suwon status"')],
+      ['package responsive script removed', !packageSource.includes('"qa:stadium:suwon:responsive"')],
+      ['package visual review script removed', !packageSource.includes('"stadium:suwon:visual-review"')],
+      ['package precision workset script removed', !packageSource.includes('"stadium:suwon:precision-workset"')],
+      ['package visual review qa script removed', !packageSource.includes('"qa:stadium:suwon:visual-review"')],
+      ['dispatcher responsive task', dispatcherSource.includes('responsive: [')],
+      ['dispatcher visual review task', dispatcherSource.includes("'visual-review': [")],
+      ['dispatcher precision workset task', dispatcherSource.includes("'precision-workset': [")],
       ['release lock document includes release gate script', releaseLockSource.includes('npm run qa:stadium:suwon:release-lock')],
-      ['release lock document includes visual review script', releaseLockSource.includes('npm run stadium:suwon:visual-review')],
+      ['release lock document includes internal visual review task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs suwon visual-review')],
+      ['release lock document includes internal precision workset task', releaseLockSource.includes('node scripts/stadium-seatmap-ops.mjs suwon precision-workset')],
       ['visual review artifact contract', visualReviewSource.includes('suwon-seatmap-visual-review.json') && visualReviewSource.includes('suwon-infield-1f-overlay.svg') && visualReviewSource.includes('suwon-infield-2f-overlay.svg') && visualReviewSource.includes('suwon-infield-3f-overlay.svg') && visualReviewSource.includes('suwon-center-accessible-overlay.svg') && visualReviewSource.includes('suwon-outfield-special-overlay.svg') && visualReviewSource.includes('suwon-highfive-overlay.svg') && visualReviewSource.includes('suwon-205-215-overlay.svg') && visualReviewSource.includes('suwon-skybox-skyzone-overlay.svg')],
       ['visual review full coverage contract', visualReviewSource.includes('EXPECTED_REVIEWED_BLOCKS') && visualReviewSource.includes('missingReviewRows') && visualReviewSource.includes('missingReviewBlocks') && visualReviewSource.includes('duplicateReviewBlocks')],
       ['visual review split approval contract', visualReviewSource.includes('APPROVED_VISUAL_HIT_SPLIT') && visualReviewSource.includes('UNRESOLVED_VISUAL_HIT_MISMATCH') && visualReviewSource.includes('approvedVisualHitSplitBlocks') && visualReviewSource.includes('unresolvedVisualHitMismatchBlocks')],

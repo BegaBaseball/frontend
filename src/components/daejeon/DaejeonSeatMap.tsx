@@ -199,6 +199,7 @@ function SectionFinder({
   onSearchChange,
   onSelect,
   onHover,
+  autoFocusInput = false,
 }: {
   blocks: DaejeonBlock[];
   totalCount: number;
@@ -208,10 +209,9 @@ function SectionFinder({
   onSearchChange: (value: string) => void;
   onSelect: (section: DaejeonBlock) => void;
   onHover: (id: string | null) => void;
+  autoFocusInput?: boolean;
 }) {
-  const emptyMessage = searchTerm.trim()
-    ? '검색 결과가 없습니다'
-    : '선택한 필터에 해당하는 구역이 없습니다';
+  const hasSearch = searchTerm.trim().length > 0;
   const sectionGroups = DAEJEON_OFFICIAL_SECTION_GROUPS.flatMap((group) => (
     group.sections.map((sectionName) => ({
       key: `${group.id}-${sectionName}`,
@@ -236,18 +236,28 @@ function SectionFinder({
       <label className="relative mb-3 block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
+          data-testid="daejeon-block-search"
           aria-label="대전 구역 검색"
           type="search"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
+          autoFocus={autoFocusInput}
           placeholder="구역명, 블록 검색"
           className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
         />
       </label>
       <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
         {blocks.length === 0 ? (
-          <div className="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            {emptyMessage}
+          <div
+            data-testid="daejeon-section-finder-empty"
+            className="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+          >
+            <div>검색어와 선택한 필터에 맞는 구역이 없습니다</div>
+            {hasSearch && (
+              <div className="mt-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                검색어: {searchTerm.trim()}
+              </div>
+            )}
           </div>
         ) : (
           sectionGroups.map((sectionGroup) => (
@@ -265,6 +275,9 @@ function SectionFinder({
                   <button
                     key={block.id}
                     type="button"
+                    data-testid={`daejeon-section-finder-item-${block.id}`}
+                    data-block-code={block.blockCode}
+                    data-official-section={block.officialSectionName}
                     onClick={() => !isPendingReview && onSelect(block)}
                     onMouseEnter={() => onHover(isPendingReview ? null : block.id)}
                     onMouseLeave={() => onHover(null)}
@@ -433,6 +446,37 @@ function DetailPanel({
   );
 }
 
+function DaejeonExtraMeta({ section, accent }: { section: DaejeonBlock; accent: string }) {
+  const coverage = findDaejeonSectionCoverageByBlock(section.id);
+  const parentGroup = findDaejeonParentBlockGroup(section.parentId);
+
+  return (
+    <div data-testid="daejeon-seatmap-extra-meta" className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
+      <div className="grid grid-cols-2 gap-2.5">
+        <InfoTile label="공식 섹션" value={section.officialSectionName} />
+        <InfoTile label="정확 블록" value={section.blockCode} />
+        <InfoTile label="부모 구역" value={parentGroup?.block ?? section.parentBlock} />
+        <InfoTile label="source confidence" value={getDaejeonSourceLabel(section.sourceConfidence)} />
+      </div>
+      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+        <div
+          data-testid="daejeon-seatmap-coverage-status"
+          className="rounded-xl px-3 py-2"
+          style={{ background: `${accent}12` }}
+        >
+          coverage status: {coverage ? getDaejeonCoverageStatusLabel(coverage.status) : '-'}
+        </div>
+        <div data-testid="daejeon-seatmap-trace-status" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          trace status: {getDaejeonTraceStatusLabel(section.traceStatus)}
+        </div>
+        <div data-testid="daejeon-seatmap-accessibility-note" className="rounded-xl bg-cyan-50 px-3 py-2 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          접근성 메모: {section.accessibilityNote ?? '별도 접근성 메모 없음'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DaejeonSeatMap() {
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
@@ -445,6 +489,8 @@ export default function DaejeonSeatMap() {
   const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({ blockId: null, requestId: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -470,6 +516,12 @@ export default function DaejeonSeatMap() {
     },
   });
   const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasOfficialBlocks = DAEJEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEJEON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? DAEJEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#F37321';
@@ -534,24 +586,42 @@ export default function DaejeonSeatMap() {
   const handleCloseSection = useCallback(() => {
     setSelected(null);
     setFinderSelectedBlockId(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
   }, []);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setFinderSelectedBlockId(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
 
   const handleSelectSection = useCallback((section: DaejeonBlock) => {
     if (!isDaejeonSelectableSeatBlock(section)) {
       setSelected(null);
       setFinderSelectedBlockId(null);
       setHover(null);
+      setIsSectionFinderOpen(true);
+      setSectionFinderAutoFocus(false);
       return;
     }
 
     if (selected?.id === section.id) {
       setSelected(null);
       setFinderSelectedBlockId(null);
+      setIsSectionFinderOpen(true);
+      setSectionFinderAutoFocus(false);
       return;
     }
 
     setSelected(section);
     setFinderSelectedBlockId(section.id);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(section.id);
     setZoom((currentZoom) => {
       const targetZoom = isDenseTouchTarget(section) ? MAX_ZOOM : Math.max(currentZoom, FINDER_FOCUS_ZOOM);
@@ -566,6 +636,8 @@ export default function DaejeonSeatMap() {
   const handleMapSelectSection = useCallback((section: DaejeonBlock | null) => {
     setFinderSelectedBlockId(null);
     setSelected(section);
+    setIsSectionFinderOpen(!section);
+    setSectionFinderAutoFocus(false);
   }, []);
 
   useEffect(() => {
@@ -648,7 +720,7 @@ export default function DaejeonSeatMap() {
       testIdPrefix="daejeon"
     />
   );
-  const sectionFinder = (
+  const sectionFinder = isSectionFinderOpen ? (
     <SectionFinder
       blocks={visibleBlocks}
       totalCount={DAEJEON_BLOCKS.length}
@@ -658,8 +730,9 @@ export default function DaejeonSeatMap() {
       onSearchChange={setSearchTerm}
       onSelect={handleSelectSection}
       onHover={setHover}
+      autoFocusInput={sectionFinderAutoFocus}
     />
-  );
+  ) : null;
 
   const mapContent = (
     <div className="relative">
@@ -696,10 +769,17 @@ export default function DaejeonSeatMap() {
       onClose={handleCloseSection}
       onUpload={() => handleShareSeatView(selected)}
       copy={{ blockLabel: '정확 블록' }}
+      extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}
       isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
       getUploadLabel={(section) => (
         isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
       )}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '대전 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'daejeon-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -708,7 +788,7 @@ export default function DaejeonSeatMap() {
       <SeatMapTemplateShell
         mode={mode}
         title="대전 한화생명볼파크"
-        subtitle="대전 한화 공식 좌석도"
+        subtitle="대전 한화생명볼파크 공식 좌석도"
         titleAccentColor="#F37321"
         isMobile={isMobile}
         isAuxiliaryGuideActive={false}
@@ -734,10 +814,17 @@ export default function DaejeonSeatMap() {
             onClose={handleCloseSection}
             onUpload={() => handleShareSeatView(selected)}
             copy={{ blockLabel: '정확 블록' }}
+            extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}
             isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
             getUploadLabel={(section) => (
               isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
             )}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '대전 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'daejeon-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
@@ -753,7 +840,7 @@ export default function DaejeonSeatMap() {
           </div>
         )}
         fullscreenTitle="대전 한화생명볼파크"
-        fullscreenSubtitle="한화 공식 좌석도 전체화면"
+        fullscreenSubtitle="대전 한화생명볼파크 공식 좌석도 전체화면"
       />
     </>
   );
