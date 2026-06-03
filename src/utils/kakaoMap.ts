@@ -140,43 +140,6 @@ export const openKakaoMapRoute = (name: string, lat: number | null | undefined, 
   return true;
 };
 
-export const waitForKakaoMaps = (
-  callback: () => void,
-  onError?: (message: string) => void,
-  maxChecks = 50,
-  interval = 100
-) => {
-  let checkCount = 0;
-  let mounted = true;
-
-  const checkAndRun = setInterval(() => {
-    checkCount++;
-    
-    if (!mounted) {
-      clearInterval(checkAndRun);
-      return;
-    }
-
-    if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
-      clearInterval(checkAndRun);
-      setTimeout(() => {
-        if (mounted) {
-          callback();
-        }
-      }, interval);
-    } else if (checkCount >= maxChecks) {
-      clearInterval(checkAndRun);
-      console.error('카카오맵 로드 타임아웃');
-      onError?.('지도를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
-    }
-  }, interval);
-
-  return () => {
-    mounted = false;
-    clearInterval(checkAndRun);
-  };
-};
-
 /**
  * 주변 장소 검색
  */

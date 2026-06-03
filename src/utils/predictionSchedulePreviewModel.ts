@@ -3,6 +3,7 @@ import { TEAM_DATA, TEAM_NAME_TO_ID, getFullTeamName } from '../constants/teams'
 import type { Game } from '../types/prediction';
 import { formatTime } from './inningScoreParser';
 import { getGameStatus, type GameStatusCode } from './predictionStatus';
+import { formatStadiumDisplayName } from './stadiumDisplay';
 
 export type PredictionScheduleDateRailItem = {
   date: string;
@@ -200,7 +201,7 @@ export const buildPredictionScheduleRowViewModel = (
   const awayTeam = buildTeamModel(game.awayTeam, game.awayPitcher);
   const homeTeam = buildTeamModel(game.homeTeam, game.homePitcher);
   const startTimeLabel = formatTime(game.startTime || null) || GAME_TIME;
-  const stadiumLabel = game.stadium?.trim().replace('구장', '') || '구장 미정';
+  const stadiumLabel = formatStadiumDisplayName(game.stadium) || '구장 미정';
 
   return {
     gameId: game.gameId,

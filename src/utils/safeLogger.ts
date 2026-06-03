@@ -92,7 +92,15 @@ const isErrorLike = (value: unknown): value is ErrorLike => {
 };
 
 const isEventLike = (value: unknown): value is EventLike => {
-  return !!value && typeof value === 'object' && ('type' in (value as EventLike) || 'message' in (value as EventLike));
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  if (typeof Event !== 'undefined' && value instanceof Event) {
+    return true;
+  }
+
+  return !isPlainObject(value) && ('type' in (value as EventLike) || 'message' in (value as EventLike));
 };
 
 const stripQueryString = (url: string): string => {
@@ -116,6 +124,11 @@ const isLikelyUrlWithQuery = (value: string): boolean => {
 };
 
 const shouldRedactKey = (key: string): boolean => {
+  const normalizedKey = key.toLowerCase();
+  if (normalizedKey === 'responsecode' || normalizedKey === 'statuscode' || normalizedKey === 'errorcode') {
+    return false;
+  }
+
   return REDACTED_FIELD_PATTERNS.some((pattern) => pattern.test(key));
 };
 

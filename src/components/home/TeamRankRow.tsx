@@ -15,7 +15,14 @@ interface TeamRankRowProps {
   team: TeamRankRowTeam;
   variant: 'compact' | 'rich';
   rowClassName?: string;
+  sparkline?: ('W' | 'D' | 'L')[];
 }
+
+const SPARKLINE_COLORS: Record<'W' | 'D' | 'L', string> = {
+  W: '#22c55e',
+  D: '#eab308',
+  L: '#ef4444',
+};
 
 const formatGamesBehind = (team: TeamRankRowTeam) => {
   if (team.gamesBehind == null) return null;
@@ -27,6 +34,7 @@ export default function TeamRankRow({
   team,
   variant,
   rowClassName = '',
+  sparkline,
 }: TeamRankRowProps) {
   const isTopThree = team.rank <= 3;
   const totalGames = Math.max(0, team.wins + team.draws + team.losses);
@@ -97,6 +105,18 @@ export default function TeamRankRow({
         <p className="mt-0.5 whitespace-nowrap text-[12px] font-bold leading-4 tabular-nums text-zinc-600 dark:text-zinc-300">
           {team.wins}승 · {team.draws}무 · {team.losses}패
         </p>
+        {sparkline && sparkline.length > 0 && (
+          <div className="mt-1.5 flex justify-end gap-[3px]">
+            {sparkline.map((result, i) => (
+              <span
+                key={i}
+                className="inline-block rounded-full"
+                style={{ width: 6, height: 6, background: SPARKLINE_COLORS[result] }}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

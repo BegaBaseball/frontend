@@ -300,20 +300,20 @@ export const extractHashtags = (description: string): string[] => {
 };
 
 /**
- * 상태별 스타일 가져오기
+ * 상태별 스타일 가져오기 (mono mint surface — dot 색만 상태 구분)
  */
-export const getStatusStyle = (status: PartyStatus) => {
-  const styles: Record<PartyStatus, { bg: string; text: string }> = {
-    PENDING: { bg: 'bg-blue-100', text: 'text-blue-700' },
-    MATCHED: { bg: 'bg-blue-100', text: 'text-blue-700' },
-    CHECKED_IN: { bg: 'bg-blue-100', text: 'text-blue-700' },
-    COMPLETED: { bg: 'bg-green-100', text: 'text-green-700' },
-    FAILED: { bg: 'bg-red-100', text: 'text-red-700' },
-    SELLING: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-    SOLD: { bg: 'bg-gray-100', text: 'text-gray-700' },
+export const getStatusStyle = (status: PartyStatus): { dotColor: string; isLive: boolean } => {
+  const styles: Record<PartyStatus, { dotColor: string; isLive: boolean }> = {
+    PENDING:    { dotColor: '#22a36a', isLive: true  },
+    MATCHED:    { dotColor: '#0f7a4d', isLive: false },
+    CHECKED_IN: { dotColor: '#7b3ef0', isLive: false },
+    COMPLETED:  { dotColor: '#94a3b8', isLive: false },
+    FAILED:     { dotColor: '#dc3a5b', isLive: false },
+    SELLING:    { dotColor: '#e08317', isLive: true  },
+    SOLD:       { dotColor: '#94a3b8', isLive: false },
   };
 
-  return styles[status] || styles.PENDING;
+  return styles[status] ?? styles.PENDING;
 };
 
 /**

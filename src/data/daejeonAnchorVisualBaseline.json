@@ -1,0 +1,858 @@
+{
+  "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
+  "generatedAt": "2026-05-31T11:42:36.808Z",
+  "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
+  "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
+  "expectedCropCount": 28,
+  "policy": {
+    "purpose": "대전 공식 PNG overlay anchor crop visual baseline",
+    "coordinateSystem": "official PNG 920x1060",
+    "note": "좌표/path 수정으로 crop hash가 바뀌면 release-lock에서 visual diff가 실패하며 baseline 갱신 전 운영자 검수가 필요하다."
+  },
+  "crops": [
+    {
+      "id": "home-100",
+      "group": "home",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "100A-100C",
+        "home-stack",
+        "visible-path"
+      ],
+      "regressionTestIds": [
+        "P1_HOME_100_STACK_REGRESSION"
+      ],
+      "crop": {
+        "x": 300,
+        "y": 630,
+        "width": 270,
+        "height": 190
+      },
+      "blocks": [
+        "central-reserved-100__100a",
+        "central-reserved-100__100b",
+        "central-reserved-100__100c",
+        "catcher-back-100__100a",
+        "catcher-back-100__100b",
+        "catcher-back-100__100c",
+        "central-table-100__100a",
+        "central-table-100__100b",
+        "central-table-100__100c"
+      ],
+      "sha256": "bdd968541d782fec7a4d5c461d3c9c2c094f230a0e1189b6ac91b93735f5062f"
+    },
+    {
+      "id": "first-101-109",
+      "group": "first",
+      "reviewPriority": "P0",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "104-single-cell",
+        "105-109-drift",
+        "first-base-sequence"
+      ],
+      "regressionTestIds": [
+        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION"
+      ],
+      "crop": {
+        "x": 540,
+        "y": 340,
+        "width": 230,
+        "height": 360
+      },
+      "blocks": [
+        "first-infield-b-101-108__101",
+        "first-infield-b-101-108__102",
+        "first-infield-b-101-108__103",
+        "first-infield-b-101-108__104",
+        "first-infield-b-101-108__105",
+        "first-infield-b-101-108__106",
+        "first-infield-b-101-108__107",
+        "first-infield-b-101-108__108",
+        "first-infield-a-109-112-201-212__109"
+      ],
+      "sha256": "1d1b67fe9dac15c75abe1377fd9631d9425355aadebde2b36ce25b96796fc299"
+    },
+    {
+      "id": "first-104-106-detail",
+      "group": "first",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "104-single-cell",
+        "105-106-drift",
+        "screenshot-regression"
+      ],
+      "regressionTestIds": [
+        "P2_FIRST_104_106_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 580,
+        "y": 455,
+        "width": 170,
+        "height": 120
+      },
+      "blocks": [
+        "first-infield-b-101-108__104",
+        "first-infield-b-101-108__105",
+        "first-infield-b-101-108__106"
+      ],
+      "sha256": "ac223104309ecdff38a88baa3810a97a6437525f63532fb8701761022f6bd055"
+    },
+    {
+      "id": "first-107-110-detail",
+      "group": "first",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "108-109-boundary",
+        "label-top-hit"
+      ],
+      "regressionTestIds": [
+        "P2_FIRST_107_110_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 530,
+        "y": 540,
+        "width": 140,
+        "height": 170
+      },
+      "blocks": [
+        "first-infield-b-101-108__107",
+        "first-infield-b-101-108__108",
+        "first-infield-a-109-112-201-212__109",
+        "first-infield-a-109-112-201-212__110"
+      ],
+      "sha256": "26c60c2268a00b3264856d2c9677e6e27aa205175865f0a18a8c5d6c2a36cc05"
+    },
+    {
+      "id": "first-109-112-sequence",
+      "group": "first",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "109-112-drift",
+        "lower-infield"
+      ],
+      "regressionTestIds": [
+        "P1_FIRST_109_112_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 495,
+        "y": 590,
+        "width": 170,
+        "height": 165
+      },
+      "blocks": [
+        "first-infield-a-109-112-201-212__109",
+        "first-infield-a-109-112-201-212__110",
+        "first-infield-a-109-112-201-212__111",
+        "first-infield-a-109-112-201-212__112"
+      ],
+      "sha256": "29622368902426f101dcabf9236c8f8d12defb3e4c5568e90050a01cc7a1fb1c"
+    },
+    {
+      "id": "cass-200-detail",
+      "group": "first",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "adjacent-overlap",
+        "special-seat"
+      ],
+      "regressionTestIds": [
+        "P1_CASS_200_SPECIAL_CELL_REGRESSION"
+      ],
+      "crop": {
+        "x": 710,
+        "y": 350,
+        "width": 85,
+        "height": 125
+      },
+      "blocks": [
+        "cass-cheering-200__200"
+      ],
+      "sha256": "0631a2a9f7433fad80d9d4a290ee93785fd3eafcb667a15f445e1b712f50c929"
+    },
+    {
+      "id": "third-121-124",
+      "group": "third",
+      "reviewPriority": "P0",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "121-split-color",
+        "122-124-boundary",
+        "third-base-sequence"
+      ],
+      "regressionTestIds": [
+        "P0_THIRD_121_124_SPLIT_COLOR_REGRESSION"
+      ],
+      "crop": {
+        "x": 130,
+        "y": 340,
+        "width": 180,
+        "height": 220
+      },
+      "blocks": [
+        "third-infield-b-121-124__121",
+        "third-infield-b-121-124__122",
+        "third-infield-b-121-124__123",
+        "third-infield-b-121-124__124"
+      ],
+      "sha256": "4b9494f5ea0e01150bf41536631845af1acb4f34a7c9c3667cb6d63d6ff843ca"
+    },
+    {
+      "id": "third-120-122-detail",
+      "group": "third",
+      "reviewPriority": "P0",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "120-121-boundary",
+        "121-split-color"
+      ],
+      "regressionTestIds": [
+        "P0_THIRD_120_122_BOUNDARY_REGRESSION"
+      ],
+      "crop": {
+        "x": 145,
+        "y": 455,
+        "width": 150,
+        "height": 100
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__120",
+        "third-infield-b-121-124__121",
+        "third-infield-b-121-124__122"
+      ],
+      "sha256": "026c0c9c09489d13a2b918e64ed3891fa0dce189969a0ecb0e31a8b4b5356ed3"
+    },
+    {
+      "id": "third-119-121-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "119-121-boundary",
+        "owner-point"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_119_121_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 145,
+        "y": 480,
+        "width": 190,
+        "height": 115
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__119",
+        "third-infield-a-113-120-213-225__120",
+        "third-infield-b-121-124__121"
+      ],
+      "sha256": "123008431db357feab6ec15b3a5559fc103e97b88659812da04f53ed658cec02"
+    },
+    {
+      "id": "third-113-120-sequence",
+      "group": "third",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "100C-overlap",
+        "113-120-drift"
+      ],
+      "regressionTestIds": [
+        "P1_THIRD_113_120_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 190,
+        "y": 500,
+        "width": 210,
+        "height": 270
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__113",
+        "third-infield-a-113-120-213-225__114",
+        "third-infield-a-113-120-213-225__115",
+        "third-infield-a-113-120-213-225__116",
+        "third-infield-a-113-120-213-225__117",
+        "third-infield-a-113-120-213-225__118",
+        "third-infield-a-113-120-213-225__119",
+        "third-infield-a-113-120-213-225__120"
+      ],
+      "sha256": "b9e44f7544d54bb0030abc0f5a5ae699cf69888423461c2aeb022c46cc219ffc"
+    },
+    {
+      "id": "third-113-117-wide",
+      "group": "third",
+      "reviewPriority": "P0",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "113-117-drift",
+        "dugout-boundary"
+      ],
+      "regressionTestIds": [
+        "P0_THIRD_113_117_DRIFT_REGRESSION"
+      ],
+      "crop": {
+        "x": 190,
+        "y": 540,
+        "width": 300,
+        "height": 290
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__113",
+        "third-infield-a-113-120-213-225__114",
+        "third-infield-a-113-120-213-225__115",
+        "third-infield-a-113-120-213-225__116",
+        "third-infield-a-113-120-213-225__117"
+      ],
+      "sha256": "f9bd0012dac047c706f3a9486029c7ca510accb9e03f75aafca9532f6995cf83"
+    },
+    {
+      "id": "third-115-117-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "115-117-boundary",
+        "screenshot-regression"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_115_117_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 220,
+        "y": 575,
+        "width": 170,
+        "height": 135
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__115",
+        "third-infield-a-113-120-213-225__116",
+        "third-infield-a-113-120-213-225__117"
+      ],
+      "sha256": "4f58bba8267e4709d400ff34be5d6e57e50d4501e11ca76cf45f051ed1942261"
+    },
+    {
+      "id": "third-116-121-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "116-121-drift",
+        "121-split-color",
+        "screenshot-regression"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_116_121_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 145,
+        "y": 445,
+        "width": 200,
+        "height": 230
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__116",
+        "third-infield-a-113-120-213-225__117",
+        "third-infield-a-113-120-213-225__118",
+        "third-infield-a-113-120-213-225__119",
+        "third-infield-a-113-120-213-225__120",
+        "third-infield-b-121-124__121"
+      ],
+      "sha256": "ed1de6c6e60e999097effdb2fb23a9dc40601e94ef9310f9fb0b259d253a4eb8"
+    },
+    {
+      "id": "third-113-114-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "100C-overlap",
+        "113-114-boundary"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_113_114_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 285,
+        "y": 650,
+        "width": 120,
+        "height": 120
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__113",
+        "third-infield-a-113-120-213-225__114",
+        "central-table-100__100c"
+      ],
+      "sha256": "6fca4410042ed8d28b9ca283ea35b176d280372a33874669006837d9041aacf6"
+    },
+    {
+      "id": "third-213-225-sequence",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "213-225-small-blocks",
+        "lower-third"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_213_225_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 105,
+        "y": 385,
+        "width": 270,
+        "height": 430
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__213",
+        "third-infield-a-113-120-213-225__214",
+        "third-infield-a-113-120-213-225__215",
+        "third-infield-a-113-120-213-225__216",
+        "third-infield-a-113-120-213-225__217",
+        "third-infield-a-113-120-213-225__218",
+        "third-infield-a-113-120-213-225__219",
+        "third-infield-a-113-120-213-225__220",
+        "third-infield-a-113-120-213-225__221",
+        "third-infield-a-113-120-213-225__222",
+        "third-infield-a-113-120-213-225__223",
+        "third-infield-a-113-120-213-225__224",
+        "third-infield-a-113-120-213-225__225"
+      ],
+      "sha256": "49a07ed4e0dd799fd3499a669763ce0a464a3a25064033c32b254bbb82b48c3c"
+    },
+    {
+      "id": "third-221-225-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "221-225-small-blocks",
+        "left-edge"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_221_225_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 112,
+        "y": 425,
+        "width": 78,
+        "height": 160
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__221",
+        "third-infield-a-113-120-213-225__222",
+        "third-infield-a-113-120-213-225__223",
+        "third-infield-a-113-120-213-225__224",
+        "third-infield-a-113-120-213-225__225"
+      ],
+      "sha256": "44bc7883aa6086070038c6de14a6139e53db6021970f83cfe31117833f569864"
+    },
+    {
+      "id": "third-213-219-detail",
+      "group": "third",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "213-219-small-blocks",
+        "label-top-hit"
+      ],
+      "regressionTestIds": [
+        "P2_THIRD_213_219_DETAIL_REGRESSION"
+      ],
+      "crop": {
+        "x": 230,
+        "y": 640,
+        "width": 135,
+        "height": 180
+      },
+      "blocks": [
+        "third-infield-a-113-120-213-225__213",
+        "third-infield-a-113-120-213-225__214",
+        "third-infield-a-113-120-213-225__215",
+        "third-infield-a-113-120-213-225__216",
+        "third-infield-a-113-120-213-225__217",
+        "third-infield-a-113-120-213-225__218",
+        "third-infield-a-113-120-213-225__219"
+      ],
+      "sha256": "ce2f4809a8b05678e79129abc93a08b27614404a2f9d8403350d0c8ceceac8bc"
+    },
+    {
+      "id": "first-201-212-sequence",
+      "group": "first",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "201-212-small-blocks",
+        "first-base-lower"
+      ],
+      "regressionTestIds": [
+        "P1_FIRST_201_212_SMALL_BLOCK_REGRESSION"
+      ],
+      "crop": {
+        "x": 515,
+        "y": 440,
+        "width": 270,
+        "height": 380
+      },
+      "blocks": [
+        "first-infield-a-109-112-201-212__201",
+        "first-infield-a-109-112-201-212__202",
+        "first-infield-a-109-112-201-212__203",
+        "first-infield-a-109-112-201-212__204",
+        "first-infield-a-109-112-201-212__205",
+        "first-infield-a-109-112-201-212__206",
+        "first-infield-a-109-112-201-212__207",
+        "first-infield-a-109-112-201-212__208",
+        "first-infield-a-109-112-201-212__209",
+        "first-infield-a-109-112-201-212__210",
+        "first-infield-a-109-112-201-212__211",
+        "first-infield-a-109-112-201-212__212"
+      ],
+      "sha256": "1dc173fc4c31078ff264f1a7f39b8170824980eadfe807c7a2d92a66294a1dbe"
+    },
+    {
+      "id": "first-4f-table-301-413-sequence",
+      "group": "first",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "301-302-401-413",
+        "no-303-399",
+        "p2-canonical-owner"
+      ],
+      "regressionTestIds": [
+        "P1_FIRST_4F_301_413_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 500,
+        "y": 435,
+        "width": 355,
+        "height": 500
+      },
+      "blocks": [
+        "first-table-4f-301-413__301",
+        "first-table-4f-301-413__302",
+        "first-table-4f-301-413__401",
+        "first-table-4f-301-413__402",
+        "first-table-4f-301-413__403",
+        "first-table-4f-301-413__404",
+        "first-table-4f-301-413__405",
+        "first-table-4f-301-413__406",
+        "first-table-4f-301-413__407",
+        "first-table-4f-301-413__408",
+        "first-table-4f-301-413__409",
+        "first-table-4f-301-413__410",
+        "first-table-4f-301-413__411",
+        "first-table-4f-301-413__412",
+        "first-table-4f-301-413__413"
+      ],
+      "sha256": "fbf3d3e09f47b9648568c8692028e803deab84b6a61064ad13d5ae77fc6a1b06"
+    },
+    {
+      "id": "third-4f-table-414-330-sequence",
+      "group": "third",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "414-423-326-330",
+        "p2-canonical-owner"
+      ],
+      "regressionTestIds": [
+        "P1_THIRD_4F_414_330_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 60,
+        "y": 470,
+        "width": 500,
+        "height": 470
+      },
+      "blocks": [
+        "third-table-4f-414-330__414",
+        "third-table-4f-414-330__415",
+        "third-table-4f-414-330__416",
+        "third-table-4f-414-330__417",
+        "third-table-4f-414-330__418",
+        "third-table-4f-414-330__419",
+        "third-table-4f-414-330__420",
+        "third-table-4f-414-330__421",
+        "third-table-4f-414-330__422",
+        "third-table-4f-414-330__423",
+        "third-table-4f-414-330__326",
+        "third-table-4f-414-330__327",
+        "third-table-4f-414-330__328",
+        "third-table-4f-414-330__329",
+        "third-table-4f-414-330__330"
+      ],
+      "sha256": "c5ff7f02fb68187ca71e77a05e210ee08642277d30aa43186b8fe6626aa264a9"
+    },
+    {
+      "id": "outfield-upper-500-509-sequence",
+      "group": "outfield",
+      "reviewPriority": "P1",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "500-509-outfield",
+        "outfield-boundary"
+      ],
+      "regressionTestIds": [
+        "P1_OUTFIELD_500_509_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 120,
+        "y": 0,
+        "width": 570,
+        "height": 340
+      },
+      "blocks": [
+        "outfield-lawn-500__500",
+        "outfield-table-third-501-503__501",
+        "outfield-table-third-501-503__502",
+        "outfield-table-third-501-503__503",
+        "outfield-table-first-504-508__504",
+        "outfield-table-first-504-508__505",
+        "outfield-table-first-504-508__506",
+        "outfield-table-first-504-508__507",
+        "outfield-table-first-504-508__508",
+        "outfield-reserved-509__509"
+      ],
+      "sha256": "3601eccff6a38a2ab82ca7d29b58b1811af47c4b2313d480a6e44f20504b056d"
+    },
+    {
+      "id": "skybox-s01-s12-sequence",
+      "group": "skybox",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "S01-S12",
+        "skybox",
+        "small-cell"
+      ],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 650,
+        "y": 510,
+        "width": 145,
+        "height": 225
+      },
+      "blocks": [
+        "skybox-s01-s37__s01",
+        "skybox-s01-s37__s02",
+        "skybox-s01-s37__s03",
+        "skybox-s01-s37__s04",
+        "skybox-s01-s37__s05",
+        "skybox-s01-s37__s06",
+        "skybox-s01-s37__s07",
+        "skybox-s01-s37__s08",
+        "skybox-s01-s37__s09",
+        "skybox-s01-s37__s10",
+        "skybox-s01-s37__s11",
+        "skybox-s01-s37__s12"
+      ],
+      "sha256": "a29e4adfe55f54ad76cd22f5d426a5fab3b14967a4a4791653028c020d1c449f"
+    },
+    {
+      "id": "skybox-s13-s25-sequence",
+      "group": "skybox",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "S13-S25",
+        "skybox",
+        "small-cell"
+      ],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 415,
+        "y": 700,
+        "width": 275,
+        "height": 170
+      },
+      "blocks": [
+        "skybox-s01-s37__s13",
+        "skybox-s01-s37__s14",
+        "skybox-s01-s37__s15",
+        "skybox-s01-s37__s16",
+        "skybox-s01-s37__s17",
+        "skybox-s01-s37__s18",
+        "skybox-s01-s37__s19",
+        "skybox-s01-s37__s20",
+        "skybox-s01-s37__s21",
+        "skybox-s01-s37__s22",
+        "skybox-s01-s37__s23",
+        "skybox-s01-s37__s24",
+        "skybox-s01-s37__s25"
+      ],
+      "sha256": "116b4e57571568187f48ea1ec52ffbf2676e56c3b15b0b506bd82dd2856ffac1"
+    },
+    {
+      "id": "skybox-s26-s37-sequence",
+      "group": "skybox",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "S26-S37",
+        "skybox",
+        "small-cell"
+      ],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
+      "crop": {
+        "x": 155,
+        "y": 645,
+        "width": 280,
+        "height": 225
+      },
+      "blocks": [
+        "skybox-s01-s37__s26",
+        "skybox-s01-s37__s27",
+        "skybox-s01-s37__s28",
+        "skybox-s01-s37__s29",
+        "skybox-s01-s37__s30",
+        "skybox-s01-s37__s31",
+        "skybox-s01-s37__s32",
+        "skybox-s01-s37__s33",
+        "skybox-s01-s37__s34",
+        "skybox-s01-s37__s35",
+        "skybox-s01-s37__s36",
+        "skybox-s01-s37__s37"
+      ],
+      "sha256": "49289c761f1079438b0466a9eb7ce01c22468dcaa79261f9a8a1fc753b74519a"
+    },
+    {
+      "id": "special-400-accessible-first",
+      "group": "special",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "400-vip",
+        "accessible",
+        "special-overlap"
+      ],
+      "regressionTestIds": [
+        "P2_SPECIAL_400_ACCESSIBLE_FIRST_REGRESSION"
+      ],
+      "crop": {
+        "x": 680,
+        "y": 400,
+        "width": 195,
+        "height": 235
+      },
+      "blocks": [
+        "first-infield-accessible__first-infield",
+        "innings-vip-400__400",
+        "outfield-accessible-first__right-outfield"
+      ],
+      "sha256": "bcc737c9609986d1282f7c05be77d89a4c2a63fa83ea3786307deb8a7d76912c"
+    },
+    {
+      "id": "special-425-426-third-accessible",
+      "group": "special",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "425-426-424",
+        "accessible",
+        "special-overlap"
+      ],
+      "regressionTestIds": [
+        "P2_SPECIAL_425_426_THIRD_ACCESSIBLE_REGRESSION"
+      ],
+      "crop": {
+        "x": 45,
+        "y": 560,
+        "width": 150,
+        "height": 175
+      },
+      "blocks": [
+        "splash-caravan-426__426",
+        "splash-jacuzzi-425__425",
+        "third-infield-accessible__third-infield",
+        "outfield-reserved-third-423-330__424"
+      ],
+      "sha256": "2cdc925b32842b12d467ed3b99215b4edf9d08dffb1c3392b027757c990b82c4"
+    },
+    {
+      "id": "special-accessible-center",
+      "group": "special",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "accessible",
+        "center-small-path"
+      ],
+      "regressionTestIds": [
+        "P2_SPECIAL_ACCESSIBLE_CENTER_REGRESSION"
+      ],
+      "crop": {
+        "x": 410,
+        "y": 775,
+        "width": 70,
+        "height": 50
+      },
+      "blocks": [
+        "central-accessible__center"
+      ],
+      "sha256": "67a948b3b93d26a8a614e7c11aaa6c13bebe87d327f896d41566bc27bda3c5e5"
+    },
+    {
+      "id": "special-accessible-outfield-third",
+      "group": "special",
+      "reviewPriority": "P2",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
+      "manualOnlyReason": null,
+      "riskTags": [
+        "accessible",
+        "outfield-small-path"
+      ],
+      "regressionTestIds": [
+        "P2_SPECIAL_ACCESSIBLE_OUTFIELD_THIRD_REGRESSION"
+      ],
+      "crop": {
+        "x": 260,
+        "y": 25,
+        "width": 75,
+        "height": 75
+      },
+      "blocks": [
+        "outfield-accessible-third__left-outfield",
+        "outfield-table-third-501-503__501"
+      ],
+      "sha256": "a071f259e91b063e530ad652c3536144f152da1b35b0a0841b8df918bff34a47"
+    }
+  ]
+}

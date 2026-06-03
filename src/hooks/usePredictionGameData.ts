@@ -1005,9 +1005,7 @@ export const usePredictionGameData = ({
         liveRelayAbortRef.current?.abort();
         return;
       }
-      if (document.visibilityState !== 'hidden') {
-        tick();
-      }
+      tick();
     };
 
     tick();

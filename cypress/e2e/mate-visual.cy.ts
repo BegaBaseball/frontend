@@ -360,7 +360,11 @@ describe('Mate Visual QA', () => {
     cy.contains('파티 참여 신청').should('be.visible');
     cy.contains('정책 안내').should('be.visible');
     cy.get('textarea#message').type('시각 QA를 위한 신청 메시지입니다.');
-    cy.get('button:visible').contains(/결제하기|신청하기/).should('be.visible');
+    cy.get('button:visible')
+      .filter((_, button) => /결제하기|신청하기/.test(button.textContent ?? ''))
+      .first()
+      .scrollIntoView()
+      .should('be.visible');
     cy.screenshot('mate-visual-apply-mobile-light');
   });
 

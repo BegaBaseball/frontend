@@ -2,7 +2,6 @@ import { lazy, Suspense, type ReactNode, useMemo, useRef, useState } from 'react
 
 import TeamLogo from '../TeamLogo';
 import ViewportDeferred from '../ViewportDeferred';
-import { Button } from '../ui/button';
 import type { Game, GameDetail, GameSummary } from '../../types/prediction';
 import type { GameStatusCode } from '../../utils/prediction';
 import {
@@ -571,7 +570,7 @@ export default function AdvancedMatchCardContentRuntime({
         <div className="flex items-center rounded-xl border border-gray-100/90 bg-gradient-to-br from-white/90 via-white to-gray-50/70 dark:border-border dark:from-secondary/45 dark:to-secondary/25 px-4 py-4 shadow-sm">
           <div className="flex-1 text-center">
             <TeamLogo team={game.awayTeam} size={20} className="mx-auto mb-1.5" />
-            <p className="text-[18px] sm:text-[19px] leading-[1.28] tracking-[-0.03em] font-black" style={awayTeamNameStyle}>
+            <p className="text-[18px] sm:text-[19px] leading-[1.28] font-black" style={awayTeamNameStyle}>
               {awayTeamName}
             </p>
             <p className="mt-1.5 text-[16px] sm:text-[16px] leading-[1.45]" style={pitchTextStyle}>
@@ -581,7 +580,7 @@ export default function AdvancedMatchCardContentRuntime({
           <div className="h-9 w-px bg-gray-200/90 dark:bg-border" />
           <div className="flex-1 text-center">
             <TeamLogo team={game.homeTeam} size={20} className="mx-auto mb-1.5" />
-            <p className="text-[18px] sm:text-[19px] leading-[1.28] tracking-[-0.03em] font-black" style={homeTeamNameStyle}>
+            <p className="text-[18px] sm:text-[19px] leading-[1.28] font-black" style={homeTeamNameStyle}>
               {homeTeamName}
             </p>
             <p className="mt-1.5 text-[16px] sm:text-[16px] leading-[1.45]" style={pitchTextStyle}>
@@ -602,14 +601,6 @@ export default function AdvancedMatchCardContentRuntime({
                   <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_COACH_MESSAGE}</p>
                 </div>
               </div>
-              <Button
-                type="button"
-                disabled
-                variant="outline"
-                className="min-h-10 shrink-0 border-amber-300/70 bg-amber-100/70 text-amber-900 disabled:cursor-not-allowed disabled:opacity-100 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100"
-              >
-                수동 데이터 필요
-              </Button>
             </div>
           </div>
         </section>

@@ -9,6 +9,7 @@ import {
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
 import { normalizePredictionDate } from '../utils/predictionHomeLogic';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -124,7 +125,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
             </span>
           </div>
           <div className="text-[16px] text-gray-600 dark:text-gray-200 leading-relaxed">
-            <p className="truncate">{(game.stadium ?? '').replace('구장', '') || '구장 미정'}</p>
+            <p className="truncate">{formatStadiumDisplayName(game.stadium) || '구장 미정'}</p>
             <p className="text-[16px] font-semibold text-slate-500 dark:text-slate-300">선발 발표 전</p>
           </div>
         </div>

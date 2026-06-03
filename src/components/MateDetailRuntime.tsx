@@ -8,6 +8,7 @@ import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import {
+  getMatePartyApplicationsQueryOptions,
   getMatePartyMyApplicationQueryOptions,
   useMatePartyFromRoute,
 } from '../hooks/mateDetailRoute';
@@ -30,6 +31,7 @@ import {
   formatGameDate,
   isPartyHostedByUser,
 } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import ViewportDeferred from './ViewportDeferred';
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
@@ -88,6 +90,14 @@ export default function MateDetailRuntime() {
       : getMatePartyMyApplicationQueryOptions('unknown', currentUserId)),
     enabled: Boolean(partyId && currentUserId && !isHost),
   });
+  const hostApplicationsQuery = useQuery({
+    ...(partyId != null
+      ? getMatePartyApplicationsQueryOptions(partyId)
+      : getMatePartyApplicationsQueryOptions('unknown')),
+    enabled: Boolean(partyId && isHost),
+    refetchOnMount: 'always',
+  });
+  const hostApplications = hostApplicationsQuery.data ?? [];
   const myApplication = myApplicationQuery.data ?? null;
 
   useEffect(() => {
@@ -248,6 +258,7 @@ export default function MateDetailRuntime() {
 
   // UI Helpers
   const homeTeamColor = getTeamColorByAnyKey(party.homeTeam);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
   const getSeatBadgeColor = (section: string) => {
     if (section.includes('응원')) return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900/50';
     if (section.includes('테이블')) return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/35 dark:text-purple-200 dark:border-purple-900/50';
@@ -311,7 +322,7 @@ export default function MateDetailRuntime() {
                   </span>
                   <span className="hidden text-white/60 sm:inline">•</span>
                   <span className="w-full break-keep text-[16px] font-bold sm:w-auto sm:text-[16px]">
-                    {party.stadium}
+                    {stadiumDisplayName}
                   </span>
                 </div>
               </div>
@@ -429,6 +440,7 @@ export default function MateDetailRuntime() {
                 isApproved={isApproved}
                 canAccessCheckIn={canAccessCheckIn}
                 myApplication={myApplication}
+                hostApplications={hostApplications}
                 sectionCardClass={sectionCardClass}
                 insetPanelClass={insetPanelClass}
                 getSeatBadgeColor={getSeatBadgeColor}

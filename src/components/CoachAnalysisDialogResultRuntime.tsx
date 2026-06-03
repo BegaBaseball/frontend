@@ -1,5 +1,6 @@
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from './ui/button';
+import ErrorBoundary from './common/ErrorBoundary';
 
 import {
     type CoachAnalyzeResponse,
@@ -12,7 +13,6 @@ import {
 import {
     COACH_BRIEFING_DISPLAY_MESSAGE,
     COACH_BRIEFING_MANUAL_HINT,
-    getCoachAnalysisFocusSectionNotice,
     getCoachBriefingDataQualityNotice,
     normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
@@ -21,6 +21,7 @@ import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
     normalizeStructuredInlineText,
     normalizeStructuredInsightList,
+    normalizeVerdictText,
     sanitizeMarkdown,
 } from '../utils/coachAnalysisText';
 import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
@@ -73,16 +74,6 @@ type ParsedStructuredCoachPayload = {
     }>;
 };
 
-const focusLabelMap: Record<string, string> = {
-    recent_form: '최근 전력',
-    bullpen: '불펜 상태',
-    starter: '선발 투수',
-    matchup: '상대 전적',
-    batting: '타격 생산성',
-};
-
-const focusOrder = ['recent_form', 'bullpen', 'starter', 'matchup', 'batting'];
-
 const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
     switch (value) {
         case 'grounded':
@@ -94,19 +85,6 @@ const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
         default:
             return '근거 확인 중';
     }
-};
-
-const normalizeFocus = (values: string[]) => {
-    const seen = new Set<string>();
-    return values
-        .map((value) => String(value || '').trim().toLowerCase())
-        .filter((value) => {
-            if (!focusOrder.includes(value)) return false;
-            if (seen.has(value)) return false;
-            seen.add(value);
-            return true;
-        })
-        .sort((a, b) => focusOrder.indexOf(a) - focusOrder.indexOf(b));
 };
 
 const normalizeLegacyTextBlock = (
@@ -341,7 +319,7 @@ export const getAnalysisData = ({
         uncertainty?: string[];
     }) => ({
         summary: normalizeStructuredInlineText(analysis?.summary || '', ''),
-        verdict: normalizeStructuredInlineText(analysis?.verdict || '', ''),
+        verdict: normalizeVerdictText(analysis?.verdict || '', ''),
         strengths: normalizeStructuredInsightList(analysis?.strengths),
         weaknesses: normalizeStructuredInsightList(analysis?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null),
@@ -434,8 +412,17 @@ export const getAnalysisData = ({
                 coachNote || '',
                 '코치 노트가 제공되지 않았습니다.',
             ),
-            analysis_summary: normalizedAnalysis.summary,
-            verdict: normalizedAnalysis.verdict,
+            // 구조화 분석 미제공 시 detailed_markdown 첫 비-헤딩 줄에서 파생
+            analysis_summary: normalizedAnalysis.summary || normalizedAnalysis.verdict,
+            verdict: normalizedAnalysis.verdict
+                || normalizedAnalysis.summary
+                || normalizeStructuredInlineText(
+                    (detailedMarkdown || '')
+                        .split('\n')
+                        .find((l) => l.trim() && !l.startsWith('#') && !l.startsWith('-'))
+                    ?? '',
+                    '',
+                ),
             strengths: normalizedAnalysis.strengths,
             weaknesses: normalizedAnalysis.weaknesses,
             risks: normalizedAnalysis.risks,
@@ -511,7 +498,7 @@ export const getAnalysisData = ({
             });
         }),
         analysis_summary: normalizeStructuredInlineText(typeof data?.analysis_summary === 'string' ? data.analysis_summary : '', ''),
-        verdict: normalizeStructuredInlineText(typeof data?.verdict === 'string' ? data.verdict : '', ''),
+        verdict: normalizeVerdictText(typeof data?.verdict === 'string' ? data.verdict : '', ''),
         strengths: normalizeStructuredInsightList(data?.strengths),
         weaknesses: normalizeStructuredInsightList(data?.weaknesses),
         risks: normalizeRiskItems(Array.isArray(data?.risks) ? data.risks : null),
@@ -614,31 +601,98 @@ interface CoachAnalysisDialogResultRuntimeProps {
     loading: boolean;
     analysisStep: string;
     result: CoachAnalyzeResponse | null;
-    selectedFocus: string[];
     isPastGame: boolean;
     isFutureGame: boolean;
     gameStatusBucket?: string | null;
     errorAction: 'login' | null;
     onLoginAction: () => void;
+    onRetry?: () => void;
     loadingFallbackMessage: string;
+    homeTeamId?: string;
+    awayTeamId?: string;
+}
+
+function CoachAnalysisResultViewLoadFailureFallback({
+    onRetry,
+    onReload,
+}: {
+    onRetry: () => void;
+    onReload: () => void;
+}) {
+    return (
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="mb-3 text-[16px] font-bold">
+                코치 분석 뷰를 불러오지 못했습니다.
+            </p>
+            <p className="mb-4 text-[15px] leading-relaxed text-amber-800/90 dark:text-amber-200/90">
+                일시적인 번들 로딩 이슈 또는 네트워크 오류일 수 있습니다.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+                <Button
+                    type="button"
+                    onClick={onRetry}
+                    variant="outline"
+                    className="border-amber-300/80 text-amber-800 hover:bg-amber-100 dark:border-amber-700/60 dark:text-amber-100 dark:hover:bg-amber-900/40"
+                >
+                    다시 시도
+                </Button>
+                <Button
+                    type="button"
+                    onClick={onReload}
+                    variant="outline"
+                    className="border-amber-300/80 text-amber-800 hover:bg-amber-100 dark:border-amber-700/60 dark:text-amber-100 dark:hover:bg-amber-900/40"
+                >
+                    페이지 새로고침
+                </Button>
+            </div>
+        </div>
+    );
 }
 
 export default function CoachAnalysisDialogResultRuntime({
     loading,
     analysisStep,
     result,
-    selectedFocus,
     isPastGame,
     isFutureGame,
     gameStatusBucket,
     errorAction,
     onLoginAction,
+    onRetry,
     loadingFallbackMessage,
+    homeTeamId,
+    awayTeamId,
 }: CoachAnalysisDialogResultRuntimeProps) {
+    const [resultViewRetryKey, setResultViewRetryKey] = useState(0);
+    const resultBoundaryToken = useMemo(
+        () => [
+            result?.cache_key_version ?? '',
+            result?.question_signature ?? '',
+            result?.focus_signature ?? '',
+            result?.game_status_bucket ?? '',
+            result?.request_mode ?? '',
+            result?.win_probability_home ?? '',
+            homeTeamId ?? '',
+            awayTeamId ?? '',
+        ].join('|'),
+        [
+            awayTeamId,
+            homeTeamId,
+            result?.cache_key_version,
+            result?.focus_signature,
+            result?.game_status_bucket,
+            result?.question_signature,
+            result?.request_mode,
+            result?.win_probability_home,
+        ],
+    );
     const analysisData = useMemo(
         () => getAnalysisData({ result, isPastGame, isFutureGame, gameStatusBucket }),
         [gameStatusBucket, isFutureGame, isPastGame, result],
     );
+    useEffect(() => {
+        setResultViewRetryKey(0);
+    }, [resultBoundaryToken]);
     const analysisDataQualityNotice = useMemo(
         () => (
             result?.manual_data_request
@@ -664,143 +718,116 @@ export default function CoachAnalysisDialogResultRuntime({
         () => getCoachDataQualityLabel(result?.data_quality),
         [result?.data_quality],
     );
-    const focusSectionNotice = useMemo(
-        () => getCoachAnalysisFocusSectionNotice(result?.missing_focus_sections),
-        [result?.missing_focus_sections],
-    );
-    const selectedFocusNormalized = useMemo(
-        () => normalizeFocus(selectedFocus),
-        [selectedFocus],
-    );
-    const resolvedFocus = useMemo(
-        () => normalizeFocus(result?.resolved_focus || []),
-        [result?.resolved_focus],
-    );
-    const hasFocusMeta = typeof result?.focus_signature === 'string';
-    const focusMismatch = hasFocusMeta
-        && selectedFocusNormalized.join('+') !== resolvedFocus.join('+');
 
     return (
         <>
             {loading && !analysisData && (
-                <div className="space-y-4">
-                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
-                        <PredictionLoaderIcon className="h-4 w-4 animate-spin shrink-0 text-primary" />
-                        <span>{analysisStep || loadingFallbackMessage}</span>
-                    </div>
+                <div className="p-6">
+                    <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                        <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
+                            <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
+                            <span className="text-[15px] font-extrabold">{analysisStep || loadingFallbackMessage}</span>
+                        </div>
+                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-slate-400">
+                            응답을 C1 코치 리포트 구조로 정리하고 있습니다.
+                        </p>
                     {!result && (
-                        <div className="space-y-3 px-1">
+                        <div className="mt-5 space-y-3">
                             {[1, 2, 3, 4].map((i) => (
                                 <div
                                     key={i}
-                                    className="h-4 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse"
+                                    className="h-4 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"
                                     style={{ width: `${95 - i * 12}%` }}
                                 />
                             ))}
                         </div>
                     )}
-                </div>
-            )}
-
-            {hasFocusMeta && (
-                <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/10 p-4 space-y-2">
-                    <p className="text-[16px] font-semibold text-emerald-700 dark:text-emerald-300">
-                        이번 분석 기준 focus
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {resolvedFocus.length > 0 ? (
-                            resolvedFocus.map((focusId) => (
-                                <span
-                                    key={focusId}
-                                className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[16px] font-semibold text-emerald-700 dark:text-emerald-200"
-                                >
-                                    {focusLabelMap[focusId] || focusId}
-                                </span>
-                            ))
-                        ) : (
-                            <span className="inline-flex items-center rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/70 dark:bg-black/20 px-2.5 py-1 text-[16px] font-semibold text-emerald-700 dark:text-emerald-200">
-                                종합 분석
-                            </span>
-                        )}
                     </div>
-                    {focusMismatch && (
-                        <p className="text-[16px] text-amber-700 dark:text-amber-300 font-semibold">
-                            선택한 focus와 실제 적용된 focus가 달라 일부 항목이 자동으로 제외되었습니다.
-                        </p>
-                    )}
-                    {result?.focus_section_missing && (
-                        <p className="text-[16px] text-amber-700 dark:text-amber-300 font-semibold">
-                            {focusSectionNotice || '일부 focus 섹션이 누락되어 다음 재생성에서 보강될 수 있습니다.'}
-                        </p>
-                    )}
                 </div>
             )}
 
-            {analysisDataQualityNotice && (
+            {analysisDataQualityNotice && !analysisData && (
                 <div
                     data-testid="coach-analysis-data-quality-note"
-                    className="rounded-2xl border border-amber-200/70 bg-amber-50/80 p-4 text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-100"
+                    className="m-6 rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
                 >
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             data-testid="coach-analysis-data-quality-badge"
-                            className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[16px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
+                            className="inline-flex items-center rounded-full border border-amber-300 bg-white px-2.5 py-1 text-[12px] font-extrabold text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-100"
                         >
                             {analysisDataQualityLabel}
                         </span>
-                        <p className="text-[16px] font-semibold">
+                        <p className="text-[14px] font-bold">
                             {analysisDataQualityNotice.message}
                         </p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        {analysisDataQualityNotice.reasons.map((reason) => (
-                            <span
-                                key={reason}
-                                data-testid="coach-analysis-grounding-reason"
-                                className="inline-flex items-center rounded-full border border-amber-300/70 bg-white/80 px-2.5 py-1 text-[16px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-100"
-                            >
-                                {reason}
-                            </span>
-                        ))}
-                    </div>
-                    {analysisDataQualityNotice.details.length > 0 && (
-                        <div className="mt-3 space-y-1.5">
-                            {analysisDataQualityNotice.details.map((detail) => (
-                                <p
-                                    key={detail}
-                                    data-testid="coach-analysis-grounding-detail"
-                                    className="text-[16px] font-semibold leading-relaxed text-amber-800/90 dark:text-amber-100/90"
-                                >
-                                    {detail}
-                                </p>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
 
             {analysisData && (
-                <Suspense fallback={null}>
-                    <CoachAnalysisResultView analysisData={analysisData} />
-                </Suspense>
+                <ErrorBoundary
+                    key={`coach-analysis-result-boundary-${resultBoundaryToken}-${resultViewRetryKey}`}
+                    fallback={(
+                        <CoachAnalysisResultViewLoadFailureFallback
+                            onRetry={() => {
+                                setResultViewRetryKey((prev) => prev + 1);
+                            }}
+                            onReload={() => {
+                                if (typeof window !== 'undefined') {
+                                    window.location.reload();
+                                }
+                            }}
+                        />
+                    )}
+                >
+                    <Suspense fallback={null}>
+                        <CoachAnalysisResultView
+                            key={`${resultBoundaryToken}-${resultViewRetryKey}`}
+                            analysisData={analysisData}
+                            homeTeamId={homeTeamId}
+                            awayTeamId={awayTeamId}
+                            winProbabilityHome={result?.win_probability_home ?? null}
+                            dataQualityLabel={analysisDataQualityLabel}
+                            dataQualityMessage={analysisDataQualityNotice?.message}
+                            supportedFactCount={result?.supported_fact_count}
+                            usedEvidence={result?.used_evidence}
+                            dataQuality={result?.data_quality}
+                            generationMode={result?.generation_mode}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
             )}
 
             {result?.error && !analysisData && (
-                <div className="rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4">
-                    <p className="text-[16px] font-semibold text-red-700 dark:text-red-300">
+                <div className="m-6 rounded-[14px] border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                    <p className="text-[14px] font-bold text-red-700 dark:text-red-300">
                         {result.error}
                     </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {onRetry && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            data-testid="coach-analysis-retry-cta"
+                            className="border-red-300/70 text-red-700 hover:bg-red-100 dark:border-red-800/50 dark:text-red-200 dark:hover:bg-red-950/40"
+                            onClick={onRetry}
+                        >
+                            다시 시도
+                        </Button>
+                    )}
                     {errorAction === 'login' && (
                         <Button
                             type="button"
                             variant="outline"
                             data-testid="coach-analysis-login-cta"
-                            className="mt-3 border-red-300/70 text-red-700 hover:bg-red-100 dark:border-red-800/50 dark:text-red-200 dark:hover:bg-red-950/40"
+                            className="border-red-300/70 text-red-700 hover:bg-red-100 dark:border-red-800/50 dark:text-red-200 dark:hover:bg-red-950/40"
                             onClick={onLoginAction}
                         >
                             로그인하기
                         </Button>
                     )}
+                    </div>
                 </div>
             )}
         </>

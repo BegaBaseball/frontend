@@ -147,7 +147,7 @@ describe('Prediction Coach Briefing Regression', () => {
           writable: true,
           value: (query: string) =>
             ({
-              matches: query === '(prefers-reduced-motion: reduce)',
+              matches: query === '(prefers-reduced-motion: reduce)' || /min-width/.test(query),
               media: query,
               onchange: null,
               addListener: () => undefined,
@@ -231,6 +231,20 @@ describe('Prediction Coach Briefing Regression', () => {
   const getCoachBriefingBadge = (label: string) => getCoachBriefingCard().contains('span', label);
   const getCoachBriefingButton = (label: string) => getCoachBriefingCard().contains('button', label);
   const expectCoachBriefingText = (text: string) => getCoachBriefingCard().should('contain.text', text);
+  const authProfilePayload = {
+    success: true,
+    data: {
+      id: 123,
+      email: 'test@example.com',
+      name: 'TestUser',
+      handle: 'testuser',
+      favoriteTeam: 'HH',
+      role: 'ROLE_USER',
+      hasPassword: true,
+      profileImageUrl: null,
+      cheerPoints: 0,
+    },
+  };
 
 
 
@@ -367,11 +381,13 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeRetry');
     cy.tick(100);
     cy.tick(2000);
+    // PENDING 첫 지연은 5000ms — 2100ms 시점엔 아직 재시도 없어야 함
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
+    // 30s tick: PENDING 지연 [5s,10s,15s,20s,25s,30s] → 최대 7회(초기 1 + 재시도 6)
     cy.tick(30000);
     cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
       expect(Number(length)).to.be.gte(1);
-      expect(Number(length)).to.be.lte(4);
+      expect(Number(length)).to.be.lte(8);
     });
   });
 
@@ -499,12 +515,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(initialStructuredCalls).to.be.gte(1);
     });
 
-    // First retry delay is 2000ms (RETRY_DELAYS_MS[0]); assert before boundary then after.
-    cy.wait(1000);
+    // PENDING 첫 재시도 지연은 5000ms; 경계 전후 확인
+    cy.wait(3000);
     cy.get('@coachAnalyzeStructured.all').its('length').should((length) => {
       expect(Number(length)).to.equal(initialStructuredCalls);
     });
-    cy.wait(3000);
+    cy.wait(4000); // 누적 7000ms > 5000ms → 첫 PENDING 재시도 이후
     cy.get('@coachAnalyzeStructured.all', { timeout: 10000 }).its('length').should((length) => {
       expect(Number(length)).to.be.gte(initialStructuredCalls + 1);
     });
@@ -836,6 +852,132 @@ describe('Prediction Coach Briefing Regression', () => {
       .should('exist');
   });
 
+  it('reissues expired realtime auth before requesting coach briefing', () => {
+    let profileRequestCount = 0;
+
+    cy.intercept('GET', '**/api/auth/mypage', (req) => {
+      profileRequestCount += 1;
+
+      if (profileRequestCount === 1) {
+        req.reply({
+          statusCode: 401,
+          body: {
+            code: 'TOKEN_EXPIRED',
+            message: 'Unauthorized',
+          },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: authProfilePayload,
+      });
+    }).as('coachRealtimeAuthProfile');
+
+    cy.intercept('POST', '**/auth/reissue*', {
+      statusCode: 200,
+      body: { success: true },
+    }).as('coachRealtimeAuthReissue');
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        meta: {
+          validation_status: 'success',
+          resolved_focus: ['recent_form'],
+          focus_signature: 'recent_form',
+          question_signature: 'auto',
+          cache_key_version: 'v4',
+          request_mode: 'auto_brief',
+          cached: false,
+          cache_state: 'MISS_GENERATE',
+          in_progress: false,
+          generation_mode: 'deterministic_auto',
+          data_quality: 'grounded',
+          structured_response: {
+            headline: '재발급 후 실데이터 브리핑',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+              strengths: [],
+              weaknesses: [],
+              risks: [],
+            },
+            detailed_markdown: '만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.',
+            coach_note: '만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.',
+          },
+        },
+      }),
+    }).as('coachAnalyzeAfterRealtimeReissue');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachRealtimeAuthProfile');
+    cy.wait('@coachRealtimeAuthReissue');
+    cy.wait('@coachRealtimeAuthProfile');
+    cy.wait('@coachAnalyzeAfterRealtimeReissue');
+    expectCoachBriefingText('만료된 실시간 인증 쿠키를 재발급한 뒤 브리핑을 요청합니다.');
+    cy.contains('로그인 세션이 만료되었습니다').should('not.exist');
+  });
+
+  it('shows a re-login CTA when realtime auth preflight cannot reissue', () => {
+    cy.intercept('GET', '**/api/auth/mypage', {
+      statusCode: 401,
+      body: {
+        code: 'TOKEN_EXPIRED',
+        message: 'Unauthorized',
+      },
+    }).as('coachRealtimeAuthExpiredProfile');
+
+    cy.intercept('POST', '**/auth/reissue*', {
+      statusCode: 401,
+      body: {
+        success: false,
+        code: 'REFRESH_TOKEN_EXPIRED',
+      },
+    }).as('coachRealtimeAuthExpiredReissue');
+
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: buildSseResponse({
+        meta: {
+          validation_status: 'success',
+          request_mode: 'auto_brief',
+          cache_state: 'HIT',
+          in_progress: false,
+        },
+      }),
+    }).as('coachAnalyzeRealtimeAuthExpired');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachRealtimeAuthExpiredProfile');
+    cy.wait('@coachRealtimeAuthExpiredReissue');
+
+    expectCoachBriefingText('로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('exist');
+    cy.get('@coachAnalyzeRealtimeAuthExpired.all')
+      .should('have.length', 0);
+  });
+
   it('shows a re-login CTA instead of generic fallback when coach analyze returns AUTH_EXPIRED', () => {
     cy.intercept('POST', '**/auth/reissue*', {
       statusCode: 401,
@@ -909,12 +1051,12 @@ describe('Prediction Coach Briefing Regression', () => {
       expect(interceptions).to.have.length.at.least(1);
     });
     getCoachBriefingCard()
-      .find('span.animate-pulse')
+      .find('.animate-pulse')
       .should('exist');
 
     cy.wait('@coachAnalyzeLoadingCursor');
     getCoachBriefingCard()
-      .find('span.animate-pulse')
+      .find('.animate-pulse')
       .should('not.exist');
   });
 
@@ -1088,6 +1230,7 @@ describe('Prediction Coach Briefing Regression', () => {
         data_quality: 'partial',
         used_evidence: ['game', 'kbo_seasons', 'team_recent_form'],
         grounding_reasons: ['missing_summary', 'missing_starters', 'missing_lineups'],
+        win_probability_home: 0.62,
         structured_response: {
           headline: '부분 근거 기반 자동 브리핑',
           sentiment: 'neutral',
@@ -1124,6 +1267,10 @@ describe('Prediction Coach Briefing Regression', () => {
     getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
     getCoachBriefingCard()
       .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
+    // V5: VS bar should appear when win_probability_home is provided
+    getCoachBriefingCard()
+      .find('[data-testid="coach-vs-bar"]')
+      .should('exist');
   });
 
   it('shows detailed partial-quality warnings when clutch or focus evidence is limited', () => {

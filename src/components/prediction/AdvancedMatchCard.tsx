@@ -22,6 +22,7 @@ import {
   formatTime,
   toNumericScore,
 } from '../../utils/inningScoreParser';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
 import {
   PredictionChevronLeftIcon,
@@ -138,7 +139,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     };
   }, [game.gameId]);
 
-  const stadiumLabel = gameDetail?.stadiumName || gameDetail?.stadium || game.stadium;
+  const stadiumLabel = formatStadiumDisplayName(gameDetail?.stadiumName || gameDetail?.stadium || game.stadium);
   const startTimeLabel = gameDetail?.startTime || null;
   const homePitcherName = gameDetail?.homePitcher || game.homePitcher?.name || '발표 전';
   const awayPitcherName = gameDetail?.awayPitcher || game.awayPitcher?.name || '발표 전';

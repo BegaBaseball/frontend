@@ -16,6 +16,77 @@ const GA4_MEASUREMENT_ID = (import.meta.env.VITE_GA4_MEASUREMENT_ID || '').trim(
 const GOOGLE_SITE_VERIFICATION = (import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
 const NAVER_SITE_VERIFICATION = (import.meta.env.VITE_NAVER_SITE_VERIFICATION || '').trim();
 
+const GA4_IDLE_TIMEOUT_MS = 3000;
+
+const ensureGa4Queue = () => {
+  window.dataLayer = window.dataLayer || [];
+  if (typeof window.gtag !== 'function') {
+    window.gtag = (...args: unknown[]) => {
+      window.dataLayer.push(args);
+    };
+  }
+};
+
+const appendGa4Script = () => {
+  const scriptId = 'bega-ga4-script';
+  const scriptSrc = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
+  const existingById = document.getElementById(scriptId);
+  const existingBySrc = document.querySelector(`script[src="${scriptSrc}"]`);
+
+  if (!existingById && !existingBySrc) {
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.async = true;
+    script.src = scriptSrc;
+    document.head.appendChild(script);
+  } else if (!existingById && existingBySrc instanceof HTMLScriptElement) {
+    existingBySrc.id = scriptId;
+  }
+};
+
+const scheduleGa4ScriptLoad = () => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return () => {};
+  }
+
+  let canceled = false;
+  let idleId: number | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const run = () => {
+    if (canceled) {
+      return;
+    }
+    appendGa4Script();
+  };
+
+  const scheduleIdle = () => {
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(run, { timeout: GA4_IDLE_TIMEOUT_MS });
+      return;
+    }
+
+    timeoutId = globalThis.setTimeout(run, GA4_IDLE_TIMEOUT_MS);
+  };
+
+  if (document.readyState === 'complete') {
+    scheduleIdle();
+  } else {
+    window.addEventListener('load', scheduleIdle, { once: true });
+  }
+
+  return () => {
+    canceled = true;
+    window.removeEventListener('load', scheduleIdle);
+    if (idleId !== null && 'cancelIdleCallback' in window) {
+      window.cancelIdleCallback(idleId);
+    }
+    if (timeoutId !== null) {
+      globalThis.clearTimeout(timeoutId);
+    }
+  };
+};
+
 export default function SeoHead() {
   const location = useLocation();
   const hasMountedRef = useRef(false);
@@ -33,33 +104,15 @@ export default function SeoHead() {
       return;
     }
 
-    const scriptId = 'bega-ga4-script';
-    const scriptSrc = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
-    const existingById = document.getElementById(scriptId);
-    const existingBySrc = document.querySelector(`script[src="${scriptSrc}"]`);
-
-    if (!existingById && !existingBySrc) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.async = true;
-      script.src = scriptSrc;
-      document.head.appendChild(script);
-    } else if (!existingById && existingBySrc instanceof HTMLScriptElement) {
-      existingBySrc.id = scriptId;
-    }
-
-    window.dataLayer = window.dataLayer || [];
-    if (typeof window.gtag !== 'function') {
-      window.gtag = (...args: unknown[]) => {
-        window.dataLayer.push(args);
-      };
-    }
+    ensureGa4Queue();
 
     if (!window.__BEGA_GA4_INITIALIZED__) {
-      window.gtag('js', new Date());
-      window.gtag('config', GA4_MEASUREMENT_ID);
+      window.gtag!('js', new Date());
+      window.gtag!('config', GA4_MEASUREMENT_ID);
       window.__BEGA_GA4_INITIALIZED__ = true;
     }
+
+    return scheduleGa4ScriptLoad();
   }, []);
 
   useEffect(() => {

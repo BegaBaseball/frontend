@@ -1,10 +1,8 @@
-import { lazy, Suspense } from 'react';
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
-
-const PredictionLoadingView = lazy(() => import('./PredictionLoadingView'));
-const PredictionMatchesErrorView = lazy(() => import('./PredictionMatchesErrorView'));
-const PredictionMatchScheduleReadyView = lazy(() => import('./PredictionMatchScheduleReadyView'));
-const PredictionMatchScheduleResolvedDataRuntime = lazy(() => import('./PredictionMatchScheduleResolvedDataRuntime'));
+import PredictionLoadingView from './PredictionLoadingView';
+import PredictionMatchesErrorView from './PredictionMatchesErrorView';
+import PredictionMatchScheduleReadyView from './PredictionMatchScheduleReadyView';
+import PredictionMatchScheduleResolvedDataRuntime from './PredictionMatchScheduleResolvedDataRuntime';
 
 interface PredictionMatchScheduleResolvedRuntimeProps {
   isAuthLoading: boolean;
@@ -22,17 +20,15 @@ export default function PredictionMatchScheduleResolvedRuntime({
   setSearchParams,
 }: PredictionMatchScheduleResolvedRuntimeProps) {
   return (
-    <Suspense fallback={null}>
-      <PredictionMatchScheduleResolvedDataRuntime
-        isAuthLoading={isAuthLoading}
-        isLoggedIn={isLoggedIn}
-        locationState={locationState}
-        searchParams={searchParams}
-        setSearchParams={setSearchParams}
-        PredictionLoadingViewComponent={PredictionLoadingView}
-        PredictionMatchesErrorViewComponent={PredictionMatchesErrorView}
-        PredictionMatchScheduleReadyViewComponent={PredictionMatchScheduleReadyView}
-      />
-    </Suspense>
+    <PredictionMatchScheduleResolvedDataRuntime
+      isAuthLoading={isAuthLoading}
+      isLoggedIn={isLoggedIn}
+      locationState={locationState}
+      searchParams={searchParams}
+      setSearchParams={setSearchParams}
+      PredictionLoadingViewComponent={PredictionLoadingView}
+      PredictionMatchesErrorViewComponent={PredictionMatchesErrorView}
+      PredictionMatchScheduleReadyViewComponent={PredictionMatchScheduleReadyView}
+    />
   );
 }

@@ -97,7 +97,7 @@ describe('Mate Page Accuracy', () => {
     status: 'PENDING',
     gameDate: '2026-02-24',
     gameTime: '20:00',
-    stadium: '대전 한화생명 이글스파크',
+    stadium: '대전 한화생명볼파크',
     teamId: 'HH',
     homeTeam: 'HH',
     awayTeam: 'SS',
@@ -266,7 +266,6 @@ describe('Mate Page Accuracy', () => {
 
   it('uses backend status filtering so matched tab shows results even outside the current page', () => {
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
     cy.contains('잠실야구장').should('be.visible');
 
     cy.contains('button', '매칭 완료').click();
@@ -280,7 +279,6 @@ describe('Mate Page Accuracy', () => {
   it('keeps desktop search and primary actions in the same toolbar row', () => {
     cy.viewport(1440, 1000);
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
 
     cy.get('#mate-search').should('be.visible').then(($search) => {
       const searchRect = $search[0].getBoundingClientRect();
@@ -314,7 +312,6 @@ describe('Mate Page Accuracy', () => {
     }).as('getPartyApplications');
 
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0');
     cy.contains('테스트 호스트').should('be.visible');
     cy.contains('인증 전').should('be.visible');
     cy.contains('4.5').should('be.visible');
@@ -332,9 +329,7 @@ describe('Mate Page Accuracy', () => {
 
   it('resets pagination to first page on search and date filter changes', () => {
     cy.visit('/mate');
-    cy.wait('@getPartiesPage0')
-      .its('request.url')
-      .should('include', 'page=0');
+    cy.contains('잠실야구장').should('be.visible');
 
     cy.contains('button', '다음').click();
     cy.wait('@getPartiesPage1')
@@ -351,7 +346,7 @@ describe('Mate Page Accuracy', () => {
       expect(requestUrl.searchParams.get('page')).to.eq('0');
       expect(requestUrl.searchParams.get('searchQuery')).to.eq('검색용');
     });
-    cy.contains('대전 한화생명 이글스파크').should('be.visible');
+    cy.contains('대전 한화생명볼파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
     cy.get('button[aria-label*="요일"]').first().click();

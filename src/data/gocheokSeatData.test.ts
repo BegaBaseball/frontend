@@ -7,14 +7,17 @@ import {
   GOCHEOK_BLOCKS,
   GOCHEOK_CATEGORIES,
   GOCHEOK_FACILITY_GUIDE,
+  GOCHEOK_FACILITY_TAB_LABELS,
   GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS,
   GOCHEOK_IMAGE_GEOMETRY_DRAFTS,
   GOCHEOK_OMITTED_OFFICIAL_BLOCKS,
   GOCHEOK_OFFICIAL_REFERENCES,
+  GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT,
   GOCHEOK_SEATMAP_IMAGE,
   GOCHEOK_SEATMAP_VIEW_BOX,
   GOCHEOK_TRACE_REVIEW_REGIONS,
   GOCHEOK_TRACE_REVIEWED_BLOCK_IDS,
+  getGocheokVisitHint,
 } from './gocheokSeatData';
 
 interface DecodedPng {
@@ -232,8 +235,8 @@ function calculateSeatColorOverlapRatio(image: DecodedPng, category: string, pat
 
 test('고척 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(GOCHEOK_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(GOCHEOK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png');
-  assert.equal(GOCHEOK_SEATMAP_IMAGE.requiredAssetFileName, 'gocheok-kiwoom-seatmap-official-2026.png');
+  assert.equal(GOCHEOK_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp');
+  assert.equal(GOCHEOK_SEATMAP_IMAGE.requiredAssetFileName, 'gocheok-kiwoom-seatmap-official-2026.webp');
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageWidth, 653);
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageHeight, 960);
   assert.equal(GOCHEOK_SEATMAP_VIEW_BOX, '0 0 653 960');
@@ -287,7 +290,35 @@ test('고척 시설현황 guide는 공식 정적 안내 정보이며 좌석 hit-
   assert.equal(guide.floorImages.length, 3);
   assert.ok(guide.openLicenseLabel.includes('공공누리'));
   assert.ok(guide.implementationNote.includes('정적 공식 안내 자료'));
-  assert.equal('imageGeometry' in (guide as Record<string, unknown>), false);
+  assert.equal('imageGeometry' in (guide as unknown as Record<string, unknown>), false);
+});
+
+test('고척 모든 블록은 기존 정적 데이터 기반 visit hint를 반환한다', () => {
+  GOCHEOK_BLOCKS.forEach((block) => {
+    const hint = getGocheokVisitHint(block);
+
+    assert.equal(hint.blockLabel, block.block);
+    assert.ok(hint.levelLabel, `${block.id} level hint should exist`);
+    assert.ok(hint.sideLabel, `${block.id} side hint should exist`);
+    assert.ok(hint.fanRoleLabel, `${block.id} fan role hint should exist`);
+    assert.ok(hint.context.includes(block.name), `${block.id} context should reference block name`);
+    assert.ok(hint.checklist.length >= 4, `${block.id} checklist should include visit checks`);
+    assert.equal(hint.facilityTabLabel, GOCHEOK_FACILITY_TAB_LABELS[hint.facilityTab]);
+    assert.equal(hint.facilitySourceLabel, GOCHEOK_FACILITY_GUIDE.sourceLabel);
+    assert.equal(hint.finalCheckLabel, '현장 최종 안내 확인');
+    assert.equal(hint.operatorDataStatus, GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status);
+    assert.equal(hint.operatorDataPendingLabel, GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel);
+    assert.match(hint.operatorDataRequiredLabel, /MANUAL_BASEBALL_DATA_REQUIRED/);
+  });
+});
+
+test('고척 visit hint는 외부 수집이나 확정되지 않은 세부 위치를 포함하지 않는다', () => {
+  const forbiddenPattern = /https?:\/\/|www\.|크롤|웹\s*검색|web\s*search|scrap|crawl|게이트|gate|매점|[0-9]+번\s*통로|맞은편|인근/i;
+  const serializedHints = JSON.stringify(GOCHEOK_BLOCKS.map((block) => getGocheokVisitHint(block)));
+  const serializedRequirement = JSON.stringify(GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT);
+
+  assert.doesNotMatch(serializedHints, forbiddenPattern);
+  assert.doesNotMatch(serializedRequirement, forbiddenPattern);
 });
 
 test('고척 블록 데이터는 중복 id와 중복 공식 블록을 갖지 않는다', () => {

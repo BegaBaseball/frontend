@@ -7,6 +7,29 @@ import {
 } from 'react';
 
 const STYLE_ID = 'retro-theme-global-styles';
+const RETRO_FONT_LINKS = [
+  {
+    id: 'retro-font-preconnect-googleapis',
+    rel: 'preconnect',
+    href: 'https://fonts.googleapis.com',
+  },
+  {
+    id: 'retro-font-preconnect-gstatic',
+    rel: 'preconnect',
+    href: 'https://fonts.gstatic.com',
+    crossOrigin: 'anonymous',
+  },
+  {
+    id: 'retro-font-press-start',
+    rel: 'stylesheet',
+    href: 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap',
+  },
+  {
+    id: 'retro-font-galmuri',
+    rel: 'stylesheet',
+    href: 'https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css',
+  },
+] as const;
 const textOutlineShadow =
   '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
 
@@ -92,8 +115,30 @@ const ensureRetroThemeStyles = () => {
   document.head.appendChild(styleTag);
 };
 
+export const ensureRetroFontsLoaded = () => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  RETRO_FONT_LINKS.forEach((entry) => {
+    if (document.getElementById(entry.id)) {
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.id = entry.id;
+    link.rel = entry.rel;
+    link.href = entry.href;
+    if ('crossOrigin' in entry) {
+      link.crossOrigin = entry.crossOrigin;
+    }
+    document.head.appendChild(link);
+  });
+};
+
 const useRetroThemeStyles = () => {
   useEffect(() => {
+    ensureRetroFontsLoaded();
     ensureRetroThemeStyles();
   }, []);
 };
