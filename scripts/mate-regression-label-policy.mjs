@@ -43,7 +43,7 @@ export const extractLabelGlobs = (contents, labelName = FULL_MATE_REGRESSION_LAB
 export const loadFullMateRegressionGlobs = (repoRoot = DEFAULT_REPO_ROOT) => {
   const configPath = resolve(repoRoot, LABELER_CONFIG_PATH);
   const contents = readFileSync(configPath, 'utf8');
-  return extractLabelGlobs(contents);
+  return extractLabelGlobs(contents).map((glob) => normalizePath(glob));
 };
 
 export const findFullMateRegressionMatches = (changedFiles, globs) => {
