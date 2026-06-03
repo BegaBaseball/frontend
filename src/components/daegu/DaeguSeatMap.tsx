@@ -2,12 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
-  DAEGU_BLOCKS,
   DAEGU_CATEGORIES,
   DAEGU_CATEGORY_GROUPS,
-  DAEGU_OPERATOR_REFERENCE_BLOCKS,
-  DAEGU_SEATMAP_IMAGE,
-  DAEGU_SEATMAP_SOURCE_REFERENCES,
   DAEGU_VIEW_INFO,
   getDaeguFanRoleLabel,
   getDaeguSideLabel,
@@ -17,12 +13,17 @@ import {
   isDaeguNormalSelectableSeat,
   type DaeguBlock,
 } from '../../data/daeguSeatData';
+import {
+  DAEGU_CANONICAL_BLOCKS,
+  DAEGU_CANONICAL_SEATMAP_IMAGE,
+  type DaeguCanonicalBlock,
+} from '../../data/daeguCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import DaeguSeatMapSvg, { type DaeguSeatMapImageViewMode } from './DaeguSeatMapSvg';
+import DaeguSeatMapSvg from './DaeguSeatMapSvg';
 import type { SeatMapPan } from '../stadiumSeatMap/seatMapCommonTypes';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
 import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
@@ -33,13 +34,14 @@ import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
+import { filterAndRankDaeguSeatMapBlocks } from './daeguSeatMapSearch';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.25;
 const FINDER_FOCUS_ZOOM = 1.6;
 
-const daeguSectionAdapter: SeatMapSectionAdapter<DaeguBlock> = {
+const daeguSectionAdapter: SeatMapSectionAdapter<DaeguCanonicalBlock> = {
   getId: (section) => section.id,
   getName: (section) => section.name,
   getBlock: (section) => section.block,
@@ -68,26 +70,9 @@ function formatDraftDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function normalizeSearchText(value: string): string {
-  return value.replace(/\s+/g, '').toLowerCase();
-}
-
-function blockSearchText(block: DaeguBlock): string {
-  const category = DAEGU_CATEGORIES[block.category];
-  return [
-    block.id,
-    block.name,
-    block.block,
-    `${block.block}블록`,
-    ...block.officialBlocks,
-    ...block.seatViewSections,
-    category?.label,
-    getDaeguSideLabel(block.side),
-    getDaeguFanRoleLabel(block.fanRole),
-    getDaeguTraceStatusLabel(block.traceStatus),
-  ]
-    .filter(Boolean)
-    .join(' ');
+function getDaeguCanonicalDecisionStatusLabel(status: DaeguCanonicalBlock['canonicalDecisionStatus']): string {
+  if (status === 'CANONICAL_OPERATOR_FROM_OVERLAP') return 'operator overlap canonical';
+  return 'operator-only canonical';
 }
 
 function clampZoom(value: number) {
@@ -100,20 +85,25 @@ function SectionFinder({
   selected,
   mode,
   searchTerm,
+  activeFilterLabel,
   onSearchChange,
   onSelect,
   onHover,
+  autoFocusInput = false,
 }: {
-  blocks: DaeguBlock[];
+  blocks: DaeguCanonicalBlock[];
   totalCount: number;
-  selected: DaeguBlock | null;
+  selected: DaeguCanonicalBlock | null;
   mode: 'light' | 'dark';
   searchTerm: string;
+  activeFilterLabel: string;
   onSearchChange: (value: string) => void;
-  onSelect: (block: DaeguBlock) => void;
+  onSelect: (block: DaeguCanonicalBlock) => void;
   onHover: (id: string | null) => void;
+  autoFocusInput?: boolean;
 }) {
   const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
+  const hasSearch = searchTerm.trim().length > 0;
 
   return (
     <aside
@@ -140,6 +130,7 @@ function SectionFinder({
             type="search"
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
+            autoFocus={autoFocusInput}
             placeholder="블록, 구역명 검색 (예: 1-1, 블루존)"
             className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#074CA1] focus:bg-white dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
             style={{ borderColor }}
@@ -192,11 +183,18 @@ function SectionFinder({
             })}
           </div>
         ) : (
-          <div className="flex min-h-[180px] flex-col items-center justify-center px-4 text-center">
-            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색 결과가 없습니다</p>
+          <div
+            data-testid="daegu-section-finder-empty"
+            className="flex min-h-[180px] flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800"
+          >
+            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색어와 선택한 필터에 맞는 구역이 없습니다</p>
             <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
               블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
             </p>
+            {hasSearch && (
+              <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-slate-500">검색어: {searchTerm.trim()}</p>
+            )}
+            <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">필터: {activeFilterLabel}</p>
           </div>
         )}
       </div>
@@ -310,6 +308,55 @@ function DetailPanel({
   );
 }
 
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+      <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">{label}</div>
+      <div className="text-base font-black text-slate-800 dark:text-white">{value}</div>
+    </div>
+  );
+}
+
+function DaeguExtraMeta({ section, accent }: { section: DaeguCanonicalBlock; accent: string }) {
+  const traceSource = section.imageGeometry.traceSource ?? '-';
+  const officialBlocks = section.officialBlocks.length > 0 ? section.officialBlocks.join(', ') : '-';
+
+  return (
+    <div data-testid="daegu-seatmap-extra-meta" className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
+      <div className="grid grid-cols-2 gap-2.5">
+        <InfoTile label="canonical block key" value={section.canonicalBlockKey} />
+        <InfoTile label="정확 블록" value={section.block} />
+        <InfoTile label="공식 블록" value={officialBlocks} />
+        <InfoTile label="source confidence" value={getDaeguSourceLabel(section.sourceConfidence)} />
+      </div>
+      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+        <div
+          data-testid="daegu-seatmap-canonical-decision-status"
+          className="rounded-xl px-3 py-2"
+          style={{ background: `${accent}12` }}
+        >
+          canonical decision status: {getDaeguCanonicalDecisionStatusLabel(section.canonicalDecisionStatus)}
+        </div>
+        <div data-testid="daegu-seatmap-trace-status" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          trace status: {getDaeguTraceStatusLabel(section.traceStatus)}
+        </div>
+        <div data-testid="daegu-seatmap-trace-method" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          trace method: {getDaeguTraceMethodLabel(section.traceMethod)}
+        </div>
+        <div data-testid="daegu-seatmap-coordinate-source" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          coordinate source: {traceSource}
+        </div>
+        <div data-testid="daegu-seatmap-source-confidence" className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
+          source confidence: {getDaeguSourceLabel(section.sourceConfidence)}
+        </div>
+        <div data-testid="daegu-seatmap-accessibility-note" className="rounded-xl bg-cyan-50 px-3 py-2 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          접근성 메모: {section.accessibilityNote ?? '별도 접근성 메모 없음'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DaeguSeatMap() {
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
@@ -320,38 +367,19 @@ export default function DaeguSeatMap() {
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [searchTerm, setSearchTerm] = useState('');
-  const [imageViewMode, setImageViewMode] = useState<DaeguSeatMapImageViewMode>('operatorReference');
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({
     blockId: null,
     requestId: 0,
   });
   const activeRenderBlocks = useMemo(
-    () => (imageViewMode === 'operatorReference' ? DAEGU_OPERATOR_REFERENCE_BLOCKS : DAEGU_BLOCKS),
-    [imageViewMode],
-  );
-  const fallbackRenderBlocks = useMemo(
-    () => (imageViewMode === 'operatorReference' ? DAEGU_BLOCKS : DAEGU_OPERATOR_REFERENCE_BLOCKS),
-    [imageViewMode],
+    () => DAEGU_CANONICAL_BLOCKS,
+    [],
   );
   const selectableDaeguBlocks = useMemo(
-    () => {
-      const merged = new Map<string, DaeguBlock>();
-      activeRenderBlocks
-        .filter(isDaeguNormalSelectableSeat)
-        .forEach((block) => {
-          merged.set(block.id, block);
-        });
-      fallbackRenderBlocks
-        .filter(isDaeguNormalSelectableSeat)
-        .forEach((block) => {
-          if (!merged.has(block.id)) {
-            merged.set(block.id, block);
-          }
-        });
-
-      return Array.from(merged.values());
-    },
-    [activeRenderBlocks, fallbackRenderBlocks],
+    () => activeRenderBlocks.filter(isDaeguNormalSelectableSeat),
+    [activeRenderBlocks],
   );
   const selectableDaeguBlockIds = useMemo(
     () => new Set(selectableDaeguBlocks.map((block) => block.id)),
@@ -387,25 +415,27 @@ export default function DaeguSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasSelectableBlocks = selectableDaeguBlocks.length > 0;
   const mapToolsEnabled = hasSelectableBlocks;
-  const operatorReferenceSource = useMemo(
-    () => DAEGU_SEATMAP_SOURCE_REFERENCES.find((source) => source.id === 'OPERATOR_REFERENCE_RAPAK_2025'),
-    [],
-  );
   const hoveredCategory = hoveredSection ? DAEGU_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#074CA1';
   const usedCategories = useMemo(() => [...new Set(selectableDaeguBlocks.map((block) => block.category))], [selectableDaeguBlocks]);
   const visibleBlocks = useMemo(() => {
-    const normalizedQuery = normalizeSearchText(searchTerm);
-    return selectableDaeguBlocks.filter((block) => {
+    const filteredBlocks = selectableDaeguBlocks.filter((block) => {
       if (filterCats !== null && !filterCats.includes(block.category)) return false;
       if (activeFilterGroup?.sides != null && !activeFilterGroup.sides.includes(block.side)) return false;
       if (activeFilterGroup?.levels != null && !activeFilterGroup.levels.includes(block.level)) return false;
-      if (!normalizedQuery) return true;
-      return normalizeSearchText(blockSearchText(block)).includes(normalizedQuery);
+      return true;
     });
+    return filterAndRankDaeguSeatMapBlocks(filteredBlocks, searchTerm);
   }, [filterCats, activeFilterGroup, searchTerm, selectableDaeguBlocks]);
+  const activeFilterLabel = activeFilterGroup?.label ?? '전체';
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -437,11 +467,35 @@ export default function DaeguSeatMap() {
     }
   }, []);
 
-  const handleSelectSection = useCallback((section: DaeguBlock) => {
+  const handleCloseSection = useCallback(() => {
+    setSelected(null);
+    setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
+  }, [setHover, setSelected]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMapSelectSection = useCallback((section: DaeguCanonicalBlock | null) => {
+    setSelected(section);
+    setIsSectionFinderOpen(!section);
+    setSectionFinderAutoFocus(false);
+  }, [setSelected]);
+
+  const handleSelectSection = useCallback((section: DaeguCanonicalBlock) => {
     if (!selectableDaeguBlockIds.has(section.id)) {
       return;
     }
     setSelected(section);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(section.id);
     setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
     setMapFocusRequest((current) => ({
@@ -450,16 +504,7 @@ export default function DaeguSeatMap() {
     }));
   }, [selectableDaeguBlockIds, setHover, setSelected]);
 
-  const handleImageViewModeChange = useCallback((nextMode: DaeguSeatMapImageViewMode) => {
-    setImageViewMode(nextMode);
-    setSelected(null);
-    setHover(null);
-    setMapFocusRequest((current) => ({ blockId: null, requestId: current.requestId }));
-    setZoom(MIN_ZOOM);
-    setPan({ x: 0, y: 0 });
-  }, [setHover, setSelected]);
-
-  const handleShareSeatView = useCallback((section: DaeguBlock | null) => {
+  const handleShareSeatView = useCallback((section: DaeguCanonicalBlock | null) => {
     if (!section) return;
 
     setPendingDraft({
@@ -484,7 +529,7 @@ export default function DaeguSeatMap() {
     <DaeguSeatMapSvg
       mode={mode}
       selected={selected}
-      setSelected={setSelected}
+      setSelected={handleMapSelectSection}
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
@@ -500,7 +545,6 @@ export default function DaeguSeatMap() {
       focusBlockId={mapFocusRequest.blockId}
       focusRequestId={mapFocusRequest.requestId}
       blocks={activeRenderBlocks}
-      imageViewMode={imageViewMode}
       enableAutoCenter={enableAutoCenter}
       onFullscreen={allowFullscreen && hasSelectableBlocks ? openFullscreen : undefined}
     />
@@ -508,16 +552,11 @@ export default function DaeguSeatMap() {
 
   const attribution = (
     <SeatMapAttribution
-      source={imageViewMode === 'operatorReference' && operatorReferenceSource ? {
-        prefixLabel: '기존 좌석배치도:',
-        sourceLabel: operatorReferenceSource.label,
-        sourceUrl: operatorReferenceSource.sourceUrl,
-        assetStatus: operatorReferenceSource.assetStatus,
-      } : {
-        prefixLabel: '공식 이미지:',
-        sourceLabel: DAEGU_SEATMAP_IMAGE.sourceLabel,
-        sourceUrl: DAEGU_SEATMAP_IMAGE.sourceUrl,
-        assetStatus: DAEGU_SEATMAP_IMAGE.assetStatus,
+      source={{
+        prefixLabel: 'Canonical 좌석도:',
+        sourceLabel: DAEGU_CANONICAL_SEATMAP_IMAGE.sourceLabel,
+        sourceUrl: DAEGU_CANONICAL_SEATMAP_IMAGE.sourceUrl,
+        assetStatus: DAEGU_CANONICAL_SEATMAP_IMAGE.assetStatus,
       }}
     />
   );
@@ -528,41 +567,6 @@ export default function DaeguSeatMap() {
 
   const mapContent = (
     <div className="relative">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div
-          className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-          data-testid="daegu-seatmap-image-mode-toggle"
-        >
-          {([
-            ['operatorReference', '기존 좌석배치도'],
-            ['officialPng', '공식 이미지'],
-          ] as const).map(([modeId, label]) => {
-            const active = imageViewMode === modeId;
-            const modeTestId = modeId === 'operatorReference' ? 'daegu-seatmap-mode-operator-reference' : 'daegu-seatmap-mode-official-png';
-            return (
-              <button
-                key={modeId}
-                type="button"
-                data-testid={modeTestId}
-                aria-pressed={active}
-                onClick={() => handleImageViewModeChange(modeId)}
-                className={`min-h-9 cursor-pointer rounded-lg border-0 px-3 text-xs font-black transition sm:px-4 ${
-                  active
-                    ? 'bg-[#074CA1] text-white shadow-sm'
-                    : 'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-        {imageViewMode === 'operatorReference' && (
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            4096 기준 승인 블럭 4개부터 선택 가능합니다.
-          </p>
-        )}
-      </div>
       {renderMapSvg(!isFullscreenOpen)}
       {mapToolsEnabled && (
         <SeatMapHoverPreview
@@ -587,16 +591,18 @@ export default function DaeguSeatMap() {
       testIdPrefix="daegu"
     />
   ) : undefined;
-  const sectionFinder = mapToolsEnabled ? (
+  const sectionFinder = mapToolsEnabled && isSectionFinderOpen ? (
     <SectionFinder
       blocks={visibleBlocks}
       totalCount={selectableDaeguBlocks.length}
       selected={selected}
       mode={mode}
       searchTerm={searchTerm}
+      activeFilterLabel={activeFilterLabel}
       onSearchChange={setSearchTerm}
       onSelect={handleSelectSection}
       onHover={setHover}
+      autoFocusInput={sectionFinderAutoFocus}
     />
   ) : null;
   const detailPanel = mapToolsEnabled ? (
@@ -606,9 +612,16 @@ export default function DaeguSeatMap() {
       categories={DAEGU_CATEGORIES}
       adapter={daeguSectionAdapter}
       stadiumKey="DAEGU"
-      onClose={() => setSelected(null)}
+      onClose={handleCloseSection}
       onUpload={() => handleShareSeatView(selected)}
-      copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '대구 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'daegu-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -616,8 +629,8 @@ export default function DaeguSeatMap() {
     <>
       <SeatMapTemplateShell
         mode={mode}
-        title="대구삼성라이온즈파크"
-        subtitle={imageViewMode === 'operatorReference' ? '기존 좌석배치도' : '대구 삼성 공식 이미지'}
+        title="대구 삼성 라이온즈파크"
+        subtitle="대구 삼성 라이온즈파크 공식 좌석도 · canonical 좌석도"
         titleAccentColor="#074CA1"
         isMobile={isMobile}
         isAuxiliaryGuideActive={false}
@@ -635,9 +648,16 @@ export default function DaeguSeatMap() {
             categories={DAEGU_CATEGORIES}
             adapter={daeguSectionAdapter}
             stadiumKey="DAEGU"
-            onClose={() => setSelected(null)}
+            onClose={handleCloseSection}
             onUpload={() => handleShareSeatView(selected)}
-            copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '대구 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'daegu-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(mapToolsEnabled && selected)}
@@ -648,36 +668,6 @@ export default function DaeguSeatMap() {
         fullscreenMapContent={(
           <div className="w-full">
             <div className="relative">
-              <div className="mb-3 flex justify-center">
-                <div
-                  className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-                  data-testid="daegu-seatmap-fullscreen-image-mode-toggle"
-                >
-                  {([
-                    ['operatorReference', '기존 좌석배치도'],
-                    ['officialPng', '공식 이미지'],
-                  ] as const).map(([modeId, label]) => {
-                    const active = imageViewMode === modeId;
-                    const modeTestId = modeId === 'operatorReference' ? 'daegu-seatmap-fullscreen-mode-operator-reference' : 'daegu-seatmap-fullscreen-mode-official-png';
-                    return (
-                      <button
-                        key={modeId}
-                        type="button"
-                        data-testid={modeTestId}
-                        aria-pressed={active}
-                        onClick={() => handleImageViewModeChange(modeId)}
-                        className={`min-h-9 cursor-pointer rounded-lg border-0 px-3 text-xs font-black transition sm:px-4 ${
-                          active
-                            ? 'bg-[#074CA1] text-white shadow-sm'
-                            : 'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               {renderMapSvg(true, false)}
               {mapToolsEnabled && (
                 <SeatMapHoverPreview
@@ -694,8 +684,8 @@ export default function DaeguSeatMap() {
         )}
         fullscreenDialogTestId="daegu-seatmap-fullscreen"
         fullscreenCloseTestId="daegu-seatmap-fullscreen-close"
-        fullscreenTitle="대구삼성라이온즈파크"
-        fullscreenSubtitle={imageViewMode === 'operatorReference' ? '기존 좌석배치도 전체화면' : '삼성 공식 이미지 전체화면'}
+        fullscreenTitle="대구 삼성 라이온즈파크"
+        fullscreenSubtitle="대구 삼성 라이온즈파크 공식 좌석도 · canonical 좌석도 전체화면"
       />
     </>
   );

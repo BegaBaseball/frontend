@@ -1,5 +1,9 @@
 # Sajik Seatmap Stage 01 Handoff
 
+상태: historical operator workflow
+
+Stage 01 npm aliases와 관련 스크립트는 canonical/runtime release 표면에서 제거되었다. 이 문서는 과거 operator 승인 입력 계약과 산출물 해석을 보존하는 archive이며, 재실행이 필요하면 Git history에서 해당 시점의 스크립트와 입력 파일을 복구한 별도 branch에서 검토한다.
+
 ## Scope
 
 Stage 01은 사직 좌석도 `P0-A/P0-B/P0-C` 16개 구역의 operator-approved `hitPath` 후보를 production data에 반영하기 전 단계다. 이 문서는 승인 입력, operator input aid, next-action packet, target review packet, target entry preflight, target approval gate, all-target approval input guide, operator input intake gate, target apply precheck, `131` apply path status, completion gate, completion gate smoke, staged scope audit smoke, prewrite, apply-ready, post-apply audit, operator status board, manual patch plan, real approval readiness, 수동 patch 적용, Stage 02 진입 조건을 고정한다.

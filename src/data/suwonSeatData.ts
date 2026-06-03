@@ -346,50 +346,10 @@ function completeGeometry(id: string, geometry: GeometryDraft): SuwonImageGeomet
   };
 }
 
-const SKYBOX_HIT_GEOMETRIES: Record<string, GeometryDraft> = {
-  'suwon-sb1': polygonGeometry('01', [[3470.7, 2618.8], [3509.9, 2638.7], [3495.3, 2667.2], [3456.1, 2647.3]], 3483, 2643, 27, 48),
-  'suwon-sb2': polygonGeometry('02', [[3444.8, 2718.8], [3482.1, 2742.1], [3465.2, 2769.2], [3427.9, 2745.9]], 3455, 2744, 32, 48),
-  'suwon-sb3': polygonGeometry('03', [[3416.3, 2821.6], [3453.2, 2845.6], [3435.7, 2872.4], [3398.8, 2848.4]], 3426, 2847, 33, 48),
-  'suwon-sb4': polygonGeometry('04', [[3386.8, 2928.8], [3424.1, 2952.1], [3407.2, 2979.2], [3369.9, 2955.9]], 3397, 2954, 32, 48),
-  'suwon-sb5': polygonGeometry('05', [[3347.8, 3025.8], [3385.1, 3049.1], [3368.2, 3076.2], [3330.9, 3052.9]], 3358, 3051, 32, 48),
-  'suwon-sb6': polygonGeometry('06', [[3301.3, 3113.6], [3338.2, 3137.6], [3320.7, 3164.4], [3283.8, 3140.4]], 3311, 3139, 33, 48),
-  'suwon-sb7': polygonGeometry('07', [[3253.3, 3201.6], [3290.2, 3225.6], [3272.7, 3252.4], [3235.8, 3228.4]], 3263, 3227, 33, 48),
-  'suwon-sb8': polygonGeometry('08', [[3205.8, 3290.8], [3243.1, 3314.1], [3226.2, 3341.2], [3188.9, 3317.9]], 3216, 3316, 32, 48),
-  'suwon-sb9': polygonGeometry('09', [[3162.3, 3385.6], [3199.2, 3409.6], [3181.7, 3436.4], [3144.8, 3412.4]], 3172, 3411, 33, 48),
-  'suwon-sb10': polygonGeometry('10', [[3108.3, 3466.6], [3145.2, 3490.6], [3127.7, 3517.4], [3090.8, 3493.4]], 3118, 3492, 33, 48),
-  'suwon-sb11': polygonGeometry('11', [[3060.3, 3554.6], [3097.2, 3578.6], [3079.7, 3605.4], [3042.8, 3581.4]], 3070, 3580, 33, 48),
-  'suwon-sb12': polygonGeometry('12', [[3011.8, 3642.8], [3049.1, 3666.1], [3032.2, 3693.2], [2994.9, 3669.9]], 3022, 3668, 32, 48),
-  'suwon-sb13': polygonGeometry('13', [[2962.8, 3732.8], [3000.1, 3756.1], [2983.2, 3783.2], [2945.9, 3759.9]], 2973, 3758, 32, 48),
-  'suwon-sb14': polygonGeometry('14', [[2913.8, 3820.8], [2951.1, 3844.1], [2934.2, 3871.2], [2896.9, 3847.9]], 2924, 3846, 32, 48),
-  'suwon-sb15': polygonGeometry('15', [[2863.8, 3912.8], [2901.1, 3936.1], [2884.2, 3963.2], [2846.9, 3939.9]], 2874, 3938, 32, 48),
-  'suwon-sb16': polygonGeometry('16', [[2814.3, 4002.6], [2851.2, 4026.6], [2833.7, 4053.4], [2796.8, 4029.4]], 2824, 4028, 33, 48),
-  'suwon-sb17': polygonGeometry('17', [[2723, 4121.6], [2745.6, 4083.9], [2773, 4100.4], [2750.4, 4138.1]], 2748, 4111, -59, 48),
-  'suwon-sb18': polygonGeometry('18', [[2678.2, 4210.1], [2708.8, 4241.7], [2685.8, 4263.9], [2655.2, 4232.3]], 2682, 4237, 46, 48),
-  'suwon-sb19': polygonGeometry('19', [[2615.2, 4295.1], [2645.8, 4326.7], [2622.8, 4348.9], [2592.2, 4317.3]], 2619, 4322, 46, 48),
-  'suwon-sb20': polygonGeometry('20', [[2522.5, 4364.8], [2549, 4399.9], [2523.5, 4419.2], [2497, 4384.1]], 2523, 4392, 53, 48),
-  'suwon-sb21': polygonGeometry('21', [[2421.3, 4416.1], [2441.2, 4455.3], [2412.7, 4469.9], [2392.8, 4430.7]], 2417, 4443, 63, 48),
-  'suwon-sb22': polygonGeometry('22', [[2310.4, 4452.1], [2324, 4494], [2293.6, 4503.9], [2280, 4462]], 2302, 4478, 72, 48),
-  'suwon-sb23': polygonGeometry('23', [[1764.4, 4441.7], [1806, 4456], [1795.6, 4486.3], [1754, 4472]], 1780, 4464, 19, 48),
-  'suwon-sb24': polygonGeometry('24', [[1637.7, 4384.8], [1676.9, 4404.7], [1662.3, 4433.2], [1623.1, 4413.3]], 1650, 4409, 27, 48),
-  'suwon-sb25': polygonGeometry('25', [[1523.1, 4308], [1558.2, 4334.5], [1538.9, 4360], [1503.8, 4333.5]], 1531, 4334, 37, 48),
-  'suwon-sb26': polygonGeometry('26', [[1426.2, 4214.9], [1455.6, 4247.6], [1431.8, 4269.1], [1402.4, 4236.4]], 1429, 4242, 48, 48),
-  'suwon-sb27': polygonGeometry('27', [[1321.8, 4135.4], [1356, 4107.7], [1376.2, 4132.6], [1342, 4160.3]], 1349, 4134, -39, 48),
-  'suwon-sb28': polygonGeometry('28', [[1265.8, 4027.6], [1302.7, 4003.6], [1320.2, 4030.4], [1283.3, 4054.4]], 1293, 4029, -33, 48),
-  'suwon-sb29': polygonGeometry('29', [[1215.9, 3936.1], [1253.2, 3912.8], [1270.1, 3939.9], [1232.8, 3963.2]], 1243, 3938, -32, 48),
-  'suwon-sb30': polygonGeometry('30', [[1165.8, 3845.6], [1202.7, 3821.6], [1220.2, 3848.4], [1183.3, 3872.4]], 1193, 3847, -33, 48),
-  'suwon-sb31': polygonGeometry('31', [[1116.9, 3753.1], [1154.2, 3729.8], [1171.1, 3756.9], [1133.8, 3780.2]], 1144, 3755, -32, 48),
-  'suwon-sb32': polygonGeometry('32', [[1066.8, 3662.6], [1103.7, 3638.6], [1121.2, 3665.4], [1084.3, 3689.4]], 1094, 3664, -33, 48),
-  'suwon-sb33': polygonGeometry('33', [[1016.8, 3570.6], [1053.7, 3546.6], [1071.2, 3573.4], [1034.3, 3597.4]], 1044, 3572, -33, 48),
-  'suwon-sb34': polygonGeometry('34', [[966.8, 3479.6], [1003.7, 3455.6], [1021.2, 3482.4], [984.3, 3506.4]], 994, 3481, -33, 48),
-  'suwon-sb35': polygonGeometry('35', [[917.8, 3389.6], [954.7, 3365.6], [972.2, 3392.4], [935.3, 3416.4]], 945, 3391, -33, 48),
-};
-
-const HIT_GEOMETRY_OVERRIDES: Record<string, GeometryDraft> = {
-  ...SKYBOX_HIT_GEOMETRIES,
-};
+const HIT_GEOMETRY_OVERRIDES: Record<string, GeometryDraft> = {};
 
 const HIT_PRIORITY_OVERRIDES: Record<string, number> = {
-  ...Object.fromEntries(Object.keys(HIT_GEOMETRY_OVERRIDES).map((id) => [id, /^suwon-sb/.test(id) ? 120 : 140])),
+  ...Object.fromEntries(Object.keys(officialSkyboxGeometries).map((id) => [id, 120])),
 };
 
 function priorityFor(id: string): number {
@@ -526,12 +486,7 @@ const definitions: BlockDefinition[] = [
   blockDefinition({ id: 'suwon-wheel-3b', level: '1F', category: 'ACCESSIBLE', name: '3루 휠체어석', block: 'WHEEL-3B', officialBlocks: ['3루 휠체어석'], side: 'THIRD_BASE', fanRole: 'AWAY', accessibilityNote: '공식 좌석도에 휠체어석 아이콘으로 표시된 3루 구역입니다.' }),
 ];
 
-const SUWON_HIT_GEOMETRY_EXCEPTION_NOTES_RAW: Record<string, string> = {
-  ...Object.fromEntries(Object.keys(officialSkyboxGeometries).map((id) => [
-    id,
-    '스카이박스는 숫자 블록/스카이존과 가까운 좁은 띠 구역이라 hover 선택을 라벨 중심 compact hit-area로 분리합니다.',
-  ])),
-};
+const SUWON_HIT_GEOMETRY_EXCEPTION_NOTES_RAW: Record<string, string> = {};
 
 export const SUWON_HIT_GEOMETRY_EXCEPTION_NOTES = deepFreeze(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES_RAW);
 
@@ -994,17 +949,17 @@ const SUWON_THIRDFLOOR_EDGE_PROBES = deepFreeze([
 ]);
 
 const SUWON_SKYBOX_EDGE_PROBES = deepFreeze([
-  { id: 'suwon-sb1', point: [3492, 2652] as Point, note: '스카이박스 01/201 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb2', point: [3443, 2747] as Point, note: '스카이박스 02/201 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb4', point: [3389, 2960] as Point, note: '스카이박스 04/301 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb8', point: [3210, 3330] as Point, note: '스카이박스 08/307 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb16', point: [2818, 4040] as Point, note: '스카이박스 16/312 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb17', point: [2740, 4120] as Point, note: '스카이박스 17 중앙 곡선 compact hit 회귀 좌표' },
-  { id: 'suwon-sb18', point: [2675, 4230] as Point, note: '스카이박스 18 중앙 곡선 compact hit 회귀 좌표' },
-  { id: 'suwon-sb22', point: [2295, 4488] as Point, note: '스카이박스 22 중앙 하단 compact hit 회귀 좌표' },
-  { id: 'suwon-sb23', point: [1788, 4473] as Point, note: '스카이박스 23 중앙 하단 compact hit 회귀 좌표' },
-  { id: 'suwon-sb28', point: [1295, 4038] as Point, note: '스카이박스 28/317 인접 compact hit 회귀 좌표' },
-  { id: 'suwon-sb35', point: [944, 3405] as Point, note: '스카이박스 35/432 인접 compact hit 회귀 좌표' },
+  { id: 'suwon-sb1', point: [3492, 2652] as Point, note: '스카이박스 01/201 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb2', point: [3443, 2747] as Point, note: '스카이박스 02/201 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb4', point: [3389, 2960] as Point, note: '스카이박스 04/301 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb8', point: [3210, 3330] as Point, note: '스카이박스 08/307 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb16', point: [2818, 4040] as Point, note: '스카이박스 16/312 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb17', point: [2740, 4120] as Point, note: '스카이박스 17 중앙 곡선 visual hit 회귀 좌표' },
+  { id: 'suwon-sb18', point: [2675, 4230] as Point, note: '스카이박스 18 중앙 곡선 visual hit 회귀 좌표' },
+  { id: 'suwon-sb22', point: [2295, 4488] as Point, note: '스카이박스 22 중앙 하단 visual hit 회귀 좌표' },
+  { id: 'suwon-sb23', point: [1788, 4473] as Point, note: '스카이박스 23 중앙 하단 visual hit 회귀 좌표' },
+  { id: 'suwon-sb28', point: [1295, 4038] as Point, note: '스카이박스 28/317 인접 visual hit 회귀 좌표' },
+  { id: 'suwon-sb35', point: [944, 3405] as Point, note: '스카이박스 35/432 인접 visual hit 회귀 좌표' },
 ]);
 
 const SUWON_SKYZONE_EDGE_PROBES = deepFreeze([
@@ -1239,6 +1194,9 @@ export const SUWON_BROWSER_QA_PROBES = deepFreeze([
   { id: 'suwon-sb33', point: [1044, 3572] as Point, note: 'Playwright 대표 좌표: 스카이박스 33' },
   { id: 'suwon-sb34', point: [994, 3481] as Point, note: 'Playwright 대표 좌표: 스카이박스 34' },
   { id: 'suwon-sb35', point: [945, 3391] as Point, note: 'Playwright 대표 좌표: 스카이박스 35' },
+  { id: 'suwon-sb4', point: [3352, 2960] as Point, note: 'Playwright off-center 좌표: 스카이박스 04' },
+  { id: 'suwon-sb22', point: [2255, 4528] as Point, note: 'Playwright off-center 좌표: 스카이박스 22' },
+  { id: 'suwon-sb35', point: [900, 3395] as Point, note: 'Playwright off-center 좌표: 스카이박스 35' },
   { id: 'suwon-genie', point: [2005, 3830] as Point, note: 'Playwright 대표 좌표: 지니존/BC카드존' },
   { id: 'suwon-3b-highfive', point: [1518, 3060] as Point, note: 'Playwright 대표 좌표: 3루 하이파이브존' },
   { id: 'suwon-1b-highfive', point: [2600, 3060] as Point, note: 'Playwright 대표 좌표: 1루 하이파이브존' },

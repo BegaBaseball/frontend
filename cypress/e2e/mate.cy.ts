@@ -97,7 +97,7 @@ describe('Mate Page Accuracy', () => {
     status: 'PENDING',
     gameDate: '2026-02-24',
     gameTime: '20:00',
-    stadium: '대전 한화생명 이글스파크',
+    stadium: '대전 한화생명볼파크',
     teamId: 'HH',
     homeTeam: 'HH',
     awayTeam: 'SS',
@@ -346,7 +346,7 @@ describe('Mate Page Accuracy', () => {
       expect(requestUrl.searchParams.get('page')).to.eq('0');
       expect(requestUrl.searchParams.get('searchQuery')).to.eq('검색용');
     });
-    cy.contains('대전 한화생명 이글스파크').should('be.visible');
+    cy.contains('대전 한화생명볼파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
     cy.get('button[aria-label*="요일"]').first().click();

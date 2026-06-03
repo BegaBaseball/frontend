@@ -75,7 +75,46 @@ function imageDimensions(filePath: string): { width: number; height: number } {
     }
   }
 
-  throw new Error(`${filePath} should be a PNG or JPEG image`);
+  if (
+    buffer.toString('ascii', 0, 4) === 'RIFF'
+    && buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    let offset = 12;
+    while (offset + 8 <= buffer.length) {
+      const chunkType = buffer.toString('ascii', offset, offset + 4);
+      const chunkSize = buffer.readUInt32LE(offset + 4);
+      const dataOffset = offset + 8;
+
+      if (chunkType === 'VP8X' && dataOffset + 10 <= buffer.length) {
+        return {
+          width: buffer.readUIntLE(dataOffset + 4, 3) + 1,
+          height: buffer.readUIntLE(dataOffset + 7, 3) + 1,
+        };
+      }
+
+      if (chunkType === 'VP8L' && dataOffset + 5 <= buffer.length) {
+        const b0 = buffer[dataOffset + 1]!;
+        const b1 = buffer[dataOffset + 2]!;
+        const b2 = buffer[dataOffset + 3]!;
+        const b3 = buffer[dataOffset + 4]!;
+        return {
+          width: 1 + (((b1 & 0x3f) << 8) | b0),
+          height: 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6)),
+        };
+      }
+
+      if (chunkType === 'VP8 ' && dataOffset + 10 <= buffer.length) {
+        return {
+          width: buffer.readUInt16LE(dataOffset + 6) & 0x3fff,
+          height: buffer.readUInt16LE(dataOffset + 8) & 0x3fff,
+        };
+      }
+
+      offset += 8 + chunkSize + (chunkSize % 2);
+    }
+  }
+
+  throw new Error(`${filePath} should be a PNG, JPEG, or WebP image`);
 }
 
 async function readOfficialSuwonSeatmapPixels(): Promise<ImagePixelData> {
@@ -205,15 +244,15 @@ function snapshotSuwonSeatFixture() {
     }));
 
   const alignmentProbeSnapshot = SUWON_ALIGNMENT_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   const browserQaProbeSnapshot = SUWON_BROWSER_QA_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   const hitTestProbeSnapshot = SUWON_HIT_TEST_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   return JSON.stringify({
@@ -317,20 +356,21 @@ function visualProbePoints(block: (typeof SUWON_BLOCKS)[number]): Point[] {
   return hitProbePoints(block.imageGeometry.d, [block.imageGeometry.labelX, block.imageGeometry.labelY]);
 }
 
-function topHitBlockAt(point: Point) {
+function topHitBlockAt(point: Point): (typeof SUWON_BLOCKS)[number] | null {
   let topBlock: (typeof SUWON_BLOCKS)[number] | null = null;
 
-  [...SUWON_BLOCKS]
+  const orderedBlocks = [...SUWON_BLOCKS]
     .sort((a, b) => (
       (a.hitPriority - b.hitPriority)
       || (polygonArea(pathPoints(b.hitGeometry.d)) - polygonArea(pathPoints(a.hitGeometry.d)))
-    ))
-    .forEach((block) => {
-      const polygon = pathPoints(block.hitGeometry.d);
-      if (polygon.length >= 3 && pointInPolygon(point, polygon)) {
-        topBlock = block;
-      }
-    });
+    ));
+
+  for (const block of orderedBlocks) {
+    const polygon = pathPoints(block.hitGeometry.d);
+    if (polygon.length >= 3 && pointInPolygon(point, polygon)) {
+      topBlock = block;
+    }
+  }
 
   return topBlock;
 }
@@ -846,8 +886,8 @@ test('StadiumGuideRuntime 경로 모듈 임포트 후에도 수원 좌표 데이
   const baseline = suwonFixtureSignature();
 
   await Promise.all([
-    import('../components/stadiumSeatMapRegistry.tsx'),
-    import('../components/stadiumSeatMap/SeatMapRuntimeShell.tsx'),
+    import('../components/stadiumSeatMapRegistry'),
+    import('../components/stadiumSeatMap/SeatMapRuntimeShell'),
   ]);
 
   assert.equal(suwonFixtureSignature(), baseline, 'Suwon seat fixture should remain unchanged after runtime module imports');
@@ -1562,7 +1602,7 @@ test('수원 301-328 3층 경계 probe는 기대 블록으로 해석된다', () 
   });
 });
 
-test('수원 SB1-SB35 스카이박스는 명시 compact hit polygon과 전체 브라우저 QA 좌표를 가진다', () => {
+test('수원 SB1-SB35 스카이박스는 visual polygon과 hit polygon이 일치하고 브라우저 QA 좌표를 가진다', () => {
   const sourcePath = path.resolve(process.cwd(), 'src/data/suwonSeatData.ts');
   const source = fs.readFileSync(sourcePath, 'utf8');
   const expectedSkyboxIds = numberedBlocks(1, 35).map((block) => `suwon-sb${block}`);
@@ -1575,18 +1615,37 @@ test('수원 SB1-SB35 스카이박스는 명시 compact hit polygon과 전체 �
     .filter((probe) => /^suwon-sb\d+$/.test(probe.id))
     .map((probe) => probe.id);
 
-  assert.ok(source.includes('const SKYBOX_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should use an explicit compact polygon map');
-  assert.ok(!source.includes('SKYBOX_COMPACT_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should not retain generated compact hit geometry');
-  assert.ok(!source.includes('Object.entries(officialSkyboxGeometries).map'), 'Suwon skybox hit geometry should not be generated from visual geometry entries');
+  assert.ok(!source.includes('const SKYBOX_HIT_GEOMETRIES'), 'Suwon skybox hit geometry should not keep compact hit overrides');
+  assert.ok(source.includes('const HIT_GEOMETRY_OVERRIDES: Record<string, GeometryDraft> = {};'), 'Suwon skybox hit geometry should fall back to visual geometry');
   assert.ok(!source.includes('rectGeometry('), 'Suwon skybox hit geometry should not use rectangle helpers');
-  assert.deepEqual(browserProbeIds, expectedSkyboxIds);
+  assert.deepEqual(Array.from(new Set(browserProbeIds)), expectedSkyboxIds);
+  assert.equal(browserProbeIds.length, expectedSkyboxIds.length + 3, 'Suwon skybox browser probes should include three off-center regression probes');
 
   skyboxBlocks.forEach((block) => {
-    assert.ok(block.imageGeometry.d !== block.hitGeometry.d, `${block.id} should keep compact hit geometry separate from visual geometry`);
-    assert.ok(pointInPolygon([block.imageGeometry.labelX, block.imageGeometry.labelY], pathPoints(block.imageGeometry.d)), `${block.id} label should stay inside visual polygon`);
-    assert.ok(pointInPolygon([block.hitGeometry.labelX, block.hitGeometry.labelY], pathPoints(block.hitGeometry.d)), `${block.id} hit label should stay inside compact hit polygon`);
-    assert.equal(topHitBlockAt([block.hitGeometry.labelX, block.hitGeometry.labelY])?.id, block.id, `${block.id} compact hit label should resolve to itself`);
+    const visualPoints = pathPoints(block.imageGeometry.d);
+    const label: Point = [block.imageGeometry.labelX, block.imageGeometry.labelY];
+    const center = centroid(visualPoints);
+    const internalProbe = visualProbePoints(block).find((point) => (
+      point[0] !== label[0]
+      && point[1] !== label[1]
+      && point[0] !== center[0]
+      && point[1] !== center[1]
+    )) ?? center;
+
+    assert.equal(block.hitGeometry.d, block.imageGeometry.d, `${block.id} should use its visual polygon as hit polygon`);
+    assert.equal(block.hitPriority, 120, `${block.id} should keep skybox hover priority`);
+    assert.equal(SUWON_HIT_GEOMETRY_EXCEPTION_NOTES[block.id], undefined, `${block.id} should not keep a hit geometry exception note`);
+    [label, center, internalProbe].forEach((point) => {
+      assert.ok(pointInPolygon(point, visualPoints), `${block.id} ${point.join(',')} should stay inside visual polygon`);
+      assert.equal(topHitBlockAt(point)?.id, block.id, `${block.id} ${point.join(',')} should resolve to itself`);
+    });
   });
+
+  assertVisualEdgeProbes([
+    { id: 'suwon-sb4', point: [3352, 2960], note: '스카이박스 04 off-center 브라우저 좌표' },
+    { id: 'suwon-sb22', point: [2255, 4528], note: '스카이박스 22 off-center 브라우저 좌표' },
+    { id: 'suwon-sb35', point: [900, 3395], note: '스카이박스 35 off-center 브라우저 좌표' },
+  ]);
 });
 
 test('수원 401-432 스카이존은 전체 브라우저 QA 좌표와 경계 probe를 가진다', () => {
@@ -1850,13 +1909,14 @@ test('수원 SVG 컴포넌트는 공식 이미지와 overlay를 단일 좌표계
   assert.ok(source.includes('data-pan-x={effectivePan.x.toFixed(1)}'), 'Suwon debug metadata should expose current pan x');
   assert.ok(source.includes('data-layer="image-geometry-overlays"'), 'Suwon visual geometry layer should be explicit');
   assert.ok(source.includes('data-layer="hit-targets"'), 'Suwon hit target layer should be explicit');
-  assert.ok(source.includes("strokeDasharray={showDebug ? '5 4' : undefined}"), 'Suwon debug mode should render hit geometry as dashed paths');
+  assert.ok(source.includes("strokeDasharray={showDebug ? '5 4' : isCompared ? '8 6' : undefined}"), 'Suwon debug mode should render hit geometry as dashed paths');
   assert.ok(source.includes("pointerEvents={isFiltered ? 'none' : 'fill'}"), 'Filtered Suwon hit targets should not block pointer events');
   assert.ok(!source.includes('fill="transparent"'), 'Suwon hit targets should keep a painted low-opacity fill for elementFromPoint hit testing');
-  assert.ok(source.includes('const fillOpacity = isFiltered ? 0 : active ? 0.12 : showDebug ? 0.18 : 0'), 'Suwon visual polygons should be hidden outside active/debug states');
-  assert.ok(source.includes("const stroke = active ? '#facc15' : showDebug ? (category?.dark ?? '#0284c7') : 'transparent'"), 'Suwon visual outlines should be hidden outside active/debug states');
-  assert.ok(source.includes('const strokeWidth = active ? 4 : showDebug ? 4 : 0'), 'Suwon visual outlines should not render by default');
-  assert.ok(source.includes('fillOpacity={isFiltered ? 0 : showDebug ? 0.08 : 0.001}'), 'Suwon hit target fill should stay nearly transparent outside debug mode');
+  assert.ok(source.includes('const fillOpacity = isFiltered ? 0 : active ? 0.12 : isCompared ? 0.08 : showDebug ? 0.18 : 0'), 'Suwon visual polygons should be hidden outside active/debug states');
+  assert.ok(source.includes("const stroke = active ? '#facc15' : isCompared ? (category?.dark ?? '#0284c7') : showDebug ? (category?.dark ?? '#0284c7') : 'transparent'"), 'Suwon visual outlines should be hidden outside active/debug states');
+  assert.ok(source.includes('const strokeWidth = active ? 4 : isCompared ? 3 : showDebug ? 4 : 0'), 'Suwon visual outlines should not render by default');
+  assert.ok(source.includes("data-compared={isCompared ? 'true' : undefined}"), 'Suwon hit targets should expose compared state for QA');
+  assert.ok(source.includes('fillOpacity={isFiltered ? 0 : showDebug ? 0.08 : isCompared ? 0.006 : 0.001}'), 'Suwon hit target fill should stay nearly transparent outside debug mode');
   assert.ok(source.includes("style={{ cursor: isFiltered ? 'default' : 'pointer' }}"), 'Suwon hit targets should expose a consistent pointer cursor');
   assert.ok(source.includes('aria-label={block.name}'), 'Suwon hit targets should keep accessible names for Playwright and keyboard users');
   assert.ok(source.includes('polygonArea(b.hitGeometry.d) - polygonArea(a.hitGeometry.d)'), 'Suwon hit render order should put larger same-priority areas below smaller ones');

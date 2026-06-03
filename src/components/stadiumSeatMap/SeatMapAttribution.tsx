@@ -27,7 +27,7 @@ function SourceLink({ source }: { source: SeatMapSourceInfo }) {
 
 export function SeatMapAttribution({ source, secondarySources = [], children }: SeatMapAttributionProps) {
   return (
-    <div className="mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+    <div className="stadium-seatmap-attribution mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
       {source.prefixLabel ?? '좌석 배치 기준:'} {source.sourceLabel}
       <SourceLink source={source} />
       {secondarySources.map((secondarySource) => (

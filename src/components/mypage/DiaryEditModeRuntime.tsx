@@ -14,6 +14,7 @@ import {
   type SeatViewSourceType,
 } from '../../types/diary';
 import { getFullImageUrl } from '../../utils/diary';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import {
@@ -337,7 +338,7 @@ export default function DiaryEditModeRuntime({
             <option value="">경기를 선택하세요</option>
             {availableGames.map((game: Game) => (
               <option key={game.id} value={game.id}>
-                {game.homeTeam} vs {game.awayTeam} - {game.stadium}{' '}
+                {game.homeTeam} vs {game.awayTeam} - {formatStadiumDisplayName(game.stadium)}{' '}
                 {game.score ? `(${game.score})` : ''}
               </option>
             ))}

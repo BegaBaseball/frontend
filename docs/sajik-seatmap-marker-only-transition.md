@@ -2,6 +2,19 @@
 
 작성일: 2026-05-14 KST
 
+## 2026-05-25 canonical 갱신
+
+canonical runtime에서는 휠체어석 기존 공식 PNG pseudo-block 3개를 seat polygon으로 렌더링하지 않는다. `휠체어석-3루`, `휠체어석-중앙`, `휠체어석-1루`은 `CANONICAL_ACCESSIBILITY_MARKER_ALIAS`로만 유지하며 `runtimePolygon=false`다.
+
+- canonical source: `SAJIK_CANONICAL_2026`
+- runtime seat sections: `78`
+- operator accessibility markers: `14`
+- linked selectable markers: `8`
+- official wheelchair marker aliases: `3`
+- active polygon source per block guard: `npm run stadium:sajik:block-source-duplication-audit`
+
+아래 기존 marker-only 전환 설계는 historical v2 설계 배경으로 보존한다. 새 작업에서는 canonical marker alias가 seat polygon으로 되돌아가지 않는지와, linked operator marker가 관련 seat section 선택을 과도하게 가로채지 않는지를 우선 검증한다.
+
 ## 현재 상태
 
 사직 휠체어석 3개는 기존 선택 동작을 깨지 않기 위해 selectable block 호환성을 유지한다.
@@ -18,7 +31,7 @@
 
 - JSON: `reports/stadium/sajik-seatmap-marker-transition-review.json`
 - Markdown: `reports/stadium/sajik-seatmap-marker-transition-review.md`
-- command: `npm run stadium:sajik:marker-transition-review`
+- command: `node scripts/stadium-seatmap-ops.mjs sajik marker-transition-review`
 
 현재 자동 리포트 기준:
 

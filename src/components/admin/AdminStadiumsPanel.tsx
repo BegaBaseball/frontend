@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '../ui/table';
 import type { Place } from '../../api/admin';
+import { getStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { AdminEditIcon, AdminPlusIcon } from './AdminDetailIcons';
 import {
   AdminBadge,
@@ -77,7 +78,7 @@ export function AdminStadiumsPanel({
             )}
             {stadiums.map((stadium) => (
               <option key={stadium.stadiumId} value={stadium.stadiumId}>
-                {stadium.stadiumName}
+                {getStadiumDisplayName(stadium)}
                 {stadium.team ? ` (${stadium.team})` : ''}
               </option>
             ))}

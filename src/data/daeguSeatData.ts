@@ -12,6 +12,19 @@ export type DaeguTraceVersion =
   | 'manual-polygon-v1'
   | 'DAEGU_OPERATOR_REFERENCE_P0_APPROVED_DRY_RUN_V1'
   | 'DAEGU_OPERATOR_REFERENCE_P1_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P2A_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P2B_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P3_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P4_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P5_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P6_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P7_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1'
+  | 'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1'
   | 'daegu-p1-duplicate-precision-p0-operator-approved-v1'
   | 'daegu-p1-boundary-first-image-approved-v1'
   | 'daegu-visual-match-batch1-1-2-t1-4-image-approved-v1'
@@ -53,10 +66,10 @@ export type DaeguPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRE
 export type DaeguMarkerType = 'WHEELCHAIR' | 'GATE' | 'NURSING_ROOM' | 'KIDS_SHELTER';
 export type DaeguSectionKind = 'SEAT_SECTION' | 'ACCESSIBILITY_MARKER' | 'GATE_MARKER' | 'FACILITY_MARKER' | 'WAYFINDING_MARKER';
 export type DaeguSeatMapPoint = [number, number];
-export type DaeguSeatMapSourceId = 'SAMSUNG_OFFICIAL_2026' | 'OPERATOR_REFERENCE_RAPAK_2025' | 'MYSEATCHECK_REFERENCE_2026';
+export type DaeguSeatMapSourceId = 'DAEGU_CANONICAL_2026' | 'SAMSUNG_OFFICIAL_2026' | 'OPERATOR_REFERENCE_RAPAK_2025' | 'MYSEATCHECK_REFERENCE_2026';
 export type DaeguSeatMapSourceKind = 'INTERACTIVE_SEATMAP' | 'REFERENCE_IMAGE';
-export type DaeguSeatMapSourceStatus = 'OFFICIAL' | 'OPERATOR_REFERENCE' | 'EXTERNAL_REFERENCE_PENDING_ASSET';
-export type DaeguSeatMapSourcePolygonStatus = 'PRODUCTION_INTERACTIVE' | 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE' | 'REFERENCE_TRACE_DRAFT_READY' | 'REFERENCE_ONLY_PENDING_ASSET';
+export type DaeguSeatMapSourceStatus = 'CANONICAL' | 'OFFICIAL' | 'OPERATOR_REFERENCE' | 'EXTERNAL_REFERENCE_PENDING_ASSET';
+export type DaeguSeatMapSourcePolygonStatus = 'CANONICAL_INTERACTIVE' | 'PRODUCTION_INTERACTIVE' | 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE' | 'HISTORICAL_EVIDENCE_ONLY' | 'REFERENCE_TRACE_DRAFT_READY' | 'REFERENCE_ONLY_PENDING_ASSET';
 
 export interface DaeguImageGeometry {
   d: string;
@@ -178,11 +191,13 @@ type DaeguBlockDefinition = Omit<DaeguBlock, 'sourceConfidence' | 'sourceNote' |
 
 export const DAEGU_STADIUM_ID = 'DAEGU_SAMSUNG_LIONS_PARK';
 export const DAEGU_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1';
+export const DAEGU_CANONICAL_SEATMAP_SOURCE_ID = 'DAEGU_CANONICAL_2026';
+export const DAEGU_CANONICAL_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_CANONICAL_OPERATOR_REFERENCE_V1';
 export const DAEGU_VIEW_BOX = '0 0 1707 2048';
 export const DAEGU_IMAGE_SHA256 = '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0';
 export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME = 'daegu-operator-reference-rapak-2025-enhanced-transparent.webp';
 export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256 = 'a5d2f812cddf8c2481e5ab07f6138500537e8ee56a74092b1237cd99a43c879e';
-export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P1_APPROVED_V1';
+export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1';
 export const DAEGU_MYSEATCHECK_REFERENCE_URL = 'https://myseatcheck.com/%EB%8C%80%EA%B5%AC-%EC%82%BC%EC%84%B1-%EB%9D%BC%EC%9D%B4%EC%98%A8%EC%A6%88%ED%8C%8C%ED%81%AC/';
 export const DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME = 'daegu-myseatcheck-reference-2026.webp';
 export const DAEGU_MYSEATCHECK_REFERENCE_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_MYSEATCHECK_REFERENCE_PENDING';
@@ -211,9 +226,28 @@ export const DAEGU_SEATMAP_IMAGE: DaeguSeatMapImage = {
 
 export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
   {
+    id: 'DAEGU_CANONICAL_2026',
+    label: '대구 canonical 좌석도',
+    kind: 'INTERACTIVE_SEATMAP',
+    imagePath: `src/assets/stadiums/samsung/${DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME}`,
+    imageWidth: 4096,
+    imageHeight: 4096,
+    viewBox: '0 0 4096 4096',
+    imageSha256: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256,
+    sourceLabel: 'Operator-provided enhanced transparent RaPak reference image',
+    sourceUrl: null,
+    assetStatus: 'CANONICAL',
+    mapVersion: DAEGU_CANONICAL_MAP_VERSION,
+    polygonStatus: 'CANONICAL_INTERACTIVE',
+    requiredAssetFileName: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
+    attributionRequired: false,
+    productionCanonical: true,
+    notes: 'Single runtime source for Daegu canonical selectable polygons. Only operator-reference 4096x4096 approved polygons can be active here; official PNG coordinates remain historical evidence until retraced in this coordinate system.',
+  },
+  {
     id: 'SAMSUNG_OFFICIAL_2026',
     label: '공식 좌석도',
-    kind: 'INTERACTIVE_SEATMAP',
+    kind: 'REFERENCE_IMAGE',
     imagePath: DAEGU_SEATMAP_IMAGE.imagePath,
     imageWidth: DAEGU_SEATMAP_IMAGE.imageWidth,
     imageHeight: DAEGU_SEATMAP_IMAGE.imageHeight,
@@ -223,16 +257,16 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     sourceUrl: DAEGU_SEATMAP_IMAGE.sourceUrl,
     assetStatus: 'OFFICIAL',
     mapVersion: DAEGU_SEATMAP_IMAGE.mapVersion,
-    polygonStatus: 'PRODUCTION_INTERACTIVE',
+    polygonStatus: 'HISTORICAL_EVIDENCE_ONLY',
     requiredAssetFileName: DAEGU_SEATMAP_IMAGE.requiredAssetFileName,
     attributionRequired: false,
-    productionCanonical: true,
-    notes: 'Production canonical source for Daegu selectable seat polygons.',
+    productionCanonical: false,
+    notes: 'Historical official PNG evidence for Daegu seat polygons. It is no longer an active runtime polygon source after DAEGU_CANONICAL_2026 consolidation.',
   },
   {
     id: 'OPERATOR_REFERENCE_RAPAK_2025',
     label: '기존 좌석배치도',
-    kind: 'INTERACTIVE_SEATMAP',
+    kind: 'REFERENCE_IMAGE',
     imagePath: `src/assets/stadiums/samsung/${DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME}`,
     imageWidth: 4096,
     imageHeight: 4096,
@@ -242,11 +276,11 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     sourceUrl: null,
     assetStatus: 'OPERATOR_REFERENCE',
     mapVersion: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_MAP_VERSION,
-    polygonStatus: 'OPERATOR_REFERENCE_APPROVED_INTERACTIVE',
+    polygonStatus: 'HISTORICAL_EVIDENCE_ONLY',
     requiredAssetFileName: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
     attributionRequired: false,
     productionCanonical: false,
-    notes: 'Operator-provided local reference for the default Daegu seatmap view. Only approved 4096x4096 operator-reference polygons are interactive here; do not overwrite official PNG production coordinates.',
+    notes: 'Historical operator-reference source rows used to build DAEGU_CANONICAL_2026. Do not expose this as a separate user runtime polygon source.',
   },
   {
     id: 'MYSEATCHECK_REFERENCE_2026',
@@ -269,7 +303,7 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
   },
 ];
 
-export const DAEGU_DEFAULT_SEATMAP_SOURCE_ID: DaeguSeatMapSourceId = 'OPERATOR_REFERENCE_RAPAK_2025';
+export const DAEGU_DEFAULT_SEATMAP_SOURCE_ID: DaeguSeatMapSourceId = DAEGU_CANONICAL_SEATMAP_SOURCE_ID;
 
 export const DAEGU_CATEGORIES: Record<string, DaeguCategory> = {
   VIP:       { label: 'VIP석',       light: '#1D4ED8', dark: '#60A5FA', textLight: '#172554', textDark: '#DBEAFE' },
@@ -375,7 +409,11 @@ function blockAliases(block: DaeguBlockDefinition) {
     '대구',
     '삼성',
     '라팍',
+    '라이온즈파크',
+    '삼성라이온즈파크',
+    '대구삼성라이온즈파크',
     '대구 삼성 라이온즈파크',
+    '대구 삼성 라이온즈 파크',
   ];
   return Array.from(new Set([...baseAliases, ...(block.seatViewSections ?? [])]));
 }
@@ -392,9 +430,10 @@ function createDaeguBlock(block: DaeguBlockDefinition): DaeguBlock {
     sectionKind,
     ...publicBlock
   } = block;
+  const isOperatorReferenceTrace = publicBlock.imageGeometry.traceSource === 'OPERATOR_REFERENCE_RAPAK_2025';
   const reviewOnlyTraceMethod = DAEGU_REVIEW_ONLY_TRACE_METHOD_BY_BLOCK[block.block];
-  const officialUnconfirmed = DAEGU_OFFICIAL_UNCONFIRMED_BLOCKS.has(block.block);
-  const forcedReviewOnly = reviewOnlyTraceMethod !== undefined;
+  const officialUnconfirmed = DAEGU_OFFICIAL_UNCONFIRMED_BLOCKS.has(block.block) && !isOperatorReferenceTrace;
+  const forcedReviewOnly = reviewOnlyTraceMethod !== undefined && !isOperatorReferenceTrace;
   const finalTraceStatus = officialUnconfirmed
     ? 'OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED'
     : forcedReviewOnly
@@ -8495,6 +8534,32 @@ const OPERATOR_REFERENCE_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/
 const OPERATOR_REFERENCE_P0_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P0_APPROVED_DRY_RUN_V1';
 const OPERATOR_REFERENCE_P1_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-23T16:45:00+09:00. P1 TR/RF operator reference evidence 반영.';
 const OPERATOR_REFERENCE_P1_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P1_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P2A_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T10:15:00+09:00. P2A LF operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P2A_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P2A_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P2B_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T10:30:00+09:00. P2B special outfield operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P2B_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P2B_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P2C_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T10:45:00+09:00. P2C SKY S24-S31 operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P2C_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P2C_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P3_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T11:05:00+09:00. P3 ML/MR operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P3_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P3_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P4_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T11:55:00+09:00. P4 infield/exciting operator reference evidence 반영. 1E-1/1E-2는 RAPAK_REF_080 component를 visible boundary 기준으로 수동 분리.';
+const OPERATOR_REFERENCE_P4_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P4_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P5_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T12:35:00+09:00. P5 VIP/table operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P5_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P5_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P6_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T13:05:00+09:00. P6 blue/away operator reference evidence 반영. Cheering-stage marker remains non-seat.';
+const OPERATOR_REFERENCE_P6_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P6_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P7_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T14:05:00+09:00. P7 SKY numeric image evidence 반영. 응원단상 components RAPAK_REF_102/RAPAK_REF_105는 EXCLUDE_NON_SEAT로 유지하고, 나머지 P7 lower-bowl strip 후보 20개는 operator label pending.';
+const OPERATOR_REFERENCE_P7_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P7_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P28_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-24T23:15:00+09:00. P28 rooftop table operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P28_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P28_APPROVED_DRY_RUN_V1';
+const OPERATOR_REFERENCE_P30_SPECIAL_ZONE_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-25T00:45:00+09:00. P30 special/large-zone operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P30_SPECIAL_ZONE_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_APPROVED_V1';
+const OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-25T01:25:00+09:00. P31-A SKY S-4~S-10 operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_APPROVED_V1';
+const OPERATOR_REFERENCE_P31_SKY_CENTER_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-25T01:55:00+09:00. P31-B SKY S-11~S-15 operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P31_SKY_CENTER_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_APPROVED_V1';
+const OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_REVIEW_NOTE = 'operatorDecision=APPROVED correctedPath/correctedLabelX/Y 반영 완료. reviewer=codex-image-review; reviewedAt=2026-05-25T02:20:00+09:00. P31-C SKY S-16~S-20 operator reference evidence 반영.';
+const OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_TRACE_VERSION: DaeguTraceVersion = 'DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1';
 
 type DaeguOperatorReferenceApprovedBlockRow = {
   id: string;
@@ -8510,6 +8575,16 @@ type DaeguOperatorReferenceApprovedBlockRow = {
 };
 
 const createOperatorReferenceApprovedBlock = (row: DaeguOperatorReferenceApprovedBlockRow): DaeguBlockDefinition => {
+  return createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P1_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P1_TRACE_VERSION,
+  });
+};
+
+const createOperatorReferenceApprovedBlockWithTrace = (
+  row: DaeguOperatorReferenceApprovedBlockRow,
+  options: { reviewNote: string; traceVersion: DaeguTraceVersion },
+): DaeguBlockDefinition => {
   const normalizedBlock = row.block.replace('-', '');
   return {
     id: row.id,
@@ -8524,7 +8599,7 @@ const createOperatorReferenceApprovedBlock = (row: DaeguOperatorReferenceApprove
     sourceNote: OPERATOR_REFERENCE_SOURCE_NOTE,
     traceStatus: 'OFFICIAL_IMAGE_TRACED',
     traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
-    reviewNote: OPERATOR_REFERENCE_P1_REVIEW_NOTE,
+    reviewNote: options.reviewNote,
     sectionKind: 'SEAT_SECTION',
     seatViewSections: [
       `daegu-operator-reference-${row.block.toLowerCase()}`,
@@ -8541,8 +8616,8 @@ const createOperatorReferenceApprovedBlock = (row: DaeguOperatorReferenceApprove
       labelY: row.labelY,
       labelPoint: [row.labelX, row.labelY],
       shortLabel: row.block,
-      geometryVersion: OPERATOR_REFERENCE_P1_TRACE_VERSION,
-      traceVersion: OPERATOR_REFERENCE_P1_TRACE_VERSION,
+      geometryVersion: options.traceVersion,
+      traceVersion: options.traceVersion,
       traceSource: 'OPERATOR_REFERENCE_RAPAK_2025',
       manualReviewed: true,
       pixelAlignmentStatus: 'PIXEL_ALIGNED',
@@ -8570,6 +8645,155 @@ const DAEGU_OPERATOR_REFERENCE_P1_BLOCK_ROWS: DaeguOperatorReferenceApprovedBloc
   { id: 'daegu-outfield-reserved-rf-rf-10', name: '외야 지정석 RF-10', block: 'RF-10', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2202 207 L 2203 114 L 2338 114 L 2338 209 Z', hitPath: 'M 2195 211 L 2197 109 L 2344 109 L 2345 214 Z', labelX: 2271.1, labelY: 163.2 },
 ];
 
+const DAEGU_OPERATOR_REFERENCE_P2A_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-outfield-reserved-lf-lf-1', name: '외야 지정석 LF-1', block: 'LF-1', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 946 926 L 1036 834 L 1106 910 L 1019 997 Z', hitPath: 'M 938 927 L 1037 826 L 1114 909 L 1018 1005 Z', labelX: 1026.6, labelY: 917.5 },
+  { id: 'daegu-outfield-reserved-lf-lf-2', name: '외야 지정석 LF-2', block: 'LF-2', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1041 830 L 1134 734 L 1206 808 L 1111 905 Z', hitPath: 'M 1033 831 L 1135 726 L 1214 807 L 1110 913 Z', labelX: 1123.3, labelY: 820.4 },
+  { id: 'daegu-outfield-reserved-lf-lf-3', name: '외야 지정석 LF-3', block: 'LF-3', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1139 729 L 1230 635 L 1304 712 L 1213 804 Z', hitPath: 'M 1131 730 L 1231 627 L 1312 711 L 1212 812 Z', labelX: 1221.2, labelY: 721.1 },
+  { id: 'daegu-outfield-reserved-lf-lf-4', name: '외야 지정석 LF-4', block: 'LF-4', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1236 629 L 1322 541 L 1399 616 L 1310 707 Z', hitPath: 'M 1228 629 L 1322 533 L 1407 615 L 1309 715 Z', labelX: 1317.2, labelY: 625 },
+  { id: 'daegu-outfield-reserved-lf-lf-5', name: '외야 지정석 LF-5', block: 'LF-5', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1328 535 L 1416 444 L 1494 522 L 1405 613 Z', hitPath: 'M 1320 536 L 1416 436 L 1502 521 L 1404 621 Z', labelX: 1411.5, labelY: 529 },
+  { id: 'daegu-outfield-reserved-lf-lf-6', name: '외야 지정석 LF-6', block: 'LF-6', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1422 439 L 1512 346 L 1592 425 L 1500 518 Z', hitPath: 'M 1414 440 L 1513 338 L 1600 424 L 1499 526 Z', labelX: 1506.4, labelY: 433.3 },
+  { id: 'daegu-outfield-reserved-lf-lf-7', name: '외야 지정석 LF-7', block: 'LF-7', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1518 340 L 1608 248 L 1689 328 L 1597 421 Z', hitPath: 'M 1510 340 L 1608 240 L 1697 327 L 1596 429 Z', labelX: 1603.3, labelY: 334.9 },
+  { id: 'daegu-outfield-reserved-lf-lf-8', name: '외야 지정석 LF-8', block: 'LF-8', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1613 243 L 1704 150 L 1783 234 L 1695 324 Z', hitPath: 'M 1605 243 L 1705 142 L 1791 233 L 1695 332 Z', labelX: 1697.8, labelY: 239.5 },
+  { id: 'daegu-outfield-reserved-lf-lf-9', name: '외야 지정석 LF-9', block: 'LF-9', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1709 145 L 1739 114 L 1823 114 L 1823 209 L 1788 230 Z', hitPath: 'M 1701 143 L 1734 108 L 1829 108 L 1829 215 L 1789 238 Z', labelX: 1775.4, labelY: 161.3 },
+  { id: 'daegu-outfield-reserved-lf-lf-10', name: '외야 지정석 LF-10', block: 'LF-10', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1829 115 L 1964 114 L 1965 208 L 1830 209 Z', hitPath: 'M 1823 110 L 1971 109 L 1972 212 L 1824 214 Z', labelX: 1894.9, labelY: 162.3 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P2B_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-outfield-family-f-1', name: '외야 패밀리석 F-1', block: 'F-1', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 3117 640 L 3222 536 L 3343 657 L 3237 761 Z', hitPath: 'M 3109 639 L 3221 528 L 3351 658 L 3238 769 Z', labelX: 3229.5, labelY: 648.8 },
+  { id: 'daegu-outfield-family-f-2', name: '외야 패밀리석 F-2', block: 'F-2', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2713 237 L 2802 150 L 2921 272 L 2834 358 Z', hitPath: 'M 2705 236 L 2801 142 L 2929 273 L 2835 366 Z', labelX: 2817.3, labelY: 253.6 },
+  { id: 'daegu-outfield-couple-mr-mr-10', name: '외야 커플 테이블석 MR-10', block: 'MR-10', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2202 217 L 2337 215 L 2338 267 L 2204 268 Z', hitPath: 'M 2195 214 L 2344 212 L 2346 269 L 2197 271 Z', labelX: 2266.8, labelY: 244.2 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P2C_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-sky-lower-s24', name: 'SKY 하단 지정석 S24', block: 'S-24', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 534 2146 L 664 2072 L 764 2157 L 669 2263 Z', hitPath: 'M 526 2145 L 665 2064 L 772 2157 L 670 2271 Z', labelX: 655.1, labelY: 2162.4 },
+  { id: 'daegu-sky-lower-s25', name: 'SKY 하단 지정석 S25', block: 'S-25', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1949 L 655 1948 L 658 2068 L 529 2143 L 520 2135 Z', hitPath: 'M 515 1943 L 660 1942 L 665 2072 L 526 2150 L 516 2142 Z', labelX: 582.3, labelY: 2029.8 },
+  { id: 'daegu-sky-lower-s26', name: 'SKY 하단 지정석 S26', block: 'S-26', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1804 L 655 1804 L 655 1941 L 520 1941 Z', hitPath: 'M 514 1798 L 661 1798 L 661 1947 L 514 1947 Z', labelX: 587.8, labelY: 1872.2 },
+  { id: 'daegu-sky-lower-s27', name: 'SKY 하단 지정석 S27', block: 'S-27', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1674 L 654 1673 L 655 1797 L 520 1797 Z', hitPath: 'M 514 1669 L 660 1668 L 661 1802 L 514 1802 Z', labelX: 587.9, labelY: 1734.8 },
+  { id: 'daegu-sky-lower-s28', name: 'SKY 하단 지정석 S28', block: 'S-28', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1540 L 655 1539 L 655 1667 L 520 1667 Z', hitPath: 'M 514 1535 L 661 1533 L 661 1673 L 514 1673 Z', labelX: 587.7, labelY: 1602.8 },
+  { id: 'daegu-sky-lower-s29', name: 'SKY 하단 지정석 S29', block: 'S-29', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1384 L 655 1384 L 655 1533 L 520 1532 Z', hitPath: 'M 515 1378 L 660 1378 L 660 1539 L 515 1538 Z', labelX: 587.7, labelY: 1458.5 },
+  { id: 'daegu-sky-lower-s30', name: 'SKY 하단 지정석 S30', block: 'S-30', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1246 L 655 1245 L 655 1377 L 520 1377 Z', hitPath: 'M 514 1240 L 661 1239 L 661 1383 L 514 1383 Z', labelX: 587.7, labelY: 1310.9 },
+  { id: 'daegu-sky-lower-s31', name: 'SKY 하단 지정석 S31', block: 'S-31', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 520 1108 L 655 1107 L 655 1239 L 521 1239 Z', hitPath: 'M 514 1102 L 661 1101 L 661 1245 L 515 1245 Z', labelX: 587.8, labelY: 1172.9 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P3_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-outfield-mini-table-ml-ml-1', name: '외야 미니테이블석 ML-1', block: 'ML-1', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1023 1002 L 1110 915 L 1147 953 L 1063 1041 Z', hitPath: 'M 1015 1005 L 1113 908 L 1154 950 L 1060 1049 Z', labelX: 1083.9, labelY: 980.4 },
+  { id: 'daegu-outfield-mini-table-ml-ml-2', name: '외야 미니테이블석 ML-2', block: 'ML-2', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1116 909 L 1211 815 L 1248 852 L 1153 949 Z', hitPath: 'M 1109 912 L 1214 808 L 1255 849 L 1150 956 Z', labelX: 1180.2, labelY: 883.6 },
+  { id: 'daegu-outfield-mini-table-ml-ml-3', name: '외야 미니테이블석 ML-3', block: 'ML-3', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1216 809 L 1308 718 L 1344 755 L 1254 847 Z', hitPath: 'M 1209 812 L 1311 711 L 1351 752 L 1251 854 Z', labelX: 1279.4, labelY: 784.4 },
+  { id: 'daegu-outfield-mini-table-ml-ml-4', name: '외야 미니테이블석 ML-4', block: 'ML-4', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1314 712 L 1404 622 L 1440 658 L 1349 750 Z', hitPath: 'M 1307 715 L 1407 615 L 1447 655 L 1346 757 Z', labelX: 1374.9, labelY: 689 },
+  { id: 'daegu-outfield-mini-table-ml-ml-5', name: '외야 미니테이블석 ML-5', block: 'ML-5', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1409 617 L 1499 528 L 1533 561 L 1445 653 Z', hitPath: 'M 1402 620 L 1502 521 L 1540 557 L 1442 660 Z', labelX: 1470, labelY: 593.2 },
+  { id: 'daegu-outfield-mini-table-ml-ml-6', name: '외야 미니테이블석 ML-6', block: 'ML-6', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1504 522 L 1597 430 L 1631 464 L 1538 558 Z', hitPath: 'M 1497 525 L 1600 423 L 1638 460 L 1535 565 Z', labelX: 1565.3, labelY: 497.9 },
+  { id: 'daegu-outfield-mini-table-ml-ml-7', name: '외야 미니테이블석 ML-7', block: 'ML-7', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1602 425 L 1693 334 L 1727 366 L 1636 459 Z', hitPath: 'M 1595 428 L 1696 327 L 1734 362 L 1633 466 Z', labelX: 1664, labelY: 397.9 },
+  { id: 'daegu-outfield-mini-table-ml-ml-8', name: '외야 미니테이블석 ML-8', block: 'ML-8', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1699 328 L 1813 215 L 1823 216 L 1823 269 L 1733 361 Z', hitPath: 'M 1692 332 L 1817 208 L 1828 210 L 1830 266 L 1730 368 Z', labelX: 1765, labelY: 295.1 },
+  { id: 'daegu-outfield-mini-table-ml-ml-10', name: '외야 미니테이블석 ML-10', block: 'ML-10', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1829 216 L 1963 215 L 1965 265 L 1830 268 Z', hitPath: 'M 1822 213 L 1970 212 L 1973 267 L 1823 271 Z', labelX: 1893.8, labelY: 242.7 },
+  { id: 'daegu-outfield-couple-mr-mr-1', name: '외야 커플 테이블석 MR-1', block: 'MR-1', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 3020 953 L 3057 915 L 3145 1003 L 3104 1041 Z', hitPath: 'M 3013 950 L 3054 907 L 3152 1006 L 3107 1048 Z', labelX: 3077.7, labelY: 976.7 },
+  { id: 'daegu-outfield-couple-mr-mr-2', name: '외야 커플 테이블석 MR-2', block: 'MR-2', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2919 852 L 2956 814 L 3052 911 L 3014 949 Z', hitPath: 'M 2912 849 L 2953 807 L 3059 914 L 3017 956 Z', labelX: 2979.9, labelY: 878.2 },
+  { id: 'daegu-outfield-couple-mr-mr-3', name: '외야 커플 테이블석 MR-3', block: 'MR-3', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2824 754 L 2860 719 L 2951 810 L 2914 848 Z', hitPath: 'M 2817 751 L 2857 711 L 2958 813 L 2917 855 Z', labelX: 2882.4, labelY: 780.4 },
+  { id: 'daegu-outfield-couple-mr-mr-4', name: '외야 커플 테이블석 MR-4', block: 'MR-4', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2727 658 L 2763 622 L 2854 715 L 2818 750 Z', hitPath: 'M 2720 655 L 2760 615 L 2861 718 L 2821 757 Z', labelX: 2786.4, labelY: 684.1 },
+  { id: 'daegu-outfield-couple-mr-mr-5', name: '외야 커플 테이블석 MR-5', block: 'MR-5', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2633 562 L 2669 528 L 2757 619 L 2721 652 Z', hitPath: 'M 2626 559 L 2666 521 L 2764 622 L 2724 659 Z', labelX: 2691.7, labelY: 588.6 },
+  { id: 'daegu-outfield-couple-mr-mr-6', name: '외야 커플 테이블석 MR-6', block: 'MR-6', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2537 463 L 2570 430 L 2663 523 L 2629 558 Z', hitPath: 'M 2530 460 L 2567 422 L 2670 526 L 2633 565 Z', labelX: 2591.7, labelY: 488.5 },
+  { id: 'daegu-outfield-couple-mr-mr-7', name: '외야 커플 테이블석 MR-7', block: 'MR-7', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2440 366 L 2475 335 L 2565 427 L 2531 459 Z', hitPath: 'M 2433 363 L 2472 328 L 2572 431 L 2535 466 Z', labelX: 2499.2, labelY: 394.7 },
+  { id: 'daegu-outfield-couple-mr-mr-8', name: '외야 커플 테이블석 MR-8', block: 'MR-8', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 2344 216 L 2354 215 L 2469 330 L 2437 361 L 2344 269 Z', hitPath: 'M 2339 209 L 2350 208 L 2476 334 L 2441 368 L 2336 267 Z', labelX: 2390.2, labelY: 282.8 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P4_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-first-infield-1-12', name: '1루 내야지정석 1-12', block: '1-12', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3204 1100 L 3307 984 L 3307 1100 Z', hitPath: 'M 3197 1104 L 3310 977 L 3312 1106 Z', labelX: 3271.7, labelY: 1062.4 },
+  { id: 'daegu-first-infield-1-11', name: '1루 내야지정석 1-11', block: '1-11', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3114 1202 L 3199 1107 L 3307 1109 L 3305 1204 Z', hitPath: 'M 3106 1205 L 3195 1100 L 3314 1105 L 3312 1208 Z', labelX: 3229.2, labelY: 1160.7 },
+  { id: 'daegu-first-infield-1-10', name: '1루 내야지정석 1-10', block: '1-10', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3018 1311 L 3109 1210 L 3307 1213 L 3305 1327 L 3018 1327 Z', hitPath: 'M 3010 1313 L 3103 1205 L 3314 1210 L 3312 1330 L 3010 1330 Z', labelX: 3178.6, labelY: 1272.9 },
+  { id: 'daegu-first-infield-1-9', name: '1루 내야지정석 1-9', block: '1-9', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3018 1333 L 3306 1333 L 3306 1437 L 3019 1438 Z', hitPath: 'M 3010 1330 L 3313 1330 L 3314 1440 L 3011 1441 Z', labelX: 3165.2, labelY: 1385.5 },
+  { id: 'daegu-first-infield-1-8', name: '1루 내야지정석 1-8', block: '1-8', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3018 1444 L 3306 1444 L 3307 1550 L 3019 1553 Z', hitPath: 'M 3010 1441 L 3313 1441 L 3315 1553 L 3012 1556 Z', labelX: 3164.4, labelY: 1498.1 },
+  { id: 'daegu-first-infield-1-7', name: '1루 내야지정석 1-7', block: '1-7', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3018 1558 L 3306 1558 L 3307 1666 L 3018 1667 Z', hitPath: 'M 3011 1555 L 3313 1555 L 3315 1669 L 3011 1670 Z', labelX: 3161.8, labelY: 1612.6 },
+  { id: 'daegu-first-infield-1-6', name: '1루 내야지정석 1-6', block: '1-6', category: 'INFIELD', level: '3F', side: 'FIRST_BASE', d: 'M 3018 1674 L 3306 1674 L 3307 1856 L 3018 1684 Z', hitPath: 'M 3010 1672 L 3313 1670 L 3312 1862 L 3010 1682 Z', labelX: 3205, labelY: 1735 },
+  { id: 'daegu-third-infield-3-12', name: '3루 내야지정석 3-12', block: '3-12', category: 'INFIELD', level: '3F', side: 'THIRD_BASE', d: 'M 893 1021 L 963 1101 L 894 1101 Z', hitPath: 'M 890 1014 L 970 1105 L 889 1107 Z', labelX: 917.1, labelY: 1074.3 },
+  { id: 'daegu-third-infield-3-11', name: '3루 내야지정석 3-11', block: '3-11', category: 'INFIELD', level: '3F', side: 'THIRD_BASE', d: 'M 894 1108 L 970 1108 L 1053 1204 L 895 1204 Z', hitPath: 'M 888 1103 L 972 1100 L 1060 1207 L 888 1209 Z', labelX: 954.8, labelY: 1162 },
+  { id: 'daegu-third-infield-3-10', name: '3루 내야지정석 3-10', block: '3-10', category: 'INFIELD', level: '3F', side: 'THIRD_BASE', d: 'M 894 1212 L 1058 1210 L 1148 1310 L 1149 1326 L 896 1327 Z', hitPath: 'M 887 1208 L 1063 1204 L 1156 1312 L 1157 1329 L 889 1331 Z', labelX: 1005.2, labelY: 1273 },
+  { id: 'daegu-third-infield-3-9', name: '3루 내야지정석 3-9', block: '3-9', category: 'INFIELD', level: '3F', side: 'THIRD_BASE', d: 'M 896 1333 L 1148 1333 L 1149 1436 L 898 1438 Z', hitPath: 'M 889 1330 L 1155 1330 L 1156 1439 L 891 1441 Z', labelX: 1022.9, labelY: 1386.1 },
+  { id: 'daegu-third-infield-3-8', name: '3루 내야지정석 3-8', block: '3-8', category: 'INFIELD', level: '3F', side: 'THIRD_BASE', d: 'M 897 1444 L 1149 1444 L 1149 1551 L 899 1553 Z', hitPath: 'M 890 1441 L 1156 1441 L 1156 1554 L 892 1556 Z', labelX: 1024, labelY: 1499.2 },
+  { id: 'daegu-first-exciting-1e-3', name: '1루 익사이팅석 1E-3', block: '1E-3', category: 'EXCITING', level: '3F', side: 'FIRST_BASE', d: 'M 2876 1484 L 3012 1320 L 3012 1511 L 2877 1512 Z', hitPath: 'M 2869 1487 L 3015 1313 L 3017 1517 L 2871 1517 Z', labelX: 2961.3, labelY: 1445.7 },
+  { id: 'daegu-first-exciting-1e-2', name: '1루 익사이팅석 1E-2', block: '1E-2', category: 'EXCITING', level: '3F', side: 'FIRST_BASE', d: 'M 2876 1518 L 3012 1518 L 3012 1684 L 2876 1684 Z', hitPath: 'M 2869 1511 L 3017 1511 L 3018 1689 L 2870 1690 Z', labelX: 2938.2, labelY: 1630.3 },
+  { id: 'daegu-first-exciting-1e-1', name: '1루 익사이팅석 1E-1', block: '1E-1', category: 'EXCITING', level: '3F', side: 'FIRST_BASE', d: 'M 2876 1690 L 3012 1690 L 2877 1794 Z', hitPath: 'M 2869 1684 L 3020 1683 L 2874 1802 Z', labelX: 2935, labelY: 1730 },
+  { id: 'daegu-third-exciting-3e-3', name: '3루 익사이팅석 3E-3', block: '3E-3', category: 'EXCITING', level: '3F', side: 'THIRD_BASE', d: 'M 1154 1319 L 1291 1483 L 1291 1533 L 1155 1533 Z', hitPath: 'M 1151 1312 L 1299 1485 L 1297 1538 L 1150 1540 Z', labelX: 1208.5, labelY: 1458.1 },
+  { id: 'daegu-third-exciting-3e-2', name: '3루 익사이팅석 3E-2', block: '3E-2', category: 'EXCITING', level: '3F', side: 'THIRD_BASE', d: 'M 1154 1540 L 1291 1539 L 1291 1645 L 1155 1645 Z', hitPath: 'M 1148 1535 L 1297 1534 L 1297 1650 L 1149 1650 Z', labelX: 1223.1, labelY: 1591.8 },
+  { id: 'daegu-third-exciting-3e-1', name: '3루 익사이팅석 3E-1', block: '3E-1', category: 'EXCITING', level: '3F', side: 'THIRD_BASE', d: 'M 1154 1653 L 1291 1651 L 1291 1794 L 1155 1685 Z', hitPath: 'M 1147 1649 L 1297 1646 L 1295 1801 L 1147 1683 Z', labelX: 1237.3, labelY: 1700.8 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P5_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-vip-vip-3', name: 'VIP석 VIP-3', block: 'VIP-3', category: 'VIP', level: '3F', side: 'CENTER', d: 'M 1900 2391 L 1926 2313 L 2004 2314 L 2003 2395 L 1900 2395 Z', hitPath: 'M 1893 2395 L 1921 2307 L 2010 2309 L 2009 2400 L 1893 2399 Z', labelX: 1957.9, labelY: 2356 },
+  { id: 'daegu-vip-vip-2', name: 'VIP석 VIP-2', block: 'VIP-2', category: 'VIP', level: '3F', side: 'CENTER', d: 'M 2010 2315 L 2156 2313 L 2157 2394 L 2011 2395 Z', hitPath: 'M 2003 2311 L 2163 2309 L 2164 2398 L 2004 2399 Z', labelX: 2083.5, labelY: 2354.1 },
+  { id: 'daegu-vip-vip-1', name: 'VIP석 VIP-1', block: 'VIP-1', category: 'VIP', level: '3F', side: 'CENTER', d: 'M 2162 2314 L 2241 2313 L 2267 2395 L 2163 2395 Z', hitPath: 'M 2156 2309 L 2246 2307 L 2274 2399 L 2157 2400 Z', labelX: 2208.7, labelY: 2356.1 },
+  { id: 'daegu-central-table-tc-3', name: '중앙 테이블석 TC-3', block: 'TC-3', category: 'TABLE', level: '3F', side: 'CENTER', d: 'M 1816 2659 L 1897 2402 L 1986 2401 L 1987 2661 Z', hitPath: 'M 1811 2665 L 1896 2394 L 1989 2394 L 1991 2668 Z', labelX: 1918, labelY: 2543.1 },
+  { id: 'daegu-central-table-tc-2', name: '중앙 테이블석 TC-2', block: 'TC-2', category: 'TABLE', level: '3F', side: 'CENTER', d: 'M 1992 2401 L 2175 2402 L 2175 2661 L 1992 2661 Z', hitPath: 'M 1987 2395 L 2180 2396 L 2179 2668 L 1988 2668 Z', labelX: 2083.7, labelY: 2524.8 },
+  { id: 'daegu-central-table-tc-1', name: '중앙 테이블석 TC-1', block: 'TC-1', category: 'TABLE', level: '3F', side: 'CENTER', d: 'M 2180 2402 L 2271 2404 L 2350 2662 L 2180 2661 Z', hitPath: 'M 2177 2395 L 2272 2396 L 2355 2668 L 2176 2668 Z', labelX: 2248, labelY: 2544.5 },
+  { id: 'daegu-third-table-t3-4', name: '3루 테이블석 T3-4', block: 'T3-4', category: 'TABLE', level: '3F', side: 'THIRD_BASE', d: 'M 1330 2253 L 1538 2004 L 1590 2045 L 1372 2289 Z', hitPath: 'M 1324 2258 L 1542 1997 L 1596 2040 L 1368 2296 Z', labelX: 1460.8, labelY: 2144.8 },
+  { id: 'daegu-third-table-t3-3', name: '3루 테이블석 T3-3', block: 'T3-3', category: 'TABLE', level: '3F', side: 'THIRD_BASE', d: 'M 1409 2260 L 1597 2051 L 1704 2137 L 1525 2355 Z', hitPath: 'M 1402 2263 L 1599 2043 L 1711 2134 L 1523 2363 Z', labelX: 1559.7, labelY: 2197.3 },
+  { id: 'daegu-third-table-t3-2', name: '3루 테이블석 T3-2', block: 'T3-2', category: 'TABLE', level: '3F', side: 'THIRD_BASE', d: 'M 1531 2360 L 1710 2144 L 1820 2231 L 1634 2446 Z', hitPath: 'M 1524 2363 L 1712 2136 L 1827 2228 L 1632 2454 Z', labelX: 1681.2, labelY: 2288.2 },
+  { id: 'daegu-third-table-t3-1', name: '3루 테이블석 T3-1', block: 'T3-1', category: 'TABLE', level: '3F', side: 'THIRD_BASE', d: 'M 1609 2487 L 1826 2237 L 1919 2311 L 1810 2657 Z', hitPath: 'M 1601 2489 L 1828 2229 L 1925 2305 L 1811 2665 Z', labelX: 1780.4, labelY: 2442.5 },
+  { id: 'daegu-first-table-t1-4', name: '1루 테이블석 T1-4', block: 'T1-4', category: 'TABLE', level: '3F', side: 'FIRST_BASE', d: 'M 2576 2044 L 2629 2002 L 2813 2222 L 2766 2259 Z', hitPath: 'M 2570 2039 L 2625 1995 L 2819 2227 L 2770 2266 Z', labelX: 2693.4, labelY: 2129.4 },
+  { id: 'daegu-first-table-t1-3', name: '1루 테이블석 T1-3', block: 'T1-3', category: 'TABLE', level: '3F', side: 'FIRST_BASE', d: 'M 2461 2138 L 2571 2050 L 2763 2265 L 2646 2362 Z', hitPath: 'M 2454 2135 L 2569 2042 L 2770 2268 L 2648 2370 Z', labelX: 2610.6, labelY: 2201.6 },
+  { id: 'daegu-first-table-t1-2', name: '1루 테이블석 T1-2', block: 'T1-2', category: 'TABLE', level: '3F', side: 'FIRST_BASE', d: 'M 2346 2230 L 2457 2142 L 2642 2367 L 2537 2453 Z', hitPath: 'M 2339 2227 L 2455 2134 L 2649 2371 L 2539 2461 Z', labelX: 2490.9, labelY: 2292.7 },
+  { id: 'daegu-first-table-t1-1', name: '1루 테이블석 T1-1', block: 'T1-1', category: 'TABLE', level: '3F', side: 'FIRST_BASE', d: 'M 2248 2310 L 2342 2236 L 2560 2488 L 2359 2659 Z', hitPath: 'M 2242 2304 L 2340 2228 L 2568 2490 L 2358 2667 Z', labelX: 2385.7, labelY: 2442.7 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P6_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-blue-zone-3-7', name: '블루존 3-7', block: '3-7', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 898 1558 L 1106 1558 L 1106 1667 L 899 1667 Z', hitPath: 'M 891 1554 L 1113 1554 L 1113 1671 L 892 1671 Z', labelX: 1002.6, labelY: 1612.6 },
+  { id: 'daegu-blue-zone-3-6', name: '블루존 3-6', block: '3-6', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 899 1673 L 1106 1673 L 1106 1710 L 900 1833 Z', hitPath: 'M 892 1669 L 1113 1670 L 1114 1709 L 895 1839 Z', labelX: 981.9, labelY: 1729.4 },
+  { id: 'daegu-blue-zone-3-5', name: '블루존 3-5', block: '3-5', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 902 1840 L 1106 1717 L 1185 1780 L 1035 1949 Z', hitPath: 'M 894 1841 L 1110 1710 L 1193 1777 L 1034 1957 Z', labelX: 1049.5, labelY: 1828.1 },
+  { id: 'daegu-blue-zone-3-4', name: '블루존 3-4', block: '3-4', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 1010 1986 L 1190 1784 L 1273 1850 L 1097 2058 Z', hitPath: 'M 1003 1990 L 1193 1776 L 1280 1846 L 1095 2066 Z', labelX: 1141.1, labelY: 1920.2 },
+  { id: 'daegu-blue-zone-3-3', name: '블루존 3-3', block: '3-3', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 1100 2063 L 1277 1855 L 1349 1849 L 1394 1886 L 1184 2133 Z', hitPath: 'M 1093 2067 L 1279 1847 L 1354 1843 L 1401 1882 L 1181 2140 Z', labelX: 1244.4, labelY: 1983.2 },
+  { id: 'daegu-blue-zone-3-2', name: '블루존 3-2', block: '3-2', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 1218 2102 L 1399 1890 L 1489 1962 L 1307 2175 Z', hitPath: 'M 1211 2106 L 1401 1882 L 1496 1958 L 1305 2183 Z', labelX: 1353.9, labelY: 2032.2 },
+  { id: 'daegu-blue-zone-3-1', name: '블루존 3-1', block: '3-1', category: 'BLUE', level: '3F', side: 'THIRD_BASE', d: 'M 1312 2178 L 1494 1967 L 1533 1998 L 1354 2213 Z', hitPath: 'M 1306 2183 L 1498 1960 L 1539 1993 L 1350 2220 Z', labelX: 1422, labelY: 2090.9 },
+  { id: 'daegu-away-cheering-1-5', name: '원정 응원석 1-5', block: '1-5', category: 'AWAY', level: '3F', side: 'FIRST_BASE', d: 'M 2949 1742 L 3017 1690 L 3265 1841 L 3134 1951 Z', hitPath: 'M 2942 1739 L 3012 1683 L 3273 1842 L 3136 1959 Z', labelX: 3103, labelY: 1815.1 },
+  { id: 'daegu-away-cheering-1-4', name: '원정 응원석 1-4', block: '1-4', category: 'AWAY', level: '3F', side: 'FIRST_BASE', d: 'M 2863 1812 L 2945 1748 L 3130 1955 L 3044 2027 Z', hitPath: 'M 2856 1808 L 2942 1740 L 3137 1959 L 3047 2035 Z', labelX: 2991.9, labelY: 1881.4 },
+  { id: 'daegu-away-cheering-1-3', name: '원정 응원석 1-3', block: '1-3', category: 'AWAY', level: '3F', side: 'FIRST_BASE', d: 'M 2803 1923 L 2824 1844 L 2858 1817 L 3039 2031 L 2956 2101 Z', hitPath: 'M 2796 1920 L 2819 1838 L 2855 1810 L 3046 2035 L 2958 2109 Z', labelX: 2913.4, labelY: 1964.7 },
+  { id: 'daegu-away-cheering-1-2', name: '원정 응원석 1-2', block: '1-2', category: 'AWAY', level: '3F', side: 'FIRST_BASE', d: 'M 2678 1962 L 2692 1951 L 2799 1926 L 2951 2105 L 2864 2179 Z', hitPath: 'M 2671 1958 L 2686 1946 L 2797 1918 L 2958 2108 L 2866 2187 Z', labelX: 2826, labelY: 2049.7 },
+  { id: 'daegu-away-cheering-1-1', name: '원정 응원석 1-1', block: '1-1', category: 'AWAY', level: '3F', side: 'FIRST_BASE', d: 'M 2634 1998 L 2674 1968 L 2859 2183 L 2817 2218 Z', hitPath: 'M 2628 1993 L 2670 1961 L 2865 2188 L 2821 2225 Z', labelX: 2746.7, labelY: 2093.1 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P7_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-sky-lower-s23', name: 'SKY 하단 지정석 S23', block: 'S-23', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 675 2267 L 769 2161 L 873 2248 L 779 2355 Z', hitPath: 'M 667 2268 L 769 2153 L 881 2247 L 779 2363 Z', labelX: 773.6, labelY: 2258 },
+  { id: 'daegu-sky-lower-s1', name: 'SKY 하단 지정석 S1', block: 'S-1', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 3324 2246 L 3423 2164 L 3515 2267 L 3411 2355 Z', hitPath: 'M 3316 2245 L 3423 2156 L 3523 2268 L 3410 2363 Z', labelX: 3418.8, labelY: 2258.7 },
+  { id: 'daegu-sky-lower-s2', name: 'SKY 하단 지정석 S2', block: 'S-2', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 3210 2342 L 3319 2251 L 3406 2360 L 3299 2449 Z', hitPath: 'M 3202 2341 L 3320 2243 L 3414 2361 L 3298 2457 Z', labelX: 3308.8, labelY: 2350.8 },
+  { id: 'daegu-sky-lower-s22', name: 'SKY 하단 지정석 S22', block: 'S-22', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 783 2359 L 877 2253 L 983 2341 L 890 2451 Z', hitPath: 'M 775 2360 L 876 2245 L 991 2340 L 891 2459 Z', labelX: 883.6, labelY: 2351.1 },
+  { id: 'daegu-sky-lower-s21', name: 'SKY 하단 지정석 S21', block: 'S-21', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 896 2454 L 988 2346 L 1099 2438 L 1005 2548 Z', hitPath: 'M 888 2455 L 987 2338 L 1107 2437 L 1006 2556 Z', labelX: 996.8, labelY: 2447.3 },
+  { id: 'daegu-sky-lower-s3', name: 'SKY 하단 지정석 S3', block: 'S-3', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 3103 2432 L 3205 2347 L 3295 2455 L 3194 2539 Z', hitPath: 'M 3095 2431 L 3205 2339 L 3303 2456 L 3194 2547 Z', labelX: 3199.5, labelY: 2443.4 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P28_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-operator-reference-rooftop-table', name: '루프탑 테이블석', block: '루프탑', category: 'TABLE', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 1081 607 L 1519 169 L 1587 237 L 1149 675 Z', hitPath: 'M 1075 612 L 1524 163 L 1593 232 L 1144 681 Z', labelX: 1333.8, labelY: 421.9 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-operator-reference-party-floor', name: '파티플로어석', block: '파티플로어', category: 'PARTY', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 785 980 L 854 980 L 853 1203 L 785 1203 Z', hitPath: 'M 782 972 L 856 972 L 855 1211 L 783 1211 Z', labelX: 821.8, labelY: 1090.3 },
+  { id: 'daegu-operator-reference-grass-zone', name: '잔디석', block: '잔디석', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 3336 1001 L 3444 1001 L 3443 1761 L 3336 1761 Z', hitPath: 'M 3335 993 L 3445 993 L 3444 1769 L 3335 1769 Z', labelX: 3390, labelY: 1381.5 },
+  { id: 'daegu-operator-reference-imbank-camping-zone', name: 'IM뱅크 캠핑존', block: 'IM뱅크 캠핑존', category: 'OUTFIELD', level: 'OUTFIELD', side: 'OUTFIELD', d: 'M 3470 1004 L 3585 1004 L 3582 1758 L 3470 1756 Z', hitPath: 'M 3469 996 L 3586 996 L 3583 1766 L 3469 1764 Z', labelX: 3527.5, labelY: 1380.3 },
+  { id: 'daegu-operator-reference-sky-yogibo-zone', name: 'SKY요기보존', block: 'SKY요기보존', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 1898 3122 L 1901 3066 L 2157 3066 L 2156 3139 L 1900 3139 Z', hitPath: 'M 1890 3123 L 1893 3064 L 2165 3064 L 2164 3141 L 1892 3141 Z', labelX: 2026.6, labelY: 3102 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-sky-lower-s4', name: 'SKY 하단 지정석 S-4', block: 'S-4', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 2986 2530 L 3098 2437 L 3189 2545 L 3078 2639 Z', hitPath: 'M 2978 2529 L 3099 2429 L 3197 2546 L 3077 2647 Z', labelX: 3088.1, labelY: 2537.7 },
+  { id: 'daegu-sky-lower-s5', name: 'SKY 하단 지정석 S-5', block: 'S-5', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 2874 2624 L 2981 2535 L 3073 2644 L 2966 2735 Z', hitPath: 'M 2866 2623 L 2982 2527 L 3081 2645 L 2965 2743 Z', labelX: 2973.8, labelY: 2634.6 },
+  { id: 'daegu-sky-lower-s6', name: 'SKY 하단 지정석 S-6', block: 'S-6', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 2762 2719 L 2869 2630 L 2961 2739 L 2855 2827 Z', hitPath: 'M 2754 2718 L 2870 2622 L 2969 2740 L 2854 2835 Z', labelX: 2862.1, labelY: 2728.8 },
+  { id: 'daegu-sky-lower-s7', name: 'SKY 하단 지정석 S-7', block: 'S-7', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 2652 2812 L 2757 2723 L 2851 2833 L 2743 2924 Z', hitPath: 'M 2644 2811 L 2757 2715 L 2859 2834 L 2742 2932 Z', labelX: 2750.9, labelY: 2823.5 },
+  { id: 'daegu-sky-lower-s8', name: 'SKY 하단 지정석 S-8', block: 'S-8', category: 'SKY', level: '5F', side: 'FIRST_BASE', d: 'M 2552 2896 L 2646 2817 L 2738 2929 L 2644 3008 Z', hitPath: 'M 2544 2895 L 2646 2809 L 2746 2930 L 2644 3016 Z', labelX: 2645.5, labelY: 2912.7 },
+  { id: 'daegu-sky-lower-s9', name: 'SKY 하단 지정석 S-9', block: 'S-9', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 2440 2990 L 2547 2900 L 2639 3013 L 2494 3135 Z', hitPath: 'M 2432 2988 L 2548 2892 L 2647 3013 L 2492 3143 Z', labelX: 2532.5, labelY: 3013.1 },
+  { id: 'daegu-sky-lower-s10', name: 'SKY 하단 지정석 S-10', block: 'S-10', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 2293 2994 L 2434 2994 L 2489 3137 L 2293 3138 Z', hitPath: 'M 2287 2989 L 2439 2987 L 2496 3141 L 2287 3143 Z', labelX: 2378.9, labelY: 3071.4 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-sky-lower-s11', name: 'SKY 하단 지정석 S-11', block: 'S-11', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 2162 2994 L 2287 2994 L 2287 3138 L 2162 3137 Z', hitPath: 'M 2157 2988 L 2292 2988 L 2292 3144 L 2157 3143 Z', labelX: 2224.6, labelY: 3066.5 },
+  { id: 'daegu-sky-lower-s12', name: 'SKY 하단 지정석 S-12', block: 'S-12', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 2030 3052 L 2033 2993 L 2157 2994 L 2157 3060 L 2031 3060 Z', hitPath: 'M 2023 3055 L 2026 2989 L 2164 2990 L 2164 3064 L 2024 3064 Z', labelX: 2094.3, labelY: 3026.9 },
+  { id: 'daegu-sky-lower-s13', name: 'SKY 하단 지정석 S-13', block: 'S-13', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 1900 3033 L 1903 2993 L 2026 2994 L 2024 3060 L 1900 3060 Z', hitPath: 'M 1892 3034 L 1896 2989 L 2033 2990 L 2031 3064 L 1893 3064 Z', labelX: 1962.6, labelY: 3027 },
+  { id: 'daegu-sky-lower-s14', name: 'SKY 하단 지정석 S-14', block: 'S-14', category: 'SKY', level: '5F', side: 'CENTER', d: 'M 1698 3137 L 1763 2993 L 1896 2994 L 1892 3138 Z', hitPath: 'M 1691 3141 L 1759 2986 L 1902 2989 L 1898 3143 Z', labelX: 1810.4, labelY: 3071.3 },
+  { id: 'daegu-sky-lower-s15', name: 'SKY 하단 지정석 S-15', block: 'S-15', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1542 3008 L 1637 2894 L 1755 2992 L 1693 3135 Z', hitPath: 'M 1534 3008 L 1636 2886 L 1763 2991 L 1695 3143 Z', labelX: 1654.8, labelY: 3010 },
+];
+
+const DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_BLOCK_ROWS: DaeguOperatorReferenceApprovedBlockRow[] = [
+  { id: 'daegu-sky-lower-s16', name: 'SKY 하단 지정석 S-16', block: 'S-16', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1440 2919 L 1535 2808 L 1632 2888 L 1539 3003 Z', hitPath: 'M 1432 2920 L 1535 2800 L 1640 2887 L 1539 3011 Z', labelX: 1535.9, labelY: 2905.2 },
+  { id: 'daegu-sky-lower-s17', name: 'SKY 하단 지정석 S-17', block: 'S-17', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1336 2832 L 1432 2721 L 1531 2803 L 1435 2916 Z', hitPath: 'M 1328 2833 L 1432 2713 L 1539 2802 L 1435 2924 Z', labelX: 1433.5, labelY: 2818 },
+  { id: 'daegu-sky-lower-s18', name: 'SKY 하단 지정석 S-18', block: 'S-18', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1228 2738 L 1320 2628 L 1427 2716 L 1333 2827 Z', hitPath: 'M 1220 2739 L 1319 2620 L 1435 2715 L 1334 2835 Z', labelX: 1326.7, labelY: 2727.7 },
+  { id: 'daegu-sky-lower-s19', name: 'SKY 하단 지정석 S-19', block: 'S-19', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1119 2645 L 1210 2534 L 1317 2623 L 1223 2735 Z', hitPath: 'M 1111 2646 L 1209 2526 L 1325 2622 L 1223 2743 Z', labelX: 1217, labelY: 2634.2 },
+  { id: 'daegu-sky-lower-s20', name: 'SKY 하단 지정석 S-20', block: 'S-20', category: 'SKY', level: '5F', side: 'THIRD_BASE', d: 'M 1010 2552 L 1104 2444 L 1205 2528 L 1115 2641 Z', hitPath: 'M 1002 2553 L 1104 2436 L 1213 2527 L 1116 2649 Z', labelX: 1107.9, labelY: 2542.6 },
+];
+
 const DAEGU_OPERATOR_REFERENCE_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
   {
     id: 'daegu-outfield-table-tr-tr-9',
@@ -8590,7 +8814,7 @@ const DAEGU_OPERATOR_REFERENCE_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
     imageGeometry: {
       d: 'M 1830 24 L 1963 24 L 1964 106 L 1830 107 Z',
       visualPath: 'M 1830 24 L 1963 24 L 1964 106 L 1830 107 Z',
-      hitPath: 'M 1823 20 L 1970 20 L 1971 110 L 1823 111 Z',
+      hitPath: 'M 1830 24 L 1963 24 L 1964 106 L 1830 107 Z',
       labelX: 1897.7,
       labelY: 67.6,
       labelPoint: [1897.7, 67.6],
@@ -8696,6 +8920,58 @@ const DAEGU_OPERATOR_REFERENCE_BLOCK_DEFINITIONS: DaeguBlockDefinition[] = [
     },
   },
   ...DAEGU_OPERATOR_REFERENCE_P1_BLOCK_ROWS.map(createOperatorReferenceApprovedBlock),
+  ...DAEGU_OPERATOR_REFERENCE_P2A_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P2A_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P2A_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P2B_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P2B_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P2B_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P2C_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P2C_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P2C_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P3_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P3_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P3_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P4_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P4_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P4_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P5_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P5_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P5_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P6_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P6_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P6_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P7_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P7_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P7_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P28_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P28_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P28_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P30_SPECIAL_ZONE_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P30_SPECIAL_ZONE_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P30_SPECIAL_ZONE_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P31_SKY_FIRST_BASE_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P31_SKY_CENTER_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P31_SKY_CENTER_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P31_SKY_CENTER_TRACE_VERSION,
+  })),
+  ...DAEGU_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_BLOCK_ROWS.map((row) => createOperatorReferenceApprovedBlockWithTrace(row, {
+    reviewNote: OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_REVIEW_NOTE,
+    traceVersion: OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_TRACE_VERSION,
+  })),
 ];
 
 export const DAEGU_OPERATOR_REFERENCE_BLOCKS: DaeguBlock[] = DAEGU_OPERATOR_REFERENCE_BLOCK_DEFINITIONS.map(createDaeguBlock);

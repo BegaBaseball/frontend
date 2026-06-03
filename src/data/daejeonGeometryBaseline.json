@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-11T16:05:43.244Z",
+  "generatedAt": "2026-05-31T11:42:35.717Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedBlockCount": 145,
   "policy": {
@@ -1366,7 +1366,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 104",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "488f636696c4a1e575a233cb767431d46704deca395e7aa0f04b6a4677e39143",
+      "fingerprint": "2d08ce703d8ce8df7342475dfb9d3f9ed51a877497eb01728e3115e873b33917",
       "geometry": {
         "id": "first-infield-b-101-108__104",
         "parentId": "first-infield-b-101-108",
@@ -1379,27 +1379,31 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 676 481 L 677 478 L 679 474 L 681 474 L 724 480 L 729 481 L 730 482 L 723 497 L 721 501 L 719 502 L 718 502 L 711 499 L 702 495 L 680 485 L 676 483 Z",
+          "d": "M 676 481 L 678 463 L 681 462 L 690 461 L 710 459 L 721 458 L 730 482 L 723 497 L 721 501 L 718 502 L 711 499 L 702 495 L 680 485 L 676 483 Z",
           "labelX": 705,
           "labelY": 487,
           "shortLabel": "104",
           "labelFontSize": 9,
           "labelRotate": -7
         },
-        "hitAreaD": "M 676 481 L 677 478 L 679 474 L 681 474 L 724 480 L 729 481 L 730 482 L 723 497 L 721 501 L 719 502 L 718 502 L 711 499 L 702 495 L 680 485 L 676 483 Z"
+        "hitAreaD": "M 676 481 L 678 463 L 681 462 L 690 461 L 710 459 L 721 458 L 730 482 L 723 497 L 721 501 L 718 502 L 711 499 L 702 495 L 680 485 L 676 483 Z"
       },
       "anchorCropIds": [
-        "first-101-109"
+        "first-101-109",
+        "first-104-106-detail"
       ],
       "regressionTestIds": [
-        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION"
+        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION",
+        "P2_FIRST_104_106_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "104-single-cell",
+        "105-106-drift",
         "105-109-drift",
-        "first-base-sequence"
+        "first-base-sequence",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -1409,7 +1413,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 105",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "cd4d4947e50d651758fa5f7d07d0b3f59938797f2c8c4f21983178f48e5e8bd5",
+      "fingerprint": "7c50cf20ec89ca64753dd1b158b60208edd2fc8f52d9ab88b3781141b395e35b",
       "geometry": {
         "id": "first-infield-b-101-108__105",
         "parentId": "first-infield-b-101-108",
@@ -1422,27 +1426,31 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 608 467 L 623 469 L 668 476 L 674 478 L 664 494 L 690 496 L 702 501 L 717 506 L 704 530 L 596 520 L 609 494 L 607 479 Z",
-          "labelX": 650,
-          "labelY": 510,
+          "d": "M 613 486 L 614 483 L 616 478 L 623 469 L 717 506 L 718 507 L 715 514 L 711 523 L 708 529 L 706 530 L 703 529 L 685 521 L 618 491 L 614 489 L 613 487 Z",
+          "labelX": 665,
+          "labelY": 500,
           "shortLabel": "105",
           "labelFontSize": 9,
           "labelRotate": -18
         },
-        "hitAreaD": "M 608 467 L 623 469 L 668 476 L 674 478 L 664 494 L 690 496 L 702 501 L 717 506 L 704 530 L 596 520 L 609 494 L 607 479 Z"
+        "hitAreaD": "M 613 486 L 614 483 L 616 478 L 623 469 L 717 506 L 718 507 L 715 514 L 711 523 L 708 529 L 706 530 L 703 529 L 685 521 L 618 491 L 614 489 L 613 487 Z"
       },
       "anchorCropIds": [
-        "first-101-109"
+        "first-101-109",
+        "first-104-106-detail"
       ],
       "regressionTestIds": [
-        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION"
+        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION",
+        "P2_FIRST_104_106_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "104-single-cell",
+        "105-106-drift",
         "105-109-drift",
-        "first-base-sequence"
+        "first-base-sequence",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -1475,17 +1483,21 @@
         "hitAreaD": "M 596 520 L 609 494 L 610 493 L 700 533 L 704 535 L 705 537 L 693 564 L 692 565 L 683 561 L 611 528 L 598 522 L 596 521 Z"
       },
       "anchorCropIds": [
-        "first-101-109"
+        "first-101-109",
+        "first-104-106-detail"
       ],
       "regressionTestIds": [
-        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION"
+        "P0_FIRST_101_109_SEQUENCE_DRIFT_REGRESSION",
+        "P2_FIRST_104_106_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "104-single-cell",
+        "105-106-drift",
         "105-109-drift",
-        "first-base-sequence"
+        "first-base-sequence",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -1589,7 +1601,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 301",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "944cc0cd5eae422d4f189f6cde91811136d00d259c915874522109bfb0f0c920",
+      "fingerprint": "74509243c6202b2a43f7228f385bcab45d9a778096ef90a89defd46401475a19",
       "geometry": {
         "id": "first-table-4f-301-413__301",
         "parentId": "first-table-4f-301-413",
@@ -1632,7 +1644,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 302",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "0f081c978ec80a184e11e7967038ac6e7479a7f6b577c969c4f62801de61c526",
+      "fingerprint": "ef3e5e14010576276f551736723652420f8bf542a027963044d27a44052c9a9a",
       "geometry": {
         "id": "first-table-4f-301-413__302",
         "parentId": "first-table-4f-301-413",
@@ -1718,7 +1730,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 402",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "bbec125cf044133979da82033d9b7853c541b58207fee346258711f603fa0c0b",
+      "fingerprint": "85651c2885401caa75697a005382456aa05b73b79bf9aa3b66968d7c1b77a50e",
       "geometry": {
         "id": "first-table-4f-301-413__402",
         "parentId": "first-table-4f-301-413",
@@ -1761,7 +1773,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 403",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "b5b9fdf97260cbd1a72227e095ef4e6c9af8d473dc0dcc81c54782464f9151e9",
+      "fingerprint": "5bd593e8b7b3db2e50d8e4b1163f20366b1889b2de74ef631ba82f23ef34a7df",
       "geometry": {
         "id": "first-table-4f-301-413__403",
         "parentId": "first-table-4f-301-413",
@@ -1774,14 +1786,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 787 531 L 824 533 L 812 574 L 774 568 Z",
-          "labelX": 790,
-          "labelY": 546,
+          "d": "M 786 534 L 811 536 L 798 568 L 772 563 Z",
+          "labelX": 785,
+          "labelY": 552,
           "shortLabel": "403",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 787 531 L 824 533 L 812 574 L 774 568 Z"
+        "hitAreaD": "M 786 534 L 811 536 L 798 568 L 772 563 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1804,7 +1816,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 404",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "8f61b3c09c4a0bf540bf4f9d651dff8162ae85e047c1d84083742ca3c95d3b67",
+      "fingerprint": "f93e64652db01509e68eeb7fd3ccc66db09878c395e9b6f70ca0dadc4c15e0b8",
       "geometry": {
         "id": "first-table-4f-301-413__404",
         "parentId": "first-table-4f-301-413",
@@ -1817,14 +1829,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 759 613 L 762 605 L 767 592 L 774 574 L 775 572 L 776 572 L 784 573 L 791 574 L 795 577 L 796 579 L 802 612 L 801 616 L 800 617 L 773 618 L 771 618 L 759 616 Z",
-          "labelX": 777,
-          "labelY": 588,
+          "d": "M 764 569 L 788 574 L 774 622 L 747 613 Z",
+          "labelX": 765,
+          "labelY": 596,
           "shortLabel": "404",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 759 613 L 762 605 L 767 592 L 774 574 L 775 572 L 776 572 L 784 573 L 791 574 L 795 577 L 796 579 L 802 612 L 801 616 L 800 617 L 773 618 L 771 618 L 759 616 Z"
+        "hitAreaD": "M 764 569 L 788 574 L 774 622 L 747 613 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1847,7 +1859,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 405",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "325e805ab46c32624209f68f26f9c6922d583685975f796b4a1774d95ca03440",
+      "fingerprint": "e339462e78225f81aecf8f648abc23348cceff7bc15a1780c3956c99296480c8",
       "geometry": {
         "id": "first-table-4f-301-413__405",
         "parentId": "first-table-4f-301-413",
@@ -2854,17 +2866,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s02",
@@ -2897,17 +2909,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s03",
@@ -2940,17 +2952,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s04",
@@ -2983,17 +2995,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s05",
@@ -3026,17 +3038,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s06",
@@ -3069,17 +3081,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s07",
@@ -3112,17 +3124,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s08",
@@ -3155,17 +3167,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s09",
@@ -3198,17 +3210,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s10",
@@ -3241,17 +3253,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s11",
@@ -3284,17 +3296,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s12",
@@ -3327,17 +3339,17 @@
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S01-S12",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S01-S12는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s13",
@@ -3370,17 +3382,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s14",
@@ -3413,17 +3425,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s15",
@@ -3456,17 +3468,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s16",
@@ -3499,17 +3511,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s17",
@@ -3542,17 +3554,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s18",
@@ -3585,17 +3597,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s19",
@@ -3628,17 +3640,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s20",
@@ -3671,17 +3683,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s21",
@@ -3714,17 +3726,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s22",
@@ -3757,17 +3769,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s23",
@@ -3800,17 +3812,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s24",
@@ -3843,17 +3855,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s25",
@@ -3886,17 +3898,17 @@
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S13-S25",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S13-S25는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s26",
@@ -3929,17 +3941,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s27",
@@ -3972,17 +3984,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s28",
@@ -4015,17 +4027,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s29",
@@ -4058,17 +4070,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s30",
@@ -4101,17 +4113,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s31",
@@ -4144,17 +4156,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s32",
@@ -4187,17 +4199,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s33",
@@ -4230,17 +4242,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s34",
@@ -4273,17 +4285,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s35",
@@ -4316,17 +4328,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s36",
@@ -4359,17 +4371,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "skybox-s01-s37__s37",
@@ -4402,17 +4414,17 @@
       "anchorCropIds": [
         "skybox-s26-s37-sequence"
       ],
-      "regressionTestIds": [],
+      "regressionTestIds": [
+        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+      ],
       "reviewPriority": "P2",
-      "reviewMode": "MANUAL_CROP_ONLY",
+      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "S26-S37",
         "skybox",
         "small-cell"
       ],
-      "manualOnlyReasons": [
-        "S26-S37는 소형 셀 밀도가 높아 crop overlay 수동 검수를 유지한다."
-      ]
+      "manualOnlyReasons": []
     },
     {
       "id": "splash-caravan-426__426",
@@ -4463,7 +4475,7 @@
       "parentId": "splash-jacuzzi-425",
       "officialBlockLabel": "스플래쉬 자쿠지(인피니티 풀) 425",
       "officialSectionName": "스플래쉬 자쿠지(인피니티 풀)",
-      "fingerprint": "44345d54cc7290e838a6690a3f4a9ebc627b390551b18b3e9417dad02dac43ba",
+      "fingerprint": "74674566269d317ba7594a289350b9278db13a6006a3e7fb29affcdf93b1c18a",
       "geometry": {
         "id": "splash-jacuzzi-425__425",
         "parentId": "splash-jacuzzi-425",
@@ -4476,14 +4488,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 126 641 L 150 646 L 158 682 L 138 687 L 126 663 Z",
+          "d": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z",
           "labelX": 143,
           "labelY": 663,
           "shortLabel": "자쿠지",
           "labelFontSize": 8,
           "labelRotate": -74
         },
-        "hitAreaD": "M 126 641 L 150 646 L 158 682 L 138 687 L 126 663 Z"
+        "hitAreaD": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -4679,12 +4691,14 @@
       "anchorCropIds": [
         "third-113-117-wide",
         "third-113-120-sequence",
-        "third-115-117-detail"
+        "third-115-117-detail",
+        "third-116-121-detail"
       ],
       "regressionTestIds": [
         "P0_THIRD_113_117_DRIFT_REGRESSION",
         "P1_THIRD_113_120_SEQUENCE_REGRESSION",
-        "P2_THIRD_115_117_DETAIL_REGRESSION"
+        "P2_THIRD_115_117_DETAIL_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
@@ -4693,6 +4707,8 @@
         "113-117-drift",
         "113-120-drift",
         "115-117-boundary",
+        "116-121-drift",
+        "121-split-color",
         "dugout-boundary",
         "screenshot-regression"
       ],
@@ -4729,12 +4745,14 @@
       "anchorCropIds": [
         "third-113-117-wide",
         "third-113-120-sequence",
-        "third-115-117-detail"
+        "third-115-117-detail",
+        "third-116-121-detail"
       ],
       "regressionTestIds": [
         "P0_THIRD_113_117_DRIFT_REGRESSION",
         "P1_THIRD_113_120_SEQUENCE_REGRESSION",
-        "P2_THIRD_115_117_DETAIL_REGRESSION"
+        "P2_THIRD_115_117_DETAIL_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
@@ -4743,6 +4761,8 @@
         "113-117-drift",
         "113-120-drift",
         "115-117-boundary",
+        "116-121-drift",
+        "121-split-color",
         "dugout-boundary",
         "screenshot-regression"
       ],
@@ -4777,16 +4797,21 @@
         "hitAreaD": "M 302 520 L 283 528 L 265 536 L 247 544 L 229 552 L 210 560 L 202 568 L 208 576 L 209 584 L 213 591 L 214 591 L 229 584 L 247 576 L 265 568 L 283 560 L 301 552 L 315 544 L 311 536 L 307 528 L 303 520 Z"
       },
       "anchorCropIds": [
-        "third-113-120-sequence"
+        "third-113-120-sequence",
+        "third-116-121-detail"
       ],
       "regressionTestIds": [
-        "P1_THIRD_113_120_SEQUENCE_REGRESSION"
+        "P1_THIRD_113_120_SEQUENCE_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P1",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
         "100C-overlap",
-        "113-120-drift"
+        "113-120-drift",
+        "116-121-drift",
+        "121-split-color",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -4820,10 +4845,12 @@
       },
       "anchorCropIds": [
         "third-113-120-sequence",
+        "third-116-121-detail",
         "third-119-121-detail"
       ],
       "regressionTestIds": [
         "P1_THIRD_113_120_SEQUENCE_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION",
         "P2_THIRD_119_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P1",
@@ -4831,8 +4858,11 @@
       "riskTags": [
         "100C-overlap",
         "113-120-drift",
+        "116-121-drift",
         "119-121-boundary",
-        "owner-point"
+        "121-split-color",
+        "owner-point",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -4866,12 +4896,14 @@
       },
       "anchorCropIds": [
         "third-113-120-sequence",
+        "third-116-121-detail",
         "third-119-121-detail",
         "third-120-122-detail"
       ],
       "regressionTestIds": [
         "P0_THIRD_120_122_BOUNDARY_REGRESSION",
         "P1_THIRD_113_120_SEQUENCE_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION",
         "P2_THIRD_119_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
@@ -4879,10 +4911,12 @@
       "riskTags": [
         "100C-overlap",
         "113-120-drift",
+        "116-121-drift",
         "119-121-boundary",
         "120-121-boundary",
         "121-split-color",
-        "owner-point"
+        "owner-point",
+        "screenshot-regression"
       ],
       "manualOnlyReasons": []
     },
@@ -5529,7 +5563,7 @@
       "parentId": "third-infield-b-121-124",
       "officialBlockLabel": "내야 지정석B 121",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "958a1f502e25a784db3a29ea85e8813909adcb5d7bdcb74d6492c3852239e8ca",
+      "fingerprint": "8d18b7cacfa3a7784b0cde0dcfb9c98d0704857f00fbc36615cfecfed03cbf8e",
       "geometry": {
         "id": "third-infield-b-121-124__121",
         "parentId": "third-infield-b-121-124",
@@ -5542,16 +5576,17 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 162 472 L 163 459 L 164 453 L 169 453 L 204 457 L 204 463 L 202 470 L 197 471 L 166 476 L 163 476 Z M 156 479 L 157 478 L 161 477 L 194 472 L 201 471 L 203 471 L 204 472 L 208 482 L 208 483 L 206 484 L 197 488 L 181 495 L 167 501 L 165 501 L 164 500 L 158 486 L 156 481 Z",
+          "d": "M 156 479 L 163 453 L 169 453 L 204 457 L 208 482 L 208 483 L 206 484 L 197 488 L 181 495 L 167 501 L 164 500 L 158 486 L 156 481 Z",
           "labelX": 180,
           "labelY": 484,
           "shortLabel": "121",
           "labelFontSize": 9,
           "labelRotate": 5
         },
-        "hitAreaD": "M 162 472 L 163 459 L 164 453 L 169 453 L 204 457 L 204 463 L 202 470 L 197 471 L 166 476 L 163 476 Z M 156 479 L 157 478 L 161 477 L 194 472 L 201 471 L 203 471 L 204 472 L 208 482 L 208 483 L 206 484 L 197 488 L 181 495 L 167 501 L 165 501 L 164 500 L 158 486 L 156 481 Z"
+        "hitAreaD": "M 156 479 L 163 453 L 169 453 L 204 457 L 208 482 L 208 483 L 206 484 L 197 488 L 181 495 L 167 501 L 164 500 L 158 486 L 156 481 Z"
       },
       "anchorCropIds": [
+        "third-116-121-detail",
         "third-119-121-detail",
         "third-120-122-detail",
         "third-121-124"
@@ -5559,16 +5594,19 @@
       "regressionTestIds": [
         "P0_THIRD_120_122_BOUNDARY_REGRESSION",
         "P0_THIRD_121_124_SPLIT_COLOR_REGRESSION",
+        "P2_THIRD_116_121_DETAIL_REGRESSION",
         "P2_THIRD_119_121_DETAIL_REGRESSION"
       ],
       "reviewPriority": "P0",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
+        "116-121-drift",
         "119-121-boundary",
         "120-121-boundary",
         "121-split-color",
         "122-124-boundary",
         "owner-point",
+        "screenshot-regression",
         "third-base-sequence"
       ],
       "manualOnlyReasons": []
@@ -6299,7 +6337,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 423",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "0d931686b5c6cea6755c189d1e97d8deb5c19f4b502292d9ec8cb2648dd8f02a",
+      "fingerprint": "422d6e455698fa1c3d0979f139735700482cc2aab493ba706fc4b47808b551bb",
       "geometry": {
         "id": "third-table-4f-414-330__423",
         "parentId": "third-table-4f-414-330",
@@ -6312,14 +6350,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 166 706 L 207 718 L 209 744 L 178 759 L 160 735 Z",
+          "d": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z",
           "labelX": 184,
           "labelY": 733,
           "shortLabel": "423",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 166 706 L 207 718 L 209 744 L 178 759 L 160 735 Z"
+        "hitAreaD": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"

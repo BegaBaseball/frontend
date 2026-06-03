@@ -1,6 +1,7 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './plain-button';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ');
@@ -55,6 +56,10 @@ export default function PlainDialog({
   hideHeader = false,
 }: PlainDialogProps) {
   const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, { active: open });
 
   useEffect(() => {
     if (!open) {
@@ -93,10 +98,13 @@ export default function PlainDialog({
         onClick={onClose}
       >
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
+          tabIndex={-1}
           aria-labelledby={title && !hideHeader ? titleId : undefined}
           aria-label={!title || hideHeader ? ariaLabel : undefined}
+          aria-describedby={description && !hideHeader ? descriptionId : undefined}
           data-testid={contentTestId}
           onClick={(event) => event.stopPropagation()}
           className={joinClassNames(
@@ -113,7 +121,7 @@ export default function PlainDialog({
                   </h2>
                 ) : null}
                 {description ? (
-                  <p className="mt-1 text-[15px] text-gray-600 dark:text-gray-300">
+                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-gray-300">
                     {description}
                   </p>
                 ) : null}

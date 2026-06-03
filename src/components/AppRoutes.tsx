@@ -38,6 +38,9 @@ const TermsOfService = lazy(() => import('./TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
+const GwangjuSeatMapEditor = import.meta.env.DEV
+  ? lazy(() => import('./gwangju/GwangjuSeatMapEditor'))
+  : null;
 const SajikSeatMapEditor = import.meta.env.DEV
   ? lazy(() => import('./sajik/SajikSeatMapEditor'))
   : null;
@@ -103,6 +106,9 @@ export default function AppRoutes() {
       {import.meta.env.DEV && <Route path="/test/error" element={<TestError />} />}
       {import.meta.env.DEV && SajikSeatMapEditor && (
         <Route path="/internal/sajik-seatmap-editor" element={<SajikSeatMapEditor />} />
+      )}
+      {import.meta.env.DEV && GwangjuSeatMapEditor && (
+        <Route path="/internal/gwangju-seatmap-editor" element={<GwangjuSeatMapEditor />} />
       )}
 
       <Route path="*" element={<NotFound />} />

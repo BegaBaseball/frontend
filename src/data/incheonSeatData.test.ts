@@ -7,6 +7,8 @@ import {
   INCHEON_IMAGE_GEOMETRY_DRAFTS,
   INCHEON_SEATMAP_IMAGE,
   INCHEON_SEATMAP_VIEWPORT,
+  getIncheonDecisionTags,
+  getIncheonGuideMatches,
   getIncheonSeatViewAliases,
 } from './incheonSeatData';
 
@@ -16,9 +18,9 @@ function numberedBlocks(start: number, end: number): string[] {
 
 test('인천 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(INCHEON_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
-  assert.equal(INCHEON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.png');
+  assert.equal(INCHEON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp');
   assert.equal(INCHEON_SEATMAP_IMAGE.optimizedImagePath, 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp');
-  assert.equal(INCHEON_SEATMAP_IMAGE.requiredAssetFileName, 'incheon-ssg-seatmap-official-2026.png');
+  assert.equal(INCHEON_SEATMAP_IMAGE.requiredAssetFileName, 'incheon-ssg-seatmap-official-2026.webp');
   assert.equal(INCHEON_SEATMAP_IMAGE.imageWidth, 3360);
   assert.equal(INCHEON_SEATMAP_IMAGE.imageHeight, 5328);
   assert.ok(INCHEON_SEATMAP_IMAGE.sourceLabel);
@@ -164,4 +166,51 @@ test('인천 seat view alias helper는 공식 좌석/시야 검색 alias 계약�
   assert.ok(aliases.includes('인천 SSG 랜더스필드'));
   assert.ok(aliases.includes('SSG 랜더스'));
   assert.ok(aliases.includes('휠체어석 8B'));
+});
+
+test('인천 가이드 helper는 정확한 블록 검색을 최우선으로 정렬한다', () => {
+  const matches = getIncheonGuideMatches('전체', '101B');
+
+  assert.ok(matches.length > 0);
+  assert.equal(matches[0].block.block, '101B');
+  assert.ok(matches[0].reasons.includes('검색 일치'));
+});
+
+test('인천 가이드 helper는 홈 응원 intent를 정적 좌석 데이터에서만 파생한다', () => {
+  const matches = getIncheonGuideMatches('홈 응원', '');
+
+  assert.ok(matches.length > 0);
+  assert.ok(matches.every((match) => match.block.fanRole === 'HOME'));
+  assert.ok(matches.some((match) => match.tags.includes('홈 응원')));
+});
+
+test('인천 가이드 helper는 원정/3루 intent를 원정 또는 3루 블록으로 제한한다', () => {
+  const matches = getIncheonGuideMatches('원정/3루', '');
+
+  assert.ok(matches.length > 0);
+  assert.ok(matches.every((match) => match.block.fanRole === 'AWAY' || match.block.side === 'THIRD_BASE'));
+  assert.ok(matches.some((match) => match.tags.includes('원정/3루')));
+});
+
+test('인천 가이드 helper는 바비큐 검색을 공식 카테고리/alias에서 찾는다', () => {
+  const matches = getIncheonGuideMatches('전체', '바비큐');
+
+  assert.ok(matches.length > 0);
+  assert.ok(matches.every((match) => match.tags.includes('바비큐')));
+});
+
+test('인천 가이드 helper는 휠체어 검색과 접근성 태그를 연결한다', () => {
+  const matches = getIncheonGuideMatches('전체', '휠체어');
+  const accessibleBlock = INCHEON_BLOCKS.find((block) => block.block === '휠체어석 8B');
+  assert.ok(accessibleBlock);
+
+  assert.ok(matches.length > 0);
+  assert.ok(matches.every((match) => match.tags.includes('접근성')));
+  assert.ok(getIncheonDecisionTags(accessibleBlock).includes('휠체어석'));
+});
+
+test('인천 가이드 helper는 존재하지 않는 검색어를 추천하지 않는다', () => {
+  const matches = getIncheonGuideMatches('전체', '없는좌석검색어');
+
+  assert.deepEqual(matches, []);
 });

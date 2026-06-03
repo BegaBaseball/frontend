@@ -188,7 +188,7 @@ describe('Theme visual checks for public pages', () => {
   const stadiums = [
     {
       stadiumId: 'JAMSIL',
-      stadiumName: '잠실야구장',
+      stadiumName: '서울 · 잠실야구장',
       lat: 37.5122,
       lng: 127.072,
       address: '서울 송파구',
@@ -196,8 +196,8 @@ describe('Theme visual checks for public pages', () => {
       phone: null,
     },
     {
-      stadiumId: 'SAESIN',
-      stadiumName: '대전한화생명 이글스파크',
+      stadiumId: 'DAEJEON',
+      stadiumName: '대전 · 한화생명볼파크',
       lat: 36.318,
       lng: 127.43,
       address: '대전광역시',
@@ -589,7 +589,7 @@ describe('Theme visual checks for public pages', () => {
   }, () => {
     cy.wait('@getStadiums');
     cy.contains('구장 가이드', { timeout: 20000 }).should('be.visible');
-    cy.contains('잠실야구장', { timeout: 20000 }).should('be.visible');
+    cy.contains('서울 · 잠실야구장', { timeout: 20000 }).should('be.visible');
   });
 
   captureThemeCases('prediction', '/prediction', () => {

@@ -40,6 +40,7 @@ import {
 } from '../utils/mateApplyDraft';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
 import { validateMateApplyMessage } from '../utils/mateValidation';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
   const trimmed = message.trim();
@@ -201,6 +202,7 @@ export default function MateApply() {
   const isSubmitReady = isSelling || message.length >= 10;
   const summaryAmountLabel = isSelling ? '구매 신청 금액' : '거래 기준 금액';
   const summaryTrustLabel = party.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   // 티켓 인증 핸들러
   const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,7 +368,7 @@ export default function MateApply() {
               </div>
               <div className="min-w-0">
                 <h3 className="text-base font-black leading-tight text-primary sm:text-lg">
-                  {party.stadium}
+                  {stadiumDisplayName}
                 </h3>
                 <p className="mt-1 text-[16px] text-gray-600 dark:text-gray-300">
                   {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
@@ -457,7 +459,7 @@ export default function MateApply() {
                   {ticketInfo && (
                     <div className="space-y-1.5 text-[16px] text-green-600 dark:text-green-300">
                       {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
-                      {ticketInfo.stadium && <p>🏟️ {ticketInfo.stadium}</p>}
+                      {ticketInfo.stadium && <p>🏟️ {formatStadiumDisplayName(ticketInfo.stadium)}</p>}
                       {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
                         <p>💺 {[ticketInfo.section, ticketInfo.row, ticketInfo.seat].filter(Boolean).join(' ')}</p>
                       )}

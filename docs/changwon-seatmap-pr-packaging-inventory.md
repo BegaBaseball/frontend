@@ -99,7 +99,7 @@ PR A 검증 중 드러난 기존 dirty-state blocker를 해소한 최소 변경�
 - `node --import tsx --test src/components/StadiumGuideRuntimeSeatMaps.test.ts`: PASS, 30/30
 - `node --import tsx --test src/data/sajikSeatData.test.ts`: PASS, 17/17
 - `npm run test:stadium:seatmaps`: PASS, 219/219
-- `npm run qa:stadium:changwon:trace-review`: PASS, `CHANGWON:mobile passed after 232s port=5199`
+- `node scripts/stadium-seatmap-ops.mjs changwon trace-review`: PASS, `CHANGWON:mobile passed after 232s port=5199`
 - `npm run build`: PASS
 
 기존 Vite warning:
@@ -112,5 +112,5 @@ PR A 검증 중 드러난 기존 dirty-state blocker를 해소한 최소 변경�
 1. PR A 범위를 확정한다.
 2. `package.json`, `StadiumGuideRuntimeSeatMaps.test.ts`는 선택 staging으로 NC/QA infra 부분만 분리한다.
 3. PR B를 같은 PR에 포함할지 별도 PR로 분리할지 결정한다.
-4. PR A 범위만 남긴 상태에서 `npm run test:stadium:seatmaps`, `npm run qa:stadium:changwon:trace-review`, `npm run build`를 재실행한다.
+4. PR A 범위만 남긴 상태에서 `npm run test:stadium:seatmaps`, `node scripts/stadium-seatmap-ops.mjs changwon trace-review`, `npm run build`를 재실행한다.
 5. PR 설명에는 NC 좌표 변경 없음, internal QA script 승격, release-lock 수치, 최신 검증 결과를 기록한다.

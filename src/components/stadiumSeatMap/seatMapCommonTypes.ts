@@ -60,6 +60,13 @@ export interface SeatMapCommonCopy {
   officialBlocksTitle?: string;
 }
 
+export interface SeatMapSearchAction {
+  label?: ReactNode;
+  ariaLabel?: string;
+  onClick: () => void;
+  testId?: string;
+}
+
 export interface SeatMapSectionAdapter<TSection> {
   getId: (section: TSection) => string;
   getName: (section: TSection) => string;

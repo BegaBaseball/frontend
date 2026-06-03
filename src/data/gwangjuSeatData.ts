@@ -9,11 +9,13 @@ export type GwangjuTraceStatus = 'OFFICIAL_IMAGE_TRACED' | 'NEEDS_OPERATOR_REVIE
 export type GwangjuTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE';
 export type GwangjuTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';
 export type GwangjuPixelAlignmentStatus = 'PIXEL_ALIGNED' | 'MANUAL_REVIEW_REQUIRED';
-export type GwangjuTraceGeneration = 'FULL_ACTIVE_111_RETRACE';
+export type GwangjuTraceGeneration = 'GWANGJU_PRECISION_V1';
+export type GwangjuPolygonPoint = readonly [number, number];
 
 export interface GwangjuImageGeometry {
   d: string;
   visualD?: string;
+  polygonPoints?: readonly GwangjuPolygonPoint[];
   labelX: number;
   labelY: number;
   labelRotate?: number;
@@ -308,7 +310,6 @@ export const GWANGJU_CATEGORIES: Record<string, GwangjuCategory> = {
   CHAMPION:     { label: '챔피언석',       light: '#C7A04B', dark: '#D8B765', textLight: '#713F12', textDark: '#FEF3C7' },
   CENTRAL_TABLE:{ label: '중앙 테이블석',  light: '#7C3AED', dark: '#9B6AF3', textLight: '#4C1D95', textDark: '#EDE9FE' },
   TABLE:        { label: '테이블석',       light: '#8B5CF6', dark: '#A78BFA', textLight: '#4C1D95', textDark: '#EDE9FE' },
-  SKYBOX:       { label: '스카이박스',     light: '#D94695', dark: '#F472B6', textLight: '#831843', textDark: '#FCE7F3' },
   SKY_PICNIC:   { label: '스카이피크닉석', light: '#EC4899', dark: '#F9A8D4', textLight: '#831843', textDark: '#FCE7F3' },
   PARTY:        { label: '4층파티석',      light: '#F59E8B', dark: '#FDA4AF', textLight: '#7F1D1D', textDark: '#FFE4E6' },
   FIVE_TABLE:   { label: '5층 테이블석',   light: '#6D3A8C', dark: '#8B5FBF', textLight: '#3B0764', textDark: '#F3E8FF' },
@@ -336,7 +337,7 @@ export const GWANGJU_CATEGORY_GROUPS: GwangjuCategoryGroup[] = [
   { id: 'lv-5f',   label: '5층',    cats: null, levels: ['5F'],                                                                         filterDimension: 'level' },
   { id: 'lv-out',  label: '외야층', cats: null, levels: ['OUTFIELD'],                                                                   filterDimension: 'level' },
   // 등급별 (보조 필터 — 기본 접힘)
-  { id: 'premium',       label: '프리미엄/특수석', cats: ['CHAMPION', 'CENTRAL_TABLE', 'TABLE', 'SURPRISE', 'FAMILY', 'ACCESSIBLE', 'PARTY', 'SKYBOX', 'SKY_PICNIC'], filterDimension: 'grade' },
+  { id: 'premium',       label: '프리미엄/특수석', cats: ['CHAMPION', 'CENTRAL_TABLE', 'TABLE', 'SURPRISE', 'FAMILY', 'ACCESSIBLE', 'PARTY', 'SKY_PICNIC'], filterDimension: 'grade' },
   { id: 'infield',       label: '내야석',          cats: ['K9', 'K8', 'K7', 'K5'],                                                     filterDimension: 'grade' },
   { id: 'k7', label: 'K7석', cats: ['K7'],                                                                        filterDimension: 'grade' },
   { id: 'cheering', label: '응원석', cats: ['K7', 'AWAY'], fanRoles: ['HOME', 'AWAY'],                                    filterDimension: 'grade' },
@@ -372,7 +373,8 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
     blockIds: [
       ...numberedBlocks(101, 113).map((block) => blockId(infieldTraceCategory(block), block)),
       ...['116', '117'].map((block) => blockId('K9', block)),
-      ...numberedBlocks(118, 123).map((block) => blockId(infieldTraceCategory(block), block)),
+      ...numberedBlocks(118, 122).map((block) => blockId('K7', block)),
+      ...numberedBlocks(123, 123).map((block) => blockId('K8', block)),
       ...numberedBlocks(124, 127).map((block) => blockId('K5', block)),
     ],
     method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
@@ -396,7 +398,7 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
   },
   {
     id: 'official-special-sections',
-    label: '공식 알파벳 특수 구역 A/B/C/G/H/I/J/K/O/P',
+    label: '공식 알파벳 특수 구역 A/B/C/G/H/I/J/L/O/P',
     priority: 'P1',
     blockIds: [
       'champion-seats',
@@ -410,7 +412,7 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
       'third-wheelchair-seats',
       'party-seats-first',
       'party-seats-third',
-      'skybox-seats',
+      'sky-picnic-L',
       'outfield-left-seats',
       'outfield-right-seats',
       'bleachers-table-left',
@@ -425,7 +427,7 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
     priority: 'P2',
     blockIds: GWANGJU_OPERATOR_CONFIRMED_BLOCK_IDS,
     method: 'OFFICIAL_IMAGE_PIXEL_TRACE',
-    note: '운영자 제공 블럭 범위(K7: 107~111, 118~122 / 원정응원석: 107~110)를 기존 공식 PNG 번호 블럭 polygon에 연결합니다.',
+    note: '운영자 제공 블럭 범위(K7: 107~111, 118~122 / 원정응원석: 107~110)를 공식 PNG에서 검수된 번호 블럭 polygon에 연결합니다.',
   },
   {
     id: 'operator-only-cheering',
@@ -435,16 +437,16 @@ export const GWANGJU_TRACE_REVIEW_REGIONS: GwangjuTraceReviewRegion[] = [
     method: GWANGJU_OPERATOR_TRACE_REVIEW_METHOD,
     note: GWANGJU_SEATMAP_COORDINATES_READY
       ? '공식 PNG 기준 번호 블럭 polygon을 multi-subpath aggregate로 묶은 K7/원정응원석 hit-area를 필터 전용 layer에서 검수합니다.'
-      : '운영자 제공 블럭 범위는 기존 공식 PNG 번호 블럭 polygon에 연결합니다. K7/원정응원석 전용 중첩 hit-area는 운영자 polygon 입력 전까지 만들지 않습니다.',
+      : '운영자 제공 블럭 범위는 공식 PNG에서 검수된 번호 블럭 polygon에 연결합니다. K7/원정응원석 전용 중첩 hit-area는 운영자 polygon 입력 전까지 만들지 않습니다.',
   },
 ];
 
 const SOURCE_NOTE = 'KIA 타이거즈 공식 광주-기아 챔피언스필드 경기장 안내 이미지의 visible block 경계를 기준으로 둔 선택 hit-area입니다.';
-export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v85';
-export const GWANGJU_FULL_RETRACE_VERSION = 'manual-polygon-v86';
-export const GWANGJU_FULL_RETRACE_GENERATION: GwangjuTraceGeneration = 'FULL_ACTIVE_111_RETRACE';
+export const GWANGJU_PREVIOUS_TRACE_VERSION = 'manual-polygon-v113';
+export const GWANGJU_FULL_RETRACE_VERSION = 'gwangju-precision-v1';
+export const GWANGJU_FULL_RETRACE_GENERATION: GwangjuTraceGeneration = 'GWANGJU_PRECISION_V1';
 const TRACE_VERSION = GWANGJU_FULL_RETRACE_VERSION;
-const TRACE_REVIEW_NOTE = '공식 PNG 원본 좌표계(2200x1159)에서 111개 기본 active block과 K7/AWAY aggregate hit-area를 이미지 정렬 audit와 구역별 workset으로 재검수하고 debug overlay와 evidence crop을 대조해 수동 검수한 hit-area입니다.';
+const TRACE_REVIEW_NOTE = '공식 PNG 원본 좌표계(2200x1159)에서 113개 active block과 K7/AWAY aggregate hit-area를 gwangju-precision-v1 기준 Editor+CLI 검수 흐름과 구역별 workset으로 재검수하고 debug overlay와 evidence crop을 대조해 수동 검수한 hit-area입니다.';
 
 export const GWANGJU_TRACE_ANCHOR_TOLERANCE_PX = 2;
 export const GWANGJU_TRACE_BOUNDS_TOLERANCE_PX = 0;
@@ -505,11 +507,11 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
       'componentIoU',
       'nested-hit-area-blocked',
     ],
-    note: 'O/P 외야 계열은 공식 PNG component recall/IoU gate로 작은 legacy polygon 회귀를 차단합니다.',
+    note: 'O/P 외야 계열은 공식 PNG component recall/IoU gate로 작은 과거 polygon 회귀를 차단합니다.',
   },
   {
     id: 'p2-lower-infield-low-margin',
-    label: 'P2 하단 내야 101~109 및 저마진 K7/K9 경계',
+    label: 'P2 하단/3루 내야 101~127 및 저마진 K7/K9 경계',
     priority: 'P2',
     blockIds: [
       'k5-101',
@@ -527,6 +529,11 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
       'k7-120',
       'k7-121',
       'k7-122',
+      'k8-123',
+      'k5-124',
+      'k5-125',
+      'k5-126',
+      'k5-127',
     ],
     acceptanceFocus: [
       'officialBlockMaskRecall',
@@ -536,7 +543,7 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
       'label-top-hit',
       'boundary-overlap',
     ],
-    note: '업로드 화면에서 확인된 101~109 하단 내야 mismatch와 기존 coverage margin이 낮은 K7 118/119, K9 117 및 인접 K7/K9 경계를 함께 확인합니다.',
+    note: '업로드 화면에서 확인된 101~109 하단 내야 mismatch와 3루 116~127 공식 PNG 경계를 함께 확인합니다.',
   },
   {
     id: 'p3-official-special-sections',
@@ -554,14 +561,14 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
       'third-wheelchair-seats',
       'party-seats-first',
       'party-seats-third',
-      'skybox-seats',
+      'sky-picnic-L',
     ],
     acceptanceFocus: [
       'special-seat-color-overlap',
       'numbered-label-containment',
       'marker-only-separation',
     ],
-    note: 'SURPRISE/FAMILY/CHAMPION/ACCESSIBLE/PARTY/SKYBOX/CENTRAL_TABLE 계열 특수석을 공식 PNG visible 경계 기준으로 확인합니다.',
+    note: 'SURPRISE/FAMILY/CHAMPION/ACCESSIBLE/PARTY/CENTRAL_TABLE/SKY_PICNIC 계열 특수석을 공식 PNG visible 경계 기준으로 확인합니다.',
   },
   {
     id: 'p4-repeated-numbered-blocks',
@@ -581,14 +588,14 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
   },
   {
     id: 'p5-full-release-reference',
-    label: 'P5 111개 기본 블럭 + K7/AWAY aggregate reference 재고정',
+    label: 'P5 113개 active 블럭 + K7/AWAY aggregate reference 재고정',
     priority: 'P5',
     blockIds: [
       ...numberedBlocks(101, 106).map((block) => blockId('K5', block)),
       ...numberedBlocks(107, 111).map((block) => blockId('K7', block)),
       ...['112', '113', '116', '117'].map((block) => blockId('K9', block)),
       ...numberedBlocks(118, 122).map((block) => blockId('K7', block)),
-      blockId('K8', '123'),
+      ...numberedBlocks(123, 123).map((block) => blockId('K8', block)),
       ...numberedBlocks(124, 127).map((block) => blockId('K5', block)),
       ...suiteBlocks(301, 335).map((block) => blockId('SKY_PICNIC', block)),
       ...numberedBlocks(501, 535).map((block) => blockId('FIVE_TABLE', block)),
@@ -603,7 +610,7 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
       'third-wheelchair-seats',
       'party-seats-first',
       'party-seats-third',
-      'skybox-seats',
+      'sky-picnic-L',
       'outfield-left-seats',
       'outfield-right-seats',
       'bleachers-table-left',
@@ -613,14 +620,46 @@ export const GWANGJU_ZONE_PRECISION_WORKSETS: GwangjuZonePrecisionWorkset[] = [
     ],
     acceptanceFocus: [
       'active-block-count-113',
-      'release-ready-v17',
+      'release-ready-gwangju-precision-v1',
       'derived-k7-away-aggregate-hit-area',
     ],
-    note: '전체 111개 기본 polygon과 K7/AWAY filter-only aggregate hit-area의 v6 reference, image-alignment audit, release gate를 최종 확인합니다.',
+    note: '전체 113개 active polygon과 K7/AWAY filter-only aggregate hit-area의 gwangju-precision-v1 reference, image-alignment audit, release gate를 최종 확인합니다.',
   },
 ];
 
-type Point = readonly [number, number];
+type Point = GwangjuPolygonPoint;
+
+const GWANGJU_INTERACTIVE_POLYGON_POINTS: Record<string, readonly Point[]> = {
+  'k7-121': [[528, 552], [548, 512], [444, 463], [418, 527], [522, 551]],
+  'k7-122': [[550, 508], [448, 457], [469, 428], [565, 488]],
+  'k8-123': [[569, 481], [589, 449], [492, 391], [470, 423], [564, 479], [563, 479]],
+  'k5-124': [[628, 425], [514, 354], [495, 387], [609, 452], [617, 440]],
+  'k5-125': [[656, 389], [541, 319], [522, 350], [634, 415], [654, 387], [649, 385]],
+  'k5-126': [[660, 379], [674, 306], [640, 289], [623, 316], [566, 284], [545, 313], [649, 375]],
+  'k5-127': [[690, 231], [677, 301], [643, 284], [673, 245]],
+};
+
+export const GWANGJU_SPECIAL_SECTION_HTML_MAP_POINTS: Record<string, readonly Point[]> = {
+  'third-wheelchair-I': [[585, 204], [505, 328], [519, 339], [609, 218], [599, 212]],
+  'party-seats-third-J': [[469, 413], [452, 402], [502, 331], [516, 341], [505, 358]],
+  'sky-picnic-L': [[352, 604], [386, 475], [499, 289], [488, 283], [398, 422], [379, 458], [363, 504], [353, 539], [342, 603], [345, 603]],
+};
+
+const GWANGJU_SKY_PICNIC_L_SUBPATHS: readonly (readonly Point[])[] = [
+  GWANGJU_SPECIAL_SECTION_HTML_MAP_POINTS['sky-picnic-L'],
+  [[386, 842], [408, 885], [386, 891], [386, 870]],
+  [[441, 894], [467, 917], [501, 938], [536, 952], [618, 967], [688, 978], [758, 990], [822, 986], [868, 974], [902, 974], [899, 980], [870, 990], [760, 998], [640, 990], [520, 964], [440, 923], [423, 910]],
+];
+
+function withInteractivePolygon(
+  geometry: GwangjuImageGeometryDraft,
+  blockId: keyof typeof GWANGJU_INTERACTIVE_POLYGON_POINTS,
+): GwangjuImageGeometryDraft {
+  return {
+    ...geometry,
+    polygonPoints: GWANGJU_INTERACTIVE_POLYGON_POINTS[blockId],
+  };
+}
 
 function formatPathNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '');
@@ -679,23 +718,51 @@ function blockGeometry(
   };
 }
 
-const THIRD_BASE_V86_VISUAL_POINTS: Record<string, readonly Point[]> = {
-  'k7-121': [[412, 562], [416, 542], [420, 525], [422, 518], [425, 508], [427, 502], [432, 502], [441, 504], [521, 522], [538, 526], [541, 528], [555, 543], [555, 544], [544, 567], [537, 581], [534, 586], [532, 586], [525, 585], [469, 576], [463, 575], [458, 574], [440, 570], [414, 564], [412, 563]],
-  'k7-122': [[426, 505], [427, 502], [438, 476], [442, 468], [449, 456], [451, 453], [452, 452], [454, 452], [481, 458], [512, 465], [565, 477], [569, 478], [612, 490], [612, 491], [611, 492], [607, 495], [584, 512], [573, 520], [565, 523], [540, 531], [534, 531], [529, 530], [520, 528], [480, 519], [449, 512], [427, 507], [426, 506]],
-  'k8-123': [[452, 451], [455, 446], [460, 438], [462, 435], [477, 413], [486, 400], [489, 400], [516, 406], [629, 432], [648, 438], [648, 440], [642, 469], [630, 478], [615, 489], [614, 489], [569, 479], [480, 459], [454, 453], [452, 452]],
-  'k5-124': [[454, 400], [473, 362], [477, 358], [484, 355], [489, 355], [494, 356], [503, 358], [561, 371], [641, 389], [649, 391], [653, 414], [653, 415], [650, 430], [618, 439], [614, 439], [569, 429], [458, 404], [454, 403]],
-  'k5-125': [[485, 353], [494, 339], [498, 333], [507, 322], [509, 320], [512, 320], [561, 331], [601, 340], [663, 354], [664, 355], [664, 359], [659, 381], [652, 390], [650, 392], [649, 392], [640, 390], [560, 372], [489, 356], [485, 355]],
-  'k5-126': [[535, 286], [604, 305], [611, 316], [624, 299], [683, 314], [672, 362], [515, 329], [528, 300]],
-  'k5-127': [[680, 215], [695, 211], [695, 236], [690, 276], [687, 305], [679, 309], [660, 298], [654, 280], [663, 249], [672, 230]],
-};
+function insetPolygon(points: readonly Point[], insetPx: number): Point[] {
+  const center = points.reduce(
+    (acc, [x, y]) => [acc[0] + x, acc[1] + y] as [number, number],
+    [0, 0],
+  ).map((value) => value / points.length) as [number, number];
+
+  return points.map(([x, y]) => {
+    const dx = x - center[0];
+    const dy = y - center[1];
+    const distance = Math.hypot(dx, dy);
+    if (distance === 0) return [x, y];
+
+    return [
+      x - ((dx / distance) * insetPx),
+      y - ((dy / distance) * insetPx),
+    ];
+  });
+}
+
+function skyPicnicGeometry(
+  visualPoints: readonly Point[],
+  labelX: number,
+  labelY: number,
+  shortLabel: string,
+): GwangjuImageGeometryDraft {
+  return blockGeometry(insetPolygon(visualPoints, 5.5), labelX, labelY, shortLabel, 6, visualPoints);
+}
+
+function skyPicnicPrecisionGeometry(
+  visualPoints: readonly Point[],
+  labelX: number,
+  labelY: number,
+  shortLabel: string,
+  hitInsetPx = 5.5,
+): GwangjuImageGeometryDraft {
+  return blockGeometry(insetPolygon(visualPoints, hitInsetPx), labelX, labelY, shortLabel, 6, visualPoints);
+}
 
 function multiBlockGeometry(
-  subpaths: readonly Point[][],
+  subpaths: readonly (readonly Point[])[],
   labelX: number,
   labelY: number,
   shortLabel: string,
   labelFontSize = 10,
-  visualSubpaths?: readonly Point[][],
+  visualSubpaths?: readonly (readonly Point[])[],
 ): GwangjuImageGeometryDraft {
   const retracedSubpaths = subpaths.map(fullRetracePoints);
   const visualD = visualSubpaths
@@ -738,12 +805,12 @@ function numberedBlocks(start: number, end: number): string[] {
   return Array.from({ length: end - start + 1 }, (_, index) => String(start + index));
 }
 
-function infieldTraceCategory(block: string): 'K5' | 'K7' | 'K8' | 'K9' {
+function infieldTraceCategory(block: string): 'K5' | 'K7' | 'K9' {
   const number = Number(block);
   if (GWANGJU_K7_OFFICIAL_BLOCKS.includes(block)) return 'K7';
-  if (number <= 106 || number >= 124) return 'K5';
-  if (number <= 113 || number <= 117) return 'K9';
-  return 'K8';
+  if (number >= 101 && number <= 106) return 'K5';
+  if (['112', '113', '116', '117'].includes(block)) return 'K9';
+  throw new Error(`Unsupported Gwangju infield block: ${block}`);
 }
 
 function suiteBlocks(start: number, end: number): string[] {
@@ -805,13 +872,62 @@ const INFIELD_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
   'k7-118': blockGeometry([[395, 651], [402, 616], [403, 615], [406, 615], [476, 626], [495, 629], [507, 631], [512, 632], [512, 633], [511, 639], [505, 669], [503, 669], [462, 663], [422, 657], [396, 653], [395, 652]], 480, 650, '118'),
   'k7-119': blockGeometry([[404, 606], [407, 588], [410, 573], [415, 573], [422, 574], [517, 589], [520, 590], [520, 592], [514, 622], [513, 626], [509, 626], [470, 620], [412, 611], [406, 610], [404, 609]], 480, 604, '119'),
   'k7-120': blockGeometry([[412, 562], [416, 542], [418, 534], [419, 533], [423, 533], [450, 539], [516, 554], [519, 555], [519, 558], [515, 578], [514, 581], [513, 582], [509, 582], [502, 581], [469, 576], [417, 568], [412, 567]], 496, 558, '120'),
-  'k7-121': blockGeometry([[428, 490], [520, 515], [512, 545], [428, 525]], 438, 510, '121', 10, THIRD_BASE_V86_VISUAL_POINTS['k7-121']),
-  'k7-122': blockGeometry([[455, 452], [560, 476], [540, 507], [455, 486]], 470, 466, '122', 10, THIRD_BASE_V86_VISUAL_POINTS['k7-122']),
-  'k8-123': blockGeometry([[470, 408], [600, 430], [560, 470], [455, 445]], 505, 430, '123', 10, THIRD_BASE_V86_VISUAL_POINTS['k8-123']),
-  'k5-124': blockGeometry([[492, 370], [650, 399], [625, 437], [474, 400]], 530, 390, '124', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-124']),
-  'k5-125': blockGeometry([[510, 330], [640, 358], [620, 390], [485, 362]], 560, 345, '125', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-125']),
-  'k5-126': blockGeometry([[535, 294], [604, 309], [611, 318], [626, 310], [683, 314], [672, 362], [515, 329], [528, 304]], 595, 326, '126', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-126']),
-  'k5-127': blockGeometry([[678, 235], [692, 232], [692, 254], [688, 302], [680, 313], [662, 303], [657, 282], [668, 248]], 678, 264, '127', 10, THIRD_BASE_V86_VISUAL_POINTS['k5-127']),
+  'k7-121': withInteractivePolygon(blockGeometry(
+    [[528, 552], [548, 512], [444, 463], [418, 527], [522, 551]],
+    455,
+    520,
+    '121',
+    10,
+    [[528, 552], [548, 512], [444, 463], [418, 527], [522, 551]],
+  ), 'k7-121'),
+  'k7-122': withInteractivePolygon(blockGeometry(
+    [[550, 508], [448, 457], [469, 428], [565, 488]],
+    515,
+    475,
+    '122',
+    10,
+    [[550, 508], [448, 457], [469, 428], [565, 488]],
+  ), 'k7-122'),
+  'k8-123': withInteractivePolygon(blockGeometry(
+    [[569, 481], [589, 449], [492, 391], [470, 423], [564, 479], [563, 479]],
+    515,
+    430,
+    '123',
+    10,
+    [[569, 481], [589, 449], [492, 391], [470, 423], [564, 479], [563, 479]],
+  ), 'k8-123'),
+  'k5-124': withInteractivePolygon(blockGeometry(
+    [[628, 425], [514, 354], [495, 387], [609, 452], [617, 440]],
+    530,
+    395,
+    '124',
+    10,
+    [[628, 425], [514, 354], [495, 387], [609, 452], [617, 440]],
+  ), 'k5-124'),
+  'k5-125': withInteractivePolygon(blockGeometry(
+    [[656, 389], [541, 319], [522, 350], [634, 415], [654, 387], [649, 385]],
+    555,
+    356,
+    '125',
+    10,
+    [[656, 389], [541, 319], [522, 350], [634, 415], [654, 387], [649, 385]],
+  ), 'k5-125'),
+  'k5-126': withInteractivePolygon(blockGeometry(
+    [[660, 379], [674, 306], [640, 289], [623, 316], [566, 284], [545, 313], [649, 375]],
+    590,
+    327,
+    '126',
+    10,
+    [[660, 379], [674, 306], [640, 289], [623, 316], [566, 284], [545, 313], [649, 375]],
+  ), 'k5-126'),
+  'k5-127': withInteractivePolygon(blockGeometry(
+    [[690, 231], [677, 301], [643, 284], [673, 245]],
+    676,
+    279,
+    '127',
+    10,
+    [[690, 231], [677, 301], [643, 284], [673, 245]],
+  ), 'k5-127'),
 };
 
 function aggregateGeometryFromDrafts(
@@ -829,9 +945,10 @@ function aggregateGeometryFromDrafts(
     }
     return geometry;
   });
+  const hitD = sourceGeometries.map((geometry) => geometry.d).join(' ');
 
   return {
-    d: sourceGeometries.map((geometry) => geometry.d).join(' '),
+    d: hitD,
     labelX,
     labelY,
     shortLabel,
@@ -870,41 +987,41 @@ const K7_AGGREGATE_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
 };
 
 const SKY_PICNIC_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
-  'sky-picnic-s-301': blockGeometry([[846, 952], [867, 952], [867, 974], [848, 974], [846, 966]], 856, 963, 'S-301', 6, [[844, 952], [867, 952], [867, 974], [848, 974], [844, 966]]),
-  'sky-picnic-s-302': blockGeometry([[822, 957], [845, 957], [845, 978], [824, 978], [822, 970]], 834, 968, 'S-302', 6),
-  'sky-picnic-s-303': blockGeometry([[799, 961], [822, 961], [822, 982], [801, 982], [799, 974]], 811, 972, 'S-303', 6),
-  'sky-picnic-s-304': blockGeometry([[778, 965], [798, 965], [798, 984], [779, 984], [778, 977]], 788, 975, 'S-304', 6),
-  'sky-picnic-s-305': blockGeometry([[756, 975], [757, 957], [777, 957], [777, 963], [776, 983], [775, 984], [758, 984], [756, 976]], 767, 975, 'S-305', 6),
-  'sky-picnic-s-306': blockGeometry([[733, 982], [734, 961], [735, 956], [756, 956], [756, 974], [755, 984], [748, 984], [734, 983]], 745, 974, 'S-306', 6),
-  'sky-picnic-s-307': blockGeometry([[709, 978], [712, 956], [713, 954], [730, 954], [734, 955], [734, 960], [732, 976], [731, 982], [725, 982], [716, 981], [709, 980]], 721, 972, 'S-307', 6),
-  'sky-picnic-s-308': blockGeometry([[687, 974], [689, 952], [712, 952], [712, 955], [710, 970], [709, 977], [707, 979], [701, 979], [693, 978], [687, 977]], 699, 969, 'S-308', 6),
-  'sky-picnic-s-309': blockGeometry([[664, 969], [668, 949], [669, 948], [686, 948], [689, 949], [689, 950], [687, 973], [686, 976], [679, 976], [667, 974], [664, 973]], 676, 967, 'S-309', 6),
-  'sky-picnic-s-310': blockGeometry([[641, 965], [644, 946], [645, 943], [666, 943], [668, 946], [668, 948], [662, 972], [656, 972], [644, 970], [641, 969]], 653, 962, 'S-310', 6),
-  'sky-picnic-s-311': blockGeometry([[618, 961], [620, 945], [621, 940], [632, 940], [639, 941], [644, 942], [644, 945], [639, 969], [636, 969], [629, 968], [623, 967], [618, 966]], 630, 958, 'S-311', 6),
-  'sky-picnic-s-312': blockGeometry([[595, 958], [597, 942], [598, 937], [612, 937], [618, 938], [620, 939], [620, 944], [618, 960], [617, 965], [611, 965], [598, 963], [595, 962]], 607, 955, 'S-312', 6),
-  'sky-picnic-s-313': blockGeometry([[569, 953], [572, 935], [597, 935], [597, 941], [595, 953], [594, 958], [593, 962], [592, 962], [584, 961], [569, 959]], 584, 952, 'S-313', 6),
-  'sky-picnic-s-314': blockGeometry([[536, 952], [539, 942], [543, 930], [544, 929], [566, 929], [571, 930], [572, 931], [572, 934], [568, 958], [564, 958], [538, 953]], 555, 947, 'S-314', 6),
-  'sky-picnic-s-315': blockGeometry([[501, 955], [502, 939], [504, 935], [510, 924], [515, 915], [521, 915], [544, 916], [544, 925], [543, 929], [538, 945], [536, 951], [535, 952], [501, 958]], 523, 937, 'S-315', 6),
-  'sky-picnic-s-316': blockGeometry([[472, 919], [486, 898], [487, 898], [497, 903], [512, 911], [512, 920], [511, 922], [505, 933], [502, 938], [476, 942], [472, 942]], 492, 920, 'S-316', 6),
-  'sky-picnic-s-317': blockGeometry([[452, 885], [456, 880], [463, 880], [479, 892], [482, 895], [482, 903], [481, 905], [471, 920], [452, 922], [452, 909]], 463, 901, 'S-317', 6),
-  'sky-picnic-s-318': blockGeometry([[409, 849], [426, 849], [451, 873], [451, 891], [431, 891], [409, 866]], 424, 870, 'S-318', 6),
-  'sky-picnic-s-319': blockGeometry([[373, 783], [397, 783], [397, 810], [392, 820], [373, 827], [371, 812]], 389, 792, 'S-319', 6),
-  'sky-picnic-s-320': blockGeometry([[364, 752], [389, 752], [392, 759], [388, 779], [366, 779], [364, 772]], 376, 765, 'S-320', 6),
-  'sky-picnic-s-321': blockGeometry([[360, 708], [382, 708], [386, 716], [386, 742], [381, 750], [360, 750]], 371, 724, 'S-321', 6),
-  'sky-picnic-s-322': blockGeometry([[361, 678], [382, 678], [386, 686], [386, 699], [378, 704], [360, 700], [360, 686]], 374, 688, 'S-322', 6),
-  'sky-picnic-s-323': blockGeometry([[367, 656], [387, 656], [391, 662], [391, 670], [384, 674], [364, 674], [364, 668]], 378, 665, 'S-323', 6),
-  'sky-picnic-s-324': blockGeometry([[373, 626], [392, 626], [395, 630], [395, 645], [389, 654], [369, 654], [369, 642], [371, 631]], 383, 636, 'S-324', 6),
-  'sky-picnic-s-325': blockGeometry([[374, 619], [376, 607], [377, 604], [403, 611], [403, 623], [394, 625], [374, 623]], 385, 613, 'S-325', 6),
-  'sky-picnic-s-326': blockGeometry([[378, 596], [379, 590], [380, 585], [382, 583], [407, 590], [407, 602], [382, 601], [378, 599]], 389, 591, 'S-326', 6),
-  'sky-picnic-s-327': blockGeometry([[382, 574], [384, 562], [385, 562], [411, 570], [411, 580], [382, 579]], 393, 570, 'S-327', 6),
-  'sky-picnic-s-328': blockGeometry([[386, 551], [388, 541], [415, 549], [415, 559], [386, 558]], 397, 549, 'S-328', 6),
-  'sky-picnic-s-329': blockGeometry([[390, 532], [392, 524], [393, 521], [418, 528], [418, 532], [397, 535], [390, 536]], 402, 529, 'S-329', 6),
-  'sky-picnic-s-330': blockGeometry([[396, 510], [398, 503], [401, 502], [423, 510], [423, 512], [413, 515], [395, 517]], 407, 509, 'S-330', 6),
-  'sky-picnic-s-331': blockGeometry([[398, 496], [402, 488], [405, 485], [410, 485], [425, 491], [426, 495], [419, 498], [408, 501], [402, 499], [398, 498]], 412, 493, 'S-331', 6),
-  'sky-picnic-s-332': blockGeometry([[406, 477], [409, 469], [412, 465], [417, 465], [435, 474], [435, 477], [426, 481], [415, 482], [408, 479]], 420, 474, 'S-332', 6),
-  'sky-picnic-s-333': blockGeometry([[382, 452], [405, 448], [418, 455], [412, 464], [384, 460]], 411, 458, 'S-333', 6),
-  'sky-picnic-s-334': blockGeometry([[418, 456], [431, 433], [445, 438], [432, 466]], 430, 445, 'S-334', 6),
-  'sky-picnic-s-335': blockGeometry([[430, 410], [444, 404], [467, 416], [456, 431], [431, 424]], 447, 418, 'S-335', 6),
+  'sky-picnic-s-301': blockGeometry([[848, 975], [868, 969], [864, 953], [843, 957]], 856, 963, 'S-301', 6),
+  'sky-picnic-s-302': blockGeometry([[826, 979], [843, 975], [841, 958], [822, 961], [823, 966]], 834, 968, 'S-302', 6),
+  'sky-picnic-s-303': blockGeometry([[800, 984], [822, 980], [819, 961], [799, 965], [800, 972]], 811, 972, 'S-303', 6),
+  'sky-picnic-s-304': blockGeometry([[796, 966], [778, 966], [779, 985], [798, 984], [798, 981]], 788, 975, 'S-304', 6),
+  'sky-picnic-s-305': skyPicnicGeometry([[759, 966], [776, 966], [776, 984], [758, 985], [759, 979]], 767, 975, 'S-305'),
+  'sky-picnic-s-306': skyPicnicGeometry([[735, 965], [756, 966], [756, 984], [733, 983], [734, 980]], 745, 974, 'S-306'),
+  'sky-picnic-s-307': skyPicnicGeometry([[712, 963], [733, 965], [732, 983], [710, 981]], 721, 972, 'S-307'),
+  'sky-picnic-s-308': skyPicnicGeometry([[691, 959], [708, 962], [707, 980], [688, 978], [689, 972]], 699, 969, 'S-308'),
+  'sky-picnic-s-309': skyPicnicGeometry([[667, 956], [687, 959], [685, 977], [665, 974]], 676, 967, 'S-309'),
+  'sky-picnic-s-310': skyPicnicGeometry([[643, 953], [665, 956], [662, 973], [641, 970]], 653, 962, 'S-310'),
+  'sky-picnic-s-311': skyPicnicGeometry([[621, 949], [642, 952], [640, 970], [618, 967]], 630, 958, 'S-311'),
+  'sky-picnic-s-312': skyPicnicGeometry([[598, 946], [618, 949], [617, 966], [596, 963]], 607, 955, 'S-312'),
+  'sky-picnic-s-313': skyPicnicGeometry([[575, 943], [596, 946], [594, 962], [573, 959], [573, 958]], 584, 952, 'S-313'),
+  'sky-picnic-s-314': skyPicnicGeometry([[542, 936], [574, 943], [572, 960], [536, 952]], 555, 947, 'S-314'),
+  'sky-picnic-s-315': skyPicnicGeometry([[510, 922], [538, 934], [535, 953], [501, 938], [505, 931]], 523, 937, 'S-315'),
+  'sky-picnic-s-316': skyPicnicPrecisionGeometry([[480, 904], [508, 922], [500, 938], [468, 919], [477, 909]], 492, 920, 'S-316', 12),
+  'sky-picnic-s-317': skyPicnicPrecisionGeometry([[455, 883], [479, 904], [467, 917], [441, 894], [446, 890]], 463, 901, 'S-317', 8),
+  'sky-picnic-s-318': skyPicnicGeometry([[378, 804], [391, 829], [425, 875], [440, 892], [453, 882], [427, 853], [405, 819], [395, 796], [388, 800]], 424, 870, 'S-318'),
+  'sky-picnic-s-319': skyPicnicPrecisionGeometry([[366, 771], [384, 766], [394, 796], [378, 802], [371, 783]], 389, 792, 'S-319'),
+  'sky-picnic-s-320': skyPicnicPrecisionGeometry([[360, 736], [379, 734], [384, 764], [365, 766]], 372, 750, 'S-320'),
+  'sky-picnic-s-321': skyPicnicPrecisionGeometry([[361, 699], [360, 734], [380, 733], [380, 701], [380, 701]], 371, 724, 'S-321'),
+  'sky-picnic-s-322': skyPicnicPrecisionGeometry([[364, 664], [384, 668], [380, 699], [361, 698]], 374, 688, 'S-322'),
+  'sky-picnic-s-323': skyPicnicPrecisionGeometry([[369, 643], [391, 646], [386, 666], [367, 662]], 378, 654, 'S-323'),
+  'sky-picnic-s-324': skyPicnicPrecisionGeometry([[373, 621], [371, 642], [391, 643], [394, 625]], 383, 636, 'S-324'),
+  'sky-picnic-s-325': skyPicnicPrecisionGeometry([[378, 600], [375, 620], [394, 621], [398, 603], [391, 602]], 385, 613, 'S-325'),
+  'sky-picnic-s-326': skyPicnicPrecisionGeometry([[381, 580], [401, 584], [397, 600], [379, 600], [379, 598]], 389, 591, 'S-326'),
+  'sky-picnic-s-327': skyPicnicPrecisionGeometry([[386, 557], [405, 560], [401, 582], [383, 578], [384, 574]], 393, 570, 'S-327'),
+  'sky-picnic-s-328': skyPicnicPrecisionGeometry([[389, 538], [410, 540], [405, 559], [386, 557], [387, 553]], 397, 549, 'S-328'),
+  'sky-picnic-s-329': skyPicnicPrecisionGeometry([[395, 516], [415, 522], [409, 539], [391, 537], [391, 534]], 402, 529, 'S-329'),
+  'sky-picnic-s-330': skyPicnicPrecisionGeometry([[401, 495], [420, 501], [414, 521], [396, 515], [396, 515]], 408, 511, 'S-330'),
+  'sky-picnic-s-331': skyPicnicPrecisionGeometry([[408, 480], [425, 486], [419, 500], [400, 494]], 412, 494, 'S-331'),
+  'sky-picnic-s-332': skyPicnicPrecisionGeometry([[415, 460], [410, 479], [426, 485], [434, 469]], 420, 474, 'S-332'),
+  'sky-picnic-s-333': skyPicnicPrecisionGeometry([[417, 457], [434, 467], [444, 450], [426, 441]], 430, 455, 'S-333', 4),
+  'sky-picnic-s-334': skyPicnicPrecisionGeometry([[437, 423], [456, 434], [443, 450], [428, 441], [431, 435]], 440, 438, 'S-334', 4),
+  'sky-picnic-s-335': skyPicnicPrecisionGeometry([[450, 405], [467, 415], [455, 432], [438, 422]], 452, 418, 'S-335', 4),
 };
 
 const FIVE_TABLE_TRACE_GEOMETRIES: Record<string, GwangjuImageGeometryDraft> = {
@@ -950,8 +1067,38 @@ export const GWANGJU_IMAGE_GEOMETRY_DRAFTS: Record<string, GwangjuImageGeometryD
   ...K7_AGGREGATE_GEOMETRIES,
   ...SKY_PICNIC_GEOMETRIES,
   ...FIVE_TABLE_TRACE_GEOMETRIES,
-  'champion-seats': blockGeometry([[461, 756], [515, 740], [517, 740], [518, 741], [559, 793], [559, 794], [558, 796], [553, 803], [536, 826], [527, 838], [523, 843], [512, 831], [497, 815], [487, 802], [475, 783]], 500, 792, 'A', 13),
-  'central-table-seats': blockGeometry([[397, 771], [398, 770], [422, 764], [459, 755], [461, 756], [475, 783], [487, 802], [497, 815], [512, 831], [523, 843], [523, 844], [510, 863], [488, 895], [486, 895], [468, 882], [464, 879], [460, 875], [444, 857], [432, 842], [425, 833], [422, 829], [417, 822], [413, 816], [412, 814], [405, 799], [401, 790], [400, 787], [397, 773]], 430, 824, 'B', 13),
+  'champion-seats': multiBlockGeometry([
+    [[515, 740], [512, 741], [515, 749], [529, 772], [539, 784], [554, 797], [556, 797], [559, 793], [550, 786], [532, 767], [517, 740]],
+    [[508, 742], [505, 743], [506, 747], [518, 771], [529, 786], [542, 799], [549, 804], [551, 804], [554, 800], [531, 778], [518, 759], [510, 742]],
+    [[500, 744], [498, 745], [501, 754], [509, 770], [515, 770], [507, 755], [503, 744]],
+    [[493, 746], [491, 747], [492, 751], [503, 773], [504, 773], [507, 770], [503, 764], [496, 746]],
+    [[486, 748], [484, 749], [485, 753], [499, 781], [500, 781], [502, 776], [493, 759], [489, 748]],
+    [[479, 750], [477, 751], [477, 753], [493, 785], [510, 808], [531, 828], [533, 828], [536, 825], [513, 804], [500, 787], [486, 761], [482, 750]],
+    [[471, 752], [469, 753], [473, 763], [483, 782], [494, 799], [506, 814], [527, 834], [529, 834], [531, 830], [523, 824], [509, 810], [490, 784], [478, 761], [475, 752]],
+    [[464, 754], [462, 755], [467, 767], [487, 801], [502, 820], [524, 840], [525, 840], [527, 837], [505, 816], [488, 794], [480, 781], [467, 754]],
+    [[523, 783], [522, 790], [537, 805], [545, 811], [546, 811], [549, 807], [540, 800], [524, 783]],
+    [[519, 791], [516, 793], [518, 796], [533, 811], [541, 817], [542, 817], [544, 813], [535, 806], [521, 791]],
+    [[507, 793], [514, 802], [529, 817], [536, 822], [538, 822], [540, 819], [538, 817], [531, 812], [514, 794], [508, 793]],
+  ], 500, 792, 'A', 13, [
+    [[461, 756], [515, 740], [517, 740], [518, 741], [559, 793], [559, 794], [558, 796], [553, 803], [536, 826], [527, 838], [523, 843], [512, 831], [497, 815], [487, 802], [475, 783]],
+  ]),
+  'central-table-seats': multiBlockGeometry([
+    [[459, 755], [455, 756], [455, 758], [466, 781], [475, 796], [496, 824], [519, 846], [521, 846], [523, 842], [504, 825], [486, 803], [470, 777], [460, 755]],
+    [[451, 757], [448, 758], [450, 765], [459, 783], [474, 807], [492, 830], [515, 852], [516, 852], [519, 849], [492, 822], [471, 793], [453, 757]],
+    [[442, 759], [440, 761], [452, 785], [469, 812], [487, 835], [510, 858], [512, 858], [514, 854], [496, 837], [474, 810], [456, 781], [446, 759]],
+    [[434, 761], [433, 763], [454, 802], [458, 807], [464, 808], [465, 808], [450, 785], [439, 761]],
+    [[430, 762], [426, 763], [429, 772], [451, 810], [452, 810], [456, 807], [443, 787], [431, 762]],
+    [[422, 764], [418, 766], [431, 791], [447, 816], [448, 816], [450, 811], [436, 789], [424, 764]],
+    [[414, 766], [411, 768], [420, 786], [445, 826], [470, 858], [494, 882], [496, 882], [498, 879], [478, 859], [449, 824], [448, 820], [438, 806], [424, 782], [417, 766]],
+    [[406, 768], [404, 770], [413, 788], [440, 831], [466, 864], [490, 888], [492, 888], [494, 885], [461, 850], [438, 819], [422, 793], [409, 768]],
+    [[397, 770], [396, 771], [407, 792], [435, 836], [462, 870], [486, 894], [488, 894], [490, 891], [462, 862], [433, 824], [419, 802], [402, 770]],
+    [[398, 780], [410, 809], [421, 827], [459, 873], [472, 884], [473, 884], [448, 856], [428, 829], [412, 804], [399, 780]],
+    [[471, 818], [470, 825], [483, 841], [506, 864], [508, 864], [510, 860], [491, 842], [472, 818]],
+    [[468, 827], [465, 830], [479, 847], [502, 870], [504, 870], [506, 866], [487, 848], [470, 827]],
+    [[462, 830], [458, 831], [461, 836], [486, 865], [498, 876], [500, 876], [502, 872], [483, 854], [463, 830]],
+  ], 430, 824, 'B', 13, [
+    [[397, 771], [398, 770], [422, 764], [459, 755], [461, 756], [475, 783], [487, 802], [497, 815], [512, 831], [523, 843], [523, 844], [510, 863], [488, 895], [486, 895], [468, 882], [464, 879], [460, 875], [444, 857], [432, 842], [425, 833], [422, 829], [417, 822], [413, 816], [412, 814], [405, 799], [401, 790], [400, 787], [397, 773]],
+  ]),
   'disabled-seats-center': blockGeometry([[390, 741], [403, 739], [414, 761], [394, 766]], 402, 753, 'C', 13),
   'first-surprise-seats': multiBlockGeometry([
     [[871, 772], [874, 772], [874, 773], [879, 773], [879, 774], [884, 774], [884, 775], [890, 775], [890, 776], [895, 776], [895, 777], [900, 777], [900, 778], [906, 778], [906, 779], [911, 779], [911, 780], [917, 780], [917, 781], [922, 781], [922, 782], [927, 782], [927, 783], [933, 783], [933, 784], [938, 784], [938, 785], [943, 785], [943, 786], [949, 786], [949, 787], [954, 787], [954, 788], [959, 788], [959, 789], [958, 789], [958, 790], [954, 790], [954, 791], [950, 791], [950, 792], [946, 792], [946, 793], [943, 793], [943, 794], [939, 794], [939, 795], [935, 795], [935, 796], [931, 796], [931, 797], [927, 797], [927, 798], [924, 798], [924, 799], [920, 799], [920, 800], [916, 800], [916, 801], [912, 801], [912, 802], [908, 802], [908, 803], [904, 803], [904, 804], [901, 804], [901, 805], [897, 805], [897, 806], [893, 806], [893, 807], [889, 807], [889, 808], [885, 808], [885, 809], [882, 809], [882, 810], [878, 810], [878, 811], [874, 811], [874, 812], [870, 812], [870, 813], [866, 813], [866, 814], [863, 814], [863, 815], [859, 815], [859, 816], [855, 816], [855, 817], [851, 817], [851, 818], [847, 818], [847, 819], [843, 819], [843, 820], [840, 820], [840, 821], [836, 821], [836, 822], [832, 822], [832, 823], [828, 823], [828, 824], [824, 824], [824, 825], [821, 825], [821, 826], [817, 826], [817, 827], [813, 827], [813, 828], [809, 828], [809, 829], [805, 829], [805, 830], [801, 830], [801, 829], [802, 829], [802, 828], [803, 828], [803, 827], [805, 827], [805, 826], [806, 826], [806, 825], [807, 825], [807, 824], [808, 824], [808, 823], [809, 823], [809, 822], [811, 822], [811, 821], [812, 821], [812, 820], [813, 820], [813, 819], [814, 819], [814, 818], [816, 818], [816, 817], [817, 817], [817, 816], [818, 816], [818, 815], [819, 815], [819, 814], [821, 814], [821, 813], [822, 813], [822, 812], [823, 812], [823, 811], [824, 811], [824, 810], [826, 810], [826, 809], [827, 809], [827, 808], [828, 808], [828, 807], [829, 807], [829, 806], [830, 806], [830, 805], [832, 805], [832, 804], [833, 804], [833, 803], [834, 803], [834, 802], [835, 802], [835, 801], [837, 801], [837, 800], [838, 800], [838, 799], [839, 799], [839, 798], [840, 798], [840, 797], [842, 797], [842, 796], [843, 796], [843, 795], [844, 795], [844, 794], [845, 794], [845, 793], [847, 793], [847, 792], [848, 792], [848, 791], [849, 791], [849, 790], [850, 790], [850, 789], [851, 789], [851, 788], [853, 788], [853, 787], [854, 787], [854, 786], [855, 786], [855, 785], [856, 785], [856, 784], [858, 784], [858, 783], [859, 783], [859, 782], [860, 782], [860, 781], [861, 781], [861, 780], [863, 780], [863, 779], [864, 779], [864, 778], [865, 778], [865, 777], [866, 777], [866, 776], [868, 776], [868, 775], [869, 775], [869, 774], [870, 774], [870, 773], [871, 773]],
@@ -959,26 +1106,41 @@ export const GWANGJU_IMAGE_GEOMETRY_DRAFTS: Record<string, GwangjuImageGeometryD
     [[763, 832], [765, 832], [765, 833], [789, 833], [789, 835], [790, 835], [790, 846], [791, 846], [791, 848], [786, 848], [786, 847], [764, 847], [764, 833], [763, 833]],
   ], 870, 800, 'G', 13),
   'third-surprise-seats': multiBlockGeometry([
+    [[656, 390], [572, 518], [573, 518], [641, 468], [657, 390]],
+    [[591, 452], [548, 513], [560, 514], [564, 517], [564, 520], [565, 520], [604, 461], [602, 458], [593, 452]],
+    [[540, 530], [515, 581], [529, 584], [534, 584], [557, 537], [544, 536], [542, 535], [541, 530]],
+  ], 620, 475, 'G', 13, [
     [[574, 515], [593, 486], [614, 454], [637, 419], [655, 392], [656, 392], [656, 397], [650, 427], [642, 466], [641, 469], [629, 478], [583, 512], [576, 517], [574, 517]],
     [[548, 513], [552, 507], [579, 469], [589, 455], [594, 454], [602, 458], [604, 460], [604, 462], [591, 482], [574, 508], [566, 520], [565, 521], [564, 521], [548, 514]],
     [[515, 581], [530, 550], [540, 530], [541, 530], [557, 537], [557, 538], [550, 553], [540, 574], [535, 584], [534, 585], [529, 585], [516, 583], [515, 582]],
-  ], 620, 475, 'G', 13),
+  ]),
   'first-family-seats': blockGeometry([[1123, 812], [1119, 815], [1109, 820], [1095, 825], [1077, 830], [1056, 835], [1034, 840], [1013, 845], [1013, 855], [1013, 860], [1011, 870], [1011, 875], [1009, 880], [1008, 885], [1007, 890], [1010, 904], [1012, 904], [1034, 899], [1115, 892], [1135, 885], [1159, 870], [1173, 860], [1185, 850], [1165, 830], [1161, 825], [1156, 820], [1150, 815], [1129, 812]], 1095, 865, 'H', 13, [[1123, 812], [1119, 815], [1109, 820], [1095, 825], [1077, 830], [1056, 835], [1034, 840], [1013, 845], [1011, 855], [1011, 860], [1009, 870], [1009, 875], [1008, 880], [1008, 885], [1007, 890], [1010, 905], [1012, 905], [1034, 900], [1115, 895], [1135, 885], [1159, 870], [1173, 860], [1185, 850], [1165, 830], [1161, 825], [1156, 820], [1150, 815], [1129, 812]]),
   'third-family-seats': blockGeometry([[668, 158], [666, 159], [646, 171], [642, 174], [637, 177], [617, 192], [614, 195], [610, 198], [607, 201], [603, 204], [600, 207], [601, 210], [611, 216], [610, 219], [607, 222], [569, 279], [573, 282], [579, 285], [599, 297], [605, 300], [615, 306], [620, 307], [622, 307], [623, 306], [649, 267], [660, 264], [654, 261], [662, 249], [665, 246], [667, 243], [676, 234], [680, 231], [683, 228], [687, 225], [689, 219], [689, 216], [691, 210], [691, 207], [692, 204], [692, 198], [688, 192], [687, 189], [683, 183], [682, 180], [678, 174], [677, 171], [673, 165], [672, 162], [670, 159], [670, 158]], 626, 236, 'H', 13),
   'first-wheelchair-seats': blockGeometry([[1106, 893], [1101, 894], [1089, 897], [1076, 900], [1064, 903], [1051, 906], [1039, 909], [1026, 912], [1014, 915], [1001, 918], [989, 921], [981, 924], [980, 927], [958, 930], [960, 936], [960, 939], [961, 942], [962, 944], [967, 944], [976, 942], [988, 939], [1001, 936], [1013, 933], [1026, 930], [1038, 927], [1051, 924], [1063, 921], [1076, 918], [1088, 915], [1101, 912], [1112, 909], [1110, 903], [1110, 900], [1108, 894], [1108, 893]], 1005, 921, 'I', 13),
-  'third-wheelchair-seats': multiBlockGeometry([
-    [[585, 204], [583, 208], [577, 216], [572, 224], [567, 232], [561, 240], [556, 248], [551, 256], [546, 264], [540, 272], [535, 280], [530, 288], [524, 296], [519, 304], [514, 312], [508, 320], [503, 328], [505, 328], [512, 320], [520, 312], [528, 304], [536, 296], [560, 288], [566, 280], [572, 272], [579, 264], [583, 256], [588, 248], [594, 240], [599, 232], [604, 224], [607, 216], [594, 208], [588, 204]],
-    [[438, 359], [472, 304], [486, 288], [508, 299], [494, 326], [452, 361], [438, 362]],
-  ], 493, 325, 'I', 13, [
-    [[585, 204], [583, 208], [577, 216], [567, 232], [561, 240], [546, 264], [540, 272], [530, 288], [524, 296], [514, 312], [508, 320], [503, 328], [505, 328], [520, 320], [528, 312], [532, 304], [555, 296], [560, 288], [572, 272], [579, 264], [583, 256], [588, 248], [594, 240], [604, 224], [607, 216], [594, 208], [588, 204]],
-    [[438, 359], [472, 304], [486, 288], [508, 299], [494, 326], [452, 361], [438, 362]],
-  ]),
+  'third-wheelchair-seats': blockGeometry(
+    [[585, 204], [505, 328], [519, 339], [609, 218], [599, 212]],
+    563,
+    260,
+    'I',
+    13,
+    [[585, 204], [505, 328], [519, 339], [609, 218], [599, 212]],
+  ),
   'party-seats-first': blockGeometry([[915, 932], [941, 933], [928, 936], [910, 939], [903, 942], [891, 945], [878, 948], [867, 951], [868, 954], [869, 957], [869, 960], [870, 963], [871, 966], [876, 966], [888, 963], [900, 960], [918, 957], [922, 954], [937, 951], [949, 948], [959, 945], [958, 942], [957, 939], [957, 936], [956, 933], [955, 930]], 910, 950, 'J', 13, [[905, 930], [941, 933], [928, 936], [910, 939], [903, 942], [891, 945], [878, 948], [867, 951], [869, 957], [869, 960], [871, 966], [876, 966], [900, 960], [918, 957], [922, 954], [937, 951], [949, 948], [959, 945], [957, 939], [957, 936], [955, 930]]),
-  'party-seats-third': blockGeometry([[430, 389], [438, 374], [452, 363], [470, 353], [482, 356], [489, 365], [489, 371], [467, 398], [446, 394]], 474, 366, 'J', 13),
-  'skybox-seats': multiBlockGeometry([
-    [[345, 826], [349, 824], [352, 823], [353, 824], [358, 833], [368, 852], [367, 853], [361, 856], [360, 855], [358, 852], [347, 831], [345, 827]],
-    [[364, 860], [365, 859], [370, 856], [373, 860], [386, 878], [388, 881], [389, 883], [389, 884], [387, 886], [384, 888], [383, 888], [370, 870], [365, 863], [364, 861]],
-  ], 356, 848, 'K', 13),
+  'party-seats-third': blockGeometry(
+    [[469, 413], [452, 402], [502, 331], [516, 341], [505, 358]],
+    489,
+    369,
+    'J',
+    13,
+    [[469, 413], [452, 402], [502, 331], [516, 341], [505, 358]],
+  ),
+  'sky-picnic-L': multiBlockGeometry(
+    GWANGJU_SKY_PICNIC_L_SUBPATHS,
+    408,
+    437,
+    'L',
+    13,
+  ),
   'outfield-left-seats': blockGeometry([[1060, 132], [1060, 133], [1062, 133], [1062, 134], [1065, 134], [1065, 135], [1067, 135], [1067, 136], [1070, 136], [1070, 137], [1072, 137], [1072, 138], [1074, 138], [1074, 139], [1077, 139], [1077, 140], [1079, 140], [1079, 141], [1081, 141], [1081, 142], [1083, 142], [1083, 143], [1086, 143], [1086, 144], [1088, 144], [1088, 145], [1090, 145], [1090, 146], [1092, 146], [1092, 147], [1094, 147], [1094, 148], [1096, 148], [1096, 149], [1098, 149], [1098, 150], [1100, 150], [1100, 151], [1102, 151], [1102, 152], [1104, 152], [1104, 153], [1106, 153], [1106, 154], [1108, 154], [1108, 155], [1110, 155], [1110, 156], [1112, 156], [1112, 157], [1114, 157], [1114, 158], [1116, 158], [1116, 159], [1117, 159], [1117, 160], [1119, 160], [1119, 161], [1121, 161], [1121, 162], [1123, 162], [1123, 163], [1125, 163], [1125, 164], [1126, 164], [1126, 165], [1128, 165], [1128, 166], [1130, 166], [1130, 167], [1131, 167], [1131, 168], [1133, 168], [1133, 169], [1135, 169], [1135, 170], [1136, 170], [1136, 171], [1138, 171], [1138, 172], [1140, 172], [1140, 173], [1141, 173], [1141, 174], [1143, 174], [1143, 175], [1144, 175], [1144, 176], [1146, 176], [1146, 177], [1147, 177], [1147, 178], [1149, 178], [1149, 179], [1151, 179], [1151, 180], [1152, 180], [1152, 181], [1154, 181], [1154, 182], [1155, 182], [1155, 183], [1157, 183], [1157, 184], [1158, 184], [1158, 185], [1159, 185], [1159, 186], [1161, 186], [1161, 187], [1162, 187], [1162, 188], [1164, 188], [1164, 189], [1165, 189], [1165, 190], [1167, 190], [1167, 191], [1168, 191], [1168, 192], [1169, 192], [1169, 193], [1171, 193], [1171, 194], [1172, 194], [1172, 195], [1173, 195], [1173, 196], [1175, 196], [1175, 197], [1176, 197], [1176, 198], [1178, 198], [1178, 199], [1179, 199], [1179, 200], [1180, 200], [1180, 201], [1181, 201], [1181, 202], [1183, 202], [1183, 203], [1184, 203], [1184, 204], [1185, 204], [1185, 205], [1187, 205], [1187, 206], [1188, 206], [1188, 207], [1189, 207], [1189, 208], [1190, 208], [1190, 209], [1192, 209], [1192, 210], [1193, 210], [1193, 211], [1194, 211], [1194, 212], [1195, 212], [1195, 213], [1197, 213], [1197, 214], [1198, 214], [1198, 215], [1199, 215], [1199, 216], [1200, 216], [1200, 217], [1201, 217], [1201, 218], [1203, 218], [1203, 219], [1204, 219], [1204, 220], [1205, 220], [1205, 221], [1206, 221], [1206, 222], [1207, 222], [1207, 223], [1208, 223], [1208, 224], [1209, 224], [1209, 225], [1208, 225], [1208, 226], [1207, 226], [1207, 227], [1206, 227], [1206, 228], [1205, 228], [1205, 229], [1204, 229], [1204, 230], [1203, 230], [1203, 231], [1202, 231], [1202, 232], [1201, 232], [1201, 233], [1200, 233], [1200, 234], [1199, 234], [1199, 235], [1198, 235], [1198, 236], [1196, 236], [1196, 237], [1195, 237], [1195, 238], [1194, 238], [1194, 239], [1193, 239], [1193, 240], [1192, 240], [1192, 241], [1191, 241], [1191, 242], [1190, 242], [1190, 243], [1189, 243], [1189, 244], [1188, 244], [1188, 245], [1187, 245], [1187, 246], [1186, 246], [1186, 247], [1185, 247], [1185, 248], [1184, 248], [1184, 249], [1182, 249], [1182, 250], [1181, 250], [1181, 251], [1180, 251], [1180, 252], [1179, 252], [1179, 253], [1178, 253], [1178, 254], [1177, 254], [1177, 255], [1176, 255], [1176, 256], [1175, 256], [1175, 257], [1174, 257], [1174, 258], [1173, 258], [1173, 259], [1172, 259], [1172, 260], [1171, 260], [1171, 261], [1169, 261], [1169, 262], [1168, 262], [1168, 263], [1167, 263], [1167, 264], [1166, 264], [1166, 265], [1165, 265], [1165, 266], [1164, 266], [1164, 267], [1163, 267], [1163, 268], [1162, 268], [1162, 269], [1161, 269], [1161, 270], [1160, 270], [1160, 271], [1159, 271], [1159, 272], [1158, 272], [1158, 273], [1156, 273], [1156, 274], [1155, 274], [1155, 275], [1154, 275], [1154, 276], [1153, 276], [1153, 277], [1152, 277], [1152, 278], [1151, 278], [1151, 279], [1150, 279], [1150, 280], [1149, 280], [1149, 281], [1148, 281], [1148, 282], [1147, 282], [1147, 283], [1146, 283], [1146, 284], [1145, 284], [1145, 285], [1143, 285], [1143, 286], [1142, 286], [1142, 287], [1141, 287], [1141, 288], [1140, 288], [1140, 289], [1139, 289], [1139, 290], [1138, 290], [1138, 291], [1137, 291], [1137, 292], [1136, 292], [1136, 293], [1135, 293], [1135, 294], [1134, 294], [1134, 295], [1133, 295], [1133, 296], [1132, 296], [1132, 297], [1130, 297], [1130, 298], [1129, 298], [1129, 299], [1128, 299], [1128, 300], [1127, 300], [1127, 301], [1126, 301], [1126, 302], [1125, 302], [1125, 303], [1124, 303], [1124, 304], [1123, 304], [1123, 303], [1122, 303], [1122, 302], [1121, 302], [1121, 301], [1120, 301], [1120, 300], [1119, 300], [1119, 299], [1118, 299], [1118, 298], [1117, 298], [1117, 297], [1115, 297], [1115, 296], [1114, 296], [1114, 295], [1113, 295], [1113, 294], [1112, 294], [1112, 293], [1111, 293], [1111, 292], [1110, 292], [1110, 291], [1109, 291], [1109, 290], [1107, 290], [1107, 289], [1106, 289], [1106, 288], [1105, 288], [1105, 287], [1104, 287], [1104, 286], [1103, 286], [1103, 285], [1101, 285], [1101, 284], [1100, 284], [1100, 283], [1099, 283], [1099, 282], [1098, 282], [1098, 281], [1096, 281], [1096, 280], [1095, 280], [1095, 279], [1094, 279], [1094, 278], [1092, 278], [1092, 277], [1091, 277], [1091, 276], [1090, 276], [1090, 275], [1089, 275], [1089, 274], [1087, 274], [1087, 273], [1086, 273], [1086, 272], [1084, 272], [1084, 271], [1083, 271], [1083, 270], [1082, 270], [1082, 269], [1080, 269], [1080, 268], [1079, 268], [1079, 267], [1077, 267], [1077, 266], [1076, 266], [1076, 265], [1074, 265], [1074, 264], [1073, 264], [1073, 263], [1072, 263], [1072, 262], [1070, 262], [1070, 261], [1068, 261], [1068, 260], [1067, 260], [1067, 259], [1065, 259], [1065, 258], [1064, 258], [1064, 257], [1062, 257], [1062, 256], [1061, 256], [1061, 255], [1059, 255], [1059, 254], [1057, 254], [1057, 253], [1056, 253], [1056, 252], [1054, 252], [1054, 251], [1052, 251], [1052, 250], [1051, 250], [1051, 249], [1049, 249], [1049, 248], [1047, 248], [1047, 247], [1045, 247], [1045, 246], [1044, 246], [1044, 245], [1042, 245], [1042, 244], [1040, 244], [1040, 243], [1038, 243], [1038, 242], [1036, 242], [1036, 241], [1034, 241], [1034, 240], [1032, 240], [1032, 239], [1030, 239], [1030, 238], [1028, 238], [1028, 237], [1026, 237], [1026, 236], [1024, 236], [1024, 235], [1022, 235], [1022, 234], [1020, 234], [1020, 233], [1018, 233], [1018, 232], [1016, 232], [1016, 231], [1014, 231], [1014, 230], [1011, 230], [1011, 229], [1009, 229], [1009, 228], [1007, 228], [1007, 227], [1005, 227], [1005, 226], [1002, 226], [1002, 225], [1000, 225], [1000, 224], [997, 224], [997, 223], [995, 223], [995, 222], [992, 222], [992, 221], [990, 221], [990, 220], [987, 220], [987, 219], [984, 219], [984, 218], [981, 218], [981, 217], [978, 217], [978, 216], [975, 216], [975, 215], [972, 215], [972, 214], [969, 214], [969, 213], [966, 213], [966, 212], [963, 212], [963, 211], [960, 211], [960, 210], [956, 210], [956, 209], [952, 209], [952, 208], [949, 208], [949, 207], [945, 207], [945, 206], [941, 206], [941, 205], [936, 205], [936, 204], [932, 204], [932, 203], [927, 203], [927, 202], [922, 202], [922, 201], [917, 201], [917, 200], [911, 200], [911, 199], [905, 199], [905, 198], [897, 198], [897, 197], [889, 197], [889, 196], [887, 196], [887, 146], [888, 146], [888, 143], [887, 143], [887, 139], [888, 139], [888, 136], [887, 136], [887, 133], [888, 133], [888, 132], [899, 132], [899, 133], [900, 133], [900, 134], [911, 134], [911, 135], [920, 135], [920, 136], [929, 136], [929, 137], [936, 137], [936, 138], [943, 138], [943, 139], [949, 139], [949, 140], [954, 140], [954, 141], [959, 141], [959, 142], [964, 142], [964, 143], [968, 143], [968, 144], [973, 144], [973, 142], [972, 142], [972, 141], [968, 141], [968, 140], [964, 140], [964, 139], [959, 139], [959, 138], [954, 138], [954, 137], [948, 137], [948, 136], [942, 136], [942, 135], [935, 135], [935, 134], [928, 134], [928, 133], [920, 133], [920, 132]], 1085, 190, 'O', 13),
   'outfield-right-seats': blockGeometry([[1294, 341], [1295, 341], [1295, 343], [1296, 343], [1296, 345], [1297, 345], [1297, 347], [1298, 347], [1298, 349], [1299, 349], [1299, 352], [1300, 352], [1300, 354], [1301, 354], [1301, 356], [1302, 356], [1302, 359], [1303, 359], [1303, 361], [1304, 361], [1304, 363], [1305, 363], [1305, 366], [1306, 366], [1306, 368], [1307, 368], [1307, 371], [1308, 371], [1308, 373], [1309, 373], [1309, 376], [1310, 376], [1310, 379], [1311, 379], [1311, 381], [1312, 381], [1312, 384], [1313, 384], [1313, 387], [1314, 387], [1314, 390], [1315, 390], [1315, 393], [1316, 393], [1316, 396], [1317, 396], [1317, 399], [1318, 399], [1318, 402], [1319, 402], [1319, 405], [1320, 405], [1320, 408], [1321, 408], [1321, 412], [1322, 412], [1322, 415], [1323, 415], [1323, 419], [1324, 419], [1324, 423], [1325, 423], [1325, 426], [1326, 426], [1326, 430], [1327, 430], [1327, 435], [1328, 435], [1328, 439], [1329, 439], [1329, 443], [1330, 443], [1330, 448], [1331, 448], [1331, 453], [1332, 453], [1332, 459], [1333, 459], [1333, 464], [1334, 464], [1334, 465], [1330, 465], [1330, 466], [1326, 466], [1326, 467], [1322, 467], [1322, 468], [1321, 468], [1321, 472], [1322, 472], [1322, 480], [1323, 480], [1323, 491], [1324, 491], [1324, 512], [1325, 512], [1325, 535], [1324, 535], [1324, 557], [1323, 557], [1323, 569], [1322, 569], [1322, 578], [1321, 578], [1321, 586], [1320, 586], [1320, 593], [1319, 593], [1319, 599], [1318, 599], [1318, 605], [1317, 605], [1317, 610], [1316, 610], [1316, 616], [1315, 616], [1315, 620], [1314, 620], [1314, 625], [1313, 625], [1313, 627], [1314, 627], [1314, 628], [1313, 628], [1313, 629], [1312, 629], [1312, 631], [1311, 631], [1311, 635], [1312, 635], [1312, 636], [1311, 636], [1311, 637], [1310, 637], [1310, 641], [1309, 641], [1309, 645], [1308, 645], [1308, 648], [1307, 648], [1307, 651], [1306, 651], [1306, 655], [1305, 655], [1305, 658], [1304, 658], [1304, 661], [1303, 661], [1303, 664], [1302, 664], [1302, 667], [1301, 667], [1301, 670], [1300, 670], [1300, 673], [1299, 673], [1299, 675], [1298, 675], [1298, 678], [1297, 678], [1297, 681], [1296, 681], [1296, 683], [1295, 683], [1295, 686], [1294, 686], [1294, 688], [1293, 688], [1293, 691], [1292, 691], [1292, 693], [1291, 693], [1291, 695], [1290, 695], [1290, 698], [1289, 698], [1289, 700], [1288, 700], [1288, 702], [1287, 702], [1287, 704], [1286, 704], [1286, 706], [1285, 706], [1285, 708], [1284, 708], [1284, 711], [1283, 711], [1283, 713], [1282, 713], [1282, 715], [1281, 715], [1281, 716], [1280, 716], [1280, 718], [1279, 718], [1279, 720], [1278, 720], [1278, 722], [1277, 722], [1277, 724], [1276, 724], [1276, 726], [1275, 726], [1275, 728], [1274, 728], [1274, 729], [1273, 729], [1273, 731], [1272, 731], [1272, 733], [1271, 733], [1271, 735], [1270, 735], [1270, 736], [1269, 736], [1269, 738], [1268, 738], [1268, 740], [1267, 740], [1267, 741], [1266, 741], [1266, 743], [1265, 743], [1265, 744], [1264, 744], [1264, 746], [1263, 746], [1263, 748], [1262, 748], [1262, 749], [1261, 749], [1261, 751], [1260, 751], [1260, 752], [1259, 752], [1259, 754], [1258, 754], [1258, 755], [1257, 755], [1257, 757], [1256, 757], [1256, 758], [1255, 758], [1255, 759], [1254, 759], [1254, 761], [1253, 761], [1253, 762], [1252, 762], [1252, 764], [1251, 764], [1251, 765], [1250, 765], [1250, 766], [1249, 766], [1249, 768], [1248, 768], [1248, 769], [1247, 769], [1247, 770], [1246, 770], [1246, 772], [1247, 772], [1247, 773], [1249, 773], [1249, 774], [1250, 774], [1250, 775], [1251, 775], [1251, 776], [1253, 776], [1253, 777], [1254, 777], [1254, 778], [1256, 778], [1256, 780], [1255, 780], [1255, 781], [1254, 781], [1254, 782], [1253, 782], [1253, 784], [1252, 784], [1252, 785], [1251, 785], [1251, 786], [1250, 786], [1250, 788], [1249, 788], [1249, 789], [1248, 789], [1248, 790], [1247, 790], [1247, 792], [1246, 792], [1246, 793], [1245, 793], [1245, 794], [1244, 794], [1244, 795], [1243, 795], [1243, 797], [1242, 797], [1242, 798], [1241, 798], [1241, 799], [1240, 799], [1240, 800], [1239, 800], [1239, 801], [1238, 801], [1238, 803], [1237, 803], [1237, 804], [1236, 804], [1236, 805], [1235, 805], [1235, 806], [1234, 806], [1234, 807], [1233, 807], [1233, 809], [1232, 809], [1232, 810], [1231, 810], [1231, 811], [1230, 811], [1230, 812], [1229, 812], [1229, 813], [1228, 813], [1228, 814], [1227, 814], [1227, 815], [1226, 815], [1226, 817], [1225, 817], [1225, 818], [1224, 818], [1224, 819], [1223, 819], [1223, 820], [1222, 820], [1222, 821], [1221, 821], [1221, 822], [1220, 822], [1220, 823], [1219, 823], [1219, 824], [1218, 824], [1218, 825], [1217, 825], [1217, 826], [1216, 826], [1216, 827], [1215, 827], [1215, 828], [1214, 828], [1214, 829], [1213, 829], [1213, 831], [1212, 831], [1212, 832], [1211, 832], [1211, 833], [1210, 833], [1210, 834], [1209, 834], [1209, 835], [1208, 835], [1208, 836], [1207, 836], [1207, 837], [1206, 837], [1206, 838], [1205, 838], [1205, 839], [1203, 839], [1203, 838], [1202, 838], [1202, 837], [1200, 837], [1200, 836], [1199, 836], [1199, 835], [1198, 835], [1198, 834], [1196, 834], [1196, 833], [1195, 833], [1195, 832], [1194, 832], [1194, 831], [1192, 831], [1192, 830], [1191, 830], [1191, 829], [1190, 829], [1190, 828], [1188, 828], [1188, 827], [1187, 827], [1187, 826], [1185, 826], [1185, 825], [1184, 825], [1184, 822], [1185, 822], [1185, 821], [1186, 821], [1186, 820], [1187, 820], [1187, 819], [1188, 819], [1188, 818], [1189, 818], [1189, 816], [1190, 816], [1190, 815], [1191, 815], [1191, 814], [1192, 814], [1192, 813], [1193, 813], [1193, 812], [1194, 812], [1194, 810], [1195, 810], [1195, 809], [1196, 809], [1196, 808], [1197, 808], [1197, 807], [1198, 807], [1198, 805], [1199, 805], [1199, 804], [1200, 804], [1200, 803], [1201, 803], [1201, 801], [1202, 801], [1202, 800], [1203, 800], [1203, 799], [1204, 799], [1204, 798], [1205, 798], [1205, 796], [1206, 796], [1206, 795], [1207, 795], [1207, 794], [1208, 794], [1208, 792], [1209, 792], [1209, 791], [1210, 791], [1210, 790], [1211, 790], [1211, 788], [1212, 788], [1212, 787], [1213, 787], [1213, 785], [1214, 785], [1214, 784], [1215, 784], [1215, 783], [1216, 783], [1216, 781], [1217, 781], [1217, 780], [1218, 780], [1218, 778], [1219, 778], [1219, 777], [1220, 777], [1220, 775], [1221, 775], [1221, 774], [1222, 774], [1222, 772], [1223, 772], [1223, 771], [1224, 771], [1224, 769], [1225, 769], [1225, 768], [1226, 768], [1226, 766], [1227, 766], [1227, 765], [1228, 765], [1228, 764], [1229, 764], [1229, 763], [1230, 763], [1230, 760], [1231, 760], [1231, 759], [1232, 759], [1232, 757], [1233, 757], [1233, 755], [1234, 755], [1234, 754], [1235, 754], [1235, 752], [1236, 752], [1236, 750], [1237, 750], [1237, 749], [1238, 749], [1238, 747], [1239, 747], [1239, 745], [1240, 745], [1240, 743], [1241, 743], [1241, 742], [1242, 742], [1242, 740], [1243, 740], [1243, 738], [1244, 738], [1244, 736], [1245, 736], [1245, 735], [1246, 735], [1246, 733], [1247, 733], [1247, 731], [1248, 731], [1248, 729], [1249, 729], [1249, 727], [1250, 727], [1250, 725], [1251, 725], [1251, 723], [1252, 723], [1252, 721], [1253, 721], [1253, 719], [1254, 719], [1254, 717], [1255, 717], [1255, 715], [1256, 715], [1256, 713], [1257, 713], [1257, 711], [1258, 711], [1258, 709], [1259, 709], [1259, 706], [1260, 706], [1260, 704], [1261, 704], [1261, 702], [1262, 702], [1262, 700], [1263, 700], [1263, 697], [1264, 697], [1264, 695], [1265, 695], [1265, 692], [1266, 692], [1266, 689], [1267, 689], [1267, 687], [1268, 687], [1268, 683], [1266, 683], [1266, 682], [1263, 682], [1263, 681], [1260, 681], [1260, 680], [1258, 680], [1258, 679], [1255, 679], [1255, 678], [1252, 678], [1252, 677], [1249, 677], [1249, 676], [1247, 676], [1247, 675], [1244, 675], [1244, 674], [1242, 674], [1242, 673], [1239, 673], [1239, 672], [1237, 672], [1237, 671], [1234, 671], [1234, 670], [1232, 670], [1232, 669], [1229, 669], [1229, 668], [1226, 668], [1226, 667], [1224, 667], [1224, 666], [1221, 666], [1221, 665], [1219, 665], [1219, 664], [1217, 664], [1217, 661], [1218, 661], [1218, 658], [1219, 658], [1219, 654], [1220, 654], [1220, 650], [1221, 650], [1221, 646], [1222, 646], [1222, 642], [1223, 642], [1223, 638], [1224, 638], [1224, 633], [1225, 633], [1225, 628], [1226, 628], [1226, 622], [1227, 622], [1227, 616], [1228, 616], [1228, 609], [1229, 609], [1229, 601], [1230, 601], [1230, 591], [1231, 591], [1231, 575], [1232, 575], [1232, 547], [1231, 547], [1231, 531], [1230, 531], [1230, 521], [1229, 521], [1229, 513], [1228, 513], [1228, 506], [1227, 506], [1227, 500], [1226, 500], [1226, 494], [1225, 494], [1225, 489], [1224, 489], [1224, 485], [1223, 485], [1223, 480], [1222, 480], [1222, 476], [1221, 476], [1221, 472], [1220, 472], [1220, 468], [1219, 468], [1219, 465], [1218, 465], [1218, 461], [1217, 461], [1217, 458], [1216, 458], [1216, 454], [1215, 454], [1215, 451], [1214, 451], [1214, 448], [1213, 448], [1213, 445], [1212, 445], [1212, 442], [1211, 442], [1211, 440], [1210, 440], [1210, 437], [1209, 437], [1209, 434], [1208, 434], [1208, 432], [1207, 432], [1207, 429], [1206, 429], [1206, 427], [1205, 427], [1205, 424], [1204, 424], [1204, 422], [1203, 422], [1203, 419], [1202, 419], [1202, 417], [1201, 417], [1201, 415], [1200, 415], [1200, 413], [1199, 413], [1199, 410], [1198, 410], [1198, 408], [1197, 408], [1197, 406], [1196, 406], [1196, 404], [1195, 404], [1195, 402], [1194, 402], [1194, 400], [1193, 400], [1193, 398], [1192, 398], [1192, 396], [1191, 396], [1191, 394], [1190, 394], [1190, 392], [1191, 392], [1191, 391], [1193, 391], [1193, 390], [1195, 390], [1195, 389], [1197, 389], [1197, 388], [1199, 388], [1199, 387], [1201, 387], [1201, 386], [1203, 386], [1203, 385], [1205, 385], [1205, 384], [1207, 384], [1207, 383], [1209, 383], [1209, 382], [1211, 382], [1211, 381], [1213, 381], [1213, 380], [1215, 380], [1215, 379], [1217, 379], [1217, 378], [1219, 378], [1219, 377], [1222, 377], [1222, 376], [1224, 376], [1224, 375], [1226, 375], [1226, 374], [1228, 374], [1228, 373], [1230, 373], [1230, 372], [1232, 372], [1232, 371], [1234, 371], [1234, 370], [1236, 370], [1236, 369], [1238, 369], [1238, 368], [1240, 368], [1240, 367], [1242, 367], [1242, 366], [1244, 366], [1244, 365], [1246, 365], [1246, 364], [1248, 364], [1248, 363], [1250, 363], [1250, 362], [1252, 362], [1252, 361], [1254, 361], [1254, 360], [1257, 360], [1257, 359], [1259, 359], [1259, 358], [1261, 358], [1261, 357], [1263, 357], [1263, 356], [1265, 356], [1265, 355], [1267, 355], [1267, 354], [1269, 354], [1269, 353], [1271, 353], [1271, 352], [1273, 352], [1273, 351], [1275, 351], [1275, 350], [1277, 350], [1277, 349], [1279, 349], [1279, 348], [1281, 348], [1281, 347], [1283, 347], [1283, 346], [1285, 346], [1285, 345], [1287, 345], [1287, 344], [1290, 344], [1290, 343], [1292, 343], [1292, 342], [1294, 342]], 1275, 420, 'O', 13),
   'bleachers-table-left': multiBlockGeometry([
@@ -1020,50 +1182,50 @@ export const GWANGJU_OFFICIAL_TRACE_REFERENCE: Record<string, GwangjuOfficialTra
   'k7-118': { numberAnchor: { x: 480, y: 650 }, expectedBounds: { minX: 395, minY: 615, maxX: 512, maxY: 669 }, expectedSubpathCount: 1 },
   'k7-119': { numberAnchor: { x: 480, y: 604 }, expectedBounds: { minX: 404, minY: 573, maxX: 520, maxY: 626 }, expectedSubpathCount: 1 },
   'k7-120': { numberAnchor: { x: 496, y: 558 }, expectedBounds: { minX: 412, minY: 533, maxX: 519, maxY: 582 }, expectedSubpathCount: 1 },
-  'k7-121': { numberAnchor: { x: 438, y: 510 }, expectedBounds: { minX: 428, minY: 490, maxX: 520, maxY: 545 }, expectedSubpathCount: 1 },
-  'k7-122': { numberAnchor: { x: 470, y: 466 }, expectedBounds: { minX: 455, minY: 452, maxX: 560, maxY: 507 }, expectedSubpathCount: 1 },
-  'home-k7-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 395, minY: 452, maxX: 850, maxY: 953 }, expectedSubpathCount: 10 },
+  'k7-121': { numberAnchor: { x: 455, y: 520 }, expectedBounds: { minX: 418, minY: 463, maxX: 548, maxY: 552 }, expectedSubpathCount: 1 },
+  'k7-122': { numberAnchor: { x: 515, y: 475 }, expectedBounds: { minX: 448, minY: 428, maxX: 565, maxY: 508 }, expectedSubpathCount: 1 },
+  'k8-123': { numberAnchor: { x: 515, y: 430 }, expectedBounds: { minX: 470, minY: 391, maxX: 589, maxY: 481 }, expectedSubpathCount: 1 },
+  'k5-124': { numberAnchor: { x: 530, y: 395 }, expectedBounds: { minX: 495, minY: 354, maxX: 628, maxY: 452 }, expectedSubpathCount: 1 },
+  'k5-125': { numberAnchor: { x: 555, y: 356 }, expectedBounds: { minX: 522, minY: 319, maxX: 656, maxY: 415 }, expectedSubpathCount: 1 },
+  'k5-126': { numberAnchor: { x: 590, y: 327 }, expectedBounds: { minX: 545, minY: 284, maxX: 674, maxY: 379 }, expectedSubpathCount: 1 },
+  'k5-127': { numberAnchor: { x: 676, y: 279 }, expectedBounds: { minX: 643, minY: 231, maxX: 690, maxY: 301 }, expectedSubpathCount: 1 },
+  'home-k7-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 395, minY: 428, maxX: 850, maxY: 953 }, expectedSubpathCount: 10 },
   'away-cheering-seats': { numberAnchor: { x: 820, y: 895 }, expectedBounds: { minX: 638.3, minY: 835, maxX: 850, maxY: 953 }, expectedSubpathCount: 4 },
-  'k8-123': { numberAnchor: { x: 505, y: 430 }, expectedBounds: { minX: 455, minY: 408, maxX: 600, maxY: 470 }, expectedSubpathCount: 1 },
-  'k5-124': { numberAnchor: { x: 530, y: 390 }, expectedBounds: { minX: 474, minY: 370, maxX: 650, maxY: 437 }, expectedSubpathCount: 1 },
-  'k5-125': { numberAnchor: { x: 560, y: 345 }, expectedBounds: { minX: 485, minY: 330, maxX: 640, maxY: 390 }, expectedSubpathCount: 1 },
-  'k5-126': { numberAnchor: { x: 595, y: 326 }, expectedBounds: { minX: 515, minY: 294, maxX: 683, maxY: 362 }, expectedSubpathCount: 1 },
-  'k5-127': { numberAnchor: { x: 678, y: 264 }, expectedBounds: { minX: 657, minY: 232, maxX: 692, maxY: 313 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-301': { numberAnchor: { x: 856, y: 963 }, expectedBounds: { minX: 846, minY: 952, maxX: 867, maxY: 974 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-302': { numberAnchor: { x: 834, y: 968 }, expectedBounds: { minX: 822, minY: 957, maxX: 845, maxY: 978 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-303': { numberAnchor: { x: 811, y: 972 }, expectedBounds: { minX: 799, minY: 961, maxX: 822, maxY: 982 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-304': { numberAnchor: { x: 788, y: 975 }, expectedBounds: { minX: 778, minY: 965, maxX: 798, maxY: 984 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-305': { numberAnchor: { x: 767, y: 975 }, expectedBounds: { minX: 756, minY: 957, maxX: 777, maxY: 984 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-306': { numberAnchor: { x: 745, y: 974 }, expectedBounds: { minX: 733, minY: 956, maxX: 756, maxY: 984 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-307': { numberAnchor: { x: 721, y: 972 }, expectedBounds: { minX: 709, minY: 954, maxX: 734, maxY: 982 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-308': { numberAnchor: { x: 699, y: 969 }, expectedBounds: { minX: 687, minY: 952, maxX: 712, maxY: 979 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-309': { numberAnchor: { x: 676, y: 967 }, expectedBounds: { minX: 664, minY: 948, maxX: 689, maxY: 976 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-310': { numberAnchor: { x: 653, y: 962 }, expectedBounds: { minX: 641, minY: 943, maxX: 668, maxY: 972 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-311': { numberAnchor: { x: 630, y: 958 }, expectedBounds: { minX: 618, minY: 940, maxX: 644, maxY: 969 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-312': { numberAnchor: { x: 607, y: 955 }, expectedBounds: { minX: 595, minY: 937, maxX: 620, maxY: 965 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-313': { numberAnchor: { x: 584, y: 952 }, expectedBounds: { minX: 569, minY: 935, maxX: 597, maxY: 962 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-314': { numberAnchor: { x: 555, y: 947 }, expectedBounds: { minX: 536, minY: 929, maxX: 572, maxY: 958 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-315': { numberAnchor: { x: 523, y: 937 }, expectedBounds: { minX: 501, minY: 915, maxX: 544, maxY: 958 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-316': { numberAnchor: { x: 492, y: 920 }, expectedBounds: { minX: 472, minY: 898, maxX: 512, maxY: 942 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-317': { numberAnchor: { x: 463, y: 901 }, expectedBounds: { minX: 452, minY: 880, maxX: 482, maxY: 922 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-318': { numberAnchor: { x: 424, y: 870 }, expectedBounds: { minX: 409, minY: 849, maxX: 451, maxY: 891 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-319': { numberAnchor: { x: 389, y: 792 }, expectedBounds: { minX: 371, minY: 783, maxX: 397, maxY: 827 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-320': { numberAnchor: { x: 376, y: 765 }, expectedBounds: { minX: 364, minY: 752, maxX: 392, maxY: 779 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-321': { numberAnchor: { x: 371, y: 724 }, expectedBounds: { minX: 360, minY: 708, maxX: 386, maxY: 750 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-322': { numberAnchor: { x: 374, y: 688 }, expectedBounds: { minX: 360, minY: 678, maxX: 386, maxY: 704 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-323': { numberAnchor: { x: 378, y: 665 }, expectedBounds: { minX: 364, minY: 656, maxX: 391, maxY: 674 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-324': { numberAnchor: { x: 383, y: 636 }, expectedBounds: { minX: 369, minY: 626, maxX: 395, maxY: 654 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-325': { numberAnchor: { x: 385, y: 613 }, expectedBounds: { minX: 374, minY: 604, maxX: 403, maxY: 625 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-326': { numberAnchor: { x: 389, y: 591 }, expectedBounds: { minX: 378, minY: 583, maxX: 407, maxY: 602 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-327': { numberAnchor: { x: 393, y: 570 }, expectedBounds: { minX: 382, minY: 562, maxX: 411, maxY: 580 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-328': { numberAnchor: { x: 397, y: 549 }, expectedBounds: { minX: 386, minY: 541, maxX: 415, maxY: 559 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-329': { numberAnchor: { x: 402, y: 529 }, expectedBounds: { minX: 390, minY: 521, maxX: 418, maxY: 536 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-330': { numberAnchor: { x: 407, y: 509 }, expectedBounds: { minX: 395, minY: 502, maxX: 423, maxY: 517 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-331': { numberAnchor: { x: 412, y: 493 }, expectedBounds: { minX: 398, minY: 485, maxX: 426, maxY: 501 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-332': { numberAnchor: { x: 420, y: 474 }, expectedBounds: { minX: 406, minY: 465, maxX: 435, maxY: 482 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-333': { numberAnchor: { x: 411, y: 458 }, expectedBounds: { minX: 382, minY: 448, maxX: 418, maxY: 464 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-334': { numberAnchor: { x: 430, y: 445 }, expectedBounds: { minX: 418, minY: 433, maxX: 445, maxY: 466 }, expectedSubpathCount: 1 },
-  'sky-picnic-s-335': { numberAnchor: { x: 447, y: 418 }, expectedBounds: { minX: 430, minY: 404, maxX: 467, maxY: 431 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-301': { numberAnchor: { x: 856, y: 963 }, expectedBounds: { minX: 843, minY: 953, maxX: 868, maxY: 975 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-302': { numberAnchor: { x: 834, y: 968 }, expectedBounds: { minX: 822, minY: 958, maxX: 843, maxY: 979 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-303': { numberAnchor: { x: 811, y: 972 }, expectedBounds: { minX: 799, minY: 961, maxX: 822, maxY: 984 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-304': { numberAnchor: { x: 788, y: 975 }, expectedBounds: { minX: 778, minY: 966, maxX: 798, maxY: 985 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-305': { numberAnchor: { x: 767, y: 975 }, expectedBounds: { minX: 758, minY: 966, maxX: 776, maxY: 985 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-306': { numberAnchor: { x: 745, y: 974 }, expectedBounds: { minX: 733, minY: 965, maxX: 756, maxY: 984 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-307': { numberAnchor: { x: 721, y: 972 }, expectedBounds: { minX: 710, minY: 963, maxX: 733, maxY: 983 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-308': { numberAnchor: { x: 699, y: 969 }, expectedBounds: { minX: 688, minY: 959, maxX: 708, maxY: 980 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-309': { numberAnchor: { x: 676, y: 967 }, expectedBounds: { minX: 665, minY: 956, maxX: 687, maxY: 977 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-310': { numberAnchor: { x: 653, y: 962 }, expectedBounds: { minX: 641, minY: 953, maxX: 665, maxY: 973 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-311': { numberAnchor: { x: 630, y: 958 }, expectedBounds: { minX: 618, minY: 949, maxX: 642, maxY: 970 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-312': { numberAnchor: { x: 607, y: 955 }, expectedBounds: { minX: 596, minY: 946, maxX: 618, maxY: 966 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-313': { numberAnchor: { x: 584, y: 952 }, expectedBounds: { minX: 573, minY: 943, maxX: 596, maxY: 962 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-314': { numberAnchor: { x: 555, y: 947 }, expectedBounds: { minX: 536, minY: 936, maxX: 574, maxY: 960 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-315': { numberAnchor: { x: 523, y: 937 }, expectedBounds: { minX: 501, minY: 922, maxX: 538, maxY: 953 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-316': { numberAnchor: { x: 492, y: 920 }, expectedBounds: { minX: 468, minY: 904, maxX: 508, maxY: 938 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-317': { numberAnchor: { x: 463, y: 901 }, expectedBounds: { minX: 441, minY: 883, maxX: 479, maxY: 917 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-318': { numberAnchor: { x: 424, y: 870 }, expectedBounds: { minX: 378, minY: 796, maxX: 453, maxY: 892 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-319': { numberAnchor: { x: 389, y: 792 }, expectedBounds: { minX: 366, minY: 766, maxX: 394, maxY: 802 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-320': { numberAnchor: { x: 372, y: 750 }, expectedBounds: { minX: 360, minY: 734, maxX: 384, maxY: 766 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-321': { numberAnchor: { x: 371, y: 724 }, expectedBounds: { minX: 360, minY: 699, maxX: 380, maxY: 734 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-322': { numberAnchor: { x: 374, y: 688 }, expectedBounds: { minX: 361, minY: 664, maxX: 384, maxY: 699 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-323': { numberAnchor: { x: 378, y: 654 }, expectedBounds: { minX: 367, minY: 643, maxX: 391, maxY: 666 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-324': { numberAnchor: { x: 383, y: 636 }, expectedBounds: { minX: 371, minY: 621, maxX: 394, maxY: 643 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-325': { numberAnchor: { x: 385, y: 613 }, expectedBounds: { minX: 375, minY: 600, maxX: 398, maxY: 621 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-326': { numberAnchor: { x: 389, y: 591 }, expectedBounds: { minX: 379, minY: 580, maxX: 401, maxY: 600 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-327': { numberAnchor: { x: 393, y: 570 }, expectedBounds: { minX: 383, minY: 557, maxX: 405, maxY: 582 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-328': { numberAnchor: { x: 397, y: 549 }, expectedBounds: { minX: 386, minY: 538, maxX: 410, maxY: 559 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-329': { numberAnchor: { x: 402, y: 529 }, expectedBounds: { minX: 391, minY: 516, maxX: 415, maxY: 539 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-330': { numberAnchor: { x: 408, y: 511 }, expectedBounds: { minX: 396, minY: 495, maxX: 420, maxY: 521 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-331': { numberAnchor: { x: 412, y: 494 }, expectedBounds: { minX: 400, minY: 480, maxX: 425, maxY: 500 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-332': { numberAnchor: { x: 420, y: 474 }, expectedBounds: { minX: 410, minY: 460, maxX: 434, maxY: 485 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-333': { numberAnchor: { x: 430, y: 455 }, expectedBounds: { minX: 417, minY: 441, maxX: 444, maxY: 467 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-334': { numberAnchor: { x: 440, y: 438 }, expectedBounds: { minX: 428, minY: 423, maxX: 456, maxY: 450 }, expectedSubpathCount: 1 },
+  'sky-picnic-s-335': { numberAnchor: { x: 452, y: 418 }, expectedBounds: { minX: 438, minY: 405, maxX: 467, maxY: 432 }, expectedSubpathCount: 1 },
   'five-table-501': { numberAnchor: { x: 1097, y: 970 }, expectedBounds: { minX: 1076, minY: 952, maxX: 1118, maxY: 988 }, expectedSubpathCount: 1 },
   'five-table-502': { numberAnchor: { x: 1054, y: 987 }, expectedBounds: { minX: 1032, minY: 966, maxX: 1077, maxY: 1008 }, expectedSubpathCount: 1 },
   'five-table-503': { numberAnchor: { x: 1010, y: 1001 }, expectedBounds: { minX: 985, minY: 978, maxX: 1035, maxY: 1025 }, expectedSubpathCount: 1 },
@@ -1099,18 +1261,18 @@ export const GWANGJU_OFFICIAL_TRACE_REFERENCE: Record<string, GwangjuOfficialTra
   'five-table-533': { numberAnchor: { x: 461, y: 274 }, expectedBounds: { minX: 433, minY: 248, maxX: 490, maxY: 300 }, expectedSubpathCount: 1 },
   'five-table-534': { numberAnchor: { x: 490, y: 238 }, expectedBounds: { minX: 463, minY: 214, maxX: 518, maxY: 262 }, expectedSubpathCount: 1 },
   'five-table-535': { numberAnchor: { x: 522, y: 203 }, expectedBounds: { minX: 497, minY: 184, maxX: 546, maxY: 222 }, expectedSubpathCount: 1 },
-  'champion-seats': { numberAnchor: { x: 500, y: 792 }, expectedBounds: { minX: 461, minY: 740, maxX: 559, maxY: 843 }, expectedSubpathCount: 1 },
-  'central-table-seats': { numberAnchor: { x: 430, y: 824 }, expectedBounds: { minX: 397, minY: 755, maxX: 523, maxY: 895 }, expectedSubpathCount: 1 },
+  'champion-seats': { numberAnchor: { x: 500, y: 792 }, expectedBounds: { minX: 462, minY: 740, maxX: 559, maxY: 840 }, expectedSubpathCount: 11 },
+  'central-table-seats': { numberAnchor: { x: 430, y: 824 }, expectedBounds: { minX: 396, minY: 755, maxX: 523, maxY: 894 }, expectedSubpathCount: 13 },
   'disabled-seats-center': { numberAnchor: { x: 402, y: 753 }, expectedBounds: { minX: 390, minY: 739, maxX: 414, maxY: 766 }, expectedSubpathCount: 1 },
   'first-surprise-seats': { numberAnchor: { x: 870, y: 800 }, expectedBounds: { minX: 714, minY: 772, maxX: 959, maxY: 848 }, expectedSubpathCount: 3 },
-  'third-surprise-seats': { numberAnchor: { x: 620, y: 475 }, expectedBounds: { minX: 515, minY: 392, maxX: 656, maxY: 585 }, expectedSubpathCount: 3 },
+  'third-surprise-seats': { numberAnchor: { x: 620, y: 475 }, expectedBounds: { minX: 515, minY: 390, maxX: 657, maxY: 584 }, expectedSubpathCount: 3 },
   'first-family-seats': { numberAnchor: { x: 1095, y: 865 }, expectedBounds: { minX: 1007, minY: 812, maxX: 1185, maxY: 904 }, expectedSubpathCount: 1 },
   'third-family-seats': { numberAnchor: { x: 626, y: 236 }, expectedBounds: { minX: 569, minY: 158, maxX: 692, maxY: 307 }, expectedSubpathCount: 1 },
   'first-wheelchair-seats': { numberAnchor: { x: 1005, y: 921 }, expectedBounds: { minX: 958, minY: 893, maxX: 1112, maxY: 944 }, expectedSubpathCount: 1 },
-  'third-wheelchair-seats': { numberAnchor: { x: 493, y: 325 }, expectedBounds: { minX: 438, minY: 204, maxX: 607, maxY: 362 }, expectedSubpathCount: 2 },
+  'third-wheelchair-seats': { numberAnchor: { x: 563, y: 260 }, expectedBounds: { minX: 505, minY: 204, maxX: 609, maxY: 339 }, expectedSubpathCount: 1 },
   'party-seats-first': { numberAnchor: { x: 910, y: 950 }, expectedBounds: { minX: 867, minY: 930, maxX: 959, maxY: 966 }, expectedSubpathCount: 1 },
-  'party-seats-third': { numberAnchor: { x: 474, y: 366 }, expectedBounds: { minX: 430, minY: 353, maxX: 489, maxY: 398 }, expectedSubpathCount: 1 },
-  'skybox-seats': { numberAnchor: { x: 356, y: 848 }, expectedBounds: { minX: 345, minY: 823, maxX: 389, maxY: 888 }, expectedSubpathCount: 2 },
+  'party-seats-third': { numberAnchor: { x: 489, y: 369 }, expectedBounds: { minX: 452, minY: 331, maxX: 516, maxY: 413 }, expectedSubpathCount: 1 },
+  'sky-picnic-L': { numberAnchor: { x: 408, y: 437 }, expectedBounds: { minX: 342, minY: 283, maxX: 902, maxY: 998 }, expectedSubpathCount: 3 },
   'outfield-left-seats': { numberAnchor: { x: 1085, y: 190 }, expectedBounds: { minX: 887, minY: 132, maxX: 1209, maxY: 304 }, expectedSubpathCount: 1 },
   'outfield-right-seats': { numberAnchor: { x: 1275, y: 420 }, expectedBounds: { minX: 1184, minY: 341, maxX: 1334, maxY: 839 }, expectedSubpathCount: 1 },
   'bleachers-table-left': { numberAnchor: { x: 900, y: 116 }, expectedBounds: { minX: 714, minY: 102, maxX: 982, maxY: 146 }, expectedSubpathCount: 2 },
@@ -1206,7 +1368,7 @@ function k7SeatViewSections(block: string): string[] {
 function k7BlockDefinition(block: string): GwangjuBlockDefinition {
   return blockDefinition('K7', block, '1F', infieldSide(block), {
     fanRole: k7FanRole(block),
-    sourceNote: `${SOURCE_NOTE} 운영자 제공 블럭 범위(K7: 107~111, 118~122 / 원정응원석: 107~110)를 기존 공식 PNG 번호 블럭 polygon에 연결했습니다.`,
+    sourceNote: `${SOURCE_NOTE} 운영자 제공 블럭 범위(K7: 107~111, 118~122 / 원정응원석: 107~110)를 공식 PNG에서 검수된 번호 블럭 polygon에 연결했습니다.`,
     seatViewSections: k7SeatViewSections(block),
   });
 }
@@ -1231,10 +1393,10 @@ const SPECIAL_BLOCKS: GwangjuBlockDefinition[] = [
   { id: 'first-family-seats', level: '1F', category: 'FAMILY', name: '1루 타이거즈가족석', block: '1루 타이거즈가족석', officialBlocks: ['1루 타이거즈가족석'], side: 'FIRST_BASE', fanRole: 'NEUTRAL', seatViewSections: ['타이거즈가족석', '1루 타이거즈가족석', 'Tigers Family Seats'] },
   { id: 'third-family-seats', level: '1F', category: 'FAMILY', name: '3루 타이거즈가족석', block: '3루 타이거즈가족석', officialBlocks: ['3루 타이거즈가족석'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['타이거즈가족석', '3루 타이거즈가족석', 'Tigers Family Seats'] },
   { id: 'first-wheelchair-seats', level: '1F', category: 'ACCESSIBLE', name: '1루 휠체어석', block: '1루 휠체어석', officialBlocks: ['1루 휠체어석'], side: 'FIRST_BASE', fanRole: 'NEUTRAL', seatViewSections: ['휠체어석', '1루 휠체어석', 'Wheelchair Seats'], accessibilityNote: '공식 좌석도 I 구역 기준입니다.' },
-  { id: 'third-wheelchair-seats', level: '1F', category: 'ACCESSIBLE', name: '3루 휠체어석', block: '3루 휠체어석', officialBlocks: ['3루 휠체어석'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['휠체어석', '3루 휠체어석', 'Wheelchair Seats'], accessibilityNote: '공식 좌석도 I 구역 기준입니다.' },
+  { id: 'third-wheelchair-seats', level: '1F', category: 'ACCESSIBLE', name: '3루 휠체어석', block: '3루 휠체어석', officialBlocks: ['3루 휠체어석'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['휠체어석', '3루 휠체어석', 'Wheelchair Seats'], accessibilityNote: '공식 좌석도 3루 I 구역 기준입니다.' },
   { id: 'party-seats-first', level: '4F', category: 'PARTY', name: '1루 4층파티석', block: '1루 4층파티석', officialBlocks: ['1루 4층파티석'], side: 'FIRST_BASE', fanRole: 'NEUTRAL', seatViewSections: ['4층파티석', '1루 4층파티석', 'Party Seats'] },
   { id: 'party-seats-third', level: '4F', category: 'PARTY', name: '3루 4층파티석', block: '3루 4층파티석', officialBlocks: ['3루 4층파티석'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['4층파티석', '3루 4층파티석', 'Party Seats'] },
-  { id: 'skybox-seats', level: '4F', category: 'SKYBOX', name: '스카이박스', block: '스카이박스', officialBlocks: ['스카이박스'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['스카이박스', 'Suites', '광주 스카이박스'] },
+  { id: 'sky-picnic-L', level: '3F', category: 'SKY_PICNIC', name: 'L 스카이피크닉석', block: 'L', officialBlocks: ['L'], side: 'THIRD_BASE', fanRole: 'NEUTRAL', seatViewSections: ['스카이피크닉석', 'L 스카이피크닉석', 'Sky Picnic L'] },
   { id: 'outfield-left-seats', level: 'OUTFIELD', category: 'OUTFIELD', name: '좌측 외야석', block: '좌측 외야석', officialBlocks: ['외야석'], side: 'OUTFIELD', fanRole: 'NEUTRAL', seatViewSections: ['외야석', '좌측 외야석', 'The Bleachers', '광주 외야석'] },
   { id: 'outfield-right-seats', level: 'OUTFIELD', category: 'OUTFIELD', name: '우측 외야석', block: '우측 외야석', officialBlocks: ['우측 외야석'], side: 'OUTFIELD', fanRole: 'NEUTRAL', seatViewSections: ['외야석', '우측 외야석', 'The Bleachers', '광주 외야석'] },
   { id: 'bleachers-table-left', level: 'OUTFIELD', category: 'BLEACHERS_TABLE', name: '좌측 외야테이블석', block: '좌측 외야테이블석', officialBlocks: ['좌측 외야테이블석'], side: 'OUTFIELD', fanRole: 'NEUTRAL', seatViewSections: ['외야테이블석', '좌측 외야테이블석', 'The Bleachers Table Seats'] },

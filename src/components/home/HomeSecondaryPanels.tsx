@@ -4,6 +4,7 @@ import type { CheerPost } from '../../api/cheerApi';
 import type { FeaturedMateCard } from '../../types/home';
 import { formatTimeAgo } from '../../utils/time';
 import { getMateTeamDisplayName } from '../../utils/homeTeamNameResolution';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import TeamLogo from '../TeamLogo';
 import AdSlot from '../ads/AdSlot';
 import {
@@ -455,6 +456,7 @@ export default function HomeSecondaryPanels({
               const ticketLabel = getTicketLabel(mate.ticketPrice);
               const homeTeamLabel = getMateTeamDisplayName(mate.homeTeam);
               const awayTeamLabel = getMateTeamDisplayName(mate.awayTeam);
+              const stadiumDisplayName = formatStadiumDisplayName(mate.stadium);
               const progressPercent = mate.maxParticipants > 0
                 ? Math.min(100, Math.max(0, Math.round(((mate.currentParticipants || 0) / mate.maxParticipants) * 100)))
                 : 0;
@@ -468,7 +470,7 @@ export default function HomeSecondaryPanels({
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <p className="min-w-0 truncate text-[14px] font-bold text-zinc-500 dark:text-zinc-400">
-                      {gameDateLabel} {mate.gameTime} · {mate.stadium}
+                      {gameDateLabel} {mate.gameTime} · {stadiumDisplayName}
                     </p>
                     <p className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-[13px] font-black ring-1 ${getTicketClassName(mate.ticketPrice)}`}>
                       {ticketLabel}

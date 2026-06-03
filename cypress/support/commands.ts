@@ -236,8 +236,8 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
     cy.intercept('**/api/stadiums', {
         statusCode: 200,
         body: [
-            { stadiumId: '1', stadiumName: '대전 한화생명 이글스파크', lat: 36.317, lng: 127.429 },
-            { stadiumId: '2', stadiumName: '잠실 야구장', lat: 37.512, lng: 127.072 }
+            { stadiumId: '1', stadiumName: '대전 · 한화생명볼파크', lat: 36.317, lng: 127.429 },
+            { stadiumId: '2', stadiumName: '서울 · 잠실야구장', lat: 37.512, lng: 127.072 }
         ]
     }).as('getStadiums');
 
@@ -262,7 +262,7 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
         statusCode: 200,
         body: {
             summary: '한화 이글스 공식 팀 소개',
-            homeStadium: '대전 한화생명 이글스파크',
+            homeStadium: '대전 한화생명볼파크',
             foundedYear: 1986,
             owner: '한화그룹',
         },

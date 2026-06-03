@@ -62,6 +62,40 @@ export interface GocheokFacilityGuide {
   implementationNote: string;
 }
 
+export type GocheokFacilityTab = 'overview' | 'entrances' | 'floors' | 'operations';
+export type GocheokOperatorFacilityDataStatus = 'MANUAL_BASEBALL_DATA_REQUIRED' | 'OPERATOR_PROVIDED';
+
+export const GOCHEOK_FACILITY_TAB_LABELS: Record<GocheokFacilityTab, string> = {
+  overview: '시설 개요',
+  entrances: '출입구',
+  floors: '층별/편의시설',
+  operations: '운영 안내',
+};
+
+export interface GocheokOperatorFacilityDataRequirement {
+  status: GocheokOperatorFacilityDataStatus;
+  scope: 'BLOCK_VISIT_GUIDANCE';
+  pendingLabel: string;
+  requiredFields: readonly string[];
+  guardrails: readonly string[];
+}
+
+export interface GocheokVisitHint {
+  blockLabel: string;
+  levelLabel: string;
+  sideLabel: string;
+  fanRoleLabel: string;
+  facilityTab: GocheokFacilityTab;
+  facilityTabLabel: string;
+  facilitySourceLabel: string;
+  context: string;
+  checklist: readonly string[];
+  finalCheckLabel: string;
+  operatorDataStatus: GocheokOperatorFacilityDataStatus;
+  operatorDataPendingLabel: string;
+  operatorDataRequiredLabel: string;
+}
+
 export interface GocheokBlock {
   id: string;
   level: GocheokLevel;
@@ -151,6 +185,23 @@ export const GOCHEOK_SEATMAP_VIEW_BOX = `0 0 ${GOCHEOK_SEATMAP_IMAGE.imageWidth}
 
 // TODO: Add block ids here only when a 653x960 official PNG boundary cannot be verified confidently.
 export const GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS: string[] = [];
+
+export const GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT: GocheokOperatorFacilityDataRequirement = {
+  status: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  scope: 'BLOCK_VISIT_GUIDANCE',
+  pendingLabel: '정확한 블록별 출입 정보, 편의시설 세부 위치, 당일 운영 안내는 운영자 제공 자료 수신 후 표시합니다.',
+  requiredFields: [
+    '블록별 권장 출입 정보',
+    '편의시설 세부 위치',
+    '당일 운영 안내',
+    '관람객 이동 안내',
+  ],
+  guardrails: [
+    '공식 좌석도와 정적 시설현황에 없는 세부 위치를 합성하지 않습니다.',
+    '운영자 제공 자료가 없으면 MANUAL_BASEBALL_DATA_REQUIRED 상태를 유지합니다.',
+    '외부 수집 기반 야구 데이터로 직관 안내를 보강하지 않습니다.',
+  ],
+};
 
 export const GOCHEOK_OMITTED_OFFICIAL_BLOCKS: GocheokOmittedOfficialBlock[] = [
   {
@@ -699,4 +750,37 @@ export function getGocheokFanRoleLabel(role: GocheokFanRole): string {
 
 export function getGocheokSourceLabel(confidence: GocheokSourceConfidence): string {
   return confidence === 'OFFICIAL' ? '공식 좌석도 기준' : '운영자 확인 필요';
+}
+
+export function getGocheokVisitHint(block: GocheokBlock): GocheokVisitHint {
+  const levelLabel = block.level === 'OUTFIELD' ? '외야층' : block.level;
+  const sideLabel = getGocheokSideLabel(block.side);
+  const fanRoleLabel = getGocheokFanRoleLabel(block.fanRole);
+  const facilityTab: GocheokFacilityTab = block.level === '3F' || block.level === '4F'
+    ? 'floors'
+    : block.side === 'OUTFIELD' || block.level === 'OUTFIELD'
+      ? 'entrances'
+      : 'overview';
+  const facilityTabLabel = GOCHEOK_FACILITY_TAB_LABELS[facilityTab];
+
+  return {
+    blockLabel: block.block,
+    levelLabel,
+    sideLabel,
+    fanRoleLabel,
+    facilityTab,
+    facilityTabLabel,
+    facilitySourceLabel: GOCHEOK_FACILITY_GUIDE.sourceLabel,
+    context: `${block.name}은 ${levelLabel} · ${sideLabel} · ${fanRoleLabel} 기준으로 분류됩니다. 상세 시설 위치는 운영자 제공 자료가 필요합니다.`,
+    checklist: [
+      `좌석도에서 ${block.block} 블록과 ${levelLabel} 표기를 확인하세요.`,
+      `${sideLabel} 방향 표기와 ${fanRoleLabel} 팬 구분을 참고하세요.`,
+      `${facilityTabLabel} 탭에서 공식 시설현황 범위를 확인하세요.`,
+      '당일 안내와 현장 표지를 최종 확인하세요.',
+    ],
+    finalCheckLabel: '현장 최종 안내 확인',
+    operatorDataStatus: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status,
+    operatorDataPendingLabel: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel,
+    operatorDataRequiredLabel: `${GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}: 운영자 제공 자료 필요`,
+  };
 }

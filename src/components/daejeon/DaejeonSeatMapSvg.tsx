@@ -43,7 +43,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         MANUAL_BASEBALL_DATA_REQUIRED
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
-        대전 한화 공식 좌석도 이미지를 추가해야 합니다
+        대전 한화생명볼파크 공식 좌석도 이미지를 추가해야 합니다
       </h4>
       <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
         공식 좌석도 파일과 블록 좌표가 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
@@ -65,7 +65,7 @@ function resolveOfficialSeatMapImageUrl() {
     return null;
   }
 
-  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp', import.meta.url).href;
+  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png', import.meta.url).href;
 }
 
 function getSeatMapLayer(block: DaejeonBlock): number {
@@ -167,10 +167,21 @@ export default function DaejeonSeatMapSvg({
   ), []);
 
   useEffect(() => {
-    if (!seatMapImageUrl) return;
+    if (!seatMapImageUrl) {
+      setImageLoaded(false);
+      setImageFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    setImageLoaded(false);
+    setImageFailed(false);
 
     const image = new Image();
     image.onload = () => {
+      if (cancelled) return;
+      setImageLoaded(true);
+
       if (image.naturalWidth !== imageWidth || image.naturalHeight !== imageHeight) {
         console.warn('[daejeon-seatmap] official image size mismatch', {
           naturalWidth: image.naturalWidth,
@@ -180,8 +191,14 @@ export default function DaejeonSeatMapSvg({
         });
       }
     };
-    image.onerror = () => setImageFailed(true);
+    image.onerror = () => {
+      if (!cancelled) setImageFailed(true);
+    };
     image.src = seatMapImageUrl;
+
+    return () => {
+      cancelled = true;
+    };
   }, [imageHeight, imageWidth, seatMapImageUrl]);
 
   useEffect(() => {
@@ -282,10 +299,12 @@ export default function DaejeonSeatMapSvg({
       lastY: event.clientY,
       totalMove: 0,
       captureTarget: target,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
     setIsDragging(true);
-    target.setPointerCapture(event.pointerId);
+    if (event.pointerType !== 'mouse') {
+      target.setPointerCapture(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -429,6 +448,7 @@ export default function DaejeonSeatMapSvg({
             <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
           )}
           <image
+            data-testid="daejeon-seatmap-official-image"
             href={seatMapImageUrl}
             x="0"
             y="0"
@@ -438,6 +458,7 @@ export default function DaejeonSeatMapSvg({
             aria-hidden="true"
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
+            pointerEvents="none"
             style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
           />
           <defs>

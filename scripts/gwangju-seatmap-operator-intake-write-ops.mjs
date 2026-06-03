@@ -403,17 +403,17 @@ const runOperatorInputPacket = async () => {
   };
   
   const nextCommandOrder = [
-    'npm run stadium:gwangju:operator-intake',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-intake',
     'npm run stadium:gwangju:operator-handoff',
-    'npm run stadium:gwangju:operator-input-aid',
-    'npm run stadium:gwangju:operator-input-packet',
-    'npm run stadium:gwangju:operator-template:validate:strict',
-    'npm run stadium:gwangju:operator-template:apply-plan:require-ready',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-input-aid',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-input-packet',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-template:validate:strict',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-template:apply-plan:require-ready',
     'npm run stadium:gwangju:operator-status',
-    'npm run stadium:gwangju:operator-prewrite-gate',
-    'npm run stadium:gwangju:operator-apply:write',
-    'npm run stadium:gwangju:operator-postwrite-gate',
-    'npm run qa:stadium:gwangju:release-verify:postoperator',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-prewrite-gate',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-apply:write',
+    'node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate',
+    'node scripts/stadium-seatmap-ops.mjs gwangju release-verify:postoperator',
   ];
   
   const markdownCell = (value) => String(value ?? '-')
@@ -1238,9 +1238,9 @@ const runOperatorApply = async () => {
     blockers,
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     allowedCoordinateSource: 'operator-provided official PNG coordinates only',
-    writeCommand: 'npm run stadium:gwangju:operator-apply:write',
+    writeCommand: 'node scripts/stadium-seatmap-ops.mjs gwangju operator-apply:write',
     requiredPostApplyGate: [
-      'npm run stadium:gwangju:operator-postwrite-gate',
+      'node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate',
     ],
   };
   
@@ -1939,7 +1939,7 @@ const runOperatorWriteGuard = async () => {
     guardedDataDiffAction: 'Promote only validForDataDiff=true operator rows to gwangjuSeatData.ts after this guard passes.',
     postDataDiffGate: [
       'npm run test:stadium:seatmaps',
-      'npm run qa:stadium:gwangju:trace-review',
+      'node scripts/stadium-seatmap-ops.mjs gwangju trace-review',
       'npm run build',
     ],
   };

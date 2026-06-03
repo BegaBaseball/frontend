@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import {
@@ -22,6 +22,12 @@ import {
 } from '../stadiumSeatMap/seatMapInteractionUtils';
 
 const officialSeatMapImage = new URL('../../assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp', import.meta.url).href;
+type GestureMode = 'idle' | 'drag' | 'pinch';
+const EMPTY_COMPARISON_IDS: readonly string[] = [];
+
+interface IncheonSeatMapSvgProps extends SeatMapSvgBaseProps<IncheonBlock> {
+  comparisonIds?: readonly string[];
+}
 
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   return (
@@ -67,16 +73,23 @@ export default function IncheonSeatMapSvg({
   maxZoom,
   zoomStep: _zoomStep,
   enableAutoCenter = true,
-}: SeatMapSvgBaseProps<IncheonBlock>) {
+  comparisonIds = EMPTY_COMPARISON_IDS,
+}: IncheonSeatMapSvgProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [gestureMode, setGestureMode] = useState<GestureMode>('idle');
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const suppressClickRef = useRef(false);
   const activePointersRef = useRef<Map<number, TrackedPointer>>(new Map());
+  const touchTapStateRef = useRef<Map<number, {
+    startClientX: number;
+    startClientY: number;
+    moved: boolean;
+  }>>(new Map());
   const pinchStateRef = useRef<{
     startDistance: number;
     startZoom: number;
@@ -105,6 +118,7 @@ export default function IncheonSeatMapSvg({
     : readViewportSize(viewportRef.current);
   const effectivePan = clampPan(pan, zoom, measuredViewportSize);
   const canDrag = zoom > minZoom;
+  const comparisonIdSet = useMemo(() => new Set(comparisonIds), [comparisonIds]);
 
   useLayoutEffect(() => {
     const node = viewportRef.current;
@@ -188,6 +202,21 @@ export default function IncheonSeatMapSvg({
     [...activePointersRef.current.values()].filter((pointer) => pointer.pointerType === 'touch')
   ), []);
 
+  const updateTouchTapMove = useCallback((pointerId: number, clientX: number, clientY: number) => {
+    const state = touchTapStateRef.current.get(pointerId);
+    if (!state) return;
+
+    if (Math.hypot(clientX - state.startClientX, clientY - state.startClientY) > 6) {
+      state.moved = true;
+    }
+  }, []);
+
+  const finishTouchTap = useCallback((pointerId: number) => {
+    const state = touchTapStateRef.current.get(pointerId);
+    touchTapStateRef.current.delete(pointerId);
+    return state?.moved ?? false;
+  }, []);
+
   const beginPinchZoom = useCallback(() => {
     const node = viewportRef.current;
     if (!node) return false;
@@ -213,6 +242,7 @@ export default function IncheonSeatMapSvg({
     dragStateRef.current = null;
     setViewportSize(viewport);
     setIsDragging(true);
+    setGestureMode('pinch');
     return true;
   }, [getTrackedTouchPointers, pan, zoom]);
 
@@ -253,6 +283,7 @@ export default function IncheonSeatMapSvg({
     }
     pinchStateRef.current = null;
     setIsDragging(false);
+    setGestureMode('idle');
     return true;
   }, [suppressNextClick]);
 
@@ -289,6 +320,7 @@ export default function IncheonSeatMapSvg({
     }
     dragStateRef.current = null;
     setIsDragging(false);
+    setGestureMode('idle');
   }, [suppressNextClick]);
 
   const updateDragPan = useCallback((clientX: number, clientY: number, pointerId: number, preventDefault: () => void) => {
@@ -323,6 +355,9 @@ export default function IncheonSeatMapSvg({
           clientY: event.clientY,
           pointerType: event.pointerType,
         });
+        if (event.pointerType === 'touch') {
+          updateTouchTapMove(event.pointerId, event.clientX, event.clientY);
+        }
       }
       if (pinchStateRef.current && updatePinchZoom()) {
         event.preventDefault();
@@ -331,10 +366,14 @@ export default function IncheonSeatMapSvg({
       updateDragPan(event.clientX, event.clientY, event.pointerId, () => event.preventDefault());
     };
     const handleWindowPointerEnd = (event: globalThis.PointerEvent) => {
+      const touchMoved = event.pointerType === 'touch' ? finishTouchTap(event.pointerId) : false;
       activePointersRef.current.delete(event.pointerId);
       if (pinchStateRef.current) {
         finishPinchZoom();
         return;
+      }
+      if (touchMoved) {
+        suppressNextClick(220);
       }
       finishDrag(event.pointerId);
     };
@@ -350,6 +389,7 @@ export default function IncheonSeatMapSvg({
         finishDrag(state.pointerId);
       }
       activePointersRef.current.clear();
+      touchTapStateRef.current.clear();
       finishPinchZoom();
     };
 
@@ -368,7 +408,7 @@ export default function IncheonSeatMapSvg({
       window.removeEventListener('mouseup', handleWindowMouseEnd);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [finishDrag, finishPinchZoom, isDragging, updateDragPan, updatePinchZoom]);
+  }, [finishDrag, finishPinchZoom, finishTouchTap, isDragging, suppressNextClick, updateDragPan, updatePinchZoom, updateTouchTapMove]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch') {
@@ -376,6 +416,11 @@ export default function IncheonSeatMapSvg({
         clientX: event.clientX,
         clientY: event.clientY,
         pointerType: event.pointerType,
+      });
+      touchTapStateRef.current.set(event.pointerId, {
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        moved: false,
       });
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -402,14 +447,17 @@ export default function IncheonSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+      }
     }
     setIsDragging(true);
+    setGestureMode('drag');
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -419,17 +467,21 @@ export default function IncheonSeatMapSvg({
         clientY: event.clientY,
         pointerType: event.pointerType,
       });
+      if (event.pointerType === 'touch') {
+        updateTouchTapMove(event.pointerId, event.clientX, event.clientY);
+      }
     }
     if (pinchStateRef.current && updatePinchZoom()) {
       event.preventDefault();
       return;
     }
     updateDragPan(event.clientX, event.clientY, event.pointerId, () => event.preventDefault());
-  }, [updateDragPan, updatePinchZoom]);
+  }, [updateDragPan, updatePinchZoom, updateTouchTapMove]);
 
   const handlePointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const dragMoved = dragStateRef.current?.moved ?? false;
     const wasPinching = Boolean(pinchStateRef.current);
+    const touchMoved = event.pointerType === 'touch' ? finishTouchTap(event.pointerId) : false;
     activePointersRef.current.delete(event.pointerId);
 
     if (wasPinching) {
@@ -439,10 +491,14 @@ export default function IncheonSeatMapSvg({
     }
 
     finishDrag(event.pointerId);
+    if (touchMoved) {
+      suppressNextClick(220);
+      return;
+    }
     if (event.pointerType === 'touch' && !dragMoved) {
       handleDoubleTap(event.clientX, event.clientY);
     }
-  }, [finishDrag, finishPinchZoom, handleDoubleTap]);
+  }, [finishDrag, finishPinchZoom, finishTouchTap, handleDoubleTap, suppressNextClick]);
 
   const handleMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     if (!canDrag || event.button !== 0 || dragStateRef.current) return;
@@ -462,6 +518,7 @@ export default function IncheonSeatMapSvg({
       usesPointerCapture: false,
     };
     setIsDragging(true);
+    setGestureMode('drag');
   }, [canDrag, pan, zoom]);
 
   const handleMouseMove = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
@@ -491,6 +548,7 @@ export default function IncheonSeatMapSvg({
       data-zoom={zoom.toFixed(2)}
       data-pan-x={effectivePan.x.toFixed(1)}
       data-pan-y={effectivePan.y.toFixed(1)}
+      data-gesture-mode={gestureMode}
       aria-label="인천 SSG 좌석도 확대 이동 영역"
       className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
       style={{
@@ -513,6 +571,7 @@ export default function IncheonSeatMapSvg({
         data-zoom={zoom.toFixed(2)}
         data-pan-x={effectivePan.x.toFixed(1)}
         data-pan-y={effectivePan.y.toFixed(1)}
+        data-gesture-mode={gestureMode}
         className={`absolute inset-0 ${isDragging ? '' : 'transition-transform duration-200 ease-out'}`}
         style={{
           cursor: canDrag ? (isDragging ? 'grabbing' : 'grab') : 'default',
@@ -583,11 +642,14 @@ export default function IncheonSeatMapSvg({
               (filterLevels != null && !filterLevels.includes(block.level));
             const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
             const isActive = hover === block.id || selected?.id === block.id;
+            const isCompared = comparisonIdSet.has(block.id);
             const baseColor = mode === 'dark' ? cat.dark : cat.light;
             let fill = baseColor;
             let fillOpacity: number;
             if (isActive && !isFiltered) {
               fillOpacity = 0.34;
+            } else if (isCompared && !isFiltered) {
+              fillOpacity = 0.22;
             } else if (isAnyFilterActive && !isFiltered) {
               fillOpacity = 0.20;
             } else if (isFiltered) {
@@ -596,8 +658,8 @@ export default function IncheonSeatMapSvg({
             } else {
               fillOpacity = showDebug ? 0.08 : 0.001;
             }
-            const stroke = mode === 'dark' ? '#F8FAFC' : '#0F172A';
-            const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.38 : 0;
+            const stroke = isCompared && !isActive ? baseColor : mode === 'dark' ? '#F8FAFC' : '#0F172A';
+            const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : isCompared ? 0.72 : showDebug ? 0.38 : 0;
 
             return (
               <g key={block.id}>
@@ -606,6 +668,7 @@ export default function IncheonSeatMapSvg({
                   data-testid={`incheon-seat-block-${block.id}`}
                   data-label-x={block.imageGeometry.labelX}
                   data-label-y={block.imageGeometry.labelY}
+                  data-compared={isCompared ? 'true' : undefined}
                   tabIndex={isFiltered ? -1 : 0}
                   aria-label={`${block.name} ${block.block}`}
                   aria-pressed={isActive}
@@ -614,7 +677,7 @@ export default function IncheonSeatMapSvg({
                   fillOpacity={fillOpacity}
                   stroke={stroke}
                   strokeOpacity={strokeOpacity}
-                  strokeWidth={isActive ? 4 : 2}
+                  strokeWidth={isActive ? 4 : isCompared ? 3 : 2}
                   filter={isActive ? 'url(#incheon-hit-glow)' : undefined}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
