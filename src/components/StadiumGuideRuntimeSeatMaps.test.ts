@@ -2136,9 +2136,9 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     'node --test scripts/daejeon-seatmap-operator-approval.test.mjs',
     'npm run stadium:daejeon:operator-handoff',
     'npm run stadium:daejeon:operator-approval',
-    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status',
-    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
-    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify',
+    'npm run stadium:daejeon:operator-approval:status',
+    'npm run stadium:daejeon:operator-approval:approve -- --approved-by "seatmap-ops-reviewer" --notes "검수 완료"',
+    'npm run stadium:daejeon:operator-approval:verify',
     'npm run qa:stadium:daejeon:release-approved',
     '`reports/stadium/daejeon-seatmap-operator-handoff.md`',
     '`reports/stadium/daejeon-seatmap-operator-handoff.json`',
@@ -2181,6 +2181,9 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '"qa:stadium:daejeon:release-lock": "node scripts/stadium-seatmap-ops.mjs daejeon release-lock"',
     '"stadium:daejeon:operator-handoff": "node scripts/stadium-seatmap-ops.mjs daejeon operator-handoff"',
     '"stadium:daejeon:operator-approval": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval"',
+    '"stadium:daejeon:operator-approval:status": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status"',
+    '"stadium:daejeon:operator-approval:approve": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve"',
+    '"stadium:daejeon:operator-approval:verify": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify"',
     '"qa:stadium:daejeon:release-approved": "node scripts/stadium-seatmap-ops.mjs daejeon release-approved"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
@@ -2198,9 +2201,6 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     '"qa:stadium:daejeon:trace-review"',
     '"qa:stadium:daejeon:change-guard"',
     '"test:stadium:daejeon:operator-approval"',
-    '"stadium:daejeon:operator-approval:status"',
-    '"stadium:daejeon:operator-approval:approve"',
-    '"stadium:daejeon:operator-approval:verify"',
   ].forEach((removedText) => {
     assert.equal(packageSource.includes(removedText), false, `package script should not expose ${removedText}`);
   });
@@ -2324,6 +2324,12 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     'Operator Approval',
     'approvedHandoffHash',
     'approvedReleaseGateHash',
+    'DAEJEON_OPERATOR_APPROVAL_V1',
+    'operator handoff releaseGate.generatedAt must match current release gate',
+    '--approved-by must be a real operator identifier',
+    'PENDING_OPERATOR_APPROVAL hash does not match current handoff/release gate artifacts',
+    'const runOperatorApproval = async (taskArgs = process.argv.slice(2)',
+    'await runner(args);',
     'STALE_APPROVAL',
     'operator-approval:status',
     'operator-approval:approve',

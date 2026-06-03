@@ -1,6 +1,6 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-23T16:23:59.193Z",
+  "generatedAt": "2026-05-31T11:42:35.717Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedBlockCount": 145,
   "policy": {
@@ -1773,7 +1773,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 403",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "b5b9fdf97260cbd1a72227e095ef4e6c9af8d473dc0dcc81c54782464f9151e9",
+      "fingerprint": "5bd593e8b7b3db2e50d8e4b1163f20366b1889b2de74ef631ba82f23ef34a7df",
       "geometry": {
         "id": "first-table-4f-301-413__403",
         "parentId": "first-table-4f-301-413",
@@ -1786,14 +1786,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 787 531 L 824 533 L 812 574 L 774 568 Z",
-          "labelX": 790,
-          "labelY": 546,
+          "d": "M 786 534 L 811 536 L 798 568 L 772 563 Z",
+          "labelX": 785,
+          "labelY": 552,
           "shortLabel": "403",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 787 531 L 824 533 L 812 574 L 774 568 Z"
+        "hitAreaD": "M 786 534 L 811 536 L 798 568 L 772 563 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1816,7 +1816,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 404",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "bedb6b6395d0b446be3a6b943e8fe43e525f330a666eb9d7e8f18f3525609280",
+      "fingerprint": "f93e64652db01509e68eeb7fd3ccc66db09878c395e9b6f70ca0dadc4c15e0b8",
       "geometry": {
         "id": "first-table-4f-301-413__404",
         "parentId": "first-table-4f-301-413",
@@ -1829,14 +1829,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 759 613 L 762 605 L 767 592 L 774 574 L 775 572 L 776 572 L 784 573 L 791 574 L 795 577 L 796 579 L 802 612 L 801 616 L 800 617 L 773 618 L 771 618 L 759 616 Z",
-          "labelX": 777,
-          "labelY": 588,
+          "d": "M 764 569 L 788 574 L 774 622 L 747 613 Z",
+          "labelX": 765,
+          "labelY": 596,
           "shortLabel": "404",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 759 613 L 762 605 L 767 592 L 774 574 L 775 572 L 776 572 L 784 573 L 791 574 L 795 577 L 796 579 L 802 612 L 801 616 L 800 617 L 773 618 L 771 618 L 759 616 Z"
+        "hitAreaD": "M 764 569 L 788 574 L 774 622 L 747 613 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -4475,7 +4475,7 @@
       "parentId": "splash-jacuzzi-425",
       "officialBlockLabel": "스플래쉬 자쿠지(인피니티 풀) 425",
       "officialSectionName": "스플래쉬 자쿠지(인피니티 풀)",
-      "fingerprint": "44345d54cc7290e838a6690a3f4a9ebc627b390551b18b3e9417dad02dac43ba",
+      "fingerprint": "74674566269d317ba7594a289350b9278db13a6006a3e7fb29affcdf93b1c18a",
       "geometry": {
         "id": "splash-jacuzzi-425__425",
         "parentId": "splash-jacuzzi-425",
@@ -4488,14 +4488,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 126 641 L 150 646 L 158 682 L 138 687 L 126 663 Z",
+          "d": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z",
           "labelX": 143,
           "labelY": 663,
           "shortLabel": "자쿠지",
           "labelFontSize": 8,
           "labelRotate": -74
         },
-        "hitAreaD": "M 126 641 L 150 646 L 158 682 L 138 687 L 126 663 Z"
+        "hitAreaD": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -6337,7 +6337,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 423",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "0d931686b5c6cea6755c189d1e97d8deb5c19f4b502292d9ec8cb2648dd8f02a",
+      "fingerprint": "422d6e455698fa1c3d0979f139735700482cc2aab493ba706fc4b47808b551bb",
       "geometry": {
         "id": "third-table-4f-414-330__423",
         "parentId": "third-table-4f-414-330",
@@ -6350,14 +6350,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 166 706 L 207 718 L 209 744 L 178 759 L 160 735 Z",
+          "d": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z",
           "labelX": 184,
           "labelY": 733,
           "shortLabel": "423",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 166 706 L 207 718 L 209 744 L 178 759 L 160 735 Z"
+        "hitAreaD": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"

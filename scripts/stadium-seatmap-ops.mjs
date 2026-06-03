@@ -1107,6 +1107,9 @@ const STADIUMS = {
     publicTasks: [
       'mobile',
       'operator-approval',
+      'operator-approval:approve',
+      'operator-approval:status',
+      'operator-approval:verify',
       'operator-handoff',
       'pixel-components',
       'release-approved',
@@ -1114,7 +1117,7 @@ const STADIUMS = {
       'status',
       'trace-manifest',
     ],
-    historicalTaskPolicy: 'anchor crop, block crop, evidence, visual/geometry diff, baseline, change-guard, trace-review, and granular approval status/approve/verify tasks remain dispatcher-internal; package aliases expose runtime release and current operator gates only.',
+    historicalTaskPolicy: 'anchor crop, block crop, evidence, visual/geometry diff, baseline, change-guard, and trace-review tasks remain dispatcher-internal; package aliases expose runtime release and current operator approval gates.',
     migrationBuckets: [
       {
         id: 'seatmap-ops',
@@ -1158,6 +1161,14 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'block-evidence-crops'],
+          passArgs: true,
+        },
+      ],
+      'pixel-align-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-align-audit'],
+          passArgs: true,
         },
       ],
       'visual-diff': [
@@ -1287,6 +1298,7 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval', '--approve'],
+          passArgs: true,
         },
       ],
       'operator-approval:verify': [

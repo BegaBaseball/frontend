@@ -793,7 +793,6 @@ const runBlockEvidenceCrops = async () => {
       .label-dot { fill: #111827; stroke: #ffffff; stroke-width: 2; vector-effect: non-scaling-stroke; }
       .label-cross { stroke: #111827; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
       .block-label { font: 900 12px Arial, sans-serif; fill: #111827; stroke: #ffffff; stroke-width: 3; paint-order: stroke; text-anchor: middle; dominant-baseline: central; }
-      .legend { font: 800 9px Arial, sans-serif; fill: #111827; stroke: #ffffff; stroke-width: 2; paint-order: stroke; }
     </style>
     ${gridLines(crop, 10)}
     ${hasExpandedHitArea ? `<path class="hit" d="${escapeXml(hitPath)}"><title>${escapeXml(`${title} hitAreaD`)}</title></path>` : ''}
@@ -804,7 +803,6 @@ const runBlockEvidenceCrops = async () => {
     <line class="label-cross" x1="${label.labelX}" y1="${label.labelY - 7}" x2="${label.labelX}" y2="${label.labelY + 7}" />
     <circle class="label-dot" cx="${label.labelX}" cy="${label.labelY}" r="3.6" />
     <text class="block-label" x="${label.labelX}" y="${label.labelY - 14}">${escapeXml(block.blockCode)}</text>
-    <text class="legend" x="${crop.x + 8}" y="${crop.y + 14}">blue=imageGeometry.d${hasExpandedHitArea ? ' / red=hitAreaD' : ' / hitAreaD=same'}</text>
     <rect x="${crop.x + 0.5}" y="${crop.y + 0.5}" width="${crop.width - 1}" height="${crop.height - 1}" fill="none" stroke="#111827" stroke-width="1" vector-effect="non-scaling-stroke" />
   </svg>`;
   };
@@ -949,8 +947,8 @@ const runBlockEvidenceCrops = async () => {
       codes: csvArg('--codes').length ? csvArg('--codes') : defaultBlockCodes,
     },
     policy: {
-      blue: 'visible highlight/stroke source: imageGeometry.d',
-      red: 'click-only hitAreaD when it differs from imageGeometry.d',
+      blue: 'blue=imageGeometry.d visible highlight/stroke source',
+      red: 'red=hitAreaD click-only area when it differs from imageGeometry.d',
       note: '이 crop은 좌표 검수 산출물이며 운영 geometry를 새로 만들지 않는다.',
     },
     outputs,
@@ -2223,7 +2221,7 @@ const runGeometryDiff = async () => {
   }
 };
 
-const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOptions = null) => {
+const runOperatorApproval = async (taskArgs = process.argv.slice(2), overrideOptions = null) => {
   const { createHash } = await import("node:crypto");
   const { default: fs } = await import("node:fs/promises");
   const { default: path } = await import("node:path");
@@ -2237,6 +2235,19 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     'PENDING_OPERATOR_APPROVAL',
     'APPROVED',
     'STALE_APPROVAL',
+  ]);
+  const APPROVAL_CONTRACT = 'DAEJEON_OPERATOR_APPROVAL_V1';
+  const RELEASE_APPROVED_COMMAND = 'npm run qa:stadium:daejeon:release-approved';
+  const APPROVER_PLACEHOLDERS = new Set([
+    '',
+    'operator-name',
+    'operator name',
+    '<operator name>',
+    '<actual-operator-id>',
+    'actual-operator-id',
+    'todo',
+    'tbd',
+    'unknown',
   ]);
 
   const assertApproval = (condition, message) => {
@@ -2253,6 +2264,7 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     const approvalPath = path.join(reportDir, 'daejeon-seatmap-operator-approval.json');
 
     return {
+      rootDir,
       reportDir,
       handoffJsonPath,
       handoffMarkdownPath,
@@ -2307,54 +2319,96 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     .update(await fs.readFile(filePath))
     .digest('hex');
 
-  const approvalMatchesCurrentArtifacts = (approval, current) => approval.approvedHandoffHash === current.approvedHandoffHash
+  const relativeArtifactPath = ({ rootDir }, filePath) => path.relative(rootDir, filePath).replaceAll(path.sep, '/');
+
+  const sourceArtifactsForPaths = (paths) => ({
+    handoffJson: relativeArtifactPath(paths, paths.handoffJsonPath),
+    handoffMarkdown: relativeArtifactPath(paths, paths.handoffMarkdownPath),
+    releaseGateJson: relativeArtifactPath(paths, paths.releaseGateJsonPath),
+  });
+
+  const approvalSourceArtifactsMatch = (approval, current) => JSON.stringify(approval.sourceArtifacts ?? null)
+    === JSON.stringify(current.sourceArtifacts ?? null);
+
+  const approvalMatchesCurrentArtifacts = (approval, current) => approval.contract === current.contract
+    && approvalSourceArtifactsMatch(approval, current)
+    && approval.approvedHandoffHash === current.approvedHandoffHash
     && approval.approvedHandoffMarkdownHash === current.approvedHandoffMarkdownHash
     && approval.approvedReleaseGateHash === current.approvedReleaseGateHash
     && approval.handoffGeneratedAt === current.handoffGeneratedAt
     && approval.releaseGateGeneratedAt === current.releaseGateGeneratedAt;
 
-  const validateSourceArtifacts = async ({ handoffJsonPath, handoffMarkdownPath, releaseGateJsonPath }) => {
+  const isPlaceholderApprover = (value) => {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return APPROVER_PLACEHOLDERS.has(normalized) || /<[^>]+>/.test(normalized);
+  };
+
+  const validateSourceArtifacts = async (paths) => {
+    const { handoffJsonPath, handoffMarkdownPath, releaseGateJsonPath } = paths;
     for (const filePath of [handoffJsonPath, handoffMarkdownPath, releaseGateJsonPath]) {
       assertApproval(await fileExists(filePath), `missing Daejeon approval source artifact: ${filePath}`);
     }
 
     const handoff = await readJson(handoffJsonPath);
     const releaseGate = await readJson(releaseGateJsonPath);
+    const sourceArtifacts = sourceArtifactsForPaths(paths);
 
     assertApproval(handoff.status === 'READY_FOR_OPERATOR_REVIEW', 'operator handoff must be READY_FOR_OPERATOR_REVIEW');
     assertApproval(releaseGate.status === 'passed', 'release gate must be passed');
+    assertApproval(handoff.releaseGate?.generatedAt === releaseGate.generatedAt, 'operator handoff releaseGate.generatedAt must match current release gate');
+    assertApproval(handoff.releaseGate?.status === releaseGate.status, 'operator handoff releaseGate.status must match current release gate');
+    assertApproval(handoff.releaseGate?.reportJson === sourceArtifacts.releaseGateJson, 'operator handoff releaseGate.reportJson must point at current release gate JSON');
     assertApproval(handoff.lockedStatus?.totalBlocks === 145, 'handoff totalBlocks must be 145');
     assertApproval(handoff.lockedStatus?.officialImageTraced === 145, 'handoff officialImageTraced must be 145');
     assertApproval(handoff.lockedStatus?.needsOperatorReview === 0, 'handoff needsOperatorReview must be 0');
     assertApproval(handoff.lockedStatus?.labelTopHitFailures === 0, 'handoff labelTopHitFailures must be 0');
+    assertApproval(handoff.lockedStatus?.coverageLocked === 145, 'handoff coverageLocked must be 145');
+    assertApproval(handoff.lockedStatus?.coverageLabelOnly === 0, 'handoff coverageLabelOnly must be 0');
+    assertApproval(handoff.lockedStatus?.p2DeduplicatedAliases === 11, 'handoff p2DeduplicatedAliases must be 11');
+    assertApproval(handoff.lockedStatus?.p2EvidenceOutputs === 11, 'handoff p2EvidenceOutputs must be 11');
+    assertApproval(handoff.lockedStatus?.anchorCrops === 28, 'handoff anchorCrops must be 28');
+    assertApproval(handoff.lockedStatus?.visualDiffStatus === 'passed', 'handoff visualDiffStatus must be passed');
+    assertApproval(handoff.lockedStatus?.visualDiffChangedCrops === 0, 'handoff visualDiffChangedCrops must be 0');
+    assertApproval(handoff.lockedStatus?.visualDiffMetadataMismatches === 0, 'handoff visualDiffMetadataMismatches must be 0');
+    assertApproval(handoff.lockedStatus?.geometryDiffStatus === 'passed', 'handoff geometryDiffStatus must be passed');
+    assertApproval(handoff.lockedStatus?.geometryDiffChangedBlocks === 0, 'handoff geometryDiffChangedBlocks must be 0');
+    assertApproval(handoff.lockedStatus?.geometryDiffMissingBlocks === 0, 'handoff geometryDiffMissingBlocks must be 0');
+    assertApproval(handoff.lockedStatus?.geometryDiffExtraBlocks === 0, 'handoff geometryDiffExtraBlocks must be 0');
     assertApproval(handoff.lockedStatus?.browserQaStatus === 'passed', 'handoff browser QA status must be passed');
     assertApproval(handoff.lockedStatus?.browserQaOverflowFailures === 0, 'handoff browser QA overflow failures must be 0');
+    assertApproval(releaseGate.releaseApprovalCommand === RELEASE_APPROVED_COMMAND, 'release gate releaseApprovalCommand must point at release-approved');
 
     return { handoff, releaseGate };
   };
 
   const buildApprovalTemplate = async (
     { handoff, releaseGate },
-    { handoffJsonPath, handoffMarkdownPath, releaseGateJsonPath },
+    paths,
     existingApproval = null,
     now = () => new Date().toISOString(),
-  ) => ({
-    generatedAt: now(),
-    status: 'PENDING_OPERATOR_APPROVAL',
-    approvedAt: null,
-    approvedBy: null,
-    handoffGeneratedAt: handoff.generatedAt,
-    releaseGateGeneratedAt: releaseGate.generatedAt,
-    approvedHandoffHash: await sha256File(handoffJsonPath),
-    approvedHandoffMarkdownHash: await sha256File(handoffMarkdownPath),
-    approvedReleaseGateHash: await sha256File(releaseGateJsonPath),
-    notes: existingApproval?.notes ?? '',
-    instructions: [
-      '운영자가 handoff 문서와 evidence를 확인한 뒤 status를 APPROVED로 변경합니다.',
-      'APPROVED로 변경할 때 approvedBy와 approvedAt을 채웁니다.',
-      'handoff/release gate 산출물이 변경되면 hash mismatch로 STALE_APPROVAL 처리됩니다.',
-    ],
-  });
+  ) => {
+    const { handoffJsonPath, handoffMarkdownPath, releaseGateJsonPath } = paths;
+
+    return {
+      contract: APPROVAL_CONTRACT,
+      generatedAt: now(),
+      status: 'PENDING_OPERATOR_APPROVAL',
+      approvedAt: null,
+      approvedBy: null,
+      sourceArtifacts: sourceArtifactsForPaths(paths),
+      handoffGeneratedAt: handoff.generatedAt,
+      releaseGateGeneratedAt: releaseGate.generatedAt,
+      approvedHandoffHash: await sha256File(handoffJsonPath),
+      approvedHandoffMarkdownHash: await sha256File(handoffMarkdownPath),
+      approvedReleaseGateHash: await sha256File(releaseGateJsonPath),
+      notes: existingApproval?.notes ?? '',
+      instructions: [
+        '운영자가 handoff 문서와 evidence를 확인한 뒤 status를 APPROVED로 변경합니다.',
+        'APPROVED로 변경할 때 approvedBy와 approvedAt을 채웁니다.',
+        'handoff/release gate 산출물이 변경되면 hash mismatch로 STALE_APPROVAL 처리됩니다.',
+      ],
+    };
+  };
 
   const markStaleApproval = async (approval, current, { approvalPath }, now = () => new Date().toISOString()) => {
     const staleApproval = {
@@ -2373,6 +2427,7 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
 
   const validateApproval = async (approval, current, paths, flags, now = () => new Date().toISOString()) => {
     assertApproval(APPROVAL_STATUSES.has(approval.status), `unknown operator approval status: ${approval.status}`);
+    assertApproval(approval.contract === APPROVAL_CONTRACT, `operator approval contract must be ${APPROVAL_CONTRACT}`);
 
     if (approval.status === 'PENDING_OPERATOR_APPROVAL') {
       assertApproval(!flags.requireApproved, 'APPROVED operator approval required; current status is PENDING_OPERATOR_APPROVAL');
@@ -2385,6 +2440,7 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     }
 
     assertApproval(typeof approval.approvedBy === 'string' && approval.approvedBy.trim().length > 0, 'APPROVED approval requires approvedBy');
+    assertApproval(!isPlaceholderApprover(approval.approvedBy), 'APPROVED approval requires a real approvedBy, not a placeholder');
     assertApproval(typeof approval.approvedAt === 'string' && Number.isFinite(Date.parse(approval.approvedAt)), 'APPROVED approval requires valid approvedAt');
 
     if (!approvalMatchesCurrentArtifacts(approval, current)) {
@@ -2398,6 +2454,17 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     assertApproval(existingApproval, 'operator approval file must exist before --approve; run `npm run stadium:daejeon:operator-approval` first');
     assertApproval(APPROVAL_STATUSES.has(existingApproval.status), `unknown operator approval status: ${existingApproval.status}`);
     assertApproval(typeof flags.approvedByInput === 'string' && flags.approvedByInput.trim().length > 0, '--approve requires --approved-by');
+    assertApproval(!isPlaceholderApprover(flags.approvedByInput), '--approved-by must be a real operator identifier, not a placeholder');
+    assertApproval(existingApproval.contract === APPROVAL_CONTRACT, `operator approval contract must be ${APPROVAL_CONTRACT}`);
+    assertApproval(existingApproval.status !== 'STALE_APPROVAL', 'STALE_APPROVAL must be refreshed before --approve; run `npm run stadium:daejeon:operator-approval` first');
+
+    if (!approvalMatchesCurrentArtifacts(existingApproval, current)) {
+      if (existingApproval.status === 'APPROVED') {
+        await markStaleApproval(existingApproval, current, paths, now);
+      }
+
+      throw new Error('PENDING_OPERATOR_APPROVAL hash does not match current handoff/release gate artifacts; run `npm run stadium:daejeon:operator-approval` again after regenerating handoff');
+    }
 
     const approvedApproval = {
       ...current,
@@ -2420,6 +2487,7 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(3), overrideOpt
     }
 
     assertApproval(APPROVAL_STATUSES.has(approval.status), `unknown operator approval status: ${approval.status}`);
+    assertApproval(approval.contract === APPROVAL_CONTRACT, `operator approval contract must be ${APPROVAL_CONTRACT}`);
 
     const hashMatches = approvalMatchesCurrentArtifacts(approval, current);
     const effectiveStatus = approval.status === 'APPROVED' && !hashMatches
@@ -2566,8 +2634,8 @@ const runOperatorHandoff = async () => {
   const approvalCommands = [
     'npm run qa:stadium:daejeon:release-lock',
     'npm run stadium:daejeon:operator-approval',
-    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status',
-    'node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"',
+    'npm run stadium:daejeon:operator-approval:status',
+    'npm run stadium:daejeon:operator-approval:approve -- --approved-by "seatmap-ops-reviewer" --notes "검수 완료"',
     'npm run qa:stadium:daejeon:release-approved',
   ];
 
@@ -3335,6 +3403,217 @@ const runPixelComponents = async () => {
   await fs.mkdir(outputRoot, { recursive: true });
   await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(`pixel_components:${reportPath}`);
+};
+
+const runPixelAlignAudit = async () => {
+  const { default: fs } = await import("node:fs/promises");
+  const { default: path } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const { default: sharp } = await import("sharp");
+  const { DAEJEON_BLOCKS, DAEJEON_SEATMAP_IMAGE } = await import("../src/data/daejeonSeatData.ts");
+
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const frontendRoot = path.resolve(scriptDir, '..');
+  const reportDir = path.join(frontendRoot, 'reports/stadium');
+  const imagePath = path.resolve(frontendRoot, DAEJEON_SEATMAP_IMAGE.imagePath);
+  const jsonPath = path.join(reportDir, 'daejeon-seatmap-pixel-align-audit.json');
+  const markdownPath = path.join(reportDir, 'daejeon-seatmap-pixel-align-audit.md');
+  const contract = 'DAEJEON_PIXEL_ALIGN_AUDIT_V1';
+
+  const argValue = (name, fallback) => {
+    const index = process.argv.indexOf(name);
+    if (index === -1 || !process.argv[index + 1]) return fallback;
+    return process.argv[index + 1];
+  };
+  const csvArg = (name) => String(argValue(name, ''))
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const numericRange = (start, end) => Array.from({ length: end - start + 1 }, (_, index) => String(start + index));
+  const targetIds = new Set([
+    ...numericRange(109, 112).map((code) => `first-infield-a-109-112-201-212__${code}`),
+    ...numericRange(201, 212).map((code) => `first-infield-a-109-112-201-212__${code}`),
+    ...numericRange(113, 120).map((code) => `third-infield-a-113-120-213-225__${code}`),
+    ...numericRange(213, 225).map((code) => `third-infield-a-113-120-213-225__${code}`),
+    ...numericRange(1, 37).map((code) => `skybox-s01-s37__s${String(code).padStart(2, '0')}`),
+    'splash-jacuzzi-425__425',
+    'first-table-4f-301-413__301',
+    'first-table-4f-301-413__302',
+    ...numericRange(401, 413).map((code) => `first-table-4f-301-413__${code}`),
+    ...numericRange(414, 423).map((code) => `third-table-4f-414-330__${code}`),
+    ...numericRange(326, 330).map((code) => `third-table-4f-414-330__${code}`),
+  ]);
+
+  const pathToPoints = (pathData) => {
+    const numbers = String(pathData ?? '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const points = [];
+    for (let index = 0; index < numbers.length - 1; index += 2) {
+      points.push([numbers[index], numbers[index + 1]]);
+    }
+    return points;
+  };
+  const pointInsidePolygon = (points, x, y) => {
+    let inside = false;
+    for (let index = 0, previous = points.length - 1; index < points.length; previous = index++) {
+      const [xi, yi] = points[index];
+      const [xj, yj] = points[previous];
+      if (((yi > y) !== (yj > y)) && x < (((xj - xi) * (y - yi)) / (yj - yi)) + xi) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  };
+  const boundsForPoints = (points) => ({
+    minX: Math.floor(Math.min(...points.map((point) => point[0]))),
+    minY: Math.floor(Math.min(...points.map((point) => point[1]))),
+    maxX: Math.ceil(Math.max(...points.map((point) => point[0]))),
+    maxY: Math.ceil(Math.max(...points.map((point) => point[1]))),
+  });
+  const classifyPixel = (r, g, b, a) => {
+    if (a < 200) return 'transparent';
+    if (r > 210 && g > 210 && b > 210) return 'light';
+    if (r < 60 && g < 60 && b < 60) return 'dark';
+    if (r >= 180 && g >= 45 && g <= 160 && b <= 110) return 'orange';
+    if (r >= 80 && r <= 170 && g >= 90 && g <= 180 && b >= 25 && b <= 130) return 'olive';
+    if (r >= 20 && r <= 95 && g >= 40 && g <= 125 && b >= 80 && b <= 190) return 'blue';
+    if (r >= 100 && r <= 195 && g <= 105 && b >= 60 && b <= 170) return 'magenta';
+    if (r >= 130 && g <= 100 && b <= 120) return 'red';
+    return 'other';
+  };
+  const ratio = (counts, key, total) => Number(((counts[key] ?? 0) / Math.max(total, 1)).toFixed(4));
+  const markdownTable = (headers, rows) => [
+    `| ${headers.join(' | ')} |`,
+    `| ${headers.map(() => '---').join(' | ')} |`,
+    ...rows.map((row) => `| ${row.join(' | ')} |`),
+  ].join('\n');
+
+  const { data, info } = await sharp(imagePath).raw().toBuffer({ resolveWithObject: true });
+  if (info.width !== DAEJEON_SEATMAP_IMAGE.imageWidth || info.height !== DAEJEON_SEATMAP_IMAGE.imageHeight) {
+    throw new Error(`Daejeon image size mismatch: actual=${info.width}x${info.height} data=${DAEJEON_SEATMAP_IMAGE.imageWidth}x${DAEJEON_SEATMAP_IMAGE.imageHeight}`);
+  }
+
+  const requestedIds = new Set(csvArg('--blocks'));
+  const requestedCodes = new Set(csvArg('--codes').map((code) => code.toUpperCase()));
+  const blocks = DAEJEON_BLOCKS
+    .filter((block) => (
+      requestedIds.size > 0
+        ? requestedIds.has(block.id)
+        : requestedCodes.size > 0
+          ? requestedCodes.has(String(block.blockCode).toUpperCase())
+          : targetIds.has(block.id)
+    ))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  if (blocks.length === 0) {
+    throw new Error('No Daejeon blocks matched pixel-align audit request');
+  }
+
+  const rows = blocks.map((block) => {
+    const points = pathToPoints(block.imageGeometry.d);
+    const bounds = boundsForPoints(points);
+    const counts = {};
+    let total = 0;
+
+    for (let y = Math.max(bounds.minY, 0); y <= Math.min(bounds.maxY, info.height - 1); y += 1) {
+      for (let x = Math.max(bounds.minX, 0); x <= Math.min(bounds.maxX, info.width - 1); x += 1) {
+        if (!pointInsidePolygon(points, x + 0.5, y + 0.5)) continue;
+        const offset = ((y * info.width) + x) * 4;
+        const key = classifyPixel(data[offset], data[offset + 1], data[offset + 2], data[offset + 3]);
+        counts[key] = (counts[key] ?? 0) + 1;
+        total += 1;
+      }
+    }
+
+    const oliveRatio = ratio(counts, 'olive', total);
+    const orangeRatio = ratio(counts, 'orange', total);
+    const failures = [];
+    if (['first-table-4f-301-413__403', 'first-table-4f-301-413__404'].includes(block.id)) {
+      if (oliveRatio < 0.35) failures.push(`olive ratio below 0.35: ${oliveRatio}`);
+      if (orangeRatio > 0.20) failures.push(`orange bleed above 0.20: ${orangeRatio}`);
+    }
+
+    return {
+      id: block.id,
+      blockCode: block.blockCode,
+      officialSectionName: block.officialSectionName,
+      samplePixels: total,
+      counts,
+      ratios: {
+        olive: oliveRatio,
+        orange: orangeRatio,
+        blue: ratio(counts, 'blue', total),
+        magenta: ratio(counts, 'magenta', total),
+        red: ratio(counts, 'red', total),
+        light: ratio(counts, 'light', total),
+        dark: ratio(counts, 'dark', total),
+        other: ratio(counts, 'other', total),
+      },
+      bounds,
+      failures,
+    };
+  });
+
+  const failures = rows.flatMap((row) => row.failures.map((failure) => ({ id: row.id, blockCode: row.blockCode, failure })));
+  const report = {
+    generatedAt: new Date().toISOString(),
+    contract,
+    status: failures.length === 0 ? 'passed' : 'failed',
+    policy: {
+      purpose: '대전 공식 PNG 픽셀 색상과 운영 polygon의 거친 정렬 회귀를 탐지한다.',
+      strictBlocks: ['first-table-4f-301-413__403', 'first-table-4f-301-413__404'],
+      note: '육안 검수를 대체하지 않으며, 403/404가 400 오렌지 블록으로 다시 밀리는 회귀를 release 전에 잡는 보조 gate다.',
+    },
+    summary: {
+      requestedBlocks: blocks.length,
+      failureCount: failures.length,
+    },
+    failures,
+    rows,
+  };
+
+  await fs.mkdir(reportDir, { recursive: true });
+  await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await fs.writeFile(markdownPath, [
+    '# 대전 좌석도 pixel align audit',
+    '',
+    `- generated: ${report.generatedAt}`,
+    `- status: ${report.status}`,
+    `- contract: \`${contract}\``,
+    `- requested blocks: ${blocks.length}`,
+    `- failures: ${failures.length}`,
+    '',
+    '## Strict Failures',
+    '',
+    failures.length
+      ? markdownTable(['block', 'code', 'failure'], failures.map((item) => [`\`${item.id}\``, `\`${item.blockCode}\``, item.failure]))
+      : '- none',
+    '',
+    '## Sample Ratios',
+    '',
+    markdownTable(
+      ['block', 'code', 'samples', 'olive', 'orange', 'blue', 'magenta', 'red', 'light', 'other'],
+      rows.map((row) => [
+        `\`${row.id}\``,
+        `\`${row.blockCode}\``,
+        String(row.samplePixels),
+        String(row.ratios.olive),
+        String(row.ratios.orange),
+        String(row.ratios.blue),
+        String(row.ratios.magenta),
+        String(row.ratios.red),
+        String(row.ratios.light),
+        String(row.ratios.other),
+      ]),
+    ),
+    '',
+  ].join('\n'), 'utf8');
+
+  console.log(`pixel_align_audit_json:${jsonPath}`);
+  console.log(`pixel_align_audit_markdown:${markdownPath}`);
+  console.log(`status:${report.status} failures=${failures.length} blocks=${blocks.length}`);
+  if (failures.length > 0) {
+    process.exitCode = 1;
+  }
 };
 
 const runReleaseGate = async () => {
@@ -4495,6 +4774,7 @@ const TASKS = {
   "geometry-diff": runGeometryDiff,
   "operator-approval": runOperatorApproval,
   "operator-handoff": runOperatorHandoff,
+  "pixel-align-audit": runPixelAlignAudit,
   "pixel-components": runPixelComponents,
   "release-gate": runReleaseGate,
   "review-manifest": runReviewManifest,
@@ -4510,7 +4790,7 @@ export const runDaejeonSeatmapTask = async (task, args = process.argv.slice(2)) 
   const originalArgv = process.argv;
   process.argv = [originalArgv[0], originalArgv[1], ...args];
   try {
-    await runner();
+    await runner(args);
   } finally {
     process.argv = originalArgv;
   }
