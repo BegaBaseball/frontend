@@ -1,5 +1,6 @@
 import { CSSProperties, forwardRef, useEffect } from 'react';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
+import { ensureRetroFontsLoaded } from './RetroTheme';
 
 const STYLE_ID = 'retro-leaderboard-row-styles';
 const retroDisplay = "'Press Start 2P', monospace";
@@ -185,6 +186,7 @@ const LeaderboardRow = forwardRef<HTMLDivElement, LeaderboardRowProps>(({
   isCurrentUser = false,
 }, ref) => {
   useEffect(() => {
+    ensureRetroFontsLoaded();
     ensureLeaderboardRowStyles();
   }, []);
 

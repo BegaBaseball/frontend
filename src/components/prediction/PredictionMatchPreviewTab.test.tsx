@@ -140,7 +140,7 @@ test('buildPredictionScheduleRowViewModel은 행 표시 데이터를 같은 규�
   }, '2099-05-01', new Date('2099-05-01T12:00:00'));
 
   assert.equal(row.startTimeLabel, '18:30');
-  assert.equal(row.stadiumLabel, '창원');
+  assert.equal(row.stadiumLabel, '창원 · NC파크');
   assert.equal(row.awayTeam.shortName, 'KIA');
   assert.equal(row.homeTeam.shortName, 'NC');
   assert.equal(row.awayTeam.pitcherName, '발표 전');

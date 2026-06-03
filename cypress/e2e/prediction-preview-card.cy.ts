@@ -175,8 +175,29 @@ describe('Prediction preview schedule', () => {
                 cy.get('[data-game-id="20990501KIANC0"]').should('contain', 'KIA').and('contain', '예정').and('contain', 'NC');
                 cy.get(`[data-game-id="${secondGameId}"]`).should('contain', 'LG').and('contain', '예정').and('contain', 'KT');
                 cy.get('[data-testid="prediction-match-enter-detail-btn"]').should('have.length', 2);
-                cy.get('[data-testid="prediction-schedule-match-list-fade"]').should(isCompact ? 'not.be.visible' : 'be.visible');
             });
+
+            cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-match-enter-detail-btn"]')
+                .then(($button) => {
+                    cy.get('[data-testid="prediction-match-preview-root"]').then(($card) => {
+                        const buttonRect = $button[0].getBoundingClientRect();
+                        const cardRect = $card[0].getBoundingClientRect();
+                        expect(buttonRect.left).to.be.greaterThan(cardRect.left - 1);
+                        expect(buttonRect.right).to.be.lessThan(cardRect.right + 1);
+                    });
+                });
+
+            if (!isCompact) {
+                cy.get('[data-game-id="20990501KIANC0"]').then(($row) => {
+                    cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-schedule-matchup"]').then(($matchup) => {
+                        const rowRect = $row[0].getBoundingClientRect();
+                        const matchupRect = $matchup[0].getBoundingClientRect();
+                        const rowCenter = rowRect.left + rowRect.width / 2;
+                        const matchupCenter = matchupRect.left + matchupRect.width / 2;
+                        expect(Math.abs(matchupCenter - rowCenter)).to.be.lessThan(10);
+                    });
+                });
+            }
 
             if (isCompact) {
                 cy.get('[data-testid="prediction-schedule-match-list"]').then(($list) => {
@@ -188,16 +209,6 @@ describe('Prediction preview schedule', () => {
                     cy.get('img[alt*="로고"]').first().should('be.visible');
                     cy.get('[data-testid="prediction-match-enter-detail-btn"]').should('be.visible');
                 });
-
-                cy.get('[data-game-id="20990501KIANC0"] [data-testid="prediction-match-enter-detail-btn"]')
-                    .then(($button) => {
-                        cy.get('[data-testid="prediction-match-preview-root"]').then(($card) => {
-                            const buttonRect = $button[0].getBoundingClientRect();
-                            const cardRect = $card[0].getBoundingClientRect();
-                            expect(buttonRect.left).to.be.greaterThan(cardRect.left - 1);
-                            expect(buttonRect.right).to.be.lessThan(cardRect.right + 1);
-                        });
-                    });
             }
 
             cy.get('[data-testid="prediction-match-preview-root"]').should('not.contain', '응원');
@@ -254,6 +265,74 @@ describe('Prediction preview schedule', () => {
         cy.location('search', { timeout: 20000 }).should('include', `gameId=${secondGameId}`);
         cy.location('search').should('include', `date=${targetDate}`);
         cy.wait('@getGameDetailPreview');
+    });
+
+    it('returns to the prediction schedule preview after browser back from an internally opened detail', () => {
+        cy.viewport(1280, 720);
+        interceptPreviewApis();
+        openPreview();
+
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('include', `date=${targetDate}`);
+        cy.location('search').should('not.include', 'gameId=');
+
+        cy.get(`[data-game-id="${secondGameId}"] [data-testid="prediction-match-enter-detail-btn"]`)
+            .scrollIntoView()
+            .click();
+
+        cy.location('search', { timeout: 20000 }).should('include', `gameId=${secondGameId}`);
+        cy.get('[data-testid="prediction-match-detail-root"]', { timeout: 20000 }).should('be.visible');
+        cy.wait('@getGameDetailPreview');
+
+        cy.go('back');
+
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('include', `date=${targetDate}`);
+        cy.location('search').should('not.include', 'gameId=');
+        cy.get('[data-testid="prediction-schedule-preview"]').should('be.visible');
+        cy.get('[data-testid="prediction-match-detail-root"]').should('not.exist');
+    });
+
+    it('keeps the selected preview date when returning from an internally opened detail', () => {
+        const selectedDate = '2099-05-02';
+        const selectedDateGame: PreviewGame = {
+            ...baseGames[0],
+            gameId: '20990502KIANC0',
+            gameDate: selectedDate,
+            stadium: '광주',
+        };
+
+        cy.viewport(1280, 720);
+        interceptPreviewApis(baseGames, {}, {
+            [targetDate]: baseGames,
+            [selectedDate]: [selectedDateGame],
+        });
+        openPreview();
+
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${selectedDate}"]`).click();
+        cy.wait('@getMatchDayPreview').its('request.url').should('include', `date=${selectedDate}`);
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('include', `date=${selectedDate}`);
+        cy.location('search').should('not.include', 'gameId=');
+        cy.get(`[data-game-id="${selectedDateGame.gameId}"]`).should('contain', '광주');
+
+        cy.get(`[data-game-id="${selectedDateGame.gameId}"] [data-testid="prediction-match-enter-detail-btn"]`)
+            .scrollIntoView()
+            .click();
+
+        cy.location('search', { timeout: 20000 }).should('include', `date=${selectedDate}`);
+        cy.location('search').should('include', `gameId=${selectedDateGame.gameId}`);
+        cy.get('[data-testid="prediction-match-detail-root"]', { timeout: 20000 }).should('be.visible');
+        cy.wait('@getGameDetailPreview');
+
+        cy.go('back');
+
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('include', `date=${selectedDate}`);
+        cy.location('search').should('not.include', 'gameId=');
+        cy.get('[data-testid="prediction-schedule-preview"]').should('be.visible');
+        cy.get(`[data-game-id="${selectedDateGame.gameId}"]`).should('contain', '광주');
+        cy.get('[data-testid="prediction-match-detail-root"]').should('not.exist');
     });
 
     it('hides the power-analysis button for postponed and cancelled games', () => {

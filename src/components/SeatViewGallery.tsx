@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchSeatViews, SeatViewPhoto } from '../api/diary';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { Button } from './ui/plain-button';
 import { MateCameraIcon, MateCloseIcon } from './MateIcons';
 
@@ -98,7 +99,7 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
           >
             <img
               src={photo.photoUrl}
-              alt={`${photo.stadium} ${photo.section ?? ''} 시야 ${idx + 1}`}
+              alt={`${formatStadiumDisplayName(photo.stadium)} ${photo.section ?? ''} 시야 ${idx + 1}`}
               className="aspect-[4/3] h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';

@@ -9,7 +9,7 @@ Keep `incheon-ssg-seatmap-official-2026.png` as the source image and use the gen
 
 `kiwoom/` contains the operator-provided official Gocheok Sky Dome ticket seat map asset. The expected file is `gocheok-kiwoom-seatmap-official-2026.png`.
 
-`kia/` contains the operator-provided official Gwangju-KIA Champions Field ticket seat map asset. The expected file is `gwangju-kia-seatmap-official-2026.png`; K7 and away cheering hit areas still require operator-provided polygon coordinates before they can be exposed.
+`kia/` contains the operator-provided official Gwangju-KIA Champions Field ticket seat map asset. The expected file is `gwangju-kia-seatmap-official-2026.png`; the 2026-05-11 operator block-range review maps K7 and away cheering to existing numbered block polygons, while any future aggregate K7/AWAY polygon still requires operator-provided official PNG coordinates before exposure.
 
 `nc/` contains the NC Dinos official Changwon NC Park stadium guide seat map asset from `https://www.ncdinos.com/dinos/stadium.do`.
 

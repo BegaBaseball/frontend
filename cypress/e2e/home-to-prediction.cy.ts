@@ -10,7 +10,7 @@ describe('Home to Prediction deep link', () => {
     tomorrowDate.setDate(now.getDate() + 1);
     const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     const tomorrowCompact = tomorrow.replace(/-/g, '');
-    const matchDetailPattern = /\/api\/matches\/(?!day(?:[/?#]|$)|range(?:[/?#]|$)|bounds(?:[/?#]|$))[^/?#]+(?:\?.*)?$/;
+    const matchDetailPattern = /\/api\/matches\/(?!day(?:[/?#]|$)|range(?:[/?#]|$)|bounds(?:[/?#]|$)|live(?:[/?#]|$))[^/?#]+(?:\?.*)?$/;
     const buildWidgetsResponse = (rankingSeasonYear = now.getFullYear()) => ({
         hotCheerPosts: [],
         featuredMates: [],
@@ -162,7 +162,7 @@ describe('Home to Prediction deep link', () => {
                     gameId: isSecondGame ? `${todayCompact}KTSS0` : `${todayCompact}HHLG0`,
                     gameDate: today,
                     startTime: '18:30',
-                    stadium: isSecondGame ? '수원 KT위즈파크' : '대전 한화생명 이글스파크',
+                    stadium: isSecondGame ? '수원 KT위즈파크' : '대전 한화생명볼파크',
                     homeTeam: isSecondGame ? 'SS' : 'HH',
                     awayTeam: isSecondGame ? 'KT' : 'LG',
                     gameStatus: 'SCHEDULED',
@@ -313,7 +313,7 @@ describe('Home to Prediction deep link', () => {
                     gameId: isTomorrowSecondGame ? `${tomorrowCompact}KTSS0` : `${tomorrowCompact}HHLG0`,
                     gameDate: tomorrow,
                     startTime: '18:30',
-                    stadium: isTomorrowSecondGame ? '수원 KT위즈파크' : '대전 한화생명 이글스파크',
+                    stadium: isTomorrowSecondGame ? '수원 KT위즈파크' : '대전 한화생명볼파크',
                     homeTeam: isTomorrowSecondGame ? 'SS' : 'HH',
                     awayTeam: isTomorrowSecondGame ? 'KT' : 'LG',
                     gameStatus: 'SCHEDULED',
@@ -418,7 +418,7 @@ describe('Home to Prediction deep link', () => {
                 gameId: `${todayCompact}HHLG0`,
                 gameDate: today,
                 startTime: '18:30',
-                stadium: '대전 한화생명 이글스파크',
+                stadium: '대전 한화생명볼파크',
                 homeTeam: 'HH',
                 awayTeam: 'LG',
                 gameStatus: 'SCHEDULED',

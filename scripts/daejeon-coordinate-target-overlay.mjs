@@ -23,7 +23,11 @@ const targetBlockIds = [
   'third-infield-b-121-124__124',
   'cass-cheering-200__200',
   'innings-vip-400__400',
+  'splash-jacuzzi-425__425',
+  'splash-caravan-426__426',
   'outfield-lawn-500__500',
+  'outfield-table-third-501-503__501',
+  'outfield-table-first-504-508__508',
   'outfield-reserved-509__509',
 ];
 

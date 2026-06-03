@@ -6,8 +6,13 @@ export const FULL_MATE_REGRESSION_LABEL = 'full-mate-regression';
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_REPO_ROOT = resolve(SCRIPT_DIR, '..');
 export const LABELER_CONFIG_PATH = '.github/labeler.yml';
+const FRONTEND_PATH_PREFIX = 'bega_frontend/';
 
-const normalizePath = (value) => value.replace(/\\/g, '/');
+const normalizePath = (value) =>
+  value
+    .replace(/\\/g, '/')
+    .replace(new RegExp(`^\\.?/?${FRONTEND_PATH_PREFIX}`), '')
+    .replace(/^\.\//, '');
 
 export const extractLabelGlobs = (contents, labelName = FULL_MATE_REGRESSION_LABEL) => {
   const lines = contents.split(/\r?\n/);
@@ -38,7 +43,7 @@ export const extractLabelGlobs = (contents, labelName = FULL_MATE_REGRESSION_LAB
 export const loadFullMateRegressionGlobs = (repoRoot = DEFAULT_REPO_ROOT) => {
   const configPath = resolve(repoRoot, LABELER_CONFIG_PATH);
   const contents = readFileSync(configPath, 'utf8');
-  return extractLabelGlobs(contents);
+  return extractLabelGlobs(contents).map((glob) => normalizePath(glob));
 };
 
 export const findFullMateRegressionMatches = (changedFiles, globs) => {

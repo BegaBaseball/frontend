@@ -6,6 +6,7 @@ import TeamLogo from '../TeamLogo';
 import { seedMatePartyQueryData } from '../../hooks/mateList';
 import { MateParty } from '../../types/mate';
 import { buildMateRouteLocationState, formatGameDate, getMatePartyDisplayTeamId, getStatusLabel, getStatusStyle } from '../../utils/mate';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 
 interface MateHistoryCardProps {
   party: MateParty;
@@ -15,8 +16,9 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const statusStyle = getStatusStyle(party.status);
+  const { dotColor, isLive } = getStatusStyle(party.status);
   const statusLabel = getStatusLabel(party.status);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   // 클릭 핸들러 추가
   const handleClick = () => {
@@ -34,11 +36,39 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-primary" style={{ fontWeight: 700 }}>
-              {party.stadium}
+              {stadiumDisplayName}
             </h3>
             <span
-              className={`px-3 py-1 rounded-full text-[16px] ${statusStyle.bg} ${statusStyle.text}`}
+              className="inline-flex items-center gap-2 rounded-full border border-[rgba(45,95,79,.16)] px-[11px] py-[6px] text-[13px] font-bold text-[#1f3d35] whitespace-nowrap [font-variant-numeric:tabular-nums] dark:text-[#a3d4c4] dark:border-white/10"
+              style={{
+                background: 'linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #f1f8f4 0%, #e6f0eb 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.75), inset 0 -1px 0 rgba(45,95,79,.06), 0 1px 1.5px rgba(15,40,33,.04)',
+              }}
             >
+              <span
+                className="relative shrink-0 rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  flexShrink: 0,
+                  background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 55%), radial-gradient(circle at 50% 60%, ${dotColor} 0%, color-mix(in oklab, ${dotColor} 78%, #000) 100%)`,
+                  boxShadow: `0 0 0 2.5px color-mix(in oklab, ${dotColor} 16%, transparent), inset 0 -1px 0 color-mix(in oklab, ${dotColor} 60%, #000), inset 0 1px 0 rgba(255,255,255,.55)`,
+                }}
+              >
+                {isLive && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: -1,
+                      borderRadius: '50%',
+                      border: `1.5px solid ${dotColor}`,
+                      opacity: 0.6,
+                      animation: 'livering 2s cubic-bezier(.16,1,.3,1) infinite',
+                    }}
+                  />
+                )}
+              </span>
               {statusLabel}
             </span>
           </div>

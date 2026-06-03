@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 import { PredictionCoinsIcon, PredictionGamepadIcon, PredictionLineChartIcon, PredictionLoaderIcon } from './PredictionShellIcons';
+import PredictionMatchRuntime from './PredictionMatchRuntime';
 
-const PredictionMatchRuntime = lazy(() => import('./PredictionMatchRuntime'));
 const PredictionRankingTab = lazy(() => import('./PredictionRankingTab'));
 const PredictionAnimatedSections = lazy(() => import('../PredictionAnimatedSections'));
 

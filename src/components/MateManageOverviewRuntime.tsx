@@ -30,6 +30,7 @@ import {
   mateSectionCardClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const LazyMateManageContentRuntime = lazy(() => import('./MateManageContentRuntime'));
 type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -90,6 +91,7 @@ export default function MateManageOverviewRuntime({
   const statusMeta = getPartyStatusMeta(party.status);
   const hostBadgeMeta = getBadgeMeta(party.hostBadge);
   const flowLabel = getPartyFlowLabel(party.status);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
   const responseSummary = pendingApplications.length > 0 ? `${pendingApplications.length}건` : '없음';
   const summaryItems = [
     {
@@ -201,7 +203,7 @@ export default function MateManageOverviewRuntime({
                         <div>
                           <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                            {party.stadium}
+                            {stadiumDisplayName}
                           </p>
                           <p className="text-[16px] text-gray-500 dark:text-gray-300">{party.section}</p>
                         </div>

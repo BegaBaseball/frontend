@@ -7,113 +7,21 @@ import {
   GOCHEOK_SEATMAP_IMAGE,
   type GocheokBlock,
 } from '../../data/gocheokSeatData';
-import officialSeatMapImage from '../../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png';
+import officialSeatMapImage from '../../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp';
+import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
+import {
+  clampPan,
+  clampZoom,
+  panForZoomAtPoint,
+  readViewportSize,
+  getPointerDistance,
+  getPointerMidpoint,
+  type ViewportSize,
+  type ViewportPoint,
+  type TrackedPointer,
+} from '../stadiumSeatMap/seatMapInteractionUtils';
 
-interface SeatMapPan {
-  x: number;
-  y: number;
-}
-
-interface ViewportSize {
-  width: number;
-  height: number;
-}
-
-interface ViewportPoint {
-  x: number;
-  y: number;
-}
-
-interface TrackedPointer {
-  clientX: number;
-  clientY: number;
-  pointerType: string;
-}
-
-interface Props {
-  mode: 'light' | 'dark';
-  selected: GocheokBlock | null;
-  setSelected: (block: GocheokBlock | null) => void;
-  hover: string | null;
-  setHover: (id: string | null) => void;
-  filterCats: string[] | null;
-  zoom: number;
-  pan: SeatMapPan;
-  onPanChange: (pan: SeatMapPan) => void;
-  onZoom: (zoom: number) => void;
-  minZoom: number;
-  maxZoom: number;
-  zoomStep: number;
-  enableAutoCenter?: boolean;
-  onFullscreen?: () => void;
-}
-
-function clampPan(pan: SeatMapPan, zoom: number, viewport: ViewportSize): SeatMapPan {
-  if (zoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const maxX = (viewport.width * (zoom - 1)) / 2;
-  const maxY = (viewport.height * (zoom - 1)) / 2;
-
-  return {
-    x: Math.min(maxX, Math.max(-maxX, pan.x)),
-    y: Math.min(maxY, Math.max(-maxY, pan.y)),
-  };
-}
-
-function clampZoom(value: number, minZoom: number, maxZoom: number) {
-  return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));
-}
-
-function readViewportSize(node: HTMLDivElement | null): ViewportSize {
-  if (!node) {
-    return { width: 0, height: 0 };
-  }
-
-  const rect = node.getBoundingClientRect();
-  return {
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function getPointerDistance(first: TrackedPointer, second: TrackedPointer) {
-  return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
-}
-
-function getPointerMidpoint(first: TrackedPointer, second: TrackedPointer, node: HTMLDivElement): ViewportPoint {
-  const rect = node.getBoundingClientRect();
-  return {
-    x: ((first.clientX + second.clientX) / 2) - rect.left,
-    y: ((first.clientY + second.clientY) / 2) - rect.top,
-  };
-}
-
-function panForZoomAtPoint(
-  currentPan: SeatMapPan,
-  currentZoom: number,
-  nextZoom: number,
-  point: ViewportPoint,
-  viewport: ViewportSize,
-): SeatMapPan {
-  if (nextZoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const centerX = viewport.width / 2;
-  const centerY = viewport.height / 2;
-  const pointDeltaX = point.x - centerX;
-  const pointDeltaY = point.y - centerY;
-  const safeCurrentZoom = Math.max(currentZoom, 0.01);
-  const contentDeltaX = (pointDeltaX - currentPan.x) / safeCurrentZoom;
-  const contentDeltaY = (pointDeltaY - currentPan.y) / safeCurrentZoom;
-
-  return clampPan({
-    x: pointDeltaX - (contentDeltaX * nextZoom),
-    y: pointDeltaY - (contentDeltaY * nextZoom),
-  }, nextZoom, viewport);
-}
+type Props = SeatMapSvgBaseProps<GocheokBlock>;
 
 function clientPointToSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
   const matrix = svg.getScreenCTM();
@@ -160,6 +68,8 @@ export default function GocheokSeatMapSvg({
   hover,
   setHover,
   filterCats,
+  filterSides,
+  filterLevels,
   zoom,
   pan,
   onPanChange,
@@ -171,6 +81,7 @@ export default function GocheokSeatMapSvg({
   onFullscreen,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -490,7 +401,6 @@ export default function GocheokSeatMapSvg({
 
     if (!canDrag || event.button !== 0) return;
 
-    event.preventDefault();
     const liveViewportSize = readViewportSize(event.currentTarget);
     const startPan = clampPan(pan, zoom, liveViewportSize);
     setViewportSize(liveViewportSize);
@@ -502,12 +412,14 @@ export default function GocheokSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
@@ -655,6 +567,9 @@ export default function GocheokSeatMapSvg({
                 <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
             </defs>
+            {!imageLoaded && !imageFailed && (
+              <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+            )}
             <image
               href={seatMapImageUrl}
               x={0}
@@ -663,9 +578,9 @@ export default function GocheokSeatMapSvg({
               height={imageHeight}
               preserveAspectRatio="none"
               pointerEvents="none"
-              draggable={false}
+              onLoad={() => setImageLoaded(true)}
               onError={() => setImageFailed(true)}
-              style={{ userSelect: 'none' }}
+              style={{ userSelect: 'none', opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
             />
             {showDebug && (
               <g opacity="0.55" pointerEvents="none">
@@ -681,32 +596,49 @@ export default function GocheokSeatMapSvg({
               const cat = GOCHEOK_CATEGORIES[block.category];
               if (!cat) return null;
 
-              const isFiltered = filterCats !== null && !filterCats.includes(block.category);
+              const isFiltered =
+                (filterCats !== null && !filterCats.includes(block.category)) ||
+                (filterSides != null && !filterSides.includes(block.side)) ||
+                (filterLevels != null && !filterLevels.includes(block.level));
+              const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
               const isActive = hover === block.id || selected?.id === block.id;
               const baseColor = mode === 'dark' ? cat.dark : cat.light;
-              const fillOpacity = isFiltered ? 0.001 : isActive ? 0.34 : showDebug ? 0.16 : 0.001;
+              let fill = baseColor;
+              let fillOpacity: number;
+              if (isActive && !isFiltered) {
+                fillOpacity = 0.34;
+              } else if (isAnyFilterActive && !isFiltered) {
+                fillOpacity = 0.20;
+              } else if (isFiltered) {
+                fill = mode === 'dark' ? '#020617' : '#1e293b';
+                fillOpacity = 0.42;
+              } else {
+                fillOpacity = showDebug ? 0.16 : 0.001;
+              }
               const stroke = mode === 'dark' ? '#F8FAFC' : '#0F172A';
               const strokeOpacity = isFiltered ? 0 : isActive ? 0.95 : showDebug ? 0.55 : 0;
 
               return (
-                <g key={block.id}>
+                <g key={block.id} data-testid={`gocheok-seat-block-${block.id}`}>
                   <path
                     data-testid="gocheok-seatmap-hit-area"
                     data-block-id={block.id}
                     data-category={block.category}
+                    data-label-x={block.imageGeometry.labelX}
+                    data-label-y={block.imageGeometry.labelY}
                     role="button"
                     tabIndex={isFiltered ? -1 : 0}
                     aria-label={`${block.name} ${block.block}`}
                     aria-pressed={selected?.id === block.id}
                     d={block.imageGeometry.d}
-                    fill={baseColor}
+                    fill={fill}
                     fillOpacity={fillOpacity}
                     stroke={stroke}
                     strokeOpacity={strokeOpacity}
                     strokeWidth={isActive ? 3 : showDebug ? 1 : 1.5}
                     filter={isActive ? 'url(#gocheok-hit-glow)' : undefined}
                     vectorEffect="non-scaling-stroke"
-                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
+                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
                     onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
                     onClick={(event) => {
                       if (suppressClickRef.current || event.detail > 1) {

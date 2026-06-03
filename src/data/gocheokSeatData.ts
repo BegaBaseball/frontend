@@ -62,6 +62,40 @@ export interface GocheokFacilityGuide {
   implementationNote: string;
 }
 
+export type GocheokFacilityTab = 'overview' | 'entrances' | 'floors' | 'operations';
+export type GocheokOperatorFacilityDataStatus = 'MANUAL_BASEBALL_DATA_REQUIRED' | 'OPERATOR_PROVIDED';
+
+export const GOCHEOK_FACILITY_TAB_LABELS: Record<GocheokFacilityTab, string> = {
+  overview: '시설 개요',
+  entrances: '출입구',
+  floors: '층별/편의시설',
+  operations: '운영 안내',
+};
+
+export interface GocheokOperatorFacilityDataRequirement {
+  status: GocheokOperatorFacilityDataStatus;
+  scope: 'BLOCK_VISIT_GUIDANCE';
+  pendingLabel: string;
+  requiredFields: readonly string[];
+  guardrails: readonly string[];
+}
+
+export interface GocheokVisitHint {
+  blockLabel: string;
+  levelLabel: string;
+  sideLabel: string;
+  fanRoleLabel: string;
+  facilityTab: GocheokFacilityTab;
+  facilityTabLabel: string;
+  facilitySourceLabel: string;
+  context: string;
+  checklist: readonly string[];
+  finalCheckLabel: string;
+  operatorDataStatus: GocheokOperatorFacilityDataStatus;
+  operatorDataPendingLabel: string;
+  operatorDataRequiredLabel: string;
+}
+
 export interface GocheokBlock {
   id: string;
   level: GocheokLevel;
@@ -98,6 +132,9 @@ export interface GocheokCategoryGroup {
   id: string;
   label: string;
   cats: string[] | null;
+  sides?: string[] | null;
+  levels?: string[] | null;
+  filterDimension?: 'grade' | 'position' | 'level';
 }
 
 export type GocheokTraceReviewPriority = 'DONE' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
@@ -134,20 +171,37 @@ const GOCHEOK_SISUL_SEATMAP_URL = 'https://www.sisul.or.kr/open_content/skydome/
 const GOCHEOK_SISUL_FACILITY_URL = 'https://www.sisul.or.kr/open_content/skydome/introduce/facility.jsp';
 
 export const GOCHEOK_SEATMAP_IMAGE: GocheokSeatMapImage = {
-  imagePath: 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp',
   imageWidth: 653,
   imageHeight: 960,
   imageSha256: 'c3e44086682b21f23179cf438fab4f6bd9bcc9b92152bb572f0887b5f122f528',
   sourceLabel: '서울시설공단 공식 고척스카이돔 좌석배치도',
   sourceUrl: GOCHEOK_SISUL_SEATMAP_URL,
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'gocheok-kiwoom-seatmap-official-2026.png',
+  requiredAssetFileName: 'gocheok-kiwoom-seatmap-official-2026.webp',
 };
 
 export const GOCHEOK_SEATMAP_VIEW_BOX = `0 0 ${GOCHEOK_SEATMAP_IMAGE.imageWidth} ${GOCHEOK_SEATMAP_IMAGE.imageHeight}` as const;
 
 // TODO: Add block ids here only when a 653x960 official PNG boundary cannot be verified confidently.
 export const GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS: string[] = [];
+
+export const GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT: GocheokOperatorFacilityDataRequirement = {
+  status: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  scope: 'BLOCK_VISIT_GUIDANCE',
+  pendingLabel: '정확한 블록별 출입 정보, 편의시설 세부 위치, 당일 운영 안내는 운영자 제공 자료 수신 후 표시합니다.',
+  requiredFields: [
+    '블록별 권장 출입 정보',
+    '편의시설 세부 위치',
+    '당일 운영 안내',
+    '관람객 이동 안내',
+  ],
+  guardrails: [
+    '공식 좌석도와 정적 시설현황에 없는 세부 위치를 합성하지 않습니다.',
+    '운영자 제공 자료가 없으면 MANUAL_BASEBALL_DATA_REQUIRED 상태를 유지합니다.',
+    '외부 수집 기반 야구 데이터로 직관 안내를 보강하지 않습니다.',
+  ],
+};
 
 export const GOCHEOK_OMITTED_OFFICIAL_BLOCKS: GocheokOmittedOfficialBlock[] = [
   {
@@ -255,12 +309,24 @@ export const GOCHEOK_CATEGORIES: Record<string, GocheokCategory> = {
 };
 
 export const GOCHEOK_CATEGORY_GROUPS: GocheokCategoryGroup[] = [
-  { id: 'all', label: '전체', cats: null },
-  { id: 'premium', label: '프리미엄/테이블', cats: ['DIAMOND', 'TABLE'] },
-  { id: 'infield', label: '내야석', cats: ['SKY_BLUE', 'BURGUNDY', 'GOLD'] },
-  { id: 'cheer', label: '응원석', cats: ['BURGUNDY'] },
-  { id: 'outfield', label: '외야석', cats: ['OUTFIELD'] },
-  { id: 'accessible', label: '휠체어석', cats: ['ACCESSIBLE'] },
+  // 층수별 (메인 필터 — 항상 노출)
+  { id: 'all',       label: '전체',   cats: null,                              filterDimension: 'level' },
+  { id: 'lv-1f',    label: '1층',    cats: null, levels: ['1F'],              filterDimension: 'level' },
+  { id: 'lv-2f',    label: '2층',    cats: null, levels: ['2F'],              filterDimension: 'level' },
+  { id: 'lv-3f',    label: '3층',    cats: null, levels: ['3F'],              filterDimension: 'level' },
+  { id: 'lv-4f',    label: '4층',    cats: null, levels: ['4F'],              filterDimension: 'level' },
+  { id: 'lv-out',   label: '외야층', cats: null, levels: ['OUTFIELD'],        filterDimension: 'level' },
+  // 등급별 (보조 필터 — 기본 접힘)
+  { id: 'premium',   label: '프리미엄/테이블', cats: ['DIAMOND', 'TABLE'],     filterDimension: 'grade' },
+  { id: 'infield',   label: '내야석',          cats: ['SKY_BLUE', 'BURGUNDY', 'GOLD'], filterDimension: 'grade' },
+  { id: 'cheer',     label: '응원석',          cats: ['BURGUNDY'],             filterDimension: 'grade' },
+  { id: 'outfield',  label: '외야석',          cats: ['OUTFIELD'],             filterDimension: 'grade' },
+  { id: 'accessible',label: '휠체어석',        cats: ['ACCESSIBLE'],           filterDimension: 'grade' },
+  // 위치별 (보조 필터 — 기본 접힘)
+  { id: 'pos-first',  label: '1루 측', cats: null, sides: ['FIRST_BASE'],     filterDimension: 'position' },
+  { id: 'pos-third',  label: '3루 측', cats: null, sides: ['THIRD_BASE'],     filterDimension: 'position' },
+  { id: 'pos-center', label: '중앙',   cats: null, sides: ['CENTER'],         filterDimension: 'position' },
+  { id: 'pos-out',    label: '외야',   cats: null, sides: ['OUTFIELD'],       filterDimension: 'position' },
 ];
 
 export const GOCHEOK_VIEW_INFO: Record<string, GocheokViewInfo> = {
@@ -684,4 +750,37 @@ export function getGocheokFanRoleLabel(role: GocheokFanRole): string {
 
 export function getGocheokSourceLabel(confidence: GocheokSourceConfidence): string {
   return confidence === 'OFFICIAL' ? '공식 좌석도 기준' : '운영자 확인 필요';
+}
+
+export function getGocheokVisitHint(block: GocheokBlock): GocheokVisitHint {
+  const levelLabel = block.level === 'OUTFIELD' ? '외야층' : block.level;
+  const sideLabel = getGocheokSideLabel(block.side);
+  const fanRoleLabel = getGocheokFanRoleLabel(block.fanRole);
+  const facilityTab: GocheokFacilityTab = block.level === '3F' || block.level === '4F'
+    ? 'floors'
+    : block.side === 'OUTFIELD' || block.level === 'OUTFIELD'
+      ? 'entrances'
+      : 'overview';
+  const facilityTabLabel = GOCHEOK_FACILITY_TAB_LABELS[facilityTab];
+
+  return {
+    blockLabel: block.block,
+    levelLabel,
+    sideLabel,
+    fanRoleLabel,
+    facilityTab,
+    facilityTabLabel,
+    facilitySourceLabel: GOCHEOK_FACILITY_GUIDE.sourceLabel,
+    context: `${block.name}은 ${levelLabel} · ${sideLabel} · ${fanRoleLabel} 기준으로 분류됩니다. 상세 시설 위치는 운영자 제공 자료가 필요합니다.`,
+    checklist: [
+      `좌석도에서 ${block.block} 블록과 ${levelLabel} 표기를 확인하세요.`,
+      `${sideLabel} 방향 표기와 ${fanRoleLabel} 팬 구분을 참고하세요.`,
+      `${facilityTabLabel} 탭에서 공식 시설현황 범위를 확인하세요.`,
+      '당일 안내와 현장 표지를 최종 확인하세요.',
+    ],
+    finalCheckLabel: '현장 최종 안내 확인',
+    operatorDataStatus: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status,
+    operatorDataPendingLabel: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel,
+    operatorDataRequiredLabel: `${GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}: 운영자 제공 자료 필요`,
+  };
 }

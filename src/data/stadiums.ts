@@ -40,9 +40,9 @@ export const STADIUM_DATA: Record<string, StadiumMapData> = {
         name: '인천 SSG 랜더스필드',
         mapImage: incheonImg
     },
-    '한화생명 이글스파크': {
+    '대전 한화생명볼파크': {
         id: 'hanwha',
-        name: '한화생명 이글스파크',
+        name: '대전 한화생명볼파크',
         mapImage: hanwhaImg
     },
     '광주 기아 챔피언스 필드': {
@@ -50,9 +50,9 @@ export const STADIUM_DATA: Record<string, StadiumMapData> = {
         name: '광주 기아 챔피언스 필드',
         mapImage: kiaImg
     },
-    '대구 삼성 라이온즈 파크': {
+    '대구 삼성 라이온즈파크': {
         id: 'samsung',
-        name: '대구 삼성 라이온즈 파크',
+        name: '대구 삼성 라이온즈파크',
         mapImage: samsungImg
     },
     '수원 KT 위즈파크': {

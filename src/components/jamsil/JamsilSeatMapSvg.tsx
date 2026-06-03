@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import lgSeatMapImage from '../../assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png';
-import doosanOverviewImage from '../../assets/stadiums/doosan/jamsil-doosan-stadium-overview.png';
-import doosanFloor1Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-1f.jpg';
-import doosanFloor2Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-2f.jpg';
-import doosanFloor25Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-2-5f.jpg';
-import doosanFloor34Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-3-4f.jpg';
+import {
+  clampPan,
+  clampZoom,
+  panForZoomAtPoint,
+  readViewportSize,
+  getPointerDistance,
+  getPointerMidpoint,
+  type ViewportSize,
+  type ViewportPoint,
+  type TrackedPointer,
+} from '../stadiumSeatMap/seatMapInteractionUtils';
+import lgSeatMapImage from '../../assets/stadiums/lg/jamsil-lg-seatmap-default-2026.webp';
+import doosanOverviewImage from '../../assets/stadiums/doosan/jamsil-doosan-stadium-overview.webp';
+import doosanFloor1Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-1f.webp';
+import doosanFloor2Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-2f.webp';
+import doosanFloor25Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-2-5f.webp';
+import doosanFloor34Image from '../../assets/stadiums/doosan/jamsil-doosan-floor-3-4f.webp';
 import {
   JAMSIL_BLOCKS,
   JAMSIL_CATEGORIES,
@@ -58,89 +69,6 @@ interface SeatMapPan {
   y: number;
 }
 
-interface ViewportSize {
-  width: number;
-  height: number;
-}
-
-interface ViewportPoint {
-  x: number;
-  y: number;
-}
-
-interface TrackedPointer {
-  clientX: number;
-  clientY: number;
-  pointerType: string;
-}
-
-function clampPan(pan: SeatMapPan, zoom: number, viewport: ViewportSize): SeatMapPan {
-  if (zoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const maxX = (viewport.width * (zoom - 1)) / 2;
-  const maxY = (viewport.height * (zoom - 1)) / 2;
-
-  return {
-    x: Math.min(maxX, Math.max(-maxX, pan.x)),
-    y: Math.min(maxY, Math.max(-maxY, pan.y)),
-  };
-}
-
-function clampZoom(value: number, minZoom: number, maxZoom: number) {
-  return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));
-}
-
-function readViewportSize(node: HTMLDivElement | null): ViewportSize {
-  if (!node) {
-    return { width: 0, height: 0 };
-  }
-
-  const rect = node.getBoundingClientRect();
-  return {
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function getPointerDistance(first: TrackedPointer, second: TrackedPointer) {
-  return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
-}
-
-function getPointerMidpoint(first: TrackedPointer, second: TrackedPointer, node: HTMLDivElement): ViewportPoint {
-  const rect = node.getBoundingClientRect();
-  return {
-    x: ((first.clientX + second.clientX) / 2) - rect.left,
-    y: ((first.clientY + second.clientY) / 2) - rect.top,
-  };
-}
-
-function panForZoomAtPoint(
-  currentPan: SeatMapPan,
-  currentZoom: number,
-  nextZoom: number,
-  point: ViewportPoint,
-  viewport: ViewportSize,
-): SeatMapPan {
-  if (nextZoom <= 1 || viewport.width <= 0 || viewport.height <= 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const centerX = viewport.width / 2;
-  const centerY = viewport.height / 2;
-  const pointDeltaX = point.x - centerX;
-  const pointDeltaY = point.y - centerY;
-  const safeCurrentZoom = Math.max(currentZoom, 0.01);
-  const contentDeltaX = (pointDeltaX - currentPan.x) / safeCurrentZoom;
-  const contentDeltaY = (pointDeltaY - currentPan.y) / safeCurrentZoom;
-
-  return clampPan({
-    x: pointDeltaX - (contentDeltaX * nextZoom),
-    y: pointDeltaY - (contentDeltaY * nextZoom),
-  }, nextZoom, viewport);
-}
-
 function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
   return (
     <div
@@ -190,7 +118,7 @@ function SourceTabs({
             key={option.id}
             type="button"
             onClick={() => onChange(option.id)}
-            className="rounded-lg border-0 px-2.5 py-1.5 text-[11px] font-black transition-colors"
+            className="rounded-lg border-0 px-2.5 py-1.5 text-[11px] font-black transition-colors whitespace-nowrap text-center shrink-0"
             style={{
               background: active ? '#1F5C4A' : 'transparent',
               color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -216,9 +144,9 @@ function OfficialSourceToolbar({
   controls?: ReactNode;
 }) {
   return (
-    <div className="mb-2 flex items-center justify-between gap-2">
+    <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
       <SourceTabs value={value} onChange={onChange} mode={mode} />
-      {controls}
+      {controls && <div className="shrink-0">{controls}</div>}
     </div>
   );
 }
@@ -551,6 +479,7 @@ export default function JamsilSeatMapSvg({
   enableAutoCenter = true, onFullscreen,
 }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -578,6 +507,8 @@ export default function JamsilSeatMapSvg({
   } | null>(null);
   const filterGroup = JAMSIL_CATEGORY_GROUPS.find(g => g.id === filterId);
   const filterCats = filterGroup?.cats ?? null;
+  const filterSides = filterGroup?.sides ?? null;
+  const filterLevels = filterGroup?.levels ?? null;
   const { imageWidth, imageHeight } = JAMSIL_SEATMAP_IMAGE;
   const seatMapImageUrl = JAMSIL_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' ? lgSeatMapImage : null;
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('jamsilDebug') === '1';
@@ -587,8 +518,12 @@ export default function JamsilSeatMapSvg({
   const effectivePan = clampPan(pan, zoom, measuredViewportSize);
   const canDrag = zoom > minZoom;
 
-  const zoomBtnCls = 'w-7 h-7 rounded-md bg-transparent border-0 flex items-center justify-center cursor-pointer text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
-  const sortedBlocks = JAMSIL_BLOCKS;
+  const zoomBtnCls = 'pointer-events-auto w-7 h-7 rounded-md bg-transparent border-0 flex items-center justify-center cursor-pointer text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
+  const sortedBlocks = [...JAMSIL_BLOCKS].sort((a, b) => {
+    if (a.category === 'ACCESSIBLE' && b.category !== 'ACCESSIBLE') return -1;
+    if (a.category !== 'ACCESSIBLE' && b.category === 'ACCESSIBLE') return 1;
+    return 0;
+  });
 
   useLayoutEffect(() => {
     const node = viewportRef.current;
@@ -874,7 +809,6 @@ export default function JamsilSeatMapSvg({
 
     if (!canDrag || event.button !== 0) return;
 
-    event.preventDefault();
     const liveViewportSize = readViewportSize(event.currentTarget);
     const startPan = clampPan(pan, zoom, liveViewportSize);
     setViewportSize(liveViewportSize);
@@ -886,12 +820,14 @@ export default function JamsilSeatMapSvg({
       viewport: liveViewportSize,
       moved: false,
       captureTarget: event.currentTarget,
-      usesPointerCapture: true,
+      usesPointerCapture: event.pointerType !== 'mouse',
     };
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+    if (event.pointerType !== 'mouse') {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners still keep desktop drag working when pointer capture is unavailable.
+      }
     }
     setIsDragging(true);
   }, [beginPinchZoom, canDrag, pan, suppressNextClick, zoom]);
@@ -979,25 +915,7 @@ export default function JamsilSeatMapSvg({
   }, [maxZoom, minZoom, onPanChange, onZoom]);
 
   const zoomControls = (
-    <div className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <button
-        data-testid="jamsil-seatmap-zoom-out"
-        className={zoomBtnCls}
-        onClick={() => updateZoomFromControls(zoom - zoomStep)}
-        disabled={zoom <= minZoom}
-        aria-label="잠실 좌석도 축소"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
-      </button>
-      <button
-        data-testid="jamsil-seatmap-zoom-reset"
-        className="min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-[10px] font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
-        onClick={() => updateZoomFromControls(minZoom)}
-        disabled={zoom <= minZoom}
-        aria-label="잠실 좌석도 원래 크기"
-      >
-        {zoom.toFixed(1)}x
-      </button>
+    <div className="absolute right-3 top-3 z-20 flex shrink-0 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <button
         data-testid="jamsil-seatmap-zoom-in"
         className={zoomBtnCls}
@@ -1006,6 +924,24 @@ export default function JamsilSeatMapSvg({
         aria-label="잠실 좌석도 확대"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button
+        data-testid="jamsil-seatmap-zoom-reset"
+        className="pointer-events-auto min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-[10px] font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+        onClick={() => updateZoomFromControls(minZoom)}
+        disabled={zoom <= minZoom}
+        aria-label="잠실 좌석도 원래 크기"
+      >
+        {zoom.toFixed(1)}x
+      </button>
+      <button
+        data-testid="jamsil-seatmap-zoom-out"
+        className={zoomBtnCls}
+        onClick={() => updateZoomFromControls(zoom - zoomStep)}
+        disabled={zoom <= minZoom}
+        aria-label="잠실 좌석도 축소"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
       </button>
       {onFullscreen && (
         <button
@@ -1059,7 +995,6 @@ export default function JamsilSeatMapSvg({
           onOfficialSourceChange(value);
         }}
         mode={mode}
-        controls={zoomControls}
       />
       <div
         ref={viewportRef}
@@ -1083,9 +1018,9 @@ export default function JamsilSeatMapSvg({
         onDoubleClick={handleDoubleClick}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
-      >
-        <div
-          data-testid="jamsil-seatmap-transform-layer"
+        >
+          <div
+            data-testid="jamsil-seatmap-transform-layer"
           data-zoom={zoom.toFixed(2)}
           data-pan-x={effectivePan.x.toFixed(1)}
           data-pan-y={effectivePan.y.toFixed(1)}
@@ -1097,35 +1032,43 @@ export default function JamsilSeatMapSvg({
             transformOrigin: '50% 50%',
           }}
         >
-          <img
-            src={seatMapImageUrl}
-            alt="서울잠실야구장 공식 좌석 배치도"
-            className="absolute inset-0 h-full w-full object-contain select-none"
-            draggable={false}
-            loading="eager"
-            decoding="async"
-            onError={() => setImageFailed(true)}
-            onDragStart={(event) => event.preventDefault()}
-          />
-
           <svg
             viewBox={`0 0 ${imageWidth} ${imageHeight}`}
-            className="absolute inset-0 h-full w-full"
+            className="h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             aria-label="잠실 좌석도 구역 선택"
             onDoubleClick={handleSvgDoubleClick}
             onMouseMove={(event) => {
               if (!showDebug) return;
-              const rect = event.currentTarget.getBoundingClientRect();
-              const x = Math.round(((event.clientX - rect.left) / rect.width) * imageWidth);
-              const y = Math.round(((event.clientY - rect.top) / rect.height) * imageHeight);
-              setDebugPoint({ x, y });
+              const matrix = event.currentTarget.getScreenCTM()?.inverse();
+              if (!matrix) return;
+              const pt = event.currentTarget.createSVGPoint();
+              pt.x = event.clientX;
+              pt.y = event.clientY;
+              const mapped = pt.matrixTransform(matrix);
+              setDebugPoint({ x: Math.round(mapped.x), y: Math.round(mapped.y) });
             }}
             onMouseLeave={() => {
               setHover(null);
               if (showDebug) setDebugPoint(null);
             }}
           >
+            {!imageLoaded && !imageFailed && (
+              <rect x={0} y={0} width={imageWidth} height={imageHeight} fill="#e5e7eb" />
+            )}
+            <image
+              href={seatMapImageUrl ?? undefined}
+              x={0}
+              y={0}
+              width={imageWidth}
+              height={imageHeight}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageFailed(true)}
+              pointerEvents="none"
+              style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.25s ease-in' }}
+            />
             <defs>
               <filter id="jamsil-hit-glow">
                 <feGaussianBlur stdDeviation="2.5" result="blur" />
@@ -1148,10 +1091,14 @@ export default function JamsilSeatMapSvg({
               const cat = JAMSIL_CATEGORIES[b.category];
               if (!cat) return null;
 
-              const isFiltered = filterCats !== null && !filterCats.includes(b.category);
+              const isFiltered =
+                (filterCats !== null && !filterCats.includes(b.category)) ||
+                (filterSides != null && !filterSides.includes(b.side)) ||
+                (filterLevels != null && !filterLevels.includes(b.level));
               const isActive = hover === b.id || selected?.id === b.id;
               const baseColor = mode === 'dark' ? cat.dark : cat.light;
               const { imageGeometry } = b;
+              const isAnyFilterActive = filterCats !== null || filterSides != null || filterLevels != null;
               const showLabel = (isActive && !isFiltered) || (showDebug && granularity === 'high' && zoom >= 1.5 && !isFiltered);
 
               let fill = baseColor;
@@ -1162,10 +1109,15 @@ export default function JamsilSeatMapSvg({
 
               if (isActive) {
                 fillOpacity = 0.34;
+              } else if (isAnyFilterActive && !isFiltered) {
+                // 필터 활성 시: 매칭 블록에 카테고리 색 하이라이트
+                fillOpacity = 0.20;
               }
 
               if (isFiltered) {
-                fillOpacity = 0.001;
+                // 비매칭 블록: 어두운 오버레이로 dimming
+                fill = mode === 'dark' ? '#020617' : '#1e293b';
+                fillOpacity = 0.42;
                 strokeOpacity = 0;
               }
 
@@ -1183,7 +1135,8 @@ export default function JamsilSeatMapSvg({
                     strokeWidth={strokeWidth}
                     filter={isActive ? 'url(#jamsil-hit-glow)' : undefined}
                     vectorEffect="non-scaling-stroke"
-                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill-opacity 0.15s, stroke-opacity 0.15s' }}
+                    pointerEvents={isFiltered ? 'none' : undefined}
+                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
                     onMouseEnter={() => !isFiltered && !isDragging && setHover(b.id)}
                     onClick={(event) => {
                       if (suppressClickRef.current || event.detail > 1) {
@@ -1235,8 +1188,9 @@ export default function JamsilSeatMapSvg({
               </g>
             )}
           </svg>
+          </div>
+          {zoomControls}
         </div>
       </div>
-    </div>
   );
 }

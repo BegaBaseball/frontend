@@ -80,7 +80,7 @@ describe('Chaos: Backend Error Propagation to Frontend', () => {
             const stadiums = [
                 {
                     stadiumId: 'JAMSIL',
-                    stadiumName: '잠실야구장',
+                    stadiumName: '서울 · 잠실야구장',
                     team: 'LG/두산',
                     lat: 37.5122,
                     lng: 127.0719,
@@ -114,7 +114,7 @@ describe('Chaos: Backend Error Propagation to Frontend', () => {
             cy.wait('@stadiumsRecovered');
 
             // 복구 후 콘텐츠 표시 확인
-            cy.contains('잠실야구장').should('be.visible');
+            cy.contains('서울 · 잠실야구장').should('be.visible');
         });
     });
 

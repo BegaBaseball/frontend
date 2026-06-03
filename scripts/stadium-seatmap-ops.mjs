@@ -1,0 +1,1651 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const frontendRoot = path.resolve(scriptDir, '..');
+
+const nodeTsxStep = (script, args = []) => ({
+  command: 'node',
+  args: ['--import', 'tsx', script, ...args],
+});
+
+const npmRunStep = (script) => ({
+  command: 'npm',
+  args: ['run', script],
+});
+
+const STADIUMS = {
+  gocheok: {
+    label: 'Gocheok Sky Dome',
+    order: 1,
+    qaToken: 'GOCHEOK',
+    legacyArtifacts: [
+      'scripts/gocheok-seatmap-ops.mjs',
+    ],
+    publicTasks: [
+      'full',
+      'mobile',
+      'operator-apply-plan',
+      'operator-approval',
+      'operator-approval:approve',
+      'operator-approval:status',
+      'operator-approval:verify',
+      'operator-handoff',
+      'operator-intake',
+      'operator-validate',
+      'pixel-components',
+      'release-gate',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'evidence crop generation and trace-review bundles remain dispatcher-internal; package aliases expose runtime release, status, pixel components, trace manifest, and no-source-write operator intake reporting tasks.',
+    migrationBuckets: [
+      {
+        id: 'core-qa',
+        status: 'integrated',
+        patterns: [
+          'gocheok-seatmap-ops.mjs',
+        ],
+        nextAction: 'Gocheok seatmap body and dispatcher paths are consolidated in gocheok-seatmap-ops.mjs; compatibility wrappers are retained for direct CLI parity.',
+      },
+    ],
+    tasks: {
+      'operator-template': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-template'],
+          passArgs: true,
+        },
+      ],
+      'operator-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-validate'],
+          passArgs: true,
+        },
+      ],
+      'operator-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-handoff'],
+          passArgs: true,
+        },
+      ],
+      'operator-intake': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'operator-intake'],
+          passArgs: true,
+        },
+      ],
+      'pixel-components': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'pixel-components'],
+        },
+      ],
+      'trace-manifest': [
+        {
+          task: 'pixel-components',
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'trace-manifest'],
+        },
+      ],
+      evidence: [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'evidence'],
+        },
+      ],
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GOCHEOK'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GOCHEOK:FULL'],
+        },
+      ],
+      'trace-review': [
+        {
+          task: 'trace-manifest',
+        },
+        {
+          task: 'evidence',
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GOCHEOK'],
+          env: { STADIUM_UX_GOCHEOK_DEBUG_CAPTURE: '1' },
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gocheok-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, status, pixel components, trace manifest, and no-source-write operator intake reporting; evidence and trace-review tasks stay available through the integrated dispatcher',
+  },
+  gwangju: {
+    label: 'Gwangju-Kia Champions Field',
+    order: 2,
+    qaToken: 'GWANGJU',
+    legacyArtifacts: [
+      'scripts/gwangju-seatmap-core-qa.mjs',
+      'scripts/gwangju-seatmap-evidence-workset-ops.mjs',
+      'scripts/gwangju-seatmap-operator-template-ops.mjs',
+      'scripts/gwangju-seatmap-operator-intake-write-ops.mjs',
+      'scripts/gwangju-seatmap-release-staging-ops.mjs',
+    ],
+    publicTasks: [
+      'mobile',
+      'operator-handoff',
+      'operator-status',
+      'pixel-components',
+      'release-gate',
+      'release-verify',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'image alignment, block-source audit, runtime-layer, trace-review, release package/audit/scope guard, PR staging, and granular release verification tasks remain dispatcher-internal; package aliases expose only mobile/runtime release and current operator status/handoff gates.',
+    migrationBuckets: [
+      {
+        id: 'core-qa',
+        status: 'integrated',
+        patterns: [
+          'gwangju-seatmap-core-qa.mjs',
+        ],
+        nextAction: 'Gwangju core QA body and dispatcher paths are consolidated in gwangju-seatmap-core-qa.mjs; obsolete compatibility wrappers have been removed.',
+      },
+      {
+        id: 'evidence-worksets',
+        status: 'integrated',
+        patterns: [
+          'gwangju-seatmap-evidence-workset-ops.mjs',
+        ],
+        nextAction: 'Gwangju evidence/workset body and dispatcher paths are consolidated in gwangju-seatmap-evidence-workset-ops.mjs; obsolete compatibility files have been removed.',
+      },
+      {
+        id: 'operator-template',
+        status: 'integrated',
+        patterns: [
+          'gwangju-seatmap-operator-template-ops.mjs',
+        ],
+        nextAction: 'Gwangju operator-template body and dispatcher paths are consolidated in gwangju-seatmap-operator-template-ops.mjs; obsolete compatibility wrappers have been removed.',
+      },
+      {
+        id: 'operator-intake-write',
+        status: 'integrated',
+        patterns: [
+          'gwangju-seatmap-operator-intake-write-ops.mjs',
+        ],
+        nextAction: 'Gwangju operator intake/write body and dispatcher paths are consolidated in gwangju-seatmap-operator-intake-write-ops.mjs; obsolete compatibility wrappers have been removed.',
+      },
+      {
+        id: 'release-staging',
+        status: 'integrated',
+        patterns: [
+          'gwangju-seatmap-release-staging-ops.mjs',
+        ],
+        nextAction: 'Gwangju release/staging body and dispatcher paths are consolidated in gwangju-seatmap-release-staging-ops.mjs; obsolete compatibility wrappers have been removed.',
+      },
+    ],
+    tasks: {
+      'pixel-components': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+      ],
+      'image-trace-candidates': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-evidence-workset-ops.mjs', 'image-trace-candidates'],
+          passArgs: true,
+        },
+      ],
+      'image-alignment-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit'],
+          passArgs: true,
+        },
+      ],
+      'image-alignment-audit:require-release': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+      ],
+      'official-third-infield-trace': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'official-third-infield-trace'],
+        },
+      ],
+      'block-source-duplication-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-block-source-duplication-audit.mjs'],
+        },
+      ],
+      'artifact-scope-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-artifact-scope-audit.mjs'],
+        },
+      ],
+      'trace-manifest': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+      ],
+      'zone-precision-worksets': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-evidence-workset-ops.mjs', 'zone-precision-worksets'],
+        },
+      ],
+      'evidence-inventory': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-evidence-workset-ops.mjs', 'evidence-inventory'],
+        },
+      ],
+      'low-margin-candidates': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-evidence-workset-ops.mjs', 'low-margin-candidates'],
+        },
+      ],
+      'browser-evidence': [
+        { task: 'evidence-inventory' },
+        { task: 'trace-review' },
+        { task: 'artifact-scope-audit' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-evidence-workset-ops.mjs', 'browser-evidence'],
+        },
+      ],
+      'operator-template': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template'],
+        },
+      ],
+      'precision-editor-dataset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'dataset-summary'],
+        },
+      ],
+      'precision-editor-patch:validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'editor-patch-validate'],
+          passArgs: true,
+        },
+      ],
+      'precision-editor-patch:apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'editor-patch-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'precision-editor-patch:gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'editor-patch-gate'],
+          passArgs: true,
+        },
+      ],
+      'precision-editor-patch:write-guard': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'editor-patch-write-guard'],
+          passArgs: true,
+        },
+      ],
+      'precision-editor-patch:postwrite-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-precision-v1-editor-ops.mjs', 'editor-postwrite-gate'],
+        },
+      ],
+      'operator-template:validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-validate'],
+        },
+      ],
+      'operator-template:validate:strict': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-validate', '--strict'],
+        },
+      ],
+      'operator-template:apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-apply-plan'],
+        },
+      ],
+      'operator-template:apply-plan:require-ready': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-apply-plan', '--require-ready'],
+        },
+      ],
+      'operator-template:gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-validate'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-apply-plan'],
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-validate'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-template-apply-plan'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-handoff'],
+        },
+      ],
+      'operator-status': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-template-ops.mjs', 'operator-status'],
+        },
+      ],
+      'operator-input-aid': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-input-aid'],
+        },
+      ],
+      'operator-input-packet': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-input-packet'],
+        },
+      ],
+      'operator-intake': [
+        { task: 'operator-handoff' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-input-aid'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-input-packet'],
+        },
+      ],
+      'operator-apply': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-apply'],
+        },
+      ],
+      'operator-write-smoke': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-write-smoke'],
+        },
+      ],
+      'operator-write-guard': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-write-guard'],
+        },
+      ],
+      'operator-write-guard:require-ready': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-write-guard', '--require-ready'],
+        },
+      ],
+      'operator-prewrite-gate': [
+        { task: 'operator-status' },
+        { task: 'operator-write-smoke' },
+        { task: 'operator-write-guard:require-ready' },
+      ],
+      'operator-apply:write': [
+        { task: 'operator-prewrite-gate' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-operator-intake-write-ops.mjs', 'operator-apply', '--write', '--require-ready'],
+        },
+      ],
+      'operator-postwrite-gate': [
+        { task: 'operator-handoff' },
+        { task: 'operator-status' },
+        {
+          command: 'npm',
+          args: ['run', 'test:stadium:seatmaps'],
+        },
+        { task: 'trace-review' },
+        {
+          command: 'npm',
+          args: ['run', 'build'],
+        },
+      ],
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU'],
+        },
+      ],
+      'runtime-layer': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'runtime-layer-audit'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-artifact-scope-audit.mjs'],
+        },
+      ],
+      'visual-hit-split-audit': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU'],
+          env: {
+            STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1',
+            STADIUM_UX_GWANGJU_VISUAL_HIT_SPLIT_ONLY: '1',
+          },
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'runtime-layer-audit'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-artifact-scope-audit.mjs'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'visual-hit-split-audit'],
+        },
+      ],
+      'trace-review': [
+        {
+          command: 'node',
+          args: [
+            '--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'image-alignment-audit',
+            '--require-sky-picnic',
+            '--require-alphabet-sections',
+            '--require-five-table',
+          ],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU'],
+          env: { STADIUM_UX_GWANGJU_DEBUG_CAPTURE: '1' },
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'runtime-layer-audit'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-artifact-scope-audit.mjs'],
+        },
+      ],
+      'selected-sweep': [
+        {
+          task: 'trace-manifest',
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU:EVIDENCE'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-core-qa.mjs', 'release-gate'],
+        },
+      ],
+      'release-package': [
+        { task: 'operator-status' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'release-package'],
+        },
+      ],
+      'release-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'release-audit'],
+        },
+      ],
+      'release-scope-guard': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'release-scope-guard'],
+        },
+      ],
+      'pr-staging-plan': [
+        { task: 'release-scope-guard' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'pr-staging-plan'],
+        },
+      ],
+      'pr-staging-review': [
+        { task: 'pr-staging-plan' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'pr-staging-plan', '--review'],
+        },
+      ],
+      'targeted-staging': [
+        { task: 'pr-staging-review' },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'targeted-staging'],
+        },
+      ],
+      'staged-scope-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'staged-scope-audit'],
+          passArgs: true,
+        },
+      ],
+      'staged-scope-audit:require-complete': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'staged-scope-audit', '--require-complete'],
+        },
+      ],
+      'pre-pr-final-gate': [
+        { task: 'targeted-staging' },
+        { task: 'staged-scope-audit' },
+        { task: 'release-audit' },
+      ],
+      'commit-readiness': [
+        { task: 'targeted-staging' },
+        { task: 'staged-scope-audit:require-complete' },
+        { task: 'release-audit' },
+      ],
+      'release-verify': [
+        { task: 'release-verify:preoperator' },
+      ],
+      'release-verify:preoperator': [
+        { task: 'trace-manifest' },
+        { task: 'runtime-layer' },
+        { task: 'release-gate' },
+        { task: 'pre-pr-final-gate' },
+      ],
+      'release-verify:postoperator': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/gwangju-seatmap-release-staging-ops.mjs', 'postoperator-audit'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/runtime release, current operator status/handoff, status, pixel components, and trace manifest; image-alignment, trace-review, runtime-layer, release packaging/audit/scope, and PR staging tasks stay available through the integrated dispatcher',
+  },
+  changwon: {
+    label: 'Changwon NC Park',
+    order: 3,
+    qaToken: 'CHANGWON',
+    legacyArtifacts: [
+      'scripts/changwon-seatmap-ops.mjs',
+    ],
+    publicTasks: [
+      'mobile',
+      'release-gate',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'UX readiness and trace-review bundles remain dispatcher-internal; package aliases expose only mobile runtime QA, release lock, status, and trace manifest tasks.',
+    migrationBuckets: [
+      {
+        id: 'seatmap-ops',
+        status: 'integrated',
+        patterns: [
+          'changwon-seatmap-ops.mjs',
+        ],
+        nextAction: 'Changwon seatmap script bodies and dispatcher paths are consolidated in changwon-seatmap-ops.mjs; obsolete compatibility files have been removed.',
+      },
+    ],
+    tasks: {
+      'trace-manifest': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'trace-manifest'],
+        },
+      ],
+      'ux-readiness': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'ux-readiness'],
+        },
+      ],
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'CHANGWON'],
+        },
+      ],
+      'trace-review': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'trace-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'ux-readiness'],
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'CHANGWON'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/changwon-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile runtime QA, release lock, status, and trace manifest; ux-readiness and trace-review tasks stay available through the integrated dispatcher',
+  },
+  jamsil: {
+    label: 'Jamsil Baseball Stadium',
+    order: 4,
+    qaToken: 'JAMSIL',
+    legacyArtifacts: [],
+    publicTasks: [
+      'field-survey-validate',
+      'field-survey-workset',
+      'full',
+      'food-candidate-apply-plan',
+      'food-candidate-review-workset',
+      'food-candidate-validate',
+      'food-candidate-transfer',
+      'mobile',
+      'restroom-candidate-apply-plan',
+      'restroom-candidate-review-workset',
+      'restroom-candidate-transfer',
+      'restroom-candidate-validate',
+      'operator-apply-plan',
+      'operator-handoff',
+      'operator-intake',
+      'operator-validate',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'responsive QA remains dispatcher-internal; package aliases expose runtime QA, release lock, status, field-survey validation/workset, food/restroom candidate validation/review-workset/transfer/apply-plan, approval, and no-source-write operator intake reporting tasks.',
+    tasks: {
+      'field-survey-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'field-survey-validate'],
+          passArgs: true,
+        },
+      ],
+      'field-survey-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'field-survey-workset'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-review-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-review-workset'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-validate'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-transfer': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-transfer'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-validate'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-review-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-review-workset'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-transfer': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-transfer'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-template': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-template'],
+          passArgs: true,
+        },
+      ],
+      'operator-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-validate'],
+          passArgs: true,
+        },
+      ],
+      'operator-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:status': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--status'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:approve': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--approve'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:verify': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--require-approved'],
+          passArgs: true,
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-handoff'],
+          passArgs: true,
+        },
+      ],
+      'operator-intake': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-intake'],
+          passArgs: true,
+        },
+      ],
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'JAMSIL'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'JAMSIL:FULL'],
+        },
+      ],
+      responsive: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'JAMSIL:RESPONSIVE'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, status, field-survey validation/workset, food/restroom candidate validation/review-workset/transfer/apply-plan, approval, and no-source-write operator intake reporting; responsive QA stays available through the integrated dispatcher',
+  },
+  daegu: {
+    label: 'Daegu Samsung Lions Park',
+    order: 5,
+    qaToken: 'DAEGU',
+    legacyArtifacts: [
+      'scripts/daegu-seatmap-ops.mjs',
+      'scripts/daegu-seatmap-core-qa.mjs',
+      'scripts/daegu-seatmap-source-baseline-audit.mjs',
+      'scripts/daegu-seatmap-canonical-decision-table.mjs',
+      'scripts/daegu-seatmap-qa-ownership-audit.mjs',
+      'scripts/daegu-seatmap-canonical-block-decision-guard.mjs',
+      'scripts/daegu-seatmap-canonical-official-only-retrace-workset.mjs',
+      'scripts/daegu-seatmap-canonical-retrace-batch.mjs',
+      'scripts/daegu-seatmap-precision-audit.mjs',
+      'scripts/daegu-seatmap-render-safety-audit.mjs',
+    ],
+    migrationBuckets: [
+      {
+        id: 'canonical-runtime-release',
+        status: 'integrated',
+        patterns: [
+          'daegu-seatmap-ops.mjs',
+          'daegu-seatmap-core-qa.mjs',
+          'daegu-seatmap-canonical-*.mjs',
+          'daegu-seatmap-precision-audit.mjs',
+          'daegu-seatmap-render-safety-audit.mjs',
+        ],
+        nextAction: 'Daegu runtime/release QA commands delegate to daegu-seatmap-ops.mjs; historical operator-reference stage scripts have been removed and are recoverable from Git history only.',
+      },
+    ],
+    cleanupPolicy: 'historical operator-reference stage scripts are recoverable from Git history only',
+    tasks: {
+      mobile: [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'mobile'] }],
+      full: [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'full'] }],
+      'pixel-components': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'pixel-components'] }],
+      'trace-manifest': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'trace-manifest'] }],
+      'alignment-audit': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'alignment-audit'] }],
+      'operator-handoff': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'operator-handoff'] }],
+      'handoff-evidence': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'handoff-evidence'] }],
+      'source-baseline-audit': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'source-baseline-audit'] }],
+      'canonical-decision-table': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-decision-table'] }],
+      'qa-ownership-audit': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'qa-ownership-audit'] }],
+      'canonical-block-decision-guard': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-block-decision-guard'] }],
+      'canonical-official-only-retrace-workset': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-official-only-retrace-workset'] }],
+      'canonical-retrace-batch': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-retrace-batch'], passArgs: true }],
+      'canonical-retrace-gate': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-retrace-gate'], passArgs: true }],
+      'canonical-retrace-gate:require-approved': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'canonical-retrace-gate:require-approved'], passArgs: true }],
+      'precision-audit': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'precision-audit'], passArgs: true }],
+      'render-safety-audit': [{ command: 'node', args: ['scripts/daegu-seatmap-ops.mjs', 'render-safety-audit'], passArgs: true }],
+    },
+  },
+  suwon: {
+    label: 'Suwon KT Wiz Park',
+    order: 6,
+    qaToken: 'SUWON',
+    legacyArtifacts: [
+      'scripts/suwon-seatmap-ops.mjs',
+    ],
+    publicTasks: [
+      'full',
+      'mobile',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'responsive QA, visual review, and precision workset generation remain dispatcher-internal; package aliases expose only mobile/full runtime QA, release lock, and status.',
+    migrationBuckets: [
+      {
+        id: 'review-release',
+        status: 'integrated',
+        patterns: [
+          'suwon-seatmap-ops.mjs',
+        ],
+        nextAction: 'Suwon visual review, precision workset, and release gate bodies are consolidated in suwon-seatmap-ops.mjs; obsolete compatibility wrappers have been removed.',
+      },
+    ],
+    tasks: {
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SUWON'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SUWON:FULL'],
+        },
+      ],
+      responsive: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SUWON:RESPONSIVE'],
+        },
+      ],
+      'visual-review': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/suwon-seatmap-ops.mjs', 'visual-review'],
+        },
+      ],
+      'precision-workset': [
+        {
+          task: 'visual-review',
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/suwon-seatmap-ops.mjs', 'precision-workset'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/suwon-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; responsive, visual-review, and precision-workset tasks stay available through the integrated dispatcher',
+  },
+  sajik: {
+    label: 'Busan Sajik Baseball Stadium',
+    order: 7,
+    qaToken: 'SAJIK',
+    legacyArtifacts: [
+      'scripts/sajik-seatmap-core-qa.mjs',
+      'scripts/sajik-seatmap-editor-scope.mjs',
+    ],
+    publicTasks: [
+      'alignment-audit',
+      'block-source-duplication-audit',
+      'full',
+      'mobile',
+      'pixel-components',
+      'release-lock',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'stage01 and operator-reference scripts were removed from the working tree; dataset export, source audit, editor regression, marker transition, and PR scope guard tasks remain dispatcher-internal.',
+    migrationBuckets: [
+      {
+        id: 'core-qa',
+        status: 'integrated',
+        patterns: [
+          'sajik-seatmap-core-qa.mjs',
+        ],
+        nextAction: 'Sajik core QA body and dispatcher paths are consolidated in sajik-seatmap-core-qa.mjs; obsolete compatibility wrappers have been removed.',
+      },
+      {
+        id: 'editor-and-scope',
+        status: 'integrated',
+        patterns: [
+          'sajik-seatmap-editor-scope.mjs',
+        ],
+        nextAction: 'Sajik editor regression, PR scope guard, and marker transition review bodies are consolidated in sajik-seatmap-editor-scope.mjs; obsolete compatibility wrappers have been removed.',
+      },
+    ],
+    tasks: {
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SAJIK'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'SAJIK:FULL'],
+        },
+      ],
+      'block-source-duplication-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-block-source-duplication-audit.mjs'],
+        },
+      ],
+      'release-lock': [
+        {
+          task: 'block-source-duplication-audit',
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-export-dataset.mjs', '--check'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', '--test', 'src/data/sajikSeatData.test.ts', 'src/components/sajik/SajikSeatMap.test.ts'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', '--test', '--test-name-pattern', '사직|Sajik', 'src/components/StadiumGuideRuntimeSeatMaps.test.ts'],
+        },
+        {
+          task: 'full',
+        },
+      ],
+      'pixel-components': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-core-qa.mjs', 'pixel-components'],
+        },
+      ],
+      'trace-manifest': [
+        {
+          task: 'pixel-components',
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-core-qa.mjs', 'trace-manifest'],
+        },
+      ],
+      'alignment-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-core-qa.mjs', 'alignment-audit'],
+          passArgs: true,
+        },
+      ],
+      'dataset-export': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-export-dataset.mjs'],
+          passArgs: true,
+        },
+      ],
+      'source-audit': [
+        {
+          command: 'node',
+          args: ['scripts/sajik-seatmap-source-audit.mjs'],
+          passArgs: true,
+        },
+      ],
+      'editor-regression': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-editor-scope.mjs', 'editor-regression'],
+        },
+      ],
+      'marker-transition-review': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-editor-scope.mjs', 'marker-transition-review'],
+        },
+      ],
+      'pr-scope-guard': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-editor-scope.mjs', 'pr-scope-guard'],
+          passArgs: true,
+        },
+      ],
+      'pr-scope-guard-smoke': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/sajik-seatmap-editor-scope.mjs', 'pr-scope-guard-smoke'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only canonical/runtime release, status, pixel, trace, alignment, and block-source guards; dataset/source/editor/marker/PR-scope tasks stay available through the integrated dispatcher',
+  },
+  daejeon: {
+    label: 'Daejeon Hanwha Life Ballpark',
+    order: 8,
+    qaToken: 'DAEJEON',
+    legacyArtifacts: [
+      'scripts/daejeon-seatmap-ops.mjs',
+    ],
+    publicTasks: [
+      'mobile',
+      'operator-approval',
+      'operator-approval:approve',
+      'operator-approval:status',
+      'operator-approval:verify',
+      'operator-handoff',
+      'pixel-components',
+      'release-approved',
+      'release-lock',
+      'status',
+      'trace-manifest',
+    ],
+    historicalTaskPolicy: 'anchor crop, block crop, evidence, visual/geometry diff, baseline, change-guard, and trace-review tasks remain dispatcher-internal; package aliases expose runtime release and current operator approval gates.',
+    migrationBuckets: [
+      {
+        id: 'seatmap-ops',
+        status: 'integrated',
+        patterns: [
+          'daejeon-seatmap-ops.mjs',
+        ],
+        nextAction: 'Daejeon seatmap script bodies and dispatcher paths are consolidated in daejeon-seatmap-ops.mjs; obsolete compatibility wrappers have been removed.',
+      },
+    ],
+    tasks: {
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'DAEJEON'],
+        },
+      ],
+      'pixel-components': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-components'],
+        },
+      ],
+      'trace-manifest': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'review-manifest'],
+        },
+      ],
+      'anchor-crops': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-review-crops'],
+        },
+      ],
+      'block-crops': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'block-evidence-crops'],
+          passArgs: true,
+        },
+      ],
+      'pixel-align-audit': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-align-audit'],
+          passArgs: true,
+        },
+      ],
+      'visual-diff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-visual-diff'],
+          passArgs: true,
+        },
+      ],
+      'visual-baseline': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-review-crops'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-visual-diff', '--write-baseline'],
+        },
+      ],
+      'geometry-diff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'geometry-diff'],
+          passArgs: true,
+        },
+      ],
+      'geometry-baseline': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'geometry-diff', '--write-baseline'],
+        },
+      ],
+      'coverage-report': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'coverage-report'],
+        },
+      ],
+      evidence: [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'evidence-crops'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-review-crops'],
+        },
+      ],
+      'trace-review': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'pixel-components'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'review-manifest'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'evidence-crops'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'anchor-review-crops'],
+        },
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'DAEJEON'],
+          env: { STADIUM_UX_DAEJEON_DEBUG_CAPTURE: '1' },
+        },
+      ],
+      'release-lock': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+      'change-guard': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'change-guard'],
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'change-guard'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-handoff'],
+        },
+      ],
+      'operator-approval': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'change-guard'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-handoff'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval'],
+        },
+      ],
+      'operator-approval:status': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval', '--status'],
+        },
+      ],
+      'operator-approval:approve': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'change-guard'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval', '--approve'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:verify': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval', '--require-approved'],
+        },
+      ],
+      'release-approved': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'change-guard'],
+        },
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/daejeon-seatmap-ops.mjs', 'operator-approval', '--require-approved'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/runtime release, current operator handoff/approval, status, pixel components, and trace manifest; crop/diff/baseline/evidence/change-guard/trace-review tasks stay available through the integrated dispatcher',
+  },
+  incheon: {
+    label: 'Incheon SSG Landers Field',
+    order: 9,
+    qaToken: 'INCHEON',
+    legacyArtifacts: [],
+    publicTasks: [
+      'full',
+      'mobile',
+      'release-gate',
+      'status',
+    ],
+    historicalTaskPolicy: 'package aliases expose only mobile/full runtime QA, release lock, and status; no responsive, trace-review, or pixel-components public aliases are required for the current official-source map.',
+    tasks: {
+      mobile: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'INCHEON'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'INCHEON:FULL'],
+        },
+      ],
+      'release-gate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/incheon-seatmap-ops.mjs', 'release-gate'],
+        },
+      ],
+    },
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; additional review modes must stay dispatcher-internal unless a release gate explicitly promotes them',
+  },
+};
+
+const taskAliases = {
+  qa: 'mobile',
+  review: 'trace-review',
+};
+
+function printUsage() {
+  const stadiums = Object.entries(STADIUMS)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .map(([id, config]) => `${id} (${config.label})`)
+    .join(', ');
+
+  console.log([
+    'Usage: node scripts/stadium-seatmap-ops.mjs <stadium> <task>',
+    '',
+    `Stadiums: ${stadiums}`,
+    'Tasks: status, pixel-components, trace-manifest, evidence, mobile, full, trace-review',
+  ].join('\n'));
+}
+
+function resolveTaskName(taskName) {
+  return taskAliases[taskName] ?? taskName;
+}
+
+function printStatus(stadiumId, config) {
+  const tasks = (config.publicTasks
+    ? [...config.publicTasks]
+    : [
+      ...new Set([
+        ...Object.keys(config.tasks),
+        ...Object.keys(config.legacyShellTasks ?? {}),
+      ]),
+    ]).sort();
+  const historicalTaskCount = config.publicTasks ? Object.keys(config.legacyShellTasks ?? {}).length : undefined;
+
+  console.log(JSON.stringify({
+    stadium: stadiumId,
+    label: config.label,
+    order: config.order,
+    qaToken: config.qaToken,
+    status: 'integrated-entrypoint',
+    tasks,
+    historicalTaskCount,
+    historicalTaskPolicy: config.historicalTaskPolicy,
+    legacyArtifacts: config.legacyArtifacts,
+    migrationBuckets: config.migrationBuckets ?? [],
+    cleanupPolicy: config.cleanupPolicy ?? 'keep until the stadium-specific task is migrated into shared config/helpers',
+  }, null, 2));
+}
+
+function runSteps(stadium, steps, passthroughArgs, stack) {
+  steps.forEach((step) => runStep(stadium, step, passthroughArgs, stack));
+}
+
+function runStep(stadium, step, passthroughArgs, stack) {
+  if (step.task) {
+    if (stack.includes(step.task)) {
+      throw new Error(`Recursive task reference: ${[...stack, step.task].join(' -> ')}`);
+    }
+
+    const nestedTask = stadium.tasks[step.task];
+    if (!nestedTask) {
+      throw new Error(`Unknown nested task: ${step.task}`);
+    }
+
+    runSteps(stadium, nestedTask, passthroughArgs, [...stack, step.task]);
+    return;
+  }
+
+  if (step.shellScript) {
+    const result = spawnSync(step.shellScript, {
+      cwd: frontendRoot,
+      env: process.env,
+      shell: true,
+      stdio: 'inherit',
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.status !== 0) {
+      process.exit(result.status ?? 1);
+    }
+
+    return;
+  }
+
+  const args = step.passArgs ? [...step.args, ...passthroughArgs] : step.args;
+  const result = spawnSync(step.command, args, {
+    cwd: frontendRoot,
+    env: {
+      ...process.env,
+      ...(step.env ?? {}),
+    },
+    shell: false,
+    stdio: 'inherit',
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+const [rawStadiumId, rawTaskName = 'status', ...passthroughArgs] = process.argv.slice(2);
+
+if (!rawStadiumId || rawStadiumId === '--help' || rawStadiumId === '-h') {
+  printUsage();
+  process.exit(rawStadiumId ? 0 : 1);
+}
+
+const stadiumId = rawStadiumId.toLowerCase();
+const stadium = STADIUMS[stadiumId];
+
+if (!stadium) {
+  console.error(`Unknown stadium: ${rawStadiumId}`);
+  printUsage();
+  process.exit(1);
+}
+
+const taskName = resolveTaskName(rawTaskName);
+
+if (taskName === 'status') {
+  printStatus(stadiumId, stadium);
+  process.exit(0);
+}
+
+const task = stadium.tasks[taskName]
+  ?? (stadium.legacyShellTasks?.[taskName]
+    ? [{ shellScript: stadium.legacyShellTasks[taskName] }]
+    : null);
+
+if (!task) {
+  console.error(`Unknown task for ${stadiumId}: ${rawTaskName}`);
+  console.error(`Available tasks: status, ${Object.keys(stadium.tasks).sort().join(', ')}`);
+  process.exit(1);
+}
+
+runSteps(stadium, task, passthroughArgs, [taskName]);

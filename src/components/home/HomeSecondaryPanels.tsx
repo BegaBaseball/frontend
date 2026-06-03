@@ -1,9 +1,10 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 
 import type { CheerPost } from '../../api/cheerApi';
 import type { FeaturedMateCard } from '../../types/home';
 import { formatTimeAgo } from '../../utils/time';
 import { getMateTeamDisplayName } from '../../utils/homeTeamNameResolution';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import TeamLogo from '../TeamLogo';
 import AdSlot from '../ads/AdSlot';
 import {
@@ -219,6 +220,24 @@ export default function HomeSecondaryPanels({
   onCloseCalendar,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activePanel, setActivePanel] = useState(0);
+
+  const handleCarouselScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const ratio = max > 0 ? el.scrollLeft / max : 0;
+    setActivePanel(ratio > 0.5 ? 1 : 0);
+  };
+
+  const scrollToPanel = (index: number) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const target = index === 0 ? 0 : el.scrollWidth - el.clientWidth;
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  };
+
   const panelCardClassName = `border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-card ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
   const rankingCardClassName = `overflow-hidden border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-card ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
   const compactRankingRows = [
@@ -254,6 +273,7 @@ export default function HomeSecondaryPanels({
         title="실시간 인기 응원글"
         icon={<FlameIcon className="h-5 w-5 text-red-500" />}
         onMore={onNavigateToCheer}
+        moreLabel="전체 보기"
       />
       <Card className={panelCardClassName}>
         {isHotCheerLoading ? (
@@ -267,56 +287,144 @@ export default function HomeSecondaryPanels({
         ) : hotCheerPosts.length === 0 ? (
           <EmptyState>인기 응원글이 없습니다.</EmptyState>
         ) : (
-          <div className="flex flex-col gap-2">
-            {hotCheerPosts.map((post) => {
-              const thumbnailUrl = post.imageUrls?.[0];
+          <>
+            {/* Mobile: uniform compact list */}
+            <div className="flex flex-col gap-2 lg:hidden">
+              {hotCheerPosts.map((post) => {
+                const thumbnailUrl = post.imageUrls?.[0];
+                return (
+                  <button
+                    type="button"
+                    key={post.id}
+                    onClick={() => onNavigateToCheerPost(post.id)}
+                    className="group w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                  >
+                    <div className="flex gap-3">
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                          <TeamLogo team={post.team} size={30} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <span className="min-w-0 truncate text-[14px] font-bold text-zinc-600 dark:text-zinc-400">
+                            {post.author || '익명'}
+                          </span>
+                          <span className="shrink-0 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            {formatTimeAgo(post.createdAt)}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-[15px] font-black leading-snug text-gray-900 dark:text-zinc-100">
+                          {post.content}
+                        </p>
+                        <div className="mt-2 flex gap-3">
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
+                            <FlameIcon className="h-3.5 w-3.5" /> {post.likeCount}
+                          </span>
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3.5 w-3.5" /> {post.commentCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-              return (
-                <button
-                  type="button"
-                  key={post.id}
-                  onClick={() => onNavigateToCheerPost(post.id)}
-                  className="group w-full rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
-                >
-                  <div className="flex gap-3">
-                    {thumbnailUrl ? (
+            {/* Desktop: hero first post + compact list for rest */}
+            <div className="hidden flex-col gap-1 lg:flex">
+              {(() => {
+                const hero = hotCheerPosts[0];
+                const heroThumb = hero.imageUrls?.[0];
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToCheerPost(hero.id)}
+                    className="group w-full rounded-xl text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                  >
+                    {heroThumb ? (
                       <img
-                        src={thumbnailUrl}
+                        src={heroThumb}
                         alt=""
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                        className="mb-2.5 h-[120px] w-full rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
-                        <TeamLogo team={post.team} size={30} />
+                      <div className="mb-2.5 flex h-[100px] w-full items-center justify-center rounded-xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                        <TeamLogo team={hero.team} size={44} />
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <span className="min-w-0 truncate text-[14px] font-bold text-zinc-600 dark:text-zinc-400">
-                          {post.author || '익명'}
-                        </span>
-                        <span className="shrink-0 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
-                          {formatTimeAgo(post.createdAt)}
-                        </span>
-                      </div>
+                    <div className="px-1">
                       <p className="line-clamp-2 text-[15px] font-black leading-snug text-gray-900 dark:text-zinc-100">
-                        {post.content}
+                        {hero.content}
                       </p>
-                      <div className="mt-2 flex gap-3">
-                        <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
-                          <FlameIcon className="h-3.5 w-3.5" /> {post.likeCount}
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                          {hero.author || '익명'} · {formatTimeAgo(hero.createdAt)}
                         </span>
-                        <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
-                          <MessageSquareIcon className="h-3.5 w-3.5" /> {post.commentCount}
-                        </span>
+                        <div className="flex shrink-0 gap-3">
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-rose-500">
+                            <FlameIcon className="h-3.5 w-3.5" /> {hero.likeCount}
+                          </span>
+                          <span className="flex items-center gap-1 text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3.5 w-3.5" /> {hero.commentCount}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })()}
+
+              {hotCheerPosts.length > 1 && (
+                <div className="mt-1 border-t border-zinc-100 pt-1 dark:border-zinc-800/80">
+                  {hotCheerPosts.slice(1).map((post) => {
+                    const thumbnailUrl = post.imageUrls?.[0];
+                    return (
+                      <button
+                        type="button"
+                        key={post.id}
+                        onClick={() => onNavigateToCheerPost(post.id)}
+                        className="group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/45"
+                      >
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt=""
+                            className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800/80 dark:ring-zinc-700">
+                            <TeamLogo team={post.team} size={22} />
+                          </div>
+                        )}
+                        <p className="min-w-0 flex-1 truncate text-[14px] font-bold text-gray-900 dark:text-zinc-100">
+                          {post.content}
+                        </p>
+                        <div className="flex shrink-0 gap-2">
+                          <span className="flex items-center gap-0.5 text-[12px] font-bold text-rose-500">
+                            <FlameIcon className="h-3 w-3" /> {post.likeCount}
+                          </span>
+                          <span className="flex items-center gap-0.5 text-[12px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <MessageSquareIcon className="h-3 w-3" /> {post.commentCount}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </Card>
     </section>
@@ -328,6 +436,7 @@ export default function HomeSecondaryPanels({
         title="직관 메이트 찾기"
         icon={<UsersIcon className="h-5 w-5 text-blue-500" />}
         onMore={onNavigateToMate}
+        moreLabel="전체 보기"
       />
       <Card className={panelCardClassName}>
         {isFeaturedMatesLoading ? (
@@ -347,6 +456,7 @@ export default function HomeSecondaryPanels({
               const ticketLabel = getTicketLabel(mate.ticketPrice);
               const homeTeamLabel = getMateTeamDisplayName(mate.homeTeam);
               const awayTeamLabel = getMateTeamDisplayName(mate.awayTeam);
+              const stadiumDisplayName = formatStadiumDisplayName(mate.stadium);
               const progressPercent = mate.maxParticipants > 0
                 ? Math.min(100, Math.max(0, Math.round(((mate.currentParticipants || 0) / mate.maxParticipants) * 100)))
                 : 0;
@@ -360,7 +470,7 @@ export default function HomeSecondaryPanels({
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <p className="min-w-0 truncate text-[14px] font-bold text-zinc-500 dark:text-zinc-400">
-                      {gameDateLabel} {mate.gameTime} · {mate.stadium}
+                      {gameDateLabel} {mate.gameTime} · {stadiumDisplayName}
                     </p>
                     <p className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-[13px] font-black ring-1 ${getTicketClassName(mate.ticketPrice)}`}>
                       {ticketLabel}
@@ -524,11 +634,29 @@ export default function HomeSecondaryPanels({
 
         <div className="mt-4 space-y-4 lg:grid lg:grid-cols-12 lg:gap-4 lg:space-y-0">
           {renderRankingPanel()}
-          <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleCarouselScroll}
+            className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-hide lg:contents lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0"
+          >
             <div className="flex snap-x snap-mandatory gap-4 lg:contents">
               {renderHotCheerPanel()}
               {renderFeaturedMatePanel()}
             </div>
+          </div>
+          {/* Mobile-only dot indicators */}
+          <div className="flex items-center justify-center gap-2 pt-2 lg:hidden">
+            {[0, 1].map((i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollToPanel(i)}
+                aria-label={i === 0 ? '응원글 패널로 이동' : '메이트 패널로 이동'}
+                className="p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+              >
+                <span className={`block rounded-full transition-all duration-200 ${activePanel === i ? 'h-2 w-2.5 bg-primary dark:bg-primary-light' : 'h-1.5 w-1.5 bg-slate-300 dark:bg-slate-600'}`} />
+              </button>
+            ))}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import TeamLogo from './TeamLogo';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { TEAMS } from '../utils/constants';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import type { MatchInfo } from '../hooks/useMateCreateMachine';
 import type { PartyFormData } from '../utils/mateCreateDraft';
 import { FieldLabel } from './MateCreatePrimitives';
@@ -96,7 +97,7 @@ export default function MateCreateMatchStep({
                         </div>
                       </div>
                       <div className="min-w-0 text-left text-[16px] text-gray-400 sm:ml-4 sm:min-w-[60px] sm:text-right">
-                        {match.stadium}
+                        {formatStadiumDisplayName(match.stadium)}
                       </div>
                     </div>
                     {isSelected && (

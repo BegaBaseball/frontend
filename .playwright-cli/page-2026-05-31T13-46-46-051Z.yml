@@ -1,0 +1,392 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Baseball BEGA BASEBALL GUIDE" [ref=e5] [cursor=pointer]:
+        - img "Baseball" [ref=e6]
+        - generic [ref=e7]:
+          - heading "BEGA" [level=1] [ref=e8]
+          - paragraph: BASEBALL GUIDE
+      - navigation "주 메뉴" [ref=e10]:
+        - generic [ref=e11]:
+          - button "응원석" [ref=e12] [cursor=pointer]
+          - button "구장가이드" [ref=e13] [cursor=pointer]
+          - button "전력분석실" [ref=e14] [cursor=pointer]
+          - button "같이가요" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]:
+        - button "다크 모드로 변경" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+        - button "로그인" [ref=e21] [cursor=pointer]:
+          - generic [ref=e22]: 로그인
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - img [ref=e30]
+          - heading "구장 가이드" [level=1] [ref=e33]
+        - paragraph [ref=e34]: 전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지 직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - heading "구장 선택" [level=3] [ref=e38]
+            - generic [ref=e39]:
+              - combobox "구장 선택" [ref=e40] [cursor=pointer]:
+                - option "잠실야구장" [selected]
+                - option "인천 SSG 랜더스필드"
+                - option "대구 삼성 라이온즈파크"
+                - option "대전 한화생명볼파크"
+                - option "고척 스카이돔"
+                - option "광주-KIA 챔피언스필드"
+                - option "창원 NC 파크"
+                - option "부산 사직야구장"
+                - option "수원 kt wiz 파크"
+              - generic:
+                - img
+          - generic [ref=e41]:
+            - heading "구장 위치 & 단축 경로" [level=3] [ref=e43]
+            - generic [ref=e45]:
+              - generic [ref=e46]:
+                - generic [ref=e47]:
+                  - img [ref=e49]
+                  - heading "잠실야구장" [level=4] [ref=e52]
+                - paragraph [ref=e53]:
+                  - generic [ref=e54]: 📍
+                  - text: 서울특별시 송파구 올림픽로 25
+              - button "카카오맵 길찾기" [ref=e55] [cursor=pointer]
+            - status [ref=e56]:
+              - img [ref=e58]
+              - generic [ref=e61]: 지도 표시 불가
+              - heading "잠실야구장" [level=4] [ref=e62]
+              - paragraph [ref=e63]: 카카오맵 스크립트를 불러오지 못했습니다. 네트워크, 광고 차단, API 키 도메인 허용 설정을 확인해주세요.
+              - generic [ref=e64]:
+                - button "지도 다시 시도" [ref=e65] [cursor=pointer]:
+                  - img
+                  - text: 지도 다시 시도
+                - button "카카오맵에서 열기" [ref=e66] [cursor=pointer]
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - heading "주변 정보 카테고리" [level=3] [ref=e69]
+            - generic [ref=e70]:
+              - button "구장 먹거리 주변 정보 보기" [pressed] [ref=e71] [cursor=pointer]:
+                - img [ref=e73]
+                - generic [ref=e74]: 구장 먹거리
+              - button "배달픽업존 주변 정보 보기" [ref=e75] [cursor=pointer]:
+                - img [ref=e77]
+                - generic [ref=e82]: 배달픽업존
+              - button "편의점 주변 정보 보기" [ref=e83] [cursor=pointer]:
+                - img [ref=e85]
+                - generic [ref=e88]: 편의점
+              - button "주차장 주변 정보 보기" [ref=e89] [cursor=pointer]:
+                - img [ref=e91]
+                - generic [ref=e94]: 주차장
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - heading "구장 먹거리 목록" [level=3] [ref=e98]
+              - generic [ref=e99]: 0개
+            - generic [ref=e100]:
+              - generic [ref=e101]:
+                - img [ref=e102]
+                - textbox "장소 이름 검색..." [ref=e105]
+              - generic [ref=e106]:
+                - img
+                - combobox [ref=e107] [cursor=pointer]:
+                  - option "기본순" [selected]
+                  - option "평점순"
+                  - option "이름순"
+            - generic [ref=e111]: 해당 카테고리에 등록된 장소가 없습니다.
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - heading "좌석 배치도" [level=3] [ref=e114]
+          - generic [ref=e115]: 잠실 블록 단위 안내도
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - generic [ref=e120]: 층수
+            - button "전체" [pressed] [ref=e121] [cursor=pointer]
+            - button "1층" [ref=e122] [cursor=pointer]
+            - button "2층" [ref=e123] [cursor=pointer]
+            - button "3층" [ref=e124] [cursor=pointer]
+            - button "외야층" [ref=e125] [cursor=pointer]
+          - button "등급·위치" [ref=e127] [cursor=pointer]:
+            - text: 등급·위치
+            - img [ref=e128]
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - text: 서울잠실야구장
+              - generic [ref=e133]: 잠실 블록 단위 안내도
+            - generic [ref=e135]:
+              - generic [ref=e136]:
+                - generic [ref=e138]:
+                  - button "LG 공식 좌석도" [ref=e139] [cursor=pointer]
+                  - button "두산 공식 구장 안내" [ref=e140] [cursor=pointer]
+                - generic "잠실 좌석도 확대 이동 영역" [ref=e141]:
+                  - img "잠실 좌석도 구역 선택" [ref=e143]:
+                    - generic [ref=e144]:
+                      - button "101 블록 1루 레드석 101" [active] [ref=e145] [cursor=pointer]
+                      - generic: "101"
+                    - button "102 블록 1루 레드석 102" [ref=e147] [cursor=pointer]
+                    - button "103 블록 1루 레드석 103" [ref=e149] [cursor=pointer]
+                    - button "104 블록 1루 레드석 104" [ref=e151] [cursor=pointer]
+                    - button "105 블록 1루 레드석 105" [ref=e153] [cursor=pointer]
+                    - button "106 블록 1루 레드석 106" [ref=e155] [cursor=pointer]
+                    - button "107 블록 1루 블루석 107" [ref=e157] [cursor=pointer]
+                    - button "108 블록 1루 블루석 108" [ref=e159] [cursor=pointer]
+                    - button "109 블록 1루 블루석 109" [ref=e161] [cursor=pointer]
+                    - button "110 블록 1루 테이블석 110" [ref=e163] [cursor=pointer]
+                    - button "111 블록 1루 테이블석 111" [ref=e165] [cursor=pointer]
+                    - button "112 블록 1루 테이블석 112" [ref=e167] [cursor=pointer]
+                    - button "113 블록 1루 테이블석 113" [ref=e169] [cursor=pointer]
+                    - button "114 블록 3루 블루석 114" [ref=e171] [cursor=pointer]
+                    - button "115 블록 3루 블루석 115" [ref=e173] [cursor=pointer]
+                    - button "116 블록 3루 블루석 116" [ref=e175] [cursor=pointer]
+                    - button "117 블록 3루 레드석 117" [ref=e177] [cursor=pointer]
+                    - button "118 블록 3루 레드석 118" [ref=e179] [cursor=pointer]
+                    - button "119 블록 3루 레드석 119" [ref=e181] [cursor=pointer]
+                    - button "120 블록 3루 레드석 120" [ref=e183] [cursor=pointer]
+                    - button "121 블록 3루 레드석 121" [ref=e185] [cursor=pointer]
+                    - button "122 블록 3루 레드석 122" [ref=e187] [cursor=pointer]
+                    - button "201 블록 1루 레드석 201" [ref=e189] [cursor=pointer]
+                    - button "202 블록 1루 레드석 202" [ref=e191] [cursor=pointer]
+                    - button "203 블록 1루 레드석 203" [ref=e193] [cursor=pointer]
+                    - button "204 블록 1루 레드석 204" [ref=e195] [cursor=pointer]
+                    - button "205 블록 1루 오렌지석 205" [ref=e197] [cursor=pointer]
+                    - button "206 블록 1루 오렌지석 206" [ref=e199] [cursor=pointer]
+                    - button "207 블록 1루 오렌지석 207" [ref=e201] [cursor=pointer]
+                    - button "208 블록 1루 오렌지석 208" [ref=e203] [cursor=pointer]
+                    - button "209 블록 1루 블루석 209" [ref=e205] [cursor=pointer]
+                    - button "210 블록 1루 블루석 210" [ref=e207] [cursor=pointer]
+                    - button "211 블록 1루 블루석 211" [ref=e209] [cursor=pointer]
+                    - button "212 블록 1루 테이블석 212" [ref=e211] [cursor=pointer]
+                    - button "213 블록 1루 테이블석 213" [ref=e213] [cursor=pointer]
+                    - button "214 블록 3루 테이블석 214" [ref=e215] [cursor=pointer]
+                    - button "215 블록 3루 테이블석 215" [ref=e217] [cursor=pointer]
+                    - button "216 블록 3루 블루석 216" [ref=e219] [cursor=pointer]
+                    - button "217 블록 3루 블루석 217" [ref=e221] [cursor=pointer]
+                    - button "218 블록 3루 블루석 218" [ref=e223] [cursor=pointer]
+                    - button "219 블록 3루 오렌지석 219" [ref=e225] [cursor=pointer]
+                    - button "220 블록 3루 오렌지석 220" [ref=e227] [cursor=pointer]
+                    - button "221 블록 3루 오렌지석 221" [ref=e229] [cursor=pointer]
+                    - button "222 블록 3루 오렌지석 222" [ref=e231] [cursor=pointer]
+                    - button "223 블록 3루 레드석 223" [ref=e233] [cursor=pointer]
+                    - button "224 블록 3루 레드석 224" [ref=e235] [cursor=pointer]
+                    - button "225 블록 3루 레드석 225" [ref=e237] [cursor=pointer]
+                    - button "226 블록 3루 레드석 226" [ref=e239] [cursor=pointer]
+                    - button "301 블록 1루 네이비석 301" [ref=e241] [cursor=pointer]
+                    - button "302 블록 1루 네이비석 302" [ref=e243] [cursor=pointer]
+                    - button "303 블록 1루 네이비석 303" [ref=e245] [cursor=pointer]
+                    - button "304 블록 1루 네이비석 304" [ref=e247] [cursor=pointer]
+                    - button "305 블록 1루 네이비석 305" [ref=e249] [cursor=pointer]
+                    - button "306 블록 1루 네이비석 306" [ref=e251] [cursor=pointer]
+                    - button "307 블록 1루 네이비석 307" [ref=e253] [cursor=pointer]
+                    - button "308 블록 1루 네이비석 308" [ref=e255] [cursor=pointer]
+                    - button "309 블록 1루 네이비석 309" [ref=e257] [cursor=pointer]
+                    - button "310 블록 1루 네이비석 310" [ref=e259] [cursor=pointer]
+                    - button "311 블록 중앙 네이비석 311" [ref=e261] [cursor=pointer]
+                    - button "312 블록 중앙 네이비석 312" [ref=e263] [cursor=pointer]
+                    - button "313 블록 중앙 네이비석 313" [ref=e265] [cursor=pointer]
+                    - button "314 블록 중앙 네이비석 314" [ref=e267] [cursor=pointer]
+                    - button "315 블록 중앙 네이비석 315" [ref=e269] [cursor=pointer]
+                    - button "316 블록 중앙 네이비석 316" [ref=e271] [cursor=pointer]
+                    - button "317 블록 중앙 네이비석 317" [ref=e273] [cursor=pointer]
+                    - button "318 블록 중앙 네이비석 318" [ref=e275] [cursor=pointer]
+                    - button "319 블록 중앙 네이비석 319" [ref=e277] [cursor=pointer]
+                    - button "320 블록 중앙 네이비석 320" [ref=e279] [cursor=pointer]
+                    - button "321 블록 중앙 네이비석 321" [ref=e281] [cursor=pointer]
+                    - button "322 블록 중앙 네이비석 322" [ref=e283] [cursor=pointer]
+                    - button "323 블록 중앙 네이비석 323" [ref=e285] [cursor=pointer]
+                    - button "324 블록 중앙 네이비석 324" [ref=e287] [cursor=pointer]
+                    - button "325 블록 3루 네이비석 325" [ref=e289] [cursor=pointer]
+                    - button "326 블록 3루 네이비석 326" [ref=e291] [cursor=pointer]
+                    - button "327 블록 3루 네이비석 327" [ref=e293] [cursor=pointer]
+                    - button "328 블록 3루 네이비석 328" [ref=e295] [cursor=pointer]
+                    - button "329 블록 3루 네이비석 329" [ref=e297] [cursor=pointer]
+                    - button "330 블록 3루 네이비석 330" [ref=e299] [cursor=pointer]
+                    - button "331 블록 3루 네이비석 331" [ref=e301] [cursor=pointer]
+                    - button "332 블록 3루 네이비석 332" [ref=e303] [cursor=pointer]
+                    - button "333 블록 3루 네이비석 333" [ref=e305] [cursor=pointer]
+                    - button "334 블록 3루 네이비석 334" [ref=e307] [cursor=pointer]
+                    - button "401 블록 외야 그린석 401" [ref=e309] [cursor=pointer]
+                    - button "402 블록 외야 그린석 402" [ref=e311] [cursor=pointer]
+                    - button "403 블록 외야 그린석 403" [ref=e313] [cursor=pointer]
+                    - button "404 블록 외야 그린석 404" [ref=e315] [cursor=pointer]
+                    - button "405 블록 외야 그린응원석 405" [ref=e317] [cursor=pointer]
+                    - button "406 블록 외야 그린응원석 406" [ref=e319] [cursor=pointer]
+                    - button "407 블록 외야 그린응원석 407" [ref=e321] [cursor=pointer]
+                    - button "408 블록 외야 그린응원석 408" [ref=e323] [cursor=pointer]
+                    - button "409 블록 외야 그린석 409" [ref=e325] [cursor=pointer]
+                    - button "410 블록 외야 그린석 410" [ref=e327] [cursor=pointer]
+                    - button "411 블록 외야 그린석 411" [ref=e329] [cursor=pointer]
+                    - button "412 블록 외야 그린석 412" [ref=e331] [cursor=pointer]
+                    - button "413 블록 외야 그린석 413" [ref=e333] [cursor=pointer]
+                    - button "414 블록 외야 그린석 414" [ref=e335] [cursor=pointer]
+                    - button "415 블록 외야 그린석 415" [ref=e337] [cursor=pointer]
+                    - button "416 블록 외야 그린석 416" [ref=e339] [cursor=pointer]
+                    - button "417 블록 외야 그린석 417" [ref=e341] [cursor=pointer]
+                    - button "418 블록 외야 그린석 418" [ref=e343] [cursor=pointer]
+                    - button "419 블록 외야 그린석 419" [ref=e345] [cursor=pointer]
+                    - button "420 블록 외야 그린석 420" [ref=e347] [cursor=pointer]
+                    - button "421 블록 외야 그린석 421" [ref=e349] [cursor=pointer]
+                    - button "422 블록 외야 그린석 422" [ref=e351] [cursor=pointer]
+                    - button "중앙 프리미엄석 테라존" [ref=e353] [cursor=pointer]
+                    - button "1루 익사이팅존 1루 익사이팅존" [ref=e355] [cursor=pointer]
+                    - button "3루 익사이팅존 3루 익사이팅존" [ref=e357] [cursor=pointer]
+                    - button "1루 휠체어석 101B / 102B / 109B" [ref=e359] [cursor=pointer]
+                    - button "3루 휠체어석 114B / 121B / 122B" [ref=e361] [cursor=pointer]
+                  - generic [ref=e362]:
+                    - button "잠실 좌석도 확대" [ref=e363] [cursor=pointer]:
+                      - img [ref=e364]
+                    - button "잠실 좌석도 원래 크기" [disabled] [ref=e366]: 1.0x
+                    - button "잠실 좌석도 축소" [disabled] [ref=e367] [cursor=pointer]:
+                      - img [ref=e368]
+                    - button "잠실 좌석도 전체화면" [ref=e369] [cursor=pointer]:
+                      - img [ref=e370]
+              - generic [ref=e372]:
+                - generic [ref=e375]:
+                  - strong [ref=e376]: 101 블록 1루 레드석
+                  - paragraph [ref=e377]: 블록 101
+                  - paragraph [ref=e1226]: 1F · FIRST_BASE
+                - generic [ref=e1228]: 레드석
+            - generic [ref=e378]:
+              - text: "좌석 배치 기준: LG 트윈스 공식 티켓 안내 기준 좌석도"
+              - link "출처" [ref=e379] [cursor=pointer]:
+                - /url: https://www.lgtwins.com/ticket/general
+              - generic [ref=e380]:
+                - text: "·보조 참고: 두산 베어스 공식 베어스 홈구장"
+                - link "출처" [ref=e381] [cursor=pointer]:
+                  - /url: https://www.doosanbears.com/bears/stadium?tabId=seoul
+            - generic [ref=e382]:
+              - generic [ref=e383]: 레드석
+              - generic [ref=e385]: 블루석
+              - generic [ref=e387]: 테이블석
+              - generic [ref=e389]: 오렌지/응원석
+              - generic [ref=e391]: 네이비석
+              - generic [ref=e393]: 그린석(외야)
+              - generic [ref=e395]: 그린응원석
+              - generic [ref=e397]: 프리미엄/테라존
+              - generic [ref=e399]: 익사이팅존
+              - generic [ref=e401]: 휠체어석
+          - generic [ref=e1178]:
+            - generic [ref=e1229]:
+              - button "닫기" [ref=e1230] [cursor=pointer]:
+                - img [ref=e1231]
+              - generic [ref=e1233]:
+                - generic [ref=e1234]: 레드석 · 1F
+                - generic [ref=e1236]: 공식 확인
+              - heading "101 블록 1루 레드석" [level=2] [ref=e1237]
+              - paragraph [ref=e1238]: 블록 101
+              - button "잠실 구역 검색 열기" [ref=e1239] [cursor=pointer]:
+                - img [ref=e1240]
+                - text: 구역 검색
+            - generic [ref=e1243]:
+              - generic [ref=e1244]:
+                - generic [ref=e1245]: 블록
+                - generic [ref=e1246]: "101"
+              - generic [ref=e1247]:
+                - generic [ref=e1248]: 위치
+                - generic [ref=e1249]: 1루
+              - generic [ref=e1250]:
+                - generic [ref=e1251]: 팬 구분
+                - generic [ref=e1252]: 중립 표기
+              - generic [ref=e1253]:
+                - generic [ref=e1254]: 시야 거리
+                - generic [ref=e1255]: 중간
+            - generic [ref=e1256]:
+              - generic [ref=e1257]:
+                - generic [ref=e1258]:
+                  - generic [ref=e1259]: 직관 체크
+                  - paragraph [ref=e1260]: 검수된 정적 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
+                - generic [ref=e1261]: 현장 최종 안내 확인
+              - generic [ref=e1262]:
+                - generic [ref=e1263]: 자료상태
+                - generic [ref=e1264]: OPERATOR_PROVIDED
+              - generic [ref=e1265]:
+                - generic [ref=e1266]:
+                  - generic [ref=e1267]: 권장 출입구
+                  - generic [ref=e1268]: 2-3 Gate 1루 내야 출입구 · 공식 좌석도 기반 후보
+                - generic [ref=e1269]:
+                  - generic [ref=e1270]: 가까운 매점/편의시설
+                  - generic [ref=e1271]: GS25, 꼬꼬닭, KFC, 광장식당, 도미노피자, 제2매표소 · 1루 내야 출입구 인접, KBO 중계 음성 지원 안내데스크 · 1루 내야 2-3 게이트, 글러브 대여소 옆, 글러브 대여소 · 1루 내야 2-3 게이트 인근
+                - generic [ref=e1272]:
+                  - generic [ref=e1273]: 오늘의 운영 동선 공지
+                  - generic [ref=e1274]: 운영자 제공 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED
+                - generic [ref=e1275]:
+                  - generic [ref=e1276]: 자료 갱신일
+                  - generic [ref=e1277]: 2026-05-31
+              - list [ref=e1278]:
+                - listitem [ref=e1279]:
+                  - generic [ref=e1281]: 공식 좌석도 위치 기반 후보입니다. 실제 경기일 운영 변경은 현장 안내를 확인하세요.
+                - listitem [ref=e1282]:
+                  - generic [ref=e1284]: "대중교통 동선 후보: 종합운동장역 5/6번 출구 -> 중앙매표소 -> 2-3 Gate. 실측 이동시간은 운영자 자료가 필요합니다."
+                - listitem [ref=e1285]:
+                  - generic [ref=e1287]: 화장실/도보시간은 아직 운영자 제공 자료가 필요합니다.
+              - paragraph [ref=e1288]: 운영자 제공 출입구/매점/동선 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED
+            - generic [ref=e1289]:
+              - generic [ref=e1290]: 공식 블록 묶음
+              - generic [ref=e1292]: "101"
+              - paragraph [ref=e1293]: LG 트윈스 2026 공식 일반 티켓 좌석도 기준입니다.
+            - generic [ref=e1294]:
+              - paragraph [ref=e1295]: 내야 측 레드석 블록입니다.
+              - generic [ref=e1297]: 내야
+            - generic [ref=e1298]:
+              - generic [ref=e1299]:
+                - generic [ref=e1300]: 실제 시야 사진
+                - paragraph [ref=e1301]: 다이어리에 공유된 사진만 표시합니다.
+              - generic [ref=e1302]:
+                - img [ref=e1304]
+                - generic [ref=e1307]:
+                  - paragraph [ref=e1308]: 아직 등록된 시야가 없어요
+                  - paragraph [ref=e1309]: 직관 후 다이어리에 사진을 올리면 +50 포인트를 받아요!
+                - link "다이어리에서 공유하기" [ref=e1310] [cursor=pointer]:
+                  - /url: /mypage
+            - button "이 구역 시야 사진 올리기" [ref=e1312] [cursor=pointer]:
+              - img [ref=e1313]
+              - text: 이 구역 시야 사진 올리기
+  - contentinfo [ref=e1186]:
+    - generic [ref=e1187]:
+      - generic [ref=e1188]:
+        - img "baseball" [ref=e1189]
+        - generic [ref=e1190]:
+          - heading "BEGA" [level=3] [ref=e1191]
+          - paragraph [ref=e1192]: BASEBALL GUIDE
+      - generic [ref=e1193]:
+        - generic [ref=e1194]:
+          - heading "서비스" [level=4] [ref=e1195]
+          - list [ref=e1196]:
+            - listitem [ref=e1197]:
+              - link "홈" [ref=e1198] [cursor=pointer]:
+                - /url: /home
+            - listitem [ref=e1199]:
+              - link "응원석" [ref=e1200] [cursor=pointer]:
+                - /url: /cheer
+            - listitem [ref=e1201]:
+              - link "구장가이드" [ref=e1202] [cursor=pointer]:
+                - /url: /stadium
+            - listitem [ref=e1203]:
+              - link "전력분석실" [ref=e1204] [cursor=pointer]:
+                - /url: /prediction
+            - listitem [ref=e1205]:
+              - link "같이가요" [ref=e1206] [cursor=pointer]:
+                - /url: /mate
+            - listitem [ref=e1207]:
+              - link "프로필" [ref=e1208] [cursor=pointer]:
+                - /url: /mypage
+        - generic [ref=e1209]:
+          - heading "정보" [level=4] [ref=e1210]
+          - list [ref=e1211]:
+            - listitem [ref=e1212]:
+              - link "공지사항" [ref=e1213] [cursor=pointer]:
+                - /url: /notice
+            - listitem [ref=e1214]:
+              - link "이용약관" [ref=e1215] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e1216]:
+              - link "개인정보처리방침" [ref=e1217] [cursor=pointer]:
+                - /url: /privacy
+        - generic [ref=e1218]:
+          - heading "고객센터" [level=4] [ref=e1219]
+          - list [ref=e1220]:
+            - listitem [ref=e1221]:
+              - text: "이메일:"
+              - link "baseballguide251021@gmail.com" [ref=e1222] [cursor=pointer]:
+                - /url: mailto:baseballguide251021@gmail.com
+            - listitem [ref=e1223]: "운영시간: 평일 09:00-18:00"
+      - paragraph [ref=e1225]: © 2025 BEGA (BASEBALL GUIDE). All rights reserved.
