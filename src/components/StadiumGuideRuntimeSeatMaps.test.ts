@@ -506,6 +506,18 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
     '"qa:stadium:jamsil:full": "node scripts/stadium-seatmap-ops.mjs jamsil full"',
     '"qa:stadium:jamsil:release-lock": "node scripts/stadium-seatmap-ops.mjs jamsil release-gate"',
     '"stadium:jamsil:status": "node scripts/stadium-seatmap-ops.mjs jamsil status"',
+    '"stadium:jamsil:food-candidate-validate": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-validate"',
+    '"stadium:jamsil:food-candidate-review-workset": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-review-workset"',
+    '"stadium:jamsil:food-candidate-transfer": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-transfer"',
+    '"stadium:jamsil:food-candidate-apply-plan": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-apply-plan"',
+    '"stadium:jamsil:operator-intake": "node scripts/stadium-seatmap-ops.mjs jamsil operator-intake"',
+    '"stadium:jamsil:operator-validate": "node scripts/stadium-seatmap-ops.mjs jamsil operator-validate"',
+    '"stadium:jamsil:operator-apply-plan": "node scripts/stadium-seatmap-ops.mjs jamsil operator-apply-plan"',
+    '"stadium:jamsil:operator-handoff": "node scripts/stadium-seatmap-ops.mjs jamsil operator-handoff"',
+    '"stadium:jamsil:operator-approval": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval"',
+    '"stadium:jamsil:operator-approval:status": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:status"',
+    '"stadium:jamsil:operator-approval:approve": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:approve"',
+    '"stadium:jamsil:operator-approval:verify": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:verify"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -514,6 +526,27 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
 
   [
     'publicTasks: [',
+    "'food-candidate-apply-plan'",
+    "'food-candidate-review-workset'",
+    "'food-candidate-validate'",
+    "'food-candidate-transfer'",
+    "'operator-intake'",
+    "'operator-validate'",
+    "'operator-apply-plan'",
+    "'operator-handoff'",
+    "'operator-approval'",
+    "'operator-approval:status'",
+    "'operator-approval:approve'",
+    "'operator-approval:verify'",
+    "'food-candidate-apply-plan': [",
+    "'food-candidate-review-workset': [",
+    "'food-candidate-validate': [",
+    "'food-candidate-transfer': [",
+    "'operator-intake': [",
+    "'operator-approval': [",
+    "'operator-approval:status': [",
+    "'operator-approval:approve': [",
+    "'operator-approval:verify': [",
     "responsive: [",
     "args: ['scripts/run-stadium-isolated-qa.mjs', 'JAMSIL:RESPONSIVE']",
     'responsive QA remains dispatcher-internal',
@@ -528,6 +561,12 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
     'src/data/jamsilOperatorVisitGuide.ts',
     'docs/stadium/operator-visit-guide-policy.md',
     'node --import tsx --test --test-concurrency=1 src/data/jamsilOperatorVisitGuideSeatData.test.ts',
+    'jamsil-food-candidate-review-validation.json',
+    'jamsil-food-candidate-review-workset.json',
+    'jamsil-food-candidate-intake-transfer.csv',
+    'jamsil-food-candidate-apply-plan.ts-fragment',
+    'jamsil-operator-visit-guide-handoff.md',
+    'jamsil-operator-visit-guide-approval.json',
     'jamsil-operator-entrance',
     'jamsil-operator-facilities',
     'jamsil-operator-notice',
@@ -539,9 +578,31 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
 
   [
     'package full script',
+    'package food candidate apply plan script',
+    'package food candidate review workset script',
+    'package food candidate validate script',
+    'package food candidate transfer script',
+    'package operator intake script',
+    'package operator approval script',
+    'package operator approval status script',
+    'package operator approval approve script',
+    'package operator approval verify script',
     'package responsive script removed',
     'dispatcher responsive task',
+    'dispatcher food candidate apply plan task',
+    'dispatcher food candidate review workset task',
+    'dispatcher food candidate validate task',
+    'dispatcher food candidate transfer task',
+    'dispatcher operator approval task',
+    'dispatcher operator approval status task',
+    'dispatcher operator approval approve task',
+    'dispatcher operator approval verify task',
     'release lock document includes internal responsive task',
+    'release lock document includes food candidate validate command',
+    'release lock document includes food candidate review workset command',
+    'release lock document includes food candidate transfer command',
+    'release lock document includes food candidate apply plan command',
+    'release lock document includes operator approval command',
   ].forEach((requiredText) => {
     assert.ok(jamsilOpsSource.includes(requiredText), `Jamsil release gate should check ${requiredText}`);
   });
@@ -911,6 +972,29 @@ test('구장별 secondary panel 예외는 allowlist로만 유지한다', () => {
   const incheonSource = readProjectFile('src/components/incheon/IncheonSeatMap.tsx');
   const jamsilSource = readProjectFile('src/components/jamsil/JamsilSeatMap.tsx');
   const suwonSource = readProjectFile('src/components/suwon/SuwonSeatMap.tsx');
+  const sharedDetailSource = readProjectFile('src/components/stadiumSeatMap/SeatMapDetailPanel.tsx');
+  const sharedBottomSheetSource = readProjectFile('src/components/stadiumSeatMap/SeatMapBottomSheet.tsx');
+  const sharedFinderSource = readProjectFile('src/components/stadiumSeatMap/SeatMapSectionFinder.tsx');
+
+  assert.ok(sharedDetailSource.includes('searchAction?: SeatMapSearchAction'), 'shared detail panel should expose an optional search action');
+  assert.ok(sharedBottomSheetSource.includes('searchAction?: SeatMapSearchAction'), 'shared bottom sheet should expose an optional search action');
+  assert.ok(sharedFinderSource.includes('autoFocusInput?: boolean'), 'shared finder should support focusing search when reopened');
+  [
+    ['Jamsil', jamsilSource],
+    ['Daegu', daeguSource],
+    ['Daejeon', daejeonSource],
+    ['Gocheok', gocheokSource],
+    ['Sajik', sajikSource],
+    ['Suwon', suwonSource],
+    ['Incheon', incheonSource],
+  ].forEach(([label, source]) => {
+    assert.ok(source.includes('isSectionFinderOpen'), `${label} should control finder visibility`);
+    assert.ok(
+      source.includes('setIsSectionFinderOpen(false)') || source.includes('setIsSectionFinderOpen(!block)'),
+      `${label} should hide finder after section selection`,
+    );
+    assert.ok(source.includes('searchAction={{'), `${label} should wire detail search action`);
+  });
 
   assert.ok(jamsilSource.includes('SeatMapSectionFinder'), 'Jamsil should use the shared section finder');
   assert.ok(jamsilSource.includes('testIdPrefix="jamsil"'), 'Jamsil section finder should keep its test id prefix');
@@ -1163,8 +1247,10 @@ test('인천 좌석도 package alias는 runtime release 최소 표면만 노출�
 
 test('잠실 운영자 직관 UX Cypress spec은 전용 stadium-seatmap 회귀 파일에서 검증한다', () => {
   const stadiumSeatmapSpec = readProjectFile('cypress/e2e/stadium-seatmap-jamsil.cy.ts');
+  const stadiumUxAuditSource = readProjectFile('scripts/stadium-ux-audit.mjs');
   const jamsilSource = readProjectFile('src/components/jamsil/JamsilSeatMap.tsx');
   const jamsilOperatorSource = readProjectFile('src/data/jamsilOperatorVisitGuide.ts');
+  const releaseLockSource = readProjectFile('docs/jamsil-seatmap-release-lock.md');
 
   [
     'getJamsilOperatorVisitGuidance',
@@ -1174,6 +1260,7 @@ test('잠실 운영자 직관 UX Cypress spec은 전용 stadium-seatmap 회귀 �
     'jamsil-seatmap-bottom-sheet',
     'MANUAL_OPERATOR_GUIDANCE_STATUS',
     'hasManualFallback',
+    'getTileFieldSource',
     'data-operator-field-source',
   ].forEach((requiredText) => {
     assert.ok(jamsilSource.includes(requiredText), `JamsilSeatMap should include ${requiredText}`);
@@ -1207,12 +1294,45 @@ test('잠실 운영자 직관 UX Cypress spec은 전용 stadium-seatmap 회귀 �
     'jamsil-section-finder-item-accessible-first',
     'jamsil-operator-visit-check',
     'jamsil-operator-data-status',
-    'assertJamsilOperatorFallbackFields',
+    'assertJamsilOperatorConfirmedBlock101Fields',
+    'assertJamsilOperatorConfirmedAccessibleFirstFields',
     'data-operator-field-source',
     'manual-required',
+    'operator-provided',
+    'OPERATOR_PROVIDED',
+    '2층 2-3 Gate 인근 화장실',
+    '2026-06-01',
     'jamsil-seatmap-bottom-sheet',
   ].forEach((requiredText) => {
     assert.ok(stadiumSeatmapSpec.includes(requiredText), `Stadium seatmap Cypress spec should include ${requiredText}`);
+  });
+
+  [
+    'JAMSIL_OPERATOR_RUNTIME_TARGETS',
+    'jamsil-operator-runtime-check.json',
+    'jamsil-operator-runtime-check.md',
+    'data-operator-field-source',
+    "targetType: 'special'",
+    'field-survey restroom assignment is approved runtime guidance',
+    'special field-survey restroom assignments are approved runtime guidance',
+    '잠실야구장',
+    '1층 101구역 인근 화장실',
+    '1층 223구역 인근 화장실',
+    '2층 2-3 Gate 인근 화장실',
+    '2층 2-1 Gate 인근 화장실',
+    '도미노피자',
+    '3층 D10 인근 화장실',
+    '베어스하우스',
+  ].forEach((requiredText) => {
+    assert.ok(stadiumUxAuditSource.includes(requiredText), `Stadium UX audit should include Jamsil operator runtime check token: ${requiredText}`);
+  });
+
+  [
+    'jamsil-operator-runtime-check.json',
+    'jamsil-operator-runtime-check',
+    'data-operator-field-source',
+  ].forEach((requiredText) => {
+    assert.ok(releaseLockSource.includes(requiredText), `Jamsil release lock should include ${requiredText}`);
   });
 });
 

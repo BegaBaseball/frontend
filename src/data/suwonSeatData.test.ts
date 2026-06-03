@@ -244,15 +244,15 @@ function snapshotSuwonSeatFixture() {
     }));
 
   const alignmentProbeSnapshot = SUWON_ALIGNMENT_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   const browserQaProbeSnapshot = SUWON_BROWSER_QA_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   const hitTestProbeSnapshot = SUWON_HIT_TEST_PROBES
-    .map((probe) => ({ id: probe.id, point: [...probe.point], note: probe.note }))
+    .map((probe) => ({ id: probe.id, point: [probe.point[0], probe.point[1]] as Point, note: probe.note }))
     .sort((a, b) => probeKey(a.id, a.point).localeCompare(probeKey(b.id, b.point)));
 
   return JSON.stringify({
@@ -356,20 +356,21 @@ function visualProbePoints(block: (typeof SUWON_BLOCKS)[number]): Point[] {
   return hitProbePoints(block.imageGeometry.d, [block.imageGeometry.labelX, block.imageGeometry.labelY]);
 }
 
-function topHitBlockAt(point: Point) {
+function topHitBlockAt(point: Point): (typeof SUWON_BLOCKS)[number] | null {
   let topBlock: (typeof SUWON_BLOCKS)[number] | null = null;
 
-  [...SUWON_BLOCKS]
+  const orderedBlocks = [...SUWON_BLOCKS]
     .sort((a, b) => (
       (a.hitPriority - b.hitPriority)
       || (polygonArea(pathPoints(b.hitGeometry.d)) - polygonArea(pathPoints(a.hitGeometry.d)))
-    ))
-    .forEach((block) => {
-      const polygon = pathPoints(block.hitGeometry.d);
-      if (polygon.length >= 3 && pointInPolygon(point, polygon)) {
-        topBlock = block;
-      }
-    });
+    ));
+
+  for (const block of orderedBlocks) {
+    const polygon = pathPoints(block.hitGeometry.d);
+    if (polygon.length >= 3 && pointInPolygon(point, polygon)) {
+      topBlock = block;
+    }
+  }
 
   return topBlock;
 }
@@ -885,8 +886,8 @@ test('StadiumGuideRuntime 경로 모듈 임포트 후에도 수원 좌표 데이
   const baseline = suwonFixtureSignature();
 
   await Promise.all([
-    import('../components/stadiumSeatMapRegistry.tsx'),
-    import('../components/stadiumSeatMap/SeatMapRuntimeShell.tsx'),
+    import('../components/stadiumSeatMapRegistry'),
+    import('../components/stadiumSeatMap/SeatMapRuntimeShell'),
   ]);
 
   assert.equal(suwonFixtureSignature(), baseline, 'Suwon seat fixture should remain unchanged after runtime module imports');

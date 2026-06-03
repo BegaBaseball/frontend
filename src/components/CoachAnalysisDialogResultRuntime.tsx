@@ -790,6 +790,10 @@ export default function CoachAnalysisDialogResultRuntime({
                             winProbabilityHome={result?.win_probability_home ?? null}
                             dataQualityLabel={analysisDataQualityLabel}
                             dataQualityMessage={analysisDataQualityNotice?.message}
+                            supportedFactCount={result?.supported_fact_count}
+                            usedEvidence={result?.used_evidence}
+                            dataQuality={result?.data_quality}
+                            generationMode={result?.generation_mode}
                         />
                     </Suspense>
                 </ErrorBoundary>

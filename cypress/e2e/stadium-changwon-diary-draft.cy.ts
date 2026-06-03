@@ -3,7 +3,7 @@
 const STADIUMS = [
   {
     stadiumId: 'JAMSIL',
-    stadiumName: '잠실야구장',
+    stadiumName: '서울 · 잠실야구장',
     team: 'LG/두산',
     lat: 37.5122,
     lng: 127.0719,
@@ -12,7 +12,7 @@ const STADIUMS = [
   },
   {
     stadiumId: 'CHANGWON',
-    stadiumName: '창원 NC 파크',
+    stadiumName: '창원 · NC파크',
     team: 'NC',
     lat: 35.2225,
     lng: 128.5827,

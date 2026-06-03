@@ -8,6 +8,7 @@ import {
   fetchAdminStadiums,
   updatePlace,
 } from '../../api/admin';
+import { getStadiumDisplayName } from '../../utils/stadiumDisplay';
 
 const AdminStadiumsPanel = lazy(() =>
   import('./AdminStadiumsPanel').then((module) => ({ default: module.AdminStadiumsPanel })),
@@ -163,8 +164,8 @@ export default function AdminStadiumsRuntime() {
     }
   };
 
-  const stadiumName =
-    stadiums.find((stadium) => stadium.stadiumId === selectedStadiumId)?.stadiumName ?? '';
+  const selectedStadium = stadiums.find((stadium) => stadium.stadiumId === selectedStadiumId) ?? null;
+  const stadiumName = selectedStadium ? getStadiumDisplayName(selectedStadium) : '';
 
   return (
     <>

@@ -28,6 +28,10 @@ const STADIUMS = {
       'full',
       'mobile',
       'operator-apply-plan',
+      'operator-approval',
+      'operator-approval:approve',
+      'operator-approval:status',
+      'operator-approval:verify',
       'operator-handoff',
       'operator-intake',
       'operator-validate',
@@ -805,13 +809,160 @@ const STADIUMS = {
     qaToken: 'JAMSIL',
     legacyArtifacts: [],
     publicTasks: [
+      'field-survey-validate',
+      'field-survey-workset',
       'full',
+      'food-candidate-apply-plan',
+      'food-candidate-review-workset',
+      'food-candidate-validate',
+      'food-candidate-transfer',
       'mobile',
+      'restroom-candidate-apply-plan',
+      'restroom-candidate-review-workset',
+      'restroom-candidate-transfer',
+      'restroom-candidate-validate',
+      'operator-apply-plan',
+      'operator-handoff',
+      'operator-intake',
+      'operator-validate',
       'release-gate',
       'status',
     ],
-    historicalTaskPolicy: 'responsive QA remains dispatcher-internal; package aliases expose only mobile/full runtime QA, release lock, and status.',
+    historicalTaskPolicy: 'responsive QA remains dispatcher-internal; package aliases expose runtime QA, release lock, status, field-survey validation/workset, food/restroom candidate validation/review-workset/transfer/apply-plan, approval, and no-source-write operator intake reporting tasks.',
     tasks: {
+      'field-survey-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'field-survey-validate'],
+          passArgs: true,
+        },
+      ],
+      'field-survey-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'field-survey-workset'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-review-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-review-workset'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-validate'],
+          passArgs: true,
+        },
+      ],
+      'food-candidate-transfer': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'food-candidate-transfer'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-validate'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-review-workset': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-review-workset'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-transfer': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-transfer'],
+          passArgs: true,
+        },
+      ],
+      'restroom-candidate-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'restroom-candidate-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-template': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-template'],
+          passArgs: true,
+        },
+      ],
+      'operator-validate': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-validate'],
+          passArgs: true,
+        },
+      ],
+      'operator-apply-plan': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-apply-plan'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:status': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--status'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:approve': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--approve'],
+          passArgs: true,
+        },
+      ],
+      'operator-approval:verify': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-approval', '--require-approved'],
+          passArgs: true,
+        },
+      ],
+      'operator-handoff': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-handoff'],
+          passArgs: true,
+        },
+      ],
+      'operator-intake': [
+        {
+          command: 'node',
+          args: ['--import', 'tsx', 'scripts/jamsil-seatmap-ops.mjs', 'operator-intake'],
+          passArgs: true,
+        },
+      ],
       mobile: [
         {
           command: 'node',
@@ -837,7 +988,7 @@ const STADIUMS = {
         },
       ],
     },
-    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, and status; responsive QA stays available through the integrated dispatcher',
+    cleanupPolicy: 'public package aliases expose only mobile/full runtime QA, release lock, status, field-survey validation/workset, food/restroom candidate validation/review-workset/transfer/apply-plan, approval, and no-source-write operator intake reporting; responsive QA stays available through the integrated dispatcher',
   },
   daegu: {
     label: 'Daegu Samsung Lions Park',

@@ -89,6 +89,7 @@ function SectionFinder({
   onSearchChange,
   onSelect,
   onHover,
+  autoFocusInput = false,
 }: {
   blocks: DaeguCanonicalBlock[];
   totalCount: number;
@@ -99,6 +100,7 @@ function SectionFinder({
   onSearchChange: (value: string) => void;
   onSelect: (block: DaeguCanonicalBlock) => void;
   onHover: (id: string | null) => void;
+  autoFocusInput?: boolean;
 }) {
   const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
   const hasSearch = searchTerm.trim().length > 0;
@@ -128,6 +130,7 @@ function SectionFinder({
             type="search"
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
+            autoFocus={autoFocusInput}
             placeholder="블록, 구역명 검색 (예: 1-1, 블루존)"
             className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#074CA1] focus:bg-white dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
             style={{ borderColor }}
@@ -364,6 +367,8 @@ export default function DaeguSeatMap() {
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({
     blockId: null,
     requestId: 0,
@@ -410,6 +415,12 @@ export default function DaeguSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasSelectableBlocks = selectableDaeguBlocks.length > 0;
   const mapToolsEnabled = hasSelectableBlocks;
   const hoveredCategory = hoveredSection ? DAEGU_CATEGORIES[hoveredSection.category] : null;
@@ -456,11 +467,35 @@ export default function DaeguSeatMap() {
     }
   }, []);
 
+  const handleCloseSection = useCallback(() => {
+    setSelected(null);
+    setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
+  }, [setHover, setSelected]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMapSelectSection = useCallback((section: DaeguCanonicalBlock | null) => {
+    setSelected(section);
+    setIsSectionFinderOpen(!section);
+    setSectionFinderAutoFocus(false);
+  }, [setSelected]);
+
   const handleSelectSection = useCallback((section: DaeguCanonicalBlock) => {
     if (!selectableDaeguBlockIds.has(section.id)) {
       return;
     }
     setSelected(section);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(section.id);
     setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
     setMapFocusRequest((current) => ({
@@ -494,7 +529,7 @@ export default function DaeguSeatMap() {
     <DaeguSeatMapSvg
       mode={mode}
       selected={selected}
-      setSelected={setSelected}
+      setSelected={handleMapSelectSection}
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
@@ -556,7 +591,7 @@ export default function DaeguSeatMap() {
       testIdPrefix="daegu"
     />
   ) : undefined;
-  const sectionFinder = mapToolsEnabled ? (
+  const sectionFinder = mapToolsEnabled && isSectionFinderOpen ? (
     <SectionFinder
       blocks={visibleBlocks}
       totalCount={selectableDaeguBlocks.length}
@@ -567,6 +602,7 @@ export default function DaeguSeatMap() {
       onSearchChange={setSearchTerm}
       onSelect={handleSelectSection}
       onHover={setHover}
+      autoFocusInput={sectionFinderAutoFocus}
     />
   ) : null;
   const detailPanel = mapToolsEnabled ? (
@@ -576,10 +612,16 @@ export default function DaeguSeatMap() {
       categories={DAEGU_CATEGORIES}
       adapter={daeguSectionAdapter}
       stadiumKey="DAEGU"
-      onClose={() => setSelected(null)}
+      onClose={handleCloseSection}
       onUpload={() => handleShareSeatView(selected)}
       copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
       extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '대구 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'daegu-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -606,10 +648,16 @@ export default function DaeguSeatMap() {
             categories={DAEGU_CATEGORIES}
             adapter={daeguSectionAdapter}
             stadiumKey="DAEGU"
-            onClose={() => setSelected(null)}
+            onClose={handleCloseSection}
             onUpload={() => handleShareSeatView(selected)}
             copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
             extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '대구 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'daegu-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(mapToolsEnabled && selected)}

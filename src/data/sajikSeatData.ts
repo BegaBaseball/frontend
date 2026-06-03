@@ -178,8 +178,8 @@ export type SajikGuideIntent =
   | 'outfield'
   | 'accessible';
 
-export interface SajikBlockMatch {
-  block: SajikBlock;
+export interface SajikBlockMatch<TBlock extends SajikBlock = SajikBlock> {
+  block: TBlock;
   reasons: string[];
   score: number;
 }
@@ -2403,11 +2403,11 @@ function getSajikGuideSearchScore(block: SajikBlock, normalizedQuery: string): n
   return 12;
 }
 
-export function getSajikGuideMatches(
+export function getSajikGuideMatches<TBlock extends SajikBlock = SajikBlock>(
   intent: SajikGuideIntent,
   query: string,
-  blocks: SajikBlock[] = SAJIK_BLOCKS,
-): SajikBlockMatch[] {
+  blocks: TBlock[] = SAJIK_BLOCKS as TBlock[],
+): SajikBlockMatch<TBlock>[] {
   const normalizedQuery = normalizeSajikGuideSearch(query.trim());
 
   return blocks
@@ -2434,7 +2434,7 @@ export function getSajikGuideMatches(
         score: (intent === 'all' ? 0 : 40) + searchScore + Math.max(0, 120 - block.displayPriority) / 100,
       };
     })
-    .filter((match): match is SajikBlockMatch => Boolean(match))
+    .filter((match): match is SajikBlockMatch<TBlock> => Boolean(match))
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;

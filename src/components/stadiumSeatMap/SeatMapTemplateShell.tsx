@@ -1,5 +1,7 @@
 import { type ReactNode } from 'react';
 
+import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
+
 interface SeatMapTemplateShellProps {
   mode: 'light' | 'dark';
   title: string;
@@ -59,6 +61,7 @@ export function SeatMapTemplateShell({
   fullscreenTitle,
   fullscreenSubtitle,
 }: SeatMapTemplateShellProps) {
+  const isDark = mode === 'dark';
   const resolvedMobileSecondaryPanel = mobileSecondaryPanel ?? mobileSidePanel;
   const resolvedDesktopPanel = (desktopSecondaryPanel || desktopSidePanel) ? (
     <div className="space-y-3">
@@ -78,9 +81,18 @@ export function SeatMapTemplateShell({
   const mapFrame = (
     <div
       data-testid={seatMapTestId}
-      className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden ${isMobile ? 'p-2' : 'p-3.5'}`}
+      className={`bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden ${isMobile ? 'p-2' : 'p-3.5'}`}
+      style={{
+        backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
+        borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined,
+        color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined,
+        boxShadow: isDark ? '0 20px 56px -42px rgba(0, 0, 0, 0.95)' : undefined,
+      }}
     >
-      <div className="flex justify-between items-center mb-2.5 px-1 text-sm font-black text-slate-800 dark:text-white">
+      <div
+        className="flex justify-between items-center mb-2.5 px-1 text-sm font-black text-slate-800 dark:text-white"
+        style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}
+      >
         {title}
         <span className="ml-2 text-[11px] font-semibold" style={{ color: titleAccentColor }}>
           {subtitle}
@@ -131,7 +143,10 @@ export function SeatMapTemplateShell({
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-full text-sm font-bold shadow-xl"
-          style={{ background: mode === 'dark' ? '#f8fafc' : '#0f172a', color: mode === 'dark' ? '#0f172a' : '#f8fafc' }}
+          style={{
+            background: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : '#0f172a',
+            color: isDark ? '#03100b' : '#f8fafc',
+          }}
         >
           {toast}
         </div>
@@ -144,12 +159,27 @@ export function SeatMapTemplateShell({
           aria-label={`${fullscreenTitle} 전체화면`}
           data-testid={fullscreenDialogTestId}
           className="fixed inset-0 z-[220] bg-slate-950/95 p-3 text-white sm:p-5"
+          style={{ backgroundColor: isDark ? 'rgba(2, 4, 3, 0.97)' : undefined }}
         >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5">
+          <div
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl"
+            style={{
+              backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
+              borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined,
+            }}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-5"
+              style={{ borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.border : undefined }}
+            >
               <div>
                 <div className="text-sm font-black text-white">{fullscreenTitle}</div>
-                <div className="text-[11px] font-semibold text-slate-400">{fullscreenSubtitle}</div>
+                <div
+                  className="text-[11px] font-semibold text-slate-400"
+                  style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}
+                >
+                  {fullscreenSubtitle}
+                </div>
               </div>
               <button
                 type="button"
@@ -157,6 +187,10 @@ export function SeatMapTemplateShell({
                 aria-label={`${fullscreenTitle} 전체화면 닫기`}
                 onClick={onFullscreenClose}
                 className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-700 text-slate-200 transition-colors hover:bg-slate-800"
+                style={{
+                  borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined,
+                  color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined,
+                }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                   <path d="M18 6 6 18M6 6l12 12" />

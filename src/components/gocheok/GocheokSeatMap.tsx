@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   GOCHEOK_BLOCKS,
   GOCHEOK_CATEGORIES,
@@ -203,6 +203,8 @@ export default function GocheokSeatMap() {
   const [activeGuideMode, setActiveGuideMode] = useState<GocheokGuideMode>('seatmap');
   const [activeFacilityTab, setActiveFacilityTab] = useState<GocheokFacilityTab>('overview');
   const [uploadFor, setUploadFor] = useState<GocheokBlock | null>(null);
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -234,6 +236,12 @@ export default function GocheokSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasOfficialBlocks = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && GOCHEOK_BLOCKS.length > 0;
   const isSeatMapMode = activeGuideMode === 'seatmap';
   const visibleGocheokBlocks = useMemo(() => GOCHEOK_BLOCKS.filter((block) => {
@@ -266,6 +274,8 @@ export default function GocheokSeatMap() {
     setSelected(null);
     setHover(null);
     setUploadFor(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     closeFullscreen();
@@ -277,14 +287,41 @@ export default function GocheokSeatMap() {
     setSelected(null);
     setHover(null);
     setUploadFor(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     closeFullscreen();
   }, [closeFullscreen, setHover, setSelected]);
 
+  const handleCloseSection = useCallback(() => {
+    setSelected(null);
+    setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
+  }, [setHover, setSelected]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setActiveGuideMode('seatmap');
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMapSelectSection = useCallback((block: GocheokBlock | null) => {
+    setSelected(block);
+    setIsSectionFinderOpen(!block);
+    setSectionFinderAutoFocus(false);
+  }, [setSelected]);
+
   const handleSelectFromFinder = useCallback((block: GocheokBlock) => {
     setActiveGuideMode('seatmap');
     setSelected(block);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(block.id);
     setZoom(clampZoom(FINDER_FOCUS_ZOOM));
     closeFullscreen();
@@ -398,7 +435,7 @@ export default function GocheokSeatMap() {
     <GocheokSeatMapSvg
       mode={mode}
       selected={selected}
-      setSelected={setSelected}
+      setSelected={handleMapSelectSection}
       hover={hover}
       setHover={setHover}
       filterCats={filterCats}
@@ -447,7 +484,7 @@ export default function GocheokSeatMap() {
     />
   ) : undefined;
 
-  const sectionFinder = hasOfficialBlocks && isSeatMapMode ? (
+  const sectionFinder = hasOfficialBlocks && isSeatMapMode && isSectionFinderOpen ? (
     <SeatMapSectionFinder
       blocks={visibleGocheokBlocks}
       adapter={gocheokSectionAdapter}
@@ -460,6 +497,7 @@ export default function GocheokSeatMap() {
       testIdPrefix="gocheok"
       accentColor="#820024"
       stadiumShortLabel="고척"
+      autoFocusInput={sectionFinderAutoFocus}
     />
   ) : null;
 
@@ -495,10 +533,16 @@ export default function GocheokSeatMap() {
       categories={GOCHEOK_CATEGORIES}
       adapter={gocheokSectionAdapter}
       stadiumKey="GOCHEOK"
-      onClose={() => setSelected(null)}
+      onClose={handleCloseSection}
       onUpload={() => selected && setUploadFor(selected)}
       copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
       extraMeta={renderVisitCheckMeta}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '고척 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'gocheok-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -525,10 +569,16 @@ export default function GocheokSeatMap() {
             categories={GOCHEOK_CATEGORIES}
             adapter={gocheokSectionAdapter}
             stadiumKey="GOCHEOK"
-            onClose={() => setSelected(null)}
+            onClose={handleCloseSection}
             onUpload={() => selected && setUploadFor(selected)}
             copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
             extraMeta={renderVisitCheckMeta}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '고척 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'gocheok-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && isSeatMapMode && selected)}

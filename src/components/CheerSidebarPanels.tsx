@@ -1,5 +1,6 @@
 import { cn } from '../lib/utils';
 import type { Game as HomeGame } from '../types/home';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import TeamLogo from './TeamLogo';
 import CheerHot from './CheerHot';
 
@@ -97,7 +98,7 @@ export default function CheerSidebarPanels({
                 ) : featuredGame ? (
                     <div className="mt-3 space-y-3">
                         <div className="flex items-center justify-between text-[16px] font-bold text-slate-500 dark:text-gray-300">
-                            <span>{featuredGame.stadium}</span>
+                            <span>{formatStadiumDisplayName(featuredGame.stadium)}</span>
                             <span>{featuredGame.time}</span>
                         </div>
                         <div className="rounded-xl border border-slate-100 px-3 py-3 dark:border-border">

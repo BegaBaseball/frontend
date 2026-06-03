@@ -645,7 +645,7 @@ export const GWANGJU_SPECIAL_SECTION_HTML_MAP_POINTS: Record<string, readonly Po
   'sky-picnic-L': [[352, 604], [386, 475], [499, 289], [488, 283], [398, 422], [379, 458], [363, 504], [353, 539], [342, 603], [345, 603]],
 };
 
-const GWANGJU_SKY_PICNIC_L_SUBPATHS: readonly Point[][] = [
+const GWANGJU_SKY_PICNIC_L_SUBPATHS: readonly (readonly Point[])[] = [
   GWANGJU_SPECIAL_SECTION_HTML_MAP_POINTS['sky-picnic-L'],
   [[386, 842], [408, 885], [386, 891], [386, 870]],
   [[441, 894], [467, 917], [501, 938], [536, 952], [618, 967], [688, 978], [758, 990], [822, 986], [868, 974], [902, 974], [899, 980], [870, 990], [760, 998], [640, 990], [520, 964], [440, 923], [423, 910]],
@@ -757,12 +757,12 @@ function skyPicnicPrecisionGeometry(
 }
 
 function multiBlockGeometry(
-  subpaths: readonly Point[][],
+  subpaths: readonly (readonly Point[])[],
   labelX: number,
   labelY: number,
   shortLabel: string,
   labelFontSize = 10,
-  visualSubpaths?: readonly Point[][],
+  visualSubpaths?: readonly (readonly Point[])[],
 ): GwangjuImageGeometryDraft {
   const retracedSubpaths = subpaths.map(fullRetracePoints);
   const visualD = visualSubpaths

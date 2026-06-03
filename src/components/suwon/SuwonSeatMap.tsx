@@ -652,6 +652,8 @@ export default function SuwonSeatMap() {
   const [mobileToolTab, setMobileToolTab] = useState<SuwonMobileToolTab>('guide');
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [recentSelectionIds, setRecentSelectionIds] = useState<string[]>([]);
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -675,6 +677,12 @@ export default function SuwonSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
 
   const visibleCats = filterCats ? [...filterCats] : null;
   const hoveredCategory = hoveredSection ? SUWON_CATEGORIES[hoveredSection.category] : null;
@@ -725,6 +733,8 @@ export default function SuwonSeatMap() {
 
   const selectSuwonBlock = useCallback((block: SuwonBlock | null) => {
     setSelected(block);
+    setIsSectionFinderOpen(!block);
+    setSectionFinderAutoFocus(false);
     if (block) {
       recordRecentSelection(block);
     }
@@ -753,6 +763,16 @@ export default function SuwonSeatMap() {
     setHover(null);
     setZoom((currentZoom) => Math.max(currentZoom, COMPARE_FOCUS_ZOOM));
   }, [selectSuwonBlock, setFilterId, setHover]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    setMobileToolTab('finder');
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
 
   const handleAddComparison = useCallback((block: SuwonBlock) => {
     setComparisonIds((currentIds) => {
@@ -840,6 +860,12 @@ export default function SuwonSeatMap() {
       onClose={() => selectSuwonBlock(null)}
       onUpload={() => selected && setUploadFor(selected)}
       extraMeta={renderOperatorVisitMeta}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '수원 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'suwon-seatmap-search-open',
+      }}
     />
   );
 
@@ -862,7 +888,7 @@ export default function SuwonSeatMap() {
       onSelectBlock={handleGuideBlockSelect}
     />
   );
-  const sectionFinder = (
+  const sectionFinder = isSectionFinderOpen ? (
     <SeatMapSectionFinder
       blocks={visibleSuwonBlocks}
       adapter={suwonSectionAdapter}
@@ -875,8 +901,9 @@ export default function SuwonSeatMap() {
       testIdPrefix="suwon"
       accentColor="#0B57A7"
       stadiumShortLabel="수원"
+      autoFocusInput={sectionFinderAutoFocus}
     />
-  );
+  ) : null;
   const compareTray = (
     <SuwonCompareTray
       comparisonBlocks={comparisonBlocks}
@@ -949,6 +976,12 @@ export default function SuwonSeatMap() {
             onUpload={() => selected && setUploadFor(selected)}
             testId="suwon-seatmap-bottom-sheet"
             extraMeta={renderOperatorVisitMeta}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '수원 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'suwon-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(selected)}

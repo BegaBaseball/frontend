@@ -21,6 +21,7 @@ import {
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
 import { formatGameDate, getMatePartyDisplayTeamId, hasSameMateUserIdentity } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import type { CheckIn, Party } from '../types/mate';
 
 type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -130,6 +131,7 @@ export default function MateCheckInContentRuntime({
 }: MateCheckInContentRuntimeProps) {
   const statusMeta = getPartyStatusMeta(party.status);
   const flowLabel = getPartyFlowLabel(party.status);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
   const roleLabel = isHost ? '호스트 모드' : '참여자 모드';
   const sessionLabel = qrSessionId ? 'QR 세션 진입' : '일반 진입';
   const currentStateLabel = allCheckedIn
@@ -238,7 +240,7 @@ export default function MateCheckInContentRuntime({
                         <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
                         <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
-                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">{party.stadium}</p>
+                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">{stadiumDisplayName}</p>
                         <p className="text-[16px] text-gray-500 dark:text-gray-300">{party.section}</p>
                       </div>
                       </div>

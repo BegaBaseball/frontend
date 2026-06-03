@@ -441,6 +441,20 @@ export default function CoachAnalysisDialogRuntime({
             ? '실데이터 기반 · 홈팀 기준 분석'
             : '홈팀 기준 분석 준비';
 
+    // 스크린리더용 라이프사이클 안내. 한 번에 하나만 비어있지 않게(중복 낭독 방지).
+    const liveAlertMessage = result?.error
+        ? '분석 중 오류가 발생했습니다. 다시 시도할 수 있습니다.'
+        : result?.manual_data_request
+            ? '분석에 필요한 실데이터가 부족합니다.'
+            : '';
+    const liveStatusMessage = liveAlertMessage
+        ? ''
+        : loading
+            ? (previewText ? '분석 결과를 작성하고 있습니다.' : 'AI 코치 분석을 시작했습니다.')
+            : result
+                ? '분석이 완료되었습니다.'
+                : '';
+
     useEffect(() => {
         if (!isOpen) return;
         if (autoStartedKeyRef.current === autoRunKey) return;
@@ -485,9 +499,15 @@ export default function CoachAnalysisDialogRuntime({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-[#16181c]">
+                    <p className="sr-only" role="status" aria-live="polite" data-testid="coach-analysis-live-status">
+                        {liveStatusMessage}
+                    </p>
+                    <p className="sr-only" role="alert" aria-live="assertive" data-testid="coach-analysis-live-alert">
+                        {liveAlertMessage}
+                    </p>
                     {!result ? (
                     <div className="p-6">
-                        <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                        <div role="status" className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
                             <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
                                 <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
                                 <span className="text-[15px] font-extrabold">{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>

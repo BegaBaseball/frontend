@@ -15,6 +15,7 @@ import {
   SAJIK_CANONICAL_SEATMAP_IMAGE,
   SAJIK_CANONICAL_SEATMAP_SOURCE_ID,
   SAJIK_CANONICAL_SEATMAP_SUMMARY,
+  type SajikCanonicalBlock,
 } from '../../data/sajikCanonicalSeatMap';
 import type { SeatMapPan, SeatMapSvgBaseProps } from '../stadiumSeatMap/seatMapCommonTypes';
 import {
@@ -35,7 +36,7 @@ interface SajikExtraProps {
   guideActive?: boolean;
 }
 
-type Props = SeatMapSvgBaseProps<SajikBlock> & SajikExtraProps;
+type Props = SeatMapSvgBaseProps<SajikCanonicalBlock> & SajikExtraProps;
 
 function getGeometryLabelPoint(geometry: SajikBlock['imageGeometry']): [number, number] {
   return geometry.labelPoint ?? [geometry.labelX, geometry.labelY];

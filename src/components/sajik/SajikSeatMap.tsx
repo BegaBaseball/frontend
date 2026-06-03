@@ -11,11 +11,13 @@ import {
   getSajikSideLabel,
   getSajikSourceLabel,
   type SajikBlock,
+  type SajikBlockMatch,
   type SajikGuideIntent,
 } from '../../data/sajikSeatData';
 import {
   SAJIK_CANONICAL_BLOCKS,
   SAJIK_CANONICAL_SEATMAP_IMAGE,
+  type SajikCanonicalBlock,
 } from '../../data/sajikCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
@@ -42,7 +44,7 @@ const GUIDE_FOCUS_ZOOM = 1.45;
 const FINDER_FOCUS_ZOOM = 1.5;
 const GUIDE_RESULT_LIMIT = 10;
 
-const sajikSectionAdapter: SeatMapSectionAdapter<SajikBlock> = {
+const sajikSectionAdapter: SeatMapSectionAdapter<SajikCanonicalBlock> = {
   getId: (section) => section.id,
   getName: (section) => section.name,
   getBlock: (section) => section.block,
@@ -91,11 +93,11 @@ function SajikFirstVisitGuide({
 }: {
   intent: SajikGuideIntent;
   query: string;
-  matches: ReturnType<typeof getSajikGuideMatches>;
+  matches: SajikBlockMatch<SajikCanonicalBlock>[];
   mode: 'light' | 'dark';
   onIntentChange: (value: SajikGuideIntent) => void;
   onQueryChange: (value: string) => void;
-  onSelectBlock: (block: SajikBlock) => void;
+  onSelectBlock: (block: SajikCanonicalBlock) => void;
 }) {
   const visibleMatches = matches.slice(0, GUIDE_RESULT_LIMIT);
   const isDark = mode === 'dark';
@@ -296,6 +298,8 @@ export default function SajikSeatMap() {
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [guideIntent, setGuideIntent] = useState<SajikGuideIntent>('all');
   const [guideQuery, setGuideQuery] = useState('');
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -324,6 +328,12 @@ export default function SajikSeatMap() {
     openFullscreen,
     closeFullscreen,
   } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasInteractiveSeatMap = SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && SAJIK_CANONICAL_BLOCKS.length > 0;
   const visibleSajikBlocks = useMemo(() => SAJIK_CANONICAL_BLOCKS.filter((block) => {
     if (filterCats !== null && !filterCats.includes(block.category)) return false;
@@ -368,17 +378,43 @@ export default function SajikSeatMap() {
     setFilterId('all');
   }, []);
 
-  const handleGuideBlockSelect = useCallback((block: SajikBlock) => {
+  const handleGuideBlockSelect = useCallback((block: SajikCanonicalBlock) => {
     setSelected(block);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(null);
     setFilterId('all');
     setZoom((currentZoom) => (currentZoom < GUIDE_FOCUS_ZOOM ? GUIDE_FOCUS_ZOOM : currentZoom));
   }, []);
 
-  const handleSelectFromFinder = useCallback((block: SajikBlock) => {
+  const handleSelectFromFinder = useCallback((block: SajikCanonicalBlock) => {
     setSelected(block);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
   }, []);
+
+  const handleCloseSection = useCallback(() => {
+    setSelected(null);
+    setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
+  }, [setHover, setSelected]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMapSelectSection = useCallback((block: SajikCanonicalBlock | null) => {
+    setSelected(block);
+    setIsSectionFinderOpen(!block);
+    setSectionFinderAutoFocus(false);
+  }, [setSelected]);
 
   const handleShareSeatView = useCallback((section: SajikBlock | null) => {
     if (!section) return;
@@ -405,7 +441,7 @@ export default function SajikSeatMap() {
     <SajikSeatMapSvg
       mode={mode}
       selected={hasInteractiveSeatMap ? selected : null}
-      setSelected={setSelected}
+      setSelected={handleMapSelectSection}
       hover={hasInteractiveSeatMap ? hover : null}
       setHover={setHover}
       filterCats={hasInteractiveSeatMap ? filterCats : null}
@@ -435,7 +471,7 @@ export default function SajikSeatMap() {
     />
   ) : null;
 
-  const sectionFinder = hasInteractiveSeatMap ? (
+  const sectionFinder = hasInteractiveSeatMap && isSectionFinderOpen ? (
     <SeatMapSectionFinder
       blocks={visibleSajikBlocks}
       adapter={sajikSectionAdapter}
@@ -448,6 +484,7 @@ export default function SajikSeatMap() {
       testIdPrefix="sajik"
       accentColor="#041E42"
       stadiumShortLabel="사직"
+      autoFocusInput={sectionFinderAutoFocus}
     />
   ) : null;
 
@@ -497,9 +534,15 @@ export default function SajikSeatMap() {
       categories={SAJIK_CATEGORIES}
       adapter={sajikSectionAdapter}
       stadiumKey="SAJIK"
-      onClose={() => setSelected(null)}
+      onClose={handleCloseSection}
       onUpload={() => handleShareSeatView(selected)}
       copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '사직 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'sajik-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -540,9 +583,15 @@ export default function SajikSeatMap() {
             categories={SAJIK_CATEGORIES}
             adapter={sajikSectionAdapter}
             stadiumKey="SAJIK"
-            onClose={() => setSelected(null)}
+            onClose={handleCloseSection}
             onUpload={() => handleShareSeatView(selected)}
             copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '사직 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'sajik-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(hasInteractiveSeatMap && selected)}

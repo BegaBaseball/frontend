@@ -4,7 +4,9 @@ const AUTH_BOOTSTRAP_META_VERSION = 1;
 const AUTH_BOOTSTRAP_SUCCESS_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_BOOTSTRAP_FAILURE_COOLDOWN_MS = 60 * 1000;
 
-const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set<string>();
+const AUTH_BOOTSTRAP_SKIPPED_PATHS = new Set<string>([
+  '/oauth/callback',
+]);
 const AUTH_BOOTSTRAP_AUTH_PAGE_PATHS = new Set([
   '/login',
   '/signup',

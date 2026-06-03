@@ -2,6 +2,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { MAP_CONFIG } from '../utils/constants';
 import { Stadium } from '../types/stadium';
+import { getStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const hasValidCoordinate = (value: number | null | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -58,7 +59,7 @@ export const useKakaoMap = (selectedStadium: Stadium | null) => {
       stadiumMarkerRef.current = marker;
 
       const infowindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;color:#111827;">${selectedStadium.stadiumName}</div>`,
+        content: `<div style="padding:8px 12px;font-weight:700;white-space:nowrap;min-width:fit-content;color:#111827;">${getStadiumDisplayName(selectedStadium)}</div>`,
         removable: false
       });
       infowindow.open(newMap, marker);

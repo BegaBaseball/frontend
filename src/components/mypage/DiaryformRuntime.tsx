@@ -9,6 +9,7 @@ import { useMonthCalendar } from '../../hooks/useMonthCalendar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { type DiaryFormData, type DiaryEntry } from '../../types/diary';
 import { getEmojiByName, getFullImageUrl, formatDateString, getWinningLabel } from '../../utils/diary';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import {
@@ -425,7 +426,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         <div className="grid grid-cols-[80px_1fr] gap-2">
           <div className="text-[16px] text-muted-foreground">구장</div>
           <div className="font-bold text-primary">
-            {selectedDiary?.stadium || '구장 정보 없음'}
+            {selectedDiary?.stadium ? formatStadiumDisplayName(selectedDiary.stadium) : '구장 정보 없음'}
           </div>
         </div>
         {diaryForm.winningName && (

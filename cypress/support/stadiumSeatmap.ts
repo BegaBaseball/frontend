@@ -1,15 +1,15 @@
 /// <reference types="cypress" />
 
 export const ALL_STADIUMS = [
-  { stadiumId: 'JAMSIL',   stadiumName: '잠실야구장',           team: 'LG/두산', lat: 37.5122, lng: 127.0719, address: '서울특별시 송파구 올림픽로 25',           phone: null },
-  { stadiumId: 'INCHEON',  stadiumName: '인천 SSG 랜더스필드',  team: 'SSG',    lat: 37.4373, lng: 126.6934, address: '인천광역시 미추홀구 매소홀로 618',        phone: null },
-  { stadiumId: 'DAEGU',    stadiumName: '대구 삼성 라이온즈파크', team: '삼성',   lat: 35.8411, lng: 128.6819, address: '대구광역시 수성구 야구전설로 1',          phone: null },
-  { stadiumId: 'DAEJEON',  stadiumName: '대전 한화생명볼파크',   team: '한화',   lat: 36.3170, lng: 127.4285, address: '대전광역시 중구 대종로 373',              phone: null },
-  { stadiumId: 'GOCHEOK',  stadiumName: '고척 스카이돔',        team: '키움',   lat: 37.4981, lng: 126.8671, address: '서울특별시 구로구 경인로 430',            phone: null },
-  { stadiumId: 'GWANGJU',  stadiumName: '광주-KIA 챔피언스필드', team: 'KIA',   lat: 35.1681, lng: 126.8892, address: '광주광역시 북구 서림로 10',               phone: null },
-  { stadiumId: 'CHANGWON', stadiumName: '창원 NC 파크',         team: 'NC',     lat: 35.2225, lng: 128.5827, address: '경상남도 창원시 마산회원구 삼호로 63',    phone: null },
-  { stadiumId: 'SAJIK',    stadiumName: '부산 사직야구장',       team: '롯데',   lat: 35.1940, lng: 129.0614, address: '부산광역시 동래구 사직로 45',             phone: null },
-  { stadiumId: 'SUWON',    stadiumName: '수원 kt wiz 파크',     team: 'KT',     lat: 37.2988, lng: 127.0098, address: '경기도 수원시 장안구 경수대로 893',       phone: null },
+  { stadiumId: 'JAMSIL',   stadiumName: '서울 · 잠실야구장',      team: 'LG/두산', lat: 37.5122, lng: 127.0719, address: '서울특별시 송파구 올림픽로 25',           phone: null },
+  { stadiumId: 'INCHEON',  stadiumName: '인천 · SSG랜더스필드',   team: 'SSG',    lat: 37.4373, lng: 126.6934, address: '인천광역시 미추홀구 매소홀로 618',        phone: null },
+  { stadiumId: 'DAEGU',    stadiumName: '대구 · 삼성 라이온즈파크', team: '삼성',   lat: 35.8411, lng: 128.6819, address: '대구광역시 수성구 야구전설로 1',          phone: null },
+  { stadiumId: 'DAEJEON',  stadiumName: '대전 · 한화생명볼파크',    team: '한화',   lat: 36.3170, lng: 127.4285, address: '대전광역시 중구 대종로 373',              phone: null },
+  { stadiumId: 'GOCHEOK',  stadiumName: '서울 · 고척스카이돔',      team: '키움',   lat: 37.4981, lng: 126.8671, address: '서울특별시 구로구 경인로 430',            phone: null },
+  { stadiumId: 'GWANGJU',  stadiumName: '광주 · KIA 챔피언스필드',  team: 'KIA',   lat: 35.1681, lng: 126.8892, address: '광주광역시 북구 서림로 10',               phone: null },
+  { stadiumId: 'CHANGWON', stadiumName: '창원 · NC파크',          team: 'NC',     lat: 35.2225, lng: 128.5827, address: '경상남도 창원시 마산회원구 삼호로 63',    phone: null },
+  { stadiumId: 'SAJIK',    stadiumName: '부산 · 사직야구장',       team: '롯데',   lat: 35.1940, lng: 129.0614, address: '부산광역시 동래구 사직로 45',             phone: null },
+  { stadiumId: 'SUWON',    stadiumName: '수원 · KT위즈파크',       team: 'KT',     lat: 37.2988, lng: 127.0098, address: '경기도 수원시 장안구 경수대로 893',       phone: null },
 ];
 
 export const interceptGuestSession = () => {
