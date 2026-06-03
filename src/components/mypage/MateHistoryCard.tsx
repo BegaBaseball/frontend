@@ -6,6 +6,7 @@ import TeamLogo from '../TeamLogo';
 import { seedMatePartyQueryData } from '../../hooks/mateList';
 import { MateParty } from '../../types/mate';
 import { buildMateRouteLocationState, formatGameDate, getMatePartyDisplayTeamId, getStatusLabel, getStatusStyle } from '../../utils/mate';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 
 interface MateHistoryCardProps {
   party: MateParty;
@@ -17,6 +18,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
 
   const { dotColor, isLive } = getStatusStyle(party.status);
   const statusLabel = getStatusLabel(party.status);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   // 클릭 핸들러 추가
   const handleClick = () => {
@@ -34,7 +36,7 @@ export default function MateHistoryCard({ party }: MateHistoryCardProps) {
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-primary" style={{ fontWeight: 700 }}>
-              {party.stadium}
+              {stadiumDisplayName}
             </h3>
             <span
               className="inline-flex items-center gap-2 rounded-full border border-[rgba(45,95,79,.16)] px-[11px] py-[6px] text-[13px] font-bold text-[#1f3d35] whitespace-nowrap [font-variant-numeric:tabular-nums] dark:text-[#a3d4c4] dark:border-white/10"

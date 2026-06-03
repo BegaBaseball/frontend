@@ -8,10 +8,98 @@
   display: none;
 }
 
+.stadium-guide-page {
+  --stadium-dark-base: #020403;
+  --stadium-dark-surface: #07100c;
+  --stadium-dark-raised: #0d1a14;
+  --stadium-dark-border: rgba(126, 211, 179, 0.18);
+  --stadium-dark-border-strong: rgba(126, 211, 179, 0.32);
+  --stadium-dark-text: #f5faf7;
+  --stadium-dark-muted: #a9b8b1;
+  --stadium-dark-accent: #7ed3b3;
+}
+
+.dark .stadium-guide-page {
+  background: var(--stadium-dark-base);
+  color: var(--stadium-dark-text);
+}
+
 .stadium-hero-container {
   position: relative;
   overflow: hidden;
   margin-bottom: 1.25rem;
+}
+
+.dark .stadium-hero-container {
+  background: var(--stadium-dark-raised);
+  border-color: var(--stadium-dark-border-strong);
+  box-shadow: 0 20px 60px -42px rgba(0, 0, 0, 0.9);
+}
+
+.dark .stadium-guide-panel {
+  background: var(--stadium-dark-raised);
+  border-color: var(--stadium-dark-border);
+  color: var(--stadium-dark-text);
+}
+
+.dark .stadium-guide-panel-strong {
+  background: var(--stadium-dark-surface);
+  border-color: var(--stadium-dark-border-strong);
+  color: var(--stadium-dark-text);
+}
+
+.dark .stadium-guide-control {
+  background: var(--stadium-dark-surface);
+  border-color: var(--stadium-dark-border-strong);
+  color: var(--stadium-dark-text);
+}
+
+.dark .stadium-guide-control:focus {
+  border-color: var(--stadium-dark-accent);
+  box-shadow: 0 0 0 3px rgba(126, 211, 179, 0.16);
+}
+
+.dark .stadium-guide-muted {
+  color: var(--stadium-dark-muted);
+}
+
+.dark .stadium-guide-accent {
+  color: var(--stadium-dark-accent);
+}
+
+.dark .stadium-guide-category-button {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 36px -30px rgba(0, 0, 0, 0.9);
+}
+
+.dark .stadium-guide-category-icon {
+  background: rgba(126, 211, 179, 0.08);
+}
+
+.dark .stadium-guide-loading-block {
+  background: rgba(126, 211, 179, 0.1);
+}
+
+.dark .stadium-seatmap-state-card {
+  background: var(--stadium-dark-raised);
+  border-color: var(--stadium-dark-border);
+  color: var(--stadium-dark-text);
+}
+
+.dark .stadium-seatmap-state-inner {
+  background: var(--stadium-dark-surface);
+  border-color: var(--stadium-dark-border);
+}
+
+.dark .stadium-seatmap-state-block {
+  background: rgba(126, 211, 179, 0.1);
+}
+
+.dark .stadium-seatmap-attribution {
+  color: var(--stadium-dark-muted);
+}
+
+.dark .stadium-seatmap-attribution a:hover {
+  color: var(--stadium-dark-accent);
 }
 
 @media (max-width: 639px) {
@@ -28,6 +116,11 @@
 
 .dark .stadium-guide-map {
   color: #f3f4f6;
+}
+
+.dark .stadium-guide-map-frame {
+  background: var(--stadium-dark-raised);
+  border-color: var(--stadium-dark-border-strong);
 }
 
 .stadium-guide-map-frame {
@@ -49,6 +142,10 @@
   scrollbar-color: hsl(var(--primary)) hsl(var(--secondary));
 }
 
+.dark .stadium-guide-scroll-area {
+  scrollbar-color: var(--stadium-dark-accent) var(--stadium-dark-surface);
+}
+
 .stadium-guide-scroll-area::-webkit-scrollbar {
   width: 8px;
 }
@@ -58,11 +155,23 @@
   border-radius: 10px;
 }
 
+.dark .stadium-guide-scroll-area::-webkit-scrollbar-track {
+  background: var(--stadium-dark-surface);
+}
+
 .stadium-guide-scroll-area::-webkit-scrollbar-thumb {
   background: hsl(var(--primary));
   border-radius: 10px;
 }
 
+.dark .stadium-guide-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--stadium-dark-accent);
+}
+
 .stadium-guide-scroll-area::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.85);
+}
+
+.dark .stadium-guide-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 211, 179, 0.86);
 }

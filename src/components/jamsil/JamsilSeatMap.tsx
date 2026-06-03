@@ -83,6 +83,10 @@ function JamsilOperatorVisitMeta({
   ];
   const hasManualFallback = operatorTiles.some((tile) => tile.value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS))
     || operatorGuidance.operatorDataStatus === MANUAL_OPERATOR_GUIDANCE_STATUS;
+  const getTileFieldSource = (value: string) => {
+    if (value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)) return 'manual-required';
+    return operatorGuidance.operatorDataStatus === 'OPERATOR_PROVIDED' ? 'operator-provided' : 'static-seed';
+  };
 
   return (
     <div
@@ -94,7 +98,7 @@ function JamsilOperatorVisitMeta({
         <div>
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
           <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-            운영자 제공 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
+            검수된 정적 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
           </p>
         </div>
         <span
@@ -115,7 +119,7 @@ function JamsilOperatorVisitMeta({
           <div
             key={tile.label}
             data-testid={tile.testId}
-            data-operator-field-source={tile.value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS) ? 'manual-required' : 'operator-provided'}
+            data-operator-field-source={getTileFieldSource(tile.value)}
             className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
@@ -155,6 +159,8 @@ export default function JamsilSeatMap() {
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
   const [officialSource, setOfficialSource] = useState<'LG' | 'DOOSAN'>('LG');
   const [uploadFor, setUploadFor] = useState<JamsilBlock | null>(null);
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -188,6 +194,12 @@ export default function JamsilSeatMap() {
     closeFullscreen,
   } = useSeatMapTemplateShellState();
 
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
+
   const handleUploadSubmit = useCallback(() => {
     const block = uploadFor?.block ?? '';
     setUploadFor(null);
@@ -212,6 +224,8 @@ export default function JamsilSeatMap() {
     setOfficialSource(nextSource);
     setSelected(null);
     setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     if (nextSource === 'DOOSAN') {
@@ -219,8 +233,32 @@ export default function JamsilSeatMap() {
     }
   }, [closeFullscreen]);
 
+  const handleCloseSection = useCallback(() => {
+    setSelected(null);
+    setHover(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
+  }, [setHover, setSelected]);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
+
+  const handleMapSelectSection = useCallback((block: JamsilBlock | null) => {
+    setSelected(block);
+    setIsSectionFinderOpen(!block);
+    setSectionFinderAutoFocus(false);
+  }, [setSelected]);
+
   const handleSelectFromFinder = useCallback((block: JamsilBlock) => {
     setSelected(block);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(null);
     setZoom((currentZoom) => Math.max(currentZoom, FINDER_FOCUS_ZOOM));
   }, [setHover, setSelected]);
@@ -253,7 +291,7 @@ export default function JamsilSeatMap() {
       officialSource={officialSource}
       onOfficialSourceChange={handleOfficialSourceChange}
       selected={selected}
-      setSelected={setSelected}
+      setSelected={handleMapSelectSection}
       hover={hover}
       setHover={setHover}
       filterId={filterId}
@@ -329,10 +367,16 @@ export default function JamsilSeatMap() {
         categories={JAMSIL_CATEGORIES}
         adapter={jamsilSectionAdapter}
         stadiumKey="JAMSIL"
-        onClose={() => setSelected(null)}
+        onClose={handleCloseSection}
         onUpload={() => setUploadFor(selected)}
         testId="jamsil-seatmap-bottom-sheet"
         extraMeta={renderOperatorVisitMeta}
+        searchAction={{
+          label: '구역 검색',
+          ariaLabel: '잠실 구역 검색 열기',
+          onClick: handleOpenSectionFinderSearch,
+          testId: 'jamsil-seatmap-mobile-search-open',
+        }}
       />
     )
   );
@@ -343,12 +387,18 @@ export default function JamsilSeatMap() {
       categories={JAMSIL_CATEGORIES}
       adapter={jamsilSectionAdapter}
       stadiumKey="JAMSIL"
-      onClose={() => setSelected(null)}
+      onClose={handleCloseSection}
       onUpload={() => displaySection && setUploadFor(displaySection)}
       extraMeta={renderOperatorVisitMeta}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '잠실 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'jamsil-seatmap-search-open',
+      }}
     />
   );
-  const sectionFinder = isDoosanGuideActive ? null : (
+  const sectionFinder = isDoosanGuideActive || !isSectionFinderOpen ? null : (
     <SeatMapSectionFinder
       blocks={visibleJamsilBlocks}
       adapter={jamsilSectionAdapter}
@@ -361,6 +411,7 @@ export default function JamsilSeatMap() {
       testIdPrefix="jamsil"
       accentColor="#1F5C4A"
       stadiumShortLabel="잠실"
+      autoFocusInput={sectionFinderAutoFocus}
     />
   );
 

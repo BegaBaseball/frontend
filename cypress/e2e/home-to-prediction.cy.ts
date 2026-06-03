@@ -10,7 +10,7 @@ describe('Home to Prediction deep link', () => {
     tomorrowDate.setDate(now.getDate() + 1);
     const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     const tomorrowCompact = tomorrow.replace(/-/g, '');
-    const matchDetailPattern = /\/api\/matches\/(?!day(?:[/?#]|$)|range(?:[/?#]|$)|bounds(?:[/?#]|$))[^/?#]+(?:\?.*)?$/;
+    const matchDetailPattern = /\/api\/matches\/(?!day(?:[/?#]|$)|range(?:[/?#]|$)|bounds(?:[/?#]|$)|live(?:[/?#]|$))[^/?#]+(?:\?.*)?$/;
     const buildWidgetsResponse = (rankingSeasonYear = now.getFullYear()) => ({
         hotCheerPosts: [],
         featuredMates: [],

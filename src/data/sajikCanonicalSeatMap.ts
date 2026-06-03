@@ -81,7 +81,10 @@ SAJIK_BLOCKS.forEach((block) => {
   });
 });
 
-const overrideBySectionId = new Map(
+const overrideBySectionId = new Map<
+  string,
+  (typeof SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES)[number]
+>(
   SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES.map((override) => [override.sectionId, override]),
 );
 

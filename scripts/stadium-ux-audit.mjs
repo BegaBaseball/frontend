@@ -649,11 +649,12 @@ const installRoutes = async (page) => {
 };
 
 const addInitState = async (page) => {
-  await page.addInitScript(() => {
+  const requestedTheme = process.env.STADIUM_UX_THEME === 'dark' ? 'dark' : 'light';
+  await page.addInitScript((theme) => {
     window.localStorage.setItem('bega_has_visited', 'true');
     window.localStorage.setItem('bega_dont_show_guide', 'true');
-    window.localStorage.setItem('kbo-theme', 'light');
-  });
+    window.localStorage.setItem('kbo-theme', theme);
+  }, requestedTheme);
 };
 
 const isIgnoredConsoleText = (text) => (
@@ -838,6 +839,18 @@ const readJamsilZoomState = async (page) => visibleJamsilSeatMapTestId(page, 'ja
   panY: Number(node.getAttribute('data-pan-y') ?? '0'),
   transform: window.getComputedStyle(node).transform,
 }));
+const waitForJamsilDetailTitle = async (page, detail) => {
+  await page.waitForFunction((expectedDetail) => {
+    const visibleTextIncludes = (node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0
+        && rect.height > 0
+        && (node.textContent ?? '').includes(expectedDetail);
+    };
+    return Array.from(document.querySelectorAll('h2')).some(visibleTextIncludes)
+      || Array.from(document.querySelectorAll('[data-testid="jamsil-seatmap-bottom-sheet"]')).some(visibleTextIncludes);
+  }, detail, { timeout: 5000 });
+};
 const visibleSuwonSeatMapTestId = (page, testId) =>
   page.locator(`[data-testid="stadium-seat-map"]:visible [data-testid="${testId}"]`).first();
 const readSuwonZoomState = async (page) => visibleSuwonSeatMapTestId(page, 'suwon-seatmap-transform-layer').evaluate((node) => ({
@@ -1347,6 +1360,460 @@ const JAMSIL_FULL_CLICK_TARGETS = [
   { label: '1루 휠체어석', ariaLabel: '1루 휠체어석 101B / 102B / 109B', detail: '1루 휠체어석' },
   { label: '3루 휠체어석', ariaLabel: '3루 휠체어석 114B / 121B / 122B', detail: '3루 휠체어석' },
 ];
+
+const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
+  {
+    label: '101',
+    targetType: 'numbered',
+    ariaLabel: '101 블록 1루 레드석 101',
+    detail: '101 블록 1루 레드석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['GS25', '도미노피자', '2층 2-3 Gate 인근 화장실'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: '214',
+    targetType: 'numbered',
+    ariaLabel: '214 블록 3루 테이블석 214',
+    detail: '214 블록 3루 테이블석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['잠실야구장 3루 외곽', 'BHC', '2층 2-1 Gate 인근 화장실'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: '312',
+    targetType: 'numbered',
+    ariaLabel: '312 블록 중앙 네이비석 312',
+    detail: '312 블록 중앙 네이비석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['3층 D10 인근 화장실', '제발시켜주세요', 'GS25'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: '405',
+    targetType: 'numbered',
+    ariaLabel: '405 블록 외야 그린응원석 405',
+    detail: '405 블록 외야 그린응원석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['1-4 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 401구역 인근 화장실', '베어스하우스', '트윈스팀스토어'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: 'premium-center',
+    targetType: 'special',
+    ariaLabel: '중앙 프리미엄석 테라존',
+    detail: '중앙 프리미엄석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['잠실야구장'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: 'exciting-first',
+    targetType: 'special',
+    ariaLabel: '1루 익사이팅존 1루 익사이팅존',
+    detail: '1루 익사이팅존',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 101구역 인근 화장실', '제2매표소'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: 'exciting-third',
+    targetType: 'special',
+    ariaLabel: '3루 익사이팅존 3루 익사이팅존',
+    detail: '3루 익사이팅존',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 223구역 인근 화장실', '중앙매표소'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: 'accessible-first',
+    targetType: 'special',
+    ariaLabel: '1루 휠체어석 101B / 102B / 109B',
+    detail: '1루 휠체어석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['2층 2-3 Gate 인근 화장실', '제2매표소', 'KBO 중계 음성 지원 안내데스크'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+  {
+    label: 'accessible-third',
+    targetType: 'special',
+    ariaLabel: '3루 휠체어석 114B / 121B / 122B',
+    detail: '3루 휠체어석',
+    expectedStatus: 'OPERATOR_PROVIDED',
+    runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
+    tiles: [
+      { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
+      { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['2층 2-1 Gate 인근 화장실', '중앙매표소'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
+    ],
+  },
+];
+
+const JAMSIL_OPERATOR_TILE_TEST_IDS = [
+  'jamsil-operator-entrance',
+  'jamsil-operator-facilities',
+  'jamsil-operator-notice',
+  'jamsil-operator-updated-at',
+];
+
+const closeVisibleJamsilDetailPanel = async (page) => {
+  const closeButton = page.locator('button[aria-label="닫기"]:visible').first();
+  if (await closeButton.isVisible().catch(() => false)) {
+    await closeButton.click({ timeout: 3000 }).catch(() => undefined);
+    await sleep(140);
+  }
+};
+
+const normalizeAuditText = (value) => (value ?? '').replace(/\s+/g, ' ').trim();
+
+const assertJamsilOperatorText = (text, expected, contextLabel) => {
+  expected.forEach((token) => {
+    if (!text.includes(token)) {
+      throw new Error(`${contextLabel} missing "${token}" in "${text}"`);
+    }
+  });
+};
+
+const assertJamsilOperatorTextAbsent = (text, unexpected, contextLabel) => {
+  unexpected.forEach((token) => {
+    if (text.includes(token)) {
+      throw new Error(`${contextLabel} unexpectedly included "${token}" in "${text}"`);
+    }
+  });
+};
+
+const clickJamsilOperatorRuntimeTarget = async (page, target) => {
+  await closeVisibleJamsilDetailPanel(page);
+  await clickVisibleSeatMapFilter(page, 'jamsil-filter-all').catch(() => undefined);
+  await scrollVisibleSeatMapIntoView(page);
+  const section = visibleSeatMapHitAreaByLabel(page, target.ariaLabel);
+  await clickSeatMapSection(section);
+  await waitForJamsilDetailTitle(page, target.detail).catch(async () => {
+    await dispatchSeatMapSectionClick(section);
+    await waitForJamsilDetailTitle(page, target.detail);
+  });
+};
+
+const assertJamsilOperatorTile = async (page, target, tileSpec) => {
+  const tile = page.locator(`[data-testid="${tileSpec.testId}"]:visible`).first();
+  await tile.waitFor({ state: 'visible', timeout: 5000 });
+
+  const source = await tile.getAttribute('data-operator-field-source');
+  if (source !== tileSpec.fieldSource) {
+    throw new Error(`${target.label} ${tileSpec.testId} data-operator-field-source expected ${tileSpec.fieldSource}, got ${source}`);
+  }
+
+  const text = normalizeAuditText(await tile.textContent({ timeout: 5000 }));
+  if (!text) {
+    throw new Error(`${target.label} ${tileSpec.testId} rendered an empty operator tile.`);
+  }
+  assertJamsilOperatorText(text, tileSpec.includes ?? [], `${target.label} ${tileSpec.testId}`);
+  assertJamsilOperatorTextAbsent(text, tileSpec.excludes ?? [], `${target.label} ${tileSpec.testId}`);
+
+  return {
+    testId: tileSpec.testId,
+    fieldSource: source,
+    text,
+  };
+};
+
+const assertJamsilOperatorPanelLayout = async (page, target) => {
+  const panel = page.locator('[data-testid="jamsil-operator-visit-check"]:visible').first();
+  await panel.waitFor({ state: 'visible', timeout: 5000 });
+
+  const layout = await panel.evaluate((node, tileTestIds) => {
+    const serializeRect = (element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        left: Math.round(rect.left * 10) / 10,
+        top: Math.round(rect.top * 10) / 10,
+        right: Math.round(rect.right * 10) / 10,
+        bottom: Math.round(rect.bottom * 10) / 10,
+        width: Math.round(rect.width * 10) / 10,
+        height: Math.round(rect.height * 10) / 10,
+      };
+    };
+    const isVisible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const tileElements = tileTestIds
+      .map((testId) => node.querySelector(`[data-testid="${testId}"]`))
+      .filter((element) => element && isVisible(element));
+    const leafTextElements = Array.from(node.querySelectorAll('div, p, span, li'))
+      .filter((element) => {
+        const text = element.textContent?.trim() ?? '';
+        return text.length > 0 && element.children.length === 0 && isVisible(element);
+      });
+    const overflowIssues = leafTextElements
+      .filter((element) => element.scrollWidth > element.clientWidth + 2)
+      .map((element) => ({
+        text: (element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+        rect: serializeRect(element),
+      }));
+    const tileRects = tileElements.map((element) => ({
+      testId: element.getAttribute('data-testid') ?? '',
+      rect: serializeRect(element),
+    }));
+    const overlapIssues = [];
+    for (let i = 0; i < tileRects.length; i += 1) {
+      for (let j = i + 1; j < tileRects.length; j += 1) {
+        const a = tileRects[i];
+        const b = tileRects[j];
+        const overlapWidth = Math.max(0, Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left));
+        const overlapHeight = Math.max(0, Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top));
+        if (overlapWidth > 1 && overlapHeight > 1) {
+          overlapIssues.push({
+            a: a.testId,
+            b: b.testId,
+            overlapWidth: Math.round(overlapWidth * 10) / 10,
+            overlapHeight: Math.round(overlapHeight * 10) / 10,
+          });
+        }
+      }
+    }
+
+    return {
+      panelRect: serializeRect(node),
+      textLength: (node.textContent ?? '').trim().length,
+      tileCount: tileElements.length,
+      overflowIssues,
+      overlapIssues,
+    };
+  }, JAMSIL_OPERATOR_TILE_TEST_IDS);
+
+  if (layout.panelRect.width <= 0 || layout.panelRect.height <= 0 || layout.textLength === 0) {
+    throw new Error(`${target.label} operator panel rendered blank or without dimensions: ${JSON.stringify(layout)}`);
+  }
+  if (layout.tileCount !== JAMSIL_OPERATOR_TILE_TEST_IDS.length) {
+    throw new Error(`${target.label} operator panel rendered ${layout.tileCount} tiles, expected ${JAMSIL_OPERATOR_TILE_TEST_IDS.length}`);
+  }
+  if (layout.overflowIssues.length > 0) {
+    throw new Error(`${target.label} operator panel has horizontal text overflow: ${JSON.stringify(layout.overflowIssues)}`);
+  }
+  if (layout.overlapIssues.length > 0) {
+    throw new Error(`${target.label} operator panel has overlapping tiles: ${JSON.stringify(layout.overlapIssues)}`);
+  }
+
+  return layout;
+};
+
+const writeJamsilOperatorRuntimeReport = async ({ scenario, rows, generatedAt }) => {
+  const reportJsonPath = path.join(outputRoot, 'jamsil-operator-runtime-check.json');
+  const reportMarkdownPath = path.join(outputRoot, 'jamsil-operator-runtime-check.md');
+  const numberedRows = rows.filter((row) => row.targetType === 'numbered');
+  const specialRows = rows.filter((row) => row.targetType === 'special');
+  const scenarioReport = {
+    scenario: scenario.key,
+    viewport: scenario.viewport,
+    status: rows.every((row) => row.status === 'passed') ? 'passed' : 'failed',
+    summary: {
+      targetCount: rows.length,
+      passedRows: rows.filter((row) => row.status === 'passed').length,
+      failedRows: rows.filter((row) => row.status === 'failed').length,
+      numberedTargets: numberedRows.length,
+      specialTargets: specialRows.length,
+    },
+    rows,
+  };
+  const existingReport = await fs.readFile(reportJsonPath, 'utf8')
+    .then((content) => JSON.parse(content))
+    .catch(() => null);
+  const previousScenarios = Array.isArray(existingReport?.scenarios)
+    ? existingReport.scenarios
+    : existingReport?.scenario
+      ? [{
+        scenario: existingReport.scenario,
+        viewport: existingReport.viewport,
+        status: existingReport.status,
+        summary: existingReport.summary,
+        rows: existingReport.rows ?? [],
+      }]
+      : [];
+  const scenarios = [
+    ...previousScenarios.filter((entry) => entry.scenario !== scenario.key),
+    scenarioReport,
+  ];
+  const status = scenarios.every((entry) => entry.status === 'passed') ? 'passed' : 'failed';
+  const report = {
+    generatedAt,
+    status,
+    sourceDataWritePerformed: false,
+    contract: {
+      numberedBlocks: 'Jamsil numbered representative blocks must expose approved concession/restroom operator data.',
+      specialBlocks: 'Jamsil special field-survey restroom assignments are approved runtime guidance; walking/congestion/notices remain manual-required.',
+      operationNotice: 'JAMSIL_OPERATION_NOTICES remains MANUAL_BASEBALL_DATA_REQUIRED until dated operator notices exist.',
+    },
+    summary: {
+      scenarioCount: scenarios.length,
+      targetCount: scenarios.reduce((sum, entry) => sum + entry.summary.targetCount, 0),
+      passedRows: scenarios.reduce((sum, entry) => sum + entry.summary.passedRows, 0),
+      failedRows: scenarios.reduce((sum, entry) => sum + entry.summary.failedRows, 0),
+      numberedTargets: scenarios.reduce((sum, entry) => sum + entry.summary.numberedTargets, 0),
+      specialTargets: scenarios.reduce((sum, entry) => sum + entry.summary.specialTargets, 0),
+    },
+    scenarios,
+  };
+
+  const markdown = [
+    '# Jamsil Operator Runtime Check',
+    '',
+    `- Generated at: ${report.generatedAt}`,
+    `- Status: ${report.status}`,
+    '- sourceDataWritePerformed: `false`',
+    '',
+    '## Summary',
+    '',
+    `- scenarios: ${report.summary.scenarioCount}`,
+    `- targets: ${report.summary.targetCount}`,
+    `- passedRows: ${report.summary.passedRows}`,
+    `- failedRows: ${report.summary.failedRows}`,
+    `- numberedTargets: ${report.summary.numberedTargets}`,
+    `- specialTargets: ${report.summary.specialTargets}`,
+    '',
+    ...scenarios.flatMap((entry) => [
+      `## ${entry.scenario}`,
+      '',
+      `- status: ${entry.status}`,
+      `- viewport: ${entry.viewport.width}x${entry.viewport.height}`,
+      '',
+      '| Target | Type | Expected status | Result | Runtime guard | Errors |',
+      '| --- | --- | --- | --- | --- | --- |',
+      ...entry.rows.map((row) => `| ${row.label} | ${row.targetType ?? ''} | ${row.expectedStatus} | ${row.status} | ${row.runtimeGuard ?? ''} | ${(row.errors ?? []).join('<br>')} |`),
+      '',
+    ]),
+    '',
+  ].join('\n');
+
+  await fs.writeFile(reportJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await fs.writeFile(reportMarkdownPath, markdown, 'utf8');
+  return {
+    report,
+    reportJsonPath,
+    reportMarkdownPath,
+  };
+};
+
+const verifyJamsilOperatorRuntimeCheck = async (page, scenario) => {
+  await selectStadiumGuideOption(page, 'JAMSIL');
+  await visibleSeatMapLocator(page).waitFor({ state: 'visible', timeout: 10000 });
+  await visibleTextLocator(page, '잠실 블록 단위 안내도').waitFor({ state: 'visible', timeout: 5000 });
+
+  const rows = [];
+  const generatedAt = new Date().toISOString();
+  if (await page.getByTestId('jamsil-official-seatmap-required').count()) {
+    rows.push({
+      label: 'jamsil-official-seatmap-required',
+      targetType: 'fallback',
+      expectedStatus: 'OPERATOR_PROVIDED',
+      status: 'failed',
+      clicked: false,
+      errors: ['Jamsil official seatmap fallback was visible; operator runtime panel could not be verified.'],
+    });
+    const { reportMarkdownPath } = await writeJamsilOperatorRuntimeReport({ scenario, rows, generatedAt });
+    return {
+      type: 'jamsil-operator-runtime',
+      status: 'failed',
+      hitAreaCount: JAMSIL_OPERATOR_RUNTIME_TARGETS.length,
+      clickedCount: 0,
+      debugScreenshotPath: path.relative(repoRoot, reportMarkdownPath),
+      details: rows,
+    };
+  }
+
+  for (const target of JAMSIL_OPERATOR_RUNTIME_TARGETS) {
+    const row = {
+      label: target.label,
+      targetType: target.targetType,
+      ariaLabel: target.ariaLabel,
+      detail: target.detail,
+      expectedStatus: target.expectedStatus,
+      runtimeGuard: target.runtimeGuard ?? null,
+      clicked: false,
+      status: 'passed',
+      tiles: [],
+      layout: null,
+      errors: [],
+    };
+
+    try {
+      await clickJamsilOperatorRuntimeTarget(page, target);
+      row.clicked = true;
+      const panel = page.locator('[data-testid="jamsil-operator-visit-check"]:visible').first();
+      await panel.waitFor({ state: 'visible', timeout: 5000 });
+      const actualStatus = await panel.getAttribute('data-operator-data-status');
+      row.actualStatus = actualStatus;
+      if (actualStatus !== target.expectedStatus) {
+        throw new Error(`${target.label} data-operator-data-status expected ${target.expectedStatus}, got ${actualStatus}`);
+      }
+
+      for (const tile of target.tiles) {
+        row.tiles.push(await assertJamsilOperatorTile(page, target, tile));
+      }
+      row.layout = await assertJamsilOperatorPanelLayout(page, target);
+    } catch (error) {
+      row.status = 'failed';
+      row.errors.push(error instanceof Error ? error.message : String(error));
+    } finally {
+      await closeVisibleJamsilDetailPanel(page);
+    }
+
+    rows.push(row);
+  }
+
+  const {
+    report,
+    reportMarkdownPath,
+  } = await writeJamsilOperatorRuntimeReport({ scenario, rows, generatedAt });
+
+  return {
+    type: 'jamsil-operator-runtime',
+    status: report.status,
+    hitAreaCount: JAMSIL_OPERATOR_RUNTIME_TARGETS.length,
+    clickedCount: rows.filter((row) => row.clicked).length,
+    debugScreenshotPath: path.relative(repoRoot, reportMarkdownPath),
+    details: rows,
+  };
+};
 
 const verifyJamsilFullOverlayClicks = async (page) => {
   await selectStadiumGuideOption(page, 'JAMSIL');
@@ -4217,6 +4684,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
     return zoom >= 1.19 && (Math.abs(panX) > 1 || Math.abs(panY) > 1);
   }, null, { timeout: 5000 });
 
+  await closeDetailPanel();
   await searchInput.fill('');
 
   const clickDaejeonZoomControl = async (testId) => {
@@ -4464,6 +4932,11 @@ const verifyDaejeonOverlayClicks = async (page) => {
   };
 
   await verifyDaejeonHitAreaContract('outfield-reserved-509__509');
+  await verifyDaejeonHitAreaContract('first-infield-a-109-112-201-212__109');
+  await verifyDaejeonHitAreaContract('skybox-s01-s37__s01');
+  await verifyDaejeonHitAreaContract('first-table-4f-301-413__301');
+  await verifyDaejeonHitAreaContract('first-table-4f-301-413__403');
+  await verifyDaejeonHitAreaContract('first-table-4f-301-413__404');
   await verifyDaejeonHitAreaContract('third-infield-a-113-120-213-225__115');
   await verifyDaejeonHitAreaContract('splash-jacuzzi-425__425');
   await verifyDaejeonHitAreaContract('splash-caravan-426__426');
@@ -4675,6 +5148,8 @@ const verifyDaejeonOverlayClicks = async (page) => {
     { blockId: 'third-infield-b-121-124__121', code: '121' },
     { blockId: 'third-infield-b-121-124__124', code: '124' },
     { blockId: 'cass-cheering-200__200', code: '200' },
+    { blockId: 'first-table-4f-301-413__403', code: '403' },
+    { blockId: 'first-table-4f-301-413__404', code: '404' },
     { blockId: 'innings-vip-400__400', code: '400' },
     { blockId: 'outfield-lawn-500__500', code: '500' },
     { blockId: 'outfield-table-third-501-503__501', code: '501' },
@@ -6125,6 +6600,7 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
 
     if (shouldRunJamsilDeepCheck) {
       await verifyJamsilOverlayClicks(page);
+      qaChecks.push(await verifyJamsilOperatorRuntimeCheck(page, scenario));
     }
 
     if (shouldRunJamsilFullClickCheck) {
@@ -6195,7 +6671,13 @@ const runScenario = async ({ browser, scenario, baseUrl }) => {
 
     const evaluation = evaluateMetrics(scenario, metrics, consoleErrors, failedRequests);
     const seatMapReviewIssues = evaluateSeatMapReviews(seatMapReviews);
-    const issues = [...evaluation.issues, ...seatMapReviewIssues];
+    const qaIssues = qaChecks
+      .filter((check) => check.status !== 'passed')
+      .map((check) => ({
+        message: `${check.type} failed`,
+        details: check.details,
+      }));
+    const issues = [...evaluation.issues, ...seatMapReviewIssues, ...qaIssues];
     return {
       key: scenario.key,
       label: scenario.label,

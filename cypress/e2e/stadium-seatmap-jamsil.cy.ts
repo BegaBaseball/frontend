@@ -22,25 +22,80 @@ function getJamsilScrollable(testId: string) {
     });
 }
 
-function getJamsilOperatorDataStatus() {
-  return cy.get('[data-testid="jamsil-operator-data-status"]', { timeout: 10000 })
-    .first();
+function assertJamsilOperatorConfirmedBlock101Fields() {
+  getJamsilScrollable('jamsil-operator-entrance')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('공식 좌석도 기반 후보');
+    });
+
+  getJamsilScrollable('jamsil-operator-facilities')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('GS25');
+      expect($tile.text()).to.include('도미노피자');
+      expect($tile.text()).to.include('2층 2-3 Gate 인근 화장실');
+      expect($tile.text()).to.include('매표소');
+    });
+
+  getJamsilScrollable('jamsil-operator-notice')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'manual-required');
+      expect($tile.text()).to.include('MANUAL_BASEBALL_DATA_REQUIRED');
+    });
+
+  getJamsilScrollable('jamsil-operator-updated-at')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('2026-06-01');
+    });
 }
 
-function assertJamsilOperatorFallbackFields() {
-  [
-    'jamsil-operator-entrance',
-    'jamsil-operator-facilities',
-    'jamsil-operator-notice',
-    'jamsil-operator-updated-at',
-  ].forEach((testId) => {
-    getJamsilScrollable(testId)
-      .scrollIntoView()
-      .should(($tile) => {
-        expect($tile).to.have.attr('data-operator-field-source', 'manual-required');
-        expect($tile.text()).to.include('MANUAL_BASEBALL_DATA_REQUIRED');
-      });
-  });
+function assertJamsilOperatorConfirmedAccessibleFirstFields() {
+  getJamsilScrollable('jamsil-operator-entrance')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('공식 좌석도 기반 후보');
+    });
+
+  getJamsilScrollable('jamsil-operator-facilities')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('2층 2-3 Gate 인근 화장실');
+      expect($tile.text()).to.include('제2매표소');
+      expect($tile.text()).to.include('KBO 중계 음성 지원 안내데스크');
+    });
+
+  getJamsilScrollable('jamsil-operator-notice')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'manual-required');
+      expect($tile.text()).to.include('MANUAL_BASEBALL_DATA_REQUIRED');
+    });
+
+  getJamsilScrollable('jamsil-operator-updated-at')
+    .scrollIntoView()
+    .should(($tile) => {
+      expect($tile).to.have.attr('data-operator-field-source', 'operator-provided');
+      expect($tile.text()).to.include('2026-06-01');
+    });
+}
+
+function assertJamsilOperatorVisitCheckStatus(status: string) {
+  cy.get('[data-testid="jamsil-operator-visit-check"]', { timeout: 10000 })
+    .should('have.length.greaterThan', 0)
+    .each(($panel) => {
+      expect($panel).to.have.attr('data-operator-data-status', status);
+    });
+  getJamsilScrollable('jamsil-operator-data-status')
+    .scrollIntoView()
+    .should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
 }
 
 function selectJamsilBlock(query: string, itemTestId: string) {
@@ -62,7 +117,7 @@ describe('Stadium SeatMap — Jamsil Operator Visit UX', () => {
     cy.viewport(1280, 720);
   });
 
-  it('101 검색 선택 후 운영자 직관 체크 fallback을 상세 패널에 표시한다', () => {
+  it('101 검색 선택 후 승인 매점과 수기 필요 공지를 상세 패널에 표시한다', () => {
     cy.viewport(1440, 1000);
     interceptGuestSession();
     interceptBaseApis();
@@ -73,25 +128,25 @@ describe('Stadium SeatMap — Jamsil Operator Visit UX', () => {
     cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).filter(':visible').first().scrollIntoView();
     selectJamsilBlock('101', 'jamsil-section-finder-item-block-101');
 
-    cy.contains('h2', '101 블록 1루 레드석', { timeout: 10000 }).should('be.visible');
+    cy.contains('h2', '101 블록 1루 레드석', { timeout: 10000 }).should('exist');
     getVisibleJamsil('jamsil-operator-visit-check')
       .should('contain', '직관 체크')
       .and('contain', '권장 출입구')
       .and('contain', '가까운 매점/편의시설')
       .and('contain', '오늘의 운영 동선 공지')
       .and('contain', '자료 갱신일')
-      .and('contain', '운영자 제공 자료 필요')
+      .and('contain', '공식 좌석도 기반 후보')
+      .and('contain', 'GS25')
+      .and('contain', '도미노피자')
+      .and('contain', '2층 2-3 Gate 인근 화장실')
+      .and('contain', '2026-06-01')
       .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED')
-      .and('not.contain', '팬 구분')
-      .and('not.contain', '층')
-      .and('not.contain', '측');
-    assertJamsilOperatorFallbackFields();
-    getJamsilOperatorDataStatus()
-      .should('exist')
-      .should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+      .and('not.contain', '팬 구분');
+    assertJamsilOperatorConfirmedBlock101Fields();
+    assertJamsilOperatorVisitCheckStatus('OPERATOR_PROVIDED');
   });
 
-  it('모바일 101B 휠체어석 검색 선택 후 하단 시트에도 fallback을 유지한다', () => {
+  it('모바일 101B 휠체어석 검색 선택 후 하단 시트에는 승인 화장실과 수기 필요 공지를 표시한다', () => {
     cy.viewport(390, 844);
     interceptGuestSession();
     interceptBaseApis();
@@ -104,11 +159,11 @@ describe('Stadium SeatMap — Jamsil Operator Visit UX', () => {
 
     getVisibleJamsil('jamsil-seatmap-bottom-sheet')
       .should('contain', '1루 휠체어석')
+      .and('contain', '2층 2-3 Gate 인근 화장실')
+      .and('contain', '오늘의 운영 동선 공지')
       .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
-    assertJamsilOperatorFallbackFields();
-    getJamsilOperatorDataStatus()
-      .should('exist')
-      .should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+    assertJamsilOperatorConfirmedAccessibleFirstFields();
+    assertJamsilOperatorVisitCheckStatus('OPERATOR_PROVIDED');
   });
 });
 

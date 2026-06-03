@@ -105,10 +105,10 @@ export const DAEGU_CANONICAL_BLOCK_DECISION_POLICY = {
 export function normalizeDaeguCanonicalBlockKey(value: string | null | undefined): string {
   return String(value ?? '')
     .toUpperCase()
-    .replaceAll(/\s+/g, '')
-    .replaceAll('-', '')
-    .replaceAll('휠체어', '')
-    .replaceAll('장애인석', '');
+    .replace(/\s+/g, '')
+    .replace(/-/g, '')
+    .replace(/휠체어/g, '')
+    .replace(/장애인석/g, '');
 }
 
 function uniqueSorted<T extends string>(values: Array<T | null | undefined>): T[] {
@@ -137,20 +137,27 @@ function countBy<T>(rows: T[], getKey: (row: T) => string): Record<string, numbe
 }
 
 export function buildDaeguCanonicalBlockDecisionRows(): DaeguCanonicalBlockDecisionInputRow[] {
-  return [
-    ...DAEGU_BLOCKS.map((block) => ({
+  type DaeguCanonicalBlockDecisionSourceRow = Pick<
+    DaeguCanonicalBlockDecisionInputRow,
+    'sourceId' | 'imageWidth' | 'imageHeight' | 'block'
+  >;
+
+  const sourceRows: DaeguCanonicalBlockDecisionSourceRow[] = [
+    ...DAEGU_BLOCKS.map((block): DaeguCanonicalBlockDecisionSourceRow => ({
       sourceId: DAEGU_CANONICAL_OFFICIAL_SOURCE_ID,
       imageWidth: DAEGU_SEATMAP_VIEWPORT.width || DAEGU_SEATMAP_IMAGE.imageWidth,
       imageHeight: DAEGU_SEATMAP_VIEWPORT.height || DAEGU_SEATMAP_IMAGE.imageHeight,
       block,
     })),
-    ...DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block) => ({
+    ...DAEGU_OPERATOR_REFERENCE_BLOCKS.map((block): DaeguCanonicalBlockDecisionSourceRow => ({
       sourceId: DAEGU_CANONICAL_OPERATOR_SOURCE_ID,
       imageWidth: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.width,
       imageHeight: DAEGU_OPERATOR_REFERENCE_SEATMAP_VIEWPORT.height,
       block,
     })),
-  ].map((row) => ({
+  ];
+
+  return sourceRows.map((row) => ({
     ...row,
     blockKey: normalizeDaeguCanonicalBlockKey(row.block.block),
     selectable: isDaeguNormalSelectableSeat(row.block),

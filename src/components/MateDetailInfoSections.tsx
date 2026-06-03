@@ -19,6 +19,7 @@ import {
   getHostAverageRating,
   stripHashtags,
 } from '../utils/mate';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 const LazyMateDetailReviewsSection = lazy(() => import('./MateDetailReviewsSection'));
 
@@ -77,6 +78,7 @@ export default function MateDetailInfoSections({
   const mannerScore = getHostAverageRating(party);
   const mannerScoreLabel = formatHostAverageRating(party);
   const tradeLabel = party.status === 'SELLING' ? '티켓 양도' : '메이트 팟';
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   return (
     <>
@@ -205,7 +207,7 @@ export default function MateDetailInfoSections({
             </InlineBadge>
             <InlineBadge className="dark:border-border dark:text-gray-200">
               <MateMapPinIcon className="h-3 w-3" />
-              {party.stadium}
+              {stadiumDisplayName}
             </InlineBadge>
           </div>
           <Button

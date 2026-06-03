@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 
 import type { AdminSeatView } from '../../types/admin';
+import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { AdminCloseIcon } from './AdminDetailIcons';
 import { Button } from '../ui/button';
 
@@ -83,7 +84,7 @@ export default function AdminSeatViewDetailDrawer({
               </div>
 
               <div className="rounded-lg border border-slate-800 p-3 text-[14px] space-y-2">
-                <p><span className="text-slate-500">구장:</span> <span className="text-slate-200">{selectedSeatViewDetail.stadium}</span></p>
+                <p><span className="text-slate-500">구장:</span> <span className="text-slate-200">{formatStadiumDisplayName(selectedSeatViewDetail.stadium)}</span></p>
                 <p><span className="text-slate-500">좌석:</span> <span className="text-slate-200">{[selectedSeatViewDetail.section, selectedSeatViewDetail.block, selectedSeatViewDetail.seatRow, selectedSeatViewDetail.seatNumber].filter(Boolean).join(' / ') || '-'}</span></p>
                 <p><span className="text-slate-500">업로드 타입:</span> <span className="text-slate-200">{selectedSeatViewDetail.sourceType}</span></p>
                 <p><span className="text-slate-500">리워드 지급:</span> <span className="text-slate-200">{selectedSeatViewDetail.rewardGranted ? '완료' : '미지급'}</span></p>

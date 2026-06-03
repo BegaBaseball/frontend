@@ -46,7 +46,8 @@ function getVisibleIncheon(testId: string) {
 }
 
 function formatBrowserLocalDate(win: Window) {
-  const today = new win.Date();
+  const BrowserDate = (win as Window & typeof globalThis).Date;
+  const today = new BrowserDate();
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');

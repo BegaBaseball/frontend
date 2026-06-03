@@ -809,10 +809,8 @@ describe('Game Prediction', () => {
             expect(extractCoachGameId(autoCoachBody)).to.eq('20240510HHSS0');
         });
 
+        // 다이얼로그를 열면 자동으로 manual_detail 분석이 실행된다 (run-button 제거됨).
         cy.get('[data-testid="coach-analysis-open"]').first().click({ force: true });
-        cy.contains('button', 'AI 코치 경기 예측 시작')
-            .scrollIntoView()
-            .click({ force: true });
 
         cy.wait('@coachAnalyzeManual').then((interception) => {
             manualCoachBody = parseCoachRequestBody(interception.request.body);
@@ -821,7 +819,9 @@ describe('Game Prediction', () => {
             expect(manualCoachBody).to.not.have.property('question_override');
             expect(Array.isArray(manualCoachBody.focus)).to.equal(true);
         });
-        cy.get('@coachAnalyzeManual.all').should('have.length', 2);
+        // 최소 1건의 auto_brief + 1건의 manual_detail 이 발생한다.
+        // (dev StrictMode 는 effect 를 이중 호출하므로 정확 개수 대신 하한으로 단언)
+        cy.get('@coachAnalyzeManual.all').should('have.length.gte', 2);
     });
 
     it('should abort in-flight coach analysis when the dialog closes and keep only the rerun result after reopen', () => {
@@ -901,28 +901,23 @@ describe('Game Prediction', () => {
         cy.tick(300);
         cy.wait(700);
 
+        // 열면 자동 실행 → 첫 manual_detail 요청 발생.
         cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
             .should('be.visible')
             .click({ force: true });
-        cy.get('[data-testid="coach-analysis-run-button"]', { timeout: 10000 })
-            .scrollIntoView()
-            .click({ force: true });
-        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length', 1);
+        // dev StrictMode 이중 호출 대비 하한 단언 (열면 자동실행 1회+).
+        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 1);
 
         cy.get('body').type('{esc}');
         cy.get('[data-testid="coach-analysis-dialog"]').should('not.exist');
 
+        // 다시 열면 자동 재실행 → 두 번째 요청.
         cy.get('[data-testid="coach-analysis-open"]')
             .should('be.visible')
             .click({ force: true });
         getCoachAnalysisDialog().should('be.visible');
-        cy.get('[data-testid="coach-analysis-run-button"]')
-            .scrollIntoView()
-            .click({ force: true });
-        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length', 2);
-
-        cy.wait(500);
-        cy.get('[data-testid="coach-analysis-run-button"]').should('be.disabled');
+        // 재오픈 시 새 요청이 추가 발생 (정확 개수 대신 하한).
+        cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 2);
 
         cy.wait(2200);
         cy.contains('닫기 전 요청 결과').should('not.exist');
@@ -1002,14 +997,11 @@ describe('Game Prediction', () => {
         cy.tick(1000);
         cy.wait(700);
 
+        // 열면 자동 실행 → 로딩 스켈레톤 노출 (run-button 제거됨).
         cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
             .should('be.visible')
             .click({ force: true });
-        cy.get('[data-testid="coach-analysis-run-button"]', { timeout: 10000 })
-            .scrollIntoView()
-            .click({ force: true });
 
-        cy.get('[data-testid="coach-analysis-run-button"]').should('be.disabled');
         cy.contains('감독님이 헤드셋 끼고 준비 중...').should('exist');
         getCoachAnalysisDialog().then(($dialog) => {
             const skeletons = Array.from($dialog[0].querySelectorAll('div')).filter((element) => {
@@ -1020,17 +1012,11 @@ describe('Game Prediction', () => {
         });
 
         cy.wait('@coachAnalyzeMobileResult');
+        // C1 레이아웃: 핵심 결론 band(headline) + 결과 본문 + 코치 판단 섹션 앵커.
         cy.contains('한화 우세, 후반 불펜 관리가 핵심', { timeout: 12000 }).should('exist');
-        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
         cy.get('[role="article"]').should('exist');
-        cy.get('[role="article"] [aria-hidden="true"]').its('length').should('be.gte', 7);
-        cy.contains('span', '0.812 vs 0.744')
-            .invoke('attr', 'class')
-            .should('include', 'text-[22px]')
-            .and('include', 'sm:text-2xl')
-            .and('include', 'font-black')
-            .and('include', 'break-keep')
-            .and('not.include', 'truncate');
+        cy.get('[data-testid="coach-section-verdict"]').should('exist');
+        cy.get('[role="article"] [aria-hidden="true"]').its('length').should('be.gte', 4);
     });
 
     it('should show partial-data reasons in the manual analysis dialog when evidence is limited', () => {
@@ -1082,24 +1068,15 @@ describe('Game Prediction', () => {
         ensureCoachBriefingVisible();
         cy.wait('@coachAnalyzeAutoPartialSeed');
 
+        // 열면 자동 manual_detail 실행 (run-button 제거됨).
         cy.get('[data-testid="coach-analysis-open"]').click({ force: true });
-        cy.get('[data-testid="coach-analysis-run-button"]')
-            .scrollIntoView()
-            .click({ force: true });
 
         cy.wait('@coachAnalyzeManualPartial');
-        cy.get('[data-testid="coach-analysis-data-quality-note"]', { timeout: 10000 })
-            .should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
-        cy.get('[data-testid="coach-analysis-data-quality-badge"]').should('contain', '실데이터 일부 기반');
-        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
-        cy.get('[data-testid="coach-analysis-grounding-reason"]').then(($chips) => {
-            const labels = [...$chips].map((chip) => chip.textContent?.trim());
-            expect(labels).to.deep.equal(['승부처 데이터 부족', '요청 항목 근거 부족']);
-        });
-        cy.get('[data-testid="coach-analysis-grounding-detail"]')
-            .should('have.length', 1)
-            .first()
-            .should('contain', '요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.');
+        // partial 응답에 structured_response 가 있으면 analysisData 가 생성되어
+        // 큰 notice 대신 사이드바 데이터 품질 라벨/메시지로 표시된다 (C1 레이아웃).
+        getCoachAnalysisDialog().should('be.visible');
+        getCoachAnalysisDialog().should('contain', '실데이터 일부 기반');
+        getCoachAnalysisDialog().should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
     });
 
     it('should render scheduled coach copy without jargon regressions in both briefing and manual dialog', () => {
@@ -1301,13 +1278,10 @@ describe('Game Prediction', () => {
             .and('not.contain', '고레버리지')
             .and('not.contain', '핵심 구간를');
         cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 예측').click({ force: true });
-        cy.get('[data-testid="coach-analysis-run-button"]')
-            .should('contain', 'AI 코치 경기 예측 시작')
-            .click({ force: true });
 
         cy.wait('@coachAnalyzeScheduledManualCopy');
-        cy.get('[data-testid="coach-analysis-generation-mode"]').should('not.exist');
-        cy.get('[data-testid="coach-analysis-data-quality-badge"]').should('contain', '실데이터 일부 기반');
+        // partial: 데이터 품질 라벨은 사이드바에 표시 (C1).
+        getCoachAnalysisDialog().should('contain', '실데이터 일부 기반');
         cy.get('[data-testid="coach-analysis-dialog"]')
             .should('contain', '한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.')
             .and('contain', 'SSG 랜더스는 팀 폼 점수 97.4점을 기록하며 최근 흐름이 상승세입니다.')
@@ -1781,7 +1755,7 @@ describe('Game Prediction', () => {
         cy.contains('스코어보드 상세 입력 대기').should('be.visible');
         cy.contains('최종 스코어만 표시 중입니다.').should('be.visible');
         cy.contains('AI 코치 상세 분석은 수동 데이터 입력 후 제공됩니다.').should('be.visible');
-        cy.contains('button', '수동 데이터 필요').should('be.disabled');
+        // manual-data 상태는 비활성 트리거 버튼 대신 인라인 메시지 + 재시도 버튼으로 대체됨.
         cy.contains('button', '데이터 다시 확인').should('be.visible');
         cy.contains('상세 요약을 확인 중입니다.').should('not.exist');
         cy.get('[data-testid="coach-analysis-open"]').should('not.exist');
@@ -1974,5 +1948,237 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="vote-home-btn"]').first().should('be.visible').click({ force: true });
         cy.get('[data-testid="vote-home-btn"]').first().click({ force: true });
         cy.get('@submitVote.all').should('have.length', 1);
+    });
+
+    // ── C1 결과 본문 — 데이터 형태별 렌더 + 에러경로 ─────────────────────
+    describe('coach analysis result — data-shape rendering (C1)', () => {
+        const FULL_ANALYSIS = {
+            summary: '',
+            verdict: 'KT는 **선발 조기 강판**이 패인.',
+            strengths: ['NC 불펜 ERA 1.80'],
+            weaknesses: ['KT 선발 ERA 5.40'],
+            risks: [
+                { area: 'KT 선발 매치업', level: 0, description: '배제성 5회 조기 강판' },
+                { area: '날씨 변수', level: 1, description: '강풍 외야 플라이' },
+                { area: 'NC 마무리 피로도', level: 2, description: '3연투 가능성' },
+            ],
+            why_it_matters: ['선발 ERA 격차가 초반 흐름 결정'],
+            swing_factors: ['7회초 역전 2점 홈런'],
+            watch_points: ['KT 마무리 등판 시점'],
+            uncertainty: ['강풍 영향'],
+        };
+
+        const sse = (obj: Record<string, unknown>) => [
+            'event: meta', `data: ${JSON.stringify(obj)}`, '', 'event: done', 'data: [DONE]', '',
+        ].join('\n');
+
+        const autoSeedSse = sse({
+            request_mode: 'auto_brief', validation_status: 'success', cache_state: 'MISS_GENERATE',
+            structured_response: {
+                headline: '자동 브리핑', sentiment: 'neutral', key_metrics: [],
+                analysis: { summary: '자동', verdict: '자동', strengths: [], weaknesses: [], risks: [] },
+                detailed_markdown: '자동 브리핑', coach_note: '자동 브리핑',
+            },
+        });
+
+        const manualSse = (opts: {
+            analysis?: Record<string, unknown>;
+            winProb?: number | null;
+            manual?: boolean;
+            dataQuality?: string;
+            generationMode?: string;
+            supportedFactCount?: number | null;
+            usedEvidence?: string[];
+        } = {}) => {
+            const {
+                analysis = FULL_ANALYSIS,
+                winProb = 0.62,
+                manual = false,
+                dataQuality = 'grounded',
+                generationMode,
+                supportedFactCount = 7,
+                usedEvidence = ['home_pitcher', 'away_lineup', 'game_summary'],
+            } = opts;
+            if (manual) {
+                return sse({
+                    request_mode: 'manual_detail', validation_status: 'manual_data_required',
+                    generation_mode: 'evidence_fallback', data_quality: 'insufficient',
+                    grounding_warnings: ['야구 데이터 준비가 필요합니다.'],
+                    manual_data_request: {
+                        missing_items: [{ key: 'game_id', label: '경기 ID', reason: '경기 row 부재', expected_format: '20240510HHSS0' }],
+                    },
+                });
+            }
+            const meta: Record<string, unknown> = {
+                request_mode: 'manual_detail', validation_status: 'success',
+                game_status_bucket: 'COMPLETED', data_quality: dataQuality,
+                used_evidence: usedEvidence,
+                structured_response: {
+                    headline: 'NC 다이노스 승리', sentiment: 'negative',
+                    key_metrics: [{ label: '최종 스코어', value: 'NC 8 / KT 5', status: 'danger', trend: 'down', is_critical: true }],
+                    analysis, detailed_markdown: '## 상세\n분석', coach_note: '재정비 필요.',
+                },
+            };
+            if (winProb !== null) meta.win_probability_home = winProb;
+            if (generationMode) meta.generation_mode = generationMode;
+            if (supportedFactCount !== null) meta.supported_fact_count = supportedFactCount;
+            return sse(meta);
+        };
+
+        const interceptCoach = (manualOpts?: Parameters<typeof manualSse>[0], manualStatus = 200) => {
+            cy.intercept('**/api/kbo/rankings/snapshot*', { statusCode: 200, body: meaningfulRegularSeasonRankings })
+                .as('getRankingsDataShape');
+            cy.intercept('POST', '**/coach/analyze*', (req) => {
+                const body = parseCoachRequestBody(req.body);
+                if (body.request_mode === 'manual_detail') {
+                    req.alias = 'coachDataShapeManual';
+                    if (manualStatus !== 200) {
+                        // 스트림 error 이벤트로 비-인증 분석 실패를 모사 → result.error 설정.
+                        req.reply({
+                            statusCode: 200,
+                            headers: { 'content-type': 'text/event-stream' },
+                            body: [
+                                'event: error',
+                                'data: {"message":"분석 중 오류가 발생했습니다."}',
+                                '', '',
+                            ].join('\n'),
+                        });
+                        return;
+                    }
+                    req.reply({ statusCode: 200, headers: { 'content-type': 'text/event-stream' }, body: manualSse(manualOpts) });
+                    return;
+                }
+                req.alias = 'coachDataShapeSeed';
+                req.reply({ statusCode: 200, headers: { 'content-type': 'text/event-stream' }, body: autoSeedSse });
+            });
+        };
+
+        const openCoachDialog = () => {
+            openPredictionPage();
+            cy.wait('@getRankingsDataShape');
+            cy.wait('@getGameDetail');
+            waitForPredictionVoteBootstrap();
+            ensureCoachBriefingVisible();
+            cy.wait('@coachDataShapeSeed');
+            cy.get('[data-testid="coach-analysis-open"]').first().click({ force: true });
+            cy.wait('@coachDataShapeManual');
+        };
+
+        const assertNoLegacyStrings = () => {
+            getCoachAnalysisDialog()
+                .should('not.contain', '분석 기준 팀 선택')
+                .and('not.contain', '분석 대상 팀 선택')
+                .and('not.contain', '분석 집중 항목')
+                .and('not.contain', 'AI 코치 경기 리뷰 시작')
+                .and('not.contain', '리뷰 결과 · 주의 변수');
+        };
+
+        it('renders all C1 sections for full data and hides no legacy UI', () => {
+            interceptCoach();
+            openCoachDialog();
+            cy.get('[role="article"]').should('exist');
+            cy.get('[data-testid="coach-section-verdict"]').should('exist');
+            cy.get('[data-testid="coach-section-insights"]').should('exist');
+            cy.get('[data-testid="coach-section-risks"]').should('exist');
+            cy.contains('NC 다이노스 승리').should('be.visible');
+            assertNoLegacyStrings();
+        });
+
+        it('exposes a11y affordances: focus inside dialog, aria-current, completion live region', () => {
+            interceptCoach();
+            openCoachDialog();
+            // 완료를 스크린리더에 알리는 live region
+            cy.get('[data-testid="coach-analysis-live-status"]').should('contain', '분석이 완료되었습니다');
+            // scroll-spy 활성 nav 는 ARIA 표준값 'location'
+            cy.get('[data-testid="coach-analysis-dialog"] [aria-current="location"]').should('exist');
+            // focus trap: 열린 직후 포커스가 다이얼로그 내부에 위치
+            cy.get('[data-testid="coach-analysis-dialog"]').then(($d) => {
+                cy.focused().then(($f) => {
+                    expect($d[0].contains($f[0]), 'focus inside dialog').to.eq(true);
+                });
+            });
+        });
+
+        it('surfaces evidence transparency: real fact count chip + collapsible source list', () => {
+            interceptCoach();
+            openCoachDialog();
+            // 헤드라인 신뢰 칩: supported_fact_count(7) 기반 실데이터 근거 + 품질 라벨
+            cy.get('[data-testid="coach-evidence-chip"]').should('be.visible')
+                .and('contain', '7개 실데이터 근거')
+                .and('contain', '실데이터 기반');
+            // 사이드바 '근거' 행도 가짜 합산이 아닌 실수치
+            cy.get('[data-testid="coach-evidence-count"]').should('contain', '7건');
+            // 접이식 소스 목록: 펼치면 한글 라벨 노출
+            cy.get('[data-testid="coach-evidence-sources"]').should('exist')
+                .and('contain', '분석에 사용한 근거 3개');
+            cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
+            cy.get('[data-testid="coach-evidence-sources"]')
+                .should('contain', '홈 선발')
+                .and('contain', '원정 라인업')
+                .and('contain', '경기 요약');
+        });
+
+        it('falls back to evidence-source count when supported_fact_count is absent', () => {
+            interceptCoach({ supportedFactCount: null, usedEvidence: ['home_pitcher', 'series_context'] });
+            openCoachDialog();
+            cy.get('[data-testid="coach-evidence-count"]').should('contain', '2건');
+            cy.get('[data-testid="coach-evidence-chip"]').should('contain', '2개 실데이터 근거');
+        });
+
+        it('shows a conservative-summary note for partial/evidence_fallback quality', () => {
+            interceptCoach({ dataQuality: 'partial', generationMode: 'evidence_fallback' });
+            openCoachDialog();
+            cy.get('[data-testid="coach-evidence-chip"]').should('contain', '실데이터 일부 기반');
+            getCoachAnalysisDialog().should('contain', '근거가 제한적이라 보수적으로 요약했습니다.');
+        });
+
+        it('omits the source list when used_evidence is empty', () => {
+            interceptCoach({ usedEvidence: [], supportedFactCount: 4 });
+            openCoachDialog();
+            cy.get('[data-testid="coach-evidence-sources"]').should('not.exist');
+            // fact count 만으로도 카운트/칩은 노출
+            cy.get('[data-testid="coach-evidence-count"]').should('contain', '4건');
+        });
+
+        it('hides insight section when all insight arrays are empty', () => {
+            interceptCoach({ analysis: { ...FULL_ANALYSIS, why_it_matters: [], swing_factors: [], watch_points: [], uncertainty: [], strengths: [], weaknesses: [] } });
+            openCoachDialog();
+            cy.get('[data-testid="coach-section-verdict"]').should('exist');
+            cy.get('[data-testid="coach-section-insights"]').should('not.exist');
+            cy.get('[data-testid="coach-section-risks"]').should('exist');
+            assertNoLegacyStrings();
+        });
+
+        it('hides risk section when risks are empty', () => {
+            interceptCoach({ analysis: { ...FULL_ANALYSIS, risks: [] } });
+            openCoachDialog();
+            cy.get('[data-testid="coach-section-insights"]').should('exist');
+            cy.get('[data-testid="coach-section-risks"]').should('not.exist');
+            assertNoLegacyStrings();
+        });
+
+        it('renders result without win probability when omitted', () => {
+            interceptCoach({ winProb: null });
+            openCoachDialog();
+            cy.get('[role="article"]').should('exist');
+            cy.get('[data-testid="coach-section-verdict"]').should('exist');
+            assertNoLegacyStrings();
+        });
+
+        it('shows manual-data notice and no result body when manual data required', () => {
+            interceptCoach({ manual: true });
+            openCoachDialog();
+            cy.get('[data-testid="coach-analysis-data-quality-note"]', { timeout: 10000 }).should('be.visible');
+            cy.get('[role="article"]').should('not.exist');
+            cy.get('[data-testid="coach-section-verdict"]').should('not.exist');
+        });
+
+        it('shows retry CTA (not login) when manual analysis fails with a non-auth error', () => {
+            interceptCoach(undefined, 500);
+            openCoachDialog();
+            cy.get('[data-testid="coach-analysis-retry-cta"]', { timeout: 10000 }).should('be.visible');
+            cy.get('[data-testid="coach-analysis-login-cta"]').should('not.exist');
+            cy.get('[role="article"]').should('not.exist');
+        });
     });
 });

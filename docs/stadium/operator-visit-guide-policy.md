@@ -29,8 +29,9 @@
 ## 입력 게이트
 
 - 운영자 원본은 런타임에서 직접 읽지 않고, 먼저 구장별 operator intake 명령으로 CSV 입력, 검증 리포트, 수동 적용 계획, handoff 문서를 생성한다.
-- `operator-validate`는 unknown block, missing facility reference, invalid date range, invalid priority, invalid ID pattern, placeholder 혼입, 외부 URL, crawling/scraping/web search 문구를 blocker로 처리한다.
+- `operator-validate`는 unknown block, missing facility reference, invalid date range, invalid priority, invalid ID pattern, placeholder 혼입, 운영자 facility 필수 상세값 누락, 외부 URL, crawling/scraping/web search 문구를 blocker로 처리한다.
 - `operator-apply-plan`은 검증 통과 데이터만 정규화해 수동 적용용 fragment를 생성한다.
+- 구장별 후보 검수표가 있는 경우 후보 검수 게이트는 확정 row 필수값과 런타임 미승격 상태를 함께 확인한다.
 - 입력 게이트 명령은 구장별 정적 source file을 자동으로 수정하지 않는다. source write는 내부 검수 후 별도 코드 변경으로만 처리한다.
 - 게이트 상태가 `waiting_for_operator` 또는 `blocked`이면 UI는 기존 `MANUAL_BASEBALL_DATA_REQUIRED` fallback을 유지한다.
 

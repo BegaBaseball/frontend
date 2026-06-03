@@ -11,7 +11,7 @@ export function StadiumSeatMapLoadingSkeleton({ label, stadiumName }: StadiumSea
   return (
     <div
       data-testid="stadium-seatmap-loading"
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5"
+      className="stadium-seatmap-state-card overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5"
       role="status"
       aria-live="polite"
     >
@@ -27,19 +27,19 @@ export function StadiumSeatMapLoadingSkeleton({ label, stadiumName }: StadiumSea
             </p>
           )}
         </div>
-        <div className="h-8 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
+        <div className="stadium-seatmap-state-block h-8 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
       </div>
-      <div className="min-h-[320px] animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950">
-        <div className="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="stadium-seatmap-state-inner min-h-[320px] animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950">
+        <div className="stadium-seatmap-state-block h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
-          <div className="h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
-          <div className="h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-24 rounded-lg bg-slate-200/80 dark:bg-slate-800" />
         </div>
         <div className="mt-5 space-y-3">
-          <div className="h-3 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
-          <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
-          <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-3 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="stadium-seatmap-state-block h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-800" />
         </div>
       </div>
     </div>
@@ -50,7 +50,7 @@ export function StadiumSeatMapManualRequired({ stadiumName }: StadiumSeatMapStat
   return (
     <div
       data-testid="stadium-seatmap-manual-required"
-      className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 px-5 py-10 text-center shadow-sm dark:border-amber-700/70 dark:bg-amber-950/20"
+      className="stadium-seatmap-state-card flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 px-5 py-10 text-center shadow-sm dark:border-amber-500/40 dark:bg-amber-950/20"
       role="status"
       aria-live="polite"
     >
@@ -77,7 +77,7 @@ export function StadiumSeatMapErrorFallback({
   return (
     <div
       data-testid="stadium-seatmap-error"
-      className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50/70 px-5 py-10 text-center shadow-sm dark:border-red-800/70 dark:bg-red-950/20"
+      className="stadium-seatmap-state-card flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50/70 px-5 py-10 text-center shadow-sm dark:border-red-400/40 dark:bg-red-950/20"
       role="alert"
     >
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">

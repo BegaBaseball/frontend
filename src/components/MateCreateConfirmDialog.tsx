@@ -1,6 +1,7 @@
 import { Button } from './ui/button';
 import TeamLogo from './TeamLogo';
 import { TEAMS } from '../utils/constants';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import type { PartyFormData } from '../utils/mateCreateDraft';
 
 interface MateCreateConfirmDialogProps {
@@ -63,7 +64,7 @@ export default function MateCreateConfirmDialog({
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">경기장</span>
-                <span className="break-words font-semibold sm:text-right">{formData.stadium}</span>
+                <span className="break-words font-semibold sm:text-right">{formatStadiumDisplayName(formData.stadium)}</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">좌석</span>

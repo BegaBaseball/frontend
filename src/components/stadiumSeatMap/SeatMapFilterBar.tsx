@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SeatMapFilterGroup, SeatMapThemeMode } from './seatMapCommonTypes';
+import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
 interface SeatMapFilterBarProps {
   groups: readonly SeatMapFilterGroup[];
@@ -40,6 +41,9 @@ export function SeatMapFilterBar({
     const active = group.id === selectedId;
     const groupState = getGroupState?.(group);
     const disabled = Boolean(groupState?.disabled);
+    const inactiveBorder = mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.border : '#e2e8f0';
+    const inactiveText = mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#334155';
+    const disabledText = mode === 'dark' ? 'rgba(169, 184, 177, 0.46)' : '#cbd5e1';
     return (
       <button
         key={group.id}
@@ -53,8 +57,8 @@ export function SeatMapFilterBar({
         className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
         style={{
           background: active ? accentColor : 'transparent',
-          borderColor: active ? accentColor : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-          color: active ? '#fff' : disabled ? (mode === 'dark' ? '#475569' : '#cbd5e1') : (mode === 'dark' ? '#94a3b8' : '#334155'),
+          borderColor: active ? accentColor : inactiveBorder,
+          color: active ? '#fff' : disabled ? disabledText : inactiveText,
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.62 : 1,
         }}
@@ -71,7 +75,7 @@ export function SeatMapFilterBar({
       <div key={dim} className="flex items-center gap-1.5 flex-wrap">
         <span
           className="text-[11px] shrink-0 text-right w-7"
-          style={{ color: mode === 'dark' ? '#64748b' : '#94a3b8' }}
+          style={{ color: mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#94a3b8' }}
         >
           {DIMENSION_LABELS[dim]}
         </span>
@@ -120,8 +124,8 @@ export function SeatMapFilterBar({
             onClick={() => setShowSecondary(v => !v)}
             className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all"
             style={{
-              borderColor: isExpanded ? accentColor : (mode === 'dark' ? '#334155' : '#e2e8f0'),
-              color: isExpanded ? accentColor : (mode === 'dark' ? '#64748b' : '#94a3b8'),
+              borderColor: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.border : '#e2e8f0'),
+              color: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#94a3b8'),
               background: 'transparent',
             }}
             aria-expanded={isExpanded}

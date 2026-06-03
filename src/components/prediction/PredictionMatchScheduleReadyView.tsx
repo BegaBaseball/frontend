@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 
 import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import { normalizePredictionDate } from '../../utils/predictionHomeLogic';
 import {
   PREDICTION_RUN_SESSION_EVENT,
   hasPredictionRunSession,
@@ -65,13 +66,16 @@ export default function PredictionMatchScheduleReadyView({
   const [InteractiveRuntimeComponent, setInteractiveRuntimeComponent] = useState<ComponentType | null>(null);
   const currentGameId = currentGame?.gameId;
 
-  const deepLinkGameId = useMemo(() => {
-    const queryGameId = searchParams.get('gameId')?.trim() || '';
+  const queryGameId = useMemo(() => searchParams.get('gameId')?.trim() || '', [searchParams]);
+  const stateDeepLinkGameId = useMemo(() => {
     const stateGameId = (locationState?.gameId || '').trim();
     const stateSeedGameId = (locationState?.game?.gameId || '').trim();
 
-    return queryGameId || stateGameId || stateSeedGameId;
-  }, [locationState?.game?.gameId, locationState?.gameId, searchParams]);
+    return stateGameId || stateSeedGameId;
+  }, [locationState?.game?.gameId, locationState?.gameId]);
+  const deepLinkGameId = useMemo(() => {
+    return queryGameId || stateDeepLinkGameId;
+  }, [queryGameId, stateDeepLinkGameId]);
 
   const isDeepLinkMatchSelection = useMemo(() => {
     if (!deepLinkGameId || !currentGameId) {
@@ -89,6 +93,12 @@ export default function PredictionMatchScheduleReadyView({
       setHasEnteredMatchDetail(true);
     }
   }, [isDeepLinkMatchSelection]);
+
+  useEffect(() => {
+    if (!queryGameId && !stateDeepLinkGameId) {
+      setHasEnteredMatchDetail(false);
+    }
+  }, [queryGameId, stateDeepLinkGameId]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -131,10 +141,24 @@ export default function PredictionMatchScheduleReadyView({
       if (targetDate) {
         nextSearchParams.set('date', targetDate);
       }
-      setSearchParams(nextSearchParams, { replace: true });
+      setSearchParams(nextSearchParams, queryGameId ? { replace: true } : undefined);
     }
     setHasEnteredMatchDetail(true);
-  }, [currentDate, searchParams, setSearchParams]);
+  }, [currentDate, queryGameId, searchParams, setSearchParams]);
+
+  const handlePreviewGoToDate = useCallback((targetDate: string) => {
+    const normalizedDate = normalizePredictionDate(targetDate);
+    if (!normalizedDate) {
+      void goToDate(targetDate);
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('date', normalizedDate);
+    nextSearchParams.delete('gameId');
+    setSearchParams(nextSearchParams, { replace: true });
+    void goToDate(normalizedDate);
+  }, [goToDate, searchParams, setSearchParams]);
 
   const shouldRenderMatchCard =
     !isDeepLinkGameMismatch
@@ -197,7 +221,7 @@ export default function PredictionMatchScheduleReadyView({
             deepLinkNotice={deepLinkNotice}
             goToPreviousDate={goToPreviousDate}
             goToNextDate={goToNextDate}
-            goToDate={goToDate}
+            goToDate={handlePreviewGoToDate}
             currentGameId={currentGameId}
             pastRangeLoadState={pastRangeLoadState}
             pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}

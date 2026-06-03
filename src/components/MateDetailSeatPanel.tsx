@@ -1,4 +1,5 @@
 import { KBO_STADIUMS } from '../utils/stadiumData';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { Button } from './ui/plain-button';
 import PlainDialog from './ui/plain-dialog';
 import SeatViewGallery from './SeatViewGallery';
@@ -31,6 +32,7 @@ export default function MateDetailSeatPanel({
   onClose,
 }: MateDetailSeatPanelProps) {
   const currentZone = resolveSeatZone(stadium, section);
+  const stadiumDisplayName = formatStadiumDisplayName(stadium);
 
   return (
     <PlainDialog
@@ -51,7 +53,7 @@ export default function MateDetailSeatPanel({
             <p className="mt-2 text-base font-semibold text-gray-900 dark:text-white">{section}</p>
             <div className="mt-2 flex items-center gap-2 text-[16px] text-gray-600 dark:text-gray-300">
               <MateMapPinIcon className="h-4 w-4 text-primary" />
-              <span>{stadium}</span>
+              <span>{stadiumDisplayName}</span>
             </div>
           </div>
           {currentZone ? (

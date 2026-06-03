@@ -3,6 +3,7 @@ import { Card } from './ui/card';
 import TeamLogo from './TeamLogo';
 import { getFullTeamName } from '../constants/teams';
 import { ArrowRightIcon, ClockIcon, MapPinIcon } from './icons/PublicShellIcons';
+import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
 interface GameCardProps {
   game: {
@@ -434,7 +435,7 @@ export default function GameCard({ game, featured = false, variant = 'default', 
     const homeStatusTone = getHomeStatusTone(statusCode, isResultPending);
     const homeStatusText = resolveMeaningfulStatusLabel(game.gameStatusKr, rawStatus) || homeStatusTone.label;
     const displayTime = game.time?.trim() || '시간 미정';
-    const displayStadium = (game.stadium ?? '').replace('구장', '').trim() || '구장 미정';
+    const displayStadium = formatStadiumDisplayName(game.stadium) || '구장 미정';
     const meaningfulGameInfo = game.gameInfo?.trim() && game.gameInfo.trim() !== '정보 없음'
       ? game.gameInfo.trim()
       : null;
@@ -677,7 +678,7 @@ export default function GameCard({ game, featured = false, variant = 'default', 
         <div className={`flex min-w-0 items-center justify-between gap-2 ${isHomeVariant ? 'mb-4' : 'mb-5'}`}>
           <div className="flex min-w-0 items-center gap-2">
             <span className={`min-w-0 truncate bg-muted px-2 py-1 rounded border border-border/80 font-semibold text-muted-foreground ${isHomeVariant ? 'text-[14px] sm:text-[15px]' : 'text-[16px]'}`}>
-              {(game.stadium ?? '').replace('구장', '')}
+              {formatStadiumDisplayName(game.stadium) || '구장 미정'}
             </span>
             <span className={`shrink-0 font-mono text-muted-foreground ${isHomeVariant ? 'text-[14px] sm:text-[15px]' : 'text-[16px]'}`}>
               {game.time}
