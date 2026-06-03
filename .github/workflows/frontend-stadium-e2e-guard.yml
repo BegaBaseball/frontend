@@ -31,8 +31,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Load public map env
+        id: map-env
         shell: bash
         env:
+          IS_FORK_PULL_REQUEST: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           VITE_KAKAO_MAP_KEY_FALLBACK: ${{ vars.VITE_KAKAO_MAP_KEY || secrets.VITE_KAKAO_MAP_KEY }}
           VITE_KAKAO_API_KEY_FALLBACK: ${{ vars.VITE_KAKAO_API_KEY || secrets.VITE_KAKAO_API_KEY }}
         run: |
@@ -45,6 +47,11 @@ jobs:
             api_key="${file_api_key:-${api_key}}"
           fi
           if [[ -z "${map_key}" && -z "${api_key}" ]]; then
+            if [[ "${IS_FORK_PULL_REQUEST}" == "true" ]]; then
+              echo "skip_env_gated=true" >> "${GITHUB_OUTPUT}"
+              echo "Fork PR cannot access map env via vars/secrets; skipping Stadium E2E env-gated steps." >&2
+              exit 0
+            fi
             echo "Missing map env: configure GitHub Actions variable or secret VITE_KAKAO_MAP_KEY or VITE_KAKAO_API_KEY." >&2
             exit 1
           fi
@@ -54,8 +61,17 @@ jobs:
           if [[ -n "${api_key}" ]]; then
             printf 'VITE_KAKAO_API_KEY=%s\n' "${api_key}" >> "${GITHUB_ENV}"
           fi
+          echo "skip_env_gated=false" >> "${GITHUB_OUTPUT}"
+
+      - name: Explain fork PR Stadium skip
+        if: steps.map-env.outputs.skip_env_gated == 'true'
+        shell: bash
+        run: |
+          echo "### Frontend Stadium E2E Guard" >> "${GITHUB_STEP_SUMMARY}"
+          echo "Skipped env-gated Stadium E2E because this pull request comes from a fork and map env values are unavailable to pull_request workflows." >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Validate map env
+        if: steps.map-env.outputs.skip_env_gated != 'true'
         shell: bash
         run: |
           if [[ -z "${VITE_KAKAO_MAP_KEY}" && -z "${VITE_KAKAO_API_KEY}" ]]; then
@@ -64,6 +80,7 @@ jobs:
           fi
 
       - name: Setup Node.js 22
+        if: steps.map-env.outputs.skip_env_gated != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -71,18 +88,21 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        if: steps.map-env.outputs.skip_env_gated != 'true'
         run: npm ci
 
       - name: Install Cypress binary
+        if: steps.map-env.outputs.skip_env_gated != 'true'
         continue-on-error: true
         shell: bash
         run: npm run cy:install
 
       - name: Run Stadium Cypress spec
+        if: steps.map-env.outputs.skip_env_gated != 'true'
         run: npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
 
       - name: Upload Cypress artifacts
-        if: always()
+        if: always() && steps.map-env.outputs.skip_env_gated != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-stadium-e2e-artifacts
