@@ -46,6 +46,24 @@ const selectDaejeonStadium = () => {
   cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).scrollIntoView();
 };
 
+describe('Stadium SeatMap — Split Spec Smoke', () => {
+  beforeEach(() => {
+    cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
+  });
+
+  it('split stadium seatmap specs keep the default Jamsil seatmap smoke green', () => {
+    interceptGuestSession();
+    interceptBaseApis();
+    cy.visit('/stadium');
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('[data-testid="jamsil-seatmap-zoom-in"]', { timeout: 10000 })
+      .filter(':visible')
+      .first()
+      .should('be.visible');
+  });
+});
+
 // -----------------------------------------------------------------
 // Suite 1 — Zoom Controls
 // Primary: Daegu (MIN=1, MAX=3). Smoke: Jamsil, Gwangju, Incheon.

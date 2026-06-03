@@ -1566,11 +1566,11 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [103, 523, 76],
     [91, 482, 76],
   ], 30, 22, 0, 8);
-  addManualPath(map, 'third-table-4f-414-330', '326', [[144, 620], [156, 617], [162, 623], [169, 650], [160, 654]], 158.3, 635.8, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '327', [[133, 595], [150, 587], [160, 615], [144, 620]], 141, 608, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '328', [[139, 552], [152, 580], [131, 589], [118, 562]], 130, 577, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '329', [[126, 521], [137, 548], [116, 557], [104, 531]], 116, 543, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '330', [[111, 488], [123, 515], [101, 524], [87, 492]], 103, 505, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '326', [[130, 623], [160, 616], [170, 650], [137, 664]], 151, 643, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '327', [[119, 592], [150, 586], [161, 616], [128, 626]], 141, 608, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '328', [[109, 561], [140, 554], [151, 586], [119, 595]], 130, 577, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '329', [[96, 527], [128, 520], [139, 552], [106, 561]], 116, 543, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '330', [[84, 489], [116, 483], [127, 514], [95, 525], [87, 511]], 103, 505, { labelFontSize: 8 });
 
   addManualPath(map, 'innings-vip-400', '400', [[826, 503], [855, 509], [807, 616], [781, 608]], 814, 560, {
     shortLabel: '400',
