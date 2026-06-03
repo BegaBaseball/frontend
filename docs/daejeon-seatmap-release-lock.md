@@ -146,23 +146,23 @@ operator handoff는 change guard를 먼저 통과한 뒤 `reports/stadium/daejeo
 
 ```bash
 npm run stadium:daejeon:operator-approval
-node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status
-node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"
+npm run stadium:daejeon:operator-approval:status
+npm run stadium:daejeon:operator-approval:approve -- --approved-by "seatmap-ops-reviewer" --notes "검수 완료"
 ```
 
-operator approval은 handoff를 최신화한 뒤 `reports/stadium/daejeon-seatmap-operator-approval.json`을 생성하거나 검증한다. 기본 상태는 `PENDING_OPERATOR_APPROVAL`이며, 운영자는 JSON을 직접 편집하지 않고 `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve`로 `APPROVED`, `approvedBy`, `approvedAt`, `notes`를 기록한다. 승인된 handoff/release gate hash가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패하고 운영 릴리즈를 차단한다.
+operator approval은 handoff를 최신화한 뒤 `reports/stadium/daejeon-seatmap-operator-approval.json`을 생성하거나 검증한다. 기본 상태는 `PENDING_OPERATOR_APPROVAL`이며, 운영자는 JSON을 직접 편집하지 않고 `npm run stadium:daejeon:operator-approval:approve -- --approved-by ...`로 `APPROVED`, `approvedBy`, `approvedAt`, `notes`를 기록한다. 승인된 handoff/release gate hash가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패하고 운영 릴리즈를 차단한다.
 
-승인 명령의 `--approved-by`는 필수이며, `--notes`는 운영 검수 메모를 남길 때 사용한다.
+승인 명령의 `--approved-by`는 필수이며, `operator-name`, `<operator name>`, `TODO` 같은 placeholder 값은 차단한다. `--notes`는 운영 검수 메모를 남길 때 사용한다.
 
 배포 승인 확인:
 
 ```bash
 node --test scripts/daejeon-seatmap-operator-approval.test.mjs
-node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify
+npm run stadium:daejeon:operator-approval:verify
 npm run qa:stadium:daejeon:release-approved
 ```
 
-`node --test scripts/daejeon-seatmap-operator-approval.test.mjs`는 임시 디렉터리 fixture에서 approval 생성/status/approve/verify/stale 동작을 검증하며 운영 approval JSON을 수정하지 않는다. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify`는 `--require-approved` 모드로 실행되며 `PENDING_OPERATOR_APPROVAL`을 배포 승인으로 인정하지 않는다. `qa:stadium:daejeon:release-approved`는 마지막 release gate 이후 watched 파일 변경 여부를 먼저 확인한 뒤, 현재 handoff/release gate hash와 승인 파일 hash가 같은지 검증한다.
+`node --test scripts/daejeon-seatmap-operator-approval.test.mjs`는 임시 디렉터리 fixture에서 approval 생성/status/approve/verify/stale 동작을 검증하며 운영 approval JSON을 수정하지 않는다. `npm run stadium:daejeon:operator-approval:verify`는 `--require-approved` 모드로 실행되며 `PENDING_OPERATOR_APPROVAL`을 배포 승인으로 인정하지 않는다. `qa:stadium:daejeon:release-approved`는 먼저 `change-guard`로 마지막 release gate 이후 watched 파일 변경 여부를 확인하고, 그 다음 `operator-approval --require-approved`로 현재 handoff/release gate hash와 승인 파일 hash, `APPROVED` 상태, non-placeholder `approvedBy`, 유효한 `approvedAt`을 검증한다.
 
 release gate 리포트의 `operatorApproval` 섹션은 approval 파일 경로, 현재 상태, 승인자, 승인시각을 요약해 보여준다. release-lock does not require operator approval; 최종 hash 검증과 승인 완료 강제는 `npm run qa:stadium:daejeon:release-approved`에서만 수행한다.
 
@@ -170,9 +170,9 @@ release gate 리포트의 `operatorApproval` 섹션은 approval 파일 경로, �
 
 1. `npm run qa:stadium:daejeon:release-lock`
 2. `npm run stadium:daejeon:operator-approval`
-3. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status`
+3. `npm run stadium:daejeon:operator-approval:status`
 4. 운영자가 handoff/evidence/browser QA summary를 검토한다.
-5. `node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve -- --approved-by "operator-name" --notes "검수 완료"`
+5. `npm run stadium:daejeon:operator-approval:approve -- --approved-by "seatmap-ops-reviewer" --notes "검수 완료"`
 6. `npm run qa:stadium:daejeon:release-approved`
 7. 위 명령이 통과한 산출물만 배포 승인 상태로 본다.
 

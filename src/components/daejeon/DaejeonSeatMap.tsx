@@ -199,6 +199,7 @@ function SectionFinder({
   onSearchChange,
   onSelect,
   onHover,
+  autoFocusInput = false,
 }: {
   blocks: DaejeonBlock[];
   totalCount: number;
@@ -208,6 +209,7 @@ function SectionFinder({
   onSearchChange: (value: string) => void;
   onSelect: (section: DaejeonBlock) => void;
   onHover: (id: string | null) => void;
+  autoFocusInput?: boolean;
 }) {
   const hasSearch = searchTerm.trim().length > 0;
   const sectionGroups = DAEJEON_OFFICIAL_SECTION_GROUPS.flatMap((group) => (
@@ -239,6 +241,7 @@ function SectionFinder({
           type="search"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
+          autoFocus={autoFocusInput}
           placeholder="구역명, 블록 검색"
           className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
         />
@@ -486,6 +489,8 @@ export default function DaejeonSeatMap() {
   const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({ blockId: null, requestId: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
+  const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
   const {
     selected,
     setSelected,
@@ -511,6 +516,12 @@ export default function DaejeonSeatMap() {
     },
   });
   const { isMobile, isFullscreenOpen, closeFullscreen } = useSeatMapTemplateShellState();
+
+  useEffect(() => {
+    if (!selected) {
+      setIsSectionFinderOpen(true);
+    }
+  }, [selected]);
   const hasOfficialBlocks = DAEJEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEJEON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? DAEJEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#F37321';
@@ -575,24 +586,42 @@ export default function DaejeonSeatMap() {
   const handleCloseSection = useCallback(() => {
     setSelected(null);
     setFinderSelectedBlockId(null);
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(false);
   }, []);
+
+  const handleOpenSectionFinderSearch = useCallback(() => {
+    setIsSectionFinderOpen(true);
+    setSectionFinderAutoFocus(true);
+    if (isMobile) {
+      setSelected(null);
+      setFinderSelectedBlockId(null);
+      setHover(null);
+    }
+  }, [isMobile, setHover, setSelected]);
 
   const handleSelectSection = useCallback((section: DaejeonBlock) => {
     if (!isDaejeonSelectableSeatBlock(section)) {
       setSelected(null);
       setFinderSelectedBlockId(null);
       setHover(null);
+      setIsSectionFinderOpen(true);
+      setSectionFinderAutoFocus(false);
       return;
     }
 
     if (selected?.id === section.id) {
       setSelected(null);
       setFinderSelectedBlockId(null);
+      setIsSectionFinderOpen(true);
+      setSectionFinderAutoFocus(false);
       return;
     }
 
     setSelected(section);
     setFinderSelectedBlockId(section.id);
+    setIsSectionFinderOpen(false);
+    setSectionFinderAutoFocus(false);
     setHover(section.id);
     setZoom((currentZoom) => {
       const targetZoom = isDenseTouchTarget(section) ? MAX_ZOOM : Math.max(currentZoom, FINDER_FOCUS_ZOOM);
@@ -607,6 +636,8 @@ export default function DaejeonSeatMap() {
   const handleMapSelectSection = useCallback((section: DaejeonBlock | null) => {
     setFinderSelectedBlockId(null);
     setSelected(section);
+    setIsSectionFinderOpen(!section);
+    setSectionFinderAutoFocus(false);
   }, []);
 
   useEffect(() => {
@@ -689,7 +720,7 @@ export default function DaejeonSeatMap() {
       testIdPrefix="daejeon"
     />
   );
-  const sectionFinder = (
+  const sectionFinder = isSectionFinderOpen ? (
     <SectionFinder
       blocks={visibleBlocks}
       totalCount={DAEJEON_BLOCKS.length}
@@ -699,8 +730,9 @@ export default function DaejeonSeatMap() {
       onSearchChange={setSearchTerm}
       onSelect={handleSelectSection}
       onHover={setHover}
+      autoFocusInput={sectionFinderAutoFocus}
     />
-  );
+  ) : null;
 
   const mapContent = (
     <div className="relative">
@@ -742,6 +774,12 @@ export default function DaejeonSeatMap() {
       getUploadLabel={(section) => (
         isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
       )}
+      searchAction={{
+        label: '구역 검색',
+        ariaLabel: '대전 구역 검색 열기',
+        onClick: handleOpenSectionFinderSearch,
+        testId: 'daejeon-seatmap-search-open',
+      }}
     />
   ) : null;
 
@@ -781,6 +819,12 @@ export default function DaejeonSeatMap() {
             getUploadLabel={(section) => (
               isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
             )}
+            searchAction={{
+              label: '구역 검색',
+              ariaLabel: '대전 구역 검색 열기',
+              onClick: handleOpenSectionFinderSearch,
+              testId: 'daejeon-seatmap-mobile-search-open',
+            }}
           />
         )}
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}

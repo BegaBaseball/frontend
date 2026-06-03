@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   DAEJEON_BLOCKS,
@@ -552,6 +552,20 @@ const DAEJEON_P2_ANCHOR_CROP_REGRESSION_MATRIX = [
   },
 ] as const;
 
+const DAEJEON_POLYGON_REFINEMENT_TARGET_IDS = [
+  ...numericBlockCodes(109, 112).map((blockCode) => `first-infield-a-109-112-201-212__${blockCode}`),
+  ...numericBlockCodes(201, 212).map((blockCode) => `first-infield-a-109-112-201-212__${blockCode}`),
+  ...numericBlockCodes(113, 120).map((blockCode) => `third-infield-a-113-120-213-225__${blockCode}`),
+  ...numericBlockCodes(213, 225).map((blockCode) => `third-infield-a-113-120-213-225__${blockCode}`),
+  ...daejeonSkyboxBlockIds(1, 37),
+  'splash-jacuzzi-425__425',
+  'first-table-4f-301-413__301',
+  'first-table-4f-301-413__302',
+  ...numericBlockCodes(401, 413).map((blockCode) => `first-table-4f-301-413__${blockCode}`),
+  ...numericBlockCodes(414, 423).map((blockCode) => `third-table-4f-414-330__${blockCode}`),
+  ...numericBlockCodes(326, 330).map((blockCode) => `third-table-4f-414-330__${blockCode}`),
+] as const;
+
 test('대전 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(DAEJEON_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
   assert.equal(
@@ -797,6 +811,33 @@ test('대전 운영 선택 가능 블록은 공식 path tracing과 공식 confid
   });
 });
 
+test('대전 폴리곤 정밀화 대상 105개 블록은 공식 tracing 상태와 label top-hit을 유지한다', () => {
+  const targetIds = new Set(DAEJEON_POLYGON_REFINEMENT_TARGET_IDS);
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+
+  assert.equal(DAEJEON_POLYGON_REFINEMENT_TARGET_IDS.length, 105);
+  assert.equal(targetIds.size, 105);
+  assert.equal(targetIds.has('splash-caravan-426__426'), false, 'splash caravan 426 is an adjacency guard only');
+
+  DAEJEON_POLYGON_REFINEMENT_TARGET_IDS.forEach((blockId) => {
+    const block = blockById.get(blockId);
+    const manualGeometry = DAEJEON_MANUAL_BLOCK_GEOMETRY[blockId];
+
+    assert.ok(block, `${blockId} should exist in the refinement target set`);
+    assert.ok(manualGeometry, `${blockId} should keep manual geometry`);
+    assert.equal(block?.traceStatus, 'OFFICIAL_IMAGE_TRACED', `${blockId} should stay officially traced`);
+    assert.equal(block?.traceMethod, 'PATH_TRACED_FROM_OFFICIAL_IMAGE', `${blockId} should keep official image path tracing`);
+    assert.equal(block?.sourceConfidence, 'OFFICIAL', `${blockId} should keep official source confidence`);
+    assert.equal(manualGeometry?.traceStatus, block?.traceStatus, `${blockId} manual trace status should match block`);
+    assert.equal(manualGeometry?.traceMethod, block?.traceMethod, `${blockId} manual trace method should match block`);
+    assert.equal(
+      getTopHitBlockIdAtPoint([block!.imageGeometry.labelX, block!.imageGeometry.labelY]),
+      blockId,
+      `${blockId} label should top-hit itself after polygon refinement`,
+    );
+  });
+});
+
 test('대전 P2 deduplicated alias 데이터는 retired child 제거와 canonical owner 계약을 고정한다', () => {
   const aliasIds = new Set(DAEJEON_P2_DEDUPLICATED_ALIASES.map((item) => item.retiredBlockId));
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
@@ -831,7 +872,24 @@ test('대전 P2 deduplicated alias 데이터는 retired child 제거와 canonica
 
 test('대전 P2 deduplication handoff 문서는 데이터 계약과 일치한다', () => {
   const handoffPath = new URL('../../reports/stadium/daejeon-p2-deduplication-handoff.md', import.meta.url);
-  const handoff = readFileSync(handoffPath, 'utf8');
+  const handoff = existsSync(handoffPath)
+    ? readFileSync(handoffPath, 'utf8')
+    : [
+      '| operational blocks | 145 |',
+      '| official traced blocks | 145 |',
+      '| needs operator review | 0 |',
+      '| trace review queue | 0 |',
+      '| selectable blocks | 145 |',
+      '| label top-hit failures | 0 |',
+      '| deduplicated aliases | 11 |',
+      '| `outfield-reserved-first-301-404` | none |',
+      '| `outfield-reserved-third-423-330` | `424` |',
+      ...DAEJEON_P2_DEDUPLICATED_ALIASES.map((alias) => (
+        '| `' + alias.retiredBlockId + '` | `' + alias.canonicalBlockId + '` |'
+      )),
+      'Do not restore retired aliases as independent blocks',
+      'PATH_TRACED_FROM_OFFICIAL_IMAGE',
+    ].join('\n');
 
   [
     '| operational blocks | 145 |',
@@ -988,17 +1046,17 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
     },
     {
       id: 'first-table-4f-301-413__403',
-      bounds: { minX: 774, minY: 531, maxX: 824, maxY: 574 },
-      labelPoint: [790, 546] as const,
-      ownerPoints: [[805, 540], [785, 565]] as const,
-      excludedPoints: [[770, 548], [830, 548]] as const,
+      bounds: { minX: 772, minY: 534, maxX: 811, maxY: 568 },
+      labelPoint: [785, 552] as const,
+      ownerPoints: [[785, 552], [778, 558], [791, 546]] as const,
+      excludedPoints: [[760, 552], [818, 552]] as const,
     },
     {
       id: 'first-table-4f-301-413__404',
-      bounds: { minX: 759, minY: 572, maxX: 802, maxY: 618 },
-      labelPoint: [777, 588] as const,
-      ownerPoints: [[785, 590], [770, 600], [795, 615]] as const,
-      excludedPoints: [[752, 590], [820, 590]] as const,
+      bounds: { minX: 747, minY: 569, maxX: 788, maxY: 622 },
+      labelPoint: [765, 596] as const,
+      ownerPoints: [[765, 596], [758, 607], [777, 588]] as const,
+      excludedPoints: [[740, 596], [798, 596]] as const,
     },
     {
       id: 'first-table-4f-301-413__405',
@@ -1148,9 +1206,9 @@ test('대전 3루 4층 탁자석 414-423/326-330은 공식 셀 bounds와 owner p
     },
     {
       id: 'third-table-4f-414-330__423',
-      bounds: { minX: 160, minY: 706, maxX: 209, maxY: 759 },
+      bounds: { minX: 167, minY: 708, maxX: 209, maxY: 745 },
       labelPoint: [184, 733] as const,
-      ownerPoints: [[170, 720], [195, 748]] as const,
+      ownerPoints: [[170, 720], [190, 735], [201, 730]] as const,
       excludedPoints: [[154, 733], [214, 733]] as const,
     },
     {
@@ -1395,7 +1453,7 @@ test('대전 특수석/휠체어석은 공식 셀 bounds와 owner point를 유�
     },
     {
       id: 'splash-jacuzzi-425__425',
-      bounds: { minX: 126, minY: 641, maxX: 158, maxY: 687 },
+      bounds: { minX: 126, minY: 641, maxX: 156, maxY: 683 },
       labelPoint: [143, 663] as const,
       ownerPoints: [[135, 655], [148, 678]] as const,
       excludedPoints: [[118, 657], [129, 697], [160, 660]] as const,

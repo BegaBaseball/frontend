@@ -1514,14 +1514,14 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     515,
     { labelFontSize: 6 },
   );
-  addManualPath(map, 'first-table-4f-301-413', '403', [[787, 531], [824, 533], [812, 574], [774, 568]], 790, 546, { labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '403', [[786, 534], [811, 536], [798, 568], [772, 563]], 785, 552, { labelFontSize: 6 });
   addManualPath(
     map,
     'first-table-4f-301-413',
     '404',
-    [[759, 613], [762, 605], [767, 592], [774, 574], [775, 572], [776, 572], [784, 573], [791, 574], [795, 577], [796, 579], [802, 612], [801, 616], [800, 617], [773, 618], [771, 618], [759, 616]],
-    777,
-    588,
+    [[764, 569], [788, 574], [774, 622], [747, 613]],
+    765,
+    596,
     { labelFontSize: 6 },
   );
   addManualPath(
@@ -1558,7 +1558,7 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'third-table-4f-414-330', '420', [[238, 787], [283, 800], [286, 821], [252, 818], [235, 803]], 263, 805, { labelFontSize: 8 });
   addManualPath(map, 'third-table-4f-414-330', '421', [[221, 763], [260, 775], [256, 800], [218, 787]], 241, 783, { labelFontSize: 8 });
   addManualPath(map, 'third-table-4f-414-330', '422', [[194, 736], [234, 748], [228, 774], [188, 761]], 212, 754, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '423', [[166, 706], [207, 718], [209, 744], [178, 759], [160, 735]], 184, 733, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '423', [[171, 708], [207, 718], [209, 738], [181, 745], [167, 733]], 184, 733, { labelFontSize: 8 });
   addManualCenters(map, 'third-table-4f-414-330', numericBlockCodes(326, 330), [
     [151, 647, 76],
     [132, 608, 76],
@@ -1579,7 +1579,7 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     traceStatus: 'OFFICIAL_IMAGE_TRACED',
     traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
   });
-  addManualPath(map, 'splash-jacuzzi-425', '425', [[126, 641], [150, 646], [158, 682], [138, 687], [126, 663]], 143, 663, { shortLabel: '자쿠지', labelRotate: -74, labelFontSize: 8 });
+  addManualPath(map, 'splash-jacuzzi-425', '425', [[126, 641], [150, 646], [156, 679], [138, 683], [126, 663]], 143, 663, { shortLabel: '자쿠지', labelRotate: -74, labelFontSize: 8 });
   addManualPath(map, 'splash-caravan-426', '426', [[85, 565], [119, 552], [131, 612], [106, 612]], 109, 589, { shortLabel: '카라반', labelRotate: -73, labelFontSize: 8 });
 
   addManualPath(map, 'outfield-reserved-509', '509', [[351, 39], [361, 31], [386, 12], [508, 12], [529, 31], [537, 39], [536, 40], [352, 40]], 446, 27, { labelFontSize: 9 });
