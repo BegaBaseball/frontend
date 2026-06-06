@@ -120,6 +120,11 @@ const visitResponsiveHome = () => {
   // existence (page bootstrapped) rather than visibility to stay viewport-agnostic.
   cy.contains('홈 대시보드 반응형 검증 경기', { timeout: 10000 }).should('exist');
   cy.contains('실시간 인기 응원글', { timeout: 10000 }).should('exist');
+  cy.get('[data-testid="home-secondary-panels"]', { timeout: 10000 }).within(() => {
+    cy.contains('오늘 블루존 응원 동선 공유합니다.').should('exist');
+    cy.contains('2/4명').should('exist');
+    cy.contains('0.667').should('exist');
+  });
 };
 
 describe('Home secondary panels responsive layout', () => {

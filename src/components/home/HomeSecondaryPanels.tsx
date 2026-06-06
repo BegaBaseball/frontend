@@ -40,6 +40,7 @@ export interface HomeDisplayedRanking {
 
 interface HomeSecondaryPanelsProps {
   selectedDate: Date;
+  calendarMonth: Date;
   showCalendar: boolean;
   shouldMountWelcomeGuide: boolean;
   calendarDialogTitleId: string;
@@ -72,6 +73,7 @@ interface HomeSecondaryPanelsProps {
   onNavigateToCheerPost: (postId: number) => void;
   onSelectFeaturedMate: (mate: FeaturedMateCard) => void;
   onCloseCalendar: () => void;
+  onCalendarMonthChange: (month: Date) => void;
   onSelectCalendarDate: (date: Date) => void;
 }
 
@@ -186,6 +188,7 @@ const getTicketClassName = (ticketPrice?: number | null) => {
 
 export default function HomeSecondaryPanels({
   selectedDate,
+  calendarMonth,
   showCalendar,
   shouldMountWelcomeGuide,
   calendarDialogTitleId,
@@ -218,6 +221,7 @@ export default function HomeSecondaryPanels({
   onNavigateToCheerPost,
   onSelectFeaturedMate,
   onCloseCalendar,
+  onCalendarMonthChange,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -704,6 +708,8 @@ export default function HomeSecondaryPanels({
               >
                 <LazyCalendarComponent
                   selected={selectedDate}
+                  month={calendarMonth}
+                  onMonthChange={onCalendarMonthChange}
                   onSelect={(date) => {
                     if (!date) {
                       return;

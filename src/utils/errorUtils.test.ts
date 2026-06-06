@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   getApiErrorMessage,
   getDuplicateCommentErrorMessage,
+  isPublicApiTimeoutError,
   MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
   parseError,
 } from './errorUtils';
@@ -86,4 +87,10 @@ test('parseError는 수동 야구 데이터 요청 코드를 일반 사용자 �
   assert.equal(parsed.type, 'CONFLICT');
   assert.equal(parsed.responseCode, 'MANUAL_BASEBALL_DATA_REQUIRED');
   assert.equal(parsed.message, MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE);
+});
+
+test('isPublicApiTimeoutError는 public client timeout 오류를 판별한다', () => {
+  assert.equal(isPublicApiTimeoutError(new Error('Request timed out after 10000ms')), true);
+  assert.equal(isPublicApiTimeoutError(new Error('timeout of 10000ms exceeded')), false);
+  assert.equal(isPublicApiTimeoutError('Request timed out after 10000ms'), false);
 });

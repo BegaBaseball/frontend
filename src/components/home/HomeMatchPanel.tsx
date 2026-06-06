@@ -340,12 +340,18 @@ export default function HomeMatchPanel({
                 <HomeScheduleListHeader />
                 <div className={BOARD_GRID_CLASS}>
                   {groupedGames.map((game, index) => (
-                    <GameCard
+                    <div
                       key={`${game.gameId}-${sourceDate}-${index}`}
-                      game={game}
-                      variant="home"
-                      onSelectPrediction={() => onSelectPrediction(game)}
-                    />
+                      className="h-full"
+                      data-testid="home-game-card"
+                      data-game-id={game.gameId}
+                    >
+                      <GameCard
+                        game={game}
+                        variant="home"
+                        onSelectPrediction={() => onSelectPrediction(game)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -390,12 +396,18 @@ export default function HomeMatchPanel({
                   <HomeScheduleListHeader />
                   <div className={BOARD_GRID_CLASS}>
                     {groupedGames.map((game, index) => (
-                      <GameCard
+                      <div
                         key={`${game.gameId}-${sourceDate}-${index}`}
-                        game={game}
-                        variant="home"
-                        onSelectPrediction={() => onSelectPrediction(game)}
-                      />
+                        className="h-full"
+                        data-testid="home-game-card"
+                        data-game-id={game.gameId}
+                      >
+                        <GameCard
+                          game={game}
+                          variant="home"
+                          onSelectPrediction={() => onSelectPrediction(game)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -440,12 +452,18 @@ export default function HomeMatchPanel({
       <HomeScheduleListHeader />
       <div className={BOARD_GRID_CLASS}>
         {activeStandardGames.map((game, index) => (
-          <GameCard
+          <div
             key={`${game.gameId}-${index}`}
-            game={game}
-            variant="home"
-            onSelectPrediction={() => onSelectPrediction(game)}
-          />
+            className="h-full"
+            data-testid="home-game-card"
+            data-game-id={game.gameId}
+          >
+            <GameCard
+              game={game}
+              variant="home"
+              onSelectPrediction={() => onSelectPrediction(game)}
+            />
+          </div>
         ))}
       </div>
     </div>

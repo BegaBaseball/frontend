@@ -14,6 +14,36 @@ export const LIVE_GAME_EVENT_LIMIT = 50;
 export const LIVE_RELAY_EVENT_LIMIT = 50;
 export const LIVE_GAME_EVENT_CACHE_LIMIT = 200;
 export const LIVE_RELAY_EVENT_CACHE_LIMIT = 200;
+export const HOME_LIVE_SUMMARY_TIMEOUT_WARN_THRESHOLD = 3;
+
+export interface HomeLiveSummaryTimeoutWarningState {
+  consecutiveTimeoutCount: number;
+  timeoutWarningLogged: boolean;
+}
+
+export const createHomeLiveSummaryTimeoutWarningState = (): HomeLiveSummaryTimeoutWarningState => ({
+  consecutiveTimeoutCount: 0,
+  timeoutWarningLogged: false,
+});
+
+export const resetHomeLiveSummaryTimeoutWarningState = (
+  state: HomeLiveSummaryTimeoutWarningState,
+): void => {
+  state.consecutiveTimeoutCount = 0;
+  state.timeoutWarningLogged = false;
+};
+
+export const recordHomeLiveSummaryTimeoutFailure = (
+  state: HomeLiveSummaryTimeoutWarningState,
+  warnThreshold = HOME_LIVE_SUMMARY_TIMEOUT_WARN_THRESHOLD,
+): boolean => {
+  state.consecutiveTimeoutCount += 1;
+  if (state.consecutiveTimeoutCount >= warnThreshold && !state.timeoutWarningLogged) {
+    state.timeoutWarningLogged = true;
+    return true;
+  }
+  return false;
+};
 
 type LiveMergeTarget = {
   gameId: string;
