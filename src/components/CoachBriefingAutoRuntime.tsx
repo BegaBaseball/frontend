@@ -637,19 +637,34 @@ export default function CoachBriefingAutoRuntime({
       coachBriefingInFlightRequests.set(requestCacheKey, sharedRequest);
     }
 
-    const applyFallbackBriefing = (message: string, cacheState?: string) => {
+    const applyFallbackBriefing = (
+      message: string,
+      cacheState?: string,
+      options?: { neutralMeta?: boolean },
+    ) => {
       const fallbackBriefing = normalizeBriefing(message, message || COACH_BRIEFING_FALLBACK_MESSAGES.error);
       aiBriefingRef.current = fallbackBriefing;
       onBriefingChange(fallbackBriefing);
-      onMetaChange({
-        generationMode: 'evidence_fallback',
-        dataQuality: 'insufficient',
-        cacheState,
-        manualDataRequired: false,
-        usedEvidence: [],
-        groundingWarnings: [],
-        groundingReasons: [],
-      });
+      const fallbackMeta: CoachBriefingMetaState | null = options?.neutralMeta
+        ? (cacheState
+          ? {
+              cacheState,
+              manualDataRequired: false,
+              usedEvidence: [],
+              groundingWarnings: [],
+              groundingReasons: [],
+            }
+          : null)
+        : {
+          generationMode: 'evidence_fallback',
+          dataQuality: 'insufficient',
+          cacheState,
+          manualDataRequired: false,
+          usedEvidence: [],
+          groundingWarnings: [],
+          groundingReasons: [],
+        };
+      onMetaChange(fallbackMeta);
       resetRetryState();
     };
 
@@ -830,12 +845,13 @@ export default function CoachBriefingAutoRuntime({
           return;
         }
         if (canOverrideSuccessfulBriefing()) {
+          const isPayloadTooLargeError = isCoachAnalyzeError(error) && error.code === 'PAYLOAD_TOO_LARGE';
           const publicMessage = (
             isCoachAnalyzeError(error)
-            && error.code === 'REQUEST_FAILED'
+            && (error.code === 'PAYLOAD_TOO_LARGE' || error.code === 'REQUEST_FAILED')
             && error.message.trim().length > 0
           ) ? error.message : fallbackErrorMessage;
-          applyFallbackBriefing(publicMessage);
+          applyFallbackBriefing(publicMessage, undefined, { neutralMeta: isPayloadTooLargeError });
         }
         clearRetryTimer();
         resetRetryState();

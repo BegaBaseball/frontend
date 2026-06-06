@@ -2032,6 +2032,18 @@ describe('Game Prediction', () => {
                 const body = parseCoachRequestBody(req.body);
                 if (body.request_mode === 'manual_detail') {
                     req.alias = 'coachDataShapeManual';
+                    if (manualStatus === 413) {
+                        req.reply({
+                            statusCode: 413,
+                            body: {
+                                success: false,
+                                code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+                                message: 'AI 요청 본문이 너무 큽니다.',
+                                data: { maxBytes: 65536 },
+                            },
+                        });
+                        return;
+                    }
                     if (manualStatus !== 200) {
                         // 스트림 error 이벤트로 비-인증 분석 실패를 모사 → result.error 설정.
                         req.reply({
@@ -2176,6 +2188,16 @@ describe('Game Prediction', () => {
         it('shows retry CTA (not login) when manual analysis fails with a non-auth error', () => {
             interceptCoach(undefined, 500);
             openCoachDialog();
+            cy.get('[data-testid="coach-analysis-retry-cta"]', { timeout: 10000 }).should('be.visible');
+            cy.get('[data-testid="coach-analysis-login-cta"]').should('not.exist');
+            cy.get('[role="article"]').should('not.exist');
+        });
+
+        it('shows payload-limit guidance and retry CTA when manual analysis returns 413', () => {
+            interceptCoach(undefined, 413);
+            openCoachDialog();
+            getCoachAnalysisDialog()
+                .should('contain', 'AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.');
             cy.get('[data-testid="coach-analysis-retry-cta"]', { timeout: 10000 }).should('be.visible');
             cy.get('[data-testid="coach-analysis-login-cta"]').should('not.exist');
             cy.get('[role="article"]').should('not.exist');

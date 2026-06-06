@@ -88,3 +88,20 @@ test('getAnalysisData는 수동 야구 데이터 요청 응답에서 분석 본�
 
     assert.equal(analysisData, null);
 });
+
+test('getAnalysisData는 오류 응답에서 분석 본문을 만들지 않는다', () => {
+    const result: CoachAnalyzeResponse = {
+        error: 'AI 코치 분석 요청 데이터가 너무 큽니다.',
+        answer: '### 이전 응답\n오류와 함께 표시되면 안 되는 분석 본문',
+        data_quality: 'partial',
+    };
+
+    const analysisData = getAnalysisData({
+        result,
+        isPastGame: false,
+        isFutureGame: false,
+        gameStatusBucket: 'SCHEDULED',
+    });
+
+    assert.equal(analysisData, null);
+});

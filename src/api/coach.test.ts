@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   analyzeTeam,
   CoachAnalyzeError,
+  COACH_PAYLOAD_TOO_LARGE_MESSAGE,
   getCoachGenerationModeLabel,
   getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
@@ -136,6 +137,151 @@ test('analyzeTeam은 5xx에서 generic 분석 실패 에러를 던진다', async
   );
 });
 
+test('analyzeTeam은 5xx JSON 에러 응답 메시지를 사용자 메시지로 노출한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => (
+    new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_UPSTREAM_UNAVAILABLE',
+        message: 'AI 서비스가 현재 사용할 수 없습니다.',
+      }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    ) as never
+  ));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.equal(error.statusCode, 502);
+      assert.equal(error.message, 'AI 서비스가 현재 사용할 수 없습니다.');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 504 timeout 응답을 stream timeout 전용 메시지로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_UPSTREAM_TIMEOUT',
+      }),
+      {
+        status: 504,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'STREAM_TIMEOUT');
+      assert.equal(error.statusCode, null);
+      assert.equal(error.message, 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 2);
+});
+
+test('analyzeTeam은 AI proxy payload limit 413을 전용 에러로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      }),
+      {
+        status: 413,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 413);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 1);
+});
+
+test('analyzeTeam은 non-JSON 413도 payload limit 전용 에러로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response('request entity too large', {
+      status: 413,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 413);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 1);
+});
+
+test('analyzeTeam은 AI proxy payload code를 5xx 메시지 노출보다 우선한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => (
+    new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ) as never
+  ));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 502);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      assert.notEqual(error.message, 'AI 요청 본문이 너무 큽니다.');
+      return true;
+    },
+  );
+});
+
 test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 되돌린다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
@@ -195,6 +341,28 @@ test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', asyn
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'REQUEST_FAILED');
       assert.equal(error.message, '분석에 필요한 데이터가 충분하지 않습니다.');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 SSE payload limit error 이벤트를 전용 에러로 승격한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: error\n',
+    'data: {"code":"AI_PROXY_PAYLOAD_TOO_LARGE","message":"AI 요청 본문이 너무 큽니다.","data":{"maxBytes":65536}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, null);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
       return true;
     },
   );

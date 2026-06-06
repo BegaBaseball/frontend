@@ -218,7 +218,11 @@ export interface AnalyzeOptions {
     onStatus?: (status: string) => void;
 }
 
-export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'REQUEST_FAILED' | 'STREAM_TIMEOUT';
+export type CoachAnalyzeErrorCode = 'AUTH_EXPIRED' | 'PAYLOAD_TOO_LARGE' | 'REQUEST_FAILED' | 'STREAM_TIMEOUT';
+
+const AI_PROXY_PAYLOAD_TOO_LARGE_CODE = 'AI_PROXY_PAYLOAD_TOO_LARGE';
+export const COACH_PAYLOAD_TOO_LARGE_MESSAGE =
+    'AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.';
 
 export class CoachAnalyzeError extends Error {
     code: CoachAnalyzeErrorCode;
@@ -238,6 +242,9 @@ export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError 
 const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
     new CoachAnalyzeError('REQUEST_FAILED', message);
 
+const createCoachPayloadTooLargeError = (statusCode: number | null = null): CoachAnalyzeError =>
+    new CoachAnalyzeError('PAYLOAD_TOO_LARGE', COACH_PAYLOAD_TOO_LARGE_MESSAGE, statusCode);
+
 const createCoachStreamTimeoutError = (
     message = COACH_STREAM_CONNECT_TIMEOUT_MESSAGE,
 ): CoachAnalyzeError => new CoachAnalyzeError('STREAM_TIMEOUT', message);
@@ -248,6 +255,27 @@ interface ParsedCoachErrorPayload {
     message?: string;
     rawText: string;
 }
+
+const isAiProxyPayloadTooLargePayload = (payload?: Record<string, unknown> | { code?: unknown } | null): boolean =>
+    payload?.code === AI_PROXY_PAYLOAD_TOO_LARGE_CODE;
+
+const resolveCoachRequestFailureMessage = (statusCode: number, payload: ParsedCoachErrorPayload): string => {
+    const normalizedMessage = payload.message?.trim() || payload.detail?.trim();
+    if (normalizedMessage) {
+        return normalizedMessage;
+    }
+
+    switch (statusCode) {
+        case 502:
+            return 'AI 서비스 연동이 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.';
+        case 503:
+            return 'AI 서비스가 현재 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+        case 504:
+            return 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+        default:
+            return '분석 중 오류가 발생했습니다.';
+    }
+};
 
 const readCoachErrorPayload = async (response: Response): Promise<ParsedCoachErrorPayload> => {
     const clone = response.clone();
@@ -437,23 +465,23 @@ export async function analyzeTeam(
             );
         }
         const errorPayload = await readCoachErrorPayload(response);
-        let errorDetail = 'coach_internal_error';
-        if (response.status < 500) {
-            errorDetail = errorPayload.detail || errorPayload.message || errorPayload.rawText;
+        if (response.status === 413 || isAiProxyPayloadTooLargePayload(errorPayload)) {
+            throw createCoachPayloadTooLargeError(response.status);
         }
         if (response.status >= 500) {
+            const errorMessage = resolveCoachRequestFailureMessage(response.status, errorPayload);
             if (response.status === 504 || errorPayload.code === 'AI_UPSTREAM_TIMEOUT') {
                 throw createCoachStreamTimeoutError(
-                    errorPayload.message || 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+                    errorMessage || 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
                 );
             }
             throw new CoachAnalyzeError(
                 'REQUEST_FAILED',
-                '분석 중 오류가 발생했습니다.',
+                errorMessage,
                 response.status,
             );
         }
-        throw new Error(errorDetail);
+        throw new Error(errorPayload.detail || errorPayload.message || errorPayload.rawText || 'coach_internal_error');
     }
 
     // Handle Streaming (SSE)
@@ -620,6 +648,9 @@ export async function analyzeTeam(
                     }
 
                     if (event === 'error') {
+                        if (isAiProxyPayloadTooLargePayload(parsed)) {
+                            throw createCoachPayloadTooLargeError();
+                        }
                         const publicMessage = typeof parsed.message === 'string' && parsed.message.trim() !== ''
                             ? parsed.message
                             : '분석 중 오류가 발생했습니다.';
