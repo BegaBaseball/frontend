@@ -9,6 +9,7 @@ import {
   fetchHomeScopedNavigation,
   fetchHomeWidgets,
   fetchLeagueStartDates,
+  HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
   getHomeBootstrapQueryOptions,
   getHomeWidgetsQueryOptions,
   isHomeBootstrapBusinessConflict,
@@ -26,6 +27,15 @@ const buildJsonResponse = (body: unknown, status = 200) =>
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
+  const observedTimeouts: number[] = [];
+  const originalSetTimeout = globalThis.setTimeout;
+
+  t.mock.method(globalThis, 'setTimeout', ((handler: Parameters<typeof globalThis.setTimeout>[0], timeout?: number) => {
+    if (typeof timeout === 'number') {
+      observedTimeouts.push(timeout);
+    }
+    return originalSetTimeout(handler, timeout);
+  }) as typeof globalThis.setTimeout);
 
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
     requestUrl = typeof input === 'string'
@@ -49,15 +59,23 @@ test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin 
       },
       games: [],
       scheduledGamesWindow: [],
+      loadState: {
+        isFallback: false,
+        timedOut: false,
+        timedOutSections: [],
+        failedSections: [],
+      },
     });
   });
 
   const response = await fetchHomeBootstrap(new Date('2026-03-16T12:00:00'));
 
   assert.equal(response.selectedDate, '2026-03-16');
+  assert.deepEqual(response.loadState?.failedSections, []);
   assert.match(requestUrl, /\/api\/home\/bootstrap\?date=2026-03-16$/);
   assert.equal(requestInit?.credentials, 'include');
   assert.deepEqual(requestInit?.headers, { Accept: 'application/json' });
+  assert.ok(observedTimeouts.includes(HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS));
 });
 
 test('fetchHomeWidgets은 공개 위젯 요청으로 seasonYear를 전달한다', async (t) => {
@@ -264,6 +282,8 @@ test('buildHomeLoadState는 레거시 폴백 timeout 상태를 구조화한다',
     source: 'legacy-fallback',
     isFallback: true,
     timedOut: true,
+    timedOutSections: [],
+    failedSections: [],
     failureReason: null,
     manualDataRequest: null,
   });
