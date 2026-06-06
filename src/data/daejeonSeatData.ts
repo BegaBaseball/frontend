@@ -675,11 +675,11 @@ export const DAEJEON_BLOCK_GROUPS: DaejeonBlockGroup[] = ([
     side: 'FIRST_BASE',
     fanRole: 'HOME',
     accessibilityNote: '공식 좌석안내도에서 1루 내야 통로의 휠체어 아이콘으로 표기된 구역입니다.',
-    d: polygonPath([[690, 583], [725, 570], [736, 607], [704, 625]]),
-    labelX: 713,
-    labelY: 598,
+    d: polygonPath([[712, 583], [722, 584], [729, 592], [727, 603], [720, 612], [710, 611], [706, 604], [707, 593]]),
+    labelX: 717,
+    labelY: 599,
     shortLabel: '휠체어',
-    labelFontSize: 11,
+    labelFontSize: 8,
   }),
   createBlock({
     id: 'third-infield-accessible',
@@ -1042,6 +1042,8 @@ type ManualCenter = readonly [number, number] | readonly [number, number, number
 const MANUAL_TRACED_REVIEW_NOTE = '공식 좌석도 원본 이미지(920x1060)의 실제 색상 셀 외곽을 기준으로 보수적으로 수동 트레이싱했습니다.';
 const UNMEASURED_GEOMETRY_REVIEW_NOTE = 'NEEDS_OPERATOR_REVIEW: 공식 PNG에서 직접 path를 측정하기 전까지 정확 좌표로 확정하지 않습니다.';
 const UNMEASURED_GEOMETRY_SOURCE_NOTE = 'TODO: 공식 좌석도 원본 이미지에서 직접 측정된 좌표가 아니므로 운영자 재검수 후 선택 영역으로 확정해야 합니다.';
+const FIRST_TABLE_4F_301_302_RETRACED_REVIEW_NOTE = '공식 좌석도 원본 이미지(920x1060)에서 4층 내야 탁자석 301/302 녹색 셀 외곽을 기준으로 재트레이싱했습니다.';
+const SKYBOX_S01_S31_RETRACED_REVIEW_NOTE = '공식 좌석도 원본 이미지(920x1060)에서 스카이박스 S01-S31 파란색 셀 외곽을 기준으로 재트레이싱했습니다.';
 
 function roundCoordinate(value: number): number {
   return Number(value.toFixed(1));
@@ -1069,6 +1071,20 @@ function rotatedRectPoints(
     roundCoordinate(centerX + (x * cos) - (y * sin)),
     roundCoordinate(centerY + (x * sin) + (y * cos)),
   ] as Point);
+}
+
+function expandPolygonFromPoint(points: readonly Point[], centerX: number, centerY: number, padding: number): Point[] {
+  return points.map(([x, y]) => {
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distance = Math.hypot(dx, dy);
+    if (distance === 0) return [x, y];
+
+    return [
+      roundCoordinate(x + ((dx / distance) * padding)),
+      roundCoordinate(y + ((dy / distance) * padding)),
+    ];
+  });
 }
 
 function manualBlockId(parentId: string, blockCode: string): string {
@@ -1417,7 +1433,11 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'third-infield-a-113-120-213-225', '118', [[202, 568], [210, 560], [302, 520], [314, 544], [294, 555], [216, 590], [212, 589]], 260, 555, { labelRotate: 23, labelFontSize: 9 });
   addManualPath(map, 'third-infield-a-113-120-213-225', '119', [[181, 535], [195, 527], [285, 487], [297, 512], [291, 519], [195, 561], [190, 559]], 241, 524, { labelRotate: 21, labelFontSize: 9 });
   addManualPath(map, 'third-infield-a-113-120-213-225', '120', [[173, 503], [211, 471], [271, 463], [281, 479], [274, 486], [184, 526]], 220, 500, { labelRotate: 18, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '220', [[167, 581], [168, 579], [208, 571], [228, 591], [214, 608], [189, 615], [178, 604]], 190, 599, { labelRotate: -27, labelFontSize: 8 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '220', [[167, 581], [178, 574], [204, 577], [216, 607], [184, 608], [178, 604], [167, 586]], 190, 599, {
+    labelRotate: -27,
+    labelFontSize: 8,
+    reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 220 블록의 보라색 셀 외곽을 3루 내야 중단 기준으로 재트레이싱했습니다.',
+  });
   addManualPath(map, 'third-infield-a-113-120-213-225', '213', [[332, 766], [357, 781], [344, 802], [319, 787]], 337.7, 783.6, { labelRotate: -35, labelFontSize: 8 });
   addManualPath(map, 'third-infield-a-113-120-213-225', '214', [[290, 764], [308, 747], [329, 765], [315, 783]], 311, 764.5, { labelRotate: -35, labelFontSize: 8 });
   addManualPath(map, 'third-infield-a-113-120-213-225', '215', [[274, 737], [278, 730], [286, 724], [300, 739], [300, 742], [288, 753]], 288.3, 738.4, { labelRotate: -35, labelFontSize: 8 });
@@ -1432,7 +1452,11 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'third-infield-a-113-120-213-225', '225', [[127, 431], [149, 433], [147, 455], [127, 452], [125, 449]], 137.9, 443.2, { labelRotate: -25, labelFontSize: 8 });
 
   addManualPath(map, 'cass-cheering-200', '200', [[730, 396], [755, 376], [759, 374], [761, 384], [767, 444], [758, 446], [740, 448], [731, 412]], 749, 415, { labelRotate: -9, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-accessible', '1루 내야', [[690, 583], [725, 570], [736, 607], [704, 625]], 713, 598, { shortLabel: '휠체어', labelFontSize: 10 });
+  addManualPath(map, 'first-infield-accessible', '1루 내야', [[712, 583], [722, 584], [729, 592], [727, 603], [720, 612], [710, 611], [706, 604], [707, 593]], 717, 599, {
+    shortLabel: '휠체어',
+    labelFontSize: 8,
+    reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 1루 내야 휠체어 아이콘의 검은 원형 표시부만 보수적으로 재트레이싱했습니다.',
+  });
   addManualPath(map, 'third-infield-accessible', '3루 내야', [[149, 582], [167, 576], [183, 619], [164, 625]], 173, 598, { shortLabel: '휠체어', labelFontSize: 10 });
 
   addManualPolyline(map, 'skybox-s01-s37', prefixedBlockCodes('S', 1, 37), [
@@ -1446,18 +1470,18 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [196, 706],
   ], 20, 13, 7, 90);
   ([
-    ['S01', [[764, 533], [771, 527], [779, 533], [777, 535], [766, 535]], 772, 531, 198],
-    ['S02', [[760, 542], [774, 544], [768, 550], [761, 547]], 767, 546, 198],
-    ['S03', [[754, 556], [756, 551], [767, 554], [768, 557], [755, 558]], 761, 554, 198],
-    ['S04', [[748, 569], [751, 566], [762, 567], [761, 573], [757, 574]], 755, 570, 198],
-    ['S05', [[738, 591], [753, 589], [748, 598], [740, 595]], 746, 593, 198],
-    ['S06', [[733, 602], [740, 599], [747, 604], [745, 608], [733, 607]], 740, 603, 205],
-    ['S07', [[728, 612], [739, 612], [742, 615], [737, 623], [726, 618]], 734, 618, 205],
-    ['S08', [[722, 627], [728, 623], [735, 626], [736, 629], [728, 631], [723, 630]], 729, 627, 205],
-    ['S09', [[717, 638], [729, 638], [731, 640], [725, 646], [718, 643]], 724, 642, 205],
-    ['S10', [[703, 664], [706, 662], [719, 663], [715, 669], [709, 669]], 711, 665, 205],
-    ['S11', [[692, 678], [700, 670], [702, 670], [708, 677], [707, 679]], 700, 675, 205],
-    ['S12', [[667, 707], [671, 705], [682, 707], [678, 714], [675, 714]], 675, 709, 205],
+    ['S01', [[764, 533], [768, 525], [779, 530], [777, 537], [766, 536]], 772, 531, 198],
+    ['S02', [[758, 546], [761, 540], [771, 540], [775, 542], [770, 551]], 767, 546, 198],
+    ['S03', [[753, 557], [757, 549], [769, 554], [766, 561]], 761, 554, 198],
+    ['S04', [[748, 569], [750, 564], [761, 564], [764, 566], [760, 575]], 755, 570, 198],
+    ['S05', [[737, 593], [740, 586], [753, 588], [749, 599]], 746, 593, 198],
+    ['S06', [[731, 606], [735, 597], [747, 602], [744, 610]], 740, 603, 205],
+    ['S07', [[726, 617], [728, 613], [739, 612], [742, 614], [738, 623]], 734, 618, 205],
+    ['S08', [[721, 629], [725, 621], [736, 626], [734, 633]], 729, 627, 205],
+    ['S09', [[716, 640], [718, 636], [729, 636], [731, 638], [727, 647], [717, 643]], 724, 642, 205],
+    ['S10', [[703, 663], [707, 656], [719, 658], [719, 662], [714, 671], [704, 666]], 711, 665, 205],
+    ['S11', [[692, 677], [700, 668], [710, 677], [705, 683]], 700, 675, 205],
+    ['S12', [[667, 707], [671, 702], [685, 706], [677, 716]], 675, 709, 205],
     ['S13', [[657, 721], [664, 714], [668, 714], [672, 720], [670, 723]], 664, 718, 223],
     ['S14', [[649, 730], [660, 724], [664, 731], [657, 738]], 657, 731, 223],
     ['S15', [[640, 739], [647, 735], [654, 740], [650, 746], [641, 743]], 647, 740, 223],
@@ -1484,7 +1508,13 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     ['S36', [[220, 725], [229, 720], [234, 726], [223, 729]], 227, 724, -43],
     ['S37', [[170, 666], [178, 661], [184, 668], [172, 670]], 177, 665, -43],
   ] as const).forEach(([blockCode, points, labelX, labelY, labelRotate]) => {
-    addManualPath(map, 'skybox-s01-s37', blockCode, points, labelX, labelY, { labelRotate, labelFontSize: 6 });
+    const blockNumber = Number(blockCode.slice(1));
+    addManualPath(map, 'skybox-s01-s37', blockCode, points, labelX, labelY, {
+      labelRotate,
+      labelFontSize: 6,
+      reviewNote: blockNumber <= 31 ? SKYBOX_S01_S31_RETRACED_REVIEW_NOTE : undefined,
+      hitAreaPoints: blockNumber <= 31 ? expandPolygonFromPoint(points, labelX, labelY, 4) : undefined,
+    });
   });
 
   addManualPolyline(map, 'first-table-4f-301-413', FIRST_TABLE_4F_BLOCK_CODES, [
@@ -1494,15 +1524,23 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [650, 773],
     [560, 852],
   ], 2.6, 2.6, 5, 90);
-  addManualPath(map, 'first-table-4f-301-413', '301', [[766, 461], [768, 460], [788, 452], [790, 452], [791, 453], [793, 472], [794, 482], [794, 488], [780, 488], [766, 483]], 782, 469, { labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '301', [[779, 458], [797, 452], [800, 483], [782, 484]], 789, 469, {
+    labelFontSize: 6,
+    reviewNote: FIRST_TABLE_4F_301_302_RETRACED_REVIEW_NOTE,
+    hitAreaPoints: [[775, 458], [797, 452], [803, 483], [779, 490]],
+  });
   addManualPath(
     map,
     'first-table-4f-301-413',
     '302',
-    [[755, 516], [764, 495], [766, 491], [797, 491], [797, 493], [794, 505], [793, 508], [785, 522], [783, 522], [756, 519], [755, 518]],
+    [[758, 517], [764, 495], [770, 489], [797, 491], [798, 494], [794, 509], [786, 524], [760, 520]],
     777,
     505,
-    { labelFontSize: 6 },
+    {
+      labelFontSize: 6,
+      reviewNote: FIRST_TABLE_4F_301_302_RETRACED_REVIEW_NOTE,
+      hitAreaPoints: [[753, 518], [759, 495], [770, 489], [802, 491], [803, 494], [800, 511], [789, 530], [755, 524]],
+    },
   );
   addManualPath(map, 'first-table-4f-301-413', '401', [[806, 461], [828, 462], [828, 493], [806, 490]], 817, 475, { labelFontSize: 6 });
   addManualPath(
@@ -1566,8 +1604,14 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [103, 523, 76],
     [91, 482, 76],
   ], 30, 22, 0, 8);
-  addManualPath(map, 'third-table-4f-414-330', '326', [[130, 623], [160, 616], [170, 650], [137, 664]], 151, 643, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '327', [[119, 592], [150, 586], [161, 616], [128, 626]], 141, 608, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '326', [[148, 628], [166, 616], [174, 624], [186, 650], [164, 667], [148, 636]], 166, 642, {
+    labelFontSize: 8,
+    reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 4층 내야 탁자석 326 녹색 셀 외곽을 기준으로 재트레이싱했습니다.',
+  });
+  addManualPath(map, 'third-table-4f-414-330', '327', [[133, 595], [147, 588], [154, 585], [157, 590], [166, 611], [165, 613], [148, 621], [141, 613], [136, 602]], 150, 603, {
+    labelFontSize: 8,
+    reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 4층 내야 탁자석 327 녹색 셀 외곽을 기준으로 재트레이싱했습니다.',
+  });
   addManualPath(map, 'third-table-4f-414-330', '328', [[109, 561], [140, 554], [151, 586], [119, 595]], 130, 577, { labelFontSize: 8 });
   addManualPath(map, 'third-table-4f-414-330', '329', [[96, 527], [128, 520], [139, 552], [106, 561]], 116, 543, { labelFontSize: 8 });
   addManualPath(map, 'third-table-4f-414-330', '330', [[84, 489], [116, 483], [127, 514], [95, 525], [87, 511]], 103, 505, { labelFontSize: 8 });
@@ -1956,6 +2000,13 @@ export const DAEJEON_VIEW_INFO: Record<string, DaejeonViewInfo> = {
     distance: '3루 내야 중단',
     notes: '내야 지정석A 113-120, 213-225는 3루측 넓은 내야 관람 영역을 대표합니다.',
     tags: ['내야', '내야석', '3루', '원정 응원'],
+  },
+  'third-infield-a-113-120-213-225__220': {
+    photos: 0,
+    rating: null,
+    distance: '3루 내야 중단',
+    notes: '내야 지정석A 220은 3루측 원정 응원 방향의 중단 내야 블록입니다.',
+    tags: ['내야 지정석A', '정확 블록 220', '3루', '원정 응원'],
   },
   'cass-cheering-200': {
     photos: 0,

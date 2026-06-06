@@ -84,6 +84,31 @@ function normalizeSearchText(value?: string | null): string {
   return value?.replace(/\s+/g, '').toLowerCase() ?? '';
 }
 
+function getBlockScopedSearchText(section: DaejeonBlock): string {
+  const info = getDaejeonViewInfo(section);
+
+  return [
+    section.name,
+    section.block,
+    section.blockCode,
+    section.officialBlockLabel,
+    section.officialSectionName,
+    ...section.officialBlocks,
+    getDaejeonSideLabel(section.side),
+    getDaejeonFanRoleLabel(section.fanRole),
+    info.distance,
+    info.notes,
+    ...(info.tags ?? []),
+  ].filter(Boolean).map(normalizeSearchText).join(' ');
+}
+
+function getBroadSearchText(section: DaejeonBlock): string {
+  return [
+    getBlockScopedSearchText(section),
+    ...section.seatViewSections.map(normalizeSearchText),
+  ].join(' ');
+}
+
 function isDenseTouchTarget(section: DaejeonBlock): boolean {
   return section.category === 'TABLE' && section.level === '4F';
 }
@@ -537,6 +562,9 @@ export default function DaejeonSeatMap() {
       .split(/\s+/)
       .map(normalizeSearchText)
       .filter(Boolean);
+    const exactBlockCodeToken = normalizedSearchTokens.find((token) => (
+      orderedBlocks.some((block) => normalizeSearchText(block.blockCode) === token)
+    ));
 
     return orderedBlocks.filter((block) => {
       if (filterCats !== null && !filterCats.includes(block.category)) return false;
@@ -546,15 +574,14 @@ export default function DaejeonSeatMap() {
         return true;
       }
 
-      const searchableText = [
-        block.name,
-        block.block,
-        block.blockCode,
-        block.officialBlockLabel,
-        block.officialSectionName,
-        ...block.officialBlocks,
-        ...block.seatViewSections,
-      ].map(normalizeSearchText).join(' ');
+      if (exactBlockCodeToken) {
+        if (normalizeSearchText(block.blockCode) !== exactBlockCodeToken) return false;
+
+        const blockScopedSearchText = getBlockScopedSearchText(block);
+        return normalizedSearchTokens.every((token) => blockScopedSearchText.includes(token));
+      }
+
+      const searchableText = getBroadSearchText(block);
 
       return searchableText.includes(normalizedSearch)
         || normalizedSearchTokens.every((token) => searchableText.includes(token));

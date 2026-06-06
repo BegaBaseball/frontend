@@ -319,7 +319,7 @@ test('대구 좌석도는 canonical 표시명, alias, 검색 랭킹, 상세 메�
   const registrySource = readProjectFile('src/components/stadiumSeatMapRegistry.tsx');
   const daeguSource = readProjectFile('src/components/daegu/DaeguSeatMap.tsx');
   const daeguSvgSource = readProjectFile('src/components/daegu/DaeguSeatMapSvg.tsx');
-  const cypressSource = readProjectFile('cypress/e2e/stadium-seatmap.cy.ts');
+  const cypressSource = readProjectFile('cypress/e2e/stadium-seatmap-shared.cy.ts');
 
   assert.ok(registryEntry, 'Daegu registry entry should exist');
   assert.equal(registryEntry.label, '대구 삼성 라이온즈파크 공식 좌석도');

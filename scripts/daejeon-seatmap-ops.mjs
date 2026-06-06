@@ -1296,8 +1296,13 @@ const runCoverageReport = async () => {
     { term: '120', expectedBlockIds: ['third-infield-a-113-120-213-225__120'] },
     { term: '124', expectedBlockIds: ['third-infield-b-121-124__124'] },
     { term: '200', expectedBlockIds: ['cass-cheering-200__200'] },
+    { term: '205', expectedBlockIds: ['first-infield-a-109-112-201-212__205'] },
+    { term: '220', expectedBlockIds: ['third-infield-a-113-120-213-225__220'] },
     { term: '225', expectedBlockIds: ['third-infield-a-113-120-213-225__225'] },
     { term: '301', expectedBlockIds: ['first-table-4f-301-413__301'] },
+    { term: '302', expectedBlockIds: ['first-table-4f-301-413__302'] },
+    { term: '326', expectedBlockIds: ['third-table-4f-414-330__326'] },
+    { term: '327', expectedBlockIds: ['third-table-4f-414-330__327'] },
     { term: '413', expectedBlockIds: ['first-table-4f-301-413__413'] },
     { term: '424', expectedBlockIds: ['outfield-reserved-third-423-330__424'] },
     { term: '425', expectedBlockIds: ['splash-jacuzzi-425__425'] },
@@ -1307,6 +1312,11 @@ const runCoverageReport = async () => {
     { term: '508', expectedBlockIds: ['outfield-table-first-504-508__508'] },
     { term: '509', expectedBlockIds: ['outfield-reserved-509__509'] },
     { term: 'S01', expectedBlockIds: ['skybox-s01-s37__s01'] },
+    { term: 'S12', expectedBlockIds: ['skybox-s01-s37__s12'] },
+    { term: 'S13', expectedBlockIds: ['skybox-s01-s37__s13'] },
+    { term: 'S25', expectedBlockIds: ['skybox-s01-s37__s25'] },
+    { term: 'S26', expectedBlockIds: ['skybox-s01-s37__s26'] },
+    { term: 'S31', expectedBlockIds: ['skybox-s01-s37__s31'] },
     { term: 'S37', expectedBlockIds: ['skybox-s01-s37__s37'] },
   ];
 
@@ -4321,6 +4331,12 @@ const runReviewManifest = async () => {
     return points;
   };
 
+  const pathToPolygons = (d) => String(d ?? '')
+    .trim()
+    .split(/(?=M\s*-?\d)/i)
+    .map((subpath) => pathToPoints(subpath))
+    .filter((points) => points.length >= 3);
+
   const polygonArea = (points) => {
     const signedArea = points.reduce((area, point, index) => {
       const next = points[(index + 1) % points.length];
@@ -4345,6 +4361,8 @@ const runReviewManifest = async () => {
     return inside;
   };
 
+  const isPointInsidePath = (d, point) => pathToPolygons(d).some((points) => isPointInsidePolygon(points, point));
+
   const getSeatMapLayer = (block) => {
     if (block.category === 'ACCESSIBLE') return 40;
     if (block.category === 'SPECIAL' || block.category === 'EXCITING') return 30;
@@ -4357,6 +4375,7 @@ const runReviewManifest = async () => {
   const getSplitColorRenderLayer = (block) => (isDaejeonSplitColorBlockId(block.id) ? 1 : 0);
 
   const formatArea = (value) => Number(value.toFixed(2));
+  const formatCoordinate = (value) => Number(value.toFixed(1));
 
   const renderOrderedBlocks = [...DAEJEON_BLOCKS].sort((a, b) => (
     getSeatMapLayer(a) - getSeatMapLayer(b)
@@ -4364,6 +4383,29 @@ const runReviewManifest = async () => {
     || getSplitColorRenderLayer(a) - getSplitColorRenderLayer(b)
     || a.displayPriority - b.displayPriority
   ));
+
+  const getTopHitBlockIdAtPoint = (point) => {
+    const hitStack = renderOrderedBlocks.filter((candidate) => (
+      candidate.traceStatus === 'OFFICIAL_IMAGE_TRACED'
+      && isPointInsidePath(candidate.hitAreaD ?? candidate.imageGeometry.d, point)
+    ));
+
+    return hitStack[hitStack.length - 1]?.id ?? null;
+  };
+
+  const expandedVertexSample = (block, vertexIndex, distance = 2) => {
+    const visualPoints = pathToPoints(block.imageGeometry.d);
+    const [x, y] = visualPoints[vertexIndex];
+    const dx = x - block.imageGeometry.labelX;
+    const dy = y - block.imageGeometry.labelY;
+    const length = Math.hypot(dx, dy);
+    if (length === 0) return [x, y];
+
+    return [
+      formatCoordinate(x + ((dx / length) * distance)),
+      formatCoordinate(y + ((dy / length) * distance)),
+    ];
+  };
 
   const traceReviewQueueById = new Map(DAEJEON_TRACE_REVIEW_QUEUE.map((item) => [item.id, item]));
   const deduplicatedAliasesByCanonicalId = DAEJEON_P2_DEDUPLICATED_ALIASES.reduce((map, alias) => {
@@ -4382,7 +4424,7 @@ const runReviewManifest = async () => {
     const labelPoint = [block.imageGeometry.labelX, block.imageGeometry.labelY];
     const hitStack = renderOrderedBlocks.filter((candidate) => (
       candidate.traceStatus === 'OFFICIAL_IMAGE_TRACED'
-      && isPointInsidePolygon(pathToPoints(candidate.hitAreaD ?? candidate.imageGeometry.d), labelPoint)
+      && isPointInsidePath(candidate.hitAreaD ?? candidate.imageGeometry.d, labelPoint)
     ));
     const labelTopHitBlockId = hitStack[hitStack.length - 1]?.id ?? null;
     const hitAreaArea = formatArea(polygonArea(hitAreaPoints));
@@ -4446,12 +4488,53 @@ const runReviewManifest = async () => {
       labelHitStack: block.labelHitStack,
     }));
 
+  const edgeSampleContractBlockIds = [
+    'first-table-4f-301-413__301',
+    'first-table-4f-301-413__302',
+    ...Array.from({ length: 31 }, (_, index) => `skybox-s01-s37__s${String(index + 1).padStart(2, '0')}`),
+  ];
+  const blocksById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const edgeSampleRows = edgeSampleContractBlockIds.map((blockId) => {
+    const block = blocksById.get(blockId);
+    if (!block) {
+      return {
+        id: blockId,
+        blockCode: '',
+        samplePoint: null,
+        topHitBlockId: null,
+        ok: false,
+        failure: 'missing block',
+      };
+    }
+
+    const visualPoints = pathToPoints(block.imageGeometry.d);
+    const candidateSamples = visualPoints.map((_, vertexIndex) => expandedVertexSample(block, vertexIndex));
+    const samplePoint = candidateSamples.find((point) => (
+      !isPointInsidePath(block.imageGeometry.d, point)
+      && getTopHitBlockIdAtPoint(point) === block.id
+    )) ?? candidateSamples[0] ?? null;
+    const topHitBlockId = samplePoint ? getTopHitBlockIdAtPoint(samplePoint) : null;
+
+    return {
+      id: block.id,
+      blockCode: block.blockCode,
+      samplePoint,
+      topHitBlockId,
+      ok: topHitBlockId === block.id,
+      failure: topHitBlockId === block.id ? '' : 'edge sample did not top-hit target block',
+    };
+  });
+  const edgeSampleTopHitFailures = edgeSampleRows.filter((row) => !row.ok);
+
   const precisionAudit = {
     standard: 'JAMSIL_CLICK_ACCURACY_BASELINE',
     totalBlocks: DAEJEON_BLOCKS.length,
     manualGeometryBlocks: DAEJEON_BLOCKS.filter((block) => block.traceStatus === 'OFFICIAL_IMAGE_TRACED').length,
     labelTopHitFailures,
     labelTopHitFailureCount: labelTopHitFailures.length,
+    edgeSampleTopHitFailures,
+    edgeSampleTopHitFailureCount: edgeSampleTopHitFailures.length,
+    edgeSampleContracts: edgeSampleRows,
     hitAreaArea: {
       min: formatArea(hitAreaAreas[0] ?? 0),
       p10: formatArea(pickPercentile(hitAreaAreas, 0.1)),
@@ -4544,6 +4627,7 @@ const runReviewManifest = async () => {
     `- release gate report: \`${path.relative(frontendRoot, releaseGateReportPath)}\``,
     `- browser QA summary: \`${path.relative(frontendRoot, browserQaSummaryPath)}\``,
     `- label top-hit failures: ${precisionAudit.labelTopHitFailureCount}`,
+    `- edge sample top-hit failures: ${precisionAudit.edgeSampleTopHitFailureCount}`,
     `- hit-area area: min ${precisionAudit.hitAreaArea.min}, median ${precisionAudit.hitAreaArea.median}, p90 ${precisionAudit.hitAreaArea.p90}, max ${precisionAudit.hitAreaArea.max}`,
     `- coordinate impact contract: \`${coordinateChangeImpact.contract}\``,
     '',
@@ -4613,11 +4697,26 @@ const runReviewManifest = async () => {
         ['기준', precisionAudit.standard],
         ['수동 geometry 블록', `${precisionAudit.manualGeometryBlocks}/${precisionAudit.totalBlocks}`],
         ['label top-hit 실패', String(precisionAudit.labelTopHitFailureCount)],
+        ['edge sample top-hit 실패', String(precisionAudit.edgeSampleTopHitFailureCount)],
         ['작은 hit-area(<10)', String(precisionAudit.hitAreaArea.tinyHitAreas.length)],
         ['큰 hit-area(>5000)', String(precisionAudit.hitAreaArea.largeHitAreas.length)],
         ['전수 label click QA viewport', precisionAudit.desktopFullLabelClickViewport],
       ],
     ),
+    '',
+    '## Edge sample top-hit QA',
+    '',
+    edgeSampleTopHitFailures.length
+      ? markdownTable(
+        ['block', 'sample', 'top hit', 'failure'],
+        edgeSampleTopHitFailures.map((row) => [
+          `\`${row.id}\``,
+          row.samplePoint ? row.samplePoint.join(',') : '-',
+          row.topHitBlockId ? `\`${row.topHitBlockId}\`` : '-',
+          row.failure,
+        ]),
+      )
+      : '- all 301/302 and S01-S31 edge samples top-hit their target block',
     '',
     '## 좌표 변경 영향 범위',
     '',
