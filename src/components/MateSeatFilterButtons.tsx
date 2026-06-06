@@ -1,9 +1,9 @@
-import type { MateSeatFilterOption } from './MateFilterBottomSheet';
+import { resolveMateSeatFilterOptions } from '../utils/mateSeatFilterOptions';
+import { SEAT_ICONS } from '../utils/seatIcons';
 import { Button } from './ui/button';
 
 interface MateSeatFilterButtonsProps {
   layout: 'rail' | 'toolbar';
-  seatOptions: MateSeatFilterOption[];
   inputValue: string;
   onToggleSeat: (keyword: string) => void;
 }
@@ -13,10 +13,11 @@ const FILTER_IDLE_CLASS = 'border-gray-200/80 bg-white text-gray-700 hover:borde
 
 export default function MateSeatFilterButtons({
   layout,
-  seatOptions,
   inputValue,
   onToggleSeat,
 }: MateSeatFilterButtonsProps) {
+  const seatOptions = resolveMateSeatFilterOptions(inputValue);
+
   return (
     <div className={layout === 'rail' ? 'grid grid-cols-1 gap-2' : 'flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide'}>
       {seatOptions.map((option) => {
@@ -33,7 +34,7 @@ export default function MateSeatFilterButtons({
             }`}
             onClick={() => onToggleSeat(option.label)}
           >
-            <span aria-hidden="true" className="mr-1.5 opacity-70">{option.icon}</span>
+            <span aria-hidden="true" className="mr-1.5 opacity-70">{SEAT_ICONS[option.category]}</span>
             {option.label}
           </Button>
         );

@@ -1,20 +1,15 @@
-import type { ReactNode } from 'react';
-
+import { resolveMateSeatFilterOptions } from '../utils/mateSeatFilterOptions';
+import { SEAT_ICONS } from '../utils/seatIcons';
 import TeamLogo from './TeamLogo';
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
 
-export interface MateSeatFilterOption {
-  id: string;
-  label: string;
-  icon?: ReactNode;
-}
+export type { MateSeatFilterOption } from '../utils/mateSeatFilterOptions';
 
 interface MateFilterBottomSheetProps {
   open: boolean;
   favoriteTeamId: string | null;
   myTeamOnly: boolean;
-  seatOptions: MateSeatFilterOption[];
   inputValue: string;
   activeFilterCount: number;
   onClose: () => void;
@@ -27,7 +22,6 @@ export default function MateFilterBottomSheet({
   open,
   favoriteTeamId,
   myTeamOnly,
-  seatOptions,
   inputValue,
   activeFilterCount,
   onClose,
@@ -35,6 +29,8 @@ export default function MateFilterBottomSheet({
   onToggleSeat,
   onResetFilters,
 }: MateFilterBottomSheetProps) {
+  const seatOptions = resolveMateSeatFilterOptions(inputValue);
+
   return (
     <PlainDialog
       open={open}
@@ -124,7 +120,7 @@ export default function MateFilterBottomSheet({
                       : 'border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/5 dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20'
                   }`}
                 >
-                  <span aria-hidden="true" className="mr-1.5 shrink-0 opacity-80">{option.icon}</span>
+                  <span aria-hidden="true" className="mr-1.5 shrink-0 opacity-80">{SEAT_ICONS[option.category]}</span>
                   <span className="min-w-0 truncate">{option.label}</span>
                 </button>
               );

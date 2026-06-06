@@ -10,7 +10,6 @@ import {
   MateRefreshIcon,
   MateUsersIcon,
 } from './MateIcons';
-import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Party } from '../types/mate';
 
 const MatePartyCard = lazy(() => import('./MatePartyCard'));
@@ -55,25 +54,20 @@ export default function MateResultsRuntime({
   onPartyClick,
   onPageChange,
 }: MateResultsRuntimeProps) {
-  const isRichCardLayout = useMediaQuery('(min-width: 1024px)');
-  const partyCardVariant = isRichCardLayout ? 'rich' : 'compact';
-  const skeletonCardHeight = isRichCardLayout ? 'min-h-[508px]' : 'min-h-[304px]';
-
   const renderSkeletonGrid = () => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5 2xl:gap-6">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
           aria-hidden="true"
-          className={`${skeletonCardHeight} flex animate-pulse flex-col rounded-[24px] border border-gray-200/80 bg-white p-4 dark:border-white/15 dark:bg-[#16181c]`}
+          className="flex min-h-[150px] animate-pulse flex-col gap-[10px] rounded-[18px] border border-gray-200/80 bg-white p-[14px] dark:border-white/15 dark:bg-[#16181c]"
         >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="h-8 w-40 rounded-lg bg-gray-200 dark:bg-white/10" />
-            <div className="h-8 w-24 rounded-lg bg-primary/15" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="h-5 w-28 rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-5 w-16 rounded bg-primary/15" />
           </div>
-          <div className="mb-5 h-12 rounded-xl bg-gray-100 dark:bg-white/5" />
-          <div className="mb-5 h-24 rounded-2xl bg-gray-100 dark:bg-black/30" />
-          <div className="mt-auto h-12 rounded-full bg-gray-100 dark:bg-white/5" />
+          <div className="h-9 rounded-lg bg-gray-100 dark:bg-white/5" />
+          <div className="mt-1 h-8 rounded-lg bg-gray-100 dark:bg-white/5" />
         </div>
       ))}
     </div>
@@ -125,12 +119,11 @@ export default function MateResultsRuntime({
 
   const renderPartyGrid = (items: Party[]) => (
     <Suspense fallback={renderSkeletonGrid()}>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5 2xl:gap-6">
         {items.flatMap((party, index) => [
           <MatePartyCard
             key={party.id}
             party={party}
-            variant={partyCardVariant}
             onClick={onPartyClick}
           />,
           index === 3 && items.length > 4 ? (

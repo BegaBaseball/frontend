@@ -315,10 +315,9 @@ describe('Mate Page Accuracy', () => {
 
     cy.visit('/mate');
     cy.contains('테스트 호스트').should('be.visible');
-    cy.contains('인증 전').should('be.visible');
     cy.contains('4.5').should('be.visible');
     cy.contains(/1\s*\/\s*4명/).should('be.visible');
-    cy.contains(/직거래 베타|보증금 결제/).should('be.visible');
+    cy.contains('모집 중').should('be.visible');
 
     cy.visit('/mate/777');
     cy.wait('@getPartyById');

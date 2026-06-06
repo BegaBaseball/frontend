@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createJSONStorage } from 'zustand/middleware';
 
 import { authStoreApi, useAuthStore } from './authStore';
 import { getPersistedAuthBootstrapMeta } from '../utils/authBootstrap';
@@ -8,7 +9,11 @@ const createStorage = () => {
   const values = new Map<string, string>();
 
   return {
+    get length() {
+      return values.size;
+    },
     getItem: (key: string) => values.get(key) ?? null,
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
     setItem: (key: string, value: string) => {
       values.set(key, value);
     },
@@ -21,14 +26,31 @@ const createStorage = () => {
   };
 };
 
+const installPersistStorage = (storage: ReturnType<typeof createStorage>) => {
+  useAuthStore.persist.setOptions({
+    storage: createJSONStorage(() => storage),
+  });
+};
+
+installPersistStorage(createStorage());
+
 test.afterEach(() => {
   useAuthStore.getState().reset();
+  delete (globalThis as { window?: unknown }).window;
+  delete (globalThis as { localStorage?: unknown }).localStorage;
+  installPersistStorage(createStorage());
 });
 
 const withWindowLocalStorage = (
   storage: ReturnType<typeof createStorage>,
   pathname = '/prediction',
 ) => {
+  installPersistStorage(storage);
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    writable: true,
+    value: storage,
+  });
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     writable: true,
