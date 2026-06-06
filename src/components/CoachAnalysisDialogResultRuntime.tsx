@@ -278,7 +278,7 @@ export const getAnalysisData = ({
     isFutureGame: boolean;
     gameStatusBucket?: string | null;
 }): CoachAnalysisData | null => {
-    if (result?.manual_data_request) {
+    if (result?.error || result?.manual_data_request) {
         return null;
     }
 
@@ -695,7 +695,9 @@ export default function CoachAnalysisDialogResultRuntime({
     }, [resultBoundaryToken]);
     const analysisDataQualityNotice = useMemo(
         () => (
-            result?.manual_data_request
+            result?.error
+                ? null
+                : result?.manual_data_request
                 ? {
                     message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
                     reasons: [],
@@ -709,6 +711,7 @@ export default function CoachAnalysisDialogResultRuntime({
         ),
         [
             result?.data_quality,
+            result?.error,
             result?.grounding_reasons,
             result?.grounding_warnings,
             result?.manual_data_request,

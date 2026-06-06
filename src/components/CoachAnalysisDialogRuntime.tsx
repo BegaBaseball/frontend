@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
     analyzeTeam,
+    COACH_PAYLOAD_TOO_LARGE_MESSAGE,
     type CoachAnalyzeResponse,
     isCoachAnalyzeError,
 } from '../api/coach';
@@ -409,6 +410,10 @@ export default function CoachAnalysisDialogRuntime({
                 setResult({
                     error: error.message || 'AI 코치 분석 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.'
                 });
+            } else if (isCoachAnalyzeError(error) && error.code === 'PAYLOAD_TOO_LARGE') {
+                setResult({
+                    error: error.message || COACH_PAYLOAD_TOO_LARGE_MESSAGE
+                });
             } else if (isCoachAnalyzeError(error) && error.code === 'REQUEST_FAILED') {
                 setResult({
                     error: error.message || '분석 중 오류가 발생했습니다.'
@@ -443,7 +448,7 @@ export default function CoachAnalysisDialogRuntime({
 
     // 스크린리더용 라이프사이클 안내. 한 번에 하나만 비어있지 않게(중복 낭독 방지).
     const liveAlertMessage = result?.error
-        ? '분석 중 오류가 발생했습니다. 다시 시도할 수 있습니다.'
+        ? result.error
         : result?.manual_data_request
             ? '분석에 필요한 실데이터가 부족합니다.'
             : '';

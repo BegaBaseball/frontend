@@ -1007,6 +1007,34 @@ describe('Prediction Coach Briefing Regression', () => {
       .should('exist');
   });
 
+  it('shows payload-limit guidance instead of generic fallback when coach analyze returns 413', () => {
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 413,
+      body: {
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      },
+    }).as('coachAnalyzePayloadTooLarge');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachAnalyzePayloadTooLarge');
+
+    expectCoachBriefingText('AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.');
+    cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('not.exist');
+  });
+
   it('shows the blinking cursor only while coach briefing is loading', () => {
     cy.intercept('POST', '**/coach/analyze*', {
       delay: 1800,
