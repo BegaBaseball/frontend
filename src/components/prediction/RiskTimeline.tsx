@@ -2,8 +2,10 @@ import { type SVGProps } from 'react';
 import { CoachRiskItem } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
-    riskImpactTo,
-    riskInning,
+    resolveRiskImpactText,
+    resolveRiskImpactTo,
+    resolveRiskInningLabel,
+    resolveRiskInningPosition,
     riskSevColor,
     useIsDark,
 } from './coachRiskHelpers';
@@ -71,7 +73,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
             : risk.level === 1
                 ? 5 + offset
                 : 7 + offset;
-        return { risk, x: Math.min(x, 9) };
+        return { risk, x: resolveRiskInningPosition(risk, Math.min(x, 9)) };
     });
 
     // 색상 토큰
@@ -194,9 +196,9 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
             <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column' }}>
                 {risks.map((r, idx) => {
                     const color       = riskSevColor(r.level);
-                    const impactTo    = riskImpactTo(r.level, isPositive);
+                    const impactTo    = resolveRiskImpactTo(r, isPositive);
                     const impactColor = impactTo === 'home' ? IMPACT.home : impactTo === 'away' ? IMPACT.away : IMPACT.bothText;
-                    const impactText  = impactTo === 'home' ? '−높음' : impactTo === 'away' ? '−낮음' : '±중간';
+                    const impactText  = resolveRiskImpactText(r, isPositive);
 
                     return (
                         <div
@@ -236,7 +238,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                     fontWeight: 800,
                                     fontFamily: 'ui-monospace, monospace',
                                 }}>
-                                    {riskInning(r.level)}
+                                    {resolveRiskInningLabel(r)}
                                 </span>
                             )}
 
@@ -256,7 +258,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                         fontFamily: 'ui-monospace, monospace',
                                         marginRight: 6,
                                     }}>
-                                        {riskInning(r.level)}
+                                        {resolveRiskInningLabel(r)}
                                     </span>
                                 )}
                                 <strong style={{ fontWeight: 800 }}>{r.area}</strong>

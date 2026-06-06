@@ -91,10 +91,17 @@ export interface CoachMetric {
     trend: 'up' | 'down' | 'neutral';
 }
 
+export type CoachRiskImpactTo = 'home' | 'away' | 'both';
+
 export interface CoachRiskItem {
     area: string;
     level: 0 | 1 | 2;
     description: string;
+    inning_label?: string | null;
+    inning_start?: number | null;
+    inning_end?: number | null;
+    impact?: string | null;
+    impact_to?: CoachRiskImpactTo | null;
 }
 
 export interface CoachStructuredAnalysis {

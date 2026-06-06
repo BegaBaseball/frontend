@@ -171,6 +171,20 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
         const source = risk as Record<string, unknown>;
         const area = typeof source.area === 'string' ? source.area.trim() : '';
         const description = typeof source.description === 'string' ? source.description.trim() : '';
+        const inningLabel = typeof source.inning_label === 'string' ? source.inning_label.trim() : '';
+        const impact = typeof source.impact === 'string' ? source.impact.trim() : '';
+        const impactToRaw = typeof source.impact_to === 'string' ? source.impact_to.trim().toLowerCase() : '';
+        const impactTo = impactToRaw === 'home' || impactToRaw === 'away' || impactToRaw === 'both'
+            ? impactToRaw
+            : undefined;
+        const inningStartRaw = Number(source.inning_start);
+        const inningEndRaw = Number(source.inning_end);
+        const inningStart = Number.isInteger(inningStartRaw) && inningStartRaw >= 1 && inningStartRaw <= 12
+            ? inningStartRaw
+            : undefined;
+        const inningEnd = Number.isInteger(inningEndRaw) && inningEndRaw >= 1 && inningEndRaw <= 12
+            ? inningEndRaw
+            : undefined;
         const candidate = Number(source.level);
         const level = (Number.isInteger(candidate) && candidate >= 0 && candidate <= 2)
             ? (candidate as 0 | 1 | 2)
@@ -184,6 +198,11 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
             area,
             description,
             level,
+            inning_label: inningLabel || undefined,
+            inning_start: inningStart,
+            inning_end: inningEnd,
+            impact: impact || undefined,
+            impact_to: impactTo,
         });
     });
 
@@ -610,6 +629,13 @@ interface CoachAnalysisDialogResultRuntimeProps {
     loadingFallbackMessage: string;
     homeTeamId?: string;
     awayTeamId?: string;
+    initialWinProbabilityHome?: number | null;
+    initialDataQuality?: CoachDataQuality;
+    initialSupportedFactCount?: number;
+    initialUsedEvidence?: string[];
+    initialGroundingWarnings?: string[];
+    initialGroundingReasons?: string[];
+    initialFreshnessLabel?: string | null;
 }
 
 function CoachAnalysisResultViewLoadFailureFallback({
@@ -662,6 +688,13 @@ export default function CoachAnalysisDialogResultRuntime({
     loadingFallbackMessage,
     homeTeamId,
     awayTeamId,
+    initialWinProbabilityHome = null,
+    initialDataQuality,
+    initialSupportedFactCount,
+    initialUsedEvidence,
+    initialGroundingWarnings,
+    initialGroundingReasons,
+    initialFreshnessLabel,
 }: CoachAnalysisDialogResultRuntimeProps) {
     const [resultViewRetryKey, setResultViewRetryKey] = useState(0);
     const resultBoundaryToken = useMemo(
@@ -704,9 +737,9 @@ export default function CoachAnalysisDialogResultRuntime({
                     details: [],
                 }
                 : getCoachBriefingDataQualityNotice(
-                    result?.data_quality,
-                    result?.grounding_reasons,
-                    result?.grounding_warnings,
+                    result?.data_quality ?? initialDataQuality,
+                    result?.grounding_reasons ?? initialGroundingReasons,
+                    result?.grounding_warnings ?? initialGroundingWarnings,
                 )
         ),
         [
@@ -715,11 +748,14 @@ export default function CoachAnalysisDialogResultRuntime({
             result?.grounding_reasons,
             result?.grounding_warnings,
             result?.manual_data_request,
+            initialDataQuality,
+            initialGroundingReasons,
+            initialGroundingWarnings,
         ],
     );
     const analysisDataQualityLabel = useMemo(
-        () => getCoachDataQualityLabel(result?.data_quality),
-        [result?.data_quality],
+        () => getCoachDataQualityLabel(result?.data_quality ?? initialDataQuality),
+        [initialDataQuality, result?.data_quality],
     );
 
     return (
@@ -790,13 +826,16 @@ export default function CoachAnalysisDialogResultRuntime({
                             analysisData={analysisData}
                             homeTeamId={homeTeamId}
                             awayTeamId={awayTeamId}
-                            winProbabilityHome={result?.win_probability_home ?? null}
+                            winProbabilityHome={result?.win_probability_home ?? initialWinProbabilityHome ?? null}
                             dataQualityLabel={analysisDataQualityLabel}
                             dataQualityMessage={analysisDataQualityNotice?.message}
-                            supportedFactCount={result?.supported_fact_count}
-                            usedEvidence={result?.used_evidence}
-                            dataQuality={result?.data_quality}
+                            supportedFactCount={result?.supported_fact_count ?? initialSupportedFactCount}
+                            usedEvidence={result?.used_evidence ?? initialUsedEvidence}
+                            groundingWarnings={result?.grounding_warnings ?? initialGroundingWarnings}
+                            groundingReasons={result?.grounding_reasons ?? initialGroundingReasons}
+                            dataQuality={result?.data_quality ?? initialDataQuality}
                             generationMode={result?.generation_mode}
+                            freshnessLabel={result ? '방금 갱신' : initialFreshnessLabel}
                         />
                     </Suspense>
                 </ErrorBoundary>

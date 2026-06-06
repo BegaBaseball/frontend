@@ -5,6 +5,10 @@ import {
     riskImpactTo,
     riskInning,
     riskSevColor,
+    resolveRiskImpactText,
+    resolveRiskImpactTo,
+    resolveRiskInningLabel,
+    resolveRiskInningPosition,
     shortTeamName,
 } from './coachRiskHelpers';
 
@@ -28,4 +32,35 @@ test('coach risk helpers shorten known team ids', () => {
     assert.equal(shortTeamName('ssg'), 'SSG');
     assert.equal(shortTeamName('kt'), 'KT');
     assert.equal(shortTeamName('unknown'), 'UNKNOWN');
+});
+
+test('coach risk helpers prefer structured inning and impact fields when present', () => {
+    const structuredRisk = {
+        area: '불펜 운영',
+        level: 1 as const,
+        description: '7회 이후 운영 변수',
+        inning_label: '7~8회',
+        inning_start: 7,
+        inning_end: 8,
+        impact: '-4%p',
+        impact_to: 'away' as const,
+    };
+
+    assert.equal(resolveRiskInningLabel(structuredRisk), '7~8회');
+    assert.equal(resolveRiskInningPosition(structuredRisk, 5), 7.5);
+    assert.equal(resolveRiskImpactTo(structuredRisk, true), 'away');
+    assert.equal(resolveRiskImpactText(structuredRisk, true), '-4%p');
+});
+
+test('coach risk helpers keep level-based fallback for legacy risks', () => {
+    const legacyRisk = {
+        area: '선발 매치업',
+        level: 0 as const,
+        description: '선발 변수',
+    };
+
+    assert.equal(resolveRiskInningLabel(legacyRisk), '1~5회');
+    assert.equal(resolveRiskInningPosition(legacyRisk, 2), 2);
+    assert.equal(resolveRiskImpactTo(legacyRisk, true), 'away');
+    assert.equal(resolveRiskImpactText(legacyRisk, true), '−낮음');
 });
