@@ -189,14 +189,16 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
 
       {/* Row 3: host · trust · participant count */}
       <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5 dark:border-white/8">
-        <ProfileAvatar
-          src={hostAvatarSrc}
-          alt={party.hostName}
-          fallbackName={party.hostName}
-          width={24}
-          height={24}
-          className="shrink-0 ring-1 ring-gray-200 dark:ring-white/10"
-        />
+        <span className="inline-flex h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-gray-200 dark:ring-white/10">
+          <ProfileAvatar
+            src={hostAvatarSrc}
+            alt={party.hostName}
+            fallbackName={party.hostName}
+            width={24}
+            height={24}
+            className="h-full w-full"
+          />
+        </span>
         <span className="min-w-0 truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">
           {party.hostName}
         </span>
