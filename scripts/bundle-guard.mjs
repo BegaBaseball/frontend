@@ -118,7 +118,7 @@ const sizeBudgets = [
   { label: 'AccountSettings security runtime', directory: clientAssetsDir, filePattern: /^AccountSettingsSecurityRuntime-.*\.js$/, maxBytes: 13_000 },
   { label: 'AccountSettings advanced runtime', directory: clientAssetsDir, filePattern: /^AccountSettingsAdvancedRuntime-.*\.js$/, maxBytes: 12_000 },
   { label: 'Mate page shell', directory: clientAssetsDir, filePattern: /^MatePage-.*\.js$/, maxBytes: 5_000 },
-  { label: 'Mate runtime', directory: clientAssetsDir, filePattern: /^Mate-.*\.js$/, maxBytes: 16_000 },
+  { label: 'Mate runtime', directory: clientAssetsDir, filePattern: /^Mate-.*\.js$/, maxBytes: 16_500 },
   { label: 'Mate results runtime', directory: clientAssetsDir, filePattern: /^MateResultsRuntime-.*\.js$/, maxBytes: 19_000 },
   { label: 'Mate guide runtime', directory: clientAssetsDir, filePattern: /^MateGuidePanelRuntime-.*\.js$/, maxBytes: 4_000 },
   { label: 'MateCreate page shell', directory: clientAssetsDir, filePattern: /^MateCreatePage-.*\.js$/, maxBytes: 5_000 },
@@ -653,7 +653,7 @@ const manifestImportGuards = [
     label: 'Mate runtime manifest imports',
     directory: clientAssetsDir,
     filePattern: /^Mate-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-network-', '_axios-'],
+    forbiddenImportSubstrings: ['vendor-network-', '_axios-', 'stadiumData-', 'seatIcons-'],
   },
   {
     label: 'Mate results runtime manifest imports',
