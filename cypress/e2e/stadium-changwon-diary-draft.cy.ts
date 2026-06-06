@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const STADIUMS = [
   {
     stadiumId: 'JAMSIL',

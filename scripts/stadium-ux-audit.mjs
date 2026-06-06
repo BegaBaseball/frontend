@@ -4573,6 +4573,26 @@ const verifyDaejeonOverlayClicks = async (page) => {
       return Boolean(finder?.textContent?.includes(expectedText));
     }, text, { timeout: 5000 });
   };
+  const readVisibleDaejeonFinderItems = async () => page.evaluate(() => {
+    const finder = Array.from(document.querySelectorAll('[data-testid="daejeon-section-finder"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    if (!finder) return [];
+
+    return Array.from(finder.querySelectorAll('button[data-testid^="daejeon-section-finder-item-"]'))
+      .filter((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .map((button) => ({
+        testId: button.getAttribute('data-testid') ?? '',
+        blockCode: button.getAttribute('data-block-code') ?? '',
+        ariaLabel: button.getAttribute('aria-label') ?? '',
+        text: button.textContent ?? '',
+      }));
+  });
   const clickDaejeonFinderButton = async (tokens, viaKeyboard = false) => {
     const found = await page.evaluate(({ expectedTokens, shouldClick }) => {
       const finder = Array.from(document.querySelectorAll('[data-testid="daejeon-section-finder"]'))
@@ -4624,6 +4644,50 @@ const verifyDaejeonOverlayClicks = async (page) => {
     }
     await sleep(120);
   };
+  const verifyDaejeonExactSearchDetailContract = async ({ term, blockId, detail, block, level }) => {
+    await closeDetailPanel();
+    await searchInput.fill('');
+    await clickVisibleByTestId('daejeon-filter-all');
+    await searchInput.fill(term);
+    const expectedTestId = `daejeon-section-finder-item-${blockId}`;
+    await page.waitForFunction(({ testId }) => {
+      const finder = Array.from(document.querySelectorAll('[data-testid="daejeon-section-finder"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      if (!finder) return false;
+
+      const items = Array.from(finder.querySelectorAll('button[data-testid^="daejeon-section-finder-item-"]'))
+        .filter((button) => {
+          const rect = button.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      return items.length === 1 && items[0].getAttribute('data-testid') === testId;
+    }, { testId: expectedTestId }, { timeout: 5000 });
+
+    const items = await readVisibleDaejeonFinderItems();
+    if (items.length !== 1 || items[0].testId !== expectedTestId) {
+      throw new Error(`Daejeon exact search ${term} should return only ${blockId}: ${JSON.stringify(items)}`);
+    }
+
+    const clicked = await page.evaluate((testId) => {
+      const button = document.querySelector(`[data-testid="${testId}"]`);
+      if (!(button instanceof HTMLButtonElement)) return false;
+      button.scrollIntoView({ block: 'center', inline: 'nearest' });
+      button.click();
+      return true;
+    }, expectedTestId);
+    if (!clicked) {
+      throw new Error(`Daejeon exact search result button missing: ${expectedTestId}`);
+    }
+    await sleep(150);
+
+    await visibleTextLocator(page, detail).waitFor({ state: 'visible', timeout: 5000 });
+    await visibleTextLocator(page, '정확 블록').waitFor({ state: 'visible', timeout: 5000 });
+    await visibleTextLocator(page, block).waitFor({ state: 'visible', timeout: 5000 });
+    await visibleTextLocator(page, level).waitFor({ state: 'visible', timeout: 5000 });
+  };
   await searchInput.fill('카스');
   await visibleDaejeonFinderContainsText('카스존(응원단석)');
   // 등급·위치 보조 필터가 기본 접힘 상태일 수 있으므로 먼저 토글 후 클릭
@@ -4650,6 +4714,10 @@ const verifyDaejeonOverlayClicks = async (page) => {
     { term: '121', text: '121' },
     { term: '225', text: '225' },
     { term: 'S37', text: 'S37' },
+    { term: 'S31', text: 'S31' },
+    { term: 'S01', text: 'S01' },
+    { term: '302', text: '302' },
+    { term: '301', text: '301' },
     { term: '400', text: '400' },
     { term: '413', text: '413' },
     { term: '425', text: '425' },
@@ -4664,6 +4732,19 @@ const verifyDaejeonOverlayClicks = async (page) => {
     await searchInput.fill(searchCase.term);
     await visibleDaejeonFinderContainsText(searchCase.text);
   }
+
+  const daejeonExactSearchDetailContracts = [
+    { term: '301', blockId: 'first-table-4f-301-413__301', detail: '내야 탁자석(4층)', block: '301', level: '4F' },
+    { term: '302', blockId: 'first-table-4f-301-413__302', detail: '내야 탁자석(4층)', block: '302', level: '4F' },
+    { term: 'S01', blockId: 'skybox-s01-s37__s01', detail: '스카이박스', block: 'S01', level: '4F' },
+    { term: 'S31', blockId: 'skybox-s01-s37__s31', detail: '스카이박스', block: 'S31', level: '4F' },
+  ];
+
+  for (const contract of daejeonExactSearchDetailContracts) {
+    await verifyDaejeonExactSearchDetailContract(contract);
+  }
+  await closeDetailPanel();
+  await searchInput.fill('');
 
   await searchInput.fill('105');
   await visibleDaejeonFinderContainsText('105');
@@ -4878,6 +4959,185 @@ const verifyDaejeonOverlayClicks = async (page) => {
     await page.locator(`[data-testid="daejeon-seat-block-${blockId}"][aria-pressed="true"]:visible`).count()
   ) > 0;
 
+  const normalizeDaejeonSvgPoint = (point) => (
+    Array.isArray(point) ? { x: point[0], y: point[1] } : point
+  );
+
+  const readDaejeonTopHitAtSvgPoint = async (point) => {
+    const { x, y } = normalizeDaejeonSvgPoint(point);
+    return page.evaluate(({ svgX, svgY }) => {
+      const svg = Array.from(document.querySelectorAll('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      if (!(svg instanceof SVGSVGElement)) {
+        return {
+          point: { x: svgX, y: svgY },
+          topHitBlockId: null,
+          topHitTestId: null,
+          hits: [],
+          error: 'visible SVG missing',
+        };
+      }
+
+      const svgPoint = svg.createSVGPoint();
+      svgPoint.x = svgX;
+      svgPoint.y = svgY;
+      const hits = Array.from(svg.querySelectorAll('[data-testid^="daejeon-seat-block-"]'))
+        .filter((element) => (
+          element instanceof SVGGeometryElement
+          && element.getAttribute('pointer-events') !== 'none'
+          && element.isPointInFill(svgPoint)
+        ))
+        .map((element) => element.getAttribute('data-testid') ?? '');
+      const topHitTestId = hits.at(-1) ?? null;
+      return {
+        point: { x: svgX, y: svgY },
+        topHitBlockId: topHitTestId?.replace('daejeon-seat-block-', '') ?? null,
+        topHitTestId,
+        hits: hits.slice(-8),
+        error: null,
+      };
+    }, { svgX: x, svgY: y });
+  };
+
+  const hoverDaejeonSvgPoint = async (point) => {
+    const { x, y } = normalizeDaejeonSvgPoint(point);
+    await hideDaejeonFixedSheetsForCoordinateClick();
+    try {
+      const clientPoint = await resolveDaejeonSvgClientPoint({ x, y });
+      await page.mouse.move(clientPoint.x, clientPoint.y);
+    } finally {
+      await restoreDaejeonFixedSheetsAfterCoordinateClick();
+    }
+    await sleep(120);
+  };
+
+  const verifyDaejeonEdgeHoverClickContract = async (contract) => {
+    for (const rawPoint of contract.edgeSamples) {
+      const point = normalizeDaejeonSvgPoint(rawPoint);
+      await closeDetailPanel();
+      await searchInput.fill('');
+      await clickVisibleByTestId('daejeon-filter-all');
+      await clickDaejeonZoomControl('daejeon-seatmap-zoom-reset');
+      await scrollDaejeonSeatMapIntoView();
+
+      const topHit = await readDaejeonTopHitAtSvgPoint(point);
+      if (topHit.topHitBlockId !== contract.blockId) {
+        throw new Error(`Daejeon edge sample ${contract.blockId} ${point.x},${point.y} should top-hit target: ${JSON.stringify(topHit)}`);
+      }
+
+      await hoverDaejeonSvgPoint(point);
+      await page.waitForFunction((blockId) => {
+        const target = document.querySelector(`[data-testid="daejeon-seat-block-${blockId}"]`);
+        return target?.getAttribute('aria-pressed') === 'true';
+      }, contract.blockId, { timeout: 2500 });
+
+      await clickDaejeonSvgPoint(point);
+      if (!(await isDaejeonSeatBlockPressed(contract.blockId))) {
+        throw new Error(`Daejeon edge sample click did not select ${contract.blockId} at ${point.x},${point.y}`);
+      }
+      await visibleTextLocator(page, contract.detail).waitFor({ state: 'visible', timeout: 5000 });
+      await visibleTextLocator(page, '정확 블록').waitFor({ state: 'visible', timeout: 5000 });
+      await visibleTextLocator(page, contract.block).waitFor({ state: 'visible', timeout: 5000 });
+      await visibleTextLocator(page, contract.level).waitFor({ state: 'visible', timeout: 5000 });
+    }
+  };
+
+  const readDaejeonSkyboxTransparentEdgeSamples = async (blockIds) => page.evaluate((targetBlockIds) => {
+    const svg = Array.from(document.querySelectorAll('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    if (!(svg instanceof SVGSVGElement)) {
+      return targetBlockIds.map((blockId) => ({
+        blockId,
+        ok: false,
+        point: null,
+        topHitBlockId: null,
+        reason: 'visible SVG missing',
+      }));
+    }
+
+    const parsePoints = (d) => {
+      const numbers = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      const points = [];
+      for (let index = 0; index < numbers.length - 1; index += 2) {
+        points.push({ x: numbers[index], y: numbers[index + 1] });
+      }
+      return points;
+    };
+    const roundPoint = (value) => Number(value.toFixed(1));
+    const readTopHitBlockId = (point) => {
+      const svgPoint = svg.createSVGPoint();
+      svgPoint.x = point.x;
+      svgPoint.y = point.y;
+      const hits = Array.from(svg.querySelectorAll('[data-testid^="daejeon-seat-block-"]'))
+        .filter((element) => (
+          element instanceof SVGGeometryElement
+          && element.getAttribute('pointer-events') !== 'none'
+          && element.isPointInFill(svgPoint)
+        ))
+        .map((element) => element.getAttribute('data-testid') ?? '');
+      return hits.at(-1)?.replace('daejeon-seat-block-', '') ?? null;
+    };
+
+    return targetBlockIds.map((blockId) => {
+      const hitPath = svg.querySelector(`[data-testid="daejeon-seat-block-${blockId}"]`);
+      const displayPath = svg.querySelector(`[data-testid="daejeon-seat-display-${blockId}"]`);
+      if (!(hitPath instanceof SVGGeometryElement) || !(displayPath instanceof SVGGeometryElement)) {
+        return { blockId, ok: false, point: null, topHitBlockId: null, reason: 'path missing' };
+      }
+
+      const displayPoints = parsePoints(displayPath.getAttribute('d') ?? '');
+      const labelX = Number(hitPath.getAttribute('data-label-x'));
+      const labelY = Number(hitPath.getAttribute('data-label-y'));
+      if (!Number.isFinite(labelX) || !Number.isFinite(labelY) || displayPoints.length === 0) {
+        return { blockId, ok: false, point: null, topHitBlockId: null, reason: 'sample source missing' };
+      }
+
+      const candidates = [];
+      for (const visualPoint of displayPoints) {
+        const dx = visualPoint.x - labelX;
+        const dy = visualPoint.y - labelY;
+        const length = Math.hypot(dx, dy);
+        if (length <= 0) continue;
+        for (const distance of [2, 3, 4, 5, 6]) {
+          candidates.push({
+            x: roundPoint(visualPoint.x + ((dx / length) * distance)),
+            y: roundPoint(visualPoint.y + ((dy / length) * distance)),
+          });
+        }
+      }
+
+      const seen = new Set();
+      for (const candidate of candidates) {
+        const key = `${candidate.x},${candidate.y}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const svgPoint = svg.createSVGPoint();
+        svgPoint.x = candidate.x;
+        svgPoint.y = candidate.y;
+        if (!hitPath.isPointInFill(svgPoint) || displayPath.isPointInFill(svgPoint)) continue;
+        const topHitBlockId = readTopHitBlockId(candidate);
+        if (topHitBlockId === blockId) {
+          return { blockId, ok: true, point: candidate, topHitBlockId, reason: '' };
+        }
+      }
+
+      return {
+        blockId,
+        ok: false,
+        point: null,
+        topHitBlockId: null,
+        reason: 'transparent edge sample not found',
+      };
+    });
+  }, blockIds);
+
   const verifyDaejeonHitAreaContract = async (blockId) => {
     await closeDetailPanel();
     await searchInput.fill('');
@@ -4931,15 +5191,131 @@ const verifyDaejeonOverlayClicks = async (page) => {
     }
   };
 
-  await verifyDaejeonHitAreaContract('outfield-reserved-509__509');
-  await verifyDaejeonHitAreaContract('first-infield-a-109-112-201-212__109');
-  await verifyDaejeonHitAreaContract('skybox-s01-s37__s01');
-  await verifyDaejeonHitAreaContract('first-table-4f-301-413__301');
-  await verifyDaejeonHitAreaContract('first-table-4f-301-413__403');
-  await verifyDaejeonHitAreaContract('first-table-4f-301-413__404');
-  await verifyDaejeonHitAreaContract('third-infield-a-113-120-213-225__115');
-  await verifyDaejeonHitAreaContract('splash-jacuzzi-425__425');
-  await verifyDaejeonHitAreaContract('splash-caravan-426__426');
+  const daejeonHoverSelectedContractBlockIds = [
+    'central-table-100__100a',
+    'central-table-100__100b',
+    'central-table-100__100c',
+    'first-infield-b-101-108__104',
+    'first-infield-b-101-108__105',
+    'first-infield-b-101-108__106',
+    'first-infield-b-101-108__107',
+    'first-infield-b-101-108__108',
+    'first-infield-a-109-112-201-212__109',
+    'first-infield-a-109-112-201-212__110',
+    'third-infield-a-113-120-213-225__115',
+    'third-infield-a-113-120-213-225__116',
+    'third-infield-a-113-120-213-225__117',
+    'third-infield-a-113-120-213-225__118',
+    'third-infield-a-113-120-213-225__119',
+    'third-infield-a-113-120-213-225__120',
+    'third-infield-b-121-124__121',
+    'third-infield-b-121-124__122',
+    'third-infield-b-121-124__124',
+    'outfield-reserved-509__509',
+    'skybox-s01-s37__s01',
+    'skybox-s01-s37__s31',
+    'first-table-4f-301-413__301',
+    'first-table-4f-301-413__302',
+    'first-table-4f-301-413__403',
+    'first-table-4f-301-413__404',
+    'splash-jacuzzi-425__425',
+    'splash-caravan-426__426',
+  ];
+
+  for (const blockId of daejeonHoverSelectedContractBlockIds) {
+    await verifyDaejeonHitAreaContract(blockId);
+  }
+
+  const daejeonSmallBlockEdgeHitContracts = [
+    {
+      blockId: 'first-table-4f-301-413__301',
+      detail: '내야 탁자석(4층)',
+      block: '301',
+      level: '4F',
+      edgeSamples: [[778, 463], [801, 482], [781, 488]],
+    },
+    {
+      blockId: 'first-table-4f-301-413__302',
+      detail: '내야 탁자석(4층)',
+      block: '302',
+      level: '4F',
+      edgeSamples: [[756, 514], [798, 506], [782, 528]],
+    },
+  ];
+
+  for (const contract of daejeonSmallBlockEdgeHitContracts) {
+    await verifyDaejeonEdgeHoverClickContract(contract);
+  }
+
+  const daejeonSkyboxHitAreaSweepBlockIds = [
+    'skybox-s01-s37__s01',
+    'skybox-s01-s37__s02',
+    'skybox-s01-s37__s03',
+    'skybox-s01-s37__s04',
+    'skybox-s01-s37__s05',
+    'skybox-s01-s37__s06',
+    'skybox-s01-s37__s07',
+    'skybox-s01-s37__s08',
+    'skybox-s01-s37__s09',
+    'skybox-s01-s37__s10',
+    'skybox-s01-s37__s11',
+    'skybox-s01-s37__s12',
+    'skybox-s01-s37__s13',
+    'skybox-s01-s37__s14',
+    'skybox-s01-s37__s15',
+    'skybox-s01-s37__s16',
+    'skybox-s01-s37__s17',
+    'skybox-s01-s37__s18',
+    'skybox-s01-s37__s19',
+    'skybox-s01-s37__s20',
+    'skybox-s01-s37__s21',
+    'skybox-s01-s37__s22',
+    'skybox-s01-s37__s23',
+    'skybox-s01-s37__s24',
+    'skybox-s01-s37__s25',
+    'skybox-s01-s37__s26',
+    'skybox-s01-s37__s27',
+    'skybox-s01-s37__s28',
+    'skybox-s01-s37__s29',
+    'skybox-s01-s37__s30',
+    'skybox-s01-s37__s31',
+  ];
+
+  const daejeonSkyboxEdgeSampleRows = await readDaejeonSkyboxTransparentEdgeSamples(daejeonSkyboxHitAreaSweepBlockIds);
+  const daejeonSkyboxEdgeSampleFailures = daejeonSkyboxEdgeSampleRows.filter((row) => !row.ok);
+  if (daejeonSkyboxEdgeSampleRows.length !== 31 || daejeonSkyboxEdgeSampleFailures.length > 0) {
+    throw new Error(`Daejeon skybox S01-S31 transparent edge top-hit sweep failed: ${JSON.stringify(daejeonSkyboxEdgeSampleFailures)}`);
+  }
+
+  const daejeonSkyboxClickDetailContracts = [
+    { blockId: 'skybox-s01-s37__s01', detail: '스카이박스', block: 'S01', level: '4F' },
+    { blockId: 'skybox-s01-s37__s12', detail: '스카이박스', block: 'S12', level: '4F' },
+    { blockId: 'skybox-s01-s37__s13', detail: '스카이박스', block: 'S13', level: '4F' },
+    { blockId: 'skybox-s01-s37__s25', detail: '스카이박스', block: 'S25', level: '4F' },
+    { blockId: 'skybox-s01-s37__s26', detail: '스카이박스', block: 'S26', level: '4F' },
+    { blockId: 'skybox-s01-s37__s31', detail: '스카이박스', block: 'S31', level: '4F' },
+  ];
+  const daejeonSkyboxEdgeSampleByBlockId = new Map(
+    daejeonSkyboxEdgeSampleRows.map((row) => [row.blockId, row.point]),
+  );
+  for (const contract of daejeonSkyboxClickDetailContracts) {
+    await verifyDaejeonEdgeHoverClickContract({
+      ...contract,
+      edgeSamples: [daejeonSkyboxEdgeSampleByBlockId.get(contract.blockId)],
+    });
+  }
+
+  const daejeonS31ExcludedPointContracts = [
+    { blockId: 'skybox-s01-s37__s31', point: [302, 799], label: 'S32 label' },
+    { blockId: 'skybox-s01-s37__s31', point: [300, 800.3], label: 'S32 center' },
+  ];
+  for (const contract of daejeonS31ExcludedPointContracts) {
+    const point = normalizeDaejeonSvgPoint(contract.point);
+    const topHit = await readDaejeonTopHitAtSvgPoint(point);
+    if (topHit.topHitBlockId === contract.blockId) {
+      throw new Error(`Daejeon S31 hit-area should not absorb ${contract.label} ${point.x},${point.y}: ${JSON.stringify(topHit)}`);
+    }
+  }
 
   const verifyDaejeonRetiredP2BlocksRemoved = async () => {
     const retiredP2Blocks = [
@@ -5041,6 +5417,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
     'central-accessible__center',
     'first-infield-b-101-108__104',
     'first-infield-b-101-108__105',
+    'first-infield-b-101-108__106',
     'first-infield-b-101-108__107',
     'first-infield-b-101-108__108',
     'first-infield-a-109-112-201-212__109',
@@ -5056,6 +5433,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__114',
       'third-infield-a-113-120-213-225__115',
       'third-infield-a-113-120-213-225__116',
+      'third-infield-a-113-120-213-225__117',
       'third-infield-a-113-120-213-225__118',
       'third-infield-a-113-120-213-225__119',
       'third-infield-a-113-120-213-225__120',
@@ -5065,6 +5443,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
       'third-infield-a-113-120-213-225__221',
       'third-infield-a-113-120-213-225__225',
       'third-infield-b-121-124__121',
+      'third-infield-b-121-124__122',
       'third-infield-b-121-124__124',
       'cass-cheering-200__200',
       'first-infield-accessible__first-infield',
@@ -5138,18 +5517,31 @@ const verifyDaejeonOverlayClicks = async (page) => {
   }
 
   const representativeCoordinateBlockChecks = [
+    { blockId: 'central-table-100__100a', code: '100A' },
     { blockId: 'central-table-100__100b', code: '100B' },
+    { blockId: 'central-table-100__100c', code: '100C' },
     { blockId: 'first-infield-b-101-108__104', code: '104' },
     { blockId: 'first-infield-b-101-108__105', code: '105' },
+    { blockId: 'first-infield-b-101-108__106', code: '106' },
+    { blockId: 'first-infield-b-101-108__107', code: '107' },
     { blockId: 'first-infield-b-101-108__108', code: '108' },
     { blockId: 'first-infield-a-109-112-201-212__109', code: '109' },
+    { blockId: 'first-infield-a-109-112-201-212__110', code: '110' },
     { blockId: 'third-infield-a-113-120-213-225__115', code: '115' },
+    { blockId: 'third-infield-a-113-120-213-225__116', code: '116' },
+    { blockId: 'third-infield-a-113-120-213-225__117', code: '117' },
+    { blockId: 'third-infield-a-113-120-213-225__118', code: '118' },
+    { blockId: 'third-infield-a-113-120-213-225__119', code: '119' },
     { blockId: 'third-infield-a-113-120-213-225__120', code: '120' },
     { blockId: 'third-infield-b-121-124__121', code: '121' },
+    { blockId: 'third-infield-b-121-124__122', code: '122' },
     { blockId: 'third-infield-b-121-124__124', code: '124' },
     { blockId: 'cass-cheering-200__200', code: '200' },
+    { blockId: 'first-table-4f-301-413__301', code: '301' },
+    { blockId: 'first-table-4f-301-413__302', code: '302' },
     { blockId: 'first-table-4f-301-413__403', code: '403' },
     { blockId: 'first-table-4f-301-413__404', code: '404' },
+    { blockId: 'skybox-s01-s37__s31', code: 'S31' },
     { blockId: 'innings-vip-400__400', code: '400' },
     { blockId: 'outfield-lawn-500__500', code: '500' },
     { blockId: 'outfield-table-third-501-503__501', code: '501' },

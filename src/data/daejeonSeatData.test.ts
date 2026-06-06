@@ -63,6 +63,32 @@ function pointBounds(points: TestPoint[]) {
   };
 }
 
+function pathArea(d: string): number {
+  return pathToPolygons(d).reduce((area, points) => area + polygonArea(points), 0);
+}
+
+function roundTestCoordinate(value: number): number {
+  return Number(value.toFixed(1));
+}
+
+function expandedVertexSample(
+  block: { imageGeometry: { d: string; labelX: number; labelY: number } },
+  vertexIndex: number,
+  distance = 2,
+): TestPoint {
+  const visualPoints = pathToPoints(block.imageGeometry.d);
+  const [x, y] = visualPoints[vertexIndex];
+  const dx = x - block.imageGeometry.labelX;
+  const dy = y - block.imageGeometry.labelY;
+  const length = Math.hypot(dx, dy);
+  assert.ok(length > 0, 'edge sample requires a non-label visual vertex');
+
+  return [
+    roundTestCoordinate(x + ((dx / length) * distance)),
+    roundTestCoordinate(y + ((dy / length) * distance)),
+  ];
+}
+
 function isPointInsidePolygon(points: TestPoint[], point: TestPoint): boolean {
   const [x, y] = point;
   let inside = false;
@@ -1018,17 +1044,17 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
   const expectations = [
     {
       id: 'first-table-4f-301-413__301',
-      bounds: { minX: 766, minY: 452, maxX: 794, maxY: 488 },
-      labelPoint: [782, 469] as const,
-      ownerPoints: [[772, 480], [790, 460]] as const,
-      excludedPoints: [[760, 470], [802, 470]] as const,
+      bounds: { minX: 779, minY: 452, maxX: 800, maxY: 484 },
+      labelPoint: [789, 469] as const,
+      ownerPoints: [[789, 469], [795, 460], [784, 480]] as const,
+      excludedPoints: [[772, 480], [802, 470], [777, 505]] as const,
     },
     {
       id: 'first-table-4f-301-413__302',
-      bounds: { minX: 755, minY: 491, maxX: 797, maxY: 522 },
+      bounds: { minX: 758, minY: 489, maxX: 798, maxY: 524 },
       labelPoint: [777, 505] as const,
       ownerPoints: [[765, 515], [790, 500]] as const,
-      excludedPoints: [[748, 505], [804, 505]] as const,
+      excludedPoints: [[748, 505], [804, 505], [789, 469]] as const,
     },
     {
       id: 'first-table-4f-301-413__401',
@@ -1138,6 +1164,46 @@ test('대전 1루 4층 탁자석 301/302/401-413은 공식 셀 bounds와 owner p
   });
 });
 
+test('대전 1루 4층 탁자석 301/302는 visual path를 키우지 않고 hit-area edge만 보강한다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const expectations = [
+    {
+      id: 'first-table-4f-301-413__301',
+      hitBounds: { minX: 775, minY: 452, maxX: 803, maxY: 490 },
+      edgeSamples: [[778, 463], [801, 482], [781, 488]] as const,
+      topExcludedPoints: [[792, 448], [785, 449]] as const,
+    },
+    {
+      id: 'first-table-4f-301-413__302',
+      hitBounds: { minX: 753, minY: 489, maxX: 803, maxY: 530 },
+      edgeSamples: [[756, 514], [798, 506], [782, 528]] as const,
+      topExcludedPoints: [[783, 485], [760, 489]] as const,
+    },
+  ];
+
+  expectations.forEach(({ id, hitBounds, edgeSamples, topExcludedPoints }) => {
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    const hitAreaD = block.hitAreaD;
+    assert.ok(hitAreaD, `${id} should use a separate transparent hit-area`);
+    assert.notEqual(hitAreaD, block.imageGeometry.d, `${id} should keep display and hit paths separate`);
+    assert.deepEqual(pointBounds(pathToPoints(hitAreaD)), hitBounds, `${id} hit-area should only pad side/bottom edges`);
+
+    const visualArea = pathArea(block.imageGeometry.d);
+    const hitArea = pathArea(hitAreaD);
+    assert.ok(hitArea >= visualArea, `${id} hit-area should cover at least its visual path`);
+    assert.ok(hitArea <= visualArea * 1.6, `${id} hit-area should stay conservative`);
+    assert.ok(isPointInsidePath(block.imageGeometry.d, [block.imageGeometry.labelX, block.imageGeometry.labelY]), `${id} label should remain inside visual path`);
+
+    edgeSamples.forEach((point) => {
+      assert.equal(getTopHitBlockIdAtPoint(point), id, `${id} edge sample ${point.join(',')} should top-hit itself`);
+    });
+    topExcludedPoints.forEach((point) => {
+      assert.equal(isPointInsidePath(hitAreaD, point), false, `${id} hit-area should not add top padding at ${point.join(',')}`);
+    });
+  });
+});
+
 test('대전 3루 4층 탁자석 414-423/326-330은 공식 셀 bounds와 owner point를 유지한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
@@ -1213,17 +1279,17 @@ test('대전 3루 4층 탁자석 414-423/326-330은 공식 셀 bounds와 owner p
     },
     {
       id: 'third-table-4f-414-330__326',
-      bounds: { minX: 130, minY: 616, maxX: 170, maxY: 664 },
-      labelPoint: [151, 643] as const,
-      ownerPoints: [[140, 630], [145, 640], [155, 645]] as const,
-      excludedPoints: [[124, 643], [176, 643]] as const,
+      bounds: { minX: 148, minY: 616, maxX: 186, maxY: 667 },
+      labelPoint: [166, 642] as const,
+      ownerPoints: [[166, 642], [154, 633], [178, 650]] as const,
+      excludedPoints: [[140, 630], [141, 608], [192, 642]] as const,
     },
     {
       id: 'third-table-4f-414-330__327',
-      bounds: { minX: 119, minY: 586, maxX: 161, maxY: 626 },
-      labelPoint: [141, 608] as const,
-      ownerPoints: [[130, 595], [152, 618]] as const,
-      excludedPoints: [[112, 608], [168, 608]] as const,
+      bounds: { minX: 133, minY: 585, maxX: 166, maxY: 621 },
+      labelPoint: [150, 603] as const,
+      ownerPoints: [[150, 603], [158, 610], [145, 616]] as const,
+      excludedPoints: [[130, 595], [166, 642], [130, 577]] as const,
     },
     {
       id: 'third-table-4f-414-330__328',
@@ -1356,18 +1422,18 @@ test('대전 외야 상단 500/501-509 블록은 공식 셀 bounds와 owner poin
 test('대전 스카이박스 S01-S12 소형 블록은 공식 셀 bounds와 owner point를 유지한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
-    { id: 'skybox-s01-s37__s01', bounds: { minX: 764, minY: 527, maxX: 779, maxY: 535 }, labelPoint: [772, 531] as const, excludedPoints: [[767, 546]] as const },
-    { id: 'skybox-s01-s37__s02', bounds: { minX: 760, minY: 542, maxX: 774, maxY: 550 }, labelPoint: [767, 546] as const, excludedPoints: [[772, 531], [761, 554]] as const },
-    { id: 'skybox-s01-s37__s03', bounds: { minX: 754, minY: 551, maxX: 768, maxY: 558 }, labelPoint: [761, 554] as const, excludedPoints: [[767, 546], [755, 570]] as const },
-    { id: 'skybox-s01-s37__s04', bounds: { minX: 748, minY: 566, maxX: 762, maxY: 574 }, labelPoint: [755, 570] as const, excludedPoints: [[761, 554], [746, 593]] as const },
-    { id: 'skybox-s01-s37__s05', bounds: { minX: 738, minY: 589, maxX: 753, maxY: 598 }, labelPoint: [746, 593] as const, excludedPoints: [[755, 570], [740, 603]] as const },
-    { id: 'skybox-s01-s37__s06', bounds: { minX: 733, minY: 599, maxX: 747, maxY: 608 }, labelPoint: [740, 603] as const, excludedPoints: [[746, 593], [734, 618]] as const },
+    { id: 'skybox-s01-s37__s01', bounds: { minX: 764, minY: 525, maxX: 779, maxY: 537 }, labelPoint: [772, 531] as const, excludedPoints: [[767, 546]] as const },
+    { id: 'skybox-s01-s37__s02', bounds: { minX: 758, minY: 540, maxX: 775, maxY: 551 }, labelPoint: [767, 546] as const, excludedPoints: [[772, 531], [761, 554]] as const },
+    { id: 'skybox-s01-s37__s03', bounds: { minX: 753, minY: 549, maxX: 769, maxY: 561 }, labelPoint: [761, 554] as const, excludedPoints: [[767, 546], [755, 570]] as const },
+    { id: 'skybox-s01-s37__s04', bounds: { minX: 748, minY: 564, maxX: 764, maxY: 575 }, labelPoint: [755, 570] as const, excludedPoints: [[761, 554], [746, 593]] as const },
+    { id: 'skybox-s01-s37__s05', bounds: { minX: 737, minY: 586, maxX: 753, maxY: 599 }, labelPoint: [746, 593] as const, excludedPoints: [[755, 570], [740, 603]] as const },
+    { id: 'skybox-s01-s37__s06', bounds: { minX: 731, minY: 597, maxX: 747, maxY: 610 }, labelPoint: [740, 603] as const, excludedPoints: [[746, 593], [734, 618]] as const },
     { id: 'skybox-s01-s37__s07', bounds: { minX: 726, minY: 612, maxX: 742, maxY: 623 }, labelPoint: [734, 618] as const, excludedPoints: [[740, 603], [729, 627]] as const },
-    { id: 'skybox-s01-s37__s08', bounds: { minX: 722, minY: 623, maxX: 736, maxY: 631 }, labelPoint: [729, 627] as const, excludedPoints: [[734, 618], [724, 642]] as const },
-    { id: 'skybox-s01-s37__s09', bounds: { minX: 717, minY: 638, maxX: 731, maxY: 646 }, labelPoint: [724, 642] as const, excludedPoints: [[729, 627], [711, 665]] as const },
-    { id: 'skybox-s01-s37__s10', bounds: { minX: 703, minY: 662, maxX: 719, maxY: 669 }, labelPoint: [711, 665] as const, excludedPoints: [[724, 642], [700, 675]] as const },
-    { id: 'skybox-s01-s37__s11', bounds: { minX: 692, minY: 670, maxX: 708, maxY: 679 }, labelPoint: [700, 675] as const, excludedPoints: [[711, 665], [675, 709]] as const },
-    { id: 'skybox-s01-s37__s12', bounds: { minX: 667, minY: 705, maxX: 682, maxY: 714 }, labelPoint: [675, 709] as const, excludedPoints: [[700, 675]] as const },
+    { id: 'skybox-s01-s37__s08', bounds: { minX: 721, minY: 621, maxX: 736, maxY: 633 }, labelPoint: [729, 627] as const, excludedPoints: [[734, 618], [724, 642]] as const },
+    { id: 'skybox-s01-s37__s09', bounds: { minX: 716, minY: 636, maxX: 731, maxY: 647 }, labelPoint: [724, 642] as const, excludedPoints: [[729, 627], [711, 665]] as const },
+    { id: 'skybox-s01-s37__s10', bounds: { minX: 703, minY: 656, maxX: 719, maxY: 671 }, labelPoint: [711, 665] as const, excludedPoints: [[724, 642], [700, 675]] as const },
+    { id: 'skybox-s01-s37__s11', bounds: { minX: 692, minY: 668, maxX: 710, maxY: 683 }, labelPoint: [700, 675] as const, excludedPoints: [[711, 665], [675, 709]] as const },
+    { id: 'skybox-s01-s37__s12', bounds: { minX: 667, minY: 702, maxX: 685, maxY: 716 }, labelPoint: [675, 709] as const, excludedPoints: [[700, 675]] as const },
   ];
 
   expectations.forEach(({ id, bounds, labelPoint, excludedPoints }) => {
@@ -1441,6 +1507,54 @@ test('대전 스카이박스 S26-S37 소형 블록은 공식 셀 bounds와 owner
   });
 });
 
+test('대전 스카이박스 S01-S31은 visual path와 투명 hit-area를 분리하고 인접 중심점을 흡수하지 않는다', () => {
+  const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+
+  Array.from({ length: 31 }, (_, index) => index + 1).forEach((blockNumber) => {
+    const code = `S${String(blockNumber).padStart(2, '0')}`;
+    const id = `skybox-s01-s37__${code.toLowerCase()}`;
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.ok(block.hitAreaD, `${id} should use a separate transparent hit-area`);
+    assert.notEqual(block.hitAreaD, block.imageGeometry.d, `${id} should keep display and hit paths separate`);
+
+    const visualArea = pathArea(block.imageGeometry.d);
+    const hitArea = pathArea(block.hitAreaD);
+    assert.ok(hitArea >= visualArea, `${id} hit-area should cover at least its visual path`);
+    assert.ok(hitArea <= visualArea * 3, `${id} hit-area should stay below the small-block area cap`);
+    assert.ok(isPointInsidePath(block.imageGeometry.d, [block.imageGeometry.labelX, block.imageGeometry.labelY]), `${id} label should stay inside visual path`);
+    assert.equal(getTopHitBlockIdAtPoint([block.imageGeometry.labelX, block.imageGeometry.labelY]), id, `${id} label should top-hit itself`);
+
+    const visualPoints = pathToPoints(block.imageGeometry.d);
+    const edgeSample = visualPoints
+      .map((_, vertexIndex) => expandedVertexSample(block, vertexIndex))
+      .find((point) => !isPointInsidePath(block.imageGeometry.d, point) && getTopHitBlockIdAtPoint(point) === id);
+    assert.ok(edgeSample, `${id} should have at least one transparent edge sample that top-hits itself`);
+
+    [blockNumber - 1, blockNumber + 1].filter((adjacentNumber) => adjacentNumber >= 1 && adjacentNumber <= 37).forEach((adjacentNumber) => {
+      const adjacentId = `skybox-s01-s37__s${String(adjacentNumber).padStart(2, '0')}`;
+      const adjacentBlock = blockById.get(adjacentId);
+      assert.ok(adjacentBlock, `${adjacentId} should exist`);
+      const adjacentLabelPoint: TestPoint = [adjacentBlock.imageGeometry.labelX, adjacentBlock.imageGeometry.labelY];
+      const adjacentVisualPoints = pathToPoints(adjacentBlock.imageGeometry.d);
+      const adjacentCenterPoint: TestPoint = [
+        roundTestCoordinate(adjacentVisualPoints.reduce((sum, point) => sum + point[0], 0) / adjacentVisualPoints.length),
+        roundTestCoordinate(adjacentVisualPoints.reduce((sum, point) => sum + point[1], 0) / adjacentVisualPoints.length),
+      ];
+
+      assert.notEqual(getTopHitBlockIdAtPoint(adjacentLabelPoint), id, `${id} should not absorb adjacent label point ${adjacentLabelPoint.join(',')}`);
+      assert.notEqual(getTopHitBlockIdAtPoint(adjacentCenterPoint), id, `${id} should not absorb adjacent center point ${adjacentCenterPoint.join(',')}`);
+    });
+  });
+
+  Array.from({ length: 6 }, (_, index) => index + 32).forEach((blockNumber) => {
+    const id = `skybox-s01-s37__s${String(blockNumber).padStart(2, '0')}`;
+    const block = blockById.get(id);
+    assert.ok(block, `${id} should exist`);
+    assert.equal(block.hitAreaD, block.imageGeometry.d, `${id} should remain outside the S01-S31 hit-area expansion scope`);
+  });
+});
+
 test('대전 특수석/휠체어석은 공식 셀 bounds와 owner point를 유지한다', () => {
   const blockById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
   const expectations = [
@@ -1474,10 +1588,10 @@ test('대전 특수석/휠체어석은 공식 셀 bounds와 owner point를 유�
     },
     {
       id: 'first-infield-accessible__first-infield',
-      bounds: { minX: 690, minY: 570, maxX: 736, maxY: 625 },
-      labelPoint: [713, 598] as const,
-      ownerPoints: [[700, 590], [725, 610]] as const,
-      excludedPoints: [[684, 598], [742, 598], [713, 632]] as const,
+      bounds: { minX: 706, minY: 583, maxX: 729, maxY: 612 },
+      labelPoint: [717, 599] as const,
+      ownerPoints: [[717, 599], [714, 590], [722, 607]] as const,
+      excludedPoints: [[700, 590], [705, 600], [693, 593], [713, 632]] as const,
     },
     {
       id: 'third-infield-accessible__third-infield',
@@ -1899,17 +2013,18 @@ test('대전 3루 220 블록은 118/117 방향으로 과대 확장하지 않는�
   assert.ok(block220, 'third-infield-a-113-120-213-225__220 should exist');
   assert.deepEqual(
     pointBounds(pathToPoints(block220.imageGeometry.d)),
-    { minX: 167, minY: 571, maxX: 228, maxY: 615 },
+    { minX: 167, minY: 574, maxX: 216, maxY: 608 },
     '220 visible path should stay on the measured small official cell',
   );
   assert.deepEqual([block220.imageGeometry.labelX, block220.imageGeometry.labelY], [190, 599], '220 label should stay near the official visual center');
 
   const ownerPoints: Array<{ point: TestPoint; expectedId?: string; notExpectedId?: string }> = [
     { point: [190, 599], expectedId: 'third-infield-a-113-120-213-225__220' },
-    { point: [195, 608], expectedId: 'third-infield-a-113-120-213-225__220' },
-    { point: [219, 595], expectedId: 'third-infield-a-113-120-213-225__220' },
+    { point: [195, 604], expectedId: 'third-infield-a-113-120-213-225__220' },
+    { point: [210, 600], expectedId: 'third-infield-a-113-120-213-225__220' },
     { point: [178, 584], expectedId: 'third-infield-a-113-120-213-225__220' },
     { point: [180, 608], notExpectedId: 'third-infield-a-113-120-213-225__220' },
+    { point: [219, 595], notExpectedId: 'third-infield-a-113-120-213-225__220' },
     { point: [238, 572], notExpectedId: 'third-infield-a-113-120-213-225__220' },
     { point: [225, 620], notExpectedId: 'third-infield-a-113-120-213-225__220' },
   ];
@@ -1923,6 +2038,23 @@ test('대전 3루 220 블록은 118/117 방향으로 과대 확장하지 않는�
       assert.notEqual(hitId, notExpectedId, `non-220 point ${point.join(',')} should not be absorbed by 220`);
     }
   });
+});
+
+test('대전 3루 220 블록은 요청 메타데이터와 검색 alias를 유지한다', () => {
+  const block220 = DAEJEON_BLOCKS.find((block) => block.id === 'third-infield-a-113-120-213-225__220');
+  assert.ok(block220, 'third-infield-a-113-120-213-225__220 should exist');
+  assert.equal(block220.name, '내야 지정석A');
+  assert.equal(block220.blockCode, '220');
+  assert.equal(block220.officialBlockLabel, '내야 지정석A 220');
+  assert.equal(block220.side, 'THIRD_BASE');
+  assert.equal(block220.fanRole, 'AWAY');
+  assert.ok(block220.seatViewSections.includes('220'), '220 should be searchable by exact block');
+  assert.ok(block220.seatViewSections.includes('내야 지정석A 220'), '220 should be searchable by official block label');
+
+  const viewInfo = getDaejeonViewInfo(block220);
+  assert.equal(viewInfo.distance, '3루 내야 중단');
+  assert.ok(viewInfo.tags?.includes('원정 응원'), '220 should expose away fan role tag');
+  assert.ok(viewInfo.tags?.includes('정확 블록 220'), '220 should expose exact block tag');
 });
 
 test('대전 3루 221-225 작은 블록은 좌측 외곽 셀 bounds를 유지한다', () => {
@@ -2018,8 +2150,8 @@ test('대전 3루 213-225/220 하단 작은 블록은 연속 경계 소유권을
     },
     {
       id: 'third-infield-a-113-120-213-225__220',
-      ownerPoints: [[190, 599], [195, 608], [219, 595]],
-      excludedPoints: [[200, 625], [169, 556], [241, 524]],
+      ownerPoints: [[190, 599], [195, 604], [210, 600]],
+      excludedPoints: [[200, 625], [169, 556], [219, 595], [241, 524]],
     },
     {
       id: 'third-infield-a-113-120-213-225__221',
@@ -2235,7 +2367,7 @@ test('대전 1루 201-212 하단 작은 블록은 공식 셀 bounds와 owner poi
       id: 'first-infield-a-109-112-201-212__205',
       bounds: { minX: 687, minY: 574, maxX: 716, maxY: 607 },
       labelPoint: [693, 593] as const,
-      ownerPoints: [[693, 593], [697, 577], [691, 600]] as const,
+      ownerPoints: [[693, 593], [697, 577], [691, 600], [705, 600]] as const,
       excludedPoints: [[681, 593], [723, 593]] as const,
     },
     {
@@ -2396,7 +2528,7 @@ test('대전 1루/3루 내야 연속 블록은 공식 PNG owner point를 자기 
     { id: 'first-infield-a-109-112-201-212__202', points: [[744, 495], [740, 492], [750, 502]] },
     { id: 'first-infield-a-109-112-201-212__203', points: [[731, 524], [730, 515], [736, 535]] },
     { id: 'first-infield-a-109-112-201-212__204', points: [[715, 558], [715, 545], [724, 565]] },
-    { id: 'first-infield-a-109-112-201-212__205', points: [[693, 593], [697, 577], [691, 600]] },
+    { id: 'first-infield-a-109-112-201-212__205', points: [[693, 593], [697, 577], [691, 600], [705, 600]] },
     { id: 'first-infield-a-109-112-201-212__206', points: [[685, 626], [685, 615], [690, 642]] },
     { id: 'first-infield-a-109-112-201-212__207', points: [[663, 660], [655, 665], [675, 660]] },
     { id: 'first-infield-a-109-112-201-212__208', points: [[641, 687], [640, 680], [650, 685]] },
@@ -2475,6 +2607,16 @@ test('대전 특수석 hit-area는 인접 일반석을 과대 선택하지 않�
         [82, 590],
         [99, 620],
         [135, 588],
+      ] as const,
+    },
+    {
+      id: 'first-infield-accessible__first-infield',
+      maxArea: 650,
+      requiredPoint: [717, 599] as const,
+      excludedAdjacentPoints: [
+        [693, 593],
+        [705, 600],
+        [725, 610],
       ] as const,
     },
     {
