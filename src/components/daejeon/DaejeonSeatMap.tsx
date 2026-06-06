@@ -80,8 +80,8 @@ function formatDraftDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function normalizeSearchText(value: string): string {
-  return value.replace(/\s+/g, '').toLowerCase();
+function normalizeSearchText(value?: string | null): string {
+  return value?.replace(/\s+/g, '').toLowerCase() ?? '';
 }
 
 function isDenseTouchTarget(section: DaejeonBlock): boolean {

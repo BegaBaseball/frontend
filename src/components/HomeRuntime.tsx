@@ -27,7 +27,7 @@ import {
     coerceHomeRouteTab,
     resolveHomeRouteState,
 } from '../utils/homeRouteState';
-import type { Game, HomeProps, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
+import type { Game, HomeBootstrapLoadState, HomeProps, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
 import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 import { queryClient } from '../lib/queryClient';
 import {
@@ -66,7 +66,13 @@ const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
 const GAME_CARD_MIN_HEIGHT_PX = 240;
 const MIN_LOADING_CARD_COUNT = 5;
 const LOADING_CARD_COUNT_MAX = 9;
-const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
+const HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS = 6000;
+const HOME_BOOTSTRAP_CORE_SECTIONS = [
+    'leagueStartDates',
+    'navigation',
+    'games',
+    'scheduledGamesWindow',
+] as const;
 const HOME_LEAGUE_TABS: Array<{ value: LeagueTab; label: string }> = [
     { value: 'regular', label: '정규시즌' },
     { value: 'postseason', label: '포스트시즌' },
@@ -107,6 +113,44 @@ const isVisibleLeagueTab = (tabValue: LeagueTab, visibleLeagueTabs: typeof HOME_
 const coerceVisibleLeagueTab = (tabValue: LeagueTab, visibleLeagueTabs: typeof HOME_LEAGUE_TABS): LeagueTab => (
     isVisibleLeagueTab(tabValue, visibleLeagueTabs) ? tabValue : 'regular'
 );
+
+const normalizeHomeBootstrapSectionList = (sections: string[] | null | undefined): string[] => (
+    HOME_BOOTSTRAP_CORE_SECTIONS.filter((section) => sections?.includes(section))
+);
+
+const buildBootstrapSuccessState = (backendLoadState?: HomeBootstrapLoadState): HomeCoreLoadSuccessState => {
+    const failedSections = new Set([
+        ...normalizeHomeBootstrapSectionList(backendLoadState?.failedSections),
+        ...normalizeHomeBootstrapSectionList(backendLoadState?.timedOutSections),
+    ]);
+
+    return {
+        leagueStartDates: !failedSections.has('leagueStartDates'),
+        navigation: !failedSections.has('navigation'),
+        games: !failedSections.has('games'),
+        scheduledGames: !failedSections.has('scheduledGamesWindow'),
+    };
+};
+
+const buildBootstrapLoadState = (
+    clientTimedOut: boolean,
+    backendLoadState?: HomeBootstrapLoadState,
+): HomeLoadState => {
+    const timedOutSections = normalizeHomeBootstrapSectionList(backendLoadState?.timedOutSections);
+    const failedSections = normalizeHomeBootstrapSectionList(backendLoadState?.failedSections);
+
+    return buildHomeLoadState('bootstrap', {
+        isFallback: backendLoadState?.isFallback === true || failedSections.length > 0,
+        timedOut: clientTimedOut || backendLoadState?.timedOut === true || timedOutSections.length > 0,
+        timedOutSections,
+        failedSections,
+    });
+};
+
+const isHomeBootstrapSectionTimedOut = (
+    loadState: HomeLoadState,
+    section: (typeof HOME_BOOTSTRAP_CORE_SECTIONS)[number],
+): boolean => loadState.timedOutSections.includes(section);
 
 const isSameOrAfterDateKey = (date: Date, startDateKey: string | null | undefined): boolean => {
     if (!startDateKey) {
@@ -429,9 +473,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         const showConnectionError = shouldShowHomeConnectionError(snapshot.success);
 
         setIsLoading(false);
-        setIsGamesError(!snapshot.success.games && !snapshot.loadState.timedOut);
+        setIsGamesError(!snapshot.success.games && !isHomeBootstrapSectionTimedOut(snapshot.loadState, 'games'));
         setIsScheduledLoading(false);
-        setIsScheduledError(!snapshot.success.scheduledGames && !snapshot.loadState.timedOut);
+        setIsScheduledError(!snapshot.success.scheduledGames && !isHomeBootstrapSectionTimedOut(snapshot.loadState, 'scheduledGamesWindow'));
         setConnectionError(showConnectionError);
         setLoadFailureReason(snapshot.loadState.failureReason);
         setManualDataRequest(snapshot.loadState.manualDataRequest);
@@ -441,6 +485,8 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
             source: snapshot.loadState.source,
             isFallback: snapshot.loadState.isFallback,
             timedOut: snapshot.loadState.timedOut,
+            timedOutSections: snapshot.loadState.timedOutSections,
+            failedSections: snapshot.loadState.failedSections,
             failureReason: snapshot.loadState.failureReason,
             success: snapshot.success,
         };
@@ -461,23 +507,22 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }
     }, []);
 
-    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => ({
-        leagueStartDates: data.leagueStartDates,
-        navigation: buildHomeNavigationState(data.navigation),
-        games: data.games,
-        scheduledGames: data.scheduledGamesWindow.map((game) => ({
-            ...game,
-            sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
-            leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
-        })),
-        success: {
-            leagueStartDates: true,
-            navigation: true,
-            games: true,
-            scheduledGames: true,
-        },
-        loadState: buildHomeLoadState('bootstrap', { timedOut }),
-    });
+    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => {
+        const loadState = buildBootstrapLoadState(timedOut, data.loadState);
+
+        return {
+            leagueStartDates: data.leagueStartDates,
+            navigation: buildHomeNavigationState(data.navigation),
+            games: data.games,
+            scheduledGames: data.scheduledGamesWindow.map((game) => ({
+                ...game,
+                sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
+                leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
+            })),
+            success: buildBootstrapSuccessState(data.loadState),
+            loadState,
+        };
+    };
 
     const buildLegacyFailureSnapshot = (
         date: Date,
@@ -502,7 +547,13 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 games: false,
                 scheduledGames: false,
             },
-            loadState: buildHomeLoadState('legacy-fallback', { timedOut, failureReason, manualDataRequest }),
+            loadState: buildHomeLoadState('legacy-fallback', {
+                timedOut,
+                timedOutSections: timedOut ? [...HOME_BOOTSTRAP_CORE_SECTIONS] : [],
+                failedSections: [...HOME_BOOTSTRAP_CORE_SECTIONS],
+                failureReason,
+                manualDataRequest,
+            }),
         };
     };
 
@@ -565,7 +616,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 return;
             }
             applyTransientSnapshotIfCurrent(buildLegacyFailureSnapshot(date, timedOut, 'request-failed'));
-        }, HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS);
+        }, HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS);
 
         try {
             const data = await queryClient.fetchQuery(getHomeBootstrapQueryOptions(date));

@@ -20,6 +20,7 @@ export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 export type HomeLoadFailureReason = 'manual-data-required' | 'request-failed';
 export type HomeNavigationScope = 'regular' | 'postseason' | 'koreanseries' | 'scheduled';
 
+export const HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS = 8000;
 export const HOME_BOOTSTRAP_QUERY_KEY = (dateKey: string) => ['home', 'bootstrap', dateKey] as const;
 export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
 export const HOME_SCOPED_NAVIGATION_QUERY_KEY = (dateKey: string, scope: HomeNavigationScope, seasonYear?: number) => (
@@ -30,6 +31,8 @@ export interface HomeLoadState {
     source: HomeLoadSource;
     isFallback: boolean;
     timedOut: boolean;
+    timedOutSections: string[];
+    failedSections: string[];
     failureReason: HomeLoadFailureReason | null;
     manualDataRequest: ManualBaseballDataRequest | null;
 }
@@ -96,12 +99,18 @@ const isBootstrapResponse = (value: unknown): value is HomeBootstrapResponse => 
     }
 
     const candidate = value as Record<string, unknown>;
+    const loadState = candidate.loadState;
     return typeof candidate.selectedDate === 'string'
         && Array.isArray(candidate.games)
         && Array.isArray(candidate.scheduledGamesWindow)
         && !!candidate.leagueStartDates
-        && !!candidate.navigation;
+        && !!candidate.navigation
+        && (loadState == null || (typeof loadState === 'object' && !Array.isArray(loadState)));
 };
+
+const isStringArray = (value: unknown): value is string[] => (
+    Array.isArray(value) && value.every((item) => typeof item === 'string')
+);
 
 const isRankingSnapshot = (value: unknown): value is HomeRankingSnapshot => {
     if (!value || typeof value !== 'object') {
@@ -139,14 +148,19 @@ const isScopedNavigationResponse = (value: unknown): value is HomeScopedNavigati
 export const buildHomeLoadState = (
     source: HomeLoadSource,
     options: {
+        isFallback?: boolean;
         timedOut?: boolean;
+        timedOutSections?: string[];
+        failedSections?: string[];
         failureReason?: HomeLoadFailureReason | null;
         manualDataRequest?: ManualBaseballDataRequest | null;
     } = {},
 ): HomeLoadState => ({
     source,
-    isFallback: source === 'legacy-fallback',
+    isFallback: options.isFallback ?? source === 'legacy-fallback',
     timedOut: options.timedOut === true,
+    timedOutSections: options.timedOutSections ?? [],
+    failedSections: options.failedSections ?? [],
     failureReason: options.failureReason ?? null,
     manualDataRequest: options.manualDataRequest ?? null,
 });
@@ -220,14 +234,27 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     }
 };
 
-export const fetchHomeBootstrap = async (date: Date): Promise<HomeBootstrapResponse> => {
+export const fetchHomeBootstrap = async (
+    date: Date,
+    options: { timeoutMs?: number } = {},
+): Promise<HomeBootstrapResponse> => {
     const apiDate = formatDateForAPI(date);
     const data = await publicGet<unknown>('/home/bootstrap', {
         params: { date: apiDate },
+        timeoutMs: options.timeoutMs ?? HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
     });
 
     if (!isBootstrapResponse(data)) {
         throw new Error('Invalid home bootstrap response');
+    }
+
+    if (data.loadState) {
+        data.loadState.timedOutSections = isStringArray(data.loadState.timedOutSections)
+            ? data.loadState.timedOutSections
+            : [];
+        data.loadState.failedSections = isStringArray(data.loadState.failedSections)
+            ? data.loadState.failedSections
+            : [];
     }
 
     cacheLeagueStartDates(data.leagueStartDates);
