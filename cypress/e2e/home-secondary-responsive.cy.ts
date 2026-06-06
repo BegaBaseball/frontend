@@ -115,7 +115,10 @@ const visitResponsiveHome = () => {
   });
   cy.wait('@getResponsiveHomeBootstrap');
   cy.wait('@getResponsiveHomeWidgets');
-  cy.contains('홈 대시보드 반응형 검증 경기', { timeout: 10000 }).should('be.visible');
+  // gameInfo renders only in GameCard's desktop sub-layout (hidden lg:grid),
+  // so at mobile widths it is present in the DOM but display:none. Assert
+  // existence (page bootstrapped) rather than visibility to stay viewport-agnostic.
+  cy.contains('홈 대시보드 반응형 검증 경기', { timeout: 10000 }).should('exist');
   cy.contains('실시간 인기 응원글', { timeout: 10000 }).should('exist');
 };
 
