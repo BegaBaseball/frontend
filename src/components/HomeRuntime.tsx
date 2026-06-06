@@ -39,11 +39,15 @@ import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
 import {
+    createHomeLiveSummaryTimeoutWarningState,
     LIVE_GAME_POLL_INTERVAL_MS,
     mergeHomeGamesWithLiveSummaries,
+    recordHomeLiveSummaryTimeoutFailure,
+    resetHomeLiveSummaryTimeoutWarningState,
     selectHomeLivePollingGameIds,
 } from '../utils/liveGame';
 import {
+    isPublicApiTimeoutError,
     MANUAL_BASEBALL_DATA_REQUIRED_CODE,
     MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
 } from '../utils/errorUtils';
@@ -59,8 +63,9 @@ import {
 import { isAdminRole, useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
 import AdSlot from './ads/AdSlot';
 
+const homeMatchPanelModulePromise = import('./home/HomeMatchPanel');
 const LazyHomeSecondaryPanels = lazy(() => import('./home/HomeSecondaryPanelsContainer'));
-const LazyHomeMatchPanel = lazy(() => import('./home/HomeMatchPanel'));
+const LazyHomeMatchPanel = lazy(() => homeMatchPanelModulePromise);
 
 const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
 const GAME_CARD_MIN_HEIGHT_PX = 240;
@@ -92,6 +97,8 @@ const getTodayMidday = () => {
     today.setHours(12, 0, 0, 0);
     return today;
 };
+
+const getCalendarMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
 const normalizeSameSeasonNavigationDate = (value: string | null | undefined, seasonYear: number): string | null => {
     if (!value) {
@@ -258,6 +265,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const initialHomeRouteState = initialHomeRouteStateRef.current;
 
     const [selectedDate, setSelectedDate] = useState(() => initialHomeRouteState.date);
+    const [calendarMonth, setCalendarMonth] = useState(() => getCalendarMonth(initialHomeRouteState.date));
     const [showCalendar, setShowCalendar] = useState(false);
     const [shouldMountWelcomeGuide, setShouldMountWelcomeGuide] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
@@ -285,10 +293,10 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const searchParamsRef = useRef(searchParams);
     const bootstrapRequestIdRef = useRef(0);
     const scopedNavigationRequestIdRef = useRef(0);
-    const isResolvingTabNavigationRef = useRef(false);
     const lastBootstrapDateKeyRef = useRef<string | null>(null);
     const homeLiveSummaryInFlightRef = useRef(false);
     const homeLiveSummaryAbortRef = useRef<AbortController | null>(null);
+    const homeLiveSummaryTimeoutWarningRef = useRef(createHomeLiveSummaryTimeoutWarningState());
     const lastObservedHomeRouteSearchRef = useRef(searchParams.toString());
     const pendingHomeRouteSearchRef = useRef<string | null>(null);
     const secondaryPanelsTimeoutRef = useRef<number | null>(null);
@@ -662,11 +670,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         replaceHomeRouteState(selectedDate, tabValue);
 
         const today = getTodayMidday();
-        isResolvingTabNavigationRef.current = true;
-        void loadScopedNavigation(tabValue, today, { applyResolvedDate: true })
-            .finally(() => {
-                isResolvingTabNavigationRef.current = false;
-            });
+        void loadScopedNavigation(tabValue, today, { applyResolvedDate: true });
     };
 
     const selectedDateKey = useMemo(() => formatDateForAPI(selectedDate), [selectedDate]);
@@ -726,14 +730,6 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     }, [loadHomeBootstrap, selectedDate, selectedDateKey]);
 
     useEffect(() => {
-        if (isResolvingTabNavigationRef.current) {
-            return;
-        }
-
-        void loadScopedNavigation(activeLeagueTab, selectedDate);
-    }, [activeLeagueTab, loadScopedNavigation, selectedDate]);
-
-    useEffect(() => {
         const coercedTab = coerceHomeRouteTab(activeLeagueTab, visibleLeagueTabs);
         if (coercedTab === activeLeagueTab) {
             return;
@@ -767,6 +763,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }
 
         const gameIds = homeLivePollingKey.split(',').filter(Boolean);
+        resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
         let disposed = false;
 
         const refreshLiveSummaries = async () => {
@@ -780,6 +777,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
 
             try {
                 const summaries = await fetchGameLiveSummaries(gameIds, { signal: abortController.signal });
+                resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
                 if (disposed || abortController.signal.aborted || summaries.length === 0) {
                     return;
                 }
@@ -787,6 +785,12 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 setScheduledGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
             } catch (error) {
                 if (!abortController.signal.aborted) {
+                    if (isPublicApiTimeoutError(error)) {
+                        if (recordHomeLiveSummaryTimeoutFailure(homeLiveSummaryTimeoutWarningRef.current)) {
+                            console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
+                        }
+                        return;
+                    }
                     console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
                 }
             } finally {
@@ -1116,6 +1120,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             variant="link"
                             size="sm"
                             onClick={() => {
+                                setCalendarMonth(getCalendarMonth(selectedDate));
                                 setShouldMountSecondaryPanels(true);
                                 setShowCalendar(true);
                             }}
@@ -1218,6 +1223,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                         <LazyHomeSecondaryPanels
                             selectedDate={selectedDate}
                             selectedDateKey={selectedDateKey}
+                            calendarMonth={calendarMonth}
                             showCalendar={showCalendar}
                             shouldMountWelcomeGuide={shouldMountWelcomeGuide}
                             calendarDialogTitleId={calendarDialogTitleId}
@@ -1231,9 +1237,11 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 state: { partySeed: mate },
                             })}
                             onCloseCalendar={() => setShowCalendar(false)}
+                            onCalendarMonthChange={setCalendarMonth}
                             onSelectCalendarDate={(nextDate) => {
                                 hasUserChangedTabRef.current = true;
                                 setSelectedDate(nextDate);
+                                setCalendarMonth(getCalendarMonth(nextDate));
                                 replaceHomeRouteState(nextDate, activeLeagueTab);
                                 setShowCalendar(false);
                             }}

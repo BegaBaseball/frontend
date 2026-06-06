@@ -18,6 +18,7 @@ const TEAM_RANKING_CARD_HEIGHT_CLASS = `min-h-[320px] ${HOME_DASHBOARD_DESKTOP_C
 interface HomeSecondaryPanelsContainerProps {
   selectedDate: Date;
   selectedDateKey: string;
+  calendarMonth: Date;
   showCalendar: boolean;
   shouldMountWelcomeGuide: boolean;
   calendarDialogTitleId: string;
@@ -29,12 +30,14 @@ interface HomeSecondaryPanelsContainerProps {
   onNavigateToCheerPost: (postId: number) => void;
   onSelectFeaturedMate: (mate: FeaturedMateCard) => void;
   onCloseCalendar: () => void;
+  onCalendarMonthChange: (month: Date) => void;
   onSelectCalendarDate: (date: Date) => void;
 }
 
 export default function HomeSecondaryPanelsContainer({
   selectedDate,
   selectedDateKey,
+  calendarMonth,
   showCalendar,
   shouldMountWelcomeGuide,
   calendarDialogTitleId,
@@ -46,6 +49,7 @@ export default function HomeSecondaryPanelsContainer({
   onNavigateToCheerPost,
   onSelectFeaturedMate,
   onCloseCalendar,
+  onCalendarMonthChange,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsContainerProps) {
   const queryClient = useQueryClient();
@@ -148,6 +152,7 @@ export default function HomeSecondaryPanelsContainer({
     <Suspense fallback={homeSecondaryPanelsFallback}>
       <HomeSecondaryPanels
         selectedDate={selectedDate}
+        calendarMonth={calendarMonth}
         showCalendar={showCalendar}
         shouldMountWelcomeGuide={shouldMountWelcomeGuide}
         calendarDialogTitleId={calendarDialogTitleId}
@@ -187,6 +192,7 @@ export default function HomeSecondaryPanelsContainer({
         onNavigateToCheerPost={onNavigateToCheerPost}
         onSelectFeaturedMate={handleSelectFeaturedMate}
         onCloseCalendar={onCloseCalendar}
+        onCalendarMonthChange={onCalendarMonthChange}
         onSelectCalendarDate={onSelectCalendarDate}
       />
     </Suspense>

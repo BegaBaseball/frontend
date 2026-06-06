@@ -1,7 +1,14 @@
-export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
+import {
+    MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+    MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+} from './manualBaseballDataContract';
 
-export const MANUAL_BASEBALL_DATA_REQUIRED_CODE = 'MANUAL_BASEBALL_DATA_REQUIRED';
-export const MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE = '야구 데이터 준비가 필요합니다. 운영자가 데이터를 제공하면 다시 확인할 수 있습니다.';
+export {
+    MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+    MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+} from './manualBaseballDataContract';
+
+export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
 export interface ParsedError {
     type: ErrorType;
@@ -49,6 +56,7 @@ const TECHNICAL_MESSAGE_PATTERNS = [
     /^network error$/i,
     /^api error:/i,
     /timeout of \d+ms exceeded/i,
+    /^Request timed out after \d+ms$/i,
     /failed to fetch/i,
 ];
 
@@ -63,6 +71,10 @@ const normalizeErrorText = (value: unknown): string | null => {
 
 export const isManualBaseballDataRequiredCode = (value?: string | null): boolean => (
     value === MANUAL_BASEBALL_DATA_REQUIRED_CODE
+);
+
+export const isPublicApiTimeoutError = (error: unknown): boolean => (
+    error instanceof Error && /^Request timed out after \d+ms$/i.test(error.message)
 );
 
 const isTechnicalErrorMessage = (message: string): boolean =>

@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createHomeLiveSummaryTimeoutWarningState,
   mergeGameDetailWithLiveSnapshot,
   mergeGameDetailWithRelaySnapshot,
   mergeHomeGamesWithLiveSummaries,
   mergeLiveEvents,
   mergeRelayEvents,
+  recordHomeLiveSummaryTimeoutFailure,
+  resetHomeLiveSummaryTimeoutWarningState,
   selectHomeLivePollingGameIds,
 } from './liveGame';
 import type { Game as HomeGame } from '../types/home';
@@ -137,4 +140,28 @@ test('selectHomeLivePollingGameIds는 오늘 경기와 진행 경기만 고른�
     selectHomeLivePollingGameIds([todayGame, futureGame], [liveGame], '2026-04-29', '2026-04-29'),
     ['TODAY', 'LIVE'],
   );
+});
+
+test('recordHomeLiveSummaryTimeoutFailure는 3회 연속 timeout부터 한 번만 경고한다', () => {
+  const state = createHomeLiveSummaryTimeoutWarningState();
+
+  assert.equal(recordHomeLiveSummaryTimeoutFailure(state), false);
+  assert.equal(recordHomeLiveSummaryTimeoutFailure(state), false);
+  assert.equal(recordHomeLiveSummaryTimeoutFailure(state), true);
+  assert.equal(recordHomeLiveSummaryTimeoutFailure(state), false);
+  assert.equal(state.consecutiveTimeoutCount, 4);
+  assert.equal(state.timeoutWarningLogged, true);
+});
+
+test('resetHomeLiveSummaryTimeoutWarningState는 timeout 경고 상태를 초기화한다', () => {
+  const state = createHomeLiveSummaryTimeoutWarningState();
+
+  recordHomeLiveSummaryTimeoutFailure(state);
+  recordHomeLiveSummaryTimeoutFailure(state);
+  recordHomeLiveSummaryTimeoutFailure(state);
+  resetHomeLiveSummaryTimeoutWarningState(state);
+
+  assert.equal(state.consecutiveTimeoutCount, 0);
+  assert.equal(state.timeoutWarningLogged, false);
+  assert.equal(recordHomeLiveSummaryTimeoutFailure(state), false);
 });
