@@ -409,7 +409,7 @@ export default function MateDetailContentRuntime({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-20">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 xl:gap-8 mb-20">
         <div className="space-y-6 lg:col-span-2">
           <ViewportDeferred
             rootMargin="0px 0px 160px 0px"

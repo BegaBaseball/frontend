@@ -1,4 +1,4 @@
-import { lazy, Suspense, type CSSProperties, type ReactNode, useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, type CSSProperties, type ReactNode, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -66,9 +66,26 @@ function InlineBadge({
   );
 }
 
-export default function MateDetailRuntime() {
+export default function MateDetailRuntime({
+  id: idProp,
+  variant = 'page',
+  onClose,
+}: {
+  id?: string;
+  variant?: 'page' | 'panel';
+  onClose?: () => void;
+} = {}) {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = idProp ?? routeId;
+  const isPanel = variant === 'panel';
+  const handleClose = useCallback(() => {
+    if (isPanel && onClose) {
+      onClose();
+      return;
+    }
+    navigate('/mate');
+  }, [isPanel, navigate, onClose]);
   const {
     party,
     isLoading: isPartyLoading,
@@ -112,11 +129,11 @@ export default function MateDetailRuntime() {
     missingPartyRedirectRef.current = id;
     toast.info('존재하지 않는 파티입니다. 목록으로 이동합니다.');
     const redirectTimer = window.setTimeout(() => {
-      navigate('/mate', { replace: true });
+      handleClose();
     }, 1600);
 
     return () => window.clearTimeout(redirectTimer);
-  }, [id, navigate, partyStatusCode, party]);
+  }, [handleClose, id, partyStatusCode, party]);
 
   useEffect(() => {
     setShowQrPanel(false);
@@ -143,8 +160,8 @@ export default function MateDetailRuntime() {
 
   if (isPartyLoading && !party) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-background pb-20">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className={isPanel ? 'bg-gray-50 dark:bg-background pb-10' : 'min-h-screen bg-gray-50 dark:bg-background pb-20'}>
+        <div className={isPanel ? 'w-full px-4 py-6' : 'max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-6'}>
           <Skeleton className="h-8 w-24 mb-4" />
           {/* 티켓 스켈레톤 */}
           <div className="rounded-3xl shadow-2xl overflow-hidden mb-8">
@@ -195,7 +212,7 @@ export default function MateDetailRuntime() {
 
   if (partyError || !party) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
+      <div className={isPanel ? 'bg-gray-50 dark:bg-background flex items-center justify-center py-20' : 'min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center'}>
         <div className="text-center max-w-md px-4">
           <div className="bg-red-50 dark:bg-red-900/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <MateAlertTriangleIcon className="w-8 h-8 text-red-500" />
@@ -207,8 +224,8 @@ export default function MateDetailRuntime() {
             {partyError || '파티 정보를 찾을 수 없습니다.'}
           </p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => navigate('/mate')}>
-              <MateChevronLeftIcon className="w-4 h-4 mr-1" /> 목록으로
+            <Button variant="outline" onClick={handleClose}>
+              <MateChevronLeftIcon className="w-4 h-4 mr-1" /> {isPanel ? '닫기' : '목록으로'}
             </Button>
             <Button className="bg-primary text-white" onClick={() => window.location.reload()}>
               <MateRefreshIcon className="w-4 h-4 mr-1" /> 다시 시도
@@ -240,7 +257,7 @@ export default function MateDetailRuntime() {
     }
   };
   const handleApply = () => navigate(`/mate/${id}/apply`);
-  const handleBrowsePartyList = () => navigate('/mate');
+  const handleBrowsePartyList = handleClose;
   const handleCheckIn = (targetUrl?: string) => {
     const fallbackPath = `/mate/${id}/checkin`;
     try {
@@ -272,18 +289,26 @@ export default function MateDetailRuntime() {
   const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
 
   return (
-      <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background pb-32 lg:pb-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
-        <OptimizedImage
-          src={grassDecor}
-          alt=""
-          className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
-        />
+      <div className={isPanel
+        ? 'relative bg-gray-50 dark:bg-background pb-10'
+        : 'relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background pb-32 lg:pb-20'}>
+        {!isPanel && (
+          <>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
+            <OptimizedImage
+              src={grassDecor}
+              alt=""
+              className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+            />
+          </>
+        )}
 
-        <div className="max-w-3xl mx-auto px-4 py-6 relative z-10">
+        <div className={isPanel
+          ? 'w-full px-4 py-5 relative z-10'
+          : 'max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-6 relative z-10'}>
           <div className="mb-4 flex items-center justify-between gap-2">
-            <Button variant="ghost" className="pl-0 text-[16px] hover:bg-transparent sm:text-base" onClick={() => navigate('/mate')}>
-              <MateChevronLeftIcon className="w-5 h-5 mr-1" /> 목록으로
+            <Button variant="ghost" className="pl-0 text-[16px] hover:bg-transparent sm:text-base" onClick={handleClose}>
+              <MateChevronLeftIcon className="w-5 h-5 mr-1" /> {isPanel ? '닫기' : '목록으로'}
             </Button>
             <Button variant="outline" size="sm" className="shrink-0" onClick={handleShare}>
               <MateShareIcon className="w-4 h-4 mr-1.5" />

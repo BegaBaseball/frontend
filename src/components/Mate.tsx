@@ -1,20 +1,19 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getMatePartyListQueryOptions } from '../hooks/mateQueryOptions';
 import { seedMatePartyQueryData } from '../hooks/mateList';
 import { useDebounce } from '../hooks/useDebounce';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { useMateStore } from '../store/mateStore';
 import type { Party, PartyStatus } from '../types/mate';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
 import { MATE_SORT_OPTIONS, type MateSortOptionKey } from '../utils/mateSortOptions';
-import { SEAT_ICONS } from '../utils/seatIcons';
-import { KBO_STADIUMS, SEAT_CATEGORIES, type SeatCategory } from '../utils/stadiumData';
-import { buildMateRouteLocationState, getDayOfWeek } from '../utils/mate';
+import { countActiveMateSeatFilters } from '../utils/mateSeatFilterCount';
+import { buildMateRouteLocationState } from '../utils/mate';
 import TeamLogo from './TeamLogo';
-import type { MateSeatFilterOption } from './MateFilterBottomSheet';
 import type { MateStatusTabKey } from './MateStatusTabs';
 import { MatePlusIcon, MateSearchIcon, MateTicketIcon } from './MateIcons';
 import { Button } from './ui/button';
@@ -22,8 +21,10 @@ import { Input } from './ui/input';
 
 const MateFilterBottomSheet = lazy(() => import('./MateFilterBottomSheet'));
 const MateGuidePanelRuntime = lazy(() => import('./MateGuidePanelRuntime'));
+const MateDateRailFilter = lazy(() => import('./MateDateRailFilter'));
 const MateMobileDateFilter = lazy(() => import('./MateMobileDateFilter'));
 const MateResultsRuntime = lazy(() => import('./MateResultsRuntime'));
+const MatePartyDetailDrawer = lazy(() => import('./MatePartyDetailDrawer'));
 const MateSeatFilterButtons = lazy(() => import('./MateSeatFilterButtons'));
 const MateSortDropdown = lazy(() => import('./MateSortDropdown'));
 const MateStatusTabs = lazy(() => import('./MateStatusTabs'));
@@ -32,9 +33,16 @@ type MateTabKey = MateStatusTabKey;
 
 const FILTER_ACTIVE_CLASS = 'border-transparent bg-primary text-primary-foreground shadow-sm dark:bg-primary dark:text-primary-foreground';
 const FILTER_IDLE_CLASS = 'border-gray-200/80 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary';
-const FILTER_SURFACE_IDLE_CLASS = 'border-gray-200/80 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/10 dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20';
 const GUIDE_BUTTON_CLASS = 'rounded-full px-4 font-bold text-gray-700 hover:bg-primary/10 hover:text-primary dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary';
 const CREATE_BUTTON_CLASS = 'rounded-full bg-primary px-5 font-bold text-primary-foreground shadow-lg hover:bg-primary-hover';
+
+const normalizeDrawerPartyId = (partyId: string | null) => {
+  const normalizedPartyId = partyId?.trim();
+  if (!normalizedPartyId || !/^[1-9]\d*$/.test(normalizedPartyId)) return null;
+
+  const numericPartyId = Number(normalizedPartyId);
+  return Number.isSafeInteger(numericPartyId) ? normalizedPartyId : null;
+};
 
 const toDateString = (date: Date) => {
   const d = new Date(date);
@@ -42,24 +50,6 @@ const toDateString = (date: Date) => {
   const month = `${d.getMonth() + 1}`.padStart(2, '0');
   const day = `${d.getDate()}`.padStart(2, '0');
   return [year, month, day].join('-');
-};
-
-const getStadiumFromQuery = (query: string) => {
-  if (!query) return null;
-  const normalized = query.toLowerCase();
-  return Object.values(KBO_STADIUMS).find((stadium) =>
-    stadium.name.includes(normalized)
-    || stadium.homeTeam.toLowerCase().split('/').some((team) => normalized.includes(team.toLowerCase()))
-    || (stadium.id === 'Daegu' && normalized.includes('삼성'))
-    || (stadium.id === 'Jamsil' && (normalized.includes('lg') || normalized.includes('두산')))
-    || (stadium.id === 'Incheon' && (normalized.includes('ssg') || normalized.includes('sk')))
-    || (stadium.id === 'Gwangju' && normalized.includes('kia'))
-    || (stadium.id === 'Suwon' && normalized.includes('kt'))
-    || (stadium.id === 'Changwon' && normalized.includes('nc'))
-    || (stadium.id === 'Sajik' && normalized.includes('롯데'))
-    || (stadium.id === 'Gocheok' && normalized.includes('키움'))
-    || (stadium.id === 'Daejeon' && normalized.includes('한화'))
-  );
 };
 
 function MateGuideFallback() {
@@ -73,7 +63,7 @@ function MateGuideFallback() {
 function MateResultsFallback() {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5 2xl:gap-6">
         {Array.from({ length: 6 }, (_, index) => (
           <div
             key={index}
@@ -88,6 +78,10 @@ function MateResultsFallback() {
 export default function Mate() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isDesktopDrawer = useMediaQuery('(min-width: 1280px)');
+  const rawDrawerPartyId = searchParams.get('party');
+  const drawerPartyId = normalizeDrawerPartyId(rawDrawerPartyId);
   const searchQuery = useMateStore((state) => state.searchQuery);
   const setSearchQuery = useMateStore((state) => state.setSearchQuery);
   const { userFavoriteTeam: favoriteTeam, userId: authUserId } = useAuthProfileSnapshot();
@@ -111,7 +105,6 @@ export default function Mate() {
     setSearchQuery(debouncedInput);
   }, [debouncedInput, setSearchQuery]);
 
-  const currentStadium = getStadiumFromQuery(inputValue || '');
   const activeSortOption = MATE_SORT_OPTIONS.find((option) => option.key === activeSortKey) ?? MATE_SORT_OPTIONS[0]!;
 
   const toggleSearchQuery = (keyword: string) => {
@@ -182,12 +175,45 @@ export default function Mate() {
     || myTeamOnly,
   );
 
+  const setDrawerPartyParam = useCallback((partyId: string | null, replace = false) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (partyId) {
+        next.set('party', partyId);
+      } else {
+        next.delete('party');
+      }
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  const closePartyDrawer = useCallback(() => {
+    setDrawerPartyParam(null, true);
+  }, [setDrawerPartyParam]);
+
   const handlePartyClick = (party: Party) => {
     seedMatePartyQueryData(queryClient, party);
+    if (isDesktopDrawer) {
+      setDrawerPartyParam(String(party.id), Boolean(drawerPartyId));
+      return;
+    }
     navigate(`/mate/${party.id}`, {
       state: buildMateRouteLocationState(party),
     });
   };
+
+  useEffect(() => {
+    if (rawDrawerPartyId !== null && drawerPartyId === null) {
+      closePartyDrawer();
+    }
+  }, [closePartyDrawer, drawerPartyId, rawDrawerPartyId]);
+
+  // 뷰포트가 xl 미만으로 줄어들면 드로어 대신 기존 풀페이지 상세로 전환
+  useEffect(() => {
+    if (drawerPartyId && !isDesktopDrawer) {
+      navigate(`/mate/${drawerPartyId}`, { replace: true });
+    }
+  }, [drawerPartyId, isDesktopDrawer, navigate]);
 
   const generateDateItems = () => {
     const items = [];
@@ -201,23 +227,7 @@ export default function Mate() {
   };
 
   const dateItems = generateDateItems();
-  const seatFilterOptions: MateSeatFilterOption[] = currentStadium
-    ? currentStadium.zones
-      .filter((zone) => ['CHEERING', 'TABLE', 'PREMIUM'].includes(zone.category))
-      .slice(0, 6)
-      .map((zone) => ({
-        id: zone.id,
-        label: zone.name,
-        icon: SEAT_ICONS[zone.category as SeatCategory],
-      }))
-    : Object.entries(SEAT_CATEGORIES)
-      .filter(([key]) => ['CHEERING', 'TABLE', 'PREMIUM', 'EXCITING'].includes(key))
-      .map(([key, info]) => ({
-        id: key,
-        label: info.label,
-        icon: SEAT_ICONS[key as SeatCategory],
-      }));
-  const activeSeatFilterCount = seatFilterOptions.filter((option) => inputValue.includes(option.label)).length;
+  const activeSeatFilterCount = countActiveMateSeatFilters(inputValue || '');
   const activeMobileFilterCount = activeSeatFilterCount + (myTeamOnly ? 1 : 0);
   const mobileFilterButtonLabel = activeMobileFilterCount > 0
     ? `팀과 좌석 필터 ${activeMobileFilterCount}개 적용됨`
@@ -270,63 +280,13 @@ export default function Mate() {
     }
 
     return (
-      <div role="group" aria-label="경기 날짜 필터" className="grid grid-cols-2 gap-2">
-        <Button
-          variant={selectedDate === null ? 'default' : 'outline'}
-          aria-pressed={selectedDate === null}
-          aria-label={`전체 날짜 필터${selectedDate === null ? ', 선택됨' : ''}`}
-          onClick={() => handleDateSelect(null)}
-          className={`h-12 rounded-xl px-3 font-bold ${
-            selectedDate === null
-              ? `${FILTER_ACTIVE_CLASS} shadow-sm`
-              : FILTER_IDLE_CLASS
-          }`}
-        >
-          전체
-        </Button>
-        {dateItems.map((date, idx) => {
-          const dateString = toDateString(date);
-          const isSelected = selectedDate && toDateString(selectedDate) === dateString;
-          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-          const quickLabel = idx === 0 ? '오늘' : idx === 1 ? '내일' : getDayOfWeek(dateString);
-          const dateButtonLabel = `${date.getMonth() + 1}월 ${date.getDate()}일 ${getDayOfWeek(dateString)}요일`;
-          const dateFilterLabel = isRail
-            ? `${dateButtonLabel} 날짜 필터${isSelected ? ', 선택됨' : ''}`
-            : `${dateButtonLabel} 필터${isSelected ? ', 선택됨' : ''}`;
-
-          return (
-            <button
-              key={dateString}
-              type="button"
-              onClick={() => handleDateSelect(date)}
-              aria-label={dateFilterLabel}
-              aria-pressed={Boolean(isSelected)}
-              className={`flex h-12 flex-col items-center justify-center rounded-xl border px-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
-                isSelected
-                  ? `${FILTER_ACTIVE_CLASS} shadow-sm`
-                  : FILTER_SURFACE_IDLE_CLASS
-              }`}
-            >
-              <span className={`text-[13px] font-bold leading-4 ${
-                isSelected
-                  ? 'text-primary-foreground'
-                  : isWeekend
-                    ? 'text-primary/80'
-                    : 'text-gray-600 dark:text-zinc-400'
-              }`}
-              >
-                {quickLabel}
-              </span>
-              <span className={`text-[16px] font-black leading-5 ${
-                isSelected ? 'text-primary-foreground' : 'text-gray-800 dark:text-zinc-200'
-              }`}
-              >
-                {date.getDate()}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <Suspense fallback={<div className="h-[326px]" aria-hidden="true" />}>
+        <MateDateRailFilter
+          dateItems={dateItems}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+        />
+      </Suspense>
     );
   };
 
@@ -355,7 +315,7 @@ export default function Mate() {
 
   return (
     <div className="relative min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-[#0a0a0a]">
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-5 pb-8 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-5 pb-8 sm:px-6 lg:px-8 2xl:max-w-[1440px]">
         <div className="mb-5 flex items-start justify-between gap-3 md:mb-6 md:items-end">
           <div className="min-w-0">
             <p className="mb-1 hidden text-[15px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-zinc-500 sm:block">
@@ -405,7 +365,6 @@ export default function Mate() {
                 <Suspense fallback={null}>
                   <MateSeatFilterButtons
                     layout="rail"
-                    seatOptions={seatFilterOptions}
                     inputValue={inputValue}
                     onToggleSeat={toggleSearchQuery}
                   />
@@ -483,7 +442,6 @@ export default function Mate() {
                     <Suspense fallback={null}>
                       <MateSeatFilterButtons
                         layout="toolbar"
-                        seatOptions={seatFilterOptions}
                         inputValue={inputValue}
                         onToggleSeat={toggleSearchQuery}
                       />
@@ -556,7 +514,6 @@ export default function Mate() {
             open={isMobileFilterOpen}
             favoriteTeamId={favoriteTeamId}
             myTeamOnly={myTeamOnly}
-            seatOptions={seatFilterOptions}
             inputValue={inputValue}
             activeFilterCount={activeMobileFilterCount}
             onClose={() => setIsMobileFilterOpen(false)}
@@ -564,6 +521,12 @@ export default function Mate() {
             onToggleSeat={toggleSearchQuery}
             onResetFilters={handleResetFilters}
           />
+        </Suspense>
+      ) : null}
+
+      {isDesktopDrawer && drawerPartyId ? (
+        <Suspense fallback={null}>
+          <MatePartyDetailDrawer partyId={drawerPartyId} onClose={closePartyDrawer} />
         </Suspense>
       ) : null}
     </div>
