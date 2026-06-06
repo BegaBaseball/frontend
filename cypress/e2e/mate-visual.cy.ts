@@ -314,7 +314,8 @@ describe('Mate Visual QA', () => {
     cy.contains('비주얼 호스트').should('be.visible');
     cy.contains('4.7').should('be.visible');
     cy.contains(/2\s*\/\s*4명/).should('be.visible');
-    cy.screenshot('mate-visual-list-desktop-light');
+    cy.get('body').trigger('mousemove', { clientX: 2, clientY: 2 });
+    cy.screenshot('mate-visual-list-desktop-light', { capture: 'viewport' });
   });
 
   it('captures the list page in desktop dark mode', () => {
