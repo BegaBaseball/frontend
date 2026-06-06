@@ -273,7 +273,9 @@ describe('Mate Page Accuracy', () => {
       expect(interception.request.url).to.include('status=MATCHED');
     });
 
-    cy.contains('대구 삼성 라이온즈파크').should('be.visible');
+    // Card renders canonical stadium display name ("{region} · {shortName}")
+    // via formatStadiumDisplayName (utils/stadiumDisplay.ts).
+    cy.contains('대구 · 삼성 라이온즈파크').should('be.visible');
   });
 
   it('keeps desktop search and primary actions in the same toolbar row', () => {
@@ -346,7 +348,8 @@ describe('Mate Page Accuracy', () => {
       expect(requestUrl.searchParams.get('page')).to.eq('0');
       expect(requestUrl.searchParams.get('searchQuery')).to.eq('검색용');
     });
-    cy.contains('대전 한화생명볼파크').should('be.visible');
+    // Canonical stadium display name ("{region} · {shortName}").
+    cy.contains('대전 · 한화생명볼파크').should('be.visible');
 
     cy.get('input[type="text"]').clear();
     cy.get('button[aria-label*="요일"]').first().click();

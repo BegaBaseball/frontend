@@ -60,7 +60,7 @@ export default function MateResultsRuntime({
   const skeletonCardHeight = isRichCardLayout ? 'min-h-[508px]' : 'min-h-[304px]';
 
   const renderSkeletonGrid = () => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
@@ -125,7 +125,7 @@ export default function MateResultsRuntime({
 
   const renderPartyGrid = (items: Party[]) => (
     <Suspense fallback={renderSkeletonGrid()}>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5">
         {items.flatMap((party, index) => [
           <MatePartyCard
             key={party.id}
