@@ -1,17 +1,20 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import type { Game, GameDetail } from '../types/prediction';
+import type {
+  CoachRequestMode,
+  NormalizedAiBriefing,
+} from '../utils/prediction';
 import {
   getCoachBriefingDataQualityNotice,
-  type CoachRequestMode,
-  type NormalizedAiBriefing,
   resolveCoachAnalysisPresentation,
-} from '../utils/prediction';
-import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
+} from '../utils/predictionCoachPresentation';
+import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/manualBaseballDataContract';
 import { useAuthAccessActions } from '../store/authStore';
 import { getCurrentRelativeUrl } from '../utils/loginRedirect';
 
 import type { CoachBriefingMetaState } from './CoachBriefingAutoRuntime';
+import { resolveCoachEvidenceCount } from './prediction/coachEvidenceCore';
 
 const CoachBriefingAutoRuntime = lazy(() => import('./CoachBriefingAutoRuntime'));
 const CoachBriefingContentRuntime = lazy(() => import('./CoachBriefingContentRuntime'));
@@ -182,7 +185,13 @@ export default function CoachBriefing({
     && !isGuestBlocked
     && !isAuthCheckPending
     && !authExpired;
-  const totalEvidenceCount = (briefingMeta?.usedEvidence.length ?? 0) + (briefingMeta?.supportedFactCount ?? 0);
+  const totalEvidenceCount = resolveCoachEvidenceCount({
+    supportedFactCount: briefingMeta?.supportedFactCount,
+    usedEvidence: briefingMeta?.usedEvidence,
+  });
+  const briefingFreshnessLabel = aiBriefing
+    ? (isRefreshingBriefing ? '갱신 중' : '최신 갱신')
+    : null;
   const summaryPoints = buildCoachBriefingSummaryPoints(aiBriefing?.displayText || aiBriefing?.message || '');
   const briefingStatusMessage = (() => {
     if (!effectiveAutoEnabled) {
@@ -360,6 +369,7 @@ export default function CoachBriefing({
         <CoachBriefingContentRuntime
           dataQuality={briefingMeta?.dataQuality}
           totalEvidenceCount={totalEvidenceCount}
+          supportedFactCount={briefingMeta?.supportedFactCount}
           seasonSummary={seasonSummary}
           activeTitle={activeTitle}
           activeMessage={activeMessage}
@@ -383,6 +393,10 @@ export default function CoachBriefing({
           homeTeamId={game?.homeTeam ?? null}
           awayTeamId={game?.awayTeam ?? null}
           winProbabilityHome={briefingMeta?.winProbabilityHome ?? null}
+          usedEvidence={briefingMeta?.usedEvidence}
+          groundingWarnings={briefingMeta?.groundingWarnings}
+          groundingReasons={briefingMeta?.groundingReasons}
+          freshnessLabel={briefingFreshnessLabel}
         />
       </Suspense>
     </>

@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent
 
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
+import type { CoachDataQuality } from '../api/coach';
 import { TEAM_DATA, TEAM_LIST, getRandomTeamName } from '../constants/teams';
 import { resolveCoachAnalysisPresentation } from '../utils/prediction';
 import { PredictionLoaderIcon, PredictionZapIcon } from './prediction/PredictionShellIcons';
@@ -25,6 +26,13 @@ export interface CoachAnalysisDialogProps {
   isPastGame?: boolean;
   isFutureGame?: boolean;
   gameStatusBucket?: string | null;
+  initialWinProbabilityHome?: number | null;
+  initialDataQuality?: CoachDataQuality;
+  initialSupportedFactCount?: number;
+  initialUsedEvidence?: string[];
+  initialGroundingWarnings?: string[];
+  initialGroundingReasons?: string[];
+  initialFreshnessLabel?: string | null;
 }
 
 const getInitialTeamName = (teamId?: string) => {
@@ -87,7 +95,7 @@ function CoachAnalysisDialogFallback({
       description={homeTeamId && awayTeamId
         ? `${getInitialTeamName(homeTeamId)} vs ${getInitialTeamName(awayTeamId)} ${presentation.descriptionWithMatchup}`
         : `${selectedTeam} ${presentation.descriptionWithTeam}`}
-      contentTestId="coach-analysis-dialog"
+      contentTestId="coach-analysis-dialog-loading"
       className="sm:max-w-[700px] max-h-[90vh] overflow-hidden border-none bg-white p-0 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] dark:bg-secondary"
       bodyClassName="flex max-h-[calc(90vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-secondary"
     >

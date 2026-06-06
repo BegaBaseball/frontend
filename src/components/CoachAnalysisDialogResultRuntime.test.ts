@@ -67,6 +67,62 @@ test('getAnalysisData는 structured scheduled 응답 문장을 브리핑 fallbac
     assert.doesNotMatch(analysisData.coach_note, /팀 폼 점수 90\.최근 흐름 근거가 부족합니다/);
 });
 
+test('getAnalysisData는 manual detail 응답의 리스크 optional fields를 보존한다', () => {
+    const result: CoachAnalyzeResponse = {
+        generation_mode: 'evidence_fallback',
+        data_quality: 'grounded',
+        game_status_bucket: 'SCHEDULED',
+        structuredData: {
+            headline: '모바일 상세 분석',
+            sentiment: 'positive',
+            key_metrics: [],
+            analysis: {
+                summary: '홈팀이 후반 운영에서 근소하게 앞섭니다.',
+                verdict: '7회 이후 불펜 운영이 승부처입니다.',
+                strengths: ['홈팀은 후반 대타 카드가 남아 있습니다.'],
+                weaknesses: ['원정팀은 불펜 소모가 누적되어 있습니다.'],
+                risks: [
+                    {
+                        area: '불펜 운영',
+                        level: 1,
+                        description: '7회 이후 우완 불펜 매치업이 흔들릴 수 있습니다.',
+                        inning_label: '7~8회',
+                        inning_start: 7,
+                        inning_end: 8,
+                        impact: '-4%p',
+                        impact_to: 'away',
+                    },
+                ],
+                why_it_matters: ['후반 승률 변동성이 가장 큽니다.'],
+                swing_factors: ['7회 첫 불펜 선택'],
+                watch_points: ['불펜 워밍업 타이밍'],
+                uncertainty: ['라인업 확정 전까지는 보수적으로 봅니다.'],
+            },
+            detailed_markdown: '## 코치 판단\n- 7회 이후 불펜 운영이 승부처입니다.',
+            coach_note: '7회 이후 불펜 운영이 승부처입니다.',
+        },
+    };
+
+    const analysisData = getAnalysisData({
+        result,
+        isPastGame: false,
+        isFutureGame: true,
+        gameStatusBucket: 'SCHEDULED',
+    });
+
+    assert.ok(analysisData);
+    assert.deepEqual(analysisData.risks[0], {
+        area: '불펜 운영',
+        level: 1,
+        description: '7회 이후 우완 불펜 매치업이 흔들릴 수 있습니다.',
+        inning_label: '7~8회',
+        inning_start: 7,
+        inning_end: 8,
+        impact: '-4%p',
+        impact_to: 'away',
+    });
+});
+
 test('getAnalysisData는 수동 야구 데이터 요청 응답에서 분석 본문을 만들지 않는다', () => {
     const result: CoachAnalyzeResponse = {
         data_quality: 'insufficient',

@@ -129,7 +129,7 @@ describe('Game Prediction', () => {
             seedAuth = true,
             persistedAuthHint = false,
             authBootstrapMeta = null,
-            waitForScheduleRange = true,
+            waitForScheduleRange = false,
             path = '/prediction',
         } = options;
         const resolvedPath = path === '/prediction'
@@ -905,7 +905,8 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
             .should('be.visible')
             .click({ force: true });
-        // dev StrictMode 이중 호출 대비 하한 단언 (열면 자동실행 1회+).
+        // dev StrictMode 이중 호출 대비: alias 목록 조회 전에 실제 요청 발생을 먼저 기다린다.
+        cy.wait('@coachAnalyzeAbortOnClose');
         cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 1);
 
         cy.get('body').type('{esc}');
@@ -917,6 +918,7 @@ describe('Game Prediction', () => {
             .click({ force: true });
         getCoachAnalysisDialog().should('be.visible');
         // 재오픈 시 새 요청이 추가 발생 (정확 개수 대신 하한).
+        cy.wait('@coachAnalyzeAbortOnClose');
         cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 2);
 
         cy.wait(2200);
@@ -2067,7 +2069,6 @@ describe('Game Prediction', () => {
 
         const openCoachDialog = () => {
             openPredictionPage();
-            cy.wait('@getRankingsDataShape');
             cy.wait('@getGameDetail');
             waitForPredictionVoteBootstrap();
             ensureCoachBriefingVisible();
@@ -2122,7 +2123,7 @@ describe('Game Prediction', () => {
             cy.get('[data-testid="coach-evidence-count"]').should('contain', '7건');
             // 접이식 소스 목록: 펼치면 한글 라벨 노출
             cy.get('[data-testid="coach-evidence-sources"]').should('exist')
-                .and('contain', '분석에 사용한 근거 3개');
+                .and('contain', '핵심 근거');
             cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
             cy.get('[data-testid="coach-evidence-sources"]')
                 .should('contain', '홈 선발')
@@ -2161,11 +2162,14 @@ describe('Game Prediction', () => {
             assertNoLegacyStrings();
         });
 
-        it('hides risk section when risks are empty', () => {
+        it('shows an empty risk state when risks are empty', () => {
             interceptCoach({ analysis: { ...FULL_ANALYSIS, risks: [] } });
             openCoachDialog();
             cy.get('[data-testid="coach-section-insights"]').should('exist');
-            cy.get('[data-testid="coach-section-risks"]').should('not.exist');
+            cy.get('[data-testid="coach-section-risks"]').should('exist');
+            cy.get('[data-testid="coach-risk-empty"]')
+                .should('exist')
+                .and('contain', '리스크');
             assertNoLegacyStrings();
         });
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Game, GameDetail } from '../types/prediction';
 import { getTeamColor } from '../utils/teamColors';
 import { Button } from './ui/button';
@@ -10,11 +11,17 @@ import {
   PredictionWarningTriangleIcon,
   PredictionZapIcon,
 } from './prediction/PredictionShellIcons';
+import { getEvidenceSourceMeta, pickCoreEvidenceCodes } from './prediction/coachEvidenceLabels';
 import { teamIdToName } from './TeamLogo';
 
 export interface CoachBriefingContentRuntimeProps {
   dataQuality?: string;
   totalEvidenceCount: number;
+  supportedFactCount?: number;
+  usedEvidence?: string[];
+  groundingWarnings?: string[];
+  groundingReasons?: string[];
+  freshnessLabel?: string | null;
   seasonSummary: string | null;
   activeTitle: string;
   activeMessage: string;
@@ -305,6 +312,11 @@ function TeamMatchRow({
 export default function CoachBriefingContentCardRuntime({
   dataQuality,
   totalEvidenceCount,
+  supportedFactCount,
+  usedEvidence,
+  groundingWarnings,
+  groundingReasons,
+  freshnessLabel,
   seasonSummary,
   activeTitle,
   activeMessage,
@@ -329,6 +341,7 @@ export default function CoachBriefingContentCardRuntime({
   awayTeamId,
   winProbabilityHome,
 }: CoachBriefingContentRuntimeProps) {
+  const isNarrow = useMediaQuery('(max-width: 640px)');
   const [displayedMessage, setDisplayedMessage] = useState('');
 
   useEffect(() => {
@@ -390,6 +403,20 @@ export default function CoachBriefingContentCardRuntime({
   const showVsBar = hasProbability && !aiLoading && !showLoginAction;
   const homePct = winProbabilityHome ?? 50;
   const awayPct = 100 - homePct;
+  const coreEvidenceCodes = pickCoreEvidenceCodes(usedEvidence, {
+    dataQuality: dataQuality === 'grounded' || dataQuality === 'partial' || dataQuality === 'insufficient'
+      ? dataQuality
+      : undefined,
+    groundingWarnings,
+    groundingReasons,
+  });
+  const coreEvidenceLabels = coreEvidenceCodes.map((code) => getEvidenceSourceMeta(code).label).slice(0, 2);
+  const coreEvidenceCount = coreEvidenceCodes.length;
+  const coreEvidenceChips = coreEvidenceLabels.filter((item) => item.trim().length > 0).slice(0, 2);
+  const shouldShowCoreEvidenceChip = coreEvidenceCount > 0 || totalEvidenceCount > 0;
+  const evidenceChipText = coreEvidenceCount > 0
+    ? `핵심 근거 ${coreEvidenceCount}개`
+    : `근거 ${totalEvidenceCount}건`;
 
   return (
     <>
@@ -398,10 +425,10 @@ export default function CoachBriefingContentCardRuntime({
 
       <Card
         data-testid="coach-briefing-card"
-        className="relative mb-6 overflow-hidden border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-gray-100"
+        className="relative mb-6 overflow-hidden rounded-[20px] border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-gray-100"
       >
         {/* ── HEAD BAR ─────────────────────────────────────────── */}
-        <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gradient-to-b from-[#fafffd] to-white px-5 py-3 dark:border-border dark:from-emerald-950/10 dark:to-transparent">
+        <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gradient-to-b from-[#fafffd] to-white px-4 py-3 sm:px-5 dark:border-border dark:from-emerald-950/10 dark:to-transparent">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2d5f4f] to-[#173b34] shadow-sm">
             <PredictionSparklesIcon className="h-[14px] w-[14px] text-emerald-100" />
           </div>
@@ -414,27 +441,37 @@ export default function CoachBriefingContentCardRuntime({
         </div>
 
         {/* ── BODY ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-5 px-6 pb-4 pt-5">
+        <div className="flex flex-col gap-4 px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:gap-5 sm:px-6">
           {/* Left: Gauge area */}
-          {aiLoading ? (
-            <LoadingGauge />
-          ) : showLoginAction ? (
-            <LockGauge />
-          ) : hasProbability ? (
-            <WinProbabilityGauge pct={favoredPct} color={favoredColor} teamName={favoredName} />
-          ) : (
-            <NeutralGauge />
-          )}
+          <div
+            className="flex justify-center sm:block"
+            style={{
+              transform: isNarrow ? 'scale(0.86)' : undefined,
+              transformOrigin: 'center',
+              marginTop: isNarrow ? -10 : undefined,
+              marginBottom: isNarrow ? -10 : undefined,
+            }}
+          >
+            {aiLoading ? (
+              <LoadingGauge />
+            ) : showLoginAction ? (
+              <LockGauge />
+            ) : hasProbability ? (
+              <WinProbabilityGauge pct={favoredPct} color={favoredColor} teamName={favoredName} />
+            ) : (
+              <NeutralGauge />
+            )}
+          </div>
 
           {/* Right: Headline + content */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 w-full flex-1">
             {aiLoading ? (
               /* Loading skeleton */
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-emerald-400 opacity-60" />
-                  <div className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-emerald-400 opacity-40 [animation-delay:0.15s]" />
-                  <div className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-emerald-400 opacity-40 [animation-delay:0.30s]" />
+                  <div className="h-[7px] w-[7px] flex-shrink-0 animate-pulse rounded-full bg-emerald-400 opacity-60" />
+                  <div className="h-[7px] w-[7px] flex-shrink-0 animate-pulse rounded-full bg-emerald-400 opacity-40 [animation-delay:0.15s]" />
+                  <div className="h-[7px] w-[7px] flex-shrink-0 animate-pulse rounded-full bg-emerald-400 opacity-40 [animation-delay:0.30s]" />
                 </div>
                 <div className="h-5 w-4/5 animate-pulse rounded-lg bg-gray-200 dark:bg-white/10" />
                 <div className="h-3.5 w-11/12 animate-pulse rounded bg-gray-100 dark:bg-white/[0.06]" />
@@ -536,9 +573,9 @@ export default function CoachBriefingContentCardRuntime({
         ) : null}
 
         {/* ── FOOTER: chips + status bar + CTA ─────────────────── */}
-        <div className="px-6 pb-6 pt-4">
+        <div className="px-4 pb-6 pt-4 sm:px-6">
           {/* Trust chips */}
-          {(dataQuality || totalEvidenceCount > 0) ? (
+          {(dataQuality || shouldShowCoreEvidenceChip || coreEvidenceChips.length > 0) ? (
             <div className="mb-3 flex flex-wrap items-center gap-2">
               {dataQuality ? (
                 <span
@@ -547,9 +584,23 @@ export default function CoachBriefingContentCardRuntime({
                   {getCoachDataQualityLabel(dataQuality)}
                 </span>
               ) : null}
-              {totalEvidenceCount > 0 ? (
+              {shouldShowCoreEvidenceChip ? (
                 <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[12.5px] font-bold text-gray-500 dark:border-border dark:text-gray-400">
-                  근거 {totalEvidenceCount}건
+                  {evidenceChipText}
+                </span>
+              ) : null}
+              {coreEvidenceChips.map((label) => (
+                <span
+                  key={label}
+                  className="max-w-[12rem] truncate rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[12px] font-semibold text-gray-500 dark:border-border dark:bg-white/[0.05] dark:text-gray-300"
+                  title={label}
+                >
+                  {label}
+                </span>
+              ))}
+              {freshnessLabel ? (
+                <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[12px] font-bold text-gray-400 dark:border-border dark:text-gray-500">
+                  {freshnessLabel}
                 </span>
               ) : null}
             </div>
@@ -619,6 +670,13 @@ export default function CoachBriefingContentCardRuntime({
               isPastGame={isPastGame}
               isFutureGame={isFutureGame}
               gameStatusBucket={gameStatusBucket}
+              initialWinProbabilityHome={winProbabilityHome}
+              initialDataQuality={dataQuality === 'grounded' || dataQuality === 'partial' || dataQuality === 'insufficient' ? dataQuality : undefined}
+              initialSupportedFactCount={supportedFactCount}
+              initialUsedEvidence={usedEvidence}
+              initialGroundingWarnings={groundingWarnings}
+              initialGroundingReasons={groundingReasons}
+              initialFreshnessLabel={freshnessLabel}
               buttonLabel={analysisButtonLabel}
               fullWidth
             />
