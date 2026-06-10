@@ -26,8 +26,26 @@ fi
 echo "Running mate smoke via test-e2e.mjs at http://${HOST}:${PORT}"
 
 if [[ "${ATTACH_EXISTING_SERVER}" == "1" ]]; then
+  if [[ "${#DOCKER_ARGS[@]}" -gt 0 ]]; then
+    exec env CYPRESS_ATTACH_EXISTING_SERVER=1 node scripts/test-e2e.mjs \
+      --no-server \
+      "${DOCKER_ARGS[@]}" \
+      --host "${HOST}" \
+      --port "${PORT}" \
+      --spec "${SPEC}" \
+      "$@"
+  fi
+
   exec env CYPRESS_ATTACH_EXISTING_SERVER=1 node scripts/test-e2e.mjs \
     --no-server \
+    --host "${HOST}" \
+    --port "${PORT}" \
+    --spec "${SPEC}" \
+    "$@"
+fi
+
+if [[ "${#DOCKER_ARGS[@]}" -gt 0 ]]; then
+  exec node scripts/test-e2e.mjs \
     "${DOCKER_ARGS[@]}" \
     --host "${HOST}" \
     --port "${PORT}" \
@@ -36,7 +54,6 @@ if [[ "${ATTACH_EXISTING_SERVER}" == "1" ]]; then
 fi
 
 exec node scripts/test-e2e.mjs \
-  "${DOCKER_ARGS[@]}" \
   --host "${HOST}" \
   --port "${PORT}" \
   --spec "${SPEC}" \

@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { seedCypressAuthState } from '../support/auth';
+
 describe('Mate Visual QA', () => {
   const fakeToken = 'visual-qa-token';
   const revealDeferredMateDetailContent = () => {
@@ -10,7 +12,7 @@ describe('Mate Visual QA', () => {
     id: 1,
     email: 'test@example.com',
     name: 'TestUser',
-    handle: '@testuser',
+    handle: 'testuser',
     role: 'ROLE_USER',
     favoriteTeam: 'HH',
     hasPassword: true,
@@ -19,7 +21,7 @@ describe('Mate Visual QA', () => {
 
   const listParty = {
     id: 777,
-    hostId: 999,
+    hostHandle: 'visualhost',
     hostName: '비주얼 호스트',
     hostBadge: 'VERIFIED',
     hostAverageRating: 4.7,
@@ -44,7 +46,7 @@ describe('Mate Visual QA', () => {
 
   const sellingParty = {
     id: 778,
-    hostId: 998,
+    hostHandle: 'sellerhost',
     hostName: '판매 호스트',
     hostBadge: 'NEW',
     hostAverageRating: 4.2,
@@ -71,7 +73,7 @@ describe('Mate Visual QA', () => {
   const manageParty = {
     ...listParty,
     id: 779,
-    hostId: 1,
+    hostHandle: 'testuser',
     stadium: '잠실 관리 테스트',
     section: '1루 응원석',
   };
@@ -79,7 +81,6 @@ describe('Mate Visual QA', () => {
   const chatParty = {
     ...listParty,
     id: 780,
-    hostId: 999,
     status: 'MATCHED',
     currentParticipants: 2,
     stadium: '대화 흐름 테스트',
@@ -89,7 +90,6 @@ describe('Mate Visual QA', () => {
   const checkInParty = {
     ...listParty,
     id: 781,
-    hostId: 999,
     status: 'CHECKED_IN',
     currentParticipants: 2,
     stadium: '체크인 흐름 테스트',
@@ -164,24 +164,6 @@ describe('Mate Visual QA', () => {
     },
   ];
 
-  const seedAuthState = (win: Window, theme: 'light' | 'dark') => {
-    const authState = {
-      state: {
-        user: testUser,
-        isLoggedIn: true,
-        isAdmin: false,
-      },
-      version: 0,
-    };
-
-    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-    win.localStorage.setItem('accessToken', fakeToken);
-    win.localStorage.setItem('bega_has_visited', 'true');
-    win.localStorage.setItem('bega_dont_show_guide', 'true');
-    win.localStorage.setItem('kbo-theme', theme);
-    win.document.cookie = `Authorization=${fakeToken}; path=/`;
-  };
-
   const applyTheme = (theme: 'light' | 'dark') => {
     cy.document().then((doc) => {
       doc.documentElement.classList.toggle('dark', theme === 'dark');
@@ -191,12 +173,12 @@ describe('Mate Visual QA', () => {
   const visitWithTheme = (path: string, theme: 'light' | 'dark') => {
     cy.visit(path, {
       onBeforeLoad(win) {
-        seedAuthState(win, theme);
+        seedCypressAuthState(win, testUser, fakeToken, { theme });
       },
     });
 
     cy.window().then((win) => {
-      seedAuthState(win, theme);
+      seedCypressAuthState(win, testUser, fakeToken, { theme });
     });
 
     applyTheme(theme);
@@ -303,6 +285,7 @@ describe('Mate Visual QA', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
     cy.mockAPI();
+    cy.failOnUnexpectedApi401();
     setupMateMocks();
   });
 
@@ -314,8 +297,7 @@ describe('Mate Visual QA', () => {
     cy.contains('비주얼 호스트').should('be.visible');
     cy.contains('4.7').should('be.visible');
     cy.contains(/2\s*\/\s*4명/).should('be.visible');
-    cy.get('body').trigger('mousemove', { clientX: 2, clientY: 2 });
-    cy.screenshot('mate-visual-list-desktop-light', { capture: 'viewport' });
+    cy.screenshot('mate-visual-list-desktop-light');
   });
 
   it('captures the list page in desktop dark mode', () => {

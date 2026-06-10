@@ -6,6 +6,10 @@ describe('Mate Page Accuracy', () => {
     cy.contains('CHECK-IN QR').should('be.visible');
     cy.scrollTo(0, 900);
   };
+  const clickVisibleButton = (label: string) => {
+    cy.contains('button', label, { timeout: 10000 }).scrollIntoView().should('be.visible').click();
+  };
+  const getSearchInput = () => cy.get('#mate-search').scrollIntoView().should('be.visible');
   const baseParty = {
     hostProfileImageUrl: 'https://cdn.example.com/profile.png',
     hostFavoriteTeam: 'KT',
@@ -18,7 +22,7 @@ describe('Mate Page Accuracy', () => {
 
   const pendingPartyPage0 = {
     id: 201,
-    hostId: 501,
+    hostHandle: 'pagehost',
     hostName: '테스트 호스트',
     status: 'PENDING',
     gameDate: '2026-02-20',
@@ -36,7 +40,7 @@ describe('Mate Page Accuracy', () => {
 
   const pendingPartyPage1 = {
     id: 202,
-    hostId: 502,
+    hostHandle: 'secondhost',
     hostName: '둘째 호스트',
     status: 'PENDING',
     gameDate: '2026-02-21',
@@ -54,7 +58,7 @@ describe('Mate Page Accuracy', () => {
 
   const matchedParty = {
     id: 301,
-    hostId: 503,
+    hostHandle: 'matchedhost',
     hostName: '매칭 호스트',
     status: 'MATCHED',
     gameDate: '2026-02-22',
@@ -72,7 +76,7 @@ describe('Mate Page Accuracy', () => {
 
   const sellingParty = {
     id: 302,
-    hostId: 504,
+    hostHandle: 'sellinghost',
     hostName: '판매 호스트',
     status: 'SELLING',
     gameDate: '2026-02-23',
@@ -92,7 +96,7 @@ describe('Mate Page Accuracy', () => {
 
   const searchParty = {
     id: 303,
-    hostId: 505,
+    hostHandle: 'searchhost',
     hostName: '검색 호스트',
     status: 'PENDING',
     gameDate: '2026-02-24',
@@ -110,7 +114,7 @@ describe('Mate Page Accuracy', () => {
 
   const dateFilteredParty = {
     id: 304,
-    hostId: 506,
+    hostHandle: 'datehost',
     hostName: '날짜 호스트',
     status: 'PENDING',
     gameDate: '2026-02-25',
@@ -128,7 +132,7 @@ describe('Mate Page Accuracy', () => {
 
   const detailParty = {
     id: 777,
-    hostId: 123,
+    hostHandle: 'testuser',
     hostName: '상세호스트',
     status: 'PENDING',
     gameDate: '2026-02-27',
@@ -261,6 +265,7 @@ describe('Mate Page Accuracy', () => {
 
     cy.login('user');
     cy.mockAPI();
+    cy.failOnUnexpectedApi401();
     setupPartiesListMock();
   });
 
@@ -268,7 +273,7 @@ describe('Mate Page Accuracy', () => {
     cy.visit('/mate');
     cy.contains('잠실야구장').should('be.visible');
 
-    cy.contains('button', '매칭 완료').click();
+    clickVisibleButton('매칭 완료');
     cy.wait('@getPartiesMatched').then((interception) => {
       expect(interception.request.url).to.include('status=MATCHED');
     });
@@ -300,6 +305,7 @@ describe('Mate Page Accuracy', () => {
   });
 
   it('surfaces decision-first signals on cards and detail summary', () => {
+    cy.viewport(1440, 1000);
     cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
       body: detailParty,
@@ -314,7 +320,8 @@ describe('Mate Page Accuracy', () => {
     }).as('getPartyApplications');
 
     cy.visit('/mate');
-    cy.contains('테스트 호스트').should('be.visible');
+    cy.wait('@getPartiesPage0');
+    cy.contains('테스트 호스트', { timeout: 10000 }).should('be.visible');
     cy.contains('4.5').should('be.visible');
     cy.contains(/1\s*\/\s*4명/).should('be.visible');
     cy.contains('모집 중').should('be.visible');
@@ -332,7 +339,7 @@ describe('Mate Page Accuracy', () => {
     cy.visit('/mate');
     cy.contains('잠실야구장').should('be.visible');
 
-    cy.contains('button', '다음').click();
+    clickVisibleButton('다음');
     cy.wait('@getPartiesPage1')
       .then((interception) => {
         const requestUrl = new URL(interception.request.url);
@@ -340,7 +347,8 @@ describe('Mate Page Accuracy', () => {
       });
     cy.contains('2 / 2').should('be.visible');
 
-    cy.get('input[type="text"]').clear().type('검색용');
+    getSearchInput().clear();
+    getSearchInput().type('검색용');
     // With the fix, we expect immediate page 0 request, no double fetch
     cy.wait('@getPartiesSearch').then((interception) => {
       const requestUrl = new URL(interception.request.url);
@@ -350,7 +358,7 @@ describe('Mate Page Accuracy', () => {
     // Canonical stadium display name ("{region} · {shortName}").
     cy.contains('대전 · 한화생명볼파크').should('be.visible');
 
-    cy.get('input[type="text"]').clear();
+    getSearchInput().clear();
     cy.get('button[aria-label*="요일"]').first().click();
 
     cy.wait('@getPartiesDate').then((interception) => {
@@ -403,7 +411,8 @@ describe('Mate Page Accuracy', () => {
     setupPartiesListMock({ sellingContent: [] });
 
     cy.visit('/mate');
-    cy.contains('button', '티켓 판매').click();
+    cy.wait('@getPartiesPage0');
+    clickVisibleButton('티켓 판매');
     cy.wait('@getPartiesSelling').then((interception) => {
       const requestUrl = new URL(interception.request.url);
       expect(requestUrl.searchParams.get('status')).to.eq('SELLING');

@@ -1,5 +1,8 @@
 import { privateDelete, privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
+import { invalidatePredictionBootstrapCache } from './predictionBootstrap';
+import { toPredictionGameDetail, toPredictionGames, toPredictionMatchRangePage } from './predictionMappers';
+import type { OpenApiRequestBody, OpenApiResponseBody } from './openapiTypes';
 import { parseError } from '../utils/errorUtils';
 import {
   Game,
@@ -17,21 +20,19 @@ import {
 export { fetchMatchesByDay } from './predictionMatchDay';
 export type { MatchDayResult } from './predictionMatchDay';
 
-export interface MyVotesRequest {
-  gameIds: string[];
-}
+type MyVotesRequestWire = OpenApiRequestBody<'/api/predictions/my-votes', 'post'>;
+type MyVotesResponseWire = OpenApiResponseBody<'/api/predictions/my-votes', 'post'>;
+type VoteStatusWireResponse = OpenApiResponseBody<'/api/predictions/status/{gameId}', 'get'>;
+type PredictionVoteRequestWire = OpenApiRequestBody<'/api/predictions/vote', 'post'>;
+type GameDetailWireResponse = OpenApiResponseBody<'/api/matches/{gameId}', 'get'>;
+type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
+type PredictionStatsWireResponse = OpenApiResponseBody<'/api/prediction/stats/me', 'get'>;
 
-export interface MyVotesResponse {
-  votes: {
-    [key: string]: 'home' | 'away' | null;
-  };
-}
-
-export interface VoteStatus {
-  homeVotes: number;
-  awayVotes: number;
-  totalVotes?: number;
-}
+export type MyVotesRequest = MyVotesRequestWire;
+export type MyVotesResponse = MyVotesResponseWire;
+export type UserVotesByGameId = Record<string, 'home' | 'away' | null>;
+export type VoteStatus = Required<Pick<VoteStatusWireResponse, 'homeVotes' | 'awayVotes'>>
+  & { totalVotes?: VoteStatusWireResponse['totalVotes'] };
 
 const normalizeCount = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -150,8 +151,8 @@ const normalizeVoteValue = (value: unknown): 'home' | 'away' | null => {
   return value === 1 ? 'home' : value === 2 ? 'away' : null;
 };
 
-const normalizeVoteRecord = (candidate: Record<string, unknown>): MyVotesResponse['votes'] => {
-  return Object.entries(candidate).reduce<MyVotesResponse['votes']>((acc, [gameId, value]) => {
+const normalizeVoteRecord = (candidate: Record<string, unknown>): UserVotesByGameId => {
+  return Object.entries(candidate).reduce<UserVotesByGameId>((acc, [gameId, value]) => {
     if (!gameId || typeof gameId !== 'string') {
       return acc;
     }
@@ -166,13 +167,39 @@ const normalizeVoteRecord = (candidate: Record<string, unknown>): MyVotesRespons
   }, {});
 };
 
-const extractVotesById = (payload: unknown): MyVotesResponse['votes'] => {
+const normalizeVoteEntries = (candidate: unknown): UserVotesByGameId => {
+  if (!Array.isArray(candidate)) {
+    return {};
+  }
+
+  return candidate.reduce<UserVotesByGameId>((acc, entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return acc;
+    }
+
+    const source = entry as Record<string, unknown>;
+    const gameId = `${source.gameId ?? ''}`.trim();
+    if (!gameId) {
+      return acc;
+    }
+
+    acc[gameId] = normalizeVoteValue(source.votedTeam);
+    return acc;
+  }, {});
+};
+
+const extractVotesById = (payload: unknown): UserVotesByGameId => {
   const data = unwrapPredictionEnvelope(payload);
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return {};
   }
 
   const current = data as Record<string, unknown>;
+  const entries = normalizeVoteEntries(current.entries);
+  if (Object.keys(entries).length > 0) {
+    return entries;
+  }
+
   const direct = current.votes;
   if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
     return normalizeVoteRecord(direct as Record<string, unknown>);
@@ -395,7 +422,7 @@ export const fetchMatchesByRange = async ({
   includePast = true,
   withMeta = false,
 }: MatchRangeRequest): Promise<Game[]> => {
-  const response = await publicGet<Game[] | MatchRangePageMeta>('/matches/range', {
+  const response = await publicGet<MatchRangeWireResponse>('/matches/range', {
     params: {
       startDate,
       endDate,
@@ -406,10 +433,10 @@ export const fetchMatchesByRange = async ({
     },
   });
   if (Array.isArray(response)) {
-    return response;
+    return toPredictionGames(response);
   }
 
-  return response.content;
+  return toPredictionGames(response.content);
 };
 
 export const fetchMatchesByRangeResult = async ({
@@ -421,7 +448,7 @@ export const fetchMatchesByRangeResult = async ({
   withMeta = false,
 }: MatchRangeRequest): Promise<MatchRangeResult> => {
   try {
-    const data = await publicGet<Game[] | MatchRangePageMeta>('/matches/range', {
+    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
       params: {
         startDate,
         endDate,
@@ -434,13 +461,17 @@ export const fetchMatchesByRangeResult = async ({
     if (Array.isArray(data)) {
       return {
         ok: true,
-        data,
+        data: toPredictionGames(data),
       };
     }
 
+    const pageData = toPredictionMatchRangePage(data, {
+      page: Math.max(0, page),
+      size: Math.max(1, Math.min(500, size)),
+    });
     return {
       ok: true,
-      data,
+      data: pageData,
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -468,9 +499,10 @@ export const fetchMatchesByDate = async (date: string): Promise<Game[]> => {
  * 특정 경기 상세 데이터 가져오기
  */
 export const fetchGameDetail = async (gameId: string, options?: FetchOptions): Promise<GameDetail> => {
-  return publicGet<GameDetail>(`/matches/${gameId}`, {
+  const response = await publicGet<GameDetailWireResponse>(`/matches/${gameId}`, {
     signal: options?.signal,
   });
+  return toPredictionGameDetail(response);
 };
 
 export const fetchGameDetailResult = async (
@@ -478,11 +510,12 @@ export const fetchGameDetailResult = async (
   options?: FetchOptions
 ): Promise<GameDetailResult> => {
   try {
+    const response = await publicGet<GameDetailWireResponse>(`/matches/${gameId}`, {
+      signal: options?.signal,
+    });
     return {
       ok: true,
-      data: await publicGet<GameDetail>(`/matches/${gameId}`, {
-        signal: options?.signal,
-      }),
+      data: toPredictionGameDetail(response),
     };
   } catch (error) {
     const parsed = parseError(error);
@@ -568,12 +601,12 @@ export const fetchUserVote = async (gameId: string): Promise<string | null> => {
 
 export const fetchAllUserVotesBulk = async (
   gameIds: string[]
-): Promise<{ [key: string]: 'home' | 'away' | null }> => {
+): Promise<UserVotesByGameId> => {
   if (!gameIds.length) {
     return {};
   }
 
-  const response = await privatePost<MyVotesResponse, MyVotesRequest>('/predictions/my-votes', {
+  const response = await privatePost<MyVotesResponseWire, MyVotesRequestWire>('/predictions/my-votes', {
     gameIds: Array.from(new Set(gameIds)).filter((gameId) => gameId),
   });
   return extractVotesById(response);
@@ -587,7 +620,7 @@ export const fetchVoteStatus = async (
   options?: FetchOptions
 ): Promise<VoteStatusResult> => {
   try {
-    const response = await publicGet<VoteStatus>(`/predictions/status/${gameId}`, {
+    const response = await publicGet<VoteStatusWireResponse>(`/predictions/status/${gameId}`, {
       signal: options?.signal,
     });
     const normalizedData = extractVoteStatusPayload(response);
@@ -613,7 +646,9 @@ export const fetchVoteStatus = async (
  * 투표하기
  */
 export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Promise<boolean> => {
-  await privatePost('/predictions/vote', { gameId, votedTeam });
+  const request: PredictionVoteRequestWire = { gameId, votedTeam };
+  await privatePost<unknown, PredictionVoteRequestWire>('/predictions/vote', request);
+  invalidatePredictionBootstrapCache(gameId);
   return true;
 };
 
@@ -622,6 +657,7 @@ export const submitVote = async (gameId: string, votedTeam: 'home' | 'away'): Pr
  */
 export const cancelVote = async (gameId: string): Promise<boolean> => {
   await privateDelete(`/predictions/${gameId}`);
+  invalidatePredictionBootstrapCache(gameId);
   return true;
 };
 
@@ -629,6 +665,6 @@ export const cancelVote = async (gameId: string): Promise<boolean> => {
  * 내 예측 통계 조회
  */
 export const fetchMyPredictionStats = async (): Promise<UserPredictionStat> => {
-  const response = await privateGet<{ success: boolean; data: UserPredictionStat }>('/prediction/stats/me');
-  return response.data;
+  const response = await privateGet<PredictionStatsWireResponse>('/prediction/stats/me');
+  return response.data as UserPredictionStat;
 };
