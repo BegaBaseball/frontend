@@ -7,7 +7,7 @@ describe('Mate desktop detail drawer', () => {
   const drawerSelector = '[data-testid="mate-detail-drawer"]';
   const party = {
     id: 777,
-    hostId: 999,
+    hostHandle: 'drawerhost',
     hostName: '드로어 호스트',
     status: 'PENDING',
     gameDate: '2026-05-01',

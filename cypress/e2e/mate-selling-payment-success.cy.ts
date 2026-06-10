@@ -8,7 +8,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
 
   return {
     id: 777,
-    hostId: 123,
+    hostHandle: 'testuser',
     hostName: 'HOST',
     hostBadge: 'VERIFIED',
     hostAverageRating: 4.9,
@@ -114,7 +114,7 @@ describe('Mate Selling Flow', () => {
     cy.wait('@getPartyApplications');
 
     revealDeferredMateDetailContent();
-    cy.contains('button', '판매 전환').should('be.visible').click();
+    cy.contains('button', '판매 전환').scrollIntoView().should('be.visible').click();
     cy.contains('티켓 판매 전환').should('be.visible');
     cy.get('input[placeholder="예: 15000"]').clear().type('50000');
     cy.contains('button', '확인').click();

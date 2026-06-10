@@ -3,6 +3,7 @@ import { privateDelete, privateGet, privatePatch, privatePost } from './privateC
 import { publicGet } from './publicClient';
 import { uploadMediaFile } from './media';
 import { mapBackendPartyToFrontend } from '../utils/mate';
+import type { components, paths } from './generated/openapi';
 import type {
   Application,
   CancelApplicationRequest,
@@ -23,6 +24,37 @@ import type {
   UpdatePartyRequest,
 } from '../types/mate';
 
+type JsonMediaType<Content> = Content extends { 'application/json': infer Response }
+  ? Response
+  : Content extends { 'application/json;charset=UTF-8': infer Response }
+    ? Response
+    : Content extends { 'application/json; charset=UTF-8': infer Response }
+      ? Response
+      : Content extends { '*/*': infer Response }
+        ? Response
+        : never;
+
+type JsonResponse<
+  Path extends keyof paths,
+  Method extends keyof paths[Path],
+  Status extends number = 200,
+> = paths[Path][Method] extends { responses: infer Responses }
+  ? Status extends keyof Responses
+    ? Responses[Status] extends { content: infer Content }
+      ? JsonMediaType<Content>
+      : never
+    : never
+  : never;
+
+type JsonRequestBody<
+  Path extends keyof paths,
+  Method extends keyof paths[Path],
+> = paths[Path][Method] extends { requestBody?: infer RequestBody }
+  ? NonNullable<RequestBody> extends { content: { 'application/json': infer Body } }
+    ? Body
+    : never
+  : never;
+
 interface ApiEnvelope<T> {
   success?: boolean;
   data?: T;
@@ -42,25 +74,12 @@ export interface PaginatedResponse<T> {
   size: number;
 }
 
-export interface KboScheduleItem {
-  gameId: string;
-  time: string;
-  stadium: string;
-  homeTeam: string;
-  awayTeam: string;
-  gameStatus?: string | null;
-  gameStatusKr?: string | null;
-  homeScore?: number | string | null;
-  awayScore?: number | string | null;
-}
-
 interface FetchAllPartiesOptions {
   signal?: AbortSignal;
 }
 
 export interface FetchPartyByIdOptions {
   signal?: AbortSignal;
-  skipGlobalErrorHandler?: boolean;
 }
 
 export interface FetchMatePartiesPageParams {
@@ -76,7 +95,70 @@ export interface FetchMatePartiesPageParams {
   signal?: AbortSignal;
 }
 
-type BackendPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
+type PartyPublicWireResponse = JsonResponse<'/api/parties/{id}', 'get'>;
+type PartyPrivateWireResponse = JsonResponse<'/api/parties', 'post'>;
+type PartyListWireResponse = JsonResponse<'/api/parties', 'get'>;
+type MyPartiesWireResponse = JsonResponse<'/api/parties/my', 'get'>;
+type MateMapperPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
+type BackendPartyDTO = Omit<MateMapperPartyDTO, 'gameTime'> & Partial<PartyPublicWireResponse & PartyPrivateWireResponse> & {
+  gameTime: string | components['schemas']['LocalTime'];
+  hostId?: number | null;
+  hostHandle?: string | null;
+  hostProfileImageUrl?: string | null;
+  hostFavoriteTeam?: string | null;
+  ticketImageUrl?: string | null;
+  price?: number | null;
+  ticketPrice?: number | null;
+};
+type CreatePartyRequestWire = Omit<CreatePartyRequest, 'gameTime'> & {
+  gameTime: components['schemas']['LocalTime'];
+};
+type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'>;
+type ApplicationWireResponse = JsonResponse<'/api/applications', 'post'> & Application;
+type CreateApplicationRequestWire = JsonRequestBody<'/api/applications', 'post'>;
+type CreateApplicationRequestWireCompat = Omit<CreateApplicationRequestWire, 'ticketImageUrl' | 'verificationToken'>
+  & Pick<CreateApplicationRequest, 'ticketImageUrl' | 'verificationToken'>;
+type CancelApplicationRequestWire = JsonRequestBody<'/api/applications/{applicationId}/cancel', 'post'>;
+type CancelApplicationWireResponse = JsonResponse<'/api/applications/{applicationId}/cancel', 'post'> & CancelApplicationResponse;
+type CheckInWireResponse = JsonResponse<'/api/checkin', 'post'> & CheckIn;
+type CreateCheckInRequestWire = JsonRequestBody<'/api/checkin', 'post'>;
+type CreateCheckInQrSessionRequestWire = JsonRequestBody<'/api/checkin/qr-session', 'post'>;
+type CreateCheckInQrSessionWireResponse = JsonResponse<'/api/checkin/qr-session', 'post'> & CreateCheckInQrSessionResponse;
+type ChatMessageWireResponse = JsonResponse<'/api/chat/messages', 'post', 201> & ChatMessage;
+type ChatMessageRequestWire = JsonRequestBody<'/api/chat/messages', 'post'>;
+type ReviewWireResponse = JsonResponse<'/api/reviews', 'post', 201> & PartyReview;
+type CreateReviewRequestWire = JsonRequestBody<'/api/reviews', 'post'>;
+type ChatUnreadCountWireResponse = JsonResponse<'/api/chat/my/unread-counts', 'get'>;
+type SocialVerifiedWireResponse = JsonResponse<'/api/users/{userId}/social-verified', 'get'> & { data?: boolean };
+
+export type KboScheduleItem = JsonResponse<'/api/kbo/schedule', 'get'>[number] & {
+  gameId: string;
+  time: string;
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+};
+
+const toLocalTimeWire = (value: string): components['schemas']['LocalTime'] => {
+  const [hour = '0', minute = '0', second = '0'] = value.split(':');
+  return {
+    hour: Number(hour) || 0,
+    minute: Number(minute) || 0,
+    second: Number(second) || 0,
+    nano: 0,
+  };
+};
+
+const fromLocalTimeWire = (value: BackendPartyDTO['gameTime']): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  const hour = `${value.hour ?? 0}`.padStart(2, '0');
+  const minute = `${value.minute ?? 0}`.padStart(2, '0');
+  const second = `${value.second ?? 0}`.padStart(2, '0');
+  return `${hour}:${minute}:${second}`;
+};
 
 const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   if (Array.isArray(payload)) {
@@ -98,8 +180,21 @@ const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   return payload.data ? [payload.data] : [];
 };
 
-export const normalizeMateParty = (party: BackendPartyDTO | Party): Party =>
-  mapBackendPartyToFrontend(party as BackendPartyDTO);
+export const normalizeMateParty = (party: BackendPartyDTO | Party): Party => {
+  const wireParty = party as BackendPartyDTO;
+  const mapperParty: MateMapperPartyDTO = {
+    ...wireParty,
+    gameTime: fromLocalTimeWire(wireParty.gameTime),
+    hostId: wireParty.hostId ?? undefined,
+    hostHandle: wireParty.hostHandle ?? undefined,
+    hostProfileImageUrl: wireParty.hostProfileImageUrl ?? undefined,
+    hostFavoriteTeam: wireParty.hostFavoriteTeam ?? undefined,
+    ticketImageUrl: wireParty.ticketImageUrl ?? undefined,
+    price: wireParty.price ?? undefined,
+    ticketPrice: wireParty.ticketPrice ?? undefined,
+  };
+  return mapBackendPartyToFrontend(mapperParty);
+};
 
 export async function getKboSchedule(date: string): Promise<KboScheduleItem[]> {
   return publicGet<KboScheduleItem[]>('/kbo/schedule', {
@@ -107,8 +202,8 @@ export async function getKboSchedule(date: string): Promise<KboScheduleItem[]> {
   });
 }
 
-export async function checkSocialVerified(userId: number): Promise<ApiEnvelope<boolean>> {
-  return privateGet<ApiEnvelope<boolean>>(`/users/${userId}/social-verified`, {
+export async function checkSocialVerified(userId: number): Promise<SocialVerifiedWireResponse> {
+  return privateGet<SocialVerifiedWireResponse>(`/users/${userId}/social-verified`, {
     skipAuthSessionHandling: true,
   });
 }
@@ -126,32 +221,40 @@ export async function fetchPartyById(
 export async function fetchPartyReviews(
   partyId: number | string,
 ): Promise<PartyReview[]> {
-  return privateGet<PartyReview[]>(`/reviews/party/${Number(partyId)}`);
+  return privateGet<Array<JsonResponse<'/api/reviews/party/{partyId}', 'get'>[number] & PartyReview>>(
+    `/reviews/party/${Number(partyId)}`,
+  );
 }
 
 export async function fetchPartyApplications(
   partyId: number | string,
 ): Promise<Application[]> {
-  return privateGet<Application[]>(`/applications/party/${partyId}`);
+  return privateGet<ApplicationWireResponse[]>(`/applications/party/${partyId}`);
 }
 
 export async function fetchPartyCheckIns(
   partyId: number | string,
 ): Promise<CheckIn[]> {
-  return privateGet<CheckIn[]>(`/checkin/party/${partyId}`);
+  return privateGet<Array<JsonResponse<'/api/checkin/party/{partyId}', 'get'>[number] & CheckIn>>(
+    `/checkin/party/${partyId}`,
+  );
 }
 
 export async function fetchPartyMessages(
   partyId: number | string,
 ): Promise<ChatMessage[]> {
-  return privateGet<ChatMessage[]>(`/chat/party/${partyId}`);
+  return privateGet<Array<JsonResponse<'/api/chat/party/{partyId}', 'get'>[number] & ChatMessage>>(
+    `/chat/party/${partyId}`,
+  );
 }
 
 export async function fetchPartyMyApplication(
   partyId: number | string,
 ): Promise<Application | null> {
   try {
-    return await privateGet<Application | null>(`/applications/party/${partyId}/mine`);
+    return await privateGet<(JsonResponse<'/api/applications/party/{partyId}/mine', 'get'> & Application) | null>(
+      `/applications/party/${partyId}/mine`,
+    );
   } catch (error) {
     if (getApiErrorStatus(error) === 404) {
       return null;
@@ -163,7 +266,7 @@ export async function fetchPartyMyApplication(
 export async function fetchMatePartiesPage(
   params: FetchMatePartiesPageParams = {},
 ): Promise<PaginatedResponse<Party>> {
-  const response = await publicGet<PaginatedResponse<BackendPartyDTO>>('/parties', {
+  const response = await publicGet<PartyListWireResponse & PaginatedResponse<BackendPartyDTO>>('/parties', {
     params: {
       teamId: params.teamId,
       stadium: params.stadium,
@@ -187,7 +290,7 @@ export async function fetchMatePartiesPage(
 export async function fetchAllParties(
   options: FetchAllPartiesOptions = {},
 ): Promise<Party[]> {
-  const response = await publicGet<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties', {
+  const response = await publicGet<PartyListWireResponse | ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties', {
     params: {
       page: 0,
       size: 1000,
@@ -195,18 +298,18 @@ export async function fetchAllParties(
     signal: options.signal,
   });
 
-  return toList(response).map(normalizeMateParty);
+  return toList(response as ListPayload<BackendPartyDTO> | BackendPartyDTO[]).map(normalizeMateParty);
 }
 
 export async function fetchMyApplications(): Promise<Application[]> {
-  const response = await privateGet<ListPayload<Application> | Application[]>('/applications/my');
+  const response = await privateGet<ListPayload<ApplicationWireResponse> | ApplicationWireResponse[]>('/applications/my');
   return toList(response);
 }
 
 export async function fetchMyParties(): Promise<Party[]> {
   try {
-    const response = await privateGet<ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties/my');
-    return toList(response).map(normalizeMateParty);
+    const response = await privateGet<MyPartiesWireResponse | ListPayload<BackendPartyDTO> | BackendPartyDTO[]>('/parties/my');
+    return toList(response as ListPayload<BackendPartyDTO> | BackendPartyDTO[]).map(normalizeMateParty);
   } catch (error) {
     console.error('메이트 내역 조회 실패:', error);
     throw error;
@@ -214,16 +317,25 @@ export async function fetchMyParties(): Promise<Party[]> {
 }
 
 export async function createParty(data: CreatePartyRequest): Promise<Party> {
-  return privatePost<Party, CreatePartyRequest>('/parties', data, {
+  const request: CreatePartyRequestWire = {
+    ...data,
+    gameTime: toLocalTimeWire(data.gameTime),
+  };
+  const response = await privatePost<BackendPartyDTO, CreatePartyRequestWire>('/parties', request, {
     skipAuthSessionHandling: true,
   });
+  return normalizeMateParty(response);
 }
 
 export async function updateParty(
   partyId: number,
   data: UpdatePartyRequest,
 ): Promise<Party> {
-  return privatePatch<Party, UpdatePartyRequest>(`/parties/${partyId}`, data);
+  const response = await privatePatch<BackendPartyDTO, UpdatePartyRequestWire>(
+    `/parties/${partyId}`,
+    data,
+  );
+  return normalizeMateParty(response);
 }
 
 export async function deleteParty(partyId: number | string): Promise<void> {
@@ -233,7 +345,8 @@ export async function deleteParty(partyId: number | string): Promise<void> {
 export async function createApplication(
   data: CreateApplicationRequest,
 ): Promise<Application> {
-  return privatePost<Application, CreateApplicationRequest>('/applications', data, {
+  const request: CreateApplicationRequestWireCompat = { ...data };
+  return privatePost<ApplicationWireResponse, CreateApplicationRequestWireCompat>('/applications', request, {
     skipAuthSessionHandling: true,
   });
 }
@@ -241,20 +354,20 @@ export async function createApplication(
 export async function approveApplication(
   applicationId: string | number,
 ): Promise<Application> {
-  return privatePost<Application, undefined>(`/applications/${applicationId}/approve`);
+  return privatePost<ApplicationWireResponse, undefined>(`/applications/${applicationId}/approve`);
 }
 
 export async function rejectApplication(
   applicationId: string | number,
 ): Promise<Application> {
-  return privatePost<Application, undefined>(`/applications/${applicationId}/reject`);
+  return privatePost<ApplicationWireResponse, undefined>(`/applications/${applicationId}/reject`);
 }
 
 export async function cancelApplicationWithReason(
   applicationId: string | number,
   data: CancelApplicationRequest,
 ): Promise<CancelApplicationResponse> {
-  return privatePost<CancelApplicationResponse, CancelApplicationRequest>(
+  return privatePost<CancelApplicationWireResponse, CancelApplicationRequestWire>(
     `/applications/${applicationId}/cancel`,
     data,
   );
@@ -263,13 +376,13 @@ export async function cancelApplicationWithReason(
 export async function createCheckIn(
   data: CreateCheckInRequest,
 ): Promise<CheckIn> {
-  return privatePost<CheckIn, CreateCheckInRequest>('/checkin', data);
+  return privatePost<CheckInWireResponse, CreateCheckInRequestWire>('/checkin', data);
 }
 
 export async function createCheckInQrSession(
   data: CreateCheckInQrSessionRequest,
 ): Promise<CreateCheckInQrSessionResponse> {
-  return privatePost<CreateCheckInQrSessionResponse, CreateCheckInQrSessionRequest>(
+  return privatePost<CreateCheckInQrSessionWireResponse, CreateCheckInQrSessionRequestWire>(
     '/checkin/qr-session',
     data,
   );
@@ -278,7 +391,7 @@ export async function createCheckInQrSession(
 export async function createReview(
   data: CreateReviewRequest,
 ): Promise<PartyReview> {
-  return privatePost<PartyReview, CreateReviewRequest>('/reviews', data);
+  return privatePost<ReviewWireResponse, CreateReviewRequestWire>('/reviews', data);
 }
 
 export async function sendChatMessage(data: {
@@ -287,7 +400,11 @@ export async function sendChatMessage(data: {
   imageUrl?: string;
   clientMessageId: string;
 }): Promise<ChatMessage> {
-  return privatePost<ChatMessage, typeof data>('/chat/messages', data);
+  const request: ChatMessageRequestWire = {
+    ...data,
+    partyId: Number(data.partyId),
+  };
+  return privatePost<ChatMessageWireResponse, ChatMessageRequestWire>('/chat/messages', request);
 }
 
 export async function uploadChatImage(file: File): Promise<{ path: string; url?: string }> {
@@ -308,7 +425,7 @@ export async function updateChatReadTimestamp(partyId: number | string): Promise
 
 export async function getChatUnreadCounts(): Promise<number> {
   try {
-    const response = await privateGet<{ success?: boolean; data?: number }>('/chat/my/unread-counts');
+    const response = await privateGet<ChatUnreadCountWireResponse>('/chat/my/unread-counts');
 
     if (response.success && typeof response.data === 'number') {
       return response.data;

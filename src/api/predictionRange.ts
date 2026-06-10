@@ -1,11 +1,15 @@
 import { publicGet } from './publicClient';
+import { toPredictionGames, toPredictionMatchRangePage } from './predictionMappers';
 import type {
   ApiResult,
   MatchRangePageMeta,
   MatchRangeRequest,
 } from './prediction';
-import type { Game, MatchBounds } from '../types/prediction';
+import type { OpenApiResponseBody } from './openapiTypes';
+import type { MatchBounds } from '../types/prediction';
 import { parseError } from '../utils/errorUtils';
+
+type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
 
 export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
   try {
@@ -35,7 +39,7 @@ export const fetchMatchesByRangeWithMeta = async ({
 }: MatchRangeRequest): Promise<ApiResult<MatchRangePageMeta>> => {
   try {
     const normalizedSize = Math.max(1, Math.min(500, size));
-    const data = await publicGet<MatchRangePageMeta | Game[]>('/matches/range', {
+    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
       params: {
         startDate,
         endDate,
@@ -50,7 +54,7 @@ export const fetchMatchesByRangeWithMeta = async ({
       return {
         ok: true,
         data: {
-          content: data,
+          content: toPredictionGames(data),
           page,
           size: normalizedSize,
           totalElements: data.length,
@@ -63,7 +67,10 @@ export const fetchMatchesByRangeWithMeta = async ({
 
     return {
       ok: true,
-      data,
+      data: toPredictionMatchRangePage(data, {
+        page,
+        size: normalizedSize,
+      }),
     };
   } catch (error) {
     const parsed = parseError(error);
