@@ -2,14 +2,28 @@
 
 import { getHomeAuthRequestTraces, visitHomePage } from '../support/homePage';
 
+type BootstrapLoadState = {
+  isFallback: boolean;
+  timedOut: boolean;
+  timedOutSections: string[];
+  failedSections: string[];
+};
+
 describe('Home error UX', () => {
   const fixedNow = new Date('2026-03-16T12:00:00').getTime();
+  const buildCompleteBootstrapLoadState = (): BootstrapLoadState => ({
+    isFallback: false,
+    timedOut: false,
+    timedOutSections: [],
+    failedSections: [],
+  });
 
   const buildBootstrapResponse = (
     date: string,
     prevGameDate: string | null,
     nextGameDate: string | null,
     regularSeasonStart = '2026-03-22',
+    loadState = buildCompleteBootstrapLoadState(),
   ) => ({
     selectedDate: date,
     leagueStartDates: {
@@ -25,6 +39,7 @@ describe('Home error UX', () => {
     },
     games: [],
     scheduledGamesWindow: [],
+    loadState,
   });
   const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
     hotCheerPosts: [],
@@ -330,6 +345,43 @@ describe('Home error UX', () => {
 
     cy.contains('경기가 없는 날입니다.', { timeout: 15000 }).should('be.visible');
     cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
+  });
+
+  it('uses backend partial loadState to avoid scheduled inline errors on section timeout', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse(
+        '2026-04-13',
+        '2026-04-12',
+        '2026-04-14',
+        '2026-03-22',
+        {
+          isFallback: true,
+          timedOut: true,
+          timedOutSections: ['scheduledGamesWindow'],
+          failedSections: ['scheduledGamesWindow'],
+        },
+      ),
+    }).as('getHomeBootstrapPartial');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapPartial');
+    cy.wait('@getHomeWidgets');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('button', '예정경기').click();
+    cy.contains('선택한 날짜부터 7일 내 예정 경기가 없습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('예정 경기를 불러오지 못했습니다').should('not.exist');
+    cy.get('@getHomeBootstrapPartial.all').should('have.length', 1);
   });
 
   it('warns without exposing manual-data-required details to anonymous users', () => {
@@ -643,7 +695,15 @@ describe('Home error UX', () => {
 
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
-      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+      body: {
+        ...buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+        rankingSnapshot: {
+          rankingSeasonYear: 1999,
+          rankingSourceMessage: 'out-of-contract bootstrap ranking',
+          isOffSeason: true,
+          rankings: [],
+        },
+      },
     }).as('getHomeBootstrap');
 
     cy.intercept('GET', '**/api/home/widgets*', (req) => {
@@ -671,6 +731,7 @@ describe('Home error UX', () => {
     cy.wait('@getHomeBootstrap');
     cy.wait('@getHomeWidgets');
     cy.contains('2025').should('be.visible');
+    cy.contains('1999').should('not.exist');
 
     cy.get('button[aria-label="2024시즌 팀 순위 보기"]').click({ force: true });
     cy.wait('@getHomeWidgets');

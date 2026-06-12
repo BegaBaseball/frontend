@@ -2,7 +2,20 @@
 
 import { visitHomePage } from '../support/homePage';
 
+type BootstrapLoadState = {
+  isFallback: boolean;
+  timedOut: boolean;
+  timedOutSections: string[];
+  failedSections: string[];
+};
+
 describe('Home scheduled tab', () => {
+  const buildCompleteBootstrapLoadState = (): BootstrapLoadState => ({
+    isFallback: false,
+    timedOut: false,
+    timedOutSections: [],
+    failedSections: [],
+  });
   const formatDateKey = (date: Date) => date.toISOString().slice(0, 10);
   const addDays = (dateKey: string, offset: number) => {
     const date = new Date(`${dateKey}T12:00:00`);
@@ -41,6 +54,7 @@ describe('Home scheduled tab', () => {
     },
     games: [],
     scheduledGamesWindow: buildScheduledWindow(selectedDate),
+    loadState: buildCompleteBootstrapLoadState(),
   });
   const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
     hotCheerPosts: [],
@@ -353,10 +367,18 @@ describe('Home scheduled tab', () => {
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
 
     cy.contains('[data-slot="card"]', 'LG')
+      .as('scheduledPredictionCard')
       .should('be.visible')
-      .within(() => {
-        cy.contains('승부예측 하러가기').click();
-      });
+      .should('have.attr', 'role', 'button');
+    cy.get('@scheduledPredictionCard')
+      .invoke('attr', 'aria-label')
+      .should('include', '승부예측');
+    cy.get('@scheduledPredictionCard')
+      .find('span')
+      .filter(':visible')
+      .contains(/^승부예측$/)
+      .should('be.visible');
+    cy.get('@scheduledPredictionCard').click();
 
     cy.location('pathname').should('eq', '/prediction');
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
