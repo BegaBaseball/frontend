@@ -14,7 +14,9 @@ import {
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
 import { PublicApiError, publicGet } from './publicClient';
+import type { OpenApiResponseBody } from './openapiTypes';
 import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
+import { toHomeGames, toHomeGamesFromRange } from './homeMappers';
 
 export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
 export type HomeLoadFailureReason = 'manual-data-required' | 'request-failed';
@@ -26,6 +28,9 @@ export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => 
 export const HOME_SCOPED_NAVIGATION_QUERY_KEY = (dateKey: string, scope: HomeNavigationScope, seasonYear?: number) => (
     ['home', 'navigation', dateKey, scope, seasonYear ?? 'auto'] as const
 );
+
+type ScheduleWireResponse = OpenApiResponseBody<'/api/kbo/schedule', 'get'>;
+type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
 
 export interface HomeLoadState {
     source: HomeLoadSource;
@@ -187,10 +192,10 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
 
     try {
-        const data = await publicGet<Game[]>('/kbo/schedule', {
+        const data = await publicGet<ScheduleWireResponse>('/kbo/schedule', {
             params: { date: apiDate },
         });
-        return data;
+        return toHomeGames(data);
 
     } catch (error) {
         return [];
@@ -198,7 +203,7 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
 };
 
 export const fetchGamesRangeData = async (startDate: string, endDate: string): Promise<Game[]> => {
-    const data = await publicGet<unknown>('/matches/range', {
+    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
         params: {
             startDate,
             endDate,
@@ -209,15 +214,7 @@ export const fetchGamesRangeData = async (startDate: string, endDate: string): P
         },
     });
 
-    if (Array.isArray(data)) {
-        return data as Game[];
-    }
-
-    if (data && typeof data === 'object' && Array.isArray((data as { content?: unknown }).content)) {
-        return (data as { content: Game[] }).content;
-    }
-
-    return [];
+    return toHomeGamesFromRange(data);
 };
 
 /**
@@ -248,17 +245,28 @@ export const fetchHomeBootstrap = async (
         throw new Error('Invalid home bootstrap response');
     }
 
-    if (data.loadState) {
-        data.loadState.timedOutSections = isStringArray(data.loadState.timedOutSections)
-            ? data.loadState.timedOutSections
-            : [];
-        data.loadState.failedSections = isStringArray(data.loadState.failedSections)
-            ? data.loadState.failedSections
-            : [];
-    }
+    const loadState = data.loadState
+        ? {
+            ...data.loadState,
+            timedOutSections: isStringArray(data.loadState.timedOutSections)
+                ? data.loadState.timedOutSections
+                : [],
+            failedSections: isStringArray(data.loadState.failedSections)
+                ? data.loadState.failedSections
+                : [],
+        }
+        : undefined;
+    const response: HomeBootstrapResponse = {
+        selectedDate: data.selectedDate,
+        leagueStartDates: data.leagueStartDates,
+        navigation: data.navigation,
+        games: data.games,
+        scheduledGamesWindow: data.scheduledGamesWindow,
+        ...(loadState ? { loadState } : {}),
+    };
 
-    cacheLeagueStartDates(data.leagueStartDates);
-    return data;
+    cacheLeagueStartDates(response.leagueStartDates);
+    return response;
 };
 
 export const getHomeBootstrapQueryOptions = (date: Date) => {
