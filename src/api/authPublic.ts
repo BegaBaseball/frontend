@@ -56,6 +56,7 @@ interface RequiredPoliciesApiResponse {
 }
 
 const SIGNUP_SUBMIT_TIMEOUT_MS = 20_000;
+const LOGIN_SUBMIT_TIMEOUT_MS = 20_000;
 const SIGNUP_POLICY_TIMEOUT_MESSAGE = '필수 정책 정보를 불러오는 중 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
 const SIGNUP_SUBMIT_TIMEOUT_MESSAGE = '회원가입 요청 처리에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요. 같은 이메일이 이미 가입되었는지도 확인해주세요.';
 const SIGNUP_HANDLE_CHECK_ERROR_MESSAGE = '핸들 중복 확인에 실패했습니다.';
@@ -271,7 +272,13 @@ export const checkSignUpHandleAvailability = async (
 
 export const loginUser = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
-    const response = await publicPost<RawLoginResponse, LoginRequest>('/auth/login', credentials);
+    const response = await publicPost<RawLoginResponse, LoginRequest>(
+      '/auth/login',
+      credentials,
+      {
+        timeoutMs: LOGIN_SUBMIT_TIMEOUT_MS,
+      },
+    );
     return normalizeLoginResponse(response);
   } catch (error) {
     const parsed = parseError(error);
