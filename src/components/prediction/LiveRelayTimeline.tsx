@@ -70,7 +70,7 @@ export function LiveRelayTimeline({
 
   return (
     <section data-testid="prediction-live-relay-timeline">
-      <div className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100">
+      <div className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
           <PredictionZapIcon className="h-3.5 w-3.5" />
         </span>
@@ -120,18 +120,18 @@ export function LiveRelayTimeline({
                 <div key={`${event.relayId ?? 'relay'}-${index}`} className="relative">
                   <span className="absolute left-3 top-4 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-rose-500 bg-white shadow-[0_0_0_5px_rgba(244,63,94,0.12)] dark:bg-background" />
                   <div className="ml-6 rounded-lg border border-gray-100 bg-white px-3 py-2.5 shadow-sm dark:border-border dark:bg-secondary/40">
-                    <div className="flex flex-wrap items-center gap-2 text-[14px] font-bold text-gray-500 dark:text-gray-300">
-                      <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-border/60 dark:text-gray-100">
+                    <div className="flex flex-wrap items-center gap-2 text-[14px] font-bold text-gray-500 dark:text-white">
+                      <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-border/60 dark:text-white">
                         {formatInningLabel(event)}
                       </span>
                       {resultLabel ? <span>{resultLabel}</span> : null}
                       {updatedAt ? <span className="ml-auto font-mono">{updatedAt}</span> : null}
                     </div>
-                    <p className="mt-2 text-[16px] font-semibold leading-relaxed text-gray-900 dark:text-gray-100">
+                    <p className="mt-2 text-[16px] font-semibold leading-relaxed text-gray-900 dark:text-white">
                       {event.playDescription || '문자중계 내용이 비어 있습니다.'}
                     </p>
                     {metaItems.length > 0 ? (
-                      <p className="mt-1.5 text-[14px] font-medium text-gray-500 dark:text-gray-300">
+                      <p className="mt-1.5 text-[14px] font-medium text-gray-500 dark:text-white">
                         {metaItems.join(' · ')}
                       </p>
                     ) : null}
