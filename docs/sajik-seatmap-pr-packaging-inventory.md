@@ -13,7 +13,7 @@ canonical cleanup 갱신일: 2026-05-28 KST
 
 ## 현재 사직 기준
 
-- 공식 asset: `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png`
+- 공식 asset: `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp`
 - 좌표계: `960x640`
 - stadium id: `BUSAN_SAJIK`
 - map version: `BUSAN_SAJIK_2026_MANUAL_POLYGON_V2`
@@ -83,7 +83,7 @@ PR 범위 분리:
 | `docs/sajik-seatmap-release-lock.md` | 포함 | canonical single-source lock |
 | `docs/sajik-seatmap-pr-packaging-inventory.md` | 포함 | 이 packaging 범위 |
 | `docs/sajik-seatmap-canonical-pr-notes.md` | 포함 | PR 설명과 rollout notes |
-| `docs/sajik-seatmap-canonical-staging-rehearsal.md` | 포함 | dry-run staging manifest와 제외 artifact 기준 |
+| `docs/sajik-seatmap-canonical-staging-rehearsal.md` | 승인된 삭제 제외 | Sajik owner 삭제 승인 완료. 현재 tracked 삭제 상태를 유지하고 PR 패키징 구성에서는 완전히 제외한다. |
 
 검증 결과:
 
@@ -109,7 +109,7 @@ QA Evidence Summary:
 
 - primary source: `OPERATOR_REFERENCE_2026`
 - secondary source: `LOTTE_OFFICIAL_2026`
-- asset: `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png`
+- asset: `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp`
 - 좌표계: `1151x1367`, `viewBox=0 0 1151 1367`
 - map version: `BUSAN_SAJIK_2026_OPERATOR_REFERENCE_POLYGON_V1`
 - SHA-256: `794d957510240c786f4fce821814afbf01cc1f93fe7ec3ecca23846a8d753f6f`
@@ -124,7 +124,7 @@ QA Evidence Summary:
 
 | 경로 | 포함 판단 | 이유 |
 | --- | --- | --- |
-| `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png` | 포함 | operator reference primary source 이미지 |
+| `src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp` | 포함 | operator reference primary source 이미지 |
 | `src/data/sajikSeatData.ts` | 부분 포함 | source references, default source, official/source metadata 전환 hunk |
 | `src/data/sajikOperatorReferenceSeatMapDataset.ts` | 포함 | 1151x1367 operator reference polygon dataset source of truth |
 | `src/data/sajikSeatData.test.ts` | 포함 | operator reference source/default/dataset/closeout/promotion 계약 |
