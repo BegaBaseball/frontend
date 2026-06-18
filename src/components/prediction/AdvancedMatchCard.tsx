@@ -1,6 +1,7 @@
 import React, { Fragment, ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { StatusBadge } from '../ui/status-badge';
 import TeamLogo from '../TeamLogo';
 import { useTheme } from '../../hooks/useTheme';
 import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
@@ -23,6 +24,7 @@ import {
   toNumericScore,
 } from '../../utils/inningScoreParser';
 import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
+import { getGameStatusBadgeMeta } from '../../utils/statusBadgeMeta';
 import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
 import {
   PredictionChevronLeftIcon,
@@ -30,7 +32,6 @@ import {
   PredictionClockIcon,
   PredictionLoaderIcon,
   PredictionTrendingUpIcon,
-  PredictionWarningTriangleIcon,
 } from './PredictionShellIcons';
 
 const AdvancedMatchCardContentRuntime = lazy(() => import('./AdvancedMatchCardContentRuntime'));
@@ -383,24 +384,13 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
 
             <div className="relative flex justify-center">
               {showStatusBadge && (
-                <div
+                <StatusBadge
                   data-testid="prediction-status-badge"
-                  className={`absolute top-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[16px] font-bold backdrop-blur ${
-                    isCancelledStatus
-                      ? 'bg-rose-500/30 text-rose-100 border border-rose-200/40'
-                      : isPostponedStatus
-                        ? 'bg-amber-500/30 text-amber-50 border border-amber-100/40'
-                        : 'bg-emerald-500/30 text-emerald-50 border border-emerald-100/40'
-                  }`}
+                  {...getGameStatusBadgeMeta(statusCode, scheduledStateLabel)}
+                  size="md"
+                  className="absolute top-0 backdrop-blur"
                   style={surfaceTransitionStyle}
-                >
-                  {isPostponedOrCancelled ? (
-                    <PredictionWarningTriangleIcon className="h-3.5 w-3.5" />
-                  ) : (
-                    <PredictionClockIcon className="h-3.5 w-3.5" />
-                  )}
-                  {scheduledStateLabel}
-                </div>
+                />
               )}
               <div
                 className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[16px] font-bold leading-tight backdrop-blur sm:px-3 sm:text-[16px]`}
