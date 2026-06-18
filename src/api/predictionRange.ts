@@ -5,11 +5,8 @@ import type {
   MatchRangePageMeta,
   MatchRangeRequest,
 } from './prediction';
-import type { OpenApiResponseBody } from './openapiTypes';
 import type { MatchBounds } from '../types/prediction';
 import { parseError } from '../utils/errorUtils';
-
-type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
 
 export const fetchMatchBounds = async (): Promise<ApiResult<MatchBounds>> => {
   try {
@@ -38,27 +35,25 @@ export const fetchMatchesByRangeWithMeta = async ({
   includePast = true,
 }: MatchRangeRequest): Promise<ApiResult<MatchRangePageMeta>> => {
   try {
-    const normalizedSize = Math.max(1, Math.min(500, size));
-    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
-      params: {
-        startDate,
-        endDate,
-        page: Math.max(0, page),
-        size: normalizedSize,
-        includePast,
-        withMeta: true,
-      },
+    const { fetchMatchRangeWire } = await import('./matchRangeClient');
+    const { response, page: normalizedPage, size: normalizedSize } = await fetchMatchRangeWire({
+      startDate,
+      endDate,
+      page,
+      size,
+      includePast,
+      withMeta: true,
     });
 
-    if (Array.isArray(data)) {
+    if (Array.isArray(response)) {
       return {
         ok: true,
         data: {
-          content: toPredictionGames(data),
-          page,
+          content: toPredictionGames(response),
+          page: normalizedPage,
           size: normalizedSize,
-          totalElements: data.length,
-          totalPages: data.length ? 1 : 0,
+          totalElements: response.length,
+          totalPages: response.length ? 1 : 0,
           hasNext: false,
           hasPrevious: false,
         },
@@ -67,8 +62,8 @@ export const fetchMatchesByRangeWithMeta = async ({
 
     return {
       ok: true,
-      data: toPredictionMatchRangePage(data, {
-        page,
+      data: toPredictionMatchRangePage(response, {
+        page: normalizedPage,
         size: normalizedSize,
       }),
     };

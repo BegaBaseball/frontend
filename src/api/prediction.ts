@@ -25,7 +25,6 @@ type MyVotesResponseWire = OpenApiResponseBody<'/api/predictions/my-votes', 'pos
 type VoteStatusWireResponse = OpenApiResponseBody<'/api/predictions/status/{gameId}', 'get'>;
 type PredictionVoteRequestWire = OpenApiRequestBody<'/api/predictions/vote', 'post'>;
 type GameDetailWireResponse = OpenApiResponseBody<'/api/matches/{gameId}', 'get'>;
-type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
 type PredictionStatsWireResponse = OpenApiResponseBody<'/api/prediction/stats/me', 'get'>;
 
 export type MyVotesRequest = MyVotesRequestWire;
@@ -422,16 +421,16 @@ export const fetchMatchesByRange = async ({
   includePast = true,
   withMeta = false,
 }: MatchRangeRequest): Promise<Game[]> => {
-  const response = await publicGet<MatchRangeWireResponse>('/matches/range', {
-    params: {
-      startDate,
-      endDate,
-      page: Math.max(0, page),
-      size: Math.max(1, Math.min(500, size)),
-      includePast,
-      withMeta,
-    },
+  const { fetchMatchRangeWire } = await import('./matchRangeClient');
+  const { response } = await fetchMatchRangeWire({
+    startDate,
+    endDate,
+    page,
+    size,
+    includePast,
+    withMeta,
   });
+
   if (Array.isArray(response)) {
     return toPredictionGames(response);
   }
@@ -448,26 +447,26 @@ export const fetchMatchesByRangeResult = async ({
   withMeta = false,
 }: MatchRangeRequest): Promise<MatchRangeResult> => {
   try {
-    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
-      params: {
-        startDate,
-        endDate,
-        page: Math.max(0, page),
-        size: Math.max(1, Math.min(500, size)),
-        includePast,
-        withMeta,
-      },
+    const { fetchMatchRangeWire } = await import('./matchRangeClient');
+    const { response, page: normalizedPage, size: normalizedSize } = await fetchMatchRangeWire({
+      startDate,
+      endDate,
+      page,
+      size,
+      includePast,
+      withMeta,
     });
-    if (Array.isArray(data)) {
+
+    if (Array.isArray(response)) {
       return {
         ok: true,
-        data: toPredictionGames(data),
+        data: toPredictionGames(response),
       };
     }
 
-    const pageData = toPredictionMatchRangePage(data, {
-      page: Math.max(0, page),
-      size: Math.max(1, Math.min(500, size)),
+    const pageData = toPredictionMatchRangePage(response, {
+      page: normalizedPage,
+      size: normalizedSize,
     });
     return {
       ok: true,
