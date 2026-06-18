@@ -12,7 +12,15 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+
+import {
+  exitWithStatus,
+  nodeStep,
+  runTaskMapCli,
+  runTaskSteps,
+} from './lib/stadium-task-runner.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
@@ -75,10 +83,10 @@ const runReleaseGate = async () => {
     ['official blocks (all 156 must be OFFICIAL)', summary.officialBlocks === EXPECTED_OFFICIAL_BLOCKS],
     ['official asset sha256', summary.officialAssetSha256 === EXPECTED_OFFICIAL_ASSET_SHA256],
     ['release fixture fingerprint', summary.releaseFixtureFingerprint === EXPECTED_RELEASE_FIXTURE_FINGERPRINT],
-    ['package mobile script', packageSource.includes('"qa:stadium:incheon:mobile": "node scripts/stadium-seatmap-ops.mjs incheon mobile"')],
-    ['package full script', packageSource.includes('"qa:stadium:incheon:full": "node scripts/stadium-seatmap-ops.mjs incheon full"')],
-    ['package release lock script', packageSource.includes('"qa:stadium:incheon:release-lock": "node scripts/stadium-seatmap-ops.mjs incheon release-gate"')],
-    ['package status script', packageSource.includes('"stadium:incheon:status": "node scripts/stadium-seatmap-ops.mjs incheon status"')],
+    ['package mobile script', packageSource.includes('"qa:stadium:incheon:mobile": "node scripts/qa-presets.mjs stadium incheon mobile"')],
+    ['package full script', packageSource.includes('"qa:stadium:incheon:full": "node scripts/qa-presets.mjs stadium incheon full"')],
+    ['package release lock script', packageSource.includes('"qa:stadium:incheon:release-lock": "node scripts/qa-presets.mjs stadium incheon release-gate"')],
+    ['package status script', packageSource.includes('"stadium:incheon:status": "node scripts/qa-presets.mjs stadium incheon status"')],
     ['package responsive script absent', !packageSource.includes('"qa:stadium:incheon:responsive"')],
     ['package trace review script absent', !packageSource.includes('"qa:stadium:incheon:trace-review"')],
     ['package pixel components script absent', !packageSource.includes('"stadium:incheon:pixel-components"')],
@@ -138,13 +146,41 @@ const runReleaseGate = async () => {
 };
 
 const TASKS = {
-  'release-gate': runReleaseGate,
+  full: [
+    nodeStep(['scripts/stadium-seatmap-ops.mjs', 'incheon', 'full'], { passArgs: true }),
+  ],
+  mobile: [
+    nodeStep(['scripts/stadium-seatmap-ops.mjs', 'incheon', 'mobile'], { passArgs: true }),
+  ],
+  'release-gate': [
+    { run: runReleaseGate },
+  ],
 };
 
-const [, , task, ...rest] = process.argv;
-const runner = TASKS[task];
-if (!runner) {
-  console.error(`Unknown task: ${task}. Available: ${Object.keys(TASKS).join(', ')}`);
-  process.exit(1);
-}
-runner(rest);
+const [, , rawTaskName = 'status', ...rest] = process.argv;
+
+const status = await runTaskMapCli({
+  args: [rawTaskName, ...rest],
+  context: {
+    cwd: frontendRoot,
+    taskLabel: 'Incheon',
+    tasks: TASKS,
+  },
+  enableHelp: false,
+  onStatus: (passthroughArgs) => runTaskSteps(
+    {
+      cwd: frontendRoot,
+      tasks: TASKS,
+    },
+    rawTaskName,
+    [nodeStep(['scripts/stadium-seatmap-ops.mjs', 'incheon', 'status'])],
+    passthroughArgs,
+    [rawTaskName],
+  ),
+  tasks: TASKS,
+  unknownTaskLines: ({ rawTaskName: unknownTaskName, availableTasks }) => [
+    `Unknown task for incheon: ${unknownTaskName}`,
+    `Available tasks: status, ${availableTasks.join(', ')}`,
+  ],
+});
+exitWithStatus(status);

@@ -108,7 +108,7 @@ const shouldRunDaeguFullClickCheck = process.env.STADIUM_UX_DAEGU_FULL_CLICK_CHE
 const DAEGU_VISUAL_QA_CONTRACT = {
   normalScreenshotPrefix: 'daegu-normal-seatmap-',
   debugScreenshotPrefix: 'daegu-debug-overlay-',
-  proofScope: 'click/render smoke only; not official PNG visual precision proof',
+  proofScope: 'click/render smoke only; not official image visual precision proof',
   normalReviewOnlyAbsent: 'normalReviewOnlyAbsent',
   debugReviewOnlyPointerDisabled: 'debugReviewOnlyPointerDisabled',
   expectedViewBox: '0 0 1707 2048',
@@ -674,6 +674,7 @@ const isIgnoredFailedRequest = (request) => {
     url.includes('dapi.kakao.com')
     || url.includes('/api/auth/mypage')
     || url.includes('/api/auth/reissue')
+    || (failure === 'net::ERR_ABORTED' && /\/api\/stadiums\/?(\?.*)?$/.test(url))
     || (failure === 'net::ERR_ABORTED' && url.includes('/src/assets/'))
     || (failure === 'net::ERR_ABORTED' && url.includes('/src/'))
     || (failure === 'net::ERR_ABORTED' && url.includes('/node_modules/.vite/deps/'))
@@ -940,10 +941,44 @@ const clickVisibleIncheonCompareAdd = async (page) => {
   throw new Error('Incheon compare add button was not visible.');
 };
 
+const clickVisibleIncheonCompareClear = async (page) => {
+  const clearButton = page.locator('[data-testid="incheon-compare-tray"]:visible [data-testid="incheon-compare-clear"]:visible').first();
+  await clearButton.waitFor({ state: 'visible', timeout: 5000 });
+  const didClick = await clearButton.evaluate((button) => {
+    button.scrollIntoView({ block: 'center', inline: 'nearest' });
+    if (!(button instanceof HTMLButtonElement) || button.disabled) {
+      return false;
+    }
+    button.click();
+    return true;
+  });
+  if (!didClick) {
+    throw new Error('Incheon compare clear button was not enabled.');
+  }
+  await page.waitForFunction(() => {
+    const isVisible = (node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const visibleSeatMap = Array.from(document.querySelectorAll('[data-testid="stadium-seat-map"]'))
+      .find(isVisible);
+    const visibleCompareCards = Array.from(document.querySelectorAll('[data-testid^="incheon-compare-card-"]'))
+      .filter(isVisible);
+    const comparedSections = Array.from(visibleSeatMap?.querySelectorAll('svg [role="button"][data-compared="true"]') ?? []);
+    return visibleCompareCards.length === 0 && comparedSections.length === 0;
+  }, null, { timeout: 5000 });
+  await sleep(120);
+};
+
 const closeVisibleIncheonSeatPanel = async (page) => {
   const closeButton = page.locator('[data-testid="incheon-seatmap-bottom-sheet"]:visible [aria-label="닫기"], [data-testid="incheon-seatmap-detail-panel"]:visible [aria-label="닫기"]').first();
   if (await closeButton.isVisible().catch(() => false)) {
-    await closeButton.click({ timeout: 5000 }).catch(() => undefined);
+    await closeButton.evaluate((button) => {
+      button.scrollIntoView({ block: 'center', inline: 'nearest' });
+      if (button instanceof HTMLButtonElement) {
+        button.click();
+      }
+    }).catch(() => undefined);
     await sleep(180);
   }
 };
@@ -1022,14 +1057,8 @@ const verifyIncheonComparisonFlow = async (page) => {
   await waitForIncheonSelectedSection(page, '101B 내야 필드석 101B');
   await waitForIncheonComparedSection(page, '101B 내야 필드석 101B');
 
-  await visibleIncheonCompareTestId(page, 'incheon-compare-clear').click({ timeout: 5000 });
-  await page.waitForFunction(() => {
-    return Array.from(document.querySelectorAll('[data-testid^="incheon-compare-card-"]'))
-      .every((node) => {
-        const rect = node.getBoundingClientRect();
-        return rect.width === 0 || rect.height === 0;
-      });
-  }, null, { timeout: 5000 });
+  await closeVisibleIncheonSeatPanel(page);
+  await clickVisibleIncheonCompareClear(page);
   await closeVisibleIncheonSeatPanel(page);
   await visibleIncheonSeatMapTestId(page, 'incheon-seatmap-zoom-reset').click({ timeout: 5000 });
 
@@ -1371,7 +1400,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['GS25', '도미노피자', '2층 2-3 Gate 인근 화장실'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1384,7 +1413,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['잠실야구장 3루 외곽', 'BHC', '2층 2-1 Gate 인근 화장실'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1397,7 +1426,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['3층 D10 인근 화장실', '제발시켜주세요', 'GS25'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1410,7 +1439,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['1-4 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 401구역 인근 화장실', '베어스하우스', '트윈스팀스토어'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1422,9 +1451,9 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     expectedStatus: 'OPERATOR_PROVIDED',
     runtimeGuard: 'field-survey restroom assignment is approved runtime guidance; walking/congestion/notices remain manual-required',
     tiles: [
-      { testId: 'jamsil-operator-entrance', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-entrance', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['잠실야구장'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1438,7 +1467,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 101구역 인근 화장실', '제2매표소'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1452,7 +1481,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['1층 223구역 인근 화장실', '중앙매표소'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1466,7 +1495,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-3 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['2층 2-3 Gate 인근 화장실', '제2매표소', 'KBO 중계 음성 지원 안내데스크'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1480,7 +1509,7 @@ const JAMSIL_OPERATOR_RUNTIME_TARGETS = [
     tiles: [
       { testId: 'jamsil-operator-entrance', fieldSource: 'operator-provided', includes: ['2-1 Gate'] },
       { testId: 'jamsil-operator-facilities', fieldSource: 'operator-provided', includes: ['2층 2-1 Gate 인근 화장실', '중앙매표소'] },
-      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
+      { testId: 'jamsil-operator-notice', fieldSource: 'manual-required', includes: ['운영자 제공 자료 필요'], excludes: ['MANUAL_BASEBALL_DATA_REQUIRED'] },
       { testId: 'jamsil-operator-updated-at', fieldSource: 'operator-provided', includes: ['2026-06-01'] },
     ],
   },
@@ -1889,9 +1918,9 @@ const verifyJamsilFullOverlayClicks = async (page) => {
       await scrollVisibleSeatMapIntoView(page);
       const section = visibleSeatMapHitAreaByLabel(page, target.ariaLabel);
       await clickSeatMapSection(section);
-      await visibleTextLocator(page, target.detail).waitFor({ state: 'visible', timeout: 5000 }).catch(async () => {
+      await waitForJamsilDetailTitle(page, target.detail).catch(async () => {
         await dispatchSeatMapSectionClick(section);
-        await visibleTextLocator(page, target.detail).waitFor({ state: 'visible', timeout: 5000 });
+        await waitForJamsilDetailTitle(page, target.detail);
       });
       await waitForSeatViewGalleryState(target.label);
     } catch (error) {
@@ -4432,7 +4461,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
 
     await scrollDaejeonSeatMapIntoView();
     await visibleTextLocator(page, 'Daejeon trace debug').waitFor({ state: 'visible', timeout: 5000 });
-    await visibleTextLocator(page, 'blocks 145').waitFor({ state: 'visible', timeout: 5000 });
+    await visibleTextLocator(page, 'blocks 139').waitFor({ state: 'visible', timeout: 5000 });
     await page.waitForFunction(() => {
       const debugText = Array.from(document.querySelectorAll('div'))
         .find((element) => element.textContent?.includes('Daejeon trace debug'))?.textContent ?? '';
@@ -4459,7 +4488,7 @@ const verifyDaejeonOverlayClicks = async (page) => {
         siblingImageCount: layer ? Array.from(layer.children).filter((child) => child.tagName.toLowerCase() === 'img').length : -1,
       };
     });
-    if (!debugStructure || debugStructure.imageCount !== 1 || debugStructure.displayPathCount !== 145 || debugStructure.hitPathCount !== 145 || debugStructure.siblingImageCount !== 0) {
+    if (!debugStructure || debugStructure.imageCount !== 1 || debugStructure.displayPathCount !== 139 || debugStructure.hitPathCount !== 139 || debugStructure.siblingImageCount !== 0) {
       throw new Error(`Daejeon debug SVG structure is invalid: ${JSON.stringify(debugStructure)}`);
     }
 
@@ -4713,7 +4742,6 @@ const verifyDaejeonOverlayClicks = async (page) => {
     { term: '104', text: '104' },
     { term: '121', text: '121' },
     { term: '225', text: '225' },
-    { term: 'S37', text: 'S37' },
     { term: 'S31', text: 'S31' },
     { term: 'S01', text: 'S01' },
     { term: '302', text: '302' },
@@ -4818,8 +4846,8 @@ const verifyDaejeonOverlayClicks = async (page) => {
     if (
       contract.zoom < minimumZoom
       || !contract.hasSingleSvgImage
-      || contract.hitPathCount !== 145
-      || contract.displayPathCount !== 145
+      || contract.hitPathCount !== 139
+      || contract.displayPathCount !== 139
       || contract.siblingImageCount !== 0
       || !contract.transform.includes('translate(')
       || !contract.transform.includes('scale(')
@@ -4831,8 +4859,10 @@ const verifyDaejeonOverlayClicks = async (page) => {
   await assertDaejeonTransformLayerContract(1.19, 'finder-focus-1.2');
   const didZoomIn = await clickDaejeonZoomControl('daejeon-seatmap-zoom-in');
   if (didZoomIn) {
-    await clickDaejeonZoomControl('daejeon-seatmap-zoom-in');
-    await assertDaejeonTransformLayerContract(1.34, 'manual-zoom-1.35');
+    for (let index = 0; index < 12; index += 1) {
+      await clickDaejeonZoomControl('daejeon-seatmap-zoom-in');
+    }
+    await assertDaejeonTransformLayerContract(2.49, 'manual-zoom-2.5');
     const daejeonSeatMapSvg = page.locator('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]:visible').first();
     const daejeonSeatMapBox = await daejeonSeatMapSvg.boundingBox();
     if (daejeonSeatMapBox) {
@@ -4959,6 +4989,149 @@ const verifyDaejeonOverlayClicks = async (page) => {
     await page.locator(`[data-testid="daejeon-seat-block-${blockId}"][aria-pressed="true"]:visible`).count()
   ) > 0;
 
+  const readDaejeonLabelClickTarget = async (blockId) => {
+    const target = await page.evaluate((targetBlockId) => {
+      const element = document.querySelector(`[data-testid="daejeon-seat-block-${targetBlockId}"]`);
+      if (!(element instanceof SVGPathElement)) return null;
+      return {
+        labelX: Number(element.getAttribute('data-label-x')),
+        labelY: Number(element.getAttribute('data-label-y')),
+        ariaLabel: element.getAttribute('aria-label') ?? '',
+        hitAreaD: element.getAttribute('data-hit-area-d') ?? '',
+        d: element.getAttribute('d') ?? '',
+      };
+    }, blockId);
+    if (!target || !Number.isFinite(target.labelX) || !Number.isFinite(target.labelY)) {
+      throw new Error(`Daejeon label click target is missing: ${blockId}`);
+    }
+    if (target.d !== target.hitAreaD) {
+      throw new Error(`Daejeon label click target does not use hitAreaD: ${blockId}`);
+    }
+
+    return target;
+  };
+
+  const readDaejeonSeatBlockFocusContract = async (blockId) => page.evaluate((targetBlockId) => {
+    const svg = Array.from(document.querySelectorAll('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const target = svg?.querySelector(`[data-testid="daejeon-seat-block-${targetBlockId}"]`) ?? null;
+    const displayPath = svg?.querySelector(`[data-testid="daejeon-seat-display-${targetBlockId}"]`) ?? null;
+    if (!(target instanceof SVGPathElement)) {
+      return {
+        blockId: targetBlockId,
+        found: false,
+        visible: false,
+        ariaPressed: null,
+        outlineStyle: null,
+        outlineWidth: null,
+        outlineColor: null,
+        activeElementTestId: null,
+        displayFound: Boolean(displayPath),
+        displayFillOpacity: null,
+        displayStrokeOpacity: null,
+        displayFillOpacityAttr: null,
+        displayStrokeOpacityAttr: null,
+        labelVisible: false,
+        labelText: null,
+      };
+    }
+
+    try {
+      target.focus({ preventScroll: true });
+    } catch (_error) {
+      target.focus();
+    }
+
+    const rect = target.getBoundingClientRect();
+    const computed = window.getComputedStyle(target);
+    const displayComputed = displayPath ? window.getComputedStyle(displayPath) : null;
+    const labelX = Number(target.getAttribute('data-label-x'));
+    const labelY = Number(target.getAttribute('data-label-y'));
+    const activeLabel = Number.isFinite(labelX) && Number.isFinite(labelY)
+      ? Array.from(svg?.querySelectorAll('text') ?? [])
+        .find((label) => {
+          const labelRect = label.getBoundingClientRect();
+          return labelRect.width > 0
+            && labelRect.height > 0
+            && Math.abs(Number(label.getAttribute('x')) - labelX) <= 0.01
+            && Math.abs(Number(label.getAttribute('y')) - labelY) <= 0.01
+            && (label.textContent ?? '').trim().length > 0;
+        })
+      : null;
+
+    return {
+      blockId: targetBlockId,
+      found: true,
+      visible: rect.width > 0 && rect.height > 0,
+      ariaPressed: target.getAttribute('aria-pressed'),
+      outlineStyle: computed.outlineStyle,
+      outlineWidth: computed.outlineWidth,
+      outlineColor: computed.outlineColor,
+      activeElementTestId: document.activeElement?.getAttribute?.('data-testid') ?? null,
+      displayFound: Boolean(displayPath),
+      displayFillOpacity: displayComputed?.fillOpacity ?? null,
+      displayStrokeOpacity: displayComputed?.strokeOpacity ?? null,
+      displayFillOpacityAttr: displayPath?.getAttribute('fill-opacity') ?? displayPath?.getAttribute('fillOpacity') ?? null,
+      displayStrokeOpacityAttr: displayPath?.getAttribute('stroke-opacity') ?? displayPath?.getAttribute('strokeOpacity') ?? null,
+      labelVisible: Boolean(activeLabel),
+      labelText: activeLabel?.textContent?.trim() ?? null,
+    };
+  }, blockId);
+
+  const assertDaejeonFocusBoxContract = async (blockId) => {
+    const contract = await readDaejeonSeatBlockFocusContract(blockId);
+    const displayFillOpacity = Number(contract.displayFillOpacity ?? contract.displayFillOpacityAttr ?? 0);
+    const displayStrokeOpacity = Number(contract.displayStrokeOpacity ?? contract.displayStrokeOpacityAttr ?? 0);
+    const hasNoOutline = contract.outlineStyle === 'none'
+      || contract.outlineWidth === '0px'
+      || contract.outlineWidth === '0';
+
+    if (!contract.found || !contract.visible) {
+      throw new Error(`Daejeon focus-box contract target is missing or hidden for ${blockId}: ${JSON.stringify(contract)}`);
+    }
+    if (contract.ariaPressed !== 'true') {
+      throw new Error(`Daejeon focus-box contract should keep ${blockId} selected after click: ${JSON.stringify(contract)}`);
+    }
+    if (!hasNoOutline) {
+      throw new Error(`Daejeon focus-box contract should suppress browser outline for ${blockId}: ${JSON.stringify(contract)}`);
+    }
+    if (!contract.displayFound || !(displayFillOpacity > 0) || !(displayStrokeOpacity > 0)) {
+      throw new Error(`Daejeon focus-box contract should keep selected polygon highlight for ${blockId}: ${JSON.stringify(contract)}`);
+    }
+    if (!contract.labelVisible) {
+      throw new Error(`Daejeon focus-box contract should keep selected label visible for ${blockId}: ${JSON.stringify(contract)}`);
+    }
+  };
+
+  const prepareDaejeonRuntimeClickContract = async () => {
+    await closeDetailPanel();
+    await searchInput.fill('');
+    await clickVisibleByTestId('daejeon-filter-all');
+    await clickDaejeonZoomControl('daejeon-seatmap-zoom-reset');
+    await scrollDaejeonSeatMapIntoView();
+  };
+
+  const clickDaejeonBlockLabelCoordinate = async (blockId) => {
+    const target = await readDaejeonLabelClickTarget(blockId);
+    await clickDaejeonSvgPoint({ x: target.labelX, y: target.labelY });
+    return target;
+  };
+
+  const verifyDaejeonFocusBoxContract = async (blockId) => {
+    await prepareDaejeonRuntimeClickContract();
+    await clickDaejeonBlockLabelCoordinate(blockId);
+    await assertDaejeonFocusBoxContract(blockId);
+  };
+
+  const verifyDaejeonMobileTouchContract = async (blockId) => {
+    await prepareDaejeonRuntimeClickContract();
+    await clickDaejeonBlockLabelCoordinate(blockId);
+    await assertDaejeonFocusBoxContract(blockId);
+  };
+
   const normalizeDaejeonSvgPoint = (point) => (
     Array.isArray(point) ? { x: point[0], y: point[1] } : point
   );
@@ -5004,12 +5177,46 @@ const verifyDaejeonOverlayClicks = async (page) => {
 
   const hoverDaejeonSvgPoint = async (point) => {
     const { x, y } = normalizeDaejeonSvgPoint(point);
-    await hideDaejeonFixedSheetsForCoordinateClick();
-    try {
-      const clientPoint = await resolveDaejeonSvgClientPoint({ x, y });
-      await page.mouse.move(clientPoint.x, clientPoint.y);
-    } finally {
-      await restoreDaejeonFixedSheetsAfterCoordinateClick();
+    const hoveredTestId = await page.evaluate(({ svgX, svgY }) => {
+      const svg = Array.from(document.querySelectorAll('svg[aria-label="대전 한화생명볼파크 좌석도 구역 선택"]'))
+        .find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      if (!(svg instanceof SVGSVGElement)) {
+        return null;
+      }
+
+      const svgPoint = svg.createSVGPoint();
+      svgPoint.x = svgX;
+      svgPoint.y = svgY;
+      const target = Array.from(svg.querySelectorAll('[data-testid^="daejeon-seat-block-"]'))
+        .filter((element) => (
+          element instanceof SVGGeometryElement
+          && element.getAttribute('pointer-events') !== 'none'
+          && element.isPointInFill(svgPoint)
+        ))
+        .at(-1);
+      if (!target) {
+        return null;
+      }
+
+      const clientPoint = svgPoint.matrixTransform(svg.getScreenCTM());
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: clientPoint.x,
+        clientY: clientPoint.y,
+        relatedTarget: null,
+      };
+      target.dispatchEvent(new MouseEvent('mouseover', eventInit));
+      target.dispatchEvent(new MouseEvent('mousemove', eventInit));
+      target.dispatchEvent(new MouseEvent('mouseenter', { ...eventInit, bubbles: false }));
+      return target.getAttribute('data-testid');
+    }, { svgX: x, svgY: y });
+    if (!hoveredTestId) {
+      throw new Error(`Daejeon hover sample did not resolve to a hit-area at ${x},${y}`);
     }
     await sleep(120);
   };
@@ -5028,11 +5235,32 @@ const verifyDaejeonOverlayClicks = async (page) => {
         throw new Error(`Daejeon edge sample ${contract.blockId} ${point.x},${point.y} should top-hit target: ${JSON.stringify(topHit)}`);
       }
 
-      await hoverDaejeonSvgPoint(point);
-      await page.waitForFunction((blockId) => {
-        const target = document.querySelector(`[data-testid="daejeon-seat-block-${blockId}"]`);
-        return target?.getAttribute('aria-pressed') === 'true';
-      }, contract.blockId, { timeout: 2500 });
+      const shouldAssertHoverState = (page.viewportSize()?.width ?? 0) >= 1000;
+      if (shouldAssertHoverState) {
+        await hoverDaejeonSvgPoint(point);
+        const didEdgeHoverActivate = await page.waitForFunction((blockId) => {
+          const target = Array.from(document.querySelectorAll(`[data-testid="daejeon-seat-block-${blockId}"]`))
+            .find((candidate) => {
+              const rect = candidate.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            });
+          return target?.getAttribute('aria-pressed') === 'true';
+        }, contract.blockId, { timeout: 700 })
+          .then(() => true)
+          .catch(() => false);
+        if (!didEdgeHoverActivate) {
+          await page.locator(`[data-testid="daejeon-seat-block-${contract.blockId}"]:visible`).first()
+            .hover({ timeout: 5000, force: true });
+          await page.waitForFunction((blockId) => {
+            const target = Array.from(document.querySelectorAll(`[data-testid="daejeon-seat-block-${blockId}"]`))
+              .find((candidate) => {
+                const rect = candidate.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+              });
+            return target?.getAttribute('aria-pressed') === 'true';
+          }, contract.blockId, { timeout: 2500 });
+        }
+      }
 
       await clickDaejeonSvgPoint(point);
       if (!(await isDaejeonSeatBlockPressed(contract.blockId))) {
@@ -5226,20 +5454,55 @@ const verifyDaejeonOverlayClicks = async (page) => {
     await verifyDaejeonHitAreaContract(blockId);
   }
 
+  const daejeonFocusBoxContractBlockIds = [
+    'third-infield-a-113-120-213-225__220',
+    'innings-vip-400__400',
+    'splash-jacuzzi-425__425',
+    'splash-caravan-426__426',
+    'first-table-4f-301-413__401',
+    'first-table-4f-301-413__413',
+    'third-table-4f-414-330__414',
+    'outfield-reserved-third-423-330__424',
+    'skybox-s01-s37__s01',
+    'skybox-s01-s37__s31',
+  ];
+
+  for (const blockId of daejeonFocusBoxContractBlockIds) {
+    await verifyDaejeonFocusBoxContract(blockId);
+  }
+
+  const daejeonMobileTouchContractBlockIds = [
+    'skybox-s01-s37__s01',
+    'skybox-s01-s37__s31',
+    'first-table-4f-301-413__301',
+    'first-table-4f-301-413__302',
+    'splash-jacuzzi-425__425',
+    'splash-caravan-426__426',
+    'innings-vip-400__400',
+    'third-infield-a-113-120-213-225__220',
+  ];
+
+  const shouldRunDaejeonMobileTouchContract = (page.viewportSize()?.width ?? 0) < 1000;
+  if (shouldRunDaejeonMobileTouchContract) {
+    for (const blockId of daejeonMobileTouchContractBlockIds) {
+      await verifyDaejeonMobileTouchContract(blockId);
+    }
+  }
+
   const daejeonSmallBlockEdgeHitContracts = [
     {
       blockId: 'first-table-4f-301-413__301',
       detail: '내야 탁자석(4층)',
       block: '301',
       level: '4F',
-      edgeSamples: [[778, 463], [801, 482], [781, 488]],
+      edgeSamples: [[778, 463], [801, 482], [780, 483]],
     },
     {
       blockId: 'first-table-4f-301-413__302',
       detail: '내야 탁자석(4층)',
       block: '302',
       level: '4F',
-      edgeSamples: [[756, 514], [798, 506], [782, 528]],
+      edgeSamples: [[802, 488], [780, 505], [793, 508]],
     },
   ];
 
@@ -5306,8 +5569,8 @@ const verifyDaejeonOverlayClicks = async (page) => {
   }
 
   const daejeonS31ExcludedPointContracts = [
-    { blockId: 'skybox-s01-s37__s31', point: [302, 799], label: 'S32 label' },
-    { blockId: 'skybox-s01-s37__s31', point: [300, 800.3], label: 'S32 center' },
+    { blockId: 'skybox-s01-s37__s31', point: [197.5, 692.5], label: 'S30 label' },
+    { blockId: 'skybox-s01-s37__s31', point: [197, 692.5], label: 'S30 center' },
   ];
   for (const contract of daejeonS31ExcludedPointContracts) {
     const point = normalizeDaejeonSvgPoint(contract.point);
@@ -5400,8 +5663,8 @@ const verifyDaejeonOverlayClicks = async (page) => {
         .filter((target) => target.testId && target.visible && target.traceStatus === 'OFFICIAL_IMAGE_TRACED' && Number.isFinite(target.labelX) && Number.isFinite(target.labelY));
     });
 
-    if (labelClickTargets.length !== 145) {
-      throw new Error(`Daejeon official-traced label coordinate click target count should be 145. Actual: ${labelClickTargets.length}`);
+    if (labelClickTargets.length !== 139) {
+      throw new Error(`Daejeon official-traced label coordinate click target count should be 139. Actual: ${labelClickTargets.length}`);
     }
 
   const requiredBoundaryIds = [

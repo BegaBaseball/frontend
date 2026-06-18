@@ -1,13 +1,16 @@
-import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import {
+  exitWithStatus,
+  nodeStep,
+  npmRunStep,
+  runTaskMapCli,
+} from './lib/stadium-task-runner.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
-
-const nodeStep = (args, options = {}) => ({ command: 'node', args, ...options });
-const npmRunStep = (script, options = {}) => ({ command: 'npm', args: ['run', script], ...options });
 
 const TASKS = {
   mobile: [nodeStep(['scripts/run-stadium-isolated-qa.mjs', 'DAEGU'])],
@@ -63,51 +66,24 @@ function printStatus() {
   }, null, 2));
 }
 
-function runSteps(steps, passthroughArgs, stack) {
-  steps.forEach((step) => runStep(step, passthroughArgs, stack));
-}
-
-function runStep(step, passthroughArgs, stack) {
-  if (step.task) {
-    if (stack.includes(step.task)) {
-      throw new Error('Recursive Daegu task reference: ' + [...stack, step.task].join(' -> '));
-    }
-    const nestedTask = TASKS[step.task];
-    if (!nestedTask) throw new Error('Unknown nested Daegu task: ' + step.task);
-    runSteps(nestedTask, passthroughArgs, [...stack, step.task]);
-    return;
-  }
-
-  const args = step.passArgs ? [...step.args, ...passthroughArgs] : step.args;
-  const result = spawnSync(step.command, args, {
-    cwd: frontendRoot,
-    env: process.env,
-    shell: false,
-    stdio: 'inherit',
-  });
-
-  if (result.error) throw result.error;
-  if (result.status !== 0) process.exit(result.status ?? 1);
-}
-
 const [rawTaskName = 'status', ...passthroughArgs] = process.argv.slice(2);
-const taskName = TASK_ALIASES[rawTaskName] ?? rawTaskName;
-
-if (rawTaskName === '--help' || rawTaskName === '-h') {
-  console.log('Usage: node scripts/daegu-seatmap-ops.mjs <task>\n\nTasks: status, ' + Object.keys(TASKS).sort().join(', '));
-  process.exit(0);
-}
-
-if (taskName === 'status') {
-  printStatus();
-  process.exit(0);
-}
-
-const task = TASKS[taskName];
-if (!task) {
-  console.error('Unknown Daegu task: ' + rawTaskName);
-  console.error('Available tasks: status, ' + Object.keys(TASKS).sort().join(', '));
-  process.exit(1);
-}
-
-runSteps(task, passthroughArgs, [taskName]);
+const status = await runTaskMapCli({
+  aliases: TASK_ALIASES,
+  args: [rawTaskName, ...passthroughArgs],
+  context: {
+    cwd: frontendRoot,
+    taskLabel: 'Daegu',
+    tasks: TASKS,
+  },
+  helpText: 'Usage: node scripts/daegu-seatmap-ops.mjs <task>\n\nTasks: status, ' + Object.keys(TASKS).sort().join(', '),
+  onStatus: () => {
+    printStatus();
+    return 0;
+  },
+  tasks: TASKS,
+  unknownTaskLines: ({ rawTaskName: unknownTaskName, availableTasks }) => [
+    'Unknown Daegu task: ' + unknownTaskName,
+    'Available tasks: status, ' + availableTasks.join(', '),
+  ],
+});
+exitWithStatus(status);
