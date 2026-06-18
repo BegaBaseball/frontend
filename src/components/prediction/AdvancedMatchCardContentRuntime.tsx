@@ -17,6 +17,7 @@ import {
   PREDICTION_MANUAL_COACH_MESSAGE,
   PREDICTION_MANUAL_GAME_SUMMARY_MESSAGE,
   PREDICTION_MANUAL_GAME_SUMMARY_TITLE,
+  PREDICTION_MANUAL_LIVE_SCORE_MESSAGE,
   PREDICTION_MANUAL_SCOREBOARD_MESSAGE,
 } from '../../utils/predictionManualDataCopy';
 import { filterDisplayableGameSummaries } from '../../utils/predictionSummary';
@@ -132,6 +133,10 @@ export default function AdvancedMatchCardContentRuntime({
   const shouldShowMatchEnvironmentLoading = isDetailBusy && !attendanceLabel && !weatherLabel && !gameTimeLabel;
   const liveRelayEvents = gameDetail?.liveRelayEvents ?? [];
   const liveRelayError = gameDetail?.liveRelayError ?? null;
+  const liveRelayErrorCode = gameDetail?.liveRelayErrorCode ?? null;
+  const liveStatusError = gameDetail?.liveStatusError ?? null;
+  const liveStatusErrorCode = gameDetail?.liveStatusErrorCode ?? null;
+  const isManualLiveStatusError = isManualBaseballDataRequiredCode(liveStatusErrorCode);
 
   const inningKeys = Object.keys(inningRows).map(Number).sort((a, b) => a - b);
   const regularInnings = inningKeys.filter((inning) => inning <= 9);
@@ -419,6 +424,32 @@ export default function AdvancedMatchCardContentRuntime({
               </span>
             ) : null}
           </div>
+          {liveStatusError ? (
+            <div
+              data-testid="prediction-scoreboard-live-status-warning"
+              data-error-code={liveStatusErrorCode || undefined}
+              className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 text-[15px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100"
+            >
+              <div className="flex items-start gap-2">
+                <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-bold">
+                    {isManualLiveStatusError
+                      ? '실시간 점수/이닝 데이터 준비가 필요합니다.'
+                      : '실시간 점수 갱신 상태를 확인 중입니다.'}
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    {isManualLiveStatusError ? PREDICTION_MANUAL_LIVE_SCORE_MESSAGE : liveStatusError}
+                  </p>
+                  {isManualLiveStatusError ? (
+                    <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-[13px] text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
+                      {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
           <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40">
             {shouldShowManualScoreboardState ? (
               <div
@@ -625,6 +656,7 @@ export default function AdvancedMatchCardContentRuntime({
               isManualBaseballDataRequired={isManualBaseballDataRequired}
               liveEvents={liveRelayEvents}
               liveRelayError={liveRelayError}
+              liveRelayErrorCode={liveRelayErrorCode}
             />
           </Suspense>
         </ViewportDeferred>

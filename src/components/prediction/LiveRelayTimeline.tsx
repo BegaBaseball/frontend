@@ -1,9 +1,15 @@
 import type { GameRelayEvent } from '../../types/prediction';
+import {
+  isManualBaseballDataRequiredCode,
+  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+} from '../../utils/errorUtils';
+import { PREDICTION_MANUAL_LIVE_RELAY_MESSAGE } from '../../utils/predictionManualDataCopy';
 import { PredictionWarningTriangleIcon, PredictionZapIcon } from './PredictionShellIcons';
 
 interface LiveRelayTimelineProps {
   events: GameRelayEvent[];
   errorMessage?: string | null;
+  errorCode?: string | null;
   maxEvents?: number;
 }
 
@@ -52,9 +58,11 @@ const buildMetaItems = (event: GameRelayEvent): string[] => {
 export function LiveRelayTimeline({
   events,
   errorMessage = null,
+  errorCode = null,
   maxEvents = 20,
 }: LiveRelayTimelineProps) {
   const displayEvents = events.slice(-maxEvents).reverse();
+  const isManualRelayError = isManualBaseballDataRequiredCode(errorCode);
 
   if (displayEvents.length === 0 && !errorMessage) {
     return null;
@@ -75,10 +83,26 @@ export function LiveRelayTimeline({
       </div>
 
       {errorMessage ? (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 text-[15px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100">
+        <div
+          data-testid="prediction-live-relay-warning"
+          data-error-code={errorCode || undefined}
+          className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 text-[15px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100"
+        >
           <div className="flex items-start gap-2">
             <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="font-bold leading-relaxed">{errorMessage}</p>
+            <div className="min-w-0">
+              <p className="font-bold leading-relaxed">
+                {isManualRelayError ? '문자중계 데이터 준비가 필요합니다.' : errorMessage}
+              </p>
+              {isManualRelayError ? (
+                <>
+                  <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_LIVE_RELAY_MESSAGE}</p>
+                  <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-[13px] text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
+                    {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+                  </p>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
