@@ -51,6 +51,45 @@ test('mergeGameDetailWithLiveSnapshot은 점수/상태와 새 문자중계 이�
   assert.deepEqual(result.liveEvents?.map((event) => event.description), ['초구', '득점']);
 });
 
+test('mergeGameDetailWithLiveSnapshot은 snapshot inningScores가 있으면 상세 이닝 스코어를 교체한다', () => {
+  const result = mergeGameDetailWithLiveSnapshot({
+    gameId: 'GAME-1',
+    homeTeam: 'LG',
+    awayTeam: 'KT',
+    inningScores: [{ inning: 1, teamSide: 'away', runs: 1 }],
+  }, {
+    gameId: 'GAME-1',
+    homeScore: 2,
+    awayScore: 1,
+    events: [],
+    inningScores: [
+      { inning: 1, teamSide: 'away', runs: 1 },
+      { inning: 1, teamSide: 'home', runs: 2 },
+    ],
+  });
+
+  assert.deepEqual(result.inningScores, [
+    { inning: 1, teamSide: 'away', runs: 1 },
+    { inning: 1, teamSide: 'home', runs: 2 },
+  ]);
+});
+
+test('mergeGameDetailWithLiveSnapshot은 구버전 snapshot이면 기존 이닝 스코어를 보존한다', () => {
+  const result = mergeGameDetailWithLiveSnapshot({
+    gameId: 'GAME-1',
+    homeTeam: 'LG',
+    awayTeam: 'KT',
+    inningScores: [{ inning: 1, teamSide: 'away', runs: 1 }],
+  }, {
+    gameId: 'GAME-1',
+    homeScore: 1,
+    awayScore: 1,
+    events: [],
+  });
+
+  assert.deepEqual(result.inningScores, [{ inning: 1, teamSide: 'away', runs: 1 }]);
+});
+
 test('mergeRelayEvents는 relayId 기준으로 원문 문자중계를 중복 제거하고 정렬한다', () => {
   const result = mergeRelayEvents(
     [{ relayId: 2, playDescription: 'old' }, { relayId: 4, playDescription: 'four' }],

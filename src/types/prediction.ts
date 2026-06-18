@@ -44,6 +44,7 @@ export interface GameLiveSnapshot {
   lastEventSeq?: number | null;
   lastUpdatedAt?: string | null;
   events: GameLiveEvent[];
+  inningScores?: Array<GameInningScore | RawGameInningScore>;
 }
 
 export interface GameLiveSummary {

@@ -136,6 +136,9 @@ export const mergeGameDetailWithLiveSnapshot = (
     inningScores: [],
   };
   const nextEvents = mergeLiveEvents(base.liveEvents, snapshot.events);
+  const nextInningScores = Array.isArray(snapshot.inningScores)
+    ? snapshot.inningScores
+    : base.inningScores;
 
   return {
     ...base,
@@ -143,6 +146,7 @@ export const mergeGameDetailWithLiveSnapshot = (
     gameStatus: snapshot.gameStatus ?? base.gameStatus,
     homeScore: snapshot.homeScore ?? base.homeScore,
     awayScore: snapshot.awayScore ?? base.awayScore,
+    inningScores: nextInningScores,
     liveEvents: nextEvents,
     liveLastEventSeq: snapshot.lastEventSeq ?? base.liveLastEventSeq ?? resolveLastEventSeq(nextEvents),
     liveLastUpdatedAt: snapshot.lastUpdatedAt ?? base.liveLastUpdatedAt ?? null,

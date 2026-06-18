@@ -367,6 +367,13 @@ test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답�
       current_inning_half: 'BOTTOM',
       last_event_seq: '42',
       last_updated_at: '2026-04-29T19:45:00',
+      inning_scores: [{
+        inning: '7',
+        team_side: 'home',
+        team_code: 'LG',
+        runs: '1',
+        isExtra: false,
+      }],
       events: [{
         event_seq: '42',
         inning: '7',
@@ -406,6 +413,13 @@ test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답�
   assert.equal(snapshot.lastEventSeq, 42);
   assert.equal(snapshot.events[0].eventSeq, 42);
   assert.equal(snapshot.events[0].wpa, 0.12);
+  assert.deepEqual(snapshot.inningScores?.[0], {
+    inning: '7',
+    team_side: 'home',
+    team_code: 'LG',
+    runs: '1',
+    isExtra: false,
+  });
 });
 
 test('fetchGameLiveRelaySnapshot은 원문 문자중계 delta 응답을 정규화한다', async (t) => {
