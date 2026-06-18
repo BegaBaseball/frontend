@@ -13,6 +13,7 @@ import {
   isManualBaseballDataRequiredCode,
   MANUAL_BASEBALL_DATA_REQUIRED_CODE,
 } from '../../utils/errorUtils';
+import { shouldRenderPredictionCoachBriefing } from '../../utils/predictionCoachVisibility';
 import {
   PREDICTION_MANUAL_COACH_MESSAGE,
   PREDICTION_MANUAL_GAME_SUMMARY_MESSAGE,
@@ -227,6 +228,11 @@ export default function AdvancedMatchCardContentRuntime({
     && !gameDetailLoading
     && !shouldHideResultSections
     && inningRowCount === 0;
+  const shouldShowCoachBriefing = shouldRenderPredictionCoachBriefing({
+    gameDetailLoading,
+    isPostponedOrCancelled,
+    gameDetailErrorCode,
+  });
   const shouldShowManualCoachState = isManualBaseballDataRequired
     && !gameDetailLoading
     && !isPostponedOrCancelled;
@@ -328,13 +334,13 @@ export default function AdvancedMatchCardContentRuntime({
       )}
 
       {isScoreboardLoading && (
-        <div className="text-center text-[16px] text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중입니다...</div>
+        <div className="text-center text-[16px] text-gray-500 dark:text-white">경기 정보를 불러오는 중입니다...</div>
       )}
 
       {primarySummaryItems.length > 0 ? (
         <section data-testid="prediction-game-summary">
           <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-gray-100"
+            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -351,10 +357,10 @@ export default function AdvancedMatchCardContentRuntime({
                   key={`${item.type}-${item.playerName || ''}-${index}`}
                   className="rounded-xl border border-gray-100 bg-gray-50/80 px-3.5 py-3 dark:border-border dark:bg-secondary/40"
                 >
-                  <p className="text-[15px] font-bold text-gray-500 dark:text-gray-300">
+                  <p className="text-[15px] font-bold text-gray-500 dark:text-white">
                     {item.type || '요약'}
                   </p>
-                  <p className="mt-1 text-[16px] font-semibold leading-relaxed text-gray-800 dark:text-gray-100">
+                  <p className="mt-1 text-[16px] font-semibold leading-relaxed text-gray-800 dark:text-white">
                     {summaryText || '상세 요약을 확인 중입니다.'}
                   </p>
                 </div>
@@ -367,7 +373,7 @@ export default function AdvancedMatchCardContentRuntime({
       {shouldShowManualSummaryState ? (
         <section data-testid="prediction-game-summary-manual-required">
           <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-gray-100"
+            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -390,7 +396,7 @@ export default function AdvancedMatchCardContentRuntime({
 
       {!isScoreboardLoading && shouldHideResultSections && (
         <section>
-          <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-[16px] text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-gray-200">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-[16px] text-gray-600 dark:border-border dark:bg-secondary/40 dark:text-white">
             {isPostponedOrCancelled ? (
               <div className="flex items-start gap-2">
                 <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
@@ -413,7 +419,7 @@ export default function AdvancedMatchCardContentRuntime({
       {!isScoreboardLoading && !shouldHideResultSections && (
         <section>
           <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-gray-100"
+            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -450,7 +456,10 @@ export default function AdvancedMatchCardContentRuntime({
               </div>
             </div>
           ) : null}
-          <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40">
+          <div
+            data-testid="prediction-scoreboard"
+            className="overflow-hidden rounded-lg border border-gray-100 dark:border-border bg-white dark:bg-secondary/40"
+          >
             {shouldShowManualScoreboardState ? (
               <div
                 data-testid="prediction-scoreboard-manual-required"
@@ -480,7 +489,7 @@ export default function AdvancedMatchCardContentRuntime({
                   {[regularInningCols, extraInningCols].map((cols, index) => (
                     <div key={index} className="min-w-full overflow-x-auto px-3 py-3">
                       <table className={inningTableClassName}>
-                        <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
+                        <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-white border-b border-gray-200 dark:border-border">
                           <tr>
                             <th className={inningTeamHeaderClassName}>팀</th>
                             {cols.map((inning) => (
@@ -489,17 +498,24 @@ export default function AdvancedMatchCardContentRuntime({
                             <th className={inningRunHeaderClassName}>R</th>
                           </tr>
                         </thead>
-                        <tbody className="text-gray-700 dark:text-gray-200">
+                        <tbody className="text-gray-700 dark:text-white">
                           <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
                             <td className={inningTeamCellBaseClassName} style={awayTeamNameStyle}>
                               {awayTeamName}
                             </td>
                             {cols.map((inning) => (
-                              <td key={`away-${inning}`} className={inningCellClassName}>
+                              <td
+                                key={`away-${inning}`}
+                                data-testid={`prediction-scoreboard-cell-away-${inning}`}
+                                className={inningCellClassName}
+                              >
                                 {inningRows[inning]?.away ?? '-'}
                               </td>
                             ))}
-                            <td className={inningRunCellClassName}>
+                            <td
+                              data-testid={index === 0 ? 'prediction-scoreboard-total-away' : 'prediction-scoreboard-total-away-extra-page'}
+                              className={inningRunCellClassName}
+                            >
                               {awayScoreForDisplay}
                             </td>
                           </tr>
@@ -508,11 +524,18 @@ export default function AdvancedMatchCardContentRuntime({
                               {homeTeamName}
                             </td>
                             {cols.map((inning) => (
-                              <td key={`home-${inning}`} className={inningCellClassName}>
+                              <td
+                                key={`home-${inning}`}
+                                data-testid={`prediction-scoreboard-cell-home-${inning}`}
+                                className={inningCellClassName}
+                              >
                                 {inningRows[inning]?.home ?? '-'}
                               </td>
                             ))}
-                            <td className={inningRunCellClassName}>
+                            <td
+                              data-testid={index === 0 ? 'prediction-scoreboard-total-home' : 'prediction-scoreboard-total-home-extra-page'}
+                              className={inningRunCellClassName}
+                            >
                               {homeScoreForDisplay}
                             </td>
                           </tr>
@@ -536,7 +559,7 @@ export default function AdvancedMatchCardContentRuntime({
             ) : (
               <div className="overflow-x-auto px-3 py-3">
                 <table className={inningTableClassName}>
-                  <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-gray-200 border-b border-gray-200 dark:border-border">
+                  <thead className="bg-gray-100 dark:bg-border/60 text-[16px] text-gray-600 dark:text-white border-b border-gray-200 dark:border-border">
                     <tr>
                       <th className={inningTeamHeaderClassName}>팀</th>
                       {regularInningCols.map((inning) => (
@@ -545,28 +568,36 @@ export default function AdvancedMatchCardContentRuntime({
                       <th className={inningRunHeaderClassName}>R</th>
                     </tr>
                   </thead>
-                  <tbody className="text-gray-700 dark:text-gray-200">
+                  <tbody className="text-gray-700 dark:text-white">
                     <tr className="border-b border-gray-100 dark:border-border/70 bg-white dark:bg-card hover:bg-emerald-50/50 dark:hover:bg-secondary/50 transition-colors">
                       <td className={inningTeamCellBaseClassName} style={awayTeamNameStyle}>
                         {awayTeamName}
                       </td>
                       {regularInningCols.map((inning) => (
-                        <td key={`away-${inning}`} className={inningCellClassName}>
+                        <td
+                          key={`away-${inning}`}
+                          data-testid={`prediction-scoreboard-cell-away-${inning}`}
+                          className={inningCellClassName}
+                        >
                           {inningRows[inning]?.away ?? '-'}
                         </td>
                       ))}
-                      <td className={inningRunCellClassName}>{awayScoreForDisplay}</td>
+                      <td data-testid="prediction-scoreboard-total-away" className={inningRunCellClassName}>{awayScoreForDisplay}</td>
                     </tr>
                     <tr className="border-b border-gray-100 dark:border-border/70 bg-gray-50/70 dark:bg-secondary/50 hover:bg-emerald-50/50 dark:hover:bg-secondary/60 transition-colors">
                       <td className={inningTeamCellBaseClassName} style={homeTeamNameStyle}>
                         {homeTeamName}
                       </td>
                       {regularInningCols.map((inning) => (
-                        <td key={`home-${inning}`} className={inningCellClassName}>
+                        <td
+                          key={`home-${inning}`}
+                          data-testid={`prediction-scoreboard-cell-home-${inning}`}
+                          className={inningCellClassName}
+                        >
                           {inningRows[inning]?.home ?? '-'}
                         </td>
                       ))}
-                      <td className={inningRunCellClassName}>{homeScoreForDisplay}</td>
+                      <td data-testid="prediction-scoreboard-total-home" className={inningRunCellClassName}>{homeScoreForDisplay}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -594,7 +625,7 @@ export default function AdvancedMatchCardContentRuntime({
       )}
 
       <section>
-        <div className="mb-2.5 flex items-center gap-2 text-[16px] sm:text-[16px] font-bold tracking-[0.08em] text-gray-500 dark:text-white/60" style={headingTextStyle}>
+        <div className="mb-2.5 flex items-center gap-2 text-[16px] font-bold tracking-[0.08em] text-gray-500 dark:text-white/60" style={headingTextStyle}>
           <span className="h-[2px] w-6 rounded-full bg-gray-500 dark:bg-white/60" />
           선발 투수
         </div>
@@ -604,7 +635,7 @@ export default function AdvancedMatchCardContentRuntime({
             <p className="text-[18px] sm:text-[19px] leading-[1.28] font-black" style={awayTeamNameStyle}>
               {awayTeamName}
             </p>
-            <p className="mt-1.5 text-[16px] sm:text-[16px] leading-[1.45]" style={pitchTextStyle}>
+            <p className="mt-1.5 text-[16px] leading-[1.45]" style={pitchTextStyle}>
               {awayPitcherName}
             </p>
           </div>
@@ -614,7 +645,7 @@ export default function AdvancedMatchCardContentRuntime({
             <p className="text-[18px] sm:text-[19px] leading-[1.28] font-black" style={homeTeamNameStyle}>
               {homeTeamName}
             </p>
-            <p className="mt-1.5 text-[16px] sm:text-[16px] leading-[1.45]" style={pitchTextStyle}>
+            <p className="mt-1.5 text-[16px] leading-[1.45]" style={pitchTextStyle}>
               {homePitcherName}
             </p>
           </div>
@@ -635,7 +666,7 @@ export default function AdvancedMatchCardContentRuntime({
             </div>
           </div>
         </section>
-      ) : !gameDetailLoading && !isPostponedOrCancelled ? coachBriefing : null}
+      ) : shouldShowCoachBriefing ? coachBriefing : null}
 
       {shouldShowSupplementaryRuntime ? (
         <ViewportDeferred fallback={supplementaryFallback} rootMargin="220px 0px 320px 0px">
