@@ -5,14 +5,18 @@ import {
   createHomeLiveSummaryTimeoutWarningState,
   mergeGameDetailWithLiveSnapshot,
   mergeGameDetailWithRelaySnapshot,
+  mergeGameDetailLiveStatusError,
+  mergeGameDetailRelayError,
   mergeHomeGamesWithLiveSummaries,
   mergeLiveEvents,
   mergeRelayEvents,
   recordHomeLiveSummaryTimeoutFailure,
   resetHomeLiveSummaryTimeoutWarningState,
   selectHomeLivePollingGameIds,
+  shouldStartPredictionLivePolling,
 } from './liveGame';
 import type { Game as HomeGame } from '../types/home';
+import type { Game, GameDetail } from '../types/prediction';
 
 test('mergeLiveEvents는 eventSeq 기준으로 중복을 제거하고 정렬한다', () => {
   const result = mergeLiveEvents(
@@ -90,6 +94,28 @@ test('mergeGameDetailWithLiveSnapshot은 구버전 snapshot이면 기존 이닝 
   assert.deepEqual(result.inningScores, [{ inning: 1, teamSide: 'away', runs: 1 }]);
 });
 
+test('mergeGameDetailLiveStatusError는 score polling 오류 code를 보존하고 성공 snapshot에서 초기화한다', () => {
+  const errored = mergeGameDetailLiveStatusError({
+    gameId: 'GAME-1',
+    homeTeam: 'LG',
+    awayTeam: 'KT',
+  }, '실시간 점수 데이터 준비가 필요합니다.', null, 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+  assert.equal(errored?.liveStatusError, '실시간 점수 데이터 준비가 필요합니다.');
+  assert.equal(errored?.liveStatusErrorCode, 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+  const recovered = mergeGameDetailWithLiveSnapshot(errored, {
+    gameId: 'GAME-1',
+    homeScore: 1,
+    awayScore: 0,
+    events: [],
+    inningScores: [{ inning: 1, teamSide: 'home', runs: 1 }],
+  });
+
+  assert.equal(recovered.liveStatusError, null);
+  assert.equal(recovered.liveStatusErrorCode, null);
+});
+
 test('mergeRelayEvents는 relayId 기준으로 원문 문자중계를 중복 제거하고 정렬한다', () => {
   const result = mergeRelayEvents(
     [{ relayId: 2, playDescription: 'old' }, { relayId: 4, playDescription: 'four' }],
@@ -126,6 +152,26 @@ test('mergeGameDetailWithRelaySnapshot은 원문 문자중계만 독립적으로
     '초구',
     '김도영 : 좌익수 왼쪽 2루타',
   ]);
+});
+
+test('mergeGameDetailRelayError는 relay 오류 code를 보존하고 relay 성공 snapshot에서 초기화한다', () => {
+  const errored = mergeGameDetailRelayError({
+    gameId: 'GAME-1',
+    homeTeam: 'LG',
+    awayTeam: 'KT',
+  }, '문자중계 데이터 준비가 필요합니다.', null, 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+  assert.equal(errored?.liveRelayError, '문자중계 데이터 준비가 필요합니다.');
+  assert.equal(errored?.liveRelayErrorCode, 'MANUAL_BASEBALL_DATA_REQUIRED');
+
+  const recovered = mergeGameDetailWithRelaySnapshot(errored, {
+    gameId: 'GAME-1',
+    lastRelayId: 1,
+    events: [{ relayId: 1, playDescription: '초구 스트라이크' }],
+  });
+
+  assert.equal(recovered.liveRelayError, null);
+  assert.equal(recovered.liveRelayErrorCode, null);
 });
 
 test('mergeHomeGamesWithLiveSummaries는 홈 카드용 필드만 업데이트한다', () => {
@@ -179,6 +225,85 @@ test('selectHomeLivePollingGameIds는 오늘 경기와 진행 경기만 고른�
     selectHomeLivePollingGameIds([todayGame, futureGame], [liveGame], '2026-04-29', '2026-04-29'),
     ['TODAY', 'LIVE'],
   );
+});
+
+test('shouldStartPredictionLivePolling은 상세 데이터가 ready 되기 전에는 polling을 시작하지 않는다', () => {
+  const game = {
+    gameId: 'LIVE',
+    gameStatus: 'LIVE',
+    gameDate: '2026-04-29',
+  } as Game;
+  const detail = {
+    gameId: 'LIVE',
+    gameStatus: 'LIVE',
+    gameDate: '2026-04-29',
+  } as GameDetail;
+
+  assert.equal(shouldStartPredictionLivePolling(game, detail, false), false);
+  assert.equal(shouldStartPredictionLivePolling(game, detail, true, '2026-04-29'), true);
+});
+
+test('shouldStartPredictionLivePolling은 취소/연기 경기는 ready 이후에도 polling하지 않는다', () => {
+  const game = {
+    gameId: 'POSTPONED',
+    gameStatus: 'POSTPONED',
+    gameDate: '2026-04-29',
+  } as Game;
+  const detail = {
+    gameId: 'POSTPONED',
+    gameStatus: 'POSTPONED',
+    gameDate: '2026-04-29',
+  } as GameDetail;
+
+  assert.equal(shouldStartPredictionLivePolling(game, detail, true, '2026-04-29'), false);
+});
+
+test('shouldStartPredictionLivePolling은 과거 LIVE/SCHEDULED 경기를 polling하지 않는다', () => {
+  const todayKey = '2026-04-29';
+  const liveGame = {
+    gameId: 'PAST-LIVE',
+    gameStatus: 'LIVE',
+    gameDate: '2026-04-28',
+  } as Game;
+  const scheduledGame = {
+    gameId: 'PAST-SCHEDULED',
+    gameStatus: 'SCHEDULED',
+    gameDate: '2026-04-28',
+  } as Game;
+
+  assert.equal(shouldStartPredictionLivePolling(liveGame, null, true, todayKey), false);
+  assert.equal(shouldStartPredictionLivePolling(scheduledGame, null, true, todayKey), false);
+});
+
+test('shouldStartPredictionLivePolling은 오늘 종료/중단 상태 경기를 polling하지 않는다', () => {
+  const todayKey = '2026-04-29';
+  const statuses = ['COMPLETED', 'DRAW', 'SUSPENDED', 'DELAYED', 'FINAL'];
+
+  statuses.forEach((status) => {
+    const game = {
+      gameId: `TODAY-${status}`,
+      gameStatus: status,
+      gameDate: todayKey,
+    } as Game;
+    assert.equal(shouldStartPredictionLivePolling(game, null, true, todayKey), false);
+  });
+});
+
+test('shouldStartPredictionLivePolling은 오늘 LIVE와 SCHEDULED 경기는 ready 이후 polling 후보로 둔다', () => {
+  const todayKey = '2026-04-29';
+  const liveGame = {
+    gameId: 'TODAY-LIVE',
+    gameStatus: 'LIVE',
+    gameDate: todayKey,
+  } as Game;
+  const scheduledGame = {
+    gameId: 'TODAY-SCHEDULED',
+    gameStatus: 'SCHEDULED',
+    gameDate: todayKey,
+  } as Game;
+
+  assert.equal(shouldStartPredictionLivePolling(liveGame, null, true, todayKey), true);
+  assert.equal(shouldStartPredictionLivePolling(scheduledGame, null, true, todayKey), true);
 });
 
 test('recordHomeLiveSummaryTimeoutFailure는 3회 연속 timeout부터 한 번만 경고한다', () => {

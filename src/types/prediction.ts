@@ -159,7 +159,9 @@ export interface GameDetail {
   liveLastUpdatedAt?: string | null;
   liveRelayLastUpdatedAt?: string | null;
   liveRelayError?: string | null;
+  liveRelayErrorCode?: string | null;
   liveStatusError?: string | null;
+  liveStatusErrorCode?: string | null;
 }
 
 export interface Game {
