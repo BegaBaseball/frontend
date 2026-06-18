@@ -31,6 +31,7 @@ interface AdvancedMatchCardSupplementaryRuntimeProps {
   isManualBaseballDataRequired?: boolean;
   liveEvents?: GameRelayEvent[];
   liveRelayError?: string | null;
+  liveRelayErrorCode?: string | null;
 }
 
 export default function AdvancedMatchCardSupplementaryRuntime({
@@ -49,6 +50,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
   isManualBaseballDataRequired = false,
   liveEvents = [],
   liveRelayError = null,
+  liveRelayErrorCode = null,
 }: AdvancedMatchCardSupplementaryRuntimeProps) {
   const headingTextStyle = getSectionHeadingTextStyle(isDarkMode);
   const shouldShowEmptyState = !gameDetailLoading
@@ -70,7 +72,11 @@ export default function AdvancedMatchCardSupplementaryRuntime({
   return (
     <div className="space-y-6">
       {liveEvents.length > 0 || liveRelayError ? (
-        <LiveRelayTimeline events={liveEvents} errorMessage={liveRelayError} />
+        <LiveRelayTimeline
+          events={liveEvents}
+          errorMessage={liveRelayError}
+          errorCode={liveRelayErrorCode}
+        />
       ) : null}
 
       {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 ? (
