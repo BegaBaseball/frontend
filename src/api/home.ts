@@ -30,7 +30,6 @@ export const HOME_SCOPED_NAVIGATION_QUERY_KEY = (dateKey: string, scope: HomeNav
 );
 
 type ScheduleWireResponse = OpenApiResponseBody<'/api/kbo/schedule', 'get'>;
-type MatchRangeWireResponse = OpenApiResponseBody<'/api/matches/range', 'get'>;
 
 export interface HomeLoadState {
     source: HomeLoadSource;
@@ -203,18 +202,17 @@ export const fetchGamesData = async (date: Date): Promise<Game[]> => {
 };
 
 export const fetchGamesRangeData = async (startDate: string, endDate: string): Promise<Game[]> => {
-    const data = await publicGet<MatchRangeWireResponse>('/matches/range', {
-        params: {
-            startDate,
-            endDate,
-            page: 0,
-            size: 500,
-            includePast: true,
-            withMeta: true,
-        },
+    const { fetchMatchRangeWire } = await import('./matchRangeClient');
+    const { response } = await fetchMatchRangeWire({
+        startDate,
+        endDate,
+        page: 0,
+        size: 500,
+        includePast: true,
+        withMeta: true,
     });
 
-    return toHomeGamesFromRange(data);
+    return toHomeGamesFromRange(response);
 };
 
 /**
