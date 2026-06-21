@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  getBudgetMissingStatus,
   getBudgetOverageBytes,
   isBudgetWithinLimit,
 } from './lib/bundle-budget-policy.mjs';
@@ -19,4 +20,10 @@ test('getBudgetOverageBytes reports only bytes above the hard budget', () => {
   assert.equal(getBudgetOverageBytes({ sizeBytes: 11_999, maxBytes: 12_000 }), 0);
   assert.equal(getBudgetOverageBytes({ sizeBytes: 12_000, maxBytes: 12_000 }), 0);
   assert.equal(getBudgetOverageBytes({ sizeBytes: 12_036, maxBytes: 12_000 }), 36);
+});
+
+test('getBudgetMissingStatus marks optional missing budgets as skipped', () => {
+  assert.equal(getBudgetMissingStatus(), 'missing');
+  assert.equal(getBudgetMissingStatus({ optionalMissing: false }), 'missing');
+  assert.equal(getBudgetMissingStatus({ optionalMissing: true }), 'skipped_optional');
 });
