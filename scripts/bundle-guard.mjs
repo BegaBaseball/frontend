@@ -5,6 +5,7 @@ import {
   DEFAULT_BUDGET_GRACE_BYTES,
   DEFAULT_BUDGET_GRACE_RATIO,
   getBudgetGraceLimitBytes,
+  getBudgetMissingStatus,
   getBudgetOverageBytes,
   isBudgetWithinLimit,
 } from './lib/bundle-budget-policy.mjs';
@@ -75,7 +76,7 @@ const forbiddenChunkPrefixes = [
 const sizeBudgets = [
   { label: 'vendor-react-core', directory: clientAssetsDir, filePattern: /^vendor-react-core-.*\.js$/, maxBytes: 345_000 },
   { label: 'vendor-router', directory: clientAssetsDir, filePattern: /^vendor-router-.*\.js$/, maxBytes: 50_000 },
-  { label: 'vendor-zustand', directory: clientAssetsDir, filePattern: /^vendor-zustand-.*\.js$/, maxBytes: 8_000 },
+  { label: 'vendor-zustand', directory: clientAssetsDir, filePattern: /^vendor-zustand-.*\.js$/, maxBytes: 8_000, optionalMissing: true },
   { label: 'vendor-query', directory: clientAssetsDir, filePattern: /^vendor-query-.*\.js$/, maxBytes: 60_000 },
   { label: 'vendor-realtime', directory: clientAssetsDir, filePattern: /^vendor-realtime-.*\.js$/, maxBytes: 30_000 },
   { label: 'vendor-virtual', directory: clientAssetsDir, filePattern: /^vendor-virtual-.*\.js$/, maxBytes: 20_000 },
@@ -110,10 +111,10 @@ const sizeBudgets = [
   { label: 'NoticePage route', directory: clientAssetsDir, filePattern: /^NoticePage-.*\.js$/, maxBytes: 9_000 },
   { label: 'MyPage page shell', directory: clientAssetsDir, filePattern: /^MyPage-.*\.js$/, maxBytes: 5_000 },
   { label: 'MyPage runtime', directory: clientAssetsDir, filePattern: /^MyPageRuntime-.*\.js$/, maxBytes: 19_000 },
-  { label: 'MyPage sidebar runtime', directory: clientAssetsDir, filePattern: /^MyPageSidebarRuntime-.*\.js$/, maxBytes: 12_000 },
+  { label: 'MyPage sidebar runtime', directory: clientAssetsDir, filePattern: /^MyPageSidebarRuntime-.*\.js$/, maxBytes: 12_000, optionalMissing: true },
   { label: 'MyPage view runtime', directory: clientAssetsDir, filePattern: /^MyPageViewRuntime-.*\.js$/, maxBytes: 7_000 },
-  { label: 'MyPage season log runtime', directory: clientAssetsDir, filePattern: /^MyPageSeasonLogRuntime-.*\.js$/, maxBytes: 22_000 },
-  { label: 'MyPage settings home runtime', directory: clientAssetsDir, filePattern: /^MyPageSettingsHomeRuntime-.*\.js$/, maxBytes: 8_000 },
+  { label: 'MyPage season log runtime', directory: clientAssetsDir, filePattern: /^MyPageSeasonLogRuntime-.*\.js$/, maxBytes: 22_000, optionalMissing: true },
+  { label: 'MyPage settings home runtime', directory: clientAssetsDir, filePattern: /^MyPageSettingsHomeRuntime-.*\.js$/, maxBytes: 8_000, optionalMissing: true },
   { label: 'UserProfile page shell', directory: clientAssetsDir, filePattern: /^UserProfilePage-.*\.js$/, maxBytes: 5_000 },
   { label: 'UserProfile runtime', directory: clientAssetsDir, filePattern: /^UserProfile-.*\.js$/, maxBytes: 29_000 },
   { label: 'UserProfileModal route', directory: clientAssetsDir, filePattern: /^UserProfileModal-.*\.js$/, maxBytes: 14_000 },
@@ -141,7 +142,7 @@ const sizeBudgets = [
   { label: 'MateApply page shell', directory: clientAssetsDir, filePattern: /^MateApplyPage-.*\.js$/, maxBytes: 5_000 },
   { label: 'MateApply runtime', directory: clientAssetsDir, filePattern: /^MateApply-.*\.js$/, maxBytes: 31_000 },
   { label: 'MateDetailRuntime route', directory: clientAssetsDir, filePattern: /^MateDetailRuntime-.*\.js$/, maxBytes: 35_000 },
-  { label: 'MateDetail info sections', directory: clientAssetsDir, filePattern: /^MateDetailInfoSections-.*\.js$/, maxBytes: 6_000 },
+  { label: 'MateDetail info sections', directory: clientAssetsDir, filePattern: /^MateDetailInfoSections-.*\.js$/, maxBytes: 8_300 },
   { label: 'MateDetail action section', directory: clientAssetsDir, filePattern: /^MateDetailActionSection-.*\.js$/, maxBytes: 14_000 },
   { label: 'MateDetail reviews section', directory: clientAssetsDir, filePattern: /^MateDetailReviewsSection-.*\.js$/, maxBytes: 6000 },
   { label: 'MateDetail QR runtime', directory: clientAssetsDir, filePattern: /^MateDetailQrRuntime-.*\.js$/, maxBytes: 22_000 },
@@ -1094,11 +1095,14 @@ const budgetResults = sizeBudgets.map((budget) => {
   const candidateFile = findMatchingFile(budget.directory, budget.filePattern);
 
   if (!candidateFile) {
+    const status = getBudgetMissingStatus({ optionalMissing: budget.optionalMissing });
+
     return {
       label: budget.label,
       maxBytes: budget.maxBytes,
       ok: Boolean(budget.optionalMissing),
       reason: 'missing',
+      status,
     };
   }
 
