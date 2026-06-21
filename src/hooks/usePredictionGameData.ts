@@ -23,6 +23,7 @@ import {
   mergeGameDetailWithLiveSnapshot,
   shouldStartPredictionLivePolling,
 } from '../utils/liveGame';
+import { schedulePredictionPostPaintIdleWork } from '../utils/predictionDeferredWork';
 import {
   PREDICTION_OFFLINE_TOAST_MESSAGE,
   PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING,
@@ -977,7 +978,11 @@ export const usePredictionGameData = ({
     });
   }, [emitFlowEvent, gameDetails, getCurrentGameId, loadGameDetail]);
 
-  const primeGameDetail = useCallback((gameId: string, detail: GameDetail) => {
+  const primeGameDetail = useCallback((
+    gameId: string,
+    detail: GameDetail,
+    options: { isSeeded?: boolean } = {}
+  ) => {
     setGameDetails((prev) => ({
       ...prev,
       [gameId]: {
@@ -985,9 +990,63 @@ export const usePredictionGameData = ({
         data: detail,
         error: undefined,
         errorCode: undefined,
-        isSeeded: true,
+        isSeeded: options.isSeeded ?? true,
         isBackgroundRefreshing: false,
         hasRenderableData: true,
+      },
+    }));
+  }, []);
+
+  const primeGameDetailError = useCallback((gameId: string, message: string, errorCode?: string | null) => {
+    setGameDetails((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'error',
+        data: prev[gameId]?.data ?? null,
+        error: message,
+        errorCode: errorCode ?? undefined,
+        isSeeded: false,
+        isBackgroundRefreshing: false,
+        hasRenderableData: hasRenderableGameDetail(prev[gameId]),
+      },
+    }));
+  }, []);
+
+  const primeVoteStatus = useCallback((
+    gameId: string,
+    status: { homeVotes?: number | null; awayVotes?: number | null; totalVotes?: number | null }
+  ) => {
+    const homeVotes = Math.max(0, Number(status.homeVotes ?? 0) || 0);
+    const awayVotes = Math.max(0, Number(status.awayVotes ?? 0) || 0);
+    const partialReason = status.totalVotes == null
+      ? PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING
+      : null;
+
+    setVotes((prev) => ({
+      ...prev,
+      [gameId]: {
+        home: homeVotes,
+        away: awayVotes,
+      },
+    }));
+    setVoteStatusState((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'ready',
+      },
+    }));
+    setPartialReasonsByGameId((prev) => ({
+      ...prev,
+      [gameId]: partialReason,
+    }));
+  }, []);
+
+  const primeVoteStatusError = useCallback((gameId: string, message: string) => {
+    setVoteStatusState((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'error',
+        error: message,
       },
     }));
   }, []);
@@ -1044,6 +1103,8 @@ export const usePredictionGameData = ({
     }
 
     let disposed = false;
+    let started = false;
+    let intervalId: number | null = null;
     const tick = () => {
       if (disposed || document.visibilityState === 'hidden') {
         return;
@@ -1062,25 +1123,37 @@ export const usePredictionGameData = ({
         await loadLiveRelaySnapshot(currentGameId, currentGameRef.current);
       })();
     };
+    const startPolling = () => {
+      if (disposed || started) {
+        return;
+      }
+      started = true;
+      tick();
+      intervalId = window.setInterval(tick, LIVE_GAME_POLL_INTERVAL_MS);
+    };
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === 'hidden') {
         liveSnapshotAbortRef.current?.abort();
         liveRelayAbortRef.current?.abort();
         return;
       }
-      tick();
+      if (started) {
+        tick();
+      }
     };
 
-    tick();
-    const intervalId = window.setInterval(tick, LIVE_GAME_POLL_INTERVAL_MS);
+    const cancelDeferredStart = schedulePredictionPostPaintIdleWork(startPolling);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
 
     return () => {
       disposed = true;
+      cancelDeferredStart();
       liveSnapshotAbortRef.current?.abort();
       liveRelayAbortRef.current?.abort();
-      window.clearInterval(intervalId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
     };
@@ -1136,5 +1209,8 @@ export const usePredictionGameData = ({
     reloadCurrentGameDetail,
     setVoteStatusState,
     primeGameDetail,
+    primeGameDetailError,
+    primeVoteStatus,
+    primeVoteStatusError,
   };
 };
