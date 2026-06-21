@@ -17,3 +17,15 @@ test('AdvancedMatchCard는 상세 런타임 statusCode 전달 계약을 유지�
 
   assert.match(source, /const contentRuntimeProps: AdvancedMatchCardContentRuntimeProps = \{[\s\S]*\n    statusCode,\n    isDarkMode,/);
 });
+
+test('AdvancedMatchCard는 dark mode에서 주요 상태 텍스트를 흰색으로 유지한다', () => {
+  const source = readFileSync(new URL('./AdvancedMatchCard.tsx', import.meta.url), 'utf8');
+
+  assert.match(source, /data-testid="vote-disabled-away-btn"[\s\S]*dark:text-white/);
+  assert.match(source, /data-testid="vote-disabled-home-btn"[\s\S]*dark:text-white/);
+  assert.match(source, /text-gray-300 dark:text-white">:<\/span>/);
+  assert.match(source, /font-bold text-gray-500 dark:text-white sm:text-\[16px\]/);
+  assert.match(source, /text-slate-600 dark:text-white/);
+  assert.match(source, /경기 상세 섹션을 준비하고 있습니다\./);
+  assert.match(source, /dark:bg-secondary\/40 dark:text-white/);
+});
