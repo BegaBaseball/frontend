@@ -330,7 +330,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <Button
                 disabled
                 data-testid="vote-disabled-away-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300 text-[16px]"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-white text-[16px]"
                 style={awayTeamLabelTextStyle}
               >
                 {awayTeamName}
@@ -338,7 +338,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
               <Button
                 disabled
                 data-testid="vote-disabled-home-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-gray-300 text-[16px]"
+                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-white text-[16px]"
                 style={homeTeamLabelTextStyle}
               >
                 {homeTeamName}
@@ -442,16 +442,16 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                   <>
                     <div className="flex items-center justify-center gap-1.5 text-[1.8rem] font-extrabold sm:gap-2 sm:text-3xl">
                       <span style={topAwayScoreStyle}>{hasGameScore ? countedScores.away : '-'}</span>
-                      <span className="text-gray-300 dark:text-gray-300">:</span>
+                      <span className="text-gray-300 dark:text-white">:</span>
                       <span style={topHomeScoreStyle}>{hasGameScore ? countedScores.home : '-'}</span>
                     </div>
-                    <div className="mt-1 text-[16px] font-bold text-gray-500 dark:text-gray-300 sm:text-[16px]">{matchStatusLabel}</div>
+                    <div className="mt-1 text-[16px] font-bold text-gray-500 dark:text-white sm:text-[16px]">{matchStatusLabel}</div>
                     {winnerLabel ? (
                       <div
                         className={`mt-1 text-[16px] font-bold ${
                           winnerLabel === '무승부'
                             ? 'text-amber-600 dark:text-amber-300'
-                            : 'text-slate-600 dark:text-slate-200'
+                            : 'text-slate-600 dark:text-white'
                         }`}
                       >
                         {winnerLabel}
@@ -478,7 +478,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
           <Suspense
             fallback={(
               <div className="px-4 py-6">
-                <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-[16px] text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-gray-300">
+                <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-[16px] text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-white">
                   <span className="inline-flex items-center gap-2">
                     <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                     경기 상세 섹션을 준비하고 있습니다.
