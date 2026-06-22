@@ -16,6 +16,9 @@ import type {
   CreateCheckInRequest,
   CreatePartyRequest,
   CreateReviewRequest,
+  MateHistoryTab,
+  MateParty,
+  MatePopularSearchTerm,
   Party,
   MatePartySortBy,
   MatePartySortDir,
@@ -72,6 +75,7 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   number: number;
   size: number;
+  last?: boolean;
 }
 
 interface FetchAllPartiesOptions {
@@ -95,6 +99,13 @@ export interface FetchMatePartiesPageParams {
   signal?: AbortSignal;
 }
 
+export interface FetchMyPartyHistoryPageParams {
+  group?: MateHistoryTab;
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+}
+
 type PartyPublicWireResponse = JsonResponse<'/api/parties/{id}', 'get'>;
 type PartyPrivateWireResponse = JsonResponse<'/api/parties', 'post'>;
 type PartyListWireResponse = JsonResponse<'/api/parties', 'get'>;
@@ -109,11 +120,30 @@ type BackendPartyDTO = Omit<MateMapperPartyDTO, 'gameTime'> & Partial<PartyPubli
   ticketImageUrl?: string | null;
   price?: number | null;
   ticketPrice?: number | null;
+  reservationDepositAmount?: number | null;
+  hostTrustMetrics?: Party['hostTrustMetrics'];
+};
+type BackendMateHistoryDTO = {
+  id: number;
+  hostId?: number | null;
+  hostHandle?: string | null;
+  teamId: string;
+  cheeringSide?: Party['cheeringSide'];
+  gameDate: string;
+  gameTime: string | components['schemas']['LocalTime'];
+  stadium: string;
+  homeTeam: string;
+  awayTeam: string;
+  section: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  description?: string | null;
+  status: PartyStatus;
 };
 type CreatePartyRequestWire = Omit<CreatePartyRequest, 'gameTime'> & {
   gameTime: components['schemas']['LocalTime'];
 };
-type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'>;
+type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'> & Pick<UpdatePartyRequest, 'reservationDepositAmount'>;
 type ApplicationWireResponse = JsonResponse<'/api/applications', 'post'> & Application;
 type CreateApplicationRequestWire = JsonRequestBody<'/api/applications', 'post'>;
 type CreateApplicationRequestWireCompat = Omit<CreateApplicationRequestWire, 'ticketImageUrl' | 'verificationToken'>
@@ -192,9 +222,29 @@ export const normalizeMateParty = (party: BackendPartyDTO | Party): Party => {
     ticketImageUrl: wireParty.ticketImageUrl ?? undefined,
     price: wireParty.price ?? undefined,
     ticketPrice: wireParty.ticketPrice ?? undefined,
+    reservationDepositAmount: wireParty.reservationDepositAmount ?? null,
+    hostTrustMetrics: wireParty.hostTrustMetrics ?? null,
   };
   return mapBackendPartyToFrontend(mapperParty);
 };
+
+const normalizeMateHistoryParty = (party: BackendMateHistoryDTO): MateParty => ({
+  id: party.id,
+  hostId: party.hostId ?? undefined,
+  hostHandle: party.hostHandle ?? undefined,
+  teamId: party.teamId,
+  cheeringSide: party.cheeringSide ?? null,
+  gameDate: party.gameDate,
+  gameTime: fromLocalTimeWire(party.gameTime),
+  stadium: party.stadium,
+  homeTeam: party.homeTeam,
+  awayTeam: party.awayTeam,
+  section: party.section,
+  maxParticipants: party.maxParticipants,
+  currentParticipants: party.currentParticipants,
+  description: party.description ?? undefined,
+  status: party.status,
+});
 
 export async function getKboSchedule(date: string): Promise<KboScheduleItem[]> {
   return publicGet<KboScheduleItem[]>('/kbo/schedule', {
@@ -301,6 +351,18 @@ export async function fetchAllParties(
   return toList(response as ListPayload<BackendPartyDTO> | BackendPartyDTO[]).map(normalizeMateParty);
 }
 
+export async function fetchPopularMateSearchTerms(limit = 5): Promise<MatePopularSearchTerm[]> {
+  return publicGet<MatePopularSearchTerm[]>('/parties/search-terms/popular', {
+    params: { limit },
+  });
+}
+
+export async function recordMateSearchTerm(term: string): Promise<void> {
+  await privatePost<null, { term: string }>('/parties/search-terms', { term }, {
+    skipAuthSessionHandling: true,
+  });
+}
+
 export async function fetchMyApplications(): Promise<Application[]> {
   const response = await privateGet<ListPayload<ApplicationWireResponse> | ApplicationWireResponse[]>('/applications/my');
   return toList(response);
@@ -314,6 +376,24 @@ export async function fetchMyParties(): Promise<Party[]> {
     console.error('메이트 내역 조회 실패:', error);
     throw error;
   }
+}
+
+export async function fetchMyPartyHistoryPage(
+  params: FetchMyPartyHistoryPageParams = {},
+): Promise<PaginatedResponse<MateParty>> {
+  const response = await privateGet<PaginatedResponse<BackendMateHistoryDTO>>('/parties/my/history', {
+    params: {
+      group: params.group ?? 'all',
+      page: params.page ?? 0,
+      size: params.size ?? 20,
+    },
+    signal: params.signal,
+  });
+
+  return {
+    ...response,
+    content: response.content.map(normalizeMateHistoryParty),
+  };
 }
 
 export async function createParty(data: CreatePartyRequest): Promise<Party> {
@@ -423,9 +503,11 @@ export async function updateChatReadTimestamp(partyId: number | string): Promise
   }
 }
 
-export async function getChatUnreadCounts(): Promise<number> {
+export async function getChatUnreadCounts(
+  requestOptions: { signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<number> {
   try {
-    const response = await privateGet<ChatUnreadCountWireResponse>('/chat/my/unread-counts');
+    const response = await privateGet<ChatUnreadCountWireResponse>('/chat/my/unread-counts', requestOptions);
 
     if (response.success && typeof response.data === 'number') {
       return response.data;

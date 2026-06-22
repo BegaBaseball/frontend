@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { PrivateApiError } from './privateClient';
 import {
   fetchMatePartiesPage,
+  fetchMyPartyHistoryPage,
+  fetchPopularMateSearchTerms,
   fetchPartyById,
   fetchPartyApplications,
   fetchPartyMyApplication,
   fetchPartyReviews,
+  recordMateSearchTerm,
 } from './mate';
 
 const resolveRequestUrl = (input: string | URL | Request): string =>
@@ -82,6 +86,118 @@ test('fetchMatePartiesPage는 정렬 파라미터를 목록 endpoint에 전달�
   assert.equal(url.searchParams.get('sortBy'), 'gameDate');
   assert.equal(url.searchParams.get('sortDir'), 'asc');
   assert.equal(response.content[0]?.id, 3);
+});
+
+test('fetchMyPartyHistoryPage는 마이페이지 전용 history endpoint와 페이지 파라미터를 사용한다', async (t) => {
+  const requestedUrls: string[] = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestedUrls.push(resolveRequestUrl(input));
+
+    return new Response(JSON.stringify({
+      content: [{
+        id: 7,
+        hostId: 2,
+        hostHandle: '@host',
+        teamId: 'LG',
+        cheeringSide: 'HOME',
+        gameDate: '2026-05-20',
+        gameTime: '18:30:00',
+        stadium: '잠실야구장',
+        homeTeam: 'LG',
+        awayTeam: 'KT',
+        section: '[홈응원] 1루석',
+        maxParticipants: 4,
+        currentParticipants: 2,
+        description: '완료된 메이트입니다.',
+        status: 'COMPLETED',
+        createdAt: '2026-05-01T09:00:00Z',
+      }],
+      totalElements: 1,
+      totalPages: 1,
+      number: 2,
+      size: 20,
+      last: true,
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const response = await fetchMyPartyHistoryPage({
+    group: 'completed',
+    page: 2,
+    size: 20,
+  });
+
+  const url = new URL(requestedUrls[0] ?? '', 'http://localhost');
+  assert.equal(url.pathname, '/api/parties/my/history');
+  assert.equal(url.searchParams.get('group'), 'completed');
+  assert.equal(url.searchParams.get('page'), '2');
+  assert.equal(url.searchParams.get('size'), '20');
+  assert.equal(response.content[0]?.id, 7);
+  assert.equal(response.content[0]?.status, 'COMPLETED');
+  assert.equal(response.last, true);
+});
+
+test('popular mate search term API는 공개 endpoint를 사용한다', async (t) => {
+  const requestedUrls: string[] = [];
+  const requestedMethods: string[] = [];
+  const requestedBodies: Array<BodyInit | null | undefined> = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestedUrls.push(resolveRequestUrl(input));
+    requestedMethods.push(init?.method ?? 'GET');
+    requestedBodies.push(init?.body);
+
+    if ((init?.method ?? 'GET') === 'POST') {
+      return new Response(null, { status: 204 });
+    }
+
+    return new Response(JSON.stringify([{ term: '잠실 블루존', count: 7, rank: 1 }]), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const popularTerms = await fetchPopularMateSearchTerms(3);
+  await recordMateSearchTerm('잠실 블루존');
+
+  assert.deepEqual(requestedUrls, [
+    '/api/parties/search-terms/popular?limit=3',
+    '/api/parties/search-terms',
+  ]);
+  assert.deepEqual(requestedMethods, ['GET', 'POST']);
+  assert.equal(popularTerms[0]?.term, '잠실 블루존');
+  assert.equal(requestedBodies[1], JSON.stringify({ term: '잠실 블루존' }));
+});
+
+test('recordMateSearchTerm은 401에서 reissue 없이 reject된다', async (t) => {
+  const requestedUrls: string[] = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    const url = resolveRequestUrl(input);
+    requestedUrls.push(`${init?.method ?? 'GET'} ${url}`);
+
+    if (url === '/api/auth/reissue') {
+      throw new Error('recordMateSearchTerm must not trigger token reissue');
+    }
+
+    return new Response(JSON.stringify({ code: 'UNAUTHORIZED', message: '인증이 필요합니다.' }), {
+      headers: { 'content-type': 'application/json' },
+      status: 401,
+    });
+  });
+
+  await assert.rejects(
+    () => recordMateSearchTerm('잠실 블루존'),
+    (error: unknown) => {
+      assert.equal(error instanceof PrivateApiError, true);
+      assert.equal((error as PrivateApiError).status, 401);
+      return true;
+    },
+  );
+  assert.deepEqual(requestedUrls, ['POST /api/parties/search-terms']);
 });
 
 test('fetchPartyMyApplication은 404가 아닌 오류를 그대로 던진다', async (t) => {

@@ -10,7 +10,7 @@ import {
 test('mapBackendPartyToFrontend tolerates public party payload without hostId', () => {
   const party = mapBackendPartyToFrontend({
     id: 1,
-    hostHandle: '@host',
+    hostHandle: 'host',
     hostName: 'Host',
     hostBadge: 'VERIFIED',
     hostAverageRating: 4.8,
@@ -31,7 +31,7 @@ test('mapBackendPartyToFrontend tolerates public party payload without hostId', 
   });
 
   assert.equal(party.hostId, undefined);
-  assert.equal(party.hostHandle, '@host');
+  assert.equal(party.hostHandle, 'host');
   assert.equal(party.hostAverageRating, 4.8);
   assert.equal(party.hostReviewCount, 12);
 });
@@ -46,11 +46,41 @@ test('hasSameMateUserIdentity prefers handle matching over numeric ids', () => {
   );
 });
 
+test('hasSameMateUserIdentity matches handles with or without at-prefix', () => {
+  assert.equal(
+    hasSameMateUserIdentity(
+      { handle: 'testuser' },
+      { handle: '@testuser' },
+    ),
+    true,
+  );
+});
+
+test('hasSameMateUserIdentity matches handles case-insensitively', () => {
+  assert.equal(
+    hasSameMateUserIdentity(
+      { handle: 'TestUser' },
+      { handle: '@testuser' },
+    ),
+    true,
+  );
+});
+
+test('hasSameMateUserIdentity treats conflicting handles as different even when ids match', () => {
+  assert.equal(
+    hasSameMateUserIdentity(
+      { id: 1, handle: '@host' },
+      { id: 1, handle: '@otherhost' },
+    ),
+    false,
+  );
+});
+
 test('isPartyHostedByUser matches public party host with current user handle', () => {
   assert.equal(
     isPartyHostedByUser(
-      { hostHandle: '@host' },
-      { id: 77, handle: '@host' },
+      { hostHandle: 'testuser' },
+      { id: 77, handle: '@testuser' },
     ),
     true,
   );
