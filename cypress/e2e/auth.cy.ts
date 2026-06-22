@@ -13,6 +13,18 @@ describe('Authentication Flow', () => {
             cy.get('button[type="submit"]').should('be.visible');
         });
 
+        it('keeps the remember-email checkbox at the standard visual size', () => {
+            cy.get('#remember-email').should(($checkbox) => {
+                const rect = $checkbox[0].getBoundingClientRect();
+
+                expect(rect.width).to.be.within(12, 24);
+                expect(rect.height).to.be.within(12, 24);
+            });
+            cy.get('label[for="remember-email"]').should(($label) => {
+                expect($label[0].getBoundingClientRect().height).to.be.gte(44);
+            });
+        });
+
         it('should show error on invalid credentials', () => {
             cy.intercept('POST', '**/api/auth/login', {
                 statusCode: 401,

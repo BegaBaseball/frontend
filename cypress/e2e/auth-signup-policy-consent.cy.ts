@@ -24,6 +24,11 @@ describe('SignUp policy consent payload', () => {
       },
     ];
 
+    cy.intercept('GET', '**/api/auth/check-handle*', {
+      statusCode: 200,
+      body: { success: true, data: { available: true } },
+    }).as('handleCheck');
+
     cy.intercept('GET', '**/api/auth/policies/required', {
       statusCode: 200,
       body: {
@@ -58,12 +63,12 @@ describe('SignUp policy consent payload', () => {
 
     cy.get('input#name').type('테스트유저');
     cy.get('input#handle').clear().type('spolicy1');
+    cy.wait('@handleCheck');
     cy.get('input#email').type('signup_policy_user@example.com');
     cy.get('input#password').type('Test1234!');
     cy.get('input#confirmPassword').type('Test1234!');
 
-    cy.get('button[role="combobox"]').first().click();
-    cy.contains('[role="option"]', 'LG 트윈스').click();
+    cy.get('select#favoriteTeam').select('LG 트윈스');
 
     cy.contains('button', '회원가입').click();
 

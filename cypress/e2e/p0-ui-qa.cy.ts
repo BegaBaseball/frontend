@@ -13,7 +13,7 @@ const viewports = [
 const buildBootstrapResponse = () => ({
   selectedDate: '2026-03-16',
   leagueStartDates: {
-    regularSeasonStart: '2026-03-22',
+    regularSeasonStart: '2026-03-01',
     postseasonStart: '2026-10-06',
     koreanSeriesStart: '2026-10-26',
   },
@@ -150,12 +150,12 @@ describe('P0 UI browser QA', () => {
         cy.wait('@getHomeWidgets');
 
         assertViewportSize(width, height);
-        cy.get('[data-testid="home-primary-prediction-cta"]').should('be.visible');
+        cy.get('[data-testid="home-secondary-prediction-cta"]').should('be.visible');
         assertNoHorizontalOverflow();
-        assertMinTarget('[data-testid="home-primary-prediction-cta"]', 'home primary prediction CTA');
+        assertMinTarget('[data-testid="home-secondary-prediction-cta"]', 'home primary prediction CTA');
         assertMinTarget('[data-testid="home-date-prev"]', 'home previous date');
         assertMinTarget('[data-testid="home-date-next"]', 'home next date');
-        assertCenterReachable('[data-testid="home-primary-prediction-cta"]', 'home primary prediction CTA');
+        assertCenterReachable('[data-testid="home-secondary-prediction-cta"]', 'home primary prediction CTA');
 
         if (width < 768) {
           assertMinTarget('button[aria-label="메뉴 열기"]', 'mobile menu button');

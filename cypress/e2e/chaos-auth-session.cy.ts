@@ -147,26 +147,27 @@ describe('Chaos: Auth Session Resilience', () => {
                 body: { success: true, data: { accessToken: fakeToken } },
             }).as('reissue');
 
-            let unreadCallCount = 0;
-            cy.intercept('GET', '**/api/chat/my/unread-counts*', (req) => {
-                unreadCallCount++;
+            // /leaderboard는 PublicNavbar를 사용해 unread-counts를 폴링하지 않음.
+            // powerups/active는 leaderboard 페이지에서 실제로 호출되는 인증 엔드포인트.
+            let activePowerupsCallCount = 0;
+            cy.intercept('GET', '**/api/leaderboard/powerups/active', (req) => {
+                activePowerupsCallCount++;
                 req.reply(
-                    unreadCallCount === 1
+                    activePowerupsCallCount === 1
                         ? { statusCode: 401, body: {} }
-                        : { statusCode: 200, body: { success: true, data: 0 } },
+                        : { statusCode: 200, body: [] },
                 );
-            }).as('unreadCounts401');
+            }).as('powerupsActive401');
 
             cy.visit('/leaderboard');
 
-            cy.wait('@reissue', { timeout: 10000 });
+            // 초기 401 → 재발급 → 재시도 200 순서로 대기 (cy.then() 카운터는 retry 완료 전에 실행되어 레이스 컨디션 발생)
+            cy.wait('@powerupsActive401', { timeout: 10000 }); // 초기 401 호출
+            cy.wait('@reissue', { timeout: 10000 });           // 재발급 완료
+            cy.wait('@powerupsActive401', { timeout: 5000 });  // 재시도 200 호출
 
             // 재발급 성공 → 세션 만료 다이얼로그가 표시되면 안 된다
             cy.get('[role="alertdialog"]').should('not.exist');
-            // unread-counts가 최소 2회 호출됨 (초기 401 + 재시도 200)
-            cy.then(() => {
-                expect(unreadCallCount).to.be.at.least(2);
-            });
         });
     });
 

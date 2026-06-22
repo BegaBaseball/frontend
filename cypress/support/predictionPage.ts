@@ -33,6 +33,14 @@ interface PredictionBootstrapInterceptOptions {
   selectedGameFound?: boolean | ((selectedGameId: string | null, games: PredictionBootstrapFixtureGame[]) => boolean);
 }
 
+interface PredictionVoteBootstrapWaitOptions {
+  waitForVoteStatus?: boolean;
+  waitForUserVotes?: boolean;
+  voteStatusAlias?: string;
+  userVotesAlias?: string;
+  legacyUserVoteAlias?: string;
+}
+
 interface PredictionVisitOptions {
   path?: string;
   token?: string;
@@ -419,12 +427,7 @@ export const visitPredictionPage = ({
       seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
     });
     cy.setCookie('Authorization', token);
-    return;
   }
-
-  cy.window().then((win) => {
-    seedPredictionGuestState(win, clearAuthState, persistedAuthHint, skipPublicAuthBootstrap, authBootstrapMeta);
-  });
 };
 
 export const visitPredictionPublicPage = ({
@@ -521,7 +524,26 @@ export const ensureCoachBriefingVisible = () => {
   return cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
 };
 
-export const waitForPredictionVoteBootstrap = () => {
-  cy.wait(['@getVoteStatus', '@getUserVotes']);
-  cy.get('@getUserVote.all').should('have.length', 0);
+export const waitForPredictionVoteBootstrap = ({
+  waitForVoteStatus = true,
+  waitForUserVotes = true,
+  voteStatusAlias = 'getVoteStatus',
+  userVotesAlias = 'getUserVotes',
+  legacyUserVoteAlias = 'getUserVote',
+}: PredictionVoteBootstrapWaitOptions = {}) => {
+  const aliases: string[] = [];
+  if (waitForVoteStatus) {
+    aliases.push(`@${voteStatusAlias}`);
+  }
+  if (waitForUserVotes) {
+    aliases.push(`@${userVotesAlias}`);
+  }
+
+  if (aliases.length === 1) {
+    cy.wait(aliases[0]);
+  } else if (aliases.length > 1) {
+    cy.wait(aliases);
+  }
+
+  cy.get(`@${legacyUserVoteAlias}.all`).should('have.length', 0);
 };
