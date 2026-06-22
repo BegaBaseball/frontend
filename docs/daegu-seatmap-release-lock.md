@@ -4,21 +4,21 @@
 
 ## 기준
 
-- canonical asset: `src/assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.png`
+- canonical asset: `src/assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.webp`
 - canonical 이미지 좌표계: `4096x4096`
-- historical official asset: `src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png`
+- historical official asset: `src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp`
 - historical official 이미지 좌표계: `1707x2048`
 - stadium id: `DAEGU_SAMSUNG_LIONS_PARK`
 - map version: `DAEGU_SAMSUNG_LIONS_PARK_2026_CANONICAL_OPERATOR_REFERENCE_V1`
-- image sha256: `3639199465e7f6f48dd17fa61a254fc90c6c53ec4ff8c5d19d2662cbb197f5d5`
+- image sha256: `98e9545d2c9b1c9e7058a7da4723eecc97e28cc315fcc20d279eef89037c4d56`
 - historical official map version: `DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1`
-- historical official image sha256: `8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0`
+- historical official image sha256: `0d3926764aa1ced440804a1cfb1519e6f54eb1c4835e56e64bec3597d984640a`
 - canonical data source: `src/data/daeguCanonicalSeatMap.ts`
 - renderer: `src/components/daegu/DaeguSeatMapSvg.tsx`
 - runtime source: `DAEGU_CANONICAL_2026` 단일 source만 사용자 화면에서 렌더링한다.
 - data policy: 외부 야구 crawling/search 없이 operator-approved 좌표만 canonical runtime으로 사용한다.
 - uploaded operator reference: `OPERATOR_REFERENCE_RAPAK_2025`는 historical source rows로 보존하고, 사용자 runtime에서는 `DAEGU_CANONICAL_2026` builder 입력으로만 사용한다.
-- official PNG reference: `SAMSUNG_OFFICIAL_2026`는 historical QA evidence로만 보존한다. `1707x2048` polygon은 `4096x4096` operator-reference 좌표로 retrace/승인되기 전까지 selectable canonical runtime에 들어갈 수 없다.
+- official image reference: `SAMSUNG_OFFICIAL_2026`는 historical QA evidence로만 보존한다. `1707x2048` polygon은 `4096x4096` operator-reference 좌표로 retrace/승인되기 전까지 selectable canonical runtime에 들어갈 수 없다.
 - MySeatCheck reference intake: `docs/daegu-seatmap-myseatcheck-reference-intake.md`에 `MYSEATCHECK_REFERENCE_2026`를 pending external reference로만 등록한다. 이 source는 release lock의 canonical 좌표를 대체하지 않는다.
 
 ## 고정 상태 (현재: PASS_LOCKED_164)
@@ -32,15 +32,15 @@
 
 ### openWorkset 10개 처리 방침
 
-10개 블록(`V3`, `MR-1~MR-9` 중 MR-7 제외 8개, `M-9`)은 `DAEGU_BLOCKS` (공식 PNG 아카이브) 기준으로는 unresolved 상태이나, 사용자가 실제 보는 인터랙티브 맵은 `DAEGU_DEFAULT_SEATMAP_SOURCE_ID = 'OPERATOR_REFERENCE_RAPAK_2025'`로 서비스된다. 즉, **사용자 경험은 이미 `DAEGU_OPERATOR_REFERENCE_BLOCKS` (109개, 4096×4096 좌표계)로 정상 동작**하고 있다.
+10개 블록(`V3`, `MR-1~MR-9` 중 MR-7 제외 8개, `M-9`)은 `DAEGU_BLOCKS` (공식 이미지 아카이브) 기준으로는 unresolved 상태이나, 사용자가 실제 보는 인터랙티브 맵은 `DAEGU_DEFAULT_SEATMAP_SOURCE_ID = 'OPERATOR_REFERENCE_RAPAK_2025'`로 서비스된다. 즉, **사용자 경험은 이미 `DAEGU_OPERATOR_REFERENCE_BLOCKS` (109개, 4096×4096 좌표계)로 정상 동작**하고 있다.
 
-이 10개 블록의 DAEGU_BLOCKS unresolved 상태는 공식 PNG 참조 아카이브의 기술 부채이며, 사용자 클릭/선택 기능을 차단하지 않는다. 운영자가 공식 PNG와 재정렬(retrace)을 완료하면 unresolved가 해소된다.
+이 10개 블록의 DAEGU_BLOCKS unresolved 상태는 공식 이미지 참조 아카이브의 기술 부채이며, 사용자 클릭/선택 기능을 차단하지 않는다. 운영자가 공식 이미지와 재정렬(retrace)을 완료하면 unresolved가 해소된다.
 
 **release 허용 조건**: `lockedVerified === 164 && openWorkset === 10` → `PASS_LOCKED_164` → release 허용.
 
 ### 정밀 완료 목표
 
-`PASS_RELEASE_177`은 현재 `PASS_LOCKED_164` release 허용 상태와 구분되는 최종 정밀 완료 기준이다. 이 기준은 공식 PNG archive debt 10개가 해소된 뒤에만 사용한다.
+`PASS_RELEASE_177`은 현재 `PASS_LOCKED_164` release 허용 상태와 구분되는 최종 정밀 완료 기준이다. 이 기준은 공식 이미지 archive debt 10개가 해소된 뒤에만 사용한다.
 
 - `LOCKED_VERIFIED`: `174`
 - `classifiedReleaseRows`: `3`
@@ -53,7 +53,7 @@
 - `normalVisualReviewRows`: `0`
 - `queueRows`: `0`
 
-`PASS_RELEASE_177`은 `MR-10`/`M-10`을 selectable seat로 확정했다는 뜻이 아니다. 대구 precision-complete lock은 official PNG에 정렬된 좌석 polygon 174개와 selectable seat layer에서 제외된 classified row 3개를 합산해 177개 inventory가 해결된 상태를 뜻한다.
+`PASS_RELEASE_177`은 `MR-10`/`M-10`을 selectable seat로 확정했다는 뜻이 아니다. 대구 precision-complete lock은 official image에 정렬된 좌석 polygon 174개와 selectable seat layer에서 제외된 classified row 3개를 합산해 177개 inventory가 해결된 상태를 뜻한다.
 
 ## Classified row lock
 
@@ -61,7 +61,7 @@
 | --- | --- | --- | --- |
 | `MR-10` | `OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED` | not selectable, not review-only | 독립 official seat component가 확인되고 `operatorDecision=APPROVED`, `correctedPath`, `correctedLabelX/Y`, `reviewer`, `reviewedAt`이 모두 채워진다. |
 | `M-10` | `OFFICIAL_INDEPENDENT_COMPONENT_UNCONFIRMED` | not selectable, not review-only | 독립 official seat component가 확인되고 `operatorDecision=APPROVED`, `correctedPath`, `correctedLabelX/Y`, `reviewer`, `reviewedAt`이 모두 채워진다. |
-| `12` | `WAYFINDING_MARKER` | marker-only, not selectable | operator가 좌석 구역임을 별도 확인하고 official PNG 기준 polygon을 승인한다. |
+| `12` | `WAYFINDING_MARKER` | marker-only, not selectable | operator가 좌석 구역임을 별도 확인하고 official image 기준 polygon을 승인한다. |
 
 ## Layer contract
 
@@ -131,7 +131,7 @@
 - active canonical selectable block keys: `130`
 - pending operator trace block keys: `58`
 - target canonical selectable block keys: `188`
-- `CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys; official PNG polygons become historical evidence
+- `CANONICAL_OPERATOR_FROM_OVERLAP`: `108` block keys; official image polygons become historical evidence
 - `PENDING_OPERATOR_TRACE`: `58` block keys; no runtime polygon until operator-reference retrace/approval exists
 - `CANONICAL_OPERATOR_ONLY`: `22` block keys; keep operator-reference polygon after metadata/label ownership review
 - `MARKER_OR_ALIAS_ONLY`: `1` block key (`TC`)
@@ -147,7 +147,7 @@
 - active canonical selectable block keys: `130`
 - pending operator trace block keys: `58`
 - target canonical selectable block keys: `188`
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden
+- simple scale/copy from `1707x2048` official image to `4096x4096` operator reference is forbidden
 - source data write performed: `false`
 - generated retrace workset reports are QA evidence only and must not be staged as PR payload.
 
@@ -163,7 +163,7 @@
 | `SKY_BLUE_U2_U20_U31` | `npm run stadium:daegu:canonical-retrace-batch -- SKY_BLUE_U2_U20_U31` | `npm run stadium:daegu:canonical-retrace-gate -- SKY_BLUE_U2_U20_U31` | 13 | `U22` |
 | `REMAINING_U3_U9_V1_V3_OUTFIELD` | `npm run stadium:daegu:canonical-retrace-batch -- REMAINING_U3_U9_V1_V3_OUTFIELD` | `npm run stadium:daegu:canonical-retrace-gate -- REMAINING_U3_U9_V1_V3_OUTFIELD` | 13 | none |
 
-- simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden.
+- simple scale/copy from `1707x2048` official image to `4096x4096` operator reference is forbidden.
 - approved promotion requires `operatorDecision=APPROVED`, `correctedPath`, `correctedHitPath`, `correctedLabelX/Y`, `reviewer`, and `reviewedAt`.
 - operator input JSON: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.json`
 - operator input CSV: `reports/stadium/daegu-seatmap-canonical-sky-upper-retrace-batch/operator-input/daegu-seatmap-canonical-sky-upper-retrace-input.csv`

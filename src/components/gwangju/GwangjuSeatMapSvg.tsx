@@ -98,20 +98,20 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
       <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
-        MANUAL_BASEBALL_DATA_REQUIRED
+        공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
         광주-KIA 공식 좌석도 이미지가 필요합니다
       </h4>
-      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-white">
         공식 좌석도 파일과 블록 좌표가 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
       </p>
-      <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-slate-300">
+      <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-white">
         <div>필요 파일: {GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}</div>
         <div>저장 위치: {GWANGJU_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {GWANGJU_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -185,7 +185,7 @@ export default function GwangjuSeatMapSvg({
   const { cropX, cropWidth } = GWANGJU_SEATMAP_VIEWPORT;
   const croppedImageWidthPercent = (imageWidth / cropWidth) * 100;
   const croppedImageLeftPercent = -(cropX / cropWidth) * 100;
-  const zoomBtnCls = 'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800';
+  const zoomBtnCls = 'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800';
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
     : readViewportSize(viewportRef.current);
@@ -601,14 +601,14 @@ export default function GwangjuSeatMapSvg({
     || imageFailed
   ) {
     return (
-      <div className="relative rounded-xl bg-slate-100 dark:bg-[#050810]">
+      <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]">
+    <div className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#000000]">
     <div
       ref={viewportRef}
       data-testid="gwangju-seatmap-viewport"
@@ -872,7 +872,7 @@ export default function GwangjuSeatMapSvg({
                     fontSize={block.imageGeometry.labelFontSize ?? 12}
                     fontWeight="800"
                     fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                    stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                    stroke={mode === 'dark' ? '#000000' : '#FFFFFF'}
                     strokeWidth="3"
                     paintOrder="stroke"
                     transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})`}

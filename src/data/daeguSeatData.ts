@@ -194,9 +194,9 @@ export const DAEGU_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V
 export const DAEGU_CANONICAL_SEATMAP_SOURCE_ID = 'DAEGU_CANONICAL_2026';
 export const DAEGU_CANONICAL_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2026_CANONICAL_OPERATOR_REFERENCE_V1';
 export const DAEGU_VIEW_BOX = '0 0 1707 2048';
-export const DAEGU_IMAGE_SHA256 = '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0';
+export const DAEGU_IMAGE_SHA256 = '0d3926764aa1ced440804a1cfb1519e6f54eb1c4835e56e64bec3597d984640a';
 export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME = 'daegu-operator-reference-rapak-2025-enhanced-transparent.webp';
-export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256 = 'a5d2f812cddf8c2481e5ab07f6138500537e8ee56a74092b1237cd99a43c879e';
+export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_IMAGE_SHA256 = '98e9545d2c9b1c9e7058a7da4723eecc97e28cc315fcc20d279eef89037c4d56';
 export const DAEGU_OPERATOR_REFERENCE_RAPAK_2025_MAP_VERSION = 'DAEGU_SAMSUNG_LIONS_PARK_2025_OPERATOR_REFERENCE_P31_SKY_THIRD_BASE_APPROVED_V1';
 export const DAEGU_MYSEATCHECK_REFERENCE_URL = 'https://myseatcheck.com/%EB%8C%80%EA%B5%AC-%EC%82%BC%EC%84%B1-%EB%9D%BC%EC%9D%B4%EC%98%A8%EC%A6%88%ED%8C%8C%ED%81%AC/';
 export const DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME = 'daegu-myseatcheck-reference-2026.webp';
@@ -242,7 +242,7 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     requiredAssetFileName: DAEGU_OPERATOR_REFERENCE_RAPAK_2025_REQUIRED_ASSET_FILE_NAME,
     attributionRequired: false,
     productionCanonical: true,
-    notes: 'Single runtime source for Daegu canonical selectable polygons. Only operator-reference 4096x4096 approved polygons can be active here; official PNG coordinates remain historical evidence until retraced in this coordinate system.',
+    notes: 'Single runtime source for Daegu canonical selectable polygons. Only operator-reference 4096x4096 approved polygons can be active here; official image coordinates remain historical evidence until retraced in this coordinate system.',
   },
   {
     id: 'SAMSUNG_OFFICIAL_2026',
@@ -261,7 +261,7 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     requiredAssetFileName: DAEGU_SEATMAP_IMAGE.requiredAssetFileName,
     attributionRequired: false,
     productionCanonical: false,
-    notes: 'Historical official PNG evidence for Daegu seat polygons. It is no longer an active runtime polygon source after DAEGU_CANONICAL_2026 consolidation.',
+    notes: 'Historical official image evidence for Daegu seat polygons. It is no longer an active runtime polygon source after DAEGU_CANONICAL_2026 consolidation.',
   },
   {
     id: 'OPERATOR_REFERENCE_RAPAK_2025',
@@ -299,7 +299,7 @@ export const DAEGU_SEATMAP_SOURCE_REFERENCES: DaeguSeatMapSourceReference[] = [
     requiredAssetFileName: DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME,
     attributionRequired: true,
     productionCanonical: false,
-    notes: 'User-requested external reference. Do not replace the official PNG or promote coordinates until an authorized operator-provided asset and approval rows are supplied.',
+    notes: 'User-requested external reference. Do not replace the official image or promote coordinates until an authorized operator-provided asset and approval rows are supplied.',
   },
 ];
 

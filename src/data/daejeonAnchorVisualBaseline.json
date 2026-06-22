@@ -1,12 +1,12 @@
 {
   "contract": "DAEJEON_ANCHOR_VISUAL_BASELINE_V1",
-  "generatedAt": "2026-05-31T11:42:36.808Z",
+  "generatedAt": "2026-06-08T06:59:40.882Z",
   "reviewContractVersion": "DAEJEON_ANCHOR_CROP_REVIEW_V2",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
   "expectedCropCount": 28,
   "policy": {
-    "purpose": "대전 공식 PNG overlay anchor crop visual baseline",
-    "coordinateSystem": "official PNG 920x1060",
+    "purpose": "대전 공식 이미지 overlay anchor crop visual baseline",
+    "coordinateSystem": "official image 920x1060",
     "note": "좌표/path 수정으로 crop hash가 바뀌면 release-lock에서 visual diff가 실패하며 baseline 갱신 전 운영자 검수가 필요하다."
   },
   "crops": [
@@ -41,7 +41,7 @@
         "central-table-100__100b",
         "central-table-100__100c"
       ],
-      "sha256": "bdd968541d782fec7a4d5c461d3c9c2c094f230a0e1189b6ac91b93735f5062f"
+      "sha256": "309be55aa297179d15a67491a4acd1202194d15e3f5e8300393eb58f1d3816a6"
     },
     {
       "id": "first-101-109",
@@ -74,7 +74,7 @@
         "first-infield-b-101-108__108",
         "first-infield-a-109-112-201-212__109"
       ],
-      "sha256": "3c3826b1038110927aa574aa29be535dcb220938e074150ff316c081eca999c6"
+      "sha256": "cb58da6d1635e662f18e20ea065ab68708be264bcbe58f10e3fef2a64f99c1a9"
     },
     {
       "id": "first-104-106-detail",
@@ -101,7 +101,7 @@
         "first-infield-b-101-108__105",
         "first-infield-b-101-108__106"
       ],
-      "sha256": "ac223104309ecdff38a88baa3810a97a6437525f63532fb8701761022f6bd055"
+      "sha256": "80050911cd154ae044754427517230e81e72d65c6c722ab4ed87b3d8a2a8adf1"
     },
     {
       "id": "first-107-110-detail",
@@ -128,7 +128,7 @@
         "first-infield-a-109-112-201-212__109",
         "first-infield-a-109-112-201-212__110"
       ],
-      "sha256": "f35518a15d893010353dce99aa55e4702130cf2ad4507db90f5140bb76538f63"
+      "sha256": "f2e78127f8bb02788a82db1a32d3799e4cd6f48500318afbcb19b433311c5d6b"
     },
     {
       "id": "first-109-112-sequence",
@@ -155,7 +155,7 @@
         "first-infield-a-109-112-201-212__111",
         "first-infield-a-109-112-201-212__112"
       ],
-      "sha256": "5e0e75e10183de93301f54a0f1784708192e77358c1b61c35dc974d3b5ebf0d4"
+      "sha256": "fcbcbc3a53a01f27ec120daf0b18aeb416536845e604487c0628bbadb3e3cd80"
     },
     {
       "id": "cass-200-detail",
@@ -179,7 +179,7 @@
       "blocks": [
         "cass-cheering-200__200"
       ],
-      "sha256": "0631a2a9f7433fad80d9d4a290ee93785fd3eafcb667a15f445e1b712f50c929"
+      "sha256": "6ec76b5ed5c91489ad1028b5777bdfa8af855feabd1c3fd82d43a43df30e8438"
     },
     {
       "id": "third-121-124",
@@ -207,7 +207,7 @@
         "third-infield-b-121-124__123",
         "third-infield-b-121-124__124"
       ],
-      "sha256": "4b9494f5ea0e01150bf41536631845af1acb4f34a7c9c3667cb6d63d6ff843ca"
+      "sha256": "3c7b9ecf6906b67340e16c631ef73d6dd9eb24931def7f8fd8f11372433477dd"
     },
     {
       "id": "third-120-122-detail",
@@ -233,7 +233,7 @@
         "third-infield-b-121-124__121",
         "third-infield-b-121-124__122"
       ],
-      "sha256": "8136f7c13536a3ac59098a538a2eb6521723dfccb57be481db11ebf44345eea9"
+      "sha256": "221c4f9c389946e2acd93d3ff3ff97ecb3b0717b99f8f8537fdeb9bda7285fb3"
     },
     {
       "id": "third-119-121-detail",
@@ -259,7 +259,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "be070f700acc00aaf1d4f0b79aaf837d35390e475176f89b29e1cbfff7d3e585"
+      "sha256": "dd2e5893c1c4f79fc2bea455b6f30c6704cd5ccf695bdd0889f4796f75bf1bdb"
     },
     {
       "id": "third-113-120-sequence",
@@ -290,7 +290,7 @@
         "third-infield-a-113-120-213-225__119",
         "third-infield-a-113-120-213-225__120"
       ],
-      "sha256": "a63486be99ccd294a97b2a30dea31068efbb0904db477c82f5818533489e5fff"
+      "sha256": "29f144aee4fea12a63c01c9049117a21d13b6b0692d289c61b041e54de1dabb3"
     },
     {
       "id": "third-113-117-wide",
@@ -318,7 +318,7 @@
         "third-infield-a-113-120-213-225__116",
         "third-infield-a-113-120-213-225__117"
       ],
-      "sha256": "8268992b7c6d02a209ff92180da125e263054e3fcdbc44cb56a698bbe9064d9e"
+      "sha256": "43136f1c79d83c4f74a5b0da57a85bf0ab655391494ad8574dab3558b7aaee56"
     },
     {
       "id": "third-115-117-detail",
@@ -344,7 +344,7 @@
         "third-infield-a-113-120-213-225__116",
         "third-infield-a-113-120-213-225__117"
       ],
-      "sha256": "c96fd346567042bea47b5b2bfcaf69863c2ef2bc95e43ed49381a25d1f58f7ae"
+      "sha256": "668eeca5fafe1fc1d351546cc65d8ab03eacfa8acdd6bc944581e8643185d04b"
     },
     {
       "id": "third-116-121-detail",
@@ -374,7 +374,7 @@
         "third-infield-a-113-120-213-225__120",
         "third-infield-b-121-124__121"
       ],
-      "sha256": "d8772830ffa45ccba5ba42232eec46c5549fd2ff0f01b10b9a0160eac4fef002"
+      "sha256": "822c6fbc5849d481e8c7a229590244246e4e0326acb7606a890b2eb119e429a4"
     },
     {
       "id": "third-113-114-detail",
@@ -400,7 +400,7 @@
         "third-infield-a-113-120-213-225__114",
         "central-table-100__100c"
       ],
-      "sha256": "69b04b7ece3568498ab6ded5d3227eec8ad43b0ccbb8bbc005216cbfebddac24"
+      "sha256": "af8b1dfd58fd76eb41c63d3161277a0c954b4f76eca39ddb476632188aaf4120"
     },
     {
       "id": "third-213-225-sequence",
@@ -436,7 +436,7 @@
         "third-infield-a-113-120-213-225__224",
         "third-infield-a-113-120-213-225__225"
       ],
-      "sha256": "5c175c5e9864dee9245a2f30ed57900715141197be56fed7d2db486ab99d2b3a"
+      "sha256": "28d56a661c0cefe7d934a96e908876874f680c7f0e89973ec6fb810447fcab39"
     },
     {
       "id": "third-221-225-detail",
@@ -464,7 +464,7 @@
         "third-infield-a-113-120-213-225__224",
         "third-infield-a-113-120-213-225__225"
       ],
-      "sha256": "c62e6ea03ac4b81801f7fff87be2087d318fda1f0e5ff1853a8394e1fc6d2686"
+      "sha256": "7884da7c2c4ba76a95c01b379ff59b8693634ae6a81513a27330cea53f9a26a6"
     },
     {
       "id": "third-213-219-detail",
@@ -494,7 +494,7 @@
         "third-infield-a-113-120-213-225__218",
         "third-infield-a-113-120-213-225__219"
       ],
-      "sha256": "868b9d2757128cd68b8f251ced6c995ef06438aae8d5de5fa355b43b2ee0c382"
+      "sha256": "517a5c6d7b80b724722f74d382d63b4200136f49aa29d767b8adf109efb71c8c"
     },
     {
       "id": "first-201-212-sequence",
@@ -529,7 +529,7 @@
         "first-infield-a-109-112-201-212__211",
         "first-infield-a-109-112-201-212__212"
       ],
-      "sha256": "c2107a44f7dc729edb0c34b8339fc215f4d0f61bd7511bd70da014e988ef448f"
+      "sha256": "d2448a4cbd67a2a0a0f23b052ced16b57ac43d709a233ee84aab3c0012c1e431"
     },
     {
       "id": "first-4f-table-301-413-sequence",
@@ -568,7 +568,7 @@
         "first-table-4f-301-413__412",
         "first-table-4f-301-413__413"
       ],
-      "sha256": "fbf3d3e09f47b9648568c8692028e803deab84b6a61064ad13d5ae77fc6a1b06"
+      "sha256": "341dfdc5cc332a246606d6e391e4a993241e4a62f743649dd985bbf0467b8781"
     },
     {
       "id": "third-4f-table-414-330-sequence",
@@ -606,7 +606,7 @@
         "third-table-4f-414-330__329",
         "third-table-4f-414-330__330"
       ],
-      "sha256": "c5ff7f02fb68187ca71e77a05e210ee08642277d30aa43186b8fe6626aa264a9"
+      "sha256": "13838349d832e008d256ad07b9f2c1ad12dfd48bee2340832336f49eabe7270b"
     },
     {
       "id": "outfield-upper-500-509-sequence",
@@ -639,7 +639,7 @@
         "outfield-table-first-504-508__508",
         "outfield-reserved-509__509"
       ],
-      "sha256": "3601eccff6a38a2ab82ca7d29b58b1811af47c4b2313d480a6e44f20504b056d"
+      "sha256": "4a3c48d0d9d224951f337cc7e627600b9d87c1b11e2ec4332e4b4857d04e8f30"
     },
     {
       "id": "skybox-s01-s12-sequence",
@@ -675,7 +675,7 @@
         "skybox-s01-s37__s11",
         "skybox-s01-s37__s12"
       ],
-      "sha256": "2c1c7911db2ea1691ba6e5abe84bd02cc5190163bed4db5d3fbbd6d038f6f7f2"
+      "sha256": "46ca613a7017e30b195259fe361fe512cfe547a581a2a24d674e9be0e61f21fd"
     },
     {
       "id": "skybox-s13-s25-sequence",
@@ -712,21 +712,21 @@
         "skybox-s01-s37__s24",
         "skybox-s01-s37__s25"
       ],
-      "sha256": "038494cbd04ef13bdd7b653794b9ebf447b0449b2fd788bb66f43e6feae5ce28"
+      "sha256": "ef55065b2b136053c176cfe13ef0ec94649de659d33d11ef8a3b4dc9e3946183"
     },
     {
-      "id": "skybox-s26-s37-sequence",
+      "id": "skybox-s26-s31-sequence",
       "group": "skybox",
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "manualOnlyReason": null,
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "crop": {
         "x": 155,
@@ -740,15 +740,9 @@
         "skybox-s01-s37__s28",
         "skybox-s01-s37__s29",
         "skybox-s01-s37__s30",
-        "skybox-s01-s37__s31",
-        "skybox-s01-s37__s32",
-        "skybox-s01-s37__s33",
-        "skybox-s01-s37__s34",
-        "skybox-s01-s37__s35",
-        "skybox-s01-s37__s36",
-        "skybox-s01-s37__s37"
+        "skybox-s01-s37__s31"
       ],
-      "sha256": "3365b4b8780489022da665b968cb7777433203ba987fe7113001b9f90df49373"
+      "sha256": "5a03d86c676f9ef34e2d5cf01c2339208ca0e5330c75cbedd66da2c4a984d7d4"
     },
     {
       "id": "special-400-accessible-first",
@@ -775,7 +769,7 @@
         "innings-vip-400__400",
         "outfield-accessible-first__right-outfield"
       ],
-      "sha256": "bcc737c9609986d1282f7c05be77d89a4c2a63fa83ea3786307deb8a7d76912c"
+      "sha256": "8e021c223956f287fa77ccc452c9512193de797b6691543aa46556426b86208a"
     },
     {
       "id": "special-425-426-third-accessible",
@@ -803,7 +797,7 @@
         "third-infield-accessible__third-infield",
         "outfield-reserved-third-423-330__424"
       ],
-      "sha256": "2cdc925b32842b12d467ed3b99215b4edf9d08dffb1c3392b027757c990b82c4"
+      "sha256": "5e300ea3d94b7c19d67d9f2ebeb3d5af680a7f97f3ac2d5d02b2985d8c98b974"
     },
     {
       "id": "special-accessible-center",
@@ -827,7 +821,7 @@
       "blocks": [
         "central-accessible__center"
       ],
-      "sha256": "67a948b3b93d26a8a614e7c11aaa6c13bebe87d327f896d41566bc27bda3c5e5"
+      "sha256": "226d175c434f0ea2741cbacb0140d3a80ceca9c72dec6d13a2af5dfa791ef72b"
     },
     {
       "id": "special-accessible-outfield-third",
@@ -852,7 +846,7 @@
         "outfield-accessible-third__left-outfield",
         "outfield-table-third-501-503__501"
       ],
-      "sha256": "a071f259e91b063e530ad652c3536144f152da1b35b0a0841b8df918bff34a47"
+      "sha256": "e2121e19b9bb113ed46795edf6eaa8278872c0ff097f1b50febd4913c4e88a99"
     }
   ]
 }

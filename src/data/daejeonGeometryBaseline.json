@@ -1,11 +1,11 @@
 {
   "contract": "DAEJEON_GEOMETRY_BASELINE_V1",
-  "generatedAt": "2026-05-31T11:42:35.717Z",
+  "generatedAt": "2026-06-08T06:59:34.174Z",
   "coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1",
-  "expectedBlockCount": 145,
+  "expectedBlockCount": 139,
   "policy": {
-    "purpose": "대전 공식 PNG overlay block geometry fingerprint baseline",
-    "coordinateSystem": "official PNG 920x1060",
+    "purpose": "대전 공식 이미지 overlay block geometry fingerprint baseline",
+    "coordinateSystem": "official image 920x1060",
     "lockedFields": [
       "imageGeometry.d",
       "imageGeometry.labelX",
@@ -22,10 +22,10 @@
     "note": "좌표/path/trace 계약 변경으로 fingerprint가 바뀌면 release-lock에서 geometry diff가 실패하며 baseline 갱신 전 운영자 검수가 필요하다."
   },
   "summary": {
-    "totalBlocks": 145,
-    "officialImageTraced": 145,
+    "totalBlocks": 139,
+    "officialImageTraced": 139,
     "needsOperatorReview": 0,
-    "selectableBlocks": 145
+    "selectableBlocks": 139
   },
   "blocks": [
     {
@@ -76,7 +76,7 @@
       "parentId": "catcher-back-100",
       "officialBlockLabel": "포수 후면석 100A",
       "officialSectionName": "포수 후면석",
-      "fingerprint": "57d9e21d1b6a13f69db6082bd5bfd49023fe7ec4cb908e94e48d55f807e82787",
+      "fingerprint": "e089c57b749be537968c899a4574a425d0ad5ef0f6c50bfcbcd6345731c5e286",
       "geometry": {
         "id": "catcher-back-100__100a",
         "parentId": "catcher-back-100",
@@ -89,14 +89,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 497 672 L 474 687 L 483 711 L 502 702 L 517 690 L 500 672 Z",
+          "d": "M 472 687 L 500 673 L 519 693 L 484 714 Z",
           "labelX": 494,
           "labelY": 691,
           "shortLabel": "100A",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 497 672 L 474 687 L 483 711 L 502 702 L 517 690 L 500 672 Z"
+        "hitAreaD": "M 472 687 L 500 673 L 519 693 L 484 714 Z"
       },
       "anchorCropIds": [
         "home-100"
@@ -119,7 +119,7 @@
       "parentId": "catcher-back-100",
       "officialBlockLabel": "포수 후면석 100B",
       "officialSectionName": "포수 후면석",
-      "fingerprint": "badec6255fc5f54dfa23d3cce5c25ef24b7c7f725c5f264da095286fc93ff9f3",
+      "fingerprint": "2cbdeecfa8e2de6131b32ef6f67a29e4b99879533ee85e2c7532e964891f23b9",
       "geometry": {
         "id": "catcher-back-100__100b",
         "parentId": "catcher-back-100",
@@ -132,14 +132,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 415 690 L 406 711 L 421 717 L 439 719 L 475 714 L 470 696 L 465 690 Z",
+          "d": "M 431 696 L 449 696 L 468 688 L 477 714 L 462 717 L 431 720 L 409 716 L 416 691 Z",
           "labelX": 441,
           "labelY": 705,
           "shortLabel": "100B",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 415 690 L 406 711 L 421 717 L 439 719 L 475 714 L 470 696 L 465 690 Z"
+        "hitAreaD": "M 431 696 L 449 696 L 468 688 L 477 714 L 462 717 L 431 720 L 409 716 L 416 691 Z"
       },
       "anchorCropIds": [
         "home-100"
@@ -162,7 +162,7 @@
       "parentId": "catcher-back-100",
       "officialBlockLabel": "포수 후면석 100C",
       "officialSectionName": "포수 후면석",
-      "fingerprint": "d087c7e29acfdf2a64e207a126f01efd9e248ccaa4992724ed666d8ed6cc7f9f",
+      "fingerprint": "8c0b5810dd08d8924d54f327b8a3c588c535ae8c99b82c595852891558942b8e",
       "geometry": {
         "id": "catcher-back-100__100c",
         "parentId": "catcher-back-100",
@@ -175,14 +175,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 382 672 L 364 690 L 397 710 L 401 708 L 407 687 L 384 672 Z",
+          "d": "M 410 690 L 400 713 L 364 693 L 380 673 Z",
           "labelX": 388,
           "labelY": 691,
           "shortLabel": "100C",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 382 672 L 364 690 L 397 710 L 401 708 L 407 687 L 384 672 Z"
+        "hitAreaD": "M 410 690 L 400 713 L 364 693 L 380 673 Z"
       },
       "anchorCropIds": [
         "home-100"
@@ -376,7 +376,7 @@
       "parentId": "central-table-100",
       "officialBlockLabel": "중앙 탁자석 100A",
       "officialSectionName": "중앙 탁자석",
-      "fingerprint": "46ceccac255744f16d455ecfbd6277b2591dde406dce8e7522bbb49216558561",
+      "fingerprint": "c0372bec1ab8f7bb47c250010ae84de20ff75612c1fb55fd72c97c9b9e09b26c",
       "geometry": {
         "id": "central-table-100__100a",
         "parentId": "central-table-100",
@@ -389,14 +389,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 521 693 L 484 717 L 507 777 L 530 765 L 533 759 L 553 753 L 567 741 L 521 693 Z",
+          "d": "M 486 718 L 522 697 L 572 747 L 508 785 Z",
           "labelX": 522,
           "labelY": 735,
           "shortLabel": "100A",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 521 693 L 484 717 L 507 777 L 530 765 L 533 759 L 553 753 L 567 741 L 521 693 Z"
+        "hitAreaD": "M 486 718 L 522 697 L 572 747 L 508 785 Z"
       },
       "anchorCropIds": [
         "home-100"
@@ -419,7 +419,7 @@
       "parentId": "central-table-100",
       "officialBlockLabel": "중앙 탁자석 100B",
       "officialSectionName": "중앙 탁자석",
-      "fingerprint": "e41cadf1276cf521e6a4fa4dcc986d9d67faae88620f9f2b9f1b418781b26e5e",
+      "fingerprint": "a5deb8eda4adc4a00c6ef2e1247b7d6a0c830c8589aa2a392e35add522d9a245",
       "geometry": {
         "id": "central-table-100__100b",
         "parentId": "central-table-100",
@@ -432,14 +432,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 405 717 L 384 780 L 425 791 L 464 789 L 500 780 L 479 720 L 405 717 Z",
+          "d": "M 404 720 L 414 723 L 448 726 L 480 722 L 503 788 L 467 798 L 420 798 L 380 788 Z",
           "labelX": 441,
           "labelY": 757,
           "shortLabel": "100B",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 405 717 L 384 780 L 425 791 L 464 789 L 500 780 L 479 720 L 405 717 Z"
+        "hitAreaD": "M 404 720 L 414 723 L 448 726 L 480 722 L 503 788 L 467 798 L 420 798 L 380 788 Z"
       },
       "anchorCropIds": [
         "home-100"
@@ -462,7 +462,7 @@
       "parentId": "central-table-100",
       "officialBlockLabel": "중앙 탁자석 100C",
       "officialSectionName": "중앙 탁자석",
-      "fingerprint": "c1c1a8d0a0f6ef9971e690d3bc367c88f09b4fa166c18bbc6e0635b65054e4c8",
+      "fingerprint": "35d8ef08fa88214a3d1865d578654ac2c1d7c30902ba557d279be2b5c0f099e7",
       "geometry": {
         "id": "central-table-100__100c",
         "parentId": "central-table-100",
@@ -475,14 +475,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 360 694 L 316 739 L 374 776 L 385 754 L 397 715 L 360 694 Z",
+          "d": "M 360 700 L 400 719 L 374 785 L 312 748 Z",
           "labelX": 361,
           "labelY": 735,
           "shortLabel": "100C",
           "labelFontSize": 9,
           "labelRotate": null
         },
-        "hitAreaD": "M 360 694 L 316 739 L 374 776 L 385 754 L 397 715 L 360 694 Z"
+        "hitAreaD": "M 360 700 L 400 719 L 374 785 L 312 748 Z"
       },
       "anchorCropIds": [
         "home-100",
@@ -509,7 +509,7 @@
       "parentId": "first-infield-a-109-112-201-212",
       "officialBlockLabel": "내야 지정석A 109",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "7dec64c9260cba22bb4f6c77435df2cd68e3ed44fead02824da090b9a12f7a80",
+      "fingerprint": "c3dcf68aedf4007591c013e15ae65de8c0912187a0b49c64e812e64699c0d071",
       "geometry": {
         "id": "first-infield-a-109-112-201-212__109",
         "parentId": "first-infield-a-109-112-201-212",
@@ -522,14 +522,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 564 599 L 579 583 L 653 635 L 635 656 Z",
+          "d": "M 580 584 L 659 640 L 644 662 L 565 596 Z",
           "labelX": 610,
           "labelY": 626,
           "shortLabel": "109",
           "labelFontSize": 9,
           "labelRotate": -23
         },
-        "hitAreaD": "M 564 599 L 579 583 L 653 635 L 635 656 Z"
+        "hitAreaD": "M 580 584 L 659 640 L 644 662 L 565 596 Z"
       },
       "anchorCropIds": [
         "first-101-109",
@@ -560,7 +560,7 @@
       "parentId": "first-infield-a-109-112-201-212",
       "officialBlockLabel": "내야 지정석A 110",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "f4af2e6fe9c407f19b18f82ff919e96079eb43dc35095de80512be514e731147",
+      "fingerprint": "d148586e7c549b6315b2d43461fa5c95e0116af8051b9528c87a9e4a8a90706e",
       "geometry": {
         "id": "first-infield-a-109-112-201-212__110",
         "parentId": "first-infield-a-109-112-201-212",
@@ -573,14 +573,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 561 602 L 637 665 L 617 687 L 542 625 Z",
+          "d": "M 563 605 L 635 666 L 619 688 L 543 624 Z",
           "labelX": 589.1,
           "labelY": 644.6,
           "shortLabel": "110",
           "labelFontSize": 9,
           "labelRotate": -27
         },
-        "hitAreaD": "M 561 602 L 637 665 L 617 687 L 542 625 Z"
+        "hitAreaD": "M 563 605 L 635 666 L 619 688 L 543 624 Z"
       },
       "anchorCropIds": [
         "first-107-110-detail",
@@ -606,7 +606,7 @@
       "parentId": "first-infield-a-109-112-201-212",
       "officialBlockLabel": "내야 지정석A 111",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "3cd237a8f8f49105a9fef56ae614189f9c2cd97bb3c3fc549fcf24d5c8bbc564",
+      "fingerprint": "1e57ccc6b5d5b4b35678fdcfc2db55e502a5c643b952c38098652c8fd9ba0aaf",
       "geometry": {
         "id": "first-infield-a-109-112-201-212__111",
         "parentId": "first-infield-a-109-112-201-212",
@@ -619,14 +619,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 539 628 L 608 686 L 588 709 L 520 652 Z",
+          "d": "M 615 691 L 596 712 L 522 650 L 540 630 Z",
           "labelX": 563.4,
           "labelY": 668.1,
           "shortLabel": "111",
           "labelFontSize": 9,
           "labelRotate": -31
         },
-        "hitAreaD": "M 539 628 L 608 686 L 588 709 L 520 652 Z"
+        "hitAreaD": "M 615 691 L 596 712 L 522 650 L 540 630 Z"
       },
       "anchorCropIds": [
         "first-109-112-sequence"
@@ -648,7 +648,7 @@
       "parentId": "first-infield-a-109-112-201-212",
       "officialBlockLabel": "내야 지정석A 112",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "eed71f446bb0540a59115c82364704f9285843c28a199247ad7c7c687ad2190b",
+      "fingerprint": "20c4405013ea2f5759d68673f9a0b685fad634c9c11fe1273bbf33f00152570e",
       "geometry": {
         "id": "first-infield-a-109-112-201-212__112",
         "parentId": "first-infield-a-109-112-201-212",
@@ -661,14 +661,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 517 655 L 590 718 L 573 737 L 505 667 Z",
+          "d": "M 518 658 L 590 718 L 577 737 L 505 666 Z",
           "labelX": 548.9,
           "labelY": 696.5,
           "shortLabel": "112",
           "labelFontSize": 9,
           "labelRotate": -35
         },
-        "hitAreaD": "M 517 655 L 590 718 L 573 737 L 505 667 Z"
+        "hitAreaD": "M 518 658 L 590 718 L 577 737 L 505 666 Z"
       },
       "anchorCropIds": [
         "first-109-112-sequence"
@@ -1194,7 +1194,7 @@
       "parentId": "first-infield-accessible",
       "officialBlockLabel": "내야 휠체어석 1루",
       "officialSectionName": "내야 휠체어석",
-      "fingerprint": "fcae4de53e95fa7f3cf8d95da6591a66a69b31bef9d56d1c17a7a8a10f69b3bc",
+      "fingerprint": "fadfb373d2505e04475a654e659743ebbea69335ef3fffff8c487589dc32bf71",
       "geometry": {
         "id": "first-infield-accessible__first-infield",
         "parentId": "first-infield-accessible",
@@ -1207,14 +1207,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 690 583 L 725 570 L 736 607 L 704 625 Z",
-          "labelX": 713,
-          "labelY": 598,
+          "d": "M 712 583 L 722 584 L 729 592 L 727 603 L 720 612 L 710 611 L 706 604 L 707 593 Z",
+          "labelX": 717,
+          "labelY": 599,
           "shortLabel": "휠체어",
-          "labelFontSize": 10,
+          "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 690 583 L 725 570 L 736 607 L 704 625 Z"
+        "hitAreaD": "M 712 583 L 722 584 L 729 592 L 727 603 L 720 612 L 710 611 L 706 604 L 707 593 Z"
       },
       "anchorCropIds": [
         "special-400-accessible-first"
@@ -1413,7 +1413,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 105",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "7c50cf20ec89ca64753dd1b158b60208edd2fc8f52d9ab88b3781141b395e35b",
+      "fingerprint": "08db4112792175000b005f4db4eef20fecf7c55560eee8fb330a12e376c4d178",
       "geometry": {
         "id": "first-infield-b-101-108__105",
         "parentId": "first-infield-b-101-108",
@@ -1426,14 +1426,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 613 486 L 614 483 L 616 478 L 623 469 L 717 506 L 718 507 L 715 514 L 711 523 L 708 529 L 706 530 L 703 529 L 685 521 L 618 491 L 614 489 L 613 487 Z",
+          "d": "M 673 476 L 667 485 L 718 507 L 709 531 L 612 491 L 620 469 Z",
           "labelX": 665,
           "labelY": 500,
           "shortLabel": "105",
           "labelFontSize": 9,
           "labelRotate": -18
         },
-        "hitAreaD": "M 613 486 L 614 483 L 616 478 L 623 469 L 717 506 L 718 507 L 715 514 L 711 523 L 708 529 L 706 530 L 703 529 L 685 521 L 618 491 L 614 489 L 613 487 Z"
+        "hitAreaD": "M 673 476 L 667 485 L 718 507 L 709 531 L 612 491 L 620 469 Z"
       },
       "anchorCropIds": [
         "first-101-109",
@@ -1460,7 +1460,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 106",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "c7f3e897cd47e25d9040398f83a6ba863192a393db7cc942eea8dd99a6577bed",
+      "fingerprint": "064c134b6011d65f665dbbd09538a846908edda694a2460aaa038dd689f79ca6",
       "geometry": {
         "id": "first-infield-b-101-108__106",
         "parentId": "first-infield-b-101-108",
@@ -1473,14 +1473,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 596 520 L 609 494 L 610 493 L 700 533 L 704 535 L 705 537 L 693 564 L 692 565 L 683 561 L 611 528 L 598 522 L 596 521 Z",
+          "d": "M 708 535 L 693 566 L 598 522 L 610 494 Z",
           "labelX": 650,
           "labelY": 528,
           "shortLabel": "106",
           "labelFontSize": 9,
           "labelRotate": -18
         },
-        "hitAreaD": "M 596 520 L 609 494 L 610 493 L 700 533 L 704 535 L 705 537 L 693 564 L 692 565 L 683 561 L 611 528 L 598 522 L 596 521 Z"
+        "hitAreaD": "M 708 535 L 693 566 L 598 522 L 610 494 Z"
       },
       "anchorCropIds": [
         "first-101-109",
@@ -1507,7 +1507,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 107",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "7cef8c99beb9e4911a956c87eb3bb2ed3c6c97939ccc92603d4f5ff4d323e66d",
+      "fingerprint": "267c0e94cb4f1686c8329e2bd9035b5c2eca45a167a870a7796dd4c66932026b",
       "geometry": {
         "id": "first-infield-b-101-108__107",
         "parentId": "first-infield-b-101-108",
@@ -1520,14 +1520,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 580 551 L 591 529 L 594 526 L 658 555 L 684 567 L 672 593 L 664 590 L 580 552 Z",
+          "d": "M 592 525 L 690 572 L 679 596 L 581 551 Z",
           "labelX": 631,
           "labelY": 559,
           "shortLabel": "107",
           "labelFontSize": 9,
           "labelRotate": -19
         },
-        "hitAreaD": "M 580 551 L 591 529 L 594 526 L 658 555 L 684 567 L 672 593 L 664 590 L 580 552 Z"
+        "hitAreaD": "M 592 525 L 690 572 L 679 596 L 581 551 Z"
       },
       "anchorCropIds": [
         "first-101-109",
@@ -1554,7 +1554,7 @@
       "parentId": "first-infield-b-101-108",
       "officialBlockLabel": "내야 지정석B 108",
       "officialSectionName": "내야 지정석B",
-      "fingerprint": "1c4bd73620270bc3f5f966185f6b4540c781ef272da881e794e38f831acd5bae",
+      "fingerprint": "5e08effcdf783cec8894ca3b2a44bb883a801310ff54022df97ca2f0d0d78265",
       "geometry": {
         "id": "first-infield-b-101-108__108",
         "parentId": "first-infield-b-101-108",
@@ -1567,14 +1567,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 571 568 L 576 559 L 579 557 L 659 593 L 676 601 L 666 625 L 661 633 L 642 620 L 583 579 Z",
+          "d": "M 579 556 L 677 603 L 662 634 L 571 572 Z",
           "labelX": 627,
           "labelY": 594,
           "shortLabel": "108",
           "labelFontSize": 9,
           "labelRotate": -22
         },
-        "hitAreaD": "M 571 568 L 576 559 L 579 557 L 659 593 L 676 601 L 666 625 L 661 633 L 642 620 L 583 579 Z"
+        "hitAreaD": "M 579 556 L 677 603 L 662 634 L 571 572 Z"
       },
       "anchorCropIds": [
         "first-101-109",
@@ -1601,7 +1601,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 301",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "079f531f4f4fd6ca6e367135f630ff11cdfd81ac1fac10e8fe5d99bc09d648b0",
+      "fingerprint": "06287bacb5c4804daccd48a556f5892d3368e2849b839f9ff26efde85ee26099",
       "geometry": {
         "id": "first-table-4f-301-413__301",
         "parentId": "first-table-4f-301-413",
@@ -1614,14 +1614,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 767 467 L 784 456 L 791 454 L 793 487 L 782 487 L 768 478 Z",
-          "labelX": 782,
-          "labelY": 469,
+          "d": "M 778 459 L 782 485 L 799 483 L 797 452 Z",
+          "labelX": 789,
+          "labelY": 469.8,
           "shortLabel": "301",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 767 467 L 784 456 L 791 454 L 793 487 L 782 487 L 768 478 Z"
+        "hitAreaD": "M 775.1 456.2 L 780.3 488.6 L 801.4 486.2 L 798.6 448.4 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1644,7 +1644,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 302",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "1aa033893ba55e2186e0a5e35475135354a3d062568f6543fec38933d072b7d2",
+      "fingerprint": "8e163cc14505d836c5ac81d6222f87ba82583c5f3171bdb0e309e1fbfea15d19",
       "geometry": {
         "id": "first-table-4f-301-413__302",
         "parentId": "first-table-4f-301-413",
@@ -1657,14 +1657,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 780 491 L 796 491 L 795 500 L 791 508 L 776 501 Z",
-          "labelX": 786.4,
-          "labelY": 499.1,
+          "d": "M 801 487 L 793 507 L 778 503 L 782 487 Z",
+          "labelX": 788.5,
+          "labelY": 496,
           "shortLabel": "302",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 780 491 L 796 491 L 795 500 L 791 508 L 776 501 Z"
+        "hitAreaD": "M 803.4 485.2 L 794.1 509.8 L 775.5 504.7 L 780.2 484.6 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1687,7 +1687,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 401",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "860cad47cd994ad99d590b5db5ceece6601adb7ee000e41951bc452b482164a1",
+      "fingerprint": "d969e579550b243d24151ce1438172fbb47c44d3ace2ce60544cb17b94b0d859",
       "geometry": {
         "id": "first-table-4f-301-413__401",
         "parentId": "first-table-4f-301-413",
@@ -1700,14 +1700,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 810 476 L 823 472 L 826 477 L 827 485 L 810 484 Z",
-          "labelX": 817,
-          "labelY": 475,
+          "d": "M 825 464 L 825 483 L 810 485 L 809 466 Z",
+          "labelX": 817.3,
+          "labelY": 474.5,
           "shortLabel": "401",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 810 476 L 823 472 L 826 477 L 827 485 L 810 484 Z"
+        "hitAreaD": "M 825 464 L 825 483 L 810 485 L 809 466 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1730,7 +1730,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 402",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "527d09144cefd6dd04054ebcd34e36b3116e942265eb99dc9b8e1ebb3c7b598a",
+      "fingerprint": "55ee6b8db5bd1521295ce057783e19b9da9344e30ce1ed8e69a8b4d46c399656",
       "geometry": {
         "id": "first-table-4f-301-413__402",
         "parentId": "first-table-4f-301-413",
@@ -1743,14 +1743,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 797 518 L 802 508 L 818 503 L 816 514 L 812 522 Z",
-          "labelX": 811,
-          "labelY": 515,
+          "d": "M 826 489 L 814 522 L 800 519 L 810 489 Z",
+          "labelX": 812.5,
+          "labelY": 504.8,
           "shortLabel": "402",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 797 518 L 802 508 L 818 503 L 816 514 L 812 522 Z"
+        "hitAreaD": "M 826 489 L 814 522 L 800 519 L 810 489 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1773,7 +1773,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 403",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "5bd593e8b7b3db2e50d8e4b1163f20366b1889b2de74ef631ba82f23ef34a7df",
+      "fingerprint": "9ca47799bd8c9d7e03f579410d4c5628a646b39744bd6e9194473407872ddbca",
       "geometry": {
         "id": "first-table-4f-301-413__403",
         "parentId": "first-table-4f-301-413",
@@ -1786,14 +1786,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 786 534 L 811 536 L 798 568 L 772 563 Z",
-          "labelX": 785,
-          "labelY": 552,
+          "d": "M 810 528 L 793 565 L 780 559 L 794 524 Z",
+          "labelX": 794.3,
+          "labelY": 544,
           "shortLabel": "403",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 786 534 L 811 536 L 798 568 L 772 563 Z"
+        "hitAreaD": "M 810 528 L 793 565 L 780 559 L 794 524 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1816,7 +1816,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 404",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "f93e64652db01509e68eeb7fd3ccc66db09878c395e9b6f70ca0dadc4c15e0b8",
+      "fingerprint": "6e9417fe325d1c9c4ceced042c77bf27d62264a04bc0f51a70b4f0185d1abef4",
       "geometry": {
         "id": "first-table-4f-301-413__404",
         "parentId": "first-table-4f-301-413",
@@ -1829,14 +1829,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 764 569 L 788 574 L 774 622 L 747 613 Z",
-          "labelX": 765,
-          "labelY": 596,
+          "d": "M 794 570 L 777 604 L 761 600 L 775 563 Z",
+          "labelX": 776.8,
+          "labelY": 584.3,
           "shortLabel": "404",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 764 569 L 788 574 L 774 622 L 747 613 Z"
+        "hitAreaD": "M 794 570 L 777 604 L 761 600 L 775 563 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1859,7 +1859,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 405",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "9f72833eb0ea9ce5e4cb0873d5e70f40472ca5a199c3027412c640f96f0ff612",
+      "fingerprint": "6c2265e1eedeca54a006bbbc9a4d409919c12d9b4a52446a9c84dd8aa38138d0",
       "geometry": {
         "id": "first-table-4f-301-413__405",
         "parentId": "first-table-4f-301-413",
@@ -1872,14 +1872,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 751 620 L 768 623 L 800 637 L 793 656 L 776 658 L 737 653 Z",
-          "labelX": 744,
-          "labelY": 640,
+          "d": "M 775 611 L 766 625 L 800 639 L 793 657 L 745 637 L 759 606 Z",
+          "labelX": 773,
+          "labelY": 629.2,
           "shortLabel": "405",
           "labelFontSize": 6,
           "labelRotate": null
         },
-        "hitAreaD": "M 751 620 L 768 623 L 800 637 L 793 656 L 776 658 L 737 653 Z"
+        "hitAreaD": "M 775 611 L 766 625 L 800 639 L 793 657 L 745 637 L 759 606 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1902,7 +1902,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 406",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "c815cf0c308d54fa56990476444891a8bda9f168851365a40fed98204d8902b6",
+      "fingerprint": "17dff7d7cdf9eeb3ea69c26b2592e9ad6d5625e4d6575c162869f7f69c943589",
       "geometry": {
         "id": "first-table-4f-301-413__406",
         "parentId": "first-table-4f-301-413",
@@ -1915,14 +1915,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 743 643 L 792 663 L 777 701 L 726 677 Z",
-          "labelX": 735,
-          "labelY": 675,
+          "d": "M 791 662 L 775 698 L 731 676 L 741 644 Z",
+          "labelX": 759.5,
+          "labelY": 670,
           "shortLabel": "406",
           "labelFontSize": 6,
           "labelRotate": -18
         },
-        "hitAreaD": "M 743 643 L 792 663 L 777 701 L 726 677 Z"
+        "hitAreaD": "M 791 662 L 775 698 L 731 676 L 741 644 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1945,7 +1945,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 407",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "8cb85c7247fe48cbe10e3277ae30c32b8ecc9aea42af4649b3ad16e2a393f823",
+      "fingerprint": "cef41ebe8188ae61d9a682763eae8273d75b4cf451c73ba6a24710e9219a2493",
       "geometry": {
         "id": "first-table-4f-301-413__407",
         "parentId": "first-table-4f-301-413",
@@ -1958,14 +1958,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 723 679 L 774 705 L 746 735 L 702 704 Z",
-          "labelX": 715,
-          "labelY": 710,
+          "d": "M 725 682 L 773 707 L 745 735 L 704 701 Z",
+          "labelX": 736.8,
+          "labelY": 706.3,
           "shortLabel": "407",
           "labelFontSize": 6,
           "labelRotate": -22
         },
-        "hitAreaD": "M 723 679 L 774 705 L 746 735 L 702 704 Z"
+        "hitAreaD": "M 725 682 L 773 707 L 745 735 L 704 701 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -1988,7 +1988,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 408",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "791e601aff8f49c7c0735580150602a3d7ce6f85378b82cc6d524bf7576b5151",
+      "fingerprint": "c468755c7d320117db5557529c6ba4b844fe61875d3bc6dbb1569b5f72e23f9b",
       "geometry": {
         "id": "first-table-4f-301-413__408",
         "parentId": "first-table-4f-301-413",
@@ -2001,14 +2001,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 676 733 L 700 707 L 744 739 L 721 765 Z",
-          "labelX": 690,
+          "d": "M 699 708 L 743 738 L 722 763 L 678 731 Z",
+          "labelX": 710.5,
           "labelY": 735,
           "shortLabel": "408",
           "labelFontSize": 6,
           "labelRotate": -30
         },
-        "hitAreaD": "M 676 733 L 700 707 L 744 739 L 721 765 Z"
+        "hitAreaD": "M 699 708 L 743 738 L 722 763 L 678 731 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2031,7 +2031,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 409",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "efbd7f2306f0dfdbe0413339e242df44e944009f5a5d5d693828719f22bfdc6a",
+      "fingerprint": "027312e4ee4517633750ed8883b095a57fcf20d1de2b938f6f45cbc1aab6c154",
       "geometry": {
         "id": "first-table-4f-301-413__409",
         "parentId": "first-table-4f-301-413",
@@ -2044,14 +2044,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 649 765 L 674 736 L 718 769 L 694 796 Z",
-          "labelX": 665,
-          "labelY": 775,
+          "d": "M 674 738 L 718 770 L 695 795 L 651 765 Z",
+          "labelX": 684.5,
+          "labelY": 767,
           "shortLabel": "409",
           "labelFontSize": 6,
           "labelRotate": -34
         },
-        "hitAreaD": "M 649 765 L 674 736 L 718 769 L 694 796 Z"
+        "hitAreaD": "M 674 738 L 718 770 L 695 795 L 651 765 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2074,7 +2074,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 410",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "46c8048d314a0f4e8de4356130aeccfa4020b6e48c9ba1cdf6ee1ff119ee4ac7",
+      "fingerprint": "ca5e91c64251904919d712a1d62e8902fff8fa6417bd6435ae00be15f80d7e27",
       "geometry": {
         "id": "first-table-4f-301-413__410",
         "parentId": "first-table-4f-301-413",
@@ -2087,14 +2087,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 624 794 L 647 768 L 692 800 L 666 828 Z",
-          "labelX": 630,
-          "labelY": 790,
+          "d": "M 647 770 L 690 802 L 667 827 L 624 793 Z",
+          "labelX": 657,
+          "labelY": 798,
           "shortLabel": "410",
           "labelFontSize": 6,
           "labelRotate": -38
         },
-        "hitAreaD": "M 624 794 L 647 768 L 692 800 L 666 828 Z"
+        "hitAreaD": "M 647 770 L 690 802 L 667 827 L 624 793 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2117,7 +2117,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 411",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "92e3a8e3ebf4caf0ae1e7e00e9d393345f7079a55ba86b14d9a2d244c890a9d9",
+      "fingerprint": "adee58645d4b3d106d0f8a69a3c0ad078ad7fa22f72554d88c50007319577b29",
       "geometry": {
         "id": "first-table-4f-301-413__411",
         "parentId": "first-table-4f-301-413",
@@ -2130,14 +2130,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 594 818 L 621 797 L 665 832 L 635 864 Z",
-          "labelX": 605.9,
-          "labelY": 811.7,
+          "d": "M 598 816 L 621 800 L 665 832 L 635 864 Z",
+          "labelX": 629.8,
+          "labelY": 828,
           "shortLabel": "411",
           "labelFontSize": 6,
           "labelRotate": -42
         },
-        "hitAreaD": "M 594 818 L 621 797 L 665 832 L 635 864 Z"
+        "hitAreaD": "M 598 816 L 621 800 L 665 832 L 635 864 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2160,7 +2160,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 412",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "6fdeb0d627f9cc23b52a43dee6e2f538ee09dce4b0f51e0dbb1a3f20ca2408b4",
+      "fingerprint": "40f18d721bb2c18fece2e1de8365b4fa2c1589caf50ce15f3dab5442c0dd91ae",
       "geometry": {
         "id": "first-table-4f-301-413__412",
         "parentId": "first-table-4f-301-413",
@@ -2173,14 +2173,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 591 820 L 633 867 L 598 890 L 564 838 Z",
-          "labelX": 583,
-          "labelY": 831.8,
+          "d": "M 591 822 L 631 868 L 598 889 L 566 836 Z",
+          "labelX": 596.5,
+          "labelY": 853.8,
           "shortLabel": "412",
           "labelFontSize": 6,
           "labelRotate": -42
         },
-        "hitAreaD": "M 591 820 L 633 867 L 598 890 L 564 838 Z"
+        "hitAreaD": "M 591 822 L 631 868 L 598 889 L 566 836 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2203,7 +2203,7 @@
       "parentId": "first-table-4f-301-413",
       "officialBlockLabel": "내야 탁자석(4층) 413",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "8879611e2f78714105e0c36e40d95197768cf4d9c293a1050d055d16a88b03c0",
+      "fingerprint": "15d991422df791b63086aed7154c6e0eaf50c8b62d7cc9ff8188b4844520ab42",
       "geometry": {
         "id": "first-table-4f-301-413__413",
         "parentId": "first-table-4f-301-413",
@@ -2216,14 +2216,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 560 839 L 594 892 L 550 911 L 525 855 Z",
-          "labelX": 560,
-          "labelY": 852,
+          "d": "M 527 854 L 559 841 L 594 894 L 554 912 Z",
+          "labelX": 558.5,
+          "labelY": 875.3,
           "shortLabel": "413",
           "labelFontSize": 6,
           "labelRotate": -42
         },
-        "hitAreaD": "M 560 839 L 594 892 L 550 911 L 525 855 Z"
+        "hitAreaD": "M 527 854 L 559 841 L 594 894 L 554 912 Z"
       },
       "anchorCropIds": [
         "first-4f-table-301-413-sequence"
@@ -2246,7 +2246,7 @@
       "parentId": "innings-vip-400",
       "officialBlockLabel": "이닝스 VIP 바 & 룸/테라스 400",
       "officialSectionName": "이닝스 VIP 바 & 룸/테라스",
-      "fingerprint": "f202c6132e0d2902437fdc3fe52abf001c6fb24a7c80645736fa0ac7e2226b8c",
+      "fingerprint": "1a1730efa402d22df083c991f238f569598d9932a1af98f49db6beb282529eb8",
       "geometry": {
         "id": "innings-vip-400__400",
         "parentId": "innings-vip-400",
@@ -2259,14 +2259,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 826 503 L 855 509 L 807 616 L 781 608 Z",
-          "labelX": 814,
+          "d": "M 828 503 L 782 609 L 809 618 L 856 510 Z",
+          "labelX": 818.8,
           "labelY": 560,
           "shortLabel": "400",
           "labelFontSize": 8,
           "labelRotate": -77
         },
-        "hitAreaD": "M 826 503 L 855 509 L 807 616 L 781 608 Z"
+        "hitAreaD": "M 828 503 L 782 609 L 809 618 L 856 510 Z"
       },
       "anchorCropIds": [
         "special-400-accessible-first"
@@ -2289,7 +2289,7 @@
       "parentId": "outfield-accessible-first",
       "officialBlockLabel": "외야 휠체어석 우측",
       "officialSectionName": "외야 휠체어석",
-      "fingerprint": "a3905b3d2bbb2d685a31931f1858104c37c9fdfdf402cd5dd711a81ed2bf2f07",
+      "fingerprint": "eaf0627db298e1ff075703a85170af607d8b9924d26cb5434d938dc550f93493",
       "geometry": {
         "id": "outfield-accessible-first__right-outfield",
         "parentId": "outfield-accessible-first",
@@ -2302,14 +2302,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 803 425 L 832 419 L 840 450 L 811 459 Z",
-          "labelX": 821,
-          "labelY": 440,
+          "d": "M 819 420 L 823 457 L 807 460 L 803 421 Z",
+          "labelX": 813,
+          "labelY": 439.5,
           "shortLabel": "휠체어",
           "labelFontSize": 10,
           "labelRotate": -12
         },
-        "hitAreaD": "M 803 425 L 832 419 L 840 450 L 811 459 Z"
+        "hitAreaD": "M 819 420 L 823 457 L 807 460 L 803 421 Z"
       },
       "anchorCropIds": [
         "special-400-accessible-first"
@@ -2458,7 +2458,7 @@
       "parentId": "outfield-reserved-third-423-330",
       "officialBlockLabel": "외야지정석 424",
       "officialSectionName": "외야지정석",
-      "fingerprint": "1bd24e390a11123783e5d7d16dfe759dd5cc923273924f90b0910ba0d3bea0d7",
+      "fingerprint": "b79959d4961b5399d387a022134f7dbcb482dc764422b425ed98c043c49fc0ce",
       "geometry": {
         "id": "outfield-reserved-third-423-330__424",
         "parentId": "outfield-reserved-third-423-330",
@@ -2471,14 +2471,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 146 685 L 147 684 L 151 681 L 157 677 L 158 677 L 164 683 L 173 693 L 180 701 L 180 703 L 179 704 L 169 712 L 164 707 L 148 689 L 146 686 Z",
-          "labelX": 164,
-          "labelY": 696,
+          "d": "M 158 678 L 180 701 L 169 712 L 146 687 Z",
+          "labelX": 163.3,
+          "labelY": 694.5,
           "shortLabel": "424",
           "labelFontSize": 7,
           "labelRotate": 55
         },
-        "hitAreaD": "M 146 685 L 147 684 L 151 681 L 157 677 L 158 677 L 164 683 L 173 693 L 180 701 L 180 703 L 179 704 L 169 712 L 164 707 L 148 689 L 146 686 Z"
+        "hitAreaD": "M 158 678 L 180 701 L 169 712 L 146 687 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -2841,7 +2841,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S01",
       "officialSectionName": "스카이박스",
-      "fingerprint": "08f856e212423ba5bfeacfcf7b62d7f8dac475a22d6112ce6b1775f81ef109d1",
+      "fingerprint": "21f1b7d7b356e2d3695e1ce63966f811da19b12f15998d3c67fad446b588a82b",
       "geometry": {
         "id": "skybox-s01-s37__s01",
         "parentId": "skybox-s01-s37",
@@ -2854,14 +2854,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 764 533 L 771 527 L 779 533 L 777 535 L 766 535 Z",
-          "labelX": 772,
-          "labelY": 531,
+          "d": "M 775 508 L 789 514 L 781 527 L 767 521 Z",
+          "labelX": 778,
+          "labelY": 517.5,
           "shortLabel": "S01",
           "labelFontSize": 6,
           "labelRotate": 198
         },
-        "hitAreaD": "M 764 533 L 771 527 L 779 533 L 777 535 L 766 535 Z"
+        "hitAreaD": "M 773.8 504.2 L 792.8 512.8 L 782.2 530.8 L 763.2 522.2 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -2884,7 +2884,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S02",
       "officialSectionName": "스카이박스",
-      "fingerprint": "71782bd9517a59c5536eaaa3033146239f4b43d02ba76de511e10f476785bbe9",
+      "fingerprint": "f302ba3845e41b5e910265643c657e6f71e3525f3a59c7ec710afb8f851a2c40",
       "geometry": {
         "id": "skybox-s01-s37__s02",
         "parentId": "skybox-s01-s37",
@@ -2897,14 +2897,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 760 542 L 774 544 L 768 550 L 761 547 Z",
-          "labelX": 767,
-          "labelY": 546,
+          "d": "M 767 527 L 779 533 L 771 549 L 760 545 Z",
+          "labelX": 769.3,
+          "labelY": 538.5,
           "shortLabel": "S02",
           "labelFontSize": 6,
           "labelRotate": 198
         },
-        "hitAreaD": "M 760 542 L 774 544 L 768 550 L 761 547 Z"
+        "hitAreaD": "M 766.2 523.1 L 782.5 531 L 771.6 552.9 L 756.7 547.3 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -2927,7 +2927,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S03",
       "officialSectionName": "스카이박스",
-      "fingerprint": "a88c70a9641b7009b0827e0ddf4183dcd6df4acbda6a8deb76bd3a1939243268",
+      "fingerprint": "4f3561436c72c87635454e63917997376eae41558a5e34a101b5b16c5a457b20",
       "geometry": {
         "id": "skybox-s01-s37__s03",
         "parentId": "skybox-s01-s37",
@@ -2940,14 +2940,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 754 556 L 756 551 L 767 554 L 768 557 L 755 558 Z",
-          "labelX": 761,
-          "labelY": 554,
+          "d": "M 756 550 L 769 554 L 760 574 L 746 568 Z",
+          "labelX": 757.8,
+          "labelY": 561.5,
           "shortLabel": "S03",
           "labelFontSize": 6,
           "labelRotate": 198
         },
-        "hitAreaD": "M 754 556 L 756 551 L 767 554 L 768 557 L 755 558 Z"
+        "hitAreaD": "M 755.4 546 L 772.3 551.8 L 760.7 577.9 L 742.5 569.9 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -2970,7 +2970,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S04",
       "officialSectionName": "스카이박스",
-      "fingerprint": "e230d9929fd42b99f7b9f85c7928ca92d281cb068c97728d94c339f4288dfede",
+      "fingerprint": "9d46d91df8a52cd3d08cfc794ef753452d32f97cc531dc01720a489dd823f44a",
       "geometry": {
         "id": "skybox-s01-s37__s04",
         "parentId": "skybox-s01-s37",
@@ -2983,14 +2983,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 748 569 L 751 566 L 762 567 L 761 573 L 757 574 Z",
-          "labelX": 755,
-          "labelY": 570,
+          "d": "M 746 576 L 758 580 L 750 597 L 736 593 Z",
+          "labelX": 747.5,
+          "labelY": 586.5,
           "shortLabel": "S04",
           "labelFontSize": 6,
           "labelRotate": 198
         },
-        "hitAreaD": "M 748 569 L 751 566 L 762 567 L 761 573 L 757 574 Z"
+        "hitAreaD": "M 745.4 572 L 761.4 577.9 L 750.9 600.9 L 732.5 595 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3013,7 +3013,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S05",
       "officialSectionName": "스카이박스",
-      "fingerprint": "f89a52d77649744de030e4d0d05ca9b224acd0b52b5b28712a71f1cae4d9fd89",
+      "fingerprint": "f597c85736665e8b4cb85df38c50b4b1a0b6bc21fe27d5ec4bc1cd3d976edece",
       "geometry": {
         "id": "skybox-s01-s37__s05",
         "parentId": "skybox-s01-s37",
@@ -3026,14 +3026,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 738 591 L 753 589 L 748 598 L 740 595 Z",
-          "labelX": 746,
-          "labelY": 593,
+          "d": "M 734 599 L 746 603 L 740 622 L 727 617 Z",
+          "labelX": 736.8,
+          "labelY": 610.3,
           "shortLabel": "S05",
           "labelFontSize": 6,
           "labelRotate": 198
         },
-        "hitAreaD": "M 738 591 L 753 589 L 748 598 L 740 595 Z"
+        "hitAreaD": "M 733 595.1 L 749.1 600.5 L 741.1 625.9 L 723.7 619.3 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3056,7 +3056,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S06",
       "officialSectionName": "스카이박스",
-      "fingerprint": "265c601bc1bbef51b2a3a42a7169ac9853af17e38cc666883817f14740f3d0a2",
+      "fingerprint": "2ae23fe0800d47145e77227834446afcb44026a238f640d58b38b9c532f705d0",
       "geometry": {
         "id": "skybox-s01-s37__s06",
         "parentId": "skybox-s01-s37",
@@ -3069,14 +3069,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 733 602 L 740 599 L 747 604 L 745 608 L 733 607 Z",
-          "labelX": 740,
-          "labelY": 603,
+          "d": "M 725 622 L 736 628 L 727 646 L 715 640 Z",
+          "labelX": 725.8,
+          "labelY": 634,
           "shortLabel": "S06",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 733 602 L 740 599 L 747 604 L 745 608 L 733 607 Z"
+        "hitAreaD": "M 724.7 618 L 739.4 626 L 727.4 650 L 711.5 641.9 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3099,7 +3099,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S07",
       "officialSectionName": "스카이박스",
-      "fingerprint": "5bfb06614de19fea70a614c5c9b642f83508420d6f7629ec60c2df4090416884",
+      "fingerprint": "e48f4e5dcdff3f1be9b32d9de94dea8629e6d291347c80223bf05a5b8927eb20",
       "geometry": {
         "id": "skybox-s01-s37__s07",
         "parentId": "skybox-s01-s37",
@@ -3112,14 +3112,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 728 612 L 739 612 L 742 615 L 737 623 L 726 618 Z",
-          "labelX": 734,
-          "labelY": 618,
+          "d": "M 727 652 L 715 671 L 703 667 L 713 644 Z",
+          "labelX": 714.5,
+          "labelY": 658.5,
           "shortLabel": "S07",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 728 612 L 739 612 L 742 615 L 737 623 L 726 618 Z"
+        "hitAreaD": "M 730.5 650.2 L 715.2 675 L 699.8 669.4 L 712.6 640 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3142,7 +3142,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S08",
       "officialSectionName": "스카이박스",
-      "fingerprint": "f9cf1b21468dcfc30a59388be2061128cff859ca47a0c7aa192e7b6981a3b2b9",
+      "fingerprint": "2d9d86044c281d24583610c9c2f5a56ae852859176c9b3aa38331d3f9a713cfe",
       "geometry": {
         "id": "skybox-s01-s37__s08",
         "parentId": "skybox-s01-s37",
@@ -3155,14 +3155,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 722 627 L 728 623 L 735 626 L 736 629 L 728 631 L 723 630 Z",
-          "labelX": 729,
-          "labelY": 627,
+          "d": "M 699 667 L 711 677 L 698 694 L 684 687 Z",
+          "labelX": 698,
+          "labelY": 681.3,
           "shortLabel": "S08",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 722 627 L 728 623 L 735 626 L 736 629 L 728 631 L 723 630 Z"
+        "hitAreaD": "M 699.3 663 L 714.8 675.7 L 698 698 L 680.3 688.5 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3185,7 +3185,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S09",
       "officialSectionName": "스카이박스",
-      "fingerprint": "36847bf491683e166add12e693c9d8cfa0fc5a220b09ee3b3e20662ae5f77edc",
+      "fingerprint": "29d8ba9291c76ba40e6ee86344b0e24964134efff2cfeabb64bec8ad2c4685f3",
       "geometry": {
         "id": "skybox-s01-s37__s09",
         "parentId": "skybox-s01-s37",
@@ -3198,14 +3198,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 717 638 L 729 638 L 731 640 L 725 646 L 718 643 Z",
-          "labelX": 724,
-          "labelY": 642,
+          "d": "M 680 692 L 692 700 L 676 716 L 666 708 Z",
+          "labelX": 678.5,
+          "labelY": 704,
           "shortLabel": "S09",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 717 638 L 729 638 L 731 640 L 725 646 L 718 643 Z"
+        "hitAreaD": "M 680.5 688 L 695.8 698.9 L 675.2 719.9 L 662.2 709.2 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3228,7 +3228,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S10",
       "officialSectionName": "스카이박스",
-      "fingerprint": "66e17d3b62b0d9a36fde7241ebee7b257c9b589b6325e608f30a9627d007687b",
+      "fingerprint": "257cae2effa77bbe6e3b3f9bfdd45aa1c528576526beb4915133b28e41c2e33e",
       "geometry": {
         "id": "skybox-s01-s37__s10",
         "parentId": "skybox-s01-s37",
@@ -3241,14 +3241,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 703 664 L 706 662 L 719 663 L 715 669 L 709 669 Z",
-          "labelX": 711,
-          "labelY": 665,
+          "d": "M 663 712 L 674 720 L 659 739 L 649 727 Z",
+          "labelX": 661.3,
+          "labelY": 724.5,
           "shortLabel": "S10",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 703 664 L 706 662 L 719 663 L 715 669 L 709 669 Z"
+        "hitAreaD": "M 663.5 708 L 677.8 718.7 L 658.4 743 L 645.1 727.8 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3271,7 +3271,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S11",
       "officialSectionName": "스카이박스",
-      "fingerprint": "7550cb87a7943185d903b4f5f7b432e043f6c1070e18e997d7e7c85f2c8370b2",
+      "fingerprint": "fe171ce5e20965c9d5b95d864a312bf9c41d4a791d0f8caf9f99d583574685bd",
       "geometry": {
         "id": "skybox-s01-s37__s11",
         "parentId": "skybox-s01-s37",
@@ -3284,14 +3284,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 692 678 L 700 670 L 702 670 L 708 677 L 707 679 Z",
-          "labelX": 700,
-          "labelY": 675,
+          "d": "M 645 733 L 653 741 L 641 760 L 628 751 Z",
+          "labelX": 641.8,
+          "labelY": 746.3,
           "shortLabel": "S11",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 692 678 L 700 670 L 702 670 L 708 677 L 707 679 Z"
+        "hitAreaD": "M 645.9 729.1 L 656.6 739.3 L 640.8 764 L 624.2 752.3 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3314,7 +3314,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S12",
       "officialSectionName": "스카이박스",
-      "fingerprint": "52fdea7bf5c805ab6a5a52f09612f09701bf4653eb8d2c8bf6cab02acff8331b",
+      "fingerprint": "a9c4dd4da8291869aad0d1e623f254430866bd4f8e84ce612cda5a394b4978de",
       "geometry": {
         "id": "skybox-s01-s37__s12",
         "parentId": "skybox-s01-s37",
@@ -3327,14 +3327,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 667 707 L 671 705 L 682 707 L 678 714 L 675 714 Z",
-          "labelX": 675,
-          "labelY": 709,
+          "d": "M 626 757 L 637 762 L 622 782 L 612 772 Z",
+          "labelX": 624.3,
+          "labelY": 768.3,
           "shortLabel": "S12",
           "labelFontSize": 6,
           "labelRotate": 205
         },
-        "hitAreaD": "M 667 707 L 671 705 L 682 707 L 678 714 L 675 714 Z"
+        "hitAreaD": "M 626.6 753 L 640.6 760.2 L 621.3 785.9 L 608.2 773.2 Z"
       },
       "anchorCropIds": [
         "skybox-s01-s12-sequence"
@@ -3357,7 +3357,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S13",
       "officialSectionName": "스카이박스",
-      "fingerprint": "96c6355ce68b1f0432a56604018f49abbc4c533e2dcb6d2db75c3201ef8e1b4e",
+      "fingerprint": "9fc8e6bb8f9968a0dd7b3ffbb3023b7adac8cddc9e9cefb48142506231e89f0e",
       "geometry": {
         "id": "skybox-s01-s37__s13",
         "parentId": "skybox-s01-s37",
@@ -3370,14 +3370,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 657 721 L 664 714 L 668 714 L 672 720 L 670 723 Z",
-          "labelX": 664,
-          "labelY": 718,
+          "d": "M 587 791 L 606 776 L 612 788 L 596 797 Z",
+          "labelX": 600.3,
+          "labelY": 788,
           "shortLabel": "S13",
           "labelFontSize": 6,
           "labelRotate": 223
         },
-        "hitAreaD": "M 657 721 L 664 714 L 668 714 L 672 720 L 670 723 Z"
+        "hitAreaD": "M 583.1 791.9 L 607.7 772.4 L 616 788 L 594.3 800.6 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3400,7 +3400,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S14",
       "officialSectionName": "스카이박스",
-      "fingerprint": "2d3e7005232029d636ed6c0137b70c0e214f9cd8202a304693cd55cf0e6b0573",
+      "fingerprint": "e295d602a89f0e63b10851168b5e126108693cc4afbc766ff4fbe39ade5ec449",
       "geometry": {
         "id": "skybox-s01-s37__s14",
         "parentId": "skybox-s01-s37",
@@ -3413,14 +3413,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 649 730 L 660 724 L 664 731 L 657 738 Z",
-          "labelX": 657,
-          "labelY": 731,
+          "d": "M 563 805 L 581 793 L 591 803 L 567 815 Z",
+          "labelX": 575.5,
+          "labelY": 804,
           "shortLabel": "S14",
           "labelFontSize": 6,
           "labelRotate": 223
         },
-        "hitAreaD": "M 649 730 L 660 724 L 664 731 L 657 738 Z"
+        "hitAreaD": "M 559 805.3 L 582.8 789.4 L 595 802.7 L 564.6 818.2 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3443,7 +3443,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S15",
       "officialSectionName": "스카이박스",
-      "fingerprint": "8971c462a481ebf3fc60cd1829568786f48e57e013f43ad5c879b93772dbb3d4",
+      "fingerprint": "1f0885a41bfb1aaa2864e91d06fff3ecff1e35d3d1be3267c0e91c54b095e4ce",
       "geometry": {
         "id": "skybox-s01-s37__s15",
         "parentId": "skybox-s01-s37",
@@ -3456,14 +3456,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 640 739 L 647 735 L 654 740 L 650 746 L 641 743 Z",
-          "labelX": 647,
-          "labelY": 740,
+          "d": "M 538 817 L 558 805 L 563 817 L 542 826 Z",
+          "labelX": 550.3,
+          "labelY": 816.3,
           "shortLabel": "S15",
           "labelFontSize": 6,
           "labelRotate": 223
         },
-        "hitAreaD": "M 640 739 L 647 735 L 654 740 L 650 746 L 641 743 Z"
+        "hitAreaD": "M 534 817.2 L 560.3 801.7 L 567 817.2 L 539.4 829 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3486,7 +3486,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S16",
       "officialSectionName": "스카이박스",
-      "fingerprint": "65fbff3611609cd6b0701b91e8b37b102861f0f34c329c0c0410b4965c2e1adf",
+      "fingerprint": "3784676579a801faadd79133ad944abd7be8526f6312d136f297aa36cdfb6adf",
       "geometry": {
         "id": "skybox-s01-s37__s16",
         "parentId": "skybox-s01-s37",
@@ -3499,14 +3499,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 630 751 L 637 746 L 647 751 L 640 759 L 638 759 Z",
-          "labelX": 639,
-          "labelY": 752,
+          "d": "M 513 826 L 534 819 L 540 830 L 515 838 Z",
+          "labelX": 525.5,
+          "labelY": 828.3,
           "shortLabel": "S16",
           "labelFontSize": 6,
           "labelRotate": 223
         },
-        "hitAreaD": "M 630 751 L 637 746 L 647 751 L 640 759 L 638 759 Z"
+        "hitAreaD": "M 509.1 825.3 L 536.7 816 L 544 830.5 L 512.1 840.7 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3529,7 +3529,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S17",
       "officialSectionName": "스카이박스",
-      "fingerprint": "5870f5d94e0211d196bae699b7984c1b690688f2c20107ce86532c54539f0e0a",
+      "fingerprint": "ba89691f3876f38a55b6d49fbba02d9665fbdf6bb664de09dfcbd7e504d1a271",
       "geometry": {
         "id": "skybox-s01-s37__s17",
         "parentId": "skybox-s01-s37",
@@ -3542,14 +3542,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 613 771 L 617 770 L 628 773 L 622 780 L 619 780 L 613 775 Z",
-          "labelX": 621,
-          "labelY": 775,
+          "d": "M 486 836 L 507 830 L 511 844 L 488 848 Z",
+          "labelX": 498,
+          "labelY": 839.5,
           "shortLabel": "S17",
           "labelFontSize": 6,
           "labelRotate": 223
         },
-        "hitAreaD": "M 613 771 L 617 770 L 628 773 L 622 780 L 619 780 L 613 775 Z"
+        "hitAreaD": "M 482.2 834.9 L 509.8 827.1 L 514.8 845.3 L 485 850.6 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3572,7 +3572,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S18",
       "officialSectionName": "스카이박스",
-      "fingerprint": "a09590ade5c2c82f08b7249be1e5091708da6925dceebe936c255236a7bcf5c9",
+      "fingerprint": "136710e7b1242be529199e16446cb94875fddcca24fe93b5ec44356aaab21116",
       "geometry": {
         "id": "skybox-s01-s37__s18",
         "parentId": "skybox-s01-s37",
@@ -3585,14 +3585,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 564 806 L 565 803 L 570 803 L 581 808 L 570 813 Z",
-          "labelX": 573,
-          "labelY": 808,
+          "d": "M 458 842 L 478 838 L 482 850 L 460 852 Z",
+          "labelX": 469.5,
+          "labelY": 845.5,
           "shortLabel": "S18",
           "labelFontSize": 6,
           "labelRotate": 246
         },
-        "hitAreaD": "M 564 806 L 565 803 L 570 803 L 581 808 L 570 813 Z"
+        "hitAreaD": "M 454.2 840.8 L 481 835.4 L 485.8 851.4 L 456.7 854.3 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3615,7 +3615,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S19",
       "officialSectionName": "스카이박스",
-      "fingerprint": "de02d1406393bb3dfc1d7a50232f22884d2e8f725d71939eaa36dac469d6ea2d",
+      "fingerprint": "b19be5b27a0c5ad07103ebb120bb84d927354e1332108f7ccbd16f62fc07c855",
       "geometry": {
         "id": "skybox-s01-s37__s19",
         "parentId": "skybox-s01-s37",
@@ -3628,14 +3628,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 536 818 L 559 807 L 565 818 L 542 829 Z",
-          "labelX": 556.5,
-          "labelY": 811.5,
+          "d": "M 427 842 L 451 842 L 453 854 L 427 854 Z",
+          "labelX": 439.5,
+          "labelY": 848,
           "shortLabel": "S19",
           "labelFontSize": 6,
           "labelRotate": 246
         },
-        "hitAreaD": "M 536 818 L 559 807 L 565 818 L 542 829 Z"
+        "hitAreaD": "M 423.4 840.3 L 454.5 840.1 L 456.7 855.6 L 423.4 855.7 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3658,7 +3658,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S20",
       "officialSectionName": "스카이박스",
-      "fingerprint": "59169ea048a3306d36f2056767e67ea988e8d10cd2ea7e6e8b43adb36a201c67",
+      "fingerprint": "7f3fdea721d70b5d37eeddf8e1e3b2f8b309fddfa70e1453263404cd7d3768c4",
       "geometry": {
         "id": "skybox-s01-s37__s20",
         "parentId": "skybox-s01-s37",
@@ -3671,14 +3671,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 522 825 L 534 820 L 538 830 L 533 833 Z",
-          "labelX": 535,
-          "labelY": 829,
+          "d": "M 398 838 L 423 842 L 420 854 L 396 850 Z",
+          "labelX": 409.3,
+          "labelY": 846,
           "shortLabel": "S20",
           "labelFontSize": 6,
           "labelRotate": 246
         },
-        "hitAreaD": "M 522 825 L 534 820 L 538 830 L 533 833 Z"
+        "hitAreaD": "M 394.7 835.7 L 426.8 840.9 L 423.2 856.4 L 392.2 851.2 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3701,7 +3701,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S21",
       "officialSectionName": "스카이박스",
-      "fingerprint": "e87b66d7c81706d1a223415dd5c6cff210cae6e970807c686b5ae40940a3acfd",
+      "fingerprint": "f51567e1fae09dafa3e7d949239a19891c42a11ffa320eabb45cf6e9e262383b",
       "geometry": {
         "id": "skybox-s01-s37__s21",
         "parentId": "skybox-s01-s37",
@@ -3714,14 +3714,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 511 831 L 516 828 L 528 833 L 526 836 L 516 839 Z",
-          "labelX": 515,
-          "labelY": 831.5,
+          "d": "M 373 832 L 394 836 L 390 850 L 371 842 Z",
+          "labelX": 382,
+          "labelY": 840,
           "shortLabel": "S21",
           "labelFontSize": 6,
           "labelRotate": 246
         },
-        "hitAreaD": "M 511 831 L 516 828 L 528 833 L 526 836 L 516 839 Z"
+        "hitAreaD": "M 370 829.3 L 397.8 834.7 L 392.5 853.1 L 367.1 842.7 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3744,7 +3744,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S22",
       "officialSectionName": "스카이박스",
-      "fingerprint": "65fc1fb8fb1fe3c11c6ae06f3dc1ed26c5c58d53537ff91a42ea0253f617ec77",
+      "fingerprint": "523e16ae13fdcd29a5685d735d8774d58484fdbc4391e65dc7f3e6ad8dfc9341",
       "geometry": {
         "id": "skybox-s01-s37__s22",
         "parentId": "skybox-s01-s37",
@@ -3757,14 +3757,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 485 836 L 507 830 L 509 843 L 488 848 Z",
-          "labelX": 506.5,
-          "labelY": 840.5,
+          "d": "M 346 823 L 369 830 L 365 840 L 342 830 Z",
+          "labelX": 355.5,
+          "labelY": 830.8,
           "shortLabel": "S22",
           "labelFontSize": 6,
           "labelRotate": 246
         },
-        "hitAreaD": "M 485 836 L 507 830 L 509 843 L 488 848 Z"
+        "hitAreaD": "M 342.9 820.5 L 373 829.8 L 367.9 842.8 L 338 829.8 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3787,7 +3787,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S23",
       "officialSectionName": "스카이박스",
-      "fingerprint": "c30c7e7e38245734bdcf2ae0ab79fc8191ac9b19b7df413362416e095026aa0d",
+      "fingerprint": "f5c833ea5cb80f91e346c09fc1ab313e507677147710624c7995da126b099fec",
       "geometry": {
         "id": "skybox-s01-s37__s23",
         "parentId": "skybox-s01-s37",
@@ -3800,14 +3800,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 467 841 L 480 839 L 482 850 L 476 850 Z",
-          "labelX": 479,
-          "labelY": 842,
+          "d": "M 322 807 L 342 819 L 338 830 L 317 817 Z",
+          "labelX": 329.8,
+          "labelY": 818.3,
           "shortLabel": "S23",
           "labelFontSize": 6,
           "labelRotate": 269
         },
-        "hitAreaD": "M 467 841 L 480 839 L 482 850 L 476 850 Z"
+        "hitAreaD": "M 319.7 803.7 L 346 819.2 L 340.3 833.3 L 313 816.6 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3830,7 +3830,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S24",
       "officialSectionName": "스카이박스",
-      "fingerprint": "79674e3377cb5207fe5b6197a7b8567c794884e353ec3052bf2433d9d6acf3d9",
+      "fingerprint": "02222a8876c50e1e82ec65d3aafd3188cd9c5ce0bc72bc1d80327e1bd6da3851",
       "geometry": {
         "id": "skybox-s01-s37__s24",
         "parentId": "skybox-s01-s37",
@@ -3843,14 +3843,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 458 841 L 465 841 L 471 852 L 459 852 Z",
-          "labelX": 461,
-          "labelY": 850.5,
+          "d": "M 301 793 L 319 805 L 311 815 L 293 803 Z",
+          "labelX": 306,
+          "labelY": 804,
           "shortLabel": "S24",
           "labelFontSize": 6,
           "labelRotate": 269
         },
-        "hitAreaD": "M 458 841 L 465 841 L 471 852 L 459 852 Z"
+        "hitAreaD": "M 299.3 789.4 L 323 805.3 L 312.7 818.6 L 289 802.7 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3873,7 +3873,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S25",
       "officialSectionName": "스카이박스",
-      "fingerprint": "8624c85c53dd6797ad1a8abb1338c490064956c7e62156e0126503d0c08a3160",
+      "fingerprint": "33b026a19e36bb6482d761385804ad1126d760c78f20c84ae6c31013c72f0e50",
       "geometry": {
         "id": "skybox-s01-s37__s25",
         "parentId": "skybox-s01-s37",
@@ -3886,14 +3886,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 429 843 L 452 843 L 452 853 L 429 853 Z",
-          "labelX": 441,
-          "labelY": 848,
+          "d": "M 280 778 L 297 790 L 291 801 L 272 788 Z",
+          "labelX": 285,
+          "labelY": 789.3,
           "shortLabel": "S25",
           "labelFontSize": 6,
           "labelRotate": 269
         },
-        "hitAreaD": "M 429 843 L 452 843 L 452 853 L 429 853 Z"
+        "hitAreaD": "M 278.4 774.3 L 301 790.2 L 292.8 804.6 L 268 787.6 Z"
       },
       "anchorCropIds": [
         "skybox-s13-s25-sequence"
@@ -3916,7 +3916,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S26",
       "officialSectionName": "스카이박스",
-      "fingerprint": "6b51325a8294a40d0717b9873fd1395f7cead959f7b769032b47cea6565e1529",
+      "fingerprint": "e3a6d5f763db4f59c515034a5d141869ede1539a25317509000d04063361249a",
       "geometry": {
         "id": "skybox-s01-s37__s26",
         "parentId": "skybox-s01-s37",
@@ -3929,25 +3929,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 398 846 L 400 840 L 415 840 L 415 842 L 402 851 L 399 850 Z",
-          "labelX": 401.5,
-          "labelY": 846,
+          "d": "M 262 760 L 276 773 L 268 783 L 254 766 Z",
+          "labelX": 265,
+          "labelY": 770.5,
           "shortLabel": "S26",
           "labelFontSize": 6,
           "labelRotate": 269
         },
-        "hitAreaD": "M 398 846 L 400 840 L 415 840 L 415 842 L 402 851 L 399 850 Z"
+        "hitAreaD": "M 260.9 756.2 L 279.9 773.9 L 268.9 786.9 L 250.3 764.5 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -3959,7 +3959,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S27",
       "officialSectionName": "스카이박스",
-      "fingerprint": "fc90a9d36354b7dbaaa45701b47b2915378b72b06d07a197b4f8f1efd25ada76",
+      "fingerprint": "629620c5d94eb3ba47846c6119a0d02ceec43d9bf55f55b7b91a78dcb9e6929a",
       "geometry": {
         "id": "skybox-s01-s37__s27",
         "parentId": "skybox-s01-s37",
@@ -3972,25 +3972,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 373 830 L 395 837 L 390 849 L 369 842 Z",
-          "labelX": 392,
-          "labelY": 839.5,
+          "d": "M 248 742 L 260 756 L 250 762 L 236 748 Z",
+          "labelX": 248.5,
+          "labelY": 752,
           "shortLabel": "S27",
           "labelFontSize": 6,
           "labelRotate": 269
         },
-        "hitAreaD": "M 373 830 L 395 837 L 390 849 L 369 842 Z"
+        "hitAreaD": "M 247.8 738 L 263.8 757.3 L 250.6 766 L 232.2 746.8 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -4002,7 +4002,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S28",
       "officialSectionName": "스카이박스",
-      "fingerprint": "39f285f951adbdb1c0c6126496a5c5942d1d689c73e668dc3916c03844fc36bf",
+      "fingerprint": "f5eedb4e1751ca0076300d46f453fe40139979961211a583808eaaeadd99017a",
       "geometry": {
         "id": "skybox-s01-s37__s28",
         "parentId": "skybox-s01-s37",
@@ -4015,25 +4015,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 352 835 L 363 828 L 367 828 L 366 837 L 362 840 Z",
-          "labelX": 362,
-          "labelY": 837.5,
+          "d": "M 232 722 L 242 736 L 234 744 L 223 728 Z",
+          "labelX": 232.8,
+          "labelY": 732.5,
           "shortLabel": "S28",
           "labelFontSize": 6,
           "labelRotate": -65
         },
-        "hitAreaD": "M 352 835 L 363 828 L 367 828 L 366 837 L 362 840 Z"
+        "hitAreaD": "M 231.7 718 L 245.7 737.4 L 234.4 748 L 219.4 726.3 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -4045,7 +4045,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S29",
       "officialSectionName": "스카이박스",
-      "fingerprint": "8beec9db1605a81da09e746289241220a9ad870c8990946224ad56a2d504d35a",
+      "fingerprint": "19e86b88e214b0dd8a20e7198a2d5c7bd5cd26a9ff75307bbfe4d7820a980f85",
       "geometry": {
         "id": "skybox-s01-s37__s29",
         "parentId": "skybox-s01-s37",
@@ -4058,25 +4058,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 342 830 L 347 822 L 359 826 L 345 833 Z",
-          "labelX": 345.5,
-          "labelY": 829.5,
+          "d": "M 211 700 L 226 716 L 217 724 L 203 708 Z",
+          "labelX": 214.3,
+          "labelY": 712,
           "shortLabel": "S29",
           "labelFontSize": 6,
           "labelRotate": -65
         },
-        "hitAreaD": "M 342 830 L 347 822 L 359 826 L 345 833 Z"
+        "hitAreaD": "M 209.9 696.1 L 229.8 717.3 L 217.9 727.9 L 199.2 706.7 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -4088,7 +4088,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S30",
       "officialSectionName": "스카이박스",
-      "fingerprint": "097675189cfcdb085f51222af75e8c30241ba8fa7640cee6c6a73cded413dc0a",
+      "fingerprint": "59960f9e4b7669ad409c8cd730e13cf4871136b228c7fd785a1dd10e0da8dae3",
       "geometry": {
         "id": "skybox-s01-s37__s30",
         "parentId": "skybox-s01-s37",
@@ -4101,25 +4101,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 327 822 L 338 817 L 342 820 L 336 829 L 327 824 Z",
-          "labelX": 334,
-          "labelY": 823,
+          "d": "M 187 690 L 195 682 L 209 696 L 199 702 Z",
+          "labelX": 197.5,
+          "labelY": 692.5,
           "shortLabel": "S30",
           "labelFontSize": 6,
           "labelRotate": -65
         },
-        "hitAreaD": "M 327 822 L 338 817 L 342 820 L 336 829 L 327 824 Z"
+        "hitAreaD": "M 183.1 689.1 L 194.1 678.1 L 212.8 697.2 L 199.6 706 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -4131,7 +4131,7 @@
       "parentId": "skybox-s01-s37",
       "officialBlockLabel": "스카이박스 S31",
       "officialSectionName": "스카이박스",
-      "fingerprint": "f28f5e24265870ccbec8b0c268fdea57fa26c27dae6981670aac4def42b28dc9",
+      "fingerprint": "e66696ad6c872f9b45eadae965ba1b6000fac7c696866823fb260f769e982564",
       "geometry": {
         "id": "skybox-s01-s37__s31",
         "parentId": "skybox-s01-s37",
@@ -4144,283 +4144,25 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 316 817 L 323 809 L 332 812 L 332 815 L 320 820 Z",
-          "labelX": 324,
-          "labelY": 814,
+          "d": "M 167 666 L 177 659 L 193 678 L 183 686 Z",
+          "labelX": 180,
+          "labelY": 672.3,
           "shortLabel": "S31",
           "labelFontSize": 6,
           "labelRotate": -65
         },
-        "hitAreaD": "M 316 817 L 323 809 L 332 812 L 332 815 L 320 820 Z"
+        "hitAreaD": "M 163.4 664.3 L 176.1 655.1 L 196.7 679.6 L 183.9 689.9 Z"
       },
       "anchorCropIds": [
-        "skybox-s26-s37-sequence"
+        "skybox-s26-s31-sequence"
       ],
       "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
+        "P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION"
       ],
       "reviewPriority": "P2",
       "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
       "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s32",
-      "blockCode": "S32",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S32",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "ff341fb85b048d0854840a6e2f406910ad44860242791d1aac3828b50975c528",
-      "geometry": {
-        "id": "skybox-s01-s37__s32",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S32",
-        "officialBlockLabel": "스카이박스 S32",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 294 802 L 301 794 L 310 801 L 295 804 Z",
-          "labelX": 302,
-          "labelY": 799,
-          "shortLabel": "S32",
-          "labelFontSize": 6,
-          "labelRotate": -65
-        },
-        "hitAreaD": "M 294 802 L 301 794 L 310 801 L 295 804 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s33",
-      "blockCode": "S33",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S33",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "1a62e8d795c5372d3ab02ec6cc3db306a5f7910161f4ced7187f397261e7cdc2",
-      "geometry": {
-        "id": "skybox-s01-s37__s33",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S33",
-        "officialBlockLabel": "스카이박스 S33",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 272 785 L 279 777 L 281 777 L 289 785 L 273 787 Z",
-          "labelX": 281,
-          "labelY": 783,
-          "shortLabel": "S33",
-          "labelFontSize": 6,
-          "labelRotate": -65
-        },
-        "hitAreaD": "M 272 785 L 279 777 L 281 777 L 289 785 L 273 787 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s34",
-      "blockCode": "S34",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S34",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "2c4c6426e8019686f418c83a9b7f45b45df0252c3265fca2af999f554f7e947f",
-      "geometry": {
-        "id": "skybox-s01-s37__s34",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S34",
-        "officialBlockLabel": "스카이박스 S34",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 261 773 L 274 771 L 275 774 L 267 780 Z",
-          "labelX": 268,
-          "labelY": 775,
-          "shortLabel": "S34",
-          "labelFontSize": 6,
-          "labelRotate": -43
-        },
-        "hitAreaD": "M 261 773 L 274 771 L 275 774 L 267 780 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s35",
-      "blockCode": "S35",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S35",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "c7ebdef03fbd35135adae22b86fce7969864c2347cf5115fe4767fcb6cf1d32b",
-      "geometry": {
-        "id": "skybox-s01-s37__s35",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S35",
-        "officialBlockLabel": "스카이박스 S35",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 236 745 L 246 739 L 252 746 L 238 747 Z",
-          "labelX": 245,
-          "labelY": 743,
-          "shortLabel": "S35",
-          "labelFontSize": 6,
-          "labelRotate": -43
-        },
-        "hitAreaD": "M 236 745 L 246 739 L 252 746 L 238 747 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s36",
-      "blockCode": "S36",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S36",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "52be3833d3d81564b9222d23f7b1783067046e2fac5be4a8a6dcee7c57064d17",
-      "geometry": {
-        "id": "skybox-s01-s37__s36",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S36",
-        "officialBlockLabel": "스카이박스 S36",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 220 725 L 229 720 L 234 726 L 223 729 Z",
-          "labelX": 227,
-          "labelY": 724,
-          "shortLabel": "S36",
-          "labelFontSize": 6,
-          "labelRotate": -43
-        },
-        "hitAreaD": "M 220 725 L 229 720 L 234 726 L 223 729 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
-        "skybox",
-        "small-cell"
-      ],
-      "manualOnlyReasons": []
-    },
-    {
-      "id": "skybox-s01-s37__s37",
-      "blockCode": "S37",
-      "parentId": "skybox-s01-s37",
-      "officialBlockLabel": "스카이박스 S37",
-      "officialSectionName": "스카이박스",
-      "fingerprint": "57bc50f7f0ff94fa559eae23014b4c4240f2b185d8886361650422f15582a0b4",
-      "geometry": {
-        "id": "skybox-s01-s37__s37",
-        "parentId": "skybox-s01-s37",
-        "blockCode": "S37",
-        "officialBlockLabel": "스카이박스 S37",
-        "officialSectionName": "스카이박스",
-        "category": "SKY",
-        "traceStatus": "OFFICIAL_IMAGE_TRACED",
-        "traceMethod": "PATH_TRACED_FROM_OFFICIAL_IMAGE",
-        "sourceConfidence": "OFFICIAL",
-        "selectable": true,
-        "imageGeometry": {
-          "d": "M 170 666 L 178 661 L 184 668 L 172 670 Z",
-          "labelX": 177,
-          "labelY": 665,
-          "shortLabel": "S37",
-          "labelFontSize": 6,
-          "labelRotate": -43
-        },
-        "hitAreaD": "M 170 666 L 178 661 L 184 668 L 172 670 Z"
-      },
-      "anchorCropIds": [
-        "skybox-s26-s37-sequence"
-      ],
-      "regressionTestIds": [
-        "P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION"
-      ],
-      "reviewPriority": "P2",
-      "reviewMode": "AUTO_OWNER_POINT_REGRESSION",
-      "riskTags": [
-        "S26-S37",
+        "S26-S31",
         "skybox",
         "small-cell"
       ],
@@ -4432,7 +4174,7 @@
       "parentId": "splash-caravan-426",
       "officialBlockLabel": "스플래쉬 카라반(인피니티 풀) 426",
       "officialSectionName": "스플래쉬 카라반(인피니티 풀)",
-      "fingerprint": "1f1701f032c32d34327afc5cb55a01eec95816169ea7a2a04f64c493e36eda57",
+      "fingerprint": "1a9e0eac171727661699501a3064b896e06a882af00479898bb5177c1f58e665",
       "geometry": {
         "id": "splash-caravan-426__426",
         "parentId": "splash-caravan-426",
@@ -4445,14 +4187,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 85 565 L 119 552 L 131 612 L 106 612 Z",
-          "labelX": 109,
-          "labelY": 589,
+          "d": "M 108 564 L 130 613 L 112 611 L 94 571 Z",
+          "labelX": 111,
+          "labelY": 589.8,
           "shortLabel": "카라반",
           "labelFontSize": 8,
           "labelRotate": -73
         },
-        "hitAreaD": "M 85 565 L 119 552 L 131 612 L 106 612 Z"
+        "hitAreaD": "M 108 564 L 130 613 L 112 611 L 94 571 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -4475,7 +4217,7 @@
       "parentId": "splash-jacuzzi-425",
       "officialBlockLabel": "스플래쉬 자쿠지(인피니티 풀) 425",
       "officialSectionName": "스플래쉬 자쿠지(인피니티 풀)",
-      "fingerprint": "74674566269d317ba7594a289350b9278db13a6006a3e7fb29affcdf93b1c18a",
+      "fingerprint": "43560a7ee3158a2f386d6dc78ba88d7f738af69a45cc833e3e748d5206991b37",
       "geometry": {
         "id": "splash-jacuzzi-425__425",
         "parentId": "splash-jacuzzi-425",
@@ -4488,14 +4230,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z",
-          "labelX": 143,
-          "labelY": 663,
+          "d": "M 142 642 L 155 672 L 144 683 L 126 649 Z",
+          "labelX": 141.8,
+          "labelY": 661.5,
           "shortLabel": "자쿠지",
           "labelFontSize": 8,
           "labelRotate": -74
         },
-        "hitAreaD": "M 126 641 L 150 646 L 156 679 L 138 683 L 126 663 Z"
+        "hitAreaD": "M 142 642 L 155 672 L 144 683 L 126 649 Z"
       },
       "anchorCropIds": [
         "special-425-426-third-accessible"
@@ -4518,7 +4260,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 113",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "cd0f30d5a50d35d589576f5915510d74fd065d0fccd622056e1e063048b5a9ab",
+      "fingerprint": "f3ca21f11eeba128631923fb67a14e2af6263181d0fc7afd645fcab775b020e8",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__113",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4531,14 +4273,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 366 657 L 375 668 L 309 735 L 293 718 Z",
+          "d": "M 364 660 L 374 670 L 311 739 L 295 719 Z",
           "labelX": 333.2,
           "labelY": 696.4,
           "shortLabel": "113",
           "labelFontSize": 9,
           "labelRotate": 35
         },
-        "hitAreaD": "M 366 657 L 375 668 L 309 735 L 293 718 Z"
+        "hitAreaD": "M 364 660 L 374 670 L 311 739 L 295 719 Z"
       },
       "anchorCropIds": [
         "third-113-114-detail",
@@ -4567,7 +4309,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 114",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "ff7857b816d1e148c28be849b780d12dd61055864d42d666369c9b287501fc1e",
+      "fingerprint": "fff02fd43553cbaa1039ae0e74a2a93ca6f999b8213da63fc96aee4fe0dde2ba",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__114",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4580,14 +4322,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 343 629 L 363 653 L 295 710 L 275 687 Z",
+          "d": "M 343 632 L 361 655 L 289 714 L 272 690 Z",
           "labelX": 319.7,
           "labelY": 668.9,
           "shortLabel": "114",
           "labelFontSize": 9,
           "labelRotate": 35
         },
-        "hitAreaD": "M 343 629 L 363 653 L 295 710 L 275 687 Z"
+        "hitAreaD": "M 343 632 L 361 655 L 289 714 L 272 690 Z"
       },
       "anchorCropIds": [
         "third-113-114-detail",
@@ -4616,7 +4358,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 115",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "8d68377bb92e883f5278ec253751bf2d83dd3a67787eba646acc085c828276b3",
+      "fingerprint": "23c8bfd5c71ae5d947798ff77e3c0c042a1b6326e492025a0e2bf468b1ab6662",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__115",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4629,14 +4371,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 253 660 L 321 602 L 340 625 L 273 682 L 271 682 Z",
+          "d": "M 319 605 L 340 626 L 269 688 L 252 665 Z",
           "labelX": 297.5,
           "labelY": 641.4,
           "shortLabel": "115",
           "labelFontSize": 9,
           "labelRotate": 31
         },
-        "hitAreaD": "M 253 660 L 321 602 L 340 625 L 273 682 L 271 682 Z"
+        "hitAreaD": "M 319 605 L 340 626 L 269 688 L 252 665 Z"
       },
       "anchorCropIds": [
         "third-113-117-wide",
@@ -4666,7 +4408,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 116",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "f5e432b459b6e23164ba5c8177584f1a3eee26b8458041cad0a80bfd2788df56",
+      "fingerprint": "98291088346097c575c0d95814e59aca367dfa8acf691eb3e0ca29806d77aaa3",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__116",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4679,14 +4421,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 231 635 L 305 583 L 318 599 L 249 656 Z",
+          "d": "M 227 636 L 304 585 L 319 600 L 245 663 Z",
           "labelX": 275.3,
           "labelY": 618.7,
           "shortLabel": "116",
           "labelFontSize": 9,
           "labelRotate": 28
         },
-        "hitAreaD": "M 231 635 L 305 583 L 318 599 L 249 656 Z"
+        "hitAreaD": "M 227 636 L 304 585 L 319 600 L 245 663 Z"
       },
       "anchorCropIds": [
         "third-113-117-wide",
@@ -4720,7 +4462,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 117",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "c7a8ea5cfbb6d3a39bae1b37ee6f7c9c91ef9eccdddf2e5eda575b47cfa4b404",
+      "fingerprint": "1ebbef5af0fe52f290d0af09a8bf013c00b7f725b76fbdbf0846e3f546bcae1e",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__117",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4733,14 +4475,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 318 551 L 323 562 L 222 630 L 208 600 Z",
+          "d": "M 210 598 L 319 549 L 327 566 L 220 633 Z",
           "labelX": 260.9,
           "labelY": 589.6,
           "shortLabel": "117",
           "labelFontSize": 9,
           "labelRotate": 25
         },
-        "hitAreaD": "M 318 551 L 323 562 L 222 630 L 208 600 Z"
+        "hitAreaD": "M 210 598 L 319 549 L 327 566 L 220 633 Z"
       },
       "anchorCropIds": [
         "third-113-117-wide",
@@ -4774,7 +4516,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 118",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "eb6e881d0fc3e3ece6931efa96355a6a205b411c9cacb2bd536a94b5862f6158",
+      "fingerprint": "52699dc2fbc7bcb9effa3ceb40ff0d58db8f29c9adca3d0e43e70364664a37bf",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__118",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4787,14 +4529,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 202 568 L 210 560 L 302 520 L 314 544 L 294 555 L 216 590 L 212 589 Z",
+          "d": "M 197 566 L 304 522 L 321 547 L 205 595 Z",
           "labelX": 260,
           "labelY": 555,
           "shortLabel": "118",
           "labelFontSize": 9,
           "labelRotate": 23
         },
-        "hitAreaD": "M 202 568 L 210 560 L 302 520 L 314 544 L 294 555 L 216 590 L 212 589 Z"
+        "hitAreaD": "M 197 566 L 304 522 L 321 547 L 205 595 Z"
       },
       "anchorCropIds": [
         "third-113-120-sequence",
@@ -4821,7 +4563,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 119",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "43d227547ef5ab33b67cb1c74ad5d37a222f0137b56794896b544c0f52e8b124",
+      "fingerprint": "b65f2efd66549515d1a86548c04da7e2d3492b76ed09513ab27a12b4799d0256",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__119",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4834,14 +4576,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 181 535 L 195 527 L 285 487 L 297 512 L 291 519 L 195 561 L 190 559 Z",
+          "d": "M 285 490 L 302 514 L 191 564 L 182 535 Z",
           "labelX": 241,
           "labelY": 524,
           "shortLabel": "119",
           "labelFontSize": 9,
           "labelRotate": 21
         },
-        "hitAreaD": "M 181 535 L 195 527 L 285 487 L 297 512 L 291 519 L 195 561 L 190 559 Z"
+        "hitAreaD": "M 285 490 L 302 514 L 191 564 L 182 535 Z"
       },
       "anchorCropIds": [
         "third-113-120-sequence",
@@ -4872,7 +4614,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 120",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "84cbee8f436faef37e09dfba57e21dbf979a8fc7d615a2da102cfe7f8e17d382",
+      "fingerprint": "bf4cf47c9633fefc877df73c4e5d43417944df35c42f13965a514965daaa17bd",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__120",
         "parentId": "third-infield-a-113-120-213-225",
@@ -4885,14 +4627,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 173 503 L 211 471 L 271 463 L 281 479 L 274 486 L 184 526 Z",
+          "d": "M 210 472 L 275 463 L 289 484 L 176 533 L 169 505 L 213 489 Z",
           "labelX": 220,
           "labelY": 500,
           "shortLabel": "120",
           "labelFontSize": 9,
           "labelRotate": 18
         },
-        "hitAreaD": "M 173 503 L 211 471 L 271 463 L 281 479 L 274 486 L 184 526 Z"
+        "hitAreaD": "M 210 472 L 275 463 L 289 484 L 176 533 L 169 505 L 213 489 Z"
       },
       "anchorCropIds": [
         "third-113-120-sequence",
@@ -5248,7 +4990,7 @@
       "parentId": "third-infield-a-113-120-213-225",
       "officialBlockLabel": "내야 지정석A 220",
       "officialSectionName": "내야 지정석A",
-      "fingerprint": "d184d65ce9da30c9e9e2763f0291f2a996425e45f7786c7ae8cf1174f9202501",
+      "fingerprint": "358ba80cafd344a4d9d9d1feb5256a7205dd638308a092554d6bc7876ef17efb",
       "geometry": {
         "id": "third-infield-a-113-120-213-225__220",
         "parentId": "third-infield-a-113-120-213-225",
@@ -5261,14 +5003,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 167 581 L 168 579 L 208 571 L 228 591 L 214 608 L 189 615 L 178 604 Z",
-          "labelX": 190,
-          "labelY": 599,
+          "d": "M 160 579 L 175 611 L 199 597 L 184 575 Z",
+          "labelX": 179.5,
+          "labelY": 590.5,
           "shortLabel": "220",
           "labelFontSize": 8,
           "labelRotate": -27
         },
-        "hitAreaD": "M 167 581 L 168 579 L 208 571 L 228 591 L 214 608 L 189 615 L 178 604 Z"
+        "hitAreaD": "M 160 579 L 175 611 L 199 597 L 184 575 Z"
       },
       "anchorCropIds": [
         "third-213-225-sequence"
@@ -5749,7 +5491,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 326",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "cc6bb0ac5cb3417106e5d8f3592e2457ae94d86446ae1f2155e3625f41c30029",
+      "fingerprint": "4d6d79592936c33e394e816c63168a04cb2083d02a72b101ea86ccd1c7df52b3",
       "geometry": {
         "id": "third-table-4f-414-330__326",
         "parentId": "third-table-4f-414-330",
@@ -5762,14 +5504,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 144 620 L 156 617 L 162 623 L 169 650 L 160 654 Z",
-          "labelX": 158.3,
-          "labelY": 635.8,
+          "d": "M 148 627 L 167 664 L 183 653 L 167 620 Z",
+          "labelX": 166,
+          "labelY": 642,
           "shortLabel": "326",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 144 620 L 156 617 L 162 623 L 169 650 L 160 654 Z"
+        "hitAreaD": "M 148 627 L 167 664 L 183 653 L 167 620 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -5791,7 +5533,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 327",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "bede9b4c29ada36279176bf08de8fd1c3a21e74db3f841b1f6b9c7e5b13f704c",
+      "fingerprint": "0f628a613a518c1d8b99145664c96792603f3cd1c9cf129449f41dffde7cbfc2",
       "geometry": {
         "id": "third-table-4f-414-330__327",
         "parentId": "third-table-4f-414-330",
@@ -5804,14 +5546,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 133 595 L 150 587 L 160 615 L 144 620 Z",
-          "labelX": 141,
-          "labelY": 608,
+          "d": "M 154 589 L 165 612 L 148 622 L 133 594 Z",
+          "labelX": 150,
+          "labelY": 603,
           "shortLabel": "327",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 133 595 L 150 587 L 160 615 L 144 620 Z"
+        "hitAreaD": "M 154 589 L 165 612 L 148 622 L 133 594 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -5833,7 +5575,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 328",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "7e90c5377225a4fee3186ecdd0466ea47890019ea5ab7c280466961cbe2c4af6",
+      "fingerprint": "1d790e14e35b54f766718d47206ff2033de07b6cb1216ecfbe46ef3d44722d5f",
       "geometry": {
         "id": "third-table-4f-414-330__328",
         "parentId": "third-table-4f-414-330",
@@ -5846,14 +5588,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 139 552 L 152 580 L 131 589 L 118 562 Z",
+          "d": "M 139 553 L 151 581 L 131 589 L 118 561 Z",
           "labelX": 130,
           "labelY": 577,
           "shortLabel": "328",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 139 552 L 152 580 L 131 589 L 118 562 Z"
+        "hitAreaD": "M 139 553 L 151 581 L 131 589 L 118 561 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -5875,7 +5617,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 329",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "411ad60b7b95274fa15eff7eb6f54a052c5ef4133442cae79feaa8e1bc1d786e",
+      "fingerprint": "feef0e5ba6bac83d52c4e40af3f93cdf7226fe1248ed5653f7e24d218da1ce05",
       "geometry": {
         "id": "third-table-4f-414-330__329",
         "parentId": "third-table-4f-414-330",
@@ -5888,14 +5630,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 126 521 L 137 548 L 116 557 L 104 531 Z",
+          "d": "M 125 521 L 138 547 L 118 557 L 105 531 Z",
           "labelX": 116,
           "labelY": 543,
           "shortLabel": "329",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 126 521 L 137 548 L 116 557 L 104 531 Z"
+        "hitAreaD": "M 125 521 L 138 547 L 118 557 L 105 531 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -5917,7 +5659,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 330",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "0a00d42013713bce9350b20c203b99976440cd6b57d006e19c60a1adc0062818",
+      "fingerprint": "1ba378dbc2c069ed126f3577c1a36db75afbd5e728b7b3e4c67333aa768b51b0",
       "geometry": {
         "id": "third-table-4f-414-330__330",
         "parentId": "third-table-4f-414-330",
@@ -5930,14 +5672,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 111 488 L 123 515 L 101 524 L 87 492 Z",
+          "d": "M 110 487 L 122 514 L 102 524 L 86 490 Z",
           "labelX": 103,
           "labelY": 505,
           "shortLabel": "330",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 111 488 L 123 515 L 101 524 L 87 492 Z"
+        "hitAreaD": "M 110 487 L 122 514 L 102 524 L 86 490 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -5959,7 +5701,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 414",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "0c5db37fa18587812fa921d64e6124bcd8918312a0cf359619f1f2a4fb07e421",
+      "fingerprint": "f97ba96477d9ec055922df4bef5abc98e9732b0cd321f99a63563210c27f9598",
       "geometry": {
         "id": "third-table-4f-414-330__414",
         "parentId": "third-table-4f-414-330",
@@ -5972,14 +5714,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 485 863 L 521 855 L 545 912 L 497 924 Z",
-          "labelX": 500,
-          "labelY": 874,
+          "d": "M 484 864 L 520 857 L 545 912 L 500 924 Z",
+          "labelX": 512.3,
+          "labelY": 889.3,
           "shortLabel": "414",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 485 863 L 521 855 L 545 912 L 497 924 Z"
+        "hitAreaD": "M 484 864 L 520 857 L 545 912 L 500 924 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6001,7 +5743,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 415",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "c2141f20518794032c2ac8a49d1a72c00f98ce0cb728df1203ee72c497c4c361",
+      "fingerprint": "4c0e1028b9468df7415a47fc4d3b34b62b7d6ea1b13d35ea798e27da790f5de4",
       "geometry": {
         "id": "third-table-4f-414-330__415",
         "parentId": "third-table-4f-414-330",
@@ -6014,14 +5756,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 443 867 L 480 865 L 493 926 L 443 930 Z",
-          "labelX": 450,
-          "labelY": 876.5,
+          "d": "M 442 866 L 479 866 L 493 926 L 445 930 Z",
+          "labelX": 464.8,
+          "labelY": 897,
           "shortLabel": "415",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 443 867 L 480 865 L 493 926 L 443 930 Z"
+        "hitAreaD": "M 442 866 L 479 866 L 493 926 L 445 930 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6043,7 +5785,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 416",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "9ac8f56f6ccc79c80b54ff71cd3ea9ae3ac83e7906517725761c22b84aa73bef",
+      "fingerprint": "002ce23218c6049ef494a7ad6e1391f2daeb4c1afc6fa33861ca5e4dfbcc5a8b",
       "geometry": {
         "id": "third-table-4f-414-330__416",
         "parentId": "third-table-4f-414-330",
@@ -6056,14 +5798,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 400 864 L 438 867 L 438 929 L 388 925 Z",
-          "labelX": 400.8,
-          "labelY": 872.1,
+          "d": "M 399 864 L 437 868 L 437 930 L 391 924 Z",
+          "labelX": 416,
+          "labelY": 896.5,
           "shortLabel": "416",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 400 864 L 438 867 L 438 929 L 388 925 Z"
+        "hitAreaD": "M 399 864 L 437 868 L 437 930 L 391 924 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6085,7 +5827,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 417",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "65dfe575c9b68d2a5aaa8347e2aca1af6caf81b6280f83a7f2ba8f353d8efe7c",
+      "fingerprint": "04eb7cbfe69491a600cb74412c504b9510218001b287368a4484fa95dcd97a8d",
       "geometry": {
         "id": "third-table-4f-414-330__417",
         "parentId": "third-table-4f-414-330",
@@ -6098,14 +5840,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 359 854 L 395 863 L 384 923 L 336 911 Z",
-          "labelX": 350,
-          "labelY": 880,
+          "d": "M 360 857 L 394 864 L 383 924 L 337 912 Z",
+          "labelX": 368.5,
+          "labelY": 889.3,
           "shortLabel": "417",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 359 854 L 395 863 L 384 923 L 336 911 Z"
+        "hitAreaD": "M 360 857 L 394 864 L 383 924 L 337 912 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6127,7 +5869,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 418",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "39275845ac481ddd7e3a8b0b76028219f3fcf16abf0ee944ff1d9921fe515f31",
+      "fingerprint": "b423b590f251f94ebd2fa516c19546ef286db865db0bf392ca7d004d855044f5",
       "geometry": {
         "id": "third-table-4f-414-330__418",
         "parentId": "third-table-4f-414-330",
@@ -6140,14 +5882,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 322 836 L 355 853 L 331 908 L 289 888 Z",
-          "labelX": 325,
-          "labelY": 875,
+          "d": "M 320 839 L 355 854 L 332 910 L 291 889 Z",
+          "labelX": 324.5,
+          "labelY": 873,
           "shortLabel": "418",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 322 836 L 355 853 L 331 908 L 289 888 Z"
+        "hitAreaD": "M 320 839 L 355 854 L 332 910 L 291 889 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6169,7 +5911,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 419",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "a3a4138183c78686494f61c27d8f0819ad2444df208e2b838736919362b1bb0d",
+      "fingerprint": "aa86efc73fdb051257059c65b5d74127ac0a48815546da17123b78b4e781fb67",
       "geometry": {
         "id": "third-table-4f-414-330__419",
         "parentId": "third-table-4f-414-330",
@@ -6182,14 +5924,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 267 874 L 277 826 L 315 837 L 282 882 Z",
-          "labelX": 289,
-          "labelY": 837,
+          "d": "M 281 829 L 290 818 L 318 836 L 286 885 L 267 873 L 293 841 Z",
+          "labelX": 289.2,
+          "labelY": 847,
           "shortLabel": "419",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 267 874 L 277 826 L 315 837 L 282 882 Z"
+        "hitAreaD": "M 281 829 L 290 818 L 318 836 L 286 885 L 267 873 L 293 841 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6211,7 +5953,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 420",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "035a53dcc9b0124e9b77da249c0a5afc62f38273fac0f127433b4c83a801c401",
+      "fingerprint": "f652bd33ba56c77031cf6790a7334a660685f8caafd4554482530aa7b412a13b",
       "geometry": {
         "id": "third-table-4f-414-330__420",
         "parentId": "third-table-4f-414-330",
@@ -6224,14 +5966,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 238 788 L 271 797 L 284 809 L 285 817 L 282 820 L 267 818 L 238 790 Z",
-          "labelX": 263,
-          "labelY": 805,
+          "d": "M 265 792 L 290 815 L 277 827 L 252 802 Z",
+          "labelX": 271,
+          "labelY": 809,
           "shortLabel": "420",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 238 788 L 271 797 L 284 809 L 285 817 L 282 820 L 267 818 L 238 790 Z"
+        "hitAreaD": "M 265 792 L 290 815 L 277 827 L 252 802 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6253,7 +5995,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 421",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "b23693cd34238a883864b04d70a7dac26e551f364567606830b0f1de5203c0f9",
+      "fingerprint": "c6ddea5e21cc92e74d6870083dcc082de777d1c611472ca1dadfaf570df9af49",
       "geometry": {
         "id": "third-table-4f-414-330__421",
         "parentId": "third-table-4f-414-330",
@@ -6266,14 +6008,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 237 765 L 260 788 L 247 799 L 224 777 Z",
-          "labelX": 241,
+          "d": "M 236 767 L 261 788 L 249 800 L 226 777 Z",
+          "labelX": 243,
           "labelY": 783,
           "shortLabel": "421",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 237 765 L 260 788 L 247 799 L 224 777 Z"
+        "hitAreaD": "M 236 767 L 261 788 L 249 800 L 226 777 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6295,7 +6037,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 422",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "cb8afeae415fa5385ae92ede326a0ee7f90d8ae7d16c27d9e82c74de2ef27a87",
+      "fingerprint": "e7aa4af1ffd15a808b435b725e817dffd651be8be0f08300fe7195f101d81741",
       "geometry": {
         "id": "third-table-4f-414-330__422",
         "parentId": "third-table-4f-414-330",
@@ -6308,14 +6050,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 210 736 L 222 750 L 214 756 L 206 756 L 198 746 Z",
-          "labelX": 212,
-          "labelY": 754,
+          "d": "M 210 738 L 233 763 L 222 774 L 197 745 Z",
+          "labelX": 215.5,
+          "labelY": 755,
           "shortLabel": "422",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 210 736 L 222 750 L 214 756 L 206 756 L 198 746 Z"
+        "hitAreaD": "M 210 738 L 233 763 L 222 774 L 197 745 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
@@ -6337,7 +6079,7 @@
       "parentId": "third-table-4f-414-330",
       "officialBlockLabel": "내야 탁자석(4층) 423",
       "officialSectionName": "내야 탁자석(4층)",
-      "fingerprint": "422d6e455698fa1c3d0979f139735700482cc2aab493ba706fc4b47808b551bb",
+      "fingerprint": "566c6cc1a9fd78d60bd76e22a477324dcdd82e7990761f139b882c6f36e3af79",
       "geometry": {
         "id": "third-table-4f-414-330__423",
         "parentId": "third-table-4f-414-330",
@@ -6350,14 +6092,14 @@
         "sourceConfidence": "OFFICIAL",
         "selectable": true,
         "imageGeometry": {
-          "d": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z",
-          "labelX": 184,
-          "labelY": 733,
+          "d": "M 182 707 L 207 734 L 196 743 L 173 716 Z",
+          "labelX": 189.5,
+          "labelY": 725,
           "shortLabel": "423",
           "labelFontSize": 8,
           "labelRotate": null
         },
-        "hitAreaD": "M 171 708 L 207 718 L 209 738 L 181 745 L 167 733 Z"
+        "hitAreaD": "M 182 707 L 207 734 L 196 743 L 173 716 Z"
       },
       "anchorCropIds": [
         "third-4f-table-414-330-sequence"
