@@ -1,13 +1,12 @@
 // utils/prediction.ts
 import { Game, GameDetail, DateGames } from '../types/prediction';
 import { DAYS_OF_WEEK } from '../constants/prediction';
-import { TEAM_DATA, TEAM_NAME_TO_ID } from '../constants/teams';
+import { TEAM_DATA } from '../constants/teams';
 import {
   COACH_BRIEFING_DISPLAY_MESSAGE,
   COACH_BRIEFING_DISPLAY_TITLE,
   COACH_BRIEFING_MANUAL_HINT,
 } from './predictionCoachPresentation';
-import { resolveCoachBriefingPolicy as resolveCoachBriefingPolicyFromPolicy } from './predictionCoachPolicy';
 
 export {
   COACH_BRIEFING_DISPLAY_MESSAGE,
@@ -23,8 +22,15 @@ export type {
   CoachAnalysisPresentationMode,
   CoachBriefingDataQualityNotice,
 } from './predictionCoachPresentation';
-
-export type CoachRequestMode = 'auto_brief' | 'manual_detail';
+export { buildCoachBriefingRequestDescriptor } from './coachBriefingRequestDescriptor';
+export type {
+  CoachAnalysisType,
+  CoachBriefingAnalyzePayload,
+  CoachBriefingLeagueSnapshot,
+  CoachBriefingRequestDescriptor,
+  CoachBriefingRequestDescriptorInput,
+  CoachRequestMode,
+} from './coachBriefingRequestDescriptor';
 
 export interface RawAiBriefing {
   title?: string;
@@ -65,67 +71,6 @@ export interface ParseAiBriefingOptions {
 
 export interface NormalizeCoachBriefingOptions extends ParseAiBriefingOptions {}
 
-export interface CoachBriefingPolicyInput {
-  hasSelectedGame?: boolean;
-  canCallAI: boolean;
-  isScheduledGame: boolean;
-  isPostseasonGame?: boolean;
-  isMeaningfulGame?: boolean;
-  isCoachStateEnabledForAuto?: boolean;
-}
-
-export interface CoachBriefingPolicy {
-  autoEnabled: boolean;
-  forceManual: boolean;
-  requestMode: CoachRequestMode;
-}
-
-export interface CoachBriefingLeagueSnapshot {
-  rank: number;
-  gamesBehind: number;
-  remainingGames: number;
-}
-
-export interface CoachBriefingRequestDescriptorInput {
-  game: Game | null;
-  requestMode: CoachRequestMode;
-  focus: string[];
-  requestSeasonYear?: number;
-  requestLeagueTypeCode?: number;
-  homePitcherName?: string;
-  awayPitcherName?: string;
-  homeSeasonContext?: CoachBriefingLeagueSnapshot | null;
-  awaySeasonContext?: CoachBriefingLeagueSnapshot | null;
-}
-
-export interface CoachBriefingAnalyzePayload {
-  home_team_id: string;
-  away_team_id: string;
-  league_context: {
-    season?: number | string;
-    season_year?: number;
-    game_date?: string;
-    league_type?: string;
-    league_type_code?: number;
-    round?: string;
-    stage_label?: string;
-    game_no?: number;
-    series_game_no?: number;
-    home_pitcher?: string;
-    away_pitcher?: string;
-    home?: CoachBriefingLeagueSnapshot | null;
-    away?: CoachBriefingLeagueSnapshot | null;
-  };
-  focus: string[];
-  request_mode: CoachRequestMode;
-  game_id: string;
-}
-
-export interface CoachBriefingRequestDescriptor {
-  requestFingerprint: string;
-  requestCacheKey: string;
-  requestPayload: CoachBriefingAnalyzePayload;
-}
 
 const DEFAULT_COACH_BRIEFING_PARSE_OPTIONS = {
   fallbackTitle: COACH_BRIEFING_DISPLAY_TITLE,
@@ -547,94 +492,6 @@ export const normalizeCoachBriefing = (
 
   const source = rawText == null ? '' : rawText;
   return parseAiBriefing(source, normalizedOptions);
-};
-
-export const resolveCoachBriefingPolicy = resolveCoachBriefingPolicyFromPolicy;
-
-const serializeCoachBriefingLeagueSnapshot = (
-  snapshot?: CoachBriefingLeagueSnapshot | null,
-): string => {
-  if (!snapshot) {
-    return 'na';
-  }
-
-  return [
-    snapshot.rank,
-    snapshot.gamesBehind,
-    snapshot.remainingGames,
-  ].join('/');
-};
-
-export const buildCoachBriefingRequestDescriptor = ({
-  game,
-  requestMode,
-  focus,
-  requestSeasonYear,
-  requestLeagueTypeCode,
-  homePitcherName,
-  awayPitcherName,
-  homeSeasonContext,
-  awaySeasonContext,
-}: CoachBriefingRequestDescriptorInput): CoachBriefingRequestDescriptor | null => {
-  if (!game?.gameId || !game.homeTeam || !game.awayTeam) {
-    return null;
-  }
-
-  const homeTeamName = TEAM_DATA[game.homeTeam]?.fullName || game.homeTeam;
-  const awayTeamName = TEAM_DATA[game.awayTeam]?.fullName || game.awayTeam;
-  const homeTeamId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
-  const awayTeamId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
-  const normalizedFocus = focus.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
-
-  const requestPayload: CoachBriefingAnalyzePayload = {
-    home_team_id: homeTeamId,
-    away_team_id: awayTeamId,
-    league_context: {
-      season: game.seasonId,
-      season_year: requestSeasonYear,
-      game_date: game.gameDate,
-      league_type: game.leagueType,
-      league_type_code: requestLeagueTypeCode,
-      round: game.postSeasonSeries,
-      stage_label: game.postSeasonSeries,
-      game_no: game.seriesGameNo,
-      series_game_no: game.seriesGameNo,
-      home_pitcher: homePitcherName,
-      away_pitcher: awayPitcherName,
-      home: homeSeasonContext,
-      away: awaySeasonContext,
-    },
-    focus: normalizedFocus,
-    request_mode: requestMode,
-    game_id: game.gameId,
-  };
-
-  const requestFingerprint = [
-    requestPayload.game_id,
-    requestPayload.home_team_id,
-    requestPayload.away_team_id,
-    requestPayload.league_context.season ?? 'na',
-    requestPayload.league_context.season_year ?? 'na',
-    requestPayload.league_context.game_date ?? 'na',
-    requestPayload.league_context.league_type ?? 'na',
-    requestPayload.league_context.league_type_code ?? 'na',
-    requestPayload.league_context.round ?? 'na',
-    requestPayload.league_context.stage_label ?? 'na',
-    requestPayload.league_context.game_no ?? 'na',
-    requestPayload.league_context.series_game_no ?? 'na',
-    requestPayload.league_context.home_pitcher ?? 'na',
-    requestPayload.league_context.away_pitcher ?? 'na',
-    serializeCoachBriefingLeagueSnapshot(requestPayload.league_context.home),
-    serializeCoachBriefingLeagueSnapshot(requestPayload.league_context.away),
-    requestPayload.request_mode,
-    requestPayload.focus.join('+') || 'na',
-  ].join(':');
-
-  return {
-    requestFingerprint,
-    requestCacheKey: requestFingerprint,
-    requestPayload,
-  };
 };
 
 const COACH_ANALYSIS_FOCUS_LABELS: Record<string, string> = {

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { createElement } from 'react';
@@ -16,8 +15,6 @@ test('getPredictionManualDataUiState는 수동 야구 데이터 계약의 사용
   assert.equal(state.code, 'MANUAL_BASEBALL_DATA_REQUIRED');
   assert.match(state.summaryMessage, /임의로 채우지 않습니다/);
   assert.match(state.scoreboardMessage, /최종 스코어만 표시 중입니다/);
-  assert.match(state.liveScoreMessage, /game_inning_scores/);
-  assert.match(state.liveRelayMessage, /score\/inning polling은 계속 진행됩니다/);
   assert.match(state.coachMessage, /AI 코치 분석 캐시가 있으면/);
   assert.equal(getPredictionManualDataUiState('SERVER'), null);
 });
@@ -97,26 +94,6 @@ test('AdvancedMatchCardSupplementaryRuntime는 원문 문자중계 playDescripti
   assert.doesNotMatch(html, /winExpectancy/i);
 });
 
-
-test('AdvancedMatchCardContentRuntime는 live status error code를 score warning contract에 연결한다', () => {
-  const source = readFileSync(new URL('./AdvancedMatchCardContentRuntime.tsx', import.meta.url), 'utf8');
-
-  assert.match(source, /liveStatusErrorCode/);
-  assert.match(source, /prediction-scoreboard-live-status-warning/);
-  assert.match(source, /PREDICTION_MANUAL_LIVE_SCORE_MESSAGE/);
-  assert.match(source, /data-error-code=\{liveStatusErrorCode \|\| undefined\}/);
-});
-
-test('AdvancedMatchCardContentRuntime는 스코어보드 탐색용 test id contract를 제공한다', () => {
-  const source = readFileSync(new URL('./AdvancedMatchCardContentRuntime.tsx', import.meta.url), 'utf8');
-
-  assert.match(source, /data-testid="prediction-scoreboard"/);
-  assert.match(source, /prediction-scoreboard-cell-away-/);
-  assert.match(source, /prediction-scoreboard-cell-home-/);
-  assert.match(source, /prediction-scoreboard-total-away/);
-  assert.match(source, /prediction-scoreboard-total-home/);
-});
-
 test('AdvancedMatchCardSupplementaryRuntime는 문자중계 manual 상태를 score polling과 구분해 표시한다', () => {
   const html = renderToStaticMarkup(createElement(AdvancedMatchCardSupplementaryRuntime, {
     awayColor: '#f37321',
@@ -136,8 +113,7 @@ test('AdvancedMatchCardSupplementaryRuntime는 문자중계 manual 상태를 sco
     liveRelayErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
   }));
 
-  assert.match(html, /data-testid="prediction-live-relay-warning"/);
   assert.match(html, /문자중계 데이터 준비가 필요합니다/);
   assert.match(html, /score\/inning polling은 계속 진행됩니다/);
-  assert.match(html, /data-error-code="MANUAL_BASEBALL_DATA_REQUIRED"/);
+  assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
 });

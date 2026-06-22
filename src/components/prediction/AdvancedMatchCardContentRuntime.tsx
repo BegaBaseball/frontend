@@ -3,7 +3,6 @@ import { lazy, Suspense, type ReactNode, useMemo, useRef, useState } from 'react
 import TeamLogo from '../TeamLogo';
 import ViewportDeferred from '../ViewportDeferred';
 import type { Game, GameDetail, GameSummary } from '../../types/prediction';
-import type { GameStatusCode } from '../../utils/prediction';
 import {
   getInningMetaTextStyle,
   getInningTeamNameStyle,
@@ -15,9 +14,9 @@ import {
 } from '../../utils/errorUtils';
 import { shouldRenderPredictionCoachBriefing } from '../../utils/predictionCoachVisibility';
 import {
-  PREDICTION_MANUAL_COACH_MESSAGE,
   PREDICTION_MANUAL_GAME_SUMMARY_MESSAGE,
   PREDICTION_MANUAL_GAME_SUMMARY_TITLE,
+  PREDICTION_MANUAL_COACH_MESSAGE,
   PREDICTION_MANUAL_LIVE_SCORE_MESSAGE,
   PREDICTION_MANUAL_SCOREBOARD_MESSAGE,
 } from '../../utils/predictionManualDataCopy';
@@ -60,7 +59,6 @@ export interface AdvancedMatchCardContentRuntimeProps {
   homeScoreForDisplay: number | string;
   votePercentages: { homePercentage: number; awayPercentage: number; totalVotes: number };
   cheeringCaption: string;
-  statusCode: GameStatusCode;
   isDarkMode: boolean;
   isPostponedOrCancelled: boolean;
   isCancelledStatus: boolean;

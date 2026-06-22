@@ -2,6 +2,7 @@ type DirectTradeSnapshotInput = {
   isSelling: boolean;
   sellingPrice: number;
   ticketPrice: number;
+  reservationDepositAmount?: number | null;
 };
 
 type DirectTradeSnapshot = {
@@ -27,8 +28,9 @@ export const resolveDirectTradeApplicationSnapshot = (
     };
   }
 
+  const reservationDepositAmount = sanitizeAmount(input.reservationDepositAmount ?? 0);
   return {
-    amount: sanitizeAmount(input.ticketPrice),
+    amount: reservationDepositAmount > 0 ? reservationDepositAmount : sanitizeAmount(input.ticketPrice),
     paymentType: 'DEPOSIT',
   };
 };

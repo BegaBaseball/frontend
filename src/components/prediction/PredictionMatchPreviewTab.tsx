@@ -52,7 +52,7 @@ const getStatusToneClass = (tone: PredictionScheduleStatusTone) => {
     return 'text-rose-700 dark:text-rose-200';
   }
   if (tone === 'closed') {
-    return 'text-slate-700 dark:text-gray-200';
+    return 'text-slate-700 dark:text-white';
   }
   if (tone === 'unavailable') {
     return 'text-amber-700 dark:text-amber-200';
@@ -122,14 +122,14 @@ export default function PredictionMatchPreviewTab({
     <div className="w-full font-sans" data-testid="prediction-schedule-preview">
       <div
         data-testid="prediction-schedule-toolbar"
-        className="mb-5 flex flex-wrap items-center justify-center gap-2 text-slate-900 dark:text-gray-100 sm:gap-4"
+        className="mb-5 flex flex-wrap items-center justify-center gap-2 text-slate-900 dark:text-white sm:gap-4"
       >
         <Button
           type="button"
           variant="outline"
           size="sm"
           data-testid="prediction-schedule-today-btn"
-          className="h-10 rounded-full border-slate-200 bg-white px-4 text-[15px] font-bold text-slate-500 shadow-sm hover:bg-slate-50 dark:border-border dark:bg-card dark:text-gray-300 sm:h-11 sm:px-5"
+          className="h-11 rounded-full border-slate-200 bg-white px-4 text-[15px] font-bold text-slate-500 shadow-sm hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white sm:px-5"
           onClick={() => onGoToDate(getPredictionScheduleTodayKey())}
         >
           최근
@@ -138,14 +138,14 @@ export default function PredictionMatchPreviewTab({
           type="button"
           aria-label="이전 달 보기"
           data-testid="prediction-schedule-month-prev"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-gray-200 dark:hover:bg-secondary sm:h-11 sm:w-11"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
           onClick={() => handleMonthMove(-1)}
         >
           <PredictionChevronLeftIcon className="h-6 w-6 sm:h-7 sm:w-7" />
         </button>
         <p
           data-testid="prediction-schedule-month-title"
-          className="min-w-[8.5rem] text-center text-[2.35rem] font-black leading-none tracking-normal text-slate-900 dark:text-gray-100 sm:min-w-[10.5rem] sm:text-5xl"
+          className="min-w-[8.5rem] text-center text-[2.35rem] font-black leading-none tracking-normal text-slate-900 dark:text-white sm:min-w-[10.5rem] sm:text-5xl"
         >
           {monthTitle}
         </p>
@@ -153,12 +153,12 @@ export default function PredictionMatchPreviewTab({
           type="button"
           aria-label="다음 달 보기"
           data-testid="prediction-schedule-month-next"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-gray-200 dark:hover:bg-secondary sm:h-11 sm:w-11"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
           onClick={() => handleMonthMove(1)}
         >
           <PredictionChevronRightIcon className="h-6 w-6 sm:h-7 sm:w-7" />
         </button>
-        <label className="relative inline-flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-full px-3 text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-gray-200 dark:hover:bg-secondary sm:h-11 sm:px-4">
+        <label className="relative inline-flex h-11 cursor-pointer items-center justify-center overflow-hidden rounded-full px-3 text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary sm:px-4">
           <span className="sr-only">날짜 선택</span>
           <SharedCalendarDaysIcon className="h-6 w-6" />
           <input
@@ -187,10 +187,10 @@ export default function PredictionMatchPreviewTab({
                 data-date={item.date}
                 aria-pressed={item.isSelected}
                 aria-label={`${item.date} 경기 일정 보기`}
-                className={`min-w-[4.85rem] border-b-[5px] px-2 pb-3 text-center transition-colors ${
+                className={`min-h-11 min-w-[4.85rem] border-b-[5px] px-2 pb-3 text-center transition-colors ${
                   item.isSelected
                     ? 'border-blue-500 text-blue-500'
-                    : 'border-transparent text-slate-800 hover:border-slate-300 hover:text-slate-950 dark:text-gray-200 dark:hover:border-gray-500'
+                    : 'border-transparent text-slate-800 hover:border-slate-300 hover:text-slate-950 dark:text-white dark:hover:border-gray-500'
                 }`}
                 onClick={() => onGoToDate(item.date)}
               >
@@ -212,12 +212,12 @@ export default function PredictionMatchPreviewTab({
       </div>
 
       <Card
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm dark:border-border dark:bg-card dark:text-gray-100"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm dark:border-border dark:bg-card dark:text-white"
         data-testid="prediction-match-preview-root"
       >
         <div className="flex min-h-[4.75rem] items-center justify-between border-b border-slate-200 px-5 dark:border-border sm:px-7">
           <h2 className="text-2xl font-black tracking-normal">KBO리그</h2>
-          <PredictionChevronRightIcon className="h-6 w-6 text-slate-700 dark:text-gray-200" />
+          <PredictionChevronRightIcon className="h-6 w-6 text-slate-700 dark:text-white" />
         </div>
 
         {currentDateGames.length > 0 ? (
@@ -261,17 +261,17 @@ export default function PredictionMatchPreviewTab({
                         className="grid min-h-[4.75rem] grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-2 py-3 sm:min-h-[5.25rem] sm:grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] sm:gap-3 sm:px-4 lg:min-h-[6.25rem] lg:grid-cols-[5rem_5rem_minmax(32rem,1fr)_11rem] lg:gap-4 lg:px-6 lg:py-4"
                       >
                         <div className="min-w-0 lg:hidden">
-                          <p className="text-[13px] font-black leading-tight tabular-nums text-slate-900 dark:text-gray-100 sm:text-[15px]">
+                          <p className="text-[13px] font-black leading-tight tabular-nums text-slate-900 dark:text-white sm:text-[15px]">
                             {viewModel.startTimeLabel}
                           </p>
-                          <p className="mt-0.5 truncate text-[11px] font-bold leading-tight text-slate-500 dark:text-gray-300 sm:text-[13px]">
+                          <p className="mt-0.5 truncate text-[11px] font-bold leading-tight text-slate-500 dark:text-white sm:text-[13px]">
                             {viewModel.stadiumLabel}
                           </p>
                         </div>
-                        <div className="hidden text-lg font-black tabular-nums text-slate-900 dark:text-gray-100 lg:block">
+                        <div className="hidden text-lg font-black tabular-nums text-slate-900 dark:text-white lg:block">
                           {viewModel.startTimeLabel}
                         </div>
-                        <div className="hidden truncate text-[16px] font-bold text-slate-500 dark:text-gray-300 lg:block">
+                        <div className="hidden truncate text-[16px] font-bold text-slate-500 dark:text-white lg:block">
                           {viewModel.stadiumLabel}
                         </div>
                         <div
@@ -281,12 +281,12 @@ export default function PredictionMatchPreviewTab({
                           <div className="flex min-h-12 min-w-0 items-center justify-end gap-1 sm:min-h-14 sm:gap-2 lg:min-h-[3.75rem] lg:gap-3">
                             <div className="min-w-0 text-right">
                               <p
-                                className="truncate text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:text-xl"
+                                className="truncate text-[13px] font-black leading-tight text-slate-900 dark:text-white sm:text-[15px] lg:text-xl"
                                 aria-label={viewModel.awayTeam.fullName}
                               >
                                 {viewModel.awayTeam.shortName}
                               </p>
-                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
+                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-white sm:text-xs lg:text-[16px]">
                                 {viewModel.awayTeam.pitcherName}
                               </p>
                             </div>
@@ -295,7 +295,7 @@ export default function PredictionMatchPreviewTab({
                           <div className={`text-center text-[12px] font-black sm:text-sm lg:text-lg ${getStatusToneClass(viewModel.status.tone)}`}>
                             {viewModel.status.hasScore ? (
                               <span
-                                className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-1 py-1 text-slate-900 tabular-nums dark:bg-secondary dark:text-gray-100 sm:min-w-[3.25rem] sm:px-2 lg:min-w-[5.5rem] lg:rounded-full lg:px-3 lg:py-1.5"
+                                className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-1 py-1 text-slate-900 tabular-nums dark:bg-secondary dark:text-white sm:min-w-[3.25rem] sm:px-2 lg:min-w-[5.5rem] lg:rounded-full lg:px-3 lg:py-1.5"
                                 aria-label={`${viewModel.status.label} ${viewModel.status.scoreLabel}`}
                               >
                                 <span className="lg:hidden">{compactScoreLabel}</span>
@@ -309,7 +309,7 @@ export default function PredictionMatchPreviewTab({
                             <ScheduleTeamLogo team={viewModel.homeTeam.rawName} />
                             <div className="min-w-0">
                               <p
-                                className="flex min-w-0 items-center gap-0.5 text-[13px] font-black leading-tight text-slate-900 dark:text-gray-100 sm:text-[15px] lg:gap-1.5 lg:text-xl"
+                                className="flex min-w-0 items-center gap-0.5 text-[13px] font-black leading-tight text-slate-900 dark:text-white sm:text-[15px] lg:gap-1.5 lg:text-xl"
                                 aria-label={viewModel.homeTeam.fullName}
                               >
                                 <span className="truncate">{viewModel.homeTeam.shortName}</span>
@@ -317,7 +317,7 @@ export default function PredictionMatchPreviewTab({
                                   홈
                                 </span>
                               </p>
-                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-gray-300 sm:text-xs lg:text-[16px]">
+                              <p className="truncate text-[10px] font-semibold leading-tight text-slate-500 dark:text-white sm:text-xs lg:text-[16px]">
                                 {viewModel.homeTeam.pitcherName}
                               </p>
                             </div>
@@ -330,7 +330,7 @@ export default function PredictionMatchPreviewTab({
                               variant="outline"
                               size="sm"
                               data-testid="prediction-match-enter-detail-btn"
-                              className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-[12px] font-black text-slate-700 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-gray-100 dark:hover:bg-secondary sm:h-9 sm:min-w-[3.5rem] sm:text-[14px] lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-[16px]"
+                              className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-[12px] font-black text-slate-700 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white dark:hover:bg-secondary sm:h-9 sm:min-w-[3.5rem] sm:text-[14px] lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-[16px]"
                               onClick={() => onEnterMatchDetail(game)}
                             >
                               전력
@@ -347,15 +347,15 @@ export default function PredictionMatchPreviewTab({
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center px-5 py-10 text-center">
             <div className="mb-4 rounded-full bg-slate-100 p-4 dark:bg-secondary">
-              <PredictionTrendingUpIcon className="h-8 w-8 text-slate-400 dark:text-gray-300" />
+              <PredictionTrendingUpIcon className="h-8 w-8 text-slate-400 dark:text-white" />
             </div>
-            <p className="mb-1 text-lg font-black text-slate-900 dark:text-gray-100">
+            <p className="mb-1 text-lg font-black text-slate-900 dark:text-white">
               {formatDate(currentDate)}
             </p>
-            <h3 className="mb-2 text-xl font-black text-slate-800 dark:text-gray-100">
+            <h3 className="mb-2 text-xl font-black text-slate-800 dark:text-white">
               {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
             </h3>
-            <p className="text-slate-500 dark:text-gray-300">
+            <p className="text-slate-500 dark:text-white">
               {nearestNavigationDate
                 ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
                 : '다른 날짜를 확인해보세요!'}
