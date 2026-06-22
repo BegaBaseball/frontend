@@ -1,38 +1,51 @@
-import { lazy, Suspense, useMemo } from 'react';
-import './Diary.css';
-import { Card } from '../ui/card';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
-import StatCard from './StatCard';
-import EmojiStatsCard from './EmojiStatsCard';
-import StadiumVisitList from './StadiumVisitList';
-import BadgeShowcase from './BadgeShowcase';
+import type { OpponentStats } from '../../types/diary';
 import LoadingSpinner from '../LoadingSpinner';
-import ViewportDeferred from '../ViewportDeferred';
-import {
-  MyPageBarChartIcon,
-  MyPageFlameIcon,
-  MyPageTrendingUpIcon,
-  MyPageTrophyIcon,
-} from './MyPageIcons';
+import BadgeShowcase from './BadgeShowcase';
 
-const DiaryChartsSection = lazy(() => import('./DiaryChartsSection'));
+type DiaryStatisticsProps = {
+  cheerPoints?: number;
+};
 
-export default function DiaryStatistics() {
-  const { statistics, emojiStats, isLoading, diaryEntries } = useDiaryStatistics();
+const formatOpponentRecord = (stats: OpponentStats): string => {
+  const parts = [
+    stats.wins > 0 ? `${stats.wins}승` : '',
+    stats.draws > 0 ? `${stats.draws}무` : '',
+    stats.losses > 0 ? `${stats.losses}패` : '',
+  ].filter(Boolean);
+  return `${parts.join(' ') || '기록 없음'} · ${stats.winRate.toFixed(0)}%`;
+};
 
-  // Derived data for Monthly Chart
-  const monthlyData = useMemo(() => {
-    const counts: { [key: string]: number } = {};
-    diaryEntries.forEach(entry => {
-      const month = entry.date.substring(5, 7); // '2023-05-12' -> '05'
-      counts[month] = (counts[month] || 0) + 1;
-    });
+const SEASON_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10];
+const SEASON_GOAL = 20;
 
-    // Create array for chart (01~12 or just active months)
-    return Object.entries(counts)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([month, count]) => ({ month: `${parseInt(month)}월`, count }));
-  }, [diaryEntries]);
+const getRecordValue = (record: Record<string, number> | undefined, key: string | number): number => {
+  if (!record) {
+    return 0;
+  }
+  return record[String(key)] ?? 0;
+};
+
+export default function DiaryStatistics({ cheerPoints = 0 }: DiaryStatisticsProps) {
+  const { statistics, emojiStats, isLoading } = useDiaryStatistics();
+
+  const opponentRows = Object.entries(statistics.opponentWinRates || {})
+    .sort((a, b) => b[1].winRate - a[1].winRate)
+    .slice(0, 6);
+  const activeEmojiStats = emojiStats.filter((item) => item.count > 0);
+  const earnedBadges = statistics.earnedBadges || [];
+  const monthlyVisitCounts = statistics.monthlyVisitCounts || {};
+  const monthRows = SEASON_MONTHS.map((month) => ({
+    month,
+    count: getRecordValue(monthlyVisitCounts, month),
+  }));
+  const maxMonthlyCount = Math.max(1, ...monthRows.map((row) => row.count));
+  const stadiumRows = Object.entries(statistics.stadiumVisitCounts || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+  const goalProgress = Math.min(100, Math.round((statistics.totalCount / SEASON_GOAL) * 100));
+  const homeVisitCount = statistics.homeVisitCount ?? 0;
+  const awayVisitCount = statistics.awayVisitCount ?? 0;
 
   if (isLoading) {
     return (
@@ -40,124 +53,108 @@ export default function DiaryStatistics() {
     );
   }
 
-  const chartSkeleton = (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Card key={index} className="h-[350px] bg-card animate-pulse" />
-        ))}
-      </div>
-      <Card className="h-[350px] bg-card animate-pulse" />
-    </div>
-  );
-
   return (
-    <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
-      {/* 1. 상단 요약 배지 & 카드 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <BadgeShowcase earnedBadges={statistics.earnedBadges || []} />
-        </div>
-        <div className="lg:col-span-1">
-          <Card className="h-full bg-gradient-to-br from-primary/10 to-muted/40 border-none shadow-md p-6 flex flex-col justify-center items-center text-center">
-            <MyPageFlameIcon className="w-10 h-10 text-orange-500 mb-2 animate-pulse" />
-            <h3 className="text-[16px] font-semibold text-muted-foreground">현재 연승/연패</h3>
-            <div className="text-3xl font-black mt-1">
-              {statistics.currentWinStreak > 0 ? (
-                <span className="text-red-500">{statistics.currentWinStreak}연승 중! 🔥</span>
-              ) : statistics.currentLossStreak > 0 ? (
-                <span className="text-blue-500">{statistics.currentLossStreak}연패.. ☔</span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-            <p className="text-[16px] text-muted-foreground mt-2">최장 연승: {statistics.longestWinStreak || 0}연승</p>
-          </Card>
+    <section data-screen-label="나의 기록">
+      <div className="mypage-season-head">
+        <div>
+          <h1>나의 기록</h1>
+          <p>2026 시즌 직관 데이터 분석</p>
         </div>
       </div>
 
-      {/* 2. 대시보드 요약 카드 */}
-      <Card className="p-5 md:p-8 bg-card">
-        <div className="flex items-center gap-3">
-          <MyPageTrophyIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
-          <h2 className="text-lg md:text-xl font-black text-primary">
-            나의 야구 기록 요약
-          </h2>
+      <div className="mypage-season-stat-grid">
+        <div className="mypage-season-stat-card">
+          <div className="mypage-season-stat-label">직관</div>
+          <div className="mypage-season-stat-value">{statistics.totalCount}<small className="text-sm text-[#FFFFFF]">회</small></div>
+          <div className="mypage-season-stat-sub">시즌 목표 {SEASON_GOAL}회의 {goalProgress}%</div>
         </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pt-6 border-t border-border mt-4">
-          <StatCard value={statistics.totalCount} label="총 직관 횟수" />
-          <StatCard value={statistics.cheerPostCount || 0} label="작성한 응원글" />
-          <StatCard value={`${statistics.winRate.toFixed(0)}%`} label="직관 승률" />
-          <StatCard value={statistics.luckyDay || '-'} label="승리 요일" />
+        <div className="mypage-season-stat-card">
+          <div className="mypage-season-stat-label">직관 승률</div>
+          <div className="mypage-season-stat-value">{statistics.winRate.toFixed(0)}<small className="text-sm text-[#FFFFFF]">%</small></div>
+          <div className="mypage-season-stat-sub">{statistics.totalWins}승 {statistics.totalDraws}무 {statistics.totalLosses}패</div>
         </div>
-      </Card>
-
-      <ViewportDeferred fallback={chartSkeleton}>
-        <Suspense fallback={chartSkeleton}>
-          <DiaryChartsSection statistics={statistics} monthlyData={monthlyData} />
-        </Suspense>
-      </ViewportDeferred>
-
-      {/* 4. 구장 & 상세 기록 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="h-[400px]">
-          <StadiumVisitList entries={diaryEntries} />
+        <div className="mypage-season-stat-card">
+          <div className="mypage-season-stat-label">홈 / 원정</div>
+          <div className="mypage-season-stat-value">{homeVisitCount} <small className="text-sm text-[#FFFFFF]">/</small> {awayVisitCount}</div>
+          <div className="mypage-season-stat-sub">{statistics.mostVisitedStadium || '최다 구장 집계 전'}</div>
         </div>
-
-        <div className="space-y-6">
-          <Card className="p-5 md:p-8 bg-card">
-            <div className="flex items-center gap-3 mb-6">
-              <MyPageTrendingUpIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
-              <h2 className="text-lg md:text-xl font-black text-primary">
-                기분 분석
-              </h2>
-            </div>
-            <EmojiStatsCard stats={emojiStats} />
-          </Card>
-
-          <Card className="p-5 md:p-8 bg-card">
-            <div className="flex items-center gap-3 mb-6">
-              <MyPageBarChartIcon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
-              <h2 className="text-lg md:text-xl font-black text-primary">
-                상세 기록
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-semibold">최다 방문 구장</span>
-                <span className="font-bold text-primary">
-                  {statistics.mostVisitedStadium || '-'} ({statistics.mostVisitedCount}회)
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-semibold">가장 행복했던 달</span>
-                <span className="font-bold text-primary">
-                  {statistics.happiestMonth || '-'} ({statistics.happiestCount}회)
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-semibold">상대하기 쉬운 팀</span>
-                <span className="font-bold text-primary">
-                  {statistics.bestOpponent || '-'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-semibold">상대하기 어려운 팀</span>
-                <span className="font-bold text-primary">
-                  {statistics.worstOpponent || '-'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
-                <span className="text-muted-foreground font-semibold">연간 승률</span>
-                <span className="font-bold text-primary">
-                  {statistics.yearlyWinRate?.toFixed(1) || 0}% ({statistics.yearlyWins}승 / {statistics.yearlyCount}경기)
-                </span>
-              </div>
-            </div>
-          </Card>
+        <div className="mypage-season-stat-card">
+          <div className="mypage-season-stat-label">응원 포인트</div>
+          <div className="mypage-season-stat-value">{cheerPoints.toLocaleString()}<small className="text-sm text-[#FFFFFF]">P</small></div>
+          <div className="mypage-season-stat-sub">응원 활동 누적 포인트</div>
         </div>
       </div>
-    </div>
+
+      <div className="mypage-season-panel">
+        <div className="mypage-season-panel-title">월별 직관 횟수</div>
+        <div className="mypage-season-bars" data-testid="mypage-monthly-visit-bars">
+          {monthRows.map(({ month, count }) => (
+            <div className="mypage-season-bar-col" key={month}>
+              <span className="mypage-season-bar-value">{count > 0 ? count : '-'}</span>
+              <span
+                className={`mypage-season-bar ${count === maxMonthlyCount && count > 0 ? 'is-hot' : ''}`}
+                style={{ height: `${Math.max(3, Math.round((count / maxMonthlyCount) * 100))}%` }}
+              />
+              <span className="mypage-season-bar-label">{month}월</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mypage-season-panel">
+        <div className="mypage-season-panel-title">상대팀별 전적</div>
+        {opponentRows.length === 0 ? (
+          <p className="text-sm text-[#FFFFFF]">상대팀 전적 데이터가 아직 없습니다.</p>
+        ) : (
+          opponentRows.map(([opponent, record]) => (
+            <div key={opponent} className="mypage-season-vs-row">
+              <span className="mypage-season-vs-name">{opponent}</span>
+              <span className="mypage-season-vs-track">
+                <span
+                  className="block h-full rounded-full bg-[#63b39b]"
+                  style={{ width: `${Math.max(4, record.winRate)}%` }}
+                />
+              </span>
+              <b className="mypage-season-vs-record">{formatOpponentRecord(record)}</b>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="mypage-season-panel">
+          <div className="mypage-season-panel-title">구장 방문</div>
+          {stadiumRows.length === 0 ? (
+            <p className="text-sm text-[#FFFFFF]">구장 방문 데이터가 아직 없습니다.</p>
+          ) : (
+            stadiumRows.map(([stadium, count], index) => (
+              <div key={stadium} className="mypage-season-list-row">
+                <span className={`mypage-season-dot2 ${index > 0 ? 'is-dim' : ''}`} />
+                <span>{stadium}</span>
+                <b>{count}회</b>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mypage-season-panel">
+          <div className="mypage-season-panel-title">직관 기분</div>
+          {activeEmojiStats.length === 0 ? (
+            <p className="text-sm text-[#FFFFFF]">기분 분석 데이터가 아직 없습니다.</p>
+          ) : (
+            activeEmojiStats.map((item) => (
+              <div key={item.name} className="mypage-season-list-row">
+                <span>{item.emoji} {item.name}</span>
+                <b>{item.count}회</b>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <BadgeShowcase earnedBadges={earnedBadges} />
+      </div>
+    </section>
   );
 }

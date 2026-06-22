@@ -189,7 +189,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 <div className="space-y-2 text-center">
                                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h3>
                                     {profile.favoriteTeam ? (
-                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-700 dark:bg-secondary dark:text-gray-200">
+                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-700 dark:bg-secondary dark:text-white">
                                             <ProfileTrophyIcon className="mr-1 h-3 w-3 text-primary" />
                                             {getTeamKoreanName(profile.favoriteTeam)}
                                         </span>
@@ -241,10 +241,10 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 )}
 
                                 <div className="relative mt-4 w-full rounded-xl bg-gray-50 p-5 dark:bg-secondary/70">
-                                    <ProfileQuoteIcon className="absolute left-4 top-4 h-4 w-4 text-gray-300 dark:text-gray-300" />
+                                    <ProfileQuoteIcon className="absolute left-4 top-4 h-4 w-4 text-gray-300 dark:text-white" />
                                     <div className="px-4 text-center">
                                         {profile.bio ? (
-                                            <p className="whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-gray-300">
+                                            <p className="whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-white">
                                                 {profile.bio}
                                             </p>
                                         ) : (

@@ -38,7 +38,7 @@ export default function UserProfilePostsSection({
         return (
             <div className="rounded-2xl border border-gray-200 bg-gray-50 py-8 text-center dark:border-border dark:bg-card/50 sm:py-10">
                 <XCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-500" />
-                <p className="mb-4 text-gray-600 dark:text-gray-300">
+                <p className="mb-4 text-gray-600 dark:text-white">
                     게시글을 불러오지 못했습니다.
                 </p>
                 <Button variant="outline" onClick={onRetryPosts}>
@@ -51,8 +51,8 @@ export default function UserProfilePostsSection({
     if (uniquePosts.length === 0) {
         return (
             <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 py-12 text-center dark:border-border dark:bg-card/50 sm:py-14">
-                <PenSquareIcon className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-gray-300" />
-                <p className="text-gray-400 dark:text-gray-300">
+                <PenSquareIcon className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-white" />
+                <p className="text-gray-400 dark:text-white">
                     아직 작성한 게시글이 없습니다.
                 </p>
             </div>

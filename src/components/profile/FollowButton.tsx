@@ -200,7 +200,7 @@ export default function FollowButton({
                         type="button"
                         role="menuitem"
                         onClick={handleToggleNotify}
-                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                        className="flex w-full items-center rounded-sm px-3 py-2 text-[16px] text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
                     >
                         {notifyNewPosts ? (
                             <>

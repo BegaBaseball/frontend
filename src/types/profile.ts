@@ -56,7 +56,17 @@ export interface ProfileUpdateResponse {
   message?: string;
 }
 
-export type ViewMode = 'diary' | 'stats' | 'editProfile' | 'mateHistory' | 'changePassword' | 'accountSettings' | 'blockedUsers';
+export type ViewMode =
+  | 'diary'
+  | 'diaryEditor'
+  | 'stats'
+  | 'editProfile'
+  | 'cheerPosts'
+  | 'mateHistory'
+  | 'settings'
+  | 'changePassword'
+  | 'accountSettings'
+  | 'blockedUsers';
 
 export type ProfileSection = 'profile' | 'accountSettings' | 'blockedUsers';
 export type ProfileSectionTab = ProfileSection;
