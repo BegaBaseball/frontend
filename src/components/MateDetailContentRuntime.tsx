@@ -17,9 +17,13 @@ import {
   updateMatePartyCollectionQueryData,
 } from '../hooks/mateDetailRoute';
 import type { Application, CancelReasonType, Party } from '../types/mate';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 import { getRefundPolicyMessage } from '../utils/paymentStatus';
-import AdSlot from './ads/AdSlot';
-import ViewportDeferred from './ViewportDeferred';
+import { getDayDifference } from '../utils/currentDate';
+import { isMateGameSoon } from '../utils/mateDateLabels';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useTodayKey } from '../hooks/useTodayKey';
+import { MateDetailHeroBlock } from './MateDetailReferenceBlocks';
 import type { MateDetailActionButton, MateDetailActionContext } from './MateDetailActionSection';
 import { useConfirmDialog } from './contexts/confirmDialogCore';
 
@@ -27,7 +31,6 @@ const ReviewDialog = lazy(() => import('./ReviewDialog'));
 const LazyUserProfileModal = lazy(() => import('./profile/UserProfileModal'));
 const LazyMateDetailActionDialogs = lazy(() => import('./MateDetailActionDialogs'));
 const LazyMateDetailActionSection = lazy(() => import('./MateDetailActionSection'));
-const LazyMateDetailOverviewSection = lazy(() => import('./MateDetailOverviewSection'));
 const LazyMateDetailInfoSections = lazy(() => import('./MateDetailInfoSections'));
 
 interface MateDetailContentRuntimeProps {
@@ -40,15 +43,14 @@ interface MateDetailContentRuntimeProps {
   canAccessCheckIn: boolean;
   myApplication: Application | null;
   hostApplications: Application[];
-  sectionCardClass: string;
-  insetPanelClass: string;
-  getSeatBadgeColor: (section: string) => string;
   onApply: () => void;
   onOpenCheckInPage: () => void;
   onManageParty: () => void;
   onOpenChat: () => void;
   onBrowsePartyList: () => void;
   onOpenSeatViewGuide: () => void;
+  onOpenQrPanel: () => void;
+  onShare: () => void;
 }
 
 const resolveMateDetailErrorMessage = (error: unknown, fallback: string): string => {
@@ -93,15 +95,14 @@ export default function MateDetailContentRuntime({
   canAccessCheckIn,
   myApplication,
   hostApplications,
-  sectionCardClass,
-  insetPanelClass,
-  getSeatBadgeColor,
   onApply,
   onOpenCheckInPage,
   onManageParty,
   onOpenChat,
   onBrowsePartyList,
   onOpenSeatViewGuide,
+  onOpenQrPanel,
+  onShare,
 }: MateDetailContentRuntimeProps) {
   const { confirm } = useConfirmDialog();
   const queryClient = useQueryClient();
@@ -116,6 +117,9 @@ export default function MateDetailContentRuntime({
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
   const applications = isHost ? hostApplications : [];
+  const isCompactHero = useMediaQuery('(max-width: 639px)');
+  const todayKey = useTodayKey();
+  const currentTime = useCurrentTime(60_000);
 
   const [approvedApplications, pendingApplications] = useMemo(() => [
     applications.filter((application) => application.isApproved),
@@ -128,26 +132,16 @@ export default function MateDetailContentRuntime({
     if (party.status === 'CHECKED_IN' || party.status === 'COMPLETED') return false;
     if (!myApplication.isApproved) return true;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const gameDate = new Date(party.gameDate);
-    gameDate.setHours(0, 0, 0, 0);
-    const daysDiff = Math.floor((gameDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = getDayDifference(party.gameDate, todayKey);
     return daysDiff >= 1;
-  }, [myApplication, party.gameDate, party.status]);
+  }, [myApplication, party.gameDate, party.status, todayKey]);
 
   const isGameSoon = useMemo(() => {
-    const gameDate = new Date(party.gameDate);
-    const now = new Date();
-    const hours = (gameDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hours < 24 && hours > 0;
-  }, [party.gameDate]);
+    return isMateGameSoon(party.gameDate, currentTime);
+  }, [currentTime, party.gameDate]);
 
   const canConvertToSale = (party.status === 'PENDING' || party.status === 'FAILED') && isGameSoon;
 
-  const summaryTradeLabel = party.status === 'SELLING' ? '판매 티켓' : '직거래';
-  const summaryAmountLabel = party.status === 'SELLING' ? '판매가' : '거래 기준 금액';
-  const summaryAmount = party.status === 'SELLING' ? (party.price || 0) : (party.ticketPrice || 0);
   const isAwaitingApproval = Boolean(myApplication && !myApplication.isApproved && !myApplication.isRejected);
   const summaryPolicyText = isHost
     ? (canConvertToSale ? '경기 임박 시 판매 전환 가능' : '파티 상태를 관리할 수 있습니다')
@@ -405,69 +399,40 @@ export default function MateDetailContentRuntime({
   }
 
   const primaryMobileAction = actionButtons.find((action) => !action.disabled) ?? actionButtons[0] ?? null;
-  const secondaryMobileAction = actionButtons[0]?.disabled ? null : (actionButtons[1] ?? null);
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 xl:gap-8 mb-20">
-        <div className="space-y-6 lg:col-span-2">
-          <ViewportDeferred
-            rootMargin="0px 0px 160px 0px"
-            fallback={<div className="min-h-[108px] rounded-xl border border-dashed border-gray-200 bg-gray-50/80 dark:border-border/70 dark:bg-secondary/60" />}
-          >
-            <Suspense fallback={null}>
-              <LazyMateDetailOverviewSection
-                party={party}
-                summaryTradeLabel={summaryTradeLabel}
-                summaryAmountLabel={summaryAmountLabel}
-                summaryAmount={summaryAmount}
-                summaryPolicyText={summaryPolicyText}
-                sectionCardClass={sectionCardClass}
-                insetPanelClass={insetPanelClass}
-              />
-            </Suspense>
-          </ViewportDeferred>
-
-          <AdSlot
-            slotId="mate_detail_1"
-            pageType="mate_detail"
-            contentId={party.id != null ? String(party.id) : null}
-            loggedIn={Boolean(currentUserId)}
-            userId={currentUserId ? String(currentUserId) : null}
-          />
-
-          <ViewportDeferred
-            rootMargin="0px 0px 240px 0px"
-            fallback={<div className="min-h-[520px] rounded-xl border border-dashed border-gray-200 bg-gray-50/80 dark:border-border/70 dark:bg-secondary/60" />}
-          >
-            <Suspense fallback={null}>
-              <LazyMateDetailInfoSections
-                party={party}
-                routePartyId={routePartyId}
-                isHost={isHost}
-                isApproved={isApproved}
-                currentUserId={currentUserId}
-                currentUserHandle={currentUserHandle}
-                sectionCardClass={sectionCardClass}
-                insetPanelClass={insetPanelClass}
-                getSeatBadgeColor={getSeatBadgeColor}
-                onOpenHostProfile={() => setShowHostProfile(true)}
-                onOpenSeatViewGuide={onOpenSeatViewGuide}
-                onRequestReview={setReviewTarget}
-              />
-            </Suspense>
-          </ViewportDeferred>
+      <div className="mb-[calc(7rem_+_env(safe-area-inset-bottom))] grid grid-cols-1 gap-3.5 sm:gap-4 md:gap-5 lg:mb-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6 xl:gap-7">
+        <div className="flex min-w-0 flex-col gap-3.5 sm:gap-4 md:gap-5 lg:gap-4">
+          <MateDetailHeroBlock party={party} compact={isCompactHero} />
+          <Suspense fallback={null}>
+            <LazyMateDetailInfoSections
+              party={party}
+              routePartyId={routePartyId}
+              isHost={isHost}
+              isApproved={isApproved}
+              summaryPolicyText={summaryPolicyText}
+              currentUserId={currentUserId}
+              currentUserHandle={currentUserHandle}
+              onOpenHostProfile={() => setShowHostProfile(true)}
+              onOpenSeatViewGuide={onOpenSeatViewGuide}
+              onOpenChat={onOpenChat}
+              onRequestReview={setReviewTarget}
+            />
+          </Suspense>
         </div>
 
         <Suspense fallback={null}>
           <LazyMateDetailActionSection
+            party={party}
             actionContext={actionContext}
             actionButtons={actionButtons}
             isAwaitingApproval={isAwaitingApproval}
-            sectionCardClass={sectionCardClass}
-            insetPanelClass={insetPanelClass}
             primaryMobileAction={primaryMobileAction}
-            secondaryMobileAction={secondaryMobileAction}
+            canAccessCheckIn={canAccessCheckIn}
+            onOpenQrPanel={onOpenQrPanel}
+            onShare={onShare}
+            onBrowsePartyList={onBrowsePartyList}
           />
         </Suspense>
       </div>

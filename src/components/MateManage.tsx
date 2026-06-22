@@ -77,10 +77,10 @@ function EmptyState({
   return (
     <div className={`${mateSubtlePanelClass} flex min-h-[240px] flex-col items-center justify-center px-6 py-10 text-center`}>
       <div className="rounded-full bg-gray-100 p-4 dark:bg-secondary/80">
-        <Icon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+        <Icon className="h-8 w-8 text-gray-400 dark:text-white" />
       </div>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
-      <p className="mt-2 max-w-sm text-[16px] leading-6 text-gray-500 dark:text-gray-300">{description}</p>
+      <p className="mt-2 max-w-sm text-[16px] leading-6 text-gray-500 dark:text-white">{description}</p>
     </div>
   );
 }
@@ -106,6 +106,7 @@ export default function MateManage() {
     section: '',
     maxParticipants: 2,
     ticketPrice: 0,
+    reservationDepositAmount: 0,
     description: '',
   });
   const [descriptionError, setDescriptionError] = useState('');
@@ -266,6 +267,7 @@ export default function MateManage() {
       section: party.section,
       maxParticipants: party.maxParticipants,
       ticketPrice: party.ticketPrice || 0,
+      reservationDepositAmount: party.reservationDepositAmount || 0,
       description: party.description,
     });
     setDescriptionError('');
@@ -338,11 +340,11 @@ export default function MateManage() {
         />
         <div className="relative z-10 mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
           <Card className={`p-6 ${mateSectionCardClass}`}>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               Access
             </p>
             <h1 className="mt-2 text-2xl font-black text-gray-900 dark:text-white">호스트 전용 관리 화면</h1>
-            <p className="mt-3 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+            <p className="mt-3 text-[16px] leading-6 text-gray-600 dark:text-white">
               신청 검토, 승인, 후속 진행은 호스트만 처리할 수 있습니다. 상세페이지로 돌아가 현재 파티 상태를 확인하세요.
             </p>
             <Button onClick={() => navigate(`/mate/${id}`)} className="mt-6 w-fit">
@@ -412,6 +414,8 @@ export default function MateManage() {
     onEditSectionChange: (value) => setEditForm((current) => ({ ...current, section: value })),
     onEditTicketPriceChange: (value) =>
       setEditForm((current) => ({ ...current, ticketPrice: parseInt(value, 10) || 0 })),
+    onEditReservationDepositAmountChange: (value) =>
+      setEditForm((current) => ({ ...current, reservationDepositAmount: parseInt(value, 10) || 0 })),
     onEditMaxParticipantsChange: (value) => setEditForm((current) => ({ ...current, maxParticipants: value })),
     onEditDescriptionChange: (value) => {
       setEditForm((current) => ({ ...current, description: value }));

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, memo, Suspense } from 'react';
 
 import AdSlot from './ads/AdSlot';
 import { Button } from './ui/button';
@@ -10,11 +10,15 @@ import {
   MateRefreshIcon,
   MateUsersIcon,
 } from './MateIcons';
+import { useTodayKey } from '../hooks/useTodayKey';
 import type { Party } from '../types/mate';
 
 const MatePartyCard = lazy(() => import('./MatePartyCard'));
+const PartyRow = lazy(() => import('./MatePartyCard').then((m) => ({ default: m.PartyRow })));
+const PartyCompact = lazy(() => import('./MatePartyCard').then((m) => ({ default: m.PartyCompact })));
 
 type MateResultsTabKey = 'all' | 'recruiting' | 'matched' | 'selling';
+export type MateResultsViewMode = 'grid' | 'list' | 'compact';
 
 interface MateResultsRuntimeProps {
   parties: Party[];
@@ -30,16 +34,17 @@ interface MateResultsRuntimeProps {
   onCreateParty: () => void;
   onPartyClick: (party: Party) => void;
   onPageChange: (nextPage: number) => void;
+  viewMode?: MateResultsViewMode;
 }
 
 const EMPTY_MESSAGES_BY_TAB: Record<MateResultsTabKey, { withFilter: string; withoutFilter: string }> = {
   all: { withFilter: '검색 조건에 맞는 파티가 없습니다', withoutFilter: '아직 개설된 파티가 없습니다' },
   recruiting: { withFilter: '검색 조건에 맞는 모집 중 파티가 없습니다', withoutFilter: '현재 모집 중인 파티가 없습니다' },
-  matched: { withFilter: '검색 조건에 맞는 매칭 완료 파티가 없습니다', withoutFilter: '매칭 완료된 파티가 없습니다' },
-  selling: { withFilter: '검색 조건에 맞는 티켓 판매 파티가 없습니다', withoutFilter: '티켓 판매 중인 파티가 없습니다' },
+  matched: { withFilter: '검색 조건에 맞는 매칭 성공 파티가 없습니다', withoutFilter: '매칭 성공한 파티가 없습니다' },
+  selling: { withFilter: '검색 조건에 맞는 판매 중 파티가 없습니다', withoutFilter: '판매 중인 파티가 없습니다' },
 };
 
-export default function MateResultsRuntime({
+function MateResultsRuntime({
   parties,
   totalPages,
   queryPage,
@@ -53,14 +58,17 @@ export default function MateResultsRuntime({
   onCreateParty,
   onPartyClick,
   onPageChange,
+  viewMode = 'grid',
 }: MateResultsRuntimeProps) {
+  const todayKey = useTodayKey();
+
   const renderSkeletonGrid = () => (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5 2xl:gap-6">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 xl:gap-5 2xl:gap-6">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
           aria-hidden="true"
-          className="flex min-h-[150px] animate-pulse flex-col gap-[10px] rounded-[18px] border border-gray-200/80 bg-white p-[14px] dark:border-white/15 dark:bg-[#16181c]"
+          className="flex min-h-[150px] animate-pulse flex-col gap-[10px] rounded-[18px] border border-gray-200/80 bg-white p-[14px] dark:border-white/15 dark:bg-[#000000]"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="h-5 w-28 rounded bg-gray-200 dark:bg-white/10" />
@@ -77,7 +85,10 @@ export default function MateResultsRuntime({
     const messages = EMPTY_MESSAGES_BY_TAB[tabKey];
 
     return (
-      <div className="rounded-[24px] border border-gray-200/80 bg-gradient-to-br from-white via-white to-primary/5 px-5 py-16 text-center shadow-sm dark:border-white/15 dark:from-[#16181c] dark:via-[#16181c] dark:to-primary/10">
+      <div
+        data-testid="mate-empty-state"
+        className="rounded-[24px] border border-gray-200/80 bg-gradient-to-br from-white via-white to-primary/5 px-5 py-16 text-center shadow-sm dark:border-white/15 dark:from-[hsl(var(--surface-raised))] dark:via-[hsl(var(--surface-raised))] dark:to-primary/10"
+      >
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
           <MateUsersIcon className="h-7 w-7" />
         </div>
@@ -86,7 +97,7 @@ export default function MateResultsRuntime({
         </p>
         {hasActiveFilters ? (
           <>
-            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-zinc-300">
+            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-white">
               검색어를 줄이거나 날짜, 팀, 좌석 조건을 초기화하면 더 많은 파티를 볼 수 있습니다.
             </p>
             <Button
@@ -100,11 +111,12 @@ export default function MateResultsRuntime({
           </>
         ) : (
           <>
-            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-zinc-300">
+            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-white">
               원하는 경기와 좌석 조건으로 첫 번째 직관 메이트를 모집해보세요.
             </p>
             <Button
               size="touch"
+              data-testid="mate-empty-create-cta"
               className="rounded-xl bg-primary px-5 font-black text-primary-foreground hover:bg-primary-hover"
               onClick={onCreateParty}
             >
@@ -119,11 +131,12 @@ export default function MateResultsRuntime({
 
   const renderPartyGrid = (items: Party[]) => (
     <Suspense fallback={renderSkeletonGrid()}>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:gap-5 2xl:gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 xl:gap-5 2xl:gap-6">
         {items.flatMap((party, index) => [
           <MatePartyCard
             key={party.id}
             party={party}
+            todayKey={todayKey}
             onClick={onPartyClick}
           />,
           index === 3 && items.length > 4 ? (
@@ -143,11 +156,37 @@ export default function MateResultsRuntime({
     </Suspense>
   );
 
+  const renderPartyList = (items: Party[]) => (
+    <Suspense fallback={renderSkeletonGrid()}>
+      <div className="flex flex-col gap-2">
+        {items.map((party) => (
+          <PartyRow key={party.id} party={party} todayKey={todayKey} onClick={onPartyClick} />
+        ))}
+      </div>
+    </Suspense>
+  );
+
+  const renderPartyCompact = (items: Party[]) => (
+    <Suspense fallback={renderSkeletonGrid()}>
+      <div className="grid grid-cols-1 gap-2 2xl:grid-cols-2">
+        {items.map((party) => (
+          <PartyCompact key={party.id} party={party} todayKey={todayKey} onClick={onPartyClick} />
+        ))}
+      </div>
+    </Suspense>
+  );
+
+  const renderResults = (items: Party[]) => {
+    if (viewMode === 'list') return renderPartyList(items);
+    if (viewMode === 'compact') return renderPartyCompact(items);
+    return renderPartyGrid(items);
+  };
+
   const renderPagination = () => (
     <div className="mb-8 mt-10 flex items-center justify-center gap-2 sm:gap-4">
       <Button
         variant="outline"
-        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary"
+        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/20 dark:hover:text-primary"
         onClick={() => onPageChange(Math.max(0, queryPage - 1))}
         disabled={queryPage === 0}
         size="touch"
@@ -155,12 +194,12 @@ export default function MateResultsRuntime({
         <MateChevronLeftIcon className="mr-1 h-4 w-4" />
         이전
       </Button>
-      <span className="rounded-full bg-gray-100 px-3 py-2 text-[16px] font-bold text-gray-600 dark:bg-white/5 dark:text-zinc-300">
+      <span className="rounded-full bg-gray-100 px-3 py-2 text-[16px] font-bold text-gray-600 dark:bg-white/5 dark:text-white">
         {`${queryPage + 1} / ${totalPages}`}
       </span>
       <Button
         variant="outline"
-        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#16181c] dark:text-zinc-200 dark:hover:bg-primary/20 dark:hover:text-primary"
+        className="border-gray-200/80 bg-white text-gray-700 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/20 dark:hover:text-primary"
         onClick={() => onPageChange(Math.min(totalPages - 1, queryPage + 1))}
         disabled={queryPage >= totalPages - 1}
         size="touch"
@@ -211,7 +250,7 @@ export default function MateResultsRuntime({
           renderEmptyState(activeTab)
         ) : (
           <>
-            {renderPartyGrid(parties)}
+            {renderResults(parties)}
             {totalPages > 1 ? renderPagination() : null}
           </>
         )}
@@ -219,3 +258,5 @@ export default function MateResultsRuntime({
     </div>
   );
 }
+
+export default memo(MateResultsRuntime);

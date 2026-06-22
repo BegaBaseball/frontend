@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { StatusBadge } from './ui/status-badge';
 import type {
   MateManageContentRuntimeProps,
 } from './MateManageContentRuntime';
@@ -23,7 +24,6 @@ import { cn } from '../lib/utils';
 import {
   getBadgeMeta,
   getPartyFlowLabel,
-  getPartyStatusMeta,
   mateHeroCardClass,
   mateInsetPanelClass,
   matePageShellClass,
@@ -31,6 +31,7 @@ import {
 } from '../utils/mateFlowUi';
 import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { getMateStatusBadgeMeta } from '../utils/statusBadgeMeta';
 
 const LazyMateManageContentRuntime = lazy(() => import('./MateManageContentRuntime'));
 type MateIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -60,11 +61,11 @@ function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             {label}
           </p>
           <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{value}</p>
-          <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-300">{detail}</p>
+          <p className="mt-1 text-[16px] text-gray-500 dark:text-white">{detail}</p>
         </div>
       </div>
     </div>
@@ -88,7 +89,7 @@ export default function MateManageOverviewRuntime({
   contentProps,
   onNavigateBack,
 }: MateManageOverviewRuntimeProps) {
-  const statusMeta = getPartyStatusMeta(party.status);
+  const statusMeta = getMateStatusBadgeMeta(party.status);
   const hostBadgeMeta = getBadgeMeta(party.hostBadge);
   const flowLabel = getPartyFlowLabel(party.status);
   const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
@@ -121,7 +122,7 @@ export default function MateManageOverviewRuntime({
   ] satisfies ReadonlyArray<SummaryItemProps>;
   const mateManageContentFallback = (
     <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
-      <p className="text-[16px] text-gray-500 dark:text-gray-300">관리 패널을 준비하고 있습니다.</p>
+      <p className="text-[16px] text-gray-500 dark:text-white">관리 패널을 준비하고 있습니다.</p>
     </Card>
   );
 
@@ -146,8 +147,8 @@ export default function MateManageOverviewRuntime({
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
-            <Card className={`p-0 ${mateHeroCardClass}`}>
-              <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-6 py-6 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-8">
+            <Card className={`status-badge-hover-scope p-0 ${mateHeroCardClass}`}>
+              <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-6 py-6 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(0,0,0,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-8">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3 sm:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
@@ -160,13 +161,11 @@ export default function MateManageOverviewRuntime({
                       <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                         파티 관리
                       </h1>
-                      <p className="mt-3 max-w-2xl text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+                      <p className="mt-3 max-w-2xl text-[16px] leading-6 text-gray-600 dark:text-white">
                         신청 검토, 승인 결정, 채팅 연결, 체크인 준비까지 한 흐름으로 정리합니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <InlineBadge className={cn(statusMeta.className)}>
-                          {statusMeta.label}
-                        </InlineBadge>
+                        <StatusBadge {...statusMeta} size="md" />
                         <InlineBadge className="border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                           {flowLabel}
                         </InlineBadge>
@@ -188,11 +187,11 @@ export default function MateManageOverviewRuntime({
                   </div>
 
                   <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
-                    <div className="grid gap-3 text-[16px] text-gray-600 dark:text-gray-300">
+                    <div className="grid gap-3 text-[16px] text-gray-600 dark:text-white">
                       <div className="flex items-start gap-3">
                         <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
+                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">일정</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {formatGameDate(party.gameDate)} {party.gameTime}
                           </p>
@@ -201,21 +200,21 @@ export default function MateManageOverviewRuntime({
                       <div className="flex items-start gap-3">
                         <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
+                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">경기장 / 좌석</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {stadiumDisplayName}
                           </p>
-                          <p className="text-[16px] text-gray-500 dark:text-gray-300">{party.section}</p>
+                          <p className="text-[16px] text-gray-500 dark:text-white">{party.section}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <MateUsersIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">참여 현황</p>
+                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">참여 현황</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {party.currentParticipants}/{party.maxParticipants}명
                           </p>
-                          <p className="text-[16px] text-gray-500 dark:text-gray-300">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
+                          <p className="text-[16px] text-gray-500 dark:text-white">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
                         </div>
                       </div>
                     </div>
