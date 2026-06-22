@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { getFullTeamName } from '../../constants/teams';
 import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
 import {
   calculateVotePercentages,
@@ -53,6 +55,7 @@ interface PredictionMatchTabProps {
 
 export default function PredictionMatchTab({
   currentDateGames,
+  selectedGame,
   currentDate,
   currentGame,
   currentGameId,
@@ -78,13 +81,15 @@ export default function PredictionMatchTab({
   onPrevDate,
   onNextDate,
   onNearestNavigation,
+  onSelectGame,
   reloadCurrentGameDetail,
 }: PredictionMatchTabProps) {
   const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
   const votePercentages = calculateVotePercentages(currentVotes.home, currentVotes.away);
   const hasCurrentGameProgressData = hasGameDetailProgressData(currentGameDetail);
   const hasCurrentGameScores = currentGame?.homeScore != null && currentGame?.awayScore != null;
-  const gameStatus: GameStatusResult = getGameStatus(currentGame, new Date(), {
+  const currentTime = useCurrentTime(60_000);
+  const gameStatus: GameStatusResult = getGameStatus(currentGame, currentTime, {
     gameStatus: currentGameDetail?.gameStatus || currentGame?.gameStatus,
     gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
     startTime: currentGameDetail?.startTime || currentGame?.startTime || null,
@@ -106,7 +111,7 @@ export default function PredictionMatchTab({
         >
           <PredictionChevronLeftIcon size={24} className="text-emerald-600 dark:text-emerald-300" />
         </button>
-        <span className="font-bold text-slate-900 dark:text-gray-100">
+        <span className="font-bold text-slate-900 dark:text-white">
           {formatDate(currentDate)}
         </span>
         <button
@@ -123,11 +128,45 @@ export default function PredictionMatchTab({
       <div className="w-full">
         {currentDateGames.length > 0 ? (
           <>
+            {currentDateGames.length > 1 ? (
+              <div
+                data-testid="prediction-same-day-switcher"
+                className="mb-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:px-0"
+              >
+                {currentDateGames.map((game, index) => {
+                  const isSelected = index === selectedGame;
+                  const label = `${getFullTeamName(game.awayTeam)} @ ${getFullTeamName(game.homeTeam)}`;
+                  return (
+                    <button
+                      key={game.gameId || `${game.awayTeam}-${game.homeTeam}-${index}`}
+                      type="button"
+                      data-testid="prediction-detail-game-switch"
+                      data-game-id={game.gameId}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelectGame(index)}
+                      className={[
+                        'min-w-[150px] flex-shrink-0 rounded-md border px-3 py-2 text-left text-[12px] font-semibold leading-tight transition-colors',
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm dark:border-emerald-400/70 dark:bg-emerald-500/15 dark:text-emerald-100'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/60 dark:border-border dark:bg-card dark:text-white dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/10',
+                      ].join(' ')}
+                    >
+                      <span className="block truncate">{label}</span>
+                      {game.startTime ? (
+                        <span className="mt-1 block text-[11px] font-medium text-slate-500 dark:text-white">
+                          {game.startTime}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             {shouldRenderMatchCard && currentGame && currentGameId ? (
               <Suspense
                 fallback={(
                   <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-                    <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+                    <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
                       <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                       경기 카드를 준비하고 있습니다.
                     </div>
@@ -172,7 +211,7 @@ export default function PredictionMatchTab({
                 onClick={onPrevDate}
                 disabled={!canMovePrevDate}
                 aria-label="이전 날짜 보기"
-                className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-white transition-colors"
               >
                 <PredictionChevronLeftIcon size={36} />
               </button>
@@ -181,24 +220,24 @@ export default function PredictionMatchTab({
                 onClick={onNextDate}
                 disabled={!canMoveNextDate}
                 aria-label="다음 날짜 보기"
-                className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-gray-300 transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-white transition-colors"
               >
                 <PredictionChevronRightIcon size={36} />
               </button>
             </div>
 
             <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
-              <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-gray-300" />
+              <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-white" />
             </div>
             <div className="mb-4">
-              <p className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1">
+              <p className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                 {formatDate(currentDate)}
               </p>
             </div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-2">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
               {isCurrentDateToday || isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
             </h3>
-            <p className="text-slate-500 dark:text-gray-300">
+            <p className="text-slate-500 dark:text-white">
               {nearestNavigationDate
                 ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
                 : '다른 날짜를 확인해보세요!'}

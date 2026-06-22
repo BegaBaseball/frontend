@@ -49,7 +49,7 @@ export default function PredictionRuntime() {
     <Suspense
               fallback={(
         <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-            <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-white">
             <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
             경기 화면을 준비하고 있습니다.
           </div>
@@ -64,7 +64,7 @@ export default function PredictionRuntime() {
     <Suspense
       fallback={(
         <Card className="rounded-2xl border border-slate-200/70 bg-white/90 p-6 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-                <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-gray-300">
+                <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-white">
             <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
             순위 예측 화면을 준비하고 있습니다.
           </div>
@@ -75,7 +75,7 @@ export default function PredictionRuntime() {
     </Suspense>
   ) : (
     <Card className="rounded-2xl border border-slate-200/70 bg-white/90 p-6 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-            <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] font-bold text-slate-500 dark:text-white">
         <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
         순위 예측 화면을 준비하고 있습니다.
       </div>
@@ -92,15 +92,15 @@ export default function PredictionRuntime() {
             <PredictionLineChartIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100 sm:text-2xl">전력분석실</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">전력분석실</h2>
           </div>
           <div className="flex items-center gap-2">
             <Link
               to="/leaderboard"
-              className="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition-colors hover:border-emerald-400/60 dark:border-border dark:bg-card dark:shadow-md dark:hover:border-emerald-400/70 sm:px-3"
+              className="group flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-2 shadow-sm transition-colors hover:border-emerald-400/60 dark:border-border dark:bg-card dark:shadow-md dark:hover:border-emerald-400/70 sm:px-3"
             >
-              <PredictionGamepadIcon className="h-4 w-4 text-slate-500 transition-colors group-hover:text-emerald-600 dark:text-gray-300 dark:group-hover:text-emerald-300" />
-            <span className="hidden text-[16px] font-bold text-slate-600 dark:text-gray-200 sm:text-[16px]">랭킹</span>
+              <PredictionGamepadIcon className="h-4 w-4 text-slate-500 transition-colors group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-300" />
+            <span className="hidden text-[16px] font-bold text-slate-600 dark:text-white sm:text-[16px]">랭킹</span>
             </Link>
             {isLoggedIn ? (
               <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 shadow-sm dark:border-emerald-800/40 dark:bg-emerald-900/40 dark:shadow-md md:hidden sm:px-3">
@@ -134,10 +134,10 @@ export default function PredictionRuntime() {
               type="button"
               onClick={() => handleTabChange('match')}
               data-testid="prediction-tab-match"
-              className={`relative z-10 min-h-10 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
+              className={`relative z-10 min-h-11 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
                 activeTab === 'match'
                   ? 'text-white'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-white dark:hover:text-gray-100'
               }`}
             >
               <span className="relative z-10">승부예측</span>
@@ -146,10 +146,10 @@ export default function PredictionRuntime() {
               type="button"
               onClick={() => handleTabChange('ranking')}
               data-testid="prediction-tab-ranking"
-              className={`relative z-10 min-h-10 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
+              className={`relative z-10 min-h-11 w-1/2 rounded-lg px-3 text-[16px] font-bold transition-colors sm:text-[16px] ${
                 activeTab === 'ranking'
                   ? 'text-white'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-gray-300 dark:hover:text-gray-100'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-white dark:hover:text-gray-100'
               }`}
             >
               <span className="relative z-10">순위예측</span>

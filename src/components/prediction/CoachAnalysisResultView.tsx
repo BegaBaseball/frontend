@@ -9,6 +9,7 @@ import {
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import CoachMarkdown from '../common/CoachMarkdown';
 import TeamLogo from '../TeamLogo';
+import { resolveWinProbabilityDisplay } from '../../utils/coachWinProbability';
 import { getTeamColor } from '../../utils/teamColors';
 import {
     getEvidenceSourceGroups,
@@ -64,8 +65,8 @@ const DATA_QUALITY_TONE: Record<CoachDataQuality, { chip: string; row: string }>
 };
 
 const NEUTRAL_TONE = {
-    chip: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300',
-    row: 'text-slate-700 dark:text-slate-200',
+    chip: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white',
+    row: 'text-slate-700 dark:text-white',
 };
 
 /** 가짜 합산 카운트 대신 실데이터 근거 수: 검증 fact 수 우선, 없으면 사용한 근거 소스 수. */
@@ -85,11 +86,6 @@ interface SignalItem {
     value: string;
     detail: string;
     tone: 'danger' | 'warning' | 'success' | 'neutral';
-}
-
-function toPercent(value: number): number {
-    const pct = value <= 1 ? value * 100 : value;
-    return Math.max(0, Math.min(100, Math.round(pct)));
 }
 
 function metricTone(riskLevel: CoachMetric['risk_level']): SignalItem['tone'] {
@@ -166,7 +162,7 @@ const INSIGHT_TONE_CLS: Record<InsightTone, { icon: string; item: string }> = {
     critical: { icon: 'text-rose-600 dark:text-rose-300', item: 'text-rose-900 dark:text-rose-100' },
     warning: { icon: 'text-amber-600 dark:text-amber-300', item: 'text-amber-900 dark:text-amber-100' },
     positive: { icon: 'text-emerald-600 dark:text-emerald-300', item: 'text-emerald-900/90 dark:text-emerald-100/90' },
-    default: { icon: '', item: 'text-slate-700 dark:text-slate-300' },
+    default: { icon: '', item: 'text-slate-700 dark:text-white' },
 };
 
 function insightContainerStyle(tone: InsightTone, t: ReturnType<typeof getCoachTokens>) {
@@ -284,15 +280,15 @@ function C1SummaryRail({
 }) {
     const t = getCoachTokens(useIsDark());
     const [showAllEvidence, setShowAllEvidence] = useState(false);
-    const hasWinProbability = typeof winProbabilityHome === 'number' && Number.isFinite(winProbabilityHome);
-    const homePct = hasWinProbability ? toPercent(winProbabilityHome as number) : null;
-    const awayPct = homePct === null ? null : 100 - homePct;
+    const winProbability = resolveWinProbabilityDisplay(winProbabilityHome);
+    const homePct = winProbability?.homePct ?? null;
+    const awayPct = winProbability?.awayPct ?? null;
     const homeName = shortTeamName(homeTeamId) || '홈팀';
     const awayName = shortTeamName(awayTeamId) || '원정팀';
-    const favoredIsHome = homePct !== null ? homePct >= (awayPct ?? 0) : analysisData.dashboard.sentiment !== 'negative';
+    const favoredIsHome = winProbability ? winProbability.favoredSide === 'home' : analysisData.dashboard.sentiment !== 'negative';
     const favoredName = favoredIsHome ? homeName : awayName;
-    const diff = homePct !== null && awayPct !== null ? Math.abs(homePct - awayPct) : null;
-    const favoredPct = homePct !== null && awayPct !== null ? (favoredIsHome ? homePct : awayPct) : null;
+    const diff = winProbability?.diffPct ?? null;
+    const favoredPct = winProbability?.favoredPct ?? null;
     const homeColor = getTeamColor(homeTeamId);
     const awayColor = getTeamColor(awayTeamId);
     const favoredColor = favoredIsHome ? homeColor : awayColor;
@@ -327,7 +323,7 @@ function C1SummaryRail({
             style={{ borderColor: t.c1RailBorder, background: t.c1RailBg }}
         >
             <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-white">
                     {isReviewMode ? '경기 리뷰' : '예측 결과'}
                 </p>
                 {favoredPct !== null && (
@@ -338,7 +334,7 @@ function C1SummaryRail({
                         {favoredPct}<span className="ml-0.5 text-[18px]">%</span>
                     </p>
                 )}
-                <p className="mt-1.5 text-[15px] font-black leading-snug text-slate-950 dark:text-slate-50">
+                <p className="mt-1.5 text-[15px] font-black leading-snug text-slate-950 dark:text-white">
                     {favoredLine}
                 </p>
             </div>
@@ -366,32 +362,32 @@ function C1SummaryRail({
             )}
             <div className="mt-5 space-y-2">
                 <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">근거</span>
-                    <span data-testid="coach-evidence-count" className="font-extrabold text-slate-900 dark:text-slate-100">
+                    <span className="font-bold text-slate-500 dark:text-white">근거</span>
+                    <span data-testid="coach-evidence-count" className="font-extrabold text-slate-900 dark:text-white">
                         {evidenceCount > 0 ? `${evidenceCount}건` : '확인 중'}
                     </span>
                 </div>
                 <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">리스크</span>
-                    <span className="font-extrabold text-slate-900 dark:text-slate-100">
+                    <span className="font-bold text-slate-500 dark:text-white">리스크</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">
                         {analysisData.risks.length > 0 ? `${analysisData.risks.length}건` : '없음'}
                     </span>
                 </div>
                 <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">상태</span>
+                    <span className="font-bold text-slate-500 dark:text-white">상태</span>
                     <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
                         {isReviewMode ? '실경기 기반' : '경기 전'}
                     </span>
                 </div>
                 {dataQualityLabel && (
                     <div className="flex items-center justify-between text-[13px]">
-                        <span className="font-bold text-slate-500 dark:text-slate-400">데이터</span>
+                        <span className="font-bold text-slate-500 dark:text-white">데이터</span>
                         <span className={`font-extrabold ${qualityRowTone}`}>{dataQualityLabel}</span>
                     </div>
                 )}
                 <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">갱신</span>
-                    <span className="font-extrabold text-slate-900 dark:text-slate-100">
+                    <span className="font-bold text-slate-500 dark:text-white">갱신</span>
+                    <span className="font-extrabold text-slate-900 dark:text-white">
                         {freshnessLabel || '최신 갱신'}
                     </span>
                 </div>
@@ -402,7 +398,7 @@ function C1SummaryRail({
                 </p>
             )}
             {dataQualityMessage && (
-                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">
+                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-slate-500 dark:text-white">
                     {dataQualityMessage}
                 </p>
             )}
@@ -421,13 +417,13 @@ function C1SummaryRail({
                             className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-extrabold transition-colors ${
                                 active
                                     ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100'
-                                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5'
+                                    : 'text-slate-600 hover:bg-slate-100 dark:text-white dark:hover:bg-white/5'
                             }`}
                         >
                             <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                             {item.count !== null && (
-                                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-black text-slate-600 dark:bg-slate-700 dark:text-white">
                                     {item.count}
                                 </span>
                             )}
@@ -445,7 +441,7 @@ function C1SummaryRail({
                         setShowAllEvidence(nextOpen);
                     }}
                 >
-                    <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12px] font-extrabold text-slate-600 dark:text-slate-300">
+                    <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12px] font-extrabold text-slate-600 dark:text-white">
                         <span className="flex-1">{summaryTitle}</span>
                         {hasCoreEvidenceTrim ? (
                             <span className="text-[11px] font-bold text-slate-400 group-open:hidden">
@@ -469,7 +465,7 @@ function C1SummaryRail({
                                 key={group.category}
                                 className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"
                             >
-                                <div className="bg-slate-50 px-2 py-1.5 text-[11px] font-extrabold text-slate-500 dark:bg-white/[0.05] dark:text-slate-300">
+                                <div className="bg-slate-50 px-2 py-1.5 text-[11px] font-extrabold text-slate-500 dark:bg-white/[0.05] dark:text-white">
                                     {group.title}
                                 </div>
                                 <ul className="space-y-1.5 px-2 py-1.5">
@@ -479,10 +475,10 @@ function C1SummaryRail({
                                             title={item.description}
                                             className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-left dark:border-slate-700 dark:bg-white/[0.03]"
                                         >
-                                            <p className="text-[12px] font-extrabold text-slate-700 dark:text-slate-200">
+                                            <p className="text-[12px] font-extrabold text-slate-700 dark:text-white">
                                                 {item.label}
                                             </p>
-                                            <p className="mt-0.5 break-keep text-[10.5px] font-medium leading-snug text-slate-500 dark:text-slate-300">
+                                            <p className="mt-0.5 break-keep text-[10.5px] font-medium leading-snug text-slate-500 dark:text-white">
                                                 {item.description}
                                             </p>
                                         </li>
@@ -515,10 +511,10 @@ function C1VersusHero({
 }) {
     const t = getCoachTokens(useIsDark());
     const isNarrow = useMediaQuery('(max-width: 640px)');
-    const hasWinProbability = typeof winProbabilityHome === 'number' && Number.isFinite(winProbabilityHome);
-    const homePct = hasWinProbability ? toPercent(winProbabilityHome as number) : null;
-    const awayPct = homePct === null ? null : 100 - homePct;
-    const favoredIsHome = homePct !== null ? homePct >= (awayPct ?? 0) : analysisData.dashboard.sentiment !== 'negative';
+    const winProbability = resolveWinProbabilityDisplay(winProbabilityHome);
+    const homePct = winProbability?.homePct ?? null;
+    const awayPct = winProbability?.awayPct ?? null;
+    const favoredIsHome = winProbability ? winProbability.favoredSide === 'home' : analysisData.dashboard.sentiment !== 'negative';
     const homeName = shortTeamName(homeTeamId) || '홈팀';
     const awayName = shortTeamName(awayTeamId) || '원정팀';
     const signals = buildSignals(analysisData);
@@ -873,11 +869,11 @@ export default function CoachAnalysisResultView({
                         <section id={SEC.detail} data-testid="coach-section-detail" aria-label="상세 리포트" className="mt-9 scroll-mt-4">
                             {/* A2: 길고 밀도 높은 원문은 기본 접기 — 첫 스캔 부담 제거 */}
                             <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
-                                <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-[15px] font-extrabold text-slate-950 dark:text-slate-50">
+                                <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-[15px] font-extrabold text-slate-950 dark:text-white">
                                     <PredictionBarChartIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-blue-500 dark:text-blue-300" />
                                     <span className="flex-1">상세 리포트</span>
-                                    <span className="text-[12.5px] font-bold text-slate-500 dark:text-slate-400 group-open:hidden">원문 분석 보기</span>
-                                    <span className="hidden text-[12.5px] font-bold text-slate-500 dark:text-slate-400 group-open:inline">접기</span>
+                                    <span className="text-[12.5px] font-bold text-slate-500 dark:text-white group-open:hidden">원문 분석 보기</span>
+                                    <span className="hidden text-[12.5px] font-bold text-slate-500 dark:text-white group-open:inline">접기</span>
                                 </summary>
                                 <div className="space-y-4 px-5 pb-5 pt-1">
                                     {analysisData.detailed_analysis && (
@@ -885,7 +881,7 @@ export default function CoachAnalysisResultView({
                                     )}
                                     {analysisData.coach_note && (
                                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                                            <div className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-slate-950 dark:text-slate-50">
+                                            <div className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-slate-950 dark:text-white">
                                                 <PredictionCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                                                 코치의 한마디
                                             </div>

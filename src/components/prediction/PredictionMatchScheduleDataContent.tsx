@@ -8,7 +8,7 @@ import PredictionMatchScheduleResolvedRuntime from './PredictionMatchScheduleRes
 export default function PredictionMatchScheduleDataContent() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isLoggedIn, isAuthLoading } = useAuthSession();
+  const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
   const locationState = location.state as PredictionLocationState;
 
   if (isAuthLoading) {
@@ -24,6 +24,7 @@ export default function PredictionMatchScheduleDataContent() {
       <PredictionMatchScheduleResolvedRuntime
         isAuthLoading={isAuthLoading}
         isLoggedIn={isLoggedIn}
+        userId={userId}
         locationState={locationState}
         searchParams={searchParams}
         setSearchParams={setSearchParams}

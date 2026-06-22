@@ -8,6 +8,7 @@ import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHo
 import type { GameStatusCode } from '../../utils/predictionStatus';
 import { isManualBaseballDataRequiredCode } from '../../utils/errorUtils';
 import { resolveCoachBriefingPolicy } from '../../utils/predictionCoachPolicy';
+import { schedulePredictionPostPaintIdleWork } from '../../utils/predictionDeferredWork';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
@@ -140,34 +141,50 @@ export default function PredictionMatchDetailPanel({
 
   useEffect(() => {
     let cancelled = false;
-    setRankingSnapshotLoading(true);
+    const abortController = new AbortController();
 
-    void fetchRankingSnapshot(rankingSnapshotDate ? { date: rankingSnapshotDate } : { seasonYear })
-      .then((snapshot) => {
-        if (!cancelled) {
-          setRankingSnapshot(snapshot);
-          setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setRankingSnapshot({
-            rankingSeasonYear: seasonYear,
-            rankingSourceMessage: '순위 데이터를 불러오지 못했습니다.',
-            isOffSeason: false,
-            rankings: [],
-          });
-          setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setRankingSnapshotLoading(false);
-        }
-      });
+    setRankingSnapshotLoading(false);
+
+    const cancelDeferredRankingSnapshot = schedulePredictionPostPaintIdleWork(() => {
+      if (cancelled) {
+        return;
+      }
+
+      setRankingSnapshotLoading(true);
+
+      void fetchRankingSnapshot(
+        rankingSnapshotDate
+          ? { date: rankingSnapshotDate, signal: abortController.signal }
+          : { seasonYear, signal: abortController.signal },
+      )
+        .then((snapshot) => {
+          if (!cancelled) {
+            setRankingSnapshot(snapshot);
+            setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setRankingSnapshot({
+              rankingSeasonYear: seasonYear,
+              rankingSourceMessage: '순위 데이터를 불러오지 못했습니다.',
+              isOffSeason: false,
+              rankings: [],
+            });
+            setResolvedRankingSnapshotScopeKey(rankingSnapshotScopeKey);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setRankingSnapshotLoading(false);
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
+      abortController.abort();
+      cancelDeferredRankingSnapshot();
     };
   }, [rankingSnapshotDate, rankingSnapshotScopeKey, seasonYear]);
 
@@ -265,12 +282,14 @@ export default function PredictionMatchDetailPanel({
       hasSelectedGame: true,
       canCallAI: !!seasonContext.canCallAI,
       isScheduledGame: statusCode === 'SCHEDULED',
+      isCompletedGame: isPastGame || statusCode === 'COMPLETED',
+      gameStatusBucket: statusCode,
       isCoachStateEnabledForAuto:
         statusCode === 'SCHEDULED' || statusCode === 'LIVE' || statusCode === 'COMPLETED',
       isPostseasonGame: !!seasonContext.isPostseasonGame,
       isMeaningfulGame: !!seasonContext.isMeaningfulGame,
     }),
-    [seasonContext.canCallAI, seasonContext.isMeaningfulGame, seasonContext.isPostseasonGame, statusCode],
+    [isPastGame, seasonContext.canCallAI, seasonContext.isMeaningfulGame, seasonContext.isPostseasonGame, statusCode],
   );
 
   const detailRetryButtonLabel = getPredictionDetailRetryButtonLabel(gameDetailErrorCode);
@@ -307,7 +326,7 @@ export default function PredictionMatchDetailPanel({
       <Suspense
         fallback={(
           <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
               <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               경기 카드를 준비하고 있습니다.
             </div>
@@ -344,6 +363,7 @@ export default function PredictionMatchDetailPanel({
                     gameDetail={gameDetail}
                     seasonContext={seasonContext}
                     requestMode={coachBriefingPolicy.requestMode}
+                    analysisType={coachBriefingPolicy.analysisType}
                     autoEnabled={coachBriefingPolicy.autoEnabled && coachBriefingPolicy.requestMode === 'auto_brief'}
                     forceManual={coachBriefingPolicy.forceManual}
                     isPastGame={isPastGame}

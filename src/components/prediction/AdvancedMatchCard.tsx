@@ -261,7 +261,6 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     homeScoreForDisplay,
     votePercentages,
     cheeringCaption,
-    statusCode,
     isDarkMode,
     isPostponedOrCancelled,
     isCancelledStatus,
