@@ -1,15 +1,21 @@
+import { memo } from 'react';
+
 import TeamLogo from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+import { StatusBadge } from './ui/status-badge';
 import { MateShieldIcon, MateStarIcon, MateUsersIcon } from './MateIcons';
 import type { BadgeType, Party } from '../types/mate';
 import { KBO_STADIUMS } from '../utils/stadiumData';
 import { formatGameDate, getHostAverageRating } from '../utils/mate';
+import { getMateDDayLabel } from '../utils/mateDateLabels';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { getMateStatusBadgeMeta, type StatusBadgeMeta } from '../utils/statusBadgeMeta';
 import { cn } from '../lib/utils';
 
 interface MatePartyCardProps {
   party: Party;
   className?: string;
+  todayKey: string;
   onClick: (party: Party) => void;
 }
 
@@ -43,19 +49,6 @@ const getBadgeIcon = (badge: BadgeType) => {
   return null;
 };
 
-const getGameDayLabel = (gameDate: string) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(gameDate);
-  target.setHours(0, 0, 0, 0);
-  const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diff === 0) return 'D-Day';
-  if (diff < 0) return '';
-  if (diff > 999) return '예정';
-  return `D-${diff}`;
-};
-
 const getDayOfWeek = (dateStr: string) => {
   const d = new Date(`${dateStr}T12:00:00`);
   const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -79,55 +72,9 @@ const formatTicketAmount = (party: Party) => {
   return `${amount.toLocaleString()}원`;
 };
 
-type StatusMeta = { label: string; accessibleLabel: string; chip: string };
-
-const STATUS_META: Record<string, StatusMeta> = {
-  PENDING: {
-    label: '모집 중',
-    accessibleLabel: '신청 가능',
-    chip: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50',
-  },
-  MATCHED: {
-    label: '매칭 완료',
-    accessibleLabel: '매칭된',
-    chip: 'bg-emerald-100/70 text-emerald-800 border-emerald-300 dark:bg-emerald-950/55 dark:text-emerald-200 dark:border-emerald-900/60',
-  },
-  SELLING: {
-    label: '티켓 판매',
-    accessibleLabel: '판매 가능',
-    chip: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50',
-  },
-  FAILED: {
-    label: '매칭 실패',
-    accessibleLabel: '마감',
-    chip: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50',
-  },
-  CHECKED_IN: {
-    label: '체크인',
-    accessibleLabel: '체크인',
-    chip: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50',
-  },
-  COMPLETED: {
-    label: '관람 완료',
-    accessibleLabel: '완료',
-    chip: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700',
-  },
-  SOLD: {
-    label: '판매 완료',
-    accessibleLabel: '마감',
-    chip: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700',
-  },
-};
-
-const DEFAULT_STATUS_META: StatusMeta = {
-  label: '마감',
-  accessibleLabel: '마감',
-  chip: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700',
-};
-
-export default function MatePartyCard({ party, className, onClick }: MatePartyCardProps) {
-  const statusMeta = STATUS_META[party.status] ?? DEFAULT_STATUS_META;
-  const dDayLabel = getGameDayLabel(party.gameDate);
+function MatePartyCard({ party, className, todayKey, onClick }: MatePartyCardProps) {
+  const statusMeta = getMateStatusBadgeMeta(party.status);
+  const dDayLabel = getMateDDayLabel(party.gameDate, todayKey);
   const dow = getDayOfWeek(party.gameDate);
   const compactDate = formatCompactDate(party.gameDate);
   const zoneName = getZoneName(party.stadium, party.section);
@@ -137,7 +84,7 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
   const hostAvatarSrc = isLegacyHostAvatarUrl(party.hostProfileImageUrl) ? undefined : party.hostProfileImageUrl;
   const priceLabel = formatTicketAmount(party);
   const showPrice = party.status === 'SELLING'
-    || (party.ticketPrice != null && party.ticketPrice > 0)
+    || party.ticketPrice != null
     || party.price != null;
   const description = party.description?.trim();
 
@@ -147,10 +94,10 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
       aria-label={`${zoneName} ${stadiumDisplayName} ${formatGameDate(party.gameDate)} ${statusMeta.accessibleLabel} 파티 상세 보기`}
       onClick={() => onClick(party)}
       className={cn(
-        'group relative flex w-full cursor-pointer flex-col gap-[10px] rounded-[18px] border border-gray-200/90 bg-white p-[14px] text-left transition-[transform,border-color,box-shadow] duration-150 ease-out',
+        'status-badge-hover-scope group relative flex w-full cursor-pointer flex-col gap-[10px] rounded-[18px] border border-gray-200/90 bg-white p-[14px] text-left transition-[transform,border-color,box-shadow] duration-150 ease-out',
         'hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_12px_28px_rgba(15,23,42,0.08),0_0_0_3px_rgba(45,95,79,0.08)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50',
-        'dark:border-white/15 dark:bg-[#16181c] dark:hover:border-primary dark:focus-visible:ring-offset-[#0a0a0a]',
+        'dark:border-white/15 dark:bg-[#000000] dark:hover:border-primary dark:focus-visible:ring-offset-[#000000]',
         className,
       )}
     >
@@ -160,29 +107,27 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
           {dDayLabel || compactDate}
         </span>
         <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">
+        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-900 dark:text-white">
           {compactDate}({dow}) {party.gameTime}
         </span>
-        <span className={cn('inline-flex shrink-0 items-center rounded-md border px-2 py-[2px] text-[11px] font-bold leading-5', statusMeta.chip)}>
-          {statusMeta.label}
-        </span>
+        <StatusBadge {...statusMeta} size="xs" />
       </div>
 
       {/* Row 2: away VS home · venue */}
       <div className="flex items-center gap-2.5">
         <TeamLogo teamId={party.awayTeam} size={32} className="shrink-0" />
-        <span className="shrink-0 text-[12px] font-extrabold text-slate-400 dark:text-slate-500">VS</span>
+        <span className="shrink-0 text-[12px] font-extrabold text-slate-400 dark:text-white">VS</span>
         <TeamLogo teamId={party.homeTeam} size={32} className="shrink-0" />
         <div className="ml-1 min-w-0 flex-1">
-          <p className="flex items-center gap-1 text-[13px] font-bold text-gray-900 dark:text-zinc-100">
+          <p className="flex items-center gap-1 text-[13px] font-bold text-gray-900 dark:text-white">
             {party.ticketVerified ? (
               <MateShieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
             ) : null}
             <span className="truncate">{stadiumDisplayName}</span>
           </p>
-          <p className="truncate text-[12px] font-semibold text-gray-500 dark:text-zinc-400">
+          <p className="truncate text-[12px] font-semibold text-gray-500 dark:text-white">
             {zoneName}
-            {showPrice ? <span className="text-gray-400 dark:text-zinc-500"> · {priceLabel}</span> : null}
+            {showPrice ? <span className="text-gray-400 dark:text-white"> · {priceLabel}</span> : null}
           </p>
         </div>
       </div>
@@ -199,12 +144,12 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
             className="h-full w-full"
           />
         </span>
-        <span className="min-w-0 truncate text-[13px] font-bold text-gray-900 dark:text-zinc-200">
+        <span className="min-w-0 truncate text-[13px] font-bold text-gray-900 dark:text-white">
           {party.hostName}
         </span>
         {hostBadgeIcon}
-        <span className="shrink-0 text-[12px] text-gray-300 dark:text-gray-600">·</span>
-        <span className="shrink-0 text-[12px] font-semibold text-gray-500 dark:text-zinc-400">
+        <span className="shrink-0 text-[12px] text-gray-300 dark:text-white">·</span>
+        <span className="shrink-0 text-[12px] font-semibold text-gray-500 dark:text-white">
           신뢰도 {hostAverageRating ?? '-'}
         </span>
         <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[12px] font-extrabold text-primary [font-variant-numeric:tabular-nums] dark:bg-primary/15 dark:text-primary-light">
@@ -217,10 +162,10 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
       {description ? (
         <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity,margin-top] duration-300 ease-out group-hover:mt-1 group-hover:grid-rows-[1fr] group-hover:opacity-100 [@media(hover:none)]:hidden">
           <div className="overflow-hidden">
-            <div className="flex items-start gap-2 rounded-[10px] bg-primary/[0.06] px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-gray-600 dark:bg-primary/10 dark:text-zinc-300">
+            <div className="flex items-start gap-2 rounded-[10px] bg-primary/[0.06] px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-gray-600 dark:bg-primary/10 dark:text-white">
               <MateStarIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="line-clamp-2">
-                <strong className="font-extrabold text-gray-800 dark:text-zinc-100">파티 소개</strong> {description}
+                <strong className="font-extrabold text-gray-800 dark:text-white">파티 소개</strong> {description}
               </span>
             </div>
           </div>
@@ -229,3 +174,128 @@ export default function MatePartyCard({ party, className, onClick }: MatePartyCa
     </button>
   );
 }
+
+const areMatePartyCardPropsEqual = (prev: MatePartyCardProps, next: MatePartyCardProps) => (
+  prev.className === next.className
+  && prev.onClick === next.onClick
+  && prev.todayKey === next.todayKey
+  && prev.party.id === next.party.id
+  && prev.party.status === next.party.status
+  && prev.party.gameDate === next.party.gameDate
+  && prev.party.gameTime === next.party.gameTime
+  && prev.party.stadium === next.party.stadium
+  && prev.party.homeTeam === next.party.homeTeam
+  && prev.party.awayTeam === next.party.awayTeam
+  && prev.party.section === next.party.section
+  && prev.party.maxParticipants === next.party.maxParticipants
+  && prev.party.currentParticipants === next.party.currentParticipants
+  && prev.party.description === next.party.description
+  && prev.party.ticketVerified === next.party.ticketVerified
+  && prev.party.price === next.party.price
+  && prev.party.ticketPrice === next.party.ticketPrice
+  && prev.party.hostName === next.party.hostName
+  && prev.party.hostBadge === next.party.hostBadge
+  && prev.party.hostProfileImageUrl === next.party.hostProfileImageUrl
+  && prev.party.hostAverageRating === next.party.hostAverageRating
+  && prev.party.hostReviewCount === next.party.hostReviewCount
+);
+
+export default memo(MatePartyCard, areMatePartyCardPropsEqual);
+
+interface MatePartyRowProps {
+  party: Party;
+  todayKey: string;
+  onClick: (party: Party) => void;
+}
+
+const buildPartyAriaLabel = (party: Party, statusMeta: StatusBadgeMeta) =>
+  `${getZoneName(party.stadium, party.section)} ${formatStadiumDisplayName(party.stadium)} ${formatGameDate(party.gameDate)} ${statusMeta.accessibleLabel} 파티 상세 보기`;
+
+const rowSurfaceClass =
+  'status-badge-hover-scope group w-full cursor-pointer rounded-[14px] border border-gray-200/80 bg-white text-left transition-shadow duration-150 hover:shadow-[0_4px_14px_rgba(15,23,42,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 dark:border-white/15 dark:bg-[#000000]';
+
+// List (row) view — table-density horizontal layout. Desktop-oriented.
+function PartyRowBase({ party, todayKey, onClick }: MatePartyRowProps) {
+  const statusMeta = getMateStatusBadgeMeta(party.status);
+  const dDayLabel = getMateDDayLabel(party.gameDate, todayKey);
+  const dow = getDayOfWeek(party.gameDate);
+  const compactDate = formatCompactDate(party.gameDate);
+  const zoneName = getZoneName(party.stadium, party.section);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
+  const hostAvatarSrc = isLegacyHostAvatarUrl(party.hostProfileImageUrl) ? undefined : party.hostProfileImageUrl;
+  const priceLabel = formatTicketAmount(party);
+  const showPrice = party.status === 'SELLING' || party.ticketPrice != null || party.price != null;
+
+  return (
+    <button
+      type="button"
+      aria-label={buildPartyAriaLabel(party, statusMeta)}
+      onClick={() => onClick(party)}
+      className={cn(rowSurfaceClass, 'grid grid-cols-[68px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] items-center gap-3 p-3')}
+    >
+      <div className="min-w-0">
+        <div className="text-[14px] font-black tracking-tight text-primary dark:text-primary-light">{dDayLabel || compactDate}</div>
+        <div className="truncate text-[11px] font-bold text-gray-500 dark:text-white">{compactDate} ({dow})</div>
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <TeamLogo teamId={party.awayTeam} size={24} className="shrink-0" />
+        <span className="shrink-0 text-[10px] font-extrabold text-slate-400 dark:text-white">VS</span>
+        <TeamLogo teamId={party.homeTeam} size={24} className="shrink-0" />
+        <div className="ml-1 min-w-0">
+          <div className="flex items-center gap-1 truncate text-[13px] font-bold text-gray-900 dark:text-white">
+            {party.ticketVerified ? <MateShieldIcon className="h-3 w-3 shrink-0 text-primary" /> : null}
+            <span className="truncate">{stadiumDisplayName}</span>
+          </div>
+          <div className="truncate text-[11px] font-semibold text-gray-500 dark:text-white">{party.gameTime}</div>
+        </div>
+      </div>
+      <div className="min-w-0 truncate text-[12px] font-semibold text-gray-600 dark:text-white">
+        {zoneName}
+        {showPrice ? <span className="text-gray-400 dark:text-white"> · {priceLabel}</span> : null}
+      </div>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="inline-flex h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-gray-200 dark:ring-white/10">
+          <ProfileAvatar src={hostAvatarSrc} alt={party.hostName} fallbackName={party.hostName} width={24} height={24} className="h-full w-full" />
+        </span>
+        <span className="truncate text-[12px] font-bold text-gray-800 dark:text-white">{party.hostName}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2 justify-self-end">
+        <StatusBadge {...statusMeta} size="xs" />
+        <span className="inline-flex items-center gap-1 text-[12px] font-extrabold text-primary [font-variant-numeric:tabular-nums] dark:text-primary-light">
+          <MateUsersIcon className="h-3.5 w-3.5" />
+          {party.currentParticipants}/{party.maxParticipants}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// Compact view — single-line dense row.
+function PartyCompactBase({ party, todayKey, onClick }: MatePartyRowProps) {
+  const statusMeta = getMateStatusBadgeMeta(party.status);
+  const dDayLabel = getMateDDayLabel(party.gameDate, todayKey);
+  const compactDate = formatCompactDate(party.gameDate);
+  const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
+
+  return (
+    <button
+      type="button"
+      aria-label={buildPartyAriaLabel(party, statusMeta)}
+      onClick={() => onClick(party)}
+      className={cn(rowSurfaceClass, 'flex items-center gap-3 rounded-[12px] px-3.5 py-2.5')}
+    >
+      <span className="w-[36px] shrink-0 text-[12px] font-black text-primary dark:text-primary-light">{dDayLabel || compactDate}</span>
+      <TeamLogo teamId={party.awayTeam} size={20} className="shrink-0" />
+      <span className="shrink-0 text-[10px] font-extrabold text-slate-400 dark:text-white">VS</span>
+      <TeamLogo teamId={party.homeTeam} size={20} className="shrink-0" />
+      <span className="min-w-0 flex-1 truncate text-[12px] font-bold text-gray-900 dark:text-white">{stadiumDisplayName}</span>
+      <StatusBadge {...statusMeta} size="xs" />
+      <span className="shrink-0 text-[12px] font-extrabold text-primary [font-variant-numeric:tabular-nums] dark:text-primary-light">
+        {party.currentParticipants}/{party.maxParticipants}
+      </span>
+    </button>
+  );
+}
+
+export const PartyRow = memo(PartyRowBase);
+export const PartyCompact = memo(PartyCompactBase);

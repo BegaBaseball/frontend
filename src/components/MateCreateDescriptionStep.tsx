@@ -41,7 +41,7 @@ export default function MateCreateDescriptionStep({
             <button
               type="button"
               key={tag}
-              className="text-[16px] px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
+              className="text-[16px] px-2 py-1 bg-gray-100 dark:bg-card rounded-md text-gray-600 dark:text-white hover:bg-primary/10 dark:hover:bg-primary/30 hover:text-primary transition-colors"
               onClick={() => {
                 if (!formData.description.includes(tag)) {
                   onDescriptionChange(`${formData.description} ${tag}`.trim());

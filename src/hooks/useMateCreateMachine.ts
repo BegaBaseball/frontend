@@ -386,6 +386,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
         maxParticipants: formData.maxParticipants,
         description: formData.description,
         ticketPrice: formData.ticketPrice,
+        reservationDepositAmount: formData.reservationDepositAmount > 0 ? formData.reservationDepositAmount : null,
         reservationNumber: formData.reservationNumber,
         verificationToken: verificationTokenRef.current,
       };

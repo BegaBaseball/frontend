@@ -132,7 +132,7 @@ export default function MateChat() {
       <div className={`${matePageShellClass} flex items-center justify-center`}>
         <div className="text-center">
           <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-          <p className="text-[16px] text-gray-500 dark:text-gray-300">채팅 접근 상태를 확인하는 중...</p>
+          <p className="text-[16px] text-gray-500 dark:text-white">채팅 접근 상태를 확인하는 중...</p>
         </div>
       </div>
     );

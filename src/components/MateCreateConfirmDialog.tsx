@@ -89,6 +89,12 @@ export default function MateCreateConfirmDialog({
                 <span className="text-gray-500">거래 기준 금액</span>
                 <span className="font-semibold sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
               </div>
+              {formData.reservationDepositAmount > 0 && (
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <span className="text-gray-500">예약금</span>
+                  <span className="font-semibold sm:text-right">{formData.reservationDepositAmount.toLocaleString()}원</span>
+                </div>
+              )}
               <p className="text-[16px] text-gray-500">
                 앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
               </p>
@@ -96,7 +102,7 @@ export default function MateCreateConfirmDialog({
 
             <div className="border-t pt-3">
               <p className="mb-1 text-[16px] text-gray-500">소개글</p>
-              <p className="line-clamp-3 text-[16px] text-gray-700 dark:text-gray-300">
+              <p className="line-clamp-3 text-[16px] text-gray-700 dark:text-white">
                 {formData.description}
               </p>
             </div>
