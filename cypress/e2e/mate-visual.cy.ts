@@ -5,7 +5,7 @@ import { seedCypressAuthState } from '../support/auth';
 describe('Mate Visual QA', () => {
   const fakeToken = 'visual-qa-token';
   const revealDeferredMateDetailContent = () => {
-    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.contains('좌석 · 시야').should('be.visible');
     cy.scrollTo(0, 900);
   };
   const testUser = {
@@ -170,6 +170,13 @@ describe('Mate Visual QA', () => {
     });
   };
 
+  const assertNoHorizontalOverflow = () => {
+    cy.document().then((doc) => {
+      const root = doc.documentElement;
+      expect(root.scrollWidth, 'document horizontal overflow').to.be.at.most(root.clientWidth + 1);
+    });
+  };
+
   const visitWithTheme = (path: string, theme: 'light' | 'dark') => {
     cy.visit(path, {
       onBeforeLoad(win) {
@@ -211,6 +218,27 @@ describe('Mate Visual QA', () => {
         },
       });
     }).as('getMateParties');
+
+    cy.intercept('GET', '**/api/parties/my*', {
+      statusCode: 200,
+      body: [manageParty],
+    }).as('getMyMateParties');
+
+    cy.intercept('GET', '**/api/parties/search-terms/popular*', {
+      statusCode: 200,
+      body: [
+        { term: '잠실 블루존', count: 9, rank: 1 },
+        { term: '삼성 테이블석', count: 5, rank: 2 },
+        { term: '주말 직관', count: 4, rank: 3 },
+        { term: 'KIA 응원석', count: 3, rank: 4 },
+        { term: '티켓 판매', count: 2, rank: 5 },
+      ],
+    }).as('getMatePopularSearchTerms');
+
+    cy.intercept('POST', '**/api/parties/search-terms', {
+      statusCode: 204,
+      body: null,
+    }).as('recordMateSearchTerm');
 
     cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
@@ -306,7 +334,7 @@ describe('Mate Visual QA', () => {
     cy.wait('@getMateParties');
     cy.contains('직관 메이트 찾기').should('be.visible');
     cy.contains('판매 호스트').should('be.visible');
-    cy.contains('티켓 판매').should('be.visible');
+    cy.contains('판매 중').should('be.visible');
     cy.contains('54,000').should('be.visible');
     cy.screenshot('mate-visual-list-desktop-dark');
   });
@@ -316,9 +344,9 @@ describe('Mate Visual QA', () => {
     visitWithTheme('/mate/777', 'dark');
     cy.wait('@getMateDetailParty');
     revealDeferredMateDetailContent();
-    cy.contains('거래 방식').should('be.visible');
-    cy.contains('Host Trust').should('be.visible');
-    cy.contains('비용 안내').should('be.visible');
+    cy.contains('좌석 · 시야').should('be.visible');
+    cy.contains('호스트에게 문의').should('be.visible');
+    cy.contains('참여 현황').should('be.visible');
     cy.screenshot('mate-visual-detail-desktop-dark');
   });
 
@@ -328,10 +356,41 @@ describe('Mate Visual QA', () => {
     cy.wait('@getMateDetailParty');
     cy.viewport(390, 844);
     revealDeferredMateDetailContent();
-    cy.contains('거래 방식').should('be.visible');
-    cy.contains('취소 규칙').should('be.visible');
-    cy.contains('비용 안내').should('be.visible');
+    cy.contains('좌석 · 시야').should('be.visible');
+    cy.contains('파티 소개').should('be.visible');
+    cy.get('[data-testid="mate-mobile-action-bar"]').should('be.visible');
     cy.screenshot('mate-visual-detail-mobile-dark');
+  });
+
+  it('keeps the detail page responsive across target breakpoints', () => {
+    const viewports = [
+      { width: 375, height: 812, theme: 'light' as const, rail: false },
+      { width: 390, height: 844, theme: 'dark' as const, rail: false },
+      { width: 768, height: 1024, theme: 'light' as const, rail: false },
+      { width: 1024, height: 768, theme: 'dark' as const, rail: true },
+      { width: 1280, height: 900, theme: 'light' as const, rail: true },
+    ];
+
+    viewports.forEach(({ width, height, theme, rail }) => {
+      cy.viewport(width, height);
+      visitWithTheme('/mate/777', theme);
+      cy.wait('@getMateDetailParty');
+      cy.contains('좌석 · 시야').should('be.visible');
+      cy.contains('호스트에게 문의').should('be.visible');
+      cy.contains('파티 소개').scrollIntoView().should('be.visible');
+      assertNoHorizontalOverflow();
+
+      if (rail) {
+        cy.get('[data-testid="mate-desktop-action-rail"]').should('be.visible');
+        cy.get('[data-testid="mate-mobile-action-bar"]').should('not.be.visible');
+      } else {
+        cy.get('[data-testid="mate-desktop-action-rail"]').should('not.be.visible');
+        cy.get('[data-testid="mate-mobile-action-bar"]').should('be.visible');
+        cy.contains('자세히').click();
+        cy.contains('참여 현황').should('be.visible');
+        cy.get('.fixed.inset-0.z-\\[90\\]').click('topLeft');
+      }
+    });
   });
 
   it('captures the apply page in mobile light mode', () => {
