@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { bootstrapDirectMessageRoom, fetchDirectMessages, sendDirectMessage } from '../../api/dm';
+import { bootstrapDirectMessageRoom, deleteDirectMessage, fetchDirectMessages, sendDirectMessage } from '../../api/dm';
 import { useDmSocket } from '../../hooks/useDmSocket';
 import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 import type { DirectMessage } from '../../types/dm';
@@ -11,6 +11,7 @@ import { parseError, type ParsedError } from '../../utils/errorUtils';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
+import { TrashIcon } from '../icons/CheerIcons';
 import { ArrowLeftIcon, MessageCircleIcon, SpinnerIcon, XCircleIcon } from '../icons/PublicShellIcons';
 
 const DM_QUERY_KEYS = {
@@ -116,11 +117,31 @@ export default function DirectMessageRuntime() {
     });
   };
 
+  const handleDeleteMessage = useCallback(async (messageId: number | string) => {
+    if (roomId == null) {
+      return;
+    }
+
+    const snapshot = queryClient.getQueryData<DirectMessage[]>(DM_QUERY_KEYS.messages(roomId));
+    updateMessagesCache((current) => current.filter((m) => String(m.id) !== String(messageId)));
+    try {
+      await deleteDirectMessage(messageId);
+    } catch (error) {
+      if (snapshot) {
+        queryClient.setQueryData(DM_QUERY_KEYS.messages(roomId), snapshot);
+      }
+      toast.error(parseError(error).message);
+    }
+  }, [roomId, queryClient, updateMessagesCache]);
+
   const { isConnected } = useDmSocket({
     roomId: roomId ?? '',
     enabled: roomId != null && inlineAccessError == null,
     onMessageReceived: (message) => {
       updateMessagesCache((current) => mergeMessage(current, message));
+    },
+    onMessageDeleted: (messageId) => {
+      updateMessagesCache((current) => current.filter((m) => Number(m.id) !== messageId));
     },
   });
 
@@ -203,7 +224,7 @@ export default function DirectMessageRuntime() {
       <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4">
         <div className="rounded-2xl border border-gray-100 bg-white px-6 py-8 text-center shadow-sm dark:border-border dark:bg-card">
           <XCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-500" />
-          <p className="text-base text-gray-600 dark:text-gray-300">대화 상대 핸들이 올바르지 않습니다.</p>
+          <p className="text-base text-gray-600 dark:text-white">대화 상대 핸들이 올바르지 않습니다.</p>
         </div>
       </div>
     );
@@ -243,7 +264,7 @@ export default function DirectMessageRuntime() {
           <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
             {isAccessIssue ? '메시지 대화방에 접근할 수 없습니다.' : '메시지 화면을 불러오지 못했습니다.'}
           </h1>
-          <p className="mx-auto max-w-md text-[16px] leading-7 text-gray-500 dark:text-gray-300">
+          <p className="mx-auto max-w-md text-[16px] leading-7 text-gray-500 dark:text-white">
             {resolvedInlineError.message}
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -269,7 +290,7 @@ export default function DirectMessageRuntime() {
         <button
           type="button"
           onClick={() => navigate(profilePath)}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition-colors hover:text-gray-700 dark:text-white dark:hover:text-gray-100"
         >
           <ArrowLeftIcon className="h-4 w-4" />
           프로필로 돌아가기
@@ -292,12 +313,12 @@ export default function DirectMessageRuntime() {
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
                     {targetUser?.name}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-300">
+                  <div className="text-sm text-gray-500 dark:text-white">
                     {targetUser?.handle}
                   </div>
                 </div>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 dark:bg-secondary/40 dark:text-gray-300">
+              <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 dark:bg-secondary/40 dark:text-white">
                 {isConnected ? <MessageCircleIcon className="h-3.5 w-3.5" /> : <SpinnerIcon className="h-3.5 w-3.5 animate-spin" />}
                 {isConnected ? '실시간 연결됨' : '실시간 연결 중'}
               </div>
@@ -307,9 +328,9 @@ export default function DirectMessageRuntime() {
           <div className="h-[52vh] overflow-y-auto bg-gradient-to-b from-gray-50/80 to-white px-4 py-5 dark:from-background dark:to-card">
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white/70 px-6 text-center dark:border-border dark:bg-secondary/20">
-                <MessageCircleIcon className="mb-3 h-10 w-10 text-gray-400 dark:text-gray-300" />
-                <p className="text-lg font-semibold text-gray-700 dark:text-gray-100">첫 메시지를 보내보세요.</p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
+                <MessageCircleIcon className="mb-3 h-10 w-10 text-gray-400 dark:text-white" />
+                <p className="text-lg font-semibold text-gray-700 dark:text-white">첫 메시지를 보내보세요.</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-white">
                   팔로우로 연결된 사용자와만 1:1 대화를 시작할 수 있습니다.
                 </p>
               </div>
@@ -322,28 +343,40 @@ export default function DirectMessageRuntime() {
                   return (
                     <div
                       key={`${message.id}-${message.clientMessageId || 'no-client'}`}
-                      className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                      className={`group flex ${isMine ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-                          isMine
-                            ? 'bg-primary text-primary-foreground'
-                            : 'border border-gray-100 bg-white text-gray-900 dark:border-border dark:bg-secondary/40 dark:text-white'
-                        } ${message.isPending ? 'opacity-70' : ''}`}
-                      >
-                        <div className={`mb-1 text-xs font-semibold ${isMine ? 'text-primary-foreground/80' : 'text-gray-500 dark:text-gray-300'}`}>
-                          {authorName}
+                      <div className="relative">
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+                            isMine
+                              ? 'bg-primary text-primary-foreground'
+                              : 'border border-gray-100 bg-white text-gray-900 dark:border-border dark:bg-secondary/40 dark:text-white'
+                          } ${message.isPending ? 'opacity-70' : ''}`}
+                        >
+                          <div className={`mb-1 text-xs font-semibold ${isMine ? 'text-primary-foreground/80' : 'text-gray-500 dark:text-white'}`}>
+                            {authorName}
+                          </div>
+                          <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                            {message.content}
+                          </p>
+                          <div className={`mt-2 text-[11px] ${isMine ? 'text-primary-foreground/80' : 'text-gray-400 dark:text-white'}`}>
+                            {new Date(message.createdAt).toLocaleTimeString('ko-KR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            {message.isPending ? ' · 전송 중' : ''}
+                          </div>
                         </div>
-                        <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                          {message.content}
-                        </p>
-                        <div className={`mt-2 text-[11px] ${isMine ? 'text-primary-foreground/80' : 'text-gray-400 dark:text-gray-400'}`}>
-                          {new Date(message.createdAt).toLocaleTimeString('ko-KR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                          {message.isPending ? ' · 전송 중' : ''}
-                        </div>
+                        {isMine && !message.isPending && (
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteMessage(message.id)}
+                            className="absolute -right-2 -top-2 rounded-full border border-border bg-white p-1 text-muted-foreground opacity-0 shadow transition-opacity hover:text-destructive group-hover:opacity-100 dark:bg-secondary"
+                            aria-label="메시지 삭제"
+                          >
+                            <TrashIcon className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -368,7 +401,7 @@ export default function DirectMessageRuntime() {
                 className="min-h-[72px] w-full resize-none border-0 bg-transparent text-sm leading-6 text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-400"
               />
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-400 dark:text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-white">
                   Enter로 전송, Shift+Enter로 줄바꿈
                 </p>
                 <Button onClick={() => void handleSendMessage()} disabled={submitDisabled}>

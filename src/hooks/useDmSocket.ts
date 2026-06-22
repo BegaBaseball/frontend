@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { DirectMessage } from '../types/dm';
+import type { DirectMessage, DmDeleteEvent } from '../types/dm';
 import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import { buildDmSocketDestination } from '../utils/socketDestinations';
 import { loadStompModule, resolveStompBrokerUrl, type StompClient, type StompMessage } from '../utils/stomp';
@@ -10,7 +10,7 @@ type DmSocketFactoryOptions = {
   onConnect: () => void;
   onDisconnect: () => void;
   onError: (error: unknown) => void;
-  onMessage: (message: DirectMessage) => void;
+  onMessage: (message: DirectMessage | DmDeleteEvent) => void;
 };
 
 type DmSocketFactory = (options: DmSocketFactoryOptions) => void | (() => void);
@@ -24,6 +24,7 @@ interface UseDmSocketProps {
   roomId: number | string;
   enabled?: boolean;
   onMessageReceived: (message: DirectMessage) => void;
+  onMessageDeleted?: (messageId: number) => void;
 }
 
 const getTestSocketFactory = (): DmSocketFactory | null => {
@@ -39,14 +40,19 @@ const getTestSocketFactory = (): DmSocketFactory | null => {
   return typedWindow.__begaDmSocketFactory;
 };
 
-export function useDmSocket({ roomId, enabled = true, onMessageReceived }: UseDmSocketProps) {
+export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessageDeleted }: UseDmSocketProps) {
   const clientRef = useRef<StompClient | null>(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
+  const onMessageDeletedRef = useRef(onMessageDeleted);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
   }, [onMessageReceived]);
+
+  useEffect(() => {
+    onMessageDeletedRef.current = onMessageDeleted;
+  }, [onMessageDeleted]);
 
   useEffect(() => {
     let disposed = false;
@@ -71,7 +77,14 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived }: UseDm
         onConnect: () => setIsConnected(true),
         onDisconnect: () => setIsConnected(false),
         onError: () => setIsConnected(false),
-        onMessage: (message) => onMessageReceivedRef.current(message),
+        onMessage: (message) => {
+          const payload = message as DirectMessage | DmDeleteEvent;
+          if ('deleted' in payload && payload.deleted) {
+            onMessageDeletedRef.current?.(payload.messageId);
+          } else {
+            onMessageReceivedRef.current(payload as DirectMessage);
+          }
+        },
       });
 
       return () => {
@@ -103,8 +116,12 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived }: UseDm
       client.onConnect = () => {
         setIsConnected(true);
         client.subscribe(buildDmSocketDestination(roomId), (message: StompMessage) => {
-          const receivedMessage = JSON.parse(message.body) as DirectMessage;
-          onMessageReceivedRef.current(receivedMessage);
+          const payload = JSON.parse(message.body) as DirectMessage | DmDeleteEvent;
+          if ('deleted' in payload && payload.deleted) {
+            onMessageDeletedRef.current?.(payload.messageId);
+          } else {
+            onMessageReceivedRef.current(payload as DirectMessage);
+          }
         });
       };
 
