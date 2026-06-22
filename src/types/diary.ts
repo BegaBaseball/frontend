@@ -1,5 +1,5 @@
 export type DiaryType = 'attended' | 'scheduled';
-export type WinningType = 'WIN' | 'DRAW' | 'LOSE' | '';
+export type WinningType = 'WIN' | 'DRAW' | 'LOSE' | '' | null;
 export type SeatViewSourceType = 'DIARY_UPLOAD' | 'TICKET_SCAN';
 export type SeatViewLabel = 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
 
@@ -95,6 +95,11 @@ export interface DiaryStatistics {
   yearlyWinRate: number;
   mostVisitedStadium: string | null;
   mostVisitedCount: number;
+  monthlyVisitCounts?: Record<string, number>;
+  stadiumVisitCounts?: Record<string, number>;
+  homeVisitCount?: number;
+  awayVisitCount?: number;
+  scheduledCount?: number;
   happiestMonth: string | null;
   happiestCount: number;
   firstDiaryDate: string | null;

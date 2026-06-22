@@ -187,7 +187,7 @@ export function RetroContainer({ children, style, ...props }: PropsWithChildren<
       {...props}
       style={{
         position: 'relative',
-        background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%)',
+        background: 'linear-gradient(180deg, #000000 0%, #1a1a2e 100%)',
         borderRadius: '8px',
         overflow: 'hidden',
         ...crtScanlines,

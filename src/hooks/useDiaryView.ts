@@ -40,6 +40,15 @@ const createEmptySeatViewSelectionState = (): SeatViewSelectionState => ({
   submitting: false,
 });
 
+const parseInitialDate = (dateString?: string | null): Date => {
+  if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return new Date();
+  }
+
+  const parsed = new Date(`${dateString}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
 const getAutoSelectedCandidateIds = (candidates: SeatViewCandidate[]): number[] =>
   candidates
     .filter(
@@ -51,7 +60,7 @@ const getAutoSelectedCandidateIds = (candidates: SeatViewCandidate[]): number[] 
     )
     .map((candidate) => candidate.id);
 
-export const useDiaryView = () => {
+export const useDiaryView = (initialDateString?: string) => {
   const queryClient = useQueryClient();
   const { confirm } = useConfirmDialog();
   const pendingDraft = useDiaryStore((state) => state.pendingDraft);
@@ -59,8 +68,8 @@ export const useDiaryView = () => {
   const seatViewDialogResolverRef = useRef<(() => void) | null>(null);
   const appliedDraftKeyRef = useRef<string | null>(null);
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => parseInitialDate(initialDateString));
+  const [currentMonth, setCurrentMonth] = useState(() => parseInitialDate(initialDateString));
   const [isEditMode, setIsEditMode] = useState(false);
   const [seatViewSelectionState, setSeatViewSelectionState] = useState<SeatViewSelectionState>(
     createEmptySeatViewSelectionState()
@@ -72,6 +81,7 @@ export const useDiaryView = () => {
     updateForm,
     handlePhotoUpload,
     removePhoto,
+    validateForm,
   } = useDiaryForm();
 
   const dateStr = useMemo(() => formatDateString(selectedDate), [selectedDate]);
@@ -86,6 +96,21 @@ export const useDiaryView = () => {
   const selectedDiary = useMemo(() => {
     return diaryEntries.find((e: DiaryEntry) => e.date === dateStr);
   }, [diaryEntries, dateStr]);
+
+  useEffect(() => {
+    if (!initialDateString) {
+      return;
+    }
+
+    const nextDate = parseInitialDate(initialDateString);
+    const nextDateString = formatDateString(nextDate);
+    const entry = diaryEntries.find((diaryEntry: DiaryEntry) => diaryEntry.date === nextDateString);
+
+    setSelectedDate(nextDate);
+    setCurrentMonth(nextDate);
+    resetForm(entry);
+    setIsEditMode(!entry);
+  }, [diaryEntries, initialDateString]);
 
   useEffect(() => {
     if (!pendingDraft?.date) {
@@ -319,24 +344,31 @@ export const useDiaryView = () => {
   };
 
   const handleSaveDiary = async () => {
+    const validation = validateForm();
+    if (!validation.valid) {
+      toast.error(validation.error ?? '입력값을 확인해주세요.');
+      return;
+    }
+
     const game = availableGames.find((g: Game) => g.id === diaryForm.gameId);
+    const isAttended = diaryForm.type === 'attended';
 
     const entry: SaveDiaryRequest = {
       date: dateStr,
       type: diaryForm.type,
       emoji: diaryForm.emoji,
       emojiName: diaryForm.emojiName,
-      winningName: diaryForm.winningName,
+      winningName: isAttended ? diaryForm.winningName : null,
       gameId: diaryForm.gameId,
-      memo: diaryForm.memo,
-      photos: diaryForm.photoStoragePaths,
+      memo: isAttended ? diaryForm.memo : '',
+      photos: isAttended ? diaryForm.photoStoragePaths : [],
       team: game ? `${game.homeTeam} vs ${game.awayTeam}` : '',
       stadium: game?.stadium || '',
-      section: diaryForm.section,
-      block: diaryForm.block,
-      seatRow: diaryForm.seatRow,
-      seatNumber: diaryForm.seatNumber,
-      ticketVerificationToken: diaryForm.ticketVerificationToken,
+      section: isAttended ? diaryForm.section : '',
+      block: isAttended ? diaryForm.block : '',
+      seatRow: isAttended ? diaryForm.seatRow : '',
+      seatNumber: isAttended ? diaryForm.seatNumber : '',
+      ticketVerificationToken: isAttended ? diaryForm.ticketVerificationToken : undefined,
     };
 
     if (selectedDiary) {

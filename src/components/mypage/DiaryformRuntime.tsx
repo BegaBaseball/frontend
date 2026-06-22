@@ -13,6 +13,7 @@ import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import {
+  MyPageArrowLeftIcon,
   MyPageChevronLeftIcon,
   MyPageChevronRightIcon,
 } from './MyPageIcons';
@@ -27,13 +28,18 @@ interface DiaryReadModeProps {
 
 const DiaryEditModeRuntime = lazy(() => import('./DiaryEditModeRuntime'));
 
+interface DiaryViewSectionProps {
+  initialDate?: string;
+  onBackToLog?: () => void;
+}
+
 const diaryEditModeFallback = (
   <div className="py-8 text-center text-[16px] text-muted-foreground">
     직관 기록 폼을 불러오는 중입니다.
   </div>
 );
 
-export default function DiaryViewSection() {
+export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryViewSectionProps) {
   const {
     selectedDate,
     currentMonth,
@@ -57,19 +63,36 @@ export default function DiaryViewSection() {
     handleSeatViewSelectionSkip,
     deleteMutation,
     diaryEntries,
-  } = useDiaryView();
+  } = useDiaryView(initialDate);
 
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const weekCalendar = useWeekCalendar(selectedDate);
   const monthCalendar = useMonthCalendar(currentMonth);
 
   return (
-    <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark text-primary-foreground transition-colors duration-200">
+    <>
+      {onBackToLog && (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="mypage-season-ghost-button"
+            onClick={onBackToLog}
+          >
+            <MyPageArrowLeftIcon className="h-4 w-4" />
+            시즌 로그
+          </button>
+          <span className="text-sm font-bold text-[#FFFFFF]">직관 기록</span>
+        </div>
+      )}
+      <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark text-primary-foreground transition-colors duration-200">
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-10">
+        <div className="diary-editor-grid grid grid-cols-1 gap-6 lg:grid-cols-10">
           {/* 왼쪽: 캘린더 */}
-          <Card className="p-5 md:p-8 lg:col-span-7">
+          <Card
+            className="diary-editor-calendar-card p-5 md:p-8 lg:col-span-7"
+            data-testid="diary-editor-calendar-card"
+          >
             <div className="flex items-center justify-between mb-6">
               <button
                 type="button"
@@ -184,7 +207,10 @@ export default function DiaryViewSection() {
           </Card>
 
           {/* 오른쪽: 다이어리 폼 */}
-          <Card className="p-5 md:p-6 lg:col-span-3">
+          <Card
+            className="diary-editor-form-card p-5 md:p-6 lg:col-span-3"
+            data-testid="diary-editor-form-card"
+          >
             <div className="mb-6">
               <h3 className="text-primary" style={{ fontWeight: 900 }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
@@ -227,7 +253,10 @@ export default function DiaryViewSection() {
         // 모바일: 주간 뷰
         <div className="space-y-4">
           {/* 주간 캘린더 */}
-          <Card className="p-4">
+          <Card
+            className="diary-editor-calendar-card p-4"
+            data-testid="diary-editor-calendar-card"
+          >
             <div className="flex items-center justify-between mb-4">
               <button
                 type="button"
@@ -311,7 +340,10 @@ export default function DiaryViewSection() {
           </Card>
 
           {/* 다이어리 폼 */}
-          <Card className="p-4">
+          <Card
+            className="diary-editor-form-card p-4"
+            data-testid="diary-editor-form-card"
+          >
             <div className="mb-6">
               <h3 className="text-primary" style={{ fontWeight: 900 }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 직관 기록
@@ -351,21 +383,22 @@ export default function DiaryViewSection() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
 // ========== 읽기 모드 컴포넌트 ==========
 function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDiary, deleteMutation }: DiaryReadModeProps) {
   return (
-    <div className="p-6 space-y-6">
+    <div className="diary-read-mode p-6 space-y-6" data-testid="diary-read-mode">
       <div className="flex items-center justify-between">
         <h3 className="text-primary" style={{ fontWeight: 900 }}>직관 기록</h3>
       </div>
 
       {/* 오늘의 기분 */}
       <div
-        className="flex items-center gap-6 p-6 rounded-2xl bg-emerald-50 dark:bg-secondary"
+        className="diary-read-summary flex items-center gap-6 p-6 rounded-2xl bg-emerald-50 dark:bg-secondary"
       >
         <img
           src={getEmojiByName(diaryForm.emojiName)}
@@ -382,7 +415,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
 
       {/* 사진 */}
       {diaryForm.photos && diaryForm.photos.length > 0 && (
-        <div>
+        <div className="diary-read-photo-section">
           <div className="text-[16px] mb-3 text-primary" style={{ fontWeight: 700 }}>
             사진
           </div>
@@ -416,21 +449,21 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       )}
 
       {/* 경기 정보 */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-[80px_1fr] gap-2">
+      <div className="diary-read-details space-y-4">
+        <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
           <div className="text-[16px] text-muted-foreground">경기</div>
           <div className="font-bold text-primary">
             {selectedDiary?.team || '경기 정보 없음'}
           </div>
         </div>
-        <div className="grid grid-cols-[80px_1fr] gap-2">
+        <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
           <div className="text-[16px] text-muted-foreground">구장</div>
           <div className="font-bold text-primary">
             {selectedDiary?.stadium ? formatStadiumDisplayName(selectedDiary.stadium) : '구장 정보 없음'}
           </div>
         </div>
         {diaryForm.winningName && (
-          <div className="grid grid-cols-[80px_1fr] gap-2">
+          <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
             <div className="text-[16px] text-muted-foreground">승패</div>
             <div className="font-bold text-primary">
               {getWinningLabel(diaryForm.winningName)}
@@ -438,7 +471,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
           </div>
         )}
         {diaryForm.memo && (
-          <div className="grid grid-cols-[80px_1fr] gap-2">
+          <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
             <div className="text-[16px] text-muted-foreground">메모</div>
             <div
               data-testid="diary-memo"
@@ -450,7 +483,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         )}
       </div>
 
-      <div className="flex gap-3 justify-center">
+      <div className="diary-read-actions flex gap-3 justify-center">
         <Button
           data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}

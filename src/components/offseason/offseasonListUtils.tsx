@@ -24,13 +24,13 @@ export const getSectionColor = (section: string) => {
         return 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200';
     }
     if (normalized.includes('방출') || normalized.includes('웨이버')) {
-        return 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200';
+        return 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-white';
     }
     if (normalized.includes('군') || normalized.includes('상무') || normalized.includes('입대') || normalized.includes('전역')) {
         return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200';
     }
 
-    return 'border-zinc-200 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200';
+    return 'border-zinc-200 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white';
 };
 
 export const formatRemarks = (text?: string | null) => {

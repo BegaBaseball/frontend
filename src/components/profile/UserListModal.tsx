@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, type UIEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useMemo, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +89,10 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
         }
     };
 
-    const users = data?.pages.flatMap((page) => page.content) || [];
+    const users = useMemo(
+        () => data?.pages.flatMap((page) => page.content) || [],
+        [data],
+    );
 
     const handleUserClick = (handle: string) => {
         onClose();
@@ -133,7 +136,7 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                         ) : isError ? (
                             <div className="flex flex-col items-center justify-center px-4 py-8 text-center sm:py-10">
                                 <ProfileAlertCircleIcon className="mb-3 h-8 w-8 text-red-500" />
-                                <p className="mb-3 font-semibold text-gray-900 dark:text-gray-100">
+                                <p className="mb-3 font-semibold text-gray-900 dark:text-white">
                                     목록을 불러오지 못했습니다.
                                 </p>
                                 <Button variant="outline" onClick={() => refetch()}>
@@ -161,10 +164,10 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                                                 ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
                                             />
                                             <div className="flex flex-col truncate">
-                                                <span className="truncate text-[16px] font-bold text-gray-900 dark:text-gray-100">
+                                                <span className="truncate text-[16px] font-bold text-gray-900 dark:text-white">
                                                     {user.name}
                                                 </span>
-                                                <span className="truncate text-[16px] text-gray-500 dark:text-gray-300">
+                                                <span className="truncate text-[16px] text-gray-500 dark:text-white">
                                                     {user.handle}
                                                 </span>
                                             </div>
@@ -199,10 +202,10 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-card">
                                     <ProfileUserIcon className="h-6 w-6 text-gray-400" />
                                 </div>
-                                <p className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
+                                <p className="mb-1 font-semibold text-gray-900 dark:text-white">
                                     {type === 'followers' ? '아직 팔로워가 없습니다.' : '아직 팔로잉하는 유저가 없습니다.'}
                                 </p>
-                                <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                                <p className="text-[16px] text-gray-500 dark:text-white">
                                     {type === 'followers'
                                         ? '게시글을 작성하고 소통하여 팔로워를 늘려보세요!'
                                         : '관심 있는 유저를 찾아보세요!'}
