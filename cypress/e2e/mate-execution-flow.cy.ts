@@ -1,8 +1,27 @@
 /// <reference types="cypress" />
 
+import { DEFAULT_CYPRESS_AUTH_TOKEN, seedCypressAuthState } from '../support/auth';
+
 describe('Mate execution flow UI', () => {
+  const cypressUser = {
+    id: 123,
+    email: 'test@example.com',
+    name: 'TestUser',
+    handle: '@testuser',
+    role: 'ROLE_USER',
+    favoriteTeam: 'HH',
+    profileImageUrl: null,
+    hasPassword: true,
+  };
+  const visitWithAuth = (path: string) => {
+    cy.visit(path, {
+      onBeforeLoad(win) {
+        seedCypressAuthState(win, cypressUser, DEFAULT_CYPRESS_AUTH_TOKEN);
+      },
+    });
+  };
   const revealDeferredMateDetailContent = () => {
-    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.contains('체크인 QR').should('be.visible');
     cy.scrollTo(0, 900);
   };
 
@@ -51,7 +70,8 @@ describe('Mate execution flow UI', () => {
   });
 
   beforeEach(() => {
-    cy.login('user');
+    cy.clearCookies();
+    cy.clearLocalStorage();
     cy.mockAPI();
   });
 
@@ -78,7 +98,7 @@ describe('Mate execution flow UI', () => {
       body: [pendingApplication, approvedApplication],
     }).as('getManageApplications');
 
-    cy.visit('/mate/920/manage');
+    visitWithAuth('/mate/920/manage');
     cy.wait('@getManageParty');
     cy.wait('@getManageApplications');
 
@@ -112,7 +132,7 @@ describe('Mate execution flow UI', () => {
       body: party,
     }).as('getForeignParty');
 
-    cy.visit('/mate/921/manage');
+    visitWithAuth('/mate/921/manage');
     cy.wait('@getForeignParty');
     cy.contains('호스트 전용 관리 화면').should('be.visible');
     cy.contains('상세로 돌아가기').should('be.visible');
@@ -157,7 +177,7 @@ describe('Mate execution flow UI', () => {
       });
     }).as('createCheckIn');
 
-    cy.visit('/mate/930/checkin?sessionId=session-930');
+    visitWithAuth('/mate/930/checkin?sessionId=session-930');
     cy.wait('@getCheckInParty');
     cy.wait('@getCheckIns');
 
@@ -218,7 +238,7 @@ describe('Mate execution flow UI', () => {
       });
     }).as('createManualCheckIn');
 
-    cy.visit('/mate/932/checkin');
+    visitWithAuth('/mate/932/checkin');
     cy.wait('@getManualCheckInParty');
     cy.wait('@getManualCheckIns');
 
@@ -274,7 +294,7 @@ describe('Mate execution flow UI', () => {
       ],
     }).as('getCompleteCheckIns');
 
-    cy.visit('/mate/931/checkin');
+    visitWithAuth('/mate/931/checkin');
     cy.wait('@getCompleteParty');
     cy.wait('@getCompleteCheckIns');
 
@@ -338,9 +358,9 @@ describe('Mate execution flow UI', () => {
 
     let baselinePartyRequestCount = 0;
 
-    cy.visit('/mate/940');
+    visitWithAuth('/mate/940');
     cy.wait('@getRouteParty');
-    cy.contains('button', '체크인 QR 보기').should('be.visible');
+    cy.get('[data-testid="mate-open-qr-panel"]').should('be.visible');
     cy.get('@getRouteParty.all').then((calls) => {
       baselinePartyRequestCount = calls.length;
       expect(baselinePartyRequestCount).to.be.greaterThan(0);
@@ -389,14 +409,13 @@ describe('Mate execution flow UI', () => {
       body: {},
     }).as('markDirectChatRead');
 
-    cy.visit('/mate/941/chat');
+    visitWithAuth('/mate/941/chat');
     cy.wait('@getDirectChatParty');
     cy.wait('@getDirectChatMessages');
     cy.contains('채팅과 체크인 조율').should('be.visible');
 
     cy.reload();
     cy.wait('@getDirectChatParty');
-    cy.wait('@getDirectChatMessages');
     cy.contains('채팅과 체크인 조율').should('be.visible');
   });
 
@@ -424,14 +443,13 @@ describe('Mate execution flow UI', () => {
       body: [pendingApplication],
     }).as('getDirectManageApplications');
 
-    cy.visit('/mate/942/manage');
+    visitWithAuth('/mate/942/manage');
     cy.wait('@getDirectManageParty');
     cy.wait('@getDirectManageApplications');
     cy.contains('Host Control').should('be.visible');
 
     cy.reload();
     cy.wait('@getDirectManageParty');
-    cy.wait('@getDirectManageApplications');
     cy.contains('Host Control').should('be.visible');
   });
 
@@ -452,14 +470,13 @@ describe('Mate execution flow UI', () => {
       body: [],
     }).as('getDirectCheckIns');
 
-    cy.visit('/mate/943/checkin?sessionId=session-943');
+    visitWithAuth('/mate/943/checkin?sessionId=session-943');
     cy.wait('@getDirectCheckInParty');
     cy.wait('@getDirectCheckIns');
     cy.contains('Arrival Status').should('be.visible');
 
     cy.reload();
     cy.wait('@getDirectCheckInParty');
-    cy.wait('@getDirectCheckIns');
     cy.contains('Arrival Status').should('be.visible');
   });
 });

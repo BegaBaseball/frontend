@@ -33,7 +33,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
 describe('Mate Selling Flow', () => {
   const fakeToken = 'e2e-mate-token';
   const revealDeferredMateDetailContent = () => {
-    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.contains('체크인 QR').should('be.visible');
     cy.scrollTo(0, 900);
   };
   const authState = {
@@ -121,7 +121,7 @@ describe('Mate Selling Flow', () => {
 
     cy.wait('@convertToSelling');
     cy.contains('판매 전환이 완료되었습니다.').should('be.visible');
-    cy.contains('티켓 판매가').should('be.visible');
-    cy.contains('50,000원').should('be.visible');
+    cy.contains('티켓 판매가').scrollIntoView().should('be.visible');
+    cy.contains('50,000원').scrollIntoView().should('be.visible');
   });
 });
