@@ -137,6 +137,104 @@ describe('Direct Message v1', () => {
         cy.contains('button', '프로필로 돌아가기').should('be.visible');
     });
 
+    it('shows delete button on hover for own messages and removes on click', () => {
+        cy.login('user');
+        cy.mockAPI();
+
+        cy.intercept('POST', '**/api/dm/rooms', {
+            statusCode: 200,
+            body: { success: true, data: bootstrapResponse },
+        }).as('bootstrapDmRoom');
+        cy.intercept('GET', '**/api/dm/rooms/901/messages', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: [
+                    {
+                        id: 10,
+                        roomId: 901,
+                        senderId: 123,
+                        content: '삭제할 메시지입니다.',
+                        clientMessageId: null,
+                        createdAt: '2026-04-15T12:00:00.000Z',
+                    },
+                ],
+            },
+        }).as('getDmMessages');
+        cy.intercept('DELETE', '**/api/dm/messages/10', {
+            statusCode: 200,
+            body: { success: true, data: null },
+        }).as('deleteMessage');
+
+        cy.visit(messageRoute, {
+            onBeforeLoad(win) {
+                installDmSocketFactory(win);
+            },
+        });
+
+        cy.wait('@bootstrapDmRoom');
+        cy.wait('@getDmMessages');
+        cy.contains('삭제할 메시지입니다.').should('be.visible');
+
+        cy.contains('삭제할 메시지입니다.')
+            .closest('.group')
+            .trigger('mouseover')
+            .find('button[aria-label="메시지 삭제"]')
+            .should('exist')
+            .click();
+
+        cy.wait('@deleteMessage');
+        cy.contains('삭제할 메시지입니다.').should('not.exist');
+    });
+
+    it('removes message when WebSocket delete event is received', () => {
+        cy.login('user');
+        cy.mockAPI();
+
+        cy.intercept('POST', '**/api/dm/rooms', {
+            statusCode: 200,
+            body: { success: true, data: bootstrapResponse },
+        }).as('bootstrapDmRoom');
+        cy.intercept('GET', '**/api/dm/rooms/901/messages', {
+            statusCode: 200,
+            body: {
+                success: true,
+                data: [
+                    {
+                        id: 20,
+                        roomId: 901,
+                        senderId: 456,
+                        content: '상대방이 보낸 메시지입니다.',
+                        clientMessageId: null,
+                        createdAt: '2026-04-15T12:00:00.000Z',
+                    },
+                ],
+            },
+        }).as('getDmMessages');
+
+        cy.visit(messageRoute, {
+            onBeforeLoad(win) {
+                installDmSocketFactory(win);
+            },
+        });
+
+        cy.wait('@bootstrapDmRoom');
+        cy.wait('@getDmMessages');
+        cy.contains('상대방이 보낸 메시지입니다.').should('be.visible');
+
+        cy.window().then((win) => {
+            (win as Window & {
+                __emitBegaDmSocketMessage?: (message: unknown) => void;
+            }).__emitBegaDmSocketMessage?.({
+                messageId: 20,
+                roomId: 901,
+                deleted: true,
+            });
+        });
+
+        cy.contains('상대방이 보낸 메시지입니다.').should('not.exist');
+    });
+
     it('keeps guest access behind the existing protected route login dialog', () => {
         cy.intercept('GET', '**/auth/mypage*', {
             statusCode: 401,
