@@ -388,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/parties/search-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recordSearchTerm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications/{notificationId}/read": {
         parameters: {
             query?: never;
@@ -2148,6 +2164,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/parties/search-terms/popular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPopularSearchTerms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parties/profile/{handle}": {
         parameters: {
             query?: never;
@@ -2172,6 +2204,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getMyParties"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/parties/my/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyPartyHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4306,6 +4354,29 @@ export interface components {
             /** Format: int32 */
             nano?: number;
         };
+        MatePartyCreateRequest: {
+            teamId?: string;
+            /** @enum {string} */
+            cheeringSide: "HOME" | "AWAY" | "NEUTRAL";
+            /** Format: date */
+            gameDate: string;
+            gameTime: components["schemas"]["LocalTime"];
+            stadium: string;
+            homeTeam: string;
+            awayTeam: string;
+            section: string;
+            /** Format: int32 */
+            maxParticipants: number;
+            description: string;
+            ticketImageUrl?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+            reservationNumber?: string;
+            verificationToken: string;
+        };
+        MateSearchTermRecordRequest: {
+            term?: string;
+        };
         InitMediaUploadRequest: {
             /** @enum {string} */
             domain: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
@@ -4578,7 +4649,7 @@ export interface components {
         AdminReportAppealReq: {
             appealReason?: string;
         };
-        UpdateRequest: {
+        MatePartyUpdateRequest: {
             /** @enum {string} */
             status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
             /** Format: int32 */
@@ -4882,7 +4953,7 @@ export interface components {
             /** Format: int32 */
             streak: number;
         };
-        PublicResponse: {
+        MatePartyPublicResponse: {
             /** Format: int64 */
             id?: number;
             hostHandle?: string;
@@ -4921,6 +4992,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        MatePopularSearchTermResponse: {
+            term?: string;
+            /** Format: int64 */
+            count?: number;
+            /** Format: int32 */
+            rank?: number;
         };
         GameLiveEventDto: {
             /** Format: int32 */
@@ -5342,9 +5420,9 @@ export interface components {
             franchise?: components["schemas"]["TeamFranchiseEntity"];
             isActive?: boolean;
             aliases?: string;
-            activeKboTeam?: boolean;
             /** Format: int32 */
             franchiseId?: number;
+            activeKboTeam?: boolean;
         };
         DayStats: {
             /** Format: int32 */
@@ -6314,7 +6392,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request"];
+                "application/json": components["schemas"]["MatePartyCreateRequest"];
             };
         };
         responses: {
@@ -6326,6 +6404,28 @@ export interface operations {
                 content: {
                     "*/*": Record<string, never>;
                 };
+            };
+        };
+    };
+    recordSearchTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MateSearchTermRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8155,7 +8255,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicResponse"];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"];
                 };
             };
         };
@@ -8193,7 +8293,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateRequest"];
+                "application/json": components["schemas"]["MatePartyUpdateRequest"];
             };
         };
         responses: {
@@ -9121,7 +9221,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicResponse"][];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
                 };
             };
         };
@@ -9143,7 +9243,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicResponse"][];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
                 };
             };
         };
@@ -9165,7 +9265,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicResponse"][];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
+                };
+            };
+        };
+    };
+    getPopularSearchTerms: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePopularSearchTermResponse"][];
                 };
             };
         };
@@ -9187,7 +9309,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicResponse"][];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
                 };
             };
         };
@@ -9208,6 +9330,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getMyPartyHistory: {
+        parameters: {
+            query?: {
+                group?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
                 };
             };
         };

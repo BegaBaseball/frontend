@@ -155,7 +155,7 @@ export default function ChatBotSessionStateRuntime({
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[16px] font-semibold transition-colors ${
                     isActive
                       ? 'bg-white text-gray-900 shadow-sm dark:bg-white/15 dark:text-white'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-white/10'
+                      : 'text-gray-600 hover:bg-white/70 dark:text-white dark:hover:bg-white/10'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />

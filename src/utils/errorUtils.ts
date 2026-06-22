@@ -341,6 +341,15 @@ export const parseError = (error: unknown): ParsedError => {
 
     if (error instanceof Error) {
         const rawMessage = normalizeErrorText(error.message) || undefined;
+        if (isPublicApiTimeoutError(error)) {
+            return {
+                type: 'NETWORK',
+                responseCode: undefined,
+                message: getDefaultErrorMessage('NETWORK', null),
+                rawMessage,
+                statusCode: null,
+            };
+        }
         return {
             type: 'UNKNOWN',
             responseCode: undefined,

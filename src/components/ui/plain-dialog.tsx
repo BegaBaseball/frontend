@@ -128,7 +128,7 @@ export default function PlainDialog({
                   </h2>
                 ) : null}
                 {description ? (
-                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-gray-300">
+                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-white">
                     {description}
                   </p>
                 ) : null}

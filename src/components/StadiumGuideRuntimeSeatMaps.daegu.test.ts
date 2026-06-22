@@ -70,14 +70,14 @@ test('대구 공개 package 명령은 canonical/runtime release 명령만 남긴
   const daeguKeys = Object.keys(scripts).filter((key) => key.includes(':daegu')).sort();
 
   assert.deepEqual(daeguKeys, [...ALLOWED_DAEGU_PACKAGE_SCRIPTS].sort());
-  assert.equal(scripts['qa:stadium:daegu:mobile'], 'node scripts/run-stadium-isolated-qa.mjs DAEGU');
-  assert.equal(scripts['qa:stadium:daegu:full'], 'node scripts/run-stadium-isolated-qa.mjs DAEGU:FULL');
-  assert.equal(scripts['qa:stadium:daegu:release-lock'], 'npm run stadium:daegu:precision-audit -- --require-release');
+  assert.equal(scripts['qa:stadium:daegu:mobile'], 'node scripts/qa-presets.mjs stadium-mobile daegu');
+  assert.equal(scripts['qa:stadium:daegu:full'], 'node scripts/qa-presets.mjs stadium-mobile daegu-full');
+  assert.equal(scripts['qa:stadium:daegu:release-lock'], 'node scripts/qa-presets.mjs stadium daegu precision-audit --require-release');
 
   Object.entries(scripts)
     .filter(([key]) => key.startsWith('stadium:daegu:'))
     .forEach(([key, command]) => {
-      assert.match(command, /^node scripts\/stadium-seatmap-ops\.mjs daegu /, `${key} should delegate through stadium-seatmap-ops`);
+      assert.match(command, /^node scripts\/qa-presets\.mjs stadium daegu /, `${key} should delegate through qa-presets`);
     });
 
   ['trace-review', 'operator-reference', 'missing-block', 'visual-match', ':p0-', ':p1-', ':p2', ':p3-p4'].forEach((removedToken) => {

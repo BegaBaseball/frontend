@@ -1,14 +1,37 @@
+import path from 'node:path';
 import { loadEnv } from 'vite';
 
-const loadedEnv = loadEnv('prod', process.cwd(), '');
-for (const [key, value] of Object.entries(loadedEnv)) {
-  if (process.env[key] == null || String(process.env[key]).trim() === '') {
-    process.env[key] = value;
-  }
-}
+const fileEnv = {
+  ...loadEnv('prod', process.cwd(), ''),
+  ...loadEnv('prod', path.resolve(process.cwd(), '..'), ''),
+};
 
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
+
+const readEnvValue = (key) => {
+  const processValue = String(process.env[key] || '').trim();
+  if (processValue) {
+    return { value: processValue, source: 'process' };
+  }
+
+  const fileValue = String(fileEnv[key] || '').trim();
+  if (!strict && fileValue) {
+    return { value: fileValue, source: 'file-fallback' };
+  }
+
+  return { value: '', source: 'missing' };
+};
+
+const formatEnvSource = (source) => {
+  if (source === 'process') {
+    return 'runtime env';
+  }
+  if (source === 'file-fallback') {
+    return '.env/.env.prod fallback';
+  }
+  return '미설정';
+};
 
 const LOOPBACK_HOSTS = new Set([
   'localhost',
@@ -26,6 +49,7 @@ const recommendedEnvKeys = [
   'VITE_GA4_MEASUREMENT_ID',
   'VITE_GOOGLE_SITE_VERIFICATION',
   'VITE_NAVER_SITE_VERIFICATION',
+  'VITE_MATE_REQUIRE_SOCIAL_VERIFICATION',
 ];
 
 const failures = [];
@@ -69,16 +93,16 @@ const parseAbsoluteUrl = (label, value) => {
 };
 
 for (const key of requiredEnvKeys) {
-  const value = String(process.env[key] || '').trim();
+  const { value, source } = readEnvValue(key);
   if (!value) {
     failures.push(`필수 env 누락: ${key}`);
   } else {
-    checks.push(`필수 env 확인: ${key}`);
+    checks.push(`필수 env 확인: ${key} (${formatEnvSource(source)})`);
   }
 }
 
-const siteUrlValue = String(process.env.VITE_SITE_URL || '').trim();
-const apiBaseValue = String(process.env.VITE_API_BASE_URL || '').trim();
+const { value: siteUrlValue } = readEnvValue('VITE_SITE_URL');
+const { value: apiBaseValue } = readEnvValue('VITE_API_BASE_URL');
 
 const siteUrl = siteUrlValue ? parseAbsoluteUrl('VITE_SITE_URL', siteUrlValue) : null;
 const siteHostIsLoopback = siteUrl ? isLoopbackHost(siteUrl.hostname) : false;
@@ -105,7 +129,7 @@ if (apiBaseValue) {
 }
 
 for (const key of recommendedEnvKeys) {
-  const value = String(process.env[key] || '').trim();
+  const { value, source } = readEnvValue(key);
   if (!value) {
     if (strict) {
       failures.push(`strict 모드 권장 env 누락: ${key}`);
@@ -118,8 +142,14 @@ for (const key of recommendedEnvKeys) {
     } else {
       warnings.push(`placeholder env 감지: ${key}`);
     }
+  } else if (key === 'VITE_MATE_REQUIRE_SOCIAL_VERIFICATION' && value !== 'true' && value !== 'false') {
+    if (strict) {
+      failures.push('strict 모드 값 검증 실패: VITE_MATE_REQUIRE_SOCIAL_VERIFICATION은 true/false만 허용');
+    } else {
+      warnings.push('VITE_MATE_REQUIRE_SOCIAL_VERIFICATION은 true/false 중 하나여야 합니다.');
+    }
   } else {
-    checks.push(`권장 env 확인: ${key}`);
+    checks.push(`권장 env 확인: ${key} (${formatEnvSource(source)})`);
   }
 }
 

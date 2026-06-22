@@ -86,21 +86,22 @@ export const createTimeoutController = (
   timeoutMs: number = DEFAULT_API_TIMEOUT_MS,
   abortSignal?: AbortSignal,
 ): TimeoutController => {
-  const controller = new AbortController();
-  const timeoutHandle = globalThis.setTimeout(() => controller.abort(), timeoutMs);
-  const abortListener = () => controller.abort();
-  abortSignal?.addEventListener('abort', abortListener);
+  // AbortSignal.timeout() uses a browser-native timer that is NOT affected by
+  // fake-clock stubs (e.g. cy.clock() in Cypress). Using globalThis.setTimeout
+  // caused timeouts to fire prematurely during cy.tick() advances, aborting
+  // in-flight fetch responses before they could be processed.
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = abortSignal
+    ? AbortSignal.any([timeoutSignal, abortSignal])
+    : timeoutSignal;
 
   return {
-    cleanup: () => {
-      globalThis.clearTimeout(timeoutHandle);
-      abortSignal?.removeEventListener('abort', abortListener);
-    },
-    signal: controller.signal,
+    cleanup: () => {},
+    signal,
     timeoutMs,
   };
 };
 
 export const isAbortError = (error: unknown): boolean => (
-  error instanceof DOMException && error.name === 'AbortError'
+  error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError')
 );

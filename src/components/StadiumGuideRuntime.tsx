@@ -214,7 +214,7 @@ export default function StadiumGuideRuntime() {
                 구장 가이드
               </h1>
             </div>
-            <p className="stadium-guide-muted w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-200/90 sm:text-base text-balance">
+            <p className="stadium-guide-muted w-full max-w-none text-sm leading-relaxed text-gray-700 dark:text-white/90 sm:text-base text-balance">
               전국 KBO 야구장의 상세한 위치 정보부터 명당 자리, 주변 맛집까지
               직관을 위한 모든 필수 정보를 베가(BEGA)에서 확인하세요.
             </p>
@@ -242,7 +242,7 @@ export default function StadiumGuideRuntime() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           <div className="space-y-7 sm:space-y-8">
             <div>
-              <h3 className="text-xl mb-4 font-bold dark:text-gray-200 text-balance" style={{ color: stadiumTitleColor }}>
+              <h3 className="text-xl mb-4 font-bold dark:text-white text-balance" style={{ color: stadiumTitleColor }}>
                 구장 선택
               </h3>
               <div className="relative">
@@ -253,7 +253,7 @@ export default function StadiumGuideRuntime() {
                   disabled={stadiumControlsDisabled}
                   aria-label="구장 선택"
                   aria-busy={stadiumsStatus === 'loading'}
-                  className="stadium-guide-select stadium-guide-control w-full rounded-2xl border-2 bg-white px-4 py-4 pr-11 text-base font-bold shadow-sm transition-all cursor-pointer focus:ring-2 focus:ring-primary/20 dark:text-gray-200 sm:px-6 sm:py-6 sm:pr-12 sm:text-lg"
+                  className="stadium-guide-select stadium-guide-control w-full rounded-2xl border-2 bg-white px-4 py-4 pr-11 text-base font-bold shadow-sm transition-all cursor-pointer focus:ring-2 focus:ring-primary/20 dark:text-white sm:px-6 sm:py-6 sm:pr-12 sm:text-lg"
                   style={{
                     borderColor: isDark ? STADIUM_DARK_COLORS.borderStrong : THEME_COLORS.primary,
                   }}
@@ -292,7 +292,7 @@ export default function StadiumGuideRuntime() {
 
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold dark:text-gray-200 text-balance" style={{ color: stadiumTitleColor }}>
+                <h3 className="text-xl font-bold dark:text-white text-balance" style={{ color: stadiumTitleColor }}>
                   구장 위치 & 단축 경로
                 </h3>
               </div>
@@ -321,12 +321,12 @@ export default function StadiumGuideRuntime() {
                         )}
                       </div>
                       {selectedStadiumAddress && (
-                        <p className="stadium-guide-muted mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 sm:text-[17px]">
+                        <p className="stadium-guide-muted mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-[17px]">
                           <span className="opacity-60">📍</span> {selectedStadiumAddress}
                         </p>
                       )}
                       {selectedStadiumPhone && (
-                        <p className="stadium-guide-muted flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 sm:text-[17px]">
+                        <p className="stadium-guide-muted flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-[17px]">
                           <span className="opacity-60">📞</span> {selectedStadiumPhone}
                         </p>
                       )}
@@ -390,7 +390,7 @@ export default function StadiumGuideRuntime() {
                   <h4 className="mt-3 text-center text-lg sm:text-xl" style={{ color: stadiumTitleColor, fontWeight: 800 }}>
                     {selectedStadiumDisplayName || '구장을 선택하세요'}
                   </h4>
-                  <p className="stadium-guide-muted mt-3 max-w-sm text-center text-sm leading-relaxed text-gray-500 dark:text-gray-300 sm:text-[16px]">
+                  <p className="stadium-guide-muted mt-3 max-w-sm text-center text-sm leading-relaxed text-gray-500 dark:text-white sm:text-[16px]">
                     {!selectedStadium
                       ? '구장을 선택하면 주변 지도를 표시합니다.'
                       : !KAKAO_API_KEY
@@ -402,12 +402,12 @@ export default function StadiumGuideRuntime() {
                             : formatOptionalText(mapError, '지도를 불러올 수 없습니다.')}
                   </p>
                   {!selectedStadium && (
-                    <p className="stadium-guide-muted mt-4 rounded-xl bg-white/70 px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:bg-[rgba(7,16,12,0.82)] dark:text-gray-300">
+                    <p className="stadium-guide-muted mt-4 rounded-xl bg-white/70 px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:bg-[rgba(0,0,0,0.82)] dark:text-white">
                       상단의 구장 선택 메뉴에서 원하는 구장을 먼저 선택하세요.
                     </p>
                   )}
                   {selectedStadium && !KAKAO_API_KEY && (
-                    <p className="stadium-guide-muted mt-4 rounded-xl bg-white/70 px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:bg-[rgba(7,16,12,0.82)] dark:text-gray-300">
+                    <p className="stadium-guide-muted mt-4 rounded-xl bg-white/70 px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:bg-[rgba(0,0,0,0.82)] dark:text-white">
                       운영 환경의 카카오맵 JavaScript API 키 설정을 확인해야 합니다.
                     </p>
                   )}
@@ -441,7 +441,7 @@ export default function StadiumGuideRuntime() {
 
             <div className="space-y-8 lg:hidden" data-testid="stadium-guide-mobile-panels">
               <div>
-                <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: stadiumTitleColor }}>
+                <h3 className="text-xl mb-4 font-bold dark:text-white" style={{ color: stadiumTitleColor }}>
                   주변 정보 카테고리
                 </h3>
                 <StadiumGuideCategorySelector
@@ -483,7 +483,7 @@ export default function StadiumGuideRuntime() {
 
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: stadiumTitleColor }}>
+                  <h3 className="text-xl font-bold dark:text-white" style={{ color: stadiumTitleColor }}>
                     좌석 배치도
                   </h3>
                   <span
@@ -494,13 +494,18 @@ export default function StadiumGuideRuntime() {
                   </span>
                 </div>
                 {renderSeatMap()}
+                <div
+                  className="h-[var(--mobile-footer-safe-bottom)] lg:hidden"
+                  aria-hidden="true"
+                  data-testid="stadium-mobile-bottom-spacer"
+                />
               </div>
             </div>
           </div>
 
           <div className="hidden space-y-8 sm:space-y-10 lg:block" data-testid="stadium-guide-desktop-panels">
             <div>
-              <h3 className="text-xl mb-4 font-bold dark:text-gray-200" style={{ color: stadiumTitleColor }}>
+              <h3 className="text-xl mb-4 font-bold dark:text-white" style={{ color: stadiumTitleColor }}>
                 주변 정보 카테고리
               </h3>
               <StadiumGuideCategorySelector
@@ -544,7 +549,7 @@ export default function StadiumGuideRuntime() {
 
         <div className="mt-8 hidden lg:block" data-testid="stadium-guide-seatmap">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-xl font-bold dark:text-gray-200" style={{ color: stadiumTitleColor }}>
+            <h3 className="text-xl font-bold dark:text-white" style={{ color: stadiumTitleColor }}>
               좌석 배치도
             </h3>
             <span

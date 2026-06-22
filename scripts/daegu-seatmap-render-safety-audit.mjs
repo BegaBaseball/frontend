@@ -186,7 +186,7 @@ const rows = reviewOnlySeats.map((block) => {
     normalUiSelectable: false,
     failureFlags: [...new Set(flags.filter(Boolean))],
     nextAction: precisionRow?.nextAction
-      ?? 'Keep hidden from normal UI and request operator-approved correctedPath from the official PNG.',
+      ?? 'Keep hidden from normal UI and request operator-approved correctedPath from the official image.',
     currentPath: block.imageGeometry.hitPath ?? block.imageGeometry.d,
     labelPoint: block.imageGeometry.labelPoint ?? [block.imageGeometry.labelX, block.imageGeometry.labelY],
     evidenceCrop: precisionRow?.evidenceCrop ?? '',
@@ -289,8 +289,8 @@ const report = {
   passCriteria: {
     [WORKFLOW_PASS_LEVEL]: 'Scripts ran, but normal UI containment is not proven.',
     [UI_PASS_LEVEL]: 'Unreviewed Daegu seat polygons are hidden from the normal UI and remain available only in debug review overlays.',
-    [CLICKABLE_PASS_LEVEL]: `The currently exposed ${normalSelectableSeats.length} Daegu seat polygons passed click/render smoke only; this is not official PNG visual precision proof.`,
-    [VISUAL_MATCH_PASS_LEVEL]: 'Official PNG crop overlays have no visual blockers for visible official Daegu seat polygons.',
+    [CLICKABLE_PASS_LEVEL]: `The currently exposed ${normalSelectableSeats.length} Daegu seat polygons passed click/render smoke only; this is not official image visual precision proof.`,
+    [VISUAL_MATCH_PASS_LEVEL]: 'Official image crop overlays have no visual blockers for visible official Daegu seat polygons.',
     [VISIBLE_OFFICIAL_PASS_LEVEL]: 'Visible official Daegu seat polygons are contained; classified non-seat/policy-excluded rows are hidden from selectable seat layers.',
     [RELEASE_PASS_LEVEL]: 'All 177 Daegu inventory rows are resolved: official seat polygons are selectable and classified non-seat/policy-excluded rows are not selectable seat polygons.',
   },
@@ -415,7 +415,7 @@ const overlaySvg = [
   '    .policy { fill: #64748b; fill-opacity: 0.12; stroke: #334155; stroke-opacity: 0.82; stroke-width: 2.5; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }',
   '    .label { font: 900 11px sans-serif; fill: #f97316; stroke: #fff; stroke-width: 3; paint-order: stroke; }',
   '  </style>',
-  '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
+  '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
   '  <g id="normal-selectable-seat-reference">',
   ...normalSelectableSeats.map((block) => `    <path class="normal" d="${xmlEscape(block.imageGeometry.hitPath ?? block.imageGeometry.d)}"><title>${xmlEscape(`${block.block} normal selectable`)}</title></path>`),
   '  </g>',

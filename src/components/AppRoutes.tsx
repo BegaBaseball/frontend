@@ -1,9 +1,11 @@
 import { lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
+import { loadPredictionPage } from './lazyRouteLoaders';
+import RootEntryRoute from './RootEntryRoute';
+
 const Layout = lazy(() => import('./Layout'));
 const AppQueryProvider = lazy(() => import('./AppQueryProvider'));
-const RootEntryRoute = lazy(() => import('./RootEntryRoute'));
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'));
 const AdminRoute = lazy(() => import('./AdminRoute'));
 const Home = lazy(() => import('./Home'));
@@ -16,7 +18,7 @@ const PasswordReset = lazy(() => import('./PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./PasswordResetConfirm'));
 const AccountDeletionRecovery = lazy(() => import('./AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./StadiumGuide'));
-const Prediction = lazy(() => import('./Prediction'));
+const Prediction = lazy(loadPredictionPage);
 const Cheer = lazy(() => import('./Cheer'));
 const CheerBookmarksPage = lazy(() => import('./CheerBookmarksPage'));
 const CheerDetailPage = lazy(() => import('./CheerDetailPage'));
@@ -30,6 +32,7 @@ const MateChatPage = lazy(() => import('./MateChatPage'));
 const MateManagePage = lazy(() => import('./MateManagePage'));
 const MyPage = lazy(() => import('./MyPage'));
 const DirectMessagePage = lazy(() => import('./DirectMessagePage'));
+const DmInboxPage = lazy(() => import('./DmInboxPage'));
 const UserProfilePage = lazy(() => import('./profile/UserProfilePage'));
 const AdminPagePage = lazy(() => import('./AdminPagePage'));
 const RankingPredictionSharePage = lazy(() => import('./RankingPredictionSharePage'));
@@ -66,7 +69,7 @@ export default function AppRoutes() {
         <Route element={<Layout authenticated={false} />}>
           <Route path="/home" element={<Home />} />
           <Route path="/prediction" element={<Prediction />} />
-          <Route path="/offseason" element={<OffSeasonHomePage selectedDate={new Date()} />} />
+          <Route path="/offseason" element={<OffSeasonHomePage />} />
           <Route path="/offseason/list" element={<OffSeasonListPage />} />
           <Route path="/cheer" element={<Cheer />} />
           <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
@@ -94,6 +97,7 @@ export default function AppRoutes() {
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/mypage/:handle" element={<MyPage />} />
+            <Route path="/messages" element={<DmInboxPage />} />
             <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
 

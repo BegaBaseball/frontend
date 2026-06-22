@@ -80,13 +80,13 @@ export default function ChatBotFavoritesTab({
                   원 질문: {favorite.prompt}
                 </div>
               )}
-              <p className="mt-3 whitespace-pre-wrap text-[16px] text-gray-700 dark:text-gray-200">{favorite.content}</p>
+              <p className="mt-3 whitespace-pre-wrap text-[16px] text-gray-700 dark:text-white">{favorite.content}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => { void onCopyMessage(favorite.content, favorite.messageId); }}
                   data-testid="chatbot-favorite-copy"
-                  className="rounded-xl border border-gray-200 px-3 py-2 text-[16px] font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/10"
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-[16px] font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
                 >
                   복사
                 </button>
@@ -107,7 +107,7 @@ export default function ChatBotFavoritesTab({
                   type="button"
                   onClick={() => { void onOpenFavoriteSession(favorite); }}
                   data-testid="chatbot-favorite-open-session"
-                  className="rounded-xl border border-gray-200 px-3 py-2 text-[16px] font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/10"
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-[16px] font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
                 >
                   원 대화로 이동
                 </button>

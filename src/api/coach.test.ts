@@ -405,6 +405,69 @@ test('analyzeTeam은 generation_mode를 파싱해 manual 상세 분석 여부를
   assert.equal(response.generation_mode, 'llm_manual');
 });
 
+test('analyzeTeam은 llm_skip_reason 메타를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"auto_brief","analysis_type":"game_preview","generation_mode":"evidence_fallback","cache_state":"PENDING_WAIT","in_progress":true,"llm_skip_reason":"pending_wait","structured_response":{"headline":"브리핑 준비 중","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"브리핑 생성 중","coach_note":"잠시 후 다시 확인해주세요."}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam({
+    ...baseRequest,
+    request_mode: 'auto_brief',
+    analysis_type: 'game_preview',
+  });
+
+  assert.equal(response.llm_skip_reason, 'pending_wait');
+  assert.equal(response.llmSkipReason, 'pending_wait');
+});
+
+test('analyzeTeam은 analysisType을 analysis_type payload로 정규화하고 SSE meta를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+
+    assert.equal(body.analysis_type, 'game_preview');
+    assert.equal(body.analysisType, undefined);
+
+    return buildStreamResponse([
+      'event: meta\n',
+      'data: {"request_mode":"manual_detail","analysis_type":"game_preview","generation_mode":"deterministic_preview","structured_response":{"headline":"프리뷰 헤드라인","sentiment":"neutral","analysisType":"game_preview","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"프리뷰 리포트","coach_note":"프리뷰 노트"}}\n',
+      '\n',
+      'event: done\n',
+      'data: [DONE]\n',
+      '\n',
+    ]) as never;
+  });
+
+  const response = await analyzeTeam({
+    ...baseRequest,
+    analysisType: 'game_preview',
+  });
+
+  assert.equal(response.analysis_type, 'game_preview');
+  assert.equal(response.analysisType, 'game_preview');
+  assert.equal(response.generation_mode, 'deterministic_preview');
+  assert.equal(response.structuredData?.analysisType, 'game_preview');
+});
+
+test('analyzeTeam은 win_probability_home 메타를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail","win_probability_home":0.62,"structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.win_probability_home, 0.62);
+});
+
 test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 누락 focus 메타를 파싱한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
@@ -425,6 +488,8 @@ test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 
 });
 
 test('getCoachGenerationModeLabel은 generation_mode를 사용자 문구로 변환한다', () => {
+  assert.equal(getCoachGenerationModeLabel('deterministic_review'), '규칙 기반 경기 리뷰');
+  assert.equal(getCoachGenerationModeLabel('deterministic_preview'), '규칙 기반 경기 프리뷰');
   assert.equal(getCoachGenerationModeLabel('llm_manual'), '근거 기반 상세 분석');
   assert.equal(getCoachGenerationModeLabel('evidence_fallback'), '확인 근거 기반');
 });

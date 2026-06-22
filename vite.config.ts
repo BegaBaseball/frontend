@@ -6,7 +6,11 @@ import path from 'path';
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig(({ mode, command }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  const envMode = mode === 'production' ? 'prod' : mode;
+  const env = {
+    ...loadEnv(mode, process.cwd(), ''),
+    ...loadEnv(envMode, path.resolve(process.cwd(), '..'), ''),
+  };
   const proxyTarget = env.VITE_PROXY_TARGET ?? 'http://localhost:8080';
   const suppressCypressProxyErrors = env.VITE_SUPPRESS_CYPRESS_PROXY_ERRORS === 'true';
   const enableCloudflarePlugin =
@@ -67,11 +71,15 @@ export default defineConfig(({ mode, command }) => {
             }
             const isPackage = (pkg: string) => id.includes(`/node_modules/${pkg}/`);
             if (
+              isPackage('zustand') ||
+              isPackage('use-sync-external-store')
+            ) {
+              return 'vendor-zustand';
+            }
+            if (
               isPackage('react') ||
               isPackage('react-dom') ||
               isPackage('scheduler') ||
-              isPackage('use-sync-external-store') ||
-              isPackage('zustand') ||
               isPackage('redux')
             ) {
               return 'vendor-react-core';

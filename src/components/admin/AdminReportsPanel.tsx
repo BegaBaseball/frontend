@@ -11,7 +11,7 @@ import {
 import type { AdminReport, AdminReportFilters } from '../../types/admin';
 import { getTimeAgo } from '../../utils/formatters';
 import { AdminEyeIcon } from './AdminDetailIcons';
-import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
+import { AdminStatusBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 
 type AdminReportAction =
   | 'TAKE_DOWN'
@@ -39,13 +39,6 @@ const reportStatusLabel: Record<string, string> = {
   IN_REVIEW: '검토중',
   RESOLVED: '완료',
   CLOSED: '종결',
-};
-
-const reportStatusClass: Record<string, string> = {
-  PENDING: 'bg-amber-500/20 text-amber-300 border-0',
-  IN_REVIEW: 'bg-sky-500/20 text-sky-300 border-0',
-  RESOLVED: 'bg-emerald-500/20 text-emerald-300 border-0',
-  CLOSED: 'bg-slate-700 text-slate-300 border-0',
 };
 
 export function AdminReportsPanel({
@@ -145,9 +138,10 @@ export function AdminReportsPanel({
                   <TableCell className="font-mono text-[14px] text-slate-300">{report.id}</TableCell>
                   <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
                   <TableCell>
-                    <AdminBadge className={reportStatusClass[report.status || ''] || 'bg-slate-700 text-slate-300 border-0'}>
-                      {report.status ? (reportStatusLabel[report.status] || report.status) : '대기'}
-                    </AdminBadge>
+                    <AdminStatusBadge
+                      status={report.status || 'PENDING'}
+                      label={report.status ? (reportStatusLabel[report.status] || report.status) : '대기'}
+                    />
                   </TableCell>
                   <TableCell className="max-w-[260px] truncate text-slate-300">{report.postPreview || '-'}</TableCell>
                   <TableCell className="text-slate-300">{report.reporterHandle || '-'}</TableCell>

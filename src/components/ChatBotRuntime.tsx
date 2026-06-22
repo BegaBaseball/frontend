@@ -89,8 +89,8 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
 
   const isMateBottomActionRoute = /^\/mate(?:\/create|\/[^/]+(?:\/(apply|manage|checkin|chat))?)$/.test(location.pathname);
   const launcherOffsetClass = isMateBottomActionRoute
-    ? 'bottom-[calc(8rem+env(safe-area-inset-bottom))] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]'
-    : 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
+    ? 'bottom-[calc(var(--mobile-content-safe-bottom)+2.25rem)] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]'
+    : 'bottom-[var(--mobile-content-safe-bottom)] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
 
   const panelClassName = `
     ${isClosing ? 'animate-fade-out-down' : 'animate-fade-in-up'}
@@ -188,7 +188,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               <div className="flex items-center justify-center h-full">
                 <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-card/50 border border-gray-300 dark:border-white/10">
                   <h3 className="text-gray-900 dark:text-white font-bold mb-2">로그인이 필요합니다</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-[16px] font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
+                  <p className="text-gray-600 dark:text-white text-[16px] font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
                   <button
                     type="button"
                     onClick={handleNavigateToLogin}

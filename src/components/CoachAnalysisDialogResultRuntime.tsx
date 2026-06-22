@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type SVGProps } from 'react';
 import { Button } from './ui/button';
 import ErrorBoundary from './common/ErrorBoundary';
 
@@ -12,11 +12,9 @@ import {
 } from '../api/coach';
 import {
     COACH_BRIEFING_DISPLAY_MESSAGE,
-    COACH_BRIEFING_MANUAL_HINT,
     getCoachBriefingDataQualityNotice,
-    normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
-} from '../utils/prediction';
+} from '../utils/predictionCoachPresentation';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
     normalizeStructuredInlineText,
@@ -24,9 +22,25 @@ import {
     normalizeVerdictText,
     sanitizeMarkdown,
 } from '../utils/coachAnalysisText';
-import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
 
 const CoachAnalysisResultView = lazy(() => import('./prediction/CoachAnalysisResultView'));
+
+function CoachResultLoaderIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            {...props}
+        >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        </svg>
+    );
+}
 
 type ParsedCoachAnalysisData = {
     dashboard?: {
@@ -90,14 +104,10 @@ const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
 const normalizeLegacyTextBlock = (
     value: string,
     fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE,
-) => normalizeCoachBriefing(
-    { message: value || '' },
-    {
-        fallbackTitle: 'AI 코치 상세 분석',
-        fallbackMessage,
-        fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-    },
-).displayText;
+) => {
+    const normalized = sanitizeMarkdown(value || '').trim();
+    return normalized || fallbackMessage;
+};
 
 const deriveMetricCategory = (label: string): string => {
     if (label.includes('선발')) return '선발';
@@ -314,17 +324,11 @@ export const getAnalysisData = ({
             ? '실데이터를 바탕으로 승부처와 전개 가능성을 전망한 리포트입니다.'
             : '실데이터를 바탕으로 승부처를 해석한 리포트입니다.';
 
-    const normalizeDashboardContext = (headline: string, context: string) => normalizeCoachBriefing(
-        {
-            title: headline,
-            message: context || '',
-        },
-        {
-            fallbackTitle: defaultAnalysisTitle,
-            fallbackMessage: defaultAnalysisMessage,
-            fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-        },
-    );
+    const normalizeDashboardContext = (headline: string, context: string) => ({
+        title: headline || defaultAnalysisTitle,
+        message: normalizeLegacyTextBlock(context, defaultAnalysisMessage),
+        displayText: normalizeLegacyTextBlock(context, defaultAnalysisMessage),
+    });
 
     const normalizeAnalysisSection = (analysis?: {
         summary?: string;
@@ -764,10 +768,10 @@ export default function CoachAnalysisDialogResultRuntime({
                 <div className="p-6">
                     <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
-                            <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
+                            <CoachResultLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
                             <span className="text-[15px] font-extrabold">{analysisStep || loadingFallbackMessage}</span>
                         </div>
-                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-slate-400">
+                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-white">
                             응답을 C1 코치 리포트 구조로 정리하고 있습니다.
                         </p>
                     {!result && (

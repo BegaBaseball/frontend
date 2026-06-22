@@ -68,7 +68,7 @@ export default function CheerDetailActionBarRuntime({
                     'flex h-10 w-full items-center justify-center gap-0.5 rounded-full border px-1.5 text-center whitespace-nowrap transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                     interactionLikedByMe
                         ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-950'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:bg-slate-950'
                 )}
             >
                 <HeartIcon className={cn('h-8 w-8 flex-shrink-0', interactionLikedByMe && 'fill-current')} />
@@ -81,7 +81,7 @@ export default function CheerDetailActionBarRuntime({
                 type="button"
                 onClick={onScrollToComments}
                 aria-label={`댓글 ${commentCount.toLocaleString()}`}
-                className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
+                className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
             >
                 <MessageSquareIcon className="h-8 w-8 flex-shrink-0" />
                 <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
@@ -114,7 +114,7 @@ export default function CheerDetailActionBarRuntime({
                             'flex h-10 w-full items-center justify-center gap-0.5 whitespace-nowrap rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                             repostButtonActive
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
                         )}
                         aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
                         aria-pressed={repostButtonActive}
@@ -160,11 +160,11 @@ export default function CheerDetailActionBarRuntime({
                                     {interactionRepostedByMe ? (
                                         <RotateCcwIcon className="h-4 w-4 text-emerald-500" />
                                     ) : (
-                                        <RepeatIcon className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                                        <RepeatIcon className="h-4 w-4 text-gray-500 dark:text-white" />
                                     )}
                                 </div>
                                 <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-gray-200">
+                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
                                             {interactionRepostedByMe ? '리포스트 취소' : '리포스트'}
                                         </span>
                                 </div>
@@ -178,10 +178,10 @@ export default function CheerDetailActionBarRuntime({
                                     className="flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                                 >
                                     <div className="flex h-5 w-5 items-center justify-center">
-                                        <PenSquareIcon className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                                        <PenSquareIcon className="h-4 w-4 text-gray-500 dark:text-white" />
                                     </div>
                                     <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-gray-200">
+                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
                                             인용 응원
                                         </span>
                                     </div>
@@ -204,7 +204,7 @@ export default function CheerDetailActionBarRuntime({
                     'flex h-10 w-full items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                     interactionBookmarked
                         ? 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
                 )}
             >
                 <BookmarkIcon className={cn('h-8 w-8 flex-shrink-0', interactionBookmarked && 'fill-current')} />

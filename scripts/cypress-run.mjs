@@ -492,6 +492,44 @@ const rewriteConfigForDocker = (configValue, hostUrl) => configValue
   })
   .join(',');
 
+const getBaseUrlFromConfigValue = (configValue) => {
+  for (const entry of configValue.split(',')) {
+    const separatorIndex = entry.indexOf('=');
+    if (separatorIndex < 0) {
+      continue;
+    }
+
+    const key = entry.slice(0, separatorIndex).trim();
+    if (key === 'baseUrl') {
+      return entry.slice(separatorIndex + 1).trim();
+    }
+  }
+
+  return undefined;
+};
+
+const getBaseUrlFromArgs = (args) => {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--config' && args[index + 1]) {
+      const baseUrl = getBaseUrlFromConfigValue(args[index + 1]);
+      if (baseUrl) {
+        return baseUrl;
+      }
+    }
+
+    if (arg.startsWith('--config=')) {
+      const baseUrl = getBaseUrlFromConfigValue(arg.slice('--config='.length));
+      if (baseUrl) {
+        return baseUrl;
+      }
+    }
+  }
+
+  return undefined;
+};
+
 const rewriteEnvForDocker = (envValue, dockerBackendUrl) => envValue
   .split(',')
   .map((entry) => {
@@ -573,6 +611,7 @@ const runDocker = (statusLabel = '[local failed] fallback to Docker image') => {
     process.env.CYPRESS_DOCKER_BASE_URL
       || process.env.CYPRESS_FRONTEND_BASE_URL
       || process.env.CYPRESS_BASE_URL
+      || getBaseUrlFromArgs(cypressArgs)
       || 'http://host.docker.internal:5176',
   )
     || 'http://host.docker.internal:5176';

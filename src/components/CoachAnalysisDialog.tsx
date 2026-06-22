@@ -1,13 +1,46 @@
-import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
+import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode, type SVGProps } from 'react';
 
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
 import type { CoachDataQuality } from '../api/coach';
 import { TEAM_DATA, TEAM_LIST, getRandomTeamName } from '../constants/teams';
-import { resolveCoachAnalysisPresentation } from '../utils/prediction';
-import { PredictionLoaderIcon, PredictionZapIcon } from './prediction/PredictionShellIcons';
+import { resolveCoachAnalysisPresentation } from '../utils/predictionCoachPresentation';
 
 const CoachAnalysisDialogRuntime = lazy(() => import('./CoachAnalysisDialogRuntime'));
+
+function CoachDialogLoaderIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    </svg>
+  );
+}
+
+function CoachDialogZapIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z" />
+    </svg>
+  );
+}
 
 export interface CoachAnalysisDialogProps {
   trigger?: ReactNode;
@@ -56,9 +89,9 @@ function CoachAnalysisTriggerButton({
       className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold"
     >
       {disabled ? (
-        <PredictionLoaderIcon className="w-4 h-4 fill-white animate-spin" />
+        <CoachDialogLoaderIcon className="w-4 h-4 fill-white animate-spin" />
       ) : (
-        <PredictionZapIcon className="w-4 h-4 fill-white" />
+        <CoachDialogZapIcon className="w-4 h-4 fill-white" />
       )}
       <span>AI 코치 상세 분석</span>
     </Button>
@@ -100,8 +133,8 @@ function CoachAnalysisDialogFallback({
       bodyClassName="flex max-h-[calc(90vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-secondary"
     >
       <div className="flex min-h-[18rem] items-center justify-center bg-gray-50/60 dark:bg-black/40">
-        <div className="inline-flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-gray-300">
-          <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+        <div className="inline-flex items-center gap-2 text-[16px] font-semibold text-gray-600 dark:text-white">
+          <CoachDialogLoaderIcon className="h-4 w-4 animate-spin" />
           AI 코치 분석 도구를 불러오는 중입니다.
         </div>
       </div>

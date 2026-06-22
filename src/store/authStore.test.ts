@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { createJSONStorage } from 'zustand/middleware';
 
 import { authStoreApi, useAuthStore } from './authStore';
-import { getPersistedAuthBootstrapMeta } from '../utils/authBootstrap';
+import { queryClient } from '../lib/queryClient';
+import {
+  getPersistedAuthBootstrapMeta,
+  setPersistedAuthBootstrapMeta,
+} from '../utils/authBootstrap';
 
 const createStorage = () => {
   const values = new Map<string, string>();
@@ -35,10 +39,52 @@ const installPersistStorage = (storage: ReturnType<typeof createStorage>) => {
 installPersistStorage(createStorage());
 
 test.afterEach(() => {
+  queryClient.clear();
   useAuthStore.getState().reset();
   delete (globalThis as { window?: unknown }).window;
   delete (globalThis as { localStorage?: unknown }).localStorage;
   installPersistStorage(createStorage());
+});
+
+test('fetchProfileAndAuthenticate는 성공한 프로필을 MyPage 쿼리 캐시에 저장한다', async (t) => {
+  const storage = createStorage();
+  withWindowLocalStorage(storage, '/mypage');
+
+  t.mock.method(authStoreApi, 'fetchCurrentUserProfile', async () => ({
+    id: 7,
+    email: 'slugger@example.com',
+    name: 'Slugger',
+    handle: 'slugger',
+    favoriteTeam: 'LG',
+    favoriteTeamColor: '#c00',
+    role: 'ROLE_USER',
+    profileImageUrl: null,
+    provider: 'KAKAO',
+    providerId: 'provider-1',
+    bio: '직관 기록 중',
+    cheerPoints: 120,
+    hasPassword: false,
+  }) as never);
+
+  const didAuthenticate = await useAuthStore.getState().fetchProfileAndAuthenticate();
+  const cachedProfile = queryClient.getQueryData(['userProfile', 7]);
+
+  assert.equal(didAuthenticate, true);
+  assert.deepEqual(cachedProfile, {
+    id: 7,
+    email: 'slugger@example.com',
+    name: 'Slugger',
+    handle: 'slugger',
+    favoriteTeam: 'LG',
+    favoriteTeamColor: '#c00',
+    role: 'ROLE_USER',
+    profileImageUrl: null,
+    provider: 'KAKAO',
+    providerId: 'provider-1',
+    bio: '직관 기록 중',
+    cheerPoints: 120,
+    hasPassword: false,
+  });
 });
 
 const withWindowLocalStorage = (
@@ -225,6 +271,44 @@ test('public-optional bootstrap 401 실패는 사용자 state를 비우지 않�
   });
 });
 
+test('cheer public-optional bootstrap 401 실패는 공개 페이지 사용자 state를 비우지 않는다', async (t) => {
+  const storage = createStorage();
+  withWindowLocalStorage(storage, '/cheer');
+  setAuthBootstrapHint(storage, true);
+  const fetchOptions: Array<{ retryOn401?: boolean } | undefined> = [];
+
+  useAuthStore.getState().login(
+    'cheer-viewer@example.com',
+    'Cheer Viewer',
+    null,
+    'ROLE_USER',
+    undefined,
+    31,
+    0,
+    'cheer-viewer',
+  );
+
+  t.mock.method(authStoreApi, 'fetchCurrentUserProfile', async (options?: { retryOn401?: boolean }) => {
+    fetchOptions.push(options);
+    throw { response: { status: 401 } };
+  });
+
+  const didAuthenticate = await useAuthStore.getState().fetchProfileAndAuthenticate({ mode: 'public-optional' });
+  const state = useAuthStore.getState();
+
+  assert.equal(didAuthenticate, false);
+  assert.equal(state.user?.email, 'cheer-viewer@example.com');
+  assert.equal(state.isAuthLoading, false);
+  assert.equal(state.publicAuthBootstrapPhase, 'idle');
+  assert.deepEqual(fetchOptions, [{ retryOn401: false }]);
+  assert.equal(hasAuthBootstrapHint(storage), false);
+  assert.deepEqual(getAuthBootstrapMeta(), {
+    version: 1,
+    lastSuccessAt: null,
+    lastFailureAt: getAuthBootstrapMeta()?.lastFailureAt ?? null,
+  });
+});
+
 test('public-optional bootstrap 5xx 실패는 hint를 유지하고 cooldown만 갱신한다', async (t) => {
   const storage = createStorage();
   withWindowLocalStorage(storage);
@@ -327,6 +411,38 @@ test('public-optional bootstrap 연속 호출은 짧은 중복 윈도우에서 �
   assert.equal(firstAttempt, false);
   assert.equal(secondAttempt, false);
   assert.equal(fetchCount, 1);
+  assert.equal(useAuthStore.getState().publicAuthBootstrapPhase, 'idle');
+});
+
+test('guest public-optional bootstrap은 persisted hint가 남아 있어도 짧은 중복 윈도우에서 재요청하지 않는다', async (t) => {
+  const storage = createStorage();
+  withWindowLocalStorage(storage);
+  setAuthBootstrapHint(storage, true);
+  setPersistedAuthBootstrapMeta({
+    version: 1,
+    lastSuccessAt: Date.now(),
+    lastFailureAt: null,
+  });
+  let fetchCount = 0;
+
+  t.mock.method(authStoreApi, 'fetchCurrentUserProfile', async () => {
+    fetchCount += 1;
+    throw { response: { status: 503 } };
+  });
+
+  const firstAttempt = await useAuthStore.getState().fetchProfileAndAuthenticate({ mode: 'public-optional' });
+  setAuthBootstrapHint(storage, true);
+  setPersistedAuthBootstrapMeta({
+    version: 1,
+    lastSuccessAt: Date.now(),
+    lastFailureAt: null,
+  });
+  const secondAttempt = await useAuthStore.getState().fetchProfileAndAuthenticate({ mode: 'public-optional' });
+
+  assert.equal(firstAttempt, false);
+  assert.equal(secondAttempt, false);
+  assert.equal(fetchCount, 1);
+  assert.equal(hasAuthBootstrapHint(storage), true);
   assert.equal(useAuthStore.getState().publicAuthBootstrapPhase, 'idle');
 });
 

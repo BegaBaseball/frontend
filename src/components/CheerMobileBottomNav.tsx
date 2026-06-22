@@ -18,7 +18,7 @@ interface CheerMobileBottomNavProps {
   teamAccent?: string;
 }
 
-const DEFAULT_ACCENT = '#0f766e';
+const DEFAULT_ACCENT = 'hsl(var(--primary))';
 
 export default function CheerMobileBottomNav({
   activeItem,
@@ -37,12 +37,15 @@ export default function CheerMobileBottomNav({
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-4 pt-2 safe-area-bottom lg:hidden"
+      className="fixed inset-x-0 z-40 px-3 pt-2 lg:hidden"
+      style={{
+        bottom: 'calc(var(--mobile-chrome-bottom-offset) + env(safe-area-inset-bottom))',
+      }}
       data-testid="cheer-mobile-bottom-nav"
       aria-label="응원석 모바일 네비게이션"
     >
       {/* Floating glass capsule */}
-      <div className="mx-auto grid h-[60px] max-w-sm grid-cols-5 items-stretch gap-0.5 rounded-[22px] border border-white/80 bg-white/88 p-1.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_18px_40px_-16px_rgba(15,67,56,.35)] backdrop-blur-xl dark:border-white/12 dark:bg-black dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_18px_40px_-16px_rgba(15,120,85,0.18)]">
+      <div className="mx-auto grid h-[var(--mobile-chrome-height)] max-w-sm grid-cols-5 items-stretch gap-0.5 rounded-[22px] border border-white/80 bg-white/88 p-1.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_18px_40px_-16px_rgba(15,67,56,.35)] backdrop-blur-xl dark:border-white/12 dark:bg-[hsl(var(--surface-raised))] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_18px_40px_-16px_rgba(15,120,85,0.18)]">
         {items.map((item) => {
           const Icon = item.icon;
           const isWrite = item.id === 'write';
@@ -60,10 +63,10 @@ export default function CheerMobileBottomNav({
                 navigate(item.path);
               }}
               className={cn(
-                'flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 text-[10.5px] font-black transition-all duration-200 active:scale-[0.97]',
+                'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 text-[10.5px] font-black transition-all duration-200 active:scale-[0.97]',
                 isActive
                   ? 'bg-primary text-white shadow-[0_4px_12px_-4px_rgba(45,95,79,.4)]'
-                  : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
+                  : 'text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
               )}
               style={isActive && !isWrite ? { backgroundColor: teamAccent } : undefined}
               aria-current={isActive ? 'page' : undefined}
@@ -78,7 +81,7 @@ export default function CheerMobileBottomNav({
                   >
                     <Icon className="h-4.5 w-4.5" />
                   </span>
-                  <span className="leading-none text-gray-500 dark:text-gray-300">{item.label}</span>
+                  <span className="leading-none text-gray-500 dark:text-white">{item.label}</span>
                 </>
               ) : (
                 <>

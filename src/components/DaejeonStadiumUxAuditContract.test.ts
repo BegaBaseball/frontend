@@ -8,6 +8,14 @@ const auditSource = fs.readFileSync(
   path.join(projectRoot, 'scripts/stadium-ux-audit.mjs'),
   'utf8',
 );
+const daejeonSeatMapSvgSource = fs.readFileSync(
+  path.join(projectRoot, 'src/components/daejeon/DaejeonSeatMapSvg.tsx'),
+  'utf8',
+);
+const daejeonSeatMapSource = fs.readFileSync(
+  path.join(projectRoot, 'src/components/daejeon/DaejeonSeatMap.tsx'),
+  'utf8',
+);
 
 const requiredProblemBlockIds = [
   'central-table-100__100a',
@@ -73,8 +81,8 @@ const requiredExactSearchDetailContracts = [
 ];
 
 const requiredSmallBlockEdgeSamples = [
-  { blockId: 'first-table-4f-301-413__301', points: ['[778, 463]', '[801, 482]', '[781, 488]'] },
-  { blockId: 'first-table-4f-301-413__302', points: ['[756, 514]', '[798, 506]', '[782, 528]'] },
+  { blockId: 'first-table-4f-301-413__301', points: ['[778, 463]', '[801, 482]', '[780, 483]'] },
+  { blockId: 'first-table-4f-301-413__302', points: ['[802, 488]', '[780, 505]', '[793, 508]'] },
 ];
 
 const requiredSkyboxSweepBlockIds = Array.from({ length: 31 }, (_, index) => (
@@ -88,6 +96,30 @@ const requiredSkyboxClickDetailContracts = [
   { blockId: 'skybox-s01-s37__s25', block: 'S25' },
   { blockId: 'skybox-s01-s37__s26', block: 'S26' },
   { blockId: 'skybox-s01-s37__s31', block: 'S31' },
+];
+
+const requiredFocusBoxContractBlockIds = [
+  'third-infield-a-113-120-213-225__220',
+  'innings-vip-400__400',
+  'splash-jacuzzi-425__425',
+  'splash-caravan-426__426',
+  'first-table-4f-301-413__401',
+  'first-table-4f-301-413__413',
+  'third-table-4f-414-330__414',
+  'outfield-reserved-third-423-330__424',
+  'skybox-s01-s37__s01',
+  'skybox-s01-s37__s31',
+];
+
+const requiredMobileTouchContractBlockIds = [
+  'skybox-s01-s37__s01',
+  'skybox-s01-s37__s31',
+  'first-table-4f-301-413__301',
+  'first-table-4f-301-413__302',
+  'splash-jacuzzi-425__425',
+  'splash-caravan-426__426',
+  'innings-vip-400__400',
+  'third-infield-a-113-120-213-225__220',
 ];
 
 function escapeRegExp(value: string): string {
@@ -139,6 +171,38 @@ function assertSkyboxClickDetailEntry(blockId: string, block: string): void {
   );
 }
 
+function getDaejeonSeatBlockHitAreaSource(): string {
+  const match = daejeonSeatMapSvgSource.match(
+    /<path\s+role="button"[\s\S]*?data-testid=\{`daejeon-seat-block-\$\{block\.id\}`\}[\s\S]*?<\/path>/,
+  );
+  assert.ok(match, 'Daejeon seat block hit-area path should be rendered as a role=button SVG path');
+
+  return match[0];
+}
+
+test('Daejeon SVG hit-area suppresses browser focus rectangle while keeping keyboard selection contract', () => {
+  const hitAreaSource = getDaejeonSeatBlockHitAreaSource();
+
+  assert.ok(hitAreaSource.includes("outline: 'none'"), 'Daejeon hit-area path should suppress the browser default focus rectangle');
+  assert.ok(hitAreaSource.includes('tabIndex={canInteract ? 0 : -1}'), 'Daejeon hit-area path should stay keyboard-focusable when interactive');
+  assert.ok(hitAreaSource.includes('aria-pressed={isActive}'), 'Daejeon hit-area path should keep selected state exposed to assistive tech');
+  assert.ok(hitAreaSource.includes('onKeyDown={(event) => {'), 'Daejeon hit-area path should keep keyboard activation handling');
+  assert.ok(hitAreaSource.includes("event.key === 'Enter' || event.key === ' '"), 'Daejeon hit-area path should keep Enter/Space activation');
+});
+
+test('Daejeon seat map keeps manual zoom ceiling at 2.5x', () => {
+  assert.ok(daejeonSeatMapSource.includes('const MAX_ZOOM = 2.5'), 'Daejeon seat map should allow up to 2.5x zoom');
+  assert.ok(daejeonSeatMapSource.includes('disabled={zoom >= MAX_ZOOM}'), 'Daejeon zoom-in control should still disable at MAX_ZOOM');
+  assert.ok(
+    daejeonSeatMapSource.includes('Math.min(MAX_ZOOM, Number((value + ZOOM_STEP).toFixed(2)))'),
+    'Daejeon manual zoom-in should clamp to MAX_ZOOM',
+  );
+  assert.ok(
+    auditSource.includes("assertDaejeonTransformLayerContract(2.49, 'manual-zoom-2.5')"),
+    'Daejeon runtime QA should verify manual zoom reaches 2.5x',
+  );
+});
+
 test('Daejeon UX audit keeps hover and selected hit-area checks for corrected blocks', () => {
   const blockIds = extractStringArray(auditSource, 'daejeonHoverSelectedContractBlockIds');
 
@@ -150,6 +214,38 @@ test('Daejeon UX audit keeps hover and selected hit-area checks for corrected bl
   assert.ok(
     auditSource.includes('await verifyDaejeonHitAreaContract(blockId);'),
     'Daejeon hit-area contract should verify every listed block id',
+  );
+});
+
+test('Daejeon UX audit keeps runtime focus-box and mobile touch contracts', () => {
+  const focusBlockIds = extractStringArray(auditSource, 'daejeonFocusBoxContractBlockIds');
+  const mobileBlockIds = extractStringArray(auditSource, 'daejeonMobileTouchContractBlockIds');
+
+  assertIncludesAll(focusBlockIds, requiredFocusBoxContractBlockIds, 'daejeonFocusBoxContractBlockIds');
+  assertIncludesAll(mobileBlockIds, requiredMobileTouchContractBlockIds, 'daejeonMobileTouchContractBlockIds');
+  assert.ok(
+    auditSource.includes('const readDaejeonSeatBlockFocusContract = async'),
+    'Daejeon runtime QA should read computed focus styles from the seat block path',
+  );
+  assert.ok(
+    auditSource.includes('outlineStyle: computed.outlineStyle'),
+    'Daejeon runtime QA should capture computed outline style',
+  );
+  assert.ok(
+    auditSource.includes('outlineWidth: computed.outlineWidth'),
+    'Daejeon runtime QA should capture computed outline width',
+  );
+  assert.ok(
+    auditSource.includes("contract.ariaPressed !== 'true'"),
+    'Daejeon runtime QA should keep aria-pressed selected state in the focus-box contract',
+  );
+  assert.ok(
+    auditSource.includes('await assertDaejeonFocusBoxContract(blockId);'),
+    'Daejeon runtime QA should execute the focus-box assertion for listed blocks',
+  );
+  assert.ok(
+    auditSource.includes('await verifyDaejeonMobileTouchContract(blockId);'),
+    'Daejeon mobile QA should execute explicit small-block touch samples',
   );
 });
 
@@ -222,10 +318,10 @@ test('Daejeon UX audit keeps S01-S31 skybox runtime hit-area lock', () => {
   );
   assert.ok(
     auditSource.includes('const daejeonS31ExcludedPointContracts = ['),
-    'Daejeon S31 should keep explicit S32 excluded-point contracts',
+    'Daejeon S31 should keep explicit adjacent S30 excluded-point contracts',
   );
-  assert.ok(auditSource.includes("[302, 799]"), 'Daejeon S31 should exclude S32 label point');
-  assert.ok(auditSource.includes("[300, 800.3]"), 'Daejeon S31 should exclude S32 center point');
+  assert.ok(auditSource.includes("[197.5, 692.5]"), 'Daejeon S31 should exclude S30 label point');
+  assert.ok(auditSource.includes("[197, 692.5]"), 'Daejeon S31 should exclude S30 center point');
 
   for (const contract of requiredSkyboxClickDetailContracts) {
     assertSkyboxClickDetailEntry(contract.blockId, contract.block);

@@ -81,6 +81,11 @@ const isStatusError = (error: unknown, status: number): boolean =>
 const readErrorMessage = (error: unknown, fallback: string): string =>
   getApiErrorMessage(error, fallback);
 
+interface AdminRequestOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
 const unwrapAdminResponse = <T>(payload: AdminApiResponse<T> | null | undefined, fallback: string): T => {
   if (!payload?.success) {
     throw new Error(payload?.message || fallback);
@@ -92,9 +97,11 @@ const unwrapAdminResponse = <T>(payload: AdminApiResponse<T> | null | undefined,
 /**
  * 관리자 통계 조회
  */
-export const fetchAdminStats = async (): Promise<AdminStats> => {
+export const fetchAdminStats = async (
+  requestOptions: AdminRequestOptions = {},
+): Promise<AdminStats> => {
   try {
-    const response = await privateGet<AdminApiResponse<AdminStats>>('/admin/stats');
+    const response = await privateGet<AdminApiResponse<AdminStats>>('/admin/stats', requestOptions);
     return unwrapAdminResponse(response, '통계 조회 실패');
   } catch (error) {
     throw new Error(readErrorMessage(error, '통계 조회 실패'));

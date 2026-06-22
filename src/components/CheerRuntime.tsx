@@ -244,7 +244,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
     return (
-        <div className="min-h-screen bg-[#f7f9f9] pb-[calc(5.75rem+env(safe-area-inset-bottom))] dark:bg-background lg:pb-0">
+        <div className="min-h-screen bg-[#f7f9f9] pb-[var(--mobile-content-safe-bottom)] dark:bg-background lg:pb-0">
             <div className="px-4 pt-0 pb-6 sm:px-6 sm:pt-0 sm:pb-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
                     <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
@@ -267,7 +267,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                             'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-bold transition-colors',
                                             isActive
                                                 ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
-                                                : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-gray-300 dark:hover:bg-secondary'
+                                                : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-white dark:hover:bg-secondary'
                                         )}
                                         style={isActive ? { backgroundColor: `${teamColor}1A` } : undefined}
                                     >
@@ -299,10 +299,10 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
                                                 className={cn(
-                                                    'relative flex h-9 items-center rounded-full px-3 py-0 text-[14px] font-bold transition-all duration-200 sm:px-3.5 sm:text-[15px]',
+                                                    'relative flex min-h-11 items-center rounded-full px-3 py-0 text-[14px] font-bold transition-all duration-200 sm:px-3.5 sm:text-[15px]',
                                                     isActive
-                                                        ? 'text-[#0F172A] dark:text-gray-100'
-                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-gray-300 dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
+                                                        ? 'text-[#0F172A] dark:text-white'
+                                                        : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-white dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
                                                 )}
                                                 style={isActive ? { color: teamAccent } : undefined}
                                             >
@@ -347,6 +347,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     authUserProfileImageUrl={authUserProfileImageUrl}
                                     activeFeedTab={activeFeedTab}
                                     activePostType={activeTabConfig?.postType}
+                                    activeSort={activeTabConfig?.sort}
                                     teamColor={teamColor}
                                     teamAccent={teamAccent}
                                     teamContrastText={teamContrastText}
