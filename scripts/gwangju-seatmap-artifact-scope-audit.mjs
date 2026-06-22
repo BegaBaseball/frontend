@@ -25,7 +25,7 @@ const ARCHIVE_MANIFEST_FILES = {
 };
 
 const SOURCE_POLICY = {
-  coordinateSource: 'official PNG 2200x1159 only',
+  coordinateSource: 'official image 2200x1159 only',
   runtimeSeatLayerSource: 'GWANGJU_BLOCKS[].imageGeometry.d/visualD',
   productionDataFile: 'src/data/gwangjuSeatData.ts',
   disallowedSources: [

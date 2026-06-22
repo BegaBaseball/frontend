@@ -75,13 +75,19 @@
 
   const bgColor = theme === 'dark' ? '#000000' : '#ffffff';
   if (theme === 'dark') {
-    document.body && (document.body.style.backgroundColor = '#000000');
+    if (document.body) {
+      document.body.style.backgroundColor = '#000000';
+      document.body.style.color = '#ffffff';
+    }
     root.style.backgroundColor = '#000000';
+    root.style.color = '#ffffff';
   } else {
     if (document.body) {
       document.body.style.backgroundColor = '#ffffff';
+      document.body.style.color = '';
     }
     root.style.backgroundColor = '';
+    root.style.color = '';
   }
 
   const loader = document.getElementById('app-shell-loader');

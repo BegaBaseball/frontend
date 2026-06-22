@@ -20,10 +20,9 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import {
   AdminBadge,
+  AdminStatusBadge,
   adminNativeSelectClassName,
   confidenceBadgeClass,
-  decisionBadgeClass,
-  evalStatusBadgeClass,
 } from './AdminPanelPrimitives';
 import {
   AdminClipboardIcon,
@@ -572,9 +571,7 @@ export default function AdminAiReleaseDecisionRuntime({
                   Expected Decision
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <AdminBadge className={decisionBadgeClass[selectedEvalCase.expected_decision]}>
-                    {selectedEvalCase.expected_decision}
-                  </AdminBadge>
+                  <AdminStatusBadge status={selectedEvalCase.expected_decision} />
                 </div>
                 <p className="mt-4 text-[14px] uppercase tracking-wide text-slate-500">
                   Required Keywords
@@ -653,13 +650,9 @@ export default function AdminAiReleaseDecisionRuntime({
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <AdminBadge className={decisionBadgeClass[artifact.decision]}>
-                        {artifact.decision}
-                      </AdminBadge>
+                      <AdminStatusBadge status={artifact.decision} />
                       {artifact.eval_status ? (
-                        <AdminBadge className={evalStatusBadgeClass[artifact.eval_status]}>
-                          {artifact.eval_status}
-                        </AdminBadge>
+                        <AdminStatusBadge status={artifact.eval_status} />
                       ) : (
                         <AdminBadge className="border-0 bg-slate-700 text-slate-300">
                           eval 없음
@@ -754,9 +747,7 @@ export default function AdminAiReleaseDecisionRuntime({
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
                 <p className="text-[14px] uppercase tracking-wide text-slate-500">Decision</p>
                 <div className="mt-3 flex items-center gap-2">
-                  <AdminBadge className={decisionBadgeClass[releaseDraftResult.result.draft.decision]}>
-                    {releaseDraftResult.result.draft.decision}
-                  </AdminBadge>
+                  <AdminStatusBadge status={releaseDraftResult.result.draft.decision} />
                   <AdminBadge className={confidenceBadgeClass[releaseDraftResult.result.draft.confidence]}>
                     {releaseDraftResult.result.draft.confidence}
                   </AdminBadge>
@@ -803,24 +794,17 @@ export default function AdminAiReleaseDecisionRuntime({
                         case: {releaseEvaluationResult.case.case_id}
                       </p>
                     </div>
-                    <AdminBadge className={evalStatusBadgeClass[releaseEvaluationResult.evaluation.status]}>
-                      {releaseEvaluationResult.evaluation.status}
-                    </AdminBadge>
+                    <AdminStatusBadge status={releaseEvaluationResult.evaluation.status} />
                   </div>
                   <div className="mt-4 flex items-center gap-2">
-                    <AdminBadge className={decisionBadgeClass[releaseEvaluationResult.case.expected_decision]}>
-                      expected {releaseEvaluationResult.case.expected_decision}
-                    </AdminBadge>
-                    <AdminBadge
-                      className={
-                        releaseEvaluationResult.evaluation.decision_ok
-                          ? evalStatusBadgeClass.PASS
-                          : evalStatusBadgeClass.FAIL
-                      }
-                    >
-                      decision{' '}
-                      {releaseEvaluationResult.evaluation.decision_ok ? 'ok' : 'mismatch'}
-                    </AdminBadge>
+                    <AdminStatusBadge
+                      status={releaseEvaluationResult.case.expected_decision}
+                      label={`expected ${releaseEvaluationResult.case.expected_decision}`}
+                    />
+                    <AdminStatusBadge
+                      status={releaseEvaluationResult.evaluation.decision_ok ? 'PASS' : 'FAIL'}
+                      label={`decision ${releaseEvaluationResult.evaluation.decision_ok ? 'ok' : 'mismatch'}`}
+                    />
                   </div>
                 </div>
 

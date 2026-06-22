@@ -103,12 +103,12 @@ export default function RankingPrediction() {
         data-testid="ranking-root"
       >
         <div className="bg-gray-100 dark:bg-card p-4 rounded-full w-fit mx-auto mb-4">
-          <LogInIcon className="w-8 h-8 text-gray-400 dark:text-gray-300" />
+          <LogInIcon className="w-8 h-8 text-gray-400 dark:text-white" />
         </div>
-        <h3 className="text-xl font-bold text-gray-700 dark:text-gray-100 mb-2">
+        <h3 className="text-xl font-bold text-gray-700 dark:text-white mb-2">
           로그인이 필요합니다
         </h3>
-        <p className="text-gray-500 dark:text-gray-200 mb-6">
+        <p className="text-gray-500 dark:text-white mb-6">
           순위 예측에 참여하려면 로그인해주세요.
         </p>
         <Button
@@ -130,7 +130,7 @@ export default function RankingPrediction() {
         <h2 className="mb-3 text-2xl font-bold text-primary">
           순위 예측 종료
         </h2>
-        <p className="mx-auto max-w-sm text-[16px] leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
+        <p className="mx-auto max-w-sm text-[16px] leading-relaxed text-gray-600 dark:text-white sm:text-base">
           순위 예측은 11월 1일부터 5월 31일까지 가능합니다.
         </p>
       </Card>
@@ -146,7 +146,7 @@ export default function RankingPrediction() {
         <h2 className="mb-3 text-2xl font-bold text-primary" data-testid="ranking-error-state">
           순위 예측을 불러오지 못했습니다
         </h2>
-        <p className="mx-auto mb-6 max-w-md text-[16px] leading-relaxed text-gray-600 dark:text-gray-300 sm:text-base">
+        <p className="mx-auto mb-6 max-w-md text-[16px] leading-relaxed text-gray-600 dark:text-white sm:text-base">
           {initErrorMessage || '잠시 후 다시 시도해주세요.'}
         </p>
         <Button
@@ -233,7 +233,7 @@ export default function RankingPrediction() {
 
           <h2 className="mb-4 text-primary font-bold text-lg">
             팀 선택
-            <span className="text-[16px] text-gray-500 dark:text-gray-300 ml-2 font-semibold">
+            <span className="text-[16px] text-gray-500 dark:text-white ml-2 font-semibold">
               ({availableTeams.length}/10)
             </span>
           </h2>
@@ -255,13 +255,13 @@ export default function RankingPrediction() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
                         <TeamLogo team={team.shortName} size={32} />
                       </div>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">{team.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{team.name}</span>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 px-4 text-gray-400 dark:text-gray-300">
+              <div className="text-center py-8 px-4 text-gray-400 dark:text-white">
                 <Suspense fallback={null}>
                   <RankingPredictionCompletionPanel
                     topTeamShortName={rankings[0]?.shortName}

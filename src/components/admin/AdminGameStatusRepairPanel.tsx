@@ -37,8 +37,10 @@ import { getApiErrorMessage } from '../../utils/errorUtils';
 import { useConfirmDialog } from '../contexts/ConfirmDialogContext';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { StatusBadge } from '../ui/status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Textarea } from '../ui/textarea';
+import { getGameStatusBadgeMeta } from '../../utils/statusBadgeMeta';
 import {
   AdminAlertTriangleIcon,
   AdminClipboardIcon,
@@ -46,7 +48,7 @@ import {
   AdminRefreshIcon,
   AdminSaveIcon,
 } from './AdminDetailIcons';
-import { AdminBadge } from './AdminPanelPrimitives';
+import { AdminBadge, AdminStatusBadge } from './AdminPanelPrimitives';
 import {
   AdminCalendarIcon,
   AdminShieldAlertIcon,
@@ -64,13 +66,6 @@ const cleanupStatusLabel: Record<AdminNonCanonicalCleanupTrackerStatus, string> 
   in_progress: '정제 진행 중',
   done: '정제 완료',
 };
-const cleanupStatusBadgeClassName: Record<AdminNonCanonicalCleanupTrackerStatus, string> = {
-  draft: 'border-slate-600 bg-slate-800 text-slate-200',
-  requested: 'border-sky-500/30 bg-sky-500/10 text-sky-200',
-  in_progress: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
-  done: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-};
-
 const formatTimeLabel = (value: string | null | undefined) => value ? value.slice(0, 5) : '-';
 
 const formatScoreLabel = (homeScore: number | null, awayScore: number | null) => {
@@ -83,21 +78,6 @@ const formatScoreLabel = (homeScore: number | null, awayScore: number | null) =>
 
 const formatTeamLabel = (homeTeam: string | null | undefined, awayTeam: string | null | undefined) =>
   `원정 ${awayTeam || '-'} / 홈 ${homeTeam || '-'}`;
-
-const statusBadgeClassName = (status: string | null | undefined) => {
-  switch (status) {
-    case 'LIVE':
-      return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
-    case 'COMPLETED':
-      return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
-    case 'DRAW':
-      return 'bg-sky-500/15 text-sky-300 border-sky-500/30';
-    case 'SCHEDULED':
-      return 'bg-slate-700 text-slate-200 border-slate-600';
-    default:
-      return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
-  }
-};
 
 const escapeCsvCell = (value: string | number | boolean | null | undefined) => {
   const normalized = value == null ? '' : String(value);
@@ -305,14 +285,27 @@ function MismatchReasons({ reasons }: { reasons: string[] }) {
   );
 }
 
+function AdminGameStatusBadge({ status }: { status: string | null | undefined }) {
+  const label = status || '-';
+  const meta = getGameStatusBadgeMeta(status, label);
+
+  return (
+    <StatusBadge
+      label={label}
+      tone={meta.tone}
+      marker={meta.marker}
+      live={meta.live}
+      size="xs"
+    />
+  );
+}
+
 function RepairedGameRow({ game }: { game: AdminGameScoreSyncResult }) {
   return (
     <TableRow data-testid={`admin-game-status-repaired-${game.gameId}`} className="border-slate-800/80">
       <TableCell className="font-mono text-[14px] text-slate-300">{game.gameId}</TableCell>
       <TableCell>
-        <AdminBadge className={statusBadgeClassName(game.gameStatus)}>
-          {game.gameStatus}
-        </AdminBadge>
+        <AdminGameStatusBadge status={game.gameStatus} />
       </TableCell>
       <TableCell className="text-slate-200">{formatScoreLabel(game.homeScore, game.awayScore)}</TableCell>
       <TableCell className="text-slate-300">{game.inningScoreCount}</TableCell>
@@ -332,9 +325,7 @@ function NonCanonicalGameRow({ game }: { game: AdminNonCanonicalGame }) {
       <TableCell className="font-mono text-[14px] text-slate-300">{game.gameId}</TableCell>
       <TableCell className="text-slate-300">{formatTimeLabel(game.startTime)}</TableCell>
       <TableCell>
-        <AdminBadge className={statusBadgeClassName(game.rawStatus)}>
-          {game.rawStatus || '-'}
-        </AdminBadge>
+        <AdminGameStatusBadge status={game.rawStatus} />
       </TableCell>
       <TableCell className="text-slate-200">{formatTeamLabel(game.homeTeam, game.awayTeam)}</TableCell>
       <TableCell className="text-slate-200">{formatScoreLabel(game.homeScore, game.awayScore)}</TableCell>
@@ -394,9 +385,7 @@ function MismatchDateSuggestionCard({
       </div>
       {trackerStatus && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <AdminBadge className={cleanupStatusBadgeClassName[trackerStatus]}>
-            {cleanupStatusLabel[trackerStatus]}
-          </AdminBadge>
+          <AdminStatusBadge status={trackerStatus} label={cleanupStatusLabel[trackerStatus]} />
           {trackerAssignee && (
             <span className="text-[13px] text-slate-400">담당: {trackerAssignee}</span>
           )}
@@ -558,32 +547,20 @@ function CleanupClosureStatus({
     return null;
   }
 
-  const compareBadgeClassName = closureSync.compareStatus === 'PASS'
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-    : closureSync.compareStatus === 'FAIL'
-      ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
-      : 'border-slate-700 bg-slate-900 text-slate-200';
-  const trackerBadgeClassName = closureSync.trackerStatus && closureSync.trackerStatus in cleanupStatusBadgeClassName
-    ? cleanupStatusBadgeClassName[closureSync.trackerStatus as AdminNonCanonicalCleanupTrackerStatus]
-    : 'border-slate-700 bg-slate-900 text-slate-200';
-
   return (
     <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">최신 closure</p>
-        <span
-          data-testid={`${testIdPrefix}-compare-status`}
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${compareBadgeClassName}`}
-        >
-          {closureSync.compareStatus}
-        </span>
+        <AdminStatusBadge
+          status={closureSync.compareStatus}
+          testId={`${testIdPrefix}-compare-status`}
+        />
         {closureSync.trackerStatus && (
-          <span
-            data-testid={`${testIdPrefix}-tracker-status`}
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${trackerBadgeClassName}`}
-          >
-            {closureSync.trackerStatus}
-          </span>
+          <AdminStatusBadge
+            status={closureSync.trackerStatus}
+            label={closureSync.trackerStatus}
+            testId={`${testIdPrefix}-tracker-status`}
+          />
         )}
       </div>
       <p
@@ -1239,9 +1216,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                   현재 범위({formatRangeLabel(trackerRangeStartDate, trackerRangeEndDate || undefined)})의 non-canonical row 처리 이력을 관리자 공용 tracker로 서버에 저장합니다.
                 </p>
               </div>
-              <AdminBadge className="border-rose-500/25 bg-rose-500/10 text-rose-200">
-                {cleanupStatusLabel[cleanupStatus]}
-              </AdminBadge>
+              <AdminStatusBadge status={cleanupStatus} label={cleanupStatusLabel[cleanupStatus]} />
             </div>
             {currentRangeCleanupTracker?.ticketUrl && (
               <p className="mt-3 text-[14px] text-slate-400">
@@ -1489,9 +1464,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                         <p className="font-mono text-[14px] text-slate-100">
                           {formatRangeLabel(savedStartDate, savedEndDate)}
                         </p>
-                        <AdminBadge className={cleanupStatusBadgeClassName[record.status]}>
-                          {cleanupStatusLabel[record.status]}
-                        </AdminBadge>
+                        <AdminStatusBadge status={record.status} label={cleanupStatusLabel[record.status]} />
                         {record.assignee && (
                           <span className="text-[13px] text-slate-400">담당: {record.assignee}</span>
                         )}
@@ -1641,14 +1614,10 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                           <TableCell className="font-mono text-[14px] text-slate-300">{mismatch.gameId}</TableCell>
                           <TableCell className="text-slate-300">{formatTimeLabel(mismatch.startTime)}</TableCell>
                           <TableCell>
-                            <AdminBadge className={statusBadgeClassName(mismatch.normalizedRawStatus || mismatch.rawStatus)}>
-                              {mismatch.normalizedRawStatus || mismatch.rawStatus || '-'}
-                            </AdminBadge>
+                            <AdminGameStatusBadge status={mismatch.normalizedRawStatus || mismatch.rawStatus} />
                           </TableCell>
                           <TableCell>
-                            <AdminBadge className={statusBadgeClassName(mismatch.effectiveStatus)}>
-                              {mismatch.effectiveStatus}
-                            </AdminBadge>
+                            <AdminGameStatusBadge status={mismatch.effectiveStatus} />
                           </TableCell>
                           <TableCell className="text-slate-200">
                             {formatScoreLabel(mismatch.homeScore, mismatch.awayScore)}

@@ -147,7 +147,7 @@ const main = async () => {
     '## Policy',
     '',
     '- This workset does not edit production data.',
-    '- Official PNG 1707x2048 coordinates are historical evidence only.',
+    '- Official image 1707x2048 coordinates are historical evidence only.',
     '- Every pending row must be directly traced and approved on the 4096 operator-reference image before canonical selectable promotion.',
     '- Generated files under `reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/` are QA evidence only.',
     '',

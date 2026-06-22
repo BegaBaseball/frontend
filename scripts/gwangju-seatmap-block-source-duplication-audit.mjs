@@ -28,7 +28,7 @@ const INDEPENDENT_REFERENCE_ROLE_IDS = new Set([
 ]);
 
 const SOURCE_POLICY = {
-  coordinateSource: 'official PNG 2200x1159 only',
+  coordinateSource: 'official image 2200x1159 only',
   auditedRuntimeSource: 'GWANGJU_BLOCKS[].imageGeometry.d/visualD',
   productionDataFile: 'src/data/gwangjuSeatData.ts',
   disallowedSources: [
@@ -512,7 +512,7 @@ const main = async () => {
     '- Runtime 좌석 layer 기준은 `GWANGJU_BLOCKS[].imageGeometry.d/visualD`뿐입니다.',
     '- `visualD`와 `d`가 둘 다 있는 block은 의도된 표시/클릭 분리입니다.',
     '- candidate/retrace 산출물은 production 검수 근거가 아니며, 같은 block에 2개 이상 독립 QA reference가 있으면 다음 좌표 작업 전에 소유권을 하나로 정리해야 합니다.',
-    '- 좌표 기준은 공식 PNG `2200x1159`만 허용합니다.',
+    '- 좌표 기준은 공식 이미지 `2200x1159`만 허용합니다.',
     '- 누락 야구 운영 데이터는 `MANUAL_BASEBALL_DATA_REQUIRED` 계약을 유지합니다.',
     '',
   ].join('\n');

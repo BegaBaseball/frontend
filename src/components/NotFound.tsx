@@ -8,7 +8,7 @@ export default function NotFound() {
       <div className="max-w-md w-full text-center">
         {/* 404 숫자 */}
         <div className="relative mb-6">
-          <span className="text-[120px] sm:text-[160px] font-black leading-none tracking-tighter text-gray-100 dark:text-gray-800 select-none">
+          <span className="text-[120px] sm:text-[160px] font-black leading-none tracking-tighter text-gray-100 dark:text-white select-none">
             404
           </span>
           <div className="absolute inset-0 flex items-center justify-center">
@@ -24,7 +24,7 @@ export default function NotFound() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           페이지를 찾을 수 없습니다
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-8">
+        <p className="text-gray-500 dark:text-white mb-8">
           요청하신 페이지가 존재하지 않거나 이동되었을 수 있습니다.
         </p>
 
@@ -40,7 +40,7 @@ export default function NotFound() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-full sm:w-auto rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-2.5 text-base font-semibold text-gray-700 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98]"
+            className="w-full sm:w-auto rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-2.5 text-base font-semibold text-gray-700 dark:text-white transition hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98]"
           >
             이전 페이지로
           </button>

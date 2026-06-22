@@ -26,6 +26,7 @@ type OffseasonMovement = {
 type OffSeasonHomePrimaryRuntimeProps = {
   isLoading: boolean;
   daysUntilOpening: number;
+  statusDateLabel: string;
   movementsCount: number;
   bigEvents: OffseasonMovement[];
   awards: AwardData[];
@@ -43,6 +44,7 @@ const OffSeasonHomeNewsRuntime = lazy(() => import('./OffSeasonHomeNewsRuntime')
 export default function OffSeasonHomePrimaryRuntime({
   isLoading,
   daysUntilOpening,
+  statusDateLabel,
   movementsCount,
   bigEvents,
   awards,
@@ -105,14 +107,14 @@ export default function OffSeasonHomePrimaryRuntime({
         <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
-              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-[15px] font-bold text-gray-900 dark:text-zinc-900 md:mb-4">2025-26 스토브리그</OffseasonPill>
+              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-[15px] font-bold text-gray-900 dark:text-white md:mb-4">2025-26 스토브리그</OffseasonPill>
               <h2 className="mb-2 text-2xl text-white md:text-4xl" style={{ fontWeight: 900 }}>스토브리그 하이라이트</h2>
               <p className="text-base text-emerald-100/80 md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
             </div>
             <div className="w-fit rounded-xl border border-white/10 bg-black/20 p-3 text-white backdrop-blur-sm md:rounded-2xl md:p-4 md:text-right">
               <div className="mb-1 text-[14px] font-bold tracking-wider text-white/60 uppercase md:text-[15px]">OFF-SEASON STATUS</div>
               <div className="text-lg font-black md:text-2xl">
-                {new Date().toLocaleDateString()} 기준
+                {statusDateLabel} 기준
               </div>
             </div>
           </div>

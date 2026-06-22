@@ -1,0 +1,203 @@
+.ds-section-title {
+  font-size: clamp(2rem, 4vw, var(--font-section-title-size));
+  line-height: var(--font-section-title-line-height);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: hsl(var(--foreground));
+}
+
+.ds-card-title {
+  font-size: var(--font-card-title-size);
+  line-height: var(--font-card-title-line-height);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground));
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.landing-feature-layout {
+  display: grid;
+  align-items: start;
+  gap: var(--space-48);
+}
+
+.landing-feature-card {
+  width: 100%;
+  padding: var(--space-24);
+  text-align: left;
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: none;
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.landing-feature-card:hover {
+  border-color: hsl(var(--primary) / 0.2);
+  box-shadow: var(--surface-shadow);
+  transform: translateY(-1px);
+}
+
+.landing-feature-card-active {
+  border-color: hsl(var(--primary) / 0.28);
+  box-shadow: var(--surface-shadow);
+}
+
+.landing-feature-card:focus-visible {
+  border-color: hsl(var(--action-primary-bg) / 0.28);
+  box-shadow: 0 0 0 4px hsl(var(--focus-ring) / 0.14), var(--surface-shadow);
+}
+
+.landing-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-base);
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.landing-feature-icon-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.landing-feature-guide {
+  padding: var(--space-24);
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+  box-shadow: var(--surface-shadow);
+}
+
+.landing-feature-mobile-image {
+  max-height: 11.5rem;
+  object-fit: contain;
+}
+
+:root.dark .landing-feature-guide,
+.dark .landing-feature-guide {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow: var(--surface-shadow);
+}
+
+.landing-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.landing-mockup-shell {
+  position: relative;
+  overflow: visible;
+}
+
+.landing-mockup-accent {
+  position: absolute;
+  top: 2rem;
+  right: -1rem;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.75rem;
+  background: hsl(var(--primary) / 0.12);
+}
+
+.landing-mockup-frame {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-scroll-frame {
+  transform: translate3d(0, var(--landing-scroll-offset, 0px), 0);
+  will-change: transform;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-mockup-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.875rem;
+  background: #ffffff;
+  aspect-ratio: 16 / 10;
+}
+
+.landing-device-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -1.25rem;
+  width: 80%;
+  height: 1rem;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.18);
+  filter: blur(16px);
+}
+
+@media (min-width: 768px) {
+  .landing-feature-mobile-image {
+    max-height: 10rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .landing-feature-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 500px);
+    gap: var(--space-64);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .landing-scroll-frame,
+  .landing-feature-card,
+  .landing-mockup-accent {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .landing-scroll-frame,
+  .landing-feature-card:hover {
+    transform: none !important;
+  }
+}
+
+:root[data-reduced-motion='true'] .animate-fade-in,
+:root[data-reduced-motion='true'] .landing-scroll-frame,
+:root[data-reduced-motion='true'] .landing-feature-card,
+:root[data-reduced-motion='true'] .landing-mockup-accent {
+  animation: none !important;
+  transition: none !important;
+}
+
+:root[data-reduced-motion='true'] .landing-scroll-frame,
+:root[data-reduced-motion='true'] .landing-feature-card:hover {
+  transform: none !important;
+}

@@ -12,10 +12,12 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
 import { getTeamColor } from '../utils/teamColors';
+import { resolveCoachAnalysisType } from '../utils/predictionCoachPolicy';
 import {
     getCoachAnalysisUnavailableMessage,
     resolveCoachAnalysisPresentation,
-} from '../utils/prediction';
+} from '../utils/predictionCoachPresentation';
+import { resolveWinProbabilityDisplay } from '../utils/coachWinProbability';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { resolveCoachEvidenceCount } from './prediction/coachEvidenceLabels';
 import PlainDialog from './ui/plain-dialog';
@@ -144,6 +146,13 @@ export default function CoachAnalysisDialogRuntime({
 }: CoachAnalysisDialogRuntimeProps) {
     const isMobileSheet = useMediaQuery('(max-width: 640px)');
     const defaultPresentation = resolveCoachAnalysisPresentation({ isPastGame, isFutureGame, gameStatusBucket });
+    const analysisType = useMemo(
+        () => resolveCoachAnalysisType({
+            isCompletedGame: isPastGame,
+            gameStatusBucket,
+        }),
+        [gameStatusBucket, isPastGame],
+    );
     const unavailableAnalysisMessage = useMemo(
         () => getCoachAnalysisUnavailableMessage(gameStatusBucket),
         [gameStatusBucket],
@@ -244,8 +253,10 @@ export default function CoachAnalysisDialogRuntime({
             homePitcher || '',
             awayPitcher || '',
             gameStatusBucket || '',
+            analysisType,
         ].join('|'),
         [
+            analysisType,
             awayPitcher,
             awayTeamId,
             gameDate,
@@ -368,6 +379,7 @@ export default function CoachAnalysisDialogRuntime({
                 home_team_id: selectedTeamId,
                 away_team_id: opponentTeamId,
                 request_mode: 'manual_detail',
+                analysis_type: analysisType,
                 focus: normalizeFocusLocal(buildDefaultFocus()),
                 game_id: gameId,
                 league_context: {
@@ -468,9 +480,10 @@ export default function CoachAnalysisDialogRuntime({
     const effectiveWinProbabilityHome = typeof resultWinProbabilityHome === 'number'
         ? resultWinProbabilityHome
         : initialWinProbabilityHome;
-    const hasWinProbability = typeof effectiveWinProbabilityHome === 'number' && Number.isFinite(effectiveWinProbabilityHome);
-    const homePct = hasWinProbability ? Math.round(Math.max(0, Math.min(100, effectiveWinProbabilityHome as number))) : null;
-    const awayPct = homePct === null ? null : 100 - homePct;
+    const winProbability = resolveWinProbabilityDisplay(effectiveWinProbabilityHome);
+    const hasWinProbability = winProbability !== null;
+    const homePct = winProbability?.homePct ?? null;
+    const awayPct = winProbability?.awayPct ?? null;
     const homeShortName = homeTeamId ? getInitialTeamName(homeTeamId).split(' ')[0] : '홈팀';
     const awayShortName = awayTeamId ? getInitialTeamName(awayTeamId).split(' ')[0] : '원정팀';
     const homeColor = getTeamColor(homeTeamId);
@@ -518,22 +531,22 @@ export default function CoachAnalysisDialogRuntime({
             placement={isMobileSheet ? 'bottom' : 'center'}
             hideHeader
             className={isMobileSheet
-                ? "h-[100dvh] max-h-[100dvh] w-screen !max-w-none overflow-hidden rounded-none border-0 bg-white p-0 shadow-none dark:bg-[#16181c]"
-                : "max-h-[90vh] overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white p-0 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.06)] sm:max-w-[1080px] dark:border-slate-800 dark:bg-[#16181c]"}
+                ? "h-[100dvh] max-h-[100dvh] w-screen !max-w-none overflow-hidden rounded-none border-0 bg-white p-0 shadow-none dark:bg-[#000000]"
+                : "max-h-[90vh] overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white p-0 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.06)] sm:max-w-[1080px] dark:border-slate-800 dark:bg-[#000000]"}
             bodyClassName={isMobileSheet
-                ? "flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-white p-0 dark:bg-[#16181c]"
-                : "flex max-h-[90vh] flex-col overflow-hidden bg-white p-0 dark:bg-[#16181c]"}
+                ? "flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-white p-0 dark:bg-[#000000]"
+                : "flex max-h-[90vh] flex-col overflow-hidden bg-white p-0 dark:bg-[#000000]"}
         >
-            <div className="shrink-0 border-b border-[#eef2f0] bg-white dark:border-white/10 dark:bg-[#16181c]">
+            <div className="shrink-0 border-b border-[#eef2f0] bg-white dark:border-white/10 dark:bg-[#000000]">
             <div className="flex items-center gap-[14px] px-4 py-4 sm:px-6 sm:py-[18px]">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2d5f4f] to-[#173b34] text-[#d6f0e5] shadow-[0_4px_12px_-4px_rgba(23,59,52,0.5)]">
                     <PredictionZapIcon aria-hidden="true" className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-[#0f1419] dark:text-slate-100">
+                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-[#0f1419] dark:text-white">
                         {defaultPresentation.title}
                     </h2>
-                    <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] font-bold leading-snug text-[#536471] dark:text-slate-400">
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] font-bold leading-snug text-[#536471] dark:text-white">
                         {homeTeamId && <TeamLogo teamId={homeTeamId} size={14} className="!rounded-none !bg-transparent p-0" />}
                         <span className="truncate">{dialogSubtitle}</span>
                         {awayTeamId && <TeamLogo teamId={awayTeamId} size={14} className="!rounded-none !bg-transparent p-0" />}
@@ -543,7 +556,7 @@ export default function CoachAnalysisDialogRuntime({
                     type="button"
                     onClick={onRequestClose}
                     aria-label="닫기"
-                    className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#e5e7eb] bg-transparent text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
+                    className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#e5e7eb] bg-transparent text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/15 dark:text-white dark:hover:bg-white/5"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" className="h-3.5 w-3.5">
                         <path d="M6 6l12 12M18 6L6 18" />
@@ -571,7 +584,7 @@ export default function CoachAnalysisDialogRuntime({
             ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-[#16181c]">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-[#000000]">
                     <p className="sr-only" role="status" aria-live="polite" data-testid="coach-analysis-live-status">
                         {liveStatusMessage}
                     </p>
@@ -585,7 +598,7 @@ export default function CoachAnalysisDialogRuntime({
                                 <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
                                 <span className="text-[15px] font-extrabold">{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
                             </div>
-                            <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-slate-400">
+                            <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-white">
                                 C1 코치 분석을 홈팀 기준으로 자동 생성하고 있습니다.
                             </p>
                             <div className="mt-5 space-y-3">
@@ -650,7 +663,7 @@ export default function CoachAnalysisDialogRuntime({
                     ) : null}
             </div>
             <div className="flex items-center gap-2 border-t border-[#eef2f0] bg-[#fafcfb] px-[22px] py-3.5 dark:border-white/10 dark:bg-white/[0.02]">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#536471] dark:text-slate-400">
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#536471] dark:text-white">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     {resolvedFooterStatusText}
                 </span>

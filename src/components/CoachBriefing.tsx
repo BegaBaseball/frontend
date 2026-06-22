@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 
 import type { Game, GameDetail } from '../types/prediction';
 import type {
+  CoachAnalysisType,
   CoachRequestMode,
+} from '../utils/coachBriefingRequestDescriptor';
+import type {
   NormalizedAiBriefing,
 } from '../utils/prediction';
 import {
@@ -33,6 +36,7 @@ interface CoachBriefingProps {
   isAuthLoading: boolean;
   autoEnabled: boolean;
   requestMode: CoachRequestMode;
+  analysisType: CoachAnalysisType;
   forceManual?: boolean;
 }
 
@@ -138,6 +142,7 @@ export default function CoachBriefing({
   isAuthLoading,
   autoEnabled,
   requestMode,
+  analysisType,
   forceManual = false,
 }: CoachBriefingProps) {
   const { logout, requireLogin } = useAuthAccessActions();
@@ -193,6 +198,9 @@ export default function CoachBriefing({
     ? (isRefreshingBriefing ? '갱신 중' : '최신 갱신')
     : null;
   const summaryPoints = buildCoachBriefingSummaryPoints(aiBriefing?.displayText || aiBriefing?.message || '');
+  const pendingBriefingLabel = briefingMeta?.analysisType === 'game_review'
+    ? '경기 후 리뷰'
+    : '경기 전 브리핑';
   const briefingStatusMessage = (() => {
     if (!effectiveAutoEnabled) {
       return null;
@@ -212,8 +220,8 @@ export default function CoachBriefing({
       || briefingMeta?.cacheState === 'IN_PROGRESS'
     ) {
       return isRefreshingBriefing
-        ? '이전 브리핑을 유지한 채 최신 내용을 반영하는 중입니다.'
-        : '최신 브리핑 준비 중입니다. 잠시 후 다시 확인해 주세요.';
+        ? `이전 ${pendingBriefingLabel}을 유지한 채 최신 내용을 반영하는 중입니다.`
+        : `${pendingBriefingLabel} 준비 중입니다. 잠시 후 다시 확인해 주세요.`;
     }
 
     if (briefingMeta?.dataQuality === 'partial') {
@@ -354,6 +362,7 @@ export default function CoachBriefing({
             gameDetail={gameDetail}
             seasonContext={seasonContext}
             requestMode={effectiveRequestMode}
+            analysisType={analysisType}
             autoEnabled={effectiveAutoEnabled}
             shouldStartAutoBriefing={shouldStartAutoBriefing}
             isLoggedIn={isLoggedIn}

@@ -8,7 +8,7 @@ function CoachBriefingContentFallback() {
   return (
     <div
       data-testid="coach-briefing-card"
-      className="relative mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-gray-100"
+      className="relative mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-white"
     >
       <div className="flex items-center gap-4">
         <div className="h-12 w-12 flex-shrink-0 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30" />

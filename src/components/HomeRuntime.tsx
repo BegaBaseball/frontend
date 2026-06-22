@@ -913,7 +913,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const mobileRows = Math.max(1, Math.min(minLoadingCount, 2));
     const mobileHeight = (mobileRows * activeCardHeight) + ((mobileRows - 1) * 12);
     const desktopHeight = (desktopRows * activeCardHeight) + ((desktopRows - 1) * 12);
-    const calculatedMatchSectionMinHeight = Math.min(Math.max(mobileHeight, desktopHeight) + 24, 100);
+    const calculatedMatchSectionMinHeight = Math.max(Math.max(mobileHeight, desktopHeight) + 24, 100);
     const matchSectionMinHeightStyle = { minHeight: `${calculatedMatchSectionMinHeight}px` };
     const matchPanelFallback = activeTabIsScheduled ? (
         <div
@@ -1001,7 +1001,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-[var(--mobile-content-safe-bottom)] lg:pb-20">
             {showConnectionRecoveryBanner && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
                     <div
@@ -1070,7 +1070,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 KBO LEAGUE
                             </h1>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-300 font-bold pl-4">
+                        <p className="text-gray-500 dark:text-white font-bold pl-4">
                             {selectedDate.getFullYear()} 시즌 경기 일정 및 순위
                         </p>
                     </div>
@@ -1087,12 +1087,14 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             </Button>
                         ) : (
                             <Button
-                                data-testid="home-primary-prediction-cta"
+                                data-priority="secondary"
+                                data-testid="home-secondary-prediction-cta"
+                                variant="outline"
                                 size="touch"
                                 onClick={handleNavigateToTodayPrediction}
-                                className="whitespace-nowrap rounded-xl bg-primary font-black text-primary-foreground hover:bg-primary-hover"
+                                className="whitespace-nowrap rounded-xl border-primary/25 bg-white font-black text-primary hover:bg-primary/5 dark:border-primary/40 dark:bg-card dark:text-emerald-300 dark:hover:bg-primary/10"
                             >
-                                오늘 경기 예측하기
+                                전력분석실 보기
                             </Button>
                         )}
                     </div>
@@ -1248,6 +1250,11 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                         />
                     </Suspense>
                 ) : null}
+                <div
+                    className="h-[var(--mobile-content-safe-bottom)] lg:hidden"
+                    aria-hidden="true"
+                    data-testid="home-mobile-bottom-spacer"
+                />
             </main>
         </div>
     );

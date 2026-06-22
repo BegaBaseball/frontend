@@ -135,7 +135,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
                                     <span className="font-semibold text-gray-900 dark:text-white">
                                     {userName}
                                     </span>
-                                <span className="text-gray-500 dark:text-gray-300">
+                                <span className="text-gray-500 dark:text-white">
                                     @{userHandle}
                                 </span>
                             </div>

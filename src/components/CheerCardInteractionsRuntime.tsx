@@ -219,7 +219,7 @@ export default function CheerCardInteractionsRuntime({
     };
 
     return (
-        <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-gray-300">
+        <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-white">
             <button
                 type="button"
                 className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
@@ -294,7 +294,7 @@ export default function CheerCardInteractionsRuntime({
                         </button>
                     ) : !canSimpleRepost && !canQuoteRepost ? (
                         <div className="px-4 py-3 text-center">
-                            <p className="text-[16px] font-bold text-gray-500 dark:text-gray-300">
+                            <p className="text-[16px] font-bold text-gray-500 dark:text-white">
                                 {repostUnavailableMessage}
                             </p>
                         </div>
@@ -311,13 +311,13 @@ export default function CheerCardInteractionsRuntime({
                                         {post.repostedByMe ? (
                                             <UndoIcon className="w-4 h-4 text-emerald-500" />
                                         ) : (
-                                            <RepeatIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                            <RepeatIcon className="w-4 h-4 text-gray-500 dark:text-white" />
                                         )}
                                     </div>
                                     <div>
                                         <span className={`block text-[16px] font-bold ${post.repostedByMe
                                             ? 'text-emerald-600 dark:text-emerald-400'
-                                            : 'text-gray-700 dark:text-gray-200'}`}
+                                            : 'text-gray-700 dark:text-white'}`}
                                         >
                                             {post.repostedByMe ? '리포스트 취소' : '리포스트'}
                                         </span>
@@ -332,17 +332,17 @@ export default function CheerCardInteractionsRuntime({
                                     className="flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                 >
                                     <div className="flex items-center justify-center w-5 h-5">
-                                        <QuoteIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                                        <QuoteIcon className="w-4 h-4 text-gray-500 dark:text-white" />
                                     </div>
                                     <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-gray-200">
+                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
                                             인용하기
                                         </span>
                                     </div>
                                 </button>
                             ) : isRepost ? (
                                 <div className="px-4 py-3 text-center">
-                                    <p className="text-[16px] font-bold text-gray-500 dark:text-gray-300">
+                                    <p className="text-[16px] font-bold text-gray-500 dark:text-white">
                                         {repostUnavailableMessage}
                                     </p>
                                 </div>

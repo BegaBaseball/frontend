@@ -33,7 +33,7 @@ const runOperatorInputAid = async () => {
   };
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
     disallowedSources: [
       'browser CSS pixels',
@@ -211,9 +211,9 @@ const runOperatorInputAid = async () => {
           reviewedAt: operatorInput.reviewedAt ?? null,
         },
         inputChecklist: [
-          'Open the official PNG at natural size 2200x1159.',
+          'Open the official image at natural size 2200x1159.',
           'Use the listed clean overlay crops only as reference evidence.',
-          'Trace the aggregate polygon points directly on the official PNG.',
+          'Trace the aggregate polygon points directly on the official image.',
           'Do not convert browser CSS pixels, resized screenshots, external crawling data, or third-party copied image coordinates.',
           'Fill points, labelX, labelY, shortLabel, reviewer, and reviewedAt in the operator template.',
           'Keep MANUAL_BASEBALL_DATA_REQUIRED if baseball operating data is missing or unclear.',
@@ -291,7 +291,7 @@ const runOperatorInputAid = async () => {
     `- mode: \`${INPUT_AID_MODE}\``,
     `- status: \`${status}\``,
     '- does not modify data file: `true`',
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\``,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\``,
     `- coordinate system: \`${sourcePolicy.coordinateSystem}\``,
     `- allowed coordinate source: \`${sourcePolicy.allowedCoordinateSource}\``,
     `- missing baseball data contract: \`${sourcePolicy.missingBaseballDataContract}\``,
@@ -328,7 +328,7 @@ const runOperatorInputAid = async () => {
     '',
     '## 작성 규칙',
     '- 위 bbox와 numbered block crop은 참고 증거일 뿐이며 operator aggregate polygon으로 복사하면 안 됩니다.',
-    '- `operatorInput.points`, `labelX`, `labelY`는 공식 PNG 원본 `2200x1159`에서 운영자가 직접 입력해야 합니다.',
+    '- `operatorInput.points`, `labelX`, `labelY`는 공식 이미지 원본 `2200x1159`에서 운영자가 직접 입력해야 합니다.',
     '- CSS 픽셀, 리사이즈 스크린샷, 외부 크롤링, web-search-based baseball data, third-party copied seatmap images는 금지입니다.',
     '- 데이터가 비어 있거나 불명확하면 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지합니다.',
     '',
@@ -381,7 +381,7 @@ const runOperatorInputPacket = async () => {
   const markdownPath = path.join(reportDir, 'gwangju-seatmap-operator-input-packet.md');
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
     disallowedSources: [
       'browser CSS pixels',
@@ -649,7 +649,7 @@ const runOperatorInputPacket = async () => {
     `- mode: \`${PACKET_MODE}\``,
     `- status: \`${status}\``,
     '- does not modify data file: `true`',
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\``,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\``,
     `- coordinate system: \`${sourcePolicy.coordinateSystem}\``,
     `- allowed coordinate source: \`${sourcePolicy.allowedCoordinateSource}\``,
     `- missing baseball data contract: \`${sourcePolicy.missingBaseballDataContract}\``,
@@ -688,7 +688,7 @@ const runOperatorInputPacket = async () => {
     '',
     '## 입력 규칙',
     '- `REFERENCE_BOUNDS_ONLY_NOT_OPERATOR_POLYGON`: reference bbox/anchor/crop은 입력 보조 자료이며 aggregate polygon 좌표가 아닙니다.',
-    '- `operatorInput.points`, `labelX`, `labelY`는 공식 PNG 원본 `2200x1159`에서 운영자가 직접 입력해야 합니다.',
+    '- `operatorInput.points`, `labelX`, `labelY`는 공식 이미지 원본 `2200x1159`에서 운영자가 직접 입력해야 합니다.',
     '- browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images는 금지입니다.',
     '- 데이터가 비어 있거나 불명확하면 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지합니다.',
     '',
@@ -1237,7 +1237,7 @@ const runOperatorApply = async () => {
     dataFileShaAfter,
     blockers,
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     writeCommand: 'node scripts/stadium-seatmap-ops.mjs gwangju operator-apply:write',
     requiredPostApplyGate: [
       'node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate',
@@ -1254,7 +1254,7 @@ const runOperatorApply = async () => {
       'Missing baseball data must remain MANUAL_BASEBALL_DATA_REQUIRED instead of being inferred.',
     ],
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       disallowedSources: [
         'browser CSS pixels',
         'resized screenshots',
@@ -1694,7 +1694,7 @@ const runOperatorWriteSmoke = async () => {
       'The smoke proves the strict validation, apply-plan, handoff, status, and temp apply write path.',
     ],
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
         'browser CSS pixels',
@@ -1772,7 +1772,7 @@ const runOperatorWriteSmoke = async () => {
     '2. synthetic 입력은 isolated report directory에서만 사용하며 production `gwangjuSeatData.ts`를 수정하지 않습니다.',
     '3. actual apply write path는 임시 `gwangjuSeatData.smoke.ts` 복사본에서만 검증합니다.',
     '4. production operator template도 수정하지 않습니다.',
-    '5. 실제 승격은 operator-provided official PNG coordinates only 정책을 통과한 입력만 사용합니다.',
+    '5. 실제 승격은 operator-provided official image coordinates only 정책을 통과한 입력만 사용합니다.',
     '',
     '## Blockers',
     '',

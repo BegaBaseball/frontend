@@ -38,7 +38,7 @@ const runBrowserEvidence = async () => {
   ];
   
   const SOURCE_POLICY = {
-    coordinateSource: 'official PNG 2200x1159 rendered through browser SVG viewBox',
+    coordinateSource: 'official image 2200x1159 rendered through browser SVG viewBox',
     disallowedSources: [
       'browser CSS pixels as coordinate source',
       'resized screenshots as coordinate source',
@@ -409,7 +409,7 @@ const runEvidenceInventory = async () => {
     {
       id: 'lower-infield-101-108-hij',
       label: 'Lower infield 101-108 and first-base H/I/J',
-      statusNote: 'P0 screenshot regression area; official PNG mask and H/I/J split evidence are required.',
+      statusNote: 'P0 screenshot regression area; official image mask and H/I/J split evidence are required.',
       blockIds: [
         'k5-101',
         'k5-102',
@@ -503,7 +503,7 @@ const runEvidenceInventory = async () => {
     {
       id: 'five-table-501-535',
       label: 'Five-table 501-535',
-      statusNote: 'Full repeated 5F table sequence evidence by official PNG crop.',
+      statusNote: 'Full repeated 5F table sequence evidence by official image crop.',
       blockIds: Array.from({ length: 35 }, (_, index) => `five-table-${501 + index}`),
       artifacts: [
         'reports/stadium/gwangju-seatmap-image-alignment-audit-crops/gwangju-seatmap-image-alignment-audit-five-table-501-518.png',
@@ -671,7 +671,7 @@ const runEvidenceInventory = async () => {
     version: INVENTORY_VERSION,
     status: blockers.length === 0 ? 'passed' : 'failed',
     sourcePolicy: imageAudit.summary?.officialMaskSourcePolicy ?? imageAudit.sourcePolicy ?? {
-      coordinateSource: 'official PNG 2200x1159 only',
+      coordinateSource: 'official image 2200x1159 only',
       disallowedSources: [
         'browser CSS pixels',
         'resized screenshots',
@@ -889,7 +889,7 @@ const runImageTraceCandidates = async () => {
   
   const SEATMAP_BOUNDS = { minX: 250, maxX: 1370, minY: 90, maxY: 1090 };
   const SOURCE_POLICY = {
-    allowedCoordinateSource: 'official PNG 2200x1159 only',
+    allowedCoordinateSource: 'official image 2200x1159 only',
     coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
@@ -2218,7 +2218,7 @@ const runLowMarginCandidates = async () => {
       requiredAssetFileName: GWANGJU_SEATMAP_IMAGE.requiredAssetFileName,
     },
     sourcePolicy: {
-      allowedCoordinateSource: 'official PNG 2200x1159 only',
+      allowedCoordinateSource: 'official image 2200x1159 only',
       disallowedSources: [
         'browser CSS pixels',
         'resized screenshots',
@@ -2319,7 +2319,7 @@ const runLowMarginCandidates = async () => {
     `- version: \`${REPORT_VERSION}\``,
     `- status: \`${status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
-    '- coordinate source: official PNG `2200x1159` only',
+    '- coordinate source: official image `2200x1159` only',
     '- disallowed sources: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- missing baseball data contract: `MANUAL_BASEBALL_DATA_REQUIRED`',
     '',
@@ -2586,7 +2586,7 @@ const runZonePrecisionWorksets = async () => {
       requiredAssetFileName: GWANGJU_SEATMAP_IMAGE.requiredAssetFileName,
     },
     sourcePolicy: {
-      allowedCoordinateSource: 'official PNG 2200x1159 only',
+      allowedCoordinateSource: 'official image 2200x1159 only',
       disallowedSources: [
         'browser CSS pixels',
         'resized screenshots',
@@ -2690,7 +2690,7 @@ const runZonePrecisionWorksets = async () => {
     `- version: \`${WORKSET_VERSION}\``,
     `- status: \`${status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- trace version: \`${GWANGJU_FULL_RETRACE_VERSION}\``,
     `- previous trace version: \`${GWANGJU_PREVIOUS_TRACE_VERSION}\``,
     `- active blocks: \`${GWANGJU_BLOCKS.length}\``,
@@ -2752,7 +2752,7 @@ const runZonePrecisionWorksets = async () => {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Gwangju zone precision worksets">`,
     '<rect width="100%" height="100%" fill="#f8fafc" />',
     `<text x="24" y="36" font-family="Arial, sans-serif" font-size="20" font-weight="800" fill="#0f172a">${svgEscape('광주 구역별 polygon precision worksets')}</text>`,
-    `<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#475569">${svgEscape(`${GWANGJU_FULL_RETRACE_VERSION} · official PNG ${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight} · status=${status}`)}</text>`,
+    `<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#475569">${svgEscape(`${GWANGJU_FULL_RETRACE_VERSION} · official image ${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight} · status=${status}`)}</text>`,
     svgRows,
     '</svg>',
   ].join('\n');
