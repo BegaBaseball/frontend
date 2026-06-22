@@ -73,8 +73,8 @@ const REQUIRED_CORE_CATEGORIES = [
   'PARTY',
 ];
 const OFFICIAL_SOURCE_URL = 'https://www.samsunglions.com/score/score_4_2_1.asp';
-const OFFICIAL_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png', import.meta.url);
-const OPERATOR_REFERENCE_RAPAK_2025_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.png', import.meta.url);
+const OFFICIAL_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp', import.meta.url);
+const OPERATOR_REFERENCE_RAPAK_2025_ASSET_URL = new URL('../assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.webp', import.meta.url);
 const OFFICIAL_ALLOWED_GEOMETRY_VERSIONS = new Set([
   'manual-polygon-v1',
   'daegu-p1-duplicate-precision-p0-operator-approved-v1',
@@ -120,8 +120,8 @@ function assertDaeguOpsScript(packageSource: string, scriptName: string): void {
   const operationName = scriptName.replace('stadium:daegu:', '');
   assert.ok(packageSource.includes(`"${scriptName}"`), `${scriptName} package script should exist`);
   assert.ok(
-    packageSource.includes(`"${scriptName}": "node scripts/stadium-seatmap-ops.mjs daegu ${operationName}"`),
-    `${scriptName} should route through stadium-seatmap-ops.mjs`,
+    packageSource.includes(`"${scriptName}": "node scripts/qa-presets.mjs stadium daegu ${operationName}"`),
+    `${scriptName} should route through qa-presets stadium dispatcher`,
   );
 }
 
@@ -181,13 +181,42 @@ const OFFICIAL_SIMPLE_POLYGON_BLOCKS = new Set([
 ]);
 type Point = [number, number];
 
-function pngDimensions(assetUrl: URL) {
+function webpDimensions(assetUrl: URL) {
   const buffer = readFileSync(assetUrl);
-  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-  return {
-    width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20),
-  };
+  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF');
+  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP');
+
+  for (let offset = 12; offset + 8 <= buffer.length;) {
+    const chunkType = buffer.toString('ascii', offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const payloadOffset = offset + 8;
+
+    if (chunkType === 'VP8 ') {
+      return {
+        width: buffer.readUInt16LE(payloadOffset + 6) & 0x3fff,
+        height: buffer.readUInt16LE(payloadOffset + 8) & 0x3fff,
+      };
+    }
+
+    if (chunkType === 'VP8L') {
+      const bits = buffer.readUInt32LE(payloadOffset + 1);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+
+    if (chunkType === 'VP8X') {
+      return {
+        width: buffer.readUIntLE(payloadOffset + 4, 3) + 1,
+        height: buffer.readUIntLE(payloadOffset + 7, 3) + 1,
+      };
+    }
+
+    offset += 8 + chunkSize + (chunkSize % 2);
+  }
+
+  throw new Error('WebP dimensions could not be read');
 }
 
 function fileSha256(assetUrl: URL) {
@@ -316,9 +345,9 @@ test('대구 좌석도 asset 상태는 공식 파일 준비 여부를 명시한�
   assert.equal(DAEGU_SEATMAP_IMAGE.stadiumId, 'DAEGU_SAMSUNG_LIONS_PARK');
   assert.equal(DAEGU_SEATMAP_IMAGE.mapVersion, 'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1');
   assert.equal(DAEGU_SEATMAP_IMAGE.imagePath, `src/assets/stadiums/samsung/${DAEGU_SEATMAP_IMAGE.requiredAssetFileName}`);
-  assert.match(DAEGU_SEATMAP_IMAGE.requiredAssetFileName, /^daegu-samsung-seatmap-official-2026\.(png|webp)$/);
+  assert.equal(DAEGU_SEATMAP_IMAGE.requiredAssetFileName, 'daegu-samsung-seatmap-official-2026.webp');
   assert.equal(DAEGU_SEATMAP_IMAGE.viewBox, '0 0 1707 2048');
-  assert.equal(DAEGU_SEATMAP_IMAGE.imageSha256, '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0');
+  assert.equal(DAEGU_SEATMAP_IMAGE.imageSha256, '0d3926764aa1ced440804a1cfb1519e6f54eb1c4835e56e64bec3597d984640a');
   assert.ok(DAEGU_SEATMAP_IMAGE.sourceLabel);
   assert.equal(DAEGU_SEATMAP_IMAGE.sourceUrl, OFFICIAL_SOURCE_URL);
 
@@ -333,8 +362,8 @@ test('대구 좌석도 asset 상태는 공식 파일 준비 여부를 명시한�
   }
 });
 
-test('대구 공식 PNG 실제 크기는 데이터 좌표계와 일치한다', () => {
-  const dimensions = pngDimensions(OFFICIAL_ASSET_URL);
+test('대구 공식 WebP 실제 크기는 데이터 좌표계와 일치한다', () => {
+  const dimensions = webpDimensions(OFFICIAL_ASSET_URL);
   assert.equal(dimensions.width, 1707);
   assert.equal(dimensions.height, 2048);
   assert.equal(dimensions.width, DAEGU_SEATMAP_IMAGE.imageWidth);
@@ -375,7 +404,7 @@ test('대구 MySeatCheck reference source는 canonical 좌석도와 분리된 pe
   assert.equal(mySeatCheckSource.imagePath, `src/assets/stadiums/samsung/${DAEGU_MYSEATCHECK_REFERENCE_REQUIRED_ASSET_FILE_NAME}`);
   assert.match(
     mySeatCheckSource.notes,
-    /Do not replace the official PNG or promote coordinates/,
+    /Do not replace the official image or promote coordinates/,
     'external reference should not be allowed to replace canonical official coordinates',
   );
 });
@@ -536,10 +565,10 @@ test('대구 operator reference P0/P1/P2/P3/P4/P5/P6/P7/P28/P30/P31 승인 블�
 
   assert.ok(
     DAEGU_OPERATOR_REFERENCE_BLOCKS.some((block) => pathPoints(block.imageGeometry.d).some(([x]) => x > DAEGU_SEATMAP_IMAGE.imageWidth)),
-    'operator reference paths should contain 4096-space x coordinates beyond the 1707 official PNG width',
+    'operator reference paths should contain 4096-space x coordinates beyond the 1707 official image width',
   );
-  assert.equal(DAEGU_SEATMAP_VIEWPORT.width, 1707, 'official PNG viewport should stay 1707 wide');
-  assert.equal(DAEGU_SEATMAP_VIEWPORT.height, 2048, 'official PNG viewport should stay 2048 high');
+  assert.equal(DAEGU_SEATMAP_VIEWPORT.width, 1707, 'official image viewport should stay 1707 wide');
+  assert.equal(DAEGU_SEATMAP_VIEWPORT.height, 2048, 'official image viewport should stay 2048 high');
 });
 
 ;
@@ -939,8 +968,8 @@ test('대구 QA ownership audit는 active owner와 historical evidence를 분리
 
   assert.ok(packageSource.includes('"stadium:daegu:qa-ownership-audit"'), 'QA ownership audit package script should exist');
   assert.ok(
-    packageSource.includes('"stadium:daegu:qa-ownership-audit": "node scripts/stadium-seatmap-ops.mjs daegu qa-ownership-audit"'),
-    'QA ownership audit should run through the Daegu ops dispatcher',
+    packageSource.includes('"stadium:daegu:qa-ownership-audit": "node scripts/qa-presets.mjs stadium daegu qa-ownership-audit"'),
+    'QA ownership audit should run through the qa-presets stadium dispatcher',
   );
 
   [
@@ -994,8 +1023,8 @@ test('대구 canonical block decision guard는 block key당 canonical 후보 1�
 
   assert.ok(packageSource.includes('"stadium:daegu:canonical-block-decision-guard"'), 'canonical block decision guard package script should exist');
   assert.ok(
-    packageSource.includes('"stadium:daegu:canonical-block-decision-guard": "node scripts/stadium-seatmap-ops.mjs daegu canonical-block-decision-guard"'),
-    'canonical block decision guard should run through the Daegu ops dispatcher',
+    packageSource.includes('"stadium:daegu:canonical-block-decision-guard": "node scripts/qa-presets.mjs stadium daegu canonical-block-decision-guard"'),
+    'canonical block decision guard should run through the qa-presets stadium dispatcher',
   );
   assert.ok(
     DAEGU_CANONICAL_BLOCK_DECISION_GUARD_SOURCE.includes("buildDaeguCanonicalBlockDecisionReport"),
@@ -1100,8 +1129,8 @@ test('대구 official-only retrace workset은 58개 블럭을 4096 operator 좌�
     'official-only retrace workset package script should exist',
   );
   assert.ok(
-    packageSource.includes('"stadium:daegu:canonical-official-only-retrace-workset": "node scripts/stadium-seatmap-ops.mjs daegu canonical-official-only-retrace-workset"'),
-    'official-only retrace workset should run through the Daegu ops dispatcher',
+    packageSource.includes('"stadium:daegu:canonical-official-only-retrace-workset": "node scripts/qa-presets.mjs stadium daegu canonical-official-only-retrace-workset"'),
+    'official-only retrace workset should run through the qa-presets stadium dispatcher',
   );
 
   [
@@ -1126,7 +1155,7 @@ test('대구 official-only retrace workset은 58개 블럭을 4096 operator 좌�
     '`npm run stadium:daegu:canonical-official-only-retrace-workset`: `review-required`',
     '`reports/stadium/daegu-seatmap-canonical-official-only-retrace-workset/`',
     'pending operator trace block keys: `58`',
-    'simple scale/copy from `1707x2048` official PNG to `4096x4096` operator reference is forbidden',
+    'simple scale/copy from `1707x2048` official image to `4096x4096` operator reference is forbidden',
     'generated retrace workset reports are QA evidence only and must not be staged as PR payload',
   ].forEach((requiredText) => {
     assert.ok(

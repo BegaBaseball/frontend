@@ -603,7 +603,6 @@ const SUWON_SPECIAL_PIXEL_REVIEW_TARGETS: PixelReviewTarget[] = [
 test('수원 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(SUWON_SEATMAP_IMAGE.assetStatus, 'OFFICIAL');
   assert.equal(SUWON_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp');
-  assert.equal(SUWON_SEATMAP_IMAGE.draftAssetFileName, 'suwon-kt-seatmap-official-2026.png');
   assert.equal(SUWON_SEATMAP_IMAGE.requiredAssetFileName, 'suwon-kt-seatmap-official-2026@2x.webp');
   assert.equal(SUWON_SEATMAP_IMAGE.requiredAssetPath, 'src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp');
   assert.ok(SUWON_SEATMAP_IMAGE.imageWidth >= SUWON_SEATMAP_IMAGE.minimumOfficialImageWidth);

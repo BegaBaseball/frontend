@@ -11,7 +11,7 @@ production 사용자 UI가 아니며, 파일을 자동으로 수정하지 않는
 
 - route: `/internal/sajik-seatmap-editor`
 - 노출 조건: `import.meta.env.DEV`
-- 기준 이미지: `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png`
+- 기준 이미지: `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp`
 - 좌표계: `viewBox="0 0 960 640"`
 - mapVersion: `BUSAN_SAJIK_2026_MANUAL_POLYGON_V2`
 

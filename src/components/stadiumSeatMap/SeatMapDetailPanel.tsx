@@ -44,10 +44,10 @@ function EmptyState({ copy, mode }: { copy?: SeatMapCommonCopy; mode: SeatMapThe
           <circle cx="12" cy="10" r="3" />
         </svg>
       </div>
-      <p className="mb-1.5 text-sm font-bold text-slate-700 dark:text-slate-200" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
+      <p className="mb-1.5 text-sm font-bold text-slate-700 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
         {copy?.emptyTitle ?? '구역을 선택하세요'}
       </p>
-      <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+      <p className="text-xs leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
         {copy?.emptyDescription ?? '좌석 배치도에서 원하는 구역을 클릭하면 블록 정보와 실제 시야 사진이 표시됩니다.'}
       </p>
     </div>
@@ -153,7 +153,7 @@ export function SeatMapDetailPanel<TSection>({
         <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
           {adapter.getName(section)}
         </h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
           {blockLabel} {adapter.getBlock(section)}
         </p>
         {searchAction && (
@@ -162,7 +162,7 @@ export function SeatMapDetailPanel<TSection>({
             data-testid={searchAction.testId}
             aria-label={searchAction.ariaLabel ?? '구역 검색'}
             onClick={searchAction.onClick}
-            className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition-opacity hover:opacity-85"
+            className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition-opacity hover:opacity-85"
             style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
           >
             <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -195,7 +195,7 @@ export function SeatMapDetailPanel<TSection>({
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
           {adapter.getSourceNote(section)}
         </p>
         {accessibilityNote && (
@@ -207,7 +207,7 @@ export function SeatMapDetailPanel<TSection>({
 
       {(notes || tags.length > 0) && (
         <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800" style={{ borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.border : undefined }}>
-          {notes && <p className="text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{notes}</p>}
+          {notes && <p className="text-sm font-semibold leading-relaxed text-slate-600 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{notes}</p>}
           {tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {tags.map((tag) => (
@@ -229,7 +229,7 @@ export function SeatMapDetailPanel<TSection>({
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
             {copy?.galleryTitle ?? '실제 시야 사진'}
           </div>
-          <p className="mt-1 text-[12px] font-semibold text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+          <p className="mt-1 text-[12px] font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             다이어리에 공유된 사진만 표시합니다.
           </p>
         </div>

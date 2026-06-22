@@ -14,6 +14,7 @@ import {
 } from '../../data/gocheokSeatData';
 import { getGocheokOperatorVisitGuidance } from '../../data/gocheokOperatorVisitGuide';
 import { useTheme } from '../../hooks/useTheme';
+import { formatManualBaseballDataDisplayValue } from '../../utils/manualBaseballDataContract';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import GocheokFacilityGuide from './GocheokFacilityGuide';
@@ -112,8 +113,8 @@ function DetailPanel({
     return (
       <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">구역을 선택하세요</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
             공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인할 수 있습니다.
           </p>
         </div>
@@ -145,7 +146,7 @@ function DetailPanel({
           </span>
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">블록 {section.block}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white">블록 {section.block}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
@@ -170,7 +171,7 @@ function DetailPanel({
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">{section.sourceNote}</p>
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
           <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
@@ -330,13 +331,16 @@ export default function GocheokSeatMap() {
   const renderVisitCheckMeta = useCallback((section: GocheokBlock, accent: string) => {
     const hint = getGocheokVisitHint(section);
     const operatorGuidance = getGocheokOperatorVisitGuidance(section);
+    const operatorDataStatusLabel = hint.operatorDataStatus === 'OPERATOR_PROVIDED'
+      ? '운영자 자료 반영'
+      : '운영자 제공 자료 필요';
     const tiles = [
       { label: '블록', value: hint.blockLabel },
       { label: '층', value: hint.levelLabel },
       { label: '측', value: hint.sideLabel },
       { label: '팬 구분', value: hint.fanRoleLabel },
       { label: '시설현황', value: hint.facilityTabLabel },
-      { label: '자료상태', value: hint.operatorDataStatus },
+      { label: '자료상태', value: operatorDataStatusLabel },
     ];
     const operatorTiles = [
       { label: '권장 출입구', value: operatorGuidance.recommendedEntranceLabel, testId: 'gocheok-operator-entrance' },
@@ -353,7 +357,7 @@ export default function GocheokSeatMap() {
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-            <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
               {hint.context}
             </p>
           </div>
@@ -369,14 +373,14 @@ export default function GocheokSeatMap() {
             <div key={tile.label} className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
               <div className="text-[9px] font-bold tracking-widest text-slate-400">{tile.label}</div>
               <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
-                {tile.value}
+                {formatManualBaseballDataDisplayValue(tile.value)}
               </div>
             </div>
           ))}
         </div>
         <ul className="mt-3 space-y-1.5">
           {hint.checklist.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
               <span>{item}</span>
             </li>
@@ -390,8 +394,8 @@ export default function GocheokSeatMap() {
               className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-              <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
-                {tile.value}
+              <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+                {formatManualBaseballDataDisplayValue(tile.value)}
               </div>
             </div>
           ))}
@@ -399,15 +403,15 @@ export default function GocheokSeatMap() {
         {operatorGuidance.cautionNotes.length > 0 && (
           <ul className="mt-3 space-y-1.5">
             {operatorGuidance.cautionNotes.map((item) => (
-              <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+              <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
-                <span>{item}</span>
+                <span>{formatManualBaseballDataDisplayValue(item)}</span>
               </li>
             ))}
           </ul>
         )}
         <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {operatorGuidance.operatorDataPendingLabel}
+          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>
         <button
           type="button"

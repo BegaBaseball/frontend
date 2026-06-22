@@ -127,7 +127,7 @@ Before running the approval gate, `npm run stadium:sajik:stage01-target-entry-pr
 - `reports/stadium/sajik-stage01-operator/targets/131-official-overlay-crop.png`
 - `reports/stadium/sajik-stage01-operator/targets/131-official-edge-crop.png`
 
-These files are generated from `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png` after checking the locked `960x640` size and `e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa` hash. They are reference-only operator review aids. The official crop is the primary visual aid for manual tracing, the overlay crop shows red current hitPath, blue reference-only pixel component, label point, and grid coordinates, and the edge crop is only for inspecting boundaries and seams. None of these artifacts may be copied as a correctedPath source without human tracing against the official PNG.
+These files are generated from `src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp` after checking the locked `960x640` size and `e9cb51ccf57a754ddf066a95c6c789d65edf8dff167f432fd35fe809e9dc80aa` hash. They are reference-only operator review aids. The official crop is the primary visual aid for manual tracing, the overlay crop shows red current hitPath, blue reference-only pixel component, label point, and grid coordinates, and the edge crop is only for inspecting boundaries and seams. None of these artifacts may be copied as a correctedPath source without human tracing against the official PNG.
 
 ## 131 Operator Input Ready
 

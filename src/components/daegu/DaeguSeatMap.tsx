@@ -132,7 +132,7 @@ function SectionFinder({
             onChange={(event) => onSearchChange(event.target.value)}
             autoFocus={autoFocusInput}
             placeholder="블록, 구역명 검색 (예: 1-1, 블루존)"
-            className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#074CA1] focus:bg-white dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
+            className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#074CA1] focus:bg-white dark:bg-slate-800 dark:text-white dark:focus:bg-slate-900"
             style={{ borderColor }}
           />
         </label>
@@ -168,7 +168,7 @@ function SectionFinder({
                         </span>
                         <span className="text-xs font-black text-slate-800 dark:text-white">{block.name}</span>
                       </div>
-                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-white">
                         {cat.label} · {getDaeguSideLabel(block.side)} · {getDaeguFanRoleLabel(block.fanRole)}
                       </p>
                     </div>
@@ -187,14 +187,14 @@ function SectionFinder({
             data-testid="daegu-section-finder-empty"
             className="flex min-h-[180px] flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800"
           >
-            <p className="text-sm font-black text-slate-700 dark:text-slate-100">검색어와 선택한 필터에 맞는 구역이 없습니다</p>
-            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="text-sm font-black text-slate-700 dark:text-white">검색어와 선택한 필터에 맞는 구역이 없습니다</p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-white">
               블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
             </p>
             {hasSearch && (
-              <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-slate-500">검색어: {searchTerm.trim()}</p>
+              <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-white">검색어: {searchTerm.trim()}</p>
             )}
-            <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">필터: {activeFilterLabel}</p>
+            <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-white">필터: {activeFilterLabel}</p>
           </div>
         )}
       </div>
@@ -217,8 +217,8 @@ function DetailPanel({
     return (
       <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">구역을 선택하세요</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
             공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인할 수 있습니다.
           </p>
         </div>
@@ -250,7 +250,7 @@ function DetailPanel({
           </span>
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">블록 {section.block}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white">블록 {section.block}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
@@ -275,8 +275,8 @@ function DetailPanel({
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">{section.sourceNote}</p>
-        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
+        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-white">
           {getDaeguTraceMethodLabel(section.traceMethod)} · {getDaeguTraceStatusLabel(section.traceStatus)}
         </p>
         {section.traceStatus === 'NEEDS_OPERATOR_REVIEW' && section.reviewNote && (
@@ -329,7 +329,7 @@ function DaeguExtraMeta({ section, accent }: { section: DaeguCanonicalBlock; acc
         <InfoTile label="공식 블록" value={officialBlocks} />
         <InfoTile label="source confidence" value={getDaeguSourceLabel(section.sourceConfidence)} />
       </div>
-      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
         <div
           data-testid="daegu-seatmap-canonical-decision-status"
           className="rounded-xl px-3 py-2"

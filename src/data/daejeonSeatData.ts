@@ -177,14 +177,14 @@ export interface DaejeonP2DeduplicatedAlias {
 }
 
 export const DAEJEON_SEATMAP_IMAGE: DaejeonSeatMapImage = {
-  imagePath: 'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp',
   imageWidth: 920,
   imageHeight: 1060,
-  assetSha256: '5fbfa5364e4271b814789ea35400966e9c6afea38ee1f3654382e9f1838b4081',
+  assetSha256: 'd411655a3a2776467c6335c43e40e7252724d6a05e390c14c4e9665a45da1e35',
   sourceLabel: '한화 이글스 공식 대전 한화생명볼파크 좌석안내도',
   sourceUrl: 'https://www.hanwhaeagles.co.kr/MN/EP/MNEPPI01.do',
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'daejeon-hanwha-life-eagles-park-seatmap-official-2026.png',
+  requiredAssetFileName: 'daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp',
 };
 
 export const DAEJEON_CATEGORIES: Record<string, DaejeonCategory> = {
@@ -361,7 +361,7 @@ const DAEJEON_GROUP_SECTION_COVERAGE: DaejeonSectionCoverage[] = [
     officialSectionName: '스카이박스',
     blockIds: ['skybox-s01-s37'],
     status: 'REPRESENTATIVE_TRACED',
-    reviewNote: '중앙 4층 S01-S37 스카이박스 띠 영역을 단일 hit-area로 대표합니다.',
+    reviewNote: '중앙 4층 S01-S31 스카이박스 띠 영역을 단일 hit-area로 대표합니다.',
   },
   {
     officialSectionName: '외야지정석',
@@ -702,8 +702,8 @@ export const DAEJEON_BLOCK_GROUPS: DaejeonBlockGroup[] = ([
     level: '4F',
     category: 'SKY',
     name: '스카이박스',
-    block: 'S01-S37',
-    officialBlocks: ['스카이박스 S01-S37'],
+    block: 'S01-S31',
+    officialBlocks: ['스카이박스 S01-S31'],
     side: 'CENTER',
     fanRole: 'NEUTRAL',
     d: polygonPath([[202, 735], [683, 735], [686, 792], [584, 830], [443, 848], [302, 831], [199, 792]]),
@@ -1347,12 +1347,12 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'central-reserved-100', '100A', [[484, 654], [465, 666], [471, 683], [495, 669], [496, 666], [484, 654]], 480, 669, { labelFontSize: 8, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
   addManualPath(map, 'central-reserved-100', '100B', [[421, 668], [415, 686], [432, 691], [448, 691], [466, 686], [460, 668]], 440, 680, { labelFontSize: 8, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
   addManualPath(map, 'central-reserved-100', '100C', [[397, 655], [384, 667], [408, 683], [411, 682], [416, 667], [398, 655]], 402, 669, { labelFontSize: 8, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
-  addManualPath(map, 'catcher-back-100', '100A', [[497, 672], [474, 687], [483, 711], [502, 702], [517, 690], [500, 672]], 494, 691, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
-  addManualPath(map, 'catcher-back-100', '100B', [[415, 690], [406, 711], [421, 717], [439, 719], [475, 714], [470, 696], [465, 690]], 441, 705, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
-  addManualPath(map, 'catcher-back-100', '100C', [[382, 672], [364, 690], [397, 710], [401, 708], [407, 687], [384, 672]], 388, 691, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
-  addManualPath(map, 'central-table-100', '100A', [[521, 693], [484, 717], [507, 777], [530, 765], [533, 759], [553, 753], [567, 741], [521, 693]], 522, 735, { labelFontSize: 9 });
-  addManualPath(map, 'central-table-100', '100B', [[405, 717], [384, 780], [425, 791], [464, 789], [500, 780], [479, 720], [405, 717]], 441, 757, { labelFontSize: 9 });
-  addManualPath(map, 'central-table-100', '100C', [[360, 694], [316, 739], [374, 776], [385, 754], [397, 715], [360, 694]], 361, 735, { labelFontSize: 9 });
+  addManualPath(map, 'catcher-back-100', '100A', [[472, 687], [500, 673], [519, 693], [484, 714]], 494, 691, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
+  addManualPath(map, 'catcher-back-100', '100B', [[431, 696], [449, 696], [468, 688], [477, 714], [462, 717], [431, 720], [409, 716], [416, 691]], 441, 705, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
+  addManualPath(map, 'catcher-back-100', '100C', [[410, 690], [400, 713], [364, 693], [380, 673]], 388, 691, { labelFontSize: 9, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
+  addManualPath(map, 'central-table-100', '100A', [[486, 718], [522, 697], [572, 747], [508, 785]], 522, 735, { labelFontSize: 9 });
+  addManualPath(map, 'central-table-100', '100B', [[404, 720], [414, 723], [448, 726], [480, 722], [503, 788], [467, 798], [420, 798], [380, 788]], 441, 757, { labelFontSize: 9 });
+  addManualPath(map, 'central-table-100', '100C', [[360, 700], [400, 719], [374, 785], [312, 748]], 361, 735, { labelFontSize: 9 });
   addManualPath(map, 'central-accessible', '중앙', [[425, 787], [456, 787], [462, 800], [453, 811], [431, 811], [422, 800]], 442, 798, { shortLabel: '중앙', labelFontSize: 10, traceStatus: 'OFFICIAL_IMAGE_TRACED', traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE' });
 
   addManualPath(map, 'first-infield-b-101-108', '101', [[685, 385], [695, 373], [711, 356], [709, 383], [703, 384], [689, 386]], 700, 375, { labelRotate: -18, labelFontSize: 9 });
@@ -1386,14 +1386,14 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
       reviewNote: '공식 좌석도에서 104 블록은 blue/olive 혼합 영역이 하나로 연결되어 보여 단일 폴리곤으로 재측정했습니다.',
     },
   );
-  addManualPath(map, 'first-infield-b-101-108', '105', [[613, 486], [614, 483], [616, 478], [623, 469], [717, 506], [718, 507], [715, 514], [711, 523], [708, 529], [706, 530], [703, 529], [685, 521], [618, 491], [614, 489], [613, 487]], 665, 500, {
+  addManualPath(map, 'first-infield-b-101-108', '105', [[673, 476], [667, 485], [718, 507], [709, 531], [612, 491], [620, 469]], 665, 500, {
     labelRotate: -18,
     labelFontSize: 9,
     reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 104 단일화 후 105 라벨 색상 셀 외곽만 단일 path로 수동 트레이싱했습니다.',
   });
-  addManualPath(map, 'first-infield-b-101-108', '106', [[596, 520], [609, 494], [610, 493], [700, 533], [704, 535], [705, 537], [693, 564], [692, 565], [683, 561], [611, 528], [598, 522], [596, 521]], 650, 528, { labelRotate: -18, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-b-101-108', '107', [[580, 551], [591, 529], [594, 526], [658, 555], [684, 567], [672, 593], [664, 590], [580, 552]], 631, 559, { labelRotate: -19, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-b-101-108', '108', [[571, 568], [576, 559], [579, 557], [659, 593], [676, 601], [666, 625], [661, 633], [642, 620], [583, 579]], 627, 594, { labelRotate: -22, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-b-101-108', '106', [[708, 535], [693, 566], [598, 522], [610, 494]], 650, 528, { labelRotate: -18, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-b-101-108', '107', [[592, 525], [690, 572], [679, 596], [581, 551]], 631, 559, { labelRotate: -19, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-b-101-108', '108', [[579, 556], [677, 603], [662, 634], [571, 572]], 627, 594, { labelRotate: -22, labelFontSize: 9 });
   addManualCenters(map, 'third-infield-b-121-124', ['121', '122', '123', '124'], [
     [209, 486, 5],
     [196, 446, 6],
@@ -1409,10 +1409,10 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'third-infield-b-121-124', '123', [[165, 411], [166, 393], [168, 391], [202, 394], [208, 395], [236, 424], [225, 424], [194, 421], [174, 419], [165, 418]], 197, 409, { labelRotate: 8, labelFontSize: 9 });
   addManualPath(map, 'third-infield-b-121-124', '124', [[167, 384], [168, 371], [171, 355], [181, 365], [203, 389], [202, 390], [172, 387], [167, 386]], 183, 377, { labelRotate: 12, labelFontSize: 9 });
 
-  addManualPath(map, 'first-infield-a-109-112-201-212', '109', [[564, 599], [579, 583], [653, 635], [635, 656]], 610, 626, { labelRotate: -23, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-a-109-112-201-212', '110', [[561, 602], [637, 665], [617, 687], [542, 625]], 589.1, 644.6, { labelRotate: -27, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-a-109-112-201-212', '111', [[539, 628], [608, 686], [588, 709], [520, 652]], 563.4, 668.1, { labelRotate: -31, labelFontSize: 9 });
-  addManualPath(map, 'first-infield-a-109-112-201-212', '112', [[517, 655], [590, 718], [573, 737], [505, 667]], 548.9, 696.5, { labelRotate: -35, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-a-109-112-201-212', '109', [[580, 584], [659, 640], [644, 662], [565, 596]], 610, 626, { labelRotate: -23, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-a-109-112-201-212', '110', [[563, 605], [635, 666], [619, 688], [543, 624]], 589.1, 644.6, { labelRotate: -27, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-a-109-112-201-212', '111', [[615, 691], [596, 712], [522, 650], [540, 630]], 563.4, 668.1, { labelRotate: -31, labelFontSize: 9 });
+  addManualPath(map, 'first-infield-a-109-112-201-212', '112', [[518, 658], [590, 718], [577, 737], [505, 666]], 548.9, 696.5, { labelRotate: -35, labelFontSize: 9 });
   addManualPath(map, 'first-infield-a-109-112-201-212', '201', [[736, 454], [765, 451], [768, 480], [738, 480]], 751.9, 466, { labelFontSize: 8 });
   addManualPath(map, 'first-infield-a-109-112-201-212', '202', [[737, 486], [761, 486], [750, 507], [746, 509], [730, 502]], 743.9, 495.8, { labelRotate: -10, labelFontSize: 8 });
   addManualPath(map, 'first-infield-a-109-112-201-212', '203', [[727, 507], [745, 514], [746, 520], [735, 543], [716, 534]], 730.9, 524.1, { labelRotate: -12, labelFontSize: 8 });
@@ -1425,15 +1425,15 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'first-infield-a-109-112-201-212', '210', [[597, 724], [612, 738], [596, 756], [592, 755], [580, 743]], 595.5, 739.7, { labelRotate: -31, labelFontSize: 8 });
   addManualPath(map, 'first-infield-a-109-112-201-212', '211', [[553, 764], [575, 748], [587, 760], [585, 765], [563, 779]], 570, 762.7, { labelRotate: -35, labelFontSize: 8 });
   addManualPath(map, 'first-infield-a-109-112-201-212', '212', [[550, 766], [562, 787], [536, 801], [524, 781]], 542.8, 784, { labelRotate: -38, labelFontSize: 8 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '113', [[366, 657], [375, 668], [309, 735], [293, 718]], 333.2, 696.4, { labelRotate: 35, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '114', [[343, 629], [363, 653], [295, 710], [275, 687]], 319.7, 668.9, { labelRotate: 35, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '115', [[253, 660], [321, 602], [340, 625], [273, 682], [271, 682]], 297.5, 641.4, { labelRotate: 31, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '116', [[231, 635], [305, 583], [318, 599], [249, 656]], 275.3, 618.7, { labelRotate: 28, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '117', [[318, 551], [323, 562], [222, 630], [208, 600]], 260.9, 589.6, { labelRotate: 25, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '118', [[202, 568], [210, 560], [302, 520], [314, 544], [294, 555], [216, 590], [212, 589]], 260, 555, { labelRotate: 23, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '119', [[181, 535], [195, 527], [285, 487], [297, 512], [291, 519], [195, 561], [190, 559]], 241, 524, { labelRotate: 21, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '120', [[173, 503], [211, 471], [271, 463], [281, 479], [274, 486], [184, 526]], 220, 500, { labelRotate: 18, labelFontSize: 9 });
-  addManualPath(map, 'third-infield-a-113-120-213-225', '220', [[167, 581], [178, 574], [204, 577], [216, 607], [184, 608], [178, 604], [167, 586]], 190, 599, {
+  addManualPath(map, 'third-infield-a-113-120-213-225', '113', [[364, 660], [374, 670], [311, 739], [295, 719]], 333.2, 696.4, { labelRotate: 35, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '114', [[343, 632], [361, 655], [289, 714], [272, 690]], 319.7, 668.9, { labelRotate: 35, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '115', [[319, 605], [340, 626], [269, 688], [252, 665]], 297.5, 641.4, { labelRotate: 31, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '116', [[227, 636], [304, 585], [319, 600], [245, 663]], 275.3, 618.7, { labelRotate: 28, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '117', [[210, 598], [319, 549], [327, 566], [220, 633]], 260.9, 589.6, { labelRotate: 25, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '118', [[197, 566], [304, 522], [321, 547], [205, 595]], 260, 555, { labelRotate: 23, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '119', [[285, 490], [302, 514], [191, 564], [182, 535]], 241, 524, { labelRotate: 21, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '120', [[210, 472], [275, 463], [289, 484], [176, 533], [169, 505], [213, 489]], 220, 500, { labelRotate: 18, labelFontSize: 9 });
+  addManualPath(map, 'third-infield-a-113-120-213-225', '220', [[160, 579], [175, 611], [199, 597], [184, 575]], 179.5, 590.5, {
     labelRotate: -27,
     labelFontSize: 8,
     reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 220 블록의 보라색 셀 외곽을 3루 내야 중단 기준으로 재트레이싱했습니다.',
@@ -1459,7 +1459,7 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   });
   addManualPath(map, 'third-infield-accessible', '3루 내야', [[149, 582], [167, 576], [183, 619], [164, 625]], 173, 598, { shortLabel: '휠체어', labelFontSize: 10 });
 
-  addManualPolyline(map, 'skybox-s01-s37', prefixedBlockCodes('S', 1, 37), [
+  addManualPolyline(map, 'skybox-s01-s37', prefixedBlockCodes('S', 1, 31), [
     [755, 489],
     [721, 594],
     [669, 704],
@@ -1470,50 +1470,43 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [196, 706],
   ], 20, 13, 7, 90);
   ([
-    ['S01', [[764, 533], [768, 525], [779, 530], [777, 537], [766, 536]], 772, 531, 198],
-    ['S02', [[758, 546], [761, 540], [771, 540], [775, 542], [770, 551]], 767, 546, 198],
-    ['S03', [[753, 557], [757, 549], [769, 554], [766, 561]], 761, 554, 198],
-    ['S04', [[748, 569], [750, 564], [761, 564], [764, 566], [760, 575]], 755, 570, 198],
-    ['S05', [[737, 593], [740, 586], [753, 588], [749, 599]], 746, 593, 198],
-    ['S06', [[731, 606], [735, 597], [747, 602], [744, 610]], 740, 603, 205],
-    ['S07', [[726, 617], [728, 613], [739, 612], [742, 614], [738, 623]], 734, 618, 205],
-    ['S08', [[721, 629], [725, 621], [736, 626], [734, 633]], 729, 627, 205],
-    ['S09', [[716, 640], [718, 636], [729, 636], [731, 638], [727, 647], [717, 643]], 724, 642, 205],
-    ['S10', [[703, 663], [707, 656], [719, 658], [719, 662], [714, 671], [704, 666]], 711, 665, 205],
-    ['S11', [[692, 677], [700, 668], [710, 677], [705, 683]], 700, 675, 205],
-    ['S12', [[667, 707], [671, 702], [685, 706], [677, 716]], 675, 709, 205],
-    ['S13', [[657, 721], [664, 714], [668, 714], [672, 720], [670, 723]], 664, 718, 223],
-    ['S14', [[649, 730], [660, 724], [664, 731], [657, 738]], 657, 731, 223],
-    ['S15', [[640, 739], [647, 735], [654, 740], [650, 746], [641, 743]], 647, 740, 223],
-    ['S16', [[630, 751], [637, 746], [647, 751], [640, 759], [638, 759]], 639, 752, 223],
-    ['S17', [[613, 771], [617, 770], [628, 773], [622, 780], [619, 780], [613, 775]], 621, 775, 223],
-    ['S18', [[564, 806], [565, 803], [570, 803], [581, 808], [570, 813]], 573, 808, 246],
-    ['S19', [[536, 818], [559, 807], [565, 818], [542, 829]], 556.5, 811.5, 246],
-    ['S20', [[522, 825], [534, 820], [538, 830], [533, 833]], 535, 829, 246],
-    ['S21', [[511, 831], [516, 828], [528, 833], [526, 836], [516, 839]], 515, 831.5, 246],
-    ['S22', [[485, 836], [507, 830], [509, 843], [488, 848]], 506.5, 840.5, 246],
-    ['S23', [[467, 841], [480, 839], [482, 850], [476, 850]], 479, 842, 269],
-    ['S24', [[458, 841], [465, 841], [471, 852], [459, 852]], 461, 850.5, 269],
-    ['S25', [[429, 843], [452, 843], [452, 853], [429, 853]], 441, 848, 269],
-    ['S26', [[398, 846], [400, 840], [415, 840], [415, 842], [402, 851], [399, 850]], 401.5, 846, 269],
-    ['S27', [[373, 830], [395, 837], [390, 849], [369, 842]], 392, 839.5, 269],
-    ['S28', [[352, 835], [363, 828], [367, 828], [366, 837], [362, 840]], 362, 837.5, -65],
-    ['S29', [[342, 830], [347, 822], [359, 826], [345, 833]], 345.5, 829.5, -65],
-    ['S30', [[327, 822], [338, 817], [342, 820], [336, 829], [327, 824]], 334, 823, -65],
-    ['S31', [[316, 817], [323, 809], [332, 812], [332, 815], [320, 820]], 324, 814, -65],
-    ['S32', [[294, 802], [301, 794], [310, 801], [295, 804]], 302, 799, -65],
-    ['S33', [[272, 785], [279, 777], [281, 777], [289, 785], [273, 787]], 281, 783, -65],
-    ['S34', [[261, 773], [274, 771], [275, 774], [267, 780]], 268, 775, -43],
-    ['S35', [[236, 745], [246, 739], [252, 746], [238, 747]], 245, 743, -43],
-    ['S36', [[220, 725], [229, 720], [234, 726], [223, 729]], 227, 724, -43],
-    ['S37', [[170, 666], [178, 661], [184, 668], [172, 670]], 177, 665, -43],
+    ['S01', [[775, 508], [789, 514], [781, 527], [767, 521]], 778, 517.5, 198],
+    ['S02', [[767, 527], [779, 533], [771, 549], [760, 545]], 769.3, 538.5, 198],
+    ['S03', [[756, 550], [769, 554], [760, 574], [746, 568]], 757.8, 561.5, 198],
+    ['S04', [[746, 576], [758, 580], [750, 597], [736, 593]], 747.5, 586.5, 198],
+    ['S05', [[734, 599], [746, 603], [740, 622], [727, 617]], 736.8, 610.3, 198],
+    ['S06', [[725, 622], [736, 628], [727, 646], [715, 640]], 725.8, 634, 205],
+    ['S07', [[727, 652], [715, 671], [703, 667], [713, 644]], 714.5, 658.5, 205],
+    ['S08', [[699, 667], [711, 677], [698, 694], [684, 687]], 698, 681.3, 205],
+    ['S09', [[680, 692], [692, 700], [676, 716], [666, 708]], 678.5, 704, 205],
+    ['S10', [[663, 712], [674, 720], [659, 739], [649, 727]], 661.3, 724.5, 205],
+    ['S11', [[645, 733], [653, 741], [641, 760], [628, 751]], 641.8, 746.3, 205],
+    ['S12', [[626, 757], [637, 762], [622, 782], [612, 772]], 624.3, 768.3, 205],
+    ['S13', [[587, 791], [606, 776], [612, 788], [596, 797]], 600.3, 788, 223],
+    ['S14', [[563, 805], [581, 793], [591, 803], [567, 815]], 575.5, 804, 223],
+    ['S15', [[538, 817], [558, 805], [563, 817], [542, 826]], 550.3, 816.3, 223],
+    ['S16', [[513, 826], [534, 819], [540, 830], [515, 838]], 525.5, 828.3, 223],
+    ['S17', [[486, 836], [507, 830], [511, 844], [488, 848]], 498, 839.5, 223],
+    ['S18', [[458, 842], [478, 838], [482, 850], [460, 852]], 469.5, 845.5, 246],
+    ['S19', [[427, 842], [451, 842], [453, 854], [427, 854]], 439.5, 848, 246],
+    ['S20', [[398, 838], [423, 842], [420, 854], [396, 850]], 409.3, 846, 246],
+    ['S21', [[373, 832], [394, 836], [390, 850], [371, 842]], 382, 840, 246],
+    ['S22', [[346, 823], [369, 830], [365, 840], [342, 830]], 355.5, 830.8, 246],
+    ['S23', [[322, 807], [342, 819], [338, 830], [317, 817]], 329.8, 818.3, 269],
+    ['S24', [[301, 793], [319, 805], [311, 815], [293, 803]], 306, 804, 269],
+    ['S25', [[280, 778], [297, 790], [291, 801], [272, 788]], 285, 789.3, 269],
+    ['S26', [[262, 760], [276, 773], [268, 783], [254, 766]], 265, 770.5, 269],
+    ['S27', [[248, 742], [260, 756], [250, 762], [236, 748]], 248.5, 752, 269],
+    ['S28', [[232, 722], [242, 736], [234, 744], [223, 728]], 232.8, 732.5, -65],
+    ['S29', [[211, 700], [226, 716], [217, 724], [203, 708]], 214.3, 712, -65],
+    ['S30', [[187, 690], [195, 682], [209, 696], [199, 702]], 197.5, 692.5, -65],
+    ['S31', [[167, 666], [177, 659], [193, 678], [183, 686]], 180, 672.3, -65],
   ] as const).forEach(([blockCode, points, labelX, labelY, labelRotate]) => {
-    const blockNumber = Number(blockCode.slice(1));
     addManualPath(map, 'skybox-s01-s37', blockCode, points, labelX, labelY, {
       labelRotate,
       labelFontSize: 6,
-      reviewNote: blockNumber <= 31 ? SKYBOX_S01_S31_RETRACED_REVIEW_NOTE : undefined,
-      hitAreaPoints: blockNumber <= 31 ? expandPolygonFromPoint(points, labelX, labelY, 4) : undefined,
+      reviewNote: SKYBOX_S01_S31_RETRACED_REVIEW_NOTE,
+      hitAreaPoints: expandPolygonFromPoint(points, labelX, labelY, 4),
     });
   });
 
@@ -1524,61 +1517,61 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [650, 773],
     [560, 852],
   ], 2.6, 2.6, 5, 90);
-  addManualPath(map, 'first-table-4f-301-413', '301', [[779, 458], [797, 452], [800, 483], [782, 484]], 789, 469, {
+  addManualPath(map, 'first-table-4f-301-413', '301', [[778, 459], [782, 485], [799, 483], [797, 452]], 789, 469.8, {
     labelFontSize: 6,
     reviewNote: FIRST_TABLE_4F_301_302_RETRACED_REVIEW_NOTE,
-    hitAreaPoints: [[775, 458], [797, 452], [803, 483], [779, 490]],
+    hitAreaPoints: expandPolygonFromPoint([[778, 459], [782, 485], [799, 483], [797, 452]], 789, 469.8, 4),
   });
   addManualPath(
     map,
     'first-table-4f-301-413',
     '302',
-    [[758, 517], [764, 495], [770, 489], [797, 491], [798, 494], [794, 509], [786, 524], [760, 520]],
-    777,
-    505,
+    [[801, 487], [793, 507], [778, 503], [782, 487]],
+    788.5,
+    496,
     {
       labelFontSize: 6,
       reviewNote: FIRST_TABLE_4F_301_302_RETRACED_REVIEW_NOTE,
-      hitAreaPoints: [[753, 518], [759, 495], [770, 489], [802, 491], [803, 494], [800, 511], [789, 530], [755, 524]],
+      hitAreaPoints: expandPolygonFromPoint([[801, 487], [793, 507], [778, 503], [782, 487]], 788.5, 496, 3),
     },
   );
-  addManualPath(map, 'first-table-4f-301-413', '401', [[806, 461], [828, 462], [828, 493], [806, 490]], 817, 475, { labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '401', [[825, 464], [825, 483], [810, 485], [809, 466]], 817.3, 474.5, { labelFontSize: 6 });
   addManualPath(
     map,
     'first-table-4f-301-413',
     '402',
-    [[792, 526], [793, 522], [796, 514], [803, 499], [816, 499], [824, 500], [828, 502], [828, 507], [820, 525], [818, 529], [817, 530], [813, 530], [806, 529], [794, 527]],
-    811,
-    515,
+    [[826, 489], [814, 522], [800, 519], [810, 489]],
+    812.5,
+    504.8,
     { labelFontSize: 6 },
   );
-  addManualPath(map, 'first-table-4f-301-413', '403', [[786, 534], [811, 536], [798, 568], [772, 563]], 785, 552, { labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '403', [[810, 528], [793, 565], [780, 559], [794, 524]], 794.3, 544, { labelFontSize: 6 });
   addManualPath(
     map,
     'first-table-4f-301-413',
     '404',
-    [[764, 569], [788, 574], [774, 622], [747, 613]],
-    765,
-    596,
+    [[794, 570], [777, 604], [761, 600], [775, 563]],
+    776.8,
+    584.3,
     { labelFontSize: 6 },
   );
   addManualPath(
     map,
     'first-table-4f-301-413',
     '405',
-    [[734, 653], [736, 648], [741, 636], [746, 625], [748, 621], [749, 620], [752, 620], [766, 622], [771, 623], [774, 624], [782, 627], [795, 632], [800, 634], [801, 635], [801, 637], [799, 642], [792, 659], [785, 659], [776, 658], [741, 654]],
-    744,
-    640,
+    [[775, 611], [766, 625], [800, 639], [793, 657], [745, 637], [759, 606]],
+    773,
+    629.2,
     { labelFontSize: 6 },
   );
-  addManualPath(map, 'first-table-4f-301-413', '406', [[727, 675], [741, 644], [792, 662], [778, 701], [727, 678]], 735, 675, { labelRotate: -18, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '407', [[703, 703], [722, 683], [721, 681], [725, 680], [775, 706], [773, 705], [774, 707], [747, 736]], 715, 710, { labelRotate: -22, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '408', [[677, 732], [701, 707], [744, 739], [720, 765], [677, 735]], 690, 735, { labelRotate: -30, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '409', [[650, 764], [675, 739], [719, 770], [693, 797]], 665, 775, { labelRotate: -34, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '410', [[624, 794], [648, 768], [693, 801], [666, 829]], 630, 790, { labelRotate: -38, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '411', [[594, 818], [622, 797], [665, 832], [635, 865]], 605.9, 811.7, { labelRotate: -42, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '412', [[564, 838], [592, 820], [633, 867], [597, 890]], 583, 831.8, { labelRotate: -42, labelFontSize: 6 });
-  addManualPath(map, 'first-table-4f-301-413', '413', [[526, 855], [561, 839], [595, 893], [550, 912]], 560, 852, { labelRotate: -42, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '406', [[791, 662], [775, 698], [731, 676], [741, 644]], 759.5, 670, { labelRotate: -18, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '407', [[725, 682], [773, 707], [745, 735], [704, 701]], 736.8, 706.3, { labelRotate: -22, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '408', [[699, 708], [743, 738], [722, 763], [678, 731]], 710.5, 735, { labelRotate: -30, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '409', [[674, 738], [718, 770], [695, 795], [651, 765]], 684.5, 767, { labelRotate: -34, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '410', [[647, 770], [690, 802], [667, 827], [624, 793]], 657, 798, { labelRotate: -38, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '411', [[598, 816], [621, 800], [665, 832], [635, 864]], 629.8, 828, { labelRotate: -42, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '412', [[591, 822], [631, 868], [598, 889], [566, 836]], 596.5, 853.8, { labelRotate: -42, labelFontSize: 6 });
+  addManualPath(map, 'first-table-4f-301-413', '413', [[527, 854], [559, 841], [594, 894], [554, 912]], 558.5, 875.3, { labelRotate: -42, labelFontSize: 6 });
   addManualPolyline(map, 'third-table-4f-414-330', numericBlockCodes(414, 423), [
     [500, 874],
     [420, 878],
@@ -1587,16 +1580,16 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [202, 717],
     [162, 636],
   ], 34, 22, 8, 90);
-  addManualPath(map, 'third-table-4f-414-330', '414', [[485, 864], [521, 855], [546, 912], [521, 921], [497, 924]], 500, 874, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '415', [[443, 869], [481, 865], [492, 927], [443, 929]], 450, 876.5, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '416', [[388, 924], [400, 864], [439, 867], [439, 930], [409, 929]], 400.8, 872.1, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '417', [[336, 909], [360, 854], [395, 864], [385, 924], [348, 916], [336, 912]], 350, 880, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '418', [[317, 835], [360, 848], [337, 911], [278, 893], [294, 851]], 325, 875, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '419', [[268, 823], [316, 837], [294, 854], [282, 883], [257, 876], [281, 846], [266, 841]], 289, 837, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '420', [[238, 787], [283, 800], [286, 821], [252, 818], [235, 803]], 263, 805, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '421', [[221, 763], [260, 775], [256, 800], [218, 787]], 241, 783, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '422', [[194, 736], [234, 748], [228, 774], [188, 761]], 212, 754, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '423', [[171, 708], [207, 718], [209, 738], [181, 745], [167, 733]], 184, 733, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '414', [[484, 864], [520, 857], [545, 912], [500, 924]], 512.3, 889.3, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '415', [[442, 866], [479, 866], [493, 926], [445, 930]], 464.8, 897, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '416', [[399, 864], [437, 868], [437, 930], [391, 924]], 416, 896.5, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '417', [[360, 857], [394, 864], [383, 924], [337, 912]], 368.5, 889.3, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '418', [[320, 839], [355, 854], [332, 910], [291, 889]], 324.5, 873, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '419', [[281, 829], [290, 818], [318, 836], [286, 885], [267, 873], [293, 841]], 289.2, 847, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '420', [[265, 792], [290, 815], [277, 827], [252, 802]], 271, 809, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '421', [[236, 767], [261, 788], [249, 800], [226, 777]], 243, 783, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '422', [[210, 738], [233, 763], [222, 774], [197, 745]], 215.5, 755, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '423', [[182, 707], [207, 734], [196, 743], [173, 716]], 189.5, 725, { labelFontSize: 8 });
   addManualCenters(map, 'third-table-4f-414-330', numericBlockCodes(326, 330), [
     [151, 647, 76],
     [132, 608, 76],
@@ -1604,27 +1597,27 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
     [103, 523, 76],
     [91, 482, 76],
   ], 30, 22, 0, 8);
-  addManualPath(map, 'third-table-4f-414-330', '326', [[148, 628], [166, 616], [174, 624], [186, 650], [164, 667], [148, 636]], 166, 642, {
+  addManualPath(map, 'third-table-4f-414-330', '326', [[148, 627], [167, 664], [183, 653], [167, 620]], 166, 642, {
     labelFontSize: 8,
     reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 4층 내야 탁자석 326 녹색 셀 외곽을 기준으로 재트레이싱했습니다.',
   });
-  addManualPath(map, 'third-table-4f-414-330', '327', [[133, 595], [147, 588], [154, 585], [157, 590], [166, 611], [165, 613], [148, 621], [141, 613], [136, 602]], 150, 603, {
+  addManualPath(map, 'third-table-4f-414-330', '327', [[154, 589], [165, 612], [148, 622], [133, 594]], 150, 603, {
     labelFontSize: 8,
     reviewNote: '공식 좌석도 원본 이미지(920x1060)에서 4층 내야 탁자석 327 녹색 셀 외곽을 기준으로 재트레이싱했습니다.',
   });
-  addManualPath(map, 'third-table-4f-414-330', '328', [[109, 561], [140, 554], [151, 586], [119, 595]], 130, 577, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '329', [[96, 527], [128, 520], [139, 552], [106, 561]], 116, 543, { labelFontSize: 8 });
-  addManualPath(map, 'third-table-4f-414-330', '330', [[84, 489], [116, 483], [127, 514], [95, 525], [87, 511]], 103, 505, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '328', [[139, 553], [151, 581], [131, 589], [118, 561]], 130, 577, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '329', [[125, 521], [138, 547], [118, 557], [105, 531]], 116, 543, { labelFontSize: 8 });
+  addManualPath(map, 'third-table-4f-414-330', '330', [[110, 487], [122, 514], [102, 524], [86, 490]], 103, 505, { labelFontSize: 8 });
 
-  addManualPath(map, 'innings-vip-400', '400', [[826, 503], [855, 509], [807, 616], [781, 608]], 814, 560, {
+  addManualPath(map, 'innings-vip-400', '400', [[828, 503], [782, 609], [809, 618], [856, 510]], 818.8, 560, {
     shortLabel: '400',
     labelRotate: -77,
     labelFontSize: 8,
     traceStatus: 'OFFICIAL_IMAGE_TRACED',
     traceMethod: 'PATH_TRACED_FROM_OFFICIAL_IMAGE',
   });
-  addManualPath(map, 'splash-jacuzzi-425', '425', [[126, 641], [150, 646], [156, 679], [138, 683], [126, 663]], 143, 663, { shortLabel: '자쿠지', labelRotate: -74, labelFontSize: 8 });
-  addManualPath(map, 'splash-caravan-426', '426', [[85, 565], [119, 552], [131, 612], [106, 612]], 109, 589, { shortLabel: '카라반', labelRotate: -73, labelFontSize: 8 });
+  addManualPath(map, 'splash-jacuzzi-425', '425', [[142, 642], [155, 672], [144, 683], [126, 649]], 141.8, 661.5, { shortLabel: '자쿠지', labelRotate: -74, labelFontSize: 8 });
+  addManualPath(map, 'splash-caravan-426', '426', [[108, 564], [130, 613], [112, 611], [94, 571]], 111, 589.8, { shortLabel: '카라반', labelRotate: -73, labelFontSize: 8 });
 
   addManualPath(map, 'outfield-reserved-509', '509', [[351, 39], [361, 31], [386, 12], [508, 12], [529, 31], [537, 39], [536, 40], [352, 40]], 446, 27, { labelFontSize: 9 });
   addManualPath(map, 'outfield-lawn-500', '500', [[141, 322], [158, 178], [261, 106], [269, 114], [280, 105], [292, 103], [294, 96], [304, 88], [308, 90], [330, 122], [329, 125], [215, 201], [147, 322]], 190, 174, {
@@ -1653,14 +1646,14 @@ function createDaejeonManualBlockGeometry(): ManualGeometryMap {
   addManualPath(map, 'outfield-table-first-504-508', '507', [[568, 134], [574, 126], [581, 117], [592, 103], [596, 98], [600, 97], [624, 116], [627, 119], [624, 123], [600, 153], [596, 157], [571, 138]], 597, 127, { labelRotate: 32, labelFontSize: 9 });
   addManualPath(map, 'outfield-table-first-504-508', '508', [[602, 162], [615, 145], [630, 126], [633, 123], [636, 125], [660, 144], [672, 154], [643, 180], [635, 187], [623, 178]], 636, 156, { labelRotate: 36, labelFontSize: 9 });
   addManualPath(map, 'outfield-accessible-third', '좌측 외야', [[273, 55], [305, 36], [322, 64], [291, 84]], 297, 61, { shortLabel: '휠체어', labelRotate: -28, labelFontSize: 10 });
-  addManualPath(map, 'outfield-accessible-first', '우측 외야', [[803, 425], [832, 419], [840, 450], [811, 459]], 821, 440, { shortLabel: '휠체어', labelRotate: -12, labelFontSize: 10 });
-  addManualPath(map, 'outfield-reserved-third-423-330', '424', [[146, 685], [147, 684], [151, 681], [157, 677], [158, 677], [164, 683], [173, 693], [180, 701], [180, 703], [179, 704], [169, 712], [164, 707], [148, 689], [146, 686]], 164, 696, {
+  addManualPath(map, 'outfield-accessible-first', '우측 외야', [[819, 420], [823, 457], [807, 460], [803, 421]], 813, 439.5, { shortLabel: '휠체어', labelRotate: -12, labelFontSize: 10 });
+  addManualPath(map, 'outfield-reserved-third-423-330', '424', [[158, 678], [180, 701], [169, 712], [146, 687]], 163.3, 694.5, {
     labelRotate: 55,
     labelFontSize: 7,
     reviewNote: '공식 좌석도 원본 이미지(920x1060) crop x=100..199, y=630..739에서 424 분홍색 셀의 색상 픽셀 외곽을 기준으로 보수적으로 수동 트레이싱했습니다.',
   });
 
-  overrideManualLabel(map, 'third-table-4f-414-330', '420', 263, 805);
+  overrideManualLabel(map, 'third-table-4f-414-330', '420', 271, 809);
   overrideManualLabel(map, 'third-table-4f-414-330', '328', 130, 577);
   overrideManualLabel(map, 'third-table-4f-414-330', '329', 116, 543);
 
@@ -2033,7 +2026,7 @@ export const DAEJEON_VIEW_INFO: Record<string, DaejeonViewInfo> = {
     photos: 0,
     rating: null,
     distance: '4층 중앙 박스석',
-    notes: '스카이박스 S01-S37은 중앙 4층의 독립 관람 구역을 대표합니다.',
+    notes: '스카이박스 S01-S31은 중앙 4층의 독립 관람 구역을 대표합니다.',
     tags: ['특화', '스카이박스', '4층', '중립'],
   },
   'first-table-4f-301-413': {

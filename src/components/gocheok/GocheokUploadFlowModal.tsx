@@ -165,7 +165,7 @@ export default function GocheokUploadFlowModal({ section, mode, onClose, onSubmi
               placeholder="이 자리의 장단점이나 팁을 공유해주세요"
               maxLength={140}
               rows={4}
-              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               style={{ fontFamily: 'inherit' }}
             />
             <div className="mt-1 text-right text-[10px] text-slate-400">{data.comment.length}/140</div>
@@ -176,7 +176,7 @@ export default function GocheokUploadFlowModal({ section, mode, onClose, onSubmi
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-xl border-0 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            className="cursor-pointer rounded-xl border-0 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-white"
           >
             취소
           </button>

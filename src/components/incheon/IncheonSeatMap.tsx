@@ -23,6 +23,7 @@ import { getIncheonOperatorVisitGuidance } from '../../data/incheonOperatorVisit
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
 import { useDiaryStore } from '../../store/diaryStore';
+import { formatManualBaseballDataDisplayValue } from '../../utils/manualBaseballDataContract';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import IncheonSeatMapSvg from './IncheonSeatMapSvg';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
@@ -147,7 +148,7 @@ function IncheonOperatorGuideRow({
       <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
         {label}
       </div>
-      <div className="break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
+      <div className="break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
         {value}
       </div>
     </div>
@@ -163,6 +164,7 @@ export function IncheonOperatorVisitGuidePanel({
 }) {
   const guidance = getIncheonOperatorVisitGuidance(section);
   const isOperatorProvided = guidance.operatorDataStatus === 'OPERATOR_PROVIDED';
+  const operatorDataStatusLabel = isOperatorProvided ? '운영자 자료 반영' : '운영자 제공 자료 필요';
   const cautionLabel = guidance.cautionNotes.length > 0
     ? guidance.cautionNotes.join(' / ')
     : guidance.operatorDataPendingLabel;
@@ -175,7 +177,7 @@ export function IncheonOperatorVisitGuidePanel({
       <div className="mb-3 flex flex-col gap-2">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">직관 동선 안내</h3>
-          <p className="mt-1 text-[11px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[11px] font-bold leading-relaxed text-slate-500 dark:text-white">
             운영자 검수 자료가 있는 항목만 표시합니다.
           </p>
         </div>
@@ -189,7 +191,7 @@ export function IncheonOperatorVisitGuidePanel({
           }}
         >
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          {isOperatorProvided ? '운영자 자료 반영' : guidance.operatorDataStatus}
+          {operatorDataStatusLabel}
         </span>
       </div>
 
@@ -197,27 +199,27 @@ export function IncheonOperatorVisitGuidePanel({
         <IncheonOperatorGuideRow
           testId="incheon-operator-row-entrance"
           label="권장 출입구"
-          value={guidance.recommendedEntranceLabel}
+          value={formatManualBaseballDataDisplayValue(guidance.recommendedEntranceLabel)}
         />
         <IncheonOperatorGuideRow
           testId="incheon-operator-row-facilities"
           label="가까운 시설"
-          value={guidance.nearbyFacilitiesLabel}
+          value={formatManualBaseballDataDisplayValue(guidance.nearbyFacilitiesLabel)}
         />
         <IncheonOperatorGuideRow
           testId="incheon-operator-row-notice"
           label="날짜별 운영 공지"
-          value={guidance.operationNoticeLabel}
+          value={formatManualBaseballDataDisplayValue(guidance.operationNoticeLabel)}
         />
         <IncheonOperatorGuideRow
           testId="incheon-operator-row-updated"
           label="최종 검수일"
-          value={guidance.lastUpdatedAtLabel}
+          value={formatManualBaseballDataDisplayValue(guidance.lastUpdatedAtLabel)}
         />
         <IncheonOperatorGuideRow
           testId="incheon-operator-row-cautions"
           label="주의 문구"
-          value={cautionLabel}
+          value={formatManualBaseballDataDisplayValue(cautionLabel)}
         />
       </div>
     </section>
@@ -255,7 +257,7 @@ function IncheonCompareTray({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">후보 비교</h3>
-          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-white">
             {comparisonBlocks.length}/{COMPARISON_LIMIT}개 선택
           </p>
         </div>
@@ -264,7 +266,7 @@ function IncheonCompareTray({
           data-testid="incheon-compare-clear"
           onClick={onClear}
           disabled={comparisonBlocks.length === 0}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
           style={{ borderColor }}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -287,7 +289,7 @@ function IncheonCompareTray({
                 className="rounded-xl border p-3"
                 style={{
                   borderColor: isSelected && accent ? accent : borderColor,
-                  background: mode === 'dark' ? '#020617' : '#f8fafc',
+                  background: mode === 'dark' ? '#000000' : '#f8fafc',
                 }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -303,10 +305,10 @@ function IncheonCompareTray({
                         {block.name}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {cat?.label ?? block.category} · {getIncheonSideLabel(block.side)} · {getIncheonFanRoleLabel(block.fanRole)}
                     </p>
-                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {block.level} · {(INCHEON_VIEW_INFO[block.id] ?? INCHEON_VIEW_INFO.default).distance}
                     </p>
                   </div>
@@ -332,7 +334,7 @@ function IncheonCompareTray({
                     type="button"
                     data-testid="incheon-compare-view"
                     onClick={() => onView(block)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
                     style={{ borderColor }}
                   >
                     <Eye className="h-3.5 w-3.5" />
@@ -354,7 +356,7 @@ function IncheonCompareTray({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs font-bold leading-relaxed text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs font-bold leading-relaxed text-slate-500 dark:border-slate-700 dark:text-white">
           블록 상세에서 비교에 추가를 눌러 후보를 담으세요.
         </div>
       )}
@@ -371,7 +373,7 @@ function IncheonCompareTray({
                   key={block.id}
                   data-testid={`incheon-recent-card-${block.id}`}
                   className="min-w-[150px] rounded-xl border px-2.5 py-2"
-                  style={{ borderColor, background: mode === 'dark' ? '#020617' : '#f8fafc' }}
+                  style={{ borderColor, background: mode === 'dark' ? '#000000' : '#f8fafc' }}
                 >
                   <div className="truncate text-xs font-black text-slate-900 dark:text-white">{block.block} {block.name}</div>
                   <div className="mt-2 grid grid-cols-2 gap-1">
@@ -379,7 +381,7 @@ function IncheonCompareTray({
                       type="button"
                       data-testid="incheon-recent-view"
                       onClick={() => onView(block)}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-slate-200"
+                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-white"
                       style={{ borderColor }}
                     >
                       보기
@@ -433,7 +435,7 @@ function IncheonFirstVisitGuide({
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 인천 가이드</h3>
-          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-white">
             {matches.length}개 블록
           </div>
         </div>
@@ -444,7 +446,7 @@ function IncheonFirstVisitGuide({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="블록/좌석 검색"
-            className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-slate-500 sm:w-56"
+            className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-slate-500 sm:w-56"
           />
         </div>
       </div>
@@ -487,23 +489,23 @@ function IncheonFirstVisitGuide({
                 className="shrink-0 cursor-pointer rounded-xl border px-3 py-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700"
                 style={{
                   borderColor: accent ? `${accent}66` : undefined,
-                  background: isDark ? '#020617' : '#f8fafc',
+                  background: isDark ? '#000000' : '#f8fafc',
                 }}
               >
                 <div className="text-xs font-black text-slate-900 dark:text-white">
                   {block.block}
-                  <span className="ml-1 font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="ml-1 font-semibold text-slate-500 dark:text-white">
                     {cat?.label ?? block.name}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-white">
                   {[...reasons.slice(0, 2), ...tags.slice(0, 1)].join(' · ')}
                 </div>
               </button>
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-white">
             검색 결과가 없습니다
           </div>
         )}
@@ -527,7 +529,7 @@ function ZoomControls({
   onFullscreen?: () => void;
   mode: 'light' | 'dark';
 }) {
-  const buttonClass = 'flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800';
+  const buttonClass = 'flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800';
   const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
 
   return (
@@ -549,7 +551,7 @@ function ZoomControls({
         aria-label="인천 좌석도 초기화"
         onClick={onReset}
         disabled={zoom === MIN_ZOOM}
-        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800"
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
         style={{ borderColor }}
       >
         {zoom.toFixed(2)}x
