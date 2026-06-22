@@ -125,7 +125,7 @@ describe('Home error UX', () => {
     getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
-  it('opens prediction for the selected home date from the primary CTA', () => {
+  it('opens prediction for the selected home date from the secondary prediction CTA', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
       body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17', '2026-03-01'),
@@ -143,7 +143,10 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeBootstrap');
-    cy.get('[data-testid="home-primary-prediction-cta"]').should('be.visible').click();
+    cy.get('[data-testid="home-secondary-prediction-cta"]')
+      .should('be.visible')
+      .and('have.attr', 'data-priority', 'secondary')
+      .click();
     cy.location('pathname').should('eq', '/prediction');
     cy.location('search').should('include', 'date=2026-03-16');
   });

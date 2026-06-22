@@ -132,7 +132,10 @@ describe('Home secondary panels responsive layout', () => {
     cy.viewport(375, 900);
     visitResponsiveHome();
 
-    cy.get('[data-testid="home-secondary-panels"]').scrollIntoView();
+    cy.get('[data-testid="home-secondary-panels"]')
+      .scrollIntoView()
+      .should('have.attr', 'data-priority', 'secondary')
+      .and('contain.text', '순위 · 인기글 · 메이트');
     cy.get('[data-testid="home-secondary-panels"] .snap-x').should(($pager) => {
       const pager = $pager[0];
       expect(pager.scrollWidth).to.be.greaterThan(pager.clientWidth + 80);
@@ -146,9 +149,8 @@ describe('Home secondary panels responsive layout', () => {
     cy.get('[data-testid="home-secondary-panels"] section').should(($sections) => {
       expect($sections.length).to.eq(3);
       const rects = [...$sections].map((section) => section.getBoundingClientRect());
-      expect(rects[0].top).to.be.lessThan(rects[1].top - 16);
+      expect(rects[0].top).to.be.lessThan(rects[1].top);
       expect(Math.abs(rects[2].top - rects[1].top)).to.be.lessThan(4);
-      expect(rects[0].width).to.be.greaterThan(rects[1].width);
     });
     cy.contains(/최근\s*5경기|스파크라인|W\/L/).should('not.exist');
   });

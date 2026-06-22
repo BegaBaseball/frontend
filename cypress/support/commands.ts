@@ -116,6 +116,12 @@ Cypress.Commands.add('login', (userType = 'user') => {
             body: { success: true, data: 0 },
         });
 
+        // Prevent Navbar DM inbox query from hitting the real backend.
+        cy.intercept('GET', '**/api/dm/rooms/my', {
+            statusCode: 200,
+            body: { success: true, data: [] },
+        });
+
         // Prevent Navbar notification polling from hitting the real backend during login visit.
         // mockAPI hasn't run yet at this point, so these requests would go unintercepted
         // and potentially flip module-level availability flags in notificationApi.ts.
@@ -137,6 +143,11 @@ Cypress.Commands.add('login', (userType = 'user') => {
         });
 
         cy.intercept('GET', '**/api/applications/my', {
+            statusCode: 200,
+            body: [],
+        });
+
+        cy.intercept('GET', '**/api/parties/search-terms/popular*', {
             statusCode: 200,
             body: [],
         });
@@ -193,6 +204,11 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
     });
 
     cy.intercept('GET', '**/api/applications/my', {
+        statusCode: 200,
+        body: [],
+    });
+
+    cy.intercept('GET', '**/api/parties/search-terms/popular*', {
         statusCode: 200,
         body: [],
     });
@@ -412,6 +428,11 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
             data: 0,
         },
     }).as('getChatUnreadCounts');
+
+    cy.intercept('GET', '**/api/dm/rooms/my', {
+        statusCode: 200,
+        body: { success: true, data: [] },
+    }).as('getDmRoomsDefault');
 
     // Follow counts: support both id-based and profile-handle routes with one alias.
     const followCountDefaults = {

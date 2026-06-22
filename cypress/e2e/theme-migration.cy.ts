@@ -1,6 +1,9 @@
 /// <reference types="cypress" />
 
 describe('Theme migration and initialization', () => {
+  const lightsOutDarkSurfaceColor = 'rgb(0, 0, 0)';
+  const lightsOutTextColor = 'rgb(255, 255, 255)';
+
   type ThemeSeedState = {
     kbo?: string | null;
     bega?: string | null;
@@ -132,10 +135,20 @@ describe('Theme migration and initialization', () => {
     openHomeWithThemeState({ kbo: '"dark"', bega: null, legacy: null }, false);
     cy.contains('KBO LEAGUE', { timeout: 20000 }).should('be.visible');
     cy.document().its('documentElement.classList').invoke('contains', 'dark').should('be.true');
+    cy.document().should((document) => {
+      const rootStyle = getComputedStyle(document.documentElement);
+      const bodyStyle = getComputedStyle(document.body);
+      expect(rootStyle.getPropertyValue('--surface-app-dark').trim()).to.eq('0 0% 0%');
+      expect(rootStyle.getPropertyValue('--surface-panel-dark').trim()).to.eq('0 0% 0%');
+      expect(rootStyle.getPropertyValue('--surface-panel-raised-dark').trim()).to.eq('0 0% 0%');
+      expect(bodyStyle.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+      expect(bodyStyle.color).to.eq(lightsOutTextColor);
+    });
     getHomeSurface()
       .should('have.class', 'bg-gray-50')
       .and('have.class', 'dark:bg-background')
       .invoke('css', 'background-color')
-      .should('not.eq', lightSurfaceColor);
+      .should('eq', lightsOutDarkSurfaceColor)
+      .and('not.eq', lightSurfaceColor);
   });
 });

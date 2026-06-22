@@ -28,7 +28,7 @@ const createMediaQueryList = (query: string, matches: boolean): MediaQueryList =
     dispatchEvent: () => false,
   }) as MediaQueryList;
 
-const visitLanding = (options?: { reducedMotion?: boolean }) => {
+const visitLanding = (options?: { reducedMotion?: boolean; holdDeferredSections?: boolean }) => {
   cy.intercept('GET', '**/auth/mypage*', {
     statusCode: 401,
     body: {
@@ -44,7 +44,9 @@ const visitLanding = (options?: { reducedMotion?: boolean }) => {
       installHomeAuthRequestTrace(win);
 
       if (!options?.reducedMotion) {
-        return;
+        if (!options?.holdDeferredSections) {
+          return;
+        }
       }
 
       const nativeMatchMedia = typeof win.matchMedia === 'function'
@@ -60,6 +62,23 @@ const visitLanding = (options?: { reducedMotion?: boolean }) => {
           ? nativeMatchMedia(query)
           : createMediaQueryList(query, false);
       };
+
+      if (options?.holdDeferredSections) {
+        class FrozenIntersectionObserver implements IntersectionObserver {
+          readonly root = null;
+          readonly rootMargin = '0px';
+          readonly thresholds = [0];
+
+          disconnect() {}
+          observe() {}
+          takeRecords() {
+            return [];
+          }
+          unobserve() {}
+        }
+
+        win.IntersectionObserver = FrozenIntersectionObserver as unknown as typeof IntersectionObserver;
+      }
     },
   });
 
@@ -122,6 +141,55 @@ describe('Landing design system pilot QA', () => {
 
       cy.screenshot(`landing-visual-${label}`);
     });
+  });
+
+  it('keeps the hero value proposition and product preview inside the first mobile viewport', () => {
+    cy.viewport(375, 812);
+    visitLanding();
+
+    cy.getBySel('landing-hero').within(() => {
+      cy.contains('BEGA').should('be.visible');
+      cy.get('.ds-hero-title').should('be.visible');
+      cy.get('.ds-section-copy').should('be.visible');
+      cy.getBySel('landing-hero-cta-primary').should('be.visible');
+      cy.get('.landing-hero-panel').should('be.visible');
+    });
+
+    cy.window().then((win) => {
+      const viewportBottom = win.innerHeight;
+
+      cy.get('.ds-kicker').first().should(($kicker) => {
+        expect($kicker[0].getBoundingClientRect().top).to.be.lessThan(128);
+      });
+
+      cy.get('.landing-hero-panel').should(($preview) => {
+        expect($preview[0].getBoundingClientRect().bottom).to.be.at.most(viewportBottom - 12);
+      });
+    });
+  });
+
+  it('uses one primary CTA and sends the secondary CTA to feature exploration', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('[data-cta-priority="primary"]').should('have.length', 1);
+    cy.getBySel('landing-hero-cta-secondary')
+      .should('contain', '기능 둘러보기')
+      .click();
+
+    cy.location('pathname').should('eq', '/');
+    cy.window().its('scrollY').should('be.greaterThan', 120);
+    cy.getBySel('landing-features').should('be.visible');
+  });
+
+  it('uses a compact skeleton while feature runtime is deferred', () => {
+    cy.viewport(375, 812);
+    visitLanding({ holdDeferredSections: true });
+
+    cy.getBySel('landing-features-placeholder').should(($placeholder) => {
+      expect($placeholder.outerHeight() ?? 0).to.be.at.most(420);
+    });
+    cy.getBySel('landing-features-placeholder-card').should('have.length.at.least', 3);
   });
 
   it('keeps feature accordion and scroll mockup behavior intact on desktop', () => {
