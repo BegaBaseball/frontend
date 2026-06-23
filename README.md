@@ -406,7 +406,7 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 | `VITE_GOOGLE_SITE_VERIFICATION` | Google Search Console 검증 메타 | 운영 릴리즈 필수 |
 | `VITE_NAVER_SITE_VERIFICATION` | 네이버 서치어드바이저 검증 메타 | 운영 릴리즈 필수 |
 
-운영 배포 시에는 `.env`/`.env.prod` 파일을 직접 source 하지 않고, 배포 실행기(`process.env`)에서 `VITE_*` 값을 주입해야 합니다.  
+운영 배포 시에는 `.env`/`.env.prod` 파일을 직접 source 하지 않고, 배포 실행기(`process.env`)에서 `VITE_*` 값을 주입해야 합니다.
 즉, `deploy:cloudflare`는 `VITE_*`를 배포기 환경 변수로 전달받을 때만 소유자 메타가 반영됩니다.
 
 ### 운영 배포 Env 계약(최소 값)
@@ -431,7 +431,7 @@ docker-compose up -d --build
 ### Cloudflare Worker 배포
 
 1. 배포기 env 계약 점검(운영): `VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_MATE_REQUIRE_SOCIAL_VERIFICATION`, `VITE_GA4_MEASUREMENT_ID`, `VITE_GOOGLE_SITE_VERIFICATION`, `VITE_NAVER_SITE_VERIFICATION` 주입 확인
-2. 배포 실행 전 strict + SEO 게이트 실행: `npm run deploy:cloudflare`  
+2. 배포 실행 전 strict + SEO 게이트 실행: `npm run deploy:cloudflare`
    (`npm run seo:env:check:strict` → `npm run seo:gate` → `wrangler deploy` 순)
 3. Cloudflare 로컬 확인: `npm run preview:cloudflare`
 4. 운영 배포: `CLOUDFLARE_API_TOKEN=... npm run deploy:cloudflare`
