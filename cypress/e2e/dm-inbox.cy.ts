@@ -118,9 +118,11 @@ describe('DM Inbox', () => {
         cy.visit('/mypage');
         cy.wait('@getDmInbox');
 
-        cy.get('[data-testid="navbar-dm-icon"]', { timeout: 10000 })
-            .should('be.visible')
-            .click();
+        // Navbar re-renders when its own ['dm','inbox'] query resolves, which can
+        // detach the icon mid-click. Assert visibility first, then issue click as a
+        // separate command so Cypress re-queries a fresh (attached) element.
+        cy.get('[data-testid="navbar-dm-icon"]', { timeout: 10000 }).should('be.visible');
+        cy.get('[data-testid="navbar-dm-icon"]').click();
 
         cy.url().should('include', '/messages');
     });
