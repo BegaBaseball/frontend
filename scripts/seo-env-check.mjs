@@ -1,37 +1,12 @@
-import path from 'node:path';
-import { loadEnv } from 'vite';
-
-const fileEnv = {
-  ...loadEnv('prod', process.cwd(), ''),
-  ...loadEnv('prod', path.resolve(process.cwd(), '..'), ''),
-};
+import {
+  createSeoRuntimeEnvReader,
+  formatSeoEnvSource,
+} from './seo-runtime-env.mjs';
 
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
 
-const readEnvValue = (key) => {
-  const processValue = String(process.env[key] || '').trim();
-  if (processValue) {
-    return { value: processValue, source: 'process' };
-  }
-
-  const fileValue = String(fileEnv[key] || '').trim();
-  if (!strict && fileValue) {
-    return { value: fileValue, source: 'file-fallback' };
-  }
-
-  return { value: '', source: 'missing' };
-};
-
-const formatEnvSource = (source) => {
-  if (source === 'process') {
-    return 'runtime env';
-  }
-  if (source === 'file-fallback') {
-    return '.env/.env.prod fallback';
-  }
-  return '미설정';
-};
+const readEnvValue = createSeoRuntimeEnvReader();
 
 const LOOPBACK_HOSTS = new Set([
   'localhost',
@@ -97,7 +72,7 @@ for (const key of requiredEnvKeys) {
   if (!value) {
     failures.push(`필수 env 누락: ${key}`);
   } else {
-    checks.push(`필수 env 확인: ${key} (${formatEnvSource(source)})`);
+    checks.push(`필수 env 확인: ${key} (${formatSeoEnvSource(source)})`);
   }
 }
 
@@ -149,7 +124,7 @@ for (const key of recommendedEnvKeys) {
       warnings.push('VITE_MATE_REQUIRE_SOCIAL_VERIFICATION은 true/false 중 하나여야 합니다.');
     }
   } else {
-    checks.push(`권장 env 확인: ${key} (${formatEnvSource(source)})`);
+    checks.push(`권장 env 확인: ${key} (${formatSeoEnvSource(source)})`);
   }
 }
 

@@ -13,6 +13,7 @@ import {
   seoPolicyPath,
   siteUrl,
 } from './seo-policy.mjs';
+import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 
 const args = process.argv.slice(2);
 let reportPath = '';
@@ -35,9 +36,11 @@ const addCheck = (message) => checks.push(message);
 
 const hasHangul = (value) => /[가-힣]/.test(value);
 const plainTextLength = (value) => [...String(value || '').trim()].length;
-const hasGaMeasurementId = Boolean(String(process.env.VITE_GA4_MEASUREMENT_ID || '').trim());
-const googleSiteVerification = String(process.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
-const naverSiteVerification = String(process.env.VITE_NAVER_SITE_VERIFICATION || '').trim();
+const readEnvValue = createSeoRuntimeEnvReader();
+const gaMeasurementId = readEnvValue('VITE_GA4_MEASUREMENT_ID').value;
+const googleSiteVerification = readEnvValue('VITE_GOOGLE_SITE_VERIFICATION').value;
+const naverSiteVerification = readEnvValue('VITE_NAVER_SITE_VERIFICATION').value;
+const hasGaMeasurementId = Boolean(gaMeasurementId);
 const hasGoogleSiteVerification = Boolean(googleSiteVerification);
 const hasNaverSiteVerification = Boolean(naverSiteVerification);
 const PLACEHOLDER_VERIFICATION_PATTERNS = [

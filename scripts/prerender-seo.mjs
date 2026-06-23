@@ -10,15 +10,19 @@ import {
   routeToOutputFile,
   siteUrl,
 } from './seo-policy.mjs';
+import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 
 const templatePath = path.join(distDir, 'index.html');
 const SEO_HEAD_SLOT = '<!-- SEO_HEAD_SLOT -->';
 const SEO_ROOT_SLOT = '<!-- SEO_ROOT_SLOT -->';
 
-export const readSiteVerificationEnv = () => ({
-  googleSiteVerification: String(process.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim(),
-  naverSiteVerification: String(process.env.VITE_NAVER_SITE_VERIFICATION || '').trim(),
-});
+export const readSiteVerificationEnv = (options = {}) => {
+  const readEnvValue = createSeoRuntimeEnvReader(options);
+  return {
+    googleSiteVerification: readEnvValue('VITE_GOOGLE_SITE_VERIFICATION').value,
+    naverSiteVerification: readEnvValue('VITE_NAVER_SITE_VERIFICATION').value,
+  };
+};
 
 const stripManagedSeoBlock = (html) => (
   html.replace(/<!-- SEO:START -->[\s\S]*?<!-- SEO:END -->/g, '')
