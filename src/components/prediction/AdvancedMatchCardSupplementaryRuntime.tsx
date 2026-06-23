@@ -31,6 +31,7 @@ interface AdvancedMatchCardSupplementaryRuntimeProps {
   isManualBaseballDataRequired?: boolean;
   liveEvents?: GameRelayEvent[];
   liveRelayError?: string | null;
+  liveRelayErrorCode?: string | null;
 }
 
 export default function AdvancedMatchCardSupplementaryRuntime({
@@ -49,6 +50,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
   isManualBaseballDataRequired = false,
   liveEvents = [],
   liveRelayError = null,
+  liveRelayErrorCode = null,
 }: AdvancedMatchCardSupplementaryRuntimeProps) {
   const headingTextStyle = getSectionHeadingTextStyle(isDarkMode);
   const shouldShowEmptyState = !gameDetailLoading
@@ -70,7 +72,11 @@ export default function AdvancedMatchCardSupplementaryRuntime({
   return (
     <div className="space-y-6">
       {liveEvents.length > 0 || liveRelayError ? (
-        <LiveRelayTimeline events={liveEvents} errorMessage={liveRelayError} />
+        <LiveRelayTimeline
+          events={liveEvents}
+          errorMessage={liveRelayError}
+          errorCode={liveRelayErrorCode}
+        />
       ) : null}
 
       {!gameDetailLoading && !shouldHideResultSections && timelineEntries.length > 0 ? (
@@ -82,13 +88,13 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       ) : null}
 
       {shouldShowEmptyState ? (
-        <div className="text-center text-[16px] text-gray-500 dark:text-gray-300">표시할 경기 상세 정보가 없습니다.</div>
+        <div className="text-center text-[16px] text-gray-500 dark:text-white">표시할 경기 상세 정보가 없습니다.</div>
       ) : null}
 
       {shouldShowManualTimelineState ? (
         <section data-testid="prediction-game-timeline-manual-required">
           <div
-            className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100"
+            className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -110,7 +116,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       ) : null}
 
       {refereeSummary ? (
-        <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[16px] text-gray-500 dark:text-gray-300">
+        <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[16px] text-gray-500 dark:text-white">
           심판: {refereeSummary.playerName || refereeSummary.detail || '정보 없음'}
         </div>
       ) : null}
@@ -118,7 +124,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       {shouldShowMatchEnvironment ? (
         <section>
           <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-gray-100"
+            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
@@ -126,20 +132,20 @@ export default function AdvancedMatchCardSupplementaryRuntime({
           </div>
           <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[16px] sm:grid-cols-3 sm:gap-3">
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">관중</p>
-              <p className="mt-1 font-bold text-gray-800 dark:text-gray-100">
+              <p className="text-[16px] text-gray-400 dark:text-white">관중</p>
+              <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {attendanceLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>
             </div>
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">날씨</p>
-              <p className="mt-1 font-bold text-gray-800 dark:text-gray-100">
+              <p className="text-[16px] text-gray-400 dark:text-white">날씨</p>
+              <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {weatherLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>
             </div>
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-gray-300">경기시간</p>
-              <p className="mt-1 font-bold text-gray-800 dark:text-gray-100">
+              <p className="text-[16px] text-gray-400 dark:text-white">경기시간</p>
+              <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {gameTimeLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>
             </div>

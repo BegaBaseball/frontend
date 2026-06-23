@@ -71,11 +71,10 @@ describe('Badge Showcase in Diary Statistics', () => {
     };
 
     const openStats = () => {
-        cy.contains('button', /통계 보기/, { timeout: 20000 })
+        cy.get('[data-testid="mypage-toggle-stats"]', { timeout: 20000 })
             .should('be.visible')
-            .as('statsButton');
-        cy.get('@statsButton').click({ force: true });
-        cy.contains(/업적 배지|나의 야구 기록 요약/, { timeout: 20000 }).should('be.visible');
+            .click({ force: true });
+        cy.contains(/업적 배지|현재 저장된 직관 기록/, { timeout: 20000 }).scrollIntoView().should('be.visible');
     };
 
     beforeEach(() => {
@@ -113,24 +112,24 @@ describe('Badge Showcase in Diary Statistics', () => {
 
     it('renders diary statistics section with badges after clicking stats button', () => {
         openStats();
-        cy.contains(/배지|Badge/i).should('be.visible');
+        cy.getBySel('mypage-badge-showcase').scrollIntoView().should('be.visible');
     });
 
     it('shows earned badges with color and unearned badges as locked', () => {
         openStats();
 
-        cy.contains(/업적 배지/).should('be.visible');
+        cy.contains(/업적 배지/).scrollIntoView().should('be.visible');
 
-        cy.contains(/업적 배지/).closest('[data-slot="card"]').as('badgeCard');
-        cy.get('@badgeCard').find('div.relative.w-16.h-16.rounded-full').should('have.length', 5);
-        cy.get('@badgeCard').find('div.relative.w-16.h-16.rounded-full.opacity-60').should('have.length', 2);
+        cy.getBySel('mypage-badge-showcase').as('badgeCard');
+        cy.get('@badgeCard').find('[data-testid="mypage-badge-orb"]').should('have.length', 5);
+        cy.get('@badgeCard').find('[data-testid="mypage-badge-orb"].opacity-60').should('have.length', 2);
         cy.get('@badgeCard').find('svg.lucide-lock').should('have.length', 2);
     });
 
     it('shows correct badge count (5 badges total)', () => {
         openStats();
 
-        cy.contains(/업적 배지 \(3\/5\)/).should('be.visible');
-        cy.contains(/나의 야구 기록 요약/).should('be.visible');
+        cy.contains(/업적 배지 \(3\/5\)/).scrollIntoView().should('be.visible');
+        cy.get('[data-screen-label="나의 기록"]').should('exist');
     });
 });

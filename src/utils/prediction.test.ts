@@ -4,6 +4,7 @@ import {
   COACH_BRIEFING_DISPLAY_MESSAGE,
   COACH_BRIEFING_MANUAL_HINT,
   buildCoachBriefingRequestDescriptor,
+  CoachAnalysisType,
   CoachRequestMode,
   getCoachAnalysisUnavailableMessage,
   getCoachAnalysisFocusSectionNotice,
@@ -12,13 +13,14 @@ import {
   getCoachBriefingGroundingReasonLabels,
   parseAiBriefing,
   resolveCoachAnalysisPresentation,
-  resolveCoachBriefingPolicy,
 } from './prediction';
+import { resolveCoachBriefingPolicy } from './predictionCoachPolicy';
 import type { Game } from '../types/prediction';
 
 const buildCoachBriefingDescriptor = ({
   game,
   requestMode = 'auto_brief',
+  analysisType = 'game_preview',
   focus = ['recent_form'],
   requestSeasonYear = 2026,
   requestLeagueTypeCode = 0,
@@ -29,6 +31,7 @@ const buildCoachBriefingDescriptor = ({
 }: {
   game?: Partial<Game>;
   requestMode?: CoachRequestMode;
+  analysisType?: CoachAnalysisType;
   focus?: string[];
   requestSeasonYear?: number;
   requestLeagueTypeCode?: number;
@@ -50,6 +53,7 @@ const buildCoachBriefingDescriptor = ({
     ...game,
   },
   requestMode,
+  analysisType,
   focus,
   requestSeasonYear,
   requestLeagueTypeCode,
@@ -291,6 +295,23 @@ test('buildCoachBriefingRequestDescriptor: 선발/순위 컨텍스트/focus/mode
   assert.notEqual(baseline.requestFingerprint, focusAndModeChanged.requestFingerprint);
 });
 
+test('buildCoachBriefingRequestDescriptor: analysisType을 payload와 fingerprint에 반영한다', () => {
+  const preview = buildCoachBriefingDescriptor({
+    requestMode: 'auto_brief',
+    analysisType: 'game_preview',
+  });
+  const review = buildCoachBriefingDescriptor({
+    requestMode: 'auto_brief',
+    analysisType: 'game_review',
+  });
+
+  assert.ok(preview);
+  assert.ok(review);
+  assert.equal(preview.requestPayload.analysis_type, 'game_preview');
+  assert.equal(review.requestPayload.analysis_type, 'game_review');
+  assert.notEqual(preview.requestFingerprint, review.requestFingerprint);
+});
+
 test('getCoachBriefingGroundingReasonLabels: 지원되는 코드만 지정 순서의 한국어 라벨로 정리한다', () => {
   const labels = getCoachBriefingGroundingReasonLabels([
     'missing_summary',
@@ -366,6 +387,7 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(postseasonPolicy.autoEnabled, true);
   assert.equal(postseasonPolicy.forceManual, false);
   assert.equal(postseasonPolicy.requestMode, 'auto_brief');
+  assert.equal(postseasonPolicy.analysisType, 'game_preview');
 
   const scheduledNonMeaningful = resolveCoachBriefingPolicy({
     canCallAI: true,
@@ -377,10 +399,12 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(scheduledNonMeaningful.autoEnabled, true);
   assert.equal(scheduledNonMeaningful.forceManual, false);
   assert.equal(scheduledNonMeaningful.requestMode, 'auto_brief');
+  assert.equal(scheduledNonMeaningful.analysisType, 'game_preview');
 
   const completedNonMeaningful = resolveCoachBriefingPolicy({
     canCallAI: true,
     isScheduledGame: false,
+    isCompletedGame: true,
     isPostseasonGame: false,
     isMeaningfulGame: false,
   });
@@ -388,6 +412,7 @@ test('resolveCoachBriefingPolicy: 경기 조건별 auto/manual 분기 정책을 
   assert.equal(completedNonMeaningful.autoEnabled, true);
   assert.equal(completedNonMeaningful.forceManual, false);
   assert.equal(completedNonMeaningful.requestMode, 'auto_brief');
+  assert.equal(completedNonMeaningful.analysisType, 'game_review');
 
   const meaningfulPolicy = resolveCoachBriefingPolicy({
     canCallAI: true,

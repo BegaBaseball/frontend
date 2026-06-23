@@ -51,7 +51,7 @@ Use this checklist when adding or refining a stadium seat map with the official 
 
 ## Incheon SSG Current Status
 
-- Source image: `src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.png`
+- Source image: `src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp`
 - Runtime image: `src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp`
 - Source URL: `https://www.ssglanders.com/game/ticket`
 - Native coordinate system: `3360x5328`
@@ -64,11 +64,11 @@ Use this checklist when adding or refining a stadium seat map with the official 
 
 ## Gocheok Kiwoom Current Status
 
-- Source image: `src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png`
+- Source image: `src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp`
 - Source URL: `https://www.sisul.or.kr/open_content/skydome/introduce/seat.jsp`
 - Native coordinate system: `653x960`
 - SVG viewBox: `0 0 653 960`
-- Official image hash: `c3e44086682b21f23179cf438fab4f6bd9bcc9b92152bb572f0887b5f122f528`
+- Official image hash: `ea95249b6f121e65b13435616768e2de433090be734de5d86c1effa40cfd64bd`
 - Rendering pattern: official PNG is rendered with SVG `<image>` and all hit-area paths share the same 653x960 coordinate system.
 - Reviewed trace group: `D01-D07`, `T01-T07`, `T11-T17`, `S01-S17`, `101-114`, `201-210`, `301-321`, `401-424`, `115-132`, `211-222`, `323-334`, `425-435`
 - Manual anchor blocks: `101`, `114`, `401`, `424`, `430`, `412`

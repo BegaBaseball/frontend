@@ -34,12 +34,8 @@ export default function AuthBootstrap() {
   });
   const shouldSkipPublicBootstrapForCypress =
     !isLoggedIn
-    && shouldSkipDeferredAuthBootstrapForCypress()
-    && (
-      normalizedPathname === '/'
-      || normalizedPathname === '/home'
-      || normalizedPathname === '/prediction'
-    );
+    && authBootstrapMode === 'defer'
+    && shouldSkipDeferredAuthBootstrapForCypress();
 
   const setPublicAuthBootstrapPhase = (phase: 'idle' | 'scheduled' | 'running') => {
     const currentPhase = useAuthStore.getState().publicAuthBootstrapPhase;

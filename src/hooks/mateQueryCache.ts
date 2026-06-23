@@ -28,6 +28,7 @@ export const invalidateMateCollectionQueries = (
 ) => settleMateQueryInvalidations([
   queryClient.invalidateQueries({ queryKey: MATE_KEYS.partyLists() }),
   queryClient.invalidateQueries({ queryKey: MATE_KEYS.myParties() }),
+  queryClient.invalidateQueries({ queryKey: MATE_KEYS.myPartyHistories() }),
 ]);
 
 export const invalidateMatePartyQueries = (
@@ -78,6 +79,7 @@ export const invalidateMatePartyQueries = (
     tasks.push(
       queryClient.invalidateQueries({ queryKey: MATE_KEYS.partyLists() }),
       queryClient.invalidateQueries({ queryKey: MATE_KEYS.myParties() }),
+      queryClient.invalidateQueries({ queryKey: MATE_KEYS.myPartyHistories() }),
     );
   }
 
@@ -143,6 +145,7 @@ export const updateMatePartyCollectionQueryData = (
           (parties) => (parties ? updateMatePartyArray(parties, partyId, updater) : parties),
         );
       });
+    void queryClient.invalidateQueries({ queryKey: MATE_KEYS.myPartyHistories() });
   }
 };
 

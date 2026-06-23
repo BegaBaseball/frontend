@@ -227,7 +227,8 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.reload();
     cy.wait('@getStadiumsFailure');
-    cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+    // React Query retries once (~1s delay) before isError=true; allow up to 10s
+    cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.', { timeout: 10000 }).should('be.visible');
     cy.get('#stadium-guide-select').should('be.disabled');
     categoryButton('구장 먹거리').should('be.disabled');
     searchInput().should('be.disabled');
@@ -267,7 +268,8 @@ describe('Stadium Guide Quality Flow', () => {
     placesPanel().contains('종합운동장역 6번 출구 픽업존').should('be.visible');
 
     categoryButton('구장 먹거리').click();
-    cy.wait('@getFoodPlaces');
+    // React Query caches food places (staleTime: 5 min) — no re-fetch on category switch back
+    placesPanel().contains('통밥').should('be.visible');
 
     searchInput().type('떡볶이');
     placesPanel().contains('이가네떡볶이').should('be.visible');
@@ -284,15 +286,12 @@ describe('Stadium Guide Quality Flow', () => {
   it('구장 목록/장소 목록 재시도 버튼이 각각 동작한다', () => {
     interceptGuestSession();
 
-    let stadiumCallCount = 0;
-    cy.intercept('GET', '**/api/stadiums', (req) => {
-      stadiumCallCount += 1;
-      if (stadiumCallCount <= 2) {
-        req.reply({ statusCode: 500, body: { message: 'fail' } });
-        return;
-      }
-      req.reply({ statusCode: 200, body: stadiums });
-    }).as('getStadiums');
+    // "항상 실패" intercept: counter-based 클로저는 Cypress Docker에서 count가
+    // 예상보다 늘어나 early-success가 되는 문제가 있음. 대신 명시적 전환 패턴 사용.
+    cy.intercept('GET', '**/api/stadiums', {
+      statusCode: 500,
+      body: { message: 'fail' },
+    }).as('getStadiumsFail');
 
     cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=food', {
       statusCode: 200,
@@ -300,28 +299,38 @@ describe('Stadium Guide Quality Flow', () => {
     }).as('getFoodPlaces');
 
     cy.visit('/stadium');
-    cy.wait('@getStadiums');
+    cy.wait('@getStadiumsFail');  // initial request (fails)
+    cy.wait('@getStadiumsFail');  // React Query auto-retry (fails) — isError=true only after both fail
     cy.contains('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').should('be.visible');
+
+    // LIFO: 성공 intercept를 먼저 등록한 뒤 클릭 — 이후 요청은 성공으로 처리됨
+    cy.intercept('GET', '**/api/stadiums', {
+      statusCode: 200,
+      body: stadiums,
+    }).as('getStadiumsSuccess');
     cy.contains('button', '재시도').click();
-    cy.wait('@getStadiums');
+    cy.wait('@getStadiumsSuccess');
     cy.wait('@getFoodPlaces');
     cy.get('#stadium-guide-select').should('contain', '서울 · 잠실야구장');
 
-    let placeCallCount = 0;
-    cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=delivery', (req) => {
-      placeCallCount += 1;
-      if (placeCallCount === 1) {
-        req.reply({ statusCode: 500, body: { message: 'fail' } });
-        return;
-      }
-      req.reply({ statusCode: 200, body: deliveryPlaces });
-    }).as('getDeliveryWithRetry');
+    // 장소 목록 재시도: 동일 패턴
+    cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=delivery', {
+      statusCode: 500,
+      body: { message: 'fail' },
+    }).as('getDeliveryFail');
 
     categoryButton('배달픽업존').click();
-    cy.wait('@getDeliveryWithRetry');
+    cy.wait('@getDeliveryFail');  // initial (fails)
+    cy.wait('@getDeliveryFail');  // auto-retry (fails) — isError=true
     placesPanel().contains('장소 목록을 불러오지 못했습니다.').should('be.visible');
+
+    // LIFO: 성공으로 전환 후 클릭
+    cy.intercept('GET', '**/api/stadiums/JAMSIL/places?category=delivery', {
+      statusCode: 200,
+      body: deliveryPlaces,
+    }).as('getDeliverySuccess');
     placesPanel().contains('button', '목록 다시 시도').click();
-    cy.wait('@getDeliveryWithRetry');
+    cy.wait('@getDeliverySuccess');
     placesPanel().contains('종합운동장역 6번 출구 픽업존').should('be.visible');
   });
 
@@ -412,6 +421,9 @@ describe('Stadium Guide Quality Flow', () => {
 
     cy.location('pathname').should('eq', '/mypage');
     cy.wait('@getDiaryEntries');
+    // pendingDraft is only applied in diary editor (DiaryformRuntime/useDiaryView).
+    // Clicking "기록 남기기" opens the diary editor which fetches games and applies the draft.
+    cy.get('[data-testid="mypage-season-write-cta"]', { timeout: 10000 }).should('be.visible').click();
     cy.wait('@getDiaryGames');
     cy.contains('대구 좌석 정보가 반영되었습니다').should('be.visible');
     cy.get('input[placeholder="구역 (예: 1루 레드석)"]').should('have.value', '원정 응원석 1-1');
@@ -483,9 +495,9 @@ describe('Stadium Guide Quality Flow', () => {
     cy.wait('@getDeliveryPlaces');
     mobilePlacesPanel().contains('종합운동장역 6번 출구 픽업존').should('be.visible');
 
-    // 구장 먹거리로 복귀
+    // 구장 먹거리로 복귀 (cached by React Query staleTime:5min — no re-fetch)
     mobileCategoryButton('구장 먹거리').click();
-    cy.wait('@getFoodPlaces');
+    mobilePlacesPanel().contains('통밥').should('be.visible');
 
     // expand 상태 리셋 확인
     mobilePlacesPanel().find('[id="place-101"]').contains('📍').should('not.be.visible');

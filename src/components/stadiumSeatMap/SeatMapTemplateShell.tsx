@@ -70,6 +70,13 @@ export function SeatMapTemplateShell({
     </div>
   ) : null;
   const hasDesktopPanel = !isAuxiliaryGuideActive && Boolean(resolvedDesktopPanel);
+  const hasMobileSecondaryPanel = !isAuxiliaryGuideActive && Boolean(resolvedMobileSecondaryPanel);
+  const hasMobileBottomReserve = !isAuxiliaryGuideActive && (Boolean(mobileBottomSheet) || mobileHasSidePanel);
+  const mobileBottomPaddingClass = hasMobileBottomReserve
+    ? 'pb-[calc(20rem+var(--mobile-content-safe-bottom))]'
+    : hasMobileSecondaryPanel
+      ? 'pb-[var(--mobile-footer-safe-bottom)]'
+      : 'pb-[var(--mobile-content-safe-bottom)]';
   const mapSection = (
     <div
       className="relative"
@@ -107,7 +114,7 @@ export function SeatMapTemplateShell({
   return (
     <>
       {isMobile ? (
-        <div className={isAuxiliaryGuideActive || !mobileHasSidePanel ? 'pb-4' : 'pb-80'}>
+        <div className={mobileBottomPaddingClass}>
           {!isAuxiliaryGuideActive && (mobileFilterBar ?? filterBar)}
 
           {mapFrame}

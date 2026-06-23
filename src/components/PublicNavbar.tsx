@@ -1,6 +1,7 @@
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import './NavigationMenu.css';
-import { type ComponentType, type CSSProperties, lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { type ComponentType, type CSSProperties, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAnimatedPresence } from '../hooks/useAnimatedPresence';
 import { useAuthBootstrapUiState } from '../hooks/useAuthBootstrapUiState';
@@ -9,10 +10,11 @@ import ThemeToggleButton from './ThemeToggleButton';
 import NavbarNotificationControls from './NavbarNotificationControls';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { publicNavbarNavItems } from './publicNavbarNavItems';
-import { CloseIcon, LineChartIcon, MapIcon, MegaphoneIcon, MenuIcon, UsersIcon } from './icons/PublicShellIcons';
+import { CloseIcon, LineChartIcon, MapIcon, MegaphoneIcon, MenuIcon, MessageSquareIcon, UsersIcon } from './icons/PublicShellIcons';
 import { useScrollMetrics } from '../hooks/useScrollStage';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/utils';
+import { loadPredictionPage } from './lazyRouteLoaders';
 
 const NAV_ITEM_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   cheer: MegaphoneIcon,
@@ -52,16 +54,42 @@ export default function PublicNavbar() {
   const logoSubtitleProgress = Math.min(1, shrinkProgress * 1.6);
   const { theme, resolvedTheme } = useTheme();
   const isDarkMode = (resolvedTheme || theme) === 'dark';
-  const navIconButtonClass = 'relative h-9 w-9 p-2 rounded-full transition-all duration-200 focus:outline-none';
-  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8`;
+  const navIconButtonClass = 'relative inline-flex h-11 w-11 items-center justify-center rounded-full p-2 transition-all duration-200 focus:outline-none';
+  const navIconToggleClass = `${navIconButtonClass} focus:ring-2 focus:ring-primary/50 text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8`;
   const navIconSizeClass = 'h-5 w-5';
-  const prefetchPredictionPage = () => {
-    void import('./Prediction');
-  };
 
+  const { data: dmRoomsData } = useQuery({
+    queryKey: ['dm', 'inbox'],
+    queryFn: async () => { const { fetchMyDmRooms } = await import('../api/dm'); return fetchMyDmRooms(); },
+    staleTime: 30_000,
+    enabled: isLoggedIn,
+  });
+  const dmUnreadCount = dmRoomsData?.filter((r) => r.hasUnread).length ?? 0;
   const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
+  const predictionPrefetchedRef = useRef(false);
+
+  const prefetchPredictionPage = useCallback(() => {
+    if (predictionPrefetchedRef.current) {
+      return;
+    }
+
+    predictionPrefetchedRef.current = true;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    };
+    const load = () => {
+      void loadPredictionPage();
+    };
+
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleWindow.requestIdleCallback(load, { timeout: 1200 });
+      return;
+    }
+
+    window.setTimeout(load, 300);
+  }, []);
 
   useBodyScrollLock(shouldRenderMobileMenu);
 
@@ -126,11 +154,11 @@ export default function PublicNavbar() {
 
   const capsuleGlass = shouldRenderMobileMenu
     ? 'bg-background border-gray-200/80 dark:border-gray-800'
-    : 'bg-white/72 dark:bg-[rgba(22,24,28,.66)] backdrop-blur-xl border-white/80 dark:border-white/8 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.04),0_20px_50px_-20px_rgba(0,0,0,.65)]';
+    : 'bg-white/72 dark:bg-[rgba(0,0,0,.66)] backdrop-blur-xl border-white/80 dark:border-white/8 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.04),0_20px_50px_-20px_rgba(0,0,0,.65)]';
 
   return (
     <>
-    <header className="sticky top-0 z-[60] px-3 py-2 md:px-4 md:py-1.5 relative overflow-hidden">
+    <header className="sticky top-0 z-[60] px-3 py-2 md:px-4 md:py-1.5 relative overflow-x-clip">
       {/* Backdrop tint — visible only at stage 0 */}
       <div
         aria-hidden="true"
@@ -152,7 +180,7 @@ export default function PublicNavbar() {
         <button
           type="button"
           onClick={() => navigate('/home')}
-          className="flex items-center gap-2 shrink-0 group"
+          className="flex min-h-11 items-center gap-2 shrink-0 group rounded-full px-1"
         >
           <img
             src={baseballLogo}
@@ -164,7 +192,7 @@ export default function PublicNavbar() {
               BEGA
             </h1>
             <p
-              className="hidden overflow-hidden text-[10px] font-bold text-muted-foreground dark:text-gray-400 tracking-tight transition-[opacity,max-height,transform] duration-150 ease-out md:block"
+              className="hidden overflow-hidden text-[10px] font-bold text-muted-foreground dark:text-white tracking-tight transition-[opacity,max-height,transform] duration-150 ease-out md:block"
               style={{
                 maxHeight: `${10 * (1 - logoSubtitleProgress)}px`,
                 opacity: 1 - logoSubtitleProgress,
@@ -198,7 +226,7 @@ export default function PublicNavbar() {
                       'relative rounded-full font-bold transition-[height,padding,font-size,background-color,color,box-shadow] duration-150 ease-out whitespace-nowrap',
                       isActive
                         ? 'bg-white text-primary shadow-sm dark:bg-primary/70 dark:text-white'
-                        : 'text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100',
+                        : 'text-muted-foreground hover:text-foreground dark:text-white dark:hover:text-gray-100',
                     )}
                     style={navItemStyle}
                   >
@@ -220,6 +248,23 @@ export default function PublicNavbar() {
             <NavbarNotificationControls buttonClassName={navIconToggleClass} />
           )}
 
+          {isLoggedIn && isDesktop && (
+            <button
+              type="button"
+              aria-label="메시지 함"
+              onClick={() => navigate('/messages')}
+              className={`${navIconToggleClass} relative`}
+              data-testid="navbar-dm-icon"
+            >
+              <MessageSquareIcon className={navIconSizeClass} />
+              {dmUnreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                  {dmUnreadCount > 99 ? '99+' : dmUnreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {isDesktop && (
             <Suspense fallback={<div className="h-8 w-24 rounded-full bg-gray-100 dark:bg-secondary animate-pulse ml-1" />}>
               <div className="flex items-center gap-1.5 ml-1">
@@ -236,6 +281,22 @@ export default function PublicNavbar() {
               {shouldShowMobileNotificationButton && (
                 <NavbarNotificationControls buttonClassName={navIconToggleClass} />
               )}
+              {isLoggedIn && !shouldRenderMobileMenu && (
+                <button
+                  type="button"
+                  aria-label="메시지 함"
+                  onClick={() => navigate('/messages')}
+                  className={`${navIconToggleClass} relative`}
+                  data-testid="navbar-dm-icon"
+                >
+                  <MessageSquareIcon className={navIconSizeClass} />
+                  {dmUnreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                      {dmUnreadCount > 99 ? '99+' : dmUnreadCount}
+                    </span>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 ref={menuToggleButtonRef}
@@ -244,7 +305,7 @@ export default function PublicNavbar() {
                   'focus:ring-2 focus:ring-primary/50',
                   isMenuOpen
                     ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
+                    : 'text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
                 )}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
@@ -290,11 +351,14 @@ export default function PublicNavbar() {
 
     {!shouldRenderMobileMenu && !shouldDeferMobileBottomTabbar && (
       <nav
-        className="md:hidden fixed bottom-4 inset-x-3.5 z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        data-testid="public-mobile-bottom-nav"
+        className="md:hidden fixed inset-x-3.5 z-50"
+        style={{
+          bottom: 'calc(var(--mobile-chrome-bottom-offset) + env(safe-area-inset-bottom))',
+        }}
         aria-label="하단 탭바"
       >
-        <div className="h-16 rounded-3xl bg-white/85 dark:bg-[#16181c]/85 backdrop-blur-xl backdrop-saturate-150 border border-white/90 dark:border-white/10 shadow-[0_18px_40px_-16px_rgba(15,67,56,.32)] grid grid-cols-4 p-1.5 gap-0.5">
+        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-white/90 bg-white/85 p-1.5 shadow-[0_18px_40px_-16px_rgba(15,67,56,.32)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[hsl(var(--surface-raised)/0.85)]">
           {publicNavbarNavItems.map((item) => {
             const Icon = NAV_ITEM_ICONS[item.id];
             const isActive = location.pathname === `/${item.id}`;
@@ -307,10 +371,10 @@ export default function PublicNavbar() {
                 onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                 onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                 className={cn(
-                  'relative flex flex-col items-center justify-center gap-0.5 rounded-[18px] transition-colors duration-150',
+                  'relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[18px] transition-colors duration-150',
                   isActive
                     ? 'bg-primary text-white dark:bg-primary/80'
-                    : 'text-muted-foreground hover:text-foreground dark:text-gray-400',
+                    : 'text-muted-foreground hover:text-foreground dark:text-white',
                 )}
               >
                 {Icon && <Icon className="w-5 h-5 shrink-0" />}

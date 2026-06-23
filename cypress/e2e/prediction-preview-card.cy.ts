@@ -267,6 +267,25 @@ describe('Prediction preview schedule', () => {
         cy.wait('@getGameDetailPreview');
     });
 
+    it('opens a completed game detail automatically from a date-only URL', () => {
+        cy.viewport(1280, 720);
+        interceptPreviewApis(baseGames.map((game, index) => ({
+            ...game,
+            gameStatus: 'COMPLETED',
+            awayScore: index === 0 ? 4 : 2,
+            homeScore: index === 0 ? 3 : 5,
+            winner: index === 0 ? 'away' : 'home',
+        })));
+        openPreview();
+
+        cy.location('search', { timeout: 20000 })
+            .should('include', 'gameId=20990501KIANC0')
+            .and('include', `date=${targetDate}`);
+        cy.wait('@getGameDetailPreview');
+        cy.get('[data-testid="prediction-match-detail-root"]', { timeout: 20000 }).should('be.visible');
+        cy.get('[data-testid="prediction-match-preview-root"]').should('not.exist');
+    });
+
     it('returns to the prediction schedule preview after browser back from an internally opened detail', () => {
         cy.viewport(1280, 720);
         interceptPreviewApis();

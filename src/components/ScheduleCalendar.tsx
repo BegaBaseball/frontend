@@ -3,10 +3,12 @@ import type { Game } from '@/types/home';
 import TeamLogo from '@/components/TeamLogo';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
 import GameCard from '@/components/GameCard';
 import ScheduledGameCard from '@/components/ScheduledGameCard';
 import { isManualBaseballDataRequiredCode, MANUAL_BASEBALL_DATA_REQUIRED_CODE } from '@/utils/errorUtils';
 import { normalizePredictionDate } from '@/utils/predictionHomeLogic';
+import { getGameStatusBadgeMeta } from '@/utils/statusBadgeMeta';
 import {
   buildScheduleMonthDates,
   formatScheduleDateKey,
@@ -16,14 +18,6 @@ import {
 } from '@/utils/scheduleCalendar';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
-
-const STATUS_BADGE: Record<string, string> = {
-  SCHEDULED: 'bg-slate-100 text-slate-700',
-  IN_PROGRESS: 'bg-red-100 text-red-700 animate-pulse',
-  FINAL: 'bg-emerald-100 text-emerald-700',
-  POSTPONED: 'bg-amber-100 text-amber-700',
-  CANCELLED: 'bg-zinc-200 text-zinc-500 line-through',
-};
 
 function buildMonthGrid(cursor: Date): Date[] {
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -378,12 +372,21 @@ export default function ScheduleCalendar({
               <div className="flex flex-col gap-0.5 overflow-hidden">
                 {dayGames.slice(0, 3).map((g) => {
                   const status = (g.gameStatus || '').toUpperCase();
-                  const badgeClass = STATUS_BADGE[status] ?? 'bg-slate-100 text-slate-600';
+                  const statusMeta = getGameStatusBadgeMeta(status);
                   return (
                     <div
                       key={g.gameId}
-                      className={`flex items-center gap-1 truncate rounded px-1 py-0.5 text-[10px] sm:text-xs ${badgeClass}`}
+                      className="flex items-center gap-1 truncate rounded border border-slate-200/80 bg-white px-1 py-0.5 text-[10px] text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.03)] dark:border-white/10 dark:bg-slate-900/70 dark:text-white sm:text-xs"
+                      title={statusMeta.label}
                     >
+                      <StatusBadge
+                        tone={statusMeta.tone}
+                        marker={statusMeta.marker}
+                        live={statusMeta.live}
+                        label={null}
+                        variant="line"
+                        size="xs"
+                      />
                       <TeamLogo team={g.awayTeam} size="sm" className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden sm:inline">vs</span>
                       <TeamLogo team={g.homeTeam} size="sm" className="h-3 w-3 sm:h-4 sm:w-4" />

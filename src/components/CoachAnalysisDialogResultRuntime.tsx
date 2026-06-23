@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type SVGProps } from 'react';
 import { Button } from './ui/button';
 import ErrorBoundary from './common/ErrorBoundary';
 
@@ -12,11 +12,9 @@ import {
 } from '../api/coach';
 import {
     COACH_BRIEFING_DISPLAY_MESSAGE,
-    COACH_BRIEFING_MANUAL_HINT,
     getCoachBriefingDataQualityNotice,
-    normalizeCoachBriefing,
     resolveCoachAnalysisPresentation,
-} from '../utils/prediction';
+} from '../utils/predictionCoachPresentation';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import {
     normalizeStructuredInlineText,
@@ -24,9 +22,25 @@ import {
     normalizeVerdictText,
     sanitizeMarkdown,
 } from '../utils/coachAnalysisText';
-import { PredictionLoaderIcon } from './prediction/PredictionShellIcons';
 
 const CoachAnalysisResultView = lazy(() => import('./prediction/CoachAnalysisResultView'));
+
+function CoachResultLoaderIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            {...props}
+        >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        </svg>
+    );
+}
 
 type ParsedCoachAnalysisData = {
     dashboard?: {
@@ -90,14 +104,10 @@ const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
 const normalizeLegacyTextBlock = (
     value: string,
     fallbackMessage = COACH_BRIEFING_DISPLAY_MESSAGE,
-) => normalizeCoachBriefing(
-    { message: value || '' },
-    {
-        fallbackTitle: 'AI 코치 상세 분석',
-        fallbackMessage,
-        fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-    },
-).displayText;
+) => {
+    const normalized = sanitizeMarkdown(value || '').trim();
+    return normalized || fallbackMessage;
+};
 
 const deriveMetricCategory = (label: string): string => {
     if (label.includes('선발')) return '선발';
@@ -171,6 +181,20 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
         const source = risk as Record<string, unknown>;
         const area = typeof source.area === 'string' ? source.area.trim() : '';
         const description = typeof source.description === 'string' ? source.description.trim() : '';
+        const inningLabel = typeof source.inning_label === 'string' ? source.inning_label.trim() : '';
+        const impact = typeof source.impact === 'string' ? source.impact.trim() : '';
+        const impactToRaw = typeof source.impact_to === 'string' ? source.impact_to.trim().toLowerCase() : '';
+        const impactTo = impactToRaw === 'home' || impactToRaw === 'away' || impactToRaw === 'both'
+            ? impactToRaw
+            : undefined;
+        const inningStartRaw = Number(source.inning_start);
+        const inningEndRaw = Number(source.inning_end);
+        const inningStart = Number.isInteger(inningStartRaw) && inningStartRaw >= 1 && inningStartRaw <= 12
+            ? inningStartRaw
+            : undefined;
+        const inningEnd = Number.isInteger(inningEndRaw) && inningEndRaw >= 1 && inningEndRaw <= 12
+            ? inningEndRaw
+            : undefined;
         const candidate = Number(source.level);
         const level = (Number.isInteger(candidate) && candidate >= 0 && candidate <= 2)
             ? (candidate as 0 | 1 | 2)
@@ -184,6 +208,11 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
             area,
             description,
             level,
+            inning_label: inningLabel || undefined,
+            inning_start: inningStart,
+            inning_end: inningEnd,
+            impact: impact || undefined,
+            impact_to: impactTo,
         });
     });
 
@@ -278,7 +307,7 @@ export const getAnalysisData = ({
     isFutureGame: boolean;
     gameStatusBucket?: string | null;
 }): CoachAnalysisData | null => {
-    if (result?.manual_data_request) {
+    if (result?.error || result?.manual_data_request) {
         return null;
     }
 
@@ -295,17 +324,11 @@ export const getAnalysisData = ({
             ? '실데이터를 바탕으로 승부처와 전개 가능성을 전망한 리포트입니다.'
             : '실데이터를 바탕으로 승부처를 해석한 리포트입니다.';
 
-    const normalizeDashboardContext = (headline: string, context: string) => normalizeCoachBriefing(
-        {
-            title: headline,
-            message: context || '',
-        },
-        {
-            fallbackTitle: defaultAnalysisTitle,
-            fallbackMessage: defaultAnalysisMessage,
-            fallbackHintMessage: COACH_BRIEFING_MANUAL_HINT,
-        },
-    );
+    const normalizeDashboardContext = (headline: string, context: string) => ({
+        title: headline || defaultAnalysisTitle,
+        message: normalizeLegacyTextBlock(context, defaultAnalysisMessage),
+        displayText: normalizeLegacyTextBlock(context, defaultAnalysisMessage),
+    });
 
     const normalizeAnalysisSection = (analysis?: {
         summary?: string;
@@ -610,6 +633,13 @@ interface CoachAnalysisDialogResultRuntimeProps {
     loadingFallbackMessage: string;
     homeTeamId?: string;
     awayTeamId?: string;
+    initialWinProbabilityHome?: number | null;
+    initialDataQuality?: CoachDataQuality;
+    initialSupportedFactCount?: number;
+    initialUsedEvidence?: string[];
+    initialGroundingWarnings?: string[];
+    initialGroundingReasons?: string[];
+    initialFreshnessLabel?: string | null;
 }
 
 function CoachAnalysisResultViewLoadFailureFallback({
@@ -662,6 +692,13 @@ export default function CoachAnalysisDialogResultRuntime({
     loadingFallbackMessage,
     homeTeamId,
     awayTeamId,
+    initialWinProbabilityHome = null,
+    initialDataQuality,
+    initialSupportedFactCount,
+    initialUsedEvidence,
+    initialGroundingWarnings,
+    initialGroundingReasons,
+    initialFreshnessLabel,
 }: CoachAnalysisDialogResultRuntimeProps) {
     const [resultViewRetryKey, setResultViewRetryKey] = useState(0);
     const resultBoundaryToken = useMemo(
@@ -695,28 +732,34 @@ export default function CoachAnalysisDialogResultRuntime({
     }, [resultBoundaryToken]);
     const analysisDataQualityNotice = useMemo(
         () => (
-            result?.manual_data_request
+            result?.error
+                ? null
+                : result?.manual_data_request
                 ? {
                     message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
                     reasons: [],
                     details: [],
                 }
                 : getCoachBriefingDataQualityNotice(
-                    result?.data_quality,
-                    result?.grounding_reasons,
-                    result?.grounding_warnings,
+                    result?.data_quality ?? initialDataQuality,
+                    result?.grounding_reasons ?? initialGroundingReasons,
+                    result?.grounding_warnings ?? initialGroundingWarnings,
                 )
         ),
         [
             result?.data_quality,
+            result?.error,
             result?.grounding_reasons,
             result?.grounding_warnings,
             result?.manual_data_request,
+            initialDataQuality,
+            initialGroundingReasons,
+            initialGroundingWarnings,
         ],
     );
     const analysisDataQualityLabel = useMemo(
-        () => getCoachDataQualityLabel(result?.data_quality),
-        [result?.data_quality],
+        () => getCoachDataQualityLabel(result?.data_quality ?? initialDataQuality),
+        [initialDataQuality, result?.data_quality],
     );
 
     return (
@@ -725,10 +768,10 @@ export default function CoachAnalysisDialogResultRuntime({
                 <div className="p-6">
                     <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
-                            <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
+                            <CoachResultLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
                             <span className="text-[15px] font-extrabold">{analysisStep || loadingFallbackMessage}</span>
                         </div>
-                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-slate-400">
+                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-white">
                             응답을 C1 코치 리포트 구조로 정리하고 있습니다.
                         </p>
                     {!result && (
@@ -787,13 +830,16 @@ export default function CoachAnalysisDialogResultRuntime({
                             analysisData={analysisData}
                             homeTeamId={homeTeamId}
                             awayTeamId={awayTeamId}
-                            winProbabilityHome={result?.win_probability_home ?? null}
+                            winProbabilityHome={result?.win_probability_home ?? initialWinProbabilityHome ?? null}
                             dataQualityLabel={analysisDataQualityLabel}
                             dataQualityMessage={analysisDataQualityNotice?.message}
-                            supportedFactCount={result?.supported_fact_count}
-                            usedEvidence={result?.used_evidence}
-                            dataQuality={result?.data_quality}
+                            supportedFactCount={result?.supported_fact_count ?? initialSupportedFactCount}
+                            usedEvidence={result?.used_evidence ?? initialUsedEvidence}
+                            groundingWarnings={result?.grounding_warnings ?? initialGroundingWarnings}
+                            groundingReasons={result?.grounding_reasons ?? initialGroundingReasons}
+                            dataQuality={result?.data_quality ?? initialDataQuality}
                             generationMode={result?.generation_mode}
+                            freshnessLabel={result ? '방금 갱신' : initialFreshnessLabel}
                         />
                     </Suspense>
                 </ErrorBoundary>

@@ -51,6 +51,10 @@ const baseUrl = normalizeSiteUrl(argMap.get('--base-url') || process.env.VITE_SI
 const expectedSiteUrl = normalizeSiteUrl(
   argMap.get('--expected-site-url') || process.env.VITE_SITE_URL || defaultSiteUrl,
 );
+const googleSiteVerification = String(process.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
+const naverSiteVerification = String(process.env.VITE_NAVER_SITE_VERIFICATION || '').trim();
+const hasGoogleSiteVerification = Boolean(googleSiteVerification);
+const hasNaverSiteVerification = Boolean(naverSiteVerification);
 
 const checks = [];
 const failures = [];
@@ -114,6 +118,26 @@ const validateHeadTags = (html, routePath) => {
   }
   if (html.includes('SEO_HEAD_SLOT') || html.includes('SEO_ROOT_SLOT')) {
     messages.push('SEO 슬롯 문자열 잔존');
+  }
+
+  if (hasGoogleSiteVerification) {
+    const googleTag = html.match(/<meta\s+name=["']google-site-verification["'][^>]*>/i);
+    if (!googleTag) {
+      messages.push('google-site-verification 메타 누락');
+    } else if (!googleTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ||
+      googleTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] !== googleSiteVerification) {
+      messages.push('google-site-verification 메타 값 불일치');
+    }
+  }
+
+  if (hasNaverSiteVerification) {
+    const naverTag = html.match(/<meta\s+name=["']naver-site-verification["'][^>]*>/i);
+    if (!naverTag) {
+      messages.push('naver-site-verification 메타 누락');
+    } else if (!naverTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ||
+      naverTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] !== naverSiteVerification) {
+      messages.push('naver-site-verification 메타 값 불일치');
+    }
   }
   return messages;
 };

@@ -1,20 +1,28 @@
 // src/utils/mate.ts
 import { BadgeType, MateHistoryTab, MateParty, MatePartySeed, MateRouteLocationState, Party, PartyStatus } from '../types/mate';
+import { getMateStatusBadgeMeta, getStatusBadgeToneColor } from './statusBadgeMeta';
 
-interface BackendPartyDTO {
+interface BackendLocalTime {
+  hour?: number;
+  minute?: number;
+  second?: number;
+  nano?: number;
+}
+
+export interface BackendPartyDTO {
   id: number;
-  hostId?: number;
-  hostHandle?: string;
+  hostId?: number | null;
+  hostHandle?: string | null;
   hostName: string;
-  hostProfileImageUrl?: string;
-  hostFavoriteTeam?: string;
+  hostProfileImageUrl?: string | null;
+  hostFavoriteTeam?: string | null;
   hostBadge: string;
   hostAverageRating?: number | null;
   hostReviewCount?: number;
   teamId: string;
   cheeringSide?: Party['cheeringSide'];
   gameDate: string;
-  gameTime: string;
+  gameTime: string | BackendLocalTime;
   stadium: string;
   homeTeam: string;
   awayTeam: string;
@@ -23,10 +31,12 @@ interface BackendPartyDTO {
   currentParticipants: number;
   description: string;
   ticketVerified: boolean;
-  ticketImageUrl?: string;
+  ticketImageUrl?: string | null;
   status: PartyStatus;
-  price?: number;
-  ticketPrice?: number;
+  price?: number | null;
+  ticketPrice?: number | null;
+  reservationDepositAmount?: number | null;
+  hostTrustMetrics?: Party['hostTrustMetrics'];
   createdAt: string;
 }
 
@@ -38,20 +48,30 @@ const normalizeBadgeType = (badge: string): BadgeType => {
   return 'NEW';
 };
 
+const formatBackendGameTime = (value: BackendPartyDTO['gameTime']): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  const hour = `${value.hour ?? 0}`.padStart(2, '0');
+  const minute = `${value.minute ?? 0}`.padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
 export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party => ({
   id: backendParty.id,
-  hostId: backendParty.hostId,
-  hostHandle: backendParty.hostHandle,
+  hostId: backendParty.hostId ?? undefined,
+  hostHandle: backendParty.hostHandle ?? undefined,
   hostName: backendParty.hostName,
-  hostProfileImageUrl: backendParty.hostProfileImageUrl,
-  hostFavoriteTeam: backendParty.hostFavoriteTeam,
+  hostProfileImageUrl: backendParty.hostProfileImageUrl ?? undefined,
+  hostFavoriteTeam: backendParty.hostFavoriteTeam ?? undefined,
   hostBadge: normalizeBadgeType(backendParty.hostBadge),
   hostAverageRating: backendParty.hostAverageRating ?? null,
   hostReviewCount: backendParty.hostReviewCount ?? 0,
   teamId: backendParty.teamId,
   cheeringSide: backendParty.cheeringSide ?? null,
   gameDate: backendParty.gameDate,
-  gameTime: backendParty.gameTime,
+  gameTime: formatBackendGameTime(backendParty.gameTime),
   stadium: backendParty.stadium,
   homeTeam: backendParty.homeTeam,
   awayTeam: backendParty.awayTeam,
@@ -60,10 +80,12 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   currentParticipants: backendParty.currentParticipants,
   description: backendParty.description,
   ticketVerified: backendParty.ticketVerified,
-  ticketImageUrl: backendParty.ticketImageUrl,
+  ticketImageUrl: backendParty.ticketImageUrl ?? undefined,
   status: backendParty.status,
-  price: backendParty.price,
-  ticketPrice: backendParty.ticketPrice || 0,
+  price: backendParty.price ?? undefined,
+  ticketPrice: backendParty.ticketPrice ?? 0,
+  reservationDepositAmount: backendParty.reservationDepositAmount ?? null,
+  hostTrustMetrics: backendParty.hostTrustMetrics ?? null,
   createdAt: backendParty.createdAt,
 });
 
@@ -86,12 +108,20 @@ type MateIdentity = {
   handle?: string | null;
 };
 
+const normalizeMateIdentityHandle = (handle?: string | null): string => {
+  const trimmedHandle = handle?.trim();
+  if (!trimmedHandle) {
+    return '';
+  }
+  return trimmedHandle.replace(/^@/, '').toLowerCase();
+};
+
 export const hasSameMateUserIdentity = (
   left: MateIdentity | null | undefined,
   right: MateIdentity | null | undefined,
 ): boolean => {
-  const leftHandle = left?.handle?.trim();
-  const rightHandle = right?.handle?.trim();
+  const leftHandle = normalizeMateIdentityHandle(left?.handle);
+  const rightHandle = normalizeMateIdentityHandle(right?.handle);
   if (leftHandle && rightHandle) {
     return leftHandle === rightHandle;
   }
@@ -159,6 +189,8 @@ export const normalizeMatePartySeed = (
     description: party.description || '',
     ticketVerified: false,
     status: party.status,
+    reservationDepositAmount: null,
+    hostTrustMetrics: null,
     createdAt: '',
   };
 };
@@ -258,17 +290,7 @@ export const filterPartiesByTab = (
  * 상태별 라벨 가져오기
  */
 export const getStatusLabel = (status: PartyStatus): string => {
-  const labels: Record<PartyStatus, string> = {
-    PENDING: '모집 중',
-    MATCHED: '매칭 완료',
-    CHECKED_IN: '체크인 완료',
-    COMPLETED: '완료',
-    FAILED: '매칭 실패',
-    SELLING: '티켓 판매',
-    SOLD: '판매 완료',
-  };
-
-  return labels[status] || status;
+  return getMateStatusBadgeMeta(status).label || status;
 };
 
 /**
@@ -303,17 +325,12 @@ export const extractHashtags = (description: string): string[] => {
  * 상태별 스타일 가져오기 (mono mint surface — dot 색만 상태 구분)
  */
 export const getStatusStyle = (status: PartyStatus): { dotColor: string; isLive: boolean } => {
-  const styles: Record<PartyStatus, { dotColor: string; isLive: boolean }> = {
-    PENDING:    { dotColor: '#22a36a', isLive: true  },
-    MATCHED:    { dotColor: '#0f7a4d', isLive: false },
-    CHECKED_IN: { dotColor: '#7b3ef0', isLive: false },
-    COMPLETED:  { dotColor: '#94a3b8', isLive: false },
-    FAILED:     { dotColor: '#dc3a5b', isLive: false },
-    SELLING:    { dotColor: '#e08317', isLive: true  },
-    SOLD:       { dotColor: '#94a3b8', isLive: false },
-  };
+  const meta = getMateStatusBadgeMeta(status);
 
-  return styles[status] ?? styles.PENDING;
+  return {
+    dotColor: getStatusBadgeToneColor(meta.tone),
+    isLive: Boolean(meta.live),
+  };
 };
 
 /**

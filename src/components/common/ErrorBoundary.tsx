@@ -69,6 +69,7 @@ class ErrorBoundary extends Component<Props, State> {
         this.props.fallback ?? (
           <ErrorBoundaryFallback
             errorId={this.state.errorId}
+            debugMessage={this.state.error?.message}
             onRetry={this.resetErrorBoundary}
           />
         )

@@ -6,6 +6,12 @@ interface ViewportDeferredProps {
   className?: string;
   rootMargin?: string;
   threshold?: number;
+  /**
+   * Optional test hook applied to the observed container element. Lets audits
+   * measure the exact element the IntersectionObserver watches (see
+   * scripts/landing-first-load-audit.mjs). Behavior-neutral.
+   */
+  containerTestId?: string;
 }
 
 export default function ViewportDeferred({
@@ -14,6 +20,7 @@ export default function ViewportDeferred({
   className,
   rootMargin = '120px 0px 160px 0px',
   threshold = 0.1,
+  containerTestId,
 }: ViewportDeferredProps) {
   const [hasEnteredView, setHasEnteredView] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -54,7 +61,7 @@ export default function ViewportDeferred({
   }, [hasEnteredView, rootMargin, threshold]);
 
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={className} data-testid={containerTestId}>
       {hasEnteredView ? children : fallback}
     </div>
   );

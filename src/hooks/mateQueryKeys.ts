@@ -1,4 +1,4 @@
-import type { MatePartySortBy, MatePartySortDir, PartyStatus } from '../types/mate';
+import type { MateHistoryTab, MatePartySortBy, MatePartySortDir, PartyStatus } from '../types/mate';
 
 export interface MatePartyListKeyParams {
   teamId?: string;
@@ -12,9 +12,16 @@ export interface MatePartyListKeyParams {
   sortDir?: MatePartySortDir;
 }
 
+export interface MateHistoryKeyParams {
+  group?: MateHistoryTab;
+  size?: number;
+}
+
 const mateAllKey = ['mate'] as const;
 const matePartiesKey = [...mateAllKey, 'parties'] as const;
 const mateMyPartiesKey = [...mateAllKey, 'my-parties'] as const;
+const mateMyPartyHistoryKey = [...mateAllKey, 'my-party-history'] as const;
+const mateSearchTermsKey = [...mateAllKey, 'search-terms'] as const;
 
 const normalizePartyId = (partyId: number | string) =>
   typeof partyId === 'number' ? partyId : partyId.trim();
@@ -39,6 +46,11 @@ const normalizePartyListKey = (params: MatePartyListKeyParams) => ({
   sortDir: params.sortDir ?? 'desc',
 });
 
+const normalizeMateHistoryKey = (params: MateHistoryKeyParams) => ({
+  group: params.group ?? 'all',
+  size: normalizePageValue(params.size, 20),
+});
+
 export const MATE_KEYS = {
   all: mateAllKey,
   parties: () => matePartiesKey,
@@ -57,4 +69,9 @@ export const MATE_KEYS = {
     userId === undefined
       ? mateMyPartiesKey
       : [...mateMyPartiesKey, normalizeUserKey(userId)] as const,
+  myPartyHistories: () => mateMyPartyHistoryKey,
+  myPartyHistory: (userId?: number | null, params: MateHistoryKeyParams = {}) =>
+    [...MATE_KEYS.myPartyHistories(), normalizeUserKey(userId), normalizeMateHistoryKey(params)] as const,
+  popularSearchTerms: (limit = 5) =>
+    [...mateSearchTermsKey, 'popular', normalizePageValue(limit, 5)] as const,
 } as const;

@@ -57,7 +57,7 @@ PR A에서 `package.json`은 아래 변경만 포함한다.
 "qa:stadium:mobile": "node scripts/run-stadium-isolated-qa.mjs ALL",
 "qa:stadium:mobile:smoke": "node scripts/run-stadium-isolated-qa.mjs JAMSIL:SMOKE",
 "test:stadium:seatmaps": "node --import tsx --test --test-concurrency=1 src/components/StadiumGuideRuntimeSeatMaps.test.ts src/data/*SeatData.test.ts src/components/ui/stadiumSeatMapModel.test.ts",
-"qa:stadium:changwon:mobile": "node scripts/stadium-seatmap-ops.mjs changwon mobile",
+"qa:stadium:changwon:mobile": "node scripts/qa-presets.mjs stadium changwon mobile",
 "stadium:changwon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs changwon trace-manifest",
 "qa:stadium:mobile:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs",
 "qa:stadium:mobile:smoke:attached": "AUDIT_BASE_URL=${AUDIT_BASE_URL:-http://127.0.0.1:5177} STADIUM_UX_VIEWPORTS=mobile-390 STADIUM_UX_AUTO_START_DEV_SERVER=0 node scripts/stadium-ux-audit.mjs"

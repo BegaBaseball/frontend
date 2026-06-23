@@ -160,17 +160,8 @@ describe('Block / Unblock Feature', () => {
             },
         }).as('getBlockedUsers');
 
-        visitAsLoggedIn('/mypage');
+        visitAsLoggedIn('/mypage?view=blockedUsers');
         cy.wait('@getMe');
-        cy.contains('button', '내 정보 수정', { timeout: 20000 })
-            .should('be.visible')
-            .as('editProfileButton');
-        cy.get('@editProfileButton').click({ force: true });
-        cy.url().should('include', 'view=editProfile');
-        cy.contains('button', '차단 관리', { timeout: 20000 })
-            .scrollIntoView()
-            .click({ force: true });
-        cy.url().should('include', 'view=blockedUsers');
         cy.wait('@getBlockedUsers');
         cy.contains('OtherUser').should('be.visible');
     });
@@ -203,17 +194,8 @@ describe('Block / Unblock Feature', () => {
             body: { blocked: false, blockedCount: 0 },
         }).as('unblockUser');
 
-        visitAsLoggedIn('/mypage');
+        visitAsLoggedIn('/mypage?view=blockedUsers');
         cy.wait('@getMe');
-        cy.contains('button', '내 정보 수정', { timeout: 20000 })
-            .should('be.visible')
-            .as('editProfileButton');
-        cy.get('@editProfileButton').click({ force: true });
-        cy.url().should('include', 'view=editProfile');
-        cy.contains('button', '차단 관리', { timeout: 20000 })
-            .scrollIntoView()
-            .click({ force: true });
-        cy.url().should('include', 'view=blockedUsers');
         cy.wait('@getBlockedUsers');
 
         cy.contains(/차단 해제/).click();

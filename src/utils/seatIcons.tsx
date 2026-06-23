@@ -6,7 +6,7 @@ import {
   UtensilsIcon,
   ZapIcon,
 } from '../components/icons/PublicShellIcons';
-import { SeatCategory } from './stadiumData';
+import type { SeatCategory } from './stadiumData';
 
 export const SEAT_ICONS: Record<SeatCategory, React.ReactNode> = {
     CHEERING: <MegaphoneIcon className="w-5 h-5 text-orange-500" />,

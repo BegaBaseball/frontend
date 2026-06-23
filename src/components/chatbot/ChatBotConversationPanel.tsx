@@ -132,7 +132,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                   즐겨찾기
                 </span>
               )}
-              <p className="m-0 text-[16px] text-gray-500 dark:text-gray-300">
+              <p className="m-0 text-[16px] text-gray-500 dark:text-white">
                 {message.timestamp.toLocaleTimeString('ko-KR', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -158,7 +158,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                 <button
                   type="button"
                   onClick={() => onToggleToolCalls(index)}
-                  className="flex items-center gap-1 text-[16px] font-semibold text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                  className="flex items-center gap-1 text-[16px] font-semibold text-gray-400 transition-colors hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
                 >
                   <ChatBotChevronDownIcon
                     className={`h-3 w-3 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}
@@ -173,15 +173,15 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                       return (
                       <li
                         key={toolIndex}
-                          className="flex items-start gap-1 text-[16px] text-gray-500 dark:text-gray-400"
+                          className="flex items-start gap-1 text-[16px] text-gray-500 dark:text-white"
                       >
                           <span className="mt-0.5 shrink-0">╰</span>
                           <span>
-                            <span className="font-semibold text-gray-600 dark:text-gray-300">
+                            <span className="font-semibold text-gray-600 dark:text-white">
                               {label}
                             </span>
                             {params && (
-                              <span className="ml-1 text-gray-400 dark:text-gray-500">
+                              <span className="ml-1 text-gray-400 dark:text-white">
                                 {params}
                               </span>
                             )}
@@ -204,7 +204,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
                   }}
                   data-testid="chatbot-message-favorite-toggle"
                   data-message-server-id={message.serverId ?? ''}
-                  className="rounded-full border border-gray-200 bg-white p-1 text-gray-400 shadow-sm hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:text-amber-300"
+                  className="rounded-full border border-gray-200 bg-white p-1 text-gray-400 shadow-sm hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:text-amber-300"
                   aria-label={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                   title={message.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                 >
@@ -216,7 +216,7 @@ const ChatConversationMessage = memo(function ChatConversationMessage({
               <button
                 type="button"
                 onClick={() => onCopyMessage(message.text, index)}
-                className="rounded-full border border-gray-200 bg-white p-1 text-gray-400 shadow-sm hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:text-white"
+                className="rounded-full border border-gray-200 bg-white p-1 text-gray-400 shadow-sm hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:text-white"
                 aria-label="메시지 복사"
                 title="복사"
               >
@@ -338,7 +338,7 @@ export default function ChatBotConversationPanel({
             {isTyping && (
               <div className="flex justify-start">
                 <div
-                  className="chatbot-typing-text text-[16px] leading-6 text-zinc-500 dark:text-zinc-300"
+                  className="chatbot-typing-text text-[16px] leading-6 text-zinc-500 dark:text-white"
                   aria-live="polite"
                 >
                   <span className="chatbot-baseball mr-1 inline-flex h-4 w-4 items-center justify-center align-top text-[16px]">

@@ -7,6 +7,7 @@ import { useLeaderboardStore } from '../store/leaderboardStore';
 import { getFullTeamName } from '../constants/teams';
 import { parseError } from '../utils/errorUtils';
 import { useUserLeaderboardStats } from './useLeaderboardPrivate';
+import { invalidatePredictionUserVoteCache } from './usePredictionUserVotes';
 import {
   LEGACY_PREDICTION_RUN_SESSION_STORAGE_KEY,
   PREDICTION_NETWORK_RETRY_MAX_ATTEMPTS,
@@ -428,6 +429,7 @@ export const usePredictionVoteFlow = ({
 
         try {
           await submitVote(gameId, team);
+          invalidatePredictionUserVoteCache();
           resetNetworkRetryAttempt('submitVote');
           break;
         } catch (error: unknown) {
@@ -758,6 +760,7 @@ export const usePredictionVoteFlow = ({
 
         try {
           await cancelVote(gameId);
+          invalidatePredictionUserVoteCache();
           resetNetworkRetryAttempt('cancelVote');
           break;
         } catch (error: unknown) {

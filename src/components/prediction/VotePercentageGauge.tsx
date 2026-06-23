@@ -83,7 +83,7 @@ export function VotePercentageGauge({
           style={{ width: `${homePercent}%`, background: homeColor }}
         />
       </div>
-      <div data-testid="cheering-gauge-caption" className="mt-2 text-center text-[16px] text-gray-500 dark:text-gray-300">
+      <div data-testid="cheering-gauge-caption" className="mt-2 text-center text-[16px] text-gray-500 dark:text-white">
         {cheeringCaption}: {cheeringTotal.toLocaleString()}명
       </div>
     </div>

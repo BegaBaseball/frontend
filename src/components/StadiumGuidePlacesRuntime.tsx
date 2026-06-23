@@ -96,10 +96,10 @@ export default function StadiumGuidePlacesRuntime({
   return (
     <div data-testid="stadium-guide-places-panel">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold dark:text-gray-200 text-balance" style={{ color: titleColor }}>
+        <h3 className="font-bold dark:text-white text-balance" style={{ color: titleColor }}>
           {CATEGORY_CONFIGS[selectedCategory].label} 목록
         </h3>
-        <span className="text-[16px] text-gray-400 dark:text-gray-500" style={{ color: mutedColor }}>
+        <span className="text-[16px] text-gray-400 dark:text-white" style={{ color: mutedColor }}>
           {filteredPlaces.length}개
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function StadiumGuidePlacesRuntime({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             disabled={listControlsDisabled}
-            className="stadium-guide-control pl-9 h-9 text-[16px]"
+            className="stadium-guide-control min-h-11 pl-9 text-[16px]"
           />
         </div>
         <div className="relative">
@@ -121,7 +121,7 @@ export default function StadiumGuidePlacesRuntime({
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as StadiumGuideSortOrder)}
             disabled={listControlsDisabled}
-            className="stadium-guide-select stadium-guide-control h-9 pl-8 pr-3 text-[16px] rounded-md border border-input bg-background dark:text-gray-200 cursor-pointer"
+            className="stadium-guide-select stadium-guide-control min-h-11 pl-8 pr-3 text-[16px] rounded-md border border-input bg-background dark:text-white cursor-pointer"
           >
             <option value="default">기본순</option>
             <option value="rating">평점순</option>
@@ -226,18 +226,18 @@ export default function StadiumGuidePlacesRuntime({
                             <h4 className="dark:text-white text-balance" style={{ fontWeight: 700 }}>{place.name}</h4>
                           </div>
                           {placeDescription ? (
-                            <p className={`text-gray-600 dark:text-gray-300 text-sm mb-1 text-balance ${isExpanded ? '' : 'line-clamp-1 sm:line-clamp-none'}`} style={{ color: mutedColor }}>
+                            <p className={`text-gray-600 dark:text-white text-sm mb-1 text-balance ${isExpanded ? '' : 'line-clamp-1 sm:line-clamp-none'}`} style={{ color: mutedColor }}>
                               {placeDescription}
                             </p>
                           ) : null}
                           {placeAddress ? (
-                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>📍 {placeAddress}</p>
+                            <p className={`text-sm text-gray-600 dark:text-white ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>📍 {placeAddress}</p>
                           ) : null}
                           {placePhone ? (
-                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>📞 {placePhone}</p>
+                            <p className={`text-sm text-gray-600 dark:text-white ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>📞 {placePhone}</p>
                           ) : null}
                           {placeOpenTime || placeCloseTime ? (
-                            <p className={`text-sm text-gray-600 dark:text-gray-300 ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>
+                            <p className={`text-sm text-gray-600 dark:text-white ${isExpanded ? 'block' : 'hidden sm:block'}`} style={{ color: mutedColor }}>
                               ⏰ {formatOptionalText(placeOpenTime)} - {formatOptionalText(placeCloseTime)}
                             </p>
                           ) : null}
@@ -268,7 +268,7 @@ export default function StadiumGuidePlacesRuntime({
                               openKakaoMapRoute(place.name, place.lat, place.lng);
                             }}
                             disabled={!hasPlaceCoordinates}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-white text-sm transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="min-h-11 px-3 py-2 sm:px-4 rounded-lg text-white text-sm transition-colors hover:opacity-90 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{
                               backgroundColor: isDark ? STADIUM_DARK_COLORS.accent : THEME_COLORS.primary,
                               color: isDark ? '#03100b' : '#ffffff',
@@ -282,7 +282,7 @@ export default function StadiumGuidePlacesRuntime({
                   );
                 })
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-300 text-balance" style={{ color: mutedColor }}>
+                <div className="text-center py-8 text-gray-500 dark:text-white text-balance" style={{ color: mutedColor }}>
                   {!selectedStadiumName ? (
                     '구장을 선택해주세요.'
                   ) : listStatus === 'idle' ? (

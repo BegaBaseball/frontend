@@ -2,10 +2,12 @@ import { lazy, Suspense, useCallback, useMemo } from 'react';
 
 import type { DateGames, Game, MatchBounds } from '../../types/prediction';
 import type { RangeLoadState } from '../../hooks/predictionHookShared';
+import { useTodayKey } from '../../hooks/useTodayKey';
 import {
   hasPredictionAdditionalPastMatches,
   resolvePredictionNearestNavigationDate,
 } from '../../utils/predictionMatchNavigation';
+import { formatDateKey, parseLocalDate } from '../../utils/currentDate';
 import type { PredictionTopNoticeKind } from './PredictionTopNotice';
 import PredictionMatchPreviewTab from './PredictionMatchPreviewTab';
 
@@ -58,6 +60,7 @@ export default function PredictionMatchSchedulePreviewRuntime({
   retryLoadMoreFutureMatches,
   onEnterMatchDetail,
 }: PredictionMatchSchedulePreviewRuntimeProps) {
+  const todayKey = useTodayKey();
   const canMovePrevDate = currentDateIndex > 0 || canLoadMorePast;
   const canMoveNextDate = currentDateIndex < allDatesData.length - 1 || canLoadMoreFuture;
 
@@ -148,7 +151,7 @@ export default function PredictionMatchSchedulePreviewRuntime({
         currentDateGames={currentDateGames}
         currentDate={currentDate}
         nearestNavigationDate={nearestNavigationDate}
-        isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
+        isToday={formatDateKey(parseLocalDate(currentDate)) === todayKey}
         onEnterMatchDetail={onEnterMatchDetail}
         onGoToDate={goToDate}
         onNearestNavigation={handleNearestNavigation}

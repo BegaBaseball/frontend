@@ -597,7 +597,7 @@ describe('Theme visual checks for public pages', () => {
     cy.clock(new Date('2026-03-22T12:00:00.000Z').getTime(), ['Date']);
   }, () => {
     cy.wait('@getMatchDay');
-    cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
+    cy.contains('h2', '전력분석실', { timeout: 20000 }).should('be.visible');
     cy.get('@getUserVotes.all').should('have.length', 0);
     cy.get('@getUserVotePredictionTheme.all').should('have.length', 0);
   });

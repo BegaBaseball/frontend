@@ -25,6 +25,29 @@ export interface Party {
   status: PartyStatus;
   price?: number;
   ticketPrice?: number;
+  reservationDepositAmount?: number | null;
+  hostTrustMetrics?: HostTrustMetrics | null;
+  createdAt: string;
+}
+
+export interface HostTrustMetrics {
+  averageResponseMinutes?: number | null;
+  lastActiveAt?: string | null;
+  completedMateCount?: number | null;
+  recentNoShowCount?: number | null;
+  reviewKeywordSummary?: ReviewKeywordSummary[];
+  recentHostReviews?: HostReviewSnippet[];
+}
+
+export interface ReviewKeywordSummary {
+  label: string;
+  count: number;
+}
+
+export interface HostReviewSnippet {
+  reviewerHandle?: string | null;
+  rating: number;
+  comment?: string | null;
   createdAt: string;
 }
 
@@ -39,6 +62,12 @@ export type PartyStatus =
 
 export type MatePartySortBy = 'createdAt' | 'gameDate' | 'currentParticipants';
 export type MatePartySortDir = 'asc' | 'desc';
+
+export interface MatePopularSearchTerm {
+  term: string;
+  count: number;
+  rank: number;
+}
 
 export interface Application {
   id: number;
@@ -141,6 +170,7 @@ export interface CreatePartyRequest {
   maxParticipants: number;
   description: string;
   ticketPrice?: number;
+  reservationDepositAmount?: number | null;
   reservationNumber?: string;
   verificationToken: string;
 }
@@ -152,6 +182,7 @@ export interface UpdatePartyRequest {
   section?: string;
   maxParticipants?: number;
   ticketPrice?: number;
+  reservationDepositAmount?: number | null;
 }
 
 export interface CreateApplicationRequest {

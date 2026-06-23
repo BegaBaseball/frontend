@@ -1,5 +1,5 @@
 import { useTheme } from '../hooks/useTheme';
-import { MoonIcon, SunIcon } from './icons/PublicShellIcons';
+import { FirstLoadMoonIcon, FirstLoadSunIcon } from './icons/FirstLoadIcons';
 
 interface ThemeToggleButtonProps {
   className?: string;
@@ -35,9 +35,13 @@ export default function ThemeToggleButton({
       type="button"
       onClick={handleThemeToggle}
       aria-label={isDarkMode ? ariaLabelLight : ariaLabelDark}
-      className={`relative inline-flex p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary ${className}`}
+      className={`relative inline-flex min-h-11 min-w-11 items-center justify-center p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary ${className}`}
     >
-      {isDarkMode ? <SunIcon className={iconClassName} /> : <MoonIcon className={iconClassName} />}
+      {isDarkMode ? (
+        <FirstLoadSunIcon className={iconClassName} />
+      ) : (
+        <FirstLoadMoonIcon className={iconClassName} />
+      )}
     </button>
   );
 }

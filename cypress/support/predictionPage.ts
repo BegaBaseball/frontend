@@ -3,10 +3,42 @@ export interface PredictionPathGame {
   gameDate: string;
 }
 
+export type PredictionBootstrapFixtureGame = PredictionPathGame & Record<string, unknown>;
+
 interface PredictionAuthBootstrapMetaSeed {
   version?: number;
   lastSuccessAt?: number | null;
   lastFailureAt?: number | null;
+}
+
+type PredictionBootstrapFixtureValue<T = unknown> = T | {
+  ok: boolean;
+  data: T | null;
+  error: {
+    message: string;
+    status?: number | null;
+    code?: string;
+  } | null;
+};
+
+interface PredictionBootstrapInterceptOptions {
+  alias?: string;
+  games?: PredictionBootstrapFixtureGame[] | ((url: URL) => PredictionBootstrapFixtureGame[]);
+  detailByGameId?: Record<string, PredictionBootstrapFixtureValue> | ((gameId: string | null, url: URL) => PredictionBootstrapFixtureValue | undefined);
+  voteStatusByGameId?: Record<string, PredictionBootstrapFixtureValue> | ((gameId: string | null, url: URL) => PredictionBootstrapFixtureValue | undefined);
+  statusCode?: number | (() => number);
+  errorBody?: unknown | (() => unknown);
+  unknownDateStatusCode?: number;
+  selectedGameId?: string | ((url: URL, games: PredictionBootstrapFixtureGame[]) => string | null);
+  selectedGameFound?: boolean | ((selectedGameId: string | null, games: PredictionBootstrapFixtureGame[]) => boolean);
+}
+
+interface PredictionVoteBootstrapWaitOptions {
+  waitForVoteStatus?: boolean;
+  waitForUserVotes?: boolean;
+  voteStatusAlias?: string;
+  userVotesAlias?: string;
+  legacyUserVoteAlias?: string;
 }
 
 interface PredictionVisitOptions {
@@ -95,6 +127,127 @@ export const buildDefaultPredictionPath = (games: PredictionPathGame[]): string 
   });
 
   return `/prediction?${params.toString()}`;
+};
+
+const resolveFixtureValue = <T,>(value: T | (() => T)): T => (
+  typeof value === 'function' ? (value as () => T)() : value
+);
+
+const groupPredictionBootstrapGamesByDate = (games: PredictionBootstrapFixtureGame[]) => (
+  games.reduce<Record<string, PredictionBootstrapFixtureGame[]>>((acc, game) => {
+    const date = game.gameDate?.trim();
+    if (!date) {
+      return acc;
+    }
+
+    acc[date] = [...(acc[date] || []), game];
+    return acc;
+  }, {})
+);
+
+const normalizePredictionBootstrapResource = (
+  value: PredictionBootstrapFixtureValue | undefined
+) => {
+  if (value === undefined) {
+    return null;
+  }
+
+  if (
+    value
+    && typeof value === 'object'
+    && 'ok' in value
+    && 'data' in value
+    && 'error' in value
+  ) {
+    return value;
+  }
+
+  return {
+    ok: true,
+    data: value ?? null,
+    error: null,
+  };
+};
+
+export const installPredictionBootstrapIntercept = ({
+  alias = 'getPredictionBootstrap',
+  games = [],
+  detailByGameId = {},
+  voteStatusByGameId = {},
+  statusCode = 200,
+  errorBody = { message: 'prediction bootstrap fixture failed' },
+  unknownDateStatusCode = 404,
+  selectedGameId,
+  selectedGameFound,
+}: PredictionBootstrapInterceptOptions = {}) => {
+  cy.intercept('GET', '**/api/predictions/bootstrap*', (req) => {
+    const resolvedStatusCode = resolveFixtureValue(statusCode);
+    if (resolvedStatusCode !== 200) {
+      req.reply({
+        statusCode: resolvedStatusCode,
+        body: resolveFixtureValue(errorBody),
+      });
+      return;
+    }
+
+    const url = new URL(req.url);
+    const requestedDate = url.searchParams.get('date')?.trim() || '';
+    const fixtureGames = typeof games === 'function' ? games(url) : games;
+    const gamesByDate = groupPredictionBootstrapGamesByDate(fixtureGames);
+    const dates = Object.keys(gamesByDate).sort();
+    const date = requestedDate || dates[0] || '';
+    const dayGames = gamesByDate[date];
+
+    if (!dayGames) {
+      req.reply({
+        statusCode: unknownDateStatusCode,
+        body: {
+          message: `No prediction bootstrap fixture for ${date || 'unknown date'}`,
+        },
+      });
+      return;
+    }
+
+    const requestedGameId = url.searchParams.get('gameId')?.trim() || null;
+    const resolvedSelectedGameId = typeof selectedGameId === 'function'
+      ? selectedGameId(url, dayGames)
+      : (selectedGameId || requestedGameId || dayGames[0]?.gameId || null);
+    const resolvedSelectedGameFound = typeof selectedGameFound === 'function'
+      ? selectedGameFound(resolvedSelectedGameId, dayGames)
+      : (selectedGameFound ?? Boolean(
+        resolvedSelectedGameId
+        && dayGames.some((game) => game.gameId === resolvedSelectedGameId)
+      ));
+    const selectedDetail = resolvedSelectedGameFound && resolvedSelectedGameId
+      ? (typeof detailByGameId === 'function'
+        ? detailByGameId(resolvedSelectedGameId, url)
+        : detailByGameId[resolvedSelectedGameId])
+      : undefined;
+    const selectedVoteStatus = resolvedSelectedGameFound && resolvedSelectedGameId
+      ? (typeof voteStatusByGameId === 'function'
+        ? voteStatusByGameId(resolvedSelectedGameId, url)
+        : voteStatusByGameId[resolvedSelectedGameId])
+      : undefined;
+    const currentDateIndex = dates.indexOf(date);
+
+    req.reply({
+      statusCode: 200,
+      body: {
+        schedule: {
+          date,
+          games: dayGames,
+          prevDate: currentDateIndex > 0 ? dates[currentDateIndex - 1] : null,
+          nextDate: currentDateIndex >= 0 && currentDateIndex < dates.length - 1 ? dates[currentDateIndex + 1] : null,
+          hasPrev: currentDateIndex > 0,
+          hasNext: currentDateIndex >= 0 && currentDateIndex < dates.length - 1,
+        },
+        selectedGameId: resolvedSelectedGameId,
+        selectedGameFound: resolvedSelectedGameFound,
+        detail: normalizePredictionBootstrapResource(selectedDetail),
+        voteStatus: normalizePredictionBootstrapResource(selectedVoteStatus),
+      },
+    });
+  }).as(alias);
 };
 
 const seedPredictionAuthBootstrapMeta = (
@@ -274,12 +427,7 @@ export const visitPredictionPage = ({
       seedPredictionAuthState(win, token, persistedAuthHint, authBootstrapMeta, skipPublicAuthBootstrap);
     });
     cy.setCookie('Authorization', token);
-    return;
   }
-
-  cy.window().then((win) => {
-    seedPredictionGuestState(win, clearAuthState, persistedAuthHint, skipPublicAuthBootstrap, authBootstrapMeta);
-  });
 };
 
 export const visitPredictionPublicPage = ({
@@ -376,7 +524,26 @@ export const ensureCoachBriefingVisible = () => {
   return cy.get('[data-testid="coach-briefing-card"]', { timeout: 20000 }).scrollIntoView().should('be.visible');
 };
 
-export const waitForPredictionVoteBootstrap = () => {
-  cy.wait(['@getVoteStatus', '@getUserVotes']);
-  cy.get('@getUserVote.all').should('have.length', 0);
+export const waitForPredictionVoteBootstrap = ({
+  waitForVoteStatus = true,
+  waitForUserVotes = true,
+  voteStatusAlias = 'getVoteStatus',
+  userVotesAlias = 'getUserVotes',
+  legacyUserVoteAlias = 'getUserVote',
+}: PredictionVoteBootstrapWaitOptions = {}) => {
+  const aliases: string[] = [];
+  if (waitForVoteStatus) {
+    aliases.push(`@${voteStatusAlias}`);
+  }
+  if (waitForUserVotes) {
+    aliases.push(`@${userVotesAlias}`);
+  }
+
+  if (aliases.length === 1) {
+    cy.wait(aliases[0]);
+  } else if (aliases.length > 1) {
+    cy.wait(aliases);
+  }
+
+  cy.get(`@${legacyUserVoteAlias}.all`).should('have.length', 0);
 };

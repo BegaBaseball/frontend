@@ -74,15 +74,15 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                 </>
             )}
         >
-            <p className="text-[16px] text-gray-600 dark:text-gray-300">
+            <p className="text-[16px] text-gray-600 dark:text-white">
                 신고 사유를 선택해주세요. 허위 신고 시 불이익을 받을 수 있습니다.
             </p>
             <div className="grid gap-4 py-4">
                 <fieldset>
-                    <legend className="mb-2 text-[16px] font-semibold text-gray-700 dark:text-gray-300">신고 사유 선택</legend>
+                    <legend className="mb-2 text-[16px] font-semibold text-gray-700 dark:text-white">신고 사유 선택</legend>
                     <div className="grid gap-3" aria-label="신고 사유">
                         {Object.entries(ReportReasonLabels).map(([key, label]) => (
-                            <label key={key} htmlFor={`r-${key}`} className="flex items-center space-x-2 text-[16px] text-gray-700 dark:text-gray-300">
+                            <label key={key} htmlFor={`r-${key}`} className="flex items-center space-x-2 text-[16px] text-gray-700 dark:text-white">
                                 <input
                                     id={`r-${key}`}
                                     type="radio"
@@ -98,7 +98,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     </div>
                 </fieldset>
                 <div className="grid gap-2">
-                    <label htmlFor="description" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">추가 설명 (선택)</label>
+                    <label htmlFor="description" className="text-[16px] font-semibold text-gray-700 dark:text-white">추가 설명 (선택)</label>
                     <Textarea
                         id="description"
                         placeholder="상세 내용을 입력해주세요."
@@ -107,7 +107,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     />
                 </div>
                 <div className="grid gap-2">
-                    <label htmlFor="sourceUrl" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">원문 URL (선택)</label>
+                    <label htmlFor="sourceUrl" className="text-[16px] font-semibold text-gray-700 dark:text-white">원문 URL (선택)</label>
                     <Textarea
                         id="sourceUrl"
                         placeholder="https://example.com/original"
@@ -116,7 +116,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     />
                 </div>
                 <div className="grid gap-2">
-                    <label htmlFor="ownerContact" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">권리자/대리인 연락처 (선택)</label>
+                    <label htmlFor="ownerContact" className="text-[16px] font-semibold text-gray-700 dark:text-white">권리자/대리인 연락처 (선택)</label>
                     <Textarea
                         id="ownerContact"
                         placeholder="이메일 또는 연락 가능한 정보"
@@ -125,7 +125,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     />
                 </div>
                 <div className="grid gap-2">
-                    <label htmlFor="license" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">라이선스 정보 (선택)</label>
+                    <label htmlFor="license" className="text-[16px] font-semibold text-gray-700 dark:text-white">라이선스 정보 (선택)</label>
                     <Textarea
                         id="license"
                         placeholder="예: CC BY 4.0"
@@ -134,7 +134,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     />
                 </div>
                 <div className="grid gap-2">
-                    <label htmlFor="evidenceUrl" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">증빙 링크 (선택)</label>
+                    <label htmlFor="evidenceUrl" className="text-[16px] font-semibold text-gray-700 dark:text-white">증빙 링크 (선택)</label>
                     <Textarea
                         id="evidenceUrl"
                         placeholder="증빙 자료 링크"
@@ -143,7 +143,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     />
                 </div>
                 <div className="grid gap-2">
-                    <label htmlFor="requestedAction" className="text-[16px] font-semibold text-gray-700 dark:text-gray-300">요청 조치 (선택)</label>
+                    <label htmlFor="requestedAction" className="text-[16px] font-semibold text-gray-700 dark:text-white">요청 조치 (선택)</label>
                     <Textarea
                         id="requestedAction"
                         placeholder="예: TAKE_DOWN"
@@ -151,7 +151,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                         onChange={(e) => setRequestedAction(e.target.value)}
                     />
                 </div>
-                <label className="flex items-center gap-2 text-[16px] text-gray-700 dark:text-gray-300">
+                <label className="flex items-center gap-2 text-[16px] text-gray-700 dark:text-white">
                     <input
                         type="checkbox"
                         checked={hasRightEvidence}

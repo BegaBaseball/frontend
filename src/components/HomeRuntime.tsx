@@ -27,7 +27,7 @@ import {
     coerceHomeRouteTab,
     resolveHomeRouteState,
 } from '../utils/homeRouteState';
-import type { Game, HomeProps, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
+import type { Game, HomeBootstrapLoadState, HomeProps, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
 import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 import { queryClient } from '../lib/queryClient';
 import {
@@ -39,11 +39,15 @@ import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
 import {
+    createHomeLiveSummaryTimeoutWarningState,
     LIVE_GAME_POLL_INTERVAL_MS,
     mergeHomeGamesWithLiveSummaries,
+    recordHomeLiveSummaryTimeoutFailure,
+    resetHomeLiveSummaryTimeoutWarningState,
     selectHomeLivePollingGameIds,
 } from '../utils/liveGame';
 import {
+    isPublicApiTimeoutError,
     MANUAL_BASEBALL_DATA_REQUIRED_CODE,
     MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
 } from '../utils/errorUtils';
@@ -59,14 +63,21 @@ import {
 import { isAdminRole, useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
 import AdSlot from './ads/AdSlot';
 
+const homeMatchPanelModulePromise = import('./home/HomeMatchPanel');
 const LazyHomeSecondaryPanels = lazy(() => import('./home/HomeSecondaryPanelsContainer'));
-const LazyHomeMatchPanel = lazy(() => import('./home/HomeMatchPanel'));
+const LazyHomeMatchPanel = lazy(() => homeMatchPanelModulePromise);
 
 const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
 const GAME_CARD_MIN_HEIGHT_PX = 240;
 const MIN_LOADING_CARD_COUNT = 5;
 const LOADING_CARD_COUNT_MAX = 9;
-const HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS = 3000;
+const HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS = 6000;
+const HOME_BOOTSTRAP_CORE_SECTIONS = [
+    'leagueStartDates',
+    'navigation',
+    'games',
+    'scheduledGamesWindow',
+] as const;
 const HOME_LEAGUE_TABS: Array<{ value: LeagueTab; label: string }> = [
     { value: 'regular', label: '정규시즌' },
     { value: 'postseason', label: '포스트시즌' },
@@ -86,6 +97,8 @@ const getTodayMidday = () => {
     today.setHours(12, 0, 0, 0);
     return today;
 };
+
+const getCalendarMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
 const normalizeSameSeasonNavigationDate = (value: string | null | undefined, seasonYear: number): string | null => {
     if (!value) {
@@ -107,6 +120,44 @@ const isVisibleLeagueTab = (tabValue: LeagueTab, visibleLeagueTabs: typeof HOME_
 const coerceVisibleLeagueTab = (tabValue: LeagueTab, visibleLeagueTabs: typeof HOME_LEAGUE_TABS): LeagueTab => (
     isVisibleLeagueTab(tabValue, visibleLeagueTabs) ? tabValue : 'regular'
 );
+
+const normalizeHomeBootstrapSectionList = (sections: string[] | null | undefined): string[] => (
+    HOME_BOOTSTRAP_CORE_SECTIONS.filter((section) => sections?.includes(section))
+);
+
+const buildBootstrapSuccessState = (backendLoadState?: HomeBootstrapLoadState): HomeCoreLoadSuccessState => {
+    const failedSections = new Set([
+        ...normalizeHomeBootstrapSectionList(backendLoadState?.failedSections),
+        ...normalizeHomeBootstrapSectionList(backendLoadState?.timedOutSections),
+    ]);
+
+    return {
+        leagueStartDates: !failedSections.has('leagueStartDates'),
+        navigation: !failedSections.has('navigation'),
+        games: !failedSections.has('games'),
+        scheduledGames: !failedSections.has('scheduledGamesWindow'),
+    };
+};
+
+const buildBootstrapLoadState = (
+    clientTimedOut: boolean,
+    backendLoadState?: HomeBootstrapLoadState,
+): HomeLoadState => {
+    const timedOutSections = normalizeHomeBootstrapSectionList(backendLoadState?.timedOutSections);
+    const failedSections = normalizeHomeBootstrapSectionList(backendLoadState?.failedSections);
+
+    return buildHomeLoadState('bootstrap', {
+        isFallback: backendLoadState?.isFallback === true || failedSections.length > 0,
+        timedOut: clientTimedOut || backendLoadState?.timedOut === true || timedOutSections.length > 0,
+        timedOutSections,
+        failedSections,
+    });
+};
+
+const isHomeBootstrapSectionTimedOut = (
+    loadState: HomeLoadState,
+    section: (typeof HOME_BOOTSTRAP_CORE_SECTIONS)[number],
+): boolean => loadState.timedOutSections.includes(section);
 
 const isSameOrAfterDateKey = (date: Date, startDateKey: string | null | undefined): boolean => {
     if (!startDateKey) {
@@ -214,6 +265,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const initialHomeRouteState = initialHomeRouteStateRef.current;
 
     const [selectedDate, setSelectedDate] = useState(() => initialHomeRouteState.date);
+    const [calendarMonth, setCalendarMonth] = useState(() => getCalendarMonth(initialHomeRouteState.date));
     const [showCalendar, setShowCalendar] = useState(false);
     const [shouldMountWelcomeGuide, setShouldMountWelcomeGuide] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
@@ -241,10 +293,10 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const searchParamsRef = useRef(searchParams);
     const bootstrapRequestIdRef = useRef(0);
     const scopedNavigationRequestIdRef = useRef(0);
-    const isResolvingTabNavigationRef = useRef(false);
     const lastBootstrapDateKeyRef = useRef<string | null>(null);
     const homeLiveSummaryInFlightRef = useRef(false);
     const homeLiveSummaryAbortRef = useRef<AbortController | null>(null);
+    const homeLiveSummaryTimeoutWarningRef = useRef(createHomeLiveSummaryTimeoutWarningState());
     const lastObservedHomeRouteSearchRef = useRef(searchParams.toString());
     const pendingHomeRouteSearchRef = useRef<string | null>(null);
     const secondaryPanelsTimeoutRef = useRef<number | null>(null);
@@ -429,9 +481,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         const showConnectionError = shouldShowHomeConnectionError(snapshot.success);
 
         setIsLoading(false);
-        setIsGamesError(!snapshot.success.games && !snapshot.loadState.timedOut);
+        setIsGamesError(!snapshot.success.games && !isHomeBootstrapSectionTimedOut(snapshot.loadState, 'games'));
         setIsScheduledLoading(false);
-        setIsScheduledError(!snapshot.success.scheduledGames && !snapshot.loadState.timedOut);
+        setIsScheduledError(!snapshot.success.scheduledGames && !isHomeBootstrapSectionTimedOut(snapshot.loadState, 'scheduledGamesWindow'));
         setConnectionError(showConnectionError);
         setLoadFailureReason(snapshot.loadState.failureReason);
         setManualDataRequest(snapshot.loadState.manualDataRequest);
@@ -441,6 +493,8 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
             source: snapshot.loadState.source,
             isFallback: snapshot.loadState.isFallback,
             timedOut: snapshot.loadState.timedOut,
+            timedOutSections: snapshot.loadState.timedOutSections,
+            failedSections: snapshot.loadState.failedSections,
             failureReason: snapshot.loadState.failureReason,
             success: snapshot.success,
         };
@@ -461,23 +515,22 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }
     }, []);
 
-    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => ({
-        leagueStartDates: data.leagueStartDates,
-        navigation: buildHomeNavigationState(data.navigation),
-        games: data.games,
-        scheduledGames: data.scheduledGamesWindow.map((game) => ({
-            ...game,
-            sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
-            leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
-        })),
-        success: {
-            leagueStartDates: true,
-            navigation: true,
-            games: true,
-            scheduledGames: true,
-        },
-        loadState: buildHomeLoadState('bootstrap', { timedOut }),
-    });
+    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => {
+        const loadState = buildBootstrapLoadState(timedOut, data.loadState);
+
+        return {
+            leagueStartDates: data.leagueStartDates,
+            navigation: buildHomeNavigationState(data.navigation),
+            games: data.games,
+            scheduledGames: data.scheduledGamesWindow.map((game) => ({
+                ...game,
+                sourceDate: game.sourceDate || game.gameDate || formatDateForAPI(date),
+                leagueBadge: game.leagueBadge || resolveLeagueBadge(game.leagueType),
+            })),
+            success: buildBootstrapSuccessState(data.loadState),
+            loadState,
+        };
+    };
 
     const buildLegacyFailureSnapshot = (
         date: Date,
@@ -502,7 +555,13 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 games: false,
                 scheduledGames: false,
             },
-            loadState: buildHomeLoadState('legacy-fallback', { timedOut, failureReason, manualDataRequest }),
+            loadState: buildHomeLoadState('legacy-fallback', {
+                timedOut,
+                timedOutSections: timedOut ? [...HOME_BOOTSTRAP_CORE_SECTIONS] : [],
+                failedSections: [...HOME_BOOTSTRAP_CORE_SECTIONS],
+                failureReason,
+                manualDataRequest,
+            }),
         };
     };
 
@@ -565,7 +624,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 return;
             }
             applyTransientSnapshotIfCurrent(buildLegacyFailureSnapshot(date, timedOut, 'request-failed'));
-        }, HOME_BOOTSTRAP_LEGACY_FALLBACK_DELAY_MS);
+        }, HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS);
 
         try {
             const data = await queryClient.fetchQuery(getHomeBootstrapQueryOptions(date));
@@ -611,11 +670,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         replaceHomeRouteState(selectedDate, tabValue);
 
         const today = getTodayMidday();
-        isResolvingTabNavigationRef.current = true;
-        void loadScopedNavigation(tabValue, today, { applyResolvedDate: true })
-            .finally(() => {
-                isResolvingTabNavigationRef.current = false;
-            });
+        void loadScopedNavigation(tabValue, today, { applyResolvedDate: true });
     };
 
     const selectedDateKey = useMemo(() => formatDateForAPI(selectedDate), [selectedDate]);
@@ -675,14 +730,6 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     }, [loadHomeBootstrap, selectedDate, selectedDateKey]);
 
     useEffect(() => {
-        if (isResolvingTabNavigationRef.current) {
-            return;
-        }
-
-        void loadScopedNavigation(activeLeagueTab, selectedDate);
-    }, [activeLeagueTab, loadScopedNavigation, selectedDate]);
-
-    useEffect(() => {
         const coercedTab = coerceHomeRouteTab(activeLeagueTab, visibleLeagueTabs);
         if (coercedTab === activeLeagueTab) {
             return;
@@ -716,6 +763,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }
 
         const gameIds = homeLivePollingKey.split(',').filter(Boolean);
+        resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
         let disposed = false;
 
         const refreshLiveSummaries = async () => {
@@ -729,6 +777,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
 
             try {
                 const summaries = await fetchGameLiveSummaries(gameIds, { signal: abortController.signal });
+                resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
                 if (disposed || abortController.signal.aborted || summaries.length === 0) {
                     return;
                 }
@@ -736,6 +785,12 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 setScheduledGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
             } catch (error) {
                 if (!abortController.signal.aborted) {
+                    if (isPublicApiTimeoutError(error)) {
+                        if (recordHomeLiveSummaryTimeoutFailure(homeLiveSummaryTimeoutWarningRef.current)) {
+                            console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
+                        }
+                        return;
+                    }
                     console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
                 }
             } finally {
@@ -858,7 +913,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const mobileRows = Math.max(1, Math.min(minLoadingCount, 2));
     const mobileHeight = (mobileRows * activeCardHeight) + ((mobileRows - 1) * 12);
     const desktopHeight = (desktopRows * activeCardHeight) + ((desktopRows - 1) * 12);
-    const calculatedMatchSectionMinHeight = Math.min(Math.max(mobileHeight, desktopHeight) + 24, 100);
+    const calculatedMatchSectionMinHeight = Math.max(Math.max(mobileHeight, desktopHeight) + 24, 100);
     const matchSectionMinHeightStyle = { minHeight: `${calculatedMatchSectionMinHeight}px` };
     const matchPanelFallback = activeTabIsScheduled ? (
         <div
@@ -946,7 +1001,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-[var(--mobile-content-safe-bottom)] lg:pb-20">
             {showConnectionRecoveryBanner && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
                     <div
@@ -1015,7 +1070,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 KBO LEAGUE
                             </h1>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-300 font-bold pl-4">
+                        <p className="text-gray-500 dark:text-white font-bold pl-4">
                             {selectedDate.getFullYear()} 시즌 경기 일정 및 순위
                         </p>
                     </div>
@@ -1032,12 +1087,14 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             </Button>
                         ) : (
                             <Button
-                                data-testid="home-primary-prediction-cta"
+                                data-priority="secondary"
+                                data-testid="home-secondary-prediction-cta"
+                                variant="outline"
                                 size="touch"
                                 onClick={handleNavigateToTodayPrediction}
-                                className="whitespace-nowrap rounded-xl bg-primary font-black text-primary-foreground hover:bg-primary-hover"
+                                className="whitespace-nowrap rounded-xl border-primary/25 bg-white font-black text-primary hover:bg-primary/5 dark:border-primary/40 dark:bg-card dark:text-emerald-300 dark:hover:bg-primary/10"
                             >
-                                오늘 경기 예측하기
+                                전력분석실 보기
                             </Button>
                         )}
                     </div>
@@ -1065,6 +1122,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             variant="link"
                             size="sm"
                             onClick={() => {
+                                setCalendarMonth(getCalendarMonth(selectedDate));
                                 setShouldMountSecondaryPanels(true);
                                 setShowCalendar(true);
                             }}
@@ -1167,6 +1225,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                         <LazyHomeSecondaryPanels
                             selectedDate={selectedDate}
                             selectedDateKey={selectedDateKey}
+                            calendarMonth={calendarMonth}
                             showCalendar={showCalendar}
                             shouldMountWelcomeGuide={shouldMountWelcomeGuide}
                             calendarDialogTitleId={calendarDialogTitleId}
@@ -1180,15 +1239,22 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                 state: { partySeed: mate },
                             })}
                             onCloseCalendar={() => setShowCalendar(false)}
+                            onCalendarMonthChange={setCalendarMonth}
                             onSelectCalendarDate={(nextDate) => {
                                 hasUserChangedTabRef.current = true;
                                 setSelectedDate(nextDate);
+                                setCalendarMonth(getCalendarMonth(nextDate));
                                 replaceHomeRouteState(nextDate, activeLeagueTab);
                                 setShowCalendar(false);
                             }}
                         />
                     </Suspense>
                 ) : null}
+                <div
+                    className="h-[var(--mobile-content-safe-bottom)] lg:hidden"
+                    aria-hidden="true"
+                    data-testid="home-mobile-bottom-spacer"
+                />
             </main>
         </div>
     );

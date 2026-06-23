@@ -144,7 +144,7 @@ export default function NotificationPanel() {
     const parts = message.split(/([^\s]+님|'.*?')/g);
     return parts.map((part, i) => {
       if (part.match(/[^\s]+님|'.*?'/)) {
-        return <strong key={i} className="font-bold text-gray-900 dark:text-gray-100">{part}</strong>;
+        return <strong key={i} className="font-bold text-gray-900 dark:text-white">{part}</strong>;
       }
       return part;
     });
@@ -223,12 +223,12 @@ export default function NotificationPanel() {
         {filteredNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="bg-gray-100 dark:bg-secondary p-6 rounded-full mb-4">
-              <NotificationBellIcon className="w-8 h-8 text-gray-400 dark:text-gray-300" />
+              <NotificationBellIcon className="w-8 h-8 text-gray-400 dark:text-white" />
             </div>
-            <p className="text-gray-900 dark:text-gray-100 font-bold mb-1">
+            <p className="text-gray-900 dark:text-white font-bold mb-1">
               새로운 알림이 없습니다
             </p>
-            <p className="text-[16px] text-gray-500 dark:text-gray-300">
+            <p className="text-[16px] text-gray-500 dark:text-white">
               {activeTab === 'ALL' ? '새로운 소식이 도착하면 알려드릴게요!' : '해당 카테고리의 알림이 없습니다.'}
             </p>
           </div>
@@ -261,14 +261,14 @@ export default function NotificationPanel() {
                           {/* Content Area */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
-                              <h4 className="text-[16px] font-bold text-gray-900 dark:text-gray-100 truncate pr-2">
+                              <h4 className="text-[16px] font-bold text-gray-900 dark:text-white truncate pr-2">
                                 {notification.title}
                               </h4>
                                 <span className="text-[16px] text-gray-400 whitespace-nowrap flex-shrink-0">
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            <p className="text-[16px] text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                            <p className="text-[16px] text-gray-600 dark:text-white line-clamp-2 leading-relaxed">
                               {renderMessageWithBold(notification.message)}
                             </p>
                           </div>

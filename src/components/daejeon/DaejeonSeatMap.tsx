@@ -36,7 +36,7 @@ import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTempla
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
 
 const MIN_ZOOM = 0.9;
-const MAX_ZOOM = 1.35;
+const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.1;
 const OFFICIAL_BLOCK_PREVIEW_COUNT = 6;
 const FINDER_FOCUS_ZOOM = 1.2;
@@ -80,8 +80,33 @@ function formatDraftDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function normalizeSearchText(value: string): string {
-  return value.replace(/\s+/g, '').toLowerCase();
+function normalizeSearchText(value?: string | null): string {
+  return value?.replace(/\s+/g, '').toLowerCase() ?? '';
+}
+
+function getBlockScopedSearchText(section: DaejeonBlock): string {
+  const info = getDaejeonViewInfo(section);
+
+  return [
+    section.name,
+    section.block,
+    section.blockCode,
+    section.officialBlockLabel,
+    section.officialSectionName,
+    ...section.officialBlocks,
+    getDaejeonSideLabel(section.side),
+    getDaejeonFanRoleLabel(section.fanRole),
+    info.distance,
+    info.notes,
+    ...(info.tags ?? []),
+  ].filter(Boolean).map(normalizeSearchText).join(' ');
+}
+
+function getBroadSearchText(section: DaejeonBlock): string {
+  return [
+    getBlockScopedSearchText(section),
+    ...section.seatViewSections.map(normalizeSearchText),
+  ].join(' ');
 }
 
 function isDenseTouchTarget(section: DaejeonBlock): boolean {
@@ -103,7 +128,7 @@ function ZoomControls({
   canReset: boolean;
   mode: 'light' | 'dark';
 }) {
-  const buttonClass = 'flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800';
+  const buttonClass = 'flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800';
   const borderColor = mode === 'dark' ? '#334155' : '#e2e8f0';
 
   return (
@@ -125,7 +150,7 @@ function ZoomControls({
         aria-label="초기화"
         onClick={onReset}
         disabled={!canReset}
-        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800"
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
         style={{ borderColor }}
       >
         {zoom.toFixed(2)}x
@@ -228,7 +253,7 @@ function SectionFinder({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">구역 찾기</h3>
-          <p className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-white">
             {blocks.length}/{totalCount}개 표시
           </p>
         </div>
@@ -243,18 +268,18 @@ function SectionFinder({
           onChange={(event) => onSearchChange(event.target.value)}
           autoFocus={autoFocusInput}
           placeholder="구역명, 블록 검색"
-          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         />
       </label>
       <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
         {blocks.length === 0 ? (
           <div
             data-testid="daejeon-section-finder-empty"
-            className="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            className="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-white"
           >
             <div>검색어와 선택한 필터에 맞는 구역이 없습니다</div>
             {hasSearch && (
-              <div className="mt-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+              <div className="mt-1 text-[11px] font-semibold text-slate-400 dark:text-white">
                 검색어: {searchTerm.trim()}
               </div>
             )}
@@ -262,7 +287,7 @@ function SectionFinder({
         ) : (
           sectionGroups.map((sectionGroup) => (
             <div key={sectionGroup.key} className="space-y-1.5">
-              <div className="sticky top-0 z-10 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              <div className="sticky top-0 z-10 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-black text-slate-500 dark:bg-slate-800 dark:text-white">
                 {sectionGroup.label} · {sectionGroup.blocks.length}개 블록
               </div>
               {sectionGroup.blocks.map((block) => {
@@ -294,7 +319,7 @@ function SectionFinder({
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: accent }} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-black text-slate-800 dark:text-white">{block.name}</span>
-                      <span className="block truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <span className="block truncate text-[11px] font-semibold text-slate-500 dark:text-white">
                         {block.blockCode} · {cat.label} · {getDaejeonSideLabel(block.side)}
                       </span>
                       {isPendingReview && (
@@ -329,8 +354,8 @@ function DetailPanel({
     return (
       <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">구역을 선택하세요</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
             공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인할 수 있습니다.
           </p>
         </div>
@@ -366,7 +391,7 @@ function DetailPanel({
           </span>
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">정확 블록 {section.blockCode}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white">정확 블록 {section.blockCode}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <InfoTile label="정확 블록" value={section.blockCode} />
@@ -379,10 +404,10 @@ function DetailPanel({
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
         <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록</div>
         <OfficialBlockChips blocks={section.officialBlocks} accent={accent} />
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
           {section.sourceNote}
         </p>
-        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-white">
           {section.officialSectionName} · {getDaejeonTraceStatusLabel(section.traceStatus)}
         </p>
         {section.reviewNote && (
@@ -406,7 +431,7 @@ function DetailPanel({
       {(info.notes || (info.tags && info.tags.length > 0)) && (
         <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
           {info.notes && (
-            <p className="text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">{info.notes}</p>
+            <p className="text-sm font-semibold leading-relaxed text-slate-600 dark:text-white">{info.notes}</p>
           )}
           {info.tags && info.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -425,7 +450,7 @@ function DetailPanel({
       )}
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
         <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
-        <p className="mb-3 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+        <p className="mb-3 text-[12px] font-semibold text-slate-500 dark:text-white">
           다이어리에서 공유된 사진만 표시합니다.
         </p>
         <SeatViewGallery stadium="DAEJEON" section={section.name} sectionAliases={section.seatViewSections} compact />
@@ -458,7 +483,7 @@ function DaejeonExtraMeta({ section, accent }: { section: DaejeonBlock; accent: 
         <InfoTile label="부모 구역" value={parentGroup?.block ?? section.parentBlock} />
         <InfoTile label="source confidence" value={getDaejeonSourceLabel(section.sourceConfidence)} />
       </div>
-      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
         <div
           data-testid="daejeon-seatmap-coverage-status"
           className="rounded-xl px-3 py-2"
@@ -537,6 +562,9 @@ export default function DaejeonSeatMap() {
       .split(/\s+/)
       .map(normalizeSearchText)
       .filter(Boolean);
+    const exactBlockCodeToken = normalizedSearchTokens.find((token) => (
+      orderedBlocks.some((block) => normalizeSearchText(block.blockCode) === token)
+    ));
 
     return orderedBlocks.filter((block) => {
       if (filterCats !== null && !filterCats.includes(block.category)) return false;
@@ -546,15 +574,14 @@ export default function DaejeonSeatMap() {
         return true;
       }
 
-      const searchableText = [
-        block.name,
-        block.block,
-        block.blockCode,
-        block.officialBlockLabel,
-        block.officialSectionName,
-        ...block.officialBlocks,
-        ...block.seatViewSections,
-      ].map(normalizeSearchText).join(' ');
+      if (exactBlockCodeToken) {
+        if (normalizeSearchText(block.blockCode) !== exactBlockCodeToken) return false;
+
+        const blockScopedSearchText = getBlockScopedSearchText(block);
+        return normalizedSearchTokens.every((token) => blockScopedSearchText.includes(token));
+      }
+
+      const searchableText = getBroadSearchText(block);
 
       return searchableText.includes(normalizedSearch)
         || normalizedSearchTokens.every((token) => searchableText.includes(token));

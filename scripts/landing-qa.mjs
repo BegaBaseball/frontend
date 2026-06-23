@@ -687,17 +687,35 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    const landingSelectors = [
+    const landingInitialSelectors = [
       '[data-testid="landing-page"]',
       '.ds-hero-title',
-      '[data-testid="landing-feature-layout"]',
       '[data-testid="landing-header-login"]',
       '[data-testid="landing-header-cta"]',
       '[data-testid="landing-hero-cta-primary"]',
       '[data-testid="landing-hero-cta-secondary"]',
       '[data-testid="landing-cta-button"]',
     ];
-    await ensureReady(landingSelectors, 'landing initial page');
+    const landingFeatureSelectors = [
+      ...landingInitialSelectors,
+      '[data-testid="landing-feature-layout"]',
+    ];
+    const loadDeferredFeatures = async (description) => {
+      await client.send('Runtime.evaluate', {
+        expression: `document.getElementById('features')?.scrollIntoView({ block: 'start' }); 'ok';`,
+        returnByValue: true,
+      });
+      await delay(700);
+      await ensureReady(landingFeatureSelectors, description, 10000);
+    };
+
+    await ensureReady(landingInitialSelectors, 'landing initial page');
+    await loadDeferredFeatures('landing deferred features bootstrap');
+    await client.send('Runtime.evaluate', {
+      expression: `window.scrollTo({ top: 0, behavior: 'auto' }); 'ok';`,
+      returnByValue: true,
+    });
+    await delay(200);
 
     const metrics = {};
 
@@ -709,7 +727,7 @@ const main = async () => {
         mobile: testCase.label === 'mobile',
       });
       await delay(400);
-      await ensureReady(landingSelectors, `${testCase.label} landing viewport`);
+      await ensureReady(landingFeatureSelectors, `${testCase.label} landing viewport`);
 
       metrics[testCase.label] = await evaluateJson(client, `
         JSON.stringify({
@@ -742,7 +760,7 @@ const main = async () => {
       mobile: false,
     });
     await delay(400);
-    await ensureReady(landingSelectors, 'landing desktop interaction');
+    await ensureReady(landingFeatureSelectors, 'landing desktop interaction');
 
     const interaction = await evaluateJson(client, `
       new Promise((resolve) => {
@@ -782,12 +800,12 @@ const main = async () => {
       returnByValue: true,
     });
     await delay(400);
-    await ensureReady(landingSelectors, 'landing features capture');
+    await ensureReady(landingFeatureSelectors, 'landing features capture');
     await captureScreenshot(client, join(args.outDir, 'landing-features.png'));
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensureReady(landingSelectors, 'landing secondary navigation');
+    await ensureReady(landingInitialSelectors, 'landing secondary navigation');
     const secondaryScroll = await evaluateJson(client, `
       new Promise((resolve) => {
         const features = document.getElementById('features');
@@ -805,7 +823,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensureReady(landingSelectors, 'landing login navigation');
+    await ensureReady(landingInitialSelectors, 'landing login navigation');
     const loginNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-login"]')?.click();
@@ -819,7 +837,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensureReady(landingSelectors, 'landing header CTA navigation');
+    await ensureReady(landingInitialSelectors, 'landing header CTA navigation');
     const headerCtaNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-header-cta"]')?.click();
@@ -833,7 +851,7 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    await ensureReady(landingSelectors, 'landing hero CTA navigation');
+    await ensureReady(landingInitialSelectors, 'landing hero CTA navigation');
     const heroPrimaryNavigation = await evaluateJson(client, `
       new Promise((resolve) => {
         document.querySelector('[data-testid="landing-hero-cta-primary"]')?.click();
@@ -862,7 +880,8 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(4000);
-    await ensureReady(landingSelectors, 'landing reduced motion reload');
+    await ensureReady(landingInitialSelectors, 'landing reduced motion reload');
+    await loadDeferredFeatures('landing reduced motion deferred features');
 
     const reducedMotion = await evaluateJson(client, `
       (() => {

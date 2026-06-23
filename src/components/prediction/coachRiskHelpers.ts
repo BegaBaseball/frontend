@@ -1,4 +1,5 @@
 import { createElement, type ReactNode, useEffect, useState } from 'react';
+import type { CoachRiskImpactTo, CoachRiskItem } from '../../api/coach';
 import { getFullTeamName } from '../../constants/teams';
 import { RISK_SEV } from './coachStyleTokens';
 
@@ -40,9 +41,45 @@ export function riskSevColor(level: 0 | 1 | 2): string {
 export function riskImpactTo(
     level: 0 | 1 | 2,
     isPositive: boolean,
-): 'home' | 'away' | 'both' {
+): CoachRiskImpactTo {
     if (level === 1) return 'both';
     return level === 0 ? (isPositive ? 'away' : 'home') : 'both';
+}
+
+export function resolveRiskInningLabel(risk: CoachRiskItem): string {
+    if (risk.inning_label) return risk.inning_label;
+    if (typeof risk.inning_start === 'number' && typeof risk.inning_end === 'number') {
+        return risk.inning_start === risk.inning_end
+            ? `${risk.inning_start}회`
+            : `${risk.inning_start}~${risk.inning_end}회`;
+    }
+    if (typeof risk.inning_start === 'number') return `${risk.inning_start}회`;
+    return riskInning(risk.level);
+}
+
+export function resolveRiskInningPosition(risk: CoachRiskItem, fallbackX: number): number {
+    if (typeof risk.inning_start === 'number' && typeof risk.inning_end === 'number') {
+        return Math.max(1, Math.min(9, (risk.inning_start + risk.inning_end) / 2));
+    }
+    if (typeof risk.inning_start === 'number') {
+        return Math.max(1, Math.min(9, risk.inning_start));
+    }
+    return fallbackX;
+}
+
+export function resolveRiskImpactTo(
+    risk: CoachRiskItem,
+    isPositive: boolean,
+): CoachRiskImpactTo {
+    return risk.impact_to || riskImpactTo(risk.level, isPositive);
+}
+
+export function resolveRiskImpactText(
+    risk: CoachRiskItem,
+    isPositive: boolean,
+): string {
+    const impactTo = resolveRiskImpactTo(risk, isPositive);
+    return risk.impact || (impactTo === 'home' ? '−높음' : impactTo === 'away' ? '−낮음' : '±중간');
 }
 
 export function shortTeamName(teamId?: string): string {

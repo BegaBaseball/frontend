@@ -177,7 +177,7 @@ const DARK: CoachTokens = {
     c1SecChipDefBg: '#022c22',  // emerald-950
     c1SecChipDefFg: '#a7f3d0',  // emerald-200
     c1HeroWinnerFrom: '#022c22',// emerald-950
-    c1HeroWinnerTo: '#16181c',
+    c1HeroWinnerTo: '#000000',
     c1HeroLoserBg: 'rgba(0,0,0,0.20)',
     c1HeroCardBg: 'rgba(255,255,255,0.03)',
     c1HeroOuterBorder: 'rgba(255,255,255,0.10)',

@@ -2,6 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 
 import { useOptionalConfirmDialog } from '../components/contexts/ConfirmDialogContext';
+import {
+  usePredictionScheduleRuntimeState,
+  usePredictionUserVotesRuntimeState,
+} from '../components/prediction/PredictionScheduleContext';
+import {
+  PREDICTION_BOOTSTRAP_INVALIDATED_EVENT,
+  type PredictionBootstrapResponse,
+} from '../api/predictionBootstrap';
 import { useAuthSession } from '../store/authStore';
 import type {
   PredRecoveryAction,
@@ -13,6 +21,7 @@ import type { GameDetail } from '../types/prediction';
 import { emitPredictionFlowEvent } from '../utils/predictionFlowTelemetry';
 import {
   buildPredictionRecoveryPath,
+  buildSeedGameDetail,
   toPredictionGameId,
   type PredictionLocationState,
 } from '../utils/predictionDeepLink';
@@ -30,6 +39,8 @@ import {
 import { usePredictionGameData } from './usePredictionGameData';
 import { usePredictionSchedule } from './usePredictionSchedule';
 import { usePredictionUserVotes } from './usePredictionUserVotes';
+
+type BootstrapHydrationState = 'idle' | 'loading' | 'ready' | 'failed';
 
 export const usePredictionInteractiveData = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,12 +60,47 @@ export const usePredictionInteractiveData = () => {
     resolve(window.confirm(message));
   });
   const confirm = optionalConfirmDialog?.confirm ?? fallbackConfirm;
+  const providedSchedule = usePredictionScheduleRuntimeState();
+  const providedUserVotes = usePredictionUserVotesRuntimeState();
+  const isUsingProvidedSchedule = providedSchedule !== null;
+  const isUsingProvidedUserVotes = providedUserVotes !== null;
 
   const [predictionErrorOverlay, setPredictionErrorOverlay] = useState<PredictionErrorOverlayState | null>(null);
   const [pendingSeedDetail, setPendingSeedDetail] = useState<{ gameId: string; detail: GameDetail } | null>(null);
+  const [bootstrapHydrationStateByGameId, setBootstrapHydrationStateByGameId] = useState<Record<string, BootstrapHydrationState>>({});
   const activeTabRef = useRef<'match'>('match');
   const currentGameIdRef = useRef<string | null>(null);
   const currentDateRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleBootstrapInvalidated = (event: Event) => {
+      const gameId = event instanceof CustomEvent && typeof event.detail?.gameId === 'string'
+        ? event.detail.gameId
+        : '';
+      if (!gameId) {
+        setBootstrapHydrationStateByGameId({});
+        return;
+      }
+
+      setBootstrapHydrationStateByGameId((prev) => {
+        if (!prev[gameId]) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+    };
+
+    window.addEventListener(PREDICTION_BOOTSTRAP_INVALIDATED_EVENT, handleBootstrapInvalidated);
+    return () => {
+      window.removeEventListener(PREDICTION_BOOTSTRAP_INVALIDATED_EVENT, handleBootstrapInvalidated);
+    };
+  }, []);
 
   const emitFlowEvent = useCallback((
     eventName: PredictionFlowEventName,
@@ -211,14 +257,15 @@ export const usePredictionInteractiveData = () => {
     setPredictionErrorOverlay((current) => (current ? { ...current, isOpen: false } : current));
   }, [emitFlowEvent, predictionErrorOverlay]);
 
+  const localUserVotes = usePredictionUserVotes({
+    userId,
+  });
   const {
     userVote,
     userVoteResolutionState,
     setUserVote,
     fetchAndCacheUserVotes,
-  } = usePredictionUserVotes({
-    userId,
-  });
+  } = providedUserVotes ?? localUserVotes;
 
   const queuePrimeGameDetail = useCallback((gameId: string, detail: GameDetail) => {
     setPendingSeedDetail({ gameId, detail });
@@ -232,7 +279,7 @@ export const usePredictionInteractiveData = () => {
       || ''
   ) || '';
 
-  const schedule = usePredictionSchedule({
+  const localSchedule = usePredictionSchedule({
     isLoggedIn,
     isAuthLoading,
     searchParams,
@@ -240,12 +287,14 @@ export const usePredictionInteractiveData = () => {
     locationState,
     emitFlowEvent,
     showPredictionErrorOverlay,
+    disabled: isUsingProvidedSchedule,
     fetchAndCacheUserVotes,
     primeGameDetail: queuePrimeGameDetail,
     activateMatchTab: () => {
       activeTabRef.current = 'match';
     },
   });
+  const schedule = providedSchedule ?? localSchedule;
 
   const currentGameId = schedule.currentGame?.gameId || null;
   currentGameIdRef.current = currentGameId;
@@ -255,6 +304,26 @@ export const usePredictionInteractiveData = () => {
     && schedule.allDatesData.some((entry) => (
       entry.games.some((game) => game.gameId === requestedDeepLinkGameId)
     ))
+  );
+  const shouldLoadCurrentGameData = (
+    !requestedDeepLinkGameId
+    || currentGameId === requestedDeepLinkGameId
+    || hasLoadedRequestedDeepLinkGame
+  );
+  const currentBootstrapHydrationState = currentGameId
+    ? bootstrapHydrationStateByGameId[currentGameId] || 'idle'
+    : 'idle';
+  const providedBootstrap = currentGameId ? schedule.bootstrapByGameId?.[currentGameId] : null;
+  const shouldUseBootstrapForCurrentGame = Boolean(
+    currentGameId
+    && providedBootstrap
+    && schedule.currentDate
+    && shouldLoadCurrentGameData
+  );
+  const shouldDeferCurrentGameDataForBootstrap = (
+    shouldUseBootstrapForCurrentGame
+    && currentBootstrapHydrationState !== 'ready'
+    && currentBootstrapHydrationState !== 'failed'
   );
 
   const selectGame = useCallback((gameIndex: number) => {
@@ -342,20 +411,162 @@ export const usePredictionInteractiveData = () => {
     selectedGame: schedule.selectedGame,
     emitFlowEvent,
     showPredictionErrorOverlay,
-    shouldLoadCurrentGameData: (
-      !requestedDeepLinkGameId
-      || currentGameId === requestedDeepLinkGameId
-      || hasLoadedRequestedDeepLinkGame
-    ),
+    shouldLoadCurrentGameData: shouldLoadCurrentGameData && !shouldDeferCurrentGameDataForBootstrap,
   });
+
+  useEffect(() => {
+    if (!shouldUseBootstrapForCurrentGame || !currentGameId || !schedule.currentDate) {
+      return;
+    }
+    if (
+      currentBootstrapHydrationState === 'ready'
+      || currentBootstrapHydrationState === 'failed'
+      || !providedBootstrap
+    ) {
+      return;
+    }
+
+    const markState = (state: BootstrapHydrationState) => {
+      setBootstrapHydrationStateByGameId((prev) => ({
+        ...prev,
+        [currentGameId]: state,
+      }));
+    };
+    const applyBootstrap = (bootstrap: PredictionBootstrapResponse): boolean => {
+      if (!bootstrap.selectedGameFound || bootstrap.selectedGameId !== currentGameId) {
+        return false;
+      }
+
+      if (bootstrap.detail?.ok && bootstrap.detail.data) {
+        gameData.primeGameDetail(currentGameId, bootstrap.detail.data, { isSeeded: false });
+      } else if (bootstrap.detail && !bootstrap.detail.ok) {
+        gameData.primeGameDetailError(
+          currentGameId,
+          bootstrap.detail.error?.message || '경기 상세 정보를 가져오지 못했습니다.',
+          bootstrap.detail.error?.code
+        );
+      }
+
+      if (bootstrap.voteStatus?.ok && bootstrap.voteStatus.data) {
+        gameData.primeVoteStatus(currentGameId, bootstrap.voteStatus.data);
+      } else if (bootstrap.voteStatus && !bootstrap.voteStatus.ok) {
+        gameData.primeVoteStatusError(
+          currentGameId,
+          bootstrap.voteStatus.error?.message || '투표 상태를 가져오지 못했습니다.'
+        );
+      }
+      return true;
+    };
+
+    if (providedBootstrap && applyBootstrap(providedBootstrap)) {
+      markState('ready');
+      return;
+    }
+    markState('failed');
+  }, [
+    currentBootstrapHydrationState,
+    currentGameId,
+    gameData.primeGameDetail,
+    gameData.primeGameDetailError,
+    gameData.primeVoteStatus,
+    gameData.primeVoteStatusError,
+    schedule.currentDate,
+    providedBootstrap,
+    shouldUseBootstrapForCurrentGame,
+  ]);
+
+  useEffect(() => {
+    if (!isUsingProvidedSchedule || isUsingProvidedUserVotes || !isLoggedIn) {
+      return;
+    }
+
+    const interactiveGameIds = schedule.currentDateGames
+      .filter((game) => game.homeScore == null && game.awayScore == null)
+      .map((game) => game.gameId)
+      .filter(Boolean);
+    if (!interactiveGameIds.length) {
+      return;
+    }
+
+    let canceled = false;
+    void fetchAndCacheUserVotes(
+      interactiveGameIds,
+      `interactive:${schedule.currentDate || 'current'}`,
+      () => canceled
+    );
+
+    return () => {
+      canceled = true;
+    };
+  }, [
+    fetchAndCacheUserVotes,
+    isLoggedIn,
+    isUsingProvidedSchedule,
+    isUsingProvidedUserVotes,
+    schedule.currentDate,
+    schedule.currentDateGames,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isUsingProvidedSchedule
+      || !locationState?.game
+      || !currentGameId
+      || gameData.currentGameDetailHasRenderableData
+    ) {
+      return;
+    }
+    if (shouldUseBootstrapForCurrentGame && currentBootstrapHydrationState !== 'failed') {
+      return;
+    }
+
+    const stateGameId = toPredictionGameId(
+      locationState.gameId
+        || locationState.game.gameId
+        || ''
+    ) || '';
+    if (stateGameId && stateGameId !== currentGameId) {
+      return;
+    }
+
+    gameData.primeGameDetail(currentGameId, buildSeedGameDetail({
+      ...locationState.game,
+      gameId: currentGameId,
+      gameDate: schedule.currentDate || locationState.game.gameDate,
+    }));
+  }, [
+    currentGameId,
+    gameData.currentGameDetailHasRenderableData,
+    gameData.primeGameDetail,
+    isUsingProvidedSchedule,
+    locationState?.game,
+    locationState?.gameId,
+    schedule.currentDate,
+  ]);
 
   useEffect(() => {
     if (!pendingSeedDetail) {
       return;
     }
+    const isCurrentBootstrapSeed = (
+      shouldUseBootstrapForCurrentGame
+      && pendingSeedDetail.gameId === currentGameId
+      && currentBootstrapHydrationState !== 'failed'
+    );
+    if (gameData.currentGameDetailHasRenderableData || isCurrentBootstrapSeed) {
+      setPendingSeedDetail(null);
+      return;
+    }
     gameData.primeGameDetail(pendingSeedDetail.gameId, pendingSeedDetail.detail);
     setPendingSeedDetail(null);
-  }, [gameData.primeGameDetail, pendingSeedDetail]);
+  }, [
+    currentBootstrapHydrationState,
+    currentGameId,
+    gameData.currentGameDetailHasRenderableData,
+    gameData.primeGameDetail,
+    pendingSeedDetail,
+    shouldUseBootstrapForCurrentGame,
+  ]);
 
   useEffect(() => {
     const selectedGameId = schedule.currentDateGames[schedule.selectedGame]?.gameId;

@@ -7,6 +7,7 @@ import PredictionMatchScheduleResolvedDataRuntime from './PredictionMatchSchedul
 interface PredictionMatchScheduleResolvedRuntimeProps {
   isAuthLoading: boolean;
   isLoggedIn: boolean;
+  userId?: number | string | null;
   locationState: PredictionLocationState;
   searchParams: URLSearchParams;
   setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
@@ -15,6 +16,7 @@ interface PredictionMatchScheduleResolvedRuntimeProps {
 export default function PredictionMatchScheduleResolvedRuntime({
   isAuthLoading,
   isLoggedIn,
+  userId,
   locationState,
   searchParams,
   setSearchParams,
@@ -23,6 +25,7 @@ export default function PredictionMatchScheduleResolvedRuntime({
     <PredictionMatchScheduleResolvedDataRuntime
       isAuthLoading={isAuthLoading}
       isLoggedIn={isLoggedIn}
+      userId={userId}
       locationState={locationState}
       searchParams={searchParams}
       setSearchParams={setSearchParams}

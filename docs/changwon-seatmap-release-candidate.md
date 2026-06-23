@@ -5,7 +5,7 @@
 ## 범위
 
 - 대상: 창원 NC파크 좌석도 123개 선택 영역
-- 기준 asset: `src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.png`
+- 기준 asset: `src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.webp`
 - 기준 데이터: `CHANGWON_IMAGE_GEOMETRY`, `CHANGWON_OFFICIAL_TRACE_REFERENCE`, `CHANGWON_BLOCKS`
 - 좌표 fingerprint: `1b3e4d22d446ba5eede5102aa746f992851d2a5083671db3c541b06c0e96ee3b`
 - trace source: `OFFICIAL_PNG_MANUAL_POLYGON`

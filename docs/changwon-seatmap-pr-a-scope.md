@@ -137,7 +137,7 @@ npm run build
 ## PR 설명에 고정할 내용
 
 - 좌표/polygon 추가 수정 없음
-- 기준 asset: `changwon-nc-seatmap-official-2026.png`
+- 기준 asset: `changwon-nc-seatmap-official-2026.webp`
 - 기준 데이터: `CHANGWON_IMAGE_GEOMETRY`, `CHANGWON_OFFICIAL_TRACE_REFERENCE`, `CHANGWON_BLOCKS`
 - `totalBlocks=123`
 - `searchableSelectableAreas=123`

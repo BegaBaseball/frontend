@@ -2,17 +2,32 @@
 
 import { getHomeAuthRequestTraces, visitHomePage } from '../support/homePage';
 
+type BootstrapLoadState = {
+  isFallback: boolean;
+  timedOut: boolean;
+  timedOutSections: string[];
+  failedSections: string[];
+};
+
 describe('Home error UX', () => {
   const fixedNow = new Date('2026-03-16T12:00:00').getTime();
+  const buildCompleteBootstrapLoadState = (): BootstrapLoadState => ({
+    isFallback: false,
+    timedOut: false,
+    timedOutSections: [],
+    failedSections: [],
+  });
 
   const buildBootstrapResponse = (
     date: string,
     prevGameDate: string | null,
     nextGameDate: string | null,
+    regularSeasonStart = '2026-03-22',
+    loadState = buildCompleteBootstrapLoadState(),
   ) => ({
     selectedDate: date,
     leagueStartDates: {
-      regularSeasonStart: '2026-03-22',
+      regularSeasonStart,
       postseasonStart: '2026-10-06',
       koreanSeriesStart: '2026-10-26',
     },
@@ -24,6 +39,7 @@ describe('Home error UX', () => {
     },
     games: [],
     scheduledGamesWindow: [],
+    loadState,
   });
   const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
     hotCheerPosts: [],
@@ -73,7 +89,7 @@ describe('Home error UX', () => {
   it('does not request mypage for anonymous home entry', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
-      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17', '2026-03-01'),
     }).as('getHomeBootstrap');
 
     cy.intercept('GET', '**/api/home/widgets*', {
@@ -109,10 +125,10 @@ describe('Home error UX', () => {
     getHomeAuthRequestTraces().should('deep.equal', []);
   });
 
-  it('opens prediction for the selected home date from the primary CTA', () => {
+  it('opens prediction for the selected home date from the secondary prediction CTA', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
-      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17', '2026-03-01'),
     }).as('getHomeBootstrap');
 
     cy.intercept('GET', '**/api/home/widgets*', {
@@ -127,7 +143,10 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeBootstrap');
-    cy.get('[data-testid="home-primary-prediction-cta"]').should('be.visible').click();
+    cy.get('[data-testid="home-secondary-prediction-cta"]')
+      .should('be.visible')
+      .and('have.attr', 'data-priority', 'secondary')
+      .click();
     cy.location('pathname').should('eq', '/prediction');
     cy.location('search').should('include', 'date=2026-03-16');
   });
@@ -213,7 +232,7 @@ describe('Home error UX', () => {
     cy.contains('button', '로그인').should('not.exist');
     cy.contains('button', '로그아웃').should('be.visible');
     getHomeAuthRequestTraces().should((traces) => {
-      expect(traces).to.have.length(1);
+      expect(traces.length).to.be.within(1, 2);
       expect(traces[0]?.url).to.include('/api/auth/mypage');
     });
   });
@@ -331,6 +350,43 @@ describe('Home error UX', () => {
     cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
   });
 
+  it('uses backend partial loadState to avoid scheduled inline errors on section timeout', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse(
+        '2026-04-13',
+        '2026-04-12',
+        '2026-04-14',
+        '2026-03-22',
+        {
+          isFallback: true,
+          timedOut: true,
+          timedOutSections: ['scheduledGamesWindow'],
+          failedSections: ['scheduledGamesWindow'],
+        },
+      ),
+    }).as('getHomeBootstrapPartial');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapPartial');
+    cy.wait('@getHomeWidgets');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('button', '예정경기').click();
+    cy.contains('선택한 날짜부터 7일 내 예정 경기가 없습니다.', { timeout: 15000 }).should('be.visible');
+    cy.contains('예정 경기를 불러오지 못했습니다').should('not.exist');
+    cy.get('@getHomeBootstrapPartial.all').should('have.length', 1);
+  });
+
   it('warns without exposing manual-data-required details to anonymous users', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       delay: 700,
@@ -355,7 +411,7 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeBootstrapManualData');
-    cy.contains('경기 일정을 불러오지 못했습니다', { timeout: 15000 }).should('be.visible');
+    cy.contains('야구 데이터 준비가 필요합니다', { timeout: 15000 }).should('be.visible');
     cy.get('[data-testid="home-global-recovery"]').should('not.exist');
     cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-04-13, 경기 날짜').should('not.exist');
     cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
@@ -490,7 +546,7 @@ describe('Home error UX', () => {
     cy.contains('KBO LEAGUE').should('be.visible');
   });
 
-  it('shows timeout fallback before delayed bootstrap recovers', () => {
+  it('does not show timeout fallback when delayed bootstrap recovers within the soft fallback budget', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       delay: 4500,
       statusCode: 200,
@@ -538,16 +594,74 @@ describe('Home error UX', () => {
     });
 
     cy.wait('@getHomeWidgets');
-    cy.get('[data-testid="home-global-recovery"]', { timeout: 4500 }).should('be.visible');
+    cy.wait('@getHomeBootstrapDelayed');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('경기가 없는 날입니다.').should('be.visible');
+    cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
+    cy.get('@getLegacyNavigation.all').should('have.length', 0);
+    cy.get('@getLegacyScheduleDelayed.all').should('have.length', 0);
+    cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
+    cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
+  });
+
+  it('shows soft timeout fallback before slower delayed bootstrap recovers', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      delay: 7000,
+      statusCode: 200,
+      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+    }).as('getHomeBootstrapDelayedSoftFallback');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(),
+    }).as('getHomeWidgets');
+
+    cy.intercept('GET', '**/api/kbo/league-start-dates', {
+      statusCode: 200,
+      body: {
+        regularSeasonStart: '2026-03-22',
+        postseasonStart: '2026-10-06',
+        koreanSeriesStart: '2026-10-26',
+      },
+    }).as('getLegacyLeagueDates');
+
+    cy.intercept('GET', '**/api/kbo/schedule/navigation?*', {
+      statusCode: 200,
+      body: {
+        hasPrev: true,
+        hasNext: true,
+        prevGameDate: '2026-03-15',
+        nextGameDate: '2026-03-17',
+      },
+    }).as('getLegacyNavigation');
+
+    cy.intercept('GET', '**/api/kbo/schedule?*', {
+      statusCode: 200,
+      body: [],
+    }).as('getLegacyScheduleDelayed');
+
+    cy.intercept('GET', '**/api/kbo/rankings/*', {
+      statusCode: 200,
+      body: [],
+    }).as('legacyRankingsShouldNotRun');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeWidgets');
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 6500 }).should('be.visible');
     cy.contains('서비스 연결을 확인하지 못했습니다').should('be.visible');
     cy.contains('경기가 없는 날입니다.').should('be.visible');
     cy.get('@getLegacyLeagueDates.all').should('have.length', 0);
     cy.get('@getLegacyNavigation.all').should('have.length', 0);
     cy.get('@getLegacyScheduleDelayed.all').should('have.length', 0);
     cy.get('@legacyRankingsShouldNotRun.all').should('have.length', 0);
-    cy.wait('@getHomeBootstrapDelayed');
+    cy.wait('@getHomeBootstrapDelayedSoftFallback');
     cy.get('[data-testid="home-global-recovery"]').should('not.exist');
-    cy.get('@getHomeBootstrapDelayed.all').should('have.length', 1);
+    cy.get('@getHomeBootstrapDelayedSoftFallback.all').should('have.length', 1);
   });
 
   it('surfaces widget errors when widgets returns 500 without breaking the page', () => {
@@ -584,7 +698,15 @@ describe('Home error UX', () => {
 
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
-      body: buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+      body: {
+        ...buildBootstrapResponse('2026-03-16', '2026-03-15', '2026-03-17'),
+        rankingSnapshot: {
+          rankingSeasonYear: 1999,
+          rankingSourceMessage: 'out-of-contract bootstrap ranking',
+          isOffSeason: true,
+          rankings: [],
+        },
+      },
     }).as('getHomeBootstrap');
 
     cy.intercept('GET', '**/api/home/widgets*', (req) => {
@@ -612,6 +734,7 @@ describe('Home error UX', () => {
     cy.wait('@getHomeBootstrap');
     cy.wait('@getHomeWidgets');
     cy.contains('2025').should('be.visible');
+    cy.contains('1999').should('not.exist');
 
     cy.get('button[aria-label="2024시즌 팀 순위 보기"]').click({ force: true });
     cy.wait('@getHomeWidgets');

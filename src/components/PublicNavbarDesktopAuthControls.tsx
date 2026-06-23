@@ -4,6 +4,7 @@ import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSessi
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { LogOutIcon, ShieldAlertIcon } from './icons/PublicShellIcons';
 import { Button } from './ui/button';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface PublicNavbarDesktopAuthControlsProps {
   isAuthBootstrapPending?: boolean;
@@ -16,12 +17,13 @@ export default function PublicNavbarDesktopAuthControls({
 }: PublicNavbarDesktopAuthControlsProps) {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthSession();
-  const { userHandle, userName, userRole } = useAuthProfileSnapshot();
+  const { userHandle, userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
     : '/mypage';
+  const displayName = userName?.trim() || '회원';
   const collapseProgress = Math.min(1, Math.max(0, compactProgress));
   const expandedProgress = 1 - collapseProgress;
   const isCompact = collapseProgress > 0.92;
@@ -35,6 +37,12 @@ export default function PublicNavbarDesktopAuthControls({
 
   const labelStyle = (maxWidth: number): CSSProperties => ({
     maxWidth: `${maxWidth * expandedProgress}px`,
+    opacity: expandedProgress,
+  });
+
+  const profileLabelStyle = (width: number): CSSProperties => ({
+    marginLeft: `${8 * expandedProgress}px`,
+    width: `${width * expandedProgress}px`,
     opacity: expandedProgress,
   });
 
@@ -83,30 +91,34 @@ export default function PublicNavbarDesktopAuthControls({
       <button
         type="button"
         onClick={() => navigate(userProfilePath)}
-        aria-label="마이페이지로 이동"
-        className="group relative overflow-hidden flex items-center justify-center h-9 rounded-full border border-primary dark:border-primary-light text-primary dark:text-primary-light font-bold transition-[width,font-size,background-color,color] duration-150 ease-out hover:bg-primary hover:text-primary-foreground dark:hover:text-white"
+        aria-label={`${displayName} 마이페이지로 이동`}
+        className="group relative flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[rgba(15,23,42,.08)] bg-white/80 font-bold text-gray-900 transition-[width,font-size,background-color,color,border-color] duration-150 ease-out hover:border-primary hover:bg-primary hover:text-primary-foreground dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:border-primary/80 dark:hover:bg-primary/80 dark:hover:text-white"
         style={{
-          width: `${36 + (79 * expandedProgress)}px`,
-          fontSize: `${14 + (2 * expandedProgress)}px`,
+          width: `${36 + (106 * expandedProgress)}px`,
+          fontSize: `${13 + (2 * expandedProgress)}px`,
         }}
       >
-        <span
-          className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 ease-out"
-          style={{ opacity: collapseProgress }}
-        >
-          {userName?.charAt(0) || '?'}
+        <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full">
+          <ProfileAvatar
+            src={userProfileImageUrl}
+            alt={`${displayName} 프로필`}
+            fallbackName={displayName}
+            width={26}
+            height={26}
+            className="text-[11px]"
+          />
         </span>
         <span
-          className="absolute inset-0 flex items-center justify-center overflow-hidden whitespace-nowrap transition-[opacity,transform] duration-150 ease-out group-hover:-translate-y-full group-hover:opacity-0 group-hover:text-white"
-          style={{ opacity: expandedProgress }}
+          className="relative inline-flex h-full min-w-0 overflow-hidden whitespace-nowrap text-center transition-[width,margin-left,opacity] duration-150 ease-out"
+          style={profileLabelStyle(92)}
+          aria-hidden={isCompact}
         >
-          {userName || '회원'} 님
-        </span>
-        <span
-          className="absolute inset-0 flex items-center justify-center translate-y-full overflow-hidden whitespace-nowrap opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-hover:text-white"
-          style={{ pointerEvents: isCompact ? 'none' : undefined }}
-        >
-          마이페이지
+          <span className="absolute inset-y-0 left-0 flex w-full min-w-0 max-w-full items-center justify-center overflow-hidden text-ellipsis transition-[opacity,transform] duration-150 ease-out group-hover:-translate-y-full group-hover:opacity-0">
+            {displayName} 님
+          </span>
+          <span className="absolute inset-y-0 left-0 flex w-full items-center justify-center translate-y-full opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100">
+            마이페이지
+          </span>
         </span>
       </button>
       {isAdmin && (

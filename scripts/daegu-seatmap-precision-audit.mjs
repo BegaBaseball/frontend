@@ -232,10 +232,10 @@ const nextActionFor = (row, workOrderGroup) => {
     return 'Keep as non-seat wayfinding marker; do not request a seat correctedPath unless operator confirms an actual selectable seat section.';
   }
   if (row.block === 'MR-10') {
-    return 'Official PNG scan does not confirm an independent MR-10 seat component. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
+    return 'Official image scan does not confirm an independent MR-10 seat component. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
   }
   if (row.block === 'M-10') {
-    return 'Official PNG scan does not find a seat-color seed around the current M-10 placeholder. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
+    return 'Official image scan does not find a seat-color seed around the current M-10 placeholder. Keep policy-excluded from normal/review seat layers unless operator confirms a selectable seat section with correctedPath/correctedLabelX/Y.';
   }
   if (workOrderGroup === '01_P1_BOUNDARY_FIRST') {
     return 'Resolve paired boundary ownership first, then enter operator-approved correctedPath and correctedLabelX/Y.';
@@ -244,9 +244,9 @@ const nextActionFor = (row, workOrderGroup) => {
     return 'Split the shared candidate or single high-risk block into a block-specific operator-approved polygon.';
   }
   if (workOrderGroup === '03_P2_LABEL_VISUAL_MANUAL') {
-    return 'Review label/top-hit and trace a corrected polygon from the official PNG evidence crop.';
+    return 'Review label/top-hit and trace a corrected polygon from the official image evidence crop.';
   }
-  return 'Request operator correctedPath from the official PNG; leave production data in NEEDS_OPERATOR_REVIEW.';
+  return 'Request operator correctedPath from the official image; leave production data in NEEDS_OPERATOR_REVIEW.';
 };
 
 const issueCounts = (rows) => rows.reduce((counts, row) => {
@@ -395,7 +395,7 @@ if (missingInputBlockers.length > 0) {
       draftHitPath: draftVisualPath,
       draftLabelPoint,
       draftReason: draftVisualPath
-        ? 'Official PNG pixel candidate reference only; operator approval is required before production use.'
+        ? 'Official image pixel candidate reference only; operator approval is required before production use.'
         : 'No reliable pixel candidate draft; manual operator tracing is required.',
       evidenceCrop: evidenceCropFor(handoffRow),
       requiredApprovalFields: [
@@ -467,7 +467,7 @@ if (missingInputBlockers.length > 0) {
     passLevel,
     requireRelease,
     sourcePolicy: {
-      allowedCoordinateSource: 'official PNG and operator-provided coordinates only',
+      allowedCoordinateSource: 'official image and operator-provided coordinates only',
       disallowedSources: [
         'external crawling',
         'web-search-based baseball data',
@@ -692,7 +692,7 @@ const overlaySvg = [
   '    .label { font: 800 12px sans-serif; fill: #0f172a; stroke: #fff; stroke-width: 3; paint-order: stroke; }',
   '    .flag { font: 700 9px sans-serif; fill: #334155; stroke: #fff; stroke-width: 2; paint-order: stroke; }',
   '  </style>',
-  '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
+  '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
   ...Array.from({ length: Math.floor(1707 / 100) + 1 }, (_, index) => `  <line class="grid" x1="${index * 100}" y1="0" x2="${index * 100}" y2="2048" />`),
   ...Array.from({ length: Math.floor(2048 / 100) + 1 }, (_, index) => `  <line class="grid" x1="0" y1="${index * 100}" x2="1707" y2="${index * 100}" />`),
   '  <g id="current-paths">',

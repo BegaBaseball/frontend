@@ -49,9 +49,9 @@ export default function MateDetailSeatPanel({
       <div className="space-y-4 py-2" data-testid="mate-seat-panel">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div className="rounded-xl border border-gray-200/80 bg-gray-50/90 p-4 dark:border-border/70 dark:bg-secondary/70">
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석 정보</p>
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">좌석 정보</p>
             <p className="mt-2 text-base font-semibold text-gray-900 dark:text-white">{section}</p>
-            <div className="mt-2 flex items-center gap-2 text-[16px] text-gray-600 dark:text-gray-300">
+            <div className="mt-2 flex items-center gap-2 text-[16px] text-gray-600 dark:text-white">
               <MateMapPinIcon className="h-4 w-4 text-primary" />
               <span>{stadiumDisplayName}</span>
             </div>
@@ -72,9 +72,9 @@ export default function MateDetailSeatPanel({
               <MateInfoIcon className="h-4 w-4 text-primary" />
               구역 설명
             </div>
-            <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">{currentZone.description}</p>
+            <p className="mt-2 text-[16px] text-gray-600 dark:text-white">{currentZone.description}</p>
             {currentZone.price ? (
-              <div className="mt-3 grid gap-2 text-[16px] text-gray-600 dark:text-gray-300 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2 text-[16px] text-gray-600 dark:text-white sm:grid-cols-2">
                 <div className="flex justify-between rounded-lg border border-gray-200/70 bg-white/70 px-3 py-2 dark:border-border/60 dark:bg-background/30">
                   <span>주중</span>
                   <span>{currentZone.price.weekday}</span>

@@ -27,7 +27,7 @@ test('대구 review 계약은 canonical/runtime release 명령만 검수한다',
 
   CANONICAL_COMMANDS.forEach((scriptName) => {
     assert.ok(scripts[scriptName], `${scriptName} should remain public`);
-    assert.match(scripts[scriptName], /^node scripts\/stadium-seatmap-ops\.mjs daegu /);
+    assert.match(scripts[scriptName], /^node scripts\/qa-presets\.mjs stadium daegu /);
   });
 
   [

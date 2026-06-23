@@ -1,7 +1,27 @@
 import { QueryClient } from '@tanstack/react-query';
-import { registerSessionScopedQueryCleanup } from './queryClientRegistry';
+import {
+  registerSessionScopedQueryCleanup,
+  registerUserProfileQueryPrimer,
+} from './queryClientRegistry';
+
+type UserProfileQueryData = {
+  id?: number;
+  email?: string;
+  name?: string;
+  handle?: string;
+  favoriteTeam?: string;
+  favoriteTeamColor?: string;
+  role?: string;
+  profileImageUrl?: string | null;
+  provider?: string;
+  providerId?: string;
+  bio?: string | null;
+  cheerPoints?: number;
+  hasPassword?: boolean;
+};
 
 const SESSION_SCOPED_QUERY_KEYS = [
+  ['userProfile'],
   ['deviceSessions'],
   ['linkedProviders'],
   ['securityEvents'],
@@ -31,3 +51,16 @@ export const clearSessionScopedQueries = () => {
 };
 
 registerSessionScopedQueryCleanup(clearSessionScopedQueries);
+
+registerUserProfileQueryPrimer((profile) => {
+  if (!profile || typeof profile !== 'object') {
+    return;
+  }
+
+  const queryData = profile as UserProfileQueryData;
+  if (!queryData.id) {
+    return;
+  }
+
+  queryClient.setQueryData(['userProfile', queryData.id], queryData);
+});

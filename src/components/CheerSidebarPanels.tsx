@@ -44,11 +44,11 @@ export default function CheerSidebarPanels({
                     </div>
                     <div>
                         <p className="text-[16px] font-bold text-[#0F172A] dark:text-white">팀 정보 요약</p>
-                        <p className="text-[16px] font-bold text-[#64748B] dark:text-gray-300">{teamName}</p>
+                        <p className="text-[16px] font-bold text-[#64748B] dark:text-white">{teamName}</p>
                     </div>
                 </div>
                 {teamId === 'all' ? (
-                <p className="mt-3 text-[16px] leading-relaxed text-[#64748B] dark:text-gray-300 font-bold">
+                <p className="mt-3 text-[16px] leading-relaxed text-[#64748B] dark:text-white font-bold">
                     모든 팀의 흐름을 한 번에 확인하세요.
                 </p>
                 ) : isTeamMetadataLoading ? (
@@ -58,9 +58,9 @@ export default function CheerSidebarPanels({
                         <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
                     </div>
                 ) : isTeamMetadataError ? (
-                        <div className="mt-3 rounded-xl bg-red-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                        <div className="mt-3 rounded-xl bg-red-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-white">
                         <p>팀 요약 정보를 불러오지 못했습니다.</p>
-                        <p className="mt-1 text-[16px] text-slate-500 dark:text-slate-300 font-bold">
+                        <p className="mt-1 text-[16px] text-slate-500 dark:text-white font-bold">
                             네트워크 상태를 확인하고 다시 시도해 주세요
                         </p>
                         <button
@@ -72,7 +72,7 @@ export default function CheerSidebarPanels({
                         </button>
                     </div>
                 ) : (
-                    <p className="mt-3 text-[16px] leading-relaxed text-[#64748B] dark:text-gray-300 font-bold">{teamDescription}</p>
+                    <p className="mt-3 text-[16px] leading-relaxed text-[#64748B] dark:text-white font-bold">{teamDescription}</p>
                 )}
             </div>
 
@@ -85,19 +85,19 @@ export default function CheerSidebarPanels({
                         <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-secondary" />
                     </div>
                 ) : isGamesError ? (
-                        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-white">
                         경기 정보를 불러오지 못했습니다.
                         <button
                             type="button"
                             onClick={onRefetchGames}
-                            className="mt-3 w-full rounded-full border border-slate-200 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
+                            className="mt-3 w-full rounded-full border border-slate-200 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
                         >
                             다시 시도
                         </button>
                     </div>
                 ) : featuredGame ? (
                     <div className="mt-3 space-y-3">
-                        <div className="flex items-center justify-between text-[16px] font-bold text-slate-500 dark:text-gray-300">
+                        <div className="flex items-center justify-between text-[16px] font-bold text-slate-500 dark:text-white">
                             <span>{formatStadiumDisplayName(featuredGame.stadium)}</span>
                             <span>{featuredGame.time}</span>
                         </div>
@@ -132,7 +132,7 @@ export default function CheerSidebarPanels({
                                         'rounded-full px-3 py-1 text-[16px] font-bold',
                                         featuredGame.gameStatus === 'PLAYING'
                                     ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300'
-                                        : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-gray-200'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-white'
                                     )}
                                 >
                                     {featuredGame.gameStatus === 'PLAYING' ? 'LIVE' : featuredGame.gameStatusKr || '예정'}
@@ -148,7 +148,7 @@ export default function CheerSidebarPanels({
                         </button>
                     </div>
                 ) : (
-                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-gray-300">
+                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-[16px] font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-white">
                         오늘 예정된 경기가 없습니다.
                     </div>
                 )}

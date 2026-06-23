@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { seedCypressAuthState } from '../support/auth';
+
 describe('MateDetail state coverage', () => {
   const checkinBaseUrl = (Cypress.config('baseUrl') || window.location.origin || 'http://localhost:5176').replace(/\/$/, '');
 
@@ -8,7 +10,7 @@ describe('MateDetail state coverage', () => {
     id: 1,
     email: 'test@example.com',
     name: 'TestUser',
-    handle: '@testuser',
+    handle: 'testuser',
     role: 'ROLE_USER',
     favoriteTeam: 'HH',
     hasPassword: true,
@@ -17,7 +19,7 @@ describe('MateDetail state coverage', () => {
 
   const baseParty = {
     id: 901,
-    hostId: 999,
+    hostHandle: 'statehost',
     hostName: '상태 호스트',
     hostBadge: 'VERIFIED',
     hostAverageRating: 4.8,
@@ -68,32 +70,16 @@ describe('MateDetail state coverage', () => {
     ...overrides,
   });
 
-  const seedAuthState = (win: Window) => {
-    const authState = {
-      state: {
-        user: testUser,
-        isLoggedIn: true,
-        isAdmin: false,
-      },
-      version: 0,
-    };
-
-    win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-    win.localStorage.setItem('accessToken', fakeToken);
-    win.localStorage.setItem('bega_has_visited', 'true');
-    win.localStorage.setItem('bega_dont_show_guide', 'true');
-    win.document.cookie = `Authorization=${fakeToken}; path=/`;
-  };
-
   const visitWithAuth = (path: string) => {
+    cy.failOnUnexpectedApi401();
     cy.visit(path, {
       onBeforeLoad(win) {
-        seedAuthState(win);
+        seedCypressAuthState(win, testUser, fakeToken);
       },
     });
 
     cy.window().then((win) => {
-      seedAuthState(win);
+      seedCypressAuthState(win, testUser, fakeToken);
     });
   };
 
@@ -197,10 +183,24 @@ describe('MateDetail state coverage', () => {
     cy.viewport(1280, 800);
   });
 
-  const getDesktopActionCard = () => cy.get('.sticky.top-6').first();
+  const getDesktopActionCard = () => cy.get('[data-testid="mate-desktop-action-rail"]').first();
+  const clickVisibleButton = (label: string) => {
+    cy.contains('button', label).scrollIntoView().should('be.visible');
+    cy.contains('button', label).click();
+  };
+  const clickVisibleText = (label: string) => {
+    cy.contains(label).scrollIntoView().should('be.visible');
+    cy.contains(label).click();
+  };
+  const clickMateHistoryCard = (stadium: string) => {
+    cy.contains('[data-testid="mypage-mate-card"]', stadium).scrollIntoView().should('be.visible');
+    cy.contains('[data-testid="mypage-mate-card"]', stadium).then(($card) => {
+      ($card[0] as HTMLElement).click();
+    });
+  };
 
   it('shows host management CTA when the current user is the host', () => {
-    const party = { ...baseParty, hostId: 1 };
+    const party = { ...baseParty, hostHandle: 'testuser' };
     setupDetailMocks({
       party,
       applications: [buildApplication({ applicantId: 44, applicantName: '대기 신청자' })],
@@ -212,13 +212,13 @@ describe('MateDetail state coverage', () => {
     cy.get('@getMyApplicationByParty.all').should('have.length', 0);
 
     getDesktopActionCard().scrollIntoView().within(() => {
-      cy.contains('호스트 모드').should('exist');
+      cy.contains('참여 현황').should('exist');
       cy.contains('button', '신청 관리 (1)').should('exist');
     });
   });
 
   it('shows pending approval context and cancel action for a waiting applicant', () => {
-    const party = { ...baseParty, hostId: 999 };
+    const party = { ...baseParty, hostHandle: 'otherhost' };
     setupDetailMocks({
       party,
       myApplication: buildApplication(),
@@ -229,7 +229,6 @@ describe('MateDetail state coverage', () => {
     cy.wait('@getMyApplicationByParty');
 
     getDesktopActionCard().scrollIntoView().within(() => {
-      cy.contains('승인 대기').should('exist');
       cy.get('[data-testid="mate-pending-status"]').should('be.visible');
       cy.contains('신청이 접수되었습니다.').should('exist');
       cy.contains('신청 취소').should('exist');
@@ -254,7 +253,7 @@ describe('MateDetail state coverage', () => {
     });
 
     cy.get('@createCheckinQrSession.all').should('have.length', 0);
-    cy.contains('button', '체크인 QR 보기').click();
+    cy.get('[data-testid="mate-open-qr-panel"]').scrollIntoView().should('be.visible').click();
     cy.wait('@createCheckinQrSession');
   });
 
@@ -270,7 +269,7 @@ describe('MateDetail state coverage', () => {
     cy.wait('@getMyApplicationByParty');
 
     getDesktopActionCard().scrollIntoView().within(() => {
-      cy.contains('이번 신청은 거절되었습니다.').should('be.visible');
+      cy.contains('참여 현황').should('be.visible');
       cy.contains('button', '다른 파티 보기').should('be.visible');
     });
   });
@@ -285,7 +284,7 @@ describe('MateDetail state coverage', () => {
     visitWithAuth(`/mate/${party.id}`);
     cy.wait('@getPartyById');
 
-    cy.contains('button', '좌석/구역 보기').click();
+    cy.get('[data-testid="mate-open-seat-panel"]').scrollIntoView().should('be.visible').click();
     cy.get('[data-testid="mate-seat-panel"]').should('be.visible');
     cy.contains('좌석 시야').should('be.visible');
     cy.wait('@getSeatViews');
@@ -308,7 +307,7 @@ describe('MateDetail state coverage', () => {
     visitAsGuest(`/mate/${baseParty.id}`);
     cy.wait('@guestGetMe');
     cy.contains('로그인 필요').should('be.visible');
-    cy.contains('로그인하러 가기').click();
+    clickVisibleText('로그인하러 가기');
     cy.location('pathname').should('eq', '/login');
     cy.location('search').should('eq', `?redirect=${encodeURIComponent(`/mate/${baseParty.id}`)}`);
     cy.get('@blockedPartyRequest.all').should('have.length', 0);
@@ -323,7 +322,7 @@ describe('MateDetail state coverage', () => {
     visitAsGuest(`/mate/${baseParty.id}/manage`);
     cy.wait('@guestGetMe');
     cy.contains('로그인 필요').should('be.visible');
-    cy.contains('로그인하러 가기').click();
+    clickVisibleText('로그인하러 가기');
     cy.location('pathname').should('eq', '/login');
     cy.location('search').should('eq', `?redirect=${encodeURIComponent(`/mate/${baseParty.id}/manage`)}`);
     cy.get('@blockedManagePartyRequest.all').should('have.length', 0);
@@ -340,7 +339,7 @@ describe('MateDetail state coverage', () => {
     visitAsGuest(checkInPath);
     cy.wait('@guestGetMe');
     cy.contains('로그인 필요').should('be.visible');
-    cy.contains('로그인하러 가기').click();
+    clickVisibleText('로그인하러 가기');
     cy.location('pathname').should('eq', '/login');
     cy.location('search').should('eq', `?redirect=${encodeURIComponent(checkInPath)}`);
     cy.get('@blockedCheckInPartyRequest.all').should('have.length', 0);
@@ -385,24 +384,48 @@ describe('MateDetail state coverage', () => {
     cy.wait('@getApplyParty');
     cy.contains('파티 참여 신청').should('be.visible');
 
-    cy.reload();
+    cy.visit(`/mate/${party.id}/apply`, {
+      onBeforeLoad(win) {
+        seedCypressAuthState(win, testUser, fakeToken);
+      },
+    });
     cy.wait('@getApplyParty');
     cy.contains('파티 참여 신청').should('be.visible');
   });
 
   it('keeps detail content visible during list to detail navigation using route state', () => {
+    cy.viewport(1024, 800);
     const party = { ...baseParty, id: 905, stadium: '사직야구장', homeTeam: 'LT', awayTeam: 'HH' };
 
-    cy.intercept('GET', '**/api/parties?page=0&size=9*', {
-      statusCode: 200,
-      body: {
-        content: [party],
-        totalElements: 1,
-        totalPages: 1,
-        number: 0,
-        size: 9,
-      },
-    }).as('getParties');
+    cy.intercept({ method: 'GET', pathname: '/api/parties' }, (req) => {
+      const requestUrl = new URL(req.url);
+      const size = requestUrl.searchParams.get('size');
+      if (size === '9') {
+        req.alias = 'getParties';
+        req.reply({
+          statusCode: 200,
+          body: {
+            content: [party],
+            totalElements: 1,
+            totalPages: 1,
+            number: 0,
+            size: 9,
+          },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          content: [],
+          totalElements: 0,
+          totalPages: 0,
+          number: 0,
+          size: 1,
+        },
+      });
+    });
     cy.intercept('GET', `**/api/parties/${party.id}*`, {
       statusCode: 200,
       delay: 1200,
@@ -431,8 +454,13 @@ describe('MateDetail state coverage', () => {
     }).as('getListQrSession');
 
     visitWithAuth('/mate');
-    cy.wait('@getParties');
-    cy.contains('사직야구장').click();
+    cy.wait('@getParties').then((interception) => {
+      const requestUrl = new URL(interception.request.url);
+      expect(requestUrl.searchParams.get('page')).to.eq('0');
+      expect(requestUrl.searchParams.get('size')).to.eq('9');
+    });
+    cy.contains('사직야구장').should('be.visible');
+    clickVisibleText('사직야구장');
 
     cy.location('pathname').should('eq', `/mate/${party.id}`);
     cy.contains('사직야구장').should('be.visible');
@@ -440,13 +468,20 @@ describe('MateDetail state coverage', () => {
   });
 
   it('navigates from mate history without Zustand and keeps the placeholder content visible', () => {
-    const party = { ...baseParty, id: 906, stadium: '고척스카이돔', teamId: 'WO', homeTeam: 'WO', awayTeam: 'LG' };
+    const party = { ...baseParty, id: 906, hostHandle: 'testuser', stadium: '고척스카이돔', teamId: 'WO', homeTeam: 'WO', awayTeam: 'LG' };
 
     cy.mockPublicFollowCounts('testuser');
-    cy.intercept('GET', '**/api/parties/my*', {
+    cy.intercept('GET', '**/api/parties/my/history*', {
       statusCode: 200,
-      body: [party],
-    }).as('getMyParties');
+      body: {
+        content: [party],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+        last: true,
+      },
+    }).as('getMyPartyHistory');
     cy.intercept('GET', `**/api/parties/${party.id}*`, {
       statusCode: 200,
       delay: 1200,
@@ -475,9 +510,10 @@ describe('MateDetail state coverage', () => {
     }).as('getHistoryQrSession');
 
     visitWithAuth('/mypage?view=mateHistory');
-    cy.wait('@getMyParties');
-    cy.contains('참여한 메이트').should('be.visible');
-    cy.contains('상세보기 →').click();
+    cy.wait('@getMyPartyHistory');
+    cy.get('[data-screen-label="메이트 내역"]').should('be.visible');
+    cy.contains('상세보기').should('be.visible');
+    clickMateHistoryCard('고척스카이돔');
 
     cy.location('pathname').should('eq', `/mate/${party.id}`);
     cy.contains('고척스카이돔').should('be.visible');

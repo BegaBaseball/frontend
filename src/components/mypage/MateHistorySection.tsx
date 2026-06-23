@@ -1,6 +1,5 @@
 // MateHistorySection.tsx
 import { useState } from 'react';
-import { Card } from '../ui/card';
 import { useMateHistory } from '../../hooks/useMateHistory';
 import { MateHistoryTab } from '../../types/mate';
 import MateHistoryCard from './MateHistoryCard';
@@ -11,7 +10,15 @@ interface MateHistoryContentProps {
 }
 
 function MateHistoryContent({ tab }: MateHistoryContentProps) {
-  const { parties, isLoading, isEmpty, emptyMessage } = useMateHistory(tab);
+  const {
+    parties,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isEmpty,
+    emptyMessage,
+  } = useMateHistory(tab);
 
   if (isLoading) {
     return (
@@ -21,17 +28,29 @@ function MateHistoryContent({ tab }: MateHistoryContentProps) {
 
   if (isEmpty) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">{emptyMessage}</p>
+      <div className="mypage-season-empty">
+        <p>{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mypage-season-mate-list">
       {parties.map((party) => (
         <MateHistoryCard key={party.id} party={party} />
       ))}
+      {hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={() => void fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="mypage-season-ghost-button disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isFetchingNextPage ? '불러오는 중...' : '더보기'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -46,27 +65,22 @@ export default function MateHistorySection() {
   ];
 
   return (
-    <div className="space-y-6">
-      <Card className="p-8">
-        <h2 className="mb-6 text-primary" style={{ fontWeight: 900 }}>
-          참여한 메이트
-        </h2>
+    <section data-screen-label="메이트 내역">
+      <div className="mypage-season-head">
+        <div>
+          <h1>메이트 내역</h1>
+          <p>참여한 직관 메이트와 진행 상태를 확인해요</p>
+        </div>
+      </div>
 
-        {/* 탭 버튼 */}
-        <div className="flex gap-2 mb-6 border-b">
+      <div className="mypage-season-panel">
+        <div className="mypage-season-tabs" data-testid="mypage-mate-history-tabs">
           {tabs.map((tab) => (
             <button
               type="button"
               key={tab.key}
               onClick={() => setMateHistoryTab(tab.key)}
-              className={`px-4 py-2 -mb-px ${
-                mateHistoryTab === tab.key
-                  ? 'border-b-2 font-bold border-primary text-primary'
-                  : 'text-muted-foreground'
-              }`}
-              style={{
-                borderColor: mateHistoryTab === tab.key ? undefined : 'transparent',
-              }}
+              className={mateHistoryTab === tab.key ? 'is-active' : undefined}
             >
               {tab.label}
             </button>
@@ -74,7 +88,7 @@ export default function MateHistorySection() {
         </div>
 
         <MateHistoryContent tab={mateHistoryTab} />
-      </Card>
-    </div>
+      </div>
+    </section>
   );
 }
