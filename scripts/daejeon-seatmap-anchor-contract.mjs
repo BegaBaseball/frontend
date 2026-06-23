@@ -33,7 +33,7 @@ export const cropReviewMeta = new Map([
   ['outfield-upper-500-509-sequence', { group: 'outfield', purpose: '외야 상단 500/501-509 검수', reviewFocus: '500 잔디석, 501-508 테이블, 509 지정석 경계 확인' }],
   ['skybox-s01-s12-sequence', { group: 'skybox', purpose: '스카이박스 S01-S12 검수', reviewFocus: '우측 상단 S01-S12 소형 셀이 label-only 예외 없이 crop으로 잠기는지 확인' }],
   ['skybox-s13-s25-sequence', { group: 'skybox', purpose: '스카이박스 S13-S25 검수', reviewFocus: '중앙 하단 S13-S25 소형 셀의 label/top-hit와 path 위치 확인' }],
-  ['skybox-s26-s37-sequence', { group: 'skybox', purpose: '스카이박스 S26-S37 검수', reviewFocus: '좌측 S26-S37 소형 셀이 공식 외곽선을 벗어나지 않는지 확인' }],
+  ['skybox-s26-s31-sequence', { group: 'skybox', purpose: '스카이박스 S26-S31 검수', reviewFocus: '좌측 S26-S31 소형 셀이 공식 외곽선을 벗어나지 않는지 확인' }],
   ['special-400-accessible-first', { group: 'special', purpose: '400 VIP 및 1루/우측 접근성 검수', reviewFocus: '400/1루 휠체어/우측 외야 휠체어 path가 인접 일반석을 먹지 않는지 확인' }],
   ['special-425-426-third-accessible', { group: 'special', purpose: '425/426/424 및 3루 접근성 검수', reviewFocus: '스플래시존 425/426, 424, 3루 휠체어 경계 확인' }],
   ['special-accessible-center', { group: 'special', purpose: '중앙 휠체어석 검수', reviewFocus: '중앙 접근성 소형 path가 중앙 100구역을 과대 선택하지 않는지 확인' }],
@@ -41,7 +41,7 @@ export const cropReviewMeta = new Map([
 ]);
 
 export const defaultPassCriteria = [
-  'visible path stroke가 공식 PNG 색상 셀 내부 또는 실제 경계 위에 머문다.',
+  'visible path stroke가 공식 이미지 색상 셀 내부 또는 실제 경계 위에 머문다.',
   'label dot이 해당 블록 내부의 시각 중심 또는 검수 가능한 라벨 위치에 있다.',
   '표시 highlight는 imageGeometry.d 기준이며 hitAreaD 확장분이 보이지 않는다.',
 ];
@@ -49,7 +49,7 @@ export const defaultPassCriteria = [
 export const defaultRejectCriteria = [
   'path가 인접 공식 블록을 과대 선택하거나 한 칸 밀린 것처럼 보인다.',
   'label dot 또는 대표 owner point가 다른 블록의 top-hit으로 보인다.',
-  '공식 PNG에 없는 blockCode나 retired P2 alias가 운영 geometry처럼 보인다.',
+  '공식 이미지에 없는 blockCode나 retired P2 alias가 운영 geometry처럼 보인다.',
 ];
 
 export const cropCriteriaByGroup = new Map([
@@ -58,7 +58,7 @@ export const cropCriteriaByGroup = new Map([
     reject: ['100A/100B/100C 중 하나가 중앙 테이블/포수 뒤쪽 인접 셀을 흡수한다.'],
   }],
   ['first', {
-    pass: ['104 단일 셀, 105-109, 201-212 순서가 공식 PNG 기준으로 밀리지 않는다.'],
+    pass: ['104 단일 셀, 105-109, 201-212 순서가 공식 이미지 기준으로 밀리지 않는다.'],
     reject: ['104가 좌측 상단 셀까지 먹거나 105-109가 한 칸씩 밀려 보인다.'],
   }],
   ['third', {
@@ -70,7 +70,7 @@ export const cropCriteriaByGroup = new Map([
     reject: ['500 잔디석 또는 501-509 테이블/지정석이 서로 겹치거나 외곽을 벗어난다.'],
   }],
   ['skybox', {
-    pass: ['S01-S37 소형 셀이 label-only 예외 없이 자동 owner-point 회귀 테스트로 잠긴다.'],
+    pass: ['S01-S31 소형 셀이 label-only 예외 없이 자동 owner-point 회귀 테스트로 잠긴다.'],
     reject: ['스카이박스 셀이 누락되거나 label/top-hit 회귀 테스트 없이 잠긴 것처럼 보인다.'],
   }],
   ['special', {
@@ -125,7 +125,7 @@ export const riskTagsByCropId = new Map([
   ['outfield-upper-500-509-sequence', ['500-509-outfield', 'outfield-boundary']],
   ['skybox-s01-s12-sequence', ['skybox', 'S01-S12', 'small-cell']],
   ['skybox-s13-s25-sequence', ['skybox', 'S13-S25', 'small-cell']],
-  ['skybox-s26-s37-sequence', ['skybox', 'S26-S37', 'small-cell']],
+  ['skybox-s26-s31-sequence', ['skybox', 'S26-S31', 'small-cell']],
   ['special-400-accessible-first', ['400-vip', 'accessible', 'special-overlap']],
   ['special-425-426-third-accessible', ['425-426-424', 'accessible', 'special-overlap']],
   ['special-accessible-center', ['accessible', 'center-small-path']],
@@ -156,7 +156,7 @@ export const regressionTestIdsByCropId = new Map([
   ['third-213-219-detail', ['P2_THIRD_213_219_DETAIL_REGRESSION']],
   ['skybox-s01-s12-sequence', ['P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION']],
   ['skybox-s13-s25-sequence', ['P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION']],
-  ['skybox-s26-s37-sequence', ['P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION']],
+  ['skybox-s26-s31-sequence', ['P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION']],
   ['special-400-accessible-first', ['P2_SPECIAL_400_ACCESSIBLE_FIRST_REGRESSION']],
   ['special-425-426-third-accessible', ['P2_SPECIAL_425_426_THIRD_ACCESSIBLE_REGRESSION']],
   ['special-accessible-center', ['P2_SPECIAL_ACCESSIBLE_CENTER_REGRESSION']],
@@ -512,12 +512,12 @@ export const anchorReviewCropDefinitions = [
     blocks: skyboxBlockIds(13, 25),
   },
   {
-    id: 'skybox-s26-s37-sequence',
+    id: 'skybox-s26-s31-sequence',
     x: 155,
     y: 645,
     width: 280,
     height: 225,
-    blocks: skyboxBlockIds(26, 37),
+    blocks: skyboxBlockIds(26, 31),
   },
   {
     id: 'special-400-accessible-first',
@@ -586,7 +586,7 @@ export const reviewMetadataForCrop = (crop, blocksById = new Map()) => {
   const meta = cropReviewMeta.get(crop.id) ?? {
     group: 'other',
     purpose: 'anchor crop 검수',
-    reviewFocus: '공식 PNG와 overlay path 정렬 확인',
+    reviewFocus: '공식 이미지와 overlay path 정렬 확인',
   };
   const groupCriteria = cropCriteriaByGroup.get(meta.group) ?? { pass: [], reject: [] };
   const reviewPriority = p0ReviewCropIds.has(crop.id)

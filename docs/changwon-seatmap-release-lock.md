@@ -6,7 +6,7 @@
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.png`
+- 공식 asset: `src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.webp`
 - 공식 이미지 좌표계: `1960x2546`
 - 기준 데이터: `CHANGWON_IMAGE_GEOMETRY`, `CHANGWON_OFFICIAL_TRACE_REFERENCE`, `CHANGWON_BLOCKS`
 - trace source: `OFFICIAL_PNG_MANUAL_POLYGON`

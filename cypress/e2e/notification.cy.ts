@@ -131,7 +131,7 @@ describe('Notification Panel', () => {
         }).as('getNotifications');
 
         cy.get('button[aria-label^="알림"]').click();
-        cy.contains('파티 신청 접수').should('be.visible');
+        cy.contains('파티 신청 접수').scrollIntoView().should('be.visible');
         cy.get('button[aria-label^="알림"]').find('span').contains(`${unreadCount}`).should('be.visible');
     });
 
@@ -146,8 +146,8 @@ describe('Notification Panel', () => {
         cy.get('button[aria-label^="알림"]').click();
         cy.wait('@getNotifications');
 
-        cy.contains('파티 신청 접수').should('be.visible');
-        cy.contains('새 팔로워').should('be.visible');
+        cy.contains('파티 신청 접수').scrollIntoView().should('be.visible');
+        cy.contains('새 팔로워').scrollIntoView().should('be.visible');
     });
 
     it('shows empty state when there are no notifications', () => {

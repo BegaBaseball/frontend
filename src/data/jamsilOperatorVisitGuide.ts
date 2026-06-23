@@ -71,7 +71,7 @@ const OPERATOR_DATA_PENDING_VALUE = `${OPERATOR_DATA_REQUIRED_LABEL} · ${MANUAL
 
 export const JAMSIL_OPERATOR_FACILITY_DATA_REQUIREMENT = Object.freeze({
   status: MANUAL_REQUIRED,
-  pendingLabel: '운영자 제공 출입구/매점/동선 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED',
+  pendingLabel: `운영자 제공 출입구/매점/동선 자료 필요 · ${MANUAL_REQUIRED}`,
 });
 
 const OFFICIAL_SEED_SOURCE_ID = 'jamsil-operator-20260531-official-seed-v1';

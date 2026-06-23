@@ -73,7 +73,7 @@ export default function MateDetailActionDialogs({
         )}
       >
         <div className="py-2">
-          <p className="mb-3 text-[16px] text-gray-600 dark:text-gray-300">
+          <p className="mb-3 text-[16px] text-gray-600 dark:text-white">
             직거래 파티는 취소 시 플랫폼 결제/환불이 적용되지 않습니다.
           </p>
           <div className="space-y-2">
@@ -84,17 +84,17 @@ export default function MateDetailActionDialogs({
                 onClick={() => onSelectCancelReason(option.value)}
                 className={`w-full rounded-lg border px-3 py-2 text-left transition ${selectedCancelReason === option.value
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-gray-200 bg-white text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-200'
+                  : 'border-gray-200 bg-white text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white'
                   }`}
                 disabled={isCancelling}
               >
                 <p className="font-semibold">{option.label}</p>
-                <p className="text-[16px] text-gray-500 dark:text-gray-400">{option.description}</p>
+                <p className="text-[16px] text-gray-500 dark:text-white">{option.description}</p>
               </button>
             ))}
           </div>
           <div className="mt-3">
-            <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-white">
               추가 메모 (선택)
             </label>
             <Input
@@ -132,7 +132,7 @@ export default function MateDetailActionDialogs({
         )}
       >
         <div className="py-2">
-          <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-gray-300">
+          <label className="mb-1 block text-[16px] font-semibold text-gray-700 dark:text-white">
             판매 가격 (원)
           </label>
           <Input

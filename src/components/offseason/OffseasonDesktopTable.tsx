@@ -26,7 +26,7 @@ export function OffseasonDesktopTable({
             <div className="flex items-center justify-between rounded-[28px] border border-zinc-200/80 bg-white px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="space-y-1">
                     <p className="text-[15px] font-black uppercase tracking-[0.2em] text-zinc-400">Desktop Table View</p>
-                    <p className="text-[15px] font-semibold text-zinc-600 dark:text-zinc-300">
+                    <p className="text-[15px] font-semibold text-zinc-600 dark:text-white">
                         헤드라인 {headlineCount}건, 금액 표기 {amountVisibleCount}건 포함
                     </p>
                 </div>
@@ -34,7 +34,7 @@ export function OffseasonDesktopTable({
                     <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[14px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                         정렬: {activeSortLabel}
                     </OffseasonPill>
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                         총 {movements.length}행
                     </OffseasonPill>
                 </div>
@@ -49,7 +49,7 @@ export function OffseasonDesktopTable({
                                 onClick={() => onSortChange('latest')}
                                 className={`flex h-14 w-full items-center justify-between rounded-2xl border px-4 text-left transition-colors ${sortOrder === 'latest'
                                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200'
-                                    : 'border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                    : 'border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                     }`}
                             >
                                 <span className="space-y-1">
@@ -63,7 +63,7 @@ export function OffseasonDesktopTable({
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Section</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">구분</span>
+                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">구분</span>
                                 </span>
                             </div>
                         </TableHead>
@@ -71,7 +71,7 @@ export function OffseasonDesktopTable({
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Club</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">팀</span>
+                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">팀</span>
                                 </span>
                             </div>
                         </TableHead>
@@ -79,7 +79,7 @@ export function OffseasonDesktopTable({
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Player</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">선수</span>
+                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">선수</span>
                                 </span>
                             </div>
                         </TableHead>
@@ -87,7 +87,7 @@ export function OffseasonDesktopTable({
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
                                     <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Details</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-zinc-200">계약 내용</span>
+                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">계약 내용</span>
                                 </span>
                             </div>
                         </TableHead>
@@ -97,7 +97,7 @@ export function OffseasonDesktopTable({
                                 onClick={() => onSortChange('amount')}
                                 className={`ml-auto flex h-14 w-full items-center justify-between rounded-2xl border px-4 text-right transition-colors ${sortOrder === 'amount'
                                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200'
-                                    : 'border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                    : 'border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                     }`}
                             >
                                 <span className="space-y-1 text-right">
@@ -138,10 +138,10 @@ export function OffseasonDesktopTable({
                                             <p className="text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">
                                                 {item.isBigEvent ? 'Headline' : 'Update'}
                                             </p>
-                                            <p className="text-[15px] font-black tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                                            <p className="text-[15px] font-black tabular-nums tracking-tight text-zinc-900 dark:text-white">
                                                 {formatDateLabel(item.date)}
                                             </p>
-                                            <p className="text-[14px] font-semibold text-zinc-400 dark:text-zinc-500">ID #{item.id}</p>
+                                            <p className="text-[14px] font-semibold text-zinc-400 dark:text-white">ID #{item.id}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -160,8 +160,8 @@ export function OffseasonDesktopTable({
                                             <TeamLogo team={teamName} size={28} />
                                         </div>
                                         <div className="space-y-0.5">
-                                            <p className="text-[15px] font-extrabold tracking-tight text-zinc-800 dark:text-zinc-100">{teamName}</p>
-                                            <p className="text-[14px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{item.team}</p>
+                                            <p className="text-[15px] font-extrabold tracking-tight text-zinc-800 dark:text-white">{teamName}</p>
+                                            <p className="text-[14px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-white">{item.team}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -171,7 +171,7 @@ export function OffseasonDesktopTable({
                                     }`}>
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-base font-black tracking-tight text-zinc-900 dark:text-zinc-50">{item.player}</span>
+                                            <span className="text-base font-black tracking-tight text-zinc-900 dark:text-white">{item.player}</span>
                                             {item.isBigEvent && (
                                                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400/90 text-[#173b34] shadow-sm">
                                                     <SparklesIcon className="h-3.5 w-3.5" />
@@ -186,8 +186,8 @@ export function OffseasonDesktopTable({
                                     </div>
                                 </TableCell>
                                 <TableCell className={`border-y px-3 py-4 align-top text-[15px] font-semibold leading-relaxed ${item.isBigEvent
-                                    ? 'border-emerald-200 bg-emerald-50/75 text-zinc-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-zinc-200'
-                                    : 'border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/90 dark:text-zinc-300'
+                                    ? 'border-emerald-200 bg-emerald-50/75 text-zinc-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-white'
+                                    : 'border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/90 dark:text-white'
                                     }`}>
                                     <div className="space-y-2">
                                         <p className="text-[15px] font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
@@ -202,11 +202,11 @@ export function OffseasonDesktopTable({
                                         <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Deal Value</p>
                                         <div className={`inline-flex rounded-2xl px-3 py-2 text-[15px] font-black tracking-tight ${amountLabel
                                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                            : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                                            : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-white'
                                             }`}>
                                             {amountLabel || '비공개'}
                                         </div>
-                                        <p className="text-[14px] font-semibold text-zinc-400 dark:text-zinc-500">
+                                        <p className="text-[14px] font-semibold text-zinc-400 dark:text-white">
                                             {item.team}
                                         </p>
                                     </div>

@@ -4,8 +4,10 @@ import {
   buildDefaultPredictionPath,
   ensureCoachBriefingVisible,
   installPredictionAuthenticatedSessionIntercept,
+  installPredictionBootstrapIntercept,
   installPredictionGuestSessionIntercept,
   visitPredictionPage,
+  waitForPredictionVoteBootstrap,
 } from '../support/predictionPage';
 
 describe('Prediction Coach Briefing Regression', () => {
@@ -143,11 +145,26 @@ describe('Prediction Coach Briefing Regression', () => {
           return;
         }
 
+        const resolveMediaMatch = (query: string) => {
+          if (query === '(prefers-reduced-motion: reduce)') {
+            return true;
+          }
+          const maxWidth = query.match(/\(\s*max-width\s*:\s*(\d+)px\s*\)/);
+          if (maxWidth) {
+            return win.innerWidth <= Number(maxWidth[1]);
+          }
+          const minWidth = query.match(/\(\s*min-width\s*:\s*(\d+)px\s*\)/);
+          if (minWidth) {
+            return win.innerWidth >= Number(minWidth[1]);
+          }
+          return false;
+        };
+
         Object.defineProperty(win, 'matchMedia', {
           writable: true,
           value: (query: string) =>
             ({
-              matches: query === '(prefers-reduced-motion: reduce)' || /min-width/.test(query),
+              matches: resolveMediaMatch(query),
               media: query,
               onchange: null,
               addListener: () => undefined,
@@ -178,8 +195,7 @@ describe('Prediction Coach Briefing Regression', () => {
     }
     // Wait for other initial requests to settle to avoid re-render noise
     if (waitForVoteBootstrap) {
-      cy.wait(['@getVoteStatus', '@getUserVotes']);
-      cy.get('@getUserVote.all').should('have.length', 0);
+      waitForPredictionVoteBootstrap();
     }
     if (!skipCoachBriefingProbe) {
       ensureCoachBriefingVisible();
@@ -297,6 +313,11 @@ describe('Prediction Coach Briefing Regression', () => {
       body: { homeVotes: 10, awayVotes: 5, totalVotes: 15 },
     }).as('getVoteStatus');
 
+    installPredictionBootstrapIntercept({
+      alias: 'getPredictionBootstrapCoach',
+      games: () => rangeSchedulePayload,
+    });
+
     cy.intercept('GET', '**/api/matches/day*', (req) => {
       const fallbackDate = rangeSchedulePayload[0]?.gameDate || '2026-06-01';
       const requestUrl = new URL(req.url);
@@ -367,9 +388,12 @@ describe('Prediction Coach Briefing Regression', () => {
             question_signature: 'auto',
             cache_key_version: 'v3',
             request_mode: 'auto_brief',
+            analysis_type: 'game_preview',
             cached: false,
-            cache_state: 'IN_PROGRESS',
+            cache_state: 'PENDING_WAIT',
             in_progress: true,
+            generation_mode: 'evidence_fallback',
+            llm_skip_reason: 'pending_wait',
           },
         }),
       });
@@ -383,12 +407,18 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     // PENDING 첫 지연은 5000ms — 2100ms 시점엔 아직 재시도 없어야 함
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
-    // 30s tick: PENDING 지연 [5s,10s,15s,20s,25s,30s] → 최대 7회(초기 1 + 재시도 6)
+    cy.tick(5000);
+    cy.wait('@coachAnalyzeRetry');
+    cy.tick(100);
+    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 2);
+    cy.tick(10000);
+    cy.wait('@coachAnalyzeRetry');
+    cy.tick(100);
+    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 3);
+    // Pending은 초기 요청 + 2회 재시도까지만 허용한다.
     cy.tick(30000);
-    cy.get('@coachAnalyzeRetry.all').its('length').should((length) => {
-      expect(Number(length)).to.be.gte(1);
-      expect(Number(length)).to.be.lte(8);
-    });
+    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 3);
+    cy.contains('경기 전 브리핑 준비 중입니다. 잠시 후 다시 확인해 주세요.').should('be.visible');
   });
 
 
@@ -443,7 +473,6 @@ describe('Prediction Coach Briefing Regression', () => {
                 risks: [],
               },
               detailed_markdown: '비핵심 정규시즌도 자동 브리핑을 제공합니다.',
-              coach_note: '비핵심 정규시즌 자동 브리핑입니다.',
             },
           },
         }),
@@ -834,6 +863,7 @@ describe('Prediction Coach Briefing Regression', () => {
 
   it('does not request coach analyze for guests and shows a login CTA', () => {
     installPredictionGuestSessionIntercept('getPredictionGuestSessionCoach');
+    cy.viewport(390, 844);
 
     cy.get('@appClock').then((clock: any) => {
       clock.restore();
@@ -850,6 +880,10 @@ describe('Prediction Coach Briefing Regression', () => {
     expectCoachBriefingText('실데이터 브리핑은 로그인 후 제공됩니다.');
     getCoachBriefingButton('로그인하고 브리핑 보기')
       .should('exist');
+    getCoachBriefingCard().then(($card) => {
+      const element = $card[0];
+      expect(element.scrollWidth).to.be.lte(element.clientWidth + 1);
+    });
   });
 
   it('reissues expired realtime auth before requesting coach briefing', () => {
@@ -1007,6 +1041,34 @@ describe('Prediction Coach Briefing Regression', () => {
       .should('exist');
   });
 
+  it('shows payload-limit guidance instead of generic fallback when coach analyze returns 413', () => {
+    cy.intercept('POST', '**/coach/analyze*', {
+      statusCode: 413,
+      body: {
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      },
+    }).as('coachAnalyzePayloadTooLarge');
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+    });
+
+    cy.wait('@coachAnalyzePayloadTooLarge');
+
+    expectCoachBriefingText('AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.');
+    cy.contains('AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.').should('not.exist');
+    getCoachBriefingButton('다시 로그인하기')
+      .should('not.exist');
+  });
+
   it('shows the blinking cursor only while coach briefing is loading', () => {
     cy.intercept('POST', '**/coach/analyze*', {
       delay: 1800,
@@ -1047,6 +1109,8 @@ describe('Prediction Coach Briefing Regression', () => {
       useRealClock: true,
     });
 
+    getCoachBriefingCard()
+      .should('contain.text', '실데이터 분석 중');
     cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
       expect(interceptions).to.have.length.at.least(1);
     });
@@ -1202,6 +1266,8 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.wait('@coachAnalyzeGrounded');
     getCoachBriefingTitle().should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
     getCoachBriefingBadge('실데이터 기반').should('exist');
+    cy.get('[data-testid="coach-analysis-open"]').should('exist');
+    cy.contains('최신 갱신').should('exist');
 
     cy.get('button[aria-label="다음 날짜 보기"]')
       .filter(':visible')
@@ -1263,7 +1329,10 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.wait('@coachAnalyzeMeta');
     getCoachBriefingBadge('실데이터 일부 기반').should('exist');
-    cy.contains('근거 3건').should('exist');
+    // Evidence chip now surfaces quality-weighted core evidence ("핵심 근거 N개")
+    // instead of the raw total ("근거 N건"). partial quality + 3 grounding reasons
+    // → baseLimit 4 - penalty 1 = 3 core evidence codes.
+    cy.contains('핵심 근거 3개').should('exist');
     getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
     getCoachBriefingCard()
       .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
@@ -1271,6 +1340,13 @@ describe('Prediction Coach Briefing Regression', () => {
     getCoachBriefingCard()
       .find('[data-testid="coach-vs-bar"]')
       .should('exist');
+    cy.get('[data-testid="coach-analysis-open"]').should('exist');
+    cy.contains('최신 갱신').should('exist');
+    cy.viewport(390, 844);
+    getCoachBriefingCard().then(($card) => {
+      const element = $card[0];
+      expect(element.scrollWidth).to.be.lte(element.clientWidth + 1);
+    });
   });
 
   it('shows detailed partial-quality warnings when clutch or focus evidence is limited', () => {
@@ -1327,6 +1403,10 @@ describe('Prediction Coach Briefing Regression', () => {
 
   it('shows prediction labels for scheduled-game coach analysis entry', () => {
     cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const body = parseCoachRequestBody(req.body);
+      expect(['auto_brief', 'manual_detail']).to.include(body.request_mode);
+      expect(body.analysis_type).to.eq('game_preview');
+
       req.reply({
         statusCode: 200,
         headers: { 'content-type': 'text/event-stream' },
@@ -1338,6 +1418,7 @@ describe('Prediction Coach Briefing Regression', () => {
             question_signature: 'auto',
             cache_key_version: 'v4',
             request_mode: 'auto_brief',
+            analysis_type: 'game_preview',
             cached: false,
             cache_state: 'MISS_GENERATE',
             in_progress: false,
@@ -1365,11 +1446,146 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeScheduledLabel');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
     cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 예측').click({ force: true });
     cy.get('[data-testid="coach-analysis-dialog"]')
       .should('be.visible')
       .and('contain', 'AI 코치 경기 예측');
-    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 경기 예측 시작');
+    // Auto-brief redesign: dialog auto-runs on open (no manual run button).
+    // The mode-specific label now lives in the dialog header title.
+    cy.get('[data-testid="coach-analysis-dialog"]').find('h2').should('contain', 'AI 코치 경기 예측');
+  });
+
+  it('renders mobile coach detail as a full-screen sheet with card metadata fallback', () => {
+    cy.viewport(390, 844);
+
+    cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const body = parseCoachRequestBody(req.body);
+      const isManualDetail = body.request_mode === 'manual_detail';
+      req.alias = isManualDetail ? 'coachAnalyzeMobileDetail' : 'coachAnalyzeMobileBrief';
+
+      req.reply({
+        statusCode: 200,
+        headers: { 'content-type': 'text/event-stream' },
+        body: buildSseResponse({
+          meta: isManualDetail
+            ? {
+                validation_status: 'success',
+                resolved_focus: ['recent_form', 'bullpen'],
+                focus_signature: 'recent_form+bullpen',
+                question_signature: 'manual',
+                cache_key_version: 'v4',
+                request_mode: 'manual_detail',
+                cached: false,
+                cache_state: 'MISS_GENERATE',
+                in_progress: false,
+                generation_mode: 'evidence_fallback',
+                data_quality: 'grounded',
+                game_status_bucket: 'SCHEDULED',
+                structured_response: {
+                  headline: '모바일 상세 분석',
+                  sentiment: 'positive',
+                  key_metrics: [
+                    { label: '예상 승률', value: '62%', status: '홈 우위', trend: 'up', is_critical: false },
+                  ],
+                  analysis: {
+                    summary: '홈팀이 후반 운영에서 근소하게 앞섭니다.',
+                    verdict: '7회 이후 불펜 운영이 승부처입니다.',
+                    strengths: ['홈팀은 후반 대타 카드가 남아 있습니다.'],
+                    weaknesses: ['원정팀은 불펜 소모가 누적되어 있습니다.'],
+                    risks: [
+                      {
+                        area: '불펜 운영',
+                        level: 1,
+                        description: '7회 이후 우완 불펜 매치업이 흔들릴 수 있습니다.',
+                        inning_label: '7~8회',
+                        inning_start: 7,
+                        inning_end: 8,
+                        impact: '-4%p',
+                        impact_to: 'away',
+                      },
+                    ],
+                    why_it_matters: ['후반 승률 변동성이 가장 큽니다.'],
+                    swing_factors: ['7회 첫 불펜 선택'],
+                    watch_points: ['불펜 워밍업 타이밍'],
+                    uncertainty: ['라인업 확정 전까지는 보수적으로 봅니다.'],
+                  },
+                  detailed_markdown: '## 코치 판단\n- 7회 이후 불펜 운영이 승부처입니다.',
+                  coach_note: '7회 이후 불펜 운영이 승부처입니다.',
+                },
+              }
+            : {
+                validation_status: 'success',
+                resolved_focus: ['recent_form'],
+                focus_signature: 'recent_form',
+                question_signature: 'auto',
+                cache_key_version: 'v4',
+                request_mode: 'auto_brief',
+                cached: false,
+                cache_state: 'MISS_GENERATE',
+                in_progress: false,
+                generation_mode: 'deterministic_auto',
+                data_quality: 'grounded',
+                game_status_bucket: 'SCHEDULED',
+                supported_fact_count: 14,
+                used_evidence: ['game', 'game_summary'],
+                win_probability_home: 62,
+                structured_response: {
+                  headline: '모바일 상세 자동 브리핑',
+                  sentiment: 'positive',
+                  key_metrics: [],
+                  analysis: {
+                    strengths: ['홈팀 최근 흐름 우위'],
+                    weaknesses: [],
+                    risks: [],
+                  },
+                  detailed_markdown: '모바일 상세 자동 브리핑입니다.',
+                  coach_note: '모바일 상세 자동 브리핑입니다.',
+                },
+              },
+        }),
+      });
+    });
+
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+
+    openPredictionPage({
+      reducedMotion: true,
+      useRealClock: true,
+      path: '/prediction?gameId=20260601HHSS0&date=2026-06-01',
+    });
+
+    cy.wait('@coachAnalyzeMobileBrief');
+    cy.get('[data-testid="coach-analysis-open"]').click({ force: true });
+    cy.wait('@coachAnalyzeMobileDetail');
+
+    cy.get('[data-testid="coach-analysis-dialog"]')
+      .should('be.visible')
+      .then(($dialog) => {
+        const rect = $dialog[0].getBoundingClientRect();
+        expect(rect.width).to.be.gte(389);
+        expect(rect.height).to.be.gte(800);
+      });
+
+    cy.get('[data-testid="coach-analysis-dialog"]').within(() => {
+      cy.contains('62%').should('exist');
+      cy.contains('실데이터 14건').should('exist');
+      cy.contains('팀 비교').should('exist');
+      cy.contains('코치 판단').should('exist');
+      cy.contains('리스크 관리').should('exist');
+      cy.contains('인사이트').should('exist');
+      cy.contains('7~8회').should('exist');
+      cy.contains('-4%p').should('exist');
+    });
+
+    cy.get('[data-testid="coach-analysis-dialog"]').then(($dialog) => {
+      const text = $dialog.text();
+      expect(text.indexOf('팀 비교')).to.be.lessThan(text.indexOf('코치 판단'));
+      expect(text.indexOf('코치 판단')).to.be.lessThan(text.indexOf('리스크 관리'));
+      expect(text.indexOf('리스크 관리')).to.be.lessThan(text.indexOf('인사이트'));
+    });
   });
 
   it('shows review labels for completed-game coach analysis entry', () => {
@@ -1390,6 +1606,10 @@ describe('Prediction Coach Briefing Regression', () => {
     ]);
 
     cy.intercept('POST', '**/coach/analyze*', (req) => {
+      const body = parseCoachRequestBody(req.body);
+      expect(['auto_brief', 'manual_detail']).to.include(body.request_mode);
+      expect(body.analysis_type).to.eq('game_review');
+
       req.reply({
         statusCode: 200,
         headers: { 'content-type': 'text/event-stream' },
@@ -1401,6 +1621,7 @@ describe('Prediction Coach Briefing Regression', () => {
             question_signature: 'auto',
             cache_key_version: 'v4',
             request_mode: 'auto_brief',
+            analysis_type: 'game_review',
             cached: false,
             cache_state: 'MISS_GENERATE',
             in_progress: false,
@@ -1434,7 +1655,9 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('[data-testid="coach-analysis-dialog"]')
       .should('be.visible')
       .and('contain', 'AI 코치 경기 리뷰');
-    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 경기 리뷰 시작');
+    // Auto-brief redesign: dialog auto-runs on open (no manual run button).
+    // The mode-specific label now lives in the dialog header title.
+    cy.get('[data-testid="coach-analysis-dialog"]').find('h2').should('contain', 'AI 코치 경기 리뷰');
   });
 
   it('keeps generic analysis labels for live-game coach analysis entry', () => {
@@ -1499,6 +1722,8 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.get('[data-testid="coach-analysis-dialog"]')
       .should('be.visible')
       .and('contain', 'AI 코치 상세 분석');
-    cy.get('[data-testid="coach-analysis-run-button"]').should('contain', 'AI 코치 상세 분석 시작');
+    // Auto-brief redesign: dialog auto-runs on open (no manual run button).
+    // The mode-specific label now lives in the dialog header title.
+    cy.get('[data-testid="coach-analysis-dialog"]').find('h2').should('contain', 'AI 코치 상세 분석');
   });
 });

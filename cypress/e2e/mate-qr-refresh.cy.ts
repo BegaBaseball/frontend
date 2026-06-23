@@ -111,8 +111,8 @@ describe('MateDetail QR refresh', () => {
 
     visitWithAuth('/mate/777');
     cy.wait('@getPartyById');
-    cy.contains('CHECK-IN QR').should('be.visible');
-    cy.contains('button', '체크인 QR 보기').click();
+    cy.contains('체크인 QR').should('be.visible');
+    cy.get('[data-testid="mate-open-qr-panel"]').click();
     cy.wait('@createCheckinQrSession');
 
     cy.then(() => {
@@ -198,7 +198,7 @@ describe('MateDetail QR refresh', () => {
 
     visitWithAuth('/mate/778');
     cy.wait('@getPartyById');
-    cy.contains('button', '체크인 QR 보기').click();
+    cy.get('[data-testid="mate-open-qr-panel"]').click();
     cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('be.visible');
     cy.wait('@createCheckinQrSession');
     cy.contains('체크인 QR을 새로 불러오는 중입니다.').should('not.exist');

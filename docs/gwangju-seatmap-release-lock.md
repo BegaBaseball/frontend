@@ -4,7 +4,7 @@
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png`
+- 공식 asset: `src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp`
 - 공식 이미지 좌표계: `2200x1159`
 - 기준 데이터: `GWANGJU_SEATMAP_IMAGE`, `GWANGJU_IMAGE_GEOMETRY_DRAFTS`, `GWANGJU_OFFICIAL_TRACE_REFERENCE`, `GWANGJU_BLOCKS`
 - trace method: `OFFICIAL_IMAGE_PIXEL_TRACE`
@@ -44,7 +44,7 @@
 ## Precision v1 Editor/CLI 계약
 
 - dev-only editor route: `/internal/gwangju-seatmap-editor`
-- editor는 공식 PNG를 SVG `viewBox="0 0 2200 1159"` 좌표계로 렌더링한다.
+- editor는 공식 이미지를 SVG `viewBox="0 0 2200 1159"` 좌표계로 렌더링한다.
 - editor는 repo 파일을 직접 쓰지 않고 JSON/TS patch preview만 복사한다.
 - `node scripts/stadium-seatmap-ops.mjs gwangju precision-editor-dataset`
 - `node scripts/stadium-seatmap-ops.mjs gwangju precision-editor-patch:validate`
@@ -57,7 +57,7 @@
 
 ## K7/원정응원석 block-range 계약
 
-2026-05-11 운영자 block-range 검수 기준은 새 좌표 추정이 아니라 공식 PNG에서 검수된 번호 블럭 polygon을 multi-subpath aggregate로 합성하는 방식이다.
+2026-05-11 운영자 block-range 검수 기준은 새 좌표 추정이 아니라 공식 이미지에서 검수된 번호 블럭 polygon을 multi-subpath aggregate로 합성하는 방식이다.
 
 - `K7석`: `107`, `108`, `109`, `110`, `111`, `118`, `119`, `120`, `121`, `122`
 - `원정응원석`: `107`, `108`, `109`, `110`
@@ -86,19 +86,19 @@ Derived range 상수 계약:
 
 - `home-k7-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`
 - `away-cheering-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`
-- K7/AWAY aggregate hit-area는 공식 PNG `2200x1159` 기준 검수 완료 번호 블럭 subpath만 합성한다.
+- K7/AWAY aggregate hit-area는 공식 이미지 `2200x1159` 기준 검수 완료 번호 블럭 subpath만 합성한다.
 - active block 기준은 `111`에서 `113`으로 전환되어 있다.
 - `SPECIAL_BLOCKS`에는 K7/AWAY aggregate block definition이 포함된다.
 
 ## O/P 외야 component coverage 계약
 
-O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 공식 색상 영역 내부에 있을 때 통과할 수 있으므로, 공식 PNG component recall/IoU gate를 별도로 적용한다.
+O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 공식 색상 영역 내부에 있을 때 통과할 수 있으므로, 공식 이미지 component recall/IoU gate를 별도로 적용한다.
 
 - 대상: `outfield-left-seats`, `outfield-right-seats`, `bleachers-table-left`, `bleachers-table-right`
 - 기준 component: `outfield-1`, `outfield-3`, `bleachers-table-1~4`
 - 최소 공식 component recall: `0.78`
 - 최소 component IoU: `0.62`
-- `outfield-right-seats`는 공식 PNG component `outfield-3` bounds `1184,341,1333,838` 기준으로 하단까지 포함해야 한다.
+- `outfield-right-seats`는 공식 이미지 component `outfield-3` bounds `1184,341,1333,838` 기준으로 하단까지 포함해야 한다.
 - O/P component coverage가 실패하면 일반 좌석 layer에 과거 polygon이 남은 것으로 보고 trace manifest와 release gate를 실패시킨다.
 
 ## 101~127 image alignment audit 계약
@@ -109,15 +109,15 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - overlay: `reports/stadium/gwangju-seatmap-image-alignment-audit-overlay.png`
 - crop: `reports/stadium/gwangju-seatmap-image-alignment-audit-crops/`
 - P0 기준: `officialBlockMaskRecall >= 0.90`, `componentIoU >= 0.75`, `outsideBleedRatio <= 0.08`
-- 101~127 전수조사: `official-numbered-component-mask`, `official-numbered-boundary-mask`로 production에 남은 번호 내야 block의 공식 PNG mask recall, IoU, outside bleed, label top-hit를 별도 고정한다. 3루 `121~127/I/J`는 `gwangju-seatmap-official-third-infield-trace` 경로로 복구한 production 좌표와 browser selected-sweep evidence를 함께 검수한다.
-- S-* 전수조사: `S-301~S-335`는 `official-sky-picnic-color-scan`으로 공식 PNG sky-picnic pink 색상 coverage와 outside bleed를 별도 보고한다.
-- 5층 테이블 전수조사: `501~535`는 `official-five-table-color-scan`으로 공식 PNG 회색/청회색 fill coverage와 outside bleed를 별도 보고한다.
+- 101~127 전수조사: `official-numbered-component-mask`, `official-numbered-boundary-mask`로 production에 남은 번호 내야 block의 공식 이미지 mask recall, IoU, outside bleed, label top-hit를 별도 고정한다. 3루 `121~127/I/J`는 `gwangju-seatmap-official-third-infield-trace` 경로로 복구한 production 좌표와 browser selected-sweep evidence를 함께 검수한다.
+- S-* 전수조사: `S-301~S-335`는 `official-sky-picnic-color-scan`으로 공식 이미지 sky-picnic pink 색상 coverage와 outside bleed를 별도 보고한다.
+- 5층 테이블 전수조사: `501~535`는 `official-five-table-color-scan`으로 공식 이미지 회색/청회색 fill coverage와 outside bleed를 별도 보고한다.
 - 기본 실행은 S-* 및 5층 테이블 mismatch를 `review-required`로 보고하고, trace manifest는 `--require-sky-picnic --require-alphabet-sections --require-five-table` release gate로 같은 결과를 차단한다.
 - S-* evidence crop: `gwangju-seatmap-image-alignment-audit-sky-picnic-s-301-315.png`, `gwangju-seatmap-image-alignment-audit-sky-picnic-s-316-335.png`
-- v45에서는 `S-301~S-304`를 공식 PNG 확대 crop의 분홍색 visible block 외곽 기준으로 axis-aligned rectangle에서 기울어진 polygon으로 보정해 `J` 하단 boundary와의 여백을 줄인다.
+- v45에서는 `S-301~S-304`를 공식 이미지 확대 crop의 분홍색 visible block 외곽 기준으로 axis-aligned rectangle에서 기울어진 polygon으로 보정해 `J` 하단 boundary와의 여백을 줄인다.
 - 5층 테이블 evidence crop: `gwangju-seatmap-image-alignment-audit-five-table-501-518.png`, `gwangju-seatmap-image-alignment-audit-five-table-519-535.png`
-- 알파벳 표시 좌석 전수조사: 선택 가능한 `A/B/C/G/H/I/J` 좌석은 `official-alphabet-section-color-scan`으로 공식 PNG 구역 색상 coverage와 outside bleed를 별도 보고한다. `J/I/H` 하단 내야 특수석은 101~108 polygon 배치 후 좌표 복사 mask가 아니라 공식 PNG 색상 mask에서 추출한 `official-alphabet-section-mask` recall/IoU/outside bleed gate로 별도 차단한다.
-- 1루 `H/I/J`는 번호 블럭과 같은 살구색이 섞이는 구간을 분리한다. `H`는 공식 PNG 빨간 row-envelope를 visual outline으로 유지하고, hit-area는 `101~108`, `I`, `J`와 sampled overlap을 만들지 않도록 하단 shared boundary를 non-overlap clip해 bbox `1007,812,1185,904`로 고정한다. `I`는 공식 PNG crop에서 보이는 H와 J 사이의 긴 strip 색상 component를 production polygon 복사본이 아닌 `largest-component-row-envelope`로 다시 추출해 bbox `958,893,1112,944`로 고정하고, `J`는 공식 PNG 색상 `row-envelope`에서 다시 추출한 뒤 105 하단 shared boundary를 침범하지 않도록 좌상단을 non-overlap clip해 bbox `867,930,959,966`으로 고정한다. 이 polygon들은 `101~108`, `H/I/J`, `S-301~S-304` label center를 서로 삼키면 안 된다.
+- 알파벳 표시 좌석 전수조사: 선택 가능한 `A/B/C/G/H/I/J` 좌석은 `official-alphabet-section-color-scan`으로 공식 이미지 구역 색상 coverage와 outside bleed를 별도 보고한다. `J/I/H` 하단 내야 특수석은 101~108 polygon 배치 후 좌표 복사 mask가 아니라 공식 이미지 색상 mask에서 추출한 `official-alphabet-section-mask` recall/IoU/outside bleed gate로 별도 차단한다.
+- 1루 `H/I/J`는 번호 블럭과 같은 살구색이 섞이는 구간을 분리한다. `H`는 공식 이미지 빨간 row-envelope를 visual outline으로 유지하고, hit-area는 `101~108`, `I`, `J`와 sampled overlap을 만들지 않도록 하단 shared boundary를 non-overlap clip해 bbox `1007,812,1185,904`로 고정한다. `I`는 공식 이미지 crop에서 보이는 H와 J 사이의 긴 strip 색상 component를 production polygon 복사본이 아닌 `largest-component-row-envelope`로 다시 추출해 bbox `958,893,1112,944`로 고정하고, `J`는 공식 이미지 색상 `row-envelope`에서 다시 추출한 뒤 105 하단 shared boundary를 침범하지 않도록 좌상단을 non-overlap clip해 bbox `867,930,959,966`으로 고정한다. 이 polygon들은 `101~108`, `H/I/J`, `S-301~S-304` label center를 서로 삼키면 안 된다.
 - 3루 `H` reference bbox는 `569,158,692,307`이다. 3루 `121~127/I/J`는 active production data와 selected-sweep QA에 포함한다.
 - 3루 `I/J`는 현재 production data, selected-sweep QA, release evidence에 복구된 상태다. 과거 `I/J` candidate/reference polygon은 release 근거로 사용하지 않는다.
 - dispatcher-internal `artifact-scope-audit`가 active reports/output에 남은 3루 legacy retrace, independent audit, boundary overlay, mask probe, proposed/manual retrace artifact를 차단한다. 과거 산출물은 `reports/stadium/_archive/gwangju-legacy-candidates/archive-manifest.json`에만 기록한다.
@@ -125,12 +125,12 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 - retired lower-infield/third-base independent audit script 파일은 release payload가 아니며, active release 차단은 dispatcher-internal artifact-scope 및 block-source duplication audit가 담당한다.
 - 기본 실행은 알파벳 좌석 mismatch를 `review-required`로 보고하고, trace manifest는 `--require-sky-picnic --require-alphabet-sections --require-five-table` release gate로 같은 결과를 차단한다.
 - 알파벳 evidence crop: `gwangju-seatmap-image-alignment-audit-special-seats.png`, `gwangju-seatmap-image-alignment-audit-alphabet-special-seats-upper.png`
-- 하단 내야 split evidence: `lower-infield-special-split/` 아래 공식 PNG crop, `101~108` 번호 블럭 only overlay, `J/I/H` 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 생성한다. 두 layer의 sampled overlap이 1개라도 있으면 번호 블럭과 특수석이 각각 mask gate를 통과해도 release를 실패시킨다.
-- audit는 공식 PNG `2200x1159` 기준 독립 mask만 사용하며 browser CSS pixel, resized screenshot, external crawling, web-search-based baseball data, third-party copied seatmap images를 사용하지 않는다.
+- 하단 내야 split evidence: `lower-infield-special-split/` 아래 공식 이미지 crop, `101~108` 번호 블럭 only overlay, `J/I/H` 특수석 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 생성한다. 두 layer의 sampled overlap이 1개라도 있으면 번호 블럭과 특수석이 각각 mask gate를 통과해도 release를 실패시킨다.
+- audit는 공식 이미지 `2200x1159` 기준 독립 mask만 사용하며 browser CSS pixel, resized screenshot, external crawling, web-search-based baseball data, third-party copied seatmap images를 사용하지 않는다.
 
 ## P4 반복 블럭 coverage 계약
 
-`SKY_PICNIC` 35개와 `FIVE_TABLE` 35개는 P4 반복 블럭으로 묶어 관리한다. 두 반복 계열 모두 image alignment audit의 공식 PNG 색상 전수조사 결과를 함께 확인한다.
+`SKY_PICNIC` 35개와 `FIVE_TABLE` 35개는 P4 반복 블럭으로 묶어 관리한다. 두 반복 계열 모두 image alignment audit의 공식 이미지 색상 전수조사 결과를 함께 확인한다.
 
 - 대상 workset: `p4-repeated-numbered-blocks`
 - 대상 수: `70`개 (`SKY_PICNIC` 35개, `FIVE_TABLE` 35개)
@@ -194,25 +194,25 @@ O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 �
 
 ## 운영 규칙
 
-- 공식 PNG natural size는 `2200x1159`이어야 한다.
-- SVG overlay와 hit-area는 공식 PNG 원본 좌표계를 기준으로 유지한다.
+- 공식 이미지 natural size는 `2200x1159`이어야 한다.
+- SVG overlay와 hit-area는 공식 이미지 원본 좌표계를 기준으로 유지한다.
 - active 113개 block은 모두 `OFFICIAL_IMAGE_TRACED`, `manualReviewed: true`, `PIXEL_ALIGNED` 상태여야 한다.
 - 기본 111개 active block은 `gwangju-precision-v1` / `GWANGJU_PRECISION_V1` 세대로 고정하고, K7/AWAY 2개 aggregate는 기존 공식 traced 번호 블럭 subpath로만 구성한다.
 - `manual-polygon-v113` 대비 재생성 결과는 trace manifest의 `previousTraceVersion`, `blocksChangedFromPreviousTrace`, `totalRetracePointDelta`, bbox/anchor/coverage delta, zone overlay crop 필드로 확인한다.
 - `GWANGJU_ZONE_PRECISION_WORKSETS`는 P1 O/P 외야, P2 하단 내야 저마진 K7/K9, P3 특수석, P4 SKY_PICNIC/FIVE_TABLE 반복 블럭, P5 전체 113개 reference 재고정 순서를 고정한다.
 - 일반 좌석 layer는 `GWANGJU_BLOCKS[].imageGeometry.d`만 hit-area로 렌더링하며 `GWANGJU_IMAGE_GEOMETRY_DRAFTS`, `GWANGJU_OFFICIAL_TRACE_REFERENCE`, operator template, marker-only zone은 런타임 hit-area source가 아니다. K7/AWAY aggregate는 `GWANGJU_BLOCKS`에 들어간 release-ready geometry만 filter 전용으로 렌더링한다.
 - 런타임 SVG는 `GWANGJU_BLOCKS.map`과 `d={block.imageGeometry.d}`만 일반 좌석 `<path>` source로 사용한다.
-- debug/active overlay는 hit-area polygon을 과장하지 않도록 stroke width `1~1.5px`만 사용하고, `101~108`, `116~127`, `A/B/C/G/H`, 1루/3루 `I/J` 및 `S-*` 같은 작은 블럭은 selected 상태에서 `0.75px` stroke와 no-glow로 고정한다. debug mode에서는 공식 PNG 라벨과 중복되는 block text를 전부 렌더링하지 않는다.
+- debug/active overlay는 hit-area polygon을 과장하지 않도록 stroke width `1~1.5px`만 사용하고, `101~108`, `116~127`, `A/B/C/G/H`, 1루/3루 `I/J` 및 `S-*` 같은 작은 블럭은 selected 상태에서 `0.75px` stroke와 no-glow로 고정한다. debug mode에서는 공식 이미지 라벨과 중복되는 block text를 전부 렌더링하지 않는다.
 - browser selected paint audit는 1루 `J/I/H`와 3루 `G/H`를 클릭한 뒤 `strokeInflationToScreenHeightRatio <= 0.22`, `strokeWidth <= 1`, no glow filter, label point top-hit 자기 블럭 조건을 검사하고 crop evidence를 남긴다.
 - lower infield selected sweep은 `101~108`, 1루 `J/I/H` label point를 순서대로 실제 클릭하고, 각 클릭 후 selected id, label top-hit, selected stroke ratio, 주변 lower-infield label 침범 여부를 `gwangju-lower-infield-selected-sweep-*.json/.md`와 per-target crop으로 남긴다.
 - third-base selected sweep은 `116~127`, `A`, `B`, `C`, `G`, `H`, `I`, `J` label point를 순서대로 실제 클릭하고, 각 클릭 후 selected id, label top-hit, selected stroke ratio, 주변 third-base lower-infield label 침범 여부를 `gwangju-thirdbase-selected-sweep-*.json/.md`와 per-target crop으로 남긴다.
 - runtime layer audit은 브라우저에 렌더링된 113개 `gwangju-seat-block-*` path의 `d` 값을 trace manifest `blocks[].path`와 비교하며 `pathMismatchCount=0`, `forbiddenRenderedIds=0`, `labelTopHitFailureCount=0` 상태를 요구한다.
 - `GWANGJU_NON_SELECTABLE_MARKER_ZONES`는 좌석 `<path>`가 아니라 차단용 marker layer이며 block detail 선택 대상이 아니다.
-- K7/AWAY block-range는 공식 PNG 검수 번호 블럭 polygon과 공식 derived aggregate polygon에 연결한다.
+- K7/AWAY block-range는 공식 이미지 검수 번호 블럭 polygon과 공식 derived aggregate polygon에 연결한다.
 - K7/AWAY aggregate polygon 좌표를 추정하거나 색상만 보고 생성하지 않고, 기존 공식 traced 번호 블럭 subpath만 합성한다.
 - operator input aid의 reference bbox/anchor/crop은 `REFERENCE_BOUNDS_ONLY_NOT_OPERATOR_POLYGON` 참고 자료이며 aggregate polygon 좌표가 아니다.
 - operator input packet의 reference bbox/anchor/crop도 `REFERENCE_BOUNDS_ONLY_NOT_OPERATOR_POLYGON` 참고 자료이며 aggregate polygon 좌표가 아니다.
-- 허용 좌표 소스는 `operator-provided official PNG coordinates only`이다.
+- 허용 좌표 소스는 `operator-provided official image coordinates only`이다.
 - browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images는 사용하지 않는다.
 - 야구 운영 데이터가 비어 있거나 불명확하면 `MANUAL_BASEBALL_DATA_REQUIRED` 계약으로 유지하고 operator 제공 데이터를 요청한다.
 - 좌표 변경이 발생하면 trace manifest, clean crops, isolated browser QA를 다시 생성한다.
@@ -464,7 +464,7 @@ npm run build
 
 ## 남은 작업
 
-- `home-k7-seats`와 `away-cheering-seats`는 공식 PNG `2200x1159` 기준 검수 완료 번호 블럭 subpath를 합성한 READY 상태다.
+- `home-k7-seats`와 `away-cheering-seats`는 공식 이미지 `2200x1159` 기준 검수 완료 번호 블럭 subpath를 합성한 READY 상태다.
 - 현재 정상 상태는 `activeBlocks=113`, `operatorStatus=ready`, `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`이다.
 - 현재 K7석 derived range와 원정응원석 derived range는 `107~110`을 공유하는 중첩 필터 모델이다. 이 중첩은 공식 derived aggregate filter에서만 허용되며, 별도 non-overlap operator target을 추가할 때는 중첩을 다시 검토한다.
 - 향후 같은 `officialBlocks`를 공유하는 독립 polygon 승격 입력은 `OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`으로 차단한다.
@@ -474,4 +474,4 @@ npm run build
 
 - 포함: 이 문서, `docs/gwangju-seatmap-release-handoff.md`, 광주 K7/AWAY block-range 테스트 계약, trace/status 산출물.
 - 제외: K7/AWAY 외 신규 operator target 생성, 외부 야구 데이터 보강.
-- 추가 독립 polygon 승격은 operator template에 공식 PNG 기준 좌표가 입력되고 strict validation, apply-plan, write-smoke, write-guard, postwrite gate가 모두 통과한 뒤 별도 작업으로 처리한다.
+- 추가 독립 polygon 승격은 operator template에 공식 이미지 기준 좌표가 입력되고 strict validation, apply-plan, write-smoke, write-guard, postwrite gate가 모두 통과한 뒤 별도 작업으로 처리한다.

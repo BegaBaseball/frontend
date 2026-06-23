@@ -1,20 +1,14 @@
-import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import {
+  exitWithStatus,
+  runTaskSteps,
+} from './lib/stadium-task-runner.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
-
-const nodeTsxStep = (script, args = []) => ({
-  command: 'node',
-  args: ['--import', 'tsx', script, ...args],
-});
-
-const npmRunStep = (script) => ({
-  command: 'npm',
-  args: ['run', script],
-});
 
 const STADIUMS = {
   gocheok: {
@@ -154,6 +148,7 @@ const STADIUMS = {
       'scripts/gwangju-seatmap-release-staging-ops.mjs',
     ],
     publicTasks: [
+      'full',
       'mobile',
       'operator-handoff',
       'operator-status',
@@ -558,6 +553,12 @@ const STADIUMS = {
         {
           command: 'node',
           args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU'],
+        },
+      ],
+      full: [
+        {
+          command: 'node',
+          args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU:FULL'],
         },
       ],
       'runtime-layer': [
@@ -1556,64 +1557,6 @@ function printStatus(stadiumId, config) {
   }, null, 2));
 }
 
-function runSteps(stadium, steps, passthroughArgs, stack) {
-  steps.forEach((step) => runStep(stadium, step, passthroughArgs, stack));
-}
-
-function runStep(stadium, step, passthroughArgs, stack) {
-  if (step.task) {
-    if (stack.includes(step.task)) {
-      throw new Error(`Recursive task reference: ${[...stack, step.task].join(' -> ')}`);
-    }
-
-    const nestedTask = stadium.tasks[step.task];
-    if (!nestedTask) {
-      throw new Error(`Unknown nested task: ${step.task}`);
-    }
-
-    runSteps(stadium, nestedTask, passthroughArgs, [...stack, step.task]);
-    return;
-  }
-
-  if (step.shellScript) {
-    const result = spawnSync(step.shellScript, {
-      cwd: frontendRoot,
-      env: process.env,
-      shell: true,
-      stdio: 'inherit',
-    });
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    if (result.status !== 0) {
-      process.exit(result.status ?? 1);
-    }
-
-    return;
-  }
-
-  const args = step.passArgs ? [...step.args, ...passthroughArgs] : step.args;
-  const result = spawnSync(step.command, args, {
-    cwd: frontendRoot,
-    env: {
-      ...process.env,
-      ...(step.env ?? {}),
-    },
-    shell: false,
-    stdio: 'inherit',
-  });
-
-  if (result.error) {
-    throw result.error;
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-}
-
 const [rawStadiumId, rawTaskName = 'status', ...passthroughArgs] = process.argv.slice(2);
 
 if (!rawStadiumId || rawStadiumId === '--help' || rawStadiumId === '-h') {
@@ -1648,4 +1591,15 @@ if (!task) {
   process.exit(1);
 }
 
-runSteps(stadium, task, passthroughArgs, [taskName]);
+const status = await runTaskSteps(
+  {
+    cwd: frontendRoot,
+    legacyShellTasks: stadium.legacyShellTasks,
+    tasks: stadium.tasks,
+  },
+  taskName,
+  task,
+  passthroughArgs,
+  [taskName],
+);
+exitWithStatus(status);

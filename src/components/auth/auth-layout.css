@@ -344,6 +344,9 @@
 }
 
 .auth-link {
+  display: inline-flex;
+  min-height: var(--control-height-md);
+  align-items: center;
   color: hsl(var(--primary));
   font-weight: 500;
 }

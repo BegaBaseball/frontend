@@ -12,6 +12,25 @@ import { Card } from '../ui/card';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
 import PredictionMatchSchedulePreviewRuntime from './PredictionMatchSchedulePreviewRuntime';
 
+const DETAIL_READY_STATUSES = new Set(['COMPLETED', 'FINAL', 'DRAW', 'LIVE', 'IN_PROGRESS', 'PLAYING']);
+
+const hasExplicitDetailData = (game: Game | null): boolean => {
+  if (!game) {
+    return false;
+  }
+
+  const status = (game.gameStatus || '').trim().toUpperCase();
+  if (status === 'POSTPONED' || status === 'CANCELLED') {
+    return false;
+  }
+
+  if (DETAIL_READY_STATUSES.has(status)) {
+    return true;
+  }
+
+  return game.homeScore != null && game.awayScore != null;
+};
+
 type PredictionMatchScheduleReadyViewProps = {
   locationState: PredictionLocationState;
   searchParams: URLSearchParams;
@@ -67,6 +86,10 @@ export default function PredictionMatchScheduleReadyView({
   const currentGameId = currentGame?.gameId;
 
   const queryGameId = useMemo(() => searchParams.get('gameId')?.trim() || '', [searchParams]);
+  const queryDate = useMemo(
+    () => normalizePredictionDate(searchParams.get('date')?.trim() || '') || '',
+    [searchParams],
+  );
   const stateDeepLinkGameId = useMemo(() => {
     const stateGameId = (locationState?.gameId || '').trim();
     const stateSeedGameId = (locationState?.game?.gameId || '').trim();
@@ -99,6 +122,35 @@ export default function PredictionMatchScheduleReadyView({
       setHasEnteredMatchDetail(false);
     }
   }, [queryGameId, stateDeepLinkGameId]);
+
+  useEffect(() => {
+    if (
+      !queryDate
+      || queryGameId
+      || stateDeepLinkGameId
+      || hasEnteredMatchDetail
+      || !currentGameId
+      || !hasExplicitDetailData(currentGame)
+    ) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('gameId', currentGameId);
+    nextSearchParams.set('date', normalizePredictionDate(currentGame?.gameDate || currentDate) || queryDate);
+    setHasEnteredMatchDetail(true);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [
+    currentDate,
+    currentGame,
+    currentGameId,
+    hasEnteredMatchDetail,
+    queryDate,
+    queryGameId,
+    searchParams,
+    setSearchParams,
+    stateDeepLinkGameId,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -153,11 +205,11 @@ export default function PredictionMatchScheduleReadyView({
       return;
     }
 
+    void goToDate(normalizedDate);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set('date', normalizedDate);
     nextSearchParams.delete('gameId');
     setSearchParams(nextSearchParams, { replace: true });
-    void goToDate(normalizedDate);
   }, [goToDate, searchParams, setSearchParams]);
 
   const shouldRenderMatchCard =
@@ -192,7 +244,7 @@ export default function PredictionMatchScheduleReadyView({
       <Suspense
         fallback={(
           <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
               <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               경기 화면을 준비하고 있습니다.
             </div>
@@ -204,7 +256,7 @@ export default function PredictionMatchScheduleReadyView({
             <InteractiveRuntimeComponent />
           ) : (
             <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-              <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+              <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
                 <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                 경기 화면을 준비하고 있습니다.
               </div>

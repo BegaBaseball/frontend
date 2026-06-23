@@ -33,7 +33,7 @@ function FacilityInfoList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
       {items.map((item) => (
-        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#820024]" />
           <span>{item}</span>
         </li>
@@ -52,7 +52,7 @@ function OperatorDataPendingPanel() {
         data-testid="gocheok-operator-data-status"
         className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300"
       >
-        {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}
+        운영자 제공 자료 필요
       </div>
       <p>{GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}</p>
     </div>
@@ -72,11 +72,11 @@ function OperationNoticePanel() {
         <div className="mt-3 space-y-2">
           {activeNotices.map((notice) => (
             <div key={notice.id} className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              <div className="text-[10px] font-bold text-slate-500 dark:text-white">
                 {notice.validFrom} ~ {notice.validTo}
               </div>
               <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{notice.message}</div>
-              <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-white">
                 자료 갱신일 {notice.lastUpdatedAt}
               </div>
             </div>
@@ -84,7 +84,7 @@ function OperationNoticePanel() {
         </div>
       ) : (
         <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-[12px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          오늘 유효한 운영자 제공 동선 공지가 없습니다. {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}
+          오늘 유효한 운영자 제공 동선 공지가 없습니다. 운영자 자료가 제공되면 이곳에 표시합니다.
         </div>
       )}
     </div>
@@ -98,17 +98,17 @@ function MissingFacilityImage({ image, mode }: { image: GocheokFacilityGuideImag
       className="flex min-h-[180px] flex-col justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
       <div className="mx-auto mb-2 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
-        MANUAL_BASEBALL_DATA_REQUIRED
+        시설 이미지 준비 중
       </div>
       <div className="text-sm font-black text-slate-900 dark:text-white">{image.label}</div>
-      <p className="mx-auto mt-1 max-w-sm text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mx-auto mt-1 max-w-sm text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
         공식 시설현황 이미지를 repo asset으로 추가하면 이 위치에 표시됩니다.
       </p>
-      <div className="mt-3 rounded-lg bg-white/75 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-slate-300">
+      <div className="mt-3 rounded-lg bg-white/75 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-white">
         <div>필요 파일: {image.requiredAssetFileName}</div>
         <div>저장 위치: {image.imagePath}</div>
       </div>
-      <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+      <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 외부 이미지는 hotlink하지 않습니다.
       </p>
     </div>
@@ -150,7 +150,7 @@ function FacilityImageCard({
           확대 보기
         </span>
       </button>
-      <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
         <span>{image.label}</span>
         <span className="font-black text-[#820024]">클릭해서 확대</span>
       </figcaption>
@@ -302,7 +302,7 @@ export default function GocheokFacilityGuide({
             <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
               {guide.title}
             </h3>
-            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
               {guide.summary}
             </p>
           </div>
@@ -358,15 +358,15 @@ export default function GocheokFacilityGuide({
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">시설 개요</div>
             <div className="mt-3 space-y-2">
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">용도</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-white">용도</div>
                 <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{guide.usage}</div>
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">규모</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-white">규모</div>
                 <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{guide.scale}</div>
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">기타부대시설</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-white">기타부대시설</div>
                 <div className="mt-2">
                   <FacilityInfoList items={guide.ancillaryFacilities} />
                 </div>

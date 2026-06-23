@@ -27,10 +27,12 @@ export interface ErrorModalContextType extends ErrorModalState {
 }
 
 export interface ServerErrorResponse {
-    status: number;
-    error: string; // HTTP 상태 코드 텍스트 ("Conflict", "Not Found" 등)
-    message: string; // GlobalExceptionHandler가 던지는 상세 메시지
-    timestamp: string;
+    success?: false;
+    message?: string;
+    code?: string;
+    data?: unknown;
+    errors?: Record<string, string>;
+    status?: number;
 }
 
 export interface GlobalApiErrorDetail extends ErrorData {

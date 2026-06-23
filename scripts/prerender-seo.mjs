@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   canonicalUrlForPath,
   distDir,
@@ -9,18 +10,19 @@ import {
   routeToOutputFile,
   siteUrl,
 } from './seo-policy.mjs';
+import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 
 const templatePath = path.join(distDir, 'index.html');
 const SEO_HEAD_SLOT = '<!-- SEO_HEAD_SLOT -->';
 const SEO_ROOT_SLOT = '<!-- SEO_ROOT_SLOT -->';
 
-if (!fs.existsSync(templatePath)) {
-  console.error('[seo:prerender] dist/index.html not found. Run build first.');
-  process.exit(1);
-}
-
-const baseHtml = fs.readFileSync(templatePath, 'utf-8');
-const fallbackModes = [];
+export const readSiteVerificationEnv = (options = {}) => {
+  const readEnvValue = createSeoRuntimeEnvReader(options);
+  return {
+    googleSiteVerification: readEnvValue('VITE_GOOGLE_SITE_VERIFICATION').value,
+    naverSiteVerification: readEnvValue('VITE_NAVER_SITE_VERIFICATION').value,
+  };
+};
 
 const stripManagedSeoBlock = (html) => (
   html.replace(/<!-- SEO:START -->[\s\S]*?<!-- SEO:END -->/g, '')
@@ -68,7 +70,7 @@ const buildStructuredData = (route) => {
   return [webPage];
 };
 
-const buildSeoHeadMarkup = (route) => {
+export const buildSeoHeadMarkup = (route, siteVerification = readSiteVerificationEnv()) => {
   const canonicalUrl = canonicalUrlForPath(route.path);
   const ogImage = `${siteUrl}/favicon.png`;
   const jsonLdList = buildStructuredData(route);
@@ -77,6 +79,15 @@ const buildSeoHeadMarkup = (route) => {
       (item, index) => `<script type="application/ld+json" data-seo-jsonld="${index}">${JSON.stringify(item)}</script>`,
     )
     .join('\n');
+  const { googleSiteVerification, naverSiteVerification } = siteVerification;
+  const siteVerificationTags = [
+    googleSiteVerification
+      ? `<meta name="google-site-verification" content="${escapeHtml(googleSiteVerification)}">`
+      : '',
+    naverSiteVerification
+      ? `<meta name="naver-site-verification" content="${escapeHtml(naverSiteVerification)}">`
+      : '',
+  ].filter(Boolean);
 
   const seoBlock = [
     '<!-- SEO:START -->',
@@ -94,6 +105,7 @@ const buildSeoHeadMarkup = (route) => {
     `<meta name="twitter:title" content="${escapeHtml(route.title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(route.description)}">`,
     `<meta name="twitter:image" content="${escapeHtml(ogImage)}">`,
+    ...siteVerificationTags,
     jsonLdTags,
     '<!-- SEO:END -->',
   ].join('\n');
@@ -167,9 +179,16 @@ const injectSeoRoot = (html, route) => {
   );
 };
 
-const report = [];
+export const prerenderSeo = () => {
+  if (!fs.existsSync(templatePath)) {
+    console.error('[seo:prerender] dist/index.html not found. Run build first.');
+    return 1;
+  }
 
-try {
+  const baseHtml = fs.readFileSync(templatePath, 'utf-8');
+  const fallbackModes = [];
+  const report = [];
+
   for (const route of indexableRoutes) {
     const headResult = injectSeoHead(baseHtml, route);
     const rootResult = injectSeoRoot(headResult.html, route);
@@ -191,18 +210,28 @@ try {
       rootInjection: rootResult.mode,
     });
   }
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(1);
+
+  const reportPath = path.join(distDir, 'seo-prerender-report.json');
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
+
+  if (fallbackModes.length > 0) {
+    console.warn('[seo:prerender] fallback injection mode used:');
+    fallbackModes.forEach((entry) => console.warn(`- ${entry}`));
+  }
+
+  console.log(`[seo:prerender] prerendered ${report.length} route(s).`);
+  return 0;
+};
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    const exitCode = prerenderSeo();
+    if (exitCode) {
+      process.exit(exitCode);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+  }
 }
-
-const reportPath = path.join(distDir, 'seo-prerender-report.json');
-fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
-
-if (fallbackModes.length > 0) {
-  console.warn('[seo:prerender] fallback injection mode used:');
-  fallbackModes.forEach((entry) => console.warn(`- ${entry}`));
-}
-
-console.log(`[seo:prerender] prerendered ${report.length} route(s).`);

@@ -1,6 +1,15 @@
-import { getApiBaseUrl } from './apiBase';
+import {
+  DEFAULT_API_TIMEOUT_MS,
+  buildApiRequestHeaders,
+  buildApiUrl,
+  createTimeoutController,
+  isAbortError,
+  parseResponseBody,
+  toJsonRequestBody,
+} from './httpClientCore';
+import type { ApiParamValue } from './httpClientCore';
 
-type PublicApiParamValue = string | number | boolean | null | undefined;
+type PublicApiParamValue = ApiParamValue;
 
 interface PublicApiErrorData {
   code?: string;
@@ -33,78 +42,23 @@ interface PublicRequestOptions extends PublicGetOptions {
   method?: 'GET' | 'POST';
 }
 
-const DEFAULT_TIMEOUT_MS = 10_000;
-
-const isAbsoluteUrl = (value: string): boolean => /^https?:\/\//i.test(value);
-
-const buildPublicApiUrl = (
-  endpoint: string,
-  params?: Record<string, PublicApiParamValue>,
-): string => {
-  const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-  const url = isAbsoluteUrl(baseUrl)
-    ? new URL(`${baseUrl}${normalizedEndpoint}`)
-    : new URL(`${baseUrl}${normalizedEndpoint}`, origin);
-
-  Object.entries(params ?? {}).forEach(([key, value]) => {
-    if (value == null) {
-      return;
-    }
-    url.searchParams.set(key, String(value));
-  });
-
-  if (isAbsoluteUrl(baseUrl)) {
-    return url.toString();
-  }
-
-  return `${url.pathname}${url.search}`;
-};
-
-const parseResponseBody = async (response: Response): Promise<unknown> => {
-  if (response.status === 204) {
-    return null;
-  }
-
-  const contentType = response.headers.get('content-type') ?? '';
-  if (contentType.includes('application/json')) {
-    return response.json();
-  }
-
-  const text = await response.text();
-  return text ? { message: text } : null;
-};
-
 const publicRequest = async <T>(
   endpoint: string,
   options: PublicRequestOptions = {},
 ): Promise<T> => {
-  const controller = new AbortController();
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const timeoutHandle = globalThis.setTimeout(() => controller.abort(), timeoutMs);
-  const url = buildPublicApiUrl(endpoint, options.params);
+  const timeout = createTimeoutController(options.timeoutMs ?? DEFAULT_API_TIMEOUT_MS, options.signal);
+  const url = buildApiUrl(endpoint, options.params);
 
-  const abortSignal = options.signal;
-  const abortListener = () => controller.abort();
-  abortSignal?.addEventListener('abort', abortListener);
   try {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
     const method = options.method ?? 'GET';
-    const requestBody = options.body === undefined ? undefined : JSON.stringify(options.body);
-
-    if (requestBody !== undefined) {
-      headers['Content-Type'] = 'application/json';
-    }
+    const requestBody = toJsonRequestBody(options.body);
 
     const response = await fetch(url, {
       credentials: 'include',
       method,
-      headers,
+      headers: buildApiRequestHeaders(requestBody),
       body: requestBody,
-      signal: controller.signal,
+      signal: timeout.signal,
     });
     const responseBody = await parseResponseBody(response);
 
@@ -118,14 +72,13 @@ const publicRequest = async <T>(
 
     return responseBody as T;
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    if (isAbortError(error)) {
+      throw new Error(`Request timed out after ${timeout.timeoutMs}ms`);
     }
 
     throw error;
   } finally {
-    globalThis.clearTimeout(timeoutHandle);
-    abortSignal?.removeEventListener('abort', abortListener);
+    timeout.cleanup();
   }
 };
 

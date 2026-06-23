@@ -1,9 +1,5 @@
 import { lazy, Suspense } from 'react';
 
-interface OffSeasonHomePageProps {
-  selectedDate: Date;
-}
-
 const OffSeasonHomeRuntime = lazy(() => import('./OffSeasonHome'));
 
 const OffSeasonHomeFallback = () => (
@@ -27,10 +23,10 @@ const OffSeasonHomeFallback = () => (
   </div>
 );
 
-export default function OffSeasonHomePage({ selectedDate }: OffSeasonHomePageProps) {
+export default function OffSeasonHomePage() {
   return (
     <Suspense fallback={<OffSeasonHomeFallback />}>
-      <OffSeasonHomeRuntime selectedDate={selectedDate} />
+      <OffSeasonHomeRuntime />
     </Suspense>
   );
 }

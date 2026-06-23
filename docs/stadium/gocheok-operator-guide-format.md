@@ -35,7 +35,7 @@ npm run stadium:gocheok:operator-handoff
 
 게이트 상태:
 
-- `waiting_for_operator`: placeholder-only 또는 운영자 제공 row가 아직 없는 상태. UI는 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지한다.
+- `waiting_for_operator`: placeholder-only 또는 운영자 제공 row가 아직 없는 상태. data/status/test metadata는 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지하고, 사용자 visible label은 contract code 없이 안내 문구만 표시한다.
 - `blocked`: ID, 날짜, 참조, 금지어, placeholder 혼입 등 blocker가 있는 상태. source file에 반영하지 않는다.
 - `ready_for_manual_apply`: 검증을 통과해 `reports/stadium/gocheok-operator-visit-guide-apply-plan.ts-fragment`를 수동 검토할 수 있는 상태.
 
@@ -144,4 +144,4 @@ no-source-write 계약:
 
 ## 현재 상태
 
-현재 저장소에는 운영자 제공 출입구/매점/동선 자료가 들어오지 않았다. 따라서 고척 운영자 안내 데이터 배열은 비어 있고, UI는 `운영자 제공 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED`를 표시해야 한다.
+현재 저장소에는 운영자 제공 출입구/매점/동선 자료가 들어오지 않았다. 따라서 고척 운영자 안내 데이터 배열은 비어 있고, data/status/test metadata는 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지한다. 사용자 visible label에는 contract code 없이 `운영자 제공 자료 필요` 안내 문구만 노출한다.

@@ -9,6 +9,7 @@ import {
   fetchHomeScopedNavigation,
   fetchHomeWidgets,
   fetchLeagueStartDates,
+  HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
   getHomeBootstrapQueryOptions,
   getHomeWidgetsQueryOptions,
   isHomeBootstrapBusinessConflict,
@@ -26,6 +27,15 @@ const buildJsonResponse = (body: unknown, status = 200) =>
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
+  const observedTimeouts: number[] = [];
+  const originalSetTimeout = globalThis.setTimeout;
+
+  t.mock.method(globalThis, 'setTimeout', ((handler: Parameters<typeof globalThis.setTimeout>[0], timeout?: number) => {
+    if (typeof timeout === 'number') {
+      observedTimeouts.push(timeout);
+    }
+    return originalSetTimeout(handler, timeout);
+  }) as typeof globalThis.setTimeout);
 
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
     requestUrl = typeof input === 'string'
@@ -49,15 +59,30 @@ test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin 
       },
       games: [],
       scheduledGamesWindow: [],
+      rankingSnapshot: {
+        rankingSeasonYear: 2025,
+        rankingSourceMessage: 'out-of-contract bootstrap field',
+        isOffSeason: true,
+        rankings: [],
+      },
+      loadState: {
+        isFallback: false,
+        timedOut: false,
+        timedOutSections: [],
+        failedSections: [],
+      },
     });
   });
 
   const response = await fetchHomeBootstrap(new Date('2026-03-16T12:00:00'));
 
   assert.equal(response.selectedDate, '2026-03-16');
+  assert.deepEqual(response.loadState?.failedSections, []);
+  assert.equal(Object.prototype.hasOwnProperty.call(response, 'rankingSnapshot'), false);
   assert.match(requestUrl, /\/api\/home\/bootstrap\?date=2026-03-16$/);
   assert.equal(requestInit?.credentials, 'include');
   assert.deepEqual(requestInit?.headers, { Accept: 'application/json' });
+  assert.ok(observedTimeouts.includes(HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS));
 });
 
 test('fetchHomeWidgets은 공개 위젯 요청으로 seasonYear를 전달한다', async (t) => {
@@ -108,6 +133,18 @@ test('fetchHomeWidgets은 공개 위젯 요청으로 seasonYear를 전달한다'
   assert.equal(response.rankingSnapshot.rankingSeasonYear, 2025);
   assert.match(requestUrl, /\/api\/home\/widgets\?date=2026-03-16&seasonYear=2025$/);
   assert.equal(requestInit?.credentials, 'include');
+});
+
+test('fetchHomeWidgets는 rankingSnapshot 누락 응답을 거부한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    hotCheerPosts: [],
+    featuredMates: [],
+  }));
+
+  await assert.rejects(
+    () => fetchHomeWidgets(new Date('2026-03-16T12:00:00')),
+    /Invalid home widgets response/,
+  );
 });
 
 test('fetchHomeScopedNavigation은 scoped navigation 요청으로 same-origin fetch를 사용한다', async (t) => {
@@ -171,6 +208,40 @@ test('home bootstrap query는 비즈니스 409를 재시도하지 않는다', ()
   );
 });
 
+test('fetchGamesData는 kbo schedule wire 응답을 home Game으로 정규화한다', async (t) => {
+  let requestUrl = '';
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    return buildJsonResponse([{
+      gameId: '20260402LTHH',
+      time: '18:30',
+      stadium: '대전',
+      gameStatus: 'SCHEDULED',
+      gameStatusKr: '예정',
+      gameInfo: '롯데 vs 한화',
+      leagueType: 'REGULAR',
+      homeTeam: 'HH',
+      homeTeamFull: '한화 이글스',
+      awayTeam: 'LT',
+      awayTeamFull: '롯데 자이언츠',
+      gameDate: '2026-04-02',
+    }]);
+  });
+
+  const response = await fetchGamesData(new Date('2026-04-02T12:00:00'));
+
+  assert.equal(response[0]?.gameId, '20260402LTHH');
+  assert.equal(response[0]?.time, '18:30');
+  assert.equal(response[0]?.gameInfo, '롯데 vs 한화');
+  assert.equal(response[0]?.homeTeamFull, '한화 이글스');
+  assert.match(requestUrl, /\/api\/kbo\/schedule\?date=2026-04-02$/);
+});
+
 test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으로 조회한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -185,17 +256,15 @@ test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으
     return buildJsonResponse({
       content: [{
         gameId: '20260402LTHH',
-        time: '18:30',
+        gameDate: '2026-04-02',
+        startTime: { hour: 18, minute: 30 },
         stadium: '대전',
         gameStatus: 'SCHEDULED',
-        gameStatusKr: '예정',
-        gameInfo: '롯데 vs 한화',
         leagueType: 'REGULAR',
         homeTeam: 'HH',
-        homeTeamFull: '한화 이글스',
         awayTeam: 'LT',
-        awayTeamFull: '롯데 자이언츠',
-        gameDate: '2026-04-02',
+        homeScore: 0,
+        awayScore: 0,
       }],
       page: 0,
       size: 500,
@@ -209,6 +278,11 @@ test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으
   const response = await fetchGamesRangeData('2026-04-01', '2026-04-30');
 
   assert.equal(response[0]?.gameId, '20260402LTHH');
+  assert.equal(response[0]?.time, '18:30');
+  assert.equal(response[0]?.gameStatusKr, '예정');
+  assert.equal(response[0]?.homeTeamFull, '한화 이글스');
+  assert.equal(response[0]?.awayTeamFull, '롯데 자이언츠');
+  assert.equal(response[0]?.gameInfo, '롯데 자이언츠 vs 한화 이글스');
   assert.match(requestUrl, /\/api\/matches\/range\?/);
   assert.ok(requestUrl.includes('startDate=2026-04-01'));
   assert.ok(requestUrl.includes('endDate=2026-04-30'));
@@ -264,6 +338,8 @@ test('buildHomeLoadState는 레거시 폴백 timeout 상태를 구조화한다',
     source: 'legacy-fallback',
     isFallback: true,
     timedOut: true,
+    timedOutSections: [],
+    failedSections: [],
     failureReason: null,
     manualDataRequest: null,
   });

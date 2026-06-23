@@ -14,6 +14,36 @@ export const LIVE_GAME_EVENT_LIMIT = 50;
 export const LIVE_RELAY_EVENT_LIMIT = 50;
 export const LIVE_GAME_EVENT_CACHE_LIMIT = 200;
 export const LIVE_RELAY_EVENT_CACHE_LIMIT = 200;
+export const HOME_LIVE_SUMMARY_TIMEOUT_WARN_THRESHOLD = 3;
+
+export interface HomeLiveSummaryTimeoutWarningState {
+  consecutiveTimeoutCount: number;
+  timeoutWarningLogged: boolean;
+}
+
+export const createHomeLiveSummaryTimeoutWarningState = (): HomeLiveSummaryTimeoutWarningState => ({
+  consecutiveTimeoutCount: 0,
+  timeoutWarningLogged: false,
+});
+
+export const resetHomeLiveSummaryTimeoutWarningState = (
+  state: HomeLiveSummaryTimeoutWarningState,
+): void => {
+  state.consecutiveTimeoutCount = 0;
+  state.timeoutWarningLogged = false;
+};
+
+export const recordHomeLiveSummaryTimeoutFailure = (
+  state: HomeLiveSummaryTimeoutWarningState,
+  warnThreshold = HOME_LIVE_SUMMARY_TIMEOUT_WARN_THRESHOLD,
+): boolean => {
+  state.consecutiveTimeoutCount += 1;
+  if (state.consecutiveTimeoutCount >= warnThreshold && !state.timeoutWarningLogged) {
+    state.timeoutWarningLogged = true;
+    return true;
+  }
+  return false;
+};
 
 type LiveMergeTarget = {
   gameId: string;
@@ -25,7 +55,30 @@ type LiveMergeTarget = {
 };
 
 const LIVE_STATUSES = new Set(['LIVE', 'IN_PROGRESS', 'INPROGRESS', 'PLAYING']);
-const SKIP_LIVE_POLL_STATUSES = new Set(['CANCELLED', 'POSTPONED']);
+const SCHEDULED_LIVE_POLL_STATUSES = new Set([
+  '',
+  'UNKNOWN',
+  'TBD',
+  'PENDING',
+  'READY',
+  'NOT_STARTED',
+  'NONE',
+  'SCHEDULED',
+]);
+const SKIP_LIVE_POLL_STATUSES = new Set([
+  'CANCELLED',
+  'POSTPONED',
+  'SUSPENDED',
+  'DELAYED',
+  'COMPLETED',
+  'DRAW',
+  'FINAL',
+  'FINISHED',
+  'DONE',
+  'END',
+  'E',
+  'F',
+]);
 
 export const normalizeLiveStatus = (value?: string | null): string => (
   value?.trim().toUpperCase() || ''
@@ -106,6 +159,9 @@ export const mergeGameDetailWithLiveSnapshot = (
     inningScores: [],
   };
   const nextEvents = mergeLiveEvents(base.liveEvents, snapshot.events);
+  const nextInningScores = Array.isArray(snapshot.inningScores)
+    ? snapshot.inningScores
+    : base.inningScores;
 
   return {
     ...base,
@@ -113,10 +169,12 @@ export const mergeGameDetailWithLiveSnapshot = (
     gameStatus: snapshot.gameStatus ?? base.gameStatus,
     homeScore: snapshot.homeScore ?? base.homeScore,
     awayScore: snapshot.awayScore ?? base.awayScore,
+    inningScores: nextInningScores,
     liveEvents: nextEvents,
     liveLastEventSeq: snapshot.lastEventSeq ?? base.liveLastEventSeq ?? resolveLastEventSeq(nextEvents),
     liveLastUpdatedAt: snapshot.lastUpdatedAt ?? base.liveLastUpdatedAt ?? null,
     liveStatusError: null,
+    liveStatusErrorCode: null,
   };
 };
 
@@ -147,6 +205,7 @@ export const mergeGameDetailWithRelaySnapshot = (
     liveLastRelayId: snapshot.lastRelayId ?? base.liveLastRelayId ?? resolveLastRelayId(nextRelayEvents),
     liveRelayLastUpdatedAt: snapshot.lastUpdatedAt ?? base.liveRelayLastUpdatedAt ?? null,
     liveRelayError: null,
+    liveRelayErrorCode: null,
   };
 };
 
@@ -154,6 +213,7 @@ export const mergeGameDetailLiveStatusError = (
   detail: GameDetail | null | undefined,
   errorMessage: string,
   fallbackGame?: Game | null,
+  errorCode?: string | null,
 ): GameDetail | null => {
   if (!detail && !fallbackGame) {
     return null;
@@ -174,6 +234,7 @@ export const mergeGameDetailLiveStatusError = (
   return {
     ...base,
     liveStatusError: errorMessage,
+    liveStatusErrorCode: errorCode ?? null,
   };
 };
 
@@ -181,6 +242,7 @@ export const mergeGameDetailRelayError = (
   detail: GameDetail | null | undefined,
   errorMessage: string,
   fallbackGame?: Game | null,
+  errorCode?: string | null,
 ): GameDetail | null => {
   if (!detail && !fallbackGame) {
     return null;
@@ -201,6 +263,7 @@ export const mergeGameDetailRelayError = (
   return {
     ...base,
     liveRelayError: errorMessage,
+    liveRelayErrorCode: errorCode ?? null,
   };
 };
 
@@ -243,15 +306,30 @@ export const mergeHomeGamesWithLiveSummaries = <T extends LiveMergeTarget>(
   return changed ? nextGames : games;
 };
 
-export const shouldPollPredictionLiveGame = (game?: Game | null, detail?: GameDetail | null): boolean => {
+export const shouldPollPredictionLiveGame = (
+  game?: Game | null,
+  detail?: GameDetail | null,
+  todayKey = toDateKey(new Date()),
+): boolean => {
   const status = normalizeLiveStatus(detail?.gameStatus || game?.gameStatus);
   if (SKIP_LIVE_POLL_STATUSES.has(status)) {
     return false;
   }
   const dateKey = detail?.gameDate || game?.gameDate;
-  const todayKey = toDateKey(new Date());
-  return status === '' || LIVE_STATUSES.has(status) || dateKey === todayKey;
+  if (dateKey !== todayKey) {
+    return false;
+  }
+  return LIVE_STATUSES.has(status) || SCHEDULED_LIVE_POLL_STATUSES.has(status);
 };
+
+export const shouldStartPredictionLivePolling = (
+  game?: Game | null,
+  detail?: GameDetail | null,
+  detailReady = false,
+  todayKey = toDateKey(new Date()),
+): boolean => (
+  detailReady && shouldPollPredictionLiveGame(game, detail, todayKey)
+);
 
 export const selectHomeLivePollingGameIds = (
   games: HomeGame[],

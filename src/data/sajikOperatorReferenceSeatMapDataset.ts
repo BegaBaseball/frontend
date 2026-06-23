@@ -128,7 +128,7 @@ export const SAJIK_OPERATOR_REFERENCE_SECTION_METADATA_OVERRIDES = [
 ] as const satisfies readonly SajikOperatorReferenceSectionMetadataOverride[];
 
 export const SAJIK_OPERATOR_REFERENCE_IMAGE = {
-  "path": "src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png",
+  "path": "src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp",
   "width": 1151,
   "height": 1367,
   "viewBox": "0 0 1151 1367",

@@ -8,6 +8,14 @@ const auditSource = fs.readFileSync(
   path.join(projectRoot, 'scripts/stadium-ux-audit.mjs'),
   'utf8',
 );
+const daejeonSeatMapSvgSource = fs.readFileSync(
+  path.join(projectRoot, 'src/components/daejeon/DaejeonSeatMapSvg.tsx'),
+  'utf8',
+);
+const daejeonSeatMapSource = fs.readFileSync(
+  path.join(projectRoot, 'src/components/daejeon/DaejeonSeatMap.tsx'),
+  'utf8',
+);
 
 const requiredProblemBlockIds = [
   'central-table-100__100a',
@@ -32,6 +40,10 @@ const requiredProblemBlockIds = [
 const requiredHitAreaContractBlockIds = [
   ...requiredProblemBlockIds,
   'outfield-reserved-509__509',
+  'skybox-s01-s37__s01',
+  'skybox-s01-s37__s31',
+  'first-table-4f-301-413__301',
+  'first-table-4f-301-413__302',
   'splash-jacuzzi-425__425',
   'splash-caravan-426__426',
 ];
@@ -56,6 +68,58 @@ const requiredRepresentativeCoordinateChecks = [
   { blockId: 'third-infield-b-121-124__121', code: '121' },
   { blockId: 'third-infield-b-121-124__122', code: '122' },
   { blockId: 'third-infield-b-121-124__124', code: '124' },
+  { blockId: 'first-table-4f-301-413__301', code: '301' },
+  { blockId: 'first-table-4f-301-413__302', code: '302' },
+  { blockId: 'skybox-s01-s37__s31', code: 'S31' },
+];
+
+const requiredExactSearchDetailContracts = [
+  { term: '301', blockId: 'first-table-4f-301-413__301', detail: '내야 탁자석(4층)', block: '301', level: '4F' },
+  { term: '302', blockId: 'first-table-4f-301-413__302', detail: '내야 탁자석(4층)', block: '302', level: '4F' },
+  { term: 'S01', blockId: 'skybox-s01-s37__s01', detail: '스카이박스', block: 'S01', level: '4F' },
+  { term: 'S31', blockId: 'skybox-s01-s37__s31', detail: '스카이박스', block: 'S31', level: '4F' },
+];
+
+const requiredSmallBlockEdgeSamples = [
+  { blockId: 'first-table-4f-301-413__301', points: ['[778, 463]', '[801, 482]', '[780, 483]'] },
+  { blockId: 'first-table-4f-301-413__302', points: ['[802, 488]', '[780, 505]', '[793, 508]'] },
+];
+
+const requiredSkyboxSweepBlockIds = Array.from({ length: 31 }, (_, index) => (
+  `skybox-s01-s37__s${String(index + 1).padStart(2, '0')}`
+));
+
+const requiredSkyboxClickDetailContracts = [
+  { blockId: 'skybox-s01-s37__s01', block: 'S01' },
+  { blockId: 'skybox-s01-s37__s12', block: 'S12' },
+  { blockId: 'skybox-s01-s37__s13', block: 'S13' },
+  { blockId: 'skybox-s01-s37__s25', block: 'S25' },
+  { blockId: 'skybox-s01-s37__s26', block: 'S26' },
+  { blockId: 'skybox-s01-s37__s31', block: 'S31' },
+];
+
+const requiredFocusBoxContractBlockIds = [
+  'third-infield-a-113-120-213-225__220',
+  'innings-vip-400__400',
+  'splash-jacuzzi-425__425',
+  'splash-caravan-426__426',
+  'first-table-4f-301-413__401',
+  'first-table-4f-301-413__413',
+  'third-table-4f-414-330__414',
+  'outfield-reserved-third-423-330__424',
+  'skybox-s01-s37__s01',
+  'skybox-s01-s37__s31',
+];
+
+const requiredMobileTouchContractBlockIds = [
+  'skybox-s01-s37__s01',
+  'skybox-s01-s37__s31',
+  'first-table-4f-301-413__301',
+  'first-table-4f-301-413__302',
+  'splash-jacuzzi-425__425',
+  'splash-caravan-426__426',
+  'innings-vip-400__400',
+  'third-infield-a-113-120-213-225__220',
 ];
 
 function escapeRegExp(value: string): string {
@@ -85,6 +149,60 @@ function assertRepresentativeCoordinateEntry(blockId: string, code: string): voi
   );
 }
 
+function assertExactSearchDetailEntry(contract: typeof requiredExactSearchDetailContracts[number]): void {
+  const pattern = new RegExp(
+    `\\{\\s*term:\\s*'${escapeRegExp(contract.term)}',\\s*blockId:\\s*'${escapeRegExp(contract.blockId)}',\\s*detail:\\s*'${escapeRegExp(contract.detail)}',\\s*block:\\s*'${escapeRegExp(contract.block)}',\\s*level:\\s*'${escapeRegExp(contract.level)}'\\s*\\}`,
+  );
+  assert.match(
+    auditSource,
+    pattern,
+    `daejeonExactSearchDetailContracts should include ${contract.term} -> ${contract.blockId}`,
+  );
+}
+
+function assertSkyboxClickDetailEntry(blockId: string, block: string): void {
+  const pattern = new RegExp(
+    `\\{\\s*blockId:\\s*'${escapeRegExp(blockId)}',\\s*detail:\\s*'스카이박스',\\s*block:\\s*'${escapeRegExp(block)}',\\s*level:\\s*'4F'\\s*\\}`,
+  );
+  assert.match(
+    auditSource,
+    pattern,
+    `daejeonSkyboxClickDetailContracts should include ${blockId} (${block})`,
+  );
+}
+
+function getDaejeonSeatBlockHitAreaSource(): string {
+  const match = daejeonSeatMapSvgSource.match(
+    /<path\s+role="button"[\s\S]*?data-testid=\{`daejeon-seat-block-\$\{block\.id\}`\}[\s\S]*?<\/path>/,
+  );
+  assert.ok(match, 'Daejeon seat block hit-area path should be rendered as a role=button SVG path');
+
+  return match[0];
+}
+
+test('Daejeon SVG hit-area suppresses browser focus rectangle while keeping keyboard selection contract', () => {
+  const hitAreaSource = getDaejeonSeatBlockHitAreaSource();
+
+  assert.ok(hitAreaSource.includes("outline: 'none'"), 'Daejeon hit-area path should suppress the browser default focus rectangle');
+  assert.ok(hitAreaSource.includes('tabIndex={canInteract ? 0 : -1}'), 'Daejeon hit-area path should stay keyboard-focusable when interactive');
+  assert.ok(hitAreaSource.includes('aria-pressed={isActive}'), 'Daejeon hit-area path should keep selected state exposed to assistive tech');
+  assert.ok(hitAreaSource.includes('onKeyDown={(event) => {'), 'Daejeon hit-area path should keep keyboard activation handling');
+  assert.ok(hitAreaSource.includes("event.key === 'Enter' || event.key === ' '"), 'Daejeon hit-area path should keep Enter/Space activation');
+});
+
+test('Daejeon seat map keeps manual zoom ceiling at 2.5x', () => {
+  assert.ok(daejeonSeatMapSource.includes('const MAX_ZOOM = 2.5'), 'Daejeon seat map should allow up to 2.5x zoom');
+  assert.ok(daejeonSeatMapSource.includes('disabled={zoom >= MAX_ZOOM}'), 'Daejeon zoom-in control should still disable at MAX_ZOOM');
+  assert.ok(
+    daejeonSeatMapSource.includes('Math.min(MAX_ZOOM, Number((value + ZOOM_STEP).toFixed(2)))'),
+    'Daejeon manual zoom-in should clamp to MAX_ZOOM',
+  );
+  assert.ok(
+    auditSource.includes("assertDaejeonTransformLayerContract(2.49, 'manual-zoom-2.5')"),
+    'Daejeon runtime QA should verify manual zoom reaches 2.5x',
+  );
+});
+
 test('Daejeon UX audit keeps hover and selected hit-area checks for corrected blocks', () => {
   const blockIds = extractStringArray(auditSource, 'daejeonHoverSelectedContractBlockIds');
 
@@ -99,6 +217,38 @@ test('Daejeon UX audit keeps hover and selected hit-area checks for corrected bl
   );
 });
 
+test('Daejeon UX audit keeps runtime focus-box and mobile touch contracts', () => {
+  const focusBlockIds = extractStringArray(auditSource, 'daejeonFocusBoxContractBlockIds');
+  const mobileBlockIds = extractStringArray(auditSource, 'daejeonMobileTouchContractBlockIds');
+
+  assertIncludesAll(focusBlockIds, requiredFocusBoxContractBlockIds, 'daejeonFocusBoxContractBlockIds');
+  assertIncludesAll(mobileBlockIds, requiredMobileTouchContractBlockIds, 'daejeonMobileTouchContractBlockIds');
+  assert.ok(
+    auditSource.includes('const readDaejeonSeatBlockFocusContract = async'),
+    'Daejeon runtime QA should read computed focus styles from the seat block path',
+  );
+  assert.ok(
+    auditSource.includes('outlineStyle: computed.outlineStyle'),
+    'Daejeon runtime QA should capture computed outline style',
+  );
+  assert.ok(
+    auditSource.includes('outlineWidth: computed.outlineWidth'),
+    'Daejeon runtime QA should capture computed outline width',
+  );
+  assert.ok(
+    auditSource.includes("contract.ariaPressed !== 'true'"),
+    'Daejeon runtime QA should keep aria-pressed selected state in the focus-box contract',
+  );
+  assert.ok(
+    auditSource.includes('await assertDaejeonFocusBoxContract(blockId);'),
+    'Daejeon runtime QA should execute the focus-box assertion for listed blocks',
+  );
+  assert.ok(
+    auditSource.includes('await verifyDaejeonMobileTouchContract(blockId);'),
+    'Daejeon mobile QA should execute explicit small-block touch samples',
+  );
+});
+
 test('Daejeon UX audit keeps label top-hit boundary sweep for corrected blocks', () => {
   const blockIds = extractStringArray(auditSource, 'requiredBoundaryIds');
 
@@ -108,5 +258,72 @@ test('Daejeon UX audit keeps label top-hit boundary sweep for corrected blocks',
 test('Daejeon UX audit keeps representative coordinate clicks for corrected blocks', () => {
   for (const check of requiredRepresentativeCoordinateChecks) {
     assertRepresentativeCoordinateEntry(check.blockId, check.code);
+  }
+});
+
+test('Daejeon UX audit keeps exact search/detail contracts for 301/302 and skybox edges', () => {
+  assert.ok(
+    auditSource.includes('const daejeonExactSearchDetailContracts = ['),
+    'Daejeon exact search detail contract list should stay explicit',
+  );
+  assert.ok(
+    auditSource.includes('await verifyDaejeonExactSearchDetailContract(contract);'),
+    'Daejeon exact search detail contracts should be executed',
+  );
+
+  for (const contract of requiredExactSearchDetailContracts) {
+    assertExactSearchDetailEntry(contract);
+  }
+});
+
+test('Daejeon UX audit keeps small-block edge hover/click contracts', () => {
+  assert.ok(
+    auditSource.includes('const readDaejeonTopHitAtSvgPoint = async'),
+    'Daejeon edge QA should read SVG top-hit at the sample point',
+  );
+  assert.ok(
+    auditSource.includes('const verifyDaejeonEdgeHoverClickContract = async'),
+    'Daejeon edge QA should verify hover and click from edge samples',
+  );
+  assert.ok(
+    auditSource.includes('const daejeonSmallBlockEdgeHitContracts = ['),
+    'Daejeon 301/302 edge hit contracts should stay explicit',
+  );
+
+  for (const contract of requiredSmallBlockEdgeSamples) {
+    assert.ok(
+      auditSource.includes(`blockId: '${contract.blockId}'`),
+      `${contract.blockId} edge contract should be present`,
+    );
+    for (const point of contract.points) {
+      assert.ok(
+        auditSource.includes(point),
+        `${contract.blockId} edge contract should include ${point}`,
+      );
+    }
+  }
+});
+
+test('Daejeon UX audit keeps S01-S31 skybox runtime hit-area lock', () => {
+  const blockIds = extractStringArray(auditSource, 'daejeonSkyboxHitAreaSweepBlockIds');
+
+  assertIncludesAll(blockIds, requiredSkyboxSweepBlockIds, 'daejeonSkyboxHitAreaSweepBlockIds');
+  assert.ok(
+    auditSource.includes('const readDaejeonSkyboxTransparentEdgeSamples = async'),
+    'Daejeon skybox QA should compute transparent edge samples in the browser SVG',
+  );
+  assert.ok(
+    auditSource.includes('daejeonSkyboxEdgeSampleRows.length !== 31'),
+    'Daejeon skybox QA should fail if the S01-S31 sweep count changes',
+  );
+  assert.ok(
+    auditSource.includes('const daejeonS31ExcludedPointContracts = ['),
+    'Daejeon S31 should keep explicit adjacent S30 excluded-point contracts',
+  );
+  assert.ok(auditSource.includes("[197.5, 692.5]"), 'Daejeon S31 should exclude S30 label point');
+  assert.ok(auditSource.includes("[197, 692.5]"), 'Daejeon S31 should exclude S30 center point');
+
+  for (const contract of requiredSkyboxClickDetailContracts) {
+    assertSkyboxClickDetailEntry(contract.blockId, contract.block);
   }
 });

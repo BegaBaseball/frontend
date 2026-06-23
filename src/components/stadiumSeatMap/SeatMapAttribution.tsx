@@ -18,7 +18,7 @@ function SourceLink({ source }: { source: SeatMapSourceInfo }) {
       href={source.sourceUrl}
       target="_blank"
       rel="noreferrer"
-      className="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
+      className="ml-1 inline-flex min-h-11 min-w-11 items-center underline decoration-slate-300 underline-offset-2 hover:text-slate-600 dark:decoration-slate-600 dark:hover:text-slate-300"
     >
       출처
     </a>
@@ -27,7 +27,7 @@ function SourceLink({ source }: { source: SeatMapSourceInfo }) {
 
 export function SeatMapAttribution({ source, secondarySources = [], children }: SeatMapAttributionProps) {
   return (
-    <div className="stadium-seatmap-attribution mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+    <div className="stadium-seatmap-attribution mt-2 px-1 text-[10px] font-medium text-slate-400 dark:text-white">
       {source.prefixLabel ?? '좌석 배치 기준:'} {source.sourceLabel}
       <SourceLink source={source} />
       {secondarySources.map((secondarySource) => (
@@ -37,11 +37,6 @@ export function SeatMapAttribution({ source, secondarySources = [], children }: 
           <SourceLink source={secondarySource} />
         </span>
       ))}
-      {source.assetStatus === 'MANUAL_BASEBALL_DATA_REQUIRED' && (
-        <span className="ml-1 font-bold text-amber-600 dark:text-amber-400">
-          MANUAL_BASEBALL_DATA_REQUIRED
-        </span>
-      )}
       {children}
     </div>
   );

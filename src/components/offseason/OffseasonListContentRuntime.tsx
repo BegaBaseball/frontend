@@ -121,13 +121,13 @@ export function OffseasonListContentRuntime({
             <section className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                     <div>
-                        <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">이적 타임라인</h2>
-                        <p className="mt-1 text-[15px] font-semibold text-zinc-500 dark:text-zinc-300">
+                        <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">이적 타임라인</h2>
+                        <p className="mt-1 text-[15px] font-semibold text-zinc-500 dark:text-white">
                             {isMobile ? '모바일 카드 보기' : '데스크톱 테이블 보기'}로 현재 필터 결과를 확인하세요.
                         </p>
                     </div>
                     {!isMobile && (
-                        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[14px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[14px] font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
                             {sortOrder === 'headline'
                                 ? '주요 소식 우선 정렬'
                                 : SORT_OPTIONS.find((option) => option.value === sortOrder)?.label}
@@ -149,10 +149,10 @@ export function OffseasonListContentRuntime({
                     <Card className="overflow-visible rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:overflow-hidden">
                         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
                             <div className="space-y-1">
-                                <p className="text-[15px] font-black tracking-tight text-zinc-900 dark:text-zinc-50">
+                                <p className="text-[15px] font-black tracking-tight text-zinc-900 dark:text-white">
                                     현재 조건에 맞는 이적 {filteredList.length}건
                                 </p>
-                                <p className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-300">
+                                <p className="text-[14px] font-semibold text-zinc-500 dark:text-white">
                                     선수, 팀, 계약 내용을 같은 구조로 보여주도록 목록을 정리했습니다.
                                 </p>
                             </div>

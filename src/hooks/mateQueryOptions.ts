@@ -1,15 +1,19 @@
 import {
   fetchMatePartiesPage,
+  fetchMyPartyHistoryPage,
   fetchMyParties,
+  fetchPopularMateSearchTerms,
   fetchPartyApplications,
   fetchPartyById,
   fetchPartyCheckIns,
   fetchPartyMessages,
   fetchPartyMyApplication,
   fetchPartyReviews,
-  type FetchPartyByIdOptions,
 } from '../api/mate';
+import type { MateHistoryTab } from '../types/mate';
 import { MATE_KEYS, type MatePartyListKeyParams } from './mateQueryKeys';
+
+export const MATE_HISTORY_PAGE_SIZE = 20;
 
 export const getMatePartyListQueryOptions = (
   params: MatePartyListKeyParams,
@@ -32,13 +36,35 @@ export const getMateMyPartiesQueryOptions = (
   gcTime: 30 * 60 * 1000,
 } as const);
 
+export const getMateMyPartyHistoryQueryOptions = (
+  userId?: number | null,
+  group: MateHistoryTab = 'all',
+  size = MATE_HISTORY_PAGE_SIZE,
+) => ({
+  queryKey: MATE_KEYS.myPartyHistory(userId, { group, size }),
+  queryFn: ({ pageParam = 0, signal }: { pageParam?: unknown; signal: AbortSignal }) => fetchMyPartyHistoryPage({
+    group,
+    page: typeof pageParam === 'number' ? pageParam : 0,
+    size,
+    signal,
+  }),
+  staleTime: 5 * 60 * 1000,
+  gcTime: 30 * 60 * 1000,
+} as const);
+
+export const getMatePopularSearchTermsQueryOptions = (
+  limit = 5,
+) => ({
+  queryKey: MATE_KEYS.popularSearchTerms(limit),
+  queryFn: () => fetchPopularMateSearchTerms(limit),
+  staleTime: 60 * 1000,
+} as const);
+
 export const getMatePartyQueryOptions = (
   partyId: number | string,
-  options?: FetchPartyByIdOptions,
 ) => ({
   queryKey: MATE_KEYS.party(partyId),
   queryFn: ({ signal }: { signal: AbortSignal }) => fetchPartyById(partyId, {
-    ...options,
     signal,
   }),
   retry: false,

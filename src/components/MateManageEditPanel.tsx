@@ -15,6 +15,7 @@ type MateManageEditPanelProps = {
   onCancelEdit: () => void;
   onEditSectionChange: (value: string) => void;
   onEditTicketPriceChange: (value: string) => void;
+  onEditReservationDepositAmountChange: (value: string) => void;
   onEditMaxParticipantsChange: (value: number) => void;
   onEditDescriptionChange: (value: string) => void;
   onEditDescriptionBlur: () => void;
@@ -38,6 +39,7 @@ export default function MateManageEditPanel({
   onCancelEdit,
   onEditSectionChange,
   onEditTicketPriceChange,
+  onEditReservationDepositAmountChange,
   onEditMaxParticipantsChange,
   onEditDescriptionChange,
   onEditDescriptionBlur,
@@ -46,11 +48,11 @@ export default function MateManageEditPanel({
     <Card className={`p-6 ${mateSectionCardClass}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             Edit Draft
           </p>
           <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">파티 정보 수정</h2>
-          <p className="mt-2 text-[16px] text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-[16px] text-gray-600 dark:text-white">
             승인 완료 전까지 좌석, 모집 인원, 가격, 소개를 정리할 수 있습니다.
           </p>
         </div>
@@ -76,6 +78,17 @@ export default function MateManageEditPanel({
             type="number"
             value={editForm.ticketPrice}
             onChange={(event) => onEditTicketPriceChange(event.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <FieldLabel htmlFor="manage-reservation-deposit">예약금 (원, 선택)</FieldLabel>
+          <Input
+            id="manage-reservation-deposit"
+            type="number"
+            min="0"
+            value={editForm.reservationDepositAmount}
+            onChange={(event) => onEditReservationDepositAmountChange(event.target.value)}
           />
         </div>
 

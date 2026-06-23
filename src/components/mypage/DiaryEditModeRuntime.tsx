@@ -158,10 +158,11 @@ export default function DiaryEditModeRuntime({
   const allPhotos = [...diaryForm.photos, ...diaryForm.photoFiles];
 
   return (
-    <div className="space-y-4">
-      <div className="mb-4">
+    <div className="diary-edit-mode space-y-4">
+      <div className="diary-field-group diary-ticket-section mb-4">
         <label
           className={`
+            diary-ticket-scan
             flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2
             border-dashed border-primary bg-emerald-50 px-4 py-3 transition-colors
             hover:bg-emerald-100 dark:bg-secondary dark:hover:bg-secondary/80
@@ -200,9 +201,9 @@ export default function DiaryEditModeRuntime({
         )}
       </div>
 
-      <div>
-        <label className="mb-3 block text-[16px] text-muted-foreground">직관 유형</label>
-        <div className="flex gap-3">
+      <div className="diary-field-group">
+        <label className="diary-field-label mb-3 block text-[16px] text-muted-foreground">직관 유형</label>
+        <div className="diary-choice-row flex gap-3">
           <button
             type="button"
             onClick={() => updateForm({ type: 'attended' })}
@@ -243,9 +244,9 @@ export default function DiaryEditModeRuntime({
       </div>
 
       {diaryForm.type === 'attended' && (
-        <div>
-          <label className="mb-3 block text-[16px] text-muted-foreground">오늘의 기분</label>
-          <div className="flex items-center justify-between gap-3 overflow-x-auto rounded-2xl bg-muted p-4 dark:bg-card/50">
+        <div className="diary-field-group">
+          <label className="diary-field-label mb-3 block text-[16px] text-muted-foreground">오늘의 기분</label>
+          <div className="diary-emoji-rail flex items-center justify-between gap-3 overflow-x-auto rounded-2xl bg-muted p-4 dark:bg-card/50">
             {EMOJI_STATS.map((item, index) => (
               <button
                 key={index}
@@ -272,11 +273,11 @@ export default function DiaryEditModeRuntime({
       )}
 
       {diaryForm.type === 'attended' && (
-        <div>
-          <label className="mb-3 block text-[16px] text-muted-foreground">사진 추가</label>
-          <div className="grid grid-cols-3 gap-3">
+        <div className="diary-field-group">
+          <label className="diary-field-label mb-3 block text-[16px] text-muted-foreground">사진 추가</label>
+          <div className="diary-photo-grid grid grid-cols-3 gap-3">
             {allPhotos.map((photo: string | DiaryPhotoFile, index: number) => (
-              <div key={index} className="relative aspect-square">
+              <div key={index} className="diary-photo-tile relative aspect-square">
                 <img
                   src={getPhotoPreviewUrl(photo)}
                   alt={`업로드 ${index + 1}`}
@@ -305,7 +306,7 @@ export default function DiaryEditModeRuntime({
               </div>
             ))}
             {allPhotos.length < MAX_PHOTOS && (
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-muted dark:hover:bg-secondary">
+              <label className="diary-photo-tile flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-muted dark:hover:bg-secondary">
                 <MyPageCameraIcon className="mb-2 h-8 w-8 text-muted-foreground" />
                 <span className="text-[16px] text-muted-foreground">사진 추가</span>
                 <input
@@ -325,8 +326,8 @@ export default function DiaryEditModeRuntime({
         </div>
       )}
 
-      <div>
-        <label className="mb-1 block text-[16px] text-muted-foreground">경기 선택</label>
+      <div className="diary-field-group">
+        <label className="diary-field-label mb-1 block text-[16px] text-muted-foreground">경기 선택</label>
         {availableGames.length > 0 ? (
           <select
             value={diaryForm.gameId || ''}
@@ -351,7 +352,10 @@ export default function DiaryEditModeRuntime({
       </div>
 
       {diaryForm.type === 'attended' && (
-        <div className="space-y-3 rounded-xl border border-border bg-muted p-4 dark:border-border dark:bg-card/50">
+        <div
+          className="diary-field-group diary-seat-panel space-y-3 rounded-xl border border-border bg-muted p-4 dark:border-border dark:bg-card/50"
+          data-testid="diary-editor-seat-panel"
+        >
           <div className="flex items-center justify-between">
             <label className="text-[16px] font-bold text-primary">좌석 정보</label>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
@@ -392,9 +396,9 @@ export default function DiaryEditModeRuntime({
       )}
 
       {diaryForm.type === 'attended' && (
-        <div className="space-y-2">
-          <label className="mb-2 block text-[16px] text-muted-foreground">응원 팀 승패</label>
-          <div className="flex gap-3">
+        <div className="diary-field-group space-y-2">
+          <label className="diary-field-label mb-2 block text-[16px] text-muted-foreground">응원 팀 승패</label>
+          <div className="diary-winning-row flex gap-3">
             {WINNING_OPTIONS.map(({ value, label, bg, lightBg, textColor }) => (
               <button
                 key={value}
@@ -424,8 +428,8 @@ export default function DiaryEditModeRuntime({
         </div>
       )}
 
-      <div>
-        <label className="mb-1 block text-[16px] text-muted-foreground">메모</label>
+      <div className="diary-field-group">
+        <label className="diary-field-label mb-1 block text-[16px] text-muted-foreground">메모</label>
         <textarea
           disabled={diaryForm.type === 'scheduled'}
           value={diaryForm.memo}
@@ -438,7 +442,7 @@ export default function DiaryEditModeRuntime({
         />
       </div>
 
-      <div className="flex gap-3">
+      <div className="diary-form-actions flex gap-3">
         {selectedDiary && (
           <Button
             variant="outline"
@@ -471,7 +475,8 @@ export default function DiaryEditModeRuntime({
         onClose={handleSeatViewDialogClose}
         title="AI 추천 시야뷰 확인"
         description="공개할 시야뷰 사진을 선택하세요. 티켓 스캔 이미지는 개인 다이어리에는 남지만 공개 갤러리에는 자동 제외됩니다."
-        className="sm:max-w-2xl"
+        contentTestId="diary-seat-view-dialog"
+        className="diary-seat-view-dialog sm:max-w-2xl"
         bodyClassName="max-h-[calc(90vh-81px)] overflow-y-auto"
         hideCloseButton={seatViewSelectionState.submitting}
         footer={
@@ -496,7 +501,7 @@ export default function DiaryEditModeRuntime({
           </>
         }
       >
-        <div className="grid max-h-[60vh] gap-3 overflow-y-auto">
+        <div className="diary-seat-view-list grid max-h-[60vh] gap-3 overflow-y-auto">
           {seatViewSelectionState.candidates.map((candidate) => {
             const checked = seatViewSelectionState.selectedIds.includes(candidate.id);
             const confidenceLabel =
@@ -507,7 +512,7 @@ export default function DiaryEditModeRuntime({
             return (
               <label
                 key={candidate.id}
-                className={`flex gap-3 rounded-xl border p-3 transition-colors ${
+                className={`diary-seat-view-candidate flex gap-3 rounded-xl border p-3 transition-colors ${
                   candidate.shareEligible
                     ? 'cursor-pointer border-border hover:border-primary'
                     : 'cursor-not-allowed border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/20'
@@ -529,7 +534,7 @@ export default function DiaryEditModeRuntime({
                 />
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <InlineBadge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    <InlineBadge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-white">
                       {candidate.sourceType === 'TICKET_SCAN' ? '티켓 스캔' : '일반 업로드'}
                     </InlineBadge>
                     {candidate.aiSuggestedLabel && (
@@ -537,7 +542,7 @@ export default function DiaryEditModeRuntime({
                         className={
                           candidate.aiSuggestedLabel === 'SEAT_VIEW'
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-white'
                         }
                       >
                         AI: {candidate.aiSuggestedLabel}

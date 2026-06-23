@@ -6,14 +6,27 @@ import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { UserProfile, ViewMode } from '../types/profile';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 
-const VALID_VIEW_MODES: ViewMode[] = ['diary', 'stats', 'editProfile', 'mateHistory', 'changePassword', 'accountSettings', 'blockedUsers'];
+const VALID_VIEW_MODES: ViewMode[] = [
+  'diary',
+  'diaryEditor',
+  'stats',
+  'editProfile',
+  'cheerPosts',
+  'mateHistory',
+  'settings',
+  'changePassword',
+  'accountSettings',
+  'blockedUsers',
+];
 const LEGACY_TAB_TO_VIEW_MODE: Record<string, ViewMode> = {
   account: 'accountSettings',
   blocked: 'blockedUsers',
   edit: 'editProfile',
   profile: 'editProfile',
-  settings: 'accountSettings',
+  settings: 'settings',
 };
+
+const DATE_PARAM_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const useMyPage = () => {
   const navigate = useNavigate();
@@ -53,6 +66,10 @@ export const useMyPage = () => {
   }, [searchParams]);
 
   const [viewMode, setViewModeState] = useState<ViewMode>(getViewModeFromUrl);
+  const selectedDiaryDate = useMemo(() => {
+    const dateParam = searchParams.get('date');
+    return dateParam && DATE_PARAM_PATTERN.test(dateParam) ? dateParam : null;
+  }, [searchParams]);
 
   // URL 변경 시 viewMode 동기화
   useEffect(() => {
@@ -81,8 +98,14 @@ export const useMyPage = () => {
   }, [getViewModeFromUrl, searchParams, setSearchParams]);
 
   // viewMode 변경 시 URL 업데이트
-  const setViewMode = useCallback((mode: ViewMode) => {
-    if (viewMode === mode) {
+  const setViewMode = useCallback((mode: ViewMode, options?: { date?: string | null }) => {
+    const requestedDate = options?.date ?? null;
+    const isSameDiaryEditorDate =
+      mode === 'diaryEditor'
+        ? selectedDiaryDate === requestedDate || (!requestedDate && !selectedDiaryDate)
+        : true;
+
+    if (viewMode === mode && isSameDiaryEditorDate) {
       return;
     }
 
@@ -90,16 +113,22 @@ export const useMyPage = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
 
     if (mode === 'diary') {
-      // diary는 기본값이므로 URL에서 제거
+      // diary는 시즌 로그 기본값이므로 URL에서 제거
       nextSearchParams.delete('view');
       nextSearchParams.delete('tab');
+      nextSearchParams.delete('date');
     } else {
       nextSearchParams.set('view', mode);
       nextSearchParams.delete('tab');
+      if (mode === 'diaryEditor' && requestedDate) {
+        nextSearchParams.set('date', requestedDate);
+      } else if (mode !== 'diaryEditor') {
+        nextSearchParams.delete('date');
+      }
     }
 
     setSearchParams(nextSearchParams);
-  }, [searchParams, setSearchParams, viewMode]);
+  }, [searchParams, selectedDiaryDate, setSearchParams, viewMode]);
 
   const fallbackProfile = useMemo<UserProfile | null>(() => {
     if (!userId) return null;
@@ -194,6 +223,7 @@ export const useMyPage = () => {
     // View Mode
     viewMode,
     setViewMode,
+    selectedDiaryDate,
 
     // Handlers
     handleProfileUpdated,

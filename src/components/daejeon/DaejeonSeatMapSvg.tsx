@@ -40,20 +40,20 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
       <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
-        MANUAL_BASEBALL_DATA_REQUIRED
+        공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
         대전 한화생명볼파크 공식 좌석도 이미지를 추가해야 합니다
       </h4>
-      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-white">
         공식 좌석도 파일과 블록 좌표가 제공되면 이미지 위에 투명 hit-area를 얹어 블록 단위 선택을 활성화합니다.
       </p>
-      <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-slate-300">
+      <div className="mt-4 rounded-xl bg-white/80 px-4 py-3 text-left text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-white">
         <div>필요 파일: {DAEJEON_SEATMAP_IMAGE.requiredAssetFileName}</div>
         <div>저장 위치: {DAEJEON_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {DAEJEON_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -65,7 +65,7 @@ function resolveOfficialSeatMapImageUrl() {
     return null;
   }
 
-  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png', import.meta.url).href;
+  return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp', import.meta.url).href;
 }
 
 function getSeatMapLayer(block: DaejeonBlock): number {
@@ -400,7 +400,7 @@ export default function DaejeonSeatMapSvg({
     || DAEJEON_BLOCKS.length === 0
   ) {
     return (
-      <div className="relative rounded-xl bg-slate-100 dark:bg-[#050810]">
+      <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
       </div>
     );
@@ -411,7 +411,7 @@ export default function DaejeonSeatMapSvg({
   return (
     <div
       ref={viewportRef}
-      className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#050810]"
+      className="relative w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#000000]"
       style={{ aspectRatio: `${imageWidth} / ${imageHeight}` }}
     >
       <div
@@ -515,7 +515,7 @@ export default function DaejeonSeatMapSvg({
             } else if (isAnyFilterActive && !isFiltered && isSelectable) {
               displayFillOpacity = 0.20;
             } else if (isFiltered && !showDebug) {
-              fill = mode === 'dark' ? '#020617' : '#1e293b';
+              fill = mode === 'dark' ? '#000000' : '#1e293b';
               displayFillOpacity = 0.42;
             } else {
               displayFillOpacity = 0;
@@ -560,8 +560,11 @@ export default function DaejeonSeatMapSvg({
                   strokeWidth="0"
                   pointerEvents={canInteract ? 'fill' : 'none'}
                   vectorEffect="non-scaling-stroke"
-                  style={{ cursor: canInteract ? zoom > 1 ? 'grab' : 'pointer' : 'default' }}
+                  style={{ cursor: canInteract ? zoom > 1 ? 'grab' : 'pointer' : 'default', outline: 'none' }}
+                  onPointerEnter={() => canInteract && setHover(block.id)}
+                  onPointerOver={() => canInteract && setHover(block.id)}
                   onMouseEnter={() => canInteract && setHover(block.id)}
+                  onMouseOver={() => canInteract && setHover(block.id)}
                   onClick={() => {
                     if (!canInteract || suppressClickRef.current) return;
                     setSelected(selected?.id === block.id ? null : block);
@@ -585,7 +588,7 @@ export default function DaejeonSeatMapSvg({
                     fontSize={block.imageGeometry.labelFontSize ?? 12}
                     fontWeight="800"
                     fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                    stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                    stroke={mode === 'dark' ? '#000000' : '#FFFFFF'}
                     strokeWidth="3"
                     paintOrder="stroke"
                     transform={`rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})`}
@@ -608,14 +611,14 @@ export default function DaejeonSeatMapSvg({
         </svg>
       </div>
       {showDebug && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-slate-100">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Daejeon trace debug</div>
+        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-white">Daejeon trace debug</div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
             <span>blocks {DAEJEON_TRACE_REVIEW_SUMMARY.totalBlocks}</span>
             <span className="text-emerald-600 dark:text-emerald-300">traced {DAEJEON_TRACE_REVIEW_SUMMARY.officialImageTraced}</span>
             <span className="text-orange-600 dark:text-orange-300">review {DAEJEON_TRACE_REVIEW_SUMMARY.needsOperatorReview}</span>
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-slate-600 dark:text-slate-300">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-slate-600 dark:text-white">
             <span>viewBox 0 0 {imageWidth} {imageHeight}</span>
             <span>image {imageWidth}x{imageHeight}</span>
             <span>zoom {zoom.toFixed(2)}</span>
@@ -627,7 +630,7 @@ export default function DaejeonSeatMapSvg({
               rect {debugSvgRect ? `${debugSvgRect.left},${debugSvgRect.top},${debugSvgRect.width}x${debugSvgRect.height}` : '-'}
             </span>
           </div>
-          <div className="mt-1 grid gap-0.5 text-slate-600 dark:text-slate-300">
+          <div className="mt-1 grid gap-0.5 text-slate-600 dark:text-white">
             <span>hovered {debugBlock ? `${debugBlock.id} / ${debugBlock.blockCode}` : '-'}</span>
             <span>
               bbox {debugBlockBounds ? `${Math.round(debugBlockBounds.minX)},${Math.round(debugBlockBounds.minY)}-${Math.round(debugBlockBounds.maxX)},${Math.round(debugBlockBounds.maxY)}` : '-'}
@@ -635,7 +638,7 @@ export default function DaejeonSeatMapSvg({
             <span>method {debugBlock ? debugBlock.traceMethod : '-'}</span>
             <span>status {debugBlock ? debugBlock.traceStatus : '-'}</span>
           </div>
-          <div className="mt-1 text-slate-500 dark:text-slate-400">orange child = needs review, dashed line = parent area</div>
+          <div className="mt-1 text-slate-500 dark:text-white">orange child = needs review, dashed line = parent area</div>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Stadium, Place, CategoryType } from '../types/stadium';
 import { loadKakaoMapScript, searchNearbyPlaces, updateMapMarkers } from '../utils/kakaoMap';
 import { useKakaoMap } from './useKakaoMap';
@@ -8,25 +9,26 @@ import {
   sanitizeStadiumGuideErrorMessage,
 } from '../utils/stadiumGuideUtils';
 import {
-  fetchStadiumPlaces as fetchStadiumGuidePlaces,
-  fetchStadiums as fetchStadiumGuideStadiums,
-} from '../api/stadiumGuidePublic';
+  getStadiumGuidePlacesQueryOptions,
+  getStadiumGuideStadiumsQueryOptions,
+  isStadiumGuideDbCategory,
+} from './stadiumGuideQueryOptions';
 
 export const useStadiumGuide = () => {
-  const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [selectedStadium, setSelectedStadium] = useState<Stadium | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('food');
   const [places, setPlaces] = useState<Place[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [stadiumsStatus, setStadiumsStatus] = useState<AsyncStatus>('idle');
-  const [placesStatus, setPlacesStatus] = useState<AsyncStatus>('idle');
   const [nearbyStatus, setNearbyStatus] = useState<AsyncStatus>('idle');
   const [mapStatus, setMapStatus] = useState<AsyncStatus>('idle');
-  const [stadiumsError, setStadiumsError] = useState<string | null>(null);
-  const [placesError, setPlacesError] = useState<string | null>(null);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const stadiumsQuery = useQuery(getStadiumGuideStadiumsQueryOptions());
+  const stadiums = stadiumsQuery.data ?? [];
+  const stadiumId = selectedStadium?.stadiumId ?? '';
+  const isDbCategory = isStadiumGuideDbCategory(selectedCategory);
+  const placesQuery = useQuery(getStadiumGuidePlacesQueryOptions(stadiumId, selectedCategory));
 
   const {
     mapContainer,
@@ -56,68 +58,6 @@ export const useStadiumGuide = () => {
       }
     );
   }, []);
-
-  const fetchStadiums = useCallback(async () => {
-    try {
-      setStadiumsStatus('loading');
-      setStadiumsError(null);
-      const data = await fetchStadiumGuideStadiums();
-      setStadiums(data);
-
-      if (data.length === 0) {
-        setSelectedStadium(null);
-        setPlaces([]);
-        setStadiumsStatus('empty');
-        return;
-      }
-
-      setStadiumsStatus('success');
-      setSelectedStadium((previousSelected) =>
-        data.find((stadium) => stadium.stadiumId === previousSelected?.stadiumId) ?? data[0]
-      );
-    } catch (error) {
-      console.error('구장 목록 로드 실패:', error);
-      setStadiums([]);
-      setSelectedStadium(null);
-      setPlaces([]);
-      setSelectedPlace(null);
-      setStadiumsStatus('error');
-      setStadiumsError('구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-    }
-  }, []);
-
-  // DB 기반 카테고리(food 등) 장소 로드: 지도와 무관하므로 isMapReady 의존 없음
-  const loadDbPlaces = useCallback(async () => {
-    if (!selectedStadium) {
-      setPlaces([]);
-      setPlacesStatus('idle');
-      setNearbyStatus('idle');
-      return;
-    }
-
-    if (selectedCategory === 'store' || selectedCategory === 'parking') {
-      setPlacesStatus('idle');
-      setPlacesError(null);
-      return;
-    }
-
-    setSelectedPlace(null);
-    setNearbyStatus('idle');
-    setNearbyError(null);
-    setPlacesStatus('loading');
-    setPlacesError(null);
-
-    try {
-      const data = await fetchStadiumGuidePlaces(selectedStadium.stadiumId, selectedCategory);
-      setPlaces(data);
-      setPlacesStatus(data.length > 0 ? 'success' : 'empty');
-    } catch (error) {
-      console.error('장소 목록 로드 실패:', error);
-      setPlaces([]);
-      setPlacesStatus('error');
-      setPlacesError('장소 목록을 불러오지 못했습니다.');
-    }
-  }, [selectedStadium, selectedCategory]);
 
   // Kakao 기반 카테고리(store/parking) 주변 검색: 지도 준비 완료 시에만 실행
   const loadNearbyPlaces = useCallback(() => {
@@ -169,8 +109,29 @@ export const useStadiumGuide = () => {
   }, [loadMapSdk]);
 
   useEffect(() => {
-    void fetchStadiums();
-  }, [fetchStadiums]);
+    if (stadiumsQuery.isError) {
+      console.error('구장 목록 로드 실패:', stadiumsQuery.error);
+      setSelectedStadium(null);
+      setPlaces([]);
+      setSelectedPlace(null);
+      return;
+    }
+
+    if (!stadiumsQuery.isSuccess) {
+      return;
+    }
+
+    if (stadiums.length === 0) {
+      setSelectedStadium(null);
+      setPlaces([]);
+      setSelectedPlace(null);
+      return;
+    }
+
+    setSelectedStadium((previousSelected) =>
+      stadiums.find((stadium) => stadium.stadiumId === previousSelected?.stadiumId) ?? stadiums[0]
+    );
+  }, [stadiums, stadiumsQuery.error, stadiumsQuery.isError, stadiumsQuery.isSuccess]);
 
   // ========== 지도 초기화 ==========
   useEffect(() => {
@@ -192,8 +153,44 @@ export const useStadiumGuide = () => {
 
   // ========== DB 장소 로드 (지도 불필요 — SDK 준비 전에 선행 실행 가능) ==========
   useEffect(() => {
-    void loadDbPlaces();
-  }, [loadDbPlaces]);
+    if (!selectedStadium) {
+      setPlaces([]);
+      setSelectedPlace(null);
+      setNearbyStatus('idle');
+      return;
+    }
+
+    if (!isDbCategory) {
+      return;
+    }
+
+    setSelectedPlace(null);
+    setNearbyStatus('idle');
+    setNearbyError(null);
+
+    if (placesQuery.isPending && !placesQuery.data) {
+      setPlaces([]);
+      return;
+    }
+
+    if (placesQuery.isError) {
+      console.error('장소 목록 로드 실패:', placesQuery.error);
+      setPlaces([]);
+      return;
+    }
+
+    if (placesQuery.isSuccess) {
+      setPlaces(placesQuery.data);
+    }
+  }, [
+    isDbCategory,
+    placesQuery.data,
+    placesQuery.error,
+    placesQuery.isError,
+    placesQuery.isPending,
+    placesQuery.isSuccess,
+    selectedStadium,
+  ]);
 
   // ========== 주변 검색 (지도 준비 완료 후) ==========
   useEffect(() => {
@@ -236,13 +233,39 @@ export const useStadiumGuide = () => {
   };
 
   const retryStadiums = useCallback(() => {
-    void fetchStadiums();
-  }, [fetchStadiums]);
+    void stadiumsQuery.refetch();
+  }, [stadiumsQuery]);
 
   const retryPlaces = useCallback(() => {
-    void loadDbPlaces();
+    if (isDbCategory) {
+      void placesQuery.refetch();
+    }
     loadNearbyPlaces();
-  }, [loadDbPlaces, loadNearbyPlaces]);
+  }, [isDbCategory, loadNearbyPlaces, placesQuery]);
+
+  const stadiumsStatus = useMemo<AsyncStatus>(() => {
+    if (stadiumsQuery.isPending) return 'loading';
+    if (stadiumsQuery.isError) return 'error';
+    return stadiums.length > 0 ? 'success' : 'empty';
+  }, [stadiums.length, stadiumsQuery.isError, stadiumsQuery.isPending]);
+
+  const placesStatus = useMemo<AsyncStatus>(() => {
+    if (!selectedStadium || !isDbCategory) return 'idle';
+    if (placesQuery.isPending && !placesQuery.data) return 'loading';
+    if (placesQuery.isError) return 'error';
+    return (placesQuery.data ?? []).length > 0 ? 'success' : 'empty';
+  }, [
+    isDbCategory,
+    placesQuery.data,
+    placesQuery.isError,
+    placesQuery.isPending,
+    selectedStadium,
+  ]);
+
+  const stadiumsError = stadiumsQuery.isError
+    ? '구장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+    : null;
+  const placesError = placesQuery.isError ? '장소 목록을 불러오지 못했습니다.' : null;
 
   const retryMap = useCallback(() => {
     loadMapSdk();

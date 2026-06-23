@@ -22,8 +22,9 @@
 
 ## 결측 처리
 
-- 운영자 자료가 없으면 항목 단위로 `MANUAL_BASEBALL_DATA_REQUIRED`를 표시한다.
-- 일부 필드만 불명확하면 해당 필드만 `MANUAL_BASEBALL_DATA_REQUIRED` 상태로 유지한다.
+- 운영자 자료가 없으면 항목 단위 machine-readable 상태와 테스트 metadata에 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지한다.
+- 사용자 visible label은 `운영자 제공 자료 필요` 같은 안내 문구만 표시하고 contract code를 직접 노출하지 않는다.
+- 일부 필드만 불명확하면 해당 필드만 `MANUAL_BASEBALL_DATA_REQUIRED` 상태로 유지하되, 화면 문구는 사용자 안내문으로 변환한다.
 - 불명확한 값을 근접 블록, 좌석 방향, 지도 이미지로 추정해 채우지 않는다.
 
 ## 입력 게이트
@@ -33,7 +34,7 @@
 - `operator-apply-plan`은 검증 통과 데이터만 정규화해 수동 적용용 fragment를 생성한다.
 - 구장별 후보 검수표가 있는 경우 후보 검수 게이트는 확정 row 필수값과 런타임 미승격 상태를 함께 확인한다.
 - 입력 게이트 명령은 구장별 정적 source file을 자동으로 수정하지 않는다. source write는 내부 검수 후 별도 코드 변경으로만 처리한다.
-- 게이트 상태가 `waiting_for_operator` 또는 `blocked`이면 UI는 기존 `MANUAL_BASEBALL_DATA_REQUIRED` fallback을 유지한다.
+- 게이트 상태가 `waiting_for_operator` 또는 `blocked`이면 data/status/test metadata는 `MANUAL_BASEBALL_DATA_REQUIRED` fallback을 유지하고, 사용자 visible label은 contract code 없이 안내 문구만 표시한다.
 
 ## 런타임 계약
 

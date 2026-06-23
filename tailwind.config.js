@@ -16,7 +16,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Pretendard Variable"', '"Pretendard"', 'sans-serif'],
+        sans: ['"Pretendard Variable"', '"Pretendard"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         retro: ['"Press Start 2P"', 'monospace'],
       },
       colors: {
@@ -58,9 +58,9 @@ export default {
         },
         // 다크모드용 배경색
         dark: {
-          bg: '#1a1a1a',
-          card: '#2a2a2a',
-          border: '#3a3a3a',
+          bg: '#000000',
+          card: '#000000',
+          border: '#2c2f34',
         }
       },
       keyframes: {

@@ -251,7 +251,7 @@ export default function UserProfile() {
             <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 px-4 py-4 transition-colors"
+                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-white dark:hover:text-gray-200 px-4 py-4 transition-colors"
             >
                 <ArrowLeftIcon className="w-5 h-5 mr-1" />
                 <span>뒤로</span>
@@ -285,7 +285,7 @@ export default function UserProfile() {
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             {profile.name}
                         </h1>
-                        <p className="text-gray-500 dark:text-gray-300">{profile.handle}</p>
+                        <p className="text-gray-500 dark:text-white">{profile.handle}</p>
                     </div>
 
                     {/* Badges */}
@@ -325,7 +325,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(totalPosts)}
                         </span>
-                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-white flex items-center justify-center gap-1">
                             <PenSquareIcon className="w-3.5 h-3.5" />
                             게시글
                         </span>
@@ -338,7 +338,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followerCount || 0)}
                         </span>
-                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-white flex items-center justify-center gap-1">
                             <UsersIcon className="w-3.5 h-3.5" />
                             팔로워
                         </span>
@@ -351,7 +351,7 @@ export default function UserProfile() {
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(followCounts?.followingCount || 0)}
                         </span>
-                        <span className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-1">
+                        <span className="text-[16px] text-gray-500 dark:text-white flex items-center justify-center gap-1">
                             <UserIcon className="w-3.5 h-3.5" />
                             팔로잉
                         </span>
@@ -410,7 +410,7 @@ export default function UserProfile() {
                             메시지 보내기
                         </Button>
                         {messageDisabledReason ? (
-                            <p className="text-[16px] text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
+                            <p className="text-[16px] text-gray-500 dark:text-white flex items-center gap-1.5">
                                 <MessageCircleIcon className="w-3.5 h-3.5" />
                                 {messageDisabledReason}
                             </p>
@@ -421,16 +421,16 @@ export default function UserProfile() {
                 {/* Bio Section */}
                 <div className="px-6 mb-6">
                     <div className="p-4 bg-gray-50 dark:bg-secondary/30 rounded-xl relative">
-                        <span className="absolute top-2.5 left-3 text-lg leading-none text-gray-300 dark:text-gray-300">
+                        <span className="absolute top-2.5 left-3 text-lg leading-none text-gray-300 dark:text-white">
                             "
                         </span>
                         <div className="pl-6">
                             {profile.bio ? (
-                                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                <p className="text-gray-600 dark:text-white whitespace-pre-wrap leading-relaxed">
                                     {profile.bio}
                                 </p>
                             ) : (
-                                <p className="text-gray-400 dark:text-gray-300 italic text-[16px]">
+                                <p className="text-gray-400 dark:text-white italic text-[16px]">
                                     아직 자기소개가 없습니다.
                                 </p>
                             )}
@@ -446,7 +446,7 @@ export default function UserProfile() {
                         <PenSquareIcon className="w-5 h-5" style={{ color: theme.accent }} />
                         작성한 게시글
                     </h2>
-                    <span className="text-[16px] text-gray-500 dark:text-gray-300">
+                    <span className="text-[16px] text-gray-500 dark:text-white">
                         {totalPosts}개의 글
                     </span>
                 </div>

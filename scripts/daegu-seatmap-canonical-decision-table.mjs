@@ -115,7 +115,7 @@ const decisionForGroup = ({
       : 'Official/operator overlap exists; operator-reference is the recommended canonical source for this overlap row.';
     requiredNextAction = geometryIssues.length > 0
       ? 'Fix geometry before choosing a canonical source.'
-      : 'Promote operator-reference polygon to canonical and mark official PNG coordinates as historical evidence.';
+      : 'Promote operator-reference polygon to canonical and mark official image coordinates as historical evidence.';
   } else if (operatorActiveRows.length > 0) {
     decisionStatus = geometryIssues.length > 0 ? 'GEOMETRY_BLOCKED' : 'OPERATOR_ONLY_REVIEW';
     recommendedCanonicalSourceId = geometryIssues.length > 0 ? null : OPERATOR_SOURCE_ID;
@@ -130,10 +130,10 @@ const decisionForGroup = ({
     recommendedCanonicalSourceId = geometryIssues.length > 0 ? null : OFFICIAL_SOURCE_ID;
     reason = geometryIssues.length > 0
       ? 'Official-only active polygon has geometry issues.'
-      : 'Only official PNG has an active selectable polygon for this section.';
+      : 'Only official image has an active selectable polygon for this section.';
     requiredNextAction = geometryIssues.length > 0
       ? 'Fix geometry before canonical promotion.'
-      : 'Keep official PNG polygon as canonical candidate or retrace/approve an operator-reference polygon before promotion.';
+      : 'Keep official image polygon as canonical candidate or retrace/approve an operator-reference polygon before promotion.';
   } else if (markerRows.length > 0) {
     decisionStatus = 'ALIAS_OR_MARKER_REVIEW';
     reason = 'Marker/facility/wayfinding row has no normal selectable polygon.';
@@ -345,8 +345,8 @@ const main = async () => {
     '',
     '- This script does not edit production data.',
     '- Generated files under `reports/stadium/daegu-seatmap-canonical-decision-table.*` are QA evidence only.',
-    '- `CANONICAL_READY` overlap rows recommend operator-reference polygons and mark official PNG coordinates as historical evidence.',
-    '- `OFFICIAL_ONLY_REVIEW` rows require an explicit decision to keep official PNG polygons or retrace/approve operator-reference polygons.',
+    '- `CANONICAL_READY` overlap rows recommend operator-reference polygons and mark official image coordinates as historical evidence.',
+    '- `OFFICIAL_ONLY_REVIEW` rows require an explicit decision to keep official image polygons or retrace/approve operator-reference polygons.',
     '- `OPERATOR_ONLY_REVIEW` rows require metadata/label ownership review before canonical promotion.',
     '- `BLOCKED_UNCONFIRMED` rows stay out of selectable canonical data until independent seat component evidence is approved.',
     '',

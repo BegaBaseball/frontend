@@ -657,7 +657,7 @@ export default function SuwonSeatMapSvg({
         data-testid="suwon-official-seatmap-required"
         className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
       >
-        MANUAL_BASEBALL_DATA_REQUIRED: 수원 kt 위즈 파크 공식 좌석도 asset을 불러오지 못했습니다.
+        수원 kt 위즈 파크 공식 좌석도 asset을 불러오지 못했습니다.
       </div>
     );
   }
@@ -848,7 +848,7 @@ export default function SuwonSeatMapSvg({
                     fontSize={64}
                     fontWeight={800}
                     paintOrder="stroke"
-                    stroke="#020617"
+                    stroke="#000000"
                     strokeWidth={8}
                   >
                     {cursor.x},{cursor.y} {cursor.blockId ?? 'none'}

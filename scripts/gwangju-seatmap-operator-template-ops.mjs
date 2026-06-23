@@ -92,7 +92,7 @@ const runOperatorTemplate = async () => {
       coordinateSystem: section.coordinateSystem,
       requiredFields: section.requiredFields,
       sourcePolicy: {
-        allowedSource: 'operator-provided official PNG coordinates only',
+        allowedSource: 'operator-provided official image coordinates only',
         disallowedSources: [
           'browser CSS pixels',
           'resized screenshots',
@@ -118,7 +118,7 @@ const runOperatorTemplate = async () => {
       .filter((section) => preservedInputsById.has(section.id))
       .map((section) => section.id),
     coordinateRules: [
-      'Use the original official PNG coordinate system only: 2200x1159.',
+      'Use the original official image coordinate system only: 2200x1159.',
       'Record polygon points as [x, y] pairs in clockwise or counter-clockwise order.',
       'Record level as one of 1F, 2F, 3F, 4F, 5F, OUTFIELD.',
       'Keep K7 and away cheering sections inactive until this template is filled and reviewed.',
@@ -133,7 +133,7 @@ const runOperatorTemplate = async () => {
     '',
     `- 공식 이미지: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- 입력 대기 구역: ${GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ') || '-'}`,
-    '- 좌표 기준: 공식 PNG 원본 좌표계만 사용합니다.',
+    '- 좌표 기준: 공식 이미지 원본 좌표계만 사용합니다.',
     '- 금지: 브라우저 CSS 픽셀, 리사이즈된 스크린샷, 외부 크롤링/웹 검색 기반 보정, third-party 이미지 복사',
     '- 재생성 안전성: 기존 `operatorInput` 값은 section id 기준으로 보존합니다.',
     '',
@@ -150,7 +150,7 @@ const runOperatorTemplate = async () => {
     '',
     '## JSON 작성 규칙',
     '',
-    '1. `operatorInput.points`에 공식 PNG 좌표계의 polygon `[x, y]` 배열을 넣습니다.',
+    '1. `operatorInput.points`에 공식 이미지 좌표계의 polygon `[x, y]` 배열을 넣습니다.',
     '2. `operatorInput.labelX`, `operatorInput.labelY`는 polygon 내부의 label anchor로 넣습니다.',
     '3. `officialBlocks`, `level`, `side`, `fanRole`, `shortLabel`, `reviewer`, `reviewedAt`을 함께 채웁니다.',
     '4. 운영자 검수 전까지 실제 hit-area 데이터로 승격하지 않습니다.',
@@ -494,7 +494,7 @@ const runOperatorTemplateValidate = async () => {
       if (section.coordinateSystem?.imageHeight !== GWANGJU_SEATMAP_IMAGE.imageHeight) {
         reasons.push('COORDINATE_SYSTEM_HEIGHT_MISMATCH');
       }
-      if (section.sourcePolicy?.allowedSource !== 'operator-provided official PNG coordinates only') {
+      if (section.sourcePolicy?.allowedSource !== 'operator-provided official image coordinates only') {
         reasons.push('SOURCE_POLICY_ALLOWED_SOURCE_MISMATCH');
       }
       REQUIRED_SOURCE_POLICY_TERMS.forEach((term) => {
@@ -732,7 +732,7 @@ const runOperatorTemplateValidate = async () => {
     '',
     '1. 이 검증은 `gwangjuSeatData.ts`를 수정하지 않습니다.',
     '2. `validForPromotion=true`인 구역만 별도 data diff로 승격할 수 있습니다.',
-    '3. 좌표는 공식 PNG 원본 2200x1159 기준만 허용합니다.',
+    '3. 좌표는 공식 이미지 원본 2200x1159 기준만 허용합니다.',
     '4. 승격 후에는 `npm run test:stadium:seatmaps`, `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`, `npm run build`를 다시 통과해야 합니다.',
     '',
   ].join('\n'), 'utf8');
@@ -978,7 +978,7 @@ const runOperatorTemplateApplyPlan = async () => {
     policy: {
       doesNotModifyDataFile: true,
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       disallowedSources: [
         'browser CSS pixels',
         'resized screenshots',
@@ -1057,7 +1057,7 @@ const runOperatorTemplateApplyPlan = async () => {
     '',
     '1. 이 스크립트는 `gwangjuSeatData.ts`를 수정하지 않습니다.',
     '2. validation report의 `inputSha256`이 현재 template input과 다르면 차단합니다.',
-    '3. 좌표는 공식 PNG 원본 2200x1159 기준만 허용합니다.',
+    '3. 좌표는 공식 이미지 원본 2200x1159 기준만 허용합니다.',
     '4. level 등 승격에 필요한 야구 운영 데이터가 비어 있으면 `MANUAL_BASEBALL_DATA_REQUIRED`로 남깁니다.',
     '5. data diff 반영 후에는 `npm run test:stadium:seatmaps`, `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`, `npm run build`를 다시 통과해야 합니다.',
     '',
@@ -1197,7 +1197,7 @@ const runOperatorHandoff = async () => {
     const pending = validationRow.pending !== false;
     const requiredActions = pending
       ? [
-        'Fill operatorInput.points with official PNG 2200x1159 polygon points.',
+        'Fill operatorInput.points with official image 2200x1159 polygon points.',
         'Fill operatorInput.labelX and operatorInput.labelY inside the polygon.',
         'Fill officialBlocks, level, side, fanRole, shortLabel, reviewer, reviewedAt.',
         'Run node scripts/stadium-seatmap-ops.mjs gwangju operator-template:validate:strict.',
@@ -1262,7 +1262,7 @@ const runOperatorHandoff = async () => {
     generatedAt: new Date().toISOString(),
     summary,
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
@@ -1348,7 +1348,7 @@ const runOperatorHandoff = async () => {
     '',
     `- handoff version: \`${summary.handoffVersion}\``,
     `- status: \`${summary.status}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- active traced blocks: ${summary.activeTraceBlocks ?? '-'}`,
     `- pixel aligned blocks: ${summary.pixelAlignedBlocks ?? '-'}`,
     `- overlap warnings: ${summary.overlapWarnings}`,
@@ -1358,8 +1358,8 @@ const runOperatorHandoff = async () => {
     '',
     '## Source Policy',
     '',
-    '- 허용: operator-provided official PNG coordinates only',
-    '- 좌표계: official PNG 2200x1159',
+    '- 허용: operator-provided official image coordinates only',
+    '- 좌표계: official image 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
     '',
@@ -1390,7 +1390,7 @@ const runOperatorHandoff = async () => {
     '## Operator Steps',
     '',
     '1. `gwangju-seatmap-operator-template.json`에서 각 work item의 `operatorInput`을 채웁니다.',
-    '2. `points`, `labelX`, `labelY`는 official PNG 원본 2200x1159 좌표만 사용합니다.',
+    '2. `points`, `labelX`, `labelY`는 official image 원본 2200x1159 좌표만 사용합니다.',
     '3. `officialBlocks`, `level`, `side`, `fanRole`, `shortLabel`, `reviewer`, `reviewedAt`을 함께 채웁니다.',
     '4. `validate:strict`와 `apply-plan:require-ready`를 통과한 구역만 data diff로 승격합니다.',
     '5. `npm run stadium:gwangju:operator-status`로 pending/ready 상태를 확인합니다.',
@@ -1706,7 +1706,7 @@ const runOperatorStatus = async () => {
     generatedAt: new Date().toISOString(),
     summary,
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
@@ -1793,7 +1793,7 @@ const runOperatorStatus = async () => {
     `- status: \`${summary.status}\``,
     `- modifies data file: \`${!summary.doesNotModifyDataFile}\``,
     `- coordinates already ready: \`${summary.coordinatesAlreadyReady}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- base traced blocks: ${summary.baseTraceBlocks}`,
     `- active traced blocks: ${summary.activeTraceBlocks}`,
     `- expected traced blocks: ${summary.expectedTraceBlocks}`,
@@ -1812,8 +1812,8 @@ const runOperatorStatus = async () => {
     '',
     '## Source Policy',
     '',
-    '- 허용: operator-provided official PNG coordinates only',
-    '- 좌표계: official PNG 2200x1159',
+    '- 허용: operator-provided official image coordinates only',
+    '- 좌표계: official image 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
     '',

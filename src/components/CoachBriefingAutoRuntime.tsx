@@ -13,17 +13,19 @@ import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import {
   buildCoachBriefingRequestDescriptor,
+  type CoachAnalysisType,
   type CoachRequestMode,
-  type NormalizedAiBriefing,
-  normalizeCoachBriefing,
-  type RawAiBriefing,
-} from '../utils/prediction';
+} from '../utils/coachBriefingRequestDescriptor';
+import type { NormalizedAiBriefing } from '../utils/prediction';
+import { isWinProbabilityInput } from '../utils/coachWinProbability';
 
 export interface CoachBriefingMetaState {
   generationMode?: CoachGenerationMode;
+  analysisType?: CoachAnalysisType;
   dataQuality?: CoachDataQuality;
   cacheState?: string;
   manualDataRequired?: boolean;
+  llmSkipReason?: string;
   usedEvidence: string[];
   groundingWarnings: string[];
   groundingReasons: string[];
@@ -40,6 +42,7 @@ interface CoachBriefingAutoRuntimeProps {
     canCallAI: boolean;
   };
   requestMode: CoachRequestMode;
+  analysisType: CoachAnalysisType;
   autoEnabled: boolean;
   shouldStartAutoBriefing: boolean;
   isLoggedIn: boolean;
@@ -51,11 +54,9 @@ interface CoachBriefingAutoRuntimeProps {
 }
 
 const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
-const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
 const COACH_BRIEFING_CACHE_TTL_MS = 5 * 60 * 1000;
 const COACH_BRIEFING_FALLBACK_MESSAGES = {
   locked: '현재 브리핑 캐시가 잠겨 있습니다. 운영 갱신 후 다시 확인해 주세요.',
-  retry: '분석 준비 중입니다. 잠시 후 다시 확인해 주세요.',
   year: '경기 연도 정보를 확인하는 중입니다. 잠시 후 다시 시도해주세요.',
   error: 'AI 분석을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 } as const;
@@ -76,6 +77,25 @@ interface CoachBriefingCachePayload {
   groundingReasons?: string[];
   supportedFactCount?: number;
   winProbabilityHome?: number | null;
+}
+
+interface CoachBriefingSource {
+  title?: string;
+  message?: string;
+  answer?: string;
+  summary?: string;
+  displayText?: string;
+}
+
+interface CoachBriefingStructuredData {
+  headline?: string;
+  summary?: string;
+  detailed_markdown?: string;
+  coach_note?: string;
+  analysis?: {
+    summary?: string;
+    verdict?: string;
+  };
 }
 
 const isRealtimeAuthExpiredEvent = (event: Event): boolean => {
@@ -113,54 +133,100 @@ const resolveLeagueTypeCode = (
   return undefined;
 };
 
+const cleanCoachMetaStrings = (value?: unknown): string[] => (
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+    : []
+);
+
 const normalizeCoachBriefingMeta = (
   payload?: Partial<CoachBriefingMetaState> | null,
 ): CoachBriefingMetaState | null => {
   if (!payload) {
     return null;
   }
-  const usedEvidence = Array.isArray(payload.usedEvidence)
-    ? payload.usedEvidence.filter((value): value is string => typeof value === 'string' && value.length > 0)
-    : [];
-  const groundingWarnings = Array.isArray(payload.groundingWarnings)
-    ? payload.groundingWarnings.filter((value): value is string => typeof value === 'string' && value.length > 0)
-    : [];
-  const groundingReasons = Array.isArray(payload.groundingReasons)
-    ? payload.groundingReasons.filter((value): value is string => typeof value === 'string' && value.length > 0)
-    : [];
+  const usedEvidence = cleanCoachMetaStrings(payload.usedEvidence);
+  const groundingWarnings = cleanCoachMetaStrings(payload.groundingWarnings);
+  const groundingReasons = cleanCoachMetaStrings(payload.groundingReasons);
+  const llmSkipReason = typeof payload.llmSkipReason === 'string'
+    ? payload.llmSkipReason.trim()
+    : '';
   const supportedFactCount = (
     typeof payload.supportedFactCount === 'number'
     && Number.isFinite(payload.supportedFactCount)
     && payload.supportedFactCount >= 0
   ) ? payload.supportedFactCount : undefined;
-  const winProbabilityHome = (
-    typeof payload.winProbabilityHome === 'number'
-    && Number.isFinite(payload.winProbabilityHome)
-    && payload.winProbabilityHome >= 0
-    && payload.winProbabilityHome <= 1
-  ) ? payload.winProbabilityHome : null;
+  const winProbabilityHome = isWinProbabilityInput(payload.winProbabilityHome)
+    ? payload.winProbabilityHome
+    : null;
   if (
     !payload.generationMode
+    && !payload.analysisType
     && !payload.dataQuality
     && !payload.cacheState
+    && payload.manualDataRequired !== true
+    && !llmSkipReason
     && usedEvidence.length === 0
     && groundingWarnings.length === 0
     && groundingReasons.length === 0
     && supportedFactCount === undefined
+    && winProbabilityHome === null
   ) {
     return null;
   }
   return {
     generationMode: payload.generationMode,
+    analysisType: payload.analysisType,
     dataQuality: payload.dataQuality,
     cacheState: payload.cacheState,
     manualDataRequired: payload.manualDataRequired === true,
+    llmSkipReason: llmSkipReason || undefined,
     usedEvidence,
     groundingWarnings,
     groundingReasons,
     supportedFactCount,
     winProbabilityHome,
   };
+};
+
+const cleanCoachBriefingText = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/```(?:json)?|```/gi, ' ')
+    .replace(/[*_`~]+/g, '')
+    .replace(/^#{1,6}\s*|^[\s>*+-]+|\d+\.\s+/gm, '')
+    .replace(/\|/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
+
+const isUsefulCoachBriefingText = (value: string): boolean => (
+  value.trim().length >= 8
+);
+
+const parseCoachBriefingPayload = (value?: string): Partial<CoachBriefingStructuredData> | null => {
+  if (!value) {
+    return null;
+  }
+
+  const candidate = cleanCoachBriefingText(value);
+  const braceStart = candidate.indexOf('{');
+  const braceEnd = candidate.lastIndexOf('}');
+  if (braceStart === -1 || braceEnd <= braceStart) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(candidate.slice(braceStart, braceEnd + 1));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Partial<CoachBriefingStructuredData>
+      : null;
+  } catch {
+    return null;
+  }
 };
 
 const purgeExpiredCoachBriefingCache = (cache: Map<string, { expiresAt: number }>) => {
@@ -228,14 +294,6 @@ const readSessionCoachBriefingCache = (): Map<string, CoachBriefingCachePayload>
   );
 };
 
-const readLocalCoachBriefingCache = (): Map<string, CoachBriefingCachePayload> => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return new Map();
-  }
-
-  return readStoredCoachBriefingCache(window.localStorage, COACH_BRIEFING_LOCAL_STORAGE_KEY);
-};
-
 const writeSessionCoachBriefingCache = (cache: Map<string, CoachBriefingCachePayload>) => {
   if (typeof window === 'undefined') {
     return;
@@ -243,38 +301,12 @@ const writeSessionCoachBriefingCache = (cache: Map<string, CoachBriefingCachePay
   writeStoredCoachBriefingCache(window.sessionStorage, COACH_BRIEFING_SESSION_STORAGE_KEY, cache);
 };
 
-const writeLocalCoachBriefingCache = (cache: Map<string, CoachBriefingCachePayload>) => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-  writeStoredCoachBriefingCache(window.localStorage, COACH_BRIEFING_LOCAL_STORAGE_KEY, cache);
-};
-
-const readCoachBriefingFromStorageByPriority = (requestCacheKey: string | null) => {
-  if (!requestCacheKey) {
-    return null;
-  }
-
-  const localCache = readLocalCoachBriefingCache();
-  const localCached = localCache.get(requestCacheKey);
-  if (localCached) {
-    return localCached;
-  }
-
-  const sessionCache = readSessionCoachBriefingCache();
-  const sessionCached = sessionCache.get(requestCacheKey);
-  if (sessionCached) {
-    return sessionCached;
-  }
-
-  return null;
-};
-
 export default function CoachBriefingAutoRuntime({
   game,
   gameDetail,
   seasonContext,
   requestMode,
+  analysisType,
   autoEnabled,
   shouldStartAutoBriefing,
   isLoggedIn,
@@ -303,34 +335,54 @@ export default function CoachBriefingAutoRuntime({
   const requestLeagueTypeCode = resolveLeagueTypeCode(game?.leagueType, game?.postSeasonSeries);
   const MAX_COACH_RETRIES = 3;
   const RETRY_DELAYS_MS = [2000, 4000, 6000] as const;
-  const MAX_BACKOFF_MS = 16000;
-  // in_progress(백그라운드 생성 중) 상태 전용 — 더 길게 기다린다
-  const MAX_COACH_PENDING_RETRIES = 12;
-  const PENDING_RETRY_DELAYS_MS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 60000, 75000, 90000, 120000] as const;
-  const MAX_PENDING_BACKOFF_MS = 120000;
-  const effectiveRequestMode: CoachRequestMode = requestMode;
+  // in_progress(백그라운드 생성 중) 상태 전용 — 자동 재시도는 짧게 제한한다.
+  const MAX_COACH_PENDING_RETRIES = 2;
+  const PENDING_RETRY_DELAYS_MS = [5000, 10000] as const;
   const briefingLabel = autoEnabled ? '실데이터 브리핑' : 'AI 코치 분석';
   const isGuestBlocked = !isLoggedIn && !isAuthLoading;
   const isAuthCheckPending = isAuthLoading;
-  const fallbackRetryMessage = COACH_BRIEFING_FALLBACK_MESSAGES.retry;
+  const fallbackRetryMessage = '분석 준비 중입니다. 잠시 후 다시 확인해 주세요.';
   const fallbackYearMessage = COACH_BRIEFING_FALLBACK_MESSAGES.year;
   const fallbackErrorMessage = COACH_BRIEFING_FALLBACK_MESSAGES.error;
 
   const normalizeBriefing = (
-    source: string | RawAiBriefing | null | undefined,
+    source: string | CoachBriefingSource | null | undefined,
     fallbackMessage: string,
   ) => {
     if (!source) {
       return null;
     }
-    return normalizeCoachBriefing(
-      typeof source === 'string' ? { message: source } : source,
-      {
-        fallbackTitle: briefingLabel,
-        fallbackMessage,
-        fallbackHintMessage: '예정 경기에서는 자동 브리핑이 없습니다. 현재 매치업의 승부처는 AI 코치 상세 분석에서 확인할 수 있습니다.',
-      },
+
+    const payload = typeof source === 'string' ? { message: source } : source;
+    const parsedPayload = parseCoachBriefingPayload(
+      payload.answer || payload.message || payload.summary,
     );
+    const structuredData = parsedPayload;
+    const title = [
+      payload.title,
+      structuredData?.headline,
+    ]
+      .map(cleanCoachBriefingText)
+      .find(isUsefulCoachBriefingText) || briefingLabel;
+    const message = [
+      payload.displayText,
+      payload.message,
+      payload.answer,
+      structuredData?.analysis?.summary,
+      structuredData?.analysis?.verdict,
+      structuredData?.summary,
+      structuredData?.coach_note,
+      structuredData?.detailed_markdown,
+      payload.summary,
+    ]
+      .map(cleanCoachBriefingText)
+      .find(isUsefulCoachBriefingText) || fallbackMessage;
+
+    return {
+      title,
+      message,
+      displayText: message,
+    };
   };
 
   const resolveSeasonYear = () => {
@@ -361,7 +413,8 @@ export default function CoachBriefingAutoRuntime({
 
   const requestDescriptor = useMemo(() => buildCoachBriefingRequestDescriptor({
     game,
-    requestMode: effectiveRequestMode,
+    requestMode,
+    analysisType,
     focus: ['recent_form'],
     requestSeasonYear: resolveSeasonYear(),
     requestLeagueTypeCode,
@@ -386,7 +439,7 @@ export default function CoachBriefingAutoRuntime({
     awayPitcherName,
     awayRank,
     awayRemainingGames,
-    effectiveRequestMode,
+    analysisType,
     game?.awayTeam,
     game?.gameDate,
     game?.gameId,
@@ -505,8 +558,10 @@ export default function CoachBriefingAutoRuntime({
       onBriefingChange(cachedBriefing);
       onMetaChange(normalizeCoachBriefingMeta({
         generationMode: cached.generationMode,
+        analysisType,
         dataQuality: cached.dataQuality,
         cacheState: cached.cacheState,
+        manualDataRequired: cached.manualDataRequired,
         usedEvidence: cached.usedEvidence,
         groundingWarnings: cached.groundingWarnings,
         groundingReasons: cached.groundingReasons,
@@ -532,6 +587,7 @@ export default function CoachBriefingAutoRuntime({
         generationMode: meta?.generationMode,
         dataQuality: meta?.dataQuality,
         cacheState: meta?.cacheState,
+        manualDataRequired: meta?.manualDataRequired,
         usedEvidence: meta?.usedEvidence,
         groundingWarnings: meta?.groundingWarnings,
         groundingReasons: meta?.groundingReasons,
@@ -543,9 +599,6 @@ export default function CoachBriefingAutoRuntime({
       const sessionCache = readSessionCoachBriefingCache();
       sessionCache.set(requestCacheKey, payload);
       writeSessionCoachBriefingCache(sessionCache);
-      const localCache = readLocalCoachBriefingCache();
-      localCache.set(requestCacheKey, payload);
-      writeLocalCoachBriefingCache(localCache);
     };
 
     const restoreFromCachePayload = (payload: CoachBriefingCachePayload) => {
@@ -555,8 +608,10 @@ export default function CoachBriefingAutoRuntime({
       }
       const cachedMeta = normalizeCoachBriefingMeta({
         generationMode: payload.generationMode,
+        analysisType,
         dataQuality: payload.dataQuality,
         cacheState: payload.cacheState,
+        manualDataRequired: payload.manualDataRequired,
         usedEvidence: payload.usedEvidence,
         groundingWarnings: payload.groundingWarnings,
         groundingReasons: payload.groundingReasons,
@@ -572,6 +627,7 @@ export default function CoachBriefingAutoRuntime({
         generationMode: cachedMeta?.generationMode,
         dataQuality: cachedMeta?.dataQuality,
         cacheState: cachedMeta?.cacheState,
+        manualDataRequired: cachedMeta?.manualDataRequired,
         usedEvidence: cachedMeta?.usedEvidence,
         groundingWarnings: cachedMeta?.groundingWarnings,
         groundingReasons: cachedMeta?.groundingReasons,
@@ -582,7 +638,7 @@ export default function CoachBriefingAutoRuntime({
       return cachedValue;
     };
 
-    const cachedPayloadByStorage = readCoachBriefingFromStorageByPriority(requestCacheKey);
+    const cachedPayloadByStorage = readSessionCoachBriefingCache().get(requestCacheKey) ?? null;
     if (cachedPayloadByStorage) {
       const cachedValue = restoreFromCachePayload(cachedPayloadByStorage);
       if (cachedValue) {
@@ -637,19 +693,36 @@ export default function CoachBriefingAutoRuntime({
       coachBriefingInFlightRequests.set(requestCacheKey, sharedRequest);
     }
 
-    const applyFallbackBriefing = (message: string, cacheState?: string) => {
+    const applyFallbackBriefing = (
+      message: string,
+      cacheState?: string,
+      options?: { neutralMeta?: boolean; llmSkipReason?: string },
+    ) => {
       const fallbackBriefing = normalizeBriefing(message, message || COACH_BRIEFING_FALLBACK_MESSAGES.error);
       aiBriefingRef.current = fallbackBriefing;
       onBriefingChange(fallbackBriefing);
-      onMetaChange({
-        generationMode: 'evidence_fallback',
-        dataQuality: 'insufficient',
-        cacheState,
-        manualDataRequired: false,
-        usedEvidence: [],
-        groundingWarnings: [],
-        groundingReasons: [],
-      });
+      const fallbackMeta: CoachBriefingMetaState | null = options?.neutralMeta
+        ? (cacheState
+          ? {
+              cacheState,
+              llmSkipReason: options?.llmSkipReason,
+              analysisType,
+              usedEvidence: [],
+              groundingWarnings: [],
+              groundingReasons: [],
+            }
+          : null)
+        : {
+          generationMode: 'evidence_fallback',
+          analysisType,
+          dataQuality: 'insufficient',
+          cacheState,
+          llmSkipReason: options?.llmSkipReason,
+          usedEvidence: [],
+          groundingWarnings: [],
+          groundingReasons: [],
+        };
+      onMetaChange(fallbackMeta);
       resetRetryState();
     };
 
@@ -665,30 +738,28 @@ export default function CoachBriefingAutoRuntime({
         const shouldRetry = response.in_progress === true;
         const isFailedLocked = cacheState === 'FAILED_LOCKED';
 
-        const normalizedResponse = normalizeBriefing({
-          title: response.structuredData?.headline,
-          answer: response.answer,
-          message:
-            response.structuredData?.detailed_markdown ||
-            response.structuredData?.coach_note ||
-            response.answer ||
-            response.raw_answer ||
-            '',
-          structuredData: response.structuredData
-            ? {
-                headline: response.structuredData.headline,
-                summary: response.structuredData.analysis?.summary,
-                detailed_markdown: response.structuredData.detailed_markdown,
-                coach_note: response.structuredData.coach_note,
-                analysis: response.structuredData.analysis,
-              }
-            : undefined,
-        }, '실데이터 브리핑을 준비하지 못했습니다.');
+        const responseBriefingText =
+          response.structuredData?.analysis?.summary ||
+          response.structuredData?.analysis?.verdict ||
+          response.structuredData?.coach_note ||
+          response.structuredData?.detailed_markdown ||
+          '';
+        const normalizedResponse = normalizeBriefing(responseBriefingText
+          ? {
+              title: response.structuredData?.headline,
+              displayText: responseBriefingText,
+            }
+          : {
+              title: response.structuredData?.headline,
+              answer: response.answer || response.raw_answer || '',
+            }, '실데이터 브리핑을 준비하지 못했습니다.');
         const normalizedMeta = normalizeCoachBriefingMeta({
           generationMode: response.generation_mode,
+          analysisType: response.analysis_type,
           dataQuality: response.data_quality,
           cacheState,
-          manualDataRequired: response.manual_data_request != null,
+          manualDataRequired: Boolean(response.manual_data_request),
+          llmSkipReason: response.llm_skip_reason ?? response.llmSkipReason,
           usedEvidence: response.used_evidence,
           groundingWarnings: response.grounding_warnings,
           groundingReasons: response.grounding_reasons,
@@ -707,6 +778,7 @@ export default function CoachBriefingAutoRuntime({
           onBriefingChange(manualBriefing);
           onMetaChange(normalizedMeta ?? normalizeCoachBriefingMeta({
             generationMode: 'evidence_fallback',
+            analysisType,
             dataQuality: 'insufficient',
             cacheState,
             manualDataRequired: true,
@@ -727,14 +799,20 @@ export default function CoachBriefingAutoRuntime({
 
           const maxRetries = isPending ? MAX_COACH_PENDING_RETRIES : MAX_COACH_RETRIES;
           const retryDelays = isPending ? PENDING_RETRY_DELAYS_MS : RETRY_DELAYS_MS;
-          const maxBackoff = isPending ? MAX_PENDING_BACKOFF_MS : MAX_BACKOFF_MS;
 
           const currentRetryCount = retryCountRef.current;
           if (currentRetryCount >= maxRetries) {
             clearRetryTimer();
             resetRetryState();
             if (canOverrideSuccessfulBriefing()) {
-              applyFallbackBriefing(fallbackRetryMessage);
+              applyFallbackBriefing(
+                fallbackRetryMessage,
+                isPending ? 'PENDING_WAIT' : cacheState,
+                {
+                  neutralMeta: isPending,
+                  llmSkipReason: isPending ? 'pending_wait' : undefined,
+                },
+              );
             }
             return false;
           }
@@ -743,7 +821,6 @@ export default function CoachBriefingAutoRuntime({
           const selectedDelay =
             retryDelays[currentRetryCount] ??
             retryDelays[retryDelays.length - 1];
-          const backoffMs = Math.min(selectedDelay, maxBackoff);
           const nextRetryCount = currentRetryCount + 1;
           retryTimerRef.current = setTimeout(() => {
             retryTimerRef.current = null;
@@ -753,7 +830,7 @@ export default function CoachBriefingAutoRuntime({
             coachBriefingMemoryCache.delete(requestCacheKey);
             retryCountRef.current = nextRetryCount;
             setRetryNonce((previous) => previous + 1);
-          }, backoffMs);
+          }, selectedDelay);
           return true;
         };
 
@@ -775,9 +852,9 @@ export default function CoachBriefingAutoRuntime({
           onBriefingChange(lockedBriefing);
           onMetaChange(normalizedMeta ?? normalizeCoachBriefingMeta({
             generationMode: 'evidence_fallback',
+            analysisType,
             dataQuality: 'insufficient',
             cacheState,
-            manualDataRequired: false,
             usedEvidence: [],
             groundingWarnings: [],
             groundingReasons: [],
@@ -830,12 +907,13 @@ export default function CoachBriefingAutoRuntime({
           return;
         }
         if (canOverrideSuccessfulBriefing()) {
+          const isPayloadTooLargeError = isCoachAnalyzeError(error) && error.code === 'PAYLOAD_TOO_LARGE';
           const publicMessage = (
             isCoachAnalyzeError(error)
-            && error.code === 'REQUEST_FAILED'
+            && (error.code === 'PAYLOAD_TOO_LARGE' || error.code === 'REQUEST_FAILED')
             && error.message.trim().length > 0
           ) ? error.message : fallbackErrorMessage;
-          applyFallbackBriefing(publicMessage);
+          applyFallbackBriefing(publicMessage, undefined, { neutralMeta: isPayloadTooLargeError });
         }
         clearRetryTimer();
         resetRetryState();
@@ -859,6 +937,7 @@ export default function CoachBriefingAutoRuntime({
       currentRequestFingerprintRef.current = null;
     };
   }, [
+    analysisType,
     autoEnabled,
     game,
     gameDetail,

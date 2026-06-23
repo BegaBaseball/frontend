@@ -190,7 +190,7 @@ export default function PredictionTopNotice({
     const isPastEnd = currentDateIndex === 0 && !canLoadMorePast && pastRangeLoadState === 'end';
 
     return (
-      <Card className={`${noticeCardBaseClass} border border-slate-200 bg-slate-50 text-slate-700 dark:border-border dark:bg-card dark:text-gray-200`}>
+      <Card className={`${noticeCardBaseClass} border border-slate-200 bg-slate-50 text-slate-700 dark:border-border dark:bg-card dark:text-white`}>
           <p className="text-[16px] font-bold">
           {isPastEnd
             ? (pastRangeLoadErrorMessage || '더 이상 이전 경기가 없습니다.')

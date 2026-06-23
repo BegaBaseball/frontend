@@ -3,6 +3,7 @@ import type { ChangeEvent, DragEvent } from 'react';
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { parseError } from '../utils/errorUtils';
 import { useAuthProfileActions } from '../store/authStore';
 import AutosizeTextarea from './ui/autosize-textarea';
@@ -15,6 +16,7 @@ const LazyCheerWriteModal = lazy(() => import('./CheerWriteModal'));
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
 type CheerPostType = CheerPost['postType'];
+type CheerPostsFeedQueryKey = ReturnType<typeof getCheerPostsFeedQueryKey>;
 
 interface CheerComposerRuntimeProps {
     openComposerOnMount: boolean;
@@ -28,6 +30,7 @@ interface CheerComposerRuntimeProps {
     authUserProfileImageUrl?: string | null;
     activeFeedTab: 'all' | 'popular' | 'following';
     activePostType?: CheerPostType;
+    activeSort?: string;
     teamColor: string;
     teamAccent: string;
     teamContrastText: string;
@@ -55,6 +58,7 @@ export default function CheerComposerRuntime({
     authUserProfileImageUrl,
     activeFeedTab,
     activePostType,
+    activeSort,
     teamColor,
     teamAccent,
     teamContrastText,
@@ -249,7 +253,7 @@ export default function CheerComposerRuntime({
                     : undefined,
             };
 
-            const updateCache = (key: (string | undefined)[]) => {
+            const updateCache = (key: CheerPostsFeedQueryKey) => {
                 queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
                     if (!old || !old.pages?.length) return old;
                     const firstPage = old.pages[0];
@@ -261,8 +265,8 @@ export default function CheerComposerRuntime({
                 });
             };
 
-            const activeKey = ['cheer-posts', activeFeedTab];
-            const allKey = ['cheer-posts', 'all'];
+            const activeKey = getCheerPostsFeedQueryKey(activeFeedTab, activePostType, activeSort);
+            const allKey = getCheerPostsFeedQueryKey('all');
 
             const previousActive = queryClient.getQueryData(activeKey);
             const previousAll = queryClient.getQueryData(allKey);
@@ -274,9 +278,12 @@ export default function CheerComposerRuntime({
         },
         onError: (_error, _payload, context) => {
             if (!context) return;
-            queryClient.setQueryData(['cheer-posts', activeFeedTab], context.previousActive);
+            queryClient.setQueryData(
+                getCheerPostsFeedQueryKey(activeFeedTab, activePostType, activeSort),
+                context.previousActive
+            );
             if (activeFeedTab !== 'all') {
-                queryClient.setQueryData(['cheer-posts', 'all'], context.previousAll);
+                queryClient.setQueryData(getCheerPostsFeedQueryKey('all'), context.previousAll);
             }
         },
         onSuccess: (result, _payload, context) => {
@@ -284,7 +291,7 @@ export default function CheerComposerRuntime({
             if (!createdPost || !context) return;
             const uploadedUrls = result?.uploadedUrls ?? [];
             const uploadFailed = Boolean(result?.uploadFailed);
-            const replaceOptimistic = (key: (string | undefined)[]) => {
+            const replaceOptimistic = (key: CheerPostsFeedQueryKey) => {
                 queryClient.setQueryData<CheerInfiniteData>(key, (old) => {
                     if (!old || !old.pages?.length) return old;
                     const updatedPages = old.pages.map((page) => ({
@@ -304,8 +311,8 @@ export default function CheerComposerRuntime({
                     return { ...old, pages: updatedPages };
                 });
             };
-            replaceOptimistic(['cheer-posts', activeFeedTab]);
-            if (activeFeedTab !== 'all') replaceOptimistic(['cheer-posts', 'all']);
+            replaceOptimistic(getCheerPostsFeedQueryKey(activeFeedTab, activePostType, activeSort));
+            if (activeFeedTab !== 'all') replaceOptimistic(getCheerPostsFeedQueryKey('all'));
         },
     });
 
@@ -413,7 +420,7 @@ export default function CheerComposerRuntime({
                             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setComposerContent(event.target.value)}
                         />
                         <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/70 pt-2 dark:border-border">
-                            <div className="flex min-w-0 items-center gap-2 text-[#536471] dark:text-gray-300">
+                            <div className="flex min-w-0 items-center gap-2 text-[#536471] dark:text-white">
                                 <button
                                     type="button"
                                     className={`group relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${composerFiles.length >= 10

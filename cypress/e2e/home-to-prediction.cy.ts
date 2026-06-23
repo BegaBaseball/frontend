@@ -1,5 +1,6 @@
 /// <reference types="cypress" />
 
+import { installPredictionBootstrapIntercept } from '../support/predictionPage';
 import { visitHomePage } from '../support/homePage';
 
 describe('Home to Prediction deep link', () => {
@@ -191,6 +192,14 @@ describe('Home to Prediction deep link', () => {
             statusCode: 200,
             body: { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
         }).as('getVoteStatus');
+
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapHomeLink',
+            games: () => [...homeGames, ...tomorrowGames].map((game) => ({
+                ...game,
+                gameDate: game.sourceDate,
+            })),
+        });
     });
 
     it('moves to prediction with gameId/date query and preselects clicked game', () => {
@@ -403,10 +412,11 @@ describe('Home to Prediction deep link', () => {
             resetStorage: true,
         });
 
-        cy.wait('@getScheduleDay');
+        cy.wait('@getPredictionBootstrapHomeLink');
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.contains('현재 목록에서 찾을 수 없습니다', { timeout: 20000 }).should('be.visible');
         cy.contains('경기 목록에서 다시 선택해주세요.').should('be.visible');
+        cy.get('@getScheduleDay.all').should('have.length', 0);
         cy.get('@getGameDetail.all').should('have.length', 0);
     });
 

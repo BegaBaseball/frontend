@@ -319,15 +319,15 @@ test('대구 canonical retrace gate는 temp-only approved fixture에서만 sourc
 test('대구 canonical retrace package/docs 계약은 통합 batch alias만 노출한다', () => {
   assert.equal(
     PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-batch'],
-    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-batch',
+    'node scripts/qa-presets.mjs stadium daegu canonical-retrace-batch',
   );
   assert.equal(
     PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-gate'],
-    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-gate',
+    'node scripts/qa-presets.mjs stadium daegu canonical-retrace-gate',
   );
   assert.equal(
     PACKAGE_JSON.scripts['stadium:daegu:canonical-retrace-gate:require-approved'],
-    'node scripts/stadium-seatmap-ops.mjs daegu canonical-retrace-gate:require-approved',
+    'node scripts/qa-presets.mjs stadium daegu canonical-retrace-gate:require-approved',
   );
 
   [

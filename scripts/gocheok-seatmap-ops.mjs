@@ -677,7 +677,7 @@ const runPixelComponents = async () => {
   const defaultOutDir = path.join(frontendRoot, 'reports/stadium');
   const imagePath = path.join(
     frontendRoot,
-    'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png',
+    'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp',
   );
 
   const argValue = (name, fallback) => {
@@ -1146,7 +1146,7 @@ const runTraceManifest = async () => {
     '## 사용 방법',
     '',
     '1. `node scripts/stadium-seatmap-ops.mjs gocheok trace-review`를 실행해 manifest, evidence crop, debug overlay screenshot을 생성합니다.',
-    '2. CSV의 `candidateHullPath`와 현재 `path`를 비교하고, 공식 PNG 경계가 불명확하면 TODO에 남깁니다.',
+    '2. CSV의 `candidateHullPath`와 현재 `path`를 비교하고, 공식 이미지 경계가 불명확하면 TODO에 남깁니다.',
     '3. 승인된 블록만 `GOCHEOK_TRACE_REVIEWED_BLOCK_IDS`에 추가합니다.',
     '4. `node scripts/stadium-seatmap-ops.mjs gocheok evidence`로 주요 crop overlay 증빙을 갱신합니다.',
     '5. 좌표 변경 후 `node --import tsx --test src/data/gocheokSeatData.test.ts`로 overlap/bounds/self-intersection을 확인합니다.',

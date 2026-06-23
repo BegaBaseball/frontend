@@ -54,7 +54,7 @@ const OPERATOR_DATA_PENDING_VALUE = `${OPERATOR_DATA_REQUIRED_LABEL} · ${MANUAL
 
 export const SUWON_OPERATOR_FACILITY_DATA_REQUIREMENT = Object.freeze({
   status: MANUAL_REQUIRED,
-  pendingLabel: '운영자 제공 출입구/매점/동선 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED',
+  pendingLabel: `운영자 제공 출입구/매점/동선 자료 필요 · ${MANUAL_REQUIRED}`,
 });
 
 export const SUWON_OPERATOR_FACILITY_POINTS: readonly SuwonFacilityPoint[] = [];

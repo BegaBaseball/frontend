@@ -1,5 +1,11 @@
 /// <reference types="cypress" />
 
+import {
+    DEFAULT_CYPRESS_AUTH_TOKEN,
+    seedCypressAuthState,
+    toAuthApiUser,
+} from './auth';
+
 export {};
 
 declare global {
@@ -15,6 +21,11 @@ declare global {
              * Custom command to setup default API mocks.
              */
             mockAPI(options?: { skipRankings?: boolean }): Chainable<void>;
+
+            /**
+             * Fails authenticated specs immediately when an unmocked API call returns 401.
+             */
+            failOnUnexpectedApi401(): Chainable<void>;
 
             /**
              * Custom command to select by data-testid.
@@ -47,9 +58,6 @@ const defaultFollowCounts = {
     blockedByMe: false,
     blockingMe: false,
 };
-const AUTH_BOOTSTRAP_META_KEY = 'auth-bootstrap-meta';
-const CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY = 'cypress:skip-public-auth-bootstrap';
-
 Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFollowCounts) => {
     const normalizedHandle = handle.trim();
     const normalizedHandleWithAt = normalizedHandle.startsWith('@')
@@ -85,57 +93,19 @@ Cypress.Commands.add('mockPublicFollowCounts', (handle: string, body = defaultFo
 });
 
 Cypress.Commands.add('login', (userType = 'user') => {
-    cy.fixture('user').then((users) => {
+    return cy.fixture('user').then((users) => {
         const user = userType === 'admin'
             ? users.adminUser
             : userType === 'superAdmin'
                 ? users.superAdminUser
                 : users.testUser;
-        const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-
-        // Zustant store persistence structure
-        const authState = {
-            state: {
-                user: user,
-                isLoggedIn: true,
-                isAdmin: user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPER_ADMIN',
-                isAuthLoading: false,
-            },
-            version: 0
-        };
-
-        const seedAuthState = (win: Window, options?: { skipPublicBootstrap?: boolean }) => {
-            if (options?.skipPublicBootstrap) {
-                win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
-            } else {
-                win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
-            }
-            win.localStorage.setItem('auth-storage', JSON.stringify(authState));
-            win.localStorage.setItem('accessToken', fakeToken);
-            win.localStorage.setItem('auth-bootstrap-hint', '1');
-            win.localStorage.setItem(AUTH_BOOTSTRAP_META_KEY, JSON.stringify({
-                version: 1,
-                lastSuccessAt: Date.now(),
-                lastFailureAt: null,
-            }));
-            win.localStorage.setItem('bega_has_visited', 'true');
-            win.localStorage.setItem('bega_dont_show_guide', 'true');
-        };
+        const fakeToken = DEFAULT_CYPRESS_AUTH_TOKEN;
 
         cy.intercept('GET', '**/auth/mypage*', {
             statusCode: 200,
             body: {
                 success: true,
-                data: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    handle: user.handle?.replace(/^@/, ''),
-                    favoriteTeam: user.favoriteTeam,
-                    role: user.role,
-                    hasPassword: user.hasPassword ?? true,
-                    profileImageUrl: user.profileImageUrl ?? null,
-                },
+                data: toAuthApiUser(user),
             },
         }).as('sessionGetMe');
 
@@ -144,6 +114,12 @@ Cypress.Commands.add('login', (userType = 'user') => {
         cy.intercept('GET', '**/api/chat/my/unread-counts', {
             statusCode: 200,
             body: { success: true, data: 0 },
+        });
+
+        // Prevent Navbar DM inbox query from hitting the real backend.
+        cy.intercept('GET', '**/api/dm/rooms/my', {
+            statusCode: 200,
+            body: { success: true, data: [] },
         });
 
         // Prevent Navbar notification polling from hitting the real backend during login visit.
@@ -158,21 +134,57 @@ Cypress.Commands.add('login', (userType = 'user') => {
             body: [],
         });
 
-        cy.visit('/', {
-            onBeforeLoad(win) {
-                seedAuthState(win, { skipPublicBootstrap: true });
-            },
+        // Mate list sidebar "내가 만든 파티" panel polls /api/parties/my on visit.
+        // Without a default intercept this 401s → auth-session-expired → logout(true)
+        // → MateLoggedOutEntry. Specs that assert hosted parties override this (LIFO).
+        cy.intercept('GET', '**/api/parties/my', {
+            statusCode: 200,
+            body: [],
         });
-        cy.window().then((win) => {
-            seedAuthState(win);
+
+        cy.intercept('GET', '**/api/applications/my', {
+            statusCode: 200,
+            body: [],
         });
-        cy.setCookie('Authorization', fakeToken);
+
+        cy.intercept('GET', '**/api/parties/search-terms/popular*', {
+            statusCode: 200,
+            body: [],
+        });
 
         // Mock reissue to prevent loops
         cy.intercept('**/auth/reissue*', {
             statusCode: 200,
             body: { success: true, data: { accessToken: fakeToken } }
         }).as('reissue');
+
+        cy.visit('/', {
+            onBeforeLoad(win) {
+                seedCypressAuthState(win, user, fakeToken, { skipPublicBootstrap: true });
+            },
+        });
+        cy.window().then((win) => {
+            seedCypressAuthState(win, user, fakeToken);
+        });
+        cy.setCookie('Authorization', fakeToken);
+    });
+});
+
+Cypress.Commands.add('failOnUnexpectedApi401', () => {
+    cy.intercept({ url: '**/api/**', middleware: true }, (req) => {
+        req.on('response', (res) => {
+            if (res.statusCode === 401) {
+                throw new Error(`Unexpected API 401 during authenticated Cypress spec: ${req.method} ${req.url}`);
+            }
+        });
+    });
+
+    cy.intercept({ url: '**/auth/**', middleware: true }, (req) => {
+        req.on('response', (res) => {
+            if (res.statusCode === 401) {
+                throw new Error(`Unexpected auth 401 during authenticated Cypress spec: ${req.method} ${req.url}`);
+            }
+        });
     });
 });
 
@@ -182,6 +194,24 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
         statusCode: 200,
         body: { success: true, data: { accessToken: 'fake-new-token' } }
     }).as('reissue');
+
+    // Mate list sidebar "내가 만든 파티" panel polls /api/parties/my on /mate visit.
+    // Default to [] so the authed call doesn't 401 → auth-session-expired → logout.
+    // Specs asserting hosted parties override this (LIFO).
+    cy.intercept('GET', '**/api/parties/my', {
+        statusCode: 200,
+        body: [],
+    });
+
+    cy.intercept('GET', '**/api/applications/my', {
+        statusCode: 200,
+        body: [],
+    });
+
+    cy.intercept('GET', '**/api/parties/search-terms/popular*', {
+        statusCode: 200,
+        body: [],
+    });
 
     // Current User
     cy.intercept('GET', '**/auth/mypage*', {
@@ -398,6 +428,11 @@ Cypress.Commands.add('mockAPI', (options: { skipRankings?: boolean } = {}) => {
             data: 0,
         },
     }).as('getChatUnreadCounts');
+
+    cy.intercept('GET', '**/api/dm/rooms/my', {
+        statusCode: 200,
+        body: { success: true, data: [] },
+    }).as('getDmRoomsDefault');
 
     // Follow counts: support both id-based and profile-handle routes with one alias.
     const followCountDefaults = {

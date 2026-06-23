@@ -73,7 +73,7 @@ function CommentItemComponent({
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
-          {isReply ? <CornerDownRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-300" /> : null}
+          {isReply ? <CornerDownRightIcon className="h-4 w-4 text-gray-300 dark:text-white" /> : null}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => {
@@ -103,7 +103,7 @@ function CommentItemComponent({
               >
                 {comment.author}
               </p>
-              <p className="text-[16px] font-bold text-gray-500 dark:text-gray-300">
+              <p className="text-[16px] font-bold text-gray-500 dark:text-white">
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
             </div>
@@ -118,16 +118,16 @@ function CommentItemComponent({
               </button>
             )}
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-[16px] font-bold text-gray-700 dark:text-gray-300 leading-relaxed">
+          <p className="mt-2 whitespace-pre-wrap text-[16px] font-bold text-gray-700 dark:text-white leading-relaxed">
             {comment.content}
           </p>
-          <div className="mt-3 flex items-center gap-4 text-[16px] text-gray-500 dark:text-gray-300">
+          <div className="mt-3 flex items-center gap-4 text-[16px] text-gray-500 dark:text-white">
             <button
               type="button"
               onClick={() => onCommentLike(comment.id)}
               disabled={!canLike || isCommentLikePending}
               className={`flex items-center gap-1 transition-colors hover:text-red-500 ${isCommentLiked ? 'text-red-500' : ''
-                } ${!canLike ? 'cursor-not-allowed text-gray-400 dark:text-gray-300 hover:text-gray-400 dark:hover:text-gray-600' : ''}`}
+                } ${!canLike ? 'cursor-not-allowed text-gray-400 dark:text-white hover:text-gray-400 dark:hover:text-gray-600' : ''}`}
             >
               <span className="relative flex h-8 w-8 items-center justify-center rounded-full transition-colors">
                 {isCommentLikeAnimating && (

@@ -20,6 +20,13 @@ const AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS = new Set([
   '/prediction',
   '/mate',
 ]);
+const AUTH_BOOTSTRAP_PROTECTED_CHEER_PATH_PREFIXES = [
+  '/cheer/edit',
+];
+const AUTH_BOOTSTRAP_PROTECTED_CHEER_PATHS = new Set([
+  '/cheer/bookmarks',
+  '/cheer/write',
+]);
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -173,6 +180,24 @@ const isFailureCooldownActive = (meta: AuthBootstrapMeta | null, now: number): b
   return now - meta.lastFailureAt <= AUTH_BOOTSTRAP_FAILURE_COOLDOWN_MS;
 };
 
+const isPublicCheerReadPath = (pathname: string): boolean => {
+  if (AUTH_BOOTSTRAP_PROTECTED_CHEER_PATHS.has(pathname)) {
+    return false;
+  }
+
+  if (AUTH_BOOTSTRAP_PROTECTED_CHEER_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  )) {
+    return false;
+  }
+
+  return pathname === '/cheer' || /^\/cheer\/[^/]+$/.test(pathname);
+};
+
+const isPublicAuthBootstrapPath = (pathname: string): boolean => (
+  AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS.has(pathname) || isPublicCheerReadPath(pathname)
+);
+
 export const resolveAuthBootstrapMode = (
   pathname: string,
   options: {
@@ -202,7 +227,7 @@ export const resolveAuthBootstrapMode = (
     return 'skip';
   }
 
-  if (AUTH_BOOTSTRAP_PUBLIC_HOME_PATHS.has(normalizedPathname)) {
+  if (isPublicAuthBootstrapPath(normalizedPathname)) {
     if (options.isLoggedIn) {
       return 'defer';
     }
@@ -229,6 +254,19 @@ export const resolveAuthBootstrapMode = (
 
   return 'immediate';
 };
+
+export const shouldAttemptRootAuthBootstrap = (
+  options: {
+    hasPersistedAuthHint: boolean;
+    authBootstrapMeta?: AuthBootstrapMeta | null;
+    now?: number;
+  },
+): boolean => resolveAuthBootstrapMode('/', {
+  isLoggedIn: false,
+  hasPersistedAuthHint: options.hasPersistedAuthHint,
+  authBootstrapMeta: options.authBootstrapMeta,
+  now: options.now,
+}) === 'defer';
 
 export const shouldHoldAuthUiDuringBootstrap = (
   pathname: string,

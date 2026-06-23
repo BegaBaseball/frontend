@@ -87,7 +87,7 @@ describe('Home featured mates navigation', () => {
     getHomeAuthRequestTraces().should('deep.equal', []);
 
     cy.contains('TestUser 님', { timeout: 10000 }).should('be.visible');
-    cy.contains('button', '키움').click();
+    cy.contains('button', '고척스카이돔').click();
 
     cy.location('pathname').should('eq', `/mate/${featuredMate.id}`);
     cy.contains('고척스카이돔').should('be.visible');

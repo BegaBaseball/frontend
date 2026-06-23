@@ -70,12 +70,20 @@ export interface RankingSnapshot {
 
 export type HomeRankingSnapshot = RankingSnapshot;
 
+export interface HomeBootstrapLoadState {
+    isFallback?: boolean;
+    timedOut?: boolean;
+    timedOutSections?: string[];
+    failedSections?: string[];
+}
+
 export interface HomeBootstrapResponse {
     selectedDate: string;
     leagueStartDates: LeagueStartDates;
     navigation: ScheduleNavigation;
     games: Game[];
     scheduledGamesWindow: Game[];
+    loadState?: HomeBootstrapLoadState;
 }
 
 export interface HomeWidgetsResponse {

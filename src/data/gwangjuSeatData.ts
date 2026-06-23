@@ -199,13 +199,13 @@ type GwangjuBlockDefinition = Omit<GwangjuBlock, 'imageGeometry' | 'sourceConfid
 };
 
 export const GWANGJU_SEATMAP_IMAGE: GwangjuSeatMapImage = {
-  imagePath: 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png',
+  imagePath: 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp',
   imageWidth: 2200,
   imageHeight: 1159,
   sourceLabel: 'KIA 타이거즈 공식 광주-기아 챔피언스필드 경기장 안내',
   sourceUrl: null,
   assetStatus: 'OFFICIAL',
-  requiredAssetFileName: 'gwangju-kia-seatmap-official-2026.png',
+  requiredAssetFileName: 'gwangju-kia-seatmap-official-2026.webp',
 };
 
 export const GWANGJU_MYSEATCHECK_REFERENCE_URL = 'https://myseatcheck.com/%EA%B4%91%EC%A3%BC-kia-%EC%B1%94%ED%94%BC%EC%96%B8%EC%8A%A4%ED%95%84%EB%93%9C/';

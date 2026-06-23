@@ -147,7 +147,7 @@ export default function MateDetailReviewsSection({
                       />
                     ))}
                     {myReview.comment && (
-                      <span className="ml-1 max-w-[120px] truncate text-[16px] text-gray-500 dark:text-gray-400">
+                      <span className="ml-1 max-w-[120px] truncate text-[16px] text-gray-500 dark:text-white">
                         "{myReview.comment}"
                       </span>
                     )}
@@ -155,7 +155,7 @@ export default function MateDetailReviewsSection({
                 )}
               </div>
               {myReview ? (
-                <InlineBadge className="text-gray-500 dark:border-border dark:text-gray-300">
+                <InlineBadge className="text-gray-500 dark:border-border dark:text-white">
                   작성 완료
                 </InlineBadge>
               ) : (

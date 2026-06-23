@@ -82,7 +82,7 @@ export default function NewsTicker({ messages, speed = 50 }: NewsTickerProps) {
   }, [messages, speed]);
 
   const containerStyle: CSSProperties = {
-    background: 'linear-gradient(180deg, #1a0a1a 0%, #0a0a0a 100%)',
+    background: 'linear-gradient(180deg, #1a0a1a 0%, #000000 100%)',
     borderTop: '2px solid #ff00ff',
     borderBottom: '2px solid #ff00ff',
     overflow: 'hidden',
@@ -129,7 +129,7 @@ export default function NewsTicker({ messages, speed = 50 }: NewsTickerProps) {
           width: '40px',
           zIndex: 2,
           pointerEvents: 'none',
-          background: 'linear-gradient(90deg, #0a0a0a 0%, transparent 100%)',
+          background: 'linear-gradient(90deg, #000000 0%, transparent 100%)',
         }}
       />
       <div
@@ -140,7 +140,7 @@ export default function NewsTicker({ messages, speed = 50 }: NewsTickerProps) {
           width: '40px',
           zIndex: 2,
           pointerEvents: 'none',
-          background: 'linear-gradient(90deg, transparent 0%, #0a0a0a 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, #000000 100%)',
         }}
       />
       <div

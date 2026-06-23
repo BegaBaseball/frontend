@@ -121,11 +121,11 @@ export default function CommentModal({ isOpen, onClose, post, targetPostId }: Co
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
                         <span className="font-bold text-[16px] dark:text-white">{post.author}</span>
-                        <span className="text-[16px] text-slate-500 dark:text-gray-300">@{post.authorHandle || post.author}</span>
+                        <span className="text-[16px] text-slate-500 dark:text-white">@{post.authorHandle || post.author}</span>
                         <span className="text-slate-400">·</span>
-                        <span className="text-[16px] text-slate-500 dark:text-gray-300">{post.timeAgo}</span>
+                        <span className="text-[16px] text-slate-500 dark:text-white">{post.timeAgo}</span>
                     </div>
-                    <p className="text-[16px] text-slate-700 dark:text-gray-200 line-clamp-3 mb-2">{post.content}</p>
+                    <p className="text-[16px] text-slate-700 dark:text-white line-clamp-3 mb-2">{post.content}</p>
                     <div className="text-[16px] text-slate-400">
                         <span className="text-indigo-500 font-semibold">@{post.authorHandle || post.author}</span> 님에게 댓글 남기는 중
                     </div>

@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import AdvancedMatchCardSupplementaryRuntime from './AdvancedMatchCardSupplementaryRuntime';
+import { shouldRenderPredictionCoachBriefing } from '../../utils/predictionCoachVisibility';
 import { getPredictionManualDataUiState } from '../../utils/predictionManualDataCopy';
 
 test('getPredictionManualDataUiState는 수동 야구 데이터 계약의 사용자 문구를 한 곳에서 제공한다', () => {
@@ -14,8 +15,26 @@ test('getPredictionManualDataUiState는 수동 야구 데이터 계약의 사용
   assert.equal(state.code, 'MANUAL_BASEBALL_DATA_REQUIRED');
   assert.match(state.summaryMessage, /임의로 채우지 않습니다/);
   assert.match(state.scoreboardMessage, /최종 스코어만 표시 중입니다/);
-  assert.match(state.coachMessage, /AI 코치 리뷰와 상세 분석을 생성하지 않습니다/);
+  assert.match(state.coachMessage, /AI 코치 분석 캐시가 있으면/);
   assert.equal(getPredictionManualDataUiState('SERVER'), null);
+});
+
+test('shouldRenderPredictionCoachBriefing는 수동 데이터 상태를 코치 조회 차단 조건으로 보지 않는다', () => {
+  assert.equal(shouldRenderPredictionCoachBriefing({
+    gameDetailLoading: false,
+    isPostponedOrCancelled: false,
+    gameDetailErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  }), true);
+  assert.equal(shouldRenderPredictionCoachBriefing({
+    gameDetailLoading: true,
+    isPostponedOrCancelled: false,
+    gameDetailErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  }), false);
+  assert.equal(shouldRenderPredictionCoachBriefing({
+    gameDetailLoading: false,
+    isPostponedOrCancelled: true,
+    gameDetailErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  }), false);
 });
 
 test('AdvancedMatchCardSupplementaryRuntime는 주요 기록 결측을 일반 빈 상태와 구분한다', () => {
@@ -73,4 +92,28 @@ test('AdvancedMatchCardSupplementaryRuntime는 원문 문자중계 playDescripti
   assert.match(html, /투수 김투수/);
   assert.doesNotMatch(html, /wpa/i);
   assert.doesNotMatch(html, /winExpectancy/i);
+});
+
+test('AdvancedMatchCardSupplementaryRuntime는 문자중계 manual 상태를 score polling과 구분해 표시한다', () => {
+  const html = renderToStaticMarkup(createElement(AdvancedMatchCardSupplementaryRuntime, {
+    awayColor: '#f37321',
+    homeColor: '#041e42',
+    timelineEntries: [],
+    summaryGroups: {},
+    inningRowCount: 2,
+    shouldHideResultSections: false,
+    gameDetailLoading: false,
+    attendanceLabel: null,
+    weatherLabel: null,
+    gameTimeLabel: null,
+    shouldShowMatchEnvironmentLoading: false,
+    isDarkMode: false,
+    liveEvents: [],
+    liveRelayError: '문자중계 데이터 준비가 필요합니다.',
+    liveRelayErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  }));
+
+  assert.match(html, /문자중계 데이터 준비가 필요합니다/);
+  assert.match(html, /score\/inning polling은 계속 진행됩니다/);
+  assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
 });

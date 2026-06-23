@@ -41,11 +41,11 @@ export default function SeatMapHoverPreview({
           <strong className="block truncate text-sm font-black">
             {hasContent ? title || '구역 정보' : '구역 정보'}
           </strong>
-          <p className="mt-0.5 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 truncate text-xs font-semibold text-slate-500 dark:text-white">
             {hasContent ? subtitle || description || '좌석 구역' : '좌석도 정보'}
           </p>
           {hasContent && subtitle && description && (
-            <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+            <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-slate-400 dark:text-white">
               {description}
             </p>
           )}
