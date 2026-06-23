@@ -54,7 +54,7 @@ export function SeatMapFilterBar({
         aria-disabled={disabled || undefined}
         disabled={disabled}
         onClick={() => !disabled && onChange(group.id)}
-        className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
+        className="min-h-11 min-w-11 cursor-pointer rounded-full border px-3 py-2 text-xs font-semibold transition-all"
         style={{
           background: active ? accentColor : 'transparent',
           borderColor: active ? accentColor : inactiveBorder,
@@ -122,7 +122,7 @@ export function SeatMapFilterBar({
             type="button"
             data-testid={`${testIdPrefix}-filter-secondary-toggle`}
             onClick={() => setShowSecondary(v => !v)}
-            className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all"
+            className="flex min-h-11 items-center gap-1 rounded-full border px-2.5 py-2 text-[11px] font-semibold transition-all"
             style={{
               borderColor: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.border : '#e2e8f0'),
               color: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#94a3b8'),

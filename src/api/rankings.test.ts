@@ -64,6 +64,29 @@ test('fetchRankingSnapshot은 auto mode에서 snapshot 엔드포인트를 사용
   assert.match(requestUrl, /\/api\/kbo\/rankings\/snapshot$/);
 });
 
+test('fetchRankingSnapshot은 전달받은 signal로 진행 중 요청을 취소한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => (
+    new Promise<Response>((_resolve, reject) => {
+      const abort = () => reject(new DOMException('AbortError', 'AbortError'));
+      if (init?.signal?.aborted) {
+        abort();
+        return;
+      }
+      init?.signal?.addEventListener('abort', abort, { once: true });
+    })
+  ));
+
+  const controller = new AbortController();
+  const promise = fetchRankingSnapshot({
+    date: new Date('2026-03-16T12:00:00'),
+    signal: controller.signal,
+  });
+
+  controller.abort();
+
+  await assert.rejects(promise, /Request timed out after 10000ms/);
+});
+
 test('getRankingSnapshotQueryOptions는 auto와 explicit seasonYear를 서로 다른 캐시 키로 분리한다', () => {
   const date = new Date('2026-03-16T12:00:00');
 

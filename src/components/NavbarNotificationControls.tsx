@@ -71,7 +71,7 @@ export default function NavbarNotificationControls({
             알림
           </h3>
           {unreadCount > 0 && (
-            <span className="text-[16px] text-muted-foreground dark:text-gray-300">
+            <span className="text-[16px] text-muted-foreground dark:text-white">
               {unreadCount}개의 읽지 않은 알림
             </span>
           )}

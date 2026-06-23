@@ -536,8 +536,8 @@ function isNumberedSeatBlock(block: { block: string }): boolean {
 }
 
 test('광주 좌석도 asset 상태는 공식 파일 준비 여부를 명시한다', () => {
-  assert.equal(GWANGJU_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png');
-  assert.equal(GWANGJU_SEATMAP_IMAGE.requiredAssetFileName, 'gwangju-kia-seatmap-official-2026.png');
+  assert.equal(GWANGJU_SEATMAP_IMAGE.imagePath, 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp');
+  assert.equal(GWANGJU_SEATMAP_IMAGE.requiredAssetFileName, 'gwangju-kia-seatmap-official-2026.webp');
   assert.ok(GWANGJU_SEATMAP_IMAGE.sourceLabel);
 
   if (GWANGJU_SEATMAP_IMAGE.assetStatus === 'OFFICIAL') {
@@ -598,7 +598,7 @@ test('광주 외부 시야 페이지는 운영자 수동 참고로만 보존한�
     GWANGJU_MYSEATCHECK_REFERENCE_URL,
     'https://myseatcheck.com/%EA%B4%91%EC%A3%BC-kia-%EC%B1%94%ED%94%BC%EC%96%B8%EC%8A%A4%ED%95%84%EB%93%9C/',
   );
-  assert.equal(GWANGJU_SEATMAP_IMAGE.sourceUrl, null, 'official PNG source should not be replaced with a third-party reference');
+  assert.equal(GWANGJU_SEATMAP_IMAGE.sourceUrl, null, 'official image source should not be replaced with a third-party reference');
 
   const requirementsByName = new Map(GWANGJU_OPERATOR_SECTION_REQUIREMENTS.map((section) => [section.name, section]));
   ['K7석', '원정응원석'].forEach((name) => {
@@ -1130,7 +1130,7 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
     'gwangju-seatmap-trace-review-zone-crops',
     'zoneOverlayArtifacts',
     'gwangju-seatmap-image-alignment-audit',
-    '공식 PNG 독립 mask',
+    '공식 이미지 독립 mask',
   ].forEach((requiredText) => {
     assert.ok(manifestSource.includes(requiredText), `manifest should include ${requiredText}`);
   });
@@ -1179,7 +1179,7 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
     'official-alphabet-section-mask',
     'row-envelope-official-png-color',
     "maskStrategy: 'row-envelope'",
-    '공식 PNG 원본 색상에서 J/I/H 기준 mask를 추출',
+    '공식 이미지 원본 색상에서 J/I/H 기준 mask를 추출',
     'alphabet-section-official-png-mask-after-101-108',
     'LOWER_INFIELD_SPECIAL_SPLIT_BLOCK_IDS',
     'LOWER_INFIELD_ADJACENT_SKY_PICNIC_BLOCK_IDS',
@@ -1272,21 +1272,21 @@ test('광주 구역별 정밀화 manifest와 package script는 v44 image alignme
 
   [
     '"qa:stadium:gwangju:mobile"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju mobile',
+    'node scripts/qa-presets.mjs stadium gwangju mobile',
     '"stadium:gwangju:status"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju status',
+    'node scripts/qa-presets.mjs stadium gwangju status',
     '"stadium:gwangju:pixel-components"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju pixel-components',
+    'node scripts/qa-presets.mjs stadium gwangju pixel-components',
     '"stadium:gwangju:trace-manifest"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest',
+    'node scripts/qa-presets.mjs stadium gwangju trace-manifest',
     '"stadium:gwangju:operator-handoff"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju operator-handoff',
+    'node scripts/qa-presets.mjs stadium gwangju operator-handoff',
     '"stadium:gwangju:operator-status"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju operator-status',
+    'node scripts/qa-presets.mjs stadium gwangju operator-status',
     '"qa:stadium:gwangju:release-gate"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-gate',
+    'node scripts/qa-presets.mjs stadium gwangju release-gate',
     '"qa:stadium:gwangju:release-verify"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-verify',
+    'node scripts/qa-presets.mjs stadium gwangju release-verify',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `Gwangju public package script should include ${requiredText}`);
   });
@@ -1604,7 +1604,7 @@ test('광주 P3 챔피언/중앙테이블/서프라이즈 shared boundary는 공
   );
 });
 
-test('광주 3루 121~127/I/J/G/H boundary는 공식 PNG mask 기준을 유지한다', () => {
+test('광주 3루 121~127/I/J/G/H boundary는 공식 이미지 mask 기준을 유지한다', () => {
   const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
   const expectedBoundsByBlockId = {
     'third-surprise-seats': { minX: 515, minY: 390, maxX: 657, maxY: 584 },
@@ -1666,7 +1666,7 @@ test('광주 3루 121~127/I/J/G/H boundary는 공식 PNG mask 기준을 유지�
   });
 });
 
-test('광주 1루 101~108과 H/I/J/S-301~304 shared boundary는 공식 PNG mask 기준을 유지한다', () => {
+test('광주 1루 101~108과 H/I/J/S-301~304 shared boundary는 공식 이미지 mask 기준을 유지한다', () => {
   const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
   const expectedBoundsByBlockId = {
     'k5-101': { minX: 1058, minY: 802, maxX: 1115, maxY: 825 },
@@ -1708,7 +1708,7 @@ test('광주 1루 101~108과 H/I/J/S-301~304 shared boundary는 공식 PNG mask 
     assert.deepEqual(
       getPathBounds(parsePathSubpaths(block.imageGeometry.visualD)),
       GWANGJU_OFFICIAL_TRACE_REFERENCE[blockId].expectedBounds,
-      `${blockId} visualD bounds should match the official PNG retrace reference`,
+      `${blockId} visualD bounds should match the official image retrace reference`,
     );
   });
 
@@ -1807,7 +1807,7 @@ test('광주 외야석 hit-area는 외야테이블석 label을 삼키지 않는�
   });
 });
 
-test('광주 traced geometry는 공식 PNG 좌석 색상 영역과 충분히 겹친다', async () => {
+test('광주 traced geometry는 공식 이미지 좌석 색상 영역과 충분히 겹친다', async () => {
   const image = await readOfficialSeatmapPixels();
 
   GWANGJU_BLOCKS.forEach((block) => {
@@ -1821,7 +1821,7 @@ test('광주 traced geometry는 공식 PNG 좌석 색상 영역과 충분히 겹
   });
 });
 
-test('광주 P4 반복 블럭은 높은 공식 PNG 좌석 색상 overlap으로 잠근다', async () => {
+test('광주 P4 반복 블럭은 높은 공식 이미지 좌석 색상 overlap으로 잠근다', async () => {
   const image = await readOfficialSeatmapPixels();
   const p4Workset = GWANGJU_ZONE_PRECISION_WORKSETS.find((workset) => workset.id === 'p4-repeated-numbered-blocks');
   const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
@@ -1873,7 +1873,7 @@ test('광주 P4 518/519 경계는 공식 component bbox로 잠근다', () => {
   });
 });
 
-test('광주 O/P 외야 hit-area는 공식 PNG component coverage 기준을 통과한다', async () => {
+test('광주 O/P 외야 hit-area는 공식 이미지 component coverage 기준을 통과한다', async () => {
   const image = await readOfficialSeatmapPixels();
   const blocksById = new Map(GWANGJU_BLOCKS.map((block) => [block.id, block]));
 

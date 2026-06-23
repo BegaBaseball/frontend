@@ -1575,7 +1575,7 @@ describe('Admin page coverage', () => {
         cy.wait('@getAdminStadiums');
         cy.wait('@getStadiumPlaces');
 
-        selectOption('admin-stadium-select-trigger', '대전 한화생명볼파크 (HH)');
+        selectOption('admin-stadium-select-trigger', '대전 · 한화생명볼파크 (HH)');
         cy.wait('@getStadiumPlaces');
         cy.contains('이글스 카페').should('be.visible');
 

@@ -13,6 +13,25 @@ const USER_VOTE_BATCH_TTL_MS = 30 * 1000;
 
 const predictionUserVoteRequests = new Map<string, Promise<UserVoteRecord>>();
 const predictionUserVoteCache = new Map<string, { votes: UserVoteRecord; fetchedAt: number }>();
+let predictionUserVoteCacheEpoch = 0;
+
+export const invalidatePredictionUserVoteCache = () => {
+  predictionUserVoteCacheEpoch += 1;
+  predictionUserVoteRequests.clear();
+  predictionUserVoteCache.clear();
+};
+
+export const clearPredictionUserVoteCacheForTests = invalidatePredictionUserVoteCache;
+
+export const getPredictionUserVoteCacheEpochForTests = () => predictionUserVoteCacheEpoch;
+
+const getPredictionUserVoteRuntimeScope = () => {
+  if (typeof window === 'undefined') {
+    return 'server';
+  }
+
+  return `${window.location.origin}:${Math.round(window.performance?.timeOrigin || Date.now())}`;
+};
 
 type UsePredictionUserVotesParams = {
   userId?: number | string | null;
@@ -28,6 +47,8 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
     requestKeySuffix: string,
     requestGuard?: number | (() => boolean)
   ) => {
+    const requestEpoch = predictionUserVoteCacheEpoch;
+    const isInvalidated = () => predictionUserVoteCacheEpoch !== requestEpoch;
     const isStale = () => {
       if (typeof requestGuard === 'function') {
         return requestGuard();
@@ -43,11 +64,14 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
       return;
     }
 
-    const cacheKey = `${currentUserVoteKey}:${requestKeySuffix}:${normalizedIds.join('|')}`;
+    const cacheKey = `${getPredictionUserVoteRuntimeScope()}:${currentUserVoteKey}:${requestKeySuffix}:${normalizedIds.join('|')}`;
     const now = Date.now();
     const cachedBatch = predictionUserVoteCache.get(cacheKey);
 
     if (cachedBatch && now - cachedBatch.fetchedAt < USER_VOTE_BATCH_TTL_MS) {
+      if (isInvalidated() || isStale()) {
+        return;
+      }
       setUserVote((prev) => {
         const nextVotes = { ...prev };
         Object.entries(cachedBatch.votes).forEach(([key, value]) => {
@@ -68,29 +92,24 @@ export const usePredictionUserVotes = ({ userId }: UsePredictionUserVotesParams)
 
     try {
       const userVotes = await inFlight;
-      if (isStale()) {
+      if (isInvalidated() || isStale()) {
         return;
       }
-      if (Object.keys(userVotes).length > 0) {
-        predictionUserVoteCache.set(cacheKey, {
-          votes: userVotes,
-          fetchedAt: Date.now(),
-        });
-      }
+      predictionUserVoteCache.set(cacheKey, {
+        votes: userVotes,
+        fetchedAt: Date.now(),
+      });
       setUserVote((prev) => ({
         ...prev,
         ...userVotes,
       }));
       setUserVoteResolutionState((prev) => applyPredictionUserVoteResolution(prev, normalizedIds, 'resolved'));
     } catch (error) {
-      if (isCancelLikeError(error)) {
+      if (isCancelLikeError(error) || isInvalidated() || isStale()) {
         return;
       }
       const parsedError = parseError(error);
       console.error('[prediction] 내 투표 조회 실패', parsedError.message || error);
-      if (isStale()) {
-        return;
-      }
 
       if (shouldPreserveUserVoteStateOnError(parsedError.type)) {
         setUserVoteResolutionState((prev) => applyPredictionUserVoteResolution(prev, normalizedIds, 'unknown-auth'));

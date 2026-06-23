@@ -4,7 +4,7 @@
 
 ## 기준
 
-- 공식 asset: `src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png`
+- 공식 asset: `src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp`
 - 공식 이미지 좌표계: `920x1060`
 - 기준 데이터: `DAEJEON_SEATMAP_IMAGE`, `DAEJEON_BLOCKS`, `DAEJEON_P2_DEDUPLICATED_ALIASES`
 - trace source: `PATH_TRACED_FROM_OFFICIAL_IMAGE`
@@ -13,16 +13,16 @@
 
 ## 고정 상태
 
-- `DAEJEON_BLOCKS.length === 145`
-- `totalBlocks=145`
-- `officialImageTraced=145`
+- `DAEJEON_BLOCKS.length === 139`
+- `totalBlocks=139`
+- `officialImageTraced=139`
 - `needsOperatorReview=0`
 - `DAEJEON_TRACE_REVIEW_QUEUE.length === 0`
 - `labelTopHitFailures=0`
 - `sourceConfidence='OFFICIAL'`
 - `traceMethod='PATH_TRACED_FROM_OFFICIAL_IMAGE'`
 - `traceStatus='OFFICIAL_IMAGE_TRACED'`
-- coverage report: `LOCKED=145`, `LABEL_ONLY=0`, `PARTIAL=0`
+- coverage report: `LOCKED=139`, `LABEL_ONLY=0`, `PARTIAL=0`
 - coverage missing counts: `missingLabelTopHit=0`, `missingAnchorWithoutException=0`, `missingOwnerPointRequired=0`
 - coordinate impact contract: `DAEJEON_COORDINATE_CHANGE_IMPACT_V1`
 - coordinate impact missing count: `missingImpact=0`
@@ -43,7 +43,7 @@
 - 특수석: `400`, `425`, `426`
 - 휠체어석: `central-accessible__center`, `first-infield-accessible__first-infield`, `third-infield-accessible__third-infield`, `outfield-accessible-third__left-outfield`, `outfield-accessible-first__right-outfield`
 - 외야 상단: `500`, `501`, `508`, `509`
-- 스카이박스: `S01-S37`은 `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s37-sequence` anchor crop과 label top-hit 전수 검증으로 잠근다.
+- 스카이박스: `S01-S31`은 `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s31-sequence` anchor crop과 label top-hit 전수 검증으로 잠근다.
 
 `425/426`은 `special-425-426-third-accessible` crop 기준 좌표를 유지한다.
 
@@ -86,7 +86,7 @@
 
 ## 운영 규칙
 
-- 공식 PNG natural size는 `920x1060`이어야 한다.
+- 공식 이미지 natural size는 `920x1060`이어야 한다.
 - SVG `viewBox`는 `0 0 920 1060`이어야 한다.
 - 배경 이미지는 같은 SVG 내부의 `<image>`로 렌더링한다.
 - 표시용 highlight/stroke는 `imageGeometry.d`만 사용한다.
@@ -98,7 +98,7 @@
 - 좌표 변경이 발생하면 trace manifest, P2 evidence, anchor crops, isolated browser QA를 다시 생성한다.
 - 좌표 변경이 발생하면 `coordinateChangeImpactSummary`의 `anchorCropIds`, `regressionTestIds`, `reviewPriority`, `reviewMode`, `riskTags` 기준으로 재검수 crop/test를 확인한다.
 - anchor visual baseline은 `src/data/daejeonAnchorVisualBaseline.json`이 source of truth다.
-- anchor visual baseline은 `expectedCropCount=28`이며, `first-104-106-detail`, `third-116-121-detail`, `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s37-sequence`를 자동 owner-point 회귀 crop으로 포함한다.
+- anchor visual baseline은 `expectedCropCount=28`이며, `first-104-106-detail`, `third-116-121-detail`, `skybox-s01-s12-sequence`, `skybox-s13-s25-sequence`, `skybox-s26-s31-sequence`를 자동 owner-point 회귀 crop으로 포함한다.
 - anchor crop hash 또는 metadata가 baseline과 다르면 `reports/stadium/daejeon-seatmap-visual-diff.md`에 변경 crop이 표시되고 release-lock은 실패한다.
 - baseline 갱신은 운영자 육안 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon visual-baseline`로만 수행한다.
 - geometry baseline은 `src/data/daejeonGeometryBaseline.json`이 source of truth다.
@@ -121,7 +121,7 @@ npm run qa:stadium:daejeon:release-lock
 node scripts/stadium-seatmap-ops.mjs daejeon change-guard
 ```
 
-change guard는 대전 좌석 데이터, 대전 전용 컴포넌트, 공식 PNG, `scripts/daejeon-*`, release lock 문서가 마지막 release gate 이후 변경됐는지 mtime으로 확인한다. stale 상태이면 전체 gate를 다시 실행해야 한다.
+change guard는 대전 좌석 데이터, 대전 전용 컴포넌트, 공식 이미지, `scripts/daejeon-*`, release lock 문서가 마지막 release gate 이후 변경됐는지 mtime으로 확인한다. stale 상태이면 전체 gate를 다시 실행해야 한다.
 
 블록 단위 좌표 검수:
 
@@ -178,8 +178,8 @@ release gate 리포트의 `operatorApproval` 섹션은 approval 파일 경로, �
 
 릴리즈 차단 조건:
 
-- `DAEJEON_BLOCKS.length`가 `145`가 아니다.
-- `officialImageTraced`가 `145`가 아니다.
+- `DAEJEON_BLOCKS.length`가 `139`가 아니다.
+- `officialImageTraced`가 `139`가 아니다.
 - `needsOperatorReview`가 `0`이 아니다.
 - `DAEJEON_TRACE_REVIEW_QUEUE.length`가 `0`이 아니다.
 - `labelTopHitFailures`가 `0`이 아니다.

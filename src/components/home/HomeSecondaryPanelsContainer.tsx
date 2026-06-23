@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getHomeWidgetsQueryOptions } from '../../api/home';
 import { seedMatePartyQueryData } from '../../hooks/mateList';
+import { useTodayKey } from '../../hooks/useTodayKey';
 import type { FeaturedMateCard } from '../../types/home';
 import { buildDisplayableRankings } from '../../utils/homeDashboard';
 import { getRankingDisplayName } from '../../utils/homeTeamNameResolution';
@@ -18,6 +19,7 @@ const TEAM_RANKING_CARD_HEIGHT_CLASS = `min-h-[320px] ${HOME_DASHBOARD_DESKTOP_C
 interface HomeSecondaryPanelsContainerProps {
   selectedDate: Date;
   selectedDateKey: string;
+  calendarMonth: Date;
   showCalendar: boolean;
   shouldMountWelcomeGuide: boolean;
   calendarDialogTitleId: string;
@@ -29,12 +31,14 @@ interface HomeSecondaryPanelsContainerProps {
   onNavigateToCheerPost: (postId: number) => void;
   onSelectFeaturedMate: (mate: FeaturedMateCard) => void;
   onCloseCalendar: () => void;
+  onCalendarMonthChange: (month: Date) => void;
   onSelectCalendarDate: (date: Date) => void;
 }
 
 export default function HomeSecondaryPanelsContainer({
   selectedDate,
   selectedDateKey,
+  calendarMonth,
   showCalendar,
   shouldMountWelcomeGuide,
   calendarDialogTitleId,
@@ -46,21 +50,28 @@ export default function HomeSecondaryPanelsContainer({
   onNavigateToCheerPost,
   onSelectFeaturedMate,
   onCloseCalendar,
+  onCalendarMonthChange,
   onSelectCalendarDate,
 }: HomeSecondaryPanelsContainerProps) {
   const queryClient = useQueryClient();
+  const todayKey = useTodayKey();
   const [rankingSeasonOverride, setRankingSeasonOverride] = useState<number | null>(null);
   const homeSecondaryPanelsFallback = (
-    <div className="space-y-5" data-testid="home-secondary-panels">
+    <div
+      aria-label="홈 보조 패널"
+      className="space-y-5"
+      data-priority="secondary"
+      data-testid="home-secondary-panels"
+    >
       <div className="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-12">
         <div className="flex flex-col gap-4 lg:col-span-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">실시간 인기 응원글</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">실시간 인기 응원글</h3>
               <div className={`min-h-[238px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`} />
             </section>
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">직관 메이트 찾기</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">직관 메이트 찾기</h3>
               <div className={`min-h-[238px] rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-card/70 ${HOME_DASHBOARD_DESKTOP_CARD_HEIGHT_CLASS}`} />
             </section>
           </div>
@@ -97,7 +108,7 @@ export default function HomeSecondaryPanelsContainer({
   const rankingSeasonYear = rankingSnapshot?.rankingSeasonYear
     ?? rankingSeasonOverride
     ?? selectedDate.getFullYear();
-  const currentYear = new Date().getFullYear();
+  const currentYear = Number(todayKey.slice(0, 4));
 
   const displayableRankings = useMemo(
     () => buildDisplayableRankings(rankingSnapshot?.rankings ?? [], getRankingDisplayName),
@@ -148,6 +159,7 @@ export default function HomeSecondaryPanelsContainer({
     <Suspense fallback={homeSecondaryPanelsFallback}>
       <HomeSecondaryPanels
         selectedDate={selectedDate}
+        calendarMonth={calendarMonth}
         showCalendar={showCalendar}
         shouldMountWelcomeGuide={shouldMountWelcomeGuide}
         calendarDialogTitleId={calendarDialogTitleId}
@@ -155,6 +167,7 @@ export default function HomeSecondaryPanelsContainer({
         userId={userId}
         suppressRecoveryActions={suppressRecoveryActions}
         currentYear={currentYear}
+        todayKey={todayKey}
         isHotCheerLoading={isHotCheerLoading}
         hotCheerError={hotCheerError}
         hotCheerPosts={hotCheerPosts}
@@ -187,6 +200,7 @@ export default function HomeSecondaryPanelsContainer({
         onNavigateToCheerPost={onNavigateToCheerPost}
         onSelectFeaturedMate={handleSelectFeaturedMate}
         onCloseCalendar={onCloseCalendar}
+        onCalendarMonthChange={onCalendarMonthChange}
         onSelectCalendarDate={onSelectCalendarDate}
       />
     </Suspense>

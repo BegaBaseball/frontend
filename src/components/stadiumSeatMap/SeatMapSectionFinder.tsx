@@ -109,7 +109,7 @@ export function SeatMapSectionFinder<TSection>({
             onBlur={() => setInputFocused(false)}
             autoFocus={autoFocusInput}
             placeholder="블록, 구역명 검색"
-            className="h-10 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:bg-white dark:text-slate-100"
+            className="h-11 w-full rounded-xl border bg-slate-50 pl-9 pr-3 text-sm font-semibold text-slate-700 outline-none transition focus:bg-white dark:text-white"
             style={{
               backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined,
               borderColor: inputFocused ? accentColor : borderColor,
@@ -141,7 +141,7 @@ export function SeatMapSectionFinder<TSection>({
                   }}
                   onMouseEnter={() => onHoverChange(adapter.getId(block))}
                   onMouseLeave={() => onHoverChange(null)}
-                  className="w-full cursor-pointer rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="min-h-11 w-full cursor-pointer rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800"
                   style={{
                     borderColor: isActive ? accent : 'transparent',
                     background: isActive ? `${accent}14` : 'transparent',
@@ -160,7 +160,7 @@ export function SeatMapSectionFinder<TSection>({
                           {adapter.getName(block)}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
                         {cat?.label} · {adapter.getSideLabel(block)} · {adapter.getFanRoleLabel(block)}
                       </p>
                     </div>
@@ -171,8 +171,8 @@ export function SeatMapSectionFinder<TSection>({
           </div>
         ) : (
           <div className="flex min-h-[180px] flex-col items-center justify-center px-4 text-center">
-            <p className="text-sm font-black text-slate-700 dark:text-slate-100" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>검색 결과가 없습니다</p>
-            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+            <p className="text-sm font-black text-slate-700 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>검색 결과가 없습니다</p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
               블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
             </p>
           </div>

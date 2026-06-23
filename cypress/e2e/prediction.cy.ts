@@ -5,6 +5,7 @@ import {
     ensureCoachBriefingVisible,
     getPredictionAuthRequestTraces,
     installPredictionAuthenticatedSessionIntercept,
+    installPredictionBootstrapIntercept,
     installPredictionGuestSessionIntercept,
     visitPredictionPage,
     waitForPredictionVoteBootstrap,
@@ -129,7 +130,7 @@ describe('Game Prediction', () => {
             seedAuth = true,
             persistedAuthHint = false,
             authBootstrapMeta = null,
-            waitForScheduleRange = true,
+            waitForScheduleRange = false,
             path = '/prediction',
         } = options;
         const resolvedPath = path === '/prediction'
@@ -327,6 +328,13 @@ describe('Game Prediction', () => {
             body: { homeVotes: 10, awayVotes: 5, totalVotes: 15 }
         }).as('getVoteStatus');
 
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrap',
+            games: () => rangeSchedulePayload,
+            statusCode: () => rangeScheduleStatusCode,
+            errorBody: () => ({ message: 'Internal Server Error' }),
+        });
+
         // Mock league dates specifically for this spec to avoid any 500 from global mock
         cy.intercept('**/api/kbo/league-start-dates*', {
             statusCode: 200,
@@ -352,9 +360,59 @@ describe('Game Prediction', () => {
         });
     });
 
-    it('should request my-votes in bulk once and never call legacy my-vote endpoint', () => {
+    it('should hydrate a deep-linked game from prediction bootstrap without initial detail/status waterfall', () => {
+        const gameId = '20240510HHSS0';
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapHydrated',
+            games: () => rangeSchedulePayload,
+            detailByGameId: {
+                [gameId]: {
+                    gameId,
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-03',
+                    startTime: '18:30',
+                    gameStatus: 'SCHEDULED',
+                    gameStatusKr: '경기 예정',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            },
+            voteStatusByGameId: {
+                [gameId]: {
+                    gameId,
+                    homeVotes: 7,
+                    awayVotes: 3,
+                    totalVotes: 10,
+                },
+            },
+        });
+
         openPredictionPage();
+
+        cy.wait('@getPredictionBootstrapHydrated');
+        cy.wait('@getUserVotes');
+        cy.get('@getPredictionBootstrapHydrated.all').should('have.length', 1);
+        cy.get('@getScheduleRange.all').should('have.length', 0);
+        cy.get('@getGameDetail.all').then((interceptions: any) => {
+            const detailCalls = (interceptions as any[]).filter((interception) => {
+                const url = interception.request?.url || '';
+                return !url.includes('/api/matches/day')
+                    && !url.includes('/api/matches/range')
+                    && !url.includes('/api/matches/bounds');
+            });
+            expect(detailCalls).to.have.length(0);
+        });
+        cy.get('@getVoteStatus.all').should('have.length', 0);
         cy.get('@getUserVotes.all').should('have.length', 1);
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible');
+    });
+
+    it('should resolve my-votes through bulk/cache path and never call legacy my-vote endpoint', () => {
+        openPredictionPage();
+        cy.get('@getUserVotes.all').should('have.length.at.most', 1);
         cy.get('@getUserVote.all').should('have.length', 0);
     });
 
@@ -598,8 +656,28 @@ describe('Game Prediction', () => {
             });
         }).as('getGameDetailPostponed');
 
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapPostponed',
+            games: () => rangeSchedulePayload,
+            detailByGameId: {
+                '20240510HHSS0': {
+                    gameId: '20240510HHSS0',
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-04',
+                    startTime: '18:30',
+                    gameStatus: 'POSTPONED',
+                    gameStatusKr: '경기 연기',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            },
+        });
+
         openPredictionPage();
-        cy.wait('@getGameDetailPostponed');
+        cy.wait('@getPredictionBootstrapPostponed');
         cy.contains(/경기 연기|연기되어/).should('exist');
         cy.contains('현재 상태에서는 투표할 수 없습니다.').should('be.visible');
         cy.contains('해당 경기는 연기되어 투표 및 경기 상세 정보가 제공되지 않습니다.').should('be.visible');
@@ -628,8 +706,28 @@ describe('Game Prediction', () => {
             });
         }).as('getGameDetailCancelled');
 
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapCancelled',
+            games: () => rangeSchedulePayload,
+            detailByGameId: {
+                '20240510HHSS0': {
+                    gameId: '20240510HHSS0',
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-04',
+                    startTime: '18:30',
+                    gameStatus: 'CANCELLED',
+                    gameStatusKr: '경기 취소',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            },
+        });
+
         openPredictionPage();
-        cy.wait('@getGameDetailCancelled');
+        cy.wait('@getPredictionBootstrapCancelled');
         cy.tick(500);
         cy.contains(/경기 취소|취소/, { timeout: 10000 }).should('exist');
         cy.contains('예측 처리 중 오류가 발생했습니다.').should('not.exist');
@@ -683,13 +781,42 @@ describe('Game Prediction', () => {
             });
         }).as('getGameDetailPast');
 
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapPast',
+            games: () => rangeSchedulePayload,
+            detailByGameId: {
+                '20240510HHSS0': {
+                    gameId: '20240510HHSS0',
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-03',
+                    startTime: '00:00',
+                    gameStatus: 'COMPLETED',
+                    gameStatusKr: '경기 종료',
+                    homeScore: 0,
+                    awayScore: 4,
+                    winner: 'away',
+                },
+            },
+            voteStatusByGameId: {
+                '20240510HHSS0': {
+                    gameId: '20240510HHSS0',
+                    homeVotes: 10,
+                    awayVotes: 5,
+                    totalVotes: 15,
+                },
+            },
+        });
+
         openPredictionPage();
-        cy.wait('@getRankingsMeaningfulPast');
-        cy.wait('@getGameDetailPast');
+        cy.wait('@getPredictionBootstrapPast');
+        cy.get('@getUserVote.all').should('have.length', 0);
         ensureCoachBriefingVisible();
         cy.tick(500);
         cy.tick(1000);
         cy.wait(500);
+        cy.wait('@getRankingsMeaningfulPast');
         cy.wait('@coachAnalyzePast').then((interception) => {
             const body = parseCoachRequestBody(interception.request.body);
             expect(body.request_mode).to.eq('auto_brief');
@@ -702,7 +829,7 @@ describe('Game Prediction', () => {
     it('should keep bulk vote request single-flight while switching games on same day', () => {
         rangeSchedulePayload = [
             {
-                gameId: '20240510HHSS0',
+                gameId: '20260204HHSS0',
                 gameDate: '2026-02-04',
                 homeTeam: 'HH',
                 awayTeam: 'SS',
@@ -712,7 +839,7 @@ describe('Game Prediction', () => {
                 winner: null,
             },
             {
-                gameId: '20240510LGLK0',
+                gameId: '20260204LGLK0',
                 gameDate: '2026-02-04',
                 homeTeam: 'LG',
                 awayTeam: 'KT',
@@ -748,22 +875,22 @@ describe('Game Prediction', () => {
         cy.tick(1000);
         cy.wait(500);
 
-        openPredictionPage({ path: '/prediction?gameId=20240510LGLK0&date=2026-02-04' });
+        cy.get('[data-testid="prediction-same-day-switcher"]').should('be.visible');
+        cy.get('[data-testid="prediction-detail-game-switch"][data-game-id="20260204LGLK0"]')
+            .click({ force: true });
+        cy.location('search').should('include', 'gameId=20260204LGLK0');
 
         cy.wait(700);
         cy.get('@getUserVotes.all').then((interceptions: any) => {
             const requestList = interceptions as Array<{
                 request?: { body?: { gameIds?: string[] } };
             }>;
-            expect(requestList.length).to.be.gte(1);
-            expect(requestList.length).to.be.lte(2);
-            requestList.forEach((interception) => {
-                const requestBody = interception.request?.body || {};
-                expect(requestBody.gameIds).to.have.members([
-                    '20240510HHSS0',
-                    '20240510LGLK0',
-                ]);
-            });
+            expect(requestList).to.have.length(1);
+            const requestBody = requestList[0].request?.body || {};
+            expect(requestBody.gameIds).to.have.members([
+                '20260204HHSS0',
+                '20260204LGLK0',
+            ]);
         });
         cy.get('@getUserVote.all').should('have.length', 0);
     });
@@ -905,7 +1032,8 @@ describe('Game Prediction', () => {
         cy.get('[data-testid="coach-analysis-open"]', { timeout: 10000 })
             .should('be.visible')
             .click({ force: true });
-        // dev StrictMode 이중 호출 대비 하한 단언 (열면 자동실행 1회+).
+        // dev StrictMode 이중 호출 대비: alias 목록 조회 전에 실제 요청 발생을 먼저 기다린다.
+        cy.wait('@coachAnalyzeAbortOnClose');
         cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 1);
 
         cy.get('body').type('{esc}');
@@ -917,6 +1045,7 @@ describe('Game Prediction', () => {
             .click({ force: true });
         getCoachAnalysisDialog().should('be.visible');
         // 재오픈 시 새 요청이 추가 발생 (정확 개수 대신 하한).
+        cy.wait('@coachAnalyzeAbortOnClose');
         cy.get('@coachAnalyzeAbortOnClose.all').should('have.length.gte', 2);
 
         cy.wait(2200);
@@ -1138,6 +1267,11 @@ describe('Game Prediction', () => {
                 },
             },
         }).as('getUserVotes');
+
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapScheduledCopy',
+            games: () => rangeSchedulePayload,
+        });
 
         cy.intercept('POST', '**/coach/analyze*', (req) => {
             const body = parseCoachRequestBody(req.body);
@@ -1477,6 +1611,94 @@ describe('Game Prediction', () => {
         cy.get('@submitVote.all').should('have.length', 1);
     });
 
+    it('should keep post-vote state when a stale my-votes batch resolves and refresh status after submit/cancel', () => {
+        const gameId = '20240510HHSS0';
+        installSubmitVote();
+        cy.intercept('DELETE', `**/api/predictions/${gameId}`, {
+            statusCode: 200,
+            body: { success: true },
+        }).as('cancelVote');
+        cy.intercept('**/api/predictions/my-votes*', (req) => {
+            req.reply({
+                statusCode: 200,
+                delay: 700,
+                body: {
+                    votes: {
+                        [gameId]: null,
+                    },
+                },
+            });
+        }).as('getUserVotesDelayed');
+
+        let voteStatusPhase: 'after-submit' | 'after-cancel' = 'after-submit';
+        let statusRequestsAfterSubmit = 0;
+        cy.intercept('GET', '**/api/predictions/status/*', (req) => {
+            req.reply({
+                statusCode: 200,
+                body: voteStatusPhase === 'after-submit'
+                    ? { homeVotes: 1, awayVotes: 0, totalVotes: 1 }
+                    : { homeVotes: 0, awayVotes: 0, totalVotes: 0 },
+            });
+        }).as('getVoteStatusFresh');
+
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapVoteFlow',
+            games: () => rangeSchedulePayload,
+            detailByGameId: {
+                [gameId]: {
+                    gameId,
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    gameDate: '2026-02-03',
+                    startTime: '18:30',
+                    gameStatus: 'SCHEDULED',
+                    gameStatusKr: '경기 예정',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            },
+            voteStatusByGameId: {
+                [gameId]: {
+                    gameId,
+                    homeVotes: 0,
+                    awayVotes: 0,
+                    totalVotes: 0,
+                },
+            },
+        });
+
+        openPredictionPage();
+        cy.wait('@getPredictionBootstrapVoteFlow');
+        cy.get('@getVoteStatusFresh.all').should('have.length', 0);
+
+        cy.get('[data-testid="vote-home-btn"]').should('be.visible').click({ force: true });
+        cy.wait('@submitVote');
+        cy.wait('@getVoteStatusFresh');
+        cy.get('@getVoteStatusFresh.all')
+            .should('have.length.gte', 1)
+            .then((interceptions: any) => {
+                statusRequestsAfterSubmit = (interceptions as any[]).length;
+            });
+
+        cy.wait('@getUserVotesDelayed');
+        cy.get('[data-testid="vote-home-btn"]').should('have.attr', 'aria-pressed', 'true');
+
+        cy.tick(600);
+        cy.then(() => {
+            voteStatusPhase = 'after-cancel';
+        });
+        cy.get('[data-testid="vote-home-btn"]').click({ force: true });
+        cy.get('[role="dialog"]').contains('button', '확인').click({ force: true });
+        cy.wait('@cancelVote');
+        cy.wait('@getVoteStatusFresh');
+        cy.get('@getVoteStatusFresh.all').should((interceptions: any) => {
+            expect((interceptions as any[]).length).to.be.greaterThan(statusRequestsAfterSubmit);
+        });
+        cy.get('[data-testid="vote-home-btn"]').should('have.attr', 'aria-pressed', 'false');
+    });
+
     it('should continue to empty schedule UI when /api/matches/range returns 0 items', () => {
         rangeSchedulePayload = [];
 
@@ -1776,9 +1998,9 @@ describe('Game Prediction', () => {
         }).as('coachAnalyzeReissueFailed');
 
         openPredictionPage({ path: '/prediction?gameId=20240510HHSS0&date=2026-02-03' });
-        cy.wait('@getGameDetail');
+        cy.wait('@getPredictionBootstrap');
         cy.wait('@getRankingsAuthExpiredCoach');
-        waitForPredictionVoteBootstrap();
+        cy.get('@getUserVote.all').should('have.length', 0);
         ensureCoachBriefingVisible();
         cy.tick(1000);
         cy.wait(700);
@@ -1807,8 +2029,7 @@ describe('Game Prediction', () => {
         installSubmitVote(16000);
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
-        cy.wait('@getUserVotes');
+        cy.wait('@getPredictionBootstrap');
         cy.wait('@getVoteStatus');
         cy.tick(1000);
         cy.get('[data-testid="vote-home-btn"]').should('be.visible').click({ force: true });
@@ -1820,8 +2041,7 @@ describe('Game Prediction', () => {
         installSubmitVote(120000);
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
-        cy.wait('@getUserVotes');
+        cy.wait('@getPredictionBootstrap');
         cy.wait('@getVoteStatus');
         cy.tick(1000);
         cy.get('[data-testid="vote-home-btn"]').should('be.visible').click({ force: true });
@@ -1835,7 +2055,8 @@ describe('Game Prediction', () => {
         installSubmitVote(120000);
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
+        cy.wait('@getPredictionBootstrap');
+        cy.wait('@getVoteStatus');
         cy.tick(1000);
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.contains('예측 처리 지연: 백그라운드로 전환해 계속 진행합니다.').should('not.exist');
@@ -1852,7 +2073,8 @@ describe('Game Prediction', () => {
         }).as('submitVoteFailForRecovery');
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
+        cy.wait('@getPredictionBootstrap');
+        cy.wait('@getVoteStatus');
         cy.tick(1000);
         cy.get('[data-testid="vote-home-btn"]').should('be.visible');
         cy.get('@submitVoteFailForRecovery.all').should('have.length', 0);
@@ -1866,9 +2088,8 @@ describe('Game Prediction', () => {
         }).as('getVoteStatusRestore');
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
-        cy.wait('@getUserVotes');
         cy.wait('@getVoteStatusRestore');
+        cy.get('@getUserVote.all').should('have.length', 0);
 
         cy.window().then((win) => {
             const startedAt = win.Date.now() - 30_000;
@@ -1893,12 +2114,11 @@ describe('Game Prediction', () => {
     });
 
     it('should show partial result badge and clear it after vote status retry succeeds', () => {
-        let voteStatusCallCount = 0;
+        let shouldReturnFullStatus = false;
         cy.intercept('**/api/predictions/status/*', (req) => {
-            voteStatusCallCount += 1;
-            const body = voteStatusCallCount < 2
-                ? { homeVotes: 10, awayVotes: 5 }
-                : { homeVotes: 10, awayVotes: 5, totalVotes: 15 };
+            const body = shouldReturnFullStatus
+                ? { homeVotes: 10, awayVotes: 5, totalVotes: 15 }
+                : { homeVotes: 10, awayVotes: 5 };
             req.reply({
                 statusCode: 200,
                 body,
@@ -1909,6 +2129,9 @@ describe('Game Prediction', () => {
 
         cy.wait('@getVoteStatusPartial');
         cy.get('[data-testid="prediction-partial-result-notice"]').should('be.visible');
+        cy.then(() => {
+            shouldReturnFullStatus = true;
+        });
         cy.get('[data-testid="prediction-partial-retry-btn"]').click({ force: true });
         cy.wait('@getVoteStatusPartial');
         cy.get('[data-testid="prediction-partial-result-notice"]').should('not.exist');
@@ -1941,8 +2164,7 @@ describe('Game Prediction', () => {
         installSubmitVote(120000);
 
         openPredictionPage({ captureFlowEvents: true });
-        cy.wait('@getGameDetail');
-        cy.wait('@getUserVotes');
+        cy.wait('@getPredictionBootstrap');
         cy.wait('@getVoteStatus');
         cy.tick(1000);
         cy.get('[data-testid="vote-home-btn"]').first().should('be.visible').click({ force: true });
@@ -1952,6 +2174,8 @@ describe('Game Prediction', () => {
 
     // ── C1 결과 본문 — 데이터 형태별 렌더 + 에러경로 ─────────────────────
     describe('coach analysis result — data-shape rendering (C1)', () => {
+        const COACH_BRIEFING_SESSION_STORAGE_KEY = 'prediction:coachBriefing:v2';
+        const COACH_BRIEFING_LOCAL_STORAGE_KEY = 'prediction:coachBriefing:local:v2';
         const FULL_ANALYSIS = {
             summary: '',
             verdict: 'KT는 **선발 조기 강판**이 패인.',
@@ -2025,6 +2249,13 @@ describe('Game Prediction', () => {
             return sse(meta);
         };
 
+        beforeEach(() => {
+            cy.window().then((win) => {
+                win.sessionStorage.removeItem(COACH_BRIEFING_SESSION_STORAGE_KEY);
+                win.localStorage.removeItem(COACH_BRIEFING_LOCAL_STORAGE_KEY);
+            });
+        });
+
         const interceptCoach = (manualOpts?: Parameters<typeof manualSse>[0], manualStatus = 200) => {
             cy.intercept('**/api/kbo/rankings/snapshot*', { statusCode: 200, body: meaningfulRegularSeasonRankings })
                 .as('getRankingsDataShape');
@@ -2032,6 +2263,18 @@ describe('Game Prediction', () => {
                 const body = parseCoachRequestBody(req.body);
                 if (body.request_mode === 'manual_detail') {
                     req.alias = 'coachDataShapeManual';
+                    if (manualStatus === 413) {
+                        req.reply({
+                            statusCode: 413,
+                            body: {
+                                success: false,
+                                code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+                                message: 'AI 요청 본문이 너무 큽니다.',
+                                data: { maxBytes: 65536 },
+                            },
+                        });
+                        return;
+                    }
                     if (manualStatus !== 200) {
                         // 스트림 error 이벤트로 비-인증 분석 실패를 모사 → result.error 설정.
                         req.reply({
@@ -2055,9 +2298,9 @@ describe('Game Prediction', () => {
 
         const openCoachDialog = () => {
             openPredictionPage();
+            cy.get('@getUserVote.all').should('have.length', 0);
             cy.wait('@getRankingsDataShape');
-            cy.wait('@getGameDetail');
-            waitForPredictionVoteBootstrap();
+            cy.tick(600, { log: false });
             ensureCoachBriefingVisible();
             cy.wait('@coachDataShapeSeed');
             cy.get('[data-testid="coach-analysis-open"]').first().click({ force: true });
@@ -2110,7 +2353,7 @@ describe('Game Prediction', () => {
             cy.get('[data-testid="coach-evidence-count"]').should('contain', '7건');
             // 접이식 소스 목록: 펼치면 한글 라벨 노출
             cy.get('[data-testid="coach-evidence-sources"]').should('exist')
-                .and('contain', '분석에 사용한 근거 3개');
+                .and('contain', '핵심 근거');
             cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
             cy.get('[data-testid="coach-evidence-sources"]')
                 .should('contain', '홈 선발')
@@ -2149,11 +2392,14 @@ describe('Game Prediction', () => {
             assertNoLegacyStrings();
         });
 
-        it('hides risk section when risks are empty', () => {
+        it('shows an empty risk state when risks are empty', () => {
             interceptCoach({ analysis: { ...FULL_ANALYSIS, risks: [] } });
             openCoachDialog();
             cy.get('[data-testid="coach-section-insights"]').should('exist');
-            cy.get('[data-testid="coach-section-risks"]').should('not.exist');
+            cy.get('[data-testid="coach-section-risks"]').should('exist');
+            cy.get('[data-testid="coach-risk-empty"]')
+                .should('exist')
+                .and('contain', '리스크');
             assertNoLegacyStrings();
         });
 
@@ -2176,6 +2422,16 @@ describe('Game Prediction', () => {
         it('shows retry CTA (not login) when manual analysis fails with a non-auth error', () => {
             interceptCoach(undefined, 500);
             openCoachDialog();
+            cy.get('[data-testid="coach-analysis-retry-cta"]', { timeout: 10000 }).should('be.visible');
+            cy.get('[data-testid="coach-analysis-login-cta"]').should('not.exist');
+            cy.get('[role="article"]').should('not.exist');
+        });
+
+        it('shows payload-limit guidance and retry CTA when manual analysis returns 413', () => {
+            interceptCoach(undefined, 413);
+            openCoachDialog();
+            getCoachAnalysisDialog()
+                .should('contain', 'AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.');
             cy.get('[data-testid="coach-analysis-retry-cta"]', { timeout: 10000 }).should('be.visible');
             cy.get('[data-testid="coach-analysis-login-cta"]').should('not.exist');
             cy.get('[role="article"]').should('not.exist');

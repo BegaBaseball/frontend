@@ -18,27 +18,27 @@ const componentMap: Components = {
         </h3>
     ),
     h3: ({ children }) => (
-        <h4 className="mt-3 mb-2 text-base font-bold text-gray-800 first:mt-0 dark:text-gray-100">
+        <h4 className="mt-3 mb-2 text-base font-bold text-gray-800 first:mt-0 dark:text-white">
             {children}
         </h4>
     ),
     h4: ({ children }) => (
-        <h5 className="mt-3 mb-1 text-[15px] font-bold text-gray-800 first:mt-0 dark:text-gray-100">
+        <h5 className="mt-3 mb-1 text-[15px] font-bold text-gray-800 first:mt-0 dark:text-white">
             {children}
         </h5>
     ),
     p: ({ children }) => (
-        <p className="mb-2 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-gray-300">
+        <p className="mb-2 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </p>
     ),
     ul: ({ children }) => (
-        <ul className="mb-2 list-disc space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-gray-300">
+        <ul className="mb-2 list-disc space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </ul>
     ),
     ol: ({ children }) => (
-        <ol className="mb-2 list-decimal space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-gray-300">
+        <ol className="mb-2 list-decimal space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </ol>
     ),
@@ -47,7 +47,7 @@ const componentMap: Components = {
         <strong className="font-bold text-gray-900 dark:text-white">{children}</strong>
     ),
     em: ({ children }) => (
-        <em className="italic text-gray-700 dark:text-gray-200">{children}</em>
+        <em className="italic text-gray-700 dark:text-white">{children}</em>
     ),
     a: ({ href, children }) => (
         <a
@@ -60,12 +60,12 @@ const componentMap: Components = {
         </a>
     ),
     code: ({ children }) => (
-        <code className="rounded bg-gray-100 px-1 py-0.5 text-[13px] text-gray-800 dark:bg-gray-800 dark:text-gray-100">
+        <code className="rounded bg-gray-100 px-1 py-0.5 text-[13px] text-gray-800 dark:bg-gray-800 dark:text-white">
             {children}
         </code>
     ),
     blockquote: ({ children }) => (
-        <blockquote className="my-2 border-l-2 border-gray-300 pl-3 text-gray-600 dark:border-gray-600 dark:text-gray-300">
+        <blockquote className="my-2 border-l-2 border-gray-300 pl-3 text-gray-600 dark:border-gray-600 dark:text-white">
             {children}
         </blockquote>
     ),
@@ -77,7 +77,7 @@ const componentMap: Components = {
         </div>
     ),
     thead: ({ children }) => (
-        <thead className="bg-gray-50 text-gray-700 dark:bg-gray-900/50 dark:text-gray-200">
+        <thead className="bg-gray-50 text-gray-700 dark:bg-gray-900/50 dark:text-white">
             {children}
         </thead>
     ),
@@ -92,7 +92,7 @@ const componentMap: Components = {
         </th>
     ),
     td: ({ children }) => (
-        <td className="px-3 py-2 align-top text-gray-700 dark:text-gray-300">
+        <td className="px-3 py-2 align-top text-gray-700 dark:text-white">
             {children}
         </td>
     ),

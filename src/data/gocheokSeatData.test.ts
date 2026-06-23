@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { inflateSync } from 'node:zlib';
+import sharp from 'sharp';
 import {
   GOCHEOK_BLOCKS,
   GOCHEOK_CATEGORIES,
@@ -20,7 +20,7 @@ import {
   getGocheokVisitHint,
 } from './gocheokSeatData';
 
-interface DecodedPng {
+interface ImagePixelData {
   width: number;
   height: number;
   channels: 3 | 4;
@@ -116,88 +116,54 @@ function assertInRange(value: number, min: number, max: number, message: string)
   assert.ok(value >= min && value <= max, `${message}: expected ${value} to be between ${min} and ${max}`);
 }
 
-function readPngDimensions(buffer: Buffer): { width: number; height: number } {
-  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'official seat map should be a PNG');
+function readWebpDimensions(buffer: Buffer): { width: number; height: number } {
+  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF', 'official seat map should be a RIFF file');
+  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP', 'official seat map should be a WebP file');
+
+  for (let offset = 12; offset + 8 <= buffer.length;) {
+    const chunkType = buffer.toString('ascii', offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const payloadOffset = offset + 8;
+
+    if (chunkType === 'VP8 ') {
+      return {
+        width: buffer.readUInt16LE(payloadOffset + 6) & 0x3fff,
+        height: buffer.readUInt16LE(payloadOffset + 8) & 0x3fff,
+      };
+    }
+
+    if (chunkType === 'VP8L') {
+      const bits = buffer.readUInt32LE(payloadOffset + 1);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+
+    if (chunkType === 'VP8X') {
+      return {
+        width: buffer.readUIntLE(payloadOffset + 4, 3) + 1,
+        height: buffer.readUIntLE(payloadOffset + 7, 3) + 1,
+      };
+    }
+
+    offset += 8 + chunkSize + (chunkSize % 2);
+  }
+
+  throw new Error('official WebP dimensions could not be read');
+}
+
+async function decodeImage(buffer: Buffer): Promise<ImagePixelData> {
+  const { data, info } = await sharp(buffer)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
   return {
-    width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20),
+    width: info.width,
+    height: info.height,
+    channels: info.channels as 3 | 4,
+    data,
   };
-}
-
-function paethPredictor(left: number, up: number, upLeft: number): number {
-  const p = left + up - upLeft;
-  const pa = Math.abs(p - left);
-  const pb = Math.abs(p - up);
-  const pc = Math.abs(p - upLeft);
-  if (pa <= pb && pa <= pc) return left;
-  if (pb <= pc) return up;
-  return upLeft;
-}
-
-function decodePng(buffer: Buffer): DecodedPng {
-  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'official seat map should be a PNG');
-
-  let offset = 8;
-  let width = 0;
-  let height = 0;
-  let bitDepth = 0;
-  let colorType = 0;
-  let interlace = 0;
-  const idatChunks: Buffer[] = [];
-
-  while (offset < buffer.length) {
-    const length = buffer.readUInt32BE(offset);
-    const type = buffer.subarray(offset + 4, offset + 8).toString('ascii');
-    const data = buffer.subarray(offset + 8, offset + 8 + length);
-    offset += length + 12;
-
-    if (type === 'IHDR') {
-      width = data.readUInt32BE(0);
-      height = data.readUInt32BE(4);
-      bitDepth = data[8];
-      colorType = data[9];
-      interlace = data[12];
-    } else if (type === 'IDAT') {
-      idatChunks.push(data);
-    } else if (type === 'IEND') {
-      break;
-    }
-  }
-
-  const channels = colorType === 6 ? 4 : colorType === 2 ? 3 : null;
-  assert.ok(channels, `unsupported PNG color type: ${colorType}`);
-  assert.equal(bitDepth, 8, 'official PNG should use 8-bit channels');
-  assert.equal(interlace, 0, 'official PNG should not use interlace');
-
-  const bytesPerPixel = channels;
-  const stride = width * bytesPerPixel;
-  const inflated = inflateSync(Buffer.concat(idatChunks));
-  const decoded = Buffer.alloc(width * height * bytesPerPixel);
-  let sourceOffset = 0;
-  let previous = Buffer.alloc(stride);
-
-  for (let y = 0; y < height; y += 1) {
-    const filter = inflated[sourceOffset];
-    sourceOffset += 1;
-    const row = Buffer.from(inflated.subarray(sourceOffset, sourceOffset + stride));
-    sourceOffset += stride;
-
-    for (let index = 0; index < stride; index += 1) {
-      const left = index >= bytesPerPixel ? row[index - bytesPerPixel] : 0;
-      const up = previous[index];
-      const upLeft = index >= bytesPerPixel ? previous[index - bytesPerPixel] : 0;
-      if (filter === 1) row[index] = (row[index] + left) & 0xff;
-      else if (filter === 2) row[index] = (row[index] + up) & 0xff;
-      else if (filter === 3) row[index] = (row[index] + Math.floor((left + up) / 2)) & 0xff;
-      else if (filter === 4) row[index] = (row[index] + paethPredictor(left, up, upLeft)) & 0xff;
-      else assert.equal(filter, 0, `unsupported PNG row filter: ${filter}`);
-    }
-
-    row.copy(decoded, y * stride);
-    previous = row;
-  }
-
-  return { width, height, channels, data: decoded };
 }
 
 function isGocheokSeatPixel(category: string, r: number, g: number, b: number): boolean {
@@ -210,7 +176,7 @@ function isGocheokSeatPixel(category: string, r: number, g: number, b: number): 
   return false;
 }
 
-function calculateSeatColorOverlapRatio(image: DecodedPng, category: string, path: string): number {
+function calculateSeatColorOverlapRatio(image: ImagePixelData, category: string, path: string): number {
   const polygon = parsePathPoints(path);
   const minX = Math.max(0, Math.floor(Math.min(...polygon.map(([x]) => x))));
   const maxX = Math.min(image.width - 1, Math.ceil(Math.max(...polygon.map(([x]) => x))));
@@ -240,22 +206,22 @@ test('고척 좌석도 공식 asset 상태를 명시한다', () => {
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageWidth, 653);
   assert.equal(GOCHEOK_SEATMAP_IMAGE.imageHeight, 960);
   assert.equal(GOCHEOK_SEATMAP_VIEW_BOX, '0 0 653 960');
-  assert.equal(GOCHEOK_SEATMAP_IMAGE.imageSha256, 'c3e44086682b21f23179cf438fab4f6bd9bcc9b92152bb572f0887b5f122f528');
+  assert.equal(GOCHEOK_SEATMAP_IMAGE.imageSha256, 'ea95249b6f121e65b13435616768e2de433090be734de5d86c1effa40cfd64bd');
   assert.ok(GOCHEOK_SEATMAP_IMAGE.sourceLabel);
   assert.equal(GOCHEOK_SEATMAP_IMAGE.sourceUrl, 'https://www.sisul.or.kr/open_content/skydome/introduce/seat.jsp');
   assert.match(GOCHEOK_SEATMAP_IMAGE.sourceLabel, /서울시설공단/);
 });
 
-test('고척 공식 PNG 파일은 geometry 좌표계 기준 asset과 일치한다', () => {
-  const asset = readFileSync(new URL('../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png', import.meta.url));
-  const dimensions = readPngDimensions(asset);
+test('고척 공식 WebP 파일은 geometry 좌표계 기준 asset과 일치한다', () => {
+  const asset = readFileSync(new URL('../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp', import.meta.url));
+  const dimensions = readWebpDimensions(asset);
   const sha256 = createHash('sha256').update(asset).digest('hex');
 
   assert.deepEqual(dimensions, {
     width: GOCHEOK_SEATMAP_IMAGE.imageWidth,
     height: GOCHEOK_SEATMAP_IMAGE.imageHeight,
   });
-  assert.equal(sha256, GOCHEOK_SEATMAP_IMAGE.imageSha256, 'official PNG changed; re-run gocheokDebug QA and update geometry/hash together');
+  assert.equal(sha256, GOCHEOK_SEATMAP_IMAGE.imageSha256, 'official WebP changed; re-run gocheokDebug QA and update geometry/hash together');
 });
 
 test('고척 공식 참고 정보는 좌석배치도와 시설현황을 분리해 제공한다', () => {
@@ -445,9 +411,9 @@ test('고척 trace review metadata는 전체 블록을 검수 구역에 배정�
   assert.equal(reviewedIds.size + todoIds.size, blockIds.size, 'reviewed and TODO metadata should cover active Gocheok blocks exactly');
 });
 
-test('고척 reviewed trace 블록은 공식 PNG 좌석 색상과 충분히 겹친다', () => {
-  const asset = readFileSync(new URL('../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png', import.meta.url));
-  const image = decodePng(asset);
+test('고척 reviewed trace 블록은 공식 WebP 좌석 색상과 충분히 겹친다', async () => {
+  const asset = readFileSync(new URL('../assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp', import.meta.url));
+  const image = await decodeImage(asset);
   const reviewedIds = new Set<string>();
   const tableIds = GOCHEOK_BLOCKS.filter((block) => block.category === 'TABLE').map((block) => block.id);
 

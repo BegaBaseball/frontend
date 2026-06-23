@@ -14,6 +14,10 @@ import { getJamsilOperatorVisitGuidance } from '../../data/jamsilOperatorVisitGu
 import JamsilSeatMapSvg from './JamsilSeatMapSvg';
 import JamsilUploadFlowModal from './JamsilUploadFlowModal';
 import { useTheme } from '../../hooks/useTheme';
+import {
+  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+  formatManualBaseballDataDisplayValue,
+} from '../../utils/manualBaseballDataContract';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
 import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
@@ -30,7 +34,7 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
 const FINDER_FOCUS_ZOOM = 1.35;
-const MANUAL_OPERATOR_GUIDANCE_STATUS = 'MANUAL_BASEBALL_DATA_REQUIRED';
+const MANUAL_OPERATOR_GUIDANCE_STATUS = MANUAL_BASEBALL_DATA_REQUIRED_CODE;
 
 interface SeatMapPan {
   x: number;
@@ -83,6 +87,11 @@ function JamsilOperatorVisitMeta({
   ];
   const hasManualFallback = operatorTiles.some((tile) => tile.value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS))
     || operatorGuidance.operatorDataStatus === MANUAL_OPERATOR_GUIDANCE_STATUS;
+  const operatorDataStatusLabel = operatorGuidance.operatorDataStatus === 'OPERATOR_PROVIDED'
+    ? '운영자 자료 반영'
+    : operatorGuidance.operatorDataStatus === 'PARTIAL_OFFICIAL_SEED'
+      ? '공식 시드 자료 반영'
+      : '운영자 제공 자료 필요';
   const getTileFieldSource = (value: string) => {
     if (value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)) return 'manual-required';
     return operatorGuidance.operatorDataStatus === 'OPERATOR_PROVIDED' ? 'operator-provided' : 'static-seed';
@@ -97,7 +106,7 @@ function JamsilOperatorVisitMeta({
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
             검수된 정적 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
           </p>
         </div>
@@ -111,7 +120,7 @@ function JamsilOperatorVisitMeta({
       <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
         <div className="text-[9px] font-bold tracking-widest text-slate-400">자료상태</div>
         <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
-          {operatorGuidance.operatorDataStatus}
+          {operatorDataStatusLabel}
         </div>
       </div>
       <div className="mt-3 grid gap-2">
@@ -123,8 +132,8 @@ function JamsilOperatorVisitMeta({
             className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
-              {tile.value}
+            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+              {formatManualBaseballDataDisplayValue(tile.value)}
             </div>
           </div>
         ))}
@@ -132,9 +141,9 @@ function JamsilOperatorVisitMeta({
       {operatorGuidance.cautionNotes.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {operatorGuidance.cautionNotes.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
-              <span>{item}</span>
+              <span>{formatManualBaseballDataDisplayValue(item)}</span>
             </li>
           ))}
         </ul>
@@ -144,7 +153,7 @@ function JamsilOperatorVisitMeta({
           data-testid="jamsil-operator-data-status"
           className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {operatorGuidance.operatorDataPendingLabel}
+          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>
       )}
     </div>

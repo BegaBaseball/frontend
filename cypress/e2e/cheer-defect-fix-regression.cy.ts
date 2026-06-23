@@ -1875,8 +1875,13 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
         });
 
         cy.wait('@getCheerPostsPage0');
-        cy.wait('@getInitialPostChanges');
+        // React Query schedules the initial poll via setTimeout(fn,0); cy.clock freezes timers.
+        // First tick: fires React's rendering + React Query's poll-setup (enabled may be false due to batching).
+        cy.tick(100);
         cy.contains('무한스크롤 피드 1').should('be.visible');
+        // Second tick: React state has now committed (latestVisiblePostId set), fires poll with enabled=true.
+        cy.tick(100);
+        cy.wait('@getInitialPostChanges');
 
         cy.scrollTo('bottom');
         cy.get('[data-testid="cheer-feed-next-loader"]')

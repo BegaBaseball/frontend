@@ -91,4 +91,4 @@
 
 ## 현재 상태
 
-현재 저장소에는 운영자 제공 출입구/매점/동선 자료가 들어오지 않았다. 따라서 인천 운영자 안내 데이터 배열은 비어 있고, UI는 `운영자 제공 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED`를 표시해야 한다.
+현재 저장소에는 운영자 제공 출입구/매점/동선 자료가 들어오지 않았다. 따라서 인천 운영자 안내 데이터 배열은 비어 있고, data/status/test metadata는 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지한다. 사용자 visible label에는 contract code 없이 `운영자 제공 자료 필요` 안내 문구만 노출한다.

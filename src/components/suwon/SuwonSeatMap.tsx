@@ -15,6 +15,10 @@ import {
   type SuwonBlock,
 } from '../../data/suwonSeatData';
 import { getSuwonOperatorVisitGuidance } from '../../data/suwonOperatorVisitGuide';
+import {
+  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+  formatManualBaseballDataDisplayValue,
+} from '../../utils/manualBaseballDataContract';
 import SuwonSeatMapSvg, { type SeatMapPan } from './SuwonSeatMapSvg';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import SuwonUploadFlowModal from './SuwonUploadFlowModal';
@@ -37,7 +41,7 @@ const COMPARE_FOCUS_ZOOM = 1.35;
 const COMPARISON_LIMIT = 3;
 const RECENT_SELECTION_LIMIT = 4;
 const GUIDE_RESULT_LIMIT = 12;
-const MANUAL_OPERATOR_GUIDANCE_STATUS = 'MANUAL_BASEBALL_DATA_REQUIRED';
+const MANUAL_OPERATOR_GUIDANCE_STATUS = MANUAL_BASEBALL_DATA_REQUIRED_CODE;
 
 type SuwonGuideIntent =
   | '전체'
@@ -207,11 +211,11 @@ function SuwonFirstVisitGuide({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 수원 가이드</h3>
-          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-white">
             {matches.length}개 블록
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-white">
           KT
         </span>
       </div>
@@ -254,23 +258,23 @@ function SuwonFirstVisitGuide({
                 className="shrink-0 cursor-pointer rounded-xl border px-3 py-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700"
                 style={{
                   borderColor: accent ? `${accent}66` : undefined,
-                  background: isDark ? '#020617' : '#f8fafc',
+                  background: isDark ? '#000000' : '#f8fafc',
                 }}
               >
                 <div className="text-xs font-black text-slate-900 dark:text-white">
                   {block.block}
-                  <span className="ml-1 font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="ml-1 font-semibold text-slate-500 dark:text-white">
                     {cat?.label ?? block.name}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-white">
                   {[...reasons.slice(0, 2), ...tags.slice(0, 1)].join(' · ')}
                 </div>
               </button>
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-white">
             표시할 블록이 없습니다
           </div>
         )}
@@ -410,7 +414,7 @@ function SuwonCompareTray({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">후보 비교</h3>
-          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-white">
             {comparisonBlocks.length}/{COMPARISON_LIMIT}개 선택
           </p>
         </div>
@@ -419,7 +423,7 @@ function SuwonCompareTray({
           data-testid="suwon-compare-clear"
           onClick={onClear}
           disabled={comparisonBlocks.length === 0}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
           style={{ borderColor }}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -443,7 +447,7 @@ function SuwonCompareTray({
                 className="rounded-xl border p-3"
                 style={{
                   borderColor: isSelected && accent ? accent : borderColor,
-                  background: mode === 'dark' ? '#020617' : '#f8fafc',
+                  background: mode === 'dark' ? '#000000' : '#f8fafc',
                 }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -459,10 +463,10 @@ function SuwonCompareTray({
                         {block.name}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {cat?.label ?? block.category} · {getSuwonSideLabel(block.side)} · {getSuwonFanRoleLabel(block.fanRole)}
                     </p>
-                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {block.level}{distance ? ` · ${distance}` : ''}
                     </p>
                   </div>
@@ -488,7 +492,7 @@ function SuwonCompareTray({
                     type="button"
                     data-testid="suwon-compare-view"
                     onClick={() => onView(block)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
                     style={{ borderColor }}
                   >
                     <Eye className="h-3.5 w-3.5" />
@@ -510,7 +514,7 @@ function SuwonCompareTray({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs font-bold leading-relaxed text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs font-bold leading-relaxed text-slate-500 dark:border-slate-700 dark:text-white">
           블록 상세에서 비교에 추가를 눌러 후보를 담으세요.
         </div>
       )}
@@ -528,7 +532,7 @@ function SuwonCompareTray({
                   key={block.id}
                   data-testid={`suwon-recent-card-${block.id}`}
                   className="min-w-[150px] rounded-xl border px-2.5 py-2"
-                  style={{ borderColor, background: mode === 'dark' ? '#020617' : '#f8fafc' }}
+                  style={{ borderColor, background: mode === 'dark' ? '#000000' : '#f8fafc' }}
                 >
                   <div className="truncate text-xs font-black text-slate-900 dark:text-white">{block.block} {block.name}</div>
                   <div className="mt-2 grid grid-cols-2 gap-1">
@@ -536,7 +540,7 @@ function SuwonCompareTray({
                       type="button"
                       data-testid="suwon-recent-view"
                       onClick={() => onView(block)}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-slate-200"
+                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-white"
                       style={{ borderColor }}
                     >
                       보기
@@ -578,6 +582,9 @@ function SuwonOperatorVisitMeta({
   ];
   const hasManualFallback = operatorTiles.some((tile) => tile.value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS))
     || operatorGuidance.operatorDataStatus === MANUAL_OPERATOR_GUIDANCE_STATUS;
+  const operatorDataStatusLabel = operatorGuidance.operatorDataStatus === 'OPERATOR_PROVIDED'
+    ? '운영자 자료 반영'
+    : '운영자 제공 자료 필요';
 
   return (
     <div
@@ -588,7 +595,7 @@ function SuwonOperatorVisitMeta({
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
             운영자 제공 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
           </p>
         </div>
@@ -602,7 +609,7 @@ function SuwonOperatorVisitMeta({
       <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
         <div className="text-[9px] font-bold tracking-widest text-slate-400">자료상태</div>
         <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
-          {operatorGuidance.operatorDataStatus}
+          {operatorDataStatusLabel}
         </div>
       </div>
       <div className="mt-3 grid gap-2">
@@ -614,8 +621,8 @@ function SuwonOperatorVisitMeta({
             className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
-              {tile.value}
+            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+              {formatManualBaseballDataDisplayValue(tile.value)}
             </div>
           </div>
         ))}
@@ -623,9 +630,9 @@ function SuwonOperatorVisitMeta({
       {operatorGuidance.cautionNotes.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {operatorGuidance.cautionNotes.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
-              <span>{item}</span>
+              <span>{formatManualBaseballDataDisplayValue(item)}</span>
             </li>
           ))}
         </ul>
@@ -635,7 +642,7 @@ function SuwonOperatorVisitMeta({
           data-testid="suwon-operator-data-status"
           className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {operatorGuidance.operatorDataPendingLabel}
+          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>
       )}
     </div>

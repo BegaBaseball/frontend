@@ -13,6 +13,7 @@ import {
   seoPolicyPath,
   siteUrl,
 } from './seo-policy.mjs';
+import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 
 const args = process.argv.slice(2);
 let reportPath = '';
@@ -35,7 +36,66 @@ const addCheck = (message) => checks.push(message);
 
 const hasHangul = (value) => /[가-힣]/.test(value);
 const plainTextLength = (value) => [...String(value || '').trim()].length;
-const hasGaMeasurementId = Boolean(String(process.env.VITE_GA4_MEASUREMENT_ID || '').trim());
+const readEnvValue = createSeoRuntimeEnvReader();
+const gaMeasurementId = readEnvValue('VITE_GA4_MEASUREMENT_ID').value;
+const googleSiteVerification = readEnvValue('VITE_GOOGLE_SITE_VERIFICATION').value;
+const naverSiteVerification = readEnvValue('VITE_NAVER_SITE_VERIFICATION').value;
+const hasGaMeasurementId = Boolean(gaMeasurementId);
+const hasGoogleSiteVerification = Boolean(googleSiteVerification);
+const hasNaverSiteVerification = Boolean(naverSiteVerification);
+const PLACEHOLDER_VERIFICATION_PATTERNS = [
+  /replace-with-real/i,
+  /placeholder/i,
+  /example/i,
+  /google-site-verification-token/i,
+  /naver-site-verification-token/i,
+];
+
+const looksLikePlaceholder = (value) => (
+  PLACEHOLDER_VERIFICATION_PATTERNS.some((pattern) => pattern.test(String(value || '')))
+);
+
+const readMetaContent = (html, metaName) => {
+  const escapedMetaName = metaName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const tagMatch = html.match(new RegExp(`<meta[^>]*name=["']${escapedMetaName}["'][^>]*>`, 'i'));
+  if (!tagMatch) {
+    return null;
+  }
+  const contentMatch = tagMatch[0].match(/content\s*=\s*["']([^"']*)["']/i);
+  if (!contentMatch) {
+    return '';
+  }
+  return contentMatch[1].trim();
+};
+
+const assertVerificationTag = (html, routePath, metaName, expectedValue, label) => {
+  const actualValue = readMetaContent(html, metaName);
+  if (actualValue === null) {
+    addFailure(`[${routePath}] ${label} 메타 태그가 없습니다.`);
+    return false;
+  }
+  if (actualValue !== expectedValue) {
+    addFailure(`[${routePath}] ${label} 메타 값이 일치하지 않습니다.`);
+    return false;
+  }
+  return true;
+};
+
+if (hasGoogleSiteVerification) {
+  if (looksLikePlaceholder(googleSiteVerification)) {
+    addWarning(`VITE_GOOGLE_SITE_VERIFICATION 값이 플레이스홀더로 보입니다.`);
+  }
+} else {
+  addWarning('VITE_GOOGLE_SITE_VERIFICATION 미설정: dist HTML의 google-site-verification 검증을 건너뜁니다.');
+}
+
+if (hasNaverSiteVerification) {
+  if (looksLikePlaceholder(naverSiteVerification)) {
+    addWarning(`VITE_NAVER_SITE_VERIFICATION 값이 플레이스홀더로 보입니다.`);
+  }
+} else {
+  addWarning('VITE_NAVER_SITE_VERIFICATION 미설정: dist HTML의 naver-site-verification 검증을 건너뜁니다.');
+}
 
 const readFile = (filePath) => fs.readFileSync(filePath, 'utf-8');
 
@@ -201,6 +261,13 @@ if (!failures.length) {
     if (!/<h1[\s>]/i.test(html)) {
       addFailure(`[${route.path}] 프리렌더 본문 h1 누락`);
     }
+
+    if (hasGoogleSiteVerification) {
+      assertVerificationTag(html, route.path, 'google-site-verification', googleSiteVerification, 'Google Search Console 검증');
+    }
+    if (hasNaverSiteVerification) {
+      assertVerificationTag(html, route.path, 'naver-site-verification', naverSiteVerification, 'Naver 웹마스터 검증');
+    }
   }
   addCheck('프리렌더 HTML 메타/구조화데이터 검증');
 }
@@ -216,6 +283,12 @@ for (const pattern of expectedNoindexRegex) {
   }
 }
 addCheck(`noindex 정책 확인 (${seoPolicyPath})`);
+if (hasGoogleSiteVerification) {
+  addCheck('google-site-verification 메타 값 검증');
+}
+if (hasNaverSiteVerification) {
+  addCheck('naver-site-verification 메타 값 검증');
+}
 
 addWarning('Core Web Vitals(Lighthouse/PageSpeed)는 네트워크 변동성으로 현재 경고 전용입니다.');
 

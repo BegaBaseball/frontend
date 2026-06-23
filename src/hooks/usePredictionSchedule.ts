@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchMatchesByDay,
+  type MatchDayFailure,
   type MatchDayResult,
 } from '../api/predictionMatchDay';
+import {
+  PREDICTION_BOOTSTRAP_INVALIDATED_EVENT,
+  fetchPredictionBootstrap,
+  type PredictionBootstrapResponse,
+} from '../api/predictionBootstrap';
 import { getTodayString } from '../utils/predictionDates';
 import { parseError } from '../utils/errorUtils';
 import {
@@ -62,6 +68,7 @@ export const usePredictionSchedule = ({
   locationState,
   emitFlowEvent = noopEmitFlowEvent,
   showPredictionErrorOverlay = noopShowPredictionErrorOverlay,
+  disabled = false,
   fetchAndCacheUserVotes = noopFetchAndCacheUserVotes,
   primeGameDetail = noopPrimeGameDetail,
   activateMatchTab = noopActivateMatchTab,
@@ -78,6 +85,7 @@ export const usePredictionSchedule = ({
   const [deepLinkParamValidationNotice, setDeepLinkParamValidationNotice] = useState<string | null>(null);
   const [navigationSeedGame, setNavigationSeedGame] = useState<Game | null>(null);
   const [isNavigationSeedResolving, setIsNavigationSeedResolving] = useState(false);
+  const [bootstrapByGameId, setBootstrapByGameId] = useState<Record<string, PredictionBootstrapResponse>>({});
 
   const {
     pastRangeLoadState,
@@ -170,6 +178,35 @@ export const usePredictionSchedule = ({
   const deepLinkDate = rawDeepLinkDate ? normalizePredictionDate(rawDeepLinkDate) || '' : '';
   const hasStateNavigationSeed = Boolean(stateGame);
   const hasNavigationSeedGame = Boolean(navigationSeedGame?.gameId && navigationSeedGame?.gameDate);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleBootstrapInvalidated = (event: Event) => {
+      const gameId = event instanceof CustomEvent && typeof event.detail?.gameId === 'string'
+        ? event.detail.gameId
+        : '';
+      if (!gameId) {
+        setBootstrapByGameId({});
+        return;
+      }
+      setBootstrapByGameId((prev) => {
+        if (!prev[gameId]) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+    };
+
+    window.addEventListener(PREDICTION_BOOTSTRAP_INVALIDATED_EVENT, handleBootstrapInvalidated);
+    return () => {
+      window.removeEventListener(PREDICTION_BOOTSTRAP_INVALIDATED_EVENT, handleBootstrapInvalidated);
+    };
+  }, []);
 
   const setProgrammaticSearchParams = useCallback((
     nextSearchParams: URLSearchParams,
@@ -320,6 +357,7 @@ export const usePredictionSchedule = ({
       : (options.preserveVisibleDate === false ? dayData.date : currentVisibleDate);
     const targetIndex = normalizedDates.findIndex((entry) => entry.date === targetDate);
     if (targetIndex !== -1 && targetIndex !== currentDateIndexRef.current) {
+      currentDateIndexRef.current = targetIndex;
       setCurrentDateIndex(targetIndex);
     }
 
@@ -354,6 +392,33 @@ export const usePredictionSchedule = ({
     return nextRequest;
   }, []);
 
+  const fetchAndCacheInteractiveUserVotes = useCallback(async (
+    games: Game[],
+    requestKeySuffix: string,
+    requestGuard?: () => boolean
+  ) => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    const interactiveGameIds = games
+      .filter((game) => game.homeScore == null && game.awayScore == null)
+      .map((game) => game.gameId)
+      .filter(Boolean);
+    if (interactiveGameIds.length === 0) {
+      return;
+    }
+
+    await fetchAndCacheUserVotes(
+      interactiveGameIds,
+      requestKeySuffix,
+      requestGuard
+    );
+  }, [
+    fetchAndCacheUserVotes,
+    isLoggedIn,
+  ]);
+
   const loadPredictionDay = useCallback(async (
     targetDate: string,
     options: LoadPredictionDayOptions
@@ -383,6 +448,11 @@ export const usePredictionSchedule = ({
       } else if (options.moveToLoadedDate && cachedIndex !== currentDateIndexRef.current) {
         setCurrentDateIndex(cachedIndex);
       }
+      await fetchAndCacheInteractiveUserVotes(
+        Array.isArray(cachedResult.data.games) ? cachedResult.data.games : [],
+        options.requestKeySuffix,
+        isStale
+      );
       return cachedResult;
     }
 
@@ -399,15 +469,11 @@ export const usePredictionSchedule = ({
       preserveVisibleDate: options.preserveVisibleDate,
       replaceExistingDates: options.replaceExistingDates,
     });
-    const resultGames = Array.isArray(result.data.games) ? result.data.games : [];
-    const interactiveGames = resultGames.filter((game) => game.homeScore == null && game.awayScore == null);
-    if (isLoggedIn && interactiveGames.length > 0) {
-      await fetchAndCacheUserVotes(
-        interactiveGames.map((game) => game.gameId).filter(Boolean),
-        options.requestKeySuffix,
-        isStale
-      );
-    }
+    await fetchAndCacheInteractiveUserVotes(
+      Array.isArray(result.data.games) ? result.data.games : [],
+      options.requestKeySuffix,
+      isStale
+    );
 
     if (!isStale()) {
       syncRangeStateFromDates(normalizedDates, normalizedDate);
@@ -416,10 +482,82 @@ export const usePredictionSchedule = ({
     return result;
   }, [
     buildCachedDayResult,
-    fetchAndCacheUserVotes,
-    isLoggedIn,
+    fetchAndCacheInteractiveUserVotes,
     mergeDayIntoState,
     requestPredictionDay,
+    syncRangeStateFromDates,
+  ]);
+
+  const rememberPredictionBootstrap = useCallback((bootstrap: PredictionBootstrapResponse) => {
+    const selectedGameId = bootstrap.selectedGameFound ? bootstrap.selectedGameId : null;
+    if (!selectedGameId) {
+      return;
+    }
+    setBootstrapByGameId((prev) => ({
+      ...prev,
+      [selectedGameId]: bootstrap,
+    }));
+  }, []);
+
+  const loadPredictionBootstrap = useCallback(async (
+    targetDate: string,
+    targetGameId: string,
+    options: LoadPredictionDayOptions
+  ): Promise<MatchDayResult> => {
+    const normalizedDate = normalizePredictionDate(targetDate);
+    const normalizedGameId = toPredictionGameId(targetGameId) || targetGameId.trim();
+    if (!normalizedDate || !normalizedGameId) {
+      return {
+        ok: false,
+        error: {
+          message: '유효한 경기 정보가 아닙니다.',
+          code: 'INVALID_BOOTSTRAP_INPUT',
+          status: 400,
+        },
+      };
+    }
+
+    const isStale = options.requestGuard ?? (() => false);
+    const result = await fetchPredictionBootstrap(normalizedDate, normalizedGameId);
+    if (isStale()) {
+      return CANCELED_MATCH_DAY_RESULT;
+    }
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error,
+      };
+    }
+    if (result.data.selectedGameFound) {
+      rememberPredictionBootstrap(result.data);
+    } else {
+      deepLinkResolutionPendingRef.current = false;
+      deepLinkResolutionAttemptRef.current = 0;
+      deepLinkResolutionDirectionRef.current = 'future';
+    }
+    const normalizedDates = await mergeDayIntoState(result.data.schedule, {
+      moveToLoadedDate: options.moveToLoadedDate,
+      preserveVisibleDate: options.preserveVisibleDate,
+      replaceExistingDates: options.replaceExistingDates,
+    });
+    await fetchAndCacheInteractiveUserVotes(
+      Array.isArray(result.data.schedule.games) ? result.data.schedule.games : [],
+      options.requestKeySuffix,
+      isStale
+    );
+
+    if (!isStale()) {
+      syncRangeStateFromDates(normalizedDates, normalizedDate);
+    }
+
+    return {
+      ok: true,
+      data: result.data.schedule,
+    };
+  }, [
+    fetchAndCacheInteractiveUserVotes,
+    mergeDayIntoState,
+    rememberPredictionBootstrap,
     syncRangeStateFromDates,
   ]);
 
@@ -667,6 +805,7 @@ export const usePredictionSchedule = ({
     matchBoundsRef.current = null;
     matchBoundsHydrationPromiseRef.current = null;
     setMatchBoundsState(null);
+    setBootstrapByGameId({});
     dayNavigationByDateRef.current = {};
     if (!silent) {
       setLoading(true);
@@ -675,14 +814,18 @@ export const usePredictionSchedule = ({
     try {
       const today = getTodayString();
       const initialAnchorDate = deepLinkDate || today;
+      const shouldUseInitialBootstrap = Boolean(deepLinkGameId);
 
-      const firstDayResult = await loadPredictionDay(initialAnchorDate, {
+      const firstDayOptions = {
         moveToLoadedDate: true,
         preserveVisibleDate: false,
         replaceExistingDates: true,
         requestKeySuffix: hasDeepLinkSeed ? `deepLink:initial:${initialAnchorDate}` : 'initial',
         requestGuard: () => initialListRequestRef.current !== requestId,
-      });
+      };
+      const firstDayResult = shouldUseInitialBootstrap
+        ? await loadPredictionBootstrap(initialAnchorDate, deepLinkGameId, firstDayOptions)
+        : await loadPredictionDay(initialAnchorDate, firstDayOptions);
       if (initialListRequestRef.current !== requestId) {
         return;
       }
@@ -805,6 +948,7 @@ export const usePredictionSchedule = ({
     deepLinkGameId,
     deepLinkParamValidationNotice,
     emitFlowEvent,
+    loadPredictionBootstrap,
     loadPredictionDay,
     scheduleMatchBoundsHydration,
     setCanLoadMoreFutureState,
@@ -917,6 +1061,9 @@ export const usePredictionSchedule = ({
   ]);
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     if (!rawDeepLinkGameId && !rawDeepLinkDate) {
       setDeepLinkParamValidationNotice(null);
       return;
@@ -934,9 +1081,12 @@ export const usePredictionSchedule = ({
     }
 
     setDeepLinkParamValidationNotice(invalidNotice);
-  }, [rawDeepLinkDate, rawDeepLinkGameId, searchParams, setSearchParams]);
+  }, [disabled, rawDeepLinkDate, rawDeepLinkGameId, searchParams, setSearchParams]);
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     if (hasStateNavigationSeed && isNavigationSeedResolving) {
       return;
     }
@@ -951,6 +1101,7 @@ export const usePredictionSchedule = ({
     }
   }, [
     fetchAllGames,
+    disabled,
     hasStateNavigationSeed,
     hasNavigationSeedGame,
     isAuthLoading,
@@ -984,6 +1135,9 @@ export const usePredictionSchedule = ({
     if (matchesLoadState !== 'ready') {
       return;
     }
+    if (deepLinkGameId) {
+      return;
+    }
 
     const visibleDate = allDatesData[currentDateIndex]?.date;
     if (!visibleDate || !dayNavigationByDateRef.current[visibleDate]) {
@@ -991,7 +1145,7 @@ export const usePredictionSchedule = ({
     }
 
     scheduleAdjacentPrefetch(visibleDate);
-  }, [allDatesData, currentDateIndex, matchesLoadState, scheduleAdjacentPrefetch]);
+  }, [allDatesData, currentDateIndex, deepLinkGameId, matchesLoadState, scheduleAdjacentPrefetch]);
 
   useEffect(() => clearScheduledAdjacentPrefetch, [clearScheduledAdjacentPrefetch]);
 
@@ -1151,6 +1305,26 @@ export const usePredictionSchedule = ({
     }
   }, [allDatesData.length, currentDateIndex, loadMoreFutureMatches, resetNavigationDeepLinkResolution]);
 
+  const markDirectDateLoadError = useCallback((targetDate: string, error: MatchDayFailure['error']) => {
+    const parsedError = normalizeMatchRangeError(error);
+    const currentVisibleDate = allDatesDataRef.current[currentDateIndexRef.current]?.date || '';
+    const errorMessage = parsedError.message || '요청 실패';
+
+    if (!currentVisibleDate || targetDate >= currentVisibleDate) {
+      setFutureRangeLoadState('error');
+      setFutureRangeLoadErrorMessage(errorMessage);
+      setCanLoadMoreFutureState(true);
+      return;
+    }
+
+    setPastRangeLoadState('error');
+    setPastRangeLoadErrorMessage(errorMessage);
+    setCanLoadMorePastState(true);
+  }, [
+    setCanLoadMoreFutureState,
+    setCanLoadMorePastState,
+  ]);
+
   const goToDate = useCallback((targetDate: string) => {
     const normalizedDate = normalizePredictionDate(targetDate);
     if (!normalizedDate) {
@@ -1160,6 +1334,7 @@ export const usePredictionSchedule = ({
     const loadedIndex = allDatesDataRef.current.findIndex((entry) => entry.date === normalizedDate);
     if (loadedIndex !== -1) {
       resetNavigationDeepLinkResolution();
+      currentDateIndexRef.current = loadedIndex;
       setCurrentDateIndex(loadedIndex);
       return;
     }
@@ -1169,8 +1344,16 @@ export const usePredictionSchedule = ({
       moveToLoadedDate: true,
       preserveVisibleDate: false,
       requestKeySuffix: `jump:${normalizedDate}`,
+    }).then((result) => {
+      if (!result.ok && !isRangeResultCanceled(result.error)) {
+        markDirectDateLoadError(normalizedDate, result.error);
+      }
     });
-  }, [loadPredictionDay, resetNavigationDeepLinkResolution]);
+  }, [
+    loadPredictionDay,
+    markDirectDateLoadError,
+    resetNavigationDeepLinkResolution,
+  ]);
 
   useEffect(() => () => {
     clearScheduledAdjacentPrefetch();
@@ -1191,6 +1374,7 @@ export const usePredictionSchedule = ({
     currentDate,
     currentGame,
     currentDayNavigationMeta,
+    bootstrapByGameId,
     loading,
     matchesLoadState,
     matchesLoadErrorMessage,

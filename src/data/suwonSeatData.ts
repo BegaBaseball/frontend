@@ -90,7 +90,6 @@ export const SUWON_SEATMAP_IMAGE = {
   sourceLabel: 'kt wiz 공식 좌석 안내 2026 좌석도(SEAT_MAP_PC, 2026-03-26)',
   sourceUrl: 'https://www.ktwiz.co.kr/ticket/seatmap',
   assetStatus: 'OFFICIAL' as const,
-  draftAssetFileName: 'suwon-kt-seatmap-official-2026.png',
   requiredAssetFileName: 'suwon-kt-seatmap-official-2026@2x.webp',
   requiredAssetPath: 'src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp',
 };

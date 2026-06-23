@@ -8,7 +8,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
 
   return {
     id: 777,
-    hostId: 123,
+    hostHandle: 'testuser',
     hostName: 'HOST',
     hostBadge: 'VERIFIED',
     hostAverageRating: 4.9,
@@ -33,7 +33,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
 describe('Mate Selling Flow', () => {
   const fakeToken = 'e2e-mate-token';
   const revealDeferredMateDetailContent = () => {
-    cy.contains('CHECK-IN QR').should('be.visible');
+    cy.contains('체크인 QR').should('be.visible');
     cy.scrollTo(0, 900);
   };
   const authState = {
@@ -114,14 +114,14 @@ describe('Mate Selling Flow', () => {
     cy.wait('@getPartyApplications');
 
     revealDeferredMateDetailContent();
-    cy.contains('button', '판매 전환').should('be.visible').click();
+    cy.contains('button', '판매 전환').scrollIntoView().should('be.visible').click();
     cy.contains('티켓 판매 전환').should('be.visible');
     cy.get('input[placeholder="예: 15000"]').clear().type('50000');
     cy.contains('button', '확인').click();
 
     cy.wait('@convertToSelling');
     cy.contains('판매 전환이 완료되었습니다.').should('be.visible');
-    cy.contains('티켓 판매가').should('be.visible');
-    cy.contains('50,000원').should('be.visible');
+    cy.contains('티켓 판매가').scrollIntoView().should('be.visible');
+    cy.contains('50,000원').scrollIntoView().should('be.visible');
   });
 });

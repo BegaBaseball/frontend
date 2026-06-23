@@ -69,7 +69,7 @@ export default function NoticePageRuntime() {
             <Button
               onClick={() => refetch()}
               variant="outline"
-              className="border-gray-300 dark:border-border dark:text-gray-200 dark:hover:bg-secondary"
+              className="border-gray-300 dark:border-border dark:text-white dark:hover:bg-secondary"
               disabled={isLoading}
             >
               <RefreshIcon className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -107,9 +107,9 @@ export default function NoticePageRuntime() {
             공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
           </div>
         ) : posts.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-gray-200 p-12 text-center text-gray-500 dark:border-white/10 dark:text-gray-400">
-            <MegaphoneIcon className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-zinc-300" />
-            <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">등록된 공지사항이 없습니다.</h3>
+          <div className="rounded-lg border-2 border-dashed border-gray-200 p-12 text-center text-gray-500 dark:border-white/10 dark:text-white">
+            <MegaphoneIcon className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-white" />
+            <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">등록된 공지사항이 없습니다.</h3>
           </div>
         ) : (
           <div className="space-y-4">
@@ -124,10 +124,10 @@ export default function NoticePageRuntime() {
                     <MegaphoneIcon className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 text-base text-zinc-900 dark:text-zinc-100">
+                    <h3 className="mb-1 text-base text-zinc-900 dark:text-white">
                       {post.content?.split('\n')[0]?.slice(0, 60) || '공지사항'}
                     </h3>
-                    <div className="flex items-center gap-3 text-[16px] text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 text-[16px] text-gray-500 dark:text-white">
                       <span>{post.author}</span>
                       <span>•</span>
                       <span>{post.timeAgo}</span>
@@ -167,7 +167,7 @@ export default function NoticePageRuntime() {
                   const isActive = currentPage === page;
                   return (
                     <div key={page} className="flex items-center">
-                      {isGap && <span className="mx-1 text-gray-400 dark:text-gray-300">...</span>}
+                      {isGap && <span className="mx-1 text-gray-400 dark:text-white">...</span>}
                       <Button
                         variant={isActive ? 'default' : 'outline'}
                         size="sm"

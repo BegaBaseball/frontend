@@ -48,11 +48,18 @@ test('fetchMatchesByRangeWithMeta는 meta 응답을 유지한다', async (t) => 
         : input.url;
 
     return new Response(JSON.stringify({
-      content: [],
+      content: [{
+        gameId: 'GAME-1',
+        gameDate: '2026-03-02',
+        homeTeam: 'LG',
+        awayTeam: 'SS',
+        stadium: '잠실야구장',
+        startTime: { hour: 18, minute: 30, second: 0 },
+      }],
       page: 0,
       size: 150,
-      totalElements: 0,
-      totalPages: 0,
+      totalElements: 1,
+      totalPages: 1,
       hasNext: false,
       hasPrevious: false,
     }), {
@@ -69,7 +76,8 @@ test('fetchMatchesByRangeWithMeta는 meta 응답을 유지한다', async (t) => 
   assert.equal(response.ok, true);
   if (response.ok) {
     assert.equal(response.data.page, 0);
-    assert.equal(response.data.totalElements, 0);
+    assert.equal(response.data.totalElements, 1);
+    assert.equal(response.data.content[0]?.startTime, '18:30:00');
   }
   assert.match(requestUrl, /\/api\/matches\/range\?/);
   assert.match(requestUrl, /startDate=2026-03-01/);

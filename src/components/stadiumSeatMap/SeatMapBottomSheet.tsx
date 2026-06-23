@@ -53,7 +53,12 @@ export function SeatMapBottomSheet<TSection>({
     setSnap(section ? (preferFull ? 'full' : 'half') : 'peek');
   }, [adapter, preferFull, section]);
 
-  const heights: Record<Snap, string> = { peek: '80px', half: '58vh', full: '92vh' };
+  const mobileSheetBottomOffset = 'calc(var(--mobile-chrome-height) + var(--mobile-chrome-bottom-offset) + env(safe-area-inset-bottom) + 0.75rem)';
+  const heights: Record<Snap, string> = {
+    peek: '80px',
+    half: 'min(58vh, calc(100vh - var(--mobile-content-safe-bottom) - 1rem))',
+    full: 'calc(100vh - var(--mobile-content-safe-bottom) - 1rem)',
+  };
 
   const onTouchStart = (event: React.TouchEvent) => { startY.current = event.touches[0].clientY; };
   const onTouchMove = (event: React.TouchEvent) => {
@@ -70,6 +75,7 @@ export function SeatMapBottomSheet<TSection>({
         data-testid={testId}
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2.5 border-t border-slate-200 bg-white px-5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
         style={{
+          bottom: mobileSheetBottomOffset,
           height: 80,
           backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.raised : undefined,
           borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.borderStrong : undefined,
@@ -88,7 +94,7 @@ export function SeatMapBottomSheet<TSection>({
           </svg>
         </div>
         <div>
-          <div className="text-sm font-bold text-slate-800 dark:text-slate-100" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
+          <div className="text-sm font-bold text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
             {copy?.emptyTitle ?? '구역을 탭하세요'}
           </div>
           <div className="text-[11px] text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>블록 정보와 실제 시야 사진을 확인하세요</div>
@@ -112,6 +118,7 @@ export function SeatMapBottomSheet<TSection>({
       data-testid={testId}
       className="fixed bottom-0 left-0 right-0 z-50 flex flex-col overflow-hidden bg-white"
       style={{
+        bottom: mobileSheetBottomOffset,
         height: heights[snap],
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -153,7 +160,7 @@ export function SeatMapBottomSheet<TSection>({
             data-testid={searchAction.testId}
             aria-label={searchAction.ariaLabel ?? '구역 검색'}
             onClick={searchAction.onClick}
-            className="shrink-0 cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-opacity hover:opacity-85"
+            className="min-h-11 shrink-0 cursor-pointer rounded-lg border px-2.5 py-2 text-[11px] font-black transition-opacity hover:opacity-85"
             style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
           >
             {searchAction.label ?? '구역 검색'}
@@ -163,7 +170,7 @@ export function SeatMapBottomSheet<TSection>({
           type="button"
           onClick={onClose}
           aria-label="닫기"
-          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-slate-100 text-slate-400"
+          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-slate-100 text-slate-400"
           style={{
             backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined,
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
@@ -230,7 +237,7 @@ export function SeatMapBottomSheet<TSection>({
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+          <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             {adapter.getSourceNote(section)}
           </p>
           {accessibilityNote && (

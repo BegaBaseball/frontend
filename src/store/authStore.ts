@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { runSessionScopedQueryCleanup } from '../lib/queryClientRegistry';
+import {
+  primeUserProfileQuery,
+  runSessionScopedQueryCleanup,
+} from '../lib/queryClientRegistry';
 import {
   clearPersistedAuthBootstrapState,
   getPersistedAuthBootstrapMeta,
@@ -201,6 +204,19 @@ export const authStoreApi = {
   normalizeProfileImageUrl,
 };
 
+const cacheAuthenticatedUserProfile = (profile: User) => {
+  if (!profile.id) {
+    return;
+  }
+
+  primeUserProfileQuery({
+    ...profile,
+    name: profile.name || '',
+    favoriteTeam: profile.favoriteTeam || '없음',
+    profileImageUrl: authStoreApi.normalizeProfileImageUrl(profile.profileImageUrl),
+  });
+};
+
 interface User {
   id: number;
   email: string;
@@ -287,7 +303,7 @@ export const useAuthStore = create<AuthStore>()(
 
           const now = Date.now();
           const lastAttemptAt = getPublicOptionalBootstrapAttemptStore()[pathname] ?? 0;
-          if (hasInMemoryUser && now - lastAttemptAt <= PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS) {
+          if (now - lastAttemptAt <= PUBLIC_OPTIONAL_BOOTSTRAP_DEDUP_MS) {
             return false;
           }
           getPublicOptionalBootstrapAttemptStore()[pathname] = now;
@@ -308,6 +324,7 @@ export const useAuthStore = create<AuthStore>()(
               retryOn401: !isPublicOptional,
             });
             markPersistedAuthBootstrapSuccess();
+            cacheAuthenticatedUserProfile(profile);
             set({
               user: profile,
               isAuthLoading: false,

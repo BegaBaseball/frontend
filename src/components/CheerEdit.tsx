@@ -62,7 +62,7 @@ export default function CheerEdit() {
             <button
               type="button"
               onClick={handleCancel}
-              className="text-gray-600 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white"
+              className="text-gray-600 dark:text-white transition-colors hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowLeftIcon className="h-6 w-6" />
             </button>
@@ -106,7 +106,7 @@ export default function CheerEdit() {
                   <MessageSquareIcon className="h-10 w-10 text-red-500" />
                 </div>
                 <h2 className="mt-6 mb-4 text-gray-900 dark:text-white">수정 권한이 없습니다</h2>
-                <p className="mb-6 text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="mb-6 text-gray-600 dark:text-white leading-relaxed">
                   이 게시글은{' '}
                   <span className="font-bold" style={{ color: post.teamColor ?? 'var(--primary)' }}>
                     {post.team}
@@ -154,7 +154,7 @@ export default function CheerEdit() {
                     <label className="block text-[16px] text-primary">
                       첨부 이미지
                     </label>
-                    <span className="text-[16px] text-gray-500 dark:text-gray-300">
+                    <span className="text-[16px] text-gray-500 dark:text-white">
                       최대 10개, 파일당 5MB 이하
                     </span>
                   </div>
@@ -173,7 +173,7 @@ export default function CheerEdit() {
                         input?.click();
                       }
                     }}
-                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-[16px] text-gray-500 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
+                    className={`flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-[16px] text-gray-500 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isDragging ? 'border-green-600 bg-green-50 dark:border-green-500/60 dark:bg-green-950/40' : 'border-gray-300 dark:border-border hover:border-gray-400 dark:hover:border-white/20 dark:bg-secondary/20'
                       }`}
                   >
                     <UploadIcon className="h-6 w-6" />
@@ -211,7 +211,7 @@ export default function CheerEdit() {
                               />
                             )}
                             <div
-                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-secondary text-gray-400 dark:text-gray-300 ${imageUrl ? 'hidden' : ''
+                              className={`absolute inset-0 z-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-secondary text-gray-400 dark:text-white ${imageUrl ? 'hidden' : ''
                                 }`}
                             >
                               <ImageIcon className="h-8 w-8" />

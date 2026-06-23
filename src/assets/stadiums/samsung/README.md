@@ -2,7 +2,7 @@
 
 The Daegu seat map component uses the official Samsung Lions ticket guide image cropped to the `좌석안내도` section:
 
-`daegu-samsung-seatmap-official-2026.png`
+`daegu-samsung-seatmap-official-2026.webp`
 
 Official source page:
 
@@ -12,7 +12,7 @@ Official image URL used for the crop:
 
 `https://www.samsunglions.com/img/intro/2026ticket_v1.png?v=20260430`
 
-Hit-area coordinates in `src/data/daeguSeatData.ts` are authored in the official seat-map coordinate space `1707 x 2048`. The React component renders this PNG inside the SVG with `<image width="1707" height="2048">`, then places transparent SVG hit-area paths in the same coordinate system.
+Hit-area coordinates in `src/data/daeguSeatData.ts` are authored in the official seat-map coordinate space `1707 x 2048`. The React component renders this WebP inside the SVG with `<image width="1707" height="2048">`, then places transparent SVG hit-area paths in the same coordinate system.
 
 During coordinate review, `DAEGU_SEATMAP_VIEWPORT` intentionally remains the full image bounds `{ x: 0, y: 0, width: 1707, height: 2048 }`. Apply a cropped viewport only after every block path has been directly measured from the official image and verified against the debug overlay.
 
@@ -23,7 +23,7 @@ Trace review workflow:
 1. Run `npm run stadium:daegu:operator-handoff` and `npm run stadium:daegu:handoff-evidence`.
 2. Review `reports/stadium/daegu-seatmap-operator-handoff.json`, `reports/stadium/daegu-seatmap-handoff-evidence.md`, and the canonical retrace batch reports.
 3. Treat `candidateOuterBoundaryPath`, `candidateBoundaryPath`, and `candidateHullPath` as pixel-derived review candidates only; do not auto-promote them to `imageGeometry.d`.
-4. Promote a block to official confidence only after its path has been manually checked against the official PNG in `?daeguDebug=1`.
+4. Promote a block to official confidence only after its path has been manually checked against the official image in `?daeguDebug=1`.
 
 If the official ticket guide changes, regenerate this crop from the official source image and update `src/data/daeguSeatData.ts` with the image dimensions, `assetStatus`, and verified block-level `DAEGU_BLOCKS` geometry.
 
@@ -31,14 +31,14 @@ If the official ticket guide changes, regenerate this crop from the official sou
 
 The uploaded reference image is stored as:
 
-`daegu-operator-reference-rapak-2025-enhanced-transparent.png`
+`daegu-operator-reference-rapak-2025-enhanced-transparent.webp`
 
 Image contract:
 
 - source id: `OPERATOR_REFERENCE_RAPAK_2025`
 - dimensions: `4096x4096`
 - viewBox: `0 0 4096 4096`
-- SHA-256: `a5d2f812cddf8c2481e5ab07f6138500537e8ee56a74092b1237cd99a43c879e`
+- SHA-256: `98e9545d2c9b1c9e7058a7da4723eecc97e28cc315fcc20d279eef89037c4d56`
 - status: `OPERATOR_REFERENCE`
 - polygon status: `REFERENCE_TRACE_DRAFT_READY`
 
@@ -78,4 +78,4 @@ Expected operator-provided asset path, if permission is confirmed:
 
 `daegu-myseatcheck-reference-2026.webp`
 
-Keep the reference source in `EXTERNAL_REFERENCE_PENDING_ASSET` and `REFERENCE_ONLY_PENDING_ASSET` until an authorized local file is supplied, its natural dimensions and SHA-256 are recorded, and operator-approved polygon rows are provided. Do not copy coordinates from this external reference into `DAEGU_BLOCKS`; the existing official PNG remains the source of truth for selectable production polygons.
+Keep the reference source in `EXTERNAL_REFERENCE_PENDING_ASSET` and `REFERENCE_ONLY_PENDING_ASSET` until an authorized local file is supplied, its natural dimensions and SHA-256 are recorded, and operator-approved polygon rows are provided. Do not copy coordinates from this external reference into `DAEGU_BLOCKS`; the existing official image remains the source of truth for selectable production polygons.

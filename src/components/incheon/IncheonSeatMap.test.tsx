@@ -114,7 +114,8 @@ test('IncheonSeatMap detail panel은 운영자 직관 안내와 다이어리 시
   assert.match(html, /data-testid="incheon-operator-row-notice"/);
   assert.match(html, /data-testid="incheon-operator-row-updated"/);
   assert.match(html, /운영자 제공 출입구\/매점\/동선 자료 필요/);
-  assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
+  assert.match(html, /운영자 제공 자료 필요/);
+  assert.doesNotMatch(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
   assert.match(html, /다이어리에서 시야 사진 공유하기/);
   assert.match(html, /data-testid="incheon-seatmap-search-open"/);
   assert.match(html, /구역 검색/);

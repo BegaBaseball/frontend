@@ -1,13 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Ranking, RankingSnapshot } from '../types/home';
 import { formatDateForAPI } from '../utils/home';
+import type { OpenApiResponseBody } from './openapiTypes';
 import { publicGet } from './publicClient';
 
 export const RANKING_SNAPSHOT_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['ranking-snapshot', dateKey, seasonYear ?? 'auto'] as const;
 
+type RankingSnapshotWireResponse = OpenApiResponseBody<'/api/kbo/rankings/snapshot', 'get'>;
+type TeamRankingsWireResponse = OpenApiResponseBody<'/api/kbo/rankings/{seasonYear}', 'get'>;
+
 interface FetchRankingSnapshotOptions {
   date?: Date;
   seasonYear?: number;
+  signal?: AbortSignal;
 }
 
 const isRankingSnapshot = (value: unknown): value is RankingSnapshot => {
@@ -66,7 +71,9 @@ export const fetchRankingSnapshot = async (
   options: FetchRankingSnapshotOptions = {},
 ): Promise<RankingSnapshot> => {
   if (options.seasonYear != null) {
-    const data = await publicGet<unknown>(`/kbo/rankings/${options.seasonYear}`);
+    const data = await publicGet<TeamRankingsWireResponse | RankingSnapshotWireResponse>(`/kbo/rankings/${options.seasonYear}`, {
+      signal: options.signal,
+    });
     return normalizeRankingSnapshot(data, options);
   }
 
@@ -75,8 +82,9 @@ export const fetchRankingSnapshot = async (
     params.date = formatDateForAPI(options.date);
   }
 
-  const data = await publicGet<unknown>('/kbo/rankings/snapshot', {
+  const data = await publicGet<RankingSnapshotWireResponse>('/kbo/rankings/snapshot', {
     ...(Object.keys(params).length > 0 ? { params } : {}),
+    signal: options.signal,
   });
 
   return normalizeRankingSnapshot(data, options);
@@ -89,7 +97,7 @@ export const getRankingSnapshotQueryOptions = (
 
   return {
     queryKey: RANKING_SNAPSHOT_QUERY_KEY(dateKey, options.seasonYear),
-    queryFn: () => fetchRankingSnapshot(options),
+    queryFn: ({ signal }: { signal: AbortSignal }) => fetchRankingSnapshot({ ...options, signal }),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   } as const;

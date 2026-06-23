@@ -25,11 +25,11 @@ import {
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { StatusBadge } from './ui/status-badge';
 import { type ChatMessage, type Party } from '../types/mate';
 import { cn } from '../lib/utils';
 import {
   getPartyFlowLabel,
-  getPartyStatusMeta,
   mateHeroCardClass,
   mateInsetPanelClass,
   matePageShellClass,
@@ -37,6 +37,7 @@ import {
 } from '../utils/mateFlowUi';
 import { formatGameDate, getMatePartyDisplayTeamId } from '../utils/mate';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { getMateStatusBadgeMeta } from '../utils/statusBadgeMeta';
 
 const MateChatConversationPanel = lazy(() => import('./MateChatConversationPanel'));
 
@@ -87,11 +88,11 @@ function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             {label}
           </p>
           <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{value}</p>
-          <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-300">{detail}</p>
+          <p className="mt-1 text-[16px] text-gray-500 dark:text-white">{detail}</p>
         </div>
       </div>
     </div>
@@ -132,7 +133,7 @@ export default function MateChatViewRuntime({
   onRefetchMessages,
   formatMessageTime,
 }: MateChatViewRuntimeProps) {
-  const statusMeta = getPartyStatusMeta(party.status);
+  const statusMeta = getMateStatusBadgeMeta(party.status);
   const flowLabel = getPartyFlowLabel(party.status);
   const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
   const headerTitle = isHost ? '호스트 채팅' : '메이트 채팅';
@@ -190,8 +191,8 @@ export default function MateChatViewRuntime({
             뒤로
           </Button>
 
-          <Card className={`p-0 ${mateHeroCardClass}`}>
-            <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-5 py-5 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(10,15,20,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-6 sm:py-6">
+          <Card className={`status-badge-hover-scope p-0 ${mateHeroCardClass}`}>
+            <div className="border-b border-gray-200/70 bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(255,255,255,0.92)_55%,_rgba(22,163,74,0.04))] px-5 py-5 dark:border-border/70 dark:bg-[linear-gradient(135deg,_rgba(16,185,129,0.18),_rgba(0,0,0,0.94)_58%,_rgba(16,185,129,0.08))] sm:px-6 sm:py-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 gap-3 sm:gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/70 bg-white/90 shadow-lg dark:border-white/10 dark:bg-white/10 sm:h-16 sm:w-16">
@@ -204,17 +205,15 @@ export default function MateChatViewRuntime({
                     <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                       {heroHeading}
                     </h1>
-                    <p className="mt-3 max-w-2xl text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+                    <p className="mt-3 max-w-2xl text-[16px] leading-6 text-gray-600 dark:text-white">
                       {headerDescription}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <MatePill className={cn('border text-[16px] font-semibold', statusMeta.className)}>
-                        {statusMeta.label}
-                      </MatePill>
+                      <StatusBadge {...statusMeta} size="md" />
                       <MatePill className="border border-primary/20 bg-primary/10 text-primary dark:border-primary/30 dark:bg-primary/15 dark:text-emerald-300">
                         {flowLabel}
                       </MatePill>
-                      <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-gray-200">
+                      <MatePill className="border border-gray-200 bg-white/90 text-gray-700 dark:border-border dark:bg-card/70 dark:text-white">
                         {roleLabel}
                       </MatePill>
                       {party.ticketVerified && (
@@ -230,11 +229,11 @@ export default function MateChatViewRuntime({
                 </div>
 
                 <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
-                  <div className="grid gap-3 text-[16px] text-gray-600 dark:text-gray-300">
+                  <div className="grid gap-3 text-[16px] text-gray-600 dark:text-white">
                     <div className="flex items-start gap-3">
                       <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
-                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">일정</p>
+                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">일정</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                           {formatGameDate(party.gameDate)} {party.gameTime}
                         </p>
@@ -243,9 +242,9 @@ export default function MateChatViewRuntime({
                     <div className="flex items-start gap-3">
                       <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                       <div>
-                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">경기장 / 좌석</p>
+                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">경기장 / 좌석</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">{stadiumDisplayName}</p>
-                        <p className="text-[16px] text-gray-500 dark:text-gray-300">{party.section}</p>
+                        <p className="text-[16px] text-gray-500 dark:text-white">{party.section}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -255,11 +254,11 @@ export default function MateChatViewRuntime({
                         <MateWifiOffIcon className="mt-0.5 h-4 w-4 text-amber-500" />
                       )}
                       <div>
-                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">실시간 상태</p>
+                        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">실시간 상태</p>
                         <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                           {isConnected ? '실시간 연결됨' : '재연결 중'}
                         </p>
-                        <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                        <p className="text-[16px] text-gray-500 dark:text-white">
                           {isConnected ? '읽음 처리와 메시지 수신이 활성화된 상태입니다.' : '전송은 계속 가능하며 연결이 복구되면 동기화됩니다.'}
                         </p>
                       </div>
@@ -277,7 +276,7 @@ export default function MateChatViewRuntime({
                     {isHost && (
                       <Button
                         variant="outline"
-                        className="w-full justify-center border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-gray-200 dark:hover:bg-secondary sm:w-auto"
+                        className="w-full justify-center border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-white dark:hover:bg-secondary sm:w-auto"
                         onClick={onNavigateManage}
                       >
                         신청 관리

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   analyzeTeam,
   CoachAnalyzeError,
+  COACH_PAYLOAD_TOO_LARGE_MESSAGE,
   getCoachGenerationModeLabel,
   getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
@@ -136,6 +137,151 @@ test('analyzeTeam은 5xx에서 generic 분석 실패 에러를 던진다', async
   );
 });
 
+test('analyzeTeam은 5xx JSON 에러 응답 메시지를 사용자 메시지로 노출한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => (
+    new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_UPSTREAM_UNAVAILABLE',
+        message: 'AI 서비스가 현재 사용할 수 없습니다.',
+      }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    ) as never
+  ));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.equal(error.statusCode, 502);
+      assert.equal(error.message, 'AI 서비스가 현재 사용할 수 없습니다.');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 504 timeout 응답을 stream timeout 전용 메시지로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_UPSTREAM_TIMEOUT',
+      }),
+      {
+        status: 504,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'STREAM_TIMEOUT');
+      assert.equal(error.statusCode, null);
+      assert.equal(error.message, 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 2);
+});
+
+test('analyzeTeam은 AI proxy payload limit 413을 전용 에러로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      }),
+      {
+        status: 413,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 413);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 1);
+});
+
+test('analyzeTeam은 non-JSON 413도 payload limit 전용 에러로 매핑한다', async (t) => {
+  let requestCount = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requestCount += 1;
+
+    return new Response('request entity too large', {
+      status: 413,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  });
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 413);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      return true;
+    },
+  );
+
+  assert.equal(requestCount, 1);
+});
+
+test('analyzeTeam은 AI proxy payload code를 5xx 메시지 노출보다 우선한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => (
+    new Response(
+      JSON.stringify({
+        success: false,
+        code: 'AI_PROXY_PAYLOAD_TOO_LARGE',
+        message: 'AI 요청 본문이 너무 큽니다.',
+        data: { maxBytes: 65536 },
+      }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ) as never
+  ));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, 502);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      assert.notEqual(error.message, 'AI 요청 본문이 너무 큽니다.');
+      return true;
+    },
+  );
+});
+
 test('analyzeTeam은 SSE 이벤트 경계 뒤에는 event 타입을 message로 되돌린다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
@@ -200,6 +346,28 @@ test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', asyn
   );
 });
 
+test('analyzeTeam은 SSE payload limit error 이벤트를 전용 에러로 승격한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: error\n',
+    'data: {"code":"AI_PROXY_PAYLOAD_TOO_LARGE","message":"AI 요청 본문이 너무 큽니다.","data":{"maxBytes":65536}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.statusCode, null);
+      assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      return true;
+    },
+  );
+});
+
 test('analyzeTeam은 trailing newline 없는 마지막 done 이벤트도 파싱한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: message\n',
@@ -237,6 +405,69 @@ test('analyzeTeam은 generation_mode를 파싱해 manual 상세 분석 여부를
   assert.equal(response.generation_mode, 'llm_manual');
 });
 
+test('analyzeTeam은 llm_skip_reason 메타를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"auto_brief","analysis_type":"game_preview","generation_mode":"evidence_fallback","cache_state":"PENDING_WAIT","in_progress":true,"llm_skip_reason":"pending_wait","structured_response":{"headline":"브리핑 준비 중","sentiment":"neutral","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"브리핑 생성 중","coach_note":"잠시 후 다시 확인해주세요."}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam({
+    ...baseRequest,
+    request_mode: 'auto_brief',
+    analysis_type: 'game_preview',
+  });
+
+  assert.equal(response.llm_skip_reason, 'pending_wait');
+  assert.equal(response.llmSkipReason, 'pending_wait');
+});
+
+test('analyzeTeam은 analysisType을 analysis_type payload로 정규화하고 SSE meta를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+
+    assert.equal(body.analysis_type, 'game_preview');
+    assert.equal(body.analysisType, undefined);
+
+    return buildStreamResponse([
+      'event: meta\n',
+      'data: {"request_mode":"manual_detail","analysis_type":"game_preview","generation_mode":"deterministic_preview","structured_response":{"headline":"프리뷰 헤드라인","sentiment":"neutral","analysisType":"game_preview","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"프리뷰 리포트","coach_note":"프리뷰 노트"}}\n',
+      '\n',
+      'event: done\n',
+      'data: [DONE]\n',
+      '\n',
+    ]) as never;
+  });
+
+  const response = await analyzeTeam({
+    ...baseRequest,
+    analysisType: 'game_preview',
+  });
+
+  assert.equal(response.analysis_type, 'game_preview');
+  assert.equal(response.analysisType, 'game_preview');
+  assert.equal(response.generation_mode, 'deterministic_preview');
+  assert.equal(response.structuredData?.analysisType, 'game_preview');
+});
+
+test('analyzeTeam은 win_probability_home 메타를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: meta\n',
+    'data: {"request_mode":"manual_detail","win_probability_home":0.62,"structured_response":{"headline":"메타 헤드라인","sentiment":"positive","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 리포트","coach_note":"코치 노트"}}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const response = await analyzeTeam(baseRequest);
+
+  assert.equal(response.win_probability_home, 0.62);
+});
+
 test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 누락 focus 메타를 파싱한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
@@ -257,6 +488,8 @@ test('analyzeTeam은 evidence_fallback meta를 성공 응답으로 유지하고 
 });
 
 test('getCoachGenerationModeLabel은 generation_mode를 사용자 문구로 변환한다', () => {
+  assert.equal(getCoachGenerationModeLabel('deterministic_review'), '규칙 기반 경기 리뷰');
+  assert.equal(getCoachGenerationModeLabel('deterministic_preview'), '규칙 기반 경기 프리뷰');
   assert.equal(getCoachGenerationModeLabel('llm_manual'), '근거 기반 상세 분석');
   assert.equal(getCoachGenerationModeLabel('evidence_fallback'), '확인 근거 기반');
 });

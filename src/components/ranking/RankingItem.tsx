@@ -147,11 +147,11 @@ const RankingItem = React.memo(function RankingItem({
           {team ? (
             <>
               <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-                {!alreadySaved && <SharedGripVerticalIcon className="hidden w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0 sm:block" />}
+                {!alreadySaved && <SharedGripVerticalIcon className="hidden w-4 h-4 text-gray-400 dark:text-white flex-shrink-0 sm:block" />}
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-secondary/40 border border-gray-100 dark:border-border flex-shrink-0">
                   <TeamLogo team={team.shortName} size={32} />
                 </div>
-                <span style={{ fontWeight: 700 }} className={`min-w-0 flex-1 truncate ${isPlayoffTeam ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>{team.name}</span>
+                <span style={{ fontWeight: 700 }} className={`min-w-0 flex-1 truncate ${isPlayoffTeam ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white'}`}>{team.name}</span>
               </div>
               {!alreadySaved && (
                 <div className="flex shrink-0 items-center gap-1">
@@ -162,7 +162,7 @@ const RankingItem = React.memo(function RankingItem({
                     disabled={index === 0}
                     aria-label={`${team.name} 순위 올리기`}
                     data-testid={`ranking-move-up-${team.id}`}
-                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-gray-300 dark:hover:bg-primary/20"
+                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:bg-primary/20"
                   >
                     <SharedChevronUpIcon className="w-4 h-4" />
                   </Button>
@@ -173,7 +173,7 @@ const RankingItem = React.memo(function RankingItem({
                     disabled={index >= 9}
                     aria-label={`${team.name} 순위 내리기`}
                     data-testid={`ranking-move-down-${team.id}`}
-                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-gray-300 dark:hover:bg-primary/20"
+                    className="rounded-lg text-gray-600 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:bg-primary/20"
                   >
                     <SharedChevronDownIcon className="w-4 h-4" />
                   </Button>
@@ -191,7 +191,7 @@ const RankingItem = React.memo(function RankingItem({
               )}
             </>
           ) : (
-            <div className="flex-1 text-center text-gray-400 dark:text-gray-300 text-[16px]">
+            <div className="flex-1 text-center text-gray-400 dark:text-white text-[16px]">
               팀을 선택하세요
             </div>
           )}

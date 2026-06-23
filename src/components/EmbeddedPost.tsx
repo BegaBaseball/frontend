@@ -35,7 +35,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
             <div
                 className="mt-3 rounded-xl border border-dashed border-gray-200 dark:border-border bg-gray-50 dark:bg-card/50 p-4"
             >
-                <div className="flex items-center gap-2 text-gray-400 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-gray-400 dark:text-white">
                     <TrashIcon className="h-4 w-4" />
                     <span className="text-[16px] font-semibold">삭제된 게시글입니다</span>
                 </div>
@@ -70,7 +70,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                             height={24}
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center text-[16px] font-semibold text-slate-500 dark:text-gray-300">
+                        <div className="h-full w-full flex items-center justify-center text-[16px] font-semibold text-slate-500 dark:text-white">
                             {post.author?.slice(0, 1) || '?'}
                         </div>
                     )}
@@ -79,7 +79,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                     <span className="font-semibold text-gray-900 dark:text-white truncate">
                         {post.author}
                     </span>
-                    <span className="text-gray-500 dark:text-gray-300 truncate">
+                    <span className="text-gray-500 dark:text-white truncate">
                         {post.authorHandle} · {formatTimeAgo(post.createdAt)}
                     </span>
                 </div>
@@ -87,7 +87,7 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
 
             {/* 본문 미리보기 */}
             {previewContent && (
-                <p className="text-[16px] font-semibold text-gray-600 dark:text-gray-300 line-clamp-2">
+                <p className="text-[16px] font-semibold text-gray-600 dark:text-white line-clamp-2">
                     {previewContent}
                 </p>
             )}

@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { TEAMS } from '../utils/constants';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import type { MatchInfo } from '../hooks/useMateCreateMachine';
+import { useTodayKey } from '../hooks/useTodayKey';
 import type { PartyFormData } from '../utils/mateCreateDraft';
 import { FieldLabel } from './MateCreatePrimitives';
 
@@ -29,6 +30,8 @@ export default function MateCreateMatchStep({
   updateFormData,
   knownStadiumNames,
 }: MateCreateMatchStepProps) {
+  const todayKey = useTodayKey();
+
   return (
     <div className="space-y-6">
       <h2 className="mb-2 text-xl text-primary sm:text-2xl">
@@ -46,7 +49,7 @@ export default function MateCreateMatchStep({
             type="date"
             value={formData.gameDate}
             onChange={(event) => updateFormData({ gameDate: event.target.value })}
-            min={new Date().toISOString().split('T')[0]}
+            min={todayKey}
             className="mt-1"
           />
         </div>
@@ -80,17 +83,17 @@ export default function MateCreateMatchStep({
                   >
                     <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-col gap-3 sm:flex-1 sm:flex-row sm:items-center sm:gap-4">
-                        <div className="w-full text-left text-[16px] font-bold text-gray-500 dark:text-gray-300 sm:w-16 sm:text-center">
+                        <div className="w-full text-left text-[16px] font-bold text-gray-500 dark:text-white sm:w-16 sm:text-center">
                           {match.gameTime}
                         </div>
                         <div className="hidden h-8 w-px bg-gray-200 dark:bg-secondary sm:block" />
                         <div className="flex items-center justify-between gap-3 sm:flex-1 sm:justify-center">
-                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-gray-200 sm:text-base">
+                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-white sm:text-base">
                             <TeamLogo teamId={match.awayTeam} size="sm" />
                             <span className="truncate">{TEAMS.find((team) => team.id === match.awayTeam)?.name}</span>
                           </span>
                           <span className="text-gray-400 text-[16px]">VS</span>
-                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-gray-200 sm:text-base">
+                          <span className="flex min-w-0 items-center gap-2 text-[16px] font-bold dark:text-white sm:text-base">
                             <span className="truncate">{TEAMS.find((team) => team.id === match.homeTeam)?.name}</span>
                             <TeamLogo teamId={match.homeTeam} size="sm" />
                           </span>
@@ -108,7 +111,7 @@ export default function MateCreateMatchStep({
               })
             ) : (
               <div className="space-y-4 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-4 dark:border-amber-700/40 dark:bg-amber-900/20">
-                <div className="text-center py-2 text-gray-600 dark:text-gray-200">
+                <div className="text-center py-2 text-gray-600 dark:text-white">
                   경기 목록 조회 결과가 없습니다. 수동 입력으로 계속 진행할 수 있습니다.
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -169,7 +172,7 @@ export default function MateCreateMatchStep({
                     </select>
                   </div>
                 </div>
-                <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                <p className="text-[16px] text-gray-500 dark:text-white">
                   팀/구장까지 입력하면 다음 단계로 진행할 수 있습니다.
                 </p>
               </div>

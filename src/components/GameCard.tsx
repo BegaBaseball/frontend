@@ -1,9 +1,11 @@
 import type { KeyboardEvent } from 'react';
 import { Card } from './ui/card';
+import { StatusBadge } from './ui/status-badge';
 import TeamLogo from './TeamLogo';
 import { getFullTeamName } from '../constants/teams';
 import { ArrowRightIcon, ClockIcon, MapPinIcon } from './icons/PublicShellIcons';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { getGameStatusBadgeMeta } from '../utils/statusBadgeMeta';
 
 interface GameCardProps {
   game: {
@@ -97,7 +99,7 @@ const getHomeStatusTone = (status: NormalizedGameStatus, isResultPending = false
   if (isResultPending) {
     return {
       label: '결과 확인 중',
-      badge: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200',
+      badge: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-white',
       dot: 'bg-slate-400',
     };
   }
@@ -118,7 +120,7 @@ const getHomeStatusTone = (status: NormalizedGameStatus, isResultPending = false
     case 'COMPLETED':
       return {
         label: '경기 종료',
-        badge: 'border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-200',
+        badge: 'border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-white',
         dot: 'bg-gray-500',
       };
     case 'POSTPONED':
@@ -130,19 +132,19 @@ const getHomeStatusTone = (status: NormalizedGameStatus, isResultPending = false
     case 'CANCELLED':
       return {
         label: '경기 취소',
-        badge: 'border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-300',
+        badge: 'border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-white',
         dot: 'bg-gray-400',
       };
     case 'DRAW':
       return {
         label: '무승부',
-        badge: 'border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-200',
+        badge: 'border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-white',
         dot: 'bg-gray-500',
       };
     default:
       return {
         label: '상태 미정',
-        badge: 'border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-300',
+        badge: 'border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-white',
         dot: 'bg-gray-400',
       };
   }
@@ -156,9 +158,9 @@ const getOutcomeTextClass = (label: string) => {
     return 'text-blue-600 dark:text-blue-200';
   }
   if (label === '무') {
-    return 'text-gray-700 dark:text-gray-200';
+    return 'text-gray-700 dark:text-white';
   }
-  return 'text-gray-500 dark:text-gray-300';
+  return 'text-gray-500 dark:text-white';
 };
 
 const getTeamResultTone = (label: string) => {
@@ -176,7 +178,7 @@ const getTeamResultTone = (label: string) => {
   }
   return {
     frame: 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/[0.04]',
-    score: 'text-gray-800 dark:text-gray-100',
+    score: 'text-gray-800 dark:text-white',
   };
 };
 
@@ -214,7 +216,7 @@ function HomeSideLabel({
   align: 'start' | 'end';
 }) {
   return (
-    <span className={`inline-flex h-8 min-w-10 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] font-black text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-300 ${align === 'end' ? 'ml-auto' : ''}`}>
+    <span className={`inline-flex h-8 min-w-10 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] font-black text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white ${align === 'end' ? 'ml-auto' : ''}`}>
       {label}
     </span>
   );
@@ -255,7 +257,7 @@ function MobileTeamRow({
       ) : null}
       <div className="min-w-0 space-y-0.5">
         <p className="truncate text-[17px] font-black leading-tight text-gray-950 dark:text-white">{displayName}</p>
-        <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-gray-500">{fullName}</p>
+        <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-white">{fullName}</p>
       </div>
       {isHome ? (
         <TeamLogo team={team} size={36} className="h-9 w-9 shrink-0" />
@@ -314,56 +316,8 @@ const resolveLeagueLabel = (leagueType?: string, leagueBadge?: string): string |
 };
 
 export default function GameCard({ game, featured = false, variant = 'default', onSelectPrediction }: GameCardProps) {
-  // 경기 상태에 따른 뱃지 스타일
-  const getStatusBadgeStyle = (status: NormalizedGameStatus) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return {
-          bg: 'bg-sky-50/95 dark:bg-sky-900/35 border border-sky-200/80 dark:border-sky-700/55',
-          color: 'text-sky-700 dark:text-sky-200',
-          text: '경기 예정'
-        };
-      case 'LIVE': // Live status
-        return {
-          bg: 'bg-red-50/95 dark:bg-red-900/35 border border-red-200/80 dark:border-red-700/55',
-          color: 'text-red-700 dark:text-red-200',
-          text: 'LIVE'
-        };
-      case 'COMPLETED':
-        return {
-          bg: 'bg-emerald-50/95 dark:bg-emerald-900/35 border border-emerald-200/80 dark:border-emerald-700/55',
-          color: 'text-emerald-700 dark:text-emerald-200',
-          text: '경기 종료'
-        };
-      case 'CANCELLED':
-        return {
-          bg: 'bg-zinc-50/90 dark:bg-zinc-800/55 border border-zinc-200/80 dark:border-zinc-700/55',
-          color: 'text-zinc-600 dark:text-zinc-200',
-          text: '경기 취소'
-        };
-      case 'POSTPONED':
-        return {
-          bg: 'bg-orange-50/95 dark:bg-orange-900/35 border border-orange-200/80 dark:border-orange-700/55',
-          color: 'text-orange-700 dark:text-orange-200',
-          text: '우천 취소' // Usually weather related
-        };
-      case 'DRAW':
-        return {
-          bg: 'bg-violet-50/95 dark:bg-violet-900/35 border border-violet-200/80 dark:border-violet-700/55',
-          color: 'text-violet-700 dark:text-violet-200',
-          text: '무승부'
-        };
-      default:
-        return {
-          bg: 'bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/55',
-          color: 'text-slate-700 dark:text-slate-200',
-          text: '상태 미정'
-        };
-    }
-  };
-
   const statusCode = resolveGameStatus(game.gameStatus || game.status);
-  const statusStyle = getStatusBadgeStyle(statusCode);
+  const statusMeta = getGameStatusBadgeMeta(statusCode, game.gameStatusKr);
   const isCompleted = statusCode === 'COMPLETED' || statusCode === 'DRAW';
   const isCardSelectable = typeof onSelectPrediction === 'function';
 
@@ -479,14 +433,14 @@ export default function GameCard({ game, featured = false, variant = 'default', 
     const matchupMarkerClass = showTeamScores
       ? statusCode === 'LIVE'
         ? 'border-red-200 bg-red-50 text-[11px] text-red-700 dark:border-red-700/40 dark:bg-red-950/15 dark:text-red-200'
-        : 'border-gray-200 bg-gray-50 text-[11px] text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-300'
+        : 'border-gray-200 bg-gray-50 text-[11px] text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white'
       : isResultPending
-        ? 'border-slate-200 bg-slate-50 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200'
+        ? 'border-slate-200 bg-slate-50 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white'
         : outcomeSummary
           ? 'border-red-200 bg-red-50/60 text-[12px] text-red-700 dark:border-red-700/40 dark:bg-red-950/15 dark:text-red-200'
           : statusCode === 'POSTPONED' || statusCode === 'CANCELLED'
             ? 'border-amber-200 bg-amber-50 text-[11px] text-amber-700 dark:border-amber-700/40 dark:bg-amber-950/15 dark:text-amber-200'
-            : 'border-transparent text-[16px] text-gray-400 dark:text-gray-500';
+            : 'border-transparent text-[16px] text-gray-400 dark:text-white';
     const actionLabel = isResultPending
       ? '경기 보기'
       : statusCode === 'LIVE'
@@ -547,12 +501,12 @@ export default function GameCard({ game, featured = false, variant = 'default', 
           </div>
 
           <div className="flex min-w-0 items-center justify-between gap-3 border-t border-gray-100 pt-2 dark:border-white/8">
-            <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-bold text-gray-500 dark:text-gray-400">
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-bold text-gray-500 dark:text-white">
               <MapPinIcon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{mobileMetaLabel}</span>
             </span>
             {isCardSelectable ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[12px] font-black text-gray-700 transition-colors group-hover:border-primary/30 group-hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-200 dark:group-hover:text-emerald-200">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[12px] font-black text-gray-700 transition-colors group-hover:border-primary/30 group-hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:group-hover:text-emerald-200">
                 {actionLabel}
                 <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
@@ -567,7 +521,7 @@ export default function GameCard({ game, featured = false, variant = 'default', 
               <span className="break-keep">{displayTime}</span>
             </span>
             {leagueLabel ? (
-              <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-black text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-300">
+              <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-black text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
                 {leagueLabel}
               </span>
             ) : null}
@@ -578,9 +532,9 @@ export default function GameCard({ game, featured = false, variant = 'default', 
               <TeamLogo team={game.awayTeam} size={38} className="h-10 w-10 shrink-0" />
               <div className="min-w-0 space-y-0.5">
                 <p className="truncate text-[17px] font-black leading-tight text-gray-950 dark:text-white">{awayDisplayName}</p>
-                <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-gray-500">{awayTeamName}</p>
+                <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-white">{awayTeamName}</p>
                 {awayPitcherName ? (
-                  <p className="truncate text-[11px] font-black leading-tight text-gray-500 dark:text-gray-400">선발 {awayPitcherName}</p>
+                  <p className="truncate text-[11px] font-black leading-tight text-gray-500 dark:text-white">선발 {awayPitcherName}</p>
                 ) : null}
                 {showOutcomeLabels && !showTeamScores ? (
                   <span className={`mt-1 block text-[11px] font-black ${getOutcomeTextClass(awayOutcomeLabel)}`}>
@@ -615,9 +569,9 @@ export default function GameCard({ game, featured = false, variant = 'default', 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-4">
               <div className="min-w-0 space-y-0.5">
                 <p className="truncate text-[17px] font-black leading-tight text-gray-950 dark:text-white">{homeDisplayName}</p>
-                <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-gray-500">{homeTeamName}</p>
+                <p className="truncate text-[12px] font-bold leading-tight text-gray-400 dark:text-white">{homeTeamName}</p>
                 {homePitcherName ? (
-                  <p className="truncate text-[11px] font-black leading-tight text-gray-500 dark:text-gray-400">선발 {homePitcherName}</p>
+                  <p className="truncate text-[11px] font-black leading-tight text-gray-500 dark:text-white">선발 {homePitcherName}</p>
                 ) : null}
                 {showOutcomeLabels && !showTeamScores ? (
                   <span className={`mt-1 block text-[11px] font-black ${getOutcomeTextClass(homeOutcomeLabel)}`}>
@@ -630,11 +584,11 @@ export default function GameCard({ game, featured = false, variant = 'default', 
           </div>
 
           <div className="flex min-w-0 flex-col items-start gap-1">
-            <span className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-bold text-gray-500 dark:text-gray-400">
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-bold text-gray-500 dark:text-white">
               <MapPinIcon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{displayStadium}</span>
             </span>
-            <span className="max-w-full truncate text-[12px] font-bold text-gray-400 dark:text-gray-500">
+            <span className="max-w-full truncate text-[12px] font-bold text-gray-400 dark:text-white">
               {desktopDetailLabel}
             </span>
           </div>
@@ -645,12 +599,12 @@ export default function GameCard({ game, featured = false, variant = 'default', 
               <span className="truncate">{homeStatusText}</span>
             </span>
             {isCardSelectable ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[12px] font-black text-gray-700 transition-colors group-hover:border-primary/30 group-hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-200 dark:group-hover:text-emerald-200">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[12px] font-black text-gray-700 transition-colors group-hover:border-primary/30 group-hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:group-hover:text-emerald-200">
                 {actionLabel}
                 <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
             ) : (
-              <span className="min-w-0 truncate text-[13px] font-bold text-gray-400 dark:text-gray-500">
+              <span className="min-w-0 truncate text-[13px] font-bold text-gray-400 dark:text-white">
                 {desktopDetailLabel}
               </span>
             )}
@@ -685,16 +639,7 @@ export default function GameCard({ game, featured = false, variant = 'default', 
             </span>
           </div>
 
-          {statusStyle && (
-            <span
-              className={`inline-flex shrink-0 items-center rounded-full ${isHomeVariant ? 'px-2.5 py-1 text-[14px] sm:text-[15px]' : 'px-3 py-1 text-[16px]'} font-semibold border
-              ${statusCode === 'COMPLETED' ? 'text-[#2ecc71] border-[#2ecc71]/40 bg-[#2ecc71]/10' :
-                statusCode === 'LIVE' ? 'text-rose-400 border-rose-900 bg-rose-950/30' :
-                  'text-muted-foreground border-border bg-secondary'}`}
-            >
-              {statusStyle.text}
-            </span>
-          )}
+          <StatusBadge {...statusMeta} size={isHomeVariant ? 'sm' : 'md'} />
         </div>
 
         {/* Main Content: 팀 로고 & 점수 */}

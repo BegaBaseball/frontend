@@ -69,7 +69,7 @@ export const formatDateString = (date: Date): string => {
 /**
  * 승패 텍스트 변환
  */
-export const getWinningLabel = (winningName: string): string => {
+export const getWinningLabel = (winningName: string | null | undefined): string => {
   if (winningName === 'WIN') return '승리';
   if (winningName === 'DRAW') return '무승부';
   if (winningName === 'LOSE') return '패배';

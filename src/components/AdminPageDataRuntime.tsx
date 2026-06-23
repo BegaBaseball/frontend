@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { fetchAdminStats } from '../api/admin';
+import { useQuery } from '@tanstack/react-query';
 import type { AdminStats } from '../types/admin';
+import { getAdminStatsQueryOptions } from '../hooks/adminStatsQueryOptions';
 import type { AdminTabValue } from './admin/adminPageTabs';
 import {
   AdminActivityIcon,
@@ -24,17 +25,23 @@ const MODERATION_TABS = new Set<AdminTabValue>([
   'seatViews',
   'offseason',
 ]);
+const DEFAULT_ADMIN_STATS: AdminStats = {
+  totalUsers: 0,
+  totalPosts: 0,
+  totalMates: 0,
+};
 
 interface AdminPageDataRuntimeProps {
   activeTab: AdminTabValue;
 }
 
 export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntimeProps) {
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalPosts: 0,
-    totalMates: 0,
-  });
+  const {
+    data: statsData,
+    isError: isStatsError,
+    refetch: refetchStats,
+  } = useQuery(getAdminStatsQueryOptions());
+  const stats = statsData ?? DEFAULT_ADMIN_STATS;
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [hasMountedCommunityRuntime, setHasMountedCommunityRuntime] = useState(
@@ -47,18 +54,11 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
   const [hasMountedAiRuntime, setHasMountedAiRuntime] = useState(activeTab === 'ai');
 
   const loadStats = useCallback(async () => {
-    try {
-      const data = await fetchAdminStats();
-      setStats(data);
-    } catch (loadError) {
-      console.error('통계 조회 오류:', loadError);
-      setError('통계를 불러오는데 실패했습니다.');
-    }
-  }, []);
+    await refetchStats();
+  }, [refetchStats]);
 
-  useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
+  const statsError = isStatsError ? '통계를 불러오는데 실패했습니다.' : null;
+  const displayedError = error ?? statsError;
 
   useEffect(() => {
     if (COMMUNITY_TABS.has(activeTab)) {
@@ -86,11 +86,11 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
         </div>
       )}
 
-      {error && (
+      {displayedError && (
         <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 backdrop-blur-sm animate-fade-in-up">
           <div className="flex items-center gap-2">
             <AdminTrendingUpIcon className="w-5 h-5 rotate-180" />
-            {error}
+            {displayedError}
           </div>
         </div>
       )}

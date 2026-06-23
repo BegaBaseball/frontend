@@ -5,6 +5,7 @@ import { useLandingScroll } from '../hooks/useLandingScroll';
 import FeatureCard from './FeatureCard';
 import LaptopMockup from './LaptopMockup';
 import { Container, Section, SectionHeader } from './ui/page-primitives';
+import './LandingFeaturesRuntime.css';
 
 export default function LandingFeaturesRuntime() {
   const [activeFeature, setActiveFeature] = useState(0);

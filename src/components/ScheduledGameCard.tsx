@@ -1,15 +1,16 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Card } from './ui/card';
 import {
-  SharedAlertTriangleIcon,
   SharedArrowUpRightIcon,
   SharedCalendarDaysIcon,
   SharedClockIcon,
 } from './icons/SharedLeafIcons';
 import { Button } from './ui/button';
+import { StatusBadge } from './ui/status-badge';
 import TeamLogo from './TeamLogo';
 import { normalizePredictionDate } from '../utils/predictionHomeLogic';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { getGameStatusBadgeMeta } from '../utils/statusBadgeMeta';
 
 const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -49,7 +50,6 @@ const formatSourceDate = (sourceDate?: string) => {
 
 export default function ScheduledGameCard({ game, onSelectPrediction }: ScheduledGameCardProps) {
   const normalizedStatus = (game.gameStatus || '').toUpperCase();
-  const isSecondary = normalizedStatus === 'POSTPONED' || normalizedStatus === 'CANCELLED';
   const hasMeaningfulStatusLabel = Boolean(
     game.gameStatusKr &&
     game.gameStatusKr.trim() &&
@@ -59,6 +59,7 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
   const statusLabel = hasMeaningfulStatusLabel
     ? game.gameStatusKr!.trim()
     : (normalizedStatus === 'POSTPONED' ? '경기 연기' : normalizedStatus === 'CANCELLED' ? '경기 취소' : '경기 예정');
+  const statusMeta = getGameStatusBadgeMeta(normalizedStatus, statusLabel);
   const leagueLabel = game.leagueBadge || '예정 경기';
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -90,33 +91,24 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
             <SharedClockIcon className="w-3.5 h-3.5" />
             {game.time || '시간 미정'}
           </span>
-          <span
-            className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[16px] font-semibold ${
-              isSecondary
-              ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40'
-              : 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/40'
-            }`}
-          >
-            {isSecondary ? <SharedAlertTriangleIcon className="w-3 h-3" /> : <SharedClockIcon className="w-3 h-3" />}
-            {statusLabel}
-          </span>
+          <StatusBadge {...statusMeta} size="md" />
         </div>
 
         <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white/90 dark:border-white/12 dark:bg-secondary/60 px-3 py-2.5 shadow-sm">
           <div className="flex-1 flex items-center gap-2 min-w-0">
             <TeamLogo team={game.awayTeam} size={26} />
-            <span className="font-semibold text-[16px] text-gray-900 dark:text-gray-100 truncate">{(game.awayTeamFull ?? '').split(' ')[0]}</span>
+            <span className="font-semibold text-[16px] text-gray-900 dark:text-white truncate">{(game.awayTeamFull ?? '').split(' ')[0]}</span>
           </div>
           <span className="h-px w-6 bg-gray-300 dark:bg-gray-600" />
           <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-            <span className="font-semibold text-[16px] text-gray-900 dark:text-gray-100 truncate">{(game.homeTeamFull ?? '').split(' ')[0]}</span>
+            <span className="font-semibold text-[16px] text-gray-900 dark:text-white truncate">{(game.homeTeamFull ?? '').split(' ')[0]}</span>
             <TeamLogo team={game.homeTeam} size={26} />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[16px] font-semibold text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-secondary px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-white/10">
+            <span className="inline-flex items-center gap-1 text-[16px] font-semibold text-slate-600 dark:text-white bg-slate-100 dark:bg-secondary px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-white/10">
               <SharedCalendarDaysIcon className="w-3 h-3" />
               {formatSourceDate(game.sourceDate)}
             </span>
@@ -124,9 +116,9 @@ export default function ScheduledGameCard({ game, onSelectPrediction }: Schedule
               {leagueLabel}
             </span>
           </div>
-          <div className="text-[16px] text-gray-600 dark:text-gray-200 leading-relaxed">
+          <div className="text-[16px] text-gray-600 dark:text-white leading-relaxed">
             <p className="truncate">{formatStadiumDisplayName(game.stadium) || '구장 미정'}</p>
-            <p className="text-[16px] font-semibold text-slate-500 dark:text-slate-300">선발 발표 전</p>
+            <p className="text-[16px] font-semibold text-slate-500 dark:text-white">선발 발표 전</p>
           </div>
         </div>
 

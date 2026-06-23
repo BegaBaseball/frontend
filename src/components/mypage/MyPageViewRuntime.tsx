@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import type { ReactNode } from 'react';
 
 import type { ViewMode } from '../../types/profile';
 import LoadingSpinner from '../LoadingSpinner';
@@ -8,6 +9,9 @@ const ProfileEditSection = lazy(() => import('./ProfileEditSection'));
 const PasswordChangeSection = lazy(() => import('./PasswordChangeSection'));
 const DiaryViewSection = lazy(() => import('./Diaryform'));
 const MateHistorySection = lazy(() => import('./MateHistorySection'));
+const MyCheerPostsSection = lazy(() => import('./MyCheerPostsSection'));
+const MyPageSeasonLogRuntime = lazy(() => import('./MyPageSeasonLogRuntime'));
+const MyPageSettingsHomeRuntime = lazy(() => import('./MyPageSettingsHomeRuntime'));
 
 type MyPageViewRuntimeProps = {
   viewMode: ViewMode;
@@ -15,16 +19,25 @@ type MyPageViewRuntimeProps = {
   name: string;
   email: string;
   savedFavoriteTeam: string;
+  cheerPoints: number;
   userRole?: string;
   userProvider?: string;
   initialBio?: string | null;
   hasPassword?: boolean;
-  onSetViewMode: (mode: ViewMode) => void;
+  selectedDiaryDate?: string | null;
+  onSetViewMode: (mode: ViewMode, options?: { date?: string | null }) => void;
   onProfileUpdated: () => void;
+  onOpenTicketUploadModal: () => void;
 };
 
 const sectionFallback = (
   <LoadingSpinner size="lg" text="페이지를 불러오는 중..." fullScreen={false} />
+);
+
+const renderSection = (children: ReactNode) => (
+  <Suspense fallback={sectionFallback}>
+    {children}
+  </Suspense>
 );
 
 export default function MyPageViewRuntime({
@@ -33,81 +46,100 @@ export default function MyPageViewRuntime({
   name,
   email,
   savedFavoriteTeam,
+  cheerPoints,
   userRole,
   userProvider,
   initialBio,
   hasPassword,
+  selectedDiaryDate,
   onSetViewMode,
   onProfileUpdated,
+  onOpenTicketUploadModal,
 }: MyPageViewRuntimeProps) {
+  if (viewMode === 'diary') {
+    return renderSection(
+      <MyPageSeasonLogRuntime
+        profileImage={profileImage}
+        name={name}
+        onOpenDiaryEditor={(date) => onSetViewMode('diaryEditor', { date })}
+        onOpenTicketUploadModal={onOpenTicketUploadModal}
+      />
+    );
+  }
+
+  if (viewMode === 'diaryEditor') {
+    return renderSection(
+      <DiaryViewSection
+        initialDate={selectedDiaryDate ?? undefined}
+        onBackToLog={() => onSetViewMode('diary')}
+      />
+    );
+  }
+
   if (viewMode === 'editProfile' || viewMode === 'accountSettings' || viewMode === 'blockedUsers') {
-    return (
-      <Suspense fallback={sectionFallback}>
-        <ProfileEditSection
-          profileImage={profileImage}
-          name={name}
-          email={email}
-          savedFavoriteTeam={savedFavoriteTeam}
-          userRole={userRole}
-          userProvider={userProvider}
-          initialBio={initialBio}
-          hasPassword={hasPassword}
-          activeSection={
-            viewMode === 'accountSettings'
-              ? 'accountSettings'
-              : viewMode === 'blockedUsers'
-                ? 'blockedUsers'
-                : 'profile'
+    return renderSection(
+      <ProfileEditSection
+        profileImage={profileImage}
+        name={name}
+        email={email}
+        savedFavoriteTeam={savedFavoriteTeam}
+        userRole={userRole}
+        userProvider={userProvider}
+        initialBio={initialBio}
+        hasPassword={hasPassword}
+        activeSection={
+          viewMode === 'accountSettings'
+            ? 'accountSettings'
+            : viewMode === 'blockedUsers'
+              ? 'blockedUsers'
+              : 'profile'
+        }
+        onSectionChange={(section) => {
+          if (section === 'profile') {
+            onSetViewMode('editProfile');
+          } else {
+            onSetViewMode(section);
           }
-          onSectionChange={(section) => {
-            if (section === 'profile') {
-              onSetViewMode('editProfile');
-            } else {
-              onSetViewMode(section);
-            }
-          }}
-          onCancel={() => onSetViewMode('diary')}
-          onSave={onProfileUpdated}
-          onChangePassword={() => onSetViewMode('changePassword')}
-        />
-      </Suspense>
+        }}
+        onCancel={() => onSetViewMode('settings')}
+        onSave={onProfileUpdated}
+        onChangePassword={() => onSetViewMode('changePassword')}
+      />
     );
   }
 
   if (viewMode === 'changePassword') {
-    return (
-      <Suspense fallback={sectionFallback}>
-        <PasswordChangeSection
-          onCancel={() => onSetViewMode('editProfile')}
-          onSuccess={() => onSetViewMode('diary')}
-          hasPassword={hasPassword}
-        />
-      </Suspense>
+    return renderSection(
+      <PasswordChangeSection
+        onCancel={() => onSetViewMode('editProfile')}
+        onSuccess={() => onSetViewMode('diary')}
+        hasPassword={hasPassword}
+      />
     );
   }
 
-  if (viewMode === 'diary') {
-    return (
-      <Suspense fallback={sectionFallback}>
-        <DiaryViewSection />
-      </Suspense>
+  if (viewMode === 'settings') {
+    return renderSection(
+      <MyPageSettingsHomeRuntime
+        email={email}
+        savedFavoriteTeam={savedFavoriteTeam}
+        userProvider={userProvider}
+        hasPassword={hasPassword}
+        onSetViewMode={onSetViewMode}
+      />
     );
   }
 
   if (viewMode === 'stats') {
-    return (
-      <Suspense fallback={<LoadingSpinner size="lg" text="통계를 불러오는 중..." fullScreen={false} />}>
-        <DiaryStatistics />
-      </Suspense>
-    );
+    return renderSection(<DiaryStatistics cheerPoints={cheerPoints} />);
   }
 
   if (viewMode === 'mateHistory') {
-    return (
-      <Suspense fallback={sectionFallback}>
-        <MateHistorySection />
-      </Suspense>
-    );
+    return renderSection(<MateHistorySection />);
+  }
+
+  if (viewMode === 'cheerPosts') {
+    return renderSection(<MyCheerPostsSection />);
   }
 
   return null;

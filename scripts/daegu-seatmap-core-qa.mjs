@@ -277,7 +277,7 @@ const runPixelComponents = async () => {
     if (!seed) {
       return {
         status: 'NO_SEED_COLOR',
-        reason: 'No non-background official PNG pixel was found around the current label point.',
+        reason: 'No non-background official image pixel was found around the current label point.',
       };
     }
 
@@ -324,7 +324,7 @@ const runPixelComponents = async () => {
         status: 'NO_COMPONENT',
         seedColor: seed.color,
         seedPoint: seed.point,
-        reason: 'No connected official PNG color component matched the seed color.',
+        reason: 'No connected official image color component matched the seed color.',
       };
     }
 
@@ -694,7 +694,7 @@ const runTraceManifest = async () => {
       operatorNote: '',
       reviewAction: block.sourceConfidence === 'OFFICIAL'
         ? 'Already marked as official traced.'
-        : 'Do not promote automatically. Compare candidateOuterBoundaryPath, candidateBoundaryPath, and candidateHullPath with official PNG/debug overlay, then manually trace and review.',
+        : 'Do not promote automatically. Compare candidateOuterBoundaryPath, candidateBoundaryPath, and candidateHullPath with official image/debug overlay, then manually trace and review.',
     };
   });
 
@@ -844,7 +844,7 @@ const runTraceManifest = async () => {
     } else if (row.candidateDuplicateGroup) {
       row.reviewAction = 'Do not promote automatically. Pixel candidate is shared by multiple blocks; manually trace each official boundary.';
     } else if (row.alignmentClass === 'RETRACE_REQUIRED') {
-      row.reviewAction = 'Manual retrace from official PNG candidate is possible, but promotion still needs review.';
+      row.reviewAction = 'Manual retrace from official image candidate is possible, but promotion still needs review.';
     } else {
       row.reviewAction = 'Operator corrected path is required before promotion.';
     }
@@ -929,7 +929,7 @@ const runTraceManifest = async () => {
     '    .candidate { fill: rgba(6, 182, 212, 0.14); stroke: #06b6d4; stroke-width: 2; stroke-dasharray: 8 5; vector-effect: non-scaling-stroke; }',
     '    .label { font: 700 14px sans-serif; fill: #0f172a; stroke: #fff; stroke-width: 3; paint-order: stroke; }',
     '  </style>',
-    '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
+    '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
     ...Array.from({ length: Math.floor(1707 / 100) + 1 }, (_, index) => `  <line class="grid" x1="${index * 100}" y1="0" x2="${index * 100}" y2="2048" />`),
     ...Array.from({ length: Math.floor(2048 / 100) + 1 }, (_, index) => `  <line class="grid" x1="0" y1="${index * 100}" x2="1707" y2="${index * 100}" />`),
     '  <g id="current-paths">',
@@ -1016,7 +1016,7 @@ const runTraceManifest = async () => {
     '1. `npm run stadium:daegu:alignment-audit`를 먼저 실행해 `OFFICIAL_IMAGE_TRACED` 블록의 label top-hit gate를 통과시킵니다.',
     '2. `npm run stadium:daegu:evidence`를 실행해 pixel candidate, CSV, priority overlay, evidence crop을 같이 생성합니다.',
     '3. CSV의 `alignmentClass`, `officialFailureReasons`, `labelTopHitBlock`을 먼저 확인해 자동 승격 금지/재트레이싱/운영자 필요 대상을 분류합니다.',
-    '4. CSV의 `candidateOuterBoundaryPath`, `candidateBoundaryPath`, `candidateHullPath`는 공식 PNG 픽셀에서 뽑은 검수 후보일 뿐입니다. 그대로 자동 반영하지 않습니다.',
+    '4. CSV의 `candidateOuterBoundaryPath`, `candidateBoundaryPath`, `candidateHullPath`는 공식 이미지 픽셀에서 뽑은 검수 후보일 뿐입니다. 그대로 자동 반영하지 않습니다.',
     '5. 운영자는 CSV의 `operatorDecision`, `correctedPath`, `correctedLabelX`, `correctedLabelY`, `reviewer`, `reviewedAt`, `operatorNote`를 채워 승인/반려 기록을 남깁니다.',
     '6. `operatorDecision=APPROVED`, `correctedPath`, `correctedLabelX`, `correctedLabelY`, `reviewer`, `reviewedAt`이 모두 있는 블럭만 별도 데이터 PR에서 `imageGeometry.d`를 수동 갱신합니다.',
     '7. 직접 승인되지 않은 블럭은 `sourceConfidence=UNVERIFIED`와 `NEEDS_OPERATOR_REVIEW` 상태로 남깁니다.',
@@ -1570,13 +1570,13 @@ const runAlignmentAudit = async () => {
       reviewAction: reasons.length > 0 && block.traceStatus === 'OFFICIAL_IMAGE_TRACED'
         ? 'Demote to NEEDS_OPERATOR_REVIEW until the official path is retraced or operator-approved.'
         : row.imageApprovedComponentSplitEvidence
-          ? 'Continuous-color component was verified as a manual split by official PNG crop/overlay evidence.'
+          ? 'Continuous-color component was verified as a manual split by official image crop/overlay evidence.'
         : row.candidateDuplicateBoundaryResolved
           ? 'Shared pixel candidate boundary was resolved by an operator-approved separated path.'
         : row.candidateDuplicateGroup
           ? 'Do not promote automatically. Pixel candidate is shared by multiple blocks.'
           : alignmentClass === 'RETRACE_REQUIRED'
-            ? 'Manual retrace from official PNG candidate is possible, but promotion still needs review.'
+            ? 'Manual retrace from official image candidate is possible, but promotion still needs review.'
             : 'Operator corrected path is required before promotion.',
     };
   });
@@ -1705,7 +1705,7 @@ const runAlignmentAudit = async () => {
     '    .label { font: 800 13px sans-serif; fill: #0f172a; stroke: #fff; stroke-width: 3; paint-order: stroke; }',
     '    .reason { font: 700 10px sans-serif; fill: #334155; stroke: #fff; stroke-width: 2; paint-order: stroke; }',
     '  </style>',
-    '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
+    '  <image href="../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp" x="0" y="0" width="1707" height="2048" preserveAspectRatio="none" />',
     ...Array.from({ length: Math.floor(1707 / 100) + 1 }, (_, index) => `  <line class="grid" x1="${index * 100}" y1="0" x2="${index * 100}" y2="2048" />`),
     ...Array.from({ length: Math.floor(2048 / 100) + 1 }, (_, index) => `  <line class="grid" x1="0" y1="${index * 100}" x2="1707" y2="${index * 100}" />`),
     '  <g id="current-paths">',
@@ -2143,14 +2143,14 @@ const runOperatorHandoff = async () => {
     '',
     '1. 자동 승격은 금지합니다. `operatorDecision=APPROVED`, `correctedPath`, `reviewer`, `reviewedAt`이 모두 있어야 데이터 반영 후보가 됩니다.',
     '2. `TRACE_SHARED_CANDIDATE_BOUNDARIES`는 같은 pixel candidate를 여러 블록이 공유하므로 각 공식 경계를 별도 corrected path로 제출해야 합니다.',
-    '3. `REQUEST_OPERATOR_CORRECTED_PATH`는 공식 PNG만으로 내부 경계를 확정할 수 없는 대상입니다.',
+    '3. `REQUEST_OPERATOR_CORRECTED_PATH`는 공식 이미지만으로 내부 경계를 확정할 수 없는 대상입니다.',
     '4. 데이터 반영 후에는 `npm run stadium:daegu:alignment-audit`를 다시 통과해야 합니다.',
     '',
   ].join('\n');
 
   const imageWidth = manifest.asset?.imageWidth ?? 1707;
   const imageHeight = manifest.asset?.imageHeight ?? 2048;
-  const seatmapHref = '../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png';
+  const seatmapHref = '../../src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp';
   const svgRows = workItems;
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}" viewBox="0 0 ${imageWidth} ${imageHeight}">`,
@@ -2675,7 +2675,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 const DAEGU_CORE_QA_COMPATIBILITY_CONTRACT = [
   'operatorReviewContract',
   'alignmentStandard',
-  'official PNG 1707x2048',
+  'official image 1707x2048',
   'nonAutomaticPromotion',
   'Do not promote automatically',
   'operatorDecision=APPROVED',

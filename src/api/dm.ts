@@ -1,5 +1,5 @@
-import { privateGet, privatePost } from './privateClient';
-import type { DirectMessage, DirectMessageRoomBootstrap } from '../types/dm';
+import { privateDelete, privateGet, privatePost } from './privateClient';
+import type { DirectMessage, DirectMessageRoomBootstrap, DmInboxRoom } from '../types/dm';
 
 interface ApiEnvelope<T> {
   success?: boolean;
@@ -26,6 +26,15 @@ export async function bootstrapDirectMessageRoom(targetHandle: string): Promise<
 export async function fetchDirectMessages(roomId: number | string): Promise<DirectMessage[]> {
   const response = await privateGet<ApiEnvelope<DirectMessage[]>>(`/dm/rooms/${roomId}/messages`);
   return unwrapEnvelope(response, '메시지 기록을 불러오지 못했습니다.');
+}
+
+export async function fetchMyDmRooms(): Promise<DmInboxRoom[]> {
+  const response = await privateGet<ApiEnvelope<DmInboxRoom[]>>('/dm/rooms/my');
+  return unwrapEnvelope(response, 'DM 목록을 불러오지 못했습니다.');
+}
+
+export async function deleteDirectMessage(messageId: number | string): Promise<void> {
+  await privateDelete(`/dm/messages/${messageId}`);
 }
 
 export async function sendDirectMessage(

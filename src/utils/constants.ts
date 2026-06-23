@@ -95,9 +95,9 @@ export const PARTY_STATUS_CONFIG: Record<string, { label: string; color: string 
   PENDING: { label: '모집 중', color: '#2d5f4f' },
   MATCHED: { label: '매칭 성공', color: '#059669' },
   FAILED: { label: '매칭 실패', color: '#dc2626' },
-  SELLING: { label: '티켓 판매', color: '#ea580c' },
+  SELLING: { label: '판매 중', color: '#ea580c' },
   SOLD: { label: '판매 완료', color: '#6b7280' },
-  CHECKED_IN: { label: '체크인 완료', color: '#7c3aed' },
+  CHECKED_IN: { label: '체크인', color: '#7c3aed' },
   COMPLETED: { label: '관람 완료', color: '#4b5563' },
 };
 

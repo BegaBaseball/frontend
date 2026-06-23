@@ -404,6 +404,16 @@ export const fetchFollowingPosts = async (
   return transformPostPage(response);
 };
 
+export const fetchMyCheerPosts = async (
+  params: FetchPostsParams = {},
+): Promise<PageResponse<CheerPost>> => {
+  const { page = 0, size = 20, sort } = params;
+  const response = await privateGet<PageResponse<PostDTO>>('/cheer/me/posts', {
+    params: { page, size, sort },
+  });
+  return transformPostPage(response);
+};
+
 export const fetchPostChanges = async (params: {
   sinceId?: number | null;
   teamId?: string | null;
@@ -486,7 +496,12 @@ export async function toggleLike(postId: number): Promise<LikeToggleResponse> {
   return privatePost<LikeToggleResponse, undefined>(`/cheer/posts/${postId}/like`);
 }
 
-export async function fetchComments(postId: number, page = 0, size = 20) {
+export async function fetchComments(
+  postId: number,
+  page = 0,
+  size = 20,
+  requestOptions: CheerPublicRequestOptions = {},
+) {
   const data = await publicGet<{
     content: CommentDTO[];
     totalElements: number;
@@ -495,6 +510,7 @@ export async function fetchComments(postId: number, page = 0, size = 20) {
     size?: number;
     number?: number;
   }>(`/cheer/posts/${postId}/comments`, {
+    ...requestOptions,
     params: { page, size },
   });
 

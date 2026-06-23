@@ -12,6 +12,7 @@ export interface PartyFormData {
   seatDetail: string;
   maxParticipants: number;
   ticketPrice: number;
+  reservationDepositAmount: number;
   description: string;
   ticketFile: File | null;
   reservationNumber?: string;
@@ -48,6 +49,7 @@ export const createInitialPartyFormData = (): PartyFormData => ({
   seatDetail: '',
   maxParticipants: 2,
   ticketPrice: 0,
+  reservationDepositAmount: 0,
   description: '',
   ticketFile: null,
   reservationNumber: '',
@@ -100,6 +102,7 @@ export const restoreMateCreateFormData = (
     seatDetail: toStringOr(value.seatDetail, initial.seatDetail),
     maxParticipants: toNumberOr(value.maxParticipants, initial.maxParticipants),
     ticketPrice: toNumberOr(value.ticketPrice, initial.ticketPrice),
+    reservationDepositAmount: toNumberOr(value.reservationDepositAmount, initial.reservationDepositAmount),
     description: toStringOr(value.description, initial.description),
     ticketFile: null,
     reservationNumber: toStringOr(value.reservationNumber, initial.reservationNumber || ''),

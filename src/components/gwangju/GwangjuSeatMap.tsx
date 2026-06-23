@@ -173,8 +173,8 @@ function DetailPanel({
     return (
       <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">구역을 선택하세요</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
             공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인할 수 있습니다.
           </p>
         </div>
@@ -208,7 +208,7 @@ function DetailPanel({
           <DerivedRangeBadges ranges={derivedRanges} mode={mode} />
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">블록 {section.block}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white">블록 {section.block}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
@@ -233,7 +233,7 @@ function DetailPanel({
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">{section.sourceNote}</p>
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
           <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}

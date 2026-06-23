@@ -170,7 +170,7 @@ const runReleasePackage = async () => {
       officialDerivedAggregateReady: true,
     },
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
@@ -207,7 +207,7 @@ const runReleasePackage = async () => {
     `- status: \`${report.status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
     `- release mode: \`${report.releaseMode}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- active block contract: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     `- aggregate hit-area: \`${report.activeBlockContract.aggregateHitArea}\``,
     `- operator sections: \`${GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ')}\``,
@@ -244,8 +244,8 @@ const runReleasePackage = async () => {
     '',
     '## Source Policy',
     '',
-    '- 허용: operator-provided official PNG coordinates only',
-    '- 좌표계: official PNG 2200x1159',
+    '- 허용: operator-provided official image coordinates only',
+    '- 좌표계: official image 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
     `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
@@ -569,7 +569,7 @@ const runReleaseAudit = async () => {
   ].filter(Boolean);
   sourcePolicyValues.forEach((policy, index) => {
     addCheck(`source policy ${index + 1} missing data contract`, 'MANUAL_BASEBALL_DATA_REQUIRED', policy.missingBaseballDataContract, policy.missingBaseballDataContract === 'MANUAL_BASEBALL_DATA_REQUIRED', 'SOURCE_POLICY_MANUAL_CONTRACT_CHANGED');
-    addCheck(`source policy ${index + 1} allowed coordinate source`, 'operator-provided official PNG coordinates only', policy.allowedCoordinateSource, policy.allowedCoordinateSource === 'operator-provided official PNG coordinates only', 'SOURCE_POLICY_ALLOWED_SOURCE_CHANGED');
+    addCheck(`source policy ${index + 1} allowed coordinate source`, 'operator-provided official image coordinates only', policy.allowedCoordinateSource, policy.allowedCoordinateSource === 'operator-provided official image coordinates only', 'SOURCE_POLICY_ALLOWED_SOURCE_CHANGED');
     addCheck(`source policy ${index + 1} coordinate system`, '2200x1159', policy.coordinateSystem, policy.coordinateSystem === '2200x1159', 'SOURCE_POLICY_COORDINATE_SYSTEM_CHANGED');
     ['browser CSS pixels', 'resized screenshots', 'external crawling', 'web-search-based baseball data', 'third-party copied seatmap images'].forEach((source) => {
       addCheck(`source policy ${index + 1} disallows ${source}`, source, policy.disallowedSources?.includes(source), policy.disallowedSources?.includes(source) === true, 'SOURCE_POLICY_DISALLOWED_SOURCE_MISSING');
@@ -671,7 +671,7 @@ const runReleaseAudit = async () => {
     '`home-k7-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
     '`away-cheering-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
     '`K7석`, `원정응원석` aggregate hit-areas use `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`.',
-    'operator-provided official PNG coordinates only',
+    'operator-provided official image coordinates only',
     'browser CSS pixels',
     'resized screenshots',
     'external crawling',
@@ -850,7 +850,7 @@ const runReleaseAudit = async () => {
       safeToRunBulkGitAdd: stagedScopeAudit?.stagedScopeGate?.safeToRunBulkGitAdd ?? null,
     },
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       coordinateSystem: '2200x1159',
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
@@ -872,7 +872,7 @@ const runReleaseAudit = async () => {
     `- audit mode: \`${AUDIT_MODE}\``,
     `- status: \`${status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- active trace blocks: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\``,
     '- aggregate hit-area: `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE,REUSES_EXISTING_TRACE_ONLY`',
     '- official derived aggregate ready: `true`',
@@ -1001,8 +1001,8 @@ const runReleaseAudit = async () => {
     '',
     '## Source Policy',
     '',
-    '- 허용: operator-provided official PNG coordinates only',
-    '- 좌표계: official PNG 2200x1159',
+    '- 허용: operator-provided official image coordinates only',
+    '- 좌표계: official image 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
     `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
@@ -1049,7 +1049,7 @@ const runReleaseScopeGuard = async () => {
   const markdownPath = path.join(reportDir, 'gwangju-seatmap-release-scope-guard.md');
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: '2200x1159',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
@@ -1538,7 +1538,7 @@ const runReleaseScopeGuard = async () => {
     'RELEASE_CANDIDATE_FILE_MISSING',
     'CLASSIFIED_SEPARATE_DIRTY_WORK_ADDED',
     'scripts/daegu-seatmap-p1-operator-boundary.mjs',
-    'operator-provided official PNG coordinates only',
+    'operator-provided official image coordinates only',
     'browser CSS pixels',
     'resized screenshots',
     'external crawling',
@@ -2070,8 +2070,8 @@ const runReleaseScopeGuard = async () => {
     '',
     '## Source Policy',
     '',
-    '- Allowed coordinate source: operator-provided official PNG coordinates only.',
-    '- Allowed coordinate system: original official PNG `2200x1159`.',
+    '- Allowed coordinate source: operator-provided official image coordinates only.',
+    '- Allowed coordinate system: original official image `2200x1159`.',
     '- Disallowed: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images.',
     '- Missing or unclear baseball operating data keeps `MANUAL_BASEBALL_DATA_REQUIRED`.',
     '',
@@ -2129,7 +2129,7 @@ const runPrStagingPlan = async () => {
   ]);
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: '2200x1159',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
@@ -2425,8 +2425,8 @@ const runPrStagingPlan = async () => {
     '',
     '## Source Policy',
     '',
-    '- Allowed coordinate source: operator-provided official PNG coordinates only.',
-    '- Allowed coordinate system: original official PNG `2200x1159`.',
+    '- Allowed coordinate source: operator-provided official image coordinates only.',
+    '- Allowed coordinate system: original official image `2200x1159`.',
     '- Disallowed: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images.',
     '- Missing or unclear baseball operating data keeps `MANUAL_BASEBALL_DATA_REQUIRED`.',
     '',
@@ -2620,8 +2620,8 @@ const runPrStagingPlan = async () => {
       '',
       '## Source Policy',
       '',
-      '- Allowed coordinate source: operator-provided official PNG coordinates only.',
-      '- Allowed coordinate system: original official PNG `2200x1159`.',
+      '- Allowed coordinate source: operator-provided official image coordinates only.',
+      '- Allowed coordinate system: original official image `2200x1159`.',
       '- Disallowed: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images.',
       '- Missing or unclear baseball operating data keeps `MANUAL_BASEBALL_DATA_REQUIRED`.',
       '',
@@ -2685,7 +2685,7 @@ const runTargetedStaging = async () => {
   };
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: '2200x1159',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
@@ -2979,8 +2979,8 @@ const runTargetedStaging = async () => {
     '',
     '## Source Policy',
     '',
-    '- Allowed coordinate source: operator-provided official PNG coordinates only.',
-    '- Allowed coordinate system: original official PNG `2200x1159`.',
+    '- Allowed coordinate source: operator-provided official image coordinates only.',
+    '- Allowed coordinate system: original official image `2200x1159`.',
     '- Disallowed: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images.',
     '- Missing or unclear baseball operating data keeps `MANUAL_BASEBALL_DATA_REQUIRED`.',
     '',
@@ -3032,7 +3032,7 @@ const runStagedScopeAudit = async () => {
   };
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: '2200x1159',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
@@ -3294,8 +3294,8 @@ const runStagedScopeAudit = async () => {
     '',
     '## Source Policy',
     '',
-    '- Allowed coordinate source: operator-provided official PNG coordinates only.',
-    '- Allowed coordinate system: original official PNG `2200x1159`.',
+    '- Allowed coordinate source: operator-provided official image coordinates only.',
+    '- Allowed coordinate system: original official image `2200x1159`.',
     '- Disallowed: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images.',
     '- Missing or unclear baseball operating data keeps `MANUAL_BASEBALL_DATA_REQUIRED`.',
     '',
@@ -3350,7 +3350,7 @@ const runPostoperatorAudit = async () => {
   const auditMarkdownPath = path.join(reportDir, 'gwangju-seatmap-postoperator-audit.md');
   
   const sourcePolicy = {
-    allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+    allowedCoordinateSource: 'operator-provided official image coordinates only',
     coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.naturalWidth}x${GWANGJU_SEATMAP_IMAGE.naturalHeight}`,
     disallowedSources: [
       'browser CSS pixels',
@@ -3546,7 +3546,7 @@ const runPostoperatorAudit = async () => {
     `- audit mode: \`${AUDIT_MODE}\``,
     `- status: \`${status}\``,
     '- does not modify data file: `true`',
-    `- official PNG coordinate system: \`${sourcePolicy.coordinateSystem}\``,
+    `- official image coordinate system: \`${sourcePolicy.coordinateSystem}\``,
     `- allowed coordinate source: \`${sourcePolicy.allowedCoordinateSource}\``,
     `- missing baseball data contract: \`${sourcePolicy.missingBaseballDataContract}\``,
     `- expected active blocks: \`${expectedPostOperatorBlockCount}\``,

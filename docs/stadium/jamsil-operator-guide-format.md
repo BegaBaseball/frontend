@@ -69,7 +69,7 @@ npm run stadium:jamsil:operator-approval:verify
 
 상태값:
 
-- `waiting_for_operator`: placeholder-only 또는 운영자 제공 row가 아직 없는 상태. UI는 `MANUAL_BASEBALL_DATA_REQUIRED` fallback 또는 `PARTIAL_OFFICIAL_SEED` 제한 표시를 유지한다.
+- `waiting_for_operator`: placeholder-only 또는 운영자 제공 row가 아직 없는 상태. data/status/test metadata는 `MANUAL_BASEBALL_DATA_REQUIRED` fallback 또는 `PARTIAL_OFFICIAL_SEED` 제한 표시를 유지하고, 사용자 visible label은 contract code 없이 안내 문구만 표시한다.
 - `blocked`: 컬럼 누락, placeholder/실제 row 혼입, 잘못된 ID/날짜/참조, 외부 URL/크롤링/검색 문구, 매점 후보 검수 오류가 있는 상태.
 - `ready_for_manual_apply`: 운영자 CSV가 검증을 통과했고 `reports/stadium/jamsil-operator-visit-guide-apply-plan.ts-fragment`를 수동 검토할 수 있는 상태.
 - `ready_for_operator_intake_transfer`: 매점 후보 검수표에서 `OPERATOR_CONFIRMED` row가 확인되어 운영자 입력 CSV의 `facility` row로 옮길 수 있는 상태.
@@ -174,6 +174,6 @@ npm run stadium:jamsil:operator-approval:verify
 
 ## 현재 상태
 
-현재 저장소에는 공식 공개자료 기반 출입구 후보와 매표소/접근성 지원 시설 seed, 승인된 매점 57개, 승인된 화장실 14개가 들어 있다. numbered block 좌석 상세 패널은 승인 매점과 화장실을 `OPERATOR_PROVIDED`로 표시하고, 대중교통 접근 동선은 caution note의 후보 문구로만 표시한다. field-survey 109개 row는 모두 검수 완료됐지만 도보시간/혼잡도 값이 `UNKNOWN`이므로, 실측 도보시간/혼잡도/오늘의 운영 동선 공지는 `운영자 제공 자료 필요 · MANUAL_BASEBALL_DATA_REQUIRED`를 유지해야 한다.
+현재 저장소에는 공식 공개자료 기반 출입구 후보와 매표소/접근성 지원 시설 seed, 승인된 매점 57개, 승인된 화장실 14개가 들어 있다. numbered block 좌석 상세 패널은 승인 매점과 화장실을 `OPERATOR_PROVIDED`로 표시하고, 대중교통 접근 동선은 caution note의 후보 문구로만 표시한다. field-survey 109개 row는 모두 검수 완료됐지만 도보시간과 혼잡도 값이 `UNKNOWN`이므로, 실측 도보시간/혼잡도/오늘의 운영 동선 공지는 data/status/test metadata에서 `MANUAL_BASEBALL_DATA_REQUIRED`를 유지한다. 사용자 visible label에는 contract code 없이 `운영자 제공 자료 필요` 안내 문구만 노출한다.
 
 `JAMSIL_FIELD_VALIDATION_ROUTE_CANDIDATES`, `JAMSIL_FOOD_FACILITY_COLLECTION_SCHEMA`, `JAMSIL_SECONDARY_FOOD_ZONE_CANDIDATES`, `JAMSIL_PRODUCTION_DATA_READINESS`는 운영자/현장 수집 계획을 고정하기 위한 메타데이터다. 이 값은 그 자체로 매점명, 화장실 위치, 도보시간, 혼잡도 확정 데이터가 아니며, 운영자 검수 row가 들어오기 전에는 `JAMSIL_OPERATOR_FACILITY_POINTS`나 `JAMSIL_BLOCK_VISIT_GUIDANCE`의 확정 시설 참조로 승격하지 않는다.

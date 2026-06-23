@@ -46,6 +46,8 @@ test('normalizeMatePartySeed fills missing detail fields for MateParty placehold
     description: '같이 갑니다',
     ticketVerified: false,
     status: 'PENDING',
+    reservationDepositAmount: null,
+    hostTrustMetrics: null,
     createdAt: '',
   });
 });

@@ -32,7 +32,7 @@ Included in this handoff:
 - Compared blocks are highlighted on the SVG with `data-compared="true"` while preserving the official hit-area geometry and keyboard selection behavior.
 - The isolated Incheon mobile/full QA gates now include the comparison flow: add `101B` and `102B`, verify compare cards, focus `101B` from the tray at zoom `>= 1.5`, assert SVG `data-compared="true"`, clear the tray, and keep the removed demo upload copy absent.
 - The selected block detail panel and mobile bottom sheet now render `직관 동선 안내` from `getIncheonOperatorVisitGuidance`.
-- The current operator arrays are empty, so the UI shows `MANUAL_BASEBALL_DATA_REQUIRED` pending labels for entrance, nearby facilities, operation notice, updated-at, and caution rows instead of inventing gate or route data.
+- The current operator arrays are empty, so runtime data/status/test metadata keeps `MANUAL_BASEBALL_DATA_REQUIRED` for entrance, nearby facilities, operation notice, updated-at, and caution rows instead of inventing gate or route data. User-visible labels show only operator-needed copy without the contract code.
 - The old Incheon upload demo flow is removed. Seat view sharing now hands off to diary draft storage with `stadium='INCHEON'`, `team='SSG'`, selected section/block, and the current date.
 - The share CTA copy is unified as `다이어리에서 시야 사진 공유하기`.
 - Cypress now verifies both guest and logged-in Incheon CTA handoff: guests keep `/mypage` as the pending login redirect with an exact local-date draft, and logged-in users land on `/mypage` with the Incheon block prefilled in the diary form.

@@ -3,8 +3,8 @@ import { CoachRiskItem } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import TeamLogo from '../TeamLogo';
 import {
-    riskImpactTo,
-    riskInning,
+    resolveRiskImpactTo,
+    resolveRiskInningLabel,
     riskSevColor,
     shortTeamName,
     useIsDark,
@@ -115,12 +115,14 @@ export default function RiskVersus({
 
             {/* 리스크 행 */}
             {risks.map((r, idx) => {
-                const impactTo  = riskImpactTo(r.level, isPositive);
+                const impactTo  = resolveRiskImpactTo(r, isPositive);
                 const isHome    = impactTo === 'home';
                 const isAway    = impactTo === 'away';
                 const isBoth    = impactTo === 'both';
                 const sevColor  = riskSevColor(r.level);
-                const pillText  = isHome ? `${homeName} 불리` : isAway ? `${awayName} 불리` : '양 팀 변수';
+                const pillText  = r.impact
+                    ? `${isHome ? homeName : isAway ? awayName : '양 팀'} ${r.impact}`
+                    : isHome ? `${homeName} 불리` : isAway ? `${awayName} 불리` : '양 팀 변수';
                 const pillColor = isHome ? IMPACT.home : isAway ? IMPACT.away : IMPACT.bothPill;
                 const pillBg    = isHome ? t.pillBgHome : isAway ? t.pillBgAway : t.pillBgBoth;
 
@@ -194,7 +196,7 @@ export default function RiskVersus({
                                 color: subColor,
                                 fontFamily: 'ui-monospace, monospace',
                             }}>
-                                · {riskInning(r.level)}
+                                · {resolveRiskInningLabel(r)}
                             </span>
                             <span style={{
                                 marginLeft: 'auto',

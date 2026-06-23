@@ -12,9 +12,10 @@ import {
 } from './icons/PublicShellIcons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { Button } from './ui/button';
+import { ProfileAvatar } from './ui/ProfileAvatar';
 import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbarNavItems';
 
-const navIconToggleClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary';
+const navIconToggleClass = 'relative h-11 w-11 p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-600 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-gray-100 dark:hover:bg-secondary';
 const navIconSizeClass = 'h-6 w-6';
 
 const navItemIconMap: Record<PublicNavbarNavItemId, typeof MegaphoneIcon> = {
@@ -40,12 +41,13 @@ export default function PublicNavbarMenuPanel({
   const { theme, resolvedTheme } = useTheme();
   const isDarkMode = (resolvedTheme || theme) === 'dark';
   const { isLoggedIn } = useAuthSession();
-  const { userHandle, userName, userRole } = useAuthProfileSnapshot();
+  const { userHandle, userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
     : '/mypage';
+  const displayName = userName?.trim() || '회원';
 
   const handleMobileNav = (path: string) => {
     onClose();
@@ -64,7 +66,7 @@ export default function PublicNavbarMenuPanel({
         <div className="mb-4 flex items-center justify-between gap-2 px-4">
           <p
             id="mobile-menu-title"
-            className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider"
+            className="text-[16px] font-semibold text-gray-400 dark:text-white uppercase tracking-wider"
           >
             메뉴
           </p>
@@ -106,7 +108,7 @@ export default function PublicNavbarMenuPanel({
       </div>
 
       <div className="px-6 pb-6" data-mobile-menu-section="account">
-        <p className="text-[16px] font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-3 px-4">
+        <p className="text-[16px] font-semibold text-gray-400 dark:text-white uppercase tracking-wider mb-3 px-4">
           계정
         </p>
         {isLoggedIn ? (
@@ -120,14 +122,20 @@ export default function PublicNavbarMenuPanel({
                 }`}
               aria-label="프로필로 이동"
             >
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
-                {userName?.charAt(0) || '?'}
-              </div>
+              <ProfileAvatar
+                src={userProfileImageUrl}
+                alt={`${displayName} 프로필`}
+                fallbackName={displayName}
+                width={48}
+                height={48}
+                showRing
+                ringClassName="bg-primary/15 p-px dark:bg-white/10"
+              />
               <div className="flex-1 text-left">
                 <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {userName || '회원'} 님
+                  {displayName} 님
                 </p>
-                <p className="text-[16px] text-gray-500 dark:text-gray-300">
+                <p className="text-[16px] text-gray-500 dark:text-white">
                   내 프로필 보기 →
                 </p>
               </div>

@@ -1,11 +1,10 @@
-import { Card } from './ui/card';
-import { Skeleton } from './ui/skeleton';
 import { useMyPage } from '../hooks/useMyPage';
 import { lazy, Suspense, useState } from 'react';
 import { useDiaryStore } from '../store/diaryStore';
 import { TicketInfo } from '../api/ticket';
+import './mypage/MyPageSeason.css';
 
-const MyPageProfileCardRuntime = lazy(() => import('./mypage/MyPageProfileCardRuntime'));
+const MyPageSidebarRuntime = lazy(() => import('./mypage/MyPageSidebarRuntime'));
 const MyPageViewRuntime = lazy(() => import('./mypage/MyPageViewRuntime'));
 const UserListModal = lazy(() => import('./profile/UserListModal'));
 const TicketUploadModal = lazy(() =>
@@ -24,12 +23,13 @@ export default function MyPageRuntime() {
     savedFavoriteTeam,
     viewMode,
     setViewMode,
+    selectedDiaryDate,
     handleProfileUpdated,
-    handleToggleStats,
-    isLoading: isProfileLoading,
   } = useMyPage();
 
   const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
+  const effectiveUserProvider = profile?.provider ?? user?.provider;
+  const effectiveHasPassword = profile?.hasPassword ?? user?.hasPassword;
 
   const handleTicketConfirm = (data: TicketInfo) => {
     setPendingDraft({
@@ -42,7 +42,7 @@ export default function MyPageRuntime() {
       seatNumber: data.seat || '',
     });
 
-    setViewMode('diary');
+    setViewMode('diaryEditor', { date: data.date || new Date().toISOString().split('T')[0] });
   };
 
   const [userListModal, setUserListModal] = useState<{
@@ -72,66 +72,44 @@ export default function MyPageRuntime() {
     return null;
   }
 
-  const profileCardFallback = (
-    <Card className="p-2.5 md:p-4 mb-5 gap-2 dark:bg-card dark:border-border">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 md:gap-4">
-          <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full flex-shrink-0" />
-          <div className="space-y-1">
-            <Skeleton className="h-7 w-36" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Skeleton className="h-10 rounded-md" />
-          <Skeleton className="h-10 rounded-md" />
-          <Skeleton className="h-10 rounded-md col-span-2" />
-          <Skeleton className="h-10 rounded-md col-span-2" />
-        </div>
-      </div>
-    </Card>
-  );
-
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[calc(7rem+env(safe-area-inset-bottom))]">
-        <Suspense fallback={profileCardFallback}>
-          <MyPageProfileCardRuntime
-            isProfileLoading={isProfileLoading}
+    <div className="mypage-season-root">
+      <div className="mypage-season-app">
+        <Suspense fallback={<aside className="mypage-season-side text-sm text-[#FFFFFF]">프로필을 불러오는 중...</aside>}>
+          <MyPageSidebarRuntime
             currentUserId={user?.id ?? null}
             profileImage={profileImage}
             name={name}
             handle={handle}
-            email={email}
             savedFavoriteTeam={savedFavoriteTeam}
-            cheerPoints={user?.cheerPoints ?? 0}
-            isStatsView={viewMode === 'stats'}
+            cheerPoints={profile?.cheerPoints ?? user?.cheerPoints ?? 0}
+            viewMode={viewMode}
             onOpenFollowers={() => openUserListModal('followers', '팔로워')}
             onOpenFollowing={() => openUserListModal('following', '팔로잉')}
-            onOpenMateHistory={() => setViewMode('mateHistory')}
-            onToggleStats={handleToggleStats}
-            onOpenTicketUploadModal={openTicketUploadModal}
-            onOpenEditProfile={() => setViewMode('editProfile')}
+            onSetViewMode={setViewMode}
           />
         </Suspense>
 
-        <Suspense fallback={null}>
-          <MyPageViewRuntime
-            viewMode={viewMode}
-            profileImage={profileImage}
-            name={name}
-            email={email}
-            savedFavoriteTeam={savedFavoriteTeam}
-            userRole={user?.role}
-            userProvider={user?.provider}
-            initialBio={user?.bio}
-            hasPassword={user?.hasPassword}
-            onSetViewMode={setViewMode}
-            onProfileUpdated={handleProfileUpdated}
-          />
-        </Suspense>
+        <main className="mypage-season-main">
+          <Suspense fallback={null}>
+            <MyPageViewRuntime
+              viewMode={viewMode}
+              profileImage={profileImage}
+              name={name}
+              email={email}
+              savedFavoriteTeam={savedFavoriteTeam}
+              cheerPoints={profile?.cheerPoints ?? user?.cheerPoints ?? 0}
+              userRole={user?.role}
+              userProvider={effectiveUserProvider}
+              initialBio={user?.bio}
+              hasPassword={effectiveHasPassword}
+              selectedDiaryDate={selectedDiaryDate}
+              onSetViewMode={setViewMode}
+              onProfileUpdated={handleProfileUpdated}
+              onOpenTicketUploadModal={openTicketUploadModal}
+            />
+          </Suspense>
+        </main>
       </div>
 
       {user && hasMountedUserListModal && (

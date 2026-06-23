@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
 
+import { getAdminStatusBadgeMeta } from '../../utils/statusBadgeMeta';
+import { StatusBadge } from '../ui/status-badge';
+
 export const decisionBadgeClass: Record<'GO' | 'NO_GO' | 'PENDING', string> = {
   GO: 'bg-emerald-500/20 text-emerald-300 border-0',
   NO_GO: 'bg-red-500/20 text-red-300 border-0',
@@ -33,5 +36,30 @@ export function AdminBadge({
     >
       {children}
     </span>
+  );
+}
+
+export function AdminStatusBadge({
+  status,
+  label,
+  size = 'xs',
+  className = '',
+  testId,
+}: {
+  status: string | null | undefined;
+  label?: string | null;
+  size?: 'xs' | 'sm' | 'md';
+  className?: string;
+  testId?: string;
+}) {
+  const meta = getAdminStatusBadgeMeta(status, label);
+
+  return (
+    <StatusBadge
+      {...meta}
+      size={size}
+      className={className}
+      data-testid={testId}
+    />
   );
 }

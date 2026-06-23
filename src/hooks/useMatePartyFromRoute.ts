@@ -29,8 +29,8 @@ export function useMatePartyFromRoute(id?: string): MatePartyRouteState {
 
   const partyQuery = useQuery({
     ...(routePartyId !== null
-      ? getMatePartyQueryOptions(routePartyId, { skipGlobalErrorHandler: true })
-      : getMatePartyQueryOptions('invalid', { skipGlobalErrorHandler: true })),
+      ? getMatePartyQueryOptions(routePartyId)
+      : getMatePartyQueryOptions('invalid')),
     enabled: routePartyId !== null,
     placeholderData: placeholderParty,
   });

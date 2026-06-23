@@ -6,7 +6,7 @@ The source `reports/` and `output/` artifacts are local/generated outputs and ar
 ## Gocheok closeout
 
 - Trace review result: approved.
-- Official image: `gocheok-kiwoom-seatmap-official-2026.png`.
+- Official image: `gocheok-kiwoom-seatmap-official-2026.webp`.
 - Reviewed blocks: 159 of 159.
 - Pending blocks: 0.
 - Manual TODO blocks: 0.

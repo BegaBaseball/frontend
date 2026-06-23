@@ -20,7 +20,7 @@ export function GameSummaryTimeline({
 }: GameSummaryTimelineProps) {
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100">
+      <div className="mb-3 flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
         <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
         경기 주요 기록
       </div>
@@ -54,12 +54,12 @@ export function GameSummaryTimeline({
                     >
                       {item.type}
                     </span>
-                    <p className="text-[16px] font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-[16px] font-bold text-gray-900 dark:text-white">
                       {item.playerName || '기록'}
                     </p>
                   </div>
                   {item.detail && (
-                    <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-300">
+                    <p className="mt-1 text-[16px] text-gray-500 dark:text-white">
                       {item.detail}
                     </p>
                   )}

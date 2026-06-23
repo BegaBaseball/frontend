@@ -7,14 +7,15 @@ const RING_CLASS_MAP = {
 } as const;
 
 type RingVariant = keyof typeof RING_CLASS_MAP;
+type ProfileAvatarDimension = 24 | 26 | 30 | 32 | 40 | 48 | 56 | 64 | 80 | 96;
 
 interface ProfileAvatarProps {
   src?: string | null | undefined;
   alt: string;
   fallbackName?: string;
   size?: 'sm' | 'md' | 'lg';
-  width?: 24 | 32 | 40 | 48 | 64 | 80 | 96;
-  height?: 24 | 32 | 40 | 48 | 64 | 80 | 96;
+  width?: ProfileAvatarDimension;
+  height?: ProfileAvatarDimension;
   srcSet?: string;
   sizes?: string;
   className?: string;
@@ -102,6 +103,19 @@ export function ProfileAvatar({
       display: 'block',
       imageRendering: 'auto' as const,
     };
+  const imageElementStyle = hasFixedSize && !showRing
+    ? {
+      ...imageStyle,
+      ...sizeStyle,
+      flexShrink: 0,
+    }
+    : imageStyle;
+  const fallbackElementStyle = hasFixedSize && !showRing
+    ? {
+      ...sizeStyle,
+      flexShrink: 0,
+    }
+    : undefined;
   const imageWidthAttr = hasFixedSize ? resolvedWidth : undefined;
   const imageHeightAttr = hasFixedSize ? resolvedHeight : undefined;
   const containerClass = hasFixedSize ? '' : sizeClasses[size];
@@ -126,7 +140,7 @@ export function ProfileAvatar({
         alt={alt}
         width={hasFixedSize ? imageWidthAttr : undefined}
         height={hasFixedSize ? imageHeightAttr : undefined}
-        style={imageStyle}
+        style={imageElementStyle}
         decoding="async"
         loading="lazy"
         data-testid="profile-avatar-image"
@@ -139,7 +153,7 @@ export function ProfileAvatar({
   const fallbackElement = (
     <div
       data-testid="profile-avatar-fallback"
-      style={hasFixedSize && !showRing ? sizeStyle : undefined}
+      style={fallbackElementStyle}
       className={fallbackClassName}
     >
       <span className={`${iconSizeClass} flex items-center justify-center`}>

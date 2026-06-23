@@ -110,7 +110,7 @@ function SajikFirstVisitGuide({
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 사직 가이드</h3>
-          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-white">
             {matches.length}개 블록
           </div>
         </div>
@@ -121,7 +121,7 @@ function SajikFirstVisitGuide({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="블록/좌석 검색"
-            className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-slate-500 sm:w-56"
+            className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-slate-500 sm:w-56"
           />
         </div>
       </div>
@@ -164,23 +164,23 @@ function SajikFirstVisitGuide({
                 className="shrink-0 cursor-pointer rounded-xl border px-3 py-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700"
                 style={{
                   borderColor: accent ? `${accent}66` : undefined,
-                  background: isDark ? '#020617' : '#f8fafc',
+                  background: isDark ? '#000000' : '#f8fafc',
                 }}
               >
                 <div className="text-xs font-black text-slate-900 dark:text-white">
                   {block.block}
-                  <span className="ml-1 font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="ml-1 font-semibold text-slate-500 dark:text-white">
                     {cat?.label ?? block.name}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-white">
                   {reasons.slice(0, 2).join(' · ')}
                 </div>
               </button>
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-white">
             검색 결과 없음
           </div>
         )}
@@ -204,8 +204,8 @@ function DetailPanel({
     return (
       <div className="sticky top-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">구역을 선택하세요</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
             공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인하고 다이어리에서 시야 사진을 공유할 수 있습니다.
           </p>
         </div>
@@ -237,7 +237,7 @@ function DetailPanel({
           </span>
         </div>
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">{section.name}</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">블록 {section.block}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white">블록 {section.block}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
@@ -262,7 +262,7 @@ function DetailPanel({
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">{section.sourceNote}</p>
+        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
           <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}

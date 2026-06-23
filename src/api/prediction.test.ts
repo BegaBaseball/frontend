@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   fetchAllUserVotesBulk,
+  fetchGameDetail,
   fetchGameLiveRelaySnapshot,
   fetchGameLiveSnapshot,
   fetchGameLiveSummaries,
@@ -10,6 +11,11 @@ import {
   fetchMyPredictionStats,
   fetchVoteStatus,
 } from './prediction';
+import {
+  clearPredictionBootstrapCacheForTests,
+  fetchPredictionBootstrap,
+  invalidatePredictionBootstrapCache,
+} from './predictionBootstrap';
 
 test('fetchMatchesByDay는 공개 경기일 API를 조회한다', async (t) => {
   let requestUrl = '';
@@ -75,7 +81,92 @@ test('fetchMatchesByDay는 수동 야구 데이터 요청 계약을 유지한다
   }
 });
 
-test('fetchAllUserVotesBulk는 중복 gameId를 제거하고 응답을 정규화한다', async (t) => {
+test('fetchPredictionBootstrap는 요청을 dedupe하고 gameId invalidation을 지원한다', async (t) => {
+  clearPredictionBootstrapCacheForTests();
+  let requestCount = 0;
+  let requestUrl = '';
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestCount += 1;
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+    return new Response(JSON.stringify({
+      schedule: {
+        date: '2026-06-07',
+        games: [{
+          gameId: '20260607HHLT0',
+          gameDate: '2026-06-07',
+          homeTeam: 'HH',
+          awayTeam: 'LT',
+          stadium: 'Jamsil',
+          startTime: { hour: 18, minute: 30, second: 0 },
+        }],
+        prevDate: null,
+        nextDate: null,
+        hasPrev: false,
+        hasNext: false,
+      },
+      selectedGameId: '20260607HHLT0',
+      selectedGameFound: true,
+      detail: {
+        ok: false,
+        data: null,
+        error: {
+          message: 'detail failed',
+          status: 404,
+          code: 'MATCH_NOT_FOUND',
+        },
+      },
+      voteStatus: {
+        ok: true,
+        data: {
+          gameId: '20260607HHLT0',
+          homeVotes: 1,
+          awayVotes: 2,
+          totalVotes: 3,
+          homePercentage: 33,
+          awayPercentage: 67,
+        },
+        error: null,
+      },
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const [first, second] = await Promise.all([
+    fetchPredictionBootstrap('2026-06-07', '20260607HHLT0'),
+    fetchPredictionBootstrap('2026-06-07', '20260607HHLT0'),
+  ]);
+
+  assert.equal(first.ok, true);
+  assert.equal(second.ok, true);
+  assert.equal(requestCount, 1);
+  assert.match(requestUrl, /\/api\/predictions\/bootstrap\?date=2026-06-07&gameId=20260607HHLT0$/);
+  if (first.ok) {
+    assert.equal(first.data.detail?.ok, false);
+    assert.equal(first.data.detail?.error?.code, 'MATCH_NOT_FOUND');
+    assert.equal(first.data.voteStatus?.ok, true);
+    assert.equal(first.data.voteStatus?.data?.homeVotes, 1);
+    assert.equal(first.data.schedule.games[0]?.startTime, '18:30:00');
+  }
+
+  const cached = await fetchPredictionBootstrap('2026-06-07', '20260607HHLT0');
+  assert.equal(cached.ok, true);
+  assert.equal(requestCount, 1);
+
+  invalidatePredictionBootstrapCache('20260607HHLT0');
+  const refreshed = await fetchPredictionBootstrap('2026-06-07', '20260607HHLT0');
+  assert.equal(refreshed.ok, true);
+  assert.equal(requestCount, 2);
+});
+
+test('fetchAllUserVotesBulk는 entries를 우선 사용하고 null 투표를 보존한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
 
@@ -88,10 +179,14 @@ test('fetchAllUserVotesBulk는 중복 gameId를 제거하고 응답을 정규화
     requestInit = init;
 
     return new Response(JSON.stringify({
+      entries: [
+        { gameId: 'game1', votedTeam: 'HOME' },
+        { gameId: 'game2', votedTeam: 2 },
+        { gameId: 'game3', votedTeam: null },
+      ],
       votes: {
-        game1: 'HOME',
-        game2: 2,
-        game3: null,
+        game1: 'away',
+        game2: 'home',
       },
     }), {
       headers: { 'content-type': 'application/json' },
@@ -104,6 +199,7 @@ test('fetchAllUserVotesBulk는 중복 gameId를 제거하고 응답을 정규화
   assert.deepEqual(response, {
     game1: 'home',
     game2: 'away',
+    game3: null,
   });
   assert.match(requestUrl, /\/api\/predictions\/my-votes$/);
   assert.equal(requestInit?.credentials, 'include');
@@ -111,6 +207,26 @@ test('fetchAllUserVotesBulk는 중복 gameId를 제거하고 응답을 정규화
   assert.equal(requestInit?.body, JSON.stringify({
     gameIds: ['game1', 'game2', 'game3'],
   }));
+});
+
+test('fetchAllUserVotesBulk는 legacy votes map fallback을 유지한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    votes: {
+      game1: 'HOME',
+      game2: 2,
+      game3: null,
+    },
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }));
+
+  const response = await fetchAllUserVotesBulk(['game1', 'game2', 'game3']);
+
+  assert.deepEqual(response, {
+    game1: 'home',
+    game2: 'away',
+  });
 });
 
 test('fetchAllUserVotesBulk는 인증 실패 상태와 코드를 보존해 던진다', async (t) => {
@@ -155,6 +271,55 @@ test('fetchAllUserVotesBulk는 인증 실패 상태와 코드를 보존해 던�
   assert.equal(requests.length, 2);
   assert.match(requests[0], /\/api\/predictions\/my-votes$/);
   assert.match(requests[1], /\/api\/auth\/reissue$/);
+});
+
+test('fetchGameDetail은 generated wire 상세 응답을 domain GameDetail로 변환한다', async (t) => {
+  let requestUrl = '';
+  let requestInit: RequestInit | undefined;
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    requestUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    requestInit = init;
+
+    return new Response(JSON.stringify({
+      gameId: 'GAME-1',
+      gameDate: '2026-04-29',
+      stadium: '잠실',
+      stadiumName: '잠실야구장',
+      startTime: { hour: 18, minute: 30 },
+      attendance: '12345',
+      weather: '맑음',
+      gameTimeMinutes: '180',
+      homeTeam: 'LG',
+      awayTeam: 'SS',
+      homeScore: '4',
+      awayScore: 3,
+      homePitcher: '김투수',
+      awayPitcher: '이투수',
+      gameStatus: 'FINAL',
+      inningScores: [],
+      summary: [],
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const detail = await fetchGameDetail('GAME-1');
+
+  assert.equal(detail.gameId, 'GAME-1');
+  assert.equal(detail.startTime, '18:30');
+  assert.equal(detail.attendance, 12345);
+  assert.equal(detail.gameTimeMinutes, 180);
+  assert.equal(detail.homeScore, 4);
+  assert.equal(detail.awayScore, 3);
+  assert.match(requestUrl, /\/api\/matches\/GAME-1$/);
+  assert.equal(requestInit?.credentials, 'include');
+  assert.equal(requestInit?.method, 'GET');
 });
 
 test('fetchVoteStatus는 다양한 응답 키를 표준 구조로 정규화한다', async (t) => {
@@ -202,6 +367,13 @@ test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답�
       current_inning_half: 'BOTTOM',
       last_event_seq: '42',
       last_updated_at: '2026-04-29T19:45:00',
+      inning_scores: [{
+        inning: '7',
+        team_side: 'home',
+        team_code: 'LG',
+        runs: '1',
+        isExtra: false,
+      }],
       events: [{
         event_seq: '42',
         inning: '7',
@@ -241,6 +413,13 @@ test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답�
   assert.equal(snapshot.lastEventSeq, 42);
   assert.equal(snapshot.events[0].eventSeq, 42);
   assert.equal(snapshot.events[0].wpa, 0.12);
+  assert.deepEqual(snapshot.inningScores?.[0], {
+    inning: '7',
+    team_side: 'home',
+    team_code: 'LG',
+    runs: '1',
+    isExtra: false,
+  });
 });
 
 test('fetchGameLiveRelaySnapshot은 원문 문자중계 delta 응답을 정규화한다', async (t) => {

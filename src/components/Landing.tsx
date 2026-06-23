@@ -1,16 +1,15 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import begaCharacter from '../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f.webp';
-import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
-import './Landing.css';
-import { useAuthSession } from '../store/authStore';
+import begaCharacter from '../assets/landing/bega-character-192.webp';
+import baseballLogo from '../assets/landing/bega-logo-192.webp';
+import landingCriticalCss from './Landing.css?inline';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
-import { ArrowRightIcon } from './icons/PublicShellIcons';
-import { OptimizedImage } from './common/OptimizedImage';
+import { FirstLoadArrowRightIcon } from './icons/FirstLoadIcons';
 import { Button } from './ui/button';
 import ThemeToggleButton from './ThemeToggleButton';
+import ViewportDeferred from './ViewportDeferred';
 import {
   CTAGroup,
   Container,
@@ -49,9 +48,37 @@ const FOOTER_SECTIONS = [
 
 const LazyLandingFeaturesRuntime = lazy(() => import('./LandingFeaturesRuntime'));
 
+function LandingFeaturesFallback() {
+  return (
+    <Section id="features" className="bg-background" data-testid="landing-features-placeholder">
+      <Container>
+        <div className="mx-auto max-w-5xl" aria-hidden="true">
+          <div className="mb-6 space-y-3 text-center">
+            <div className="mx-auto h-5 w-20 rounded-full bg-primary/10" />
+            <div className="mx-auto h-7 w-56 max-w-full rounded bg-muted" />
+            <div className="mx-auto h-4 w-72 max-w-full rounded bg-muted/70" />
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div
+                key={index}
+                data-testid="landing-features-placeholder-card"
+                className="h-20 rounded-2xl border border-border/80 bg-card p-3 shadow-sm sm:h-24 sm:p-4"
+              >
+                <div className="h-7 w-7 rounded-xl bg-primary/10 sm:h-8 sm:w-8" />
+                <div className="mt-3 h-3 w-12 rounded bg-muted sm:mt-4 sm:h-4 sm:w-28" />
+                <div className="mt-2 h-2 w-full rounded bg-muted/70 sm:h-3" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
 export default function Landing() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
 
   useEffect(() => {
     requestLoadTrace('Landing mount');
@@ -60,12 +87,6 @@ export default function Landing() {
       requestLoadTrace('Landing unmount');
     };
   }, []);
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      navigate('/home', { replace: true });
-    }
-  }, [isLoggedIn, navigate]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -118,11 +139,12 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground" data-testid="landing-page">
+      <style>{landingCriticalCss}</style>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
         <Container>
           <div className="flex h-16 items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={baseballLogo} alt="BEGA" className="h-8 w-8" />
+              <img src={baseballLogo} alt="BEGA" width={32} height={32} className="h-8 w-8" />
               <div className="flex items-baseline gap-2">
                 <span className="landing-wordmark text-lg text-primary sm:text-xl">
                   BEGA
@@ -146,12 +168,12 @@ export default function Landing() {
               </Button>
               <Button
                 size="touchLg"
-                variant="brand"
+                variant="brandOutline"
                 onClick={() => navigate('/home')}
                 data-testid="landing-header-cta"
-                className="px-5 sm:px-6"
+                className="hidden px-4 sm:inline-flex sm:px-5"
               >
-                시작하기
+                앱 열기
               </Button>
             </div>
           </div>
@@ -163,11 +185,17 @@ export default function Landing() {
         data-testid="landing-hero"
       >
         <Container className="landing-hero-grid">
-          <Stack gap="md" className="items-center text-center lg:items-start lg:text-left">
+          <Stack gap="sm" className="landing-hero-copy-stack items-center text-center lg:items-start lg:text-left">
             <span className="ds-kicker">KBO 야구 팬을 위한 올인원 플랫폼</span>
 
             <div className="flex items-center gap-3">
-              <img src={baseballLogo} alt="BEGA Logo" className="h-12 w-12 sm:h-14 sm:w-14" />
+              <img
+                src={baseballLogo}
+                alt="BEGA Logo"
+                width={56}
+                height={56}
+                className="h-10 w-10 sm:h-12 sm:w-12"
+              />
               <span className="landing-wordmark text-2xl text-primary sm:text-3xl">
                 BEGA
               </span>
@@ -189,10 +217,11 @@ export default function Landing() {
                 variant="brand"
                 onClick={() => navigate('/home')}
                 data-testid="landing-hero-cta-primary"
+                data-cta-priority="primary"
                 className="group w-full sm:w-auto"
               >
                 지금 바로 시작하기
-                <ArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
               <Button
                 size="touchLg"
@@ -204,25 +233,30 @@ export default function Landing() {
                   });
                 }}
                 data-testid="landing-hero-cta-secondary"
+                data-cta-priority="secondary"
                 className="w-full sm:w-auto"
               >
-                더 알아보기
+                기능 둘러보기
               </Button>
             </CTAGroup>
           </Stack>
 
-          <MockupFrame className="mx-auto w-full max-w-xl p-5 sm:p-6">
+          <MockupFrame className="landing-hero-preview mx-auto w-full max-w-xl p-3 sm:p-5">
             <div className="relative z-10">
               <div className="landing-device-shell">
                 <div className="landing-device-notch" />
 
                 <div className="landing-device-screen">
                   <div className="landing-device-screen-content absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                    <OptimizedImage
+                    <img
                       src={begaCharacter}
                       alt="BEGA Character"
-                      className="h-20 w-20 object-contain sm:h-24 sm:w-24"
-                      priority={true}
+                      className="h-16 w-16 object-contain sm:h-20 sm:w-20"
+                      width={96}
+                      height={96}
+                      loading="eager"
+                      decoding="async"
+                      {...{ fetchpriority: 'high' }}
                     />
                     <div>
                       <h2 className="landing-wordmark text-3xl sm:text-4xl">
@@ -242,17 +276,15 @@ export default function Landing() {
         </Container>
       </Section>
 
-      <Suspense
-        fallback={(
-          <Section className="bg-background">
-            <Container>
-              <div className="min-h-[960px]" aria-hidden="true" />
-            </Container>
-          </Section>
-        )}
+      <ViewportDeferred
+        fallback={<LandingFeaturesFallback />}
+        rootMargin="240px 0px 240px 0px"
+        containerTestId="landing-features-deferred"
       >
-        <LazyLandingFeaturesRuntime />
-      </Suspense>
+        <Suspense fallback={<LandingFeaturesFallback />}>
+          <LazyLandingFeaturesRuntime />
+        </Suspense>
+      </ViewportDeferred>
 
       <section className="pb-16 pt-0 lg:pb-20" data-testid="landing-cta">
         <Container>
@@ -260,7 +292,9 @@ export default function Landing() {
             <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center">
               <img
                 src={baseballLogo}
-                alt="BEGA Character"
+                alt="BEGA Logo"
+                width={96}
+                height={96}
                 className="h-20 w-20 sm:h-24 sm:w-24"
               />
               <span className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[16px] font-semibold text-white">
@@ -282,7 +316,7 @@ export default function Landing() {
                 className="group mt-8 border-white/15 bg-white text-primary hover:bg-white/90"
               >
                 무료로 시작하기
-                <ArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             </div>
           </div>
@@ -294,7 +328,7 @@ export default function Landing() {
           <div className="landing-footer-grid">
             <div className="max-w-sm">
               <div className="flex items-center gap-3">
-                <img src={baseballLogo} alt="BEGA" className="h-8 w-8" />
+                <img src={baseballLogo} alt="BEGA" width={32} height={32} className="h-8 w-8" />
                 <div className="flex items-baseline gap-2">
                   <span className="landing-wordmark text-lg text-primary">BEGA</span>
                   <span className="landing-brand-caption text-muted-foreground">
@@ -321,7 +355,7 @@ export default function Landing() {
                       <button
                         type="button"
                         onClick={() => handleFooterLinkClick(link.href)}
-                        className="bg-transparent p-0 text-left text-[16px] leading-6 text-muted-foreground transition-colors hover:text-foreground"
+                        className="inline-flex min-h-11 min-w-11 items-center bg-transparent py-2 text-left text-[16px] leading-6 text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </button>

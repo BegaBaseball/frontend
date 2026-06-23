@@ -529,7 +529,7 @@ async function writeBatch() {
     '## Policy',
     '',
     '- `DIRECT_OPERATOR_REFERENCE_TRACE_REQUIRED`: trace every row directly on the 4096 operator-reference image.',
-    '- `SIMPLE_SCALE_OR_COPY_FORBIDDEN`: do not scale or copy 1707x2048 official PNG coordinates.',
+    '- `SIMPLE_SCALE_OR_COPY_FORBIDDEN`: do not scale or copy 1707x2048 official image coordinates.',
     ...batchConfig.markerSplitBlockKeys.map((blockKey) => `- \`MARKER_SEAT_SPLIT_REQUIRED:${blockKey}\`: this row must keep marker evidence outside the selectable seat polygon.`),
     `- operator input JSON carries \`operatorReviewContract\`; production promotion requires gate status \`${operatorReviewContract.productionPromotionRequiresGateStatus}\`.`,
     `- approved promotion requires \`${APPROVAL_REQUIRED_FIELDS.join('`, `')}\`.`,
