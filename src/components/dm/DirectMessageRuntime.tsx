@@ -139,9 +139,11 @@ export default function DirectMessageRuntime() {
     enabled: roomId != null && inlineAccessError == null,
     onMessageReceived: (message) => {
       updateMessagesCache((current) => mergeMessage(current, message));
+      queryClient.invalidateQueries({ queryKey: ['dm', 'inbox'] });
     },
     onMessageDeleted: (messageId) => {
       updateMessagesCache((current) => current.filter((m) => Number(m.id) !== messageId));
+      queryClient.invalidateQueries({ queryKey: ['dm', 'inbox'] });
     },
   });
 

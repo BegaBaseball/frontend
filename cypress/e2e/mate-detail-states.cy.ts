@@ -397,16 +397,35 @@ describe('MateDetail state coverage', () => {
     cy.viewport(1024, 800);
     const party = { ...baseParty, id: 905, stadium: '사직야구장', homeTeam: 'LT', awayTeam: 'HH' };
 
-    cy.intercept({ method: 'GET', pathname: '/api/parties' }, {
-      statusCode: 200,
-      body: {
-        content: [party],
-        totalElements: 1,
-        totalPages: 1,
-        number: 0,
-        size: 9,
-      },
-    }).as('getParties');
+    cy.intercept({ method: 'GET', pathname: '/api/parties' }, (req) => {
+      const requestUrl = new URL(req.url);
+      const size = requestUrl.searchParams.get('size');
+      if (size === '9') {
+        req.alias = 'getParties';
+        req.reply({
+          statusCode: 200,
+          body: {
+            content: [party],
+            totalElements: 1,
+            totalPages: 1,
+            number: 0,
+            size: 9,
+          },
+        });
+        return;
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          content: [],
+          totalElements: 0,
+          totalPages: 0,
+          number: 0,
+          size: 1,
+        },
+      });
+    });
     cy.intercept('GET', `**/api/parties/${party.id}*`, {
       statusCode: 200,
       delay: 1200,
