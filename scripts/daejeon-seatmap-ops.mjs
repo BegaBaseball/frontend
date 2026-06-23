@@ -15,7 +15,7 @@ const runAnchorReviewCrops = async () => {
   const repoRoot = path.resolve(frontendRoot, '..');
   const imagePath = path.join(
     frontendRoot,
-    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png',
+    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp',
   );
   const outDir = path.join(repoRoot, 'output/playwright/daejeon-anchor-review');
 
@@ -50,7 +50,7 @@ const runAnchorReviewCrops = async () => {
     'special-accessible-outfield-third',
     'skybox-s01-s12-sequence',
     'skybox-s13-s25-sequence',
-    'skybox-s26-s37-sequence',
+    'skybox-s26-s31-sequence',
   ];
   const manualCropOnlyReviewMode = 'MANUAL_CROP_ONLY';
   const requiredRegressionIds = [
@@ -77,7 +77,7 @@ const runAnchorReviewCrops = async () => {
     'P2_THIRD_213_219_DETAIL_REGRESSION',
     'P2_SKYBOX_S01_S12_SEQUENCE_REGRESSION',
     'P2_SKYBOX_S13_S25_SEQUENCE_REGRESSION',
-    'P2_SKYBOX_S26_S37_SEQUENCE_REGRESSION',
+    'P2_SKYBOX_S26_S31_SEQUENCE_REGRESSION',
     'P2_SPECIAL_400_ACCESSIBLE_FIRST_REGRESSION',
     'P2_SPECIAL_425_426_THIRD_ACCESSIBLE_REGRESSION',
     'P2_SPECIAL_ACCESSIBLE_CENTER_REGRESSION',
@@ -250,7 +250,7 @@ const runAnchorReviewCrops = async () => {
   await fs.writeFile(indexMarkdownPath, [
     '# Daejeon Anchor Review Crops',
     '',
-    'Official PNG 기준 overlay anchor crop 목록입니다. 각 path는 운영 geometry가 아니라 검수 산출물입니다.',
+    'Official image 기준 overlay anchor crop 목록입니다. 각 path는 운영 geometry가 아니라 검수 산출물입니다.',
     `review contract: \`${reviewContractVersion}\``,
     '',
     '## Summary',
@@ -335,7 +335,7 @@ const runAnchorVisualDiff = async () => {
       outputPath,
       outputPathRelativeToRepo: path.relative(repoRoot, outputPath).replaceAll(path.sep, '/'),
       purpose: crop.purpose ?? 'anchor crop 검수',
-      reviewFocus: crop.reviewFocus ?? '공식 PNG와 overlay path 정렬 확인',
+      reviewFocus: crop.reviewFocus ?? '공식 이미지와 overlay path 정렬 확인',
     };
   };
 
@@ -367,8 +367,8 @@ const runAnchorVisualDiff = async () => {
     coordinateChangeImpactContract: snapshot.coordinateChangeImpactContract,
     expectedCropCount: snapshot.expectedCropCount,
     policy: {
-      purpose: '대전 공식 PNG overlay anchor crop visual baseline',
-      coordinateSystem: 'official PNG 920x1060',
+      purpose: '대전 공식 이미지 overlay anchor crop visual baseline',
+      coordinateSystem: 'official image 920x1060',
       note: '좌표/path 수정으로 crop hash가 바뀌면 release-lock에서 visual diff가 실패하며 baseline 갱신 전 운영자 검수가 필요하다.',
     },
     crops: snapshot.crops.map((crop) => ({
@@ -527,7 +527,7 @@ const runAnchorVisualDiff = async () => {
       '',
       '## Policy',
       '',
-      '- baseline crop hash가 바뀌면 좌표/path/공식 PNG 변경 영향으로 보고 release-lock을 실패시킨다.',
+      '- baseline crop hash가 바뀌면 좌표/path/공식 이미지 변경 영향으로 보고 release-lock을 실패시킨다.',
       '- P0 crop은 regressionTestIds가 반드시 있어야 한다.',
       '- P2 MANUAL_CROP_ONLY 변경은 수동 검수 대상으로 report에 남긴다.',
       '- baseline 갱신은 운영자 검수 후 `node scripts/stadium-seatmap-ops.mjs daejeon visual-baseline`로만 수행한다.',
@@ -1002,8 +1002,8 @@ const runChangeGuard = async () => {
   const releaseGatePath = path.join(reportDir, 'daejeon-seatmap-release-gate.json');
   const staleToleranceMs = 1000;
 
-  const EXPECTED_BLOCKS = 145;
-  const EXPECTED_TRACED = 145;
+  const EXPECTED_BLOCKS = 139;
+  const EXPECTED_TRACED = 139;
   const EXPECTED_REVIEW = 0;
   const EXPECTED_P2_ALIASES = 11;
   const EXPECTED_ANCHOR_CROPS = 28;
@@ -1015,7 +1015,7 @@ const runChangeGuard = async () => {
     'src/data/daejeonGeometryBaseline.json',
     'src/data/daejeonSeatData.ts',
     'src/data/daejeonSeatData.test.ts',
-    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png',
+    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp',
   ];
 
   const WATCH_DIRECTORIES = [
@@ -1296,8 +1296,13 @@ const runCoverageReport = async () => {
     { term: '120', expectedBlockIds: ['third-infield-a-113-120-213-225__120'] },
     { term: '124', expectedBlockIds: ['third-infield-b-121-124__124'] },
     { term: '200', expectedBlockIds: ['cass-cheering-200__200'] },
+    { term: '205', expectedBlockIds: ['first-infield-a-109-112-201-212__205'] },
+    { term: '220', expectedBlockIds: ['third-infield-a-113-120-213-225__220'] },
     { term: '225', expectedBlockIds: ['third-infield-a-113-120-213-225__225'] },
     { term: '301', expectedBlockIds: ['first-table-4f-301-413__301'] },
+    { term: '302', expectedBlockIds: ['first-table-4f-301-413__302'] },
+    { term: '326', expectedBlockIds: ['third-table-4f-414-330__326'] },
+    { term: '327', expectedBlockIds: ['third-table-4f-414-330__327'] },
     { term: '413', expectedBlockIds: ['first-table-4f-301-413__413'] },
     { term: '424', expectedBlockIds: ['outfield-reserved-third-423-330__424'] },
     { term: '425', expectedBlockIds: ['splash-jacuzzi-425__425'] },
@@ -1307,7 +1312,11 @@ const runCoverageReport = async () => {
     { term: '508', expectedBlockIds: ['outfield-table-first-504-508__508'] },
     { term: '509', expectedBlockIds: ['outfield-reserved-509__509'] },
     { term: 'S01', expectedBlockIds: ['skybox-s01-s37__s01'] },
-    { term: 'S37', expectedBlockIds: ['skybox-s01-s37__s37'] },
+    { term: 'S12', expectedBlockIds: ['skybox-s01-s37__s12'] },
+    { term: 'S13', expectedBlockIds: ['skybox-s01-s37__s13'] },
+    { term: 'S25', expectedBlockIds: ['skybox-s01-s37__s25'] },
+    { term: 'S26', expectedBlockIds: ['skybox-s01-s37__s26'] },
+    { term: 'S31', expectedBlockIds: ['skybox-s01-s37__s31'] },
   ];
 
   const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'));
@@ -1472,7 +1481,7 @@ const runCoverageReport = async () => {
   const report = {
     generatedAt: summary.generatedAt,
     policy: {
-      coordinateSystem: 'official PNG 920x1060',
+      coordinateSystem: 'official image 920x1060',
       statuses: ['LOCKED', 'PARTIAL', 'LABEL_ONLY'],
       ownerPointRequiredParentIds: [...ownerPointRequiredParentIds],
       anchorExceptionByParentId: Object.fromEntries(anchorExceptionByParentId),
@@ -1506,7 +1515,7 @@ const runCoverageReport = async () => {
     ['retired operational blocks', String(summary.retiredBlocksInOperationalDataCount)],
   ];
   const operatorReviewRows = [
-    ['operational blocks', summary.totalBlocks === 145 ? 'PASS' : 'BLOCK', `${summary.totalBlocks}/145`],
+    ['operational blocks', summary.totalBlocks === 139 ? 'PASS' : 'BLOCK', `${summary.totalBlocks}/139`],
     ['coverage locked', summary.lockedCount === summary.totalBlocks ? 'PASS' : 'BLOCK', `${summary.lockedCount}/${summary.totalBlocks}`],
     ['label-only exceptions', summary.labelOnlyCount === 0 ? 'PASS' : 'BLOCK', String(summary.labelOnlyCount)],
     ['partial blocks', summary.partialCount === 0 ? 'PASS' : 'BLOCK', String(summary.partialCount)],
@@ -1528,7 +1537,7 @@ const runCoverageReport = async () => {
     '# 대전 좌석도 coverage report',
     '',
     `- generated: ${summary.generatedAt}`,
-    '- coordinate system: official PNG 920x1060',
+    '- coordinate system: official image 920x1060',
     '- LABEL_ONLY exception: none',
     '',
     '## Operator Review',
@@ -1542,7 +1551,7 @@ const runCoverageReport = async () => {
       releaseBlockers.map(([label, count]) => [label, String(count)]),
     ),
     '',
-    '배포 승인 전 위 count가 모두 0이어야 한다. `coverage locked`는 145/145여야 한다.',
+    '배포 승인 전 위 count가 모두 0이어야 한다. `coverage locked`는 139/139여야 한다.',
     '',
     '## Summary',
     '',
@@ -1882,7 +1891,7 @@ const runGeometryDiff = async () => {
   const geometryDiffJsonPath = path.join(reportDir, 'daejeon-seatmap-geometry-diff.json');
   const geometryDiffMarkdownPath = path.join(reportDir, 'daejeon-seatmap-geometry-diff.md');
   const geometryDiffContract = 'DAEJEON_GEOMETRY_BASELINE_V1';
-  const expectedBlockCount = 145;
+  const expectedBlockCount = 139;
 
   const args = new Set(process.argv.slice(2));
   const writeBaseline = args.has('--write-baseline');
@@ -2002,8 +2011,8 @@ const runGeometryDiff = async () => {
     coordinateChangeImpactContract: snapshot.coordinateChangeImpactContract,
     expectedBlockCount: snapshot.expectedBlockCount,
     policy: {
-      purpose: '대전 공식 PNG overlay block geometry fingerprint baseline',
-      coordinateSystem: 'official PNG 920x1060',
+      purpose: '대전 공식 이미지 overlay block geometry fingerprint baseline',
+      coordinateSystem: 'official image 920x1060',
       lockedFields: [
         'imageGeometry.d',
         'imageGeometry.labelX',
@@ -2358,11 +2367,11 @@ const runOperatorApproval = async (taskArgs = process.argv.slice(2), overrideOpt
     assertApproval(handoff.releaseGate?.generatedAt === releaseGate.generatedAt, 'operator handoff releaseGate.generatedAt must match current release gate');
     assertApproval(handoff.releaseGate?.status === releaseGate.status, 'operator handoff releaseGate.status must match current release gate');
     assertApproval(handoff.releaseGate?.reportJson === sourceArtifacts.releaseGateJson, 'operator handoff releaseGate.reportJson must point at current release gate JSON');
-    assertApproval(handoff.lockedStatus?.totalBlocks === 145, 'handoff totalBlocks must be 145');
-    assertApproval(handoff.lockedStatus?.officialImageTraced === 145, 'handoff officialImageTraced must be 145');
+    assertApproval(handoff.lockedStatus?.totalBlocks === 139, 'handoff totalBlocks must be 139');
+    assertApproval(handoff.lockedStatus?.officialImageTraced === 139, 'handoff officialImageTraced must be 139');
     assertApproval(handoff.lockedStatus?.needsOperatorReview === 0, 'handoff needsOperatorReview must be 0');
     assertApproval(handoff.lockedStatus?.labelTopHitFailures === 0, 'handoff labelTopHitFailures must be 0');
-    assertApproval(handoff.lockedStatus?.coverageLocked === 145, 'handoff coverageLocked must be 145');
+    assertApproval(handoff.lockedStatus?.coverageLocked === 139, 'handoff coverageLocked must be 139');
     assertApproval(handoff.lockedStatus?.coverageLabelOnly === 0, 'handoff coverageLabelOnly must be 0');
     assertApproval(handoff.lockedStatus?.p2DeduplicatedAliases === 11, 'handoff p2DeduplicatedAliases must be 11');
     assertApproval(handoff.lockedStatus?.p2EvidenceOutputs === 11, 'handoff p2EvidenceOutputs must be 11');
@@ -2570,20 +2579,20 @@ const runOperatorHandoff = async () => {
   const handoffJsonPath = path.join(reportDir, 'daejeon-seatmap-operator-handoff.json');
   const handoffMarkdownPath = path.join(reportDir, 'daejeon-seatmap-operator-handoff.md');
 
-  const EXPECTED_BLOCKS = 145;
-  const EXPECTED_TRACED = 145;
+  const EXPECTED_BLOCKS = 139;
+  const EXPECTED_TRACED = 139;
   const EXPECTED_REVIEW = 0;
   const EXPECTED_P2_ALIASES = 11;
   const EXPECTED_ANCHOR_CROPS = 28;
 
   const approvalChecklist = [
-    'Trace manifest의 totalBlocks=145, officialImageTraced=145, needsOperatorReview=0을 확인했습니다.',
+    'Trace manifest의 totalBlocks=139, officialImageTraced=139, needsOperatorReview=0을 확인했습니다.',
     'labelTopHitFailures=0을 확인했습니다.',
     'coverage report의 missingLabelTopHit=0, missingAnchorWithoutException=0, missingOwnerPointRequired=0을 확인했습니다.',
     'coordinateChangeImpactSummary에서 missingImpact=0이고 좌표 변경 시 재검수할 crop/test 역매핑을 확인했습니다.',
     'anchor visual diff가 baseline과 일치하며 changedCropCount=0임을 확인했습니다.',
     'geometry fingerprint diff가 baseline과 일치하며 changedBlockCount=0임을 확인했습니다.',
-    'home-100, first-101-109, third-121-124, first/third 4층 탁자석, outfield-upper-500-509, skybox S01-S37, special crop을 공식 PNG와 비교했습니다.',
+    'home-100, first-101-109, third-121-124, first/third 4층 탁자석, outfield-upper-500-509, skybox S01-S31, special crop을 공식 이미지와 비교했습니다.',
     'P2 retired alias 11개가 운영 geometry가 아닌 canonical owner evidence로만 남아 있음을 확인했습니다.',
     '?daejeonDebug=1에서 100B/105/108/115/120/124/200/301/302/401/404/409/413/400/425/426/500/501/508/509를 확인했습니다.',
     '모바일 390px와 데스크톱 1440px QA summary가 passed이며 overflow 0임을 확인했습니다.',
@@ -2591,9 +2600,9 @@ const runOperatorHandoff = async () => {
   ];
 
   const lockedDecisions = [
-    '운영 선택 블록은 145개만 유지합니다.',
+    '운영 선택 블록은 139개만 유지합니다.',
     'P2 retired alias 11개는 운영 SVG/finder/업로드 선택지로 복구하지 않습니다.',
-    '공식 PNG natural size와 좌표계는 920x1060으로 고정합니다.',
+    '공식 이미지 natural size와 좌표계는 920x1060으로 고정합니다.',
     '좌표를 추측하거나 자동 rect/interpolation을 OFFICIAL_IMAGE_TRACED로 승격하지 않습니다.',
     'anchor visual baseline은 운영자 검수 없이 갱신하지 않습니다.',
     'geometry fingerprint baseline은 운영자 검수 없이 갱신하지 않습니다.',
@@ -2614,22 +2623,22 @@ const runOperatorHandoff = async () => {
     'outfield-upper-500-509-sequence',
     'skybox-s01-s12-sequence',
     'skybox-s13-s25-sequence',
-    'skybox-s26-s37-sequence',
+    'skybox-s26-s31-sequence',
     'special-400-accessible-first',
     'special-425-426-third-accessible',
     'special-accessible-center',
     'special-accessible-outfield-third',
   ];
   const rejectionConditions = [
-    'coverage report에서 LOCKED가 145가 아니거나 LABEL_ONLY/PARTIAL이 0이 아닙니다.',
-    'anchor crop에서 visible path가 공식 PNG 색상 셀 밖으로 벗어납니다.',
+    'coverage report에서 LOCKED가 139가 아니거나 LABEL_ONLY/PARTIAL이 0이 아닙니다.',
+    'anchor crop에서 visible path가 공식 이미지 색상 셀 밖으로 벗어납니다.',
     'trace manifest에서 labelTopHitFailures가 0이 아닙니다.',
     'anchor visual diff에서 changedCropCount 또는 metadataMismatchCount가 0이 아닙니다.',
     'geometry fingerprint diff에서 changedBlockCount, missingBlockCount, extraBlockCount가 0이 아닙니다.',
     'retired P2 alias 11개 중 하나라도 운영 SVG/finder/업로드 선택지로 복구됩니다.',
     '브라우저 QA에서 모바일 390px 또는 데스크톱 1440px overflow가 발생합니다.',
     'visible highlight가 imageGeometry.d가 아니라 hitAreaD를 사용해 실제 블록보다 커 보입니다.',
-    '공식 PNG natural size 또는 SVG viewBox가 920x1060 계약에서 벗어납니다.',
+    '공식 이미지 natural size 또는 SVG viewBox가 920x1060 계약에서 벗어납니다.',
   ];
   const approvalCommands = [
     'npm run qa:stadium:daejeon:release-lock',
@@ -2885,7 +2894,7 @@ const runOperatorHandoff = async () => {
         id: crop.id,
         group: crop.group ?? 'other',
         purpose: crop.purpose ?? 'anchor crop 검수',
-        reviewFocus: crop.reviewFocus ?? '공식 PNG와 overlay path 정렬 확인',
+        reviewFocus: crop.reviewFocus ?? '공식 이미지와 overlay path 정렬 확인',
         reviewPriority: crop.reviewPriority ?? 'P2',
         reviewMode: crop.reviewMode ?? 'VISUAL_CROP_REVIEW',
         manualOnlyReason: crop.manualOnlyReason ?? null,
@@ -3087,10 +3096,10 @@ const runOperatorHandoff = async () => {
       '',
       '## Operator Review Steps',
       '',
-      '1. `reports/stadium/daejeon-seatmap-trace-review.md`에서 145/145/0 상태를 확인합니다.',
+      '1. `reports/stadium/daejeon-seatmap-trace-review.md`에서 139/139/0 상태를 확인합니다.',
       '2. `reports/stadium/daejeon-seatmap-coverage-report.md`에서 PARTIAL=0, missing count=0 상태를 확인합니다.',
       '3. `reports/stadium/daejeon-seatmap-geometry-diff.md`에서 changedBlockCount=0 상태를 확인합니다.',
-      '4. `../output/playwright/daejeon-anchor-review/daejeon-anchor-review-crops.md`의 key anchor crop을 공식 PNG와 비교합니다.',
+      '4. `../output/playwright/daejeon-anchor-review/daejeon-anchor-review-crops.md`의 key anchor crop을 공식 이미지와 비교합니다.',
       '5. `reports/stadium/daejeon-seatmap-p2-evidence-crops.md`에서 retired P2 alias가 canonical owner evidence로만 남았는지 확인합니다.',
       '6. 브라우저에서 `/stadium?daejeonDebug=1`로 접속해 대표 블록을 육안 확인합니다.',
       '7. 모바일 390px, 데스크톱 1440px QA screenshot을 확인합니다.',
@@ -3111,7 +3120,7 @@ const runOperatorHandoff = async () => {
       '',
       'approval JSON의 `approvedHandoffHash`, `approvedHandoffMarkdownHash`, `approvedReleaseGateHash`가 현재 산출물과 다르면 `STALE_APPROVAL`로 실패합니다.',
       '`qa:stadium:daejeon:release-approved`는 내부에서 `--require-approved` 검증을 실행합니다.',
-      '좌표, 공식 PNG, evidence, handoff가 변경되면 release-lock gate부터 다시 통과한 뒤 재승인합니다.',
+      '좌표, 공식 이미지, evidence, handoff가 변경되면 release-lock gate부터 다시 통과한 뒤 재승인합니다.',
       '',
       '## Locked Decisions',
       '',
@@ -3142,15 +3151,15 @@ const runOperatorHandoff = async () => {
 const runPixelComponents = async () => {
   const { default: fs } = await import("node:fs/promises");
   const { default: path } = await import("node:path");
-  const { default: zlib } = await import("node:zlib");
   const { fileURLToPath } = await import("node:url");
+  const { default: sharp } = await import("sharp");
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const frontendRoot = path.resolve(scriptDir, '..');
   const outputRoot = path.resolve(frontendRoot, '..', 'output/playwright');
   const imagePath = path.resolve(
     frontendRoot,
-    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png',
+    'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp',
   );
   const reportPath = path.join(outputRoot, 'daejeon-seatmap-pixel-components.json');
 
@@ -3197,89 +3206,17 @@ const runPixelComponents = async () => {
     },
   ];
 
-  function paethPredictor(left, up, upLeft) {
-    const p = left + up - upLeft;
-    const pa = Math.abs(p - left);
-    const pb = Math.abs(p - up);
-    const pc = Math.abs(p - upLeft);
-    if (pa <= pb && pa <= pc) return left;
-    if (pb <= pc) return up;
-    return upLeft;
-  }
+  async function decodeRgbaImage(filePath) {
+    const { data, info } = await sharp(filePath)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
-  async function decodeRgbaPng(filePath) {
-    const buffer = await fs.readFile(filePath);
-    const signature = buffer.subarray(0, 8).toString('hex');
-    if (signature !== '89504e470d0a1a0a') {
-      throw new Error(`Not a PNG file: ${filePath}`);
+    if (!Number.isFinite(info.width) || !Number.isFinite(info.height) || info.channels !== 4) {
+      throw new Error(`Unsupported image decode result: ${JSON.stringify(info)}`);
     }
 
-    let offset = 8;
-    let width = 0;
-    let height = 0;
-    let bitDepth = 0;
-    let colorType = 0;
-    let interlace = 0;
-    const idatChunks = [];
-
-    while (offset < buffer.length) {
-      const length = buffer.readUInt32BE(offset);
-      const type = buffer.subarray(offset + 4, offset + 8).toString('ascii');
-      const data = buffer.subarray(offset + 8, offset + 8 + length);
-      offset += length + 12;
-
-      if (type === 'IHDR') {
-        width = data.readUInt32BE(0);
-        height = data.readUInt32BE(4);
-        bitDepth = data[8];
-        colorType = data[9];
-        interlace = data[12];
-      } else if (type === 'IDAT') {
-        idatChunks.push(data);
-      } else if (type === 'IEND') {
-        break;
-      }
-    }
-
-    if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
-      throw new Error(`Unsupported PNG format: bitDepth=${bitDepth}, colorType=${colorType}, interlace=${interlace}`);
-    }
-
-    const bytesPerPixel = 4;
-    const stride = width * bytesPerPixel;
-    const inflated = zlib.inflateSync(Buffer.concat(idatChunks));
-    const rgba = Buffer.alloc(width * height * bytesPerPixel);
-    let sourceOffset = 0;
-    let previous = Buffer.alloc(stride);
-
-    for (let y = 0; y < height; y += 1) {
-      const filter = inflated[sourceOffset];
-      sourceOffset += 1;
-      const row = Buffer.from(inflated.subarray(sourceOffset, sourceOffset + stride));
-      sourceOffset += stride;
-
-      for (let index = 0; index < stride; index += 1) {
-        const left = index >= bytesPerPixel ? row[index - bytesPerPixel] : 0;
-        const up = previous[index];
-        const upLeft = index >= bytesPerPixel ? previous[index - bytesPerPixel] : 0;
-        if (filter === 1) {
-          row[index] = (row[index] + left) & 0xff;
-        } else if (filter === 2) {
-          row[index] = (row[index] + up) & 0xff;
-        } else if (filter === 3) {
-          row[index] = (row[index] + Math.floor((left + up) / 2)) & 0xff;
-        } else if (filter === 4) {
-          row[index] = (row[index] + paethPredictor(left, up, upLeft)) & 0xff;
-        } else if (filter !== 0) {
-          throw new Error(`Unsupported PNG row filter: ${filter}`);
-        }
-      }
-
-      row.copy(rgba, y * stride);
-      previous = row;
-    }
-
-    return { width, height, data: rgba };
+    return { width: info.width, height: info.height, data };
   }
 
   function connectedComponents(mask, width, height, minArea) {
@@ -3376,7 +3313,7 @@ const runPixelComponents = async () => {
     return lower.concat(upper);
   }
 
-  const imageData = await decodeRgbaPng(imagePath);
+  const imageData = await decodeRgbaImage(imagePath);
 
   const { width, height } = imageData;
   const pixels = imageData.data;
@@ -3559,7 +3496,7 @@ const runPixelAlignAudit = async () => {
     contract,
     status: failures.length === 0 ? 'passed' : 'failed',
     policy: {
-      purpose: '대전 공식 PNG 픽셀 색상과 운영 polygon의 거친 정렬 회귀를 탐지한다.',
+      purpose: '대전 공식 이미지 픽셀 색상과 운영 polygon의 거친 정렬 회귀를 탐지한다.',
       strictBlocks: ['first-table-4f-301-413__403', 'first-table-4f-301-413__404'],
       note: '육안 검수를 대체하지 않으며, 403/404가 400 오렌지 블록으로 다시 밀리는 회귀를 release 전에 잡는 보조 gate다.',
     },
@@ -3630,8 +3567,8 @@ const runReleaseGate = async () => {
   const outputRoot = path.join(repoRoot, 'output/playwright');
   const dataTestSourcePath = path.join(frontendRoot, 'src/data/daejeonSeatData.test.ts');
 
-  const EXPECTED_BLOCKS = 145;
-  const EXPECTED_TRACED = 145;
+  const EXPECTED_BLOCKS = 139;
+  const EXPECTED_TRACED = 139;
   const EXPECTED_REVIEW = 0;
   const EXPECTED_P2_ALIASES = 11;
   const EXPECTED_ANCHOR_CROPS = 28;
@@ -3685,6 +3622,10 @@ const runReleaseGate = async () => {
       label: 'build',
       command: 'npm',
       args: ['run', 'build'],
+      env: {
+        VITE_SITE_URL: process.env.VITE_SITE_URL || 'http://localhost:5176',
+        VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'http://localhost:8080',
+      },
     },
   ];
 
@@ -3720,7 +3661,7 @@ const runReleaseGate = async () => {
     'outfield-upper-500-509-sequence',
     'skybox-s01-s12-sequence',
     'skybox-s13-s25-sequence',
-    'skybox-s26-s37-sequence',
+    'skybox-s26-s31-sequence',
     'special-400-accessible-first',
     'special-425-426-third-accessible',
     'special-accessible-center',
@@ -3754,7 +3695,7 @@ const runReleaseGate = async () => {
 
     const child = spawn(step.command, step.args, {
       cwd: frontendRoot,
-      env: { ...process.env },
+      env: { ...process.env, ...step.env },
       stdio: 'inherit',
       shell: false,
     });
@@ -4321,6 +4262,12 @@ const runReviewManifest = async () => {
     return points;
   };
 
+  const pathToPolygons = (d) => String(d ?? '')
+    .trim()
+    .split(/(?=M\s*-?\d)/i)
+    .map((subpath) => pathToPoints(subpath))
+    .filter((points) => points.length >= 3);
+
   const polygonArea = (points) => {
     const signedArea = points.reduce((area, point, index) => {
       const next = points[(index + 1) % points.length];
@@ -4345,6 +4292,8 @@ const runReviewManifest = async () => {
     return inside;
   };
 
+  const isPointInsidePath = (d, point) => pathToPolygons(d).some((points) => isPointInsidePolygon(points, point));
+
   const getSeatMapLayer = (block) => {
     if (block.category === 'ACCESSIBLE') return 40;
     if (block.category === 'SPECIAL' || block.category === 'EXCITING') return 30;
@@ -4357,6 +4306,7 @@ const runReviewManifest = async () => {
   const getSplitColorRenderLayer = (block) => (isDaejeonSplitColorBlockId(block.id) ? 1 : 0);
 
   const formatArea = (value) => Number(value.toFixed(2));
+  const formatCoordinate = (value) => Number(value.toFixed(1));
 
   const renderOrderedBlocks = [...DAEJEON_BLOCKS].sort((a, b) => (
     getSeatMapLayer(a) - getSeatMapLayer(b)
@@ -4364,6 +4314,29 @@ const runReviewManifest = async () => {
     || getSplitColorRenderLayer(a) - getSplitColorRenderLayer(b)
     || a.displayPriority - b.displayPriority
   ));
+
+  const getTopHitBlockIdAtPoint = (point) => {
+    const hitStack = renderOrderedBlocks.filter((candidate) => (
+      candidate.traceStatus === 'OFFICIAL_IMAGE_TRACED'
+      && isPointInsidePath(candidate.hitAreaD ?? candidate.imageGeometry.d, point)
+    ));
+
+    return hitStack[hitStack.length - 1]?.id ?? null;
+  };
+
+  const expandedVertexSample = (block, vertexIndex, distance = 2) => {
+    const visualPoints = pathToPoints(block.imageGeometry.d);
+    const [x, y] = visualPoints[vertexIndex];
+    const dx = x - block.imageGeometry.labelX;
+    const dy = y - block.imageGeometry.labelY;
+    const length = Math.hypot(dx, dy);
+    if (length === 0) return [x, y];
+
+    return [
+      formatCoordinate(x + ((dx / length) * distance)),
+      formatCoordinate(y + ((dy / length) * distance)),
+    ];
+  };
 
   const traceReviewQueueById = new Map(DAEJEON_TRACE_REVIEW_QUEUE.map((item) => [item.id, item]));
   const deduplicatedAliasesByCanonicalId = DAEJEON_P2_DEDUPLICATED_ALIASES.reduce((map, alias) => {
@@ -4382,7 +4355,7 @@ const runReviewManifest = async () => {
     const labelPoint = [block.imageGeometry.labelX, block.imageGeometry.labelY];
     const hitStack = renderOrderedBlocks.filter((candidate) => (
       candidate.traceStatus === 'OFFICIAL_IMAGE_TRACED'
-      && isPointInsidePolygon(pathToPoints(candidate.hitAreaD ?? candidate.imageGeometry.d), labelPoint)
+      && isPointInsidePath(candidate.hitAreaD ?? candidate.imageGeometry.d, labelPoint)
     ));
     const labelTopHitBlockId = hitStack[hitStack.length - 1]?.id ?? null;
     const hitAreaArea = formatArea(polygonArea(hitAreaPoints));
@@ -4446,12 +4419,53 @@ const runReviewManifest = async () => {
       labelHitStack: block.labelHitStack,
     }));
 
+  const edgeSampleContractBlockIds = [
+    'first-table-4f-301-413__301',
+    'first-table-4f-301-413__302',
+    ...Array.from({ length: 31 }, (_, index) => `skybox-s01-s37__s${String(index + 1).padStart(2, '0')}`),
+  ];
+  const blocksById = new Map(DAEJEON_BLOCKS.map((block) => [block.id, block]));
+  const edgeSampleRows = edgeSampleContractBlockIds.map((blockId) => {
+    const block = blocksById.get(blockId);
+    if (!block) {
+      return {
+        id: blockId,
+        blockCode: '',
+        samplePoint: null,
+        topHitBlockId: null,
+        ok: false,
+        failure: 'missing block',
+      };
+    }
+
+    const visualPoints = pathToPoints(block.imageGeometry.d);
+    const candidateSamples = visualPoints.map((_, vertexIndex) => expandedVertexSample(block, vertexIndex));
+    const samplePoint = candidateSamples.find((point) => (
+      !isPointInsidePath(block.imageGeometry.d, point)
+      && getTopHitBlockIdAtPoint(point) === block.id
+    )) ?? candidateSamples[0] ?? null;
+    const topHitBlockId = samplePoint ? getTopHitBlockIdAtPoint(samplePoint) : null;
+
+    return {
+      id: block.id,
+      blockCode: block.blockCode,
+      samplePoint,
+      topHitBlockId,
+      ok: topHitBlockId === block.id,
+      failure: topHitBlockId === block.id ? '' : 'edge sample did not top-hit target block',
+    };
+  });
+  const edgeSampleTopHitFailures = edgeSampleRows.filter((row) => !row.ok);
+
   const precisionAudit = {
     standard: 'JAMSIL_CLICK_ACCURACY_BASELINE',
     totalBlocks: DAEJEON_BLOCKS.length,
     manualGeometryBlocks: DAEJEON_BLOCKS.filter((block) => block.traceStatus === 'OFFICIAL_IMAGE_TRACED').length,
     labelTopHitFailures,
     labelTopHitFailureCount: labelTopHitFailures.length,
+    edgeSampleTopHitFailures,
+    edgeSampleTopHitFailureCount: edgeSampleTopHitFailures.length,
+    edgeSampleContracts: edgeSampleRows,
     hitAreaArea: {
       min: formatArea(hitAreaAreas[0] ?? 0),
       p10: formatArea(pickPercentile(hitAreaAreas, 0.1)),
@@ -4544,6 +4558,7 @@ const runReviewManifest = async () => {
     `- release gate report: \`${path.relative(frontendRoot, releaseGateReportPath)}\``,
     `- browser QA summary: \`${path.relative(frontendRoot, browserQaSummaryPath)}\``,
     `- label top-hit failures: ${precisionAudit.labelTopHitFailureCount}`,
+    `- edge sample top-hit failures: ${precisionAudit.edgeSampleTopHitFailureCount}`,
     `- hit-area area: min ${precisionAudit.hitAreaArea.min}, median ${precisionAudit.hitAreaArea.median}, p90 ${precisionAudit.hitAreaArea.p90}, max ${precisionAudit.hitAreaArea.max}`,
     `- coordinate impact contract: \`${coordinateChangeImpact.contract}\``,
     '',
@@ -4613,11 +4628,26 @@ const runReviewManifest = async () => {
         ['기준', precisionAudit.standard],
         ['수동 geometry 블록', `${precisionAudit.manualGeometryBlocks}/${precisionAudit.totalBlocks}`],
         ['label top-hit 실패', String(precisionAudit.labelTopHitFailureCount)],
+        ['edge sample top-hit 실패', String(precisionAudit.edgeSampleTopHitFailureCount)],
         ['작은 hit-area(<10)', String(precisionAudit.hitAreaArea.tinyHitAreas.length)],
         ['큰 hit-area(>5000)', String(precisionAudit.hitAreaArea.largeHitAreas.length)],
         ['전수 label click QA viewport', precisionAudit.desktopFullLabelClickViewport],
       ],
     ),
+    '',
+    '## Edge sample top-hit QA',
+    '',
+    edgeSampleTopHitFailures.length
+      ? markdownTable(
+        ['block', 'sample', 'top hit', 'failure'],
+        edgeSampleTopHitFailures.map((row) => [
+          `\`${row.id}\``,
+          row.samplePoint ? row.samplePoint.join(',') : '-',
+          row.topHitBlockId ? `\`${row.topHitBlockId}\`` : '-',
+          row.failure,
+        ]),
+      )
+      : '- all 301/302 and S01-S31 edge samples top-hit their target block',
     '',
     '## 좌표 변경 영향 범위',
     '',

@@ -15,7 +15,7 @@ import type { SeatMapPoint } from '../../utils/seatMapPolygonValidator';
 type EditablePathKind = 'visual' | 'hit';
 
 const dataset = buildGwangjuSeatMapEditorDataset();
-const officialImageUrl = new URL('../../assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png', import.meta.url).href;
+const officialImageUrl = new URL('../../assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp', import.meta.url).href;
 
 function clonePolygons(polygons: SeatMapPoint[][]): SeatMapPoint[][] {
   return polygons.map((polygon) => polygon.map(([x, y]) => [x, y]));
@@ -224,7 +224,7 @@ export default function GwangjuSeatMapEditor() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">Internal Gwangju seatmap editor</p>
             <h1 className="mt-1 text-2xl font-black">gwangju-precision-v1</h1>
             <p className="mt-1 text-sm font-semibold text-slate-400">
-              Official PNG natural coordinates · {dataset.image.viewBox} · file-write disabled
+              Official image natural coordinates · {dataset.image.viewBox} · file-write disabled
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold">

@@ -136,11 +136,11 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
         />
       )}
       {!showImage && (
-        <div className="flex size-full items-center justify-center bg-slate-100 font-semibold select-none text-slate-600 dark:bg-secondary dark:text-gray-300">
+        <div className="flex size-full items-center justify-center bg-slate-100 font-semibold select-none text-slate-600 dark:bg-secondary dark:text-white">
           {initial ? (
             <span className={fallbackTextClass}>{initial}</span>
           ) : (
-            <ProfileImageFallbackIcon size={iconSize} className="text-slate-400 dark:text-gray-500" />
+            <ProfileImageFallbackIcon size={iconSize} className="text-slate-400 dark:text-white" />
           )}
         </div>
       )}

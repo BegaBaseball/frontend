@@ -2,7 +2,7 @@
 
 The operator-provided official Daejeon Hanwha Life Eagles Park seat map is stored here:
 
-`daejeon-hanwha-life-eagles-park-seatmap-official-2026.png`
+`daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp`
 
 Source page: `https://www.hanwhaeagles.co.kr/MN/EP/MNEPPI01.do`
 

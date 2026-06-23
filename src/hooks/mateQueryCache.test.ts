@@ -153,6 +153,7 @@ test('mate query cache helper는 party mutation 후 관련 query를 일관되게
     MATE_KEYS.partyCheckIns(3),
     MATE_KEYS.partyLists(),
     MATE_KEYS.myParties(),
+    MATE_KEYS.myPartyHistories(),
   ]);
 });
 
@@ -172,6 +173,7 @@ test('mate query cache helper는 host 관리용 my-application prefix invalidate
     MATE_KEYS.partyMyApplications(7),
     MATE_KEYS.partyLists(),
     MATE_KEYS.myParties(),
+    MATE_KEYS.myPartyHistories(),
   ]);
 });
 
@@ -196,6 +198,7 @@ test('mate query cache helper는 collection invalidate와 party cache set/remove
   assert.deepEqual(invalidateCalls, [
     MATE_KEYS.partyLists(),
     MATE_KEYS.myParties(),
+    MATE_KEYS.myPartyHistories(),
   ]);
   assert.deepEqual(removeCalls, []);
 });
@@ -239,6 +242,8 @@ test('seedMatePartyQueryData는 비어 있는 party detail cache에 preview를 �
     description: '',
     ticketVerified: false,
     status: 'PENDING',
+    reservationDepositAmount: null,
+    hostTrustMetrics: null,
     createdAt: '',
   });
 });

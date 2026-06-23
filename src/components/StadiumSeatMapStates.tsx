@@ -18,11 +18,11 @@ export function StadiumSeatMapLoadingSkeleton({ label, stadiumName }: StadiumSea
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black text-primary">좌석도 로딩 중</p>
-          <p className="mt-1 truncate text-sm font-bold text-slate-600 dark:text-slate-300">
+          <p className="mt-1 truncate text-sm font-bold text-slate-600 dark:text-white">
             {stadiumName || '선택한 구장'}
           </p>
           {label && (
-            <p className="mt-1 truncate text-xs font-black text-slate-400 dark:text-slate-500">
+            <p className="mt-1 truncate text-xs font-black text-slate-400 dark:text-white">
               {label}
             </p>
           )}
@@ -50,6 +50,7 @@ export function StadiumSeatMapManualRequired({ stadiumName }: StadiumSeatMapStat
   return (
     <div
       data-testid="stadium-seatmap-manual-required"
+      data-error-code="MANUAL_BASEBALL_DATA_REQUIRED"
       className="stadium-seatmap-state-card flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 px-5 py-10 text-center shadow-sm dark:border-amber-500/40 dark:bg-amber-950/20"
       role="status"
       aria-live="polite"
@@ -58,13 +59,13 @@ export function StadiumSeatMapManualRequired({ stadiumName }: StadiumSeatMapStat
         <WarningTriangleIcon className="h-6 w-6" />
       </div>
       <p className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-        MANUAL_BASEBALL_DATA_REQUIRED
+        좌석도 준비 중
       </p>
-      <h4 className="mt-3 text-lg font-black text-slate-900 dark:text-slate-100">
-        {stadiumName || '선택한 구장'} 좌석도 준비 필요
+      <h4 className="mt-3 text-lg font-black text-slate-900 dark:text-white">
+        {stadiumName || '선택한 구장'} 좌석도는 준비 중입니다
       </h4>
-      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-        운영자가 공식 좌석도 이미지와 hit-area 데이터를 추가해야 합니다.
+      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-white">
+        공식 좌석도와 선택 영역 검수가 끝나면 이 자리에서 바로 확인할 수 있습니다.
       </p>
     </div>
   );
@@ -83,10 +84,10 @@ export function StadiumSeatMapErrorFallback({
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
         <WarningTriangleIcon className="h-6 w-6" />
       </div>
-      <h4 className="text-lg font-black text-slate-900 dark:text-slate-100">
+      <h4 className="text-lg font-black text-slate-900 dark:text-white">
         {stadiumName || '선택한 구장'} 좌석도를 불러오지 못했습니다
       </h4>
-      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-white">
         공식 좌석도 모듈을 다시 불러올 수 있습니다. 반복되면 공식 좌석도 asset과 hit-area 데이터를 확인해야 합니다.
       </p>
       <button

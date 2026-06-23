@@ -8,10 +8,15 @@ const diaryViewFallback = (
   </div>
 );
 
-export default function DiaryViewSection() {
+interface DiaryViewSectionProps {
+  initialDate?: string;
+  onBackToLog?: () => void;
+}
+
+export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryViewSectionProps) {
   return (
     <Suspense fallback={diaryViewFallback}>
-      <DiaryformRuntime />
+      <DiaryformRuntime initialDate={initialDate} onBackToLog={onBackToLog} />
     </Suspense>
   );
 }

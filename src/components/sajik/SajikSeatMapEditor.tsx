@@ -14,7 +14,7 @@ import {
 } from '../../data/sajikSeatMapDataset';
 import type { SeatMapPoint } from '../../utils/seatMapPolygonValidator';
 
-const officialSeatMapImageUrl = new URL('../../assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png', import.meta.url).href;
+const officialSeatMapImageUrl = new URL('../../assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp', import.meta.url).href;
 
 type EditablePathKind = 'visualPath' | 'hitPath';
 type EditableTarget = EditablePathKind | 'labelPoint';
@@ -563,7 +563,7 @@ export default function SajikSeatMapEditor() {
                         y={y}
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        fill={isSelected ? '#020617' : '#334155'}
+                        fill={isSelected ? '#000000' : '#334155'}
                         stroke="#ffffff"
                         strokeWidth={isSelected ? 4 : 3}
                         paintOrder="stroke"

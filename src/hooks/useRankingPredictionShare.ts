@@ -1,45 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { fetchSharedPrediction } from '../api/rankingPublic';
 import { restoreTeamsFromIds } from '../utils/ranking';
 import { usePredictionStore } from '../store/predictionStore';
-import { Team } from '../types/ranking';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { getRankingPredictionShareQueryOptions } from './rankingPredictionShareQueryOptions';
 
 export const useRankingPredictionShare = () => {
   const { shareId, seasonYear } = useParams();
   const allTeams = usePredictionStore((state) => state.allTeams);
-
-  const [rankings, setRankings] = useState<(Team | null)[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const hasValidParams = Boolean(shareId && seasonYear);
+  const sharedPredictionQuery = useQuery(getRankingPredictionShareQueryOptions(shareId, seasonYear));
 
   useEffect(() => {
-    const loadSharedPrediction = async () => {
-      if (!shareId || !seasonYear) {
-        toast.error('잘못된 접근입니다.');
-        setIsLoading(false);
-        return;
-      }
+    if (!hasValidParams) {
+      toast.error('잘못된 접근입니다.');
+    }
+  }, [hasValidParams]);
 
-      try {
-        const data = await fetchSharedPrediction(shareId, seasonYear);
-        const restoredRankings = restoreTeamsFromIds(data.teamIdsInOrder, allTeams);
-        setRankings(restoredRankings);
-      } catch (error: unknown) {
-        toast.error(getApiErrorMessage(error, '데이터를 불러오는데 실패했습니다.'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  useEffect(() => {
+    if (sharedPredictionQuery.isError) {
+      toast.error(getApiErrorMessage(sharedPredictionQuery.error, '데이터를 불러오는데 실패했습니다.'));
+    }
+  }, [sharedPredictionQuery.error, sharedPredictionQuery.isError]);
 
-    loadSharedPrediction();
-  }, [shareId, seasonYear, allTeams]);
+  const rankings = useMemo(
+    () => sharedPredictionQuery.data
+      ? restoreTeamsFromIds(sharedPredictionQuery.data.teamIdsInOrder, allTeams)
+      : [],
+    [allTeams, sharedPredictionQuery.data],
+  );
 
   return {
     shareId,
     seasonYear,
     rankings,
-    isLoading,
+    isLoading: hasValidParams ? sharedPredictionQuery.isPending : false,
   };
 };

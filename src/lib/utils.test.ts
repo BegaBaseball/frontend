@@ -19,8 +19,8 @@ test('replaces full conflicts with the latest class in the same variant scope', 
 
 test('preserves distinct text size and color utilities', () => {
   assert.equal(
-    cn('text-sm font-medium', 'text-gray-500 dark:text-gray-300 py-2'),
-    'text-sm font-medium text-gray-500 dark:text-gray-300 py-2',
+    cn('text-sm font-medium', 'text-gray-500 dark:text-white py-2'),
+    'text-sm font-medium text-gray-500 dark:text-white py-2',
   );
 });
 

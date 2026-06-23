@@ -1,16 +1,13 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import {
   MateAlertTriangleIcon,
-  MateCheckCircleIcon,
   MateChevronLeftIcon,
-  MateLoaderIcon,
   MateMessageSquareIcon,
   MateShieldIcon,
-  MateTicketIcon,
   MateWalletIcon,
 } from './MateIcons';
 import { Button } from './ui/button';
@@ -29,7 +26,7 @@ import { createApplication } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { formatGameDate } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
-import { analyzeTicket, TicketInfo } from '../api/ticket';
+import type { TicketInfo } from '../api/ticket';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import LoadingSpinner from './LoadingSpinner';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -42,16 +39,7 @@ import { mateMobileBarClass } from '../utils/mateFlowUi';
 import { validateMateApplyMessage } from '../utils/mateValidation';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
-const sanitizeUserFacingMessage = (message: string, fallback: string): string => {
-  const trimmed = message.trim();
-  if (!trimmed) {
-    return fallback;
-  }
-  if (/^[a-z0-9_:-]+$/i.test(trimmed)) {
-    return fallback;
-  }
-  return trimmed;
-};
+const MateApplyTicketVerificationPanel = lazy(() => import('./MateApplyTicketVerificationPanel'));
 
 function MatePill({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
@@ -83,7 +71,6 @@ export default function MateApply() {
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [ticketVerified, setTicketVerified] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
   const [isDraftHydrated, setIsDraftHydrated] = useState(false);
   const restoredDraftPartyIdRef = useRef<string | null>(null);
   const previousPartyIdRef = useRef<string | null>(null);
@@ -161,8 +148,8 @@ export default function MateApply() {
           className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
         />
         <div className="text-center z-10">
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
-          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-card dark:text-gray-200 dark:border-border dark:hover:bg-gray-700">
+          <p className="text-lg text-gray-600 dark:text-white mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
+          <Button onClick={() => navigate('/mate')} variant="outline" className="dark:bg-card dark:text-white dark:border-border dark:hover:bg-gray-700">
             목록으로 돌아가기
           </Button>
         </div>
@@ -171,11 +158,12 @@ export default function MateApply() {
   }
 
   const isSelling = party.status === 'SELLING';
+  const reservationDepositAmount = party.reservationDepositAmount || 0;
   const ticketAmount = party.ticketPrice || 0;
   const sellingPrice = party.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
   const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
-  const primaryAmount = isSelling ? sellingPrice : ticketAmount;
+  const primaryAmount = isSelling ? sellingPrice : (reservationDepositAmount > 0 ? reservationDepositAmount : ticketAmount);
   const submitLabel = isSubmitting
     ? '신청 중...'
     : (isSelling ? '직거래 신청하기' : '참여 신청하기');
@@ -200,53 +188,9 @@ export default function MateApply() {
       '직거래 베타에서는 채팅에서 직접 만남 장소를 확정합니다.',
     ];
   const isSubmitReady = isSelling || message.length >= 10;
-  const summaryAmountLabel = isSelling ? '구매 신청 금액' : '거래 기준 금액';
+  const summaryAmountLabel = isSelling ? '구매 신청 금액' : (reservationDepositAmount > 0 ? '예약금' : '거래 기준 금액');
   const summaryTrustLabel = party.ticketVerified ? '호스트 티켓 인증' : '티켓 인증 확인 전';
   const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
-
-  // 티켓 인증 핸들러
-  const handleTicketUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('파일 크기는 10MB 이하여야 합니다.');
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      toast.error('이미지 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    setIsScanning(true);
-    try {
-      const result = await analyzeTicket(file);
-      setTicketInfo(result);
-
-      // Only mark as verified if server issued a verification token
-      // (requires meaningful OCR data: date or stadium extracted)
-      if (result.verificationToken) {
-        setTicketVerified(true);
-
-        // 경기 정보 매치 경고
-        if (result.date && result.date !== party.gameDate) {
-          toast.warning('티켓의 날짜가 파티의 경기 날짜와 다릅니다. 확인해주세요.');
-        }
-
-        toast.success('티켓 인증이 완료되었습니다! 🎫');
-      } else {
-        toast.warning('티켓에서 충분한 정보를 추출하지 못했습니다. 더 선명한 사진으로 다시 시도해주세요.');
-      }
-    } catch (error) {
-      console.error('Ticket OCR error:', error);
-      const fallbackMessage = '티켓 분석에 실패했습니다. 다시 시도해주세요.';
-      toast.error(
-        sanitizeUserFacingMessage(getApiErrorMessage(error, fallbackMessage), fallbackMessage)
-      );
-    } finally {
-      setIsScanning(false);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!currentUserId) {
@@ -342,7 +286,7 @@ export default function MateApply() {
           <h1 className="mt-3 text-2xl font-black tracking-tight text-primary sm:text-3xl">
             {isSelling ? '티켓 구매' : '파티 참여 신청'}
           </h1>
-          <p className="mt-2 max-w-2xl text-[16px] text-gray-600 dark:text-gray-300 sm:text-base">
+          <p className="mt-2 max-w-2xl text-[16px] text-gray-600 dark:text-white sm:text-base">
             {flowDescription}
           </p>
         </div>
@@ -370,14 +314,14 @@ export default function MateApply() {
                 <h3 className="text-base font-black leading-tight text-primary sm:text-lg">
                   {stadiumDisplayName}
                 </h3>
-                <p className="mt-1 text-[16px] text-gray-600 dark:text-gray-300">
+                <p className="mt-1 text-[16px] text-gray-600 dark:text-white">
                   {formatGameDate(party.gameDate)} {party.gameTime.substring(0, 5)}
                 </p>
               </div>
             </div>
             <div className="w-full rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
               <div className="flex items-center justify-between gap-4 sm:block">
-                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-white">
                   {summaryAmountLabel}
                 </p>
                 <p className="text-xl font-black text-primary sm:mt-2 sm:text-2xl">
@@ -389,19 +333,19 @@ export default function MateApply() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">좌석</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">좌석</p>
               <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">호스트</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">호스트</p>
               <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
             </div>
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">신뢰 신호</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">신뢰 신호</p>
               <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">현재 상태</p>
+              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">현재 상태</p>
               <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
             </div>
           </div>
@@ -413,10 +357,10 @@ export default function MateApply() {
               <MateMessageSquareIcon className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-primary">소개 메시지</h3>
             </div>
-            <p className="mb-4 text-[16px] text-gray-500 dark:text-gray-300">
+            <p className="mb-4 text-[16px] text-gray-500 dark:text-white">
               승인 여부를 판단하는 핵심 정보입니다. 관람 스타일과 거래 조율 의사를 간단히 적어주세요.
             </p>
-            <label htmlFor="message" className="mb-2 block text-[16px] font-semibold text-gray-900 dark:text-gray-100">
+            <label htmlFor="message" className="mb-2 block text-[16px] font-semibold text-gray-900 dark:text-white">
               호스트에게 전달할 메시지
             </label>
             <Textarea
@@ -427,7 +371,7 @@ export default function MateApply() {
               className="min-h-[120px] mb-2 border-gray-200 bg-white dark:border-border dark:bg-card/70"
               maxLength={200}
             />
-            <p className="text-[16px] text-gray-500 dark:text-gray-400">
+            <p className="text-[16px] text-gray-500 dark:text-white">
               {message.length}/200
             </p>
           </Card>
@@ -435,76 +379,21 @@ export default function MateApply() {
 
         {!isSelling && (
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <MateTicketIcon className="w-5 h-5 text-primary" />
-              <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
-              {ticketVerified && (
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[16px] font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-300">
-                  <MateCheckCircleIcon className="w-3.5 h-3.5" />
-                  인증 완료
-                </span>
-              )}
-            </div>
-            <p className="mb-4 text-[16px] text-gray-500 dark:text-gray-300">
-              티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
-            </p>
-
-            {ticketVerified ? (
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-                  <div className="mb-2 flex items-center gap-2">
-                    <MateShieldIcon className="w-4 h-4 text-green-600" />
-                    <span className="font-semibold text-green-700 dark:text-green-400">티켓 인증 완료</span>
-                  </div>
-                  {ticketInfo && (
-                    <div className="space-y-1.5 text-[16px] text-green-600 dark:text-green-300">
-                      {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
-                      {ticketInfo.stadium && <p>🏟️ {formatStadiumDisplayName(ticketInfo.stadium)}</p>}
-                      {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
-                        <p>💺 {[ticketInfo.section, ticketInfo.row, ticketInfo.seat].filter(Boolean).join(' ')}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  className="text-[16px] text-gray-500 dark:text-gray-300"
-                  onClick={() => { setTicketVerified(false); setTicketInfo(null); }}
-                >
-                  다시 인증하기
-                </Button>
-              </div>
-            ) : (
-              <div
-                className={`rounded-2xl border-2 border-dashed p-5 text-center transition-colors sm:p-6 ${isScanning
-                  ? 'border-primary bg-slate-50 dark:bg-card/60'
-                  : 'border-slate-300 dark:border-border hover:border-primary hover:bg-slate-50 dark:hover:bg-secondary'
-                  }`}
-              >
-                <input
-                  type="file"
-                  id="ticketVerifyFile"
-                  accept="image/*"
-                  onChange={handleTicketUpload}
-                  className="hidden"
-                  disabled={isScanning}
-                />
-                <label htmlFor="ticketVerifyFile" className={`block cursor-pointer ${isScanning ? 'pointer-events-none' : ''}`}>
-                  {isScanning ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <MateLoaderIcon className="w-10 h-10 text-primary animate-spin" />
-                      <p className="font-semibold text-primary">AI가 티켓을 분석 중...</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <MateTicketIcon className="w-10 h-10 text-primary" />
-                      <p className="font-semibold text-primary">티켓 사진 업로드</p>
-                      <p className="text-[16px] text-gray-400">JPG, PNG (최대 10MB)</p>
-                    </div>
-                  )}
-                </label>
-              </div>
-            )}
+            <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted/70" />}>
+              <MateApplyTicketVerificationPanel
+                gameDate={party.gameDate}
+                ticketVerified={ticketVerified}
+                ticketInfo={ticketInfo}
+                onVerified={(nextTicketInfo) => {
+                  setTicketInfo(nextTicketInfo);
+                  setTicketVerified(Boolean(nextTicketInfo.verificationToken));
+                }}
+                onReset={() => {
+                  setTicketVerified(false);
+                  setTicketInfo(null);
+                }}
+              />
+            </Suspense>
           </Card>
         )}
 
@@ -518,7 +407,7 @@ export default function MateApply() {
             {!isSelling && (
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">티켓 가격</span>
+                  <span className="text-gray-700 dark:text-white">티켓 가격</span>
                   <span className="text-gray-900 dark:text-white">
                     {ticketAmount.toLocaleString()}원
                   </span>
@@ -537,7 +426,7 @@ export default function MateApply() {
 
             {isSelling && (
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">티켓 판매가</span>
+                <span className="font-semibold text-gray-700 dark:text-white">티켓 판매가</span>
                 <span className="text-lg font-bold text-primary">
                   {sellingPrice.toLocaleString()}원
                 </span>
@@ -551,7 +440,7 @@ export default function MateApply() {
                 <MateShieldIcon className="w-4 h-4 text-primary" />
                 <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">정책 안내</h4>
               </div>
-              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-white">
                 {policyHighlights.map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -566,7 +455,7 @@ export default function MateApply() {
                 <MateAlertTriangleIcon className="w-4 h-4 text-primary" />
                 <h4 className="text-[16px] font-bold text-gray-900 dark:text-white">다음 단계</h4>
               </div>
-              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 text-[16px] text-gray-600 dark:text-white">
                 {nextSteps.map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -588,7 +477,7 @@ export default function MateApply() {
             </Button>
 
             {!isSelling && !isSubmitReady && (
-              <p className="mt-2 text-center text-[16px] text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-center text-[16px] text-gray-500 dark:text-white">
                 메시지를 10자 이상 입력해주세요
               </p>
             )}
@@ -599,14 +488,14 @@ export default function MateApply() {
       <div className={`${mateMobileBarClass} lg:hidden`}>
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 basis-[180px]">
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               {summaryAmountLabel}
             </p>
             <p className="mt-1 text-lg font-black text-primary">
               {primaryAmount.toLocaleString()}원
             </p>
             {!isSelling && !isSubmitReady && (
-              <p className="mt-1 text-[16px] text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-[16px] text-gray-500 dark:text-white">
                 메시지를 10자 이상 입력해주세요
               </p>
             )}

@@ -14,6 +14,7 @@ export type UsePredictionScheduleParams = {
   locationState: PredictionLocationState;
   emitFlowEvent?: PredictionFlowEmitter;
   showPredictionErrorOverlay?: PredictionOverlayController['showPredictionErrorOverlay'];
+  disabled?: boolean;
   fetchAndCacheUserVotes?: (
     gameIds: string[],
     requestKeySuffix: string,

@@ -5,11 +5,8 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useQuery } from '@tanstack/react-query';
 import { publicGet } from '../api/publicClient';
 import { fetchRankingSnapshot } from '../api/rankings';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 import type { Ranking } from '../types/home';
-
-interface OffSeasonHomeProps {
-  selectedDate: Date;
-}
 
 interface AwardData {
   award: string;
@@ -97,9 +94,10 @@ const formatRemarks = (text: string) => {
   );
 };
 
-export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeasonHomeProps) {
+export default function OffSeasonHome() {
   const navigate = useNavigate();
   const isLargeScreen = useMediaQuery('(min-width: 1024px)');
+  const currentTime = useCurrentTime(60_000);
   const { data, isLoading } = useQuery<OffseasonHomeData>({
     queryKey: ['offseason-home', OFFSEASON_RANKING_YEAR],
     queryFn: fetchOffseasonHomeData,
@@ -109,9 +107,12 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
   const { movements, awards, rankings } = data ?? defaultOffseasonHomeData;
 
   // 2026 Season Opening Day
-  const openingDay = new Date(2026, 2, 28);
-  const diffTime = openingDay.getTime() - new Date().getTime();
-  const daysUntilOpening = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const daysUntilOpening = useMemo(() => {
+    const openingDay = new Date(2026, 2, 28);
+    const diffTime = openingDay.getTime() - currentTime.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [currentTime]);
+  const statusDateLabel = useMemo(() => currentTime.toLocaleDateString(), [currentTime]);
 
   // Filter for 2025 Stove League (Frontend Fail-safe)
   // Even if backend sends all data, we only show recent ones here.
@@ -146,6 +147,7 @@ export default function OffSeasonHome({ selectedDate: _selectedDate }: OffSeason
       <OffSeasonHomePrimaryRuntime
         isLoading={isLoading}
         daysUntilOpening={daysUntilOpening}
+        statusDateLabel={statusDateLabel}
         movementsCount={movements.length}
         bigEvents={bigEvents}
         awards={awards}

@@ -420,7 +420,7 @@ const main = async () => {
     '- This is a baseline report, not a staging command.',
     '- Generated files under `reports/stadium/daegu-seatmap-source-baseline-audit.*` are QA evidence only.',
     '- Active runtime ownership must remain `DAEGU_CANONICAL_2026` only.',
-    '- Official PNG and raw operator-reference datasets are historical evidence, not active runtime polygon sources.',
+    '- Official image and raw operator-reference datasets are historical evidence, not active runtime polygon sources.',
     '- `MYSEATCHECK_REFERENCE_2026` remains reference-only and must not become an active runtime polygon source without operator-provided approval.',
     '',
   ].join('\n');

@@ -191,13 +191,13 @@ export default function MateCheckIn() {
           <Card className={`mb-6 p-5 sm:p-6 ${mateSectionCardClass}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
-                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
                   Check-In Credential
                 </p>
                 <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">
                   {qrSessionId ? 'QR 세션이 연결된 체크인' : '수동 체크인 코드 입력'}
                 </h2>
-                <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+                <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-white">
                   {qrSessionId
                     ? '현재는 QR 세션으로 체크인할 수 있습니다. 세션이 만료되면 아래 수동 코드로도 진행할 수 있습니다.'
                     : '직접 진입한 화면입니다. 호스트가 보여준 4자리 수동 체크인 코드를 입력한 뒤 체크인을 진행하세요.'}
@@ -225,7 +225,7 @@ export default function MateCheckIn() {
                 {manualCodeError ? (
                   <p className="mt-2 text-[16px] text-red-600 dark:text-red-400">{manualCodeError}</p>
                 ) : (
-                  <p className="mt-2 text-[16px] text-gray-500 dark:text-gray-400">
+                  <p className="mt-2 text-[16px] text-gray-500 dark:text-white">
                     {qrSessionId ? '수동 코드는 QR 세션 장애 시 백업 수단입니다.' : 'QR 세션 없이도 수동 코드만으로 체크인할 수 있습니다.'}
                   </p>
                 )}

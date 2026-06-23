@@ -47,19 +47,19 @@ export default function TeamRankRow({
     return (
       <div className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-zinc-200/80 px-3 py-2.5 last:border-b-0 dark:border-zinc-800/80 ${rowClassName}`}>
         <div className="flex min-w-0 items-center gap-2">
-          <span className={`w-5 shrink-0 text-center text-[15px] font-black lg:text-[17px] ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-zinc-500'}`}>
+          <span className={`w-5 shrink-0 text-center text-[15px] font-black lg:text-[17px] ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-white'}`}>
             {team.rank}
           </span>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1 shadow-sm dark:bg-white lg:h-10 lg:w-10">
             <TeamLogo team={team.displayName} teamId={team.teamId} size={28} className="object-contain" />
           </div>
-          <span className="min-w-0 truncate text-[15px] font-black text-gray-900 dark:text-zinc-100 lg:text-[17px]">
+          <span className="min-w-0 truncate text-[15px] font-black text-gray-900 dark:text-white lg:text-[17px]">
             {team.displayName}
           </span>
         </div>
         <div className="text-right">
           <p className="text-[15px] font-black tabular-nums text-gray-900 dark:text-white lg:text-[17px]">{team.winRate}</p>
-          <p className="text-[12px] font-bold tabular-nums text-zinc-500 dark:text-zinc-400 lg:text-[13px]">
+          <p className="text-[12px] font-bold tabular-nums text-zinc-500 dark:text-white lg:text-[13px]">
             {team.wins}승 {team.losses}패
           </p>
         </div>
@@ -71,17 +71,17 @@ export default function TeamRankRow({
     <div className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_120px] items-center gap-3 overflow-hidden border-b border-zinc-200/80 px-4 py-2 transition-colors last:border-b-0 hover:bg-slate-100 dark:border-zinc-800/80 dark:hover:bg-zinc-800/40 xl:grid-cols-[minmax(0,1fr)_148px] ${rowClassName} ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}>
       <div className="min-w-0">
         <div className="mb-1 flex min-w-0 items-center gap-2">
-          <span className={`w-6 shrink-0 text-center text-[17px] font-black ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-zinc-500'}`}>
+          <span className={`w-6 shrink-0 text-center text-[17px] font-black ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-white'}`}>
             {team.rank}
           </span>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1 shadow-sm dark:bg-white">
             <TeamLogo team={team.displayName} teamId={team.teamId} size={32} className="object-contain" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-[16px] font-black leading-5 text-gray-900 dark:text-zinc-100">
+            <p className="truncate text-[16px] font-black leading-5 text-gray-900 dark:text-white">
               {team.displayName}
             </p>
-            <p className="truncate whitespace-nowrap text-[12px] font-bold leading-4 text-zinc-500 dark:text-zinc-400">
+            <p className="truncate whitespace-nowrap text-[12px] font-bold leading-4 text-zinc-500 dark:text-white">
               {totalGames}경기 · {gamesBehind == null ? '승차 없음' : `승차 ${gamesBehind}`}
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function TeamRankRow({
       </div>
       <div className="shrink-0 text-right">
         <p className="text-[17px] font-black leading-6 tabular-nums text-gray-900 dark:text-white">{team.winRate}</p>
-        <p className="mt-0.5 whitespace-nowrap text-[12px] font-bold leading-4 tabular-nums text-zinc-600 dark:text-zinc-300">
+        <p className="mt-0.5 whitespace-nowrap text-[12px] font-bold leading-4 tabular-nums text-zinc-600 dark:text-white">
           {team.wins}승 · {team.draws}무 · {team.losses}패
         </p>
         {sparkline && sparkline.length > 0 && (

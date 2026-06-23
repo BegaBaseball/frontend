@@ -53,7 +53,7 @@ const visitFirstHome = () => {
   });
 };
 
-describe('Home compact onboarding', () => {
+describe('Home inline onboarding', () => {
   beforeEach(() => {
     cy.clock(fixedNow, ['Date']);
     cy.clearCookies();
@@ -69,19 +69,20 @@ describe('Home compact onboarding', () => {
     }).as('getHomeWidgets');
   });
 
-  it('shows a compact first-run entry and closes through the primary CTA', () => {
+  it('shows an inline first-run guide and closes through the primary CTA', () => {
     cy.viewport(390, 844);
     visitFirstHome();
     cy.wait('@getHomeBootstrap');
     cy.tick(2000);
 
-    cy.get('[data-testid="home-onboarding-compact"]')
+    cy.get('[data-testid="home-onboarding-inline"]')
       .should('be.visible')
-      .then(($modal) => {
-        const rect = $modal[0].getBoundingClientRect();
+      .and('have.attr', 'data-variant', 'dismissible-banner')
+      .then(($guide) => {
+        const rect = $guide[0].getBoundingClientRect();
 
-        expect(rect.width, 'compact modal width').to.be.at.most(420);
-        expect(rect.height, 'compact modal height').to.be.lessThan(520);
+        expect(rect.width, 'inline guide width').to.be.at.most(390);
+        expect(rect.height, 'inline guide height').to.be.lessThan(360);
       })
       .within(() => {
         cy.contains('BEGA 시작하기').should('be.visible');
@@ -89,6 +90,7 @@ describe('Home compact onboarding', () => {
         cy.contains('전력분석실').should('be.visible');
         cy.contains('응원과 같이가요').should('be.visible');
         cy.contains('button', '다음').should('not.exist');
+        cy.get('[role="dialog"]').should('not.exist');
         cy.get('[data-testid="home-onboarding-start-cta"]').then(($button) => {
           const rect = $button[0].getBoundingClientRect();
 
@@ -97,7 +99,7 @@ describe('Home compact onboarding', () => {
       });
 
     cy.get('[data-testid="home-onboarding-start-cta"]').click();
-    cy.get('[data-testid="home-onboarding-compact"]').should('not.exist');
+    cy.get('[data-testid="home-onboarding-inline"]').should('not.exist');
     cy.window().then((win) => {
       expect(win.localStorage.getItem('bega_has_visited')).to.equal('true');
     });

@@ -69,13 +69,13 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/50 py-6 px-4 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-border">
-          <MateCameraIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          <MateCameraIcon className="h-5 w-5 text-gray-400 dark:text-white" />
         </div>
         <div>
-          <p className="text-[16px] font-semibold text-gray-800 dark:text-gray-100">
+          <p className="text-[16px] font-semibold text-gray-800 dark:text-white">
             아직 등록된 시야가 없어요
           </p>
-          <p className="mt-0.5 text-[16px] text-gray-500 dark:text-gray-400">
+          <p className="mt-0.5 text-[16px] text-gray-500 dark:text-white">
             직관 후 다이어리에 사진을 올리면{' '}
             <span className="font-bold text-primary">+50 포인트</span>를 받아요!
           </p>
@@ -100,6 +100,10 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
             <img
               src={photo.photoUrl}
               alt={`${formatStadiumDisplayName(photo.stadium)} ${photo.section ?? ''} 시야 ${idx + 1}`}
+              width={640}
+              height={480}
+              loading="lazy"
+              decoding="async"
               className="aspect-[4/3] h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -126,6 +130,10 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
           <img
             src={lightboxPhoto.photoUrl}
             alt="시야 사진 원본"
+            width={1280}
+            height={960}
+            loading="eager"
+            decoding="async"
             className="max-h-[90vh] max-w-full rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

@@ -1,13 +1,20 @@
 import { getApiErrorStatus } from './errorStatus';
 import { privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
-import { SeasonResponse, SavedPredictionResponse, SaveRankingRequest, RankingPredictionInitResponse } from '../types/ranking';
+import type { OpenApiRequestBody, OpenApiResponseBody } from './openapiTypes';
+import type { SeasonResponse, SavedPredictionResponse, SaveRankingRequest, RankingPredictionInitResponse } from '../types/ranking';
+
+type SeasonResponseWire = OpenApiResponseBody<'/api/predictions/ranking/current-season', 'get'>;
+type SavedPredictionResponseWire = OpenApiResponseBody<'/api/predictions/ranking', 'get'>;
+type SaveRankingRequestWire = OpenApiRequestBody<'/api/predictions/ranking', 'post'>;
+type SaveRankingResponseWire = OpenApiResponseBody<'/api/predictions/ranking', 'post'>;
+type RankingPredictionInitResponseWire = OpenApiResponseBody<'/api/predictions/ranking/init', 'get'>;
 
 /**
  * 현재 예측 가능한 시즌 조회
  */
 export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
-  return publicGet<SeasonResponse>('/predictions/ranking/current-season');
+  return publicGet<SeasonResponseWire>('/predictions/ranking/current-season');
 };
 
 /**
@@ -16,7 +23,7 @@ export const fetchCurrentSeason = async (): Promise<SeasonResponse> => {
  */
 export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPredictionResponse | null> => {
   try {
-    return await privateGet<SavedPredictionResponse>('/predictions/ranking', {
+    return await privateGet<SavedPredictionResponseWire>('/predictions/ranking', {
       params: { seasonYear },
       skipAuthSessionHandling: true,
     });
@@ -33,7 +40,7 @@ export const fetchSavedPrediction = async (seasonYear: number): Promise<SavedPre
  * 현재 시즌 + 저장된 예측을 단일 요청으로 조회
  */
 export const fetchRankingPredictionInit = async (): Promise<RankingPredictionInitResponse> => {
-  return privateGet<RankingPredictionInitResponse>('/predictions/ranking/init', {
+  return privateGet<RankingPredictionInitResponseWire>('/predictions/ranking/init', {
     skipAuthSessionHandling: true,
   });
 };
@@ -42,7 +49,8 @@ export const fetchRankingPredictionInit = async (): Promise<RankingPredictionIni
  * 순위 예측 저장
  */
 export const saveRankingPrediction = async (data: SaveRankingRequest): Promise<SavedPredictionResponse> => {
-  return privatePost<SavedPredictionResponse, SaveRankingRequest>('/predictions/ranking', data, {
+  const request: SaveRankingRequestWire = data;
+  return privatePost<SaveRankingResponseWire, SaveRankingRequestWire>('/predictions/ranking', request, {
     skipAuthSessionHandling: true,
   });
 };

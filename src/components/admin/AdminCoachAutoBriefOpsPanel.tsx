@@ -3,7 +3,7 @@ import type {
   AdminCoachAutoBriefOpsWindow,
 } from '../../types/admin';
 import { Button } from '../ui/button';
-import { AdminBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
+import { AdminBadge, AdminStatusBadge, adminNativeSelectClassName } from './AdminPanelPrimitives';
 import {
   AdminAlertTriangleIcon,
   AdminClipboardIcon,
@@ -81,11 +81,6 @@ export function AdminCoachAutoBriefOpsPanel({
   const gateFailures = gate?.checks.failed ?? [];
   const gateWarnings = gate?.checks.warnings ?? [];
   const gateVerdict = gate?.verdict ?? 'WARN';
-  const gateVerdictTone = gateVerdict === 'FAIL'
-    ? 'border-red-500/30 bg-red-500/10 text-red-200'
-    : gateVerdict === 'WARN'
-      ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-      : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
   const failedLockedCount = gate?.failed_locked_count ?? (summary?.cache_state_breakdown?.FAILED_LOCKED ?? 0);
   const pendingWaitCount = gate?.pending_wait_count ?? (summary?.cache_state_breakdown?.PENDING_WAIT ?? 0);
   const insufficientCount = gate?.insufficient_count ?? (summary?.data_quality_breakdown?.insufficient ?? 0);
@@ -180,7 +175,7 @@ export function AdminCoachAutoBriefOpsPanel({
         <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="font-semibold text-white">Default Gate</h4>
-            <AdminBadge className={gateVerdictTone}>{gateVerdict}</AdminBadge>
+            <AdminStatusBadge status={gateVerdict} />
             <AdminBadge className="border-slate-700 bg-slate-900 text-slate-300">
               unresolved≤{gateThresholds?.max_unresolved ?? '-'}
             </AdminBadge>

@@ -21,8 +21,9 @@ import {
   mergeGameDetailRelayError,
   mergeGameDetailWithRelaySnapshot,
   mergeGameDetailWithLiveSnapshot,
-  shouldPollPredictionLiveGame,
+  shouldStartPredictionLivePolling,
 } from '../utils/liveGame';
+import { schedulePredictionPostPaintIdleWork } from '../utils/predictionDeferredWork';
 import {
   PREDICTION_OFFLINE_TOAST_MESSAGE,
   PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING,
@@ -83,6 +84,8 @@ export const usePredictionGameData = ({
   const liveSnapshotAbortRef = useRef<AbortController | null>(null);
   const liveRelayInFlightRef = useRef(false);
   const liveRelayAbortRef = useRef<AbortController | null>(null);
+  const liveScoreManualDataSuppressedRef = useRef<Set<string>>(new Set());
+  const liveRelayManualDataSuppressedRef = useRef<Set<string>>(new Set());
   const retryAttemptRef = useRef(createPredictionRetryAttemptState());
   const gameDetailsRef = useRef(gameDetails);
   const offlineToastShownRef = useRef<Record<PredictionRetryActionKey, boolean>>({
@@ -96,7 +99,12 @@ export const usePredictionGameData = ({
   const currentGameId = currentGame?.gameId || null;
   const currentGameDetailState = currentGameId ? gameDetails[currentGameId] : null;
   const currentGameDetail = currentGameDetailState?.data ?? null;
-  const shouldPollCurrentLiveGame = shouldPollPredictionLiveGame(currentGame, currentGameDetail);
+  const currentGameDetailReady = currentGameDetailState?.status === 'ready';
+  const shouldStartCurrentLivePolling = shouldStartPredictionLivePolling(
+    currentGame,
+    currentGameDetail,
+    currentGameDetailReady,
+  );
   const currentGameDetailLoading = currentGameDetailState?.status === 'loading';
   const currentGameDetailRefreshing = currentGameDetailState?.isBackgroundRefreshing === true;
   const currentGameDetailHasRenderableData = hasRenderableGameDetail(currentGameDetailState);
@@ -107,6 +115,28 @@ export const usePredictionGameData = ({
   const voteStatusLoading = currentDateVoteState?.status === 'loading';
   const currentVotePartialReason = currentGameId ? partialReasonsByGameId[currentGameId] ?? null : null;
   const isCurrentVotePartial = Boolean(currentVotePartialReason);
+
+  const resolveLivePollingSuppressionKey = useCallback((gameId: string, fallbackGame?: Game | null) => {
+    const detail = gameDetailsRef.current[gameId]?.data ?? null;
+    const gameDate = detail?.gameDate || fallbackGame?.gameDate || 'unknown';
+    return `${gameId}|${gameDate}`;
+  }, []);
+
+  const isLiveScorePollingSuppressed = useCallback((gameId: string, fallbackGame?: Game | null) => (
+    liveScoreManualDataSuppressedRef.current.has(resolveLivePollingSuppressionKey(gameId, fallbackGame))
+  ), [resolveLivePollingSuppressionKey]);
+
+  const suppressLiveScorePollingForManualData = useCallback((gameId: string, fallbackGame?: Game | null) => {
+    liveScoreManualDataSuppressedRef.current.add(resolveLivePollingSuppressionKey(gameId, fallbackGame));
+  }, [resolveLivePollingSuppressionKey]);
+
+  const isLiveRelayPollingSuppressed = useCallback((gameId: string, fallbackGame?: Game | null) => (
+    liveRelayManualDataSuppressedRef.current.has(resolveLivePollingSuppressionKey(gameId, fallbackGame))
+  ), [resolveLivePollingSuppressionKey]);
+
+  const suppressLiveRelayPollingForManualData = useCallback((gameId: string, fallbackGame?: Game | null) => {
+    liveRelayManualDataSuppressedRef.current.add(resolveLivePollingSuppressionKey(gameId, fallbackGame));
+  }, [resolveLivePollingSuppressionKey]);
 
   useEffect(() => {
     gameDetailsRef.current = gameDetails;
@@ -292,15 +322,16 @@ export const usePredictionGameData = ({
     }
   }, [emitFlowEvent]);
 
-  const loadLiveSnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null) => {
+  const loadLiveSnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null): Promise<boolean> => {
     if (liveSnapshotInFlightRef.current) {
-      return;
+      return true;
     }
 
     liveSnapshotInFlightRef.current = true;
     const abortController = new AbortController();
     liveSnapshotAbortRef.current = abortController;
     const previousDetail = gameDetailsRef.current[gameId]?.data ?? null;
+    let shouldContinuePolling = true;
     try {
       const snapshot = await fetchGameLiveSnapshot(gameId, {
         afterSeq: previousDetail?.liveLastEventSeq ?? null,
@@ -332,9 +363,13 @@ export const usePredictionGameData = ({
       });
     } catch (error) {
       if (isCancelLikeError(error)) {
-        return;
+        return true;
       }
       const parsedError = parseError(error);
+      if (parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED') {
+        suppressLiveScorePollingForManualData(gameId, fallbackGame ?? currentGameRef.current);
+        shouldContinuePolling = false;
+      }
       const liveErrorMessage = parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
         ? '실시간 점수 데이터 준비가 필요합니다.'
         : '실시간 점수 갱신에 실패했습니다.';
@@ -344,6 +379,7 @@ export const usePredictionGameData = ({
           previousState?.data ?? null,
           liveErrorMessage,
           fallbackGame ?? currentGameRef.current,
+          parsedError.responseCode ?? null,
         );
         if (!mergedDetail) {
           return prev;
@@ -367,17 +403,19 @@ export const usePredictionGameData = ({
       }
       liveSnapshotInFlightRef.current = false;
     }
-  }, []);
+    return shouldContinuePolling;
+  }, [suppressLiveScorePollingForManualData]);
 
-  const loadLiveRelaySnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null) => {
+  const loadLiveRelaySnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null): Promise<boolean> => {
     if (liveRelayInFlightRef.current) {
-      return;
+      return true;
     }
 
     liveRelayInFlightRef.current = true;
     const abortController = new AbortController();
     liveRelayAbortRef.current = abortController;
     const previousDetail = gameDetailsRef.current[gameId]?.data ?? null;
+    let shouldContinuePolling = true;
     try {
       const snapshot = await fetchGameLiveRelaySnapshot(gameId, {
         afterId: previousDetail?.liveLastRelayId ?? null,
@@ -409,14 +447,25 @@ export const usePredictionGameData = ({
       });
     } catch (error) {
       if (isCancelLikeError(error)) {
-        return;
+        return true;
       }
+      const parsedError = parseError(error);
+      if (parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED') {
+        const pollingFallbackGame = fallbackGame ?? currentGameRef.current;
+        suppressLiveRelayPollingForManualData(gameId, pollingFallbackGame);
+        suppressLiveScorePollingForManualData(gameId, pollingFallbackGame);
+        shouldContinuePolling = false;
+      }
+      const relayErrorMessage = parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
+        ? '문자중계 데이터 준비가 필요합니다.'
+        : '문자중계 갱신에 실패했습니다.';
       setGameDetails((prev) => {
         const previousState = prev[gameId];
         const mergedDetail = mergeGameDetailRelayError(
           previousState?.data ?? null,
-          '문자중계 갱신에 실패했습니다.',
+          relayErrorMessage,
           fallbackGame ?? currentGameRef.current,
+          parsedError.responseCode ?? null,
         );
         if (!mergedDetail) {
           return prev;
@@ -440,7 +489,8 @@ export const usePredictionGameData = ({
       }
       liveRelayInFlightRef.current = false;
     }
-  }, []);
+    return shouldContinuePolling;
+  }, [suppressLiveRelayPollingForManualData, suppressLiveScorePollingForManualData]);
 
   const loadVoteStatus = useCallback(async (
     gameId: string,
@@ -928,7 +978,11 @@ export const usePredictionGameData = ({
     });
   }, [emitFlowEvent, gameDetails, getCurrentGameId, loadGameDetail]);
 
-  const primeGameDetail = useCallback((gameId: string, detail: GameDetail) => {
+  const primeGameDetail = useCallback((
+    gameId: string,
+    detail: GameDetail,
+    options: { isSeeded?: boolean } = {}
+  ) => {
     setGameDetails((prev) => ({
       ...prev,
       [gameId]: {
@@ -936,9 +990,63 @@ export const usePredictionGameData = ({
         data: detail,
         error: undefined,
         errorCode: undefined,
-        isSeeded: true,
+        isSeeded: options.isSeeded ?? true,
         isBackgroundRefreshing: false,
         hasRenderableData: true,
+      },
+    }));
+  }, []);
+
+  const primeGameDetailError = useCallback((gameId: string, message: string, errorCode?: string | null) => {
+    setGameDetails((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'error',
+        data: prev[gameId]?.data ?? null,
+        error: message,
+        errorCode: errorCode ?? undefined,
+        isSeeded: false,
+        isBackgroundRefreshing: false,
+        hasRenderableData: hasRenderableGameDetail(prev[gameId]),
+      },
+    }));
+  }, []);
+
+  const primeVoteStatus = useCallback((
+    gameId: string,
+    status: { homeVotes?: number | null; awayVotes?: number | null; totalVotes?: number | null }
+  ) => {
+    const homeVotes = Math.max(0, Number(status.homeVotes ?? 0) || 0);
+    const awayVotes = Math.max(0, Number(status.awayVotes ?? 0) || 0);
+    const partialReason = status.totalVotes == null
+      ? PREDICTION_PARTIAL_REASON_TOTAL_VOTES_MISSING
+      : null;
+
+    setVotes((prev) => ({
+      ...prev,
+      [gameId]: {
+        home: homeVotes,
+        away: awayVotes,
+      },
+    }));
+    setVoteStatusState((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'ready',
+      },
+    }));
+    setPartialReasonsByGameId((prev) => ({
+      ...prev,
+      [gameId]: partialReason,
+    }));
+  }, []);
+
+  const primeVoteStatusError = useCallback((gameId: string, message: string) => {
+    setVoteStatusState((prev) => ({
+      ...prev,
+      [gameId]: {
+        status: 'error',
+        error: message,
       },
     }));
   }, []);
@@ -984,7 +1092,10 @@ export const usePredictionGameData = ({
     if (!currentGameId || !shouldLoadCurrentGameData) {
       return;
     }
-    if (!shouldPollCurrentLiveGame) {
+    if (!shouldStartCurrentLivePolling) {
+      return;
+    }
+    if (isLiveScorePollingSuppressed(currentGameId, currentGame)) {
       return;
     }
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -992,12 +1103,33 @@ export const usePredictionGameData = ({
     }
 
     let disposed = false;
+    let started = false;
+    let intervalId: number | null = null;
     const tick = () => {
       if (disposed || document.visibilityState === 'hidden') {
         return;
       }
-      void loadLiveSnapshot(currentGameId, currentGameRef.current);
-      void loadLiveRelaySnapshot(currentGameId, currentGameRef.current);
+      if (isLiveScorePollingSuppressed(currentGameId, currentGameRef.current)) {
+        return;
+      }
+      void (async () => {
+        const shouldContinue = await loadLiveSnapshot(currentGameId, currentGameRef.current);
+        if (!shouldContinue || disposed || isLiveScorePollingSuppressed(currentGameId, currentGameRef.current)) {
+          return;
+        }
+        if (isLiveRelayPollingSuppressed(currentGameId, currentGameRef.current)) {
+          return;
+        }
+        await loadLiveRelaySnapshot(currentGameId, currentGameRef.current);
+      })();
+    };
+    const startPolling = () => {
+      if (disposed || started) {
+        return;
+      }
+      started = true;
+      tick();
+      intervalId = window.setInterval(tick, LIVE_GAME_POLL_INTERVAL_MS);
     };
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === 'hidden') {
@@ -1005,28 +1137,35 @@ export const usePredictionGameData = ({
         liveRelayAbortRef.current?.abort();
         return;
       }
-      tick();
+      if (started) {
+        tick();
+      }
     };
 
-    tick();
-    const intervalId = window.setInterval(tick, LIVE_GAME_POLL_INTERVAL_MS);
+    const cancelDeferredStart = schedulePredictionPostPaintIdleWork(startPolling);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
 
     return () => {
       disposed = true;
+      cancelDeferredStart();
       liveSnapshotAbortRef.current?.abort();
       liveRelayAbortRef.current?.abort();
-      window.clearInterval(intervalId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, [
     currentGameId,
+    currentGame,
+    isLiveRelayPollingSuppressed,
+    isLiveScorePollingSuppressed,
     loadLiveRelaySnapshot,
     loadLiveSnapshot,
     shouldLoadCurrentGameData,
-    shouldPollCurrentLiveGame,
+    shouldStartCurrentLivePolling,
   ]);
 
   useEffect(() => {
@@ -1070,5 +1209,8 @@ export const usePredictionGameData = ({
     reloadCurrentGameDetail,
     setVoteStatusState,
     primeGameDetail,
+    primeGameDetailError,
+    primeVoteStatus,
+    primeVoteStatusError,
   };
 };

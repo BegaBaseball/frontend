@@ -9,6 +9,7 @@ import {
   markPersistedAuthBootstrapSuccess,
   normalizeAuthBootstrapPathname,
   resolveAuthBootstrapMode,
+  shouldAttemptRootAuthBootstrap,
   shouldHoldAuthUiDuringBootstrap,
   setPersistedAuthBootstrapMeta,
   setPersistedAuthBootstrapHint,
@@ -145,6 +146,26 @@ test('익명 mate 목록 진입은 persisted auth hint가 없으면 공개 홈 �
   );
 });
 
+test('익명 cheer 목록 진입은 persisted auth hint가 없으면 공개 홈 모드로 남긴다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/cheer', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    'public-home',
+  );
+});
+
+test('익명 cheer 상세 진입은 persisted auth hint가 없으면 공개 홈 모드로 남긴다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/cheer/123', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    'public-home',
+  );
+});
+
 test('익명 루트 진입은 persisted auth hint가 없으면 공개 홈 모드로 남긴다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/', {
@@ -188,6 +209,28 @@ test('persisted auth hint가 있으면 mate 목록에서도 deferred revalidatio
   );
 });
 
+test('persisted auth hint가 있으면 cheer 목록에서도 deferred revalidation을 유지한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/cheer', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    'defer',
+  );
+});
+
+test('persisted auth hint가 있으면 cheer 상세에서도 deferred revalidation을 유지한다', () => {
+  assert.equal(
+    resolveAuthBootstrapMode('/cheer/123', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    'defer',
+  );
+});
+
 test('persisted auth hint가 있으면 루트에서 deferred revalidation을 유지한다', () => {
   assert.equal(
     resolveAuthBootstrapMode('/', {
@@ -196,6 +239,71 @@ test('persisted auth hint가 있으면 루트에서 deferred revalidation을 유
       now: 1_000,
     }),
     'defer',
+  );
+});
+
+test('root auth-aware eligibility는 auth hint가 있으면 true를 반환한다', () => {
+  assert.equal(
+    shouldAttemptRootAuthBootstrap({
+      hasPersistedAuthHint: true,
+      now: 1_000,
+    }),
+    true,
+  );
+});
+
+test('root auth-aware eligibility는 fresh success meta만 있어도 true를 반환한다', () => {
+  assert.equal(
+    shouldAttemptRootAuthBootstrap({
+      hasPersistedAuthHint: false,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 10_000,
+        lastFailureAt: null,
+      },
+      now: 20_000,
+    }),
+    true,
+  );
+});
+
+test('root auth-aware eligibility는 stale success meta만 있으면 false를 반환한다', () => {
+  assert.equal(
+    shouldAttemptRootAuthBootstrap({
+      hasPersistedAuthHint: false,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 10_000,
+        lastFailureAt: null,
+      },
+      now: 10_000 + 24 * 60 * 60 * 1000 + 1,
+    }),
+    false,
+  );
+});
+
+test('root auth-aware eligibility는 recent failure cooldown이면 false를 반환한다', () => {
+  assert.equal(
+    shouldAttemptRootAuthBootstrap({
+      hasPersistedAuthHint: true,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 50_000,
+        lastFailureAt: 99_000,
+      },
+      now: 100_000,
+    }),
+    false,
+  );
+});
+
+test('root auth-aware eligibility는 marker가 없으면 false를 반환한다', () => {
+  assert.equal(
+    shouldAttemptRootAuthBootstrap({
+      hasPersistedAuthHint: false,
+      now: 1_000,
+    }),
+    false,
   );
 });
 
@@ -277,6 +385,18 @@ test('인증 페이지는 persisted auth hint가 있으면 즉시 세션 확인�
     }),
     'immediate',
   );
+});
+
+test('cheer 보호 경로는 공개 홈 모드로 분류하지 않는다', () => {
+  ['/cheer/write', '/cheer/bookmarks', '/cheer/edit/123'].forEach((pathname) => {
+    assert.equal(
+      resolveAuthBootstrapMode(pathname, {
+        isLoggedIn: false,
+        hasPersistedAuthHint: false,
+      }),
+      'immediate',
+    );
+  });
 });
 
 test('인증 페이지는 fresh success meta만 있어도 즉시 세션 확인을 시작한다', () => {

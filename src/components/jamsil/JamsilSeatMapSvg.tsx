@@ -87,13 +87,13 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
           <path d="M8 10h8M8 14h5" />
         </svg>
       </div>
-      <p className="text-sm font-black text-slate-800 dark:text-slate-100">
+      <p className="text-sm font-black text-slate-800 dark:text-white">
         공식 좌석도 이미지가 필요합니다
       </p>
-      <p className="mt-2 max-w-md text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-        MANUAL_BASEBALL_DATA_REQUIRED: 구단/예매처 공식 좌석도 파일을 추가한 뒤 블록 좌표를 찍어야 합니다.
+      <p className="mt-2 max-w-md text-xs font-semibold leading-relaxed text-slate-500 dark:text-white">
+        구단/예매처 공식 좌석도 파일을 추가한 뒤 블록 좌표를 찍어야 합니다.
       </p>
-      <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-slate-500">
+      <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-white">
         필요 파일: {JAMSIL_SEATMAP_IMAGE.requiredAssetFileName}
       </p>
     </div>
@@ -118,7 +118,7 @@ function SourceTabs({
             key={option.id}
             type="button"
             onClick={() => onChange(option.id)}
-            className="rounded-lg border-0 px-2.5 py-1.5 text-[11px] font-black transition-colors whitespace-nowrap text-center shrink-0"
+            className="min-h-11 rounded-lg border-0 px-2.5 py-2 text-[11px] font-black transition-colors whitespace-nowrap text-center shrink-0"
             style={{
               background: active ? '#1F5C4A' : 'transparent',
               color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -155,7 +155,7 @@ function DoosanInfoList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
       {items.map((item) => (
-        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1F5C4A]" />
           <span>{item}</span>
         </li>
@@ -296,7 +296,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
             <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
               {guide.title}
             </h3>
-            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
               {guide.summary}
             </p>
           </div>
@@ -318,7 +318,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className="shrink-0 rounded-lg border-0 px-3 py-2 text-[11px] font-black transition-colors"
+                className="min-h-11 shrink-0 rounded-lg border-0 px-3 py-2 text-[11px] font-black transition-colors"
                 style={{
                   background: active ? '#1F5C4A' : 'transparent',
                   color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -344,7 +344,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
               loading="lazy"
               decoding="async"
             />
-            <figcaption className="border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            <figcaption className="border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
               {overviewImage.label}
             </figcaption>
           </figure>
@@ -354,7 +354,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {guide.seatCounts.map((seat) => (
                 <div key={seat.label} className="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-800">
-                  <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{seat.label}</div>
+                  <div className="text-[10px] font-bold text-slate-500 dark:text-white">{seat.label}</div>
                   <div className="mt-0.5 text-sm font-black text-slate-900 dark:text-white">{seat.count.toLocaleString()}석</div>
                 </div>
               ))}
@@ -394,7 +394,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
                     확대 보기
                   </span>
                 </button>
-                <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
                   <span>{image.label}</span>
                   <span className="font-black text-[#1F5C4A]">클릭해서 확대</span>
                 </figcaption>
@@ -518,7 +518,7 @@ export default function JamsilSeatMapSvg({
   const effectivePan = clampPan(pan, zoom, measuredViewportSize);
   const canDrag = zoom > minZoom;
 
-  const zoomBtnCls = 'pointer-events-auto w-7 h-7 rounded-md bg-transparent border-0 flex items-center justify-center cursor-pointer text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
+  const zoomBtnCls = 'pointer-events-auto h-11 w-11 rounded-md bg-transparent border-0 flex items-center justify-center cursor-pointer text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
   const sortedBlocks = [...JAMSIL_BLOCKS].sort((a, b) => {
     if (a.category === 'ACCESSIBLE' && b.category !== 'ACCESSIBLE') return -1;
     if (a.category !== 'ACCESSIBLE' && b.category === 'ACCESSIBLE') return 1;
@@ -927,7 +927,7 @@ export default function JamsilSeatMapSvg({
       </button>
       <button
         data-testid="jamsil-seatmap-zoom-reset"
-        className="pointer-events-auto min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-[10px] font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+        className="pointer-events-auto min-h-11 min-w-11 rounded-md border-0 bg-transparent px-1.5 py-1 text-[10px] font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
         onClick={() => updateZoomFromControls(minZoom)}
         disabled={zoom <= minZoom}
         aria-label="잠실 좌석도 원래 크기"
@@ -960,7 +960,7 @@ export default function JamsilSeatMapSvg({
 
   if (!seatMapImageUrl || imageFailed) {
     return (
-      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#050810]">
+      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
       </div>
     );
@@ -968,7 +968,7 @@ export default function JamsilSeatMapSvg({
 
   if (officialSource === 'DOOSAN') {
     return (
-      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#050810]">
+      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#000000]">
         <OfficialSourceToolbar
           value={officialSource}
           onChange={(value) => {
@@ -984,7 +984,7 @@ export default function JamsilSeatMapSvg({
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#050810]">
+    <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-[#000000]">
       <OfficialSourceToolbar
         value={officialSource}
         onChange={(value) => {
@@ -1116,7 +1116,7 @@ export default function JamsilSeatMapSvg({
 
               if (isFiltered) {
                 // 비매칭 블록: 어두운 오버레이로 dimming
-                fill = mode === 'dark' ? '#020617' : '#1e293b';
+                fill = mode === 'dark' ? '#000000' : '#1e293b';
                 fillOpacity = 0.42;
                 strokeOpacity = 0;
               }
@@ -1125,6 +1125,7 @@ export default function JamsilSeatMapSvg({
                 <g key={b.id}>
                   <path
                     role="button"
+                    data-touch-target-audit="shape-hit-area"
                     tabIndex={isFiltered ? -1 : 0}
                     aria-label={`${b.name} ${b.block}`}
                     d={imageGeometry.d}
@@ -1166,7 +1167,7 @@ export default function JamsilSeatMapSvg({
                       fontSize={imageGeometry.labelFontSize ?? 12}
                       fontWeight="800"
                       fill={mode === 'dark' ? '#F8FAFC' : '#0F172A'}
-                      stroke={mode === 'dark' ? '#020617' : '#FFFFFF'}
+                      stroke={mode === 'dark' ? '#000000' : '#FFFFFF'}
                       strokeWidth="3"
                       paintOrder="stroke"
                       transform={`rotate(${imageGeometry.labelRotate ?? 0} ${imageGeometry.labelX} ${imageGeometry.labelY})`}

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 
 import type { Game, GameDetail } from '../../types/prediction';
-import type { CoachRequestMode } from '../../utils/prediction';
+import type { CoachAnalysisType, CoachRequestMode } from '../../utils/coachBriefingRequestDescriptor';
 
 const CoachBriefing = lazy(() => import('../CoachBriefing'));
 
@@ -20,6 +20,7 @@ type PredictionCoachBriefingRuntimeProps = {
     canCallAI: boolean;
   };
   requestMode: CoachRequestMode;
+  analysisType: CoachAnalysisType;
   autoEnabled: boolean;
   forceManual: boolean;
   isPastGame: boolean;
@@ -33,6 +34,7 @@ export default function PredictionCoachBriefingRuntime({
   gameDetail,
   seasonContext,
   requestMode,
+  analysisType,
   autoEnabled,
   forceManual,
   isPastGame,
@@ -51,6 +53,7 @@ export default function PredictionCoachBriefingRuntime({
         isLoggedIn={isLoggedIn}
         isAuthLoading={isAuthLoading}
         requestMode={requestMode}
+        analysisType={analysisType}
         autoEnabled={autoEnabled}
         forceManual={forceManual}
       />

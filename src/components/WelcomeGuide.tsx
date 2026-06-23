@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useId, useState } from 'react';
 
 import { Button } from './ui/button';
 import {
@@ -57,7 +56,6 @@ export default function WelcomeGuide() {
   const [imageError, setImageError] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
-  const modalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const dontShowAgain = localStorage.getItem('bega_dont_show_guide');
@@ -84,135 +82,91 @@ export default function WelcomeGuide() {
     setShowWelcome(false);
   }, [setShowWelcome]);
 
-  useEffect(() => {
-    if (!showWelcome || !isReady) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        handleClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose, isReady, showWelcome]);
-
-  useEffect(() => {
-    if (!showWelcome || !isReady) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    modalRef.current?.focus();
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isReady, showWelcome]);
-
-  if (!showWelcome || !isReady || typeof document === 'undefined') {
+  if (!showWelcome || !isReady) {
     return null;
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[80]">
-      <div
-        className="absolute inset-0 bg-slate-950/45"
-        aria-hidden="true"
-        onClick={handleClose}
-      />
-      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6" onClick={handleClose}>
-        <div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          tabIndex={-1}
-          data-testid="home-onboarding-compact"
-          onClick={(event) => event.stopPropagation()}
-          className="relative w-full max-w-[420px] overflow-hidden rounded-lg bg-white shadow-[0_24px_70px_-28px_rgba(15,23,42,0.45)] ring-1 ring-black/10 dark:bg-background dark:ring-white/10"
+  return (
+    <section
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      data-testid="home-onboarding-inline"
+      data-variant="dismissible-banner"
+      className="mb-4 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
+    >
+      <div className="flex items-start gap-3 border-b border-border/70 px-3 py-3 sm:px-4">
+        {imageError ? (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-sm font-black text-primary">
+            B
+          </div>
+        ) : (
+          <img
+            src={baseballLogo}
+            alt="BEGA 로고"
+            className="h-10 w-10 shrink-0"
+            onError={() => setImageError(true)}
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <h2 id={titleId} className="text-lg font-black leading-tight text-slate-950 dark:text-white">
+            BEGA 시작하기
+          </h2>
+          <p id={descriptionId} className="mt-1 text-sm font-semibold leading-5 text-slate-600 dark:text-white">
+            오늘 할 행동만 먼저 보여드립니다.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="iconTouch"
+          onClick={handleClose}
+          className="-mr-2 -mt-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+          aria-label="가이드 닫기"
+          data-testid="home-onboarding-close"
         >
-          <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-4 dark:border-white/10">
-            {imageError ? (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-sm font-black text-primary">
-                B
-              </div>
-            ) : (
-              <img
-                src={baseballLogo}
-                alt="BEGA 로고"
-                className="h-10 w-10 shrink-0"
-                onError={() => setImageError(true)}
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <h2 id={titleId} className="text-lg font-black leading-tight text-slate-950 dark:text-white">
-                BEGA 시작하기
-              </h2>
-              <p id={descriptionId} className="mt-1 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
-                오늘 할 행동만 먼저 보여드립니다.
+          <CloseIcon className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <div className="grid gap-2 px-3 py-3 md:grid-cols-3 md:px-4">
+        {ENTRY_ACTIONS.map((action) => (
+          <div
+            key={action.title}
+            className="flex min-h-[52px] items-center gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+          >
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${action.tone}`}>
+              {renderActionIcon(action.icon)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-black leading-5 text-slate-950 dark:text-white">
+                {action.title}
+              </p>
+              <p className="mt-0.5 text-[13px] font-semibold leading-5 text-slate-600 dark:text-white">
+                {action.description}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="iconTouch"
-              onClick={handleClose}
-              className="-mr-2 -mt-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-              aria-label="가이드 닫기"
-              data-testid="home-onboarding-close"
-            >
-              <CloseIcon className="h-5 w-5" />
-            </Button>
           </div>
-
-          <div className="space-y-3 px-4 py-4">
-            {ENTRY_ACTIONS.map((action) => (
-              <div
-                key={action.title}
-                className="flex min-h-[64px] items-center gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${action.tone}`}>
-                  {renderActionIcon(action.icon)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[15px] font-black leading-5 text-slate-950 dark:text-white">
-                    {action.title}
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
-                    {action.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50 px-3 py-3 dark:border-white/10 dark:bg-card">
-            <Button
-              variant="ghost"
-              size="touch"
-              onClick={handleDontShowAgain}
-              className="rounded-md text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-              data-testid="home-onboarding-dismiss"
-            >
-              다시 보지 않기
-            </Button>
-            <Button
-              size="touch"
-              onClick={handleClose}
-              className="rounded-md"
-              data-testid="home-onboarding-start-cta"
-            >
-              바로 시작
-            </Button>
-          </div>
-        </div>
+        ))}
       </div>
-    </div>,
-    document.body,
+
+      <div className="grid grid-cols-2 gap-2 border-t border-border/70 bg-muted/60 px-3 py-2.5">
+        <Button
+          variant="ghost"
+          size="touch"
+          onClick={handleDontShowAgain}
+          className="rounded-md text-slate-600 hover:bg-white hover:text-slate-900 dark:text-white dark:hover:bg-white/10 dark:hover:text-white"
+          data-testid="home-onboarding-dismiss"
+        >
+          다시 보지 않기
+        </Button>
+        <Button
+          size="touch"
+          onClick={handleClose}
+          className="rounded-md"
+          data-testid="home-onboarding-start-cta"
+        >
+          바로 시작
+        </Button>
+      </div>
+    </section>
   );
 }

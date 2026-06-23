@@ -6,7 +6,7 @@ type DiaryEntry = {
     type: 'attended' | 'scheduled';
     emoji: string;
     emojiName: string;
-    winningName: 'WIN' | 'LOSE' | 'DRAW' | '';
+    winningName: 'WIN' | 'LOSE' | 'DRAW' | '' | null;
     gameId: number;
     memo: string;
     photos: string[];
@@ -20,6 +20,9 @@ type DiaryEntry = {
 };
 
 const defaultEmoji = '/emojis/happy.png';
+const lightsOutDarkSurfaceToken = '0 0% 0%';
+const lightsOutDarkSurfaceColor = 'rgb(0, 0, 0)';
+const lightsOutTextColor = 'rgb(255, 255, 255)';
 
 const buildStatistics = (overrides: Record<string, unknown> = {}) => ({
     totalCount: 1,
@@ -172,10 +175,17 @@ describe('Personal Diary', () => {
     let diaryEntries: DiaryEntry[];
     let diaryStatistics: Record<string, unknown>;
 
-    const visitMyPage = () => {
-        cy.visit('/mypage');
+    const visitMyPage = (path = '/mypage?view=diaryEditor&date=2024-05-15') => {
+        cy.visit(path);
         cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
         cy.contains('직관 기록').should('be.visible');
+        cy.wait('@getDiaries', { timeout: 15000 });
+    };
+
+    const visitSeasonLog = () => {
+        cy.visit('/mypage');
+        cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
+        cy.contains('시즌 로그').should('be.visible');
         cy.wait('@getDiaries', { timeout: 15000 });
     };
 
@@ -232,18 +242,122 @@ describe('Personal Diary', () => {
         cy.get('button').filter('.border.rounded-lg').should('have.length.at.least', 28);
     });
 
+    it('uses the lights out dark surface tone inside the diary editor', () => {
+        visitMyPage();
+
+        cy.document().should((document) => {
+            const style = getComputedStyle(document.documentElement);
+            expect(style.getPropertyValue('--surface-app-dark').trim()).to.eq(lightsOutDarkSurfaceToken);
+            expect(style.getPropertyValue('--surface-panel-dark').trim()).to.eq(lightsOutDarkSurfaceToken);
+            expect(style.getPropertyValue('--surface-panel-raised-dark').trim()).to.eq(lightsOutDarkSurfaceToken);
+        });
+        cy.get('.mypage-season-root').should(($root) => {
+            const style = getComputedStyle($root[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.color).to.eq(lightsOutTextColor);
+        });
+        cy.getBySel('diary-editor-calendar-card').should(($card) => {
+            const style = getComputedStyle($card[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.borderTopColor).to.eq('rgba(138, 159, 153, 0.16)');
+        });
+        cy.getBySel('diary-editor-form-card').should(($card) => {
+            const style = getComputedStyle($card[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+        });
+        cy.get('.diary-green-surface select').should(($select) => {
+            const style = getComputedStyle($select[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.color).to.eq(lightsOutTextColor);
+        });
+        cy.get('.diary-green-surface textarea').should(($textarea) => {
+            const style = getComputedStyle($textarea[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.color).to.eq(lightsOutTextColor);
+        });
+        cy.getBySel('diary-editor-seat-panel').should(($panel) => {
+            const style = getComputedStyle($panel[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.borderTopColor).to.eq('rgba(138, 159, 153, 0.16)');
+        });
+    });
+
+    it('opens the diary editor from the default season log', () => {
+        visitSeasonLog();
+
+        cy.location('search').should('eq', '');
+        cy.contains('2024 시즌 로그').should('be.visible');
+        cy.getBySel('mypage-season-write-cta').click();
+        cy.url().should('include', 'view=diaryEditor');
+        cy.url().should('include', 'date=2024-05-15');
+        cy.contains('5월 15일 직관 기록').should('be.visible');
+    });
+
+    it('scrolls and highlights a timeline entry from the heatmap', () => {
+        visitSeasonLog();
+
+        cy.getBySel('mypage-season-heatmap').should('be.visible');
+        cy.getBySel('mypage-season-heatmap-cell').first().click();
+        cy.get('#mypage-log-entry-1').should('have.class', 'is-flash');
+    });
+
+    it('does not post when saving without a selected game', () => {
+        diaryEntries = [];
+        let saveCalled = false;
+        cy.intercept('POST', '**/api/diary/save*', (req) => {
+            saveCalled = true;
+            req.reply({ statusCode: 500, body: {} });
+        }).as('unexpectedSaveDiary');
+
+        visitMyPage();
+
+        cy.getBySel('day-15').click({ force: true });
+        cy.wait('@getGames');
+        cy.getBySel('save-diary-btn').click();
+
+        expectToast('경기를 선택해주세요.');
+        cy.then(() => {
+            expect(saveCalled).to.eq(false);
+        });
+    });
+
+    it('does not post an attended diary without a winning result', () => {
+        diaryEntries = [];
+        let saveCalled = false;
+        cy.intercept('POST', '**/api/diary/save*', (req) => {
+            saveCalled = true;
+            req.reply({ statusCode: 500, body: {} });
+        }).as('unexpectedSaveDiary');
+
+        visitMyPage();
+
+        cy.getBySel('day-15').click({ force: true });
+        cy.wait('@getGames');
+        cy.get('select').select('101');
+        cy.getBySel('save-diary-btn').click();
+
+        expectToast('승패를 선택해주세요.');
+        cy.then(() => {
+            expect(saveCalled).to.eq(false);
+        });
+    });
+
     it('creates a scheduled diary record', () => {
         diaryEntries = [];
 
         cy.intercept('POST', '**/api/diary/save*', (req) => {
             expect(req.body.type).to.eq('scheduled');
             expect(req.body.gameId).to.eq(101);
+            expect([null, '']).to.include(req.body.winningName);
+            expect(req.body.photos).to.deep.equal([]);
+            expect(req.body.memo).to.eq('');
+            expect(req.body.ticketVerificationToken).to.eq(undefined);
             diaryEntries = [
                 seedDiaryEntry({
                     id: 20,
                     date: '2024-05-15',
                     type: 'scheduled',
-                    winningName: '',
+                    winningName: null,
                     memo: '',
                     team: '한화 vs 삼성',
                     ticketVerified: false,
@@ -424,6 +538,12 @@ describe('Personal Diary', () => {
         cy.wait('@createSeatViewCandidates');
         cy.wait('@updateDiaryAfterUpload');
         cy.contains('AI 추천 시야뷰 확인').should('be.visible');
+        cy.getBySel('diary-seat-view-dialog').should(($dialog) => {
+            const style = getComputedStyle($dialog[0]);
+            expect(style.backgroundColor).to.eq(lightsOutDarkSurfaceColor);
+            expect(style.color).to.eq(lightsOutTextColor);
+            expect(style.borderTopColor).to.eq('rgba(138, 159, 153, 0.16)');
+        });
         cy.getBySel('diary-seat-view-submit-button').click();
 
         cy.wait('@submitSeatViewSelections');
@@ -613,13 +733,16 @@ describe('Personal Diary', () => {
     it('toggles to the statistics view and renders diary analytics', () => {
         visitMyPage();
 
-        cy.getBySel('mypage-toggle-stats').click();
+        cy.getBySel('mypage-toggle-stats').scrollIntoView({ offset: { top: -160, left: 0 } }).click();
         cy.wait('@getDiaryStats');
 
-        cy.contains('나의 야구 기록 요약').should('be.visible');
-        cy.contains('총 직관 횟수').should('be.visible');
-        cy.contains('응원글').should('be.visible');
-        cy.contains('기분 분석').should('be.visible');
-        cy.contains('상세 기록').should('be.visible');
+        cy.get('[data-screen-label="나의 기록"]').within(() => {
+            cy.contains('h1', '나의 기록').should('be.visible');
+            cy.contains('직관').should('be.visible');
+            cy.contains('구장 방문').should('be.visible');
+            cy.contains('상대팀별 전적').should('be.visible');
+            cy.contains('직관 기분').should('be.visible');
+        });
+        cy.contains('상세 기록').should('not.exist');
     });
 });

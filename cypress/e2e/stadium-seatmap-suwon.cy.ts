@@ -55,6 +55,20 @@ function selectSuwonStadium() {
 }
 
 function selectSuwonBlock(query: string, itemTestId: string) {
+  cy.get(
+    '[data-testid="suwon-block-search"], [data-testid="suwon-seatmap-search-open"], [data-testid="suwon-seatmap-mobile-search-open"]',
+    { timeout: 10000 },
+  )
+    .then(($controls) => {
+      if ($controls.filter('[data-testid="suwon-block-search"]:visible').length === 0) {
+        cy.wrap(
+          $controls
+            .filter('[data-testid="suwon-seatmap-search-open"], [data-testid="suwon-seatmap-mobile-search-open"]')
+            .first(),
+        ).click({ force: true });
+      }
+    });
+
   getVisibleSuwon('suwon-block-search')
     .clear()
     .type(query);

@@ -38,7 +38,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     dataFile: 'jamsilSeatData.ts',
     badgeLabel: '잠실 블록 단위 안내도',
     requiredFiles: [
-      'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.png',
+      'src/assets/stadiums/lg/jamsil-lg-seatmap-default-2026.webp',
       'src/assets/stadiums/doosan/jamsil-doosan-stadium-overview.png',
     ],
   },
@@ -57,8 +57,8 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     dataFile: 'daeguSeatData.ts',
     badgeLabel: '대구 삼성 라이온즈파크 공식 좌석도',
     requiredFiles: [
-      'src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.png',
-      'src/assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.png',
+      'src/assets/stadiums/samsung/daegu-samsung-seatmap-official-2026.webp',
+      'src/assets/stadiums/samsung/daegu-operator-reference-rapak-2025-enhanced-transparent.webp',
     ],
   },
   {
@@ -67,7 +67,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     componentName: 'DaejeonSeatMap',
     dataFile: 'daejeonSeatData.ts',
     badgeLabel: '대전 한화생명볼파크 공식 좌석도',
-    requiredFiles: ['src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png'],
+    requiredFiles: ['src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp'],
   },
   {
     presetId: 'gocheok',
@@ -75,7 +75,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     componentName: 'GocheokSeatMap',
     dataFile: 'gocheokSeatData.ts',
     badgeLabel: '고척 키움 공식 좌석도',
-    requiredFiles: ['src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.png'],
+    requiredFiles: ['src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp'],
   },
   {
     presetId: 'gwangju',
@@ -83,7 +83,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     componentName: 'GwangjuSeatMap',
     dataFile: 'gwangjuSeatData.ts',
     badgeLabel: '광주 KIA 공식 좌석도',
-    requiredFiles: ['src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png'],
+    requiredFiles: ['src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp'],
   },
   {
     presetId: 'changwon',
@@ -91,7 +91,7 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     componentName: 'ChangwonSeatMap',
     dataFile: 'changwonSeatData.ts',
     badgeLabel: '창원 NC 공식 좌석도',
-    requiredFiles: ['src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.png'],
+    requiredFiles: ['src/assets/stadiums/nc/changwon-nc-seatmap-official-2026.webp'],
   },
   {
     presetId: 'sajik',
@@ -100,8 +100,8 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
     dataFile: 'sajikSeatData.ts',
     badgeLabel: '사직 롯데 공식 좌석도',
     requiredFiles: [
-      'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.png',
-      'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.png',
+      'src/assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp',
+      'src/assets/stadiums/lotte/sajik-lotte-seatmap-official-2026.webp',
     ],
   },
   {
@@ -453,27 +453,27 @@ test('구장별 전용 좌석도 파일과 공식 asset은 런타임 계약에 �
   });
 });
 
-test('인천 좌석도 PNG 기준 파일과 렌더링 WebP는 같은 좌표계 크기를 유지한다', () => {
-  const sourcePng = 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.png';
+test('인천 좌석도 WebP 파일은 기존 좌표계 크기를 유지한다', () => {
+  const sourceWebp = 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp';
   const renderedWebp = 'src/assets/stadiums/ssg/incheon-ssg-seatmap-official-2026.webp';
   const dataSource = readProjectFile('src/data/incheonSeatData.ts');
   const svgSource = readProjectFile('src/components/incheon/IncheonSeatMapSvg.tsx');
 
-  assert.deepEqual(readImageDimensions(sourcePng), { width: 3360, height: 5328 });
+  assert.deepEqual(readImageDimensions(sourceWebp), { width: 3360, height: 5328 });
   assert.deepEqual(readImageDimensions(renderedWebp), { width: 3360, height: 5328 });
   assert.ok(dataSource.includes('3360'), 'Incheon data should preserve source image width');
   assert.ok(dataSource.includes('5328'), 'Incheon data should preserve source image height');
   assert.ok(svgSource.includes('incheon-ssg-seatmap-official-2026.webp'), 'runtime should render the optimized WebP asset');
 });
 
-test('수원 좌석도 계약은 draft PNG가 아니라 @2x 공식 JPG를 기준으로 유지한다', () => {
+test('수원 좌석도 계약은 draft PNG가 아니라 @2x 공식 WebP를 기준으로 유지한다', () => {
   const dataSource = readProjectFile('src/data/suwonSeatData.ts');
   const svgSource = readProjectFile('src/components/suwon/SuwonSeatMapSvg.tsx');
 
   assert.ok(dataSource.includes("imagePath: 'src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp'"), 'Suwon active image path should pin the @2x official WebP');
   assert.ok(dataSource.includes("requiredAssetPath: 'src/assets/stadiums/kt/suwon-kt-seatmap-official-2026@2x.webp'"), 'Suwon required asset path should pin the @2x official WebP');
-  assert.ok(dataSource.includes("draftAssetFileName: 'suwon-kt-seatmap-official-2026.png'"), 'Suwon draft PNG should remain metadata-only');
-  assert.ok(!svgSource.includes('suwon-kt-seatmap-official-2026.png'), 'Suwon SVG should not render the draft PNG');
+  assert.ok(!dataSource.includes('draftAssetFileName'), 'Suwon draft PNG metadata should be removed');
+  assert.ok(!svgSource.includes('.png'), 'Suwon SVG should not render PNG seatmap assets');
 });
 
 test('잠실 좌표 path QA는 registry의 template shell flag만으로 제외되지 않는다', () => {
@@ -502,22 +502,22 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
   const releaseLockSource = readProjectFile('docs/jamsil-seatmap-release-lock.md');
 
   [
-    '"qa:stadium:jamsil:mobile": "node scripts/stadium-seatmap-ops.mjs jamsil mobile"',
-    '"qa:stadium:jamsil:full": "node scripts/stadium-seatmap-ops.mjs jamsil full"',
-    '"qa:stadium:jamsil:release-lock": "node scripts/stadium-seatmap-ops.mjs jamsil release-gate"',
-    '"stadium:jamsil:status": "node scripts/stadium-seatmap-ops.mjs jamsil status"',
-    '"stadium:jamsil:food-candidate-validate": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-validate"',
-    '"stadium:jamsil:food-candidate-review-workset": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-review-workset"',
-    '"stadium:jamsil:food-candidate-transfer": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-transfer"',
-    '"stadium:jamsil:food-candidate-apply-plan": "node scripts/stadium-seatmap-ops.mjs jamsil food-candidate-apply-plan"',
-    '"stadium:jamsil:operator-intake": "node scripts/stadium-seatmap-ops.mjs jamsil operator-intake"',
-    '"stadium:jamsil:operator-validate": "node scripts/stadium-seatmap-ops.mjs jamsil operator-validate"',
-    '"stadium:jamsil:operator-apply-plan": "node scripts/stadium-seatmap-ops.mjs jamsil operator-apply-plan"',
-    '"stadium:jamsil:operator-handoff": "node scripts/stadium-seatmap-ops.mjs jamsil operator-handoff"',
-    '"stadium:jamsil:operator-approval": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval"',
-    '"stadium:jamsil:operator-approval:status": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:status"',
-    '"stadium:jamsil:operator-approval:approve": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:approve"',
-    '"stadium:jamsil:operator-approval:verify": "node scripts/stadium-seatmap-ops.mjs jamsil operator-approval:verify"',
+    '"qa:stadium:jamsil:mobile": "node scripts/qa-presets.mjs stadium jamsil mobile"',
+    '"qa:stadium:jamsil:full": "node scripts/qa-presets.mjs stadium jamsil full"',
+    '"qa:stadium:jamsil:release-lock": "node scripts/qa-presets.mjs stadium jamsil release-gate"',
+    '"stadium:jamsil:status": "node scripts/qa-presets.mjs stadium jamsil status"',
+    '"stadium:jamsil:food-candidate-validate": "node scripts/qa-presets.mjs stadium jamsil food-candidate-validate"',
+    '"stadium:jamsil:food-candidate-review-workset": "node scripts/qa-presets.mjs stadium jamsil food-candidate-review-workset"',
+    '"stadium:jamsil:food-candidate-transfer": "node scripts/qa-presets.mjs stadium jamsil food-candidate-transfer"',
+    '"stadium:jamsil:food-candidate-apply-plan": "node scripts/qa-presets.mjs stadium jamsil food-candidate-apply-plan"',
+    '"stadium:jamsil:operator-intake": "node scripts/qa-presets.mjs stadium jamsil operator-intake"',
+    '"stadium:jamsil:operator-validate": "node scripts/qa-presets.mjs stadium jamsil operator-validate"',
+    '"stadium:jamsil:operator-apply-plan": "node scripts/qa-presets.mjs stadium jamsil operator-apply-plan"',
+    '"stadium:jamsil:operator-handoff": "node scripts/qa-presets.mjs stadium jamsil operator-handoff"',
+    '"stadium:jamsil:operator-approval": "node scripts/qa-presets.mjs stadium jamsil operator-approval"',
+    '"stadium:jamsil:operator-approval:status": "node scripts/qa-presets.mjs stadium jamsil operator-approval:status"',
+    '"stadium:jamsil:operator-approval:approve": "node scripts/qa-presets.mjs stadium jamsil operator-approval:approve"',
+    '"stadium:jamsil:operator-approval:verify": "node scripts/qa-presets.mjs stadium jamsil operator-approval:verify"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -610,11 +610,13 @@ test('잠실 좌석도 package alias는 responsive QA를 dispatcher 내부 task�
 
 test('Stadium QA runner는 stale summary를 정리하고 실패한 target을 다음 포트에서 재시도한다', () => {
   const packageSource = readProjectFile('package.json');
+  const qaPresetsSource = readProjectFile('scripts/qa-presets.mjs');
   const runnerSource = readProjectFile('scripts/run-stadium-isolated-qa.mjs');
 
   assert.ok(fs.existsSync(path.join(projectRoot, 'scripts/stadium-ux-audit.mjs')), 'tracked stadium UX audit script should exist inside the frontend repo');
   assert.ok(runnerSource.includes("path.join(frontendRoot, 'scripts/stadium-ux-audit.mjs')"), 'runner should execute the tracked audit script');
-  assert.ok(packageSource.includes('node scripts/stadium-ux-audit.mjs'), 'attached QA scripts should execute the tracked audit script');
+  assert.ok(packageSource.includes('"qa:stadium:mobile:attached": "node scripts/qa-presets.mjs stadium-mobile attached"'), 'attached QA scripts should use the public qa-presets dispatcher');
+  assert.ok(qaPresetsSource.includes("nodeStep(['scripts/stadium-ux-audit.mjs']"), 'attached QA presets should execute the tracked audit script');
   assert.ok(runnerSource.includes('clearSummaryFiles(outputDir)'), 'runner should clear stale summary files before a target starts');
   assert.ok(runnerSource.includes('stadium-mobile-smoke-summary.json'), 'runner should clear stale JSON summaries');
   assert.ok(runnerSource.includes('failed on port=${port}; retrying once on next available port'), 'runner should retry failed targets');
@@ -842,11 +844,17 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
     'incheon-compare-card-incheon-101b',
     'incheon-compare-card-incheon-102b',
     'waitForIncheonComparedSection',
+    'clickVisibleIncheonCompareClear',
     'data-compared',
     'incheon-compare-clear',
   ].forEach((requiredToken) => {
     assert.ok(stadiumUxAuditSource.includes(requiredToken), `stadium-ux-audit should verify Incheon comparison token ${requiredToken}`);
   });
+  assert.equal(
+    stadiumUxAuditSource.includes("visibleIncheonCompareTestId(page, 'incheon-compare-clear').click"),
+    false,
+    'stadium-ux-audit should not direct-click Incheon compare clear on mobile',
+  );
 });
 
 test('구장별 전용 좌석도는 시야/preview 연결 계약을 유지한다', () => {
@@ -904,7 +912,7 @@ test('좌석도 공통 UI 컴포넌트는 잠실 기준 UX 계약을 제공한�
   assert.ok(filterSource.includes('getGroupState'), 'shared filter should support stadium-specific disabled/data attributes');
   assert.ok(legendSource.includes('categoryIds'), 'shared legend should render category ids from stadium data');
   assert.ok(attributionSource.includes('좌석 배치 기준:'), 'shared attribution should render source caption copy');
-  assert.ok(attributionSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'), 'shared attribution should preserve manual data contract');
+  assert.equal(attributionSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'), false, 'shared attribution should not render internal manual data contract text');
   assert.ok(detailSource.includes('SeatViewGallery'), 'shared detail panel should own the common gallery block');
   assert.ok(detailSource.includes('copy?.blockLabel'), 'shared detail panel should honor custom block label copy');
   assert.ok(detailSource.includes('extraMeta'), 'shared detail panel should expose stadium-specific metadata slot');
@@ -1073,16 +1081,16 @@ test('고척 좌석도 package alias는 runtime release와 운영자 입력 게�
   const overlayChecklistSource = readProjectFile('docs/stadium-seatmap-overlay-checklist.md');
 
   [
-    '"qa:stadium:gocheok:mobile": "node scripts/stadium-seatmap-ops.mjs gocheok mobile"',
-    '"qa:stadium:gocheok:full": "node scripts/stadium-seatmap-ops.mjs gocheok full"',
-    '"qa:stadium:gocheok:release-lock": "node scripts/stadium-seatmap-ops.mjs gocheok release-gate"',
-    '"stadium:gocheok:status": "node scripts/stadium-seatmap-ops.mjs gocheok status"',
-    '"stadium:gocheok:pixel-components": "node scripts/stadium-seatmap-ops.mjs gocheok pixel-components"',
-    '"stadium:gocheok:trace-manifest": "node scripts/stadium-seatmap-ops.mjs gocheok trace-manifest"',
-    '"stadium:gocheok:operator-intake": "node scripts/stadium-seatmap-ops.mjs gocheok operator-intake"',
-    '"stadium:gocheok:operator-validate": "node scripts/stadium-seatmap-ops.mjs gocheok operator-validate"',
-    '"stadium:gocheok:operator-apply-plan": "node scripts/stadium-seatmap-ops.mjs gocheok operator-apply-plan"',
-    '"stadium:gocheok:operator-handoff": "node scripts/stadium-seatmap-ops.mjs gocheok operator-handoff"',
+    '"qa:stadium:gocheok:mobile": "node scripts/qa-presets.mjs stadium gocheok mobile"',
+    '"qa:stadium:gocheok:full": "node scripts/qa-presets.mjs stadium gocheok full"',
+    '"qa:stadium:gocheok:release-lock": "node scripts/qa-presets.mjs stadium gocheok release-gate"',
+    '"stadium:gocheok:status": "node scripts/qa-presets.mjs stadium gocheok status"',
+    '"stadium:gocheok:pixel-components": "node scripts/qa-presets.mjs stadium gocheok pixel-components"',
+    '"stadium:gocheok:trace-manifest": "node scripts/qa-presets.mjs stadium gocheok trace-manifest"',
+    '"stadium:gocheok:operator-intake": "node scripts/qa-presets.mjs stadium gocheok operator-intake"',
+    '"stadium:gocheok:operator-validate": "node scripts/qa-presets.mjs stadium gocheok operator-validate"',
+    '"stadium:gocheok:operator-apply-plan": "node scripts/qa-presets.mjs stadium gocheok operator-apply-plan"',
+    '"stadium:gocheok:operator-handoff": "node scripts/qa-presets.mjs stadium gocheok operator-handoff"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -1196,10 +1204,10 @@ test('인천 좌석도 package alias는 runtime release 최소 표면만 노출�
   const overlayChecklistSource = readProjectFile('docs/stadium-seatmap-overlay-checklist.md');
 
   [
-    '"qa:stadium:incheon:mobile": "node scripts/stadium-seatmap-ops.mjs incheon mobile"',
-    '"qa:stadium:incheon:full": "node scripts/stadium-seatmap-ops.mjs incheon full"',
-    '"qa:stadium:incheon:release-lock": "node scripts/stadium-seatmap-ops.mjs incheon release-gate"',
-    '"stadium:incheon:status": "node scripts/stadium-seatmap-ops.mjs incheon status"',
+    '"qa:stadium:incheon:mobile": "node scripts/qa-presets.mjs stadium incheon mobile"',
+    '"qa:stadium:incheon:full": "node scripts/qa-presets.mjs stadium incheon full"',
+    '"qa:stadium:incheon:release-lock": "node scripts/qa-presets.mjs stadium incheon release-gate"',
+    '"stadium:incheon:status": "node scripts/qa-presets.mjs stadium incheon status"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -1442,11 +1450,11 @@ test('stadium seatmap Cypress 회귀는 구장별 split alias를 제공한다', 
   const defaultSeatmapSpec = readProjectFile('cypress/e2e/stadium-seatmap.cy.ts');
 
   [
-    '"cy:stadium:seatmaps": "npm run cy:run -- --spec cypress/e2e/stadium-seatmap-shared.cy.ts,cypress/e2e/stadium-seatmap-incheon.cy.ts,cypress/e2e/stadium-seatmap-jamsil.cy.ts,cypress/e2e/stadium-seatmap-suwon.cy.ts"',
-    '"cy:stadium:shared": "npm run cy:run -- --spec cypress/e2e/stadium-seatmap-shared.cy.ts"',
-    '"cy:stadium:incheon": "npm run cy:run -- --spec cypress/e2e/stadium-seatmap-incheon.cy.ts"',
-    '"cy:stadium:jamsil": "npm run cy:run -- --spec cypress/e2e/stadium-seatmap-jamsil.cy.ts"',
-    '"cy:stadium:suwon": "npm run cy:run -- --spec cypress/e2e/stadium-seatmap-suwon.cy.ts"',
+    '"cy:stadium:seatmaps": "node scripts/qa-presets.mjs cypress stadium-seatmaps"',
+    '"cy:stadium:shared": "node scripts/qa-presets.mjs cypress stadium-shared"',
+    '"cy:stadium:incheon": "node scripts/qa-presets.mjs cypress stadium-incheon"',
+    '"cy:stadium:jamsil": "node scripts/qa-presets.mjs cypress stadium-jamsil"',
+    '"cy:stadium:suwon": "node scripts/qa-presets.mjs cypress stadium-suwon"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -1461,10 +1469,10 @@ test('수원 좌석도 package alias는 runtime release 최소 표면만 노출�
   const releaseLockSource = readProjectFile('docs/suwon-seatmap-release-lock.md');
 
   [
-    '"qa:stadium:suwon:mobile": "node scripts/stadium-seatmap-ops.mjs suwon mobile"',
-    '"qa:stadium:suwon:full": "node scripts/stadium-seatmap-ops.mjs suwon full"',
-    '"qa:stadium:suwon:release-lock": "node scripts/stadium-seatmap-ops.mjs suwon release-gate"',
-    '"stadium:suwon:status": "node scripts/stadium-seatmap-ops.mjs suwon status"',
+    '"qa:stadium:suwon:mobile": "node scripts/qa-presets.mjs stadium suwon mobile"',
+    '"qa:stadium:suwon:full": "node scripts/qa-presets.mjs stadium suwon full"',
+    '"qa:stadium:suwon:release-lock": "node scripts/qa-presets.mjs stadium suwon release-gate"',
+    '"stadium:suwon:status": "node scripts/qa-presets.mjs stadium suwon status"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -1535,7 +1543,7 @@ test('대구 좌석도 release lock 문서는 classified row 계약을 고정한
     'PASS_RELEASE_177',
     '1707x2048',
     'DAEGU_SAMSUNG_LIONS_PARK_2026_MANUAL_POLYGON_V1',
-    '8da44a063ff56ddc6d956d3cf7525787bc2414512d7807170d4bf6c3fcedf3e0',
+    '0d3926764aa1ced440804a1cfb1519e6f54eb1c4835e56e64bec3597d984640a',
     'LOCKED_VERIFIED',
     '174',
     'classifiedReleaseRows',
@@ -1711,12 +1719,12 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(gwangjuSvgSource.includes('visualPathD = block.imageGeometry.visualD ?? block.imageGeometry.d'), 'Gwangju should render official-image visual overlay separately from clipped hit paths');
   assert.ok(gwangjuSvgSource.includes('data-testid={`gwangju-seat-visual-${block.id}`}'), 'Gwangju visual overlay paths should not be counted as seat hit paths');
   assert.ok(gwangjuSvgSource.includes('data-visual-path={visualPathD}'), 'Gwangju hit paths should retain visual path evidence for selected sweep QA');
-  assert.ok(gwangjuSvgSource.includes('<image'), 'Gwangju should render the official PNG inside the same SVG coordinate plane as hit areas');
-  assert.ok(gwangjuSvgSource.includes('preserveAspectRatio="none"'), 'Gwangju official PNG should map directly to the 2200x1159 SVG coordinates');
+  assert.ok(gwangjuSvgSource.includes('<image'), 'Gwangju should render the official WebP inside the same SVG coordinate plane as hit areas');
+  assert.ok(gwangjuSvgSource.includes('preserveAspectRatio="none"'), 'Gwangju official WebP should map directly to the 2200x1159 SVG coordinates');
   assert.ok(gwangjuSvgSource.includes('const strokeWidth = isActive ? (isSmallVisual ? 0.75 : 1.5) : 1'), 'Gwangju visual overlay stroke should not inflate small H/I/J/S blocks');
   assert.ok(gwangjuSvgSource.includes('fillOpacity = showHitAreaDebug ? 0.08 : 0;'), 'Gwangju filtered source blocks should not render black dim overlays in normal seatmap mode');
   assert.ok(gwangjuSvgSource.includes('fillOpacity={0}'), 'Gwangju invisible hit paths should not paint black rectangles in normal seatmap mode');
-  assert.equal(gwangjuSvgSource.includes("fill = mode === 'dark' ? '#020617' : '#1e293b'"), false, 'Gwangju filtered source blocks should stay invisible instead of painting dark rectangles');
+  assert.equal(gwangjuSvgSource.includes("fill = mode === 'dark' ? '#000000' : '#1e293b'"), false, 'Gwangju filtered source blocks should stay invisible instead of painting dark rectangles');
   assert.ok(gwangjuSvgSource.includes("'k5-101'"), 'Gwangju lower infield 101~108 blocks should use the same small visual overlay cap as H/I/J');
   assert.ok(gwangjuSvgSource.includes("'k7-108'"), 'Gwangju lower infield 101~108 blocks should use the same small visual overlay cap as H/I/J');
   assert.ok(gwangjuSvgSource.includes("'k9-116'"), 'Gwangju third-base lower infield 116~125 blocks should use the same small visual overlay cap');
@@ -1728,9 +1736,9 @@ test('검수 중인 전용 좌석도는 block label 좌표 QA 식별자를 제�
   assert.ok(gwangjuSvgSource.includes("'third-wheelchair-seats'"), 'Gwangju restored third-base I should use the small visual overlay cap');
   assert.ok(gwangjuSvgSource.includes("'party-seats-third'"), 'Gwangju restored third-base J should use the small visual overlay cap');
   assert.ok(gwangjuSvgSource.includes("filter={isActive && !isSmallVisual ? 'url(#gwangju-hit-glow)' : undefined}"), 'Gwangju small H/I/J/S blocks should not render glow filters that inflate selected polygons');
-  assert.ok(gwangjuSvgSource.includes('const showLabel = isActive && !isFiltered'), 'Gwangju debug overlay should not duplicate official PNG labels over every block');
+  assert.ok(gwangjuSvgSource.includes('const showLabel = isActive && !isFiltered'), 'Gwangju debug overlay should not duplicate official image labels over every block');
   assert.equal(gwangjuSvgSource.includes('strokeWidth={isActive ? 4 : 2}'), false, 'Gwangju should not use thick active strokes that make small polygons look oversized');
-  assert.equal(gwangjuSvgSource.includes('object-contain'), false, 'Gwangju should not split the official PNG into a separate object-fit layer');
+  assert.equal(gwangjuSvgSource.includes('object-contain'), false, 'Gwangju should not split the official image into a separate object-fit layer');
 
   const stadiumUxAuditSource = readProjectFile('scripts/stadium-ux-audit.mjs');
   assert.ok(stadiumUxAuditSource.includes("filePrefix: 'gwangju-lower-infield-selected-sweep'"), 'Gwangju browser QA should define lower infield selected sweep evidence');
@@ -1780,13 +1788,13 @@ test('창원 trace review 스크립트는 117개 숫자 블록과 특수 선택 
   );
 
   assert.ok(packageSource.includes('"stadium:changwon:trace-manifest"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs changwon trace-manifest'));
+  assert.ok(packageSource.includes('node scripts/qa-presets.mjs stadium changwon trace-manifest'));
   assert.ok(packageSource.includes('"qa:stadium:changwon:mobile"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs changwon mobile'));
+  assert.ok(packageSource.includes('node scripts/qa-presets.mjs stadium changwon mobile'));
   assert.ok(packageSource.includes('"qa:stadium:changwon:release-lock"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs changwon release-gate'));
+  assert.ok(packageSource.includes('node scripts/qa-presets.mjs stadium changwon release-gate'));
   assert.ok(packageSource.includes('"stadium:changwon:status"'));
-  assert.ok(packageSource.includes('node scripts/stadium-seatmap-ops.mjs changwon status'));
+  assert.ok(packageSource.includes('node scripts/qa-presets.mjs stadium changwon status'));
   assert.ok(packageSource.includes('"qa:stadium:changwon:diary-draft"'));
   assert.equal(packageSource.includes('"stadium:changwon:ux-readiness"'), false);
   assert.equal(packageSource.includes('"qa:stadium:changwon:trace-review"'), false);
@@ -1932,7 +1940,7 @@ test('창원 좌석도 release lock 문서는 최종 검수 계약을 고정한�
   const releaseLockSource = readProjectFile('docs/changwon-seatmap-release-lock.md');
 
   [
-    'changwon-nc-seatmap-official-2026.png',
+    'changwon-nc-seatmap-official-2026.webp',
     'CHANGWON_IMAGE_GEOMETRY',
     'CHANGWON_OFFICIAL_TRACE_REFERENCE',
     'CHANGWON_BLOCKS',
@@ -1971,7 +1979,7 @@ test('창원 좌석도 release candidate 문서는 UX+QA 고정 상태와 target
   [
     '창원 NC파크 좌석도 release candidate',
     '2026-05-11 KST',
-    'changwon-nc-seatmap-official-2026.png',
+    'changwon-nc-seatmap-official-2026.webp',
     'CHANGWON_IMAGE_GEOMETRY',
     'CHANGWON_OFFICIAL_TRACE_REFERENCE',
     'CHANGWON_BLOCKS',
@@ -2038,14 +2046,14 @@ test('사직 좌석도 release lock 문서는 canonical/runtime 검수 계약만
   });
 
   [
-    '"stadium:sajik:pixel-components": "node scripts/stadium-seatmap-ops.mjs sajik pixel-components"',
-    '"stadium:sajik:alignment-audit": "node scripts/stadium-seatmap-ops.mjs sajik alignment-audit"',
-    '"stadium:sajik:trace-manifest": "node scripts/stadium-seatmap-ops.mjs sajik trace-manifest"',
-    '"stadium:sajik:block-source-duplication-audit": "node scripts/stadium-seatmap-ops.mjs sajik block-source-duplication-audit"',
-    '"qa:stadium:sajik:full": "node scripts/stadium-seatmap-ops.mjs sajik full"',
-    '"qa:stadium:sajik:release-lock": "node scripts/stadium-seatmap-ops.mjs sajik release-lock"',
-    '"qa:stadium:sajik:mobile": "node scripts/stadium-seatmap-ops.mjs sajik mobile"',
-    '"stadium:sajik:status": "node scripts/stadium-seatmap-ops.mjs sajik status"',
+    '"stadium:sajik:pixel-components": "node scripts/qa-presets.mjs stadium sajik pixel-components"',
+    '"stadium:sajik:alignment-audit": "node scripts/qa-presets.mjs stadium sajik alignment-audit"',
+    '"stadium:sajik:trace-manifest": "node scripts/qa-presets.mjs stadium sajik trace-manifest"',
+    '"stadium:sajik:block-source-duplication-audit": "node scripts/qa-presets.mjs stadium sajik block-source-duplication-audit"',
+    '"qa:stadium:sajik:full": "node scripts/qa-presets.mjs stadium sajik full"',
+    '"qa:stadium:sajik:release-lock": "node scripts/qa-presets.mjs stadium sajik release-lock"',
+    '"qa:stadium:sajik:mobile": "node scripts/qa-presets.mjs stadium sajik mobile"',
+    '"stadium:sajik:status": "node scripts/qa-presets.mjs stadium sajik status"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -2128,8 +2136,8 @@ test('Stadium QA runner는 generic smoke 포트 충돌 회피와 실패 진단�
   const packageSource = readProjectFile('package.json');
   const runnerSource = readProjectFile('scripts/run-stadium-isolated-qa.mjs');
 
-  assert.ok(packageSource.includes('"qa:stadium:mobile": "node scripts/run-stadium-isolated-qa.mjs ALL"'));
-  assert.ok(packageSource.includes('"qa:stadium:mobile:smoke": "node scripts/run-stadium-isolated-qa.mjs JAMSIL:SMOKE"'));
+  assert.ok(packageSource.includes('"qa:stadium:mobile": "node scripts/qa-presets.mjs stadium-mobile all"'));
+  assert.ok(packageSource.includes('"qa:stadium:mobile:smoke": "node scripts/qa-presets.mjs stadium-mobile smoke"'));
   assert.ok(packageSource.includes('"qa:stadium:mobile:attached"'));
   assert.ok(packageSource.includes('"qa:stadium:mobile:smoke:attached"'));
   assert.ok(runnerSource.includes("modeToken === 'SMOKE'"));
@@ -2146,7 +2154,7 @@ test('Stadium QA runner는 generic smoke 포트 충돌 회피와 실패 진단�
   assert.ok(runnerSource.includes('Post-run listener PID(s):'));
 });
 
-test('대전 trace review QA는 P2 retired alias 제거 계약과 145개 traced 기준을 고정한다', () => {
+test('대전 trace review QA는 P2 retired alias 제거 계약과 139개 traced 기준을 고정한다', () => {
   const packageSource = readProjectFile('package.json');
   const evidenceSource = readProjectFile('scripts/daejeon-seatmap-ops.mjs');
   const manifestSource = readProjectFile('scripts/daejeon-seatmap-ops.mjs');
@@ -2156,7 +2164,7 @@ test('대전 trace review QA는 P2 retired alias 제거 계약과 145개 traced 
     'utf8',
   );
 
-  assert.ok(packageSource.includes('"stadium:daejeon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs daejeon trace-manifest"'));
+  assert.ok(packageSource.includes('"stadium:daejeon:trace-manifest": "node scripts/qa-presets.mjs stadium daejeon trace-manifest"'));
   assert.equal(packageSource.includes('"stadium:daejeon:evidence"'), false);
   assert.equal(packageSource.includes('"stadium:daejeon:anchor-crops"'), false);
   assert.equal(packageSource.includes('"qa:stadium:daejeon:trace-review"'), false);
@@ -2169,10 +2177,10 @@ test('대전 trace review QA는 P2 retired alias 제거 계약과 145개 traced 
   assert.ok(anchorCropSource.includes('daejeon-anchor-review-crops.json'));
   assert.ok(anchorCropSource.includes('special-accessible-outfield-third'));
   assert.ok(auditSource.includes('verifyDaejeonRetiredP2BlocksRemoved'));
-  assert.ok(auditSource.includes('Daejeon official-traced label coordinate click target count should be 145'));
+  assert.ok(auditSource.includes('Daejeon official-traced label coordinate click target count should be 139'));
   assert.ok(auditSource.includes('outfield-reserved-third-423-330__424'));
   assert.ok(auditSource.includes('Daejeon image/path transform layer contract failed at ${label}'));
-  assert.ok(auditSource.includes("assertDaejeonTransformLayerContract(1.34, 'manual-zoom-1.35')"));
+  assert.ok(auditSource.includes("assertDaejeonTransformLayerContract(2.49, 'manual-zoom-2.5')"));
   assert.ok(auditSource.includes('Daejeon visible highlight path should use imageGeometry.d'));
   assert.ok(auditSource.includes("selectPoint: { x: 143, y: 663 }"));
   assert.ok(auditSource.includes("selectPoint: { x: 109, y: 589 }"));
@@ -2218,8 +2226,8 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
 
   [
     '공식 이미지 좌표계: `920x1060`',
-    '`DAEJEON_BLOCKS.length === 145`',
-    '`officialImageTraced=145`',
+    '`DAEJEON_BLOCKS.length === 139`',
+    '`officialImageTraced=139`',
     '`needsOperatorReview=0`',
     '`DAEJEON_TRACE_REVIEW_QUEUE.length === 0`',
     '`labelTopHitFailures=0`',
@@ -2294,17 +2302,17 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
   });
 
   [
-    '"qa:stadium:daejeon:mobile": "node scripts/stadium-seatmap-ops.mjs daejeon mobile"',
-    '"stadium:daejeon:status": "node scripts/stadium-seatmap-ops.mjs daejeon status"',
-    '"stadium:daejeon:pixel-components": "node scripts/stadium-seatmap-ops.mjs daejeon pixel-components"',
-    '"stadium:daejeon:trace-manifest": "node scripts/stadium-seatmap-ops.mjs daejeon trace-manifest"',
-    '"qa:stadium:daejeon:release-lock": "node scripts/stadium-seatmap-ops.mjs daejeon release-lock"',
-    '"stadium:daejeon:operator-handoff": "node scripts/stadium-seatmap-ops.mjs daejeon operator-handoff"',
-    '"stadium:daejeon:operator-approval": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval"',
-    '"stadium:daejeon:operator-approval:status": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:status"',
-    '"stadium:daejeon:operator-approval:approve": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:approve"',
-    '"stadium:daejeon:operator-approval:verify": "node scripts/stadium-seatmap-ops.mjs daejeon operator-approval:verify"',
-    '"qa:stadium:daejeon:release-approved": "node scripts/stadium-seatmap-ops.mjs daejeon release-approved"',
+    '"qa:stadium:daejeon:mobile": "node scripts/qa-presets.mjs stadium daejeon mobile"',
+    '"stadium:daejeon:status": "node scripts/qa-presets.mjs stadium daejeon status"',
+    '"stadium:daejeon:pixel-components": "node scripts/qa-presets.mjs stadium daejeon pixel-components"',
+    '"stadium:daejeon:trace-manifest": "node scripts/qa-presets.mjs stadium daejeon trace-manifest"',
+    '"qa:stadium:daejeon:release-lock": "node scripts/qa-presets.mjs stadium daejeon release-lock"',
+    '"stadium:daejeon:operator-handoff": "node scripts/qa-presets.mjs stadium daejeon operator-handoff"',
+    '"stadium:daejeon:operator-approval": "node scripts/qa-presets.mjs stadium daejeon operator-approval"',
+    '"stadium:daejeon:operator-approval:status": "node scripts/qa-presets.mjs stadium daejeon operator-approval:status"',
+    '"stadium:daejeon:operator-approval:approve": "node scripts/qa-presets.mjs stadium daejeon operator-approval:approve"',
+    '"stadium:daejeon:operator-approval:verify": "node scripts/qa-presets.mjs stadium daejeon operator-approval:verify"',
+    '"qa:stadium:daejeon:release-approved": "node scripts/qa-presets.mjs stadium daejeon release-approved"',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `package script should include ${requiredText}`);
   });
@@ -2326,8 +2334,8 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
   });
 
   [
-    'EXPECTED_BLOCKS = 145',
-    'EXPECTED_TRACED = 145',
+    'EXPECTED_BLOCKS = 139',
+    'EXPECTED_TRACED = 139',
     'EXPECTED_REVIEW = 0',
     'EXPECTED_P2_ALIASES = 11',
     'EXPECTED_ANCHOR_CROPS = 28',
@@ -2393,7 +2401,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
     "'src/data/daejeonAnchorVisualBaseline.json'",
     "'src/data/daejeonGeometryBaseline.json'",
     "'src/components/stadium/daejeon'",
-    "'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.png'",
+    "'src/assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp'",
     "'docs/daejeon-seatmap-release-lock.md'",
     "relativePath.startsWith('scripts/')",
     "path.basename(relativePath).startsWith('daejeon-')",
@@ -2539,7 +2547,7 @@ test('대전 좌석도 release lock 문서는 최종 검수 계약을 고정한�
   [
     '"contract": "DAEJEON_GEOMETRY_BASELINE_V1"',
     '"coordinateChangeImpactContract": "DAEJEON_COORDINATE_CHANGE_IMPACT_V1"',
-    '"expectedBlockCount": 145',
+    '"expectedBlockCount": 139',
     '"id": "first-infield-b-101-108__104"',
     '"fingerprint"',
     '"imageGeometry"',
@@ -2778,21 +2786,23 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
 
   [
     '"qa:stadium:gwangju:mobile"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju mobile',
+    'node scripts/qa-presets.mjs stadium gwangju mobile',
+    '"qa:stadium:gwangju:full"',
+    'node scripts/qa-presets.mjs stadium gwangju full',
     '"stadium:gwangju:status"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju status',
+    'node scripts/qa-presets.mjs stadium gwangju status',
     '"stadium:gwangju:pixel-components"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju pixel-components',
+    'node scripts/qa-presets.mjs stadium gwangju pixel-components',
     '"stadium:gwangju:trace-manifest"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju trace-manifest',
+    'node scripts/qa-presets.mjs stadium gwangju trace-manifest',
     '"stadium:gwangju:operator-handoff"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju operator-handoff',
+    'node scripts/qa-presets.mjs stadium gwangju operator-handoff',
     '"stadium:gwangju:operator-status"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju operator-status',
+    'node scripts/qa-presets.mjs stadium gwangju operator-status',
     '"qa:stadium:gwangju:release-gate"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-gate',
+    'node scripts/qa-presets.mjs stadium gwangju release-gate',
     '"qa:stadium:gwangju:release-verify"',
-    'node scripts/stadium-seatmap-ops.mjs gwangju release-verify',
+    'node scripts/qa-presets.mjs stadium gwangju release-verify',
   ].forEach((requiredText) => {
     assert.ok(packageSource.includes(requiredText), `Gwangju public package script should include ${requiredText}`);
   });
@@ -2801,6 +2811,8 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
     "'image-alignment-audit': [",
     "'image-alignment-audit:require-release': [",
     "'block-source-duplication-audit': [",
+    "full: [",
+    "args: ['scripts/run-stadium-isolated-qa.mjs', 'GWANGJU:FULL']",
     "'trace-review': [",
     "'runtime-layer': [",
     "'release-package': [",
@@ -2895,7 +2907,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(runnerSource.includes("mode === 'evidence'"));
   assert.ok(pixelComponentSource.includes('gwangju-seatmap-pixel-components.json'));
   assert.ok(imageTraceCandidateSource.includes('GWANGJU_IMAGE_TRACE_CANDIDATES_V1'));
-  assert.ok(imageTraceCandidateSource.includes('official PNG 2200x1159 only'));
+  assert.ok(imageTraceCandidateSource.includes('official image 2200x1159 only'));
   assert.ok(imageTraceCandidateSource.includes('doesNotModifyDataFile'));
   assert.ok(imageTraceCandidateSource.includes('GWANGJU_SEATMAP_IMAGE'));
   assert.ok(imageTraceCandidateSource.includes('GWANGJU_BLOCKS'));
@@ -2937,7 +2949,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(lowMarginCandidateSource.includes('COMPONENT_IOU_REVIEW_TARGET'));
   assert.ok(lowMarginCandidateSource.includes('P1_P2_BOUNDARY_WATCH'));
   assert.ok(lowMarginCandidateSource.includes('doesNotModifyDataFile'));
-  assert.ok(lowMarginCandidateSource.includes('official PNG 2200x1159 only'));
+  assert.ok(lowMarginCandidateSource.includes('official image 2200x1159 only'));
   assert.ok(manifestSource.includes('GWANGJU_OFFICIAL_TRACE_REFERENCE'));
   assert.ok(manifestSource.includes('GWANGJU_TRACE_REVIEW_SUMMARY'));
   assert.ok(manifestSource.includes('GWANGJU_DERIVED_OPERATOR_BLOCK_RANGES'));
@@ -2981,7 +2993,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorTemplateSource.includes('GWANGJU_OPERATOR_POLYGON_TEMPLATE_V1'));
   assert.ok(operatorTemplateSource.includes('preservedOperatorInputSections'));
   assert.ok(operatorTemplateSource.includes('Regenerating this template preserves operatorInput values by section id.'));
-  assert.ok(operatorTemplateSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorTemplateSource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorTemplateSource.includes('browser CSS pixels'));
   assert.ok(operatorTemplateSource.includes('external crawling'));
   assert.ok(operatorTemplateSource.includes('operatorInput'));
@@ -3019,7 +3031,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorHandoffSource.includes('gwangju-seatmap-trace-review-overlay.png'));
   assert.ok(operatorHandoffSource.includes('gwangju-seatmap-trace-review-clean-crops'));
   assert.ok(operatorHandoffSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(operatorHandoffSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorHandoffSource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorHandoffSource.includes('npm run stadium:gwangju:operator-status'));
   assert.ok(operatorHandoffSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju operator-write-smoke'));
   assert.ok(operatorHandoffSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju operator-write-guard:require-ready'));
@@ -3048,7 +3060,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorStatusSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju operator-apply:write'));
   assert.ok(operatorStatusSource.includes('node scripts/stadium-seatmap-ops.mjs gwangju operator-postwrite-gate'));
   assert.ok(operatorStatusSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(operatorStatusSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorStatusSource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorStatusSource.includes('browser CSS pixels'));
   assert.ok(operatorStatusSource.includes('resized screenshots'));
   assert.ok(operatorStatusSource.includes('external crawling'));
@@ -3068,7 +3080,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releasePackageSource.includes('OPERATOR_STATUS_NOT_READY'));
   assert.ok(releasePackageSource.includes('BROWSER_QA_STATUS_NOT_PASSED'));
   assert.ok(releasePackageSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(releasePackageSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(releasePackageSource.includes('operator-provided official image coordinates only'));
   assert.ok(releasePackageSource.includes('browser CSS pixels'));
   assert.ok(releasePackageSource.includes('web-search-based baseball data'));
   assert.ok(releasePackageSource.includes('officialDerivedAggregateReady'));
@@ -3103,7 +3115,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseGateSource.includes('RUNTIME_LAYER_AUDIT_NOT_PASSED'));
   assert.ok(releaseGateSource.includes('RUNTIME_LAYER_PATH_MISMATCHES_PRESENT'));
   assert.ok(releaseGateSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(releaseGateSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(releaseGateSource.includes('operator-provided official image coordinates only'));
   assert.ok(releaseGateSource.includes('web-search-based baseball data'));
   assert.ok(releaseGateSource.includes('officialDerivedAggregateReady'));
   assert.ok(releaseAuditSource.includes('gwangju-seatmap-release-scope-guard.json'));
@@ -3238,7 +3250,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(releaseScopeGuardSource.includes('suwon-files'));
   assert.ok(releaseScopeGuardSource.includes('cross-stadium-utilities'));
   assert.ok(releaseScopeGuardSource.includes('src/components/AppRoutes.tsx'));
-  assert.ok(releaseScopeGuardSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(releaseScopeGuardSource.includes('operator-provided official image coordinates only'));
   assert.ok(releaseScopeGuardSource.includes('browser CSS pixels'));
   assert.ok(releaseScopeGuardSource.includes('web-search-based baseball data'));
   assert.ok(releaseScopeGuardSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
@@ -3278,7 +3290,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(prStagingPlanSource.includes('stagingPlan.separateDirtyWorkFileCount=${separateDirtyWorkFileCount}'));
   assert.ok(prStagingPlanSource.includes('stagingPlan.classifiedSeparateDirtyWorkExpansionAllowed=${classifiedSeparateDirtyWorkExpansionAllowed}'));
   assert.ok(prStagingPlanSource.includes('git add .'));
-  assert.ok(prStagingPlanSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(prStagingPlanSource.includes('operator-provided official image coordinates only'));
   assert.ok(prStagingPlanSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
   assert.ok(targetedStagingSource.includes('GWANGJU_TARGETED_STAGING_V1'));
   assert.ok(targetedStagingSource.includes('gwangju-seatmap-targeted-staging.json'));
@@ -3338,7 +3350,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorApplySource.includes('gwangju-seatmap-operator-apply.csv'));
   assert.ok(operatorApplySource.includes('gwangju-seatmap-operator-apply.md'));
   assert.ok(operatorApplySource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(operatorApplySource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorApplySource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorWriteSmokeSource.includes('GWANGJU_OPERATOR_WRITE_SMOKE_V1'));
   assert.ok(operatorWriteSmokeSource.includes('gwangju-seatmap-operator-write-smoke.json'));
   assert.ok(operatorWriteSmokeSource.includes('nonProductionSyntheticInput'));
@@ -3354,7 +3366,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorWriteSmokeSource.includes('applyWroteTempFile'));
   assert.ok(operatorWriteSmokeSource.includes('gwangjuSeatData.smoke.ts'));
   assert.ok(operatorWriteSmokeSource.includes('scripts/gwangju-seatmap-operator-intake-write-ops.mjs'));
-  assert.ok(operatorWriteSmokeSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorWriteSmokeSource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorWriteSmokeSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
   assert.ok(operatorWriteSmokeSource.includes('browser CSS pixels'));
   assert.ok(operatorWriteSmokeSource.includes('web-search-based baseball data'));
@@ -3372,9 +3384,9 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
   assert.ok(operatorWriteGuardSource.includes('WRITE_SMOKE_APPLY_DID_NOT_WRITE_TEMP_FILE'));
   assert.ok(operatorWriteGuardSource.includes('WRITE_SMOKE_APPLY_NOT_READY'));
   assert.ok(operatorWriteGuardSource.includes('MANUAL_BASEBALL_DATA_REQUIRED'));
-  assert.ok(operatorRunbookSource.includes('gwangju-kia-seatmap-official-2026.png'));
+  assert.ok(operatorRunbookSource.includes('gwangju-kia-seatmap-official-2026.webp'));
   assert.ok(operatorRunbookSource.includes('2200x1159'));
-  assert.ok(operatorRunbookSource.includes('operator-provided official PNG coordinates only'));
+  assert.ok(operatorRunbookSource.includes('operator-provided official image coordinates only'));
   assert.ok(operatorRunbookSource.includes('browser CSS pixels'));
   assert.ok(operatorRunbookSource.includes('resized screenshots'));
   assert.ok(operatorRunbookSource.includes('external crawling'));
@@ -3419,7 +3431,7 @@ test('광주 trace review 스크립트는 M/N 마커 비선택 클릭 검사를 
     '`K7석`, `원정응원석` aggregate hit-areas use `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE`.',
     '`SPECIAL_BLOCKS` includes K7/AWAY aggregate block definitions.',
     '`GWANGJU_IMAGE_GEOMETRY_DRAFTS` includes `home-k7-seats` and `away-cheering-seats` geometry generated from official traced source blocks.',
-    'operator-provided official PNG coordinates only',
+    'operator-provided official image coordinates only',
     'browser CSS pixels',
     'resized screenshots',
     'external crawling',
@@ -3481,7 +3493,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
   );
 
   [
-    'gwangju-kia-seatmap-official-2026.png',
+    'gwangju-kia-seatmap-official-2026.webp',
     '공식 이미지 좌표계: `2200x1159`',
     '`GWANGJU_SEATMAP_IMAGE`',
     '`GWANGJU_IMAGE_GEOMETRY_DRAFTS`',
@@ -3530,12 +3542,12 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '현재 release 기준은 active 113개이다.',
     '`home-k7-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
     '`away-cheering-seats`: `READY`, `OFFICIAL_IMAGE_TRACED`, `PIXEL_ALIGNED`, `manualReviewed: true`',
-    'K7/AWAY aggregate hit-area는 공식 PNG `2200x1159` 기준 검수 완료 번호 블럭 subpath만 합성한다.',
+    'K7/AWAY aggregate hit-area는 공식 이미지 `2200x1159` 기준 검수 완료 번호 블럭 subpath만 합성한다.',
     'active block 기준은 `111`에서 `113`으로 전환되어 있다.',
     'O/P 외야 계열은 기존 `pixelCoverageRatio`만으로는 작은 polygon이 공식 색상 영역 내부에 있을 때 통과할 수 있으므로',
     '최소 공식 component recall: `0.78`',
     '최소 component IoU: `0.62`',
-    '`outfield-right-seats`는 공식 PNG component `outfield-3` bounds `1184,341,1333,838` 기준으로 하단까지 포함해야 한다.',
+    '`outfield-right-seats`는 공식 이미지 component `outfield-3` bounds `1184,341,1333,838` 기준으로 하단까지 포함해야 한다.',
     '런타임 SVG는 `GWANGJU_BLOCKS.map`과 `d={block.imageGeometry.d}`만 일반 좌석 `<path>` source로 사용한다.',
     '`GWANGJU_NON_SELECTABLE_MARKER_ZONES`는 좌석 `<path>`가 아니라 차단용 marker layer이며 block detail 선택 대상이 아니다.',
     '`reports/stadium/gwangju-seatmap-trace-review.md`',
@@ -3556,7 +3568,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'Staged scope audit: `reports/stadium/gwangju-seatmap-staged-scope-audit.md`',
     'Staged scope audit JSON: `reports/stadium/gwangju-seatmap-staged-scope-audit.json`',
     '`../output/playwright/stadium-ux-gwangju-validate/stadium-mobile-smoke-summary.md`',
-    '`operator-provided official PNG coordinates only`',
+    '`operator-provided official image coordinates only`',
     'browser CSS pixels',
     'resized screenshots',
     'external crawling',
@@ -3733,7 +3745,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     '선택된 파생 필터는 `displayBlocks` 요약을 표시한다',
     '현재 production data는 이 공식 번호 블럭 polygon을 multi-subpath aggregate로 묶어 `home-k7-seats`, `away-cheering-seats` filter 전용 hit-area를 제공하므로 active block 수는 `113`이다.',
     '현재 최종 trace 기준은 기본 111개 + 공식 derived aggregate 2개, 총 active 113개이다.',
-    '공식 PNG 검수 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다.',
+    '공식 이미지 검수 번호 블럭 polygon을 합성한 `OFFICIAL_DERIVED_MULTI_BLOCK_TRACE` 상태다.',
     '`OPERATOR_SECTION_OFFICIAL_BLOCK_OVERLAP`',
     'non-overlap 구역만 별도 operator target',
     'node scripts/stadium-seatmap-ops.mjs gwangju release-package',
@@ -3744,7 +3756,7 @@ test('광주 좌석도 release lock 문서는 K7/AWAY block-range 검수 계약�
     'gwangju-browser-coordinate-audit',
     'gwangju-browser-101-108-h-i-j-browser-coordinate-crop',
     'data file을 수정하지 않는다',
-    'operator-provided official PNG coordinates only',
+    'operator-provided official image coordinates only',
     'MANUAL_BASEBALL_DATA_REQUIRED',
   ].forEach((requiredText) => {
     assert.ok(runbookSource.includes(requiredText), `Gwangju runbook should include ${requiredText}`);

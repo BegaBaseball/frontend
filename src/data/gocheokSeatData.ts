@@ -174,7 +174,7 @@ export const GOCHEOK_SEATMAP_IMAGE: GocheokSeatMapImage = {
   imagePath: 'src/assets/stadiums/kiwoom/gocheok-kiwoom-seatmap-official-2026.webp',
   imageWidth: 653,
   imageHeight: 960,
-  imageSha256: 'c3e44086682b21f23179cf438fab4f6bd9bcc9b92152bb572f0887b5f122f528',
+  imageSha256: 'ea95249b6f121e65b13435616768e2de433090be734de5d86c1effa40cfd64bd',
   sourceLabel: '서울시설공단 공식 고척스카이돔 좌석배치도',
   sourceUrl: GOCHEOK_SISUL_SEATMAP_URL,
   assetStatus: 'OFFICIAL',
@@ -189,7 +189,7 @@ export const GOCHEOK_GEOMETRY_MANUAL_TODO_BLOCKS: string[] = [];
 export const GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT: GocheokOperatorFacilityDataRequirement = {
   status: 'MANUAL_BASEBALL_DATA_REQUIRED',
   scope: 'BLOCK_VISIT_GUIDANCE',
-  pendingLabel: '정확한 블록별 출입 정보, 편의시설 세부 위치, 당일 운영 안내는 운영자 제공 자료 수신 후 표시합니다.',
+  pendingLabel: '정확한 블록별 출입 정보, 편의시설 세부 위치, 당일 운영 안내는 운영자 제공 자료 수신 후 표시합니다. · MANUAL_BASEBALL_DATA_REQUIRED',
   requiredFields: [
     '블록별 권장 출입 정보',
     '편의시설 세부 위치',
@@ -781,6 +781,6 @@ export function getGocheokVisitHint(block: GocheokBlock): GocheokVisitHint {
     finalCheckLabel: '현장 최종 안내 확인',
     operatorDataStatus: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status,
     operatorDataPendingLabel: GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel,
-    operatorDataRequiredLabel: `${GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}: 운영자 제공 자료 필요`,
+    operatorDataRequiredLabel: `운영자 제공 자료 필요 · ${GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.status}`,
   };
 }

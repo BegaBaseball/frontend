@@ -31,7 +31,7 @@ interface PlainDialogProps {
   description?: ReactNode;
   ariaLabel?: string;
   contentTestId?: string;
-  placement?: 'center' | 'bottom';
+  placement?: 'center' | 'bottom' | 'right';
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -88,12 +88,17 @@ export default function PlainDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-[80]">
+      {placement === 'right' ? (
+        <style>{'@keyframes plainDialogSlideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}'}</style>
+      ) : null}
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={onClose} />
       <div
         className={
           placement === 'bottom'
             ? 'absolute inset-0 flex items-end justify-center'
-            : 'absolute inset-0 flex items-center justify-center p-4'
+            : placement === 'right'
+              ? 'absolute inset-0 flex items-stretch justify-end'
+              : 'absolute inset-0 flex items-center justify-center p-4'
         }
         onClick={onClose}
       >
@@ -108,7 +113,9 @@ export default function PlainDialog({
           data-testid={contentTestId}
           onClick={(event) => event.stopPropagation()}
           className={joinClassNames(
-            'w-full rounded-xl border bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card',
+            placement === 'right'
+              ? 'flex h-full w-full max-w-[640px] flex-col overflow-y-auto border-l bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 motion-safe:animate-[plainDialogSlideInRight_0.22s_ease-out] dark:border-border dark:bg-card'
+              : 'w-full rounded-xl border bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card',
             className,
           )}
         >
@@ -121,7 +128,7 @@ export default function PlainDialog({
                   </h2>
                 ) : null}
                 {description ? (
-                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-gray-300">
+                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-white">
                     {description}
                   </p>
                 ) : null}
@@ -138,7 +145,7 @@ export default function PlainDialog({
               )}
             </div>
           )}
-          <div className={joinClassNames('p-5', bodyClassName)}>
+          <div className={joinClassNames(placement === 'right' ? 'flex-1 min-h-0' : 'p-5', bodyClassName)}>
             {children}
           </div>
           {footer ? (

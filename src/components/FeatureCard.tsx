@@ -74,6 +74,10 @@ export default function FeatureCard({
           <img
             src={imageSource}
             alt={feature.title}
+            width={390}
+            height={844}
+            loading="lazy"
+            decoding="async"
             className="landing-feature-mobile-image mb-3 h-auto w-full rounded-lg border border-white/10 bg-gray-100 object-contain lg:hidden"
             onError={(event) => {
               const target = event.currentTarget;

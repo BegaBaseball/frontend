@@ -147,7 +147,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                 ))}
               </div>
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-[11px] text-slate-500 leading-relaxed">
-                💡 <strong className="text-slate-700 dark:text-slate-300">좋은 시야 사진은?</strong><br/>
+                💡 <strong className="text-slate-700 dark:text-white">좋은 시야 사진은?</strong><br/>
                 · 그라운드 전체가 보이도록 가로 촬영<br/>
                 · 좌석 등받이/옆자리 정도가 함께 나오면 거리감 전달
               </div>
@@ -192,7 +192,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                     );
                   })}
                 </div>
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                <p className="text-sm font-bold text-slate-600 dark:text-white">
                   {ratingLabels[data.rating] || '별점을 남겨주세요'}
                 </p>
               </div>
@@ -216,14 +216,14 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                   placeholder="이 자리의 장단점이나 팁을 공유해주세요"
                   maxLength={140}
                   rows={4}
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 resize-none focus:outline-none focus:ring-2"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-white resize-none focus:outline-none focus:ring-2"
                   style={{ fontFamily: 'inherit' }}
                 />
                 <div className="text-right text-[10px] text-slate-400 mt-1">{data.comment.length}/140</div>
               </Field>
               <div className="p-3.5 rounded-xl text-xs leading-relaxed" style={{ background: accent + '11', border: `1px solid ${accent}44` }}>
                 <div className="font-bold mb-1.5" style={{ color: accent }}>제출 미리보기</div>
-                <div className="text-slate-600 dark:text-slate-300">
+                <div className="text-slate-600 dark:text-white">
                   📍 블록 {section.block} · {data.row || '-'} · {data.seat || '-'}<br/>
                   ⭐ {data.rating}/5<br/>
                   🏷️ {data.tags.length > 0 ? data.tags.join(', ') : '태그 없음'}<br/>
@@ -238,7 +238,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
           {step > 1 && (
             <button onClick={() => setStep(s => s - 1)}
-              className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border-0 text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+              className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border-0 text-sm font-bold text-slate-700 dark:text-white cursor-pointer">
               ← 이전
             </button>
           )}

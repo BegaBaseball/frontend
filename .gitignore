@@ -34,3 +34,4 @@ yarn-error.log*
 !.dev.vars.example
 /reports
 /.claude
+/.playwright-cli

@@ -30,8 +30,8 @@ jobs:
         run: |
           read_env_file_value() {
             local var_name="$1"
-            if [[ -f ".env.production" ]]; then
-              grep -E "^${var_name}=" ".env.production" | tail -n 1 | cut -d= -f2- || true
+            if [[ -f ".env.prod.local" ]]; then
+              grep -E "^${var_name}=" ".env.prod.local" | tail -n 1 | cut -d= -f2- || true
             fi
           }
 

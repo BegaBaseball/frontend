@@ -401,9 +401,21 @@ VITE_SITE_URL=https://www.begabaseball.xyz
 | `VITE_PROXY_TARGET` | 로컬 `npm run dev`에서 `/api` 프록시가 바라볼 백엔드 origin | 로컬 권장 |
 | `VITE_KAKAO_MAP_KEY` | 카카오 지도 JavaScript 키 | ✅ |
 | `VITE_SITE_URL` | canonical/sitemap 기준 URL | ✅ |
+| `VITE_MATE_REQUIRE_SOCIAL_VERIFICATION` | mate 진입 시 소셜 인증 정책 토글 | ✅ |
 | `VITE_GA4_MEASUREMENT_ID` | GA4 측정 ID | 운영 릴리즈 필수 |
 | `VITE_GOOGLE_SITE_VERIFICATION` | Google Search Console 검증 메타 | 운영 릴리즈 필수 |
 | `VITE_NAVER_SITE_VERIFICATION` | 네이버 서치어드바이저 검증 메타 | 운영 릴리즈 필수 |
+
+운영 배포 시에는 `.env`/`.env.prod` 파일을 직접 source 하지 않고, 배포 실행기(`process.env`)에서 `VITE_*` 값을 주입해야 합니다.
+즉, `deploy:cloudflare`는 `VITE_*`를 배포기 환경 변수로 전달받을 때만 소유자 메타가 반영됩니다.
+
+### 운영 배포 Env 계약(최소 값)
+
+- 필수: `VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_MATE_REQUIRE_SOCIAL_VERIFICATION`
+- 권장: `VITE_GA4_MEASUREMENT_ID`, `VITE_GOOGLE_SITE_VERIFICATION`, `VITE_NAVER_SITE_VERIFICATION`
+- 기본 운영 값:
+  - `VITE_SITE_URL=https://www.begabaseball.xyz`
+  - `VITE_API_BASE_URL=https://api.begabaseball.xyz`
 
 ---
 
@@ -418,11 +430,13 @@ docker-compose up -d --build
 
 ### Cloudflare Worker 배포
 
-1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz VITE_API_BASE_URL=https://api.begabaseball.xyz npm run seo:env:check`
-2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
+1. 배포기 env 계약 점검(운영): `VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_MATE_REQUIRE_SOCIAL_VERIFICATION`, `VITE_GA4_MEASUREMENT_ID`, `VITE_GOOGLE_SITE_VERIFICATION`, `VITE_NAVER_SITE_VERIFICATION` 주입 확인
+2. 배포 실행 전 strict + SEO 게이트 실행: `npm run deploy:cloudflare`
+   (`npm run seo:env:check:strict` → `npm run seo:gate` → `wrangler deploy` 순)
 3. Cloudflare 로컬 확인: `npm run preview:cloudflare`
 4. 운영 배포: `CLOUDFLARE_API_TOKEN=... npm run deploy:cloudflare`
-5. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `*.pages.dev`가 `404`로 차단되는지, `/api/*`가 SPA로 떨어지지 않는지, `x-vercel-*` 응답 헤더가 사라졌는지, OAuth2 스모크가 통과하는지 확인
+5. 배포 후 1차 검증: `npm run seo:smoke:prod -- --base-url https://www.begabaseball.xyz --expected-site-url https://www.begabaseball.xyz`
+6. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `*.pages.dev`가 `404`로 차단되는지, `/api/*`가 SPA로 떨어지지 않는지, `x-vercel-*` 응답 헤더가 사라졌는지, OAuth2 스모크가 통과하는지 확인
 
 핵심 구성:
 
@@ -431,12 +445,12 @@ docker-compose up -d --build
 
 ### 수동 배포
 
-1. 기본 env 점검: `VITE_SITE_URL=https://www.begabaseball.xyz VITE_API_BASE_URL=https://api.begabaseball.xyz npm run seo:env:check`
-2. 릴리즈 직전 strict 점검: `VITE_SITE_URL=... VITE_API_BASE_URL=... VITE_GA4_MEASUREMENT_ID=... VITE_GOOGLE_SITE_VERIFICATION=... VITE_NAVER_SITE_VERIFICATION=... npm run seo:env:check:strict`
-3. 최종 배포 artifact 생성: `npm run build`
-4. SEO 감사까지 포함한 게이트: `npm run seo:gate`
-5. Cloudflare를 사용하지 않는 예외 경로에서만 최종 `dist/` 산출물을 별도 호스팅/CDN에 배포
-6. 정적 파일 우선 서빙 후 SPA fallback이 동작하도록 라우팅 설정 (`robots.txt`, `sitemap.xml`, prerendered route HTML 보존)
+1. 운영 env 계약 점검(배포기 or CI 런타임 주입): `VITE_*` 값이 기본 배포값으로 주입되어 있는지 확인
+2. 릴리즈 직전 strict 점검: `npm run seo:env:check:strict`
+3. 빌드 + SEO 게이트: `npm run seo:gate`
+4. Cloudflare를 사용하지 않는 예외 경로에서만 최종 `dist/` 산출물을 별도 호스팅/CDN에 배포
+5. 정적 파일 우선 서빙 후 SPA fallback이 동작하도록 라우팅 설정 (`robots.txt`, `sitemap.xml`, prerendered route HTML 보존)
+6. 배포 후 1차 검증: `npm run seo:smoke:prod -- --base-url https://www.begabaseball.xyz --expected-site-url https://www.begabaseball.xyz`
 7. SEO 점검 및 문제 해결 가이드: `/Users/mac/project/KBO_platform/task/operations/seo-checklist.md` 참조
 
 ### Nginx 설정 예시

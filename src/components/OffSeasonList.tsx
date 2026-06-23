@@ -226,13 +226,13 @@ export default function OffSeasonList() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f4f7f5] pb-24 transition-colors dark:bg-[#09090b]">
+        <div className="min-h-screen bg-[#f4f7f5] pb-24 transition-colors dark:bg-[#000000]">
             <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 md:gap-8 md:py-10">
                     <div className="flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => navigate('/offseason')}
-                      className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-zinc-400 dark:hover:text-emerald-400"
+                      className="group inline-flex items-center gap-2.5 text-zinc-500 transition-colors hover:text-primary dark:text-white dark:hover:text-emerald-400"
                     >
                         <div className="rounded-2xl border border-zinc-200 bg-white p-2.5 shadow-sm transition-all group-hover:-translate-x-1 group-hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
                             <ChevronLeftIcon className="h-5 w-5" />
@@ -331,7 +331,7 @@ export default function OffSeasonList() {
                                         onClick={() => setSortOrder(option.value)}
                                         className={`rounded-2xl px-3 py-3 text-[15px] font-bold transition-colors ${sortOrder === option.value
                                             ? 'bg-primary text-white shadow-sm'
-                                            : 'border border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                            : 'border border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white dark:hover:text-zinc-100'
                                             }`}
                                     >
                                         {option.label}
@@ -348,8 +348,8 @@ export default function OffSeasonList() {
                                         type="button"
                                         onClick={() => setSelectedSection(option.value)}
                                         className={`rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${selectedSection === option.value
-                                            ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                                            : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                            ? 'bg-zinc-900 text-white dark:bg-white dark:text-white'
+                                            : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                             }`}
                                     >
                                         {option.label}
@@ -363,7 +363,7 @@ export default function OffSeasonList() {
                                     onClick={() => setBigOnly((prev) => !prev)}
                                     className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${bigOnly
                                         ? 'bg-yellow-400 text-[#1a3c34]'
-                                        : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+                                        : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                         }`}
                                 >
                                     <TrendingUpIcon className="h-4 w-4" />
@@ -379,13 +379,13 @@ export default function OffSeasonList() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-white">
                                 전체 {movements.length}건 중 {filteredList.length}건 표시
                             </span>
                             {activeFilters.map((label) => (
                                 <OffseasonPill
                                     key={label}
-                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                                 >
                                     {label}
                                 </OffseasonPill>

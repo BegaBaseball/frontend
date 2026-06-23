@@ -443,7 +443,7 @@ test('사직 historical operator reference 스크립트는 public release 계약
 
   assert.deepEqual(publicOperatorReferenceAliases, []);
   assert.deepEqual(publicStageAliases, []);
-  assert.equal(packageScripts['qa:stadium:sajik:release-lock'], 'node scripts/stadium-seatmap-ops.mjs sajik release-lock');
+  assert.equal(packageScripts['qa:stadium:sajik:release-lock'], 'node scripts/qa-presets.mjs stadium sajik release-lock');
 });
 test('사직 좌석 카테고리는 공식 좌석도의 핵심 구역명을 보존한다', () => {
   SAJIK_REQUIRED_OFFICIAL_SECTIONS.forEach((label) => {

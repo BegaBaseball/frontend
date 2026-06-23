@@ -1,6 +1,10 @@
 /// <reference types="cypress" />
 
-import { installPredictionAuthenticatedSessionIntercept, visitPredictionPage } from '../support/predictionPage';
+import {
+    installPredictionAuthenticatedSessionIntercept,
+    installPredictionBootstrapIntercept,
+    visitPredictionPage,
+} from '../support/predictionPage';
 
 describe('Prediction Range Recovery', () => {
     const today = '2026-02-22';
@@ -35,14 +39,25 @@ describe('Prediction Range Recovery', () => {
         hasNext: Boolean(nextDateValue),
     });
 
-    const openPredictionPage = (onBeforeLoad?: (win: Window) => void) => {
+    const openPredictionPage = (options: {
+        path?: string;
+        onBeforeLoad?: (win: Window) => void;
+        waitForMatchDay?: boolean;
+    } = {}) => {
+        const {
+            path = '/prediction',
+            onBeforeLoad,
+            waitForMatchDay = true,
+        } = options;
         visitPredictionPage({
-            path: '/prediction',
+            path,
             token: 'prediction-range-recovery-token',
             onBeforeLoad,
         });
         cy.contains('전력분석실', { timeout: 20000 }).should('exist');
-        cy.wait('@getMatchDay');
+        if (waitForMatchDay) {
+            cy.wait('@getMatchDay');
+        }
     };
 
     const interceptPredictionCommon = () => {
@@ -141,6 +156,74 @@ describe('Prediction Range Recovery', () => {
         interceptPredictionCommon();
     });
 
+    it('selected-game-not-found bootstrap renders returned schedule without duplicate day/detail/status waterfall', () => {
+        const missingGameId = '20260222MISSING0';
+        let matchDayCallCount = 0;
+
+        cy.intercept('GET', '**/api/matches/day*', (req) => {
+            matchDayCallCount += 1;
+            req.reply({
+                statusCode: 200,
+                body: buildDayResponse(today, [
+                    {
+                        gameId: todayGameId,
+                        gameDate: today,
+                        homeTeam: 'HH',
+                        awayTeam: 'SS',
+                        stadium: '대전',
+                        homeScore: null,
+                        awayScore: null,
+                        winner: null,
+                    },
+                ], pastDate, futureDate),
+            });
+        }).as('getMatchDay');
+
+        installPredictionBootstrapIntercept({
+            alias: 'getPredictionBootstrapNotFound',
+            games: [
+                {
+                    gameId: todayGameId,
+                    gameDate: today,
+                    homeTeam: 'HH',
+                    awayTeam: 'SS',
+                    stadium: '대전',
+                    startTime: '18:30',
+                    homeScore: null,
+                    awayScore: null,
+                    winner: null,
+                },
+            ],
+            selectedGameId: missingGameId,
+            selectedGameFound: false,
+        });
+
+        openPredictionPage({
+            path: `/prediction?gameId=${missingGameId}&date=${today}`,
+            waitForMatchDay: false,
+        });
+        cy.wait('@getPredictionBootstrapNotFound');
+
+        cy.contains(`게임 ID(${missingGameId})`).should('be.visible');
+        cy.get(`[data-testid="prediction-schedule-match-row"][data-game-id="${todayGameId}"]`)
+            .should('have.attr', 'aria-label')
+            .and('contain', '삼성 라이온즈 대 한화 이글스');
+        cy.wrap(null).then(() => {
+            expect(matchDayCallCount).to.eq(0);
+        });
+        cy.get('@getGameDetailRecovery.all').then((interceptions: any) => {
+            const detailCalls = (interceptions as any[]).filter((interception) => {
+                const url = interception.request?.url || '';
+                return !url.includes('/api/matches/day')
+                    && !url.includes('/api/matches/range')
+                    && !url.includes('/api/matches/bounds');
+            });
+            expect(detailCalls).to.have.length(0);
+        });
+        cy.get('@getVoteStatusRecovery.all').should('have.length', 0);
+        cy.get('@getUserVote.all').should('have.length', 0);
+    });
+
     it('빈 현재 날짜에서는 자동 과거 이동 없이 중립 empty state를 유지한다', () => {
         cy.intercept('GET', '**/api/matches/day*', (req) => {
             const url = new URL(req.url);
@@ -237,7 +320,7 @@ describe('Prediction Range Recovery', () => {
 
         openPredictionPage();
         cy.get('@getUserVote.all').should('have.length', 0);
-        cy.get('button[aria-label="다음 날짜 보기"]').first().click({ force: true });
+        cy.get(`[data-testid="prediction-schedule-date-button"][data-date="${futureDate}"]`).click({ force: true });
         cy.contains(/예측 처리 중 오류가 발생했습니다.|미래 구간 조회|요청 실패|오류/, { timeout: 10000 }).should('exist');
         cy.contains('예측으로 돌아가기').should('exist');
         cy.contains(/예정 경기 다시 불러오기|다시 시도|닫기/).should('exist');
@@ -284,6 +367,8 @@ describe('Prediction Range Recovery', () => {
         });
         cy.get('@getUserVote.all').should('have.length', 0);
         cy.contains('전력분석실', { timeout: 10000 }).should('be.visible');
-        cy.contains('삼성 라이온즈 vs 한화 이글스').should('be.visible');
+        cy.get(`[data-testid="prediction-schedule-match-row"][data-game-id="${todayGameId}"]`)
+            .should('have.attr', 'aria-label')
+            .and('contain', '삼성 라이온즈 대 한화 이글스');
     });
 });

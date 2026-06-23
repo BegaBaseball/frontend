@@ -58,7 +58,7 @@ const applyTheme = (attribute: string, resolvedTheme: ResolvedTheme) => {
   }
 
   const root = document.documentElement;
-  const backgroundColor = resolvedTheme === 'dark' ? '#020617' : '#ffffff';
+  const backgroundColor = resolvedTheme === 'dark' ? '#000000' : '#ffffff';
 
   if (attribute === 'class') {
     root.classList.remove('light', 'dark');
@@ -68,10 +68,12 @@ const applyTheme = (attribute: string, resolvedTheme: ResolvedTheme) => {
   }
 
   root.style.colorScheme = resolvedTheme;
-  root.style.backgroundColor = resolvedTheme === 'dark' ? '#020617' : '';
+  root.style.backgroundColor = resolvedTheme === 'dark' ? '#000000' : '';
+  root.style.color = resolvedTheme === 'dark' ? '#ffffff' : '';
 
   if (document.body) {
     document.body.style.backgroundColor = backgroundColor;
+    document.body.style.color = resolvedTheme === 'dark' ? '#ffffff' : '';
   }
 
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');

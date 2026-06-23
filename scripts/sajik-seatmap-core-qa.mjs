@@ -332,7 +332,7 @@ const runPixelComponents = async () => {
     if (!seed) {
       return {
         status: 'NO_SEED_COLOR',
-        reason: 'No official PNG color seed was found around the block label.',
+        reason: 'No official image color seed was found around the block label.',
       };
     }
 
@@ -379,7 +379,7 @@ const runPixelComponents = async () => {
         status: 'NO_COMPONENT',
         seedColor: seed.color,
         seedPoint: seed.point,
-        reason: 'No connected official PNG color component matched the seed color.',
+        reason: 'No connected official image color component matched the seed color.',
       };
     }
 
@@ -791,9 +791,9 @@ const runTraceManifest = async () => {
     `- pixel aligned: ${summary.pixelAligned}`,
     `- manual review required: ${summary.manualReviewRequired}`,
     `- map selectable: ${summary.mapSelectable}`,
-    `- alias-only official PNG block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
+    `- alias-only official image block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
     `- alignment locked verified: ${summary.alignmentLockedVerified}`,
-    `- official PNG block not visible: ${summary.officialPngBlockNotVisible}`,
+    `- official image block not visible: ${summary.officialPngBlockNotVisible}`,
     `- alignment failures: ${summary.alignmentFailures}`,
     `- alignment thresholds: component>=${SAJIK_ALIGNMENT_MIN_COMPONENT_INSIDE_RATIO}, coverage>=${SAJIK_ALIGNMENT_MIN_PATH_COLOR_COVERAGE_RATIO}, thinOutside<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DILATED_RATIO}, thinMaxDistance<=${SAJIK_THIN_ALIGNMENT_MAX_OUTSIDE_DISTANCE_PX}`,
     `- needs operator review: ${summary.needsOperatorReview || '-'}`,
@@ -807,10 +807,10 @@ const runTraceManifest = async () => {
     '',
     '## 사용 방법',
     '',
-    '1. `npm run stadium:sajik:alignment-audit`를 실행해 공식 PNG 픽셀 정합을 먼저 검증합니다.',
+    '1. `npm run stadium:sajik:alignment-audit`를 실행해 공식 이미지 픽셀 정합을 먼저 검증합니다.',
     '2. `/stadium?sajikDebug=1`에서 P0 -> P1 -> P2 순서로 공식 이미지와 overlay를 비교합니다.',
-    '3. 모든 블럭은 `PATH_TRACED_FROM_OFFICIAL_IMAGE`, `OFFICIAL_PNG_MANUAL_POLYGON`, `manual-polygon-v2`, `manualReviewed=true` 상태여야 하며, 공식 PNG 색상 블럭이 확인되는 블럭은 `PIXEL_ALIGNED` 상태여야 합니다.',
-    '4. 공식 PNG에서 색상 블럭이 보이지 않는 운영 호환 블럭은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 보존하고 SVG hit-area에서는 렌더링하지 않습니다.',
+    '3. 모든 블럭은 `PATH_TRACED_FROM_OFFICIAL_IMAGE`, `OFFICIAL_PNG_MANUAL_POLYGON`, `manual-polygon-v2`, `manualReviewed=true` 상태여야 하며, 공식 이미지 색상 블럭이 확인되는 블럭은 `PIXEL_ALIGNED` 상태여야 합니다.',
+    '4. 공식 이미지에서 색상 블럭이 보이지 않는 운영 호환 블럭은 `ALIAS_ONLY_OFFICIAL_PNG_BLOCK_NOT_VISIBLE`로 보존하고 SVG hit-area에서는 렌더링하지 않습니다.',
     '5. 좌표 변경 후 public gate인 `npm run stadium:sajik:trace-manifest`, `npm run test:stadium:seatmaps`, `npm run qa:stadium:sajik:release-lock`를 통과시킵니다.',
     '',
   ].join('\n');
@@ -1146,9 +1146,9 @@ const runAlignmentAudit = async () => {
     `- standard: \`${AUDIT_VERSION}\``,
     `- total blocks: ${summary.totalBlocks}`,
     `- map selectable: ${summary.mapSelectable}`,
-    `- alias-only official PNG block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
+    `- alias-only official image block not visible: ${summary.aliasOnlyOfficialPngBlockNotVisible}`,
     `- locked verified: ${summary.lockedVerified}`,
-    `- official PNG block not visible: ${summary.officialPngBlockNotVisible}`,
+    `- official image block not visible: ${summary.officialPngBlockNotVisible}`,
     `- retrace required: ${summary.retraceRequired}`,
     `- official alignment failures: ${summary.officialAlignmentFailures}`,
     `- strict pixel gate blocks: ${summary.strictPixelGateBlocks}`,
@@ -1162,7 +1162,7 @@ const runAlignmentAudit = async () => {
     '',
     markdownTable(['class', 'blocks'], allClassificationRows),
     '',
-    '## Official PNG block not visible',
+    '## Official image block not visible',
     '',
     officialPngBlockNotVisibleRows.length > 0
       ? markdownTable(
@@ -1175,7 +1175,7 @@ const runAlignmentAudit = async () => {
           String(row.pathColorCoverageRatio),
         ]),
       )
-      : 'No official PNG block-not-visible exceptions.',
+      : 'No official image block-not-visible exceptions.',
     '',
     '## Official failures',
     '',
@@ -1186,7 +1186,7 @@ const runAlignmentAudit = async () => {
     '## Gate',
     '',
     '- This command fails when any Sajik block is `RETRACE_REQUIRED`.',
-    '- `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` is an explicit local-PNG exception for blocks that remain in data for compatibility but have no visible official PNG color component.',
+    '- `OFFICIAL_PNG_BLOCK_NOT_VISIBLE` is an explicit local-image exception for blocks that remain in data for compatibility but have no visible official image color component.',
     '- `PIXEL_ALIGNED` is only releasable after this audit and evidence crops pass.',
     '',
   ].join('\n');
@@ -1492,7 +1492,7 @@ const runEvidence = async () => {
     ${isTierBlock ? `<circle cx="${block.imageGeometry.labelX}" cy="${block.imageGeometry.labelY}" r="${labelCircleRadius}" fill="#ef4444" stroke="#ffffff" stroke-width="1.4" vector-effect="non-scaling-stroke" />` : ''}
     ${isTierBlock ? `<text class="${block.pointCount > 4 ? 'tier-label' : 'label'}" x="${block.imageGeometry.labelX}" y="${block.imageGeometry.labelY}" transform="rotate(${block.imageGeometry.labelRotate ?? 0} ${block.imageGeometry.labelX} ${block.imageGeometry.labelY})">${xmlEscape(block.imageGeometry.shortLabel)}</text>` : ''}`;
     }).join('')}
-    ${includeLegend ? `<text x="${viewport.minX + 16}" y="${viewport.minY + viewport.viewHeight - 18}" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#f8fafc" stroke="#0f172a" stroke-width="3" paint-order="stroke">${xmlEscape(`${tier} ${tierBlocks.length} blocks · cyan=official PNG pixel candidate · amber=official PNG block not visible · red=retrace required`)}</text>` : ''}
+    ${includeLegend ? `<text x="${viewport.minX + 16}" y="${viewport.minY + viewport.viewHeight - 18}" font-family="Arial, sans-serif" font-size="12" font-weight="900" fill="#f8fafc" stroke="#0f172a" stroke-width="3" paint-order="stroke">${xmlEscape(`${tier} ${tierBlocks.length} blocks · cyan=official image pixel candidate · amber=official image block not visible · red=retrace required`)}</text>` : ''}
   </svg>`;
   };
 
@@ -1649,7 +1649,7 @@ const runEvidence = async () => {
   <svg xmlns="http://www.w3.org/2000/svg" width="${outputWidth}" height="${headerHeight}" viewBox="0 0 ${outputWidth} ${headerHeight}">
     <rect x="0" y="0" width="${outputWidth}" height="${headerHeight}" fill="#f8fafc" />
     <text x="14" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="900" fill="#0f172a">${xmlEscape(`Sajik ${focus.title}`)}</text>
-    <text x="14" y="40" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#475569">${xmlEscape(`blocks=${focusBlocks.length} · official PNG crop=${focus.left},${focus.top},${focus.width},${focus.height} · cyan=official pixel candidate`)}</text>
+    <text x="14" y="40" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#475569">${xmlEscape(`blocks=${focusBlocks.length} · official image crop=${focus.left},${focus.top},${focus.width},${focus.height} · cyan=official pixel candidate`)}</text>
   </svg>`);
     const cropBuffer = await sharp(imagePath)
       .extract({ left: focus.left, top: focus.top, width: focus.width, height: focus.height })
@@ -1771,9 +1771,9 @@ const runEvidence = async () => {
     `- Refined polygons (>4 points): ${report.summary.refinedPolygons}`,
     `- Manual review required: ${report.summary.manualReviewRequired} (${report.summary.manualReviewBlocks.join(', ') || 'none'})`,
     `- Map selectable: ${report.summary.mapSelectable}`,
-    `- Alias-only official PNG block not visible: ${report.summary.aliasOnlyOfficialPngBlockNotVisible}`,
+    `- Alias-only official image block not visible: ${report.summary.aliasOnlyOfficialPngBlockNotVisible}`,
     `- Alignment locked verified: ${report.summary.alignmentLockedVerified ?? 'not-run'}`,
-    `- Official PNG block not visible: ${report.summary.officialPngBlockNotVisible ?? 'not-run'}`,
+    `- Official image block not visible: ${report.summary.officialPngBlockNotVisible ?? 'not-run'}`,
     `- Alignment failures: ${report.summary.alignmentFailures ?? 'not-run'}`,
     `- Contact sheet: ${contactSheetPath}`,
     '',
@@ -2201,7 +2201,7 @@ const runAdvisoryPlaywright = async () => {
   <body>
     <section class="summary" data-panel-id="summary">
       <h1>Sajik seatmap advisory Playwright review</h1>
-      <p>version=${REVIEW_VERSION} · official asset=${htmlEscape(SAJIK_SEATMAP_IMAGE.requiredAssetFileName)} · generated from local PNG only</p>
+      <p>version=${REVIEW_VERSION} · official asset=${htmlEscape(SAJIK_SEATMAP_IMAGE.requiredAssetFileName)} · generated from local image only</p>
       <div class="summary-grid">
         <div class="summary-cell"><strong>${alignmentAudit.summary?.lockedVerified ?? '-'}</strong><span>locked verified</span></div>
         <div class="summary-cell"><strong>${alignmentAudit.summary?.officialAlignmentFailures ?? '-'}</strong><span>official failures</span></div>

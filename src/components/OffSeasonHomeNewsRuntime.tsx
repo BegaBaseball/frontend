@@ -65,10 +65,10 @@ export default function OffSeasonHomeNewsRuntime({
         ) : bigEvents.length === 0 ? (
           <Card className="border-none bg-white p-6 text-center ring-1 ring-black/5 sm:p-8 md:p-10 dark:bg-background dark:ring-white/10">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-card">
-              <TrendingUpIcon className="h-8 w-8 text-gray-400 dark:text-zinc-300" />
+              <TrendingUpIcon className="h-8 w-8 text-gray-400 dark:text-white" />
             </div>
-            <p className="font-semibold text-gray-500 dark:text-gray-300">아직 등록된 주요 이적 소식이 없습니다.</p>
-            <p className="mt-2 text-[15px] text-gray-400 dark:text-gray-300">새로운 소식이 등록되면 여기에 표시됩니다.</p>
+            <p className="font-semibold text-gray-500 dark:text-white">아직 등록된 주요 이적 소식이 없습니다.</p>
+            <p className="mt-2 text-[15px] text-gray-400 dark:text-white">새로운 소식이 등록되면 여기에 표시됩니다.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
@@ -84,12 +84,12 @@ export default function OffSeasonHomeNewsRuntime({
                   <div className="min-w-0 flex-1">
                     <div className="mb-1.5 flex items-center gap-2 md:mb-2">
                       <OffseasonPill className="bg-primary px-2 py-0.5 text-[15px] font-bold text-white">{news.section}</OffseasonPill>
-                      <span className="text-[15px] font-semibold text-gray-400 dark:text-zinc-300">{news.date}</span>
+                      <span className="text-[15px] font-semibold text-gray-400 dark:text-white">{news.date}</span>
                     </div>
                     <p className="line-clamp-1 text-base font-bold text-gray-900 transition-colors group-hover:text-primary md:text-lg dark:text-white">
                       {news.player} ({getTeamName(news.team)})
                     </p>
-                    <div className="mt-1 line-clamp-1 text-[15px] text-gray-600 dark:text-gray-300">
+                    <div className="mt-1 line-clamp-1 text-[15px] text-gray-600 dark:text-white">
                       {formatRemarks(news.remarks)}
                     </div>
                   </div>

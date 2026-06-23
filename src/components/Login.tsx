@@ -121,7 +121,7 @@ export default function Login() {
                 <input
                   id="remember-email"
                   type="checkbox"
-                  className="auth-checkbox h-5 w-5 shrink-0"
+                  className="auth-checkbox shrink-0"
                   checked={rememberEmail}
                   onChange={(event) => handleRememberEmailChange(event.target.checked)}
                   disabled={isLoading}

@@ -122,14 +122,14 @@ export default function MateChatAccessStateRuntime(props: MateChatAccessStateRun
         뒤로
       </Button>
       <Card className={`p-6 ${mateSectionCardClass}`}>
-        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+        <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
           Chat Access
         </p>
         <h1 className="mt-2 text-2xl font-black text-gray-900 dark:text-white">승인 전에는 채팅이 열리지 않습니다</h1>
-        <p className="mt-3 text-[16px] leading-6 text-gray-600 dark:text-gray-300">
+        <p className="mt-3 text-[16px] leading-6 text-gray-600 dark:text-white">
           호스트의 승인을 기다려주세요. 승인 후에는 이 화면에서 만날 시간, 장소, 체크인 준비를 바로 조율할 수 있습니다.
         </p>
-        <div className={`${mateInsetPanelClass} mt-4 p-4 text-[16px] text-gray-600 dark:text-gray-300`}>
+        <div className={`${mateInsetPanelClass} mt-4 p-4 text-[16px] text-gray-600 dark:text-white`}>
           승인 전에는 채팅 기록 조회와 메시지 전송이 모두 제한됩니다.
         </div>
         <Button onClick={() => navigate(detailPath)} className="mt-6 w-fit">

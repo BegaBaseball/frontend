@@ -35,7 +35,7 @@ export default function RankingPredictionSaveDialog({
             disabled={isSaving}
             onClick={onClose}
             data-testid="ranking-save-dialog-cancel"
-            className="text-gray-700 dark:text-gray-100 border border-border/60 dark:border-border/80 bg-background dark:bg-card hover:bg-gray-100 dark:hover:bg-primary/10"
+            className="text-gray-700 dark:text-white border border-border/60 dark:border-border/80 bg-background dark:bg-card hover:bg-gray-100 dark:hover:bg-primary/10"
           >
             취소
           </Button>

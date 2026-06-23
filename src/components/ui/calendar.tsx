@@ -45,6 +45,8 @@ const startOfDay = (date: Date) => {
   return nextDate;
 };
 
+const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+
 const isSameDay = (left?: Date, right?: Date) => {
   if (!left || !right) {
     return false;
@@ -103,34 +105,29 @@ function Calendar({
   onMonthChange,
   disabled,
 }: CalendarProps) {
-  const initialMonth = React.useMemo(
-    () => startOfDay(month ?? selected ?? new Date()),
-    [month, selected],
-  );
   const [internalMonth, setInternalMonth] = React.useState(
-    new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1),
+    () => startOfMonth(month ?? selected ?? new Date()),
   );
-
-  React.useEffect(() => {
-    const nextMonth = new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1);
-    if (nextMonth.getTime() !== internalMonth.getTime()) {
-      setInternalMonth(nextMonth);
-    }
-  }, [initialMonth, internalMonth]);
+  const displayedMonth = React.useMemo(
+    () => startOfMonth(month ?? internalMonth),
+    [internalMonth, month],
+  );
 
   const weeks = React.useMemo(
-    () => getMonthGrid(internalMonth, showOutsideDays),
-    [internalMonth, showOutsideDays],
+    () => getMonthGrid(displayedMonth, showOutsideDays),
+    [displayedMonth, showOutsideDays],
   );
   const today = React.useMemo(() => startOfDay(new Date()), []);
 
   const updateMonth = (offset: number) => {
     const nextMonth = new Date(
-      internalMonth.getFullYear(),
-      internalMonth.getMonth() + offset,
+      displayedMonth.getFullYear(),
+      displayedMonth.getMonth() + offset,
       1,
     );
-    setInternalMonth(nextMonth);
+    if (!month) {
+      setInternalMonth(nextMonth);
+    }
     onMonthChange?.(nextMonth);
   };
 
@@ -152,7 +149,7 @@ function Calendar({
             <SharedChevronLeftIcon className="size-4" />
           </button>
             <div className={cn("text-[15px] font-semibold", classNames?.caption_label)}>
-              {internalMonth.getFullYear()}년 {internalMonth.getMonth() + 1}월
+              {displayedMonth.getFullYear()}년 {displayedMonth.getMonth() + 1}월
             </div>
           <button
             type="button"
@@ -185,9 +182,9 @@ function Calendar({
           </div>
 
           {weeks.map((week, weekIndex) => (
-            <div key={`${internalMonth.toISOString()}-${weekIndex}`} className={cn("grid grid-cols-7 mt-2", classNames?.row)}>
+            <div key={`${displayedMonth.toISOString()}-${weekIndex}`} className={cn("grid grid-cols-7 mt-2", classNames?.row)}>
               {week.map((date) => {
-                const isOutside = date.getMonth() !== internalMonth.getMonth();
+                const isOutside = date.getMonth() !== displayedMonth.getMonth();
                 const isSelected = isSameDay(selected, date);
                 const isToday = isSameDay(today, date);
                 const isDisabled = disabled?.(date) ?? false;

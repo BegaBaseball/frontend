@@ -1,11 +1,13 @@
 import { lazy, Suspense, useCallback, useMemo, type ReactElement } from 'react';
 
 import type { Game, VoteTeam } from '../../types/prediction';
+import { useTodayKey } from '../../hooks/useTodayKey';
 import { buildPredictionRecoveryPath } from '../../utils/predictionDeepLink';
 import {
   hasPredictionAdditionalPastMatches,
   resolvePredictionNearestNavigationDate,
 } from '../../utils/predictionMatchNavigation';
+import { formatDateKey, parseLocalDate } from '../../utils/currentDate';
 import { Card } from '../ui/card';
 import type { PredictionMatchVoteControllerRenderState } from './PredictionMatchVoteController';
 import { PredictionLoaderIcon } from './PredictionShellIcons';
@@ -80,6 +82,7 @@ export default function PredictionMatchInteractiveContentRuntime({
   effectiveVoteActionLocked,
   onVote,
 }: PredictionMatchInteractiveContentRuntimeProps) {
+  const todayKey = useTodayKey();
   const predictionRecoveryPath = buildPredictionRecoveryPath({
     currentDate,
     currentGameId,
@@ -247,7 +250,7 @@ export default function PredictionMatchInteractiveContentRuntime({
       <Suspense
         fallback={(
           <Card className="relative mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md">
-            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
               <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               경기 화면을 준비하고 있습니다.
             </div>
@@ -277,7 +280,7 @@ export default function PredictionMatchInteractiveContentRuntime({
           canMoveNextDate={canMoveNextDate}
           isDetailRetryLoading={currentGameDetailLoading || currentGameDetailRefreshing}
           nearestNavigationDate={nearestNavigationDate}
-          isToday={new Date(currentDate).toDateString() === new Date().toDateString()}
+          isToday={formatDateKey(parseLocalDate(currentDate)) === todayKey}
           onVote={(team, game, isVoteOpen) => {
             onVote(team, game, isVoteOpen);
           }}

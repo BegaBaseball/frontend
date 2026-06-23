@@ -11,7 +11,7 @@ const runPixelComponents = async () => {
   const frontendRoot = path.resolve(scriptDir, '..');
   const outDir = path.join(frontendRoot, 'reports/stadium');
   const GWANGJU_SEATMAP_IMAGE = {
-    imagePath: 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.png',
+    imagePath: 'src/assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp',
   };
   const imagePath = path.resolve(frontendRoot, GWANGJU_SEATMAP_IMAGE.imagePath);
 
@@ -193,7 +193,7 @@ const runImageAlignmentAudit = async () => {
   };
 
   const SOURCE_POLICY = {
-    coordinateSource: 'official PNG 2200x1159 only',
+    coordinateSource: 'official image 2200x1159 only',
     coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
     disallowedSources: [
       'browser CSS pixels',
@@ -480,7 +480,7 @@ const runImageAlignmentAudit = async () => {
       nonSelectableOfficialLabels: [],
       bounds: { left: 845, top: 780, width: 310, height: 185 },
       cropFileName: 'gwangju-seatmap-image-alignment-audit-p0-103-104-105-i-boundary.png',
-      reviewNote: '103/104/105 하단 row가 공식 PNG 좌석 fill 끝까지 내려가되, I strip과 sampled overlap을 만들지 않아야 합니다.',
+      reviewNote: '103/104/105 하단 row가 공식 이미지 좌석 fill 끝까지 내려가되, I strip과 sampled overlap을 만들지 않아야 합니다.',
     },
     {
       id: 'p0-106-107-108-e-j-boundary',
@@ -489,7 +489,7 @@ const runImageAlignmentAudit = async () => {
       nonSelectableOfficialLabels: ['E'],
       bounds: { left: 700, top: 820, width: 240, height: 180 },
       cropFileName: 'gwangju-seatmap-image-alignment-audit-p0-106-107-108-e-j-boundary.png',
-      reviewNote: '106/107/108 하단과 J 상단이 분리되어야 하며, 공식 PNG의 E 표식은 별도 선택 polygon으로 승격하지 않습니다.',
+      reviewNote: '106/107/108 하단과 J 상단이 분리되어야 하며, 공식 이미지의 E 표식은 별도 선택 polygon으로 승격하지 않습니다.',
     },
     {
       id: 'p0-s301-s304-j-boundary',
@@ -2262,11 +2262,11 @@ const runImageAlignmentAudit = async () => {
     `- third-base H/G special boundary review-required blocks: ${(summary.thirdBaseHGSpecialBoundaryReviewRequiredBlockIds ?? []).join(', ') || 'none'}`,
     `- label top-hit failures: ${summary.labelTopHitFailures}`,
     '',
-    '기존 `pixelCoverageRatio`는 작은 polygon이 공식 색상 영역 내부에 있을 때 false pass를 만들 수 있으므로, 101~108 P0 구간은 공식 PNG 기준 독립 mask recall/IoU/outside bleed를 release 판단에 사용합니다. J/I/H는 101~108 polygon을 먼저 제외한 공식 PNG 색상 mask로 다시 검수합니다. S-301~S-335는 공식 PNG의 strict pink block fill을 각 polygon 주변에서 다시 샘플링해 local fill bounds delta를 계산하므로, S-322처럼 polygon이 N/I 마커나 통로 쪽으로 튀어나와도 release gate에서 차단됩니다. 501~535 5층 테이블, 나머지 A/B/C/G/H/I/J/L 알파벳 표시 좌석은 공식 PNG 색상 coverage를 전수조사해 기존 polygon이 다른 layer나 흰 여백을 과도하게 삼키는지 별도 보고합니다.',
+    '기존 `pixelCoverageRatio`는 작은 polygon이 공식 색상 영역 내부에 있을 때 false pass를 만들 수 있으므로, 101~108 P0 구간은 공식 이미지 기준 독립 mask recall/IoU/outside bleed를 release 판단에 사용합니다. J/I/H는 101~108 polygon을 먼저 제외한 공식 이미지 색상 mask로 다시 검수합니다. S-301~S-335는 공식 이미지의 strict pink block fill을 각 polygon 주변에서 다시 샘플링해 local fill bounds delta를 계산하므로, S-322처럼 polygon이 N/I 마커나 통로 쪽으로 튀어나와도 release gate에서 차단됩니다. 501~535 5층 테이블, 나머지 A/B/C/G/H/I/J/L 알파벳 표시 좌석은 공식 이미지 색상 coverage를 전수조사해 기존 polygon이 다른 layer나 흰 여백을 과도하게 삼키는지 별도 보고합니다.',
     '',
     '## Visual/Hit Split Review',
     '',
-    '`lowerInfieldVisualHitSplitReview`는 101~104와 I가 H/105 visualD 분리 작업의 영향을 받아 불필요하게 움직였는지 확인합니다. 공식 PNG mask와 current path가 같은 bounds이고 label top-hit이 통과하면 `keep d`로 기록하며, 이 경우 production 좌표를 바꾸지 않습니다.',
+    '`lowerInfieldVisualHitSplitReview`는 101~104와 I가 H/105 visualD 분리 작업의 영향을 받아 불필요하게 움직였는지 확인합니다. 공식 이미지 mask와 current path가 같은 bounds이고 label top-hit이 통과하면 `keep d`로 기록하며, 이 경우 production 좌표를 바꾸지 않습니다.',
     '',
     markdownTable(
       ['id', 'label', 'officialDelta', 'separateVisual', 'decision', 'topHit', 'status'],
@@ -2283,7 +2283,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## J/S Boundary Review',
     '',
-    '`lowerInfieldJSkyBoundaryReview`는 106~108, J, S-301~S-304가 서로 기울어진 layer로 보이거나 아래 S 블럭을 삼키는 회귀를 막기 위한 공식 PNG 기준 경계 리뷰입니다. 번호 블럭/J는 official mask bounds가 일치하면 `keep d`, S 블럭은 strict pink local fill bounds가 허용치 안이면 `keep d`, 표시 경계만 따로 필요한 블럭은 `visualD`로 기록합니다.',
+    '`lowerInfieldJSkyBoundaryReview`는 106~108, J, S-301~S-304가 서로 기울어진 layer로 보이거나 아래 S 블럭을 삼키는 회귀를 막기 위한 공식 이미지 기준 경계 리뷰입니다. 번호 블럭/J는 official mask bounds가 일치하면 `keep d`, S 블럭은 strict pink local fill bounds가 허용치 안이면 `keep d`, 표시 경계만 따로 필요한 블럭은 `visualD`로 기록합니다.',
     '',
     markdownTable(
       ['id', 'label', 'mode', 'officialDelta', 'localFillDelta', 'strictFill', 'separateVisual', 'decision', 'topHit', 'status'],
@@ -2303,7 +2303,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## Third-Base H/G Special Boundary Review',
     '',
-    '`thirdBaseHGSpecialBoundaryReview`는 3루 H/G 특수 구역을 공식 PNG crop에서 검수합니다. 제거된 legacy 번호/I/J 블럭은 production 및 QA 대상에 포함하지 않습니다.',
+    '`thirdBaseHGSpecialBoundaryReview`는 3루 H/G 특수 구역을 공식 이미지 crop에서 검수합니다. 제거된 legacy 번호/I/J 블럭은 production 및 QA 대상에 포함하지 않습니다.',
     '',
     markdownTable(
       ['id', 'label', 'mode', 'recall', 'IoU', 'outsideBleed', 'officialDelta', 'separateVisual', 'decision', 'topHit', 'status'],
@@ -2339,7 +2339,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## Numbered 101~120 Full Scan',
     '',
-    '`official-numbered-component-mask`는 공식 PNG 색상 component를 기준으로 production에 남아 있는 101~120 번호 블럭을 검수합니다. 제거된 legacy 번호 블럭은 production 및 QA 대상에 포함하지 않습니다. 110~111처럼 색상 component 분리가 애매한 번호 블럭만 `official-numbered-boundary-mask`로 남깁니다.',
+    '`official-numbered-component-mask`는 공식 이미지 색상 component를 기준으로 production에 남아 있는 101~120 번호 블럭을 검수합니다. 제거된 legacy 번호 블럭은 production 및 QA 대상에 포함하지 않습니다. 110~111처럼 색상 component 분리가 애매한 번호 블럭만 `official-numbered-boundary-mask`로 남깁니다.',
     '',
     markdownTable(
       ['id', 'mode', 'recall', 'IoU', 'outsideBleed', 'topHit', 'status', 'blockers'],
@@ -2357,7 +2357,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## J/I/H Official Mask',
     '',
-    '`official-alphabet-section-mask`는 101~108 하단 내야 polygon을 먼저 제외한 뒤 공식 PNG 원본 색상에서 J/I/H 기준 mask를 추출합니다. 이 세 구역은 단순 색상 coverage가 아니라 recall/IoU/outside bleed gate로 release를 차단합니다.',
+    '`official-alphabet-section-mask`는 101~108 하단 내야 polygon을 먼저 제외한 뒤 공식 이미지 원본 색상에서 J/I/H 기준 mask를 추출합니다. 이 세 구역은 단순 색상 coverage가 아니라 recall/IoU/outside bleed gate로 release를 차단합니다.',
     '',
     markdownTable(
       ['id', 'label', 'recall', 'IoU', 'outsideBleed', 'topHit', 'status', 'blockers'],
@@ -2375,7 +2375,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## Lower Infield Special Split Evidence',
     '',
-    '`lower-infield-special-split` evidence는 공식 PNG crop, 101~108 번호 블럭 only overlay, J/I/H 특수석 only overlay, 인접 S-301~S-303 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 함께 생성합니다. 이 gate는 번호 블럭과 특수석이 각각 통과하더라도 서로를 삼키는 layer ownership 회귀를 차단하고, J 보정이 아래 S 블럭 hit-area를 삼키는 회귀도 별도로 차단합니다.',
+    '`lower-infield-special-split` evidence는 공식 이미지 crop, 101~108 번호 블럭 only overlay, J/I/H 특수석 only overlay, 인접 S-301~S-303 only overlay, 전체 overlay, numbered-vs-special overlap heatmap을 함께 생성합니다. 이 gate는 번호 블럭과 특수석이 각각 통과하더라도 서로를 삼키는 layer ownership 회귀를 차단하고, J 보정이 아래 S 블럭 hit-area를 삼키는 회귀도 별도로 차단합니다.',
     '',
     markdownTable(
       ['id', 'label', 'mode', 'recall', 'IoU', 'outsideBleed', 'topHit', 'status'],
@@ -2419,7 +2419,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## P0 Lower Infield Visual Checklist',
     '',
-    '`lowerInfieldP0VisualChecklist`는 101~108 하단 내야를 4개 crop으로 쪼개서 공식 PNG overlay를 독립 검수합니다. 목적은 통합 crop이 통과하더라도 H/I/J/E와 인접 S 블럭 ownership이 서로를 삼키는 회귀를 사람이 바로 확인할 수 있게 고정하는 것입니다.',
+    '`lowerInfieldP0VisualChecklist`는 101~108 하단 내야를 4개 crop으로 쪼개서 공식 이미지 overlay를 독립 검수합니다. 목적은 통합 crop이 통과하더라도 H/I/J/E와 인접 S 블럭 ownership이 서로를 삼키는 회귀를 사람이 바로 확인할 수 있게 고정하는 것입니다.',
     '',
     markdownTable(
       ['id', 'title', 'status', 'minRecall', 'minIoU', 'maxBleed', 'topHitFailures', 'crop'],
@@ -2437,7 +2437,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## S-301~S-335 Full Scan',
     '',
-    '`official-sky-picnic-color-scan`은 공식 PNG 원본 색상과 strict block fill local bounds를 함께 샘플링합니다. 기본 실행에서는 review-required로 보고만 하고, `--require-sky-picnic`을 붙이면 같은 결과를 차단 gate로 승격합니다.',
+    '`official-sky-picnic-color-scan`은 공식 이미지 원본 색상과 strict block fill local bounds를 함께 샘플링합니다. 기본 실행에서는 review-required로 보고만 하고, `--require-sky-picnic`을 붙이면 같은 결과를 차단 gate로 승격합니다.',
     '',
     markdownTable(
       ['id', 'colorCoverage', 'strictFill', 'localFillDelta', 'outsideBleed', 'topHit', 'status', 'warnings'],
@@ -2455,7 +2455,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## Five Table 501~535 Full Scan',
     '',
-    '`official-five-table-color-scan`은 공식 PNG 원본의 5층 테이블석 회색/청회색 fill 색상과 polygon 주변 strict fill bounds를 함께 샘플링합니다. 기본 실행에서는 review-required로 보고만 하고, `--require-five-table`을 붙이면 같은 결과를 차단 gate로 승격합니다.',
+    '`official-five-table-color-scan`은 공식 이미지 원본의 5층 테이블석 회색/청회색 fill 색상과 polygon 주변 strict fill bounds를 함께 샘플링합니다. 기본 실행에서는 review-required로 보고만 하고, `--require-five-table`을 붙이면 같은 결과를 차단 gate로 승격합니다.',
     '',
     markdownTable(
       ['id', 'colorCoverage', 'strictFill', 'localFillDelta', 'outsideBleed', 'topHit', 'status', 'warnings'],
@@ -2473,7 +2473,7 @@ const runImageAlignmentAudit = async () => {
     '',
     '## Alphabet Section Full Scan',
     '',
-    '`official-alphabet-section-color-scan`은 선택 가능한 알파벳 좌석 polygon 내부가 공식 PNG의 해당 구역 색상을 충분히 덮는지 전수조사합니다. J/I/H는 위의 독립 mask gate로 승격했고, 나머지 알파벳 구역은 기본 실행에서는 review-required로 보고만 하며 `--require-alphabet-sections`를 붙이면 같은 결과를 차단 gate로 승격합니다.',
+    '`official-alphabet-section-color-scan`은 선택 가능한 알파벳 좌석 polygon 내부가 공식 이미지의 해당 구역 색상을 충분히 덮는지 전수조사합니다. J/I/H는 위의 독립 mask gate로 승격했고, 나머지 알파벳 구역은 기본 실행에서는 review-required로 보고만 하며 `--require-alphabet-sections`를 붙이면 같은 결과를 차단 gate로 승격합니다.',
     '',
     markdownTable(
       ['id', 'label', 'category', 'colorCoverage', 'outsideBleed', 'topHit', 'status', 'warnings'],
@@ -3457,7 +3457,7 @@ const runReviewManifest = async () => {
     '',
     '## Derived range / aggregate hit-area',
     '',
-    'K7석/원정응원석은 공식 PNG 번호 블럭 polygon을 multi-subpath aggregate hit-area로 묶고, 런타임에서는 해당 필터에서만 source 번호 블럭을 대체합니다.',
+    'K7석/원정응원석은 공식 이미지 번호 블럭 polygon을 multi-subpath aggregate hit-area로 묶고, 런타임에서는 해당 필터에서만 source 번호 블럭을 대체합니다.',
     '',
     markdownTable(
       ['id', 'label', 'display blocks', 'filter', 'hit-area', 'polygon status', 'source requirements'],
@@ -3474,9 +3474,9 @@ const runReviewManifest = async () => {
     '',
     '## O/P component coverage',
     '',
-    '기존 `pixelCoverageRatio`는 작은 polygon도 색상 영역 안에만 있으면 통과할 수 있으므로, O/P 외야 계열은 공식 PNG component recall/IoU를 별도로 차단 기준으로 둡니다.',
+    '기존 `pixelCoverageRatio`는 작은 polygon도 색상 영역 안에만 있으면 통과할 수 있으므로, O/P 외야 계열은 공식 이미지 component recall/IoU를 별도로 차단 기준으로 둡니다.',
     '',
-    '101~108 하단 내야는 `gwangju-seatmap-image-alignment-audit`에서 공식 PNG 독립 mask recall/IoU/outside bleed를 추가로 확인합니다.',
+    '101~108 하단 내야는 `gwangju-seatmap-image-alignment-audit`에서 공식 이미지 독립 mask recall/IoU/outside bleed를 추가로 확인합니다.',
     '',
     markdownTable(
       ['id', 'components', 'recall', 'min recall', 'IoU', 'min IoU', 'status'],
@@ -3496,7 +3496,7 @@ const runReviewManifest = async () => {
     '## 검수 방법',
     '',
     '1. `node scripts/stadium-seatmap-ops.mjs gwangju trace-review`를 실행해 debug overlay screenshot과 CSV를 생성합니다.',
-    '2. `/stadium?gwangjuDebug=hit`에서 공식 PNG와 polygon을 같은 2200x1159 좌표계로 비교합니다.',
+    '2. `/stadium?gwangjuDebug=hit`에서 공식 이미지와 polygon을 같은 2200x1159 좌표계로 비교합니다.',
     '3. active block은 모두 `OFFICIAL_IMAGE_TRACED`/`PIXEL_ALIGNED`로 유지하고, 신규 블록은 같은 좌표계의 정적 polygon으로만 추가합니다.',
     '4. K7석/원정응원석은 운영자 제공 polygon이 들어오기 전까지 hit-area를 만들지 않습니다.',
     '5. O/P 외야 계열은 component recall/IoU gate로 작은 과거 polygon이 일반 좌석 layer에 남는 회귀를 차단합니다.',
@@ -3667,7 +3667,7 @@ const runRuntimeLayerAudit = async () => {
   ];
 
   const sourcePolicy = {
-    allowedCoordinateSource: 'official PNG 2200x1159 trace manifest rendered through GWANGJU_BLOCKS[].imageGeometry.d',
+    allowedCoordinateSource: 'official image 2200x1159 trace manifest rendered through GWANGJU_BLOCKS[].imageGeometry.d',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
       'browser CSS pixels',
@@ -3778,8 +3778,8 @@ const runRuntimeLayerAudit = async () => {
     {
       id: 'package-release-verify-script',
       status: statusFor(
-        packageSource.text.includes('"qa:stadium:gwangju:release-verify"')
-        && packageSource.text.includes('node scripts/stadium-seatmap-ops.mjs gwangju release-verify'),
+      packageSource.text.includes('"qa:stadium:gwangju:release-verify"')
+        && packageSource.text.includes('node scripts/qa-presets.mjs stadium gwangju release-verify'),
       ),
       detail: 'package.json exposes the canonical Gwangju release verification command.',
     },
@@ -4272,7 +4272,7 @@ const runReleaseGate = async () => {
       requiredAssetFileName: GWANGJU_SEATMAP_IMAGE.requiredAssetFileName,
     },
     sourcePolicy: {
-      allowedCoordinateSource: 'operator-provided official PNG coordinates only',
+      allowedCoordinateSource: 'operator-provided official image coordinates only',
       coordinateSystem: `${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight}`,
       missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
       disallowedSources: [
@@ -4321,7 +4321,7 @@ const runReleaseGate = async () => {
     `- version: \`${GATE_VERSION}\``,
     `- status: \`${status}\``,
     `- modifies data file: \`${!report.doesNotModifyDataFile}\``,
-    `- official PNG: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
+    `- official image: \`${GWANGJU_SEATMAP_IMAGE.requiredAssetFileName}\` (${GWANGJU_SEATMAP_IMAGE.imageWidth}x${GWANGJU_SEATMAP_IMAGE.imageHeight})`,
     `- active block contract: \`${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\` (\`activeBlocks=${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}\`)`,
     `- aggregate hit-area: \`${report.activeBlockContract.aggregateHitArea}\``,
     `- operator sections: \`${GWANGJU_PENDING_OPERATOR_SECTIONS.join(', ')}\``,
@@ -4368,8 +4368,8 @@ const runReleaseGate = async () => {
     '',
     '## Source Policy',
     '',
-    '- 허용: operator-provided official PNG coordinates only',
-    '- 좌표계: official PNG 2200x1159',
+    '- 허용: operator-provided official image coordinates only',
+    '- 좌표계: official image 2200x1159',
     '- 금지: browser CSS pixels, resized screenshots, external crawling, web-search-based baseball data, third-party copied seatmap images',
     '- 누락 야구 운영 데이터: `MANUAL_BASEBALL_DATA_REQUIRED`',
     `- 현재 복구 기준은 active ${GWANGJU_EXPECTED_TRACE_BLOCK_COUNT}개이다.`,
@@ -4415,7 +4415,7 @@ const runVisualHitSplitAudit = async () => {
   const AUDIT_VERSION = 'GWANGJU_VISUAL_HIT_SPLIT_AUDIT_V1';
   const EXPECTED_VIEWBOX = { width: 2200, height: 1159 };
   const SOURCE_POLICY = {
-    coordinateSource: 'official PNG 2200x1159 + browser-rendered SVG path attributes',
+    coordinateSource: 'official image 2200x1159 + browser-rendered SVG path attributes',
     missingBaseballDataContract: 'MANUAL_BASEBALL_DATA_REQUIRED',
     disallowedSources: [
       'browser CSS pixels as coordinate source',
@@ -4696,7 +4696,7 @@ const runVisualHitSplitAudit = async () => {
     `- rendered visual paths: ${report.summary.renderedVisualPathCount ?? '-'}/${report.summary.expectedPathCount ?? '-'}`,
     `- blockers: ${blockers.length}`,
     '',
-    '이 audit은 공식 PNG 표시 경계와 non-overlap hit-area를 분리하도록 승인된 `visualD` 블럭만 런타임에 렌더링되는지 확인합니다. 파란 실선은 hit-area `d`, 빨간 점선은 실제 표시용 `visualD`입니다. 좌표 기준은 공식 PNG `2200x1159`이며, 브라우저 CSS pixel이나 리사이즈 스크린샷 좌표는 사용하지 않습니다.',
+    '이 audit은 공식 이미지 표시 경계와 non-overlap hit-area를 분리하도록 승인된 `visualD` 블럭만 런타임에 렌더링되는지 확인합니다. 파란 실선은 hit-area `d`, 빨간 점선은 실제 표시용 `visualD`입니다. 좌표 기준은 공식 이미지 `2200x1159`이며, 브라우저 CSS pixel이나 리사이즈 스크린샷 좌표는 사용하지 않습니다.',
     `- approved visual split blocks: ${APPROVED_VISUAL_SPLIT_BLOCK_IDS.join(', ')}`,
     `- unexpected visual split violations: ${unexpectedVisualSplitViolations.join(', ') || 'none'}`,
     `- missing approved visual split ids: ${missingApprovedVisualSplitIds.join(', ') || 'none'}`,
@@ -4831,7 +4831,7 @@ const runOfficialThirdInfieldTrace = async () => {
     generatedAt: new Date().toISOString(),
     status: blockers.length === 0 ? 'passed' : 'needs_review',
     traceVersion: GWANGJU_FULL_RETRACE_VERSION,
-    coordinateSource: 'official PNG 2200x1159 only',
+    coordinateSource: 'official image 2200x1159 only',
     artifactNamePolicy: 'gwangju-seatmap-official-third-infield-trace only; candidate/proposed/manual-official-retrace names are forbidden for release evidence',
     crop,
     targetIds,
@@ -4858,7 +4858,7 @@ const runOfficialThirdInfieldTrace = async () => {
     `- official crop: \`${report.artifacts.officialCrop}\``,
     `- overlay: \`${report.artifacts.overlay}\``,
     '',
-    '이 산출물은 active 3루 116~120 및 인접 특수 구역의 최신 production `visualD`/`d`를 공식 PNG crop 위에 표시한다. `candidate`, `proposed`, `manual-official-retrace`, 기존 `third-base-retrace` 이름은 release evidence로 사용하지 않는다.',
+    '이 산출물은 active 3루 116~120 및 인접 특수 구역의 최신 production `visualD`/`d`를 공식 이미지 crop 위에 표시한다. `candidate`, `proposed`, `manual-official-retrace`, 기존 `third-base-retrace` 이름은 release evidence로 사용하지 않는다.',
     '',
     '| id | block | label | hitBounds | visualBounds |',
     '| --- | --- | --- | --- | --- |',

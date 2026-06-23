@@ -1,8 +1,3 @@
-.diary-green-surface .text-primary {
-  -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.9);
-  text-shadow: 0 0 1px rgba(255, 255, 255, 0.35);
-}
-
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out forwards;
   opacity: 0;
@@ -30,4 +25,554 @@
 :root[data-reduced-motion='true'] .animate-fade-in-up {
   animation: none !important;
   opacity: 1;
+}
+
+.mypage-season-root .diary-green-surface {
+  padding: 0 !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface [data-slot="card"] {
+  gap: 16px !important;
+  border-color: var(--mp-hair) !important;
+  border-radius: 14px !important;
+  background: var(--mp-surface) !important;
+  color: var(--mp-fg) !important;
+  box-shadow: none !important;
+}
+
+.mypage-season-root .diary-green-surface h3,
+.mypage-season-root .diary-green-surface h4,
+.mypage-season-root .diary-green-surface label {
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface .text-foreground,
+.mypage-season-root .diary-green-surface .text-card-foreground,
+.mypage-season-root .diary-green-surface .text-gray-900,
+.mypage-season-root .diary-green-surface .dark\:text-white,
+.mypage-season-root .diary-green-surface .dark\:text-gray-100 {
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface .text-muted-foreground,
+.mypage-season-root .diary-green-surface .text-gray-500,
+.mypage-season-root .diary-green-surface .text-gray-600,
+.mypage-season-root .diary-green-surface .dark\:text-gray-300,
+.mypage-season-root .diary-green-surface .dark\:text-gray-400 {
+  color: var(--mp-fg-muted) !important;
+}
+
+.mypage-season-root .diary-green-surface .text-primary,
+.mypage-season-root .diary-green-surface .text-emerald-600,
+.mypage-season-root .diary-green-surface .dark\:text-emerald-400 {
+  color: var(--mp-accent) !important;
+}
+
+.mypage-season-root .diary-green-surface .text-amber-600,
+.mypage-season-root .diary-green-surface .dark\:text-amber-300 {
+  color: var(--mp-gold) !important;
+}
+
+.mypage-season-root .diary-green-surface .border,
+.mypage-season-root .diary-green-surface .border-border,
+.mypage-season-root .diary-green-surface .border-gray-100,
+.mypage-season-root .diary-green-surface .border-gray-200,
+.mypage-season-root .diary-green-surface .dark\:border-gray-700,
+.mypage-season-root .diary-green-surface .dark\:border-gray-800 {
+  border-color: var(--mp-hair) !important;
+}
+
+.mypage-season-root .diary-green-surface .border-primary,
+.mypage-season-root .diary-green-surface .border-emerald-200,
+.mypage-season-root .diary-green-surface .dark\:border-emerald-800 {
+  border-color: var(--mp-accent) !important;
+}
+
+.mypage-season-root .diary-green-surface .bg-card,
+.mypage-season-root .diary-green-surface .bg-muted,
+.mypage-season-root .diary-green-surface .bg-gray-50,
+.mypage-season-root .diary-green-surface .dark\:bg-card\/50,
+.mypage-season-root .diary-green-surface .dark\:bg-secondary\/50 {
+  background: var(--mp-surface-hi) !important;
+}
+
+.mypage-season-root .diary-green-surface [data-slot="card"].bg-card {
+  background: var(--mp-surface) !important;
+}
+
+.mypage-season-root .diary-green-surface .bg-primary,
+.mypage-season-root .diary-green-surface .bg-emerald-500,
+.mypage-season-root .diary-green-surface .hover\:bg-primary\/90:hover {
+  background: var(--mp-accent) !important;
+  color: #0c1411 !important;
+}
+
+.mypage-season-root .diary-green-surface .bg-primary\/10,
+.mypage-season-root .diary-green-surface .bg-primary\/5,
+.mypage-season-root .diary-green-surface .bg-emerald-50,
+.mypage-season-root .diary-green-surface .dark\:bg-emerald-950\/30 {
+  background: var(--mp-accent-dim) !important;
+}
+
+.mypage-season-root .diary-green-surface .bg-amber-100,
+.mypage-season-root .diary-green-surface .dark\:bg-amber-950\/30 {
+  background: rgba(232, 182, 76, 0.14) !important;
+}
+
+.mypage-season-root .diary-green-surface select,
+.mypage-season-root .diary-green-surface input[type="text"],
+.mypage-season-root .diary-green-surface input[type="number"],
+.mypage-season-root .diary-green-surface textarea {
+  border-color: var(--mp-hair-strong) !important;
+  border-radius: 9px !important;
+  background: var(--mp-surface-hi) !important;
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface select:focus,
+.mypage-season-root .diary-green-surface input[type="text"]:focus,
+.mypage-season-root .diary-green-surface input[type="number"]:focus,
+.mypage-season-root .diary-green-surface textarea:focus {
+  border-color: var(--mp-accent) !important;
+  box-shadow: 0 0 0 2px var(--mp-accent-dim) !important;
+  outline: none !important;
+}
+
+.mypage-season-root .diary-green-surface select option {
+  background: var(--mp-surface) !important;
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface ::placeholder {
+  color: rgba(229, 236, 232, 0.42) !important;
+}
+
+.mypage-season-root .diary-green-surface button {
+  border-radius: 9px;
+}
+
+.mypage-season-root .diary-green-surface button[data-testid^="day-"] {
+  border-color: var(--mp-hair) !important;
+  background: var(--mp-surface-hi) !important;
+  color: var(--mp-fg) !important;
+}
+
+.mypage-season-root .diary-green-surface button[data-testid^="day-"]:hover {
+  border-color: var(--mp-accent) !important;
+  background: rgba(30, 42, 38, 0.94) !important;
+}
+
+.mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-red-500,
+.mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-blue-500,
+.mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-yellow-500,
+.mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-gray-500 {
+  box-shadow: 0 0 0 1px rgba(8, 13, 12, 0.45);
+}
+
+.mypage-season-root .diary-green-surface .ring-primary {
+  --tw-ring-color: var(--mp-accent) !important;
+}
+
+.mypage-season-root .diary-green-surface .ring-offset-gray-900 {
+  --tw-ring-offset-color: var(--mp-bg) !important;
+}
+
+.mypage-season-root .diary-green-surface label.border-dashed,
+.mypage-season-root .diary-green-surface button.border-dashed {
+  border-color: var(--mp-hair-strong) !important;
+  background: rgba(30, 42, 38, 0.64) !important;
+}
+
+.mypage-season-root .diary-green-surface label.border-dashed:hover,
+.mypage-season-root .diary-green-surface button.border-dashed:hover {
+  border-color: var(--mp-accent) !important;
+  background: var(--mp-accent-dim) !important;
+}
+
+.mypage-season-root .diary-green-surface img {
+  border-color: var(--mp-hair) !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-editor-grid {
+  gap: 18px !important;
+  align-items: start;
+}
+
+.mypage-season-root .diary-green-surface .diary-editor-calendar-card {
+  padding: 18px 22px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-editor-form-card {
+  padding: 18px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-editor-calendar-card h3,
+.mypage-season-root .diary-green-surface .diary-editor-form-card h3 {
+  font-size: 16px !important;
+  letter-spacing: 0 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-edit-mode {
+  gap: 14px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-field-group {
+  min-width: 0;
+}
+
+.mypage-season-root .diary-green-surface .diary-field-label,
+.mypage-season-root .diary-green-surface .diary-edit-mode label,
+.mypage-season-root .diary-green-surface .diary-read-mode .text-muted-foreground {
+  font-size: 12.5px !important;
+  line-height: 1.4 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-edit-mode p {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-ticket-scan {
+  min-height: 42px;
+  border-width: 1px !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  color: var(--mp-accent) !important;
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+.mypage-season-root .diary-green-surface .diary-ticket-scan svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-choice-row,
+.mypage-season-root .diary-green-surface .diary-winning-row,
+.mypage-season-root .diary-green-surface .diary-form-actions {
+  gap: 8px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-choice-row button,
+.mypage-season-root .diary-green-surface .diary-winning-row button {
+  min-height: 40px;
+  transform: none !important;
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  box-shadow: none !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-choice-row button > div,
+.mypage-season-root .diary-green-surface .diary-winning-row button > div {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-choice-row button.bg-primary {
+  border-color: var(--mp-accent) !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 12px !important;
+  background: var(--mp-surface-hi) !important;
+  padding: 10px !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mp-hair-strong) transparent;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: var(--mp-hair-strong);
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail button {
+  min-width: 64px !important;
+  border: 1px solid transparent;
+  padding: 8px 7px !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail button.bg-card {
+  border-color: var(--mp-accent) !important;
+  background: var(--mp-accent-dim) !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail img {
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-emoji-rail span {
+  font-size: 12px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-photo-grid {
+  gap: 8px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-photo-tile {
+  overflow: hidden;
+  border-radius: 10px !important;
+  background: var(--mp-surface-hi) !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-photo-tile img {
+  border-radius: 10px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-photo-tile svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-seat-panel {
+  border-color: var(--mp-hair) !important;
+  border-radius: 12px !important;
+  background: var(--mp-surface-hi) !important;
+  padding: 12px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-seat-panel > div:first-child {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mypage-season-root .diary-green-surface .diary-seat-panel span {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-seat-panel .grid {
+  gap: 8px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-edit-mode select,
+.mypage-season-root .diary-green-surface .diary-edit-mode input[type="text"],
+.mypage-season-root .diary-green-surface .diary-edit-mode textarea {
+  min-height: 40px;
+  padding: 9px 10px !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-edit-mode textarea {
+  min-height: 104px;
+}
+
+.mypage-season-root .diary-green-surface .diary-form-actions [data-slot="button"],
+.mypage-season-root .diary-green-surface .diary-read-actions [data-slot="button"] {
+  min-height: 40px;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-mode {
+  gap: 14px !important;
+  padding: 0 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-summary {
+  gap: 12px !important;
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 12px !important;
+  background: var(--mp-surface-hi) !important;
+  padding: 14px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-summary img {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-summary .text-2xl {
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-photo-section img {
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 10px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-details {
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 12px !important;
+  background: rgba(30, 42, 38, 0.54) !important;
+  padding: 4px 12px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-row {
+  grid-template-columns: 64px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  padding: 9px 0;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-row + .diary-read-row {
+  border-top: 1px solid var(--mp-hair);
+}
+
+.mypage-season-root .diary-green-surface .diary-read-row > div:first-child {
+  font-size: 12px !important;
+}
+
+.mypage-season-root .diary-green-surface .diary-read-row > div:last-child {
+  font-size: 13.5px !important;
+}
+
+.diary-seat-view-dialog {
+  --mp-bg: #000000;
+  --mp-surface: #000000;
+  --mp-surface-hi: #000000;
+  --mp-hair: rgba(138, 159, 153, 0.16);
+  --mp-hair-strong: rgba(138, 159, 153, 0.3);
+  --mp-fg: #FFFFFF;
+  --mp-fg-soft: #FFFFFF;
+  --mp-fg-muted: #FFFFFF;
+  --mp-accent: #63b39b;
+  --mp-accent-dim: rgba(99, 179, 155, 0.14);
+  --mp-gold: #e8b64c;
+  border-color: var(--mp-hair) !important;
+  border-radius: 14px !important;
+  background: var(--mp-surface) !important;
+  color: var(--mp-fg) !important;
+  box-shadow: 0 28px 80px -30px rgba(0, 0, 0, 0.62) !important;
+}
+
+.diary-seat-view-dialog .border-gray-100,
+.diary-seat-view-dialog .dark\:border-border {
+  border-color: var(--mp-hair) !important;
+}
+
+.diary-seat-view-dialog h2 {
+  color: var(--mp-fg) !important;
+  font-size: 17px !important;
+}
+
+.diary-seat-view-dialog p {
+  color: var(--mp-fg-soft) !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+.diary-seat-view-dialog > div:first-child,
+.diary-seat-view-dialog > div:last-child {
+  border-color: var(--mp-hair) !important;
+}
+
+.diary-seat-view-list {
+  gap: 10px !important;
+}
+
+.diary-seat-view-candidate {
+  border-color: var(--mp-hair) !important;
+  border-radius: 12px !important;
+  background: var(--mp-surface-hi) !important;
+}
+
+.diary-seat-view-candidate:hover {
+  border-color: var(--mp-accent) !important;
+}
+
+.diary-seat-view-candidate img {
+  border: 1px solid var(--mp-hair) !important;
+  border-radius: 10px !important;
+}
+
+.diary-seat-view-candidate input[type="checkbox"] {
+  accent-color: var(--mp-accent);
+}
+
+.diary-seat-view-dialog [data-slot="button"] {
+  min-height: 40px;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+.diary-seat-view-dialog [data-slot="button"]:not([class*="bg-"]) {
+  border-color: var(--mp-hair-strong) !important;
+  background: transparent !important;
+  color: var(--mp-fg-soft) !important;
+}
+
+@media (max-width: 600px) {
+  .mypage-season-root .diary-green-surface [data-slot="card"] {
+    border-radius: 13px !important;
+  }
+
+  .mypage-season-root .diary-green-surface button[data-testid^="day-"] {
+    min-height: 72px;
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 900px) {
+  .mypage-season-root .diary-green-surface .diary-editor-grid {
+    gap: 14px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-editor-calendar-card,
+  .mypage-season-root .diary-green-surface .diary-editor-form-card {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .mypage-season-root .diary-green-surface .diary-editor-calendar-card,
+  .mypage-season-root .diary-green-surface .diary-editor-form-card {
+    padding: 14px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-editor-calendar-card h3,
+  .mypage-season-root .diary-green-surface .diary-editor-form-card h3 {
+    font-size: 15px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-choice-row,
+  .mypage-season-root .diary-green-surface .diary-winning-row,
+  .mypage-season-root .diary-green-surface .diary-form-actions {
+    gap: 7px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-choice-row button,
+  .mypage-season-root .diary-green-surface .diary-winning-row button,
+  .mypage-season-root .diary-green-surface .diary-form-actions [data-slot="button"] {
+    min-height: 38px;
+    padding: 9px 10px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-emoji-rail {
+    padding: 9px !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-seat-panel .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mypage-season-root .diary-green-surface .diary-read-row {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+  }
+
+  .diary-seat-view-dialog {
+    max-height: calc(100vh - 32px);
+    border-radius: 13px !important;
+  }
+
+  .diary-seat-view-candidate {
+    flex-direction: column;
+  }
 }

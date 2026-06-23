@@ -64,7 +64,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
 
                                 return (
                                     <div key={entry.day} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                                        <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-300">
+                                        <span className="text-[16px] font-semibold text-slate-500 dark:text-white">
                                             {entry.winRate}%
                                         </span>
                                         <div className="flex h-[150px] w-full items-end justify-center">

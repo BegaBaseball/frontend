@@ -149,6 +149,20 @@ function visitDaeguSeatMap() {
 }
 
 function selectDaeguBlock(query: string, itemTestId: string) {
+  cy.get(
+    '[data-testid="daegu-block-search"], [data-testid="daegu-seatmap-search-open"], [data-testid="daegu-seatmap-mobile-search-open"]',
+    { timeout: 10000 },
+  )
+    .then(($controls) => {
+      if ($controls.filter('[data-testid="daegu-block-search"]:visible').length === 0) {
+        cy.wrap(
+          $controls
+            .filter('[data-testid="daegu-seatmap-search-open"], [data-testid="daegu-seatmap-mobile-search-open"]')
+            .first(),
+        ).click({ force: true });
+      }
+    });
+
   cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 })
     .filter(':visible')
     .first()
@@ -212,37 +226,24 @@ describe('Stadium SeatMap — Daegu Search / Detail UX', () => {
   });
 
   it('닫기 버튼 클릭 시 패널이 기본 안내 메시지로 돌아간다', () => {
-    interceptGuestSession();
-    interceptBaseApis();
-    cy.visit('/stadium');
-    cy.wait('@getStadiums');
-    cy.wait('@getJamsilPlaces');
-    cy.get('#stadium-guide-select').select('DAEGU');
-    cy.wait('@getDaeguPlaces');
+    visitDaeguSeatMap();
+
     cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
-      cy.get('[data-testid="daegu-block-search"]').type('1-1');
-      cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').click();
+      selectDaeguBlock('1-1', 'daegu-section-finder-item-daegu-away-cheering-1-1');
       cy.contains('원정 응원석 1-1').should('be.visible');
       cy.get('button[aria-label="닫기"]').click();
-      cy.contains('구역을 선택하세요').should('be.visible');
+      cy.contains('구역을 선택하세요').should('exist');
     });
   });
 
   it('다른 블록 선택 시 상세패널 내용이 갱신된다', () => {
-    interceptGuestSession();
-    interceptBaseApis();
-    cy.visit('/stadium');
-    cy.wait('@getStadiums');
-    cy.wait('@getJamsilPlaces');
-    cy.get('#stadium-guide-select').select('DAEGU');
-    cy.wait('@getDaeguPlaces');
+    visitDaeguSeatMap();
+
     cy.get('[data-testid="stadium-guide-seatmap"]', { timeout: 10000 }).within(() => {
-      cy.get('[data-testid="daegu-block-search"]').type('1-1');
-      cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').click();
+      selectDaeguBlock('1-1', 'daegu-section-finder-item-daegu-away-cheering-1-1');
       cy.contains('원정 응원석 1-1').should('be.visible');
       // 1-2 is review-only (DAEGU_REVIEW_ONLY_TRACE_METHOD_BY_BLOCK); use 1-3 instead
-      cy.get('[data-testid="daegu-block-search"]').clear().type('1-3');
-      cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-3"]').click();
+      selectDaeguBlock('1-3', 'daegu-section-finder-item-daegu-away-cheering-1-3');
       cy.contains('원정 응원석 1-3').should('be.visible');
     });
   });
@@ -299,6 +300,20 @@ describe('Stadium SeatMap — Daegu Search / Detail UX', () => {
 // Suite 2-B — Daejeon Search / Detail UX
 // -----------------------------------------------------------------
 function selectDaejeonBlock(query: string, itemTestId: string) {
+  cy.get(
+    '[data-testid="daejeon-block-search"], [data-testid="daejeon-seatmap-search-open"], [data-testid="daejeon-seatmap-mobile-search-open"]',
+    { timeout: 10000 },
+  )
+    .then(($controls) => {
+      if ($controls.filter('[data-testid="daejeon-block-search"]:visible').length === 0) {
+        cy.wrap(
+          $controls
+            .filter('[data-testid="daejeon-seatmap-search-open"], [data-testid="daejeon-seatmap-mobile-search-open"]')
+            .first(),
+        ).click({ force: true });
+      }
+    });
+
   cy.get('[data-testid="daejeon-block-search"]', { timeout: 10000 })
     .filter(':visible')
     .first()

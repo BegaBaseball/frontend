@@ -238,7 +238,7 @@ export default function CheerDetailArticleRuntime({
                                 <button
                                     type="button"
                                     onClick={onGoBack}
-                                    className="rounded-full p-1.5 -ml-2 text-slate-700 transition-colors hover:bg-black/5 sm:p-2 dark:text-slate-200 dark:hover:bg-white/10"
+                                    className="rounded-full p-1.5 -ml-2 text-slate-700 transition-colors hover:bg-black/5 sm:p-2 dark:text-white dark:hover:bg-white/10"
                                     aria-label="이전으로"
                                 >
                                     <ArrowLeftIcon className="h-5 w-5" />
@@ -248,7 +248,7 @@ export default function CheerDetailArticleRuntime({
                                     {teamName}
                                 </span>
                                 {selectedPost.postType === 'NOTICE' && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[15px] font-bold text-white sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10 dark:bg-white dark:text-slate-950">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[15px] font-bold text-white sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10 dark:bg-white dark:text-white">
                                         공지
                                     </span>
                                 )}
@@ -307,18 +307,18 @@ export default function CheerDetailArticleRuntime({
 
                                 <div className="min-w-0 flex-1">
                                     {isRepost && (
-                                        <p className="mb-1 text-[16px] font-bold text-slate-500 dark:text-slate-400">
+                                        <p className="mb-1 text-[16px] font-bold text-slate-500 dark:text-white">
                                             {isSimpleRepost ? `${selectedPost.author}님 리포스트` : `${selectedPost.author}님 인용`}
                                         </p>
                                     )}
                                     <button
                                         type="button"
                                         onClick={() => onNavigateToProfile(displayAuthorHandle)}
-                                        className="truncate text-left text-[16px] font-bold text-slate-950 transition-colors hover:underline dark:text-slate-50 sm:text-[16px]"
+                                        className="truncate text-left text-[16px] font-bold text-slate-950 transition-colors hover:underline dark:text-white sm:text-[16px]"
                                     >
                                         {displayAuthor}
                                     </button>
-                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] font-bold text-slate-500 dark:text-slate-400">
+                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] font-bold text-slate-500 dark:text-white">
                                         <span>{displayAuthorHandleLabel}</span>
                                         <span className="mx-0.5 h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-500" />
                                         <span className="flex items-center gap-1">
@@ -362,7 +362,7 @@ export default function CheerDetailArticleRuntime({
                                             onOwnerMenuOpenChange(false);
                                             onDisplayEdit();
                                         }}
-                                        className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-secondary"
+                                        className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
                                     >
                                         <EditIcon className="mr-2 h-4 w-4" />
                                         수정하기
@@ -428,7 +428,7 @@ export default function CheerDetailArticleRuntime({
                                     </Suspense>
                                 ) : (
                                     <>
-                                        <div className="whitespace-pre-wrap break-words text-[16px] leading-6 font-bold text-slate-900 dark:text-slate-100 sm:text-[16px] sm:leading-7">
+                                        <div className="whitespace-pre-wrap break-words text-[16px] leading-6 font-bold text-slate-900 dark:text-white sm:text-[16px] sm:leading-7">
                                             {displayContent}
                                         </div>
 

@@ -1,8 +1,7 @@
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getMateMyPartiesQueryOptions } from './mateQueryOptions';
-import { filterPartiesByTab } from '../utils/mate';
-import { MateHistoryTab, MateParty } from '../types/mate';
+import { useEffect, useMemo } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { getMateMyPartyHistoryQueryOptions } from './mateQueryOptions';
+import { MateHistoryTab } from '../types/mate';
 import { toast } from 'sonner';
 import { useAuthSession } from '../store/authStore';
 import { getApiErrorStatus } from '../api/errorStatus';
@@ -10,15 +9,27 @@ import { getApiErrorStatus } from '../api/errorStatus';
 export const useMateHistory = (tab: MateHistoryTab) => {
   const { isLoggedIn, isAuthLoading, userId } = useAuthSession();
   const canLoadMyParties = isLoggedIn && !isAuthLoading && userId !== null && userId > 0;
+  const historyQueryOptions = getMateMyPartyHistoryQueryOptions(userId, tab);
 
   // ========== Fetch My Parties ==========
   const {
-    data: myParties = [],
+    data,
     isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     error,
-  } = useQuery({
-    ...getMateMyPartiesQueryOptions(userId),
+  } = useInfiniteQuery({
+    ...historyQueryOptions,
     enabled: canLoadMyParties,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.last) {
+        return undefined;
+      }
+      const nextPage = lastPage.number + 1;
+      return nextPage < lastPage.totalPages ? nextPage : undefined;
+    },
+    initialPageParam: 0,
   });
 
   // ========== Error Handling ==========
@@ -32,20 +43,25 @@ export const useMateHistory = (tab: MateHistoryTab) => {
     }
   }, [error]);
 
-  // ========== Filter by Tab ==========
-  const filteredParties = filterPartiesByTab(myParties, tab);
+  const parties = useMemo(
+    () => data?.pages.flatMap((page) => page.content) ?? [],
+    [data],
+  );
 
   // ========== Empty Messages ==========
-  const getEmptyMessage = () => {
+  const emptyMessage = useMemo(() => {
     if (tab === 'completed') return '완료된 메이트 내역이 없습니다';
     if (tab === 'ongoing') return '진행 중인 메이트가 없습니다';
     return '참여한 메이트 내역이 없습니다';
-  };
+  }, [tab]);
 
   return {
-    parties: filteredParties,
+    parties,
     isLoading,
-    isEmpty: filteredParties.length === 0,
-    emptyMessage: getEmptyMessage(),
+    isFetchingNextPage,
+    hasNextPage: Boolean(hasNextPage),
+    fetchNextPage,
+    isEmpty: parties.length === 0,
+    emptyMessage,
   };
 };

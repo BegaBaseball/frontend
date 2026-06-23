@@ -227,10 +227,10 @@ export default function CheerDetail() {
             <div className="min-h-screen bg-slate-50 font-sans px-4 py-12 dark:bg-background">
                 <div className="mx-auto flex max-w-xl justify-center">
                     <div className="w-full rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
-                        <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                        <p className="text-base font-bold text-slate-900 dark:text-white">
                             게시글을 불러오지 못했습니다.
                         </p>
-                        <p className="mt-2 text-[16px] font-bold text-slate-600 dark:text-slate-300">
+                        <p className="mt-2 text-[16px] font-bold text-slate-600 dark:text-white">
                             {detailErrorMessage}
                         </p>
                         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
