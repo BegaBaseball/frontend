@@ -1,0 +1,143 @@
+name: Frontend Prediction Performance
+
+on:
+  pull_request:
+    paths:
+      - "src/components/Prediction.tsx"
+      - "src/components/prediction/**"
+      - "src/hooks/usePrediction.ts"
+      - "src/hooks/usePrediction*.ts"
+      - "src/hooks/predictionHookShared.ts"
+      - "src/hooks/predictionSchedule*.ts"
+      - "src/api/**prediction**"
+      - "src/api/ranking.ts"
+      - "src/api/rankings.ts"
+      - "src/utils/predictionDeferredWork*"
+      - "src/utils/liveGame*"
+      - "scripts/prediction-performance-audit*"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/_frontend-node-suite.yml"
+      - ".github/workflows/frontend-prediction-performance.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Prediction performance audit mode"
+        required: false
+        default: "mock"
+        type: choice
+        options:
+          - mock
+          - real
+      date:
+        description: "Prediction date to audit"
+        required: false
+        default: "2026-06-07"
+        type: string
+      gameId:
+        description: "Prediction gameId to deep-link"
+        required: false
+        default: "20260607HHLT0"
+        type: string
+      iterations:
+        description: "Measured iterations after prewarm"
+        required: false
+        default: "5"
+        type: string
+      scenarioTier:
+        description: "Mock scenario tier"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - core
+          - extended
+          - all
+      apiBaseUrl:
+        description: "Real mode API base URL ending in /api; blank uses PREDICTION_PERF_API_BASE_URL repository variable"
+        required: false
+        default: ""
+        type: string
+      strictCold:
+        description: "Fail real mode on cold API budget"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+concurrency:
+  group: frontend-prediction-performance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prediction-performance:
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 25
+      install_playwright: true
+      run_script: |
+        MODE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode || 'mock' }}"
+        DATE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.date || '2026-06-07' }}"
+        GAME_ID="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.gameId || '20260607HHLT0' }}"
+        ITERATIONS="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.iterations || '3' }}"
+        SCENARIO_TIER="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scenarioTier || 'core' }}"
+        API_BASE_URL="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.apiBaseUrl || vars.PREDICTION_PERF_API_BASE_URL || '' }}"
+        STRICT_COLD="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.strictCold || 'false' }}"
+
+        if [[ "${MODE}" != "mock" && "${MODE}" != "real" ]]; then
+          echo "Invalid prediction performance mode: ${MODE}" >&2
+          exit 1
+        fi
+        if [[ "${SCENARIO_TIER}" != "core" && "${SCENARIO_TIER}" != "extended" && "${SCENARIO_TIER}" != "all" ]]; then
+          echo "Invalid prediction performance scenario tier: ${SCENARIO_TIER}" >&2
+          exit 1
+        fi
+
+        export PREDICTION_PERF_MODE="${MODE}"
+        export PREDICTION_PERF_DATE="${DATE}"
+        export PREDICTION_PERF_GAME_ID="${GAME_ID}"
+        export PREDICTION_PERF_ITERATIONS="${ITERATIONS}"
+        export PREDICTION_PERF_SCENARIO_TIER="${SCENARIO_TIER}"
+        if [[ -n "${API_BASE_URL}" ]]; then
+          export PREDICTION_PERF_API_BASE_URL="${API_BASE_URL}"
+        fi
+        if [[ "${STRICT_COLD}" == "true" ]]; then
+          export PREDICTION_PERF_STRICT_COLD=1
+        else
+          unset PREDICTION_PERF_STRICT_COLD
+        fi
+
+        PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run "qa:prediction:perf:${MODE}"
+      summary_script: |
+        SUMMARY_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-performance/prediction-performance-summary.md"
+        JSON_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-performance/prediction-performance-summary.json"
+
+        echo "### Frontend Prediction Performance" >> "${GITHUB_STEP_SUMMARY}"
+        echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+        if [[ -f "${SUMMARY_FILE}" ]]; then
+          cat "${SUMMARY_FILE}" >> "${GITHUB_STEP_SUMMARY}"
+        elif [[ -f "${JSON_FILE}" ]]; then
+          JSON_FILE="${JSON_FILE}" node --input-type=module - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          import fs from 'node:fs';
+
+          import { buildPredictionPerformanceJsonFallbackSummary } from './scripts/prediction-performance-audit-lib.mjs';
+
+          const report = JSON.parse(fs.readFileSync(process.env.JSON_FILE, 'utf8'));
+          console.log(buildPredictionPerformanceJsonFallbackSummary(report));
+          NODE
+        else
+          echo "prediction performance summary not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-prediction-performance-artifacts
+      artifact_paths: |
+        output/playwright/prediction-performance/prediction-performance-summary.json
+        output/playwright/prediction-performance/prediction-performance-summary.md
+        output/playwright/prediction-performance

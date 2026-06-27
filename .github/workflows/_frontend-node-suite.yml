@@ -1,0 +1,239 @@
+name: Frontend Node Suite Shared
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: "Working directory for suite commands"
+        required: false
+        type: string
+        default: "."
+      timeout_minutes:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 20
+      install_playwright:
+        description: "Install Playwright runtime before running the suite"
+        required: false
+        type: boolean
+        default: false
+      env_exports:
+        description: "Optional KEY=value lines to append to GITHUB_ENV"
+        required: false
+        type: string
+        default: ""
+      pre_run_script:
+        description: "Optional shell script to run before the main suite command"
+        required: false
+        type: string
+        default: ""
+      run_script:
+        description: "Main shell script for the suite"
+        required: true
+        type: string
+      post_run_script:
+        description: "Optional shell script to run after the main suite command"
+        required: false
+        type: string
+        default: ""
+      summary_script:
+        description: "Shell script that appends suite details to GITHUB_STEP_SUMMARY"
+        required: true
+        type: string
+      artifact_name:
+        description: "Primary artifact name"
+        required: false
+        type: string
+        default: ""
+      artifact_paths:
+        description: "Primary artifact paths"
+        required: false
+        type: string
+        default: ""
+      extra_artifact_name:
+        description: "Optional secondary artifact name"
+        required: false
+        type: string
+        default: ""
+      extra_artifact_paths:
+        description: "Optional secondary artifact paths"
+        required: false
+        type: string
+        default: ""
+      comment_enabled:
+        description: "Render and upsert a PR comment"
+        required: false
+        type: boolean
+        default: false
+      comment_script:
+        description: "Shell script that renders the PR comment"
+        required: false
+        type: string
+        default: ""
+      comment_path:
+        description: "Workspace-relative path to the rendered PR comment"
+        required: false
+        type: string
+        default: ""
+      comment_marker:
+        description: "Marker used to upsert the sticky PR comment"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  run-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export suite environment
+        if: ${{ inputs.env_exports != '' }}
+        shell: bash
+        env:
+          ENV_EXPORTS: ${{ inputs.env_exports }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${ENV_EXPORTS}" >> "${GITHUB_ENV}"
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: npm ci
+
+      - name: Install Playwright runtime
+        if: ${{ inputs.install_playwright }}
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run pre-flight suite hook
+        if: ${{ inputs.pre_run_script != '' }}
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          PRE_RUN_SCRIPT: ${{ inputs.pre_run_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${PRE_RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Run suite
+        id: run_suite
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          RUN_SCRIPT: ${{ inputs.run_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Run post-suite hook
+        if: ${{ always() && inputs.post_run_script != '' }}
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          POST_RUN_SCRIPT: ${{ inputs.post_run_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${POST_RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Publish suite summary
+        if: always()
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          SUMMARY_SCRIPT: ${{ inputs.summary_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${SUMMARY_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Render PR comment
+        if: ${{ always() && inputs.comment_enabled && github.event_name == 'pull_request' && inputs.comment_script != '' && inputs.comment_path != '' && inputs.comment_marker != '' }}
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          COMMENT_SCRIPT: ${{ inputs.comment_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${COMMENT_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Upsert PR comment
+        if: ${{ always() && inputs.comment_enabled && github.event_name == 'pull_request' && inputs.comment_script != '' && inputs.comment_path != '' && inputs.comment_marker != '' }}
+        uses: actions/github-script@v7
+        env:
+          COMMENT_PATH: ${{ inputs.comment_path }}
+          COMMENT_MARKER: ${{ inputs.comment_marker }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const body = fs.readFileSync(process.env.COMMENT_PATH, 'utf8');
+            const marker = process.env.COMMENT_MARKER;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+
+      - name: Upload primary suite artifacts
+        if: ${{ always() && inputs.artifact_name != '' && inputs.artifact_paths != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.artifact_paths }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload secondary suite artifacts
+        if: ${{ always() && inputs.extra_artifact_name != '' && inputs.extra_artifact_paths != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.extra_artifact_name }}
+          path: ${{ inputs.extra_artifact_paths }}
+          if-no-files-found: warn
+          retention-days: 14

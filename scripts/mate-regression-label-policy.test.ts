@@ -31,7 +31,8 @@ test('extractLabelGlobs reads only the full mate regression glob list', () => {
 test('loadFullMateRegressionGlobs reads the repository labeler config', () => {
   const globs = loadFullMateRegressionGlobs();
   assert.ok(globs.includes('src/components/Mate*.tsx'));
-  assert.ok(globs.includes('src/store/authStore.ts'));
+  assert.ok(globs.includes('src/store/mate*.ts'));
+  assert.equal(globs.includes('src/store/authStore.ts'), false);
 });
 
 test('shouldApplyFullMateRegressionLabel matches mate-critical files only', () => {
@@ -43,7 +44,7 @@ test('shouldApplyFullMateRegressionLabel matches mate-critical files only', () =
   );
   assert.equal(
     shouldApplyFullMateRegressionLabel(['src/store/authStore.ts'], globs),
-    true,
+    false,
   );
   assert.equal(
     shouldApplyFullMateRegressionLabel(['bega_backend/BEGA_PROJECT/build.gradle'], globs),
@@ -55,12 +56,12 @@ test('findFullMateRegressionMatches returns only matching files', () => {
   const globs = loadFullMateRegressionGlobs();
   const matches = findFullMateRegressionMatches([
     'src/components/ui/button.tsx',
-    'src/utils/loginRedirect.ts',
+    'src/utils/mateCreateDraft.ts',
     'README.md',
   ], globs);
 
   assert.deepEqual(matches, [
-    'src/utils/loginRedirect.ts',
+    'src/utils/mateCreateDraft.ts',
   ]);
 });
 

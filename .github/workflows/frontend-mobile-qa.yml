@@ -1,0 +1,172 @@
+name: Frontend Mobile QA
+
+on:
+  pull_request:
+    paths:
+      - "src/components/Prediction.tsx"
+      - "src/components/RankingPrediction.tsx"
+      - "src/components/prediction/**"
+      - "src/hooks/usePrediction.ts"
+      - "src/hooks/useRankingPrediction.ts"
+      - "src/hooks/predictionHookShared.ts"
+      - "src/store/predictionStore.ts"
+      - "src/api/ranking.ts"
+      - "src/index.css"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/prediction-mobile-pr-comment.mjs"
+      - "scripts/prediction-mobile-summary-gate.mjs"
+      - "scripts/prediction-mobile-summary-lib.mjs"
+      - "scripts/prediction-mobile-summary-lib.test.ts"
+      - "output/playwright/prediction-mobile-audit.mjs"
+      - "output/playwright/run-prediction-mobile-regression.mjs"
+      - ".github/workflows/_frontend-node-suite.yml"
+      - ".github/workflows/frontend-mobile-qa.yml"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Mobile suite to run"
+        required: false
+        default: "prediction"
+        type: choice
+        options:
+          - prediction
+          - combined
+
+concurrency:
+  group: frontend-mobile-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prediction-mobile-qa:
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'prediction') }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      timeout_minutes: 25
+      install_playwright: true
+      run_script: |
+        PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run qa:prediction:mobile:smoke
+      post_run_script: |
+        node scripts/prediction-mobile-summary-gate.mjs \
+          --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
+          --expected-states "match,ranking,ranking-ended,ranking-init-error,ranking-saved-load-error,ranking-save-dialog,ranking-saved,detail-error,detail-not-found,vote-auth-expired" \
+          --expected-devices "iphone-se,iphone-12"
+      summary_script: |
+        SUMMARY_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.md"
+        JSON_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json"
+
+        echo "### Frontend Prediction Mobile QA" >> "${GITHUB_STEP_SUMMARY}"
+
+        if [[ -f "${SUMMARY_FILE}" ]]; then
+          cat "${SUMMARY_FILE}" >> "${GITHUB_STEP_SUMMARY}"
+        elif [[ -f "${JSON_FILE}" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync(process.env.JSON_FILE, 'utf8'));
+          const lines = [
+            `- Status: ${report.status}`,
+            `- Base URL: ${report.baseUrl}`,
+            `- Server mode: ${report.serverMode}`,
+            `- Entries: ${report.entryCount}`,
+            `- Overflow failures: ${report.overflowFailureCount}`,
+            `- Actionable failed requests: ${report.actionableFailedRequestCount}`,
+            `- Actionable console errors: ${report.actionableConsoleErrorCount}`,
+          ];
+
+          if (Array.isArray(report.states) && report.states.length > 0) {
+            lines.push(`- States: ${report.states.join(', ')}`);
+          }
+
+          if (report.error) {
+            lines.push('', '**Error**', `- ${report.error}`);
+          }
+
+          console.log(lines.join('\n'));
+          NODE
+        else
+          echo "prediction mobile summary not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-prediction-mobile-qa-artifacts
+      artifact_paths: |
+        output/playwright/prediction-mobile-regression-summary.json
+        output/playwright/prediction-mobile-regression-summary.md
+        output/playwright/prediction-mobile/report.json
+        output/playwright/prediction-mobile
+      comment_enabled: true
+      comment_path: reports/prediction-mobile/pr-comment.md
+      comment_marker: "<!-- prediction-mobile-qa -->"
+      comment_script: |
+        mkdir -p reports/prediction-mobile
+        node scripts/prediction-mobile-pr-comment.mjs \
+          --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
+          --expected-states "match,ranking,ranking-ended,ranking-init-error,ranking-saved-load-error,ranking-save-dialog,ranking-saved,detail-error,detail-not-found,vote-auth-expired" \
+          --expected-devices "iphone-se,iphone-12" \
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          --artifact "frontend-prediction-mobile-qa-artifacts" \
+          > reports/prediction-mobile/pr-comment.md
+
+  combined-mobile-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'combined' }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 35
+      install_playwright: true
+      run_script: |
+        PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run qa:mobile:smoke
+      post_run_script: |
+        node scripts/prediction-mobile-summary-gate.mjs \
+          --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
+          --expected-states "match,ranking,ranking-ended,ranking-init-error,ranking-saved-load-error,ranking-save-dialog,ranking-saved,detail-error,detail-not-found,vote-auth-expired" \
+          --expected-devices "iphone-se,iphone-12"
+        node scripts/mate-mobile-summary-gate.mjs \
+          --summary "${GITHUB_WORKSPACE}/output/playwright/mate-mobile-regression-summary.json"
+        node scripts/mobile-playwright-summary.mjs --allow-missing
+      summary_script: |
+        COMBINED_SUMMARY="${GITHUB_WORKSPACE}/output/playwright/mobile-playwright-smoke-summary.md"
+        PREDICTION_SUMMARY="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.md"
+        MATE_SUMMARY="${GITHUB_WORKSPACE}/output/playwright/mate-mobile-regression-summary.md"
+
+        echo "### Frontend Mobile Playwright Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+        if [[ -f "${COMBINED_SUMMARY}" ]]; then
+          cat "${COMBINED_SUMMARY}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        if [[ -f "${PREDICTION_SUMMARY}" ]]; then
+          echo "#### Prediction" >> "${GITHUB_STEP_SUMMARY}"
+          cat "${PREDICTION_SUMMARY}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "- prediction mobile summary not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        if [[ -f "${MATE_SUMMARY}" ]]; then
+          echo "#### Mate" >> "${GITHUB_STEP_SUMMARY}"
+          cat "${MATE_SUMMARY}" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "- mate mobile summary not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-mobile-playwright-smoke-artifacts
+      artifact_paths: |
+        output/playwright/mobile-playwright-smoke-summary.json
+        output/playwright/mobile-playwright-smoke-summary.md
+        output/playwright/prediction-mobile-regression-summary.json
+        output/playwright/prediction-mobile-regression-summary.md
+        output/playwright/prediction-mobile/report.json
+        output/playwright/prediction-mobile
+        output/playwright/mate-mobile-regression-summary.json
+        output/playwright/mate-mobile-regression-summary.md
+        output/playwright/mate-mobile/report.json
+        output/playwright/mate-mobile
+        output/playwright/mate-create-mobile/report.json
+        output/playwright/mate-create-mobile
+        output/playwright/mate-list-mobile/report.json
+        output/playwright/mate-list-mobile

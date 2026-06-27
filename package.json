@@ -223,7 +223,7 @@
     "test:e2e:mate:regression:extended": "node scripts/qa-presets.mjs mate-e2e extended",
     "test:e2e:mate:full": "npm run test:e2e:mate:regression:route && npm run test:e2e:mate:regression:create && npm run test:e2e:mate:regression:extended",
     "test:mobile:summary": "node --import tsx --test scripts/mobile-playwright-summary.test.ts",
-    "test:mate:smoke": "node --import tsx --test src/hooks/mateRouteBarrels.test.ts src/hooks/mateQueryOptions.test.ts src/hooks/mateQueryCache.test.ts src/hooks/internal/mateQueryCacheUtils.test.ts src/utils/mateIdentity.test.ts src/utils/mateApplyDraft.test.ts src/utils/mateRouteState.test.ts src/utils/mateValidation.test.ts src/utils/mateCreateDraft.test.ts src/store/mateRecentSearchStore.test.ts src/api/mate.test.ts scripts/mate-ci-summary-lib.test.ts scripts/mate-regression-label-policy.test.ts scripts/mate-ci-pr-comment-lib.test.ts",
+    "test:mate:smoke": "node --import tsx --test src/hooks/mateRouteBarrels.test.ts src/hooks/mateQueryOptions.test.ts src/hooks/mateQueryCache.test.ts src/hooks/internal/mateQueryCacheUtils.test.ts src/utils/mateIdentity.test.ts src/utils/mateApplyDraft.test.ts src/utils/mateRouteState.test.ts src/utils/mateValidation.test.ts src/utils/mateCreateDraft.test.ts src/store/mateRecentSearchStore.test.ts src/api/mate.test.ts scripts/mate-ci-summary-lib.test.ts scripts/mate-regression-label-policy.test.ts scripts/ci-workflow-policy.test.ts scripts/mate-ci-pr-comment-lib.test.ts",
     "qa:mate:regression:label": "node scripts/mate-regression-label-check.mjs",
     "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\"",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
@@ -249,6 +249,7 @@
     "stadium:daegu:canonical-retrace-gate": "node scripts/qa-presets.mjs stadium daegu canonical-retrace-gate",
     "stadium:daegu:canonical-retrace-gate:require-approved": "node scripts/qa-presets.mjs stadium daegu canonical-retrace-gate:require-approved",
     "stadium:daegu:precision-audit": "node scripts/qa-presets.mjs stadium daegu precision-audit",
-    "stadium:daegu:render-safety-audit": "node scripts/qa-presets.mjs stadium daegu render-safety-audit"
+    "stadium:daegu:render-safety-audit": "node scripts/qa-presets.mjs stadium daegu render-safety-audit",
+    "ci:workflow-policy": "node scripts/ci-workflow-policy.mjs"
   }
 }
