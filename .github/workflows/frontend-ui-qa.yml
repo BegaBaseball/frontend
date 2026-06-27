@@ -211,6 +211,14 @@ jobs:
       contents: read
     with:
       timeout_minutes: 30
+      env_exports: |
+        VITE_SITE_URL=http://127.0.0.1:5176
+        VITE_API_BASE_URL=/api
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=false
+        VITE_GA4_MEASUREMENT_ID=G-CI00000000
+        VITE_GOOGLE_SITE_VERIFICATION=ciGoogleVerificationToken2026
+        VITE_NAVER_SITE_VERIFICATION=ciNaverVerificationToken2026
+        VITE_KAKAO_MAP_KEY=ciKakaoMapKey
       run_script: |
         npm run qa:auth
         AUTH_E2E_OUTCOME="success"
@@ -339,6 +347,14 @@ jobs:
     permissions:
       contents: read
     with:
+      env_exports: |
+        VITE_SITE_URL=http://127.0.0.1:5176
+        VITE_API_BASE_URL=/api
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=false
+        VITE_GA4_MEASUREMENT_ID=G-CI00000000
+        VITE_GOOGLE_SITE_VERIFICATION=ciGoogleVerificationToken2026
+        VITE_NAVER_SITE_VERIFICATION=ciNaverVerificationToken2026
+        VITE_KAKAO_MAP_KEY=ciKakaoMapKey
       run_script: npm run qa:landing
       summary_script: |
         echo "### Frontend Landing QA" >> "${GITHUB_STEP_SUMMARY}"
@@ -452,6 +468,14 @@ jobs:
     with:
       timeout_minutes: 25
       install_playwright: true
+      env_exports: |
+        VITE_SITE_URL=http://127.0.0.1:5176
+        VITE_API_BASE_URL=/api
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=false
+        VITE_GA4_MEASUREMENT_ID=G-CI00000000
+        VITE_GOOGLE_SITE_VERIFICATION=ciGoogleVerificationToken2026
+        VITE_NAVER_SITE_VERIFICATION=ciNaverVerificationToken2026
+        VITE_KAKAO_MAP_KEY=ciKakaoMapKey
       run_script: |
         npm run build
         LANDING_FIRST_LOAD_ITERATIONS=3 npm run qa:landing:first-load
@@ -510,6 +534,14 @@ jobs:
       contents: read
     with:
       timeout_minutes: 25
+      env_exports: |
+        VITE_SITE_URL=http://127.0.0.1:5176
+        VITE_API_BASE_URL=/api
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=false
+        VITE_GA4_MEASUREMENT_ID=G-CI00000000
+        VITE_GOOGLE_SITE_VERIFICATION=ciGoogleVerificationToken2026
+        VITE_NAVER_SITE_VERIFICATION=ciNaverVerificationToken2026
+        VITE_KAKAO_MAP_KEY=ciKakaoMapKey
       run_script: npm run test:e2e:rescue -- --spec cypress/e2e/stadium.cy.ts
       summary_script: |
         echo "### Frontend Stadium E2E Guard" >> "${GITHUB_STEP_SUMMARY}"
