@@ -1,0 +1,172 @@
+name: Frontend Site Audits
+
+on:
+  pull_request:
+    paths:
+      - "src/seo/**"
+      - "scripts/seo-*"
+      - "scripts/prerender-seo*"
+      - "scripts/generate-sitemap.mjs"
+      - "scripts/helmet-runtime-check.mjs"
+      - "seo-routes.json"
+      - "public/robots.txt"
+      - "public/_headers"
+      - "public/_redirects"
+      - "index.html"
+      - "package-lock.json"
+      - ".github/workflows/_frontend-node-suite.yml"
+      - ".github/workflows/frontend-site-audits.yml"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Audit suite to run"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - seo
+          - cwv
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  seo-gate:
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'seo' || github.event.inputs.suite == 'all')) }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 20
+      env_exports: |
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL }}
+        VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=${{ vars.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION }}
+        VITE_GA4_MEASUREMENT_ID=${{ vars.VITE_GA4_MEASUREMENT_ID }}
+        VITE_GOOGLE_SITE_VERIFICATION=${{ vars.VITE_GOOGLE_SITE_VERIFICATION }}
+        VITE_NAVER_SITE_VERIFICATION=${{ vars.VITE_NAVER_SITE_VERIFICATION }}
+      pre_run_script: |
+        if [[ -z "${VITE_SITE_URL}" ]]; then
+          echo "Missing repository variable: VITE_SITE_URL" >&2
+          echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
+          exit 1
+        fi
+        if [[ -z "${VITE_API_BASE_URL}" ]]; then
+          echo "Missing repository variable: VITE_API_BASE_URL" >&2
+          echo "Set Settings > Secrets and variables > Actions > Variables > VITE_API_BASE_URL" >&2
+          exit 1
+        fi
+        if [[ "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "true" && "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "false" ]]; then
+          echo "Repository variable VITE_MATE_REQUIRE_SOCIAL_VERIFICATION must be set to true or false" >&2
+          exit 1
+        fi
+        for var_name in VITE_GA4_MEASUREMENT_ID VITE_GOOGLE_SITE_VERIFICATION VITE_NAVER_SITE_VERIFICATION; do
+          if [[ -z "${!var_name}" ]]; then
+            echo "Missing repository variable: ${var_name}" >&2
+            echo "Set Settings > Secrets and variables > Actions > Variables > ${var_name}" >&2
+            exit 1
+          fi
+        done
+      run_script: |
+        npm run seo:helmet:check
+        npm run seo:env:check:strict
+        npm run seo:gate
+        npm run test:seo
+      summary_script: |
+        echo "### Frontend SEO Gate" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- VITE_SITE_URL: ${VITE_SITE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- VITE_API_BASE_URL: ${VITE_API_BASE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- VITE_MATE_REQUIRE_SOCIAL_VERIFICATION: ${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+        for var_name in VITE_GA4_MEASUREMENT_ID VITE_GOOGLE_SITE_VERIFICATION VITE_NAVER_SITE_VERIFICATION; do
+          if [[ -n "${!var_name:-}" ]]; then
+            echo "- ${var_name}: configured" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "- ${var_name}: <unset>" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+        done
+        if [[ -f "reports/seo-audit-report.json" ]]; then
+          node -e 'const fs=require("fs"); const p="reports/seo-audit-report.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/seo-audit-report.json" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "seo-audit-report.json not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-seo-gate-artifacts
+      artifact_paths: |
+        reports/seo-audit-report.json
+        dist/robots.txt
+        dist/sitemap.xml
+        dist/seo-prerender-report.json
+
+  cwv-baseline:
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'cwv' || github.event.inputs.suite == 'all')) }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 20
+      env_exports: |
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL }}
+      pre_run_script: |
+        if [[ -z "${VITE_SITE_URL}" ]]; then
+          echo "Missing repository variable: VITE_SITE_URL" >&2
+          echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
+          exit 1
+        fi
+      run_script: npm run cwv:baseline
+      summary_script: |
+        echo "### Frontend CWV Baseline" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- VITE_SITE_URL: ${VITE_SITE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -f "reports/cwv-baseline.md" ]]; then
+          cat "reports/cwv-baseline.md" >> "${GITHUB_STEP_SUMMARY}"
+        elif [[ -f "reports/cwv-baseline.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync('reports/cwv-baseline.json', 'utf8'));
+          const lines = [
+            `- Result: ${report.ok ? 'PASS' : 'FAIL'}`,
+            `- Site URL: ${report.siteUrl ?? '-'}`,
+            `- Timeout: ${report.timeoutMs ?? '-'}ms`,
+          ];
+
+          if (report.results?.length) {
+            lines.push(
+              '',
+              '| Route | Strategy | Score | LCP | INP | CLS | Status |',
+              '| --- | --- | ---: | --- | --- | --- | --- |',
+            );
+
+            for (const result of report.results) {
+              lines.push(`| ${result.route} | ${result.strategy} | ${result.performanceScore ?? '-'} | ${result.lcp?.displayValue ?? '-'} | ${result.inp?.displayValue ?? '-'} | ${result.cls?.displayValue ?? '-'} | ${result.status ?? '-'} |`);
+            }
+          }
+
+          if (report.errorMessage) {
+            lines.push('', '**Error**', `- ${report.errorMessage}`);
+          }
+
+          if (report.checks?.length) {
+            lines.push('', '**Checks**');
+            for (const check of report.checks) {
+              lines.push(`- ${check}`);
+            }
+          }
+
+          if (report.warnings?.length) {
+            lines.push('', '**Warnings**');
+            for (const warning of report.warnings) {
+              lines.push(`- ${warning}`);
+            }
+          }
+
+          console.log(lines.join('\n'));
+          NODE
+        else
+          echo "cwv-baseline reports not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-cwv-baseline-artifacts
+      artifact_paths: |
+        reports/cwv-baseline.json
+        reports/cwv-baseline.md

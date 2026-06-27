@@ -1,0 +1,134 @@
+name: Frontend Postdeploy Suite Shared
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: "Working directory for suite commands"
+        required: false
+        type: string
+        default: "."
+      timeout_minutes:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 20
+      environment_name:
+        description: "Deployment environment name"
+        required: false
+        type: string
+        default: "production"
+      environment_url:
+        description: "Deployment environment URL"
+        required: false
+        type: string
+        default: ""
+      setup_node:
+        description: "Install Node.js dependencies before running the suite"
+        required: false
+        type: boolean
+        default: true
+      env_exports:
+        description: "Optional KEY=value lines to append to GITHUB_ENV"
+        required: false
+        type: string
+        default: ""
+      validate_script:
+        description: "Input and secret validation script"
+        required: true
+        type: string
+      run_script:
+        description: "Main shell script for the suite"
+        required: true
+        type: string
+      summary_script:
+        description: "Shell script that appends suite details to GITHUB_STEP_SUMMARY"
+        required: true
+        type: string
+      artifact_name:
+        description: "Artifact name"
+        required: false
+        type: string
+        default: ""
+      artifact_paths:
+        description: "Artifact paths"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  run-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    environment:
+      name: ${{ inputs.environment_name }}
+      url: ${{ inputs.environment_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export suite environment
+        if: ${{ inputs.env_exports != '' }}
+        shell: bash
+        env:
+          ENV_EXPORTS: ${{ inputs.env_exports }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${ENV_EXPORTS}" >> "${GITHUB_ENV}"
+
+      - name: Validate workflow inputs
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          VALIDATE_SCRIPT: ${{ inputs.validate_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${VALIDATE_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Setup Node.js 22
+        if: ${{ inputs.setup_node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        if: ${{ inputs.setup_node }}
+        working-directory: .
+        run: npm ci
+
+      - name: Run suite
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          RUN_SCRIPT: ${{ inputs.run_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Publish suite summary
+        if: always()
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+        env:
+          SUMMARY_SCRIPT: ${{ inputs.summary_script }}
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="$(mktemp)"
+          printf '%s\n' "${SUMMARY_SCRIPT}" > "${SCRIPT_FILE}"
+          bash -euo pipefail "${SCRIPT_FILE}"
+
+      - name: Upload suite artifacts
+        if: ${{ always() && inputs.artifact_name != '' && inputs.artifact_paths != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.artifact_paths }}
+          if-no-files-found: warn
+          retention-days: 14

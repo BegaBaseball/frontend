@@ -1,0 +1,29 @@
+name: CI Workflow Policy
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/labeler.yml"
+      - "scripts/ci-workflow-policy.mjs"
+      - "scripts/ci-workflow-policy.test.ts"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci-workflow-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check CI workflow policy
+        run: node scripts/ci-workflow-policy.mjs

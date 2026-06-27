@@ -1,0 +1,474 @@
+name: Frontend Postdeploy Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Postdeploy suite to run"
+        required: false
+        default: "auth"
+        type: choice
+        options:
+          - auth
+          - seo
+          - home
+          - real
+          - dm
+      api_base_url:
+        description: "Smoke target backend/API base URL"
+        required: false
+        type: string
+        default: "https://api.begabaseball.xyz"
+      frontend_origin:
+        description: "Frontend origin used for Origin/Referer headers"
+        required: false
+        type: string
+        default: "https://www.begabaseball.xyz"
+      timeout_ms:
+        description: "Request timeout in milliseconds"
+        required: false
+        type: string
+        default: "15000"
+      run_dm_smoke:
+        description: "Run authenticated DM smoke after auth or real smoke"
+        required: false
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
+      base_url:
+        description: "Smoke target base URL (served site)"
+        required: false
+        type: string
+        default: "https://www.begabaseball.xyz"
+      expected_site_url:
+        description: "Expected canonical/sitemap site URL"
+        required: false
+        type: string
+        default: "https://www.begabaseball.xyz"
+      date:
+        description: "Selected date to verify (YYYY-MM-DD, blank uses Asia/Seoul today)"
+        required: false
+        type: string
+        default: ""
+      skip_signup:
+        description: "Use fallback login credentials instead of creating a new signup"
+        required: false
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
+      verify_unfollow_reuse:
+        description: "Unfollow 후 기존 DM room 재사용까지 검증"
+        required: false
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
+jobs:
+  auth-postdeploy-smoke:
+    if: ${{ github.event.inputs.suite == 'auth' }}
+    concurrency:
+      group: frontend-auth-postdeploy-smoke-production
+      cancel-in-progress: false
+    uses: ./.github/workflows/_frontend-postdeploy-suite.yml
+    permissions:
+      contents: read
+    with:
+      working_directory: .
+      timeout_minutes: 20
+      environment_url: ${{ inputs.frontend_origin }}
+      env_exports: |
+        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+        SMOKE_LOGIN_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+        SMOKE_LOGIN_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+      validate_script: |
+        API_BASE_URL="${{ inputs.api_base_url }}"
+        FRONTEND_ORIGIN="${{ inputs.frontend_origin }}"
+        TIMEOUT_MS="${{ inputs.timeout_ms }}"
+
+        if ! [[ "${API_BASE_URL}" =~ ^https:// ]]; then
+          echo "api_base_url must start with https:// : ${API_BASE_URL}" >&2
+          exit 1
+        fi
+
+        if ! [[ "${FRONTEND_ORIGIN}" =~ ^https:// ]]; then
+          echo "frontend_origin must start with https:// : ${FRONTEND_ORIGIN}" >&2
+          exit 1
+        fi
+
+        if ! [[ "${TIMEOUT_MS}" =~ ^[0-9]+$ ]]; then
+          echo "timeout_ms must be an integer: ${TIMEOUT_MS}" >&2
+          exit 1
+        fi
+
+        if (( TIMEOUT_MS < 1000 || TIMEOUT_MS > 120000 )); then
+          echo "timeout_ms out of range (1000~120000): ${TIMEOUT_MS}" >&2
+          exit 1
+        fi
+
+        if [[ "${{ inputs.run_dm_smoke }}" == "true" ]]; then
+          for key in SMOKE_LOGIN_EMAIL SMOKE_LOGIN_PASSWORD DM_TARGET_EMAIL DM_TARGET_PASSWORD DM_TARGET_HANDLE; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "run_dm_smoke=true requires repository secret ${key}" >&2
+              exit 1
+            fi
+          done
+        fi
+      run_script: |
+        npm run smoke:auth:public:prod -- \
+          --api-base-url "${{ inputs.api_base_url }}" \
+          --frontend-origin "${{ inputs.frontend_origin }}" \
+          --timeout-ms "${{ inputs.timeout_ms }}"
+
+        if [[ "${{ inputs.run_dm_smoke }}" == "true" ]]; then
+          DM_API_BASE_URL="${{ inputs.api_base_url }}" \
+          DM_FRONTEND_ORIGIN="${{ inputs.frontend_origin }}" \
+          SMOKE_LOGIN_EMAIL="${SMOKE_LOGIN_EMAIL}" \
+          SMOKE_LOGIN_PASSWORD="${SMOKE_LOGIN_PASSWORD}" \
+          DM_TARGET_EMAIL="${DM_TARGET_EMAIL}" \
+          DM_TARGET_PASSWORD="${DM_TARGET_PASSWORD}" \
+          DM_TARGET_HANDLE="${DM_TARGET_HANDLE}" \
+          ../scripts/run_dm_authenticated_smoke_ci.sh
+        fi
+      summary_script: |
+        echo "### Frontend Auth Postdeploy Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- API base URL: ${{ inputs.api_base_url }}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Frontend origin: ${{ inputs.frontend_origin }}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- run_dm_smoke: ${{ inputs.run_dm_smoke }}" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -f "reports/auth-public-postdeploy-smoke.json" ]]; then
+          node -e 'const fs=require("fs"); const p="reports/auth-public-postdeploy-smoke.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/auth-public-postdeploy-smoke.json" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "auth-public-postdeploy-smoke.json not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        if [[ -f "reports/dm-authenticated-smoke.log" ]]; then
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo '**DM Smoke Log**' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```text' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/dm-authenticated-smoke.log" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-auth-postdeploy-smoke-artifact
+      artifact_paths: |
+        reports/auth-public-postdeploy-smoke.json
+        reports/dm-authenticated-smoke.log
+
+  seo-postdeploy-smoke:
+    if: ${{ github.event.inputs.suite == 'seo' }}
+    concurrency:
+      group: frontend-seo-postdeploy-smoke-production
+      cancel-in-progress: false
+    uses: ./.github/workflows/_frontend-postdeploy-suite.yml
+    permissions:
+      contents: read
+    with:
+      working_directory: .
+      timeout_minutes: 20
+      environment_url: ${{ inputs.base_url }}
+      validate_script: |
+        BASE_URL="${{ inputs.base_url }}"
+        EXPECTED_SITE_URL="${{ inputs.expected_site_url }}"
+        TIMEOUT_MS="${{ inputs.timeout_ms }}"
+
+        if ! [[ "${BASE_URL}" =~ ^https:// ]]; then
+          echo "base_url must start with https:// : ${BASE_URL}" >&2
+          exit 1
+        fi
+        if ! [[ "${EXPECTED_SITE_URL}" =~ ^https:// ]]; then
+          echo "expected_site_url must start with https:// : ${EXPECTED_SITE_URL}" >&2
+          exit 1
+        fi
+        if ! [[ "${TIMEOUT_MS}" =~ ^[0-9]+$ ]]; then
+          echo "timeout_ms must be an integer: ${TIMEOUT_MS}" >&2
+          exit 1
+        fi
+        if (( TIMEOUT_MS < 1000 || TIMEOUT_MS > 120000 )); then
+          echo "timeout_ms out of range (1000~120000): ${TIMEOUT_MS}" >&2
+          exit 1
+        fi
+
+        BASE_HOST="$(echo "${BASE_URL}" | sed -E 's#^https://([^/]+).*$#\1#')"
+        EXPECTED_HOST="$(echo "${EXPECTED_SITE_URL}" | sed -E 's#^https://([^/]+).*$#\1#')"
+        if [[ "${BASE_HOST}" != "${EXPECTED_HOST}" ]]; then
+          echo "Host mismatch: base_url=${BASE_HOST}, expected_site_url=${EXPECTED_HOST}" >&2
+          exit 1
+        fi
+      run_script: |
+        npm run seo:smoke:prod -- \
+          --base-url "${{ inputs.base_url }}" \
+          --expected-site-url "${{ inputs.expected_site_url }}" \
+          --timeout-ms "${{ inputs.timeout_ms }}"
+      summary_script: |
+        echo "### Frontend SEO Postdeploy Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Environment: production" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Base URL: ${{ inputs.base_url }}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Expected Site URL: ${{ inputs.expected_site_url }}" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -f "reports/seo-postdeploy-smoke.json" ]]; then
+          node -e 'const fs=require("fs"); const p="reports/seo-postdeploy-smoke.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/seo-postdeploy-smoke.json" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "seo-postdeploy-smoke.json not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-seo-postdeploy-smoke-artifact
+      artifact_paths: reports/seo-postdeploy-smoke.json
+
+  home-widgets-postdeploy-smoke:
+    if: ${{ github.event.inputs.suite == 'home' }}
+    concurrency:
+      group: home-widgets-postdeploy-smoke-production
+      cancel-in-progress: false
+    uses: ./.github/workflows/_frontend-postdeploy-suite.yml
+    permissions:
+      contents: read
+    with:
+      working_directory: .
+      timeout_minutes: 15
+      environment_url: ${{ inputs.api_base_url }}
+      validate_script: |
+        API_BASE_URL="${{ inputs.api_base_url }}"
+        DATE_INPUT="${{ inputs.date }}"
+
+        if ! [[ "${API_BASE_URL}" =~ ^https:// ]]; then
+          echo "api_base_url must start with https:// : ${API_BASE_URL}" >&2
+          exit 1
+        fi
+
+        if [[ -n "${DATE_INPUT}" ]] && ! [[ "${DATE_INPUT}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+          echo "date must match YYYY-MM-DD: ${DATE_INPUT}" >&2
+          exit 1
+        fi
+      run_script: |
+        if [[ -n "${{ inputs.date }}" ]]; then
+          npm run smoke:home:contract:prod -- --api-base-url "${{ inputs.api_base_url }}" --date "${{ inputs.date }}"
+        else
+          npm run smoke:home:contract:prod -- --api-base-url "${{ inputs.api_base_url }}"
+        fi
+      summary_script: |
+        echo "### Home Widgets Postdeploy Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Environment: production" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- API base URL: ${{ inputs.api_base_url }}" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -n "${{ inputs.date }}" ]]; then
+          echo "- Requested date: ${{ inputs.date }}" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [[ -f "reports/home-widgets-contract-smoke.json" ]]; then
+          node -e 'const fs=require("fs"); const p="reports/home-widgets-contract-smoke.json"; const r=JSON.parse(fs.readFileSync(p,"utf8")); console.log(`Result: ${r.ok ? "PASS" : "FAIL"}`); if(Array.isArray(r.failures)&&r.failures.length){console.log("Failures:"); for(const f of r.failures){console.log(`- ${f}`);} } if(Array.isArray(r.warnings)&&r.warnings.length){console.log("Warnings:"); for(const w of r.warnings){console.log(`- ${w}`);} }' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/home-widgets-contract-smoke.json" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "home-widgets-contract-smoke.json not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: home-widgets-postdeploy-smoke-artifact
+      artifact_paths: reports/home-widgets-contract-smoke.json
+
+  real-integration-smoke:
+    if: ${{ github.event.inputs.suite == 'real' }}
+    uses: ./.github/workflows/_frontend-postdeploy-suite.yml
+    permissions:
+      contents: read
+    with:
+      working_directory: .
+      timeout_minutes: 30
+      environment_url: ${{ inputs.frontend_origin }}
+      env_exports: |
+        SMOKE_API_BASE_URL=${{ inputs.api_base_url }}
+        SMOKE_FRONTEND_ORIGIN=${{ inputs.frontend_origin }}
+        SMOKE_LOGIN_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+        SMOKE_LOGIN_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      validate_script: |
+        API_BASE_URL="${SMOKE_API_BASE_URL}"
+        FRONTEND_ORIGIN="${SMOKE_FRONTEND_ORIGIN}"
+        SKIP_SIGNUP_INPUT="${{ inputs.skip_signup }}"
+
+        if ! [[ "${API_BASE_URL}" =~ ^https?:// ]]; then
+          echo "api_base_url must start with http:// or https:// : ${API_BASE_URL}" >&2
+          exit 1
+        fi
+
+        if [[ -n "${FRONTEND_ORIGIN}" ]] && ! [[ "${FRONTEND_ORIGIN}" =~ ^https?:// ]]; then
+          echo "frontend_origin must start with http:// or https:// : ${FRONTEND_ORIGIN}" >&2
+          exit 1
+        fi
+
+        if [[ "${SKIP_SIGNUP_INPUT}" != "true" && "${SKIP_SIGNUP_INPUT}" != "false" ]]; then
+          echo "skip_signup must be true or false" >&2
+          exit 1
+        fi
+
+        if [[ "${SKIP_SIGNUP_INPUT}" == "true" ]]; then
+          if [[ -z "${SMOKE_LOGIN_EMAIL:-}" || -z "${SMOKE_LOGIN_PASSWORD:-}" ]]; then
+            echo "skip_signup=true requires repository secrets FRONTEND_REAL_SMOKE_LOGIN_EMAIL and FRONTEND_REAL_SMOKE_LOGIN_PASSWORD" >&2
+            exit 1
+          fi
+        fi
+
+        if [[ "${{ inputs.run_dm_smoke }}" == "true" ]]; then
+          for key in SMOKE_LOGIN_EMAIL SMOKE_LOGIN_PASSWORD DM_TARGET_EMAIL DM_TARGET_PASSWORD DM_TARGET_HANDLE; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "run_dm_smoke=true requires repository secret ${key}" >&2
+              exit 1
+            fi
+          done
+        fi
+      run_script: |
+        if [[ "${{ inputs.skip_signup }}" == "true" ]]; then
+          export SMOKE_SKIP_SIGNUP=1
+        else
+          export SMOKE_SKIP_SIGNUP=0
+        fi
+
+        npm run test:integration:real
+
+        if [[ "${{ inputs.run_dm_smoke }}" == "true" ]]; then
+          DM_API_BASE_URL="${SMOKE_API_BASE_URL}" \
+          DM_FRONTEND_ORIGIN="${SMOKE_FRONTEND_ORIGIN}" \
+          SMOKE_LOGIN_EMAIL="${SMOKE_LOGIN_EMAIL}" \
+          SMOKE_LOGIN_PASSWORD="${SMOKE_LOGIN_PASSWORD}" \
+          DM_TARGET_EMAIL="${DM_TARGET_EMAIL}" \
+          DM_TARGET_PASSWORD="${DM_TARGET_PASSWORD}" \
+          DM_TARGET_HANDLE="${DM_TARGET_HANDLE}" \
+          ../scripts/run_dm_authenticated_smoke_ci.sh
+        fi
+      summary_script: |
+        echo "### Frontend Real Integration Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- API base URL: ${SMOKE_API_BASE_URL}" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -n "${SMOKE_FRONTEND_ORIGIN}" ]]; then
+          echo "- Frontend origin: ${SMOKE_FRONTEND_ORIGIN}" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        echo "- skip_signup: ${{ inputs.skip_signup }}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- run_dm_smoke: ${{ inputs.run_dm_smoke }}" >> "${GITHUB_STEP_SUMMARY}"
+
+        if [[ -f "reports/real-integration-smoke-latest.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const reportPath = 'reports/real-integration-smoke-latest.json';
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const lines = [
+            `- Result: ${String(report.status || 'unknown').toUpperCase()}`,
+          ];
+
+          if (Array.isArray(report.steps) && report.steps.length > 0) {
+            lines.push('', '| Step | Status | Duration (ms) |');
+            lines.push('| --- | --- | ---: |');
+            for (const step of report.steps) {
+              lines.push(`| ${step.name} | ${step.status} | ${step.durationMs ?? '-'} |`);
+            }
+          }
+
+          if (Array.isArray(report.warnings) && report.warnings.length > 0) {
+            lines.push('', '**Warnings**');
+            for (const warning of report.warnings) {
+              lines.push(`- ${warning}`);
+            }
+          }
+
+          if (report.fatalError) {
+            lines.push('', '**Fatal Error**', `- ${report.fatalError}`);
+          }
+
+          console.log(lines.join('\n'));
+          NODE
+
+          echo '```json' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/real-integration-smoke-latest.json" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "real-integration-smoke-latest.json not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        if [[ -f "reports/dm-authenticated-smoke.log" ]]; then
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo '**DM Smoke Log**' >> "${GITHUB_STEP_SUMMARY}"
+          echo '```text' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/dm-authenticated-smoke.log" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-real-integration-smoke-artifact
+      artifact_paths: |
+        reports/real-integration-smoke-*.json
+        reports/real-integration-smoke-latest.json
+        reports/dm-authenticated-smoke.log
+
+  dm-authenticated-smoke:
+    if: ${{ github.event.inputs.suite == 'dm' }}
+    uses: ./.github/workflows/_frontend-postdeploy-suite.yml
+    permissions:
+      contents: read
+    with:
+      working_directory: .
+      timeout_minutes: 20
+      environment_url: ${{ inputs.frontend_origin }}
+      setup_node: false
+      env_exports: |
+        DM_API_BASE_URL=${{ inputs.api_base_url }}
+        DM_FRONTEND_ORIGIN=${{ inputs.frontend_origin }}
+        VERIFY_UNFOLLOW_REUSE=${{ inputs.verify_unfollow_reuse }}
+        DM_SENDER_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+        DM_SENDER_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      validate_script: |
+        if ! [[ "${DM_API_BASE_URL}" =~ ^https?:// ]]; then
+          echo "api_base_url must start with http:// or https:// : ${DM_API_BASE_URL}" >&2
+          exit 1
+        fi
+
+        if ! [[ "${DM_FRONTEND_ORIGIN}" =~ ^https?:// ]]; then
+          echo "frontend_origin must start with http:// or https:// : ${DM_FRONTEND_ORIGIN}" >&2
+          exit 1
+        fi
+
+        if [[ "${VERIFY_UNFOLLOW_REUSE}" != "true" && "${VERIFY_UNFOLLOW_REUSE}" != "false" ]]; then
+          echo "verify_unfollow_reuse must be true or false" >&2
+          exit 1
+        fi
+
+        for key in DM_SENDER_EMAIL DM_SENDER_PASSWORD DM_TARGET_EMAIL DM_TARGET_PASSWORD DM_TARGET_HANDLE; do
+          if [[ -z "${!key:-}" ]]; then
+            echo "Missing required repository secret for DM smoke: ${key}" >&2
+            exit 1
+          fi
+        done
+      run_script: |
+        DM_API_BASE_URL="${DM_API_BASE_URL}" \
+        DM_FRONTEND_ORIGIN="${DM_FRONTEND_ORIGIN}" \
+        VERIFY_UNFOLLOW_REUSE="${VERIFY_UNFOLLOW_REUSE}" \
+        DM_SENDER_EMAIL="${DM_SENDER_EMAIL}" \
+        DM_SENDER_PASSWORD="${DM_SENDER_PASSWORD}" \
+        DM_TARGET_EMAIL="${DM_TARGET_EMAIL}" \
+        DM_TARGET_PASSWORD="${DM_TARGET_PASSWORD}" \
+        DM_TARGET_HANDLE="${DM_TARGET_HANDLE}" \
+        ./scripts/run_dm_authenticated_smoke_ci.sh
+      summary_script: |
+        echo "### Frontend DM Authenticated Smoke" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- API base URL: ${DM_API_BASE_URL}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Frontend origin: ${DM_FRONTEND_ORIGIN}" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- verify_unfollow_reuse: ${VERIFY_UNFOLLOW_REUSE}" >> "${GITHUB_STEP_SUMMARY}"
+
+        if [[ -f "reports/dm-authenticated-smoke.log" ]]; then
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```text' >> "${GITHUB_STEP_SUMMARY}"
+          cat "reports/dm-authenticated-smoke.log" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "- dm-authenticated-smoke.log not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-dm-authenticated-smoke-artifact
+      artifact_paths: reports/dm-authenticated-smoke.log
