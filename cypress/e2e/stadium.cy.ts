@@ -342,8 +342,9 @@ describe('Stadium Guide Quality Flow', () => {
     cy.wait('@getStadiums');
     cy.wait('@getFoodPlaces');
 
-    // 실제 UI는 console에 '로드 실패'를 찍지만 사용자 메시지는 '불러오지 못했습니다'로 노출.
-    cy.contains('카카오맵 스크립트를 불러오지 못했습니다').should('be.visible');
+    // CI sets a dummy Kakao key and forces SDK load failure; local runs without the key
+    // still exercise the same map fallback state through the missing-key message.
+    cy.contains(/카카오맵 스크립트를 불러오지 못했습니다|카카오맵 API 키가 설정되지 않았습니다/).should('be.visible');
     cy.contains('button', '지도 다시 시도').should('be.visible');
     cy.screenshot('stadium-smoke-map-sdk-failure');
 
