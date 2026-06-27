@@ -393,11 +393,11 @@ describe('Prediction mobile smoke', () => {
     });
   });
 
-  it('shows top-right loading toast and a minimal in-card skeleton', () => {
+  it('shows the detail loading banner while preserving the match card shell', () => {
     runWhenStateActive('detail-loading', () => {
       visitSmokeState('detail-loading');
 
-      cy.get('[data-testid="prediction-detail-loading-skeleton"]', { timeout: 20000 })
+      cy.get('[data-testid="prediction-detail-refresh-indicator"]', { timeout: 20000 })
         .should('be.visible');
       cy.contains('경기 상세 정보를 불러오는 중입니다.', { timeout: 20000 })
         .should('be.visible');

@@ -130,6 +130,7 @@ jobs:
           set -euo pipefail
           SCRIPT_FILE="$(mktemp)"
           printf '%s\n' "${PRE_RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          sed -i -E 's/^[[:space:]]+NODE$/NODE/' "${SCRIPT_FILE}"
           bash -euo pipefail "${SCRIPT_FILE}"
 
       - name: Run suite
@@ -142,6 +143,7 @@ jobs:
           set -euo pipefail
           SCRIPT_FILE="$(mktemp)"
           printf '%s\n' "${RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          sed -i -E 's/^[[:space:]]+NODE$/NODE/' "${SCRIPT_FILE}"
           bash -euo pipefail "${SCRIPT_FILE}"
 
       - name: Run post-suite hook
@@ -154,6 +156,7 @@ jobs:
           set -euo pipefail
           SCRIPT_FILE="$(mktemp)"
           printf '%s\n' "${POST_RUN_SCRIPT}" > "${SCRIPT_FILE}"
+          sed -i -E 's/^[[:space:]]+NODE$/NODE/' "${SCRIPT_FILE}"
           bash -euo pipefail "${SCRIPT_FILE}"
 
       - name: Publish suite summary
@@ -166,6 +169,7 @@ jobs:
           set -euo pipefail
           SCRIPT_FILE="$(mktemp)"
           printf '%s\n' "${SUMMARY_SCRIPT}" > "${SCRIPT_FILE}"
+          sed -i -E 's/^[[:space:]]+NODE$/NODE/' "${SCRIPT_FILE}"
           bash -euo pipefail "${SCRIPT_FILE}"
 
       - name: Render PR comment
@@ -179,6 +183,7 @@ jobs:
           set -euo pipefail
           SCRIPT_FILE="$(mktemp)"
           printf '%s\n' "${COMMENT_SCRIPT}" > "${SCRIPT_FILE}"
+          sed -i -E 's/^[[:space:]]+NODE$/NODE/' "${SCRIPT_FILE}"
           bash -euo pipefail "${SCRIPT_FILE}"
 
       - name: Upsert PR comment

@@ -18,4 +18,4 @@ Disallow: /cheer/*
 Disallow: /profile/*
 Disallow: /predictions/ranking/share/*
 
-Sitemap: https://www.begabaseball.xyz/sitemap.xml
+Sitemap: https://www.begabaseball.com/sitemap.xml
