@@ -250,6 +250,8 @@
     "stadium:daegu:canonical-retrace-gate:require-approved": "node scripts/qa-presets.mjs stadium daegu canonical-retrace-gate:require-approved",
     "stadium:daegu:precision-audit": "node scripts/qa-presets.mjs stadium daegu precision-audit",
     "stadium:daegu:render-safety-audit": "node scripts/qa-presets.mjs stadium daegu render-safety-audit",
-    "ci:workflow-policy": "node scripts/ci-workflow-policy.mjs"
+    "ci:workflow-policy": "node scripts/ci-workflow-policy.mjs",
+    "qa:prediction:mobile:smoke:ranking": "node scripts/qa-presets.mjs prediction-mobile smoke-ranking",
+    "qa:prediction:mobile:smoke:ranking:attached": "node scripts/qa-presets.mjs prediction-mobile smoke-ranking-attached"
   }
 }

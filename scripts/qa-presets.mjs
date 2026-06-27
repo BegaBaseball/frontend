@@ -11,18 +11,8 @@ const printMode = cliArgs.includes('--print');
 const [group, preset, ...rawArgs] = cliArgs.filter((arg) => arg !== '--print');
 const passthroughArgs = rawArgs.filter((arg) => arg !== '--');
 
-const PREDICTION_MOBILE_STATES = [
-  'match',
-  'ranking',
-  'ranking-ended',
-  'ranking-init-error',
-  'ranking-saved-load-error',
-  'ranking-save-dialog',
-  'ranking-saved',
-  'detail-error',
-  'detail-not-found',
-  'vote-auth-expired',
-].join(',');
+const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,detail-loading,detail-error,top-notice';
+const PREDICTION_MOBILE_RANKING_SMOKE_STATES = 'ranking,ranking-ended,ranking-init-error,ranking-save-dialog,ranking-saved';
 
 const CYPRESS_SPECS = {
   coach: [
@@ -273,20 +263,32 @@ const PRESETS = {
   },
   'prediction-mobile': {
     default: nodeStep(['../output/playwright/run-prediction-mobile-regression.mjs']),
-    smoke: nodeStep(['../output/playwright/run-prediction-mobile-regression.mjs'], {
+    smoke: nodeStep(['scripts/run-prediction-mobile-smoke.mjs'], {
       PREDICTION_MOBILE_FORCE_START_DEV_SERVER: '1',
       PREDICTION_MOBILE_MANAGED_DEV_SERVER_PORT: '5177',
       VITE_SITE_URL: 'http://127.0.0.1:5177',
       VITE_API_BASE_URL: '/api',
-      PREDICTION_MOBILE_STATES,
+      PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_CORE_SMOKE_STATES,
+    }),
+    'smoke-ranking': nodeStep(['scripts/run-prediction-mobile-smoke.mjs'], {
+      PREDICTION_MOBILE_FORCE_START_DEV_SERVER: '1',
+      PREDICTION_MOBILE_MANAGED_DEV_SERVER_PORT: '5177',
+      VITE_SITE_URL: 'http://127.0.0.1:5177',
+      VITE_API_BASE_URL: '/api',
+      PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_RANKING_SMOKE_STATES,
     }),
     attached: nodeStep(['../output/playwright/run-prediction-mobile-regression.mjs'], {
       ...withDefaultEnv('AUDIT_BASE_URL', 'http://127.0.0.1:5177'),
       PREDICTION_MOBILE_AUTO_START_DEV_SERVER: '0',
     }),
-    'smoke-attached': nodeStep(['../output/playwright/run-prediction-mobile-regression.mjs'], {
+    'smoke-attached': nodeStep(['scripts/run-prediction-mobile-smoke.mjs'], {
       ...withDefaultEnv('AUDIT_BASE_URL', 'http://127.0.0.1:5177'),
-      PREDICTION_MOBILE_STATES,
+      PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_CORE_SMOKE_STATES,
+      PREDICTION_MOBILE_AUTO_START_DEV_SERVER: '0',
+    }),
+    'smoke-ranking-attached': nodeStep(['scripts/run-prediction-mobile-smoke.mjs'], {
+      ...withDefaultEnv('AUDIT_BASE_URL', 'http://127.0.0.1:5177'),
+      PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_RANKING_SMOKE_STATES,
       PREDICTION_MOBILE_AUTO_START_DEV_SERVER: '0',
     }),
     audit: nodeStep(['../output/playwright/prediction-mobile-audit.mjs']),
