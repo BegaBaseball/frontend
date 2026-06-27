@@ -52,8 +52,8 @@ jobs:
       post_run_script: |
         node scripts/prediction-mobile-summary-gate.mjs \
           --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
-          --expected-states "match,ranking,ranking-ended,ranking-init-error,ranking-saved-load-error,ranking-save-dialog,ranking-saved,detail-error,detail-not-found,vote-auth-expired" \
-          --expected-devices "iphone-se,iphone-12"
+          --expected-states "match,detail-loading,detail-error,top-notice" \
+          --expected-devices "mobile-390"
       summary_script: |
         SUMMARY_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.md"
         JSON_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json"
@@ -94,8 +94,11 @@ jobs:
       artifact_paths: |
         output/playwright/prediction-mobile-regression-summary.json
         output/playwright/prediction-mobile-regression-summary.md
-        output/playwright/prediction-mobile/report.json
-        output/playwright/prediction-mobile
+        output/playwright/prediction-mobile-smoke-core-summary.json
+        output/playwright/prediction-mobile-smoke-core-summary.md
+        output/playwright/prediction-mobile-smoke-index.json
+        output/playwright/prediction-mobile-smoke-index.md
+        output/playwright/prediction-mobile-smoke
       comment_enabled: true
       comment_path: reports/prediction-mobile/pr-comment.md
       comment_marker: "<!-- prediction-mobile-qa -->"
@@ -103,8 +106,8 @@ jobs:
         mkdir -p reports/prediction-mobile
         node scripts/prediction-mobile-pr-comment.mjs \
           --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
-          --expected-states "match,ranking,ranking-ended,ranking-init-error,ranking-saved-load-error,ranking-save-dialog,ranking-saved,detail-error,detail-not-found,vote-auth-expired" \
-          --expected-devices "iphone-se,iphone-12" \
+          --expected-states "match,detail-loading,detail-error,top-notice" \
+          --expected-devices "mobile-390" \
           --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           --artifact "frontend-prediction-mobile-qa-artifacts" \
           > reports/prediction-mobile/pr-comment.md
