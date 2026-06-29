@@ -338,13 +338,13 @@ export const evaluatePredictionScenarioSummary = ({
     }
 
     if (summary.livePolicy === 'manual-suppressed') {
-      if ((summary.minPostIdleLiveRequests ?? 0) < 1 || (summary.minPostIdleLiveRelayRequests ?? 0) < 1) {
+      if ((summary.minPostIdleLiveRelayRequests ?? 0) < 1) {
         pushScenarioFailure(failures, summary, 'SCENARIO_MISSING_MANUAL_DATA_REQUIRED_PROBE');
       }
-      if ((summary.maxPostIdleLiveRequests ?? 0) > 1 || (summary.maxPostIdleLiveRelayRequests ?? 0) > 1) {
+      if ((summary.maxPostIdleLiveRelayRequests ?? 0) > 1) {
         pushScenarioFailure(failures, summary, 'SCENARIO_MANUAL_DATA_REQUIRED_REPEATED_POLLING');
       }
-      if ((summary.maxAfterFocusLiveRequests ?? 0) !== 0 || (summary.maxAfterFocusLiveRelayRequests ?? 0) !== 0) {
+      if ((summary.maxAfterFocusLiveRelayRequests ?? 0) !== 0) {
         pushScenarioFailure(failures, summary, 'SCENARIO_MANUAL_DATA_REQUIRED_FOCUS_RETRY');
       }
     }

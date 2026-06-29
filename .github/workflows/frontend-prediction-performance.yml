@@ -105,6 +105,8 @@ jobs:
         export PREDICTION_PERF_GAME_ID="${GAME_ID}"
         export PREDICTION_PERF_ITERATIONS="${ITERATIONS}"
         export PREDICTION_PERF_SCENARIO_TIER="${SCENARIO_TIER}"
+        export PREDICTION_PERF_OUTPUT_ROOT="${GITHUB_WORKSPACE}/output/playwright/prediction-performance"
+        export PREDICTION_PERF_ARTIFACT_ROOT="${GITHUB_WORKSPACE}"
         if [[ -n "${API_BASE_URL}" ]]; then
           export PREDICTION_PERF_API_BASE_URL="${API_BASE_URL}"
         fi

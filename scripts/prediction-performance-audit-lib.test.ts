@@ -362,10 +362,10 @@ test('evaluatePredictionScenarioSummary fails live policy contract regressions',
         maxPreDetailDeferredRequests: 0,
         minPostIdleLiveRequests: 1,
         minPostIdleLiveRelayRequests: 1,
-        maxPostIdleLiveRequests: 2,
-        maxPostIdleLiveRelayRequests: 1,
-        maxAfterFocusLiveRequests: 1,
-        maxAfterFocusLiveRelayRequests: 0,
+        maxPostIdleLiveRequests: 3,
+        maxPostIdleLiveRelayRequests: 2,
+        maxAfterFocusLiveRequests: 2,
+        maxAfterFocusLiveRelayRequests: 1,
         failedEntryCount: 0,
       },
     ],
@@ -376,6 +376,36 @@ test('evaluatePredictionScenarioSummary fails live policy contract regressions',
   assert.ok(result.failures.includes('SCENARIO_MISSING_LIVE_REQUEST_AFTER_IDLE:today-live'));
   assert.ok(result.failures.includes('SCENARIO_MANUAL_DATA_REQUIRED_REPEATED_POLLING:manual-data-required'));
   assert.ok(result.failures.includes('SCENARIO_MANUAL_DATA_REQUIRED_FOCUS_RETRY:manual-data-required'));
+});
+
+test('evaluatePredictionScenarioSummary allows live score polling after manual relay suppression', () => {
+  const result = evaluatePredictionScenarioSummary({
+    budgets,
+    scenarioSummary: [{
+      id: 'manual-data-required',
+      requiresDetail: true,
+      livePolicy: 'manual-suppressed',
+      previewP95Ms: 800,
+      detailP95Ms: 1000,
+      reentryP95Ms: 100,
+      missingVoteButtonCount: 0,
+      maxDeepLinkBootstrapRequests: 1,
+      maxDeepLinkMatchesDayRequests: 0,
+      maxDeepLinkGameDetailRequests: 0,
+      maxDeepLinkVoteStatusRequests: 0,
+      maxPreDetailDeferredRequests: 0,
+      minPostIdleLiveRequests: 1,
+      minPostIdleLiveRelayRequests: 1,
+      maxPostIdleLiveRequests: 3,
+      maxPostIdleLiveRelayRequests: 1,
+      maxAfterFocusLiveRequests: 2,
+      maxAfterFocusLiveRelayRequests: 0,
+      failedEntryCount: 0,
+    }],
+  });
+
+  assert.equal(result.status, 'passed');
+  assert.deepEqual(result.failures, []);
 });
 
 test('evaluatePredictionScenarioSummary fails ranking deferred contract regressions', () => {
