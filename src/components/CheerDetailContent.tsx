@@ -140,7 +140,7 @@ export default function CheerDetailContent({
                 {[1, 2].map((item) => (
                     <div
                         key={item}
-                        className="flex animate-pulse gap-2.5 rounded-[16px] border border-slate-200 bg-white/80 p-2.5 dark:border-white/10 dark:bg-slate-900/70"
+                        className="flex animate-pulse gap-2.5 rounded-2xl border border-slate-200 bg-white/80 p-2.5 dark:border-white/10 dark:bg-slate-900/70"
                     >
                         <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800" />
                         <div className="flex-1 space-y-1.5">
@@ -155,7 +155,7 @@ export default function CheerDetailContent({
     );
     const articleFallback = (
         <article
-            className="relative mt-4 overflow-hidden rounded-[24px] border bg-white font-sans shadow-[0_20px_60px_-44px_rgba(15,23,42,0.42)] dark:bg-slate-950"
+            className="relative mt-4 overflow-hidden rounded-3xl border bg-white font-sans shadow-lg dark:bg-slate-950"
             style={primaryBorderStyle}
             aria-busy="true"
             aria-label="응원 상세 불러오는 중"
@@ -180,7 +180,7 @@ export default function CheerDetailContent({
                     <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800" />
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
-                    <div className="rounded-[22px] border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5" style={primaryBorderStyle}>
+                    <div className="rounded-22 border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5" style={primaryBorderStyle}>
                         <div className="animate-pulse space-y-3">
                             <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
                             <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
@@ -192,11 +192,11 @@ export default function CheerDetailContent({
                             </div>
                         </div>
                     </div>
-                    <div className="rounded-[16px] border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80" style={primaryBorderStyle}>
+                    <div className="rounded-2xl border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80" style={primaryBorderStyle}>
                         <div className="animate-pulse space-y-2">
                             <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-800" />
                             {[1, 2, 3].map((item) => (
-                                <div key={item} className="h-[44px] rounded-[12px] bg-slate-200 dark:bg-slate-800" />
+                                <div key={item} className="h-[44px] rounded-xl bg-slate-200 dark:bg-slate-800" />
                             ))}
                         </div>
                     </div>
@@ -286,7 +286,7 @@ export default function CheerDetailContent({
             {hasMountedReportModal ? (
                 <Suspense
                     fallback={isReportModalOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
                             신고 창을 불러오는 중...
                         </div>
                     ) : null}
@@ -301,7 +301,7 @@ export default function CheerDetailContent({
             {hasMountedQuoteEditor ? (
                 <Suspense
                     fallback={isQuoteEditorOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
                             인용 작성기를 불러오는 중...
                         </div>
                     ) : null}

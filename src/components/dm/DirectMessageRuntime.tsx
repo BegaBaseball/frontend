@@ -266,7 +266,7 @@ export default function DirectMessageRuntime() {
           <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
             {isAccessIssue ? '메시지 대화방에 접근할 수 없습니다.' : '메시지 화면을 불러오지 못했습니다.'}
           </h1>
-          <p className="mx-auto max-w-md text-[16px] leading-7 text-gray-500 dark:text-white">
+          <p className="mx-auto max-w-md text-body leading-7 text-gray-500 dark:text-white">
             {resolvedInlineError.message}
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -361,7 +361,7 @@ export default function DirectMessageRuntime() {
                           <p className="whitespace-pre-wrap break-words text-sm leading-6">
                             {message.content}
                           </p>
-                          <div className={`mt-2 text-[11px] ${isMine ? 'text-primary-foreground/80' : 'text-gray-400 dark:text-white'}`}>
+                          <div className={`mt-2 text-11 ${isMine ? 'text-primary-foreground/80' : 'text-gray-400 dark:text-white'}`}>
                             {new Date(message.createdAt).toLocaleTimeString('ko-KR', {
                               hour: '2-digit',
                               minute: '2-digit',

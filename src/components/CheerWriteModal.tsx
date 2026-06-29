@@ -227,7 +227,7 @@ export default function CheerWriteModal({
                                 <select
                                     value={shareMode}
                                     onChange={(e) => setShareMode(e.target.value as ShareMode)}
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 >
                                     <option value="INTERNAL_REPOST">내부 공유</option>
                                     <option value="INTERNAL_QUOTE">내부 인용</option>
@@ -240,49 +240,49 @@ export default function CheerWriteModal({
                                     value={sourceUrl}
                                     onChange={(e) => setSourceUrl(e.target.value)}
                                     placeholder="출처 URL (외부 모드 필수)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceTitle}
                                     onChange={(e) => setSourceTitle(e.target.value)}
                                     placeholder="원문 제목 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceAuthor}
                                     onChange={(e) => setSourceAuthor(e.target.value)}
                                     placeholder="작성자/권리자 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceLicense}
                                     onChange={(e) => setSourceLicense(e.target.value)}
                                     placeholder="라이선스 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceLicenseUrl}
                                     onChange={(e) => setSourceLicenseUrl(e.target.value)}
                                     placeholder="라이선스 URL (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceChangedNote}
                                     onChange={(e) => setSourceChangedNote(e.target.value)}
                                     placeholder="변경사항 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                                 <input
                                     value={sourceSnapshotType}
                                     onChange={(e) => setSourceSnapshotType(e.target.value)}
                                     placeholder="스냅샷 유형 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-[16px]"
+                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
                                 />
                             </div>
                             <AutosizeTextarea
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
-                                className="w-full resize-none border-none bg-transparent text-[16px] sm:text-[19px] lg:text-[20px] leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[150px] sm:min-h-[200px] lg:min-h-[300px]"
+                                className="w-full resize-none border-none bg-transparent text-body sm:text-19 lg:text-20 leading-relaxed text-[#0f1419] dark:text-white placeholder:text-[#536471] dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 min-h-[150px] sm:min-h-[200px] lg:min-h-[300px]"
                                 minRows={8}
                                 maxRows={15}
                                 value={content}

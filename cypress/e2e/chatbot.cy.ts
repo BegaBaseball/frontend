@@ -133,16 +133,24 @@ const setStoredMessageFavorite = (messageId: number, favorite: boolean) => {
 
 const buildSseBody = ({
     delta,
+    queueEvents = [],
     meta = defaultMeta,
     error,
     done = true,
 }: {
     delta?: string;
+    queueEvents?: Array<Record<string, unknown>>;
     meta?: Record<string, unknown> | null;
     error?: Record<string, unknown> | null;
     done?: boolean;
 }) => {
     const chunks: string[] = [];
+
+    queueEvents.forEach((queueEvent) => {
+        chunks.push('event: queue');
+        chunks.push(`data: ${JSON.stringify(queueEvent)}`);
+        chunks.push('');
+    });
 
     if (delta) {
         chunks.push('event: message');
@@ -1020,6 +1028,46 @@ describe('AI Chatbot', () => {
             cy.wait('@rateLimitedMessage');
             cy.contains('재시도 후 정상 응답이 도착했습니다.', { timeout: 10000 }).should('be.visible');
             cy.get('@rateLimitedMessage.all').should('have.length', 2);
+        });
+
+        it('shows queue position while the stream waits and then continues automatically', () => {
+            const message = 'queue this chatbot request';
+            const queuePadding = Array.from({ length: 1200 }, () => ': queue-wait').join('\n');
+            const body = [
+                'event: queue',
+                'data: {"state":"queued","queuePosition":2,"estimatedWaitTime":7,"rpmLimit":18}',
+                '',
+                queuePadding,
+                '',
+                ...buildSseBody({ delta: '대기 후 정상 응답이 도착했습니다.' }).split('\n'),
+            ].join('\n');
+
+            cy.intercept('POST', '**/ai/chat/stream*', (req) => {
+                if (String(req.body?.question || '') !== message) {
+                    req.continue();
+                    return;
+                }
+
+                req.reply({
+                    statusCode: 200,
+                    headers: {
+                        'content-type': 'text/event-stream',
+                    },
+                    throttleKbps: 4,
+                    body,
+                });
+            }).as('queuedMessage');
+
+            openChatbotAndWaitForGreeting();
+            typeAndSend(message);
+
+            cy.get('[data-testid="chatbot-queue-status"]', { timeout: 10000 })
+                .should('contain.text', '요청이 많아 잠시 대기 중입니다.')
+                .and('contain.text', '현재 많은 요청이 들어와 순서대로 처리하고 있습니다.')
+                .and('contain.text', '현재 대기 순서: 2번째')
+                .and('contain.text', '예상 대기 시간: 약 7초');
+
+            cy.contains('대기 후 정상 응답이 도착했습니다.', { timeout: 20000 }).should('be.visible');
         });
 
         it('shows a safe fallback message after repeated 503 responses', () => {

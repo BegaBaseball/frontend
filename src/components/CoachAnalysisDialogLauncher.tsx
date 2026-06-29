@@ -36,7 +36,7 @@ function CoachAnalysisTriggerButton({
       ) : (
         <PredictionZapIcon className="w-4 h-4 mr-2 text-emerald-50" />
       )}
-      <span className={`${fullWidth ? 'text-[15px] font-bold' : 'text-[16px] font-semibold'}`}>
+      <span className={`${fullWidth ? 'text-15 font-bold' : 'text-body font-semibold'}`}>
         {disabled ? '분석 도구 준비 중...' : buttonLabel}
       </span>
     </Button>

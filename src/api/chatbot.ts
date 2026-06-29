@@ -1,4 +1,4 @@
-import { ChatMeta, ChatRequest, VoiceResponse } from '../types/chatbot';
+import { ChatMeta, ChatQueueStatus, ChatRequest, VoiceResponse } from '../types/chatbot';
 import { AiStreamMetaPayload } from '../types/ai';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
 import { normalizeAiStreamMeta } from './aiMeta';
@@ -48,6 +48,8 @@ export class ChatStreamEventError extends Error {
 
 const DEFAULT_RETRY_AFTER_SECONDS = 10;
 
+export type { ChatQueueStatus };
+
 const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null => {
   if (!retryAfterHeader) return null;
 
@@ -69,7 +71,10 @@ export async function sendChatMessageStream(
   data: ChatRequest,
   onDelta: (delta: string) => void,
   onMeta?: (meta: ChatMeta) => void,
-  options?: { signal?: AbortSignal },
+  options?: {
+    signal?: AbortSignal;
+    onQueueStatus?: (status: ChatQueueStatus) => void;
+  },
 ): Promise<void> {
   const MAX_RETRIES = DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS;
   const READ_TIMEOUT_MS = DEFAULT_STREAM_TIMEOUT_MS;
@@ -164,6 +169,10 @@ export async function sendChatMessageStream(
           delta?: string;
           message?: string;
           detail?: string;
+          state?: string;
+          queuePosition?: number;
+          estimatedWaitTime?: number;
+          rpmLimit?: number;
         };
         try {
           parsed = JSON.parse(data);
@@ -184,6 +193,14 @@ export async function sendChatMessageStream(
             parsed.message,
             parsed.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.',
           );
+        } else if (event === 'queue' && options?.onQueueStatus) {
+          const state = parsed.state === 'processing' ? 'processing' : 'queued';
+          options.onQueueStatus({
+            state,
+            queuePosition: typeof parsed.queuePosition === 'number' ? parsed.queuePosition : 0,
+            estimatedWaitTime: typeof parsed.estimatedWaitTime === 'number' ? parsed.estimatedWaitTime : 0,
+            rpmLimit: typeof parsed.rpmLimit === 'number' ? parsed.rpmLimit : 0,
+          });
         } else if (event === 'meta' && onMeta) {
           onMeta({
             ...normalizeAiStreamMeta(parsed),

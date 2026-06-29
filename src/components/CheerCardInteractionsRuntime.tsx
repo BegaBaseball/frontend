@@ -219,7 +219,7 @@ export default function CheerCardInteractionsRuntime({
     };
 
     return (
-        <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-white">
+        <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-body font-semibold text-[#536471] dark:text-white">
             <button
                 type="button"
                 className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"
@@ -284,17 +284,17 @@ export default function CheerCardInteractionsRuntime({
                                 <UndoIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
-                                <span className="block text-[16px] font-bold text-red-600 dark:text-red-400">
+                                <span className="block text-body font-bold text-red-600 dark:text-red-400">
                                     리포스트 삭제
                                 </span>
-                                <span className="text-[16px] font-bold text-red-500/80 dark:text-red-400/80">
+                                <span className="text-body font-bold text-red-500/80 dark:text-red-400/80">
                                     내 프로필에서 제거됩니다
                                 </span>
                             </div>
                         </button>
                     ) : !canSimpleRepost && !canQuoteRepost ? (
                         <div className="px-4 py-3 text-center">
-                            <p className="text-[16px] font-bold text-gray-500 dark:text-white">
+                            <p className="text-body font-bold text-gray-500 dark:text-white">
                                 {repostUnavailableMessage}
                             </p>
                         </div>
@@ -315,7 +315,7 @@ export default function CheerCardInteractionsRuntime({
                                         )}
                                     </div>
                                     <div>
-                                        <span className={`block text-[16px] font-bold ${post.repostedByMe
+                                        <span className={`block text-body font-bold ${post.repostedByMe
                                             ? 'text-emerald-600 dark:text-emerald-400'
                                             : 'text-gray-700 dark:text-white'}`}
                                         >
@@ -335,14 +335,14 @@ export default function CheerCardInteractionsRuntime({
                                         <QuoteIcon className="w-4 h-4 text-gray-500 dark:text-white" />
                                     </div>
                                     <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
+                                        <span className="block text-body font-bold text-gray-700 dark:text-white">
                                             인용하기
                                         </span>
                                     </div>
                                 </button>
                             ) : isRepost ? (
                                 <div className="px-4 py-3 text-center">
-                                    <p className="text-[16px] font-bold text-gray-500 dark:text-white">
+                                    <p className="text-body font-bold text-gray-500 dark:text-white">
                                         {repostUnavailableMessage}
                                     </p>
                                 </div>
@@ -399,7 +399,7 @@ export default function CheerCardInteractionsRuntime({
                 {hasMountedCommentModal && (
                     <Suspense
                         fallback={isCommentModalOpen ? (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
                                 댓글 모달을 불러오는 중...
                             </div>
                         ) : null}
@@ -416,7 +416,7 @@ export default function CheerCardInteractionsRuntime({
                 {hasMountedQuoteEditor && (
                     <Suspense
                         fallback={isQuoteEditorOpen ? (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
                                 인용 작성기를 불러오는 중...
                             </div>
                         ) : null}

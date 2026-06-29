@@ -12,11 +12,12 @@ import {
   getCoachBriefingDataQualityNotice,
   resolveCoachAnalysisPresentation,
 } from '../utils/predictionCoachPresentation';
+import { isCoachAutoBriefingSourceReady } from '../utils/predictionCoachPolicy';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/manualBaseballDataContract';
 import { useAuthAccessActions } from '../store/authStore';
 import { getCurrentRelativeUrl } from '../utils/loginRedirect';
 
-import type { CoachBriefingMetaState } from './CoachBriefingAutoRuntime';
+import type { CoachBriefingMetaState } from '../utils/coachBriefingCache';
 import { resolveCoachEvidenceCount } from './prediction/coachEvidenceCore';
 
 const CoachBriefingAutoRuntime = lazy(() => import('./CoachBriefingAutoRuntime'));
@@ -110,8 +111,13 @@ const getReasonFlowParticle = (value: string): '로' | '으로' => {
 const buildCoachBriefingInlineNote = (
   notice: { message: string; reasons: string[]; details: string[] } | null,
   warnings?: string[],
+  preferNoticeMessage = false,
 ): string | null => {
   if (notice) {
+    if (preferNoticeMessage) {
+      return notice.message;
+    }
+
     const reasonText = notice.reasons.slice(0, 2).join('/');
 
     if (reasonText) {
@@ -163,11 +169,15 @@ export default function CoachBriefing({
   });
   const isGuestBlocked = !isLoggedIn && !isAuthLoading;
   const isAuthCheckPending = isAuthLoading;
-  const isGameDetailReady = Boolean(gameDetail && gameDetail.gameId === game?.gameId);
+  const isAutoBriefingSourceReady = isCoachAutoBriefingSourceReady({
+    game,
+    gameDetail,
+    analysisType,
+  });
   const isRefreshingBriefing = aiLoading && aiBriefing != null;
-  const shouldStartAutoBriefing = effectiveAutoEnabled && hasActivatedAutoBriefing && isGameDetailReady;
+  const shouldStartAutoBriefing = effectiveAutoEnabled && hasActivatedAutoBriefing && isAutoBriefingSourceReady;
   const loginRequiredMessage = effectiveAutoEnabled
-    ? '실데이터 브리핑은 로그인 후 제공됩니다.'
+    ? '경기 데이터 브리핑은 로그인 후 제공됩니다.'
     : analysisPresentation.loginRequiredMessage;
   const authExpiredMessage = effectiveAutoEnabled
     ? '로그인 세션이 만료되었습니다. 다시 로그인 후 브리핑을 확인해주세요.'
@@ -195,7 +205,7 @@ export default function CoachBriefing({
     usedEvidence: briefingMeta?.usedEvidence,
   });
   const briefingFreshnessLabel = aiBriefing
-    ? (isRefreshingBriefing ? '갱신 중' : '최신 갱신')
+    ? (isRefreshingBriefing ? '갱신 중' : '갱신 확인')
     : null;
   const summaryPoints = buildCoachBriefingSummaryPoints(aiBriefing?.displayText || aiBriefing?.message || '');
   const pendingBriefingLabel = briefingMeta?.analysisType === 'game_review'
@@ -225,7 +235,7 @@ export default function CoachBriefing({
     }
 
     if (briefingMeta?.dataQuality === 'partial') {
-      return '실데이터 일부가 비어 있어 최근 흐름 중심으로 정리했습니다.';
+      return null;
     }
 
     if (briefingMeta?.dataQuality === 'insufficient') {
@@ -265,13 +275,22 @@ export default function CoachBriefing({
       return 'info' as const;
     }
 
-    if (briefingMeta?.dataQuality === 'partial' || briefingMeta?.dataQuality === 'insufficient') {
+    if (briefingMeta?.dataQuality === 'insufficient') {
       return 'warning' as const;
     }
 
-    return 'info' as const;
+    return briefingMeta?.dataQuality === 'partial'
+      ? 'neutral' as const
+      : 'info' as const;
   })();
-  const inlineDataQualityNote = buildCoachBriefingInlineNote(dataQualityNotice, briefingMeta?.groundingWarnings);
+  const inlineDataQualityNote = buildCoachBriefingInlineNote(
+    dataQualityNotice,
+    briefingMeta?.groundingWarnings,
+    briefingMeta?.dataQuality === 'partial',
+  );
+  const inlineDataQualityNoteTone = inlineDataQualityNote
+    ? (briefingMeta?.dataQuality === 'partial' ? 'neutral' as const : 'warning' as const)
+    : null;
   const showSummaryPoints = effectiveAutoEnabled
     && !showLoginAction
     && !isAuthCheckPending
@@ -291,13 +310,13 @@ export default function CoachBriefing({
       return;
     }
 
-    if (isAuthCheckPending || isGuestBlocked || !isGameDetailReady) {
+    if (isAuthCheckPending || isGuestBlocked || !isAutoBriefingSourceReady) {
       setHasActivatedAutoBriefing(false);
       return;
     }
 
     setHasActivatedAutoBriefing(true);
-  }, [effectiveAutoEnabled, isAuthCheckPending, isGameDetailReady, isGuestBlocked]);
+  }, [effectiveAutoEnabled, isAuthCheckPending, isAutoBriefingSourceReady, isGuestBlocked]);
 
   const getSeasonSummary = () => {
     if (!seasonContext || !seasonContext.home || !seasonContext.away) return null;
@@ -323,7 +342,7 @@ export default function CoachBriefing({
   };
 
   const activeTitle = effectiveAutoEnabled
-    ? (aiBriefing?.title ?? '실데이터 브리핑')
+    ? (aiBriefing?.title ?? '경기 데이터 브리핑')
     : analysisPresentation.title;
   const activeMessage = authExpired
     ? authExpiredMessage
@@ -332,16 +351,16 @@ export default function CoachBriefing({
       : isAuthCheckPending && !aiBriefing
         ? '로그인 상태를 확인하는 중입니다.'
         : isAwaitingAutoBriefing
-          ? '이 브리핑 카드를 확인하면 실데이터 브리핑을 불러옵니다.'
+          ? '이 브리핑 카드를 확인하면 경기 데이터 브리핑을 불러옵니다.'
           : effectiveAutoEnabled
             ? ((briefingMeta?.cacheState === 'FAILED_LOCKED'
               ? '현재 브리핑 캐시가 잠겨 있습니다. 운영 갱신 후 다시 확인해 주세요.'
               : isRefreshingBriefing
                 ? (aiBriefing?.displayText ?? aiBriefing?.message)
                 : aiLoading
-                  ? '실데이터를 모아 경기 맥락 브리핑을 정리하는 중입니다.'
+                  ? '경기 데이터를 모아 맥락 브리핑을 정리하는 중입니다.'
                   : (aiBriefing?.displayText ?? aiBriefing?.message))
-              || '실데이터 브리핑을 준비하지 못했습니다.')
+              || '경기 데이터 브리핑을 준비하지 못했습니다.')
             : (forceManual || isFutureGame)
               ? `현재 매치업의 승부처는 ${analysisPresentation.title}에서 확인할 수 있습니다.`
               : `현재 매치업의 해석은 ${analysisPresentation.title}에서 확인할 수 있습니다.`;
@@ -387,6 +406,7 @@ export default function CoachBriefing({
           showSummaryPoints={showSummaryPoints}
           summaryPoints={summaryPoints}
           inlineDataQualityNote={inlineDataQualityNote}
+          inlineDataQualityNoteTone={inlineDataQualityNoteTone}
           showLoginAction={showLoginAction}
           isAuthCheckPending={isAuthCheckPending}
           aiLoading={aiLoading}
@@ -395,13 +415,17 @@ export default function CoachBriefing({
           onLoginAction={handleLoginAction}
           game={game}
           gameStatusBucket={gameDetail?.gameStatus}
+          homeScore={gameDetail?.homeScore ?? game?.homeScore ?? null}
+          awayScore={gameDetail?.awayScore ?? game?.awayScore ?? null}
           homePitcherName={homePitcherName}
           awayPitcherName={awayPitcherName}
           isPastGame={isPastGame}
           isFutureGame={isFutureGame}
           homeTeamId={game?.homeTeam ?? null}
           awayTeamId={game?.awayTeam ?? null}
-          winProbabilityHome={briefingMeta?.winProbabilityHome ?? null}
+          homeRank={seasonContext?.home?.rank ?? null}
+          awayRank={seasonContext?.away?.rank ?? null}
+          winProbabilityHome={briefingMeta?.winProbabilityHome ?? game?.winProbability?.home ?? null}
           usedEvidence={briefingMeta?.usedEvidence}
           groundingWarnings={briefingMeta?.groundingWarnings}
           groundingReasons={briefingMeta?.groundingReasons}

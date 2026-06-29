@@ -45,7 +45,7 @@ export default function CheerMobileBottomNav({
       aria-label="응원석 모바일 네비게이션"
     >
       {/* Floating glass capsule */}
-      <div className="mx-auto grid h-[var(--mobile-chrome-height)] max-w-sm grid-cols-5 items-stretch gap-0.5 rounded-[22px] border border-white/80 bg-white/88 p-1.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_18px_40px_-16px_rgba(15,67,56,.35)] backdrop-blur-xl dark:border-white/12 dark:bg-[hsl(var(--surface-raised))] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.06),0_18px_40px_-16px_rgba(15,120,85,0.18)]">
+      <div className="mx-auto grid h-[var(--mobile-chrome-height)] max-w-sm grid-cols-5 items-stretch gap-0.5 rounded-22 border border-white/80 bg-white/88 p-1.5 shadow-cheer-mobile-chrome backdrop-blur-xl dark:border-white/12 dark:bg-[hsl(var(--surface-raised))] dark:shadow-cheer-mobile-chrome-dark">
         {items.map((item) => {
           const Icon = item.icon;
           const isWrite = item.id === 'write';
@@ -63,9 +63,9 @@ export default function CheerMobileBottomNav({
                 navigate(item.path);
               }}
               className={cn(
-                'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 text-[10.5px] font-black transition-all duration-200 active:scale-[0.97]',
+                'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-18 px-1 text-[10.5px] font-black transition-all duration-200 active:scale-[0.97]',
                 isActive
-                  ? 'bg-primary text-white shadow-[0_4px_12px_-4px_rgba(45,95,79,.4)]'
+                  ? 'bg-primary text-white shadow-mobile-tab-active'
                   : 'text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8',
               )}
               style={isActive && !isWrite ? { backgroundColor: teamAccent } : undefined}
@@ -76,7 +76,7 @@ export default function CheerMobileBottomNav({
               {isWrite ? (
                 <>
                   <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[0_4px_12px_rgba(15,23,42,0.22)]"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white shadow-mobile-action"
                     style={{ backgroundColor: teamAccent }}
                   >
                     <Icon className="h-4.5 w-4.5" />

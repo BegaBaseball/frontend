@@ -23,18 +23,18 @@ export function OffseasonDesktopTable({
 
     return (
         <div className="space-y-4 px-4 pb-4 pt-2 md:px-5 md:pb-5">
-            <div className="flex items-center justify-between rounded-[28px] border border-zinc-200/80 bg-white px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center justify-between rounded-28 border border-zinc-200/80 bg-white px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="space-y-1">
-                    <p className="text-[15px] font-black uppercase tracking-[0.2em] text-zinc-400">Desktop Table View</p>
-                    <p className="text-[15px] font-semibold text-zinc-600 dark:text-white">
+                    <p className="text-15 font-black uppercase tracking-[0.2em] text-zinc-400">Desktop Table View</p>
+                    <p className="text-15 font-semibold text-zinc-600 dark:text-white">
                         헤드라인 {headlineCount}건, 금액 표기 {amountVisibleCount}건 포함
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[14px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-caption font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                         정렬: {activeSortLabel}
                     </OffseasonPill>
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-caption font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                         총 {movements.length}행
                     </OffseasonPill>
                 </div>
@@ -53,8 +53,8 @@ export function OffseasonDesktopTable({
                                     }`}
                             >
                                 <span className="space-y-1">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Date</span>
-                                    <span className="block text-[15px] font-bold">날짜</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em]">Date</span>
+                                    <span className="block text-15 font-bold">날짜</span>
                                 </span>
                                 <ArrowUpDownIcon className={`h-4 w-4 ${sortOrder === 'latest' ? 'opacity-100' : 'opacity-40'}`} />
                             </button>
@@ -62,32 +62,32 @@ export function OffseasonDesktopTable({
                         <TableHead className="h-auto w-[130px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Section</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">구분</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em] text-zinc-400">Section</span>
+                                    <span className="block text-15 font-bold text-zinc-700 dark:text-white">구분</span>
                                 </span>
                             </div>
                         </TableHead>
                         <TableHead className="h-auto w-[220px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Club</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">팀</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em] text-zinc-400">Club</span>
+                                    <span className="block text-15 font-bold text-zinc-700 dark:text-white">팀</span>
                                 </span>
                             </div>
                         </TableHead>
                         <TableHead className="h-auto w-[220px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Player</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">선수</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em] text-zinc-400">Player</span>
+                                    <span className="block text-15 font-bold text-zinc-700 dark:text-white">선수</span>
                                 </span>
                             </div>
                         </TableHead>
                         <TableHead className="h-auto min-w-[340px] px-2 py-0">
                             <div className="flex h-14 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-left dark:border-zinc-800 dark:bg-zinc-900">
                                 <span className="space-y-1">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">Details</span>
-                                    <span className="block text-[15px] font-bold text-zinc-700 dark:text-white">계약 내용</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em] text-zinc-400">Details</span>
+                                    <span className="block text-15 font-bold text-zinc-700 dark:text-white">계약 내용</span>
                                 </span>
                             </div>
                         </TableHead>
@@ -101,8 +101,8 @@ export function OffseasonDesktopTable({
                                     }`}
                             >
                                 <span className="space-y-1 text-right">
-                                    <span className="block text-[14px] font-black uppercase tracking-[0.2em]">Amount</span>
-                                    <span className="block text-[15px] font-bold">금액</span>
+                                    <span className="block text-caption font-black uppercase tracking-[0.2em]">Amount</span>
+                                    <span className="block text-15 font-bold">금액</span>
                                 </span>
                                 <ArrowUpDownIcon className={`h-4 w-4 ${sortOrder === 'amount' ? 'opacity-100' : 'opacity-40'}`} />
                             </button>
@@ -128,20 +128,20 @@ export function OffseasonDesktopTable({
                                     }
                                 }}
                             >
-                                <TableCell className={`rounded-l-[26px] border-y border-l px-5 py-4 align-top ${item.isBigEvent
+                                <TableCell className={`rounded-l-26 border-y border-l px-5 py-4 align-top ${item.isBigEvent
                                     ? 'border-emerald-200 bg-emerald-50/75 dark:border-emerald-900/50 dark:bg-emerald-950/20'
                                     : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'
                                     }`}>
                                     <div className="relative pl-4">
                                         <span className={`absolute left-0 top-0 h-full w-1 rounded-full ${item.isBigEvent ? 'bg-yellow-400' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                                         <div className="space-y-2">
-                                            <p className="text-[14px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                                            <p className="text-caption font-black uppercase tracking-[0.2em] text-zinc-400">
                                                 {item.isBigEvent ? 'Headline' : 'Update'}
                                             </p>
-                                            <p className="text-[15px] font-black tabular-nums tracking-tight text-zinc-900 dark:text-white">
+                                            <p className="text-15 font-black tabular-nums tracking-tight text-zinc-900 dark:text-white">
                                                 {formatDateLabel(item.date)}
                                             </p>
-                                            <p className="text-[14px] font-semibold text-zinc-400 dark:text-white">ID #{item.id}</p>
+                                            <p className="text-caption font-semibold text-zinc-400 dark:text-white">ID #{item.id}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -160,8 +160,8 @@ export function OffseasonDesktopTable({
                                             <TeamLogo team={teamName} size={28} />
                                         </div>
                                         <div className="space-y-0.5">
-                                            <p className="text-[15px] font-extrabold tracking-tight text-zinc-800 dark:text-white">{teamName}</p>
-                                            <p className="text-[14px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-white">{item.team}</p>
+                                            <p className="text-15 font-extrabold tracking-tight text-zinc-800 dark:text-white">{teamName}</p>
+                                            <p className="text-caption font-semibold uppercase tracking-wide text-zinc-400 dark:text-white">{item.team}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -179,34 +179,34 @@ export function OffseasonDesktopTable({
                                             )}
                                         </div>
                                         {item.isBigEvent && (
-                                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[14px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                                <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-caption font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                                     헤드라인 이동
                                                 </OffseasonPill>
                                             )}
                                     </div>
                                 </TableCell>
-                                <TableCell className={`border-y px-3 py-4 align-top text-[15px] font-semibold leading-relaxed ${item.isBigEvent
+                                <TableCell className={`border-y px-3 py-4 align-top text-15 font-semibold leading-relaxed ${item.isBigEvent
                                     ? 'border-emerald-200 bg-emerald-50/75 text-zinc-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-white'
                                     : 'border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/90 dark:text-white'
                                     }`}>
                                     <div className="space-y-2">
-                                        <p className="text-[15px] font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
+                                        <p className="text-15 font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
                                         <div className="line-clamp-2">{formatRemarks(summary)}</div>
                                     </div>
                                 </TableCell>
-                                <TableCell className={`rounded-r-[26px] border-y border-r px-5 py-4 align-top text-right ${item.isBigEvent
+                                <TableCell className={`rounded-r-26 border-y border-r px-5 py-4 align-top text-right ${item.isBigEvent
                                     ? 'border-emerald-200 bg-emerald-50/75 dark:border-emerald-900/50 dark:bg-emerald-950/20'
                                     : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'
                                     }`}>
                                     <div className="space-y-2">
-                                        <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Deal Value</p>
-                                        <div className={`inline-flex rounded-2xl px-3 py-2 text-[15px] font-black tracking-tight ${amountLabel
+                                        <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">Deal Value</p>
+                                        <div className={`inline-flex rounded-2xl px-3 py-2 text-15 font-black tracking-tight ${amountLabel
                                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
                                             : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-white'
                                             }`}>
                                             {amountLabel || '비공개'}
                                         </div>
-                                        <p className="text-[14px] font-semibold text-zinc-400 dark:text-white">
+                                        <p className="text-caption font-semibold text-zinc-400 dark:text-white">
                                             {item.team}
                                         </p>
                                     </div>

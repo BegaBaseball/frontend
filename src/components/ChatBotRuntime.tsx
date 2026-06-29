@@ -98,7 +98,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
     bg-white dark:bg-black border border-gray-200 dark:border-white/10
     ${isMobile
       ? 'inset-0 rounded-none max-h-[100dvh] max-w-full'
-      : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] sm:right-[calc(1.125rem+env(safe-area-inset-right))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] lg:right-[calc(1.5rem+env(safe-area-inset-right))] w-[min(400px,calc(100vw-2rem))] sm:w-[min(420px,calc(100vw-2.25rem))] h-[600px] rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
+      : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] sm:bottom-[calc(1.125rem+env(safe-area-inset-bottom))] sm:right-[calc(1.125rem+env(safe-area-inset-right))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] lg:right-[calc(1.5rem+env(safe-area-inset-right))] w-[min(400px,calc(100vw-2rem))] sm:w-[min(420px,calc(100vw-2.25rem))] h-[600px] rounded-3xl shadow-2xl'
     }
   `;
 
@@ -118,12 +118,12 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-white font-bold text-[16px] md:text-[16px] m-0">야구 가이드 BEGA</h3>
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[16px] font-semibold text-white">
+              <h3 className="text-white font-bold text-body md:text-body m-0">야구 가이드 BEGA</h3>
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-body font-semibold text-white">
                 Beta
               </span>
             </div>
-            <p className="text-white/80 text-[16px] m-0 truncate max-w-[220px]">대화 준비 중</p>
+            <p className="text-white/80 text-body m-0 truncate max-w-[220px]">대화 준비 중</p>
           </div>
         </div>
         <button
@@ -135,7 +135,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
           <CloseIcon className="w-5 h-5" />
         </button>
       </div>
-      <div className="flex flex-1 items-center justify-center text-[16px] text-muted-foreground">
+      <div className="flex flex-1 items-center justify-center text-body text-muted-foreground">
         <SpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
         챗봇을 준비하는 중입니다.
       </div>
@@ -160,14 +160,14 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-white font-bold text-[16px] md:text-[16px] m-0">야구 가이드 BEGA</h3>
-                  <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[16px] font-semibold text-white">
+                  <h3 className="text-white font-bold text-body md:text-body m-0">야구 가이드 BEGA</h3>
+                  <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-body font-semibold text-white">
                     Beta
                   </span>
                 </div>
                 <p
                   data-testid="chatbot-session-title"
-                  className="text-white/80 text-[16px] m-0 truncate max-w-[220px]"
+                  className="text-white/80 text-body m-0 truncate max-w-[220px]"
                 >
                   야구 정보 안내
                 </p>
@@ -188,7 +188,7 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
               <div className="flex items-center justify-center h-full">
                 <div className="text-center p-6 rounded-2xl bg-gray-100 dark:bg-card/50 border border-gray-300 dark:border-white/10">
                   <h3 className="text-gray-900 dark:text-white font-bold mb-2">로그인이 필요합니다</h3>
-                  <p className="text-gray-600 dark:text-white text-[16px] font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
+                  <p className="text-gray-600 dark:text-white text-body font-semibold mb-4">야구 가이드 챗봇은 로그인 후 이용하실 수 있습니다.</p>
                   <button
                     type="button"
                     onClick={handleNavigateToLogin}
@@ -204,11 +204,11 @@ export default function ChatBotRuntime({ autoOpen = false, onClosed }: ChatBotPr
                 type="button"
                 data-testid="chatbot-login-cta-footer"
                 onClick={handleNavigateToLogin}
-                className="flex w-full items-center justify-center rounded-2xl bg-primary px-4 py-3 text-[16px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
+                className="flex w-full items-center justify-center rounded-2xl bg-primary px-4 py-3 text-body font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
               >
                 로그인 후 질문하기
               </button>
-              <p className="mt-2 text-center text-[16px] text-muted-foreground">
+              <p className="mt-2 text-center text-body text-muted-foreground">
                 경기 정보, 규정, 선수 기록 질문을 로그인 후 바로 이어서 확인할 수 있습니다.
               </p>
             </div>

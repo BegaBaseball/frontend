@@ -226,11 +226,11 @@ export default function CheerDetail() {
         return (
             <div className="min-h-screen bg-slate-50 font-sans px-4 py-12 dark:bg-background">
                 <div className="mx-auto flex max-w-xl justify-center">
-                    <div className="w-full rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
+                    <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
                         <p className="text-base font-bold text-slate-900 dark:text-white">
                             게시글을 불러오지 못했습니다.
                         </p>
-                        <p className="mt-2 text-[16px] font-bold text-slate-600 dark:text-white">
+                        <p className="mt-2 text-body font-bold text-slate-600 dark:text-white">
                             {detailErrorMessage}
                         </p>
                         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -252,7 +252,7 @@ export default function CheerDetail() {
             <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8">
                 <Suspense
                     fallback={(
-                        <div className="mt-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950">
+                        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950">
                             <div className="mb-4 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
                             <div className="space-y-4">
                                 <div className="flex items-start gap-3">
@@ -262,10 +262,10 @@ export default function CheerDetail() {
                                         <div className="h-3 w-56 rounded bg-slate-100 dark:bg-slate-800" />
                                     </div>
                                 </div>
-                                <div className="h-32 rounded-[22px] bg-slate-100 dark:bg-slate-800" />
+                                <div className="h-32 rounded-22 bg-slate-100 dark:bg-slate-800" />
                                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
-                                    <div className="h-64 rounded-[22px] bg-slate-100 dark:bg-slate-800" />
-                                    <div className="h-40 rounded-[18px] bg-slate-100 dark:bg-slate-800" />
+                                    <div className="h-64 rounded-22 bg-slate-100 dark:bg-slate-800" />
+                                    <div className="h-40 rounded-18 bg-slate-100 dark:bg-slate-800" />
                                 </div>
                             </div>
                         </div>

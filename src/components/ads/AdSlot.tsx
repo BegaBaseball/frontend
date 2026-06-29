@@ -40,9 +40,9 @@ const VIEWABLE_THRESHOLD = 0.5;
 const VIEWABLE_DELAY_MS = 1000;
 
 const CREATIVE_STYLES: Record<AdCreativeType, string> = {
-  native_card: 'rounded-[20px] border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
-  sponsor_card: 'rounded-[20px] border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
-  banner: 'rounded-[20px] border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
+  native_card: 'rounded-20 border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
+  sponsor_card: 'rounded-20 border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
+  banner: 'rounded-20 border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#000000]',
 };
 
 const joinClassNames = (...values: Array<string | undefined | false>): string => {
@@ -350,7 +350,7 @@ export default function AdSlot({
       data-ad-slot={slotId}
       data-ad-variant={variant}
     >
-      <div className="mb-3 flex items-center justify-between gap-2 text-[15px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-white">
+      <div className="mb-3 flex items-center justify-between gap-2 text-15 font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-white">
         <span>광고</span>
         <span>{slotId}</span>
       </div>
