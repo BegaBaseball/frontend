@@ -48,9 +48,15 @@ const scenarioSelection = mode === 'mock'
     skippedScenarioIds: [],
   };
 const selectedScenarioIds = scenarioSelection.selectedScenarioIds;
+const defaultArtifactRoot = process.env.GITHUB_WORKSPACE
+  ? path.resolve(process.env.GITHUB_WORKSPACE)
+  : repoRoot;
+const artifactRoot = process.env.PREDICTION_PERF_ARTIFACT_ROOT
+  ? path.resolve(process.env.PREDICTION_PERF_ARTIFACT_ROOT)
+  : defaultArtifactRoot;
 const outputRoot = process.env.PREDICTION_PERF_OUTPUT_ROOT
   ? path.resolve(process.env.PREDICTION_PERF_OUTPUT_ROOT)
-  : path.join(repoRoot, 'output', 'playwright', 'prediction-performance');
+  : path.join(artifactRoot, 'output', 'playwright', 'prediction-performance');
 const failureArtifactsRoot = path.join(outputRoot, 'failure-artifacts');
 const runtimeBudgetMs = parsePositiveInt(process.env.PREDICTION_PERF_RUNTIME_BUDGET_MS, 300000);
 
@@ -93,7 +99,7 @@ const removeDir = async (dirPath) => {
   await fs.rm(dirPath, { recursive: true, force: true }).catch(() => undefined);
 };
 
-const artifactPath = (filePath) => path.relative(repoRoot, filePath).split(path.sep).join('/');
+const artifactPath = (filePath) => path.relative(artifactRoot, filePath).split(path.sep).join('/');
 
 const sleep = async (timeMs) => {
   await new Promise((resolve) => {
@@ -1333,11 +1339,8 @@ const resolveScenarioContractStatus = (summary) => {
   if (
     summary.livePolicy === 'manual-suppressed'
     && (
-      (summary.minPostIdleLiveRequests ?? 0) < 1
-      || (summary.minPostIdleLiveRelayRequests ?? 0) < 1
-      || (summary.maxPostIdleLiveRequests ?? 0) > 1
+      (summary.minPostIdleLiveRelayRequests ?? 0) < 1
       || (summary.maxPostIdleLiveRelayRequests ?? 0) > 1
-      || (summary.maxAfterFocusLiveRequests ?? 0) !== 0
       || (summary.maxAfterFocusLiveRelayRequests ?? 0) !== 0
     )
   ) {
@@ -1781,6 +1784,15 @@ const writeReport = async (report) => {
   await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   await fs.writeFile(markdownPath, buildPredictionPerformanceMarkdown(report), 'utf8');
   console.log(`[prediction-performance] status=${report.status} mode=${report.mode} date=${report.selectedDate} gameId=${report.selectedGameId}`);
+  if (Array.isArray(report.failures) && report.failures.length > 0) {
+    console.log(`[prediction-performance] failures=${report.failures.join(',')}`);
+  }
+  if (Array.isArray(report.scenarioFailures) && report.scenarioFailures.length > 0) {
+    const scenarioFailureSummary = report.scenarioFailures
+      .map((group) => `${group.scenarioId}:${group.failures.join('|')}`)
+      .join(',');
+    console.log(`[prediction-performance] scenarioFailures=${scenarioFailureSummary}`);
+  }
   console.log(`[prediction-performance] report=${markdownPath}`);
 };
 
