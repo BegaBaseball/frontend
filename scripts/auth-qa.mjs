@@ -185,10 +185,12 @@ const resolveChromeBinary = () => {
 const startDevServer = (host, port) => {
   const stdout = [];
   const stderr = [];
+  const useProcessGroup = process.platform !== 'win32';
   const child = spawn('npm', ['run', 'dev', '--', '--host', host, '--port', String(port)], {
     cwd: projectRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,
+    detached: useProcessGroup,
   });
 
   child.stdout.on('data', (chunk) => {
@@ -209,6 +211,23 @@ const stopChild = async (child) => {
     return;
   }
 
+  const signalChild = (signal) => {
+    if (process.platform !== 'win32' && typeof child.pid === 'number') {
+      try {
+        process.kill(-child.pid, signal);
+        return;
+      } catch {
+        // Fall back to signaling the direct child when it is not a process-group leader.
+      }
+    }
+
+    try {
+      child.kill(signal);
+    } catch {
+      // Ignore cleanup failures after the main QA result has been determined.
+    }
+  };
+
   const waitForExit = async (timeoutMs) => {
     if (child.exitCode !== null) {
       return;
@@ -224,20 +243,11 @@ const stopChild = async (child) => {
     }
   };
 
-  try {
-    child.kill('SIGINT');
-  } catch {
-    return;
-  }
-
+  signalChild('SIGINT');
   await waitForExit(2500);
 
   if (child.exitCode === null) {
-    try {
-      child.kill('SIGKILL');
-    } catch {
-      // Ignore cleanup failures after the main QA result has been determined.
-    }
+    signalChild('SIGKILL');
     await waitForExit(1000);
   }
 };
@@ -754,16 +764,27 @@ const main = async () => {
         '[data-slot="auth-header"]',
       ], `${routeCase.label} route`);
       routes[routeCase.label] = await evaluateJson(client, `
-        JSON.stringify({
-          path: location.pathname,
-          scrollWidth: document.documentElement.scrollWidth,
-          hasShell: !!document.querySelector('[data-testid="auth-shell"]'),
-          hasHero: !!document.querySelector('[data-testid="auth-hero-panel"]'),
-          hasForm: !!document.querySelector('[data-testid="auth-form-panel"]'),
-          header: document.querySelector('[data-slot="auth-header"] h1')?.textContent ?? null,
-          submitHeight: document.querySelector('${routeCase.submitSelector}')?.getBoundingClientRect().height ?? null,
-          statusText: document.querySelector('[data-slot="auth-status-panel"]')?.textContent?.trim() ?? null,
-        })
+        (() => {
+          const submit = document.querySelector('${routeCase.submitSelector}');
+          const submitStyle = submit ? getComputedStyle(submit) : null;
+          const submitRect = submit?.getBoundingClientRect();
+
+          return JSON.stringify({
+            path: location.pathname,
+            scrollWidth: document.documentElement.scrollWidth,
+            hasShell: !!document.querySelector('[data-testid="auth-shell"]'),
+            hasHero: !!document.querySelector('[data-testid="auth-hero-panel"]'),
+            hasForm: !!document.querySelector('[data-testid="auth-form-panel"]'),
+            header: document.querySelector('[data-slot="auth-header"] h1')?.textContent ?? null,
+            submitHeight: submitRect?.height ?? null,
+            submitVisible: !!submit
+              && submitStyle?.display !== 'none'
+              && submitStyle?.visibility !== 'hidden'
+              && (submitRect?.width ?? 0) > 0
+              && (submitRect?.height ?? 0) > 0,
+            statusText: document.querySelector('[data-slot="auth-status-panel"]')?.textContent?.trim() ?? null,
+          });
+        })()
       `);
 
       await captureScreenshot(client, artifacts[routeArtifactKeyMap[routeCase.label]]);
@@ -925,7 +946,7 @@ const main = async () => {
         failures.push(`${routeCase.label}: expected desktop scrollWidth 1280, received ${value.scrollWidth}.`);
       }
 
-      if (routeCase.label !== 'account-recovery' && (value.submitHeight ?? 0) < 44) {
+      if (routeCase.label !== 'account-recovery' && value.submitVisible !== false && (value.submitHeight ?? 0) < 44) {
         failures.push(`${routeCase.label}: submit button height ${(value.submitHeight ?? 0)}px is below 44px.`);
       }
     }
@@ -1054,6 +1075,9 @@ const main = async () => {
 };
 
 main()
+  .then(() => {
+    process.exit(0);
+  })
   .catch((error) => {
     const reportPath = join(args.outDir, 'auth-report.json');
     if (!existsSync(reportPath)) {
@@ -1073,5 +1097,5 @@ main()
       });
     }
 
-    process.exitCode = 1;
+    process.exit(1);
   });

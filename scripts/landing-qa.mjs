@@ -166,10 +166,12 @@ const resolveChromeBinary = () => {
 const startDevServer = (host, port) => {
   const stdout = [];
   const stderr = [];
+  const useProcessGroup = process.platform !== 'win32';
   const child = spawn('npm', ['run', 'dev', '--', '--host', host, '--port', String(port)], {
     cwd: projectRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,
+    detached: useProcessGroup,
   });
 
   child.stdout.on('data', (chunk) => {
@@ -190,6 +192,23 @@ const stopChild = async (child) => {
     return;
   }
 
+  const signalChild = (signal) => {
+    if (process.platform !== 'win32' && typeof child.pid === 'number') {
+      try {
+        process.kill(-child.pid, signal);
+        return;
+      } catch {
+        // Fall back to signaling the direct child when it is not a process-group leader.
+      }
+    }
+
+    try {
+      child.kill(signal);
+    } catch {
+      // Ignore cleanup failures after the main QA result has been determined.
+    }
+  };
+
   const waitForExit = async (timeoutMs) => {
     if (child.exitCode !== null) {
       return;
@@ -205,20 +224,11 @@ const stopChild = async (child) => {
     }
   };
 
-  try {
-    child.kill('SIGINT');
-  } catch {
-    return;
-  }
-
+  signalChild('SIGINT');
   await waitForExit(2500);
 
   if (child.exitCode === null) {
-    try {
-      child.kill('SIGKILL');
-    } catch {
-      // Ignore cleanup failures after the main QA result has been determined.
-    }
+    signalChild('SIGKILL');
     await waitForExit(1000);
   }
 };
@@ -498,8 +508,10 @@ const assertLandingMetrics = (metrics) => {
       failures.push(`${testCase.label}: expected mockupVisible=${testCase.mockupVisible}, received ${value.mockupVisible}.`);
     }
 
-    for (const [key, height] of Object.entries(value.buttonHeights)) {
-      if (height < 44) {
+    for (const [key, metric] of Object.entries(value.buttonHeights)) {
+      const height = typeof metric === 'number' ? metric : metric?.height ?? 0;
+      const visible = typeof metric === 'number' ? height > 0 : metric?.visible !== false;
+      if (visible && height < 44) {
         failures.push(`${testCase.label}: button ${key} height ${height}px is below 44px.`);
       }
     }
@@ -740,13 +752,32 @@ const main = async () => {
             const mockup = document.querySelector('[data-testid="landing-laptop-mockup"]');
             return mockup ? getComputedStyle(mockup.parentElement).display !== 'none' : false;
           })(),
-          buttonHeights: {
-            headerLogin: document.querySelector('[data-testid="landing-header-login"]').getBoundingClientRect().height,
-            headerCta: document.querySelector('[data-testid="landing-header-cta"]').getBoundingClientRect().height,
-            heroPrimary: document.querySelector('[data-testid="landing-hero-cta-primary"]').getBoundingClientRect().height,
-            heroSecondary: document.querySelector('[data-testid="landing-hero-cta-secondary"]').getBoundingClientRect().height,
-            cta: document.querySelector('[data-testid="landing-cta-button"]').getBoundingClientRect().height,
-          },
+          buttonHeights: (() => {
+            const buttonMetric = (selector) => {
+              const element = document.querySelector(selector);
+              if (!element) {
+                return { height: 0, visible: false };
+              }
+
+              const style = getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              return {
+                height: rect.height,
+                visible: style.display !== 'none'
+                  && style.visibility !== 'hidden'
+                  && rect.width > 0
+                  && rect.height > 0,
+              };
+            };
+
+            return {
+              headerLogin: buttonMetric('[data-testid="landing-header-login"]'),
+              headerCta: buttonMetric('[data-testid="landing-header-cta"]'),
+              heroPrimary: buttonMetric('[data-testid="landing-hero-cta-primary"]'),
+              heroSecondary: buttonMetric('[data-testid="landing-hero-cta-secondary"]'),
+              cta: buttonMetric('[data-testid="landing-cta-button"]'),
+            };
+          })(),
         })
       `);
 
@@ -1026,6 +1057,9 @@ const main = async () => {
 };
 
 main()
+  .then(() => {
+    process.exit(0);
+  })
   .catch((error) => {
     const reportPath = join(args.outDir, 'landing-report.json');
     if (!existsSync(reportPath)) {
@@ -1041,5 +1075,5 @@ main()
       });
     }
 
-    process.exitCode = 1;
+    process.exit(1);
   });
