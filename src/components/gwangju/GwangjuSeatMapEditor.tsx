@@ -285,7 +285,7 @@ export default function GwangjuSeatMapEditor() {
                   <span>{section.sectionName}</span>
                   <span className="text-slate-500">{section.blockId}</span>
                 </div>
-                <div className="mt-1 truncate text-[11px] text-slate-500">{section.sectionId}</div>
+                <div className="mt-1 truncate text-11 text-slate-500">{section.sectionId}</div>
               </button>
             ))}
           </div>
@@ -385,7 +385,7 @@ export default function GwangjuSeatMapEditor() {
                 PATCH {selectedPayload.validation.status}
               </span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-300">
+            <div className="mt-3 flex flex-wrap gap-2 text-11 font-bold text-slate-300">
               {selectedSection.highRiskWorksetIds.length > 0
                 ? selectedSection.highRiskWorksetIds.map((worksetId) => (
                   <span key={worksetId} className="rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-amber-200">
@@ -474,10 +474,10 @@ export default function GwangjuSeatMapEditor() {
               </button>
             </div>
             <p className="mt-2 min-h-4 text-xs font-bold text-slate-400">{copyStatus}</p>
-            <pre data-testid="gwangju-editor-dataset-json" className="mt-3 max-h-52 overflow-auto rounded-md bg-slate-950 p-3 text-[11px] text-slate-300">
+            <pre data-testid="gwangju-editor-dataset-json" className="mt-3 max-h-52 overflow-auto rounded-md bg-slate-950 p-3 text-11 text-slate-300">
               {selectedPatchJson}
             </pre>
-            <pre data-testid="gwangju-editor-ts-patch" className="mt-3 max-h-52 overflow-auto rounded-md bg-slate-950 p-3 text-[11px] text-slate-300">
+            <pre data-testid="gwangju-editor-ts-patch" className="mt-3 max-h-52 overflow-auto rounded-md bg-slate-950 p-3 text-11 text-slate-300">
               {selectedPatchTs}
             </pre>
           </div>

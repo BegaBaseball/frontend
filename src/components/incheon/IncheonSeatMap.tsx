@@ -145,10 +145,10 @@ function IncheonOperatorGuideRow({
 }) {
   return (
     <div data-testid={testId} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-      <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <div className="mb-1 text-10 font-black uppercase tracking-widest text-slate-400">
         {label}
       </div>
-      <div className="break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+      <div className="break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
         {value}
       </div>
     </div>
@@ -177,13 +177,13 @@ export function IncheonOperatorVisitGuidePanel({
       <div className="mb-3 flex flex-col gap-2">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">직관 동선 안내</h3>
-          <p className="mt-1 text-[11px] font-bold leading-relaxed text-slate-500 dark:text-white">
+          <p className="mt-1 text-11 font-bold leading-relaxed text-slate-500 dark:text-white">
             운영자 검수 자료가 있는 항목만 표시합니다.
           </p>
         </div>
         <span
           data-testid="incheon-operator-data-status"
-          className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black break-all"
+          className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-10 font-black break-all"
           style={{
             borderColor: isOperatorProvided ? `${accent}66` : '#cbd5e1',
             background: isOperatorProvided ? `${accent}14` : '#f8fafc',
@@ -257,7 +257,7 @@ function IncheonCompareTray({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">후보 비교</h3>
-          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-white">
+          <p className="mt-0.5 text-11 font-bold text-slate-500 dark:text-white">
             {comparisonBlocks.length}/{COMPARISON_LIMIT}개 선택
           </p>
         </div>
@@ -266,7 +266,7 @@ function IncheonCompareTray({
           data-testid="incheon-compare-clear"
           onClick={onClear}
           disabled={comparisonBlocks.length === 0}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
+          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-11 font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
           style={{ borderColor }}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -296,7 +296,7 @@ function IncheonCompareTray({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-black text-white"
+                        className="rounded-full px-2 py-0.5 text-10 font-black text-white"
                         style={{ background: accent ?? '#C8102E' }}
                       >
                         {block.block}
@@ -305,10 +305,10 @@ function IncheonCompareTray({
                         {block.name}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+                    <p className="mt-1 text-11 font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {cat?.label ?? block.category} · {getIncheonSideLabel(block.side)} · {getIncheonFanRoleLabel(block.fanRole)}
                     </p>
-                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+                    <p className="mt-0.5 text-11 font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {block.level} · {(INCHEON_VIEW_INFO[block.id] ?? INCHEON_VIEW_INFO.default).distance}
                     </p>
                   </div>
@@ -318,7 +318,7 @@ function IncheonCompareTray({
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                        className="rounded-full border px-2 py-0.5 text-10 font-bold"
                         style={{
                           borderColor: accent ? `${accent}44` : borderColor,
                           color: accent ?? '#C8102E',
@@ -334,7 +334,7 @@ function IncheonCompareTray({
                     type="button"
                     data-testid="incheon-compare-view"
                     onClick={() => onView(block)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-11 font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
                     style={{ borderColor }}
                   >
                     <Eye className="h-3.5 w-3.5" />
@@ -344,7 +344,7 @@ function IncheonCompareTray({
                     type="button"
                     data-testid="incheon-compare-remove"
                     onClick={() => onRemove(block.id)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black transition-colors hover:bg-white dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-11 font-black transition-colors hover:bg-white dark:hover:bg-slate-800"
                     style={{ borderColor: accent ? `${accent}66` : borderColor, color: accent ?? '#C8102E' }}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -363,7 +363,7 @@ function IncheonCompareTray({
 
       {recentBlocks.length > 0 && (
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">최근 선택</div>
+          <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">최근 선택</div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {recentBlocks.map((block) => {
               const cat = INCHEON_CATEGORIES[block.category];
@@ -381,7 +381,7 @@ function IncheonCompareTray({
                       type="button"
                       data-testid="incheon-recent-view"
                       onClick={() => onView(block)}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-white"
+                      className="h-7 cursor-pointer rounded-lg border text-10 font-black text-slate-600 dark:text-white"
                       style={{ borderColor }}
                     >
                       보기
@@ -391,7 +391,7 @@ function IncheonCompareTray({
                       data-testid="incheon-recent-add"
                       onClick={() => onAdd(block)}
                       disabled={isFull}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-7 cursor-pointer rounded-lg border text-10 font-black disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ borderColor: accent ? `${accent}66` : borderColor, color: accent ?? '#C8102E' }}
                     >
                       {isFull ? '3개까지' : '담기'}
@@ -435,7 +435,7 @@ function IncheonFirstVisitGuide({
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 인천 가이드</h3>
-          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-white">
+          <div className="mt-1 text-11 font-bold text-slate-500 dark:text-white">
             {matches.length}개 블록
           </div>
         </div>
@@ -498,7 +498,7 @@ function IncheonFirstVisitGuide({
                     {cat?.label ?? block.name}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-white">
+                <div className="mt-1 text-10 font-bold text-slate-500 dark:text-white">
                   {[...reasons.slice(0, 2), ...tags.slice(0, 1)].join(' · ')}
                 </div>
               </button>
@@ -551,7 +551,7 @@ function ZoomControls({
         aria-label="인천 좌석도 초기화"
         onClick={onReset}
         disabled={zoom === MIN_ZOOM}
-        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-11 font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
         style={{ borderColor }}
       >
         {zoom.toFixed(2)}x
@@ -690,7 +690,9 @@ export default function IncheonSeatMap() {
       setIsSectionFinderOpen(true);
     }
   }, [selected]);
-  const hasOfficialBlocks = INCHEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && INCHEON_BLOCKS.length > 0;
+  const canUseSeatMapImage = INCHEON_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && INCHEON_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
+  const hasOfficialBlocks = canUseSeatMapImage && INCHEON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? INCHEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#C8102E';
   const usedCategories = useMemo(() => [...new Set(INCHEON_BLOCKS.map((block) => block.category))], []);

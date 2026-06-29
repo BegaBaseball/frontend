@@ -45,7 +45,7 @@ export default function SeatMapHoverPreview({
             {hasContent ? subtitle || description || '좌석 구역' : '좌석도 정보'}
           </p>
           {hasContent && subtitle && description && (
-            <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-slate-400 dark:text-white">
+            <p className="mt-0.5 line-clamp-1 text-11 font-semibold text-slate-400 dark:text-white">
               {description}
             </p>
           )}
@@ -53,7 +53,7 @@ export default function SeatMapHoverPreview({
       </div>
       {hasContent && badgeLabel && (
         <span
-          className="inline-flex max-w-[42%] rounded-md px-2 py-1 text-[11px] font-bold text-white"
+          className="inline-flex max-w-[42%] rounded-md px-2 py-1 text-11 font-bold text-white"
           style={{ backgroundColor: accentColor }}
         >
           <span className="truncate">{badgeLabel}</span>

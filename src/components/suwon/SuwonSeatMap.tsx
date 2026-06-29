@@ -211,11 +211,11 @@ function SuwonFirstVisitGuide({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">처음 수원 가이드</h3>
-          <div className="mt-1 text-[11px] font-bold text-slate-500 dark:text-white">
+          <div className="mt-1 text-11 font-bold text-slate-500 dark:text-white">
             {matches.length}개 블록
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-white">
+        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-11 font-black text-slate-500 dark:bg-slate-800 dark:text-white">
           KT
         </span>
       </div>
@@ -267,7 +267,7 @@ function SuwonFirstVisitGuide({
                     {cat?.label ?? block.name}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 dark:text-white">
+                <div className="mt-1 text-10 font-bold text-slate-500 dark:text-white">
                   {[...reasons.slice(0, 2), ...tags.slice(0, 1)].join(' · ')}
                 </div>
               </button>
@@ -414,7 +414,7 @@ function SuwonCompareTray({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">후보 비교</h3>
-          <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-white">
+          <p className="mt-0.5 text-11 font-bold text-slate-500 dark:text-white">
             {comparisonBlocks.length}/{COMPARISON_LIMIT}개 선택
           </p>
         </div>
@@ -423,7 +423,7 @@ function SuwonCompareTray({
           data-testid="suwon-compare-clear"
           onClick={onClear}
           disabled={comparisonBlocks.length === 0}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
+          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-11 font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
           style={{ borderColor }}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -454,7 +454,7 @@ function SuwonCompareTray({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-black text-white"
+                        className="rounded-full px-2 py-0.5 text-10 font-black text-white"
                         style={{ background: accent ?? '#0B57A7' }}
                       >
                         {block.block}
@@ -463,10 +463,10 @@ function SuwonCompareTray({
                         {block.name}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+                    <p className="mt-1 text-11 font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {cat?.label ?? block.category} · {getSuwonSideLabel(block.side)} · {getSuwonFanRoleLabel(block.fanRole)}
                     </p>
-                    <p className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+                    <p className="mt-0.5 text-11 font-semibold leading-relaxed text-slate-500 dark:text-white">
                       {block.level}{distance ? ` · ${distance}` : ''}
                     </p>
                   </div>
@@ -476,7 +476,7 @@ function SuwonCompareTray({
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                        className="rounded-full border px-2 py-0.5 text-10 font-bold"
                         style={{
                           borderColor: accent ? `${accent}44` : borderColor,
                           color: accent ?? '#0B57A7',
@@ -492,7 +492,7 @@ function SuwonCompareTray({
                     type="button"
                     data-testid="suwon-compare-view"
                     onClick={() => onView(block)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-11 font-black text-slate-600 transition-colors hover:bg-white dark:text-white dark:hover:bg-slate-800"
                     style={{ borderColor }}
                   >
                     <Eye className="h-3.5 w-3.5" />
@@ -502,7 +502,7 @@ function SuwonCompareTray({
                     type="button"
                     data-testid="suwon-compare-remove"
                     onClick={() => onRemove(block.id)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-[11px] font-black transition-colors hover:bg-white dark:hover:bg-slate-800"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-11 font-black transition-colors hover:bg-white dark:hover:bg-slate-800"
                     style={{ borderColor: accent ? `${accent}66` : borderColor, color: accent ?? '#0B57A7' }}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -521,7 +521,7 @@ function SuwonCompareTray({
 
       {recentBlocks.length > 0 && (
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">최근 선택</div>
+          <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">최근 선택</div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {recentBlocks.map((block) => {
               const cat = SUWON_CATEGORIES[block.category];
@@ -540,7 +540,7 @@ function SuwonCompareTray({
                       type="button"
                       data-testid="suwon-recent-view"
                       onClick={() => onView(block)}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black text-slate-600 dark:text-white"
+                      className="h-7 cursor-pointer rounded-lg border text-10 font-black text-slate-600 dark:text-white"
                       style={{ borderColor }}
                     >
                       보기
@@ -550,7 +550,7 @@ function SuwonCompareTray({
                       data-testid="suwon-recent-add"
                       onClick={() => onAdd(block)}
                       disabled={isFull}
-                      className="h-7 cursor-pointer rounded-lg border text-[10px] font-black disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-7 cursor-pointer rounded-lg border text-10 font-black disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ borderColor: accent ? `${accent}66` : borderColor, color: accent ?? '#0B57A7' }}
                     >
                       {isFull ? '3개까지' : '담기'}
@@ -594,21 +594,21 @@ function SuwonOperatorVisitMeta({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+          <div className="text-10 font-black uppercase tracking-widest text-slate-400">직관 체크</div>
+          <p className="mt-1 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
             운영자 제공 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+          className="shrink-0 rounded-full px-2.5 py-1 text-10 font-black"
           style={{ background: `${accent}18`, color: accent }}
         >
           현장 최종 안내 확인
         </span>
       </div>
       <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-        <div className="text-[9px] font-bold tracking-widest text-slate-400">자료상태</div>
-        <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
+        <div className="text-9 font-bold tracking-widest text-slate-400">자료상태</div>
+        <div className="mt-0.5 break-words text-12 font-black text-slate-800 dark:text-white">
           {operatorDataStatusLabel}
         </div>
       </div>
@@ -620,8 +620,8 @@ function SuwonOperatorVisitMeta({
             data-operator-field-source={tile.value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS) ? 'manual-required' : 'operator-provided'}
             className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
           >
-            <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+            <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
+            <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
               {formatManualBaseballDataDisplayValue(tile.value)}
             </div>
           </div>
@@ -630,7 +630,7 @@ function SuwonOperatorVisitMeta({
       {operatorGuidance.cautionNotes.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {operatorGuidance.cautionNotes.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+            <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
               <span>{formatManualBaseballDataDisplayValue(item)}</span>
             </li>
@@ -640,7 +640,7 @@ function SuwonOperatorVisitMeta({
       {hasManualFallback && (
         <p
           data-testid="suwon-operator-data-status"
-          className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+          className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
           {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>

@@ -58,7 +58,7 @@ export function StadiumSeatMapManualRequired({ stadiumName }: StadiumSeatMapStat
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
         <WarningTriangleIcon className="h-6 w-6" />
       </div>
-      <p className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+      <p className="rounded-full bg-amber-100 px-3 py-1 text-11 font-black text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
         좌석도 준비 중
       </p>
       <h4 className="mt-3 text-lg font-black text-slate-900 dark:text-white">

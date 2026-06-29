@@ -84,7 +84,7 @@ function GuideModeTabs({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(option.id)}
-            className="rounded-lg border-0 px-3 py-1.5 text-[11px] font-black transition-colors"
+            className="rounded-lg border-0 px-3 py-1.5 text-11 font-black transition-colors"
             style={{
               background: active ? '#820024' : 'transparent',
               color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -138,10 +138,10 @@ function DetailPanel({
           ×
         </button>
         <div className="mb-2 flex flex-wrap gap-2 pr-10">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {cat.label} · {section.level}
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800">
             {getGocheokSourceLabel(section.sourceConfidence)}
           </span>
         </div>
@@ -150,36 +150,36 @@ function DetailPanel({
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">위치</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">위치</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getGocheokSideLabel(section.side)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">팬 구분</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">팬 구분</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getGocheokFanRoleLabel(section.fanRole)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">시야 거리</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">시야 거리</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{info.distance ?? '-'}</div>
         </div>
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
         <div className="flex flex-wrap gap-1.5">
           {section.officialBlocks.map((block) => (
-            <span key={block} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+            <span key={block} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
               {block}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
           </p>
         )}
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
         <SeatViewGallery stadium="GOCHEOK" section={section.name} sectionAliases={section.seatViewSections} compact />
       </div>
       <div className="sticky bottom-0 border-t border-slate-100 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
@@ -243,7 +243,9 @@ export default function GocheokSeatMap() {
       setIsSectionFinderOpen(true);
     }
   }, [selected]);
-  const hasOfficialBlocks = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && GOCHEOK_BLOCKS.length > 0;
+  const canUseSeatMapImage = GOCHEOK_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && GOCHEOK_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
+  const hasOfficialBlocks = canUseSeatMapImage && GOCHEOK_BLOCKS.length > 0;
   const isSeatMapMode = activeGuideMode === 'seatmap';
   const visibleGocheokBlocks = useMemo(() => GOCHEOK_BLOCKS.filter((block) => {
     if (filterCats !== null && !filterCats.includes(block.category)) return false;
@@ -356,13 +358,13 @@ export default function GocheokSeatMap() {
       >
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-            <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">직관 체크</div>
+            <p className="mt-1 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
               {hint.context}
             </p>
           </div>
           <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+            className="shrink-0 rounded-full px-2.5 py-1 text-10 font-black"
             style={{ background: `${accent}18`, color: accent }}
           >
             {hint.finalCheckLabel}
@@ -371,8 +373,8 @@ export default function GocheokSeatMap() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {tiles.map((tile) => (
             <div key={tile.label} className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-              <div className="text-[9px] font-bold tracking-widest text-slate-400">{tile.label}</div>
-              <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
+              <div className="text-9 font-bold tracking-widest text-slate-400">{tile.label}</div>
+              <div className="mt-0.5 break-words text-12 font-black text-slate-800 dark:text-white">
                 {formatManualBaseballDataDisplayValue(tile.value)}
               </div>
             </div>
@@ -380,7 +382,7 @@ export default function GocheokSeatMap() {
         </div>
         <ul className="mt-3 space-y-1.5">
           {hint.checklist.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+            <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
               <span>{item}</span>
             </li>
@@ -393,8 +395,8 @@ export default function GocheokSeatMap() {
               data-testid={tile.testId}
               className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
             >
-              <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-              <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+              <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
+              <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
                 {formatManualBaseballDataDisplayValue(tile.value)}
               </div>
             </div>
@@ -403,14 +405,14 @@ export default function GocheokSeatMap() {
         {operatorGuidance.cautionNotes.length > 0 && (
           <ul className="mt-3 space-y-1.5">
             {operatorGuidance.cautionNotes.map((item) => (
-              <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+              <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
                 <span>{formatManualBaseballDataDisplayValue(item)}</span>
               </li>
             ))}
           </ul>
         )}
-        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>
         <button

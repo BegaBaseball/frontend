@@ -99,7 +99,7 @@ export default function StadiumGuidePlacesRuntime({
         <h3 className="font-bold dark:text-white text-balance" style={{ color: titleColor }}>
           {CATEGORY_CONFIGS[selectedCategory].label} 목록
         </h3>
-        <span className="text-[16px] text-gray-400 dark:text-white" style={{ color: mutedColor }}>
+        <span className="text-body text-gray-400 dark:text-white" style={{ color: mutedColor }}>
           {filteredPlaces.length}개
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function StadiumGuidePlacesRuntime({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             disabled={listControlsDisabled}
-            className="stadium-guide-control min-h-11 pl-9 text-[16px]"
+            className="stadium-guide-control min-h-11 pl-9 text-body"
           />
         </div>
         <div className="relative">
@@ -121,7 +121,7 @@ export default function StadiumGuidePlacesRuntime({
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as StadiumGuideSortOrder)}
             disabled={listControlsDisabled}
-            className="stadium-guide-select stadium-guide-control min-h-11 pl-8 pr-3 text-[16px] rounded-md border border-input bg-background dark:text-white cursor-pointer"
+            className="stadium-guide-select stadium-guide-control min-h-11 pl-8 pr-3 text-body rounded-md border border-input bg-background dark:text-white cursor-pointer"
           >
             <option value="default">기본순</option>
             <option value="rating">평점순</option>
@@ -172,7 +172,7 @@ export default function StadiumGuidePlacesRuntime({
                 <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-400/30 p-4">
                   <div className="flex items-center gap-2 text-red-700 dark:text-red-200 mb-2">
                     <WarningTriangleIcon className="w-4 h-4" />
-                    <span className="text-[16px] font-semibold">
+                    <span className="text-body font-semibold">
                       {formatOptionalText(listError, '목록을 불러오지 못했습니다.')}
                     </span>
                   </div>

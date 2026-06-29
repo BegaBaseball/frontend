@@ -35,7 +35,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="incheon-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -49,7 +49,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {INCHEON_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {INCHEON_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -110,7 +110,9 @@ export default function IncheonSeatMapSvg({
     usesPointerCapture: boolean;
   } | null>(null);
   const { imageWidth, imageHeight } = INCHEON_SEATMAP_IMAGE;
-  const seatMapImageUrl = INCHEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' ? officialSeatMapImage : null;
+  const canUseSeatMapImage = INCHEON_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && INCHEON_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
+  const seatMapImageUrl = canUseSeatMapImage ? officialSeatMapImage : null;
   const { cropY, cropHeight } = INCHEON_SEATMAP_VIEWPORT;
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('incheonDebug') === '1';
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
@@ -533,7 +535,7 @@ export default function IncheonSeatMapSvg({
     suppressNextClick(220);
   }, [maxZoom, minZoom, suppressNextClick, zoom, zoomAtClientPoint]);
 
-  if (INCHEON_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL' || !seatMapImageUrl || imageFailed) {
+  if (!seatMapImageUrl || imageFailed) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
@@ -680,7 +682,11 @@ export default function IncheonSeatMapSvg({
                   strokeWidth={isActive ? 4 : isCompared ? 3 : 2}
                   filter={isActive ? 'url(#incheon-hit-glow)' : undefined}
                   vectorEffect="non-scaling-stroke"
-                  style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
+                  style={{
+                    cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                    outline: 'none',
+                    transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
+                  }}
                   onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
                   onClick={(event) => {
                     if (suppressClickRef.current || event.detail > 1) {
