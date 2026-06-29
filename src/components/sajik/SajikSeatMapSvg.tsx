@@ -48,7 +48,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="sajik-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -62,7 +62,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath}</div>
         <div>참고: {SAJIK_CANONICAL_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -70,6 +70,13 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
 }
 
 function resolveCanonicalSeatMapImageUrl() {
+  if (
+    SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus === 'EXTERNAL_REFERENCE_PENDING_ASSET'
+    || SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus === 'OPERATOR_REFERENCE_PENDING_ASSET'
+  ) {
+    return null;
+  }
+
   const seatMapImageUrls: Record<string, string> = {
     [SAJIK_CANONICAL_SEATMAP_IMAGE.imagePath]: new URL('../../assets/stadiums/lotte/sajik-seatmap-operator-reference-2026.webp', import.meta.url).href,
   };
@@ -554,7 +561,7 @@ export default function SajikSeatMapSvg({
       <button
         type="button"
         data-testid="sajik-seatmap-zoom-reset"
-        className="pointer-events-auto min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-center text-[10px] font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+        className="pointer-events-auto min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-center text-10 font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
         onClick={() => updateZoomFromControls(minZoom)}
         disabled={zoom <= minZoom}
         aria-label="사직 좌석도 원래 크기"
@@ -587,13 +594,7 @@ export default function SajikSeatMapSvg({
     </div>
   );
 
-  if (
-    SAJIK_CANONICAL_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
-    || !seatMapImageUrl
-    || imageWidth <= 0
-    || imageHeight <= 0
-    || imageFailed
-  ) {
+  if (!seatMapImageUrl || imageWidth <= 0 || imageHeight <= 0 || imageFailed) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
@@ -929,8 +930,8 @@ export default function SajikSeatMapSvg({
         {zoomControls}
       </div>
       {showDebug && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-white">Sajik canonical debug</div>
+        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-11 font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
+          <div className="text-10 uppercase tracking-widest text-slate-500 dark:text-white">Sajik canonical debug</div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
             <span>blocks {SAJIK_CANONICAL_SEATMAP_SUMMARY.activeBlocks}</span>
             <span className="text-emerald-600 dark:text-emerald-300">sections {SAJIK_CANONICAL_SEATMAP_SUMMARY.activeSeatSections}</span>

@@ -40,7 +40,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="gocheok-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -54,7 +54,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {GOCHEOK_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {GOCHEOK_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -85,6 +85,8 @@ export default function GocheokSeatMapSvg({
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const canUseSeatMapImage = GOCHEOK_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && GOCHEOK_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef(false);
   const activePointersRef = useRef<Map<number, TrackedPointer>>(new Map());
@@ -108,7 +110,7 @@ export default function GocheokSeatMapSvg({
     usesPointerCapture: boolean;
   } | null>(null);
   const { imageWidth, imageHeight } = GOCHEOK_SEATMAP_IMAGE;
-  const seatMapImageUrl = GOCHEOK_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' ? officialSeatMapImage : null;
+  const seatMapImageUrl = canUseSeatMapImage ? officialSeatMapImage : null;
   const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('gocheokDebug') === '1';
   const measuredViewportSize = viewportSize.width > 0 && viewportSize.height > 0
     ? viewportSize
@@ -496,7 +498,7 @@ export default function GocheokSeatMapSvg({
     }
   }, [maxZoom, minZoom, onPanChange, onZoom]);
 
-  if (GOCHEOK_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL' || !seatMapImageUrl || imageFailed) {
+  if (!canUseSeatMapImage || !seatMapImageUrl || imageFailed) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
@@ -638,7 +640,11 @@ export default function GocheokSeatMapSvg({
                     strokeWidth={isActive ? 3 : showDebug ? 1 : 1.5}
                     filter={isActive ? 'url(#gocheok-hit-glow)' : undefined}
                     vectorEffect="non-scaling-stroke"
-                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
+                    style={{
+                      cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                      outline: 'none',
+                      transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
+                    }}
                     onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
                     onClick={(event) => {
                       if (suppressClickRef.current || event.detail > 1) {
@@ -702,7 +708,7 @@ export default function GocheokSeatMapSvg({
         <button
           type="button"
           data-testid="gocheok-seatmap-zoom-reset"
-          className="min-h-5 rounded-md border-0 bg-transparent px-1 py-0.5 text-center text-[9px] font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+          className="min-h-5 rounded-md border-0 bg-transparent px-1 py-0.5 text-center text-9 font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
           onClick={() => updateZoomFromControls(minZoom)}
           disabled={zoom <= minZoom}
           aria-label="고척 좌석도 원래 크기"

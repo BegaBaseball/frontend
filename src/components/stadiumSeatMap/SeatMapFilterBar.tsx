@@ -74,7 +74,7 @@ export function SeatMapFilterBar({
     return (
       <div key={dim} className="flex items-center gap-1.5 flex-wrap">
         <span
-          className="text-[11px] shrink-0 text-right w-7"
+          className="text-11 shrink-0 text-right w-7"
           style={{ color: mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#94a3b8' }}
         >
           {DIMENSION_LABELS[dim]}
@@ -122,7 +122,7 @@ export function SeatMapFilterBar({
             type="button"
             data-testid={`${testIdPrefix}-filter-secondary-toggle`}
             onClick={() => setShowSecondary(v => !v)}
-            className="flex min-h-11 items-center gap-1 rounded-full border px-2.5 py-2 text-[11px] font-semibold transition-all"
+            className="flex min-h-11 items-center gap-1 rounded-full border px-2.5 py-2 text-11 font-semibold transition-all"
             style={{
               borderColor: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.border : '#e2e8f0'),
               color: isExpanded ? accentColor : (mode === 'dark' ? STADIUM_SEATMAP_DARK_COLORS.muted : '#94a3b8'),
@@ -141,7 +141,7 @@ export function SeatMapFilterBar({
           </button>
           {secondaryActive && (
             <span
-              className="text-[11px] font-semibold"
+              className="text-11 font-semibold"
               style={{ color: accentColor }}
             >
               적용 중

@@ -1,4 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import { getStadiumDisplayConfig, resolveStadiumDisplayConfig } from '../utils/stadiumDisplay';
 
 export type StadiumSeatMapPresetId =
   | 'jamsil'
@@ -140,17 +141,148 @@ export const STADIUM_SEAT_MAP_ENTRIES: readonly StadiumSeatMapEntry[] = [
 ];
 
 function normalizeStadiumSeatMapKey(value: string) {
-  return value.toLowerCase().replace(/[\s\-_/()·.]/g, '');
+  return value.toLowerCase().replace(/[\s\-_/()·.,:]/g, '');
 }
 
-export function resolveStadiumSeatMapEntry(stadiumId?: string | null, stadiumName?: string | null) {
-  const key = normalizeStadiumSeatMapKey([stadiumId, stadiumName].filter(Boolean).join(' '));
+function extractSeatMapTokens(value: string) {
+  return normalizeStadiumSeatMapKey(value).match(/[0-9a-z가-힣]+/giu) ?? [];
+}
+
+const STADIUM_SEAT_MAP_MATCHER_TOKENS = STADIUM_SEAT_MAP_ENTRIES.flatMap((entry) => (
+  Array.from(new Set(extractSeatMapTokens(entry.matchers.join(' '))))
+    .filter((token) => token.length >= 2)
+    .map((token) => ({ presetId: entry.id, token }))
+));
+
+const STADIUM_SEAT_MAP_TEAM_FALLBACKS: readonly { token: string; presetId: StadiumSeatMapPresetId }[] = [
+  // 잠실(양구단 표기)
+  { token: 'lg트윈스', presetId: 'jamsil' },
+  { token: 'lg', presetId: 'jamsil' },
+  { token: '두산', presetId: 'jamsil' },
+  { token: '두산베어스', presetId: 'jamsil' },
+  { token: 'doosan', presetId: 'jamsil' },
+  // 인천
+  { token: 'ssg', presetId: 'incheon' },
+  { token: 'ssg랜더스', presetId: 'incheon' },
+  // 대구
+  { token: 'samsung', presetId: 'daegu' },
+  { token: '삼성라이온즈', presetId: 'daegu' },
+  // 대전
+  { token: 'hanwha', presetId: 'daejeon' },
+  { token: '이글스', presetId: 'daejeon' },
+  // 고척
+  { token: 'kiwoom', presetId: 'gocheok' },
+  { token: '히어로즈', presetId: 'gocheok' },
+  // 광주
+  { token: 'kia', presetId: 'gwangju' },
+  { token: '타이거즈', presetId: 'gwangju' },
+  // 창원
+  { token: 'nc', presetId: 'changwon' },
+  { token: '다이노스', presetId: 'changwon' },
+  { token: '엔씨', presetId: 'changwon' },
+  // 사직
+  { token: 'lotte', presetId: 'sajik' },
+  { token: '자이언츠', presetId: 'sajik' },
+  // 수원
+  { token: 'kt', presetId: 'suwon' },
+  { token: '위즈', presetId: 'suwon' },
+  { token: 'wizards', presetId: 'suwon' },
+];
+
+function resolvePresetIdFromTeam(stadiumTeam?: string | null) {
+  if (!stadiumTeam) {
+    return null;
+  }
+
+  const normalizedTeam = normalizeStadiumSeatMapKey(stadiumTeam);
+  if (!normalizedTeam) {
+    return null;
+  }
+
+  const teamTokens = extractSeatMapTokens(normalizedTeam);
+
+  const matched = STADIUM_SEAT_MAP_TEAM_FALLBACKS.find((rule) => {
+    const normalizedRuleToken = normalizeStadiumSeatMapKey(rule.token);
+    if (!normalizedRuleToken) {
+      return false;
+    }
+
+    return (
+      normalizedTeam.includes(normalizedRuleToken)
+      || normalizedRuleToken.includes(normalizedTeam)
+      || teamTokens.some((teamToken) => (
+        teamToken.includes(normalizedRuleToken) || normalizedRuleToken.includes(teamToken)
+      ))
+    );
+  });
+
+  return matched ? matched.presetId : null;
+}
+
+const STADIUM_DISPLAY_ID_TO_PRESET_ID: Record<string, StadiumSeatMapPresetId> = {
+  JAMSIL: 'jamsil',
+  GOCHEOK: 'gocheok',
+  INCHEON: 'incheon',
+  SUWON: 'suwon',
+  DAEJEON: 'daejeon',
+  GWANGJU: 'gwangju',
+  DAEGU: 'daegu',
+  CHANGWON: 'changwon',
+  SAJIK: 'sajik',
+};
+
+function resolvePresetIdFromDisplayConfig(stadiumId?: string | null, stadiumName?: string | null): StadiumSeatMapPresetId | null {
+  const configById = stadiumId ? getStadiumDisplayConfig(stadiumId) : null;
+  const configByIdAlias = configById ?? (stadiumId ? resolveStadiumDisplayConfig(stadiumId) : null);
+  const configByName = configByIdAlias ? null : resolveStadiumDisplayConfig(stadiumName);
+
+  return STADIUM_DISPLAY_ID_TO_PRESET_ID[
+    (configByIdAlias ?? configByName)?.stadiumId ?? ''
+  ] ?? null;
+}
+
+export function resolveStadiumSeatMapEntry(
+  stadiumId?: string | null,
+  stadiumName?: string | null,
+  stadiumTeam?: string | null,
+) {
+  const key = normalizeStadiumSeatMapKey([stadiumId, stadiumName, stadiumTeam].filter(Boolean).join(' '));
 
   if (!key) {
     return null;
   }
 
-  return STADIUM_SEAT_MAP_ENTRIES.find((entry) =>
+  const directMatch = STADIUM_SEAT_MAP_ENTRIES.find((entry) =>
     entry.matchers.some((matcher) => key.includes(normalizeStadiumSeatMapKey(matcher))),
-  ) ?? null;
+  );
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const presetId = resolvePresetIdFromDisplayConfig(stadiumId, stadiumName);
+  if (!presetId) {
+    const teamFallbackPresetId = resolvePresetIdFromTeam(stadiumTeam);
+    if (teamFallbackPresetId) {
+      return STADIUM_SEAT_MAP_ENTRIES.find((entry) => entry.id === teamFallbackPresetId) ?? null;
+    }
+
+    const tokens = extractSeatMapTokens(key);
+    if (tokens.length > 0) {
+      const tokenMatch = STADIUM_SEAT_MAP_MATCHER_TOKENS.find((candidate) => {
+        const matcherToken = candidate.token;
+        return tokens.some((token) => (
+          token.includes(matcherToken)
+          || matcherToken.includes(token)
+        ));
+      });
+      if (tokenMatch) {
+        return STADIUM_SEAT_MAP_ENTRIES.find((entry) => entry.id === tokenMatch.presetId) ?? null;
+      }
+    }
+
+    return null;
+  }
+
+  return STADIUM_SEAT_MAP_ENTRIES.find((entry) => entry.id === presetId) ?? null;
 }

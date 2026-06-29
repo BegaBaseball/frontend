@@ -114,11 +114,11 @@ function SectionFinder({
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-black text-slate-800 dark:text-white">블록 검색</h3>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-400">
+            <p className="mt-0.5 text-11 font-semibold text-slate-400">
               {blocks.length}/{totalCount}개 표시
             </p>
           </div>
-          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-black text-[#074CA1] dark:bg-blue-950/45 dark:text-blue-200">
+          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-11 font-black text-[#074CA1] dark:bg-blue-950/45 dark:text-blue-200">
             DAEGU
           </span>
         </div>
@@ -163,17 +163,17 @@ function SectionFinder({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-black text-white" style={{ background: accent }}>
+                        <span className="rounded-full px-2 py-0.5 text-10 font-black text-white" style={{ background: accent }}>
                           {block.block}
                         </span>
                         <span className="text-xs font-black text-slate-800 dark:text-white">{block.name}</span>
                       </div>
-                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-white">
+                      <p className="mt-1 truncate text-11 font-semibold text-slate-500 dark:text-white">
                         {cat.label} · {getDaeguSideLabel(block.side)} · {getDaeguFanRoleLabel(block.fanRole)}
                       </p>
                     </div>
                     {needsReview && (
-                      <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-black text-orange-700 dark:bg-orange-950/40 dark:text-orange-200">
+                      <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-10 font-black text-orange-700 dark:bg-orange-950/40 dark:text-orange-200">
                         검수 필요
                       </span>
                     )}
@@ -192,9 +192,9 @@ function SectionFinder({
               블록 번호, 좌석명, 공식 블록 묶음 이름으로 다시 검색하세요.
             </p>
             {hasSearch && (
-              <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-white">검색어: {searchTerm.trim()}</p>
+              <p className="mt-2 text-11 font-bold text-slate-400 dark:text-white">검색어: {searchTerm.trim()}</p>
             )}
-            <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-white">필터: {activeFilterLabel}</p>
+            <p className="mt-1 text-11 font-bold text-slate-400 dark:text-white">필터: {activeFilterLabel}</p>
           </div>
         )}
       </div>
@@ -242,10 +242,10 @@ function DetailPanel({
           ×
         </button>
         <div className="mb-2 flex flex-wrap gap-2 pr-10">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {cat.label} · {section.level}
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800">
             {getDaeguSourceLabel(section.sourceConfidence)}
           </span>
         </div>
@@ -254,44 +254,44 @@ function DetailPanel({
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">위치</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">위치</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getDaeguSideLabel(section.side)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">팬 구분</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">팬 구분</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getDaeguFanRoleLabel(section.fanRole)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">시야 거리</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">시야 거리</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{info.distance ?? '-'}</div>
         </div>
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
         <div className="flex flex-wrap gap-1.5">
           {section.officialBlocks.map((block) => (
-            <span key={block} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+            <span key={block} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
               {block}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
-        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-white">
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
+        <p className="mt-1 text-11 font-semibold leading-relaxed text-slate-400 dark:text-white">
           {getDaeguTraceMethodLabel(section.traceMethod)} · {getDaeguTraceStatusLabel(section.traceStatus)}
         </p>
         {section.traceStatus === 'NEEDS_OPERATOR_REVIEW' && section.reviewNote && (
-          <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-orange-800 dark:bg-orange-950/35 dark:text-orange-200">
+          <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-12 font-semibold leading-relaxed text-orange-800 dark:bg-orange-950/35 dark:text-orange-200">
             {section.reviewNote}
           </p>
         )}
         {section.accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
           </p>
         )}
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
         <SeatViewGallery stadium="DAEGU" section={section.name} sectionAliases={section.seatViewSections} compact />
       </div>
       <div className="sticky bottom-0 border-t border-slate-100 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
@@ -311,7 +311,7 @@ function DetailPanel({
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-      <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">{label}</div>
+      <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">{label}</div>
       <div className="text-base font-black text-slate-800 dark:text-white">{value}</div>
     </div>
   );
@@ -329,7 +329,7 @@ function DaeguExtraMeta({ section, accent }: { section: DaeguCanonicalBlock; acc
         <InfoTile label="공식 블록" value={officialBlocks} />
         <InfoTile label="source confidence" value={getDaeguSourceLabel(section.sourceConfidence)} />
       </div>
-      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+      <div className="mt-3 space-y-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
         <div
           data-testid="daegu-seatmap-canonical-decision-status"
           className="rounded-xl px-3 py-2"

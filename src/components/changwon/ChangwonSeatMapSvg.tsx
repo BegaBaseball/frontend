@@ -66,7 +66,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="changwon-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -80,7 +80,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {CHANGWON_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {CHANGWON_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -112,6 +112,8 @@ export default function ChangwonSeatMapSvg({
   const [debugPoint, setDebugPoint] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const canUseSeatMapImage = CHANGWON_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && CHANGWON_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragStateRef = useRef<{
@@ -516,7 +518,7 @@ export default function ChangwonSeatMapSvg({
     zoomFromDoubleClick(event.clientX, event.clientY);
   }, [zoomFromDoubleClick]);
 
-  if (CHANGWON_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL' || !officialSeatMapImage || imageFailed) {
+  if (!canUseSeatMapImage || !officialSeatMapImage || imageFailed) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
@@ -680,7 +682,11 @@ export default function ChangwonSeatMapSvg({
                   filter={!usesExpandedHitArea && isActive ? 'url(#changwon-hit-glow)' : undefined}
                   vectorEffect={usesExpandedHitArea ? undefined : 'non-scaling-stroke'}
                   pointerEvents={isFiltered ? 'none' : usesExpandedHitArea ? undefined : 'fill'}
-                  style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
+                  style={{
+                    cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                    outline: 'none',
+                    transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
+                  }}
                   onMouseEnter={() => !isFiltered && !isDragging && setHover(block.id)}
                   onClick={handleSelect}
                   onKeyDown={handleKeyDown}

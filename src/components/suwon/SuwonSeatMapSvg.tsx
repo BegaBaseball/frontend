@@ -618,7 +618,7 @@ export default function SuwonSeatMapSvg({
       <button
         type="button"
         data-testid="suwon-seatmap-zoom-reset"
-        className="min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-center text-[10px] font-black text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-neutral-800"
+        className="min-h-7 min-w-10 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-center text-10 font-black text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-neutral-800"
         onClick={() => updateZoomFromControls(minZoom)}
         disabled={zoom <= minZoom}
         aria-label="수원 좌석도 원래 크기"
@@ -791,6 +791,7 @@ export default function SuwonSeatMapSvg({
                       strokeWidth={showDebug ? 5 : isCompared ? 3 : 0}
                       vectorEffect="non-scaling-stroke"
                       pointerEvents={isFiltered ? 'none' : 'fill'}
+                      className="outline-none"
                       style={{ cursor: isFiltered ? 'default' : 'pointer' }}
                       aria-label={block.name}
                       aria-pressed={selectedId === block.id}

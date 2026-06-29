@@ -93,7 +93,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       <p className="mt-2 max-w-md text-xs font-semibold leading-relaxed text-slate-500 dark:text-white">
         구단/예매처 공식 좌석도 파일을 추가한 뒤 블록 좌표를 찍어야 합니다.
       </p>
-      <p className="mt-2 text-[11px] font-bold text-slate-400 dark:text-white">
+      <p className="mt-2 text-11 font-bold text-slate-400 dark:text-white">
         필요 파일: {JAMSIL_SEATMAP_IMAGE.requiredAssetFileName}
       </p>
     </div>
@@ -118,7 +118,7 @@ function SourceTabs({
             key={option.id}
             type="button"
             onClick={() => onChange(option.id)}
-            className="min-h-11 rounded-lg border-0 px-2.5 py-2 text-[11px] font-black transition-colors whitespace-nowrap text-center shrink-0"
+            className="min-h-11 rounded-lg border-0 px-2.5 py-2 text-11 font-black transition-colors whitespace-nowrap text-center shrink-0"
             style={{
               background: active ? '#1F5C4A' : 'transparent',
               color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -155,7 +155,7 @@ function DoosanInfoList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
       {items.map((item) => (
-        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+        <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1F5C4A]" />
           <span>{item}</span>
         </li>
@@ -209,7 +209,7 @@ function DoosanFloorImageDialog({
       >
         <div className="min-w-0 px-1">
           <div className="truncate text-sm font-black">{image.label}</div>
-          <div className="text-[11px] font-semibold text-white/55">두산 베어스 공식 층별 안내</div>
+          <div className="text-11 font-semibold text-white/55">두산 베어스 공식 층별 안내</div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
@@ -225,7 +225,7 @@ function DoosanFloorImageDialog({
             type="button"
             aria-label="층별 안내 이미지 원래 크기"
             onClick={() => updateZoom(1)}
-            className="h-9 min-w-14 rounded-lg border border-white/10 bg-white/10 px-2 text-[12px] font-black text-white transition hover:bg-white/15"
+            className="h-9 min-w-14 rounded-lg border border-white/10 bg-white/10 px-2 text-12 font-black text-white transition hover:bg-white/15"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -290,18 +290,18 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
       <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-10 font-black uppercase tracking-widest text-slate-400">
               {guide.sourceLabel}
             </p>
             <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
               {guide.title}
             </h3>
-            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+            <p className="mt-1 max-w-2xl text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
               {guide.summary}
             </p>
           </div>
           <div className="rounded-xl bg-emerald-50 px-4 py-3 text-left dark:bg-emerald-950/30 sm:text-right">
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-200">
+            <div className="text-10 font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-200">
               총 좌석수
             </div>
             <div className="mt-0.5 text-2xl font-black text-emerald-900 dark:text-emerald-100">
@@ -318,7 +318,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className="min-h-11 shrink-0 rounded-lg border-0 px-3 py-2 text-[11px] font-black transition-colors"
+                className="min-h-11 shrink-0 rounded-lg border-0 px-3 py-2 text-11 font-black transition-colors"
                 style={{
                   background: active ? '#1F5C4A' : 'transparent',
                   color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -344,17 +344,17 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
               loading="lazy"
               decoding="async"
             />
-            <figcaption className="border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
+            <figcaption className="border-t border-slate-100 px-3 py-2 text-11 font-bold text-slate-500 dark:border-slate-800 dark:text-white">
               {overviewImage.label}
             </figcaption>
           </figure>
 
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">좌석수 안내</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">좌석수 안내</div>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {guide.seatCounts.map((seat) => (
                 <div key={seat.label} className="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-800">
-                  <div className="text-[10px] font-bold text-slate-500 dark:text-white">{seat.label}</div>
+                  <div className="text-10 font-bold text-slate-500 dark:text-white">{seat.label}</div>
                   <div className="mt-0.5 text-sm font-black text-slate-900 dark:text-white">{seat.count.toLocaleString()}석</div>
                 </div>
               ))}
@@ -390,11 +390,11 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
                     loading="lazy"
                     decoding="async"
                   />
-                  <span className="absolute right-2 top-2 rounded-lg bg-slate-950/78 px-2.5 py-1.5 text-[11px] font-black text-white opacity-95 shadow-sm transition group-hover:bg-[#1F5C4A]">
+                  <span className="absolute right-2 top-2 rounded-lg bg-slate-950/78 px-2.5 py-1.5 text-11 font-black text-white opacity-95 shadow-sm transition group-hover:bg-[#1F5C4A]">
                     확대 보기
                   </span>
                 </button>
-                <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
+                <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-11 font-bold text-slate-500 dark:border-slate-800 dark:text-white">
                   <span>{image.label}</span>
                   <span className="font-black text-[#1F5C4A]">클릭해서 확대</span>
                 </figcaption>
@@ -407,22 +407,22 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
       {activeTab === 'entrances' && (
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">출입문</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">출입문</div>
             <div className="mt-1 text-lg font-black text-slate-900 dark:text-white">{guide.entrances.summary}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {guide.entrances.floors.map((floor) => (
-                <span key={floor} className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                <span key={floor} className="rounded-full bg-emerald-50 px-2.5 py-1 text-11 font-bold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
                   {floor}
                 </span>
               ))}
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">관람객 출입구</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">관람객 출입구</div>
             <div className="mt-2">
               <DoosanInfoList items={guide.entrances.publicEntrances} />
             </div>
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
               {guide.entrances.restrictedEntranceNote}
             </p>
           </div>
@@ -432,13 +432,13 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
       {activeTab === 'transport' && (
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">교통안내</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">교통안내</div>
             <div className="mt-2">
               <DoosanInfoList items={[...guide.transport.subway, ...guide.transport.buses]} />
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">주차안내</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">주차안내</div>
             <div className="mt-2">
               <DoosanInfoList items={[...guide.parking.stadium, ...guide.parking.nearby]} />
             </div>
@@ -446,7 +446,7 @@ function DoosanOfficialGuide({ mode }: { mode: 'light' | 'dark' }) {
         </div>
       )}
 
-      <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
         {guide.implementationNote} 블록 선택은 LG 공식 좌석도 기준으로 제공합니다.
         <a
           href={guide.sourceUrl}
@@ -927,7 +927,7 @@ export default function JamsilSeatMapSvg({
       </button>
       <button
         data-testid="jamsil-seatmap-zoom-reset"
-        className="pointer-events-auto min-h-11 min-w-11 rounded-md border-0 bg-transparent px-1.5 py-1 text-[10px] font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+        className="pointer-events-auto min-h-11 min-w-11 rounded-md border-0 bg-transparent px-1.5 py-1 text-10 font-black text-center text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
         onClick={() => updateZoomFromControls(minZoom)}
         disabled={zoom <= minZoom}
         aria-label="잠실 좌석도 원래 크기"
@@ -1137,7 +1137,11 @@ export default function JamsilSeatMapSvg({
                     filter={isActive ? 'url(#jamsil-hit-glow)' : undefined}
                     vectorEffect="non-scaling-stroke"
                     pointerEvents={isFiltered ? 'none' : undefined}
-                    style={{ cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer', transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s' }}
+                    style={{
+                      cursor: isFiltered ? 'default' : canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                      outline: 'none',
+                      transition: 'fill 0.18s, fill-opacity 0.18s, stroke-opacity 0.15s',
+                    }}
                     onMouseEnter={() => !isFiltered && !isDragging && setHover(b.id)}
                     onClick={(event) => {
                       if (suppressClickRef.current || event.detail > 1) {
