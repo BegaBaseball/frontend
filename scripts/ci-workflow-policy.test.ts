@@ -69,6 +69,7 @@ const writePassingPolicyFixture = () => {
     '      - "public/_headers"',
     '      - "public/_redirects"',
     '      - "index.html"',
+    '      - "package.json"',
     '      - "package-lock.json"',
   ].join('\n'));
 
@@ -95,6 +96,40 @@ const writePassingPolicyFixture = () => {
     '      - ".github/labeler.yml"',
     '      - "scripts/ci-workflow-policy.mjs"',
     '      - "scripts/ci-workflow-policy.test.ts"',
+  ].join('\n'));
+
+  writeWorkflowFixture(repoRoot, 'frontend-cypress-runner.yml', [
+    'on:',
+    '  pull_request:',
+    '    paths:',
+    '      - "scripts/cypress-run.mjs"',
+    '      - "scripts/cypress-run.test.mjs"',
+    '      - "scripts/qa-presets.mjs"',
+    '      - "scripts/test-e2e.mjs"',
+    '      - "cypress/e2e/runner-docker-smoke.cy.ts"',
+    '  workflow_dispatch:',
+    '    inputs:',
+    '      suite:',
+    '        type: choice',
+    '        options:',
+    '          - contracts',
+    '          - docker-smoke',
+    'jobs:',
+    '  cypress-runner:',
+    '    steps:',
+    '      - uses: actions/setup-node@v4',
+    '        with:',
+    '          node-version: 22',
+    '      - env:',
+    '          CYPRESS_INSTALL_BINARY: "0"',
+    '      - run: npm run test:cypress-runner',
+    "      - if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}",
+    '        run: docker info',
+    "      - if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}",
+    '        run: npm run dev -- --host 0.0.0.0 --port 5176',
+    '      - env:',
+    '          CYPRESS_DOCKER_BASE_URL: http://host.docker.internal:5176',
+    '        run: npm run test:cypress-runner:docker-smoke',
   ].join('\n'));
 
   for (const fileName of REQUIRED_WORKFLOW_FIXTURES) {
