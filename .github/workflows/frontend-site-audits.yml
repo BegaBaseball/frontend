@@ -40,8 +40,8 @@ jobs:
     with:
       timeout_minutes: 20
       env_exports: |
-        VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.com' }}
-        VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://api.begabaseball.com' }}
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.xyz' }}
+        VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://api.begabaseball.xyz' }}
         VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=${{ vars.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION || 'false' }}
         VITE_GA4_MEASUREMENT_ID=${{ vars.VITE_GA4_MEASUREMENT_ID || 'G-CI00000000' }}
         VITE_GOOGLE_SITE_VERIFICATION=${{ vars.VITE_GOOGLE_SITE_VERIFICATION || 'ciGoogleVerificationToken2026' }}
@@ -52,9 +52,17 @@ jobs:
           echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
           exit 1
         fi
+        if [[ "${VITE_SITE_URL%/}" != "https://www.begabaseball.xyz" ]]; then
+          echo "Repository variable VITE_SITE_URL must be https://www.begabaseball.xyz" >&2
+          exit 1
+        fi
         if [[ -z "${VITE_API_BASE_URL}" ]]; then
           echo "Missing repository variable: VITE_API_BASE_URL" >&2
           echo "Set Settings > Secrets and variables > Actions > Variables > VITE_API_BASE_URL" >&2
+          exit 1
+        fi
+        if [[ "${VITE_API_BASE_URL%/}" != "https://api.begabaseball.xyz" ]]; then
+          echo "Repository variable VITE_API_BASE_URL must be https://api.begabaseball.xyz" >&2
           exit 1
         fi
         if [[ "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "true" && "${VITE_MATE_REQUIRE_SOCIAL_VERIFICATION}" != "false" ]]; then
@@ -108,11 +116,15 @@ jobs:
     with:
       timeout_minutes: 20
       env_exports: |
-        VITE_SITE_URL=${{ vars.VITE_SITE_URL }}
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.xyz' }}
       pre_run_script: |
         if [[ -z "${VITE_SITE_URL}" ]]; then
           echo "Missing repository variable: VITE_SITE_URL" >&2
           echo "Set Settings > Secrets and variables > Actions > Variables > VITE_SITE_URL" >&2
+          exit 1
+        fi
+        if [[ "${VITE_SITE_URL%/}" != "https://www.begabaseball.xyz" ]]; then
+          echo "Repository variable VITE_SITE_URL must be https://www.begabaseball.xyz" >&2
           exit 1
         fi
       run_script: npm run cwv:baseline
