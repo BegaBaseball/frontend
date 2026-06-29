@@ -46,13 +46,13 @@ test('loginUser는 공개 로그인 경로 응답을 정규화한다', async (t)
 });
 
 test('loginUser는 느린 인증 처리를 위해 로그인 전용 타임아웃을 사용한다', async (t) => {
-  const originalSetTimeout = globalThis.setTimeout;
   const timeoutDelays: number[] = [];
+  const timeoutController = new AbortController();
 
-  t.mock.method(globalThis, 'setTimeout', ((callback: TimerHandler, timeout?: number, ...args: unknown[]) => {
+  t.mock.method(AbortSignal, 'timeout', (timeout: number) => {
     timeoutDelays.push(Number(timeout));
-    return originalSetTimeout(callback, timeout, ...args);
-  }) as typeof globalThis.setTimeout);
+    return timeoutController.signal;
+  });
 
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
     success: true,

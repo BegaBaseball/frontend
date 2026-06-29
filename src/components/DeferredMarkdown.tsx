@@ -9,7 +9,7 @@ type DeferredMarkdownProps = {
 export default function DeferredMarkdown({
   content,
   className,
-  fallbackClassName = 'text-[16px] whitespace-pre-wrap break-words',
+  fallbackClassName = 'text-body whitespace-pre-wrap break-words',
 }: DeferredMarkdownProps) {
   return (
     <SimpleMarkdownContent

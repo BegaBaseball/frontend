@@ -49,7 +49,7 @@ test('matches the project button override patterns', () => {
 
 test('supports card and ring overrides used by shared primitives', () => {
   assert.equal(cn('px-6 [&:last-child]:pb-6', 'px-2 pb-0'), '[&:last-child]:pb-6 px-2 pb-0');
-  assert.equal(cn('focus-visible:ring-ring/50 focus-visible:ring-[3px]', 'focus-visible:ring-0'), 'focus-visible:ring-ring/50 focus-visible:ring-0');
+  assert.equal(cn('focus-visible:ring-ring/50 focus-visible:ring', 'focus-visible:ring-0'), 'focus-visible:ring-ring/50 focus-visible:ring-0');
   assert.equal(cn('border border-input', 'border-primary'), 'border border-primary');
 });
 

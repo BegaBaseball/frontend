@@ -206,11 +206,11 @@ export interface CoachAnalyzeResponse {
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
     switch (value) {
         case 'grounded':
-            return '실데이터 기반';
+            return '경기 데이터 반영';
         case 'partial':
-            return '실데이터 일부 기반';
+            return '주요 흐름 중심';
         case 'insufficient':
-            return '데이터 부족';
+            return '데이터 확인 필요';
         default:
             return '근거 확인 중';
     }
