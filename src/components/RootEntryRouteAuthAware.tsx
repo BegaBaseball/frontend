@@ -5,8 +5,7 @@ import { useAuthBootstrapUiState } from '../hooks/useAuthBootstrapUiState';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 import LoadingSpinner from './LoadingSpinner';
 
-const landingModulePromise = import('./Landing');
-const Landing = lazy(() => landingModulePromise);
+const Landing = lazy(() => import('./Landing'));
 
 export default function RootEntryRouteAuthAware() {
   const { isAuthBootstrapPending, isAuthLoading, isLoggedIn } = useAuthBootstrapUiState();
