@@ -5,6 +5,8 @@ import {
   formatScheduleDateKey,
   formatScheduleMonthKey,
   getScheduleMonthStartKey,
+  normalizeScheduleDateKey,
+  resolveScheduleInitialCursor,
   resolveScheduleInitialSelectedDate,
 } from './scheduleCalendar';
 
@@ -32,6 +34,28 @@ test('resolveScheduleInitialSelectedDate는 오늘이 현재 월이면 오늘을
   const selected = resolveScheduleInitialSelectedDate({
     cursor: new Date(2026, 3, 1),
     todayKey: '2026-04-15',
+    gameDateKeys: ['2026-04-02'],
+  });
+
+  assert.equal(selected, '2026-04-15');
+});
+
+test('resolveScheduleInitialSelectedDate는 date query 요청 날짜를 최우선으로 선택한다', () => {
+  const selected = resolveScheduleInitialSelectedDate({
+    cursor: new Date(2026, 3, 1),
+    todayKey: '2026-04-15',
+    requestedDateKey: '2026-04-18',
+    gameDateKeys: ['2026-04-02', '2026-04-18'],
+  });
+
+  assert.equal(selected, '2026-04-18');
+});
+
+test('resolveScheduleInitialSelectedDate는 현재 월 밖 date query를 무시한다', () => {
+  const selected = resolveScheduleInitialSelectedDate({
+    cursor: new Date(2026, 3, 1),
+    todayKey: '2026-04-15',
+    requestedDateKey: '2026-05-18',
     gameDateKeys: ['2026-04-02'],
   });
 
@@ -66,4 +90,28 @@ test('resolveScheduleInitialSelectedDate는 월 이동 후 새 월 기준으로 
   });
 
   assert.equal(selected, '2026-07-02');
+});
+
+test('resolveScheduleInitialCursor는 date query가 유효하면 해당 월을 사용한다', () => {
+  const cursor = resolveScheduleInitialCursor(
+    new URLSearchParams('date=2026-05-18'),
+    new Date(2026, 3, 25),
+  );
+
+  assert.equal(formatScheduleDateKey(cursor), '2026-05-01');
+});
+
+test('resolveScheduleInitialCursor는 date query가 무효하면 fallback 월을 유지한다', () => {
+  const cursor = resolveScheduleInitialCursor(
+    new URLSearchParams('date=2026-99-99'),
+    new Date(2026, 3, 25),
+  );
+
+  assert.equal(formatScheduleDateKey(cursor), '2026-04-01');
+});
+
+test('normalizeScheduleDateKey는 유효한 date query만 yyyy-mm-dd로 보존한다', () => {
+  assert.equal(normalizeScheduleDateKey('2026-05-18'), '2026-05-18');
+  assert.equal(normalizeScheduleDateKey('2026-99-99'), null);
+  assert.equal(normalizeScheduleDateKey('not-a-date'), null);
 });
