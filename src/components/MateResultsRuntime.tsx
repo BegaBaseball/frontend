@@ -33,7 +33,9 @@ interface MateResultsRuntimeProps {
   onResetFilters: () => void;
   onCreateParty: () => void;
   onPartyClick: (party: Party) => void;
+  onFavoriteToggle?: (party: Party) => void;
   onPageChange: (nextPage: number) => void;
+  favoriteUpdatingPartyId?: number | null;
   viewMode?: MateResultsViewMode;
 }
 
@@ -57,7 +59,9 @@ function MateResultsRuntime({
   onResetFilters,
   onCreateParty,
   onPartyClick,
+  onFavoriteToggle,
   onPageChange,
+  favoriteUpdatingPartyId = null,
   viewMode = 'grid',
 }: MateResultsRuntimeProps) {
   const todayKey = useTodayKey();
@@ -68,7 +72,7 @@ function MateResultsRuntime({
         <div
           key={index}
           aria-hidden="true"
-          className="flex min-h-[150px] animate-pulse flex-col gap-[10px] rounded-[18px] border border-gray-200/80 bg-white p-[14px] dark:border-white/15 dark:bg-[#000000]"
+          className="flex min-h-[150px] animate-pulse flex-col gap-[10px] rounded-18 border border-gray-200/80 bg-white p-[14px] dark:border-white/15 dark:bg-[#000000]"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="h-5 w-28 rounded bg-gray-200 dark:bg-white/10" />
@@ -87,7 +91,7 @@ function MateResultsRuntime({
     return (
       <div
         data-testid="mate-empty-state"
-        className="rounded-[24px] border border-gray-200/80 bg-gradient-to-br from-white via-white to-primary/5 px-5 py-16 text-center shadow-sm dark:border-white/15 dark:from-[hsl(var(--surface-raised))] dark:via-[hsl(var(--surface-raised))] dark:to-primary/10"
+        className="rounded-3xl border border-gray-200/80 bg-gradient-to-br from-white via-white to-primary/5 px-5 py-16 text-center shadow-sm dark:border-white/15 dark:from-[hsl(var(--surface-raised))] dark:via-[hsl(var(--surface-raised))] dark:to-primary/10"
       >
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
           <MateUsersIcon className="h-7 w-7" />
@@ -97,7 +101,7 @@ function MateResultsRuntime({
         </p>
         {hasActiveFilters ? (
           <>
-            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-white">
+            <p className="mx-auto mb-6 max-w-md text-body font-bold leading-6 text-gray-600 dark:text-white">
               검색어를 줄이거나 날짜, 팀, 좌석 조건을 초기화하면 더 많은 파티를 볼 수 있습니다.
             </p>
             <Button
@@ -111,7 +115,7 @@ function MateResultsRuntime({
           </>
         ) : (
           <>
-            <p className="mx-auto mb-6 max-w-md text-[16px] font-bold leading-6 text-gray-600 dark:text-white">
+            <p className="mx-auto mb-6 max-w-md text-body font-bold leading-6 text-gray-600 dark:text-white">
               원하는 경기와 좌석 조건으로 첫 번째 직관 메이트를 모집해보세요.
             </p>
             <Button
@@ -138,6 +142,8 @@ function MateResultsRuntime({
             party={party}
             todayKey={todayKey}
             onClick={onPartyClick}
+            onFavoriteToggle={onFavoriteToggle}
+            favoriteUpdating={favoriteUpdatingPartyId === party.id}
           />,
           index === 3 && items.length > 4 ? (
             <AdSlot
@@ -160,7 +166,14 @@ function MateResultsRuntime({
     <Suspense fallback={renderSkeletonGrid()}>
       <div className="flex flex-col gap-2">
         {items.map((party) => (
-          <PartyRow key={party.id} party={party} todayKey={todayKey} onClick={onPartyClick} />
+          <PartyRow
+            key={party.id}
+            party={party}
+            todayKey={todayKey}
+            onClick={onPartyClick}
+            onFavoriteToggle={onFavoriteToggle}
+            favoriteUpdating={favoriteUpdatingPartyId === party.id}
+          />
         ))}
       </div>
     </Suspense>
@@ -170,7 +183,14 @@ function MateResultsRuntime({
     <Suspense fallback={renderSkeletonGrid()}>
       <div className="grid grid-cols-1 gap-2 2xl:grid-cols-2">
         {items.map((party) => (
-          <PartyCompact key={party.id} party={party} todayKey={todayKey} onClick={onPartyClick} />
+          <PartyCompact
+            key={party.id}
+            party={party}
+            todayKey={todayKey}
+            onClick={onPartyClick}
+            onFavoriteToggle={onFavoriteToggle}
+            favoriteUpdating={favoriteUpdatingPartyId === party.id}
+          />
         ))}
       </div>
     </Suspense>
@@ -194,7 +214,7 @@ function MateResultsRuntime({
         <MateChevronLeftIcon className="mr-1 h-4 w-4" />
         이전
       </Button>
-      <span className="rounded-full bg-gray-100 px-3 py-2 text-[16px] font-bold text-gray-600 dark:bg-white/5 dark:text-white">
+      <span className="rounded-full bg-gray-100 px-3 py-2 text-body font-bold text-gray-600 dark:bg-white/5 dark:text-white">
         {`${queryPage + 1} / ${totalPages}`}
       </span>
       <Button
@@ -220,14 +240,14 @@ function MateResultsRuntime({
 
   if (fetchError) {
     return (
-      <div role="alert" className="rounded-[24px] border border-red-300 bg-red-50 px-5 py-14 text-center shadow-sm dark:border-red-900/70 dark:bg-red-950/30">
+      <div role="alert" className="rounded-3xl border border-red-300 bg-red-50 px-5 py-14 text-center shadow-sm dark:border-red-900/70 dark:bg-red-950/30">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-red-300 bg-white text-red-600 shadow-sm dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
           <MateAlertCircleIcon className="h-7 w-7" />
         </div>
         <p className="text-xl font-black tracking-tight text-red-950 dark:text-red-50">
           파티 목록을 불러오지 못했습니다
         </p>
-        <p className="mx-auto mt-2 max-w-md text-[16px] font-bold leading-6 text-red-700 dark:text-red-100">
+        <p className="mx-auto mt-2 max-w-md text-body font-bold leading-6 text-red-700 dark:text-red-100">
           일시적인 연결 문제일 수 있습니다. 잠시 후 다시 시도하거나 네트워크 상태를 확인해주세요.
         </p>
         <Button

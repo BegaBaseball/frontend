@@ -13,7 +13,7 @@ function MateResultsFallback() {
         {Array.from({ length: 6 }, (_, index) => (
           <div
             key={index}
-            className="h-[304px] rounded-[22px] border border-gray-200/80 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[hsl(var(--surface-raised))]"
+            className="h-[304px] rounded-22 border border-gray-200/80 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[hsl(var(--surface-raised))]"
           >
             <div className="flex h-full animate-pulse flex-col justify-between">
               <div className="space-y-4">
@@ -41,7 +41,7 @@ function MateControlsFallback() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-2">
-          <div className="text-[13px] font-semibold uppercase tracking-[0.16em] text-primary/70">같이가요</div>
+          <div className="text-13 font-semibold uppercase tracking-[0.16em] text-primary/70">같이가요</div>
           <div className="h-8 w-56 animate-pulse rounded bg-muted" />
         </div>
         <div className="hidden h-11 w-28 animate-pulse rounded-full bg-muted/70 sm:block" />
@@ -85,7 +85,9 @@ export default function Mate() {
                 onResetFilters={controller.handleResetFilters}
                 onCreateParty={controller.handleCreatePartyClick}
                 onPartyClick={controller.handlePartyClick}
+                onFavoriteToggle={controller.handleFavoriteToggle}
                 onPageChange={controller.setCurrentPage}
+                favoriteUpdatingPartyId={controller.favoriteUpdatingPartyId}
                 viewMode={effectiveViewMode}
               />
             </Suspense>

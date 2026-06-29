@@ -13,6 +13,11 @@ import {
   recordMateSearchTerm,
   setPartyFavorite,
 } from './mate';
+import {
+  buildSeatViewSectionQueries,
+  dedupeSeatViewPhotos,
+  fetchPrioritizedSeatViewPhotos,
+} from '../hooks/useSeatViewPhotos';
 
 const resolveRequestUrl = (input: string | URL | Request): string =>
   typeof input === 'string'
@@ -113,6 +118,88 @@ test('setPartyFavorite는 찜 endpoint 응답을 boolean으로 정규화한다',
     'POST /api/parties/3/favorite',
     'DELETE /api/parties/3/favorite',
   ]);
+});
+
+test('seat-view section helpers trim aliases and dedupe photos by stable key', () => {
+  assert.deepEqual(
+    buildSeatViewSectionQueries('  [홈응원] 1루석  ', ['305블록 12열', '', '305블록 12열']),
+    ['305블록 12열', '[홈응원] 1루석'],
+  );
+
+  const photos = dedupeSeatViewPhotos([
+    [{
+      photoUrl: 'https://example.test/seat-a.jpg',
+      stadium: '잠실',
+      section: '305블록',
+      block: null,
+      diaryDate: '2026-05-01',
+    }],
+    [{
+      photoUrl: 'https://example.test/seat-a.jpg',
+      stadium: '잠실',
+      section: '305블록',
+      block: null,
+      diaryDate: '2026-05-01',
+    }, {
+      photoUrl: '',
+      stadium: '잠실',
+      section: '306블록',
+      block: '12열',
+      diaryDate: '2026-05-02',
+    }],
+  ]);
+
+  assert.equal(photos.length, 2);
+  assert.equal(photos[1]?.section, '306블록');
+});
+
+test('seat-view photo fetcher stops broad fallback after exact matches fill the limit', async () => {
+  const requestedSections: string[] = [];
+  const photos = await fetchPrioritizedSeatViewPhotos(
+    '잠실야구장',
+    ['305블록 12열 15번', '1루석'],
+    1,
+    async (_stadium, section) => {
+      requestedSections.push(section);
+      return [{
+        photoUrl: `https://example.test/${section}.jpg`,
+        stadium: '잠실야구장',
+        section,
+        block: null,
+        diaryDate: '2026-05-01',
+      }];
+    },
+  );
+
+  assert.deepEqual(requestedSections, ['305블록 12열 15번']);
+  assert.equal(photos.length, 1);
+  assert.equal(photos[0]?.section, '305블록 12열 15번');
+});
+
+test('seat-view photo fetcher falls back to broad section when exact match is empty', async () => {
+  const requestedSections: string[] = [];
+  const photos = await fetchPrioritizedSeatViewPhotos(
+    '잠실야구장',
+    ['305블록 12열 15번', '1루석'],
+    1,
+    async (_stadium, section) => {
+      requestedSections.push(section);
+      if (section === '305블록 12열 15번') {
+        return [];
+      }
+      return [{
+        photoUrl: `https://example.test/${section}.jpg`,
+        stadium: '잠실야구장',
+        section,
+        block: null,
+        diaryDate: '2026-05-01',
+      }];
+    },
+  );
+
+  assert.deepEqual(requestedSections, ['305블록 12열 15번', '1루석']);
+  assert.equal(photos.length, 1);
+  assert.equal(photos[0]?.section, '1루석');
 });
 
 test('fetchMyPartyHistoryPage는 마이페이지 전용 history endpoint와 페이지 파라미터를 사용한다', async (t) => {

@@ -78,8 +78,8 @@ export default function MateCheckInContentRuntime({
               <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-[16px] font-semibold text-gray-800 dark:text-white">체크인 정보를 준비하고 있습니다.</p>
-                    <p className="mt-1 text-[14px] text-gray-500 dark:text-white">경기와 참여자 상태를 확인 중입니다.</p>
+                    <p className="text-body font-semibold text-gray-800 dark:text-white">체크인 정보를 준비하고 있습니다.</p>
+                    <p className="mt-1 text-caption text-gray-500 dark:text-white">경기와 참여자 상태를 확인 중입니다.</p>
                   </div>
                   <div className="space-y-4 animate-pulse">
                     <div className="h-8 w-32 rounded bg-muted" />
@@ -109,7 +109,7 @@ export default function MateCheckInContentRuntime({
 
           {isPartyRevalidating && (
             <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
-              <AlertDescription className="text-[16px] text-blue-700 dark:text-blue-300">
+              <AlertDescription className="text-body text-blue-700 dark:text-blue-300">
                 최신 파티 정보를 다시 확인하고 있습니다.
               </AlertDescription>
             </Alert>
@@ -117,7 +117,7 @@ export default function MateCheckInContentRuntime({
 
           {qrSessionId && (
             <Alert className="border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950/20">
-              <AlertDescription className="text-[16px] text-sky-800 dark:text-sky-200">
+              <AlertDescription className="text-body text-sky-800 dark:text-sky-200">
                 QR 코드로 체크인 링크가 연결되었습니다. 세션 정보는 이번 체크인 인증에만 사용됩니다.
               </AlertDescription>
             </Alert>
@@ -125,7 +125,7 @@ export default function MateCheckInContentRuntime({
 
           {statusLoadError && (
             <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
-              <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-[16px] text-amber-800 dark:text-amber-200">
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-body text-amber-800 dark:text-amber-200">
                 <span>{statusLoadError}</span>
                 <Button
                   variant="outline"
@@ -144,7 +144,7 @@ export default function MateCheckInContentRuntime({
               <div className="space-y-6">
                 <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                   <div className="space-y-4">
-                    <p className="text-[16px] font-semibold text-gray-800 dark:text-white">내 체크인 상태 확인 중</p>
+                    <p className="text-body font-semibold text-gray-800 dark:text-white">내 체크인 상태 확인 중</p>
                     <div className="space-y-4 animate-pulse">
                       <div className="h-6 w-40 rounded bg-muted" />
                       <div className="h-24 rounded-2xl bg-muted/70" />
@@ -153,7 +153,7 @@ export default function MateCheckInContentRuntime({
                 </Card>
                 <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                   <div className="space-y-4">
-                    <p className="text-[16px] font-semibold text-gray-800 dark:text-white">진행률을 불러오고 있습니다.</p>
+                    <p className="text-body font-semibold text-gray-800 dark:text-white">진행률을 불러오고 있습니다.</p>
                     <div className="space-y-4 animate-pulse">
                       <div className="h-6 w-40 rounded bg-muted" />
                       <div className="h-20 rounded-2xl bg-muted/70" />
@@ -187,7 +187,7 @@ export default function MateCheckInContentRuntime({
             fallback={(
               <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
                 <div className="space-y-4">
-                  <p className="text-[16px] font-semibold text-gray-800 dark:text-white">참여자 명단을 불러오고 있습니다.</p>
+                  <p className="text-body font-semibold text-gray-800 dark:text-white">참여자 명단을 불러오고 있습니다.</p>
                   <div className="space-y-4 animate-pulse">
                     <div className="h-6 w-36 rounded bg-muted" />
                     <div className="h-24 rounded-2xl bg-muted/70" />

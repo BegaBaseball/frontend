@@ -9,6 +9,7 @@ interface MateDetailSeatPanelProps {
   open: boolean;
   stadium: string;
   section: string;
+  seatDetail?: string;
   onClose: () => void;
 }
 
@@ -29,10 +30,14 @@ export default function MateDetailSeatPanel({
   open,
   stadium,
   section,
+  seatDetail,
   onClose,
 }: MateDetailSeatPanelProps) {
-  const currentZone = resolveSeatZone(stadium, section);
   const stadiumDisplayName = formatStadiumDisplayName(stadium);
+  const seatDetailLabel = seatDetail?.trim();
+  const seatLookupText = [section, seatDetailLabel].filter(Boolean).join(' ');
+  const currentZone = resolveSeatZone(stadium, seatLookupText);
+  const sectionAliases = seatDetailLabel ? [seatDetailLabel] : [];
 
   return (
     <PlainDialog
@@ -49,16 +54,19 @@ export default function MateDetailSeatPanel({
       <div className="space-y-4 py-2" data-testid="mate-seat-panel">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div className="rounded-xl border border-gray-200/80 bg-gray-50/90 p-4 dark:border-border/70 dark:bg-secondary/70">
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">좌석 정보</p>
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white/55">좌석 정보</p>
             <p className="mt-2 text-base font-semibold text-gray-900 dark:text-white">{section}</p>
-            <div className="mt-2 flex items-center gap-2 text-[16px] text-gray-600 dark:text-white">
+            {seatDetailLabel ? (
+              <p className="mt-1 text-body font-semibold text-gray-600 dark:text-white/70">{seatDetailLabel}</p>
+            ) : null}
+            <div className="mt-2 flex items-center gap-2 text-body text-gray-600 dark:text-white/70">
               <MateMapPinIcon className="h-4 w-4 text-primary" />
               <span>{stadiumDisplayName}</span>
             </div>
           </div>
           {currentZone ? (
             <div
-              className="inline-flex items-center justify-center rounded-xl px-4 py-3 text-[16px] font-semibold text-white shadow-sm"
+              className="inline-flex items-center justify-center rounded-xl px-4 py-3 text-body font-semibold text-white shadow-sm"
               style={{ backgroundColor: currentZone.color || '#4b5563' }}
             >
               {currentZone.name}
@@ -68,13 +76,13 @@ export default function MateDetailSeatPanel({
 
         {currentZone ? (
           <div className="rounded-xl border border-gray-200/80 bg-gray-50/90 p-4 dark:border-border/70 dark:bg-secondary/70">
-            <div className="flex items-center gap-2 text-[16px] font-semibold text-gray-900 dark:text-white">
+            <div className="flex items-center gap-2 text-body font-semibold text-gray-900 dark:text-white">
               <MateInfoIcon className="h-4 w-4 text-primary" />
               구역 설명
             </div>
-            <p className="mt-2 text-[16px] text-gray-600 dark:text-white">{currentZone.description}</p>
+            <p className="mt-2 text-body text-gray-600 dark:text-white/70">{currentZone.description}</p>
             {currentZone.price ? (
-              <div className="mt-3 grid gap-2 text-[16px] text-gray-600 dark:text-white sm:grid-cols-2">
+              <div className="mt-3 grid gap-2 text-body text-gray-600 dark:text-white/70 sm:grid-cols-2">
                 <div className="flex justify-between rounded-lg border border-gray-200/70 bg-white/70 px-3 py-2 dark:border-border/60 dark:bg-background/30">
                   <span>주중</span>
                   <span>{currentZone.price.weekday}</span>
@@ -89,11 +97,11 @@ export default function MateDetailSeatPanel({
         ) : null}
 
         <div className="rounded-xl border border-gray-200/80 bg-white p-4 dark:border-border/70 dark:bg-card/90">
-          <h3 className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-gray-900 dark:text-white">
+          <h3 className="mb-4 flex items-center gap-2 text-body font-semibold text-gray-900 dark:text-white">
             <MateMapPinIcon className="h-4 w-4 text-primary" />
             좌석 시야
           </h3>
-          <SeatViewGallery stadium={stadium} section={section} />
+          <SeatViewGallery stadium={stadium} section={section} sectionAliases={sectionAliases} />
         </div>
       </div>
     </PlainDialog>

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   cancelApplicationWithReason,
   normalizeMateParty,
+  setPartyFavorite,
   updateParty,
 } from '../api/mate';
 import {
@@ -116,6 +117,7 @@ export default function MateDetailContentRuntime({
   const [cancelMemo, setCancelMemo] = useState('');
   const [showHostProfile, setShowHostProfile] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ handle: string; name: string } | null>(null);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const applications = isHost ? hostApplications : [];
   const isCompactHero = useMediaQuery('(max-width: 639px)');
   const todayKey = useTodayKey();
@@ -217,6 +219,28 @@ export default function MateDetailContentRuntime({
     setSalePrice('');
     setSalePriceError('');
     setShowSaleDialog(true);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (isTogglingFavorite) return;
+    if (!currentUserId) {
+      toast.error('찜하려면 로그인이 필요합니다.');
+      return;
+    }
+    const previous = Boolean(party.favorited);
+    const next = !previous;
+    setIsTogglingFavorite(true);
+    syncMatePartyQueryData(queryClient, { ...party, favorited: next });
+    try {
+      const confirmed = await setPartyFavorite(party.id, next);
+      syncMatePartyQueryData(queryClient, { ...party, favorited: confirmed });
+    } catch (error: unknown) {
+      console.error('찜 처리 중 오류:', error);
+      syncMatePartyQueryData(queryClient, { ...party, favorited: previous });
+      toast.error(resolveMateDetailErrorMessage(error, '찜 처리 중 오류가 발생했습니다.'));
+    } finally {
+      setIsTogglingFavorite(false);
+    }
   };
 
   const handleConfirmSale = async () => {
@@ -379,7 +403,7 @@ export default function MateDetailContentRuntime({
       onClick: handleCancelApplication,
       disabled: isCancelling,
       variant: 'ghost',
-      className: 'w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-[16px]',
+      className: 'w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-body',
     });
   } else if (myApplication?.isRejected) {
     actionButtons.push({
@@ -404,7 +428,12 @@ export default function MateDetailContentRuntime({
     <>
       <div className="mb-[calc(7rem_+_env(safe-area-inset-bottom))] grid grid-cols-1 gap-3.5 sm:gap-4 md:gap-5 lg:mb-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6 xl:gap-7">
         <div className="flex min-w-0 flex-col gap-3.5 sm:gap-4 md:gap-5 lg:gap-4">
-          <MateDetailHeroBlock party={party} compact={isCompactHero} />
+          <MateDetailHeroBlock
+            party={party}
+            compact={isCompactHero}
+            favorited={Boolean(party.favorited)}
+            onToggleFavorite={handleToggleFavorite}
+          />
           <Suspense fallback={null}>
             <LazyMateDetailInfoSections
               party={party}

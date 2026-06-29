@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useUIStore, type MateListViewMode } from '../store/uiStore';
 
 const VIEW_OPTIONS: { key: MateListViewMode; label: string; icon: ReactNode }[] = [
@@ -43,11 +44,15 @@ const VIEW_OPTIONS: { key: MateListViewMode; label: string; icon: ReactNode }[] 
  * 상태는 uiStore에 영속(`mateListViewMode`). lazy 분리로 Mate runtime 슬림 유지.
  */
 export default function MateViewToggle() {
-  const mateListViewMode = useUIStore((state) => state.mateListViewMode);
-  const setMateListViewMode = useUIStore((state) => state.setMateListViewMode);
+  const { mateListViewMode, setMateListViewMode } = useUIStore(
+    useShallow((state) => ({
+      mateListViewMode: state.mateListViewMode,
+      setMateListViewMode: state.setMateListViewMode,
+    })),
+  );
 
   return (
-    <div className="hidden h-[46px] items-center gap-0.5 rounded-[14px] border border-gray-200/80 bg-white p-1 dark:border-white/10 dark:bg-[#000000] xl:inline-flex">
+    <div className="hidden h-[46px] items-center gap-0.5 rounded-14 border border-gray-200/80 bg-white p-1 dark:border-white/10 dark:bg-[#000000] xl:inline-flex">
       {VIEW_OPTIONS.map(({ key, label, icon }) => (
         <button
           key={key}
@@ -56,7 +61,7 @@ export default function MateViewToggle() {
           aria-label={`${label} 보기`}
           aria-pressed={mateListViewMode === key}
           onClick={() => setMateListViewMode(key)}
-          className={`inline-flex h-[38px] w-[38px] items-center justify-center rounded-[10px] transition-colors ${
+          className={`inline-flex h-[38px] w-[38px] items-center justify-center rounded-10 transition-colors ${
             mateListViewMode === key
               ? 'bg-primary text-primary-foreground'
               : 'text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:bg-primary/20'

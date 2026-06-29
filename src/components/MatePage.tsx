@@ -11,7 +11,7 @@ const MateGuestSampleList = lazy(() => import('./MateGuestSampleList'));
 const MateFallback = () => (
   <div className="min-h-screen bg-white py-8 dark:bg-background">
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-      <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center text-[16px] text-muted-foreground shadow-sm">
+      <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center text-body text-muted-foreground shadow-sm">
         메이트 목록을 준비하고 있습니다.
       </div>
     </div>
@@ -31,13 +31,13 @@ function MateLoggedOutEntry() {
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <span className="text-lg font-black" aria-hidden="true">M</span>
           </div>
-          <p className="mb-2 text-[16px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white">
+          <p className="mb-2 text-body font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white">
             Mate Flow
           </p>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
             로그인하고 직관 메이트를 찾아보세요
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-[16px] font-bold leading-relaxed text-gray-500 dark:text-white">
+          <p className="mx-auto mt-3 max-w-xl text-body font-bold leading-relaxed text-gray-500 dark:text-white">
             경기 날짜, 좌석, 팀 기준으로 파티를 찾고 신청하려면 계정 확인이 필요합니다.
           </p>
           <Suspense fallback={null}>

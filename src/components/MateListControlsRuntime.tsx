@@ -158,7 +158,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
     <>
       <div className="mb-5 flex items-start justify-between gap-3 md:mb-6 md:items-end">
         <div className="min-w-0">
-          <p className="mb-1 hidden text-[15px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white sm:block">
+          <p className="mb-1 hidden text-15 font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white sm:block">
             Mate Flow
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -213,21 +213,21 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
               <MateMyPartiesPanel onPartyClick={handlePartyClick} />
             </Suspense>
             <section className={`${SIDEBAR_CARD_CLASS} space-y-3`}>
-              <h2 className="text-[13px] font-black text-gray-900 dark:text-white">경기 날짜</h2>
+              <h2 className="text-13 font-black text-gray-900 dark:text-white">경기 날짜</h2>
               {renderDateFilter('rail')}
             </section>
 
             <section className={`${SIDEBAR_CARD_CLASS} space-y-3`}>
-              <h2 className="text-[13px] font-black text-gray-900 dark:text-white">팀</h2>
+              <h2 className="text-13 font-black text-gray-900 dark:text-white">팀</h2>
               {renderTeamFilterButton('rail') ?? (
-                <div className="rounded-[10px] border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-[12px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                <div className="rounded-10 border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-12 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
                   관심 구단 설정 후 사용할 수 있습니다.
                 </div>
               )}
             </section>
 
             <section className={`${SIDEBAR_CARD_CLASS} space-y-3`}>
-              <h2 className="text-[13px] font-black text-gray-900 dark:text-white">좌석</h2>
+              <h2 className="text-13 font-black text-gray-900 dark:text-white">좌석</h2>
               <Suspense fallback={null}>
                 <MateSeatFilterButtons
                   layout="rail"
@@ -250,7 +250,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
         <section className="min-w-0">
           {renderDateFilter('scroller')}
 
-          <div className="sticky top-16 z-30 -mx-4 mb-4 border-y border-gray-200/80 bg-gray-50/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-[14px] md:border lg:static lg:mb-[14px] lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-white/10 dark:bg-[#000000]/95 lg:dark:bg-transparent">
+          <div className="sticky top-16 z-30 -mx-4 mb-4 border-y border-gray-200/80 bg-gray-50/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-14 md:border lg:static lg:mb-[14px] lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-white/10 dark:bg-[#000000]/95 lg:dark:bg-transparent">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-[10px]">
                 <div className="flex min-w-0 flex-1 gap-2">
@@ -271,7 +271,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
                             commitSearchTerm(inputValue);
                           }
                         }}
-                        className="h-[46px] rounded-[14px] border-gray-200/80 bg-white pl-11 pr-4 text-[13px] font-medium text-gray-900 shadow-none placeholder:text-slate-400 transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-[#000000] dark:text-white dark:placeholder-zinc-500"
+                        className="h-[46px] rounded-14 border-gray-200/80 bg-white pl-11 pr-4 text-13 font-medium text-gray-900 shadow-none placeholder:text-slate-400 transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-[#000000] dark:text-white dark:placeholder-zinc-500"
                       />
                     </div>
                   </div>
@@ -280,12 +280,12 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
                     size="touch"
                     aria-label={mobileFilterButtonLabel}
                     onClick={openMobileFilter}
-                    className="h-[46px] shrink-0 rounded-[14px] border-gray-200/80 bg-white px-3 text-[13px] font-bold text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/20 lg:hidden"
+                    className="h-[46px] shrink-0 rounded-14 border-gray-200/80 bg-white px-3 text-13 font-bold text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary dark:border-white/15 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/20 lg:hidden"
                   >
                     <MateTicketIcon className="h-4 w-4" />
                     <span>필터</span>
                     {activeMobileFilterCount ? (
-                      <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[12px] font-black leading-none text-primary-foreground">
+                      <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-12 font-black leading-none text-primary-foreground">
                         {activeMobileFilterCount}
                       </span>
                     ) : null}
