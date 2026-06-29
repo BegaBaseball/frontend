@@ -65,8 +65,8 @@ describe('SignUp policy consent payload', () => {
     cy.get('input#handle').clear().type('spolicy1');
     cy.wait('@handleCheck');
     cy.get('input#email').type('signup_policy_user@example.com');
-    cy.get('input#password').type('Test1234!');
-    cy.get('input#confirmPassword').type('Test1234!');
+    cy.get('input#password').type('Test1234!Abc');
+    cy.get('input#confirmPassword').type('Test1234!Abc');
 
     cy.get('select#favoriteTeam').select('LG 트윈스');
 

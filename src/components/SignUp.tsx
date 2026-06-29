@@ -2,6 +2,7 @@ import { Suspense, lazy, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TEAM_LIST, getFullTeamName } from '../constants/teams';
+import { VALIDATION_RULES } from '../constants/validation';
 import { useSignUpForm } from '../hooks/useSignUpForm';
 import { buildLoginPath } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
@@ -212,7 +213,7 @@ export default function SignUp() {
                 onChange={(event) => handleFieldChange('password', event.target.value)}
                 onBlur={() => handleFieldBlur('password')}
                 className={`auth-input auth-autofill-input pr-12 ${fieldErrors.password ? 'auth-input-error' : ''}`}
-                placeholder="8자 이상 입력"
+                placeholder={`${VALIDATION_RULES.PASSWORD.MIN_LENGTH}자 이상 입력`}
                 disabled={isFormLocked}
               />
               <PasswordVisibilityButton
@@ -227,7 +228,7 @@ export default function SignUp() {
               <p className="auth-error-text">* {fieldErrors.password}</p>
             ) : (
               <p className="auth-helper-text">
-                • 8자 이상
+                • {VALIDATION_RULES.PASSWORD.MIN_LENGTH}자 이상
                 <br />
                 • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
               </p>

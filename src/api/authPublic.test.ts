@@ -29,7 +29,7 @@ test('loginUser는 공개 로그인 경로 응답을 정규화한다', async (t)
 
   const response = await loginUser({
     email: 'slugger@example.com',
-    password: 'Test1234!',
+    password: 'Test1234!Abc',
   });
 
   assert.deepEqual(response, {
@@ -68,7 +68,7 @@ test('loginUser는 느린 인증 처리를 위해 로그인 전용 타임아웃�
 
   await loginUser({
     email: 'slugger@example.com',
-    password: 'Test1234!',
+    password: 'Test1234!Abc',
   });
 
   assert.equal(timeoutDelays[0], 20_000);
@@ -115,8 +115,8 @@ test('signupUser는 공개 정책 조회 뒤 회원가입 요청을 보낸다', 
     name: '테스트유저',
     handle: '@tester',
     email: 'tester@example.com',
-    password: 'Test1234!',
-    confirmPassword: 'Test1234!',
+    password: 'Test1234!Abc',
+    confirmPassword: 'Test1234!Abc',
     favoriteTeam: 'LG 트윈스',
   });
 
@@ -191,8 +191,8 @@ test('signupUser는 최종 handle 충돌을 SignUpSubmissionError로 변환한�
       name: '테스트유저',
       handle: '@Slugger',
       email: 'tester@example.com',
-      password: 'Test1234!',
-      confirmPassword: 'Test1234!',
+      password: 'Test1234!Abc',
+      confirmPassword: 'Test1234!Abc',
       favoriteTeam: 'LG 트윈스',
     });
     assert.fail('expected signupUser to throw');
@@ -245,8 +245,8 @@ test('signupUser는 최종 email 충돌을 SignUpSubmissionError로 변환한다
       name: '테스트유저',
       handle: '@tester',
       email: 'Taken@Example.com',
-      password: 'Test1234!',
-      confirmPassword: 'Test1234!',
+      password: 'Test1234!Abc',
+      confirmPassword: 'Test1234!Abc',
       favoriteTeam: 'LG 트윈스',
     });
     assert.fail('expected signupUser to throw');
@@ -311,7 +311,7 @@ test('confirmPasswordReset는 공개 reset confirm 경로를 호출한다', asyn
     });
   });
 
-  const response = await confirmPasswordReset('reset-token', 'Reset1234!', 'Reset1234!');
+  const response = await confirmPasswordReset('reset-token', 'Reset1234!Ab', 'Reset1234!Ab');
 
   assert.equal(response.success, true);
   assert.match(requestUrl, /\/api\/auth\/password\/reset\/confirm$/);
@@ -320,8 +320,8 @@ test('confirmPasswordReset는 공개 reset confirm 경로를 호출한다', asyn
     requestInit?.body,
     JSON.stringify({
       token: 'reset-token',
-      newPassword: 'Reset1234!',
-      confirmPassword: 'Reset1234!',
+      newPassword: 'Reset1234!Ab',
+      confirmPassword: 'Reset1234!Ab',
     }),
   );
 });
