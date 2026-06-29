@@ -90,13 +90,13 @@ export default function AccountSettingsAdvancedRuntime({
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <MyPageShieldAlertIcon className="w-4 h-4 text-primary" />
-                <p className="text-[16px] font-semibold">보안 정리</p>
+                <p className="text-body font-semibold">보안 정리</p>
               </div>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-[16px] text-muted-foreground">
+              <span className="rounded-full bg-muted px-2.5 py-1 text-body text-muted-foreground">
                 {hasOtherDeviceSessions ? `${otherDeviceSessionCount}대 정리 가능` : '추가 정리 없음'}
               </span>
             </div>
-            <p className="mb-4 text-[16px] text-muted-foreground">
+            <p className="mb-4 text-body text-muted-foreground">
               현재 사용 중인 기기를 제외한 나머지 로그인 세션을 정리합니다. 공용 기기나 더 이상 쓰지 않는 기기에서 로그인한 적이 있다면 사용하세요.
             </p>
             <Button
@@ -109,7 +109,7 @@ export default function AccountSettingsAdvancedRuntime({
               {isDeleteOtherSessionsPending ? '세션 정리 중...' : '다른 기기에서 로그아웃'}
             </Button>
             {!hasOtherDeviceSessions && (
-              <p className="mt-2 text-[16px] text-muted-foreground">지금은 정리할 다른 기기 세션이 없습니다.</p>
+              <p className="mt-2 text-body text-muted-foreground">지금은 정리할 다른 기기 세션이 없습니다.</p>
             )}
           </div>
 
@@ -117,17 +117,17 @@ export default function AccountSettingsAdvancedRuntime({
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <MyPageFingerprintIcon className="w-4 h-4 text-primary" />
-                <p className="text-[16px] font-semibold">신뢰 기기 관리</p>
+                <p className="text-body font-semibold">신뢰 기기 관리</p>
               </div>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-[16px] text-muted-foreground">
+              <span className="rounded-full bg-muted px-2.5 py-1 text-body text-muted-foreground">
                 {trustedDevices.length}대 등록됨
               </span>
             </div>
-            <p className="mb-4 text-[16px] text-muted-foreground">
+            <p className="mb-4 text-body text-muted-foreground">
               로그인 성공 시 자동 등록된 기기 목록입니다. 해제해도 현재 로그인 세션은 유지되며, 다음 로그인부터 새 기기로 다시 감지됩니다.
             </p>
             {isTrustedDevicesLoading ? (
-              <p className="text-[16px] text-muted-foreground">신뢰 기기 정보를 불러오는 중입니다.</p>
+              <p className="text-body text-muted-foreground">신뢰 기기 정보를 불러오는 중입니다.</p>
             ) : trustedDevices.length > 0 ? (
               <div className="space-y-2">
                 {trustedDevices.map((device) => (
@@ -138,17 +138,17 @@ export default function AccountSettingsAdvancedRuntime({
                     <div className="space-y-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[16px] font-semibold text-foreground">{device.deviceLabel}</p>
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[16px] font-semibold text-primary">
+                          <p className="text-body font-semibold text-foreground">{device.deviceLabel}</p>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-body font-semibold text-primary">
                             신뢰 중
                           </span>
                         </div>
-                        <p className="mt-1 text-[16px] text-muted-foreground">
+                        <p className="mt-1 text-body text-muted-foreground">
                           {[device.browser, device.os].filter(Boolean).join(' · ')}
                         </p>
                       </div>
 
-                      <div className="grid gap-2 text-[16px] text-muted-foreground sm:grid-cols-2">
+                      <div className="grid gap-2 text-body text-muted-foreground sm:grid-cols-2">
                         <div className="rounded-md bg-muted/40 px-2.5 py-2">
                         <p className="font-semibold text-foreground/90">최근 확인</p>
                           <p className="mt-1">{formatSessionTime(device.lastSeenAt)}</p>
@@ -169,36 +169,36 @@ export default function AccountSettingsAdvancedRuntime({
                         이 기기 신뢰 해제
                       </Button>
                       {device.lastIp && (
-                        <p className="text-[16px] text-muted-foreground/80">마지막 IP: {device.lastIp}</p>
+                        <p className="text-body text-muted-foreground/80">마지막 IP: {device.lastIp}</p>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[16px] text-muted-foreground">등록된 신뢰 기기가 없습니다.</p>
+              <p className="text-body text-muted-foreground">등록된 신뢰 기기가 없습니다.</p>
             )}
           </div>
 
-          <div className="rounded-xl border border-red-200 bg-red-50/80 p-5 dark:border-red-800 dark:bg-red-900/20">
+          <div className="rounded-xl border border-destructive/35 bg-destructive/12 p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <MyPageTrashIcon className="h-4 w-4 text-red-700 dark:text-red-300" />
-                <p className="text-[16px] font-semibold text-red-800 dark:text-red-300">탈퇴 예약</p>
+                <MyPageTrashIcon className="h-4 w-4 text-destructive" />
+                <p className="text-body font-semibold text-destructive">탈퇴 예약</p>
               </div>
-              <span className="rounded-full bg-white/70 px-2.5 py-1 text-[16px] text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              <span className="rounded-full bg-destructive/20 px-2.5 py-1 text-body text-destructive">
                 7일 유예
               </span>
             </div>
             <div className="mb-4 flex flex-wrap gap-2">
-              <span className="rounded-full border border-red-200 bg-white/70 px-2.5 py-1 text-[16px] text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              <span className="rounded-full border border-destructive/35 bg-destructive/15 px-2.5 py-1 text-body text-destructive">
                 즉시 로그아웃
               </span>
-              <span className="rounded-full border border-red-200 bg-white/70 px-2.5 py-1 text-[16px] text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              <span className="rounded-full border border-destructive/35 bg-destructive/15 px-2.5 py-1 text-body text-destructive">
                 이메일 링크로 취소 가능
               </span>
             </div>
-            <p className="mb-4 text-[16px] text-red-600 dark:text-red-400">
+            <p className="mb-4 text-body text-destructive">
               정말 필요한 경우에만 진행하세요. 예약 즉시 로그아웃되며, 7일 동안은 이메일 복구 링크로 취소할 수 있습니다. 유예 기간이 지나면 최종 삭제 절차가 진행됩니다.
             </p>
             <Button
@@ -219,7 +219,7 @@ export default function AccountSettingsAdvancedRuntime({
         open={showDeleteDialog}
         onClose={onDeleteDialogClose}
         title={(
-          <span className="flex items-center gap-2 text-red-600">
+          <span className="flex items-center gap-2 text-destructive">
             <MyPageAlertTriangleIcon className="w-5 h-5" />
             탈퇴 예약 확인
           </span>
@@ -241,7 +241,7 @@ export default function AccountSettingsAdvancedRuntime({
           </>
         )}
       >
-        <div className="space-y-3 text-[16px] text-muted-foreground">
+        <div className="space-y-3 text-body text-muted-foreground">
           <p>탈퇴 예약을 진행하면 즉시 로그아웃되며, 7일 후 최종 삭제 절차가 진행됩니다.</p>
           <ul className="list-disc list-inside space-y-1">
             <li>유예 기간 동안 로그인과 토큰 재발급이 차단됩니다.</li>
@@ -261,7 +261,7 @@ export default function AccountSettingsAdvancedRuntime({
 
         {isLocalUser && (
           <div className="my-4 space-y-2">
-            <label htmlFor="deletePassword" className="text-[16px] font-semibold text-foreground">
+            <label htmlFor="deletePassword" className="text-body font-semibold text-foreground">
               비밀번호 확인
             </label>
             <div className="relative">
@@ -286,7 +286,7 @@ export default function AccountSettingsAdvancedRuntime({
         )}
 
         <div className="my-2 space-y-2">
-            <label htmlFor="deleteConfirmText" className="text-[16px] font-semibold text-foreground">
+            <label htmlFor="deleteConfirmText" className="text-body font-semibold text-foreground">
             확인 문구 입력
           </label>
             <Input
@@ -297,7 +297,7 @@ export default function AccountSettingsAdvancedRuntime({
               className="font-semibold"
               disabled={isDeletePending}
             />
-          <p className="text-[16px] text-muted-foreground">위 문구를 정확히 입력하면 탈퇴 예약이 진행됩니다.</p>
+          <p className="text-body text-muted-foreground">위 문구를 정확히 입력하면 탈퇴 예약이 진행됩니다.</p>
         </div>
       </PlainDialog>
     </>

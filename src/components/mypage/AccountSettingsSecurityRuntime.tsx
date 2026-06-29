@@ -258,11 +258,11 @@ export default function AccountSettingsSecurityRuntime({
   return (
     <>
       <section className="mb-8">
-        <h3 className="mb-4 text-[16px] font-semibold text-muted-foreground">현재 기기</h3>
+        <h3 className="mb-4 text-body font-semibold text-muted-foreground">현재 기기</h3>
         {isSessionLoading ? (
-          <p className="text-[16px] text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
+          <p className="text-body text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
         ) : isSessionError ? (
-          <p className="text-[16px] text-red-500 dark:text-red-400">
+          <p className="text-body text-destructive">
             기기 정보를 불러오지 못했습니다. 다시 시도해 주세요.
             {sessionError instanceof Error ? ` (${sessionError.message})` : ''}
           </p>
@@ -280,25 +280,37 @@ export default function AccountSettingsSecurityRuntime({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[16px] font-semibold text-foreground">
+                        <p className="text-body font-semibold text-foreground">
                           {session.deviceLabel || session.deviceType || '알 수 없음'}
                         </p>
                         {session.isCurrent ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+                          <span
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-body font-semibold"
+                            style={{
+                              backgroundColor: 'var(--mp-win-bg)',
+                              color: 'var(--mp-win)',
+                            }}
+                          >
                             현재 기기
                           </span>
                         ) : null}
                         {!session.isCurrent && session.isRevoked ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[16px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+                          <span
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-body font-semibold"
+                            style={{
+                              backgroundColor: 'var(--mp-draw-bg)',
+                              color: 'var(--mp-draw)',
+                            }}
+                          >
                             만료 추정
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1 truncate text-[16px] text-muted-foreground">
+                      <p className="mt-1 truncate text-body text-muted-foreground">
                         {[session.browser || '브라우저', session.os || 'OS'].filter(Boolean).join(' · ')}
                       </p>
 
-                      <div className="mt-3 grid gap-2 text-[16px] text-muted-foreground sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 text-body text-muted-foreground sm:grid-cols-2">
                         <div className="rounded-md bg-muted/40 px-2.5 py-2">
                           <p className="font-semibold text-foreground/90">최근 활동</p>
                           <p className="mt-1">
@@ -339,14 +351,14 @@ export default function AccountSettingsSecurityRuntime({
             )}
           </div>
         ) : (
-          <p className="text-[16px] text-muted-foreground">기기 정보가 없습니다.</p>
+          <p className="text-body text-muted-foreground">기기 정보가 없습니다.</p>
         )}
       </section>
 
       <section className="mb-8">
-        <h3 className="mb-4 text-[16px] font-semibold text-muted-foreground">최근 보안 활동</h3>
+        <h3 className="mb-4 text-body font-semibold text-muted-foreground">최근 보안 활동</h3>
         {isSecurityEventsLoading ? (
-          <p className="text-[16px] text-muted-foreground">최근 보안 활동을 불러오는 중입니다.</p>
+          <p className="text-body text-muted-foreground">최근 보안 활동을 불러오는 중입니다.</p>
         ) : securityEvents.length > 0 ? (
           <div className="space-y-3">
             {securityEvents.map((event) => {
@@ -362,15 +374,15 @@ export default function AccountSettingsSecurityRuntime({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <p className="text-[16px] font-semibold leading-5 text-foreground">
+                        <p className="text-body font-semibold leading-5 text-foreground">
                           {event.message}
                         </p>
-                        <span className="shrink-0 text-[16px] text-muted-foreground">
+                        <span className="shrink-0 text-body text-muted-foreground">
                           {formatSessionTime(event.occurredAt)}
                         </span>
                       </div>
                       {meta && (
-                        <p className="mt-1 text-[16px] text-muted-foreground">{meta}</p>
+                        <p className="mt-1 text-body text-muted-foreground">{meta}</p>
                       )}
                     </div>
                   </div>
@@ -379,7 +391,7 @@ export default function AccountSettingsSecurityRuntime({
             })}
           </div>
         ) : (
-          <p className="text-[16px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             아직 보안 활동 기록이 없습니다. 새 기기 로그인, 계정 연동 변경, 세션 정리 내역이 여기에 표시됩니다.
           </p>
         )}
@@ -391,7 +403,7 @@ export default function AccountSettingsSecurityRuntime({
             <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
               <div className="space-y-1.5">
                 <p className="font-semibold">고급 설정</p>
-                <p className="text-[16px] leading-relaxed text-muted-foreground">
+                <p className="text-body leading-relaxed text-muted-foreground">
                   자주 쓰지 않는 보안 작업만 따로 모아두었습니다. 보안 확인 후 팝업에서 열립니다.
                 </p>
               </div>
@@ -399,7 +411,7 @@ export default function AccountSettingsSecurityRuntime({
                 {['신뢰 기기 관리', '다른 기기 로그아웃', '탈퇴 예약'].map((label) => (
                   <span
                     key={label}
-                    className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-[16px] text-muted-foreground"
+                    className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-body text-muted-foreground"
                   >
                     {label}
                   </span>

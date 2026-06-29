@@ -75,7 +75,7 @@ export default function MyPageRuntime() {
   return (
     <div className="mypage-season-root">
       <div className="mypage-season-app">
-        <Suspense fallback={<aside className="mypage-season-side text-sm text-[#FFFFFF]">프로필을 불러오는 중...</aside>}>
+        <Suspense fallback={<aside className="mypage-season-side text-sm text-muted-foreground">프로필을 불러오는 중...</aside>}>
           <MyPageSidebarRuntime
             currentUserId={user?.id ?? null}
             profileImage={profileImage}
@@ -115,7 +115,7 @@ export default function MyPageRuntime() {
       {user && hasMountedUserListModal && (
                 <Suspense
                   fallback={userListModal.isOpen ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-muted/75 px-4 text-body font-bold text-foreground">
                 목록을 불러오는 중...
               </div>
           ) : null}
@@ -133,7 +133,7 @@ export default function MyPageRuntime() {
       {hasMountedTicketUploadModal && (
         <Suspense
           fallback={isTicketUploadOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-muted/75 px-4 text-body font-bold text-foreground">
               티켓 등록 모달을 불러오는 중...
             </div>
           ) : null}

@@ -53,35 +53,47 @@ const PROVIDERS: ProviderMeta[] = [
       </div>
     ),
     connectedClass:
-      'from-blue-50 to-card border-blue-200 text-blue-700 dark:from-blue-950/40 dark:to-card dark:border-blue-800 dark:text-blue-300',
+      'from-muted/70 to-card border-border text-muted-foreground',
     disconnectedClass:
-      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
+      'from-muted/60 to-card border-border text-muted-foreground',
   },
   {
     key: 'kakao',
     label: 'Kakao',
     icon: (
-      <div className="w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center text-[16px] font-bold text-black">
+      <div
+        className="w-4 h-4 rounded-full flex items-center justify-center text-body font-bold"
+        style={{
+          backgroundColor: 'hsl(var(--status-warning-text))',
+          color: 'hsl(var(--foreground))',
+        }}
+      >
         k
       </div>
     ),
     connectedClass:
-      'from-amber-50 to-card border-amber-200 text-amber-700 dark:from-amber-950/40 dark:to-card dark:border-amber-800 dark:text-amber-300',
+      'from-muted/70 to-card border-border text-muted-foreground',
     disconnectedClass:
-      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
+      'from-muted/60 to-card border-border text-muted-foreground',
   },
   {
     key: 'naver',
     label: 'Naver',
     icon: (
-      <div className="w-4 h-4 rounded-full bg-[#03C75A] text-white flex items-center justify-center text-[16px] font-extrabold italic">
+      <div
+        className="w-4 h-4 rounded-full text-body font-extrabold italic flex items-center justify-center"
+        style={{
+          backgroundColor: 'hsl(var(--status-success-text))',
+          color: 'hsl(var(--foreground))',
+        }}
+      >
         N
       </div>
     ),
     connectedClass:
-      'from-green-50 to-card border-green-200 text-green-700 dark:from-green-950/40 dark:to-card dark:border-green-800 dark:text-green-300',
+      'from-muted/70 to-card border-border text-muted-foreground',
     disconnectedClass:
-      'from-muted/60 to-card border-border text-muted-foreground dark:from-card/70 dark:border-border',
+      'from-muted/60 to-card border-border text-muted-foreground',
   },
 ];
 
@@ -225,22 +237,22 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
           <div className="flex items-center gap-3 min-w-0">
             <span className={isConnected ? '' : 'grayscale opacity-70'}>{provider.icon}</span>
             <div className="min-w-0">
-              <p className="font-semibold text-[16px]">{provider.label}</p>
-              <p className={`text-[16px] ${isConnected ? 'text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+              <p className="font-semibold text-body">{provider.label}</p>
+              <p className={`text-body ${isConnected ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {isConnected ? '연동됨' : '연동되지 않음'}
               </p>
               {isConnected && connectedEmail && (
-                <p className="text-[16px] text-muted-foreground truncate mt-1">{connectedEmail}</p>
+                <p className="text-body text-muted-foreground truncate mt-1">{connectedEmail}</p>
               )}
               {!isConnected && (
-                <p className="text-[16px] text-muted-foreground mt-1">
+                <p className="text-body text-muted-foreground mt-1">
                   3초 만에 연결하고 로그인 편하게 하기
                 </p>
               )}
               {disabled && isConnected && (
                 <p
                   id={helperTextId}
-                  className="mt-2 text-[16px] text-amber-700 dark:text-amber-300"
+                  className="mt-2 text-body text-destructive"
                 >
                   {LAST_METHOD_TOOLTIP}
                 </p>
@@ -261,14 +273,14 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       </div>
 
       <section className="mb-8">
-        <h3 className="text-[16px] font-semibold text-muted-foreground mb-4">로그인 연동 관리</h3>
+        <h3 className="text-body font-semibold text-muted-foreground mb-4">로그인 연동 관리</h3>
         <div className="space-y-3">{PROVIDERS.map(renderProviderCard)}</div>
       </section>
 
       <ViewportDeferred
         fallback={(
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card/70 px-4 py-6 text-[16px] text-muted-foreground">
+            <div className="rounded-xl border border-border bg-card/70 px-4 py-6 text-body text-muted-foreground">
               기기 및 보안 활동을 불러오는 중입니다.
             </div>
           </div>

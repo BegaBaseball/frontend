@@ -65,22 +65,35 @@ export default function DiaryStatistics({ cheerPoints = 0 }: DiaryStatisticsProp
       <div className="mypage-season-stat-grid">
         <div className="mypage-season-stat-card">
           <div className="mypage-season-stat-label">직관</div>
-          <div className="mypage-season-stat-value">{statistics.totalCount}<small className="text-sm text-[#FFFFFF]">회</small></div>
+          <div className="mypage-season-stat-value">
+            {statistics.totalCount}
+            <small className="text-sm text-foreground">회</small>
+          </div>
           <div className="mypage-season-stat-sub">시즌 목표 {SEASON_GOAL}회의 {goalProgress}%</div>
         </div>
         <div className="mypage-season-stat-card">
           <div className="mypage-season-stat-label">직관 승률</div>
-          <div className="mypage-season-stat-value">{statistics.winRate.toFixed(0)}<small className="text-sm text-[#FFFFFF]">%</small></div>
+          <div className="mypage-season-stat-value">
+            {statistics.winRate.toFixed(0)}
+            <small className="text-sm text-foreground">%</small>
+          </div>
           <div className="mypage-season-stat-sub">{statistics.totalWins}승 {statistics.totalDraws}무 {statistics.totalLosses}패</div>
         </div>
         <div className="mypage-season-stat-card">
           <div className="mypage-season-stat-label">홈 / 원정</div>
-          <div className="mypage-season-stat-value">{homeVisitCount} <small className="text-sm text-[#FFFFFF]">/</small> {awayVisitCount}</div>
+          <div className="mypage-season-stat-value">
+            {homeVisitCount}
+            <small className="text-sm text-foreground">/</small>
+            {awayVisitCount}
+          </div>
           <div className="mypage-season-stat-sub">{statistics.mostVisitedStadium || '최다 구장 집계 전'}</div>
         </div>
         <div className="mypage-season-stat-card">
           <div className="mypage-season-stat-label">응원 포인트</div>
-          <div className="mypage-season-stat-value">{cheerPoints.toLocaleString()}<small className="text-sm text-[#FFFFFF]">P</small></div>
+          <div className="mypage-season-stat-value">
+            {cheerPoints.toLocaleString()}
+            <small className="text-sm text-foreground">P</small>
+          </div>
           <div className="mypage-season-stat-sub">응원 활동 누적 포인트</div>
         </div>
       </div>
@@ -104,17 +117,20 @@ export default function DiaryStatistics({ cheerPoints = 0 }: DiaryStatisticsProp
       <div className="mypage-season-panel">
         <div className="mypage-season-panel-title">상대팀별 전적</div>
         {opponentRows.length === 0 ? (
-          <p className="text-sm text-[#FFFFFF]">상대팀 전적 데이터가 아직 없습니다.</p>
+          <p className="text-sm text-foreground">상대팀 전적 데이터가 아직 없습니다.</p>
         ) : (
           opponentRows.map(([opponent, record]) => (
             <div key={opponent} className="mypage-season-vs-row">
               <span className="mypage-season-vs-name">{opponent}</span>
-              <span className="mypage-season-vs-track">
-                <span
-                  className="block h-full rounded-full bg-[#63b39b]"
-                  style={{ width: `${Math.max(4, record.winRate)}%` }}
-                />
-              </span>
+                <span className="mypage-season-vs-track">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{
+                      backgroundColor: 'var(--mp-win-bg)',
+                      width: `${Math.max(4, record.winRate)}%`,
+                    }}
+                  />
+                </span>
               <b className="mypage-season-vs-record">{formatOpponentRecord(record)}</b>
             </div>
           ))
@@ -125,7 +141,7 @@ export default function DiaryStatistics({ cheerPoints = 0 }: DiaryStatisticsProp
         <div className="mypage-season-panel">
           <div className="mypage-season-panel-title">구장 방문</div>
           {stadiumRows.length === 0 ? (
-            <p className="text-sm text-[#FFFFFF]">구장 방문 데이터가 아직 없습니다.</p>
+            <p className="text-sm text-foreground">구장 방문 데이터가 아직 없습니다.</p>
           ) : (
             stadiumRows.map(([stadium, count], index) => (
               <div key={stadium} className="mypage-season-list-row">
@@ -140,7 +156,7 @@ export default function DiaryStatistics({ cheerPoints = 0 }: DiaryStatisticsProp
         <div className="mypage-season-panel">
           <div className="mypage-season-panel-title">직관 기분</div>
           {activeEmojiStats.length === 0 ? (
-            <p className="text-sm text-[#FFFFFF]">기분 분석 데이터가 아직 없습니다.</p>
+            <p className="text-sm text-foreground">기분 분석 데이터가 아직 없습니다.</p>
           ) : (
             activeEmojiStats.map((item) => (
               <div key={item.name} className="mypage-season-list-row">

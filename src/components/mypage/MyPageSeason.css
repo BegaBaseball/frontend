@@ -1,18 +1,38 @@
 .mypage-season-root {
-  --mp-bg: #000000;
-  --mp-surface: #000000;
-  --mp-surface-hi: #000000;
-  --mp-hair: rgba(138, 159, 153, 0.16);
-  --mp-hair-strong: rgba(138, 159, 153, 0.3);
-  --mp-fg: #FFFFFF;
-  --mp-fg-soft: #FFFFFF;
-  --mp-fg-muted: #FFFFFF;
-  --mp-accent: #63b39b;
-  --mp-accent-dim: rgba(99, 179, 155, 0.14);
-  --mp-gold: #e8b64c;
-  --mp-win: #4ade80;
-  --mp-draw: #e8b64c;
-  --mp-lose: #f47272;
+  --mp-bg: hsl(var(--background));
+  --mp-surface: hsl(var(--card));
+  --mp-surface-hi: hsl(var(--muted));
+  --mp-hair: hsl(var(--border) / 0.16);
+  --mp-hair-strong: hsl(var(--border) / 0.3);
+  --mp-fg: hsl(var(--foreground));
+  --mp-fg-soft: hsl(var(--foreground));
+  --mp-fg-muted: hsl(var(--muted-foreground));
+  --mp-accent: hsl(var(--primary));
+  --mp-accent-dim: hsl(var(--primary) / 0.14);
+  --mp-win-bg: hsl(var(--status-success-bg));
+  --mp-win-bg-dim: hsl(var(--status-success-bg) / 0.35);
+  --mp-win-bg-soft: hsl(var(--status-success-bg) / 0.16);
+  --mp-win-bg-soft-34: hsl(var(--status-success-bg) / 0.34);
+  --mp-win-bg-soft-55: hsl(var(--status-success-bg) / 0.55);
+  --mp-draw-bg: hsl(var(--status-warning-bg));
+  --mp-draw-bg-dim: hsl(var(--status-warning-bg) / 0.65);
+  --mp-draw-bg-soft: hsl(var(--status-warning-bg) / 0.16);
+  --mp-draw-bg-soft-35: hsl(var(--status-warning-bg) / 0.35);
+  --mp-draw-bg-soft-36: hsl(var(--status-warning-bg) / 0.36);
+  --mp-draw-bg-soft-55: hsl(var(--status-warning-bg) / 0.55);
+  --mp-lose-bg: hsl(var(--status-error-bg));
+  --mp-lose-bg-dim: hsl(var(--status-error-bg) / 0.55);
+  --mp-lose-bg-soft: hsl(var(--status-error-bg) / 0.16);
+  --mp-lose-bg-soft-35: hsl(var(--status-error-bg) / 0.35);
+  --mp-gold: hsl(var(--status-warning-text));
+  --mp-gold-bg: hsl(var(--status-warning-bg));
+  --mp-gold-soft: hsl(var(--status-warning-bg) / 0.18);
+  --mp-gold-border: hsl(var(--status-warning-bg) / 0.42);
+  --mp-win: hsl(var(--status-success-text));
+  --mp-draw: hsl(var(--status-warning-text));
+  --mp-lose: hsl(var(--status-error-text));
+  --mp-win-bg-soft-65: hsl(var(--status-success-bg) / 0.65);
+  --mp-draw-bg-soft-65: hsl(var(--status-warning-bg) / 0.65);
   --mp-header-offset: 64px;
   min-height: 100vh;
   background: var(--mp-bg);
@@ -21,6 +41,45 @@
   line-height: 1.55;
   font-variant-numeric: tabular-nums;
   overflow-x: clip;
+}
+
+.light .mypage-season-root,
+.dark .mypage-season-root {
+  --mp-bg: hsl(var(--background));
+  --mp-surface: hsl(var(--card));
+  --mp-surface-hi: hsl(var(--muted));
+  --mp-hair: hsl(var(--border) / 0.16);
+  --mp-hair-strong: hsl(var(--border) / 0.3);
+  --mp-fg: hsl(var(--foreground));
+  --mp-fg-soft: hsl(var(--foreground));
+  --mp-fg-muted: hsl(var(--muted-foreground));
+  --mp-accent: hsl(var(--primary));
+  --mp-accent-dim: hsl(var(--primary) / 0.14);
+  --mp-win-bg: hsl(var(--status-success-bg));
+  --mp-win-bg-dim: hsl(var(--status-success-bg) / 0.35);
+  --mp-win-bg-soft: hsl(var(--status-success-bg) / 0.16);
+  --mp-win-bg-soft-34: hsl(var(--status-success-bg) / 0.34);
+  --mp-win-bg-soft-55: hsl(var(--status-success-bg) / 0.55);
+  --mp-draw-bg: hsl(var(--status-warning-bg));
+  --mp-draw-bg-dim: hsl(var(--status-warning-bg) / 0.65);
+  --mp-draw-bg-soft: hsl(var(--status-warning-bg) / 0.16);
+  --mp-draw-bg-soft-35: hsl(var(--status-warning-bg) / 0.35);
+  --mp-draw-bg-soft-36: hsl(var(--status-warning-bg) / 0.36);
+  --mp-draw-bg-soft-55: hsl(var(--status-warning-bg) / 0.55);
+  --mp-lose-bg: hsl(var(--status-error-bg));
+  --mp-lose-bg-dim: hsl(var(--status-error-bg) / 0.55);
+  --mp-lose-bg-soft: hsl(var(--status-error-bg) / 0.16);
+  --mp-lose-bg-soft-35: hsl(var(--status-error-bg) / 0.35);
+  --mp-gold: hsl(var(--status-warning-text));
+  --mp-gold-bg: hsl(var(--status-warning-bg));
+  --mp-gold-soft: hsl(var(--status-warning-bg) / 0.18);
+  --mp-gold-border: hsl(var(--status-warning-bg) / 0.42);
+  --mp-win: hsl(var(--status-success-text));
+  --mp-draw: hsl(var(--status-warning-text));
+  --mp-lose: hsl(var(--status-error-text));
+  --mp-win-bg-soft-65: hsl(var(--status-success-bg) / 0.65);
+  --mp-draw-bg-soft-65: hsl(var(--status-warning-bg) / 0.65);
+  --mp-header-offset: 64px;
 }
 
 .mypage-season-app {
@@ -52,7 +111,7 @@
 
 .mypage-season-side::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(138, 159, 153, 0.2);
+  background: hsl(var(--border) / 0.2);
 }
 
 .mypage-season-id {
@@ -91,31 +150,31 @@
   min-width: 0;
   border-radius: 999px;
   padding: 3px 10px;
-  background: rgba(99, 179, 155, 0.12);
+  background: var(--mp-accent-dim);
   color: var(--mp-accent);
   font-size: 12px;
   font-weight: 800;
 }
 
 .mypage-season-chip--team {
-  background: var(--mp-team-color, rgba(99, 179, 155, 0.12));
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: var(--mp-team-color, var(--mp-accent-dim));
+  color: hsl(var(--foreground));
+  box-shadow: inset 0 0 0 1px hsl(var(--foreground) / 0.16);
 }
 
 .mypage-season-chip--win {
-  background: rgba(74, 222, 128, 0.12);
+  background: var(--mp-win-bg);
   color: var(--mp-win);
 }
 
 .mypage-season-chip--draw,
 .mypage-season-chip--scheduled {
-  background: rgba(232, 182, 76, 0.12);
+  background: var(--mp-draw-bg);
   color: var(--mp-gold);
 }
 
 .mypage-season-chip--lose {
-  background: rgba(244, 114, 114, 0.12);
+  background: var(--mp-lose-bg);
   color: var(--mp-lose);
 }
 
@@ -310,7 +369,7 @@
   border: 0;
   border-radius: 9px;
   background: var(--mp-accent);
-  color: #0c1411;
+  color: hsl(var(--primary-foreground));
   padding: 10px 16px;
   font-size: 13px;
   font-weight: 800;
@@ -318,7 +377,7 @@
 }
 
 .mypage-season-cta:hover {
-  background: #79c4ae;
+  background: hsl(var(--primary) / 0.9);
 }
 
 .mypage-season-cta svg {
@@ -370,7 +429,7 @@
   overflow-y: hidden;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-color: rgba(138, 159, 153, 0.28) transparent;
+  scrollbar-color: hsl(var(--border) / 0.28) transparent;
   scrollbar-width: thin;
 }
 
@@ -380,7 +439,7 @@
 
 .mypage-season-heat-scroll::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(138, 159, 153, 0.28);
+  background: hsl(var(--border) / 0.28);
 }
 
 .mypage-season-heat-months {
@@ -442,11 +501,11 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-cell--l1 {
-  background: rgba(99, 179, 155, 0.35);
+  background: var(--mp-lose-bg-dim);
 }
 
 .mypage-season-cell--l2 {
-  background: rgba(99, 179, 155, 0.65);
+  background: var(--mp-win-bg-dim);
 }
 
 .mypage-season-cell--l3 {
@@ -454,7 +513,7 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-cell--scheduled {
-  background: rgba(232, 182, 76, 0.65);
+  background: var(--mp-draw-bg-dim);
 }
 
 .mypage-season-heat-foot {
@@ -712,7 +771,7 @@ button.mypage-season-cell:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 42%, rgba(8, 12, 10, 0.6));
+  background: linear-gradient(180deg, transparent 42%, hsl(var(--background) / 0.6));
   pointer-events: none;
 }
 
@@ -720,7 +779,7 @@ button.mypage-season-cell:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #1c3a34, #18302d 62%, #15262a);
+  background: linear-gradient(160deg, hsl(var(--surface-subtle)), hsl(var(--surface-default) / 0.96) 62%, hsl(var(--surface-raised)));
 }
 
 .mypage-season-ticket-placeholder {
@@ -730,7 +789,7 @@ button.mypage-season-cell:hover {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  color: rgba(255, 255, 255, 0.82);
+  color: hsl(var(--foreground) / 0.82);
   text-align: center;
 }
 
@@ -741,7 +800,7 @@ button.mypage-season-cell:hover {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: hsl(var(--foreground) / 0.1);
 }
 
 .mypage-season-ticket-placeholder-icon svg {
@@ -755,7 +814,7 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-ticket-placeholder small {
-  color: rgba(255, 255, 255, 0.55);
+  color: hsl(var(--foreground) / 0.55);
   font-size: 11px;
   font-weight: 700;
 }
@@ -766,8 +825,8 @@ button.mypage-season-cell:hover {
   bottom: 10px;
   z-index: 1;
   border-radius: 999px;
-  background: rgba(8, 12, 10, 0.66);
-  color: #fff;
+  background: hsl(var(--background) / 0.66);
+  color: var(--mp-fg-soft);
   padding: 4px 9px;
   font-size: 11.5px;
   font-weight: 800;
@@ -887,7 +946,7 @@ button.mypage-season-cell:hover {
 .mypage-season-empty {
   border: 1px dashed var(--mp-hair-strong);
   border-radius: 13px;
-  background: rgba(30, 42, 38, 0.45);
+  background: hsl(var(--muted) / 0.45);
   padding: 28px;
   color: var(--mp-fg-soft);
   text-align: center;
@@ -914,10 +973,10 @@ button.mypage-season-cell:hover {
   justify-content: center;
   min-height: 38px;
   margin-top: 16px;
-  border: 1px solid rgba(129, 193, 169, 0.55);
+  border: 1px solid var(--mp-hair-strong);
   border-radius: 10px;
   background: var(--mp-accent);
-  color: #08130f;
+  color: hsl(var(--primary-foreground));
   padding: 0 16px;
   font-size: 13px;
   font-weight: 900;
@@ -985,7 +1044,7 @@ button.mypage-season-cell:hover {
   width: 100%;
   max-width: 44px;
   border-radius: 7px 7px 2px 2px;
-  background: rgba(99, 179, 155, 0.35);
+  background: var(--mp-win-bg-dim);
 }
 
 .mypage-season-bar.is-hot {
@@ -1043,7 +1102,7 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-dot2.is-dim {
-  background: rgba(99, 179, 155, 0.55);
+  background: var(--mp-win-bg-dim);
 }
 
 .mypage-season-list-row {
@@ -1104,7 +1163,7 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-setting-row.is-danger .mypage-season-setting-icon {
-  background: rgba(244, 114, 114, 0.1);
+  background: var(--mp-lose-bg);
   color: var(--mp-lose);
 }
 
@@ -1113,7 +1172,7 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-setting-row.is-danger:hover .mypage-season-setting-name {
-  color: #ff9b9b;
+  color: var(--mp-lose);
 }
 
 .mypage-season-tabs {
@@ -1167,7 +1226,7 @@ button.mypage-season-cell:hover {
   justify-content: center;
   border-radius: 999px;
   background: var(--mp-surface-hi);
-  color: #fff;
+  color: var(--mp-fg-soft);
   transition: transform 0.14s ease, opacity 0.14s ease;
 }
 
@@ -1182,7 +1241,7 @@ button.mypage-season-cell:hover {
   align-items: center;
   justify-content: center;
   border-radius: inherit;
-  background: rgba(5, 9, 8, 0.38);
+  background: hsl(var(--foreground) / 0.72);
   color: var(--mp-fg-soft);
 }
 
@@ -1236,7 +1295,7 @@ button.mypage-season-cell:hover {
 
 .mypage-season-mate-card:hover {
   border-color: var(--mp-accent);
-  background: rgba(30, 42, 38, 0.86);
+  background: hsl(var(--muted) / 0.86);
 }
 
 .mypage-season-mate-logo {
@@ -1280,13 +1339,13 @@ button.mypage-season-cell:hover {
 }
 
 .mypage-season-mate-note.is-completed {
-  background: rgba(74, 222, 128, 0.1);
-  color: #86efac;
+  background: var(--mp-win-bg);
+  color: var(--mp-win);
 }
 
 .mypage-season-mate-note.is-checked-in {
-  background: rgba(96, 165, 250, 0.1);
-  color: #93c5fd;
+  background: var(--mp-draw-bg);
+  color: var(--mp-gold);
 }
 
 .mypage-season-mate-link {
@@ -1460,13 +1519,13 @@ button.mypage-season-cell:hover {
     min-width: 0;
     box-sizing: border-box;
     display: flex;
-    border-top: 1px solid var(--mp-hair);
-    gap: 2px;
-    background: rgba(0, 0, 0, 0.93);
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
+  border-top: 1px solid var(--mp-hair);
+  gap: 2px;
+  background: hsl(var(--background) / 0.93);
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
 
   .mypage-season-nav button,
   .mypage-season-nav a {

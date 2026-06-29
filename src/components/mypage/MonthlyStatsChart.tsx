@@ -29,7 +29,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
             </CardHeader>
             <CardContent>
                 <div className="grid h-[250px] grid-cols-[36px_minmax(0,1fr)] gap-3">
-                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[16px] font-semibold text-muted-foreground">
+                    <div className="flex h-[210px] flex-col justify-between pt-2 text-body font-semibold text-muted-foreground">
                         {tickValues.map((tick) => (
                             <span key={tick}>{tick}</span>
                         ))}
@@ -38,7 +38,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
                     <div className="relative">
                         <div className="pointer-events-none absolute inset-x-0 bottom-10 top-2 flex flex-col justify-between">
                             {tickValues.map((tick) => (
-                                <div key={tick} className="border-t border-dashed border-slate-200 dark:border-border" />
+                                <div key={tick} className="border-t border-dashed border-border" />
                             ))}
                         </div>
 
@@ -46,11 +46,13 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
                             {data.map((entry, index) => {
                                 const ratio = entry.count / maxCount;
                                 const barHeight = Math.max(ratio * 150, 14);
-                                const barColor = index % 2 === 0 ? '#2d5f4f' : '#4d8f7b';
+                                const barColor = index % 2 === 0
+                                    ? 'var(--mp-win-bg)'
+                                    : 'var(--mp-draw-bg)';
 
                                 return (
                                     <div key={entry.month} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                                        <span className="text-[16px] font-semibold text-slate-500 dark:text-white">
+                                        <span className="text-body font-semibold text-muted-foreground">
                                             {entry.count}
                                         </span>
                                         <div className="flex h-[150px] w-full items-end justify-center">
@@ -60,7 +62,7 @@ export default function MonthlyStatsChart({ data }: { data: { month: string; cou
                                                 title={`${entry.month} ${entry.count}회`}
                                             />
                                         </div>
-                                        <span className="text-[16px] font-semibold text-muted-foreground">{entry.month}</span>
+                                        <span className="text-body font-semibold text-muted-foreground">{entry.month}</span>
                                     </div>
                                 );
                             })}

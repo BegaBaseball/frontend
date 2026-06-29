@@ -8,10 +8,16 @@ interface WinRateChartProps {
 }
 
 export default function WinRateChart({ wins, draws, losses, winRate }: WinRateChartProps) {
+    const palette = {
+        win: 'var(--mp-win)',
+        draw: 'hsl(var(--muted-foreground))',
+        loss: 'var(--mp-lose)',
+    };
+
     const data = [
-        { name: '승리', value: wins, color: '#2d5f4f' }, // Primary Green
-        { name: '무승부', value: draws, color: '#94a3b8' }, // Slate 400
-        { name: '패배', value: losses, color: '#ef4444' }, // Red 500
+        { name: '승리', value: wins, color: palette.win }, // Green
+        { name: '무승부', value: draws, color: palette.draw }, // Muted
+        { name: '패배', value: losses, color: palette.loss }, // Red
     ].filter(item => item.value > 0);
 
     const total = wins + draws + losses;
@@ -50,7 +56,7 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
                     >
                         <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-card shadow-inner">
                             <div className="text-3xl font-black text-primary">{winRate.toFixed(0)}%</div>
-                            <div className="text-[16px] font-semibold text-muted-foreground">승률</div>
+                            <div className="text-body font-semibold text-muted-foreground">승률</div>
                         </div>
                     </div>
 
@@ -62,9 +68,9 @@ export default function WinRateChart({ wins, draws, losses, winRate }: WinRateCh
                                         className="h-3 w-3 rounded-full"
                                         style={{ backgroundColor: entry.color }}
                                     />
-                                    <span className="text-[16px] font-semibold text-foreground">{entry.name}</span>
+                                    <span className="text-body font-semibold text-foreground">{entry.name}</span>
                                 </div>
-                                <span className="text-[16px] font-semibold text-muted-foreground">
+                                <span className="text-body font-semibold text-muted-foreground">
                                     {entry.value}경기
                                 </span>
                             </div>
