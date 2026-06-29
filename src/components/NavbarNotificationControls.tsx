@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useNotificationStore } from '../store/notificationStore';
 import { useUIStore } from '../store/uiStore';
 import { BellIcon } from './icons/PublicShellIcons';
@@ -13,8 +14,12 @@ type NavbarNotificationControlsProps = {
 export default function NavbarNotificationControls({
   buttonClassName,
 }: NavbarNotificationControlsProps) {
-  const isNotificationOpen = useUIStore((state) => state.isNotificationOpen);
-  const setIsNotificationOpen = useUIStore((state) => state.setIsNotificationOpen);
+  const { isNotificationOpen, setIsNotificationOpen } = useUIStore(
+    useShallow((state) => ({
+      isNotificationOpen: state.isNotificationOpen,
+      setIsNotificationOpen: state.setIsNotificationOpen,
+    })),
+  );
   const unreadCount = useNotificationStore(
     (state) => state.notifications.reduce(
       (count, notification) => (!notification.isRead ? count + 1 : count),
@@ -48,7 +53,7 @@ export default function NavbarNotificationControls({
             <span className="absolute top-1 right-1.5 flex h-5 w-5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-background items-center justify-center">
-                <span className="relative text-[16px] font-bold text-white leading-none">
+                <span className="relative text-body font-bold text-white leading-none">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               </span>
@@ -67,11 +72,11 @@ export default function NavbarNotificationControls({
         "
       >
         <div className="p-4 border-b border-gray-200 dark:border-border bg-gray-50/50 dark:bg-secondary/70 flex justify-between items-center">
-          <h3 className="font-bold text-[16px] text-primary dark:text-primary-light">
+          <h3 className="font-bold text-body text-primary dark:text-primary-light">
             알림
           </h3>
           {unreadCount > 0 && (
-            <span className="text-[16px] text-muted-foreground dark:text-white">
+            <span className="text-body text-muted-foreground dark:text-white">
               {unreadCount}개의 읽지 않은 알림
             </span>
           )}
@@ -79,7 +84,7 @@ export default function NavbarNotificationControls({
         <div className="max-h-[60vh] overflow-y-auto">
           <Suspense
             fallback={
-      <div className="flex min-h-[300px] items-center justify-center text-[16px] text-muted-foreground">
+      <div className="flex min-h-[300px] items-center justify-center text-body text-muted-foreground">
         알림을 불러오는 중...
       </div>
             }

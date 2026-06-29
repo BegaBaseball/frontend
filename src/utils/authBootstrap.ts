@@ -268,6 +268,24 @@ export const shouldAttemptRootAuthBootstrap = (
   now: options.now,
 }) === 'defer';
 
+export const shouldMountAuthBootstrapRuntime = (
+  pathname: string,
+  options: {
+    isLoggedIn: boolean;
+    hasPersistedAuthHint: boolean;
+    authBootstrapMeta?: AuthBootstrapMeta | null;
+    hasInjectedAuthProfile?: boolean;
+    now?: number;
+  },
+): boolean => {
+  if (options.hasInjectedAuthProfile) {
+    return true;
+  }
+
+  const mode = resolveAuthBootstrapMode(pathname, options);
+  return mode !== 'skip' && mode !== 'public-home';
+};
+
 export const shouldHoldAuthUiDuringBootstrap = (
   pathname: string,
   options: {

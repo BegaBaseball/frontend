@@ -289,7 +289,7 @@ export default function SignUp() {
 
             {formData.favoriteTeam === '없음' ? (
               <AuthStatusPanel tone="warning" role="status">
-                <div className="space-y-1 text-[16px]">
+                <div className="space-y-1 text-body">
                   <p className="font-semibold">응원구단을 선택하지 않으면 응원석을 이용할 수 없습니다.</p>
                   <p>회원가입 후에도 마이페이지 &gt; 내 정보 수정에서 언제든 변경할 수 있습니다.</p>
                 </div>
@@ -302,7 +302,7 @@ export default function SignUp() {
                 type="button"
                 variant="ghost"
                 onClick={() => setShowTeamTest(true)}
-                className="h-auto px-2 py-1 text-[16px] text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                className="h-auto px-2 py-1 text-body text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                 disabled={isFormLocked}
               >
                 구단 테스트 해보기

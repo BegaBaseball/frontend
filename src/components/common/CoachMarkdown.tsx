@@ -23,22 +23,22 @@ const componentMap: Components = {
         </h4>
     ),
     h4: ({ children }) => (
-        <h5 className="mt-3 mb-1 text-[15px] font-bold text-gray-800 first:mt-0 dark:text-white">
+        <h5 className="mt-3 mb-1 text-15 font-bold text-gray-800 first:mt-0 dark:text-white">
             {children}
         </h5>
     ),
     p: ({ children }) => (
-        <p className="mb-2 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
+        <p className="mb-2 text-15 leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </p>
     ),
     ul: ({ children }) => (
-        <ul className="mb-2 list-disc space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
+        <ul className="mb-2 list-disc space-y-1 pl-5 text-15 leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </ul>
     ),
     ol: ({ children }) => (
-        <ol className="mb-2 list-decimal space-y-1 pl-5 text-[15px] leading-relaxed text-gray-700 last:mb-0 dark:text-white">
+        <ol className="mb-2 list-decimal space-y-1 pl-5 text-15 leading-relaxed text-gray-700 last:mb-0 dark:text-white">
             {children}
         </ol>
     ),
@@ -60,7 +60,7 @@ const componentMap: Components = {
         </a>
     ),
     code: ({ children }) => (
-        <code className="rounded bg-gray-100 px-1 py-0.5 text-[13px] text-gray-800 dark:bg-gray-800 dark:text-white">
+        <code className="rounded bg-gray-100 px-1 py-0.5 text-13 text-gray-800 dark:bg-gray-800 dark:text-white">
             {children}
         </code>
     ),
@@ -71,7 +71,7 @@ const componentMap: Components = {
     ),
     table: ({ children }) => (
         <div className="my-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 text-left text-[14px] dark:divide-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 text-left text-caption dark:divide-gray-700">
                 {children}
             </table>
         </div>

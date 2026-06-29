@@ -66,7 +66,7 @@ export default function PasswordResetConfirm() {
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="password-reset-confirm-form">
             {error ? (
               <AuthStatusPanel tone="error" data-testid="password-reset-confirm-status-panel" role="alert">
-                <p className="text-[16px] font-semibold">{error}</p>
+                <p className="text-body font-semibold">{error}</p>
               </AuthStatusPanel>
             ) : null}
 
@@ -146,7 +146,7 @@ export default function PasswordResetConfirm() {
               </div>
 
               <AuthStatusPanel tone="default" role="status">
-                <div className="space-y-2 text-[16px]">
+                <div className="space-y-2 text-body">
                   <p className="font-semibold text-foreground">비밀번호 조건</p>
                   <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
                     <li className={formData.newPassword.length >= 8 ? 'text-primary' : undefined}>

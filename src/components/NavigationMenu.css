@@ -34,19 +34,20 @@
   border-radius: 28px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
-  transform: translate3d(24px, 0, 0) scale(0.98);
+  transform: translate3d(0, -10px, 0) scale(0.98);
+  transform-origin: top right;
   opacity: 0;
   transition:
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 220ms ease,
     box-shadow 220ms ease;
 }
 
 .mobile-menu-popup [data-mobile-menu-section] {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(8px) scale(0.995);
   transition:
-    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 220ms ease;
 }
 
@@ -65,7 +66,7 @@
 
 .mobile-menu-layer.is-open .mobile-menu-popup [data-mobile-menu-section] {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .dark .mobile-menu-popup {
@@ -88,6 +89,15 @@
   .mobile-menu-backdrop,
   .mobile-menu-popup,
   .mobile-menu-popup [data-mobile-menu-section] {
-    transition-duration: 0.01ms;
+    transition-property: opacity, background-color, border-color, box-shadow;
+    transition-duration: 120ms;
+    transition-timing-function: ease;
+  }
+
+  .mobile-menu-popup,
+  .mobile-menu-layer.is-open .mobile-menu-popup,
+  .mobile-menu-popup [data-mobile-menu-section],
+  .mobile-menu-layer.is-open .mobile-menu-popup [data-mobile-menu-section] {
+    transform: none;
   }
 }

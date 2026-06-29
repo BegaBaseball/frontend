@@ -1,5 +1,6 @@
 import {
   DEFAULT_API_TIMEOUT_MS,
+  buildDevProxyUnavailableErrorData,
   buildApiRequestHeaders,
   buildApiUrl,
   createTimeoutController,
@@ -7,17 +8,11 @@ import {
   parseResponseBody,
   toJsonRequestBody,
 } from './httpClientCore';
-import type { ApiParamValue } from './httpClientCore';
+import type { ApiClientErrorData, ApiParamValue } from './httpClientCore';
 
 type PublicApiParamValue = ApiParamValue;
 
-interface PublicApiErrorData {
-  code?: string;
-  error?: string;
-  message?: string;
-  data?: unknown;
-  errors?: Record<string, unknown>;
-}
+type PublicApiErrorData = ApiClientErrorData;
 
 export class PublicApiError extends Error {
   data: PublicApiErrorData | null;
@@ -63,9 +58,10 @@ const publicRequest = async <T>(
     const responseBody = await parseResponseBody(response);
 
     if (!response.ok) {
-      const data = typeof responseBody === 'object' && responseBody !== null
+      const parsedData = typeof responseBody === 'object' && responseBody !== null
         ? responseBody as PublicApiErrorData
         : null;
+      const data = buildDevProxyUnavailableErrorData(response, responseBody, url) ?? parsedData;
       const message = data?.message || data?.error || response.statusText || `Request failed with status ${response.status}`;
       throw new PublicApiError(response.status, message, data);
     }

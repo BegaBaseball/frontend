@@ -4,11 +4,20 @@ import { Route, Routes } from 'react-router-dom';
 import { loadPredictionPage } from './lazyRouteLoaders';
 import RootEntryRoute from './RootEntryRoute';
 
-const Layout = lazy(() => import('./Layout'));
+const initialPathname = typeof window === 'undefined' ? '' : window.location.pathname;
+const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
+const initialLayoutModulePromise = shouldPreloadInitialHomeRoute ? import('./Layout') : null;
+const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
+
+if (shouldPreloadInitialHomeRoute) {
+  void import('./home/HomeMatchPanel');
+}
+
+const Layout = lazy(() => initialLayoutModulePromise ?? import('./Layout'));
 const AppQueryProvider = lazy(() => import('./AppQueryProvider'));
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'));
 const AdminRoute = lazy(() => import('./AdminRoute'));
-const Home = lazy(() => import('./Home'));
+const Home = lazy(() => initialHomeModulePromise ?? import('./Home'));
 const OffSeasonHomePage = lazy(() => import('./OffSeasonHomePage'));
 const OffSeasonListPage = lazy(() => import('./OffSeasonListPage'));
 const PublicOnlyAuthRoute = lazy(() => import('./PublicOnlyAuthRoute'));
@@ -49,7 +58,6 @@ const SajikSeatMapEditor = import.meta.env.DEV
   : null;
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
-const SchedulePage = lazy(() => import('../pages/SchedulePage'));
 
 export default function AppRoutes() {
   return (
@@ -65,10 +73,14 @@ export default function AppRoutes() {
 
       <Route path="/" element={<RootEntryRoute />} />
 
+      <Route element={<Layout authenticated={false} />}>
+        <Route path="/home" element={<Home />} />
+      </Route>
+
       <Route element={<AppQueryProvider />}>
         <Route element={<Layout authenticated={false} />}>
-          <Route path="/home" element={<Home />} />
           <Route path="/prediction" element={<Prediction />} />
+          <Route path="/prediction/matches/:gameId" element={<Prediction />} />
           <Route path="/offseason" element={<OffSeasonHomePage />} />
           <Route path="/offseason/list" element={<OffSeasonListPage />} />
           <Route path="/cheer" element={<Cheer />} />
@@ -81,7 +93,6 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
-          <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/mate" element={<MatePage />} />
         </Route>
 
@@ -96,7 +107,7 @@ export default function AppRoutes() {
             <Route path="/mate/:id/chat" element={<MateChatPage />} />
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/mypage/:handle" element={<MyPage />} />
+            <Route path="/mypage/:handle" element={<UserProfilePage />} />
             <Route path="/messages" element={<DmInboxPage />} />
             <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
