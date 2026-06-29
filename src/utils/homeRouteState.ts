@@ -1,6 +1,7 @@
 import { formatDateForAPI } from './home';
 import { toLocalMiddayDate } from './homeSeasonLogic';
-import { normalizePredictionDate, type LeagueTab } from './predictionHomeLogic';
+import { normalizePredictionDate } from './dateKey';
+import type { LeagueTab } from './homeScheduleClassification';
 
 export const HOME_ROUTE_TABS: readonly LeagueTab[] = [
   'regular',

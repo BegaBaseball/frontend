@@ -49,9 +49,9 @@
 }
 
 .landing-feature-card:hover {
-  border-color: hsl(var(--primary) / 0.2);
-  box-shadow: var(--surface-shadow);
-  transform: translateY(-1px);
+  border-color: hsl(var(--primary) / 0.24);
+  box-shadow: var(--surface-shadow-strong);
+  transform: translateY(-2px);
 }
 
 .landing-feature-card-active {

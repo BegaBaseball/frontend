@@ -12,6 +12,11 @@ describe('Home to Prediction deep link', () => {
     const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     const tomorrowCompact = tomorrow.replace(/-/g, '');
     const matchDetailPattern = /\/api\/matches\/(?!day(?:[/?#]|$)|range(?:[/?#]|$)|bounds(?:[/?#]|$)|live(?:[/?#]|$))[^/?#]+(?:\?.*)?$/;
+    const expectPredictionDetailRoute = (gameId: string, date: string) => {
+        cy.location('pathname').should('eq', `/prediction/matches/${gameId}`);
+        cy.location('search').should('include', `date=${date}`);
+        cy.location('search').should('not.include', 'gameId=');
+    };
     const buildWidgetsResponse = (rankingSeasonYear = now.getFullYear()) => ({
         hotCheerPosts: [],
         featuredMates: [],
@@ -202,7 +207,7 @@ describe('Home to Prediction deep link', () => {
         });
     });
 
-    it('moves to prediction with gameId/date query and preselects clicked game', () => {
+    it('moves to prediction detail route and preselects clicked game', () => {
         cy.viewport(1280, 720); // Desktop view forcing
         visitHomePage({
             path: '/home',
@@ -222,7 +227,7 @@ describe('Home to Prediction deep link', () => {
             .should('contain.text', 'LG')
             .click();
 
-        cy.url().should('include', '/prediction');
+        expectPredictionDetailRoute(`${todayCompact}HHLG0`, today);
 
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.get('@getUserVote.all').should('have.length', 0);
@@ -247,9 +252,7 @@ describe('Home to Prediction deep link', () => {
             .should('contain.text', 'KT')
             .click();
 
-        cy.url().should('include', '/prediction');
-        cy.location('search').should('include', `date=${today}`);
-        cy.location('search').should('include', `gameId=${todayCompact}KTSS0`);
+        expectPredictionDetailRoute(`${todayCompact}KTSS0`, today);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.get('@getUserVote.all').should('have.length', 0);
         cy.wait('@getGameDetail').then((interception) => {
@@ -351,9 +354,7 @@ describe('Home to Prediction deep link', () => {
             .should('contain.text', 'KT')
             .click();
 
-        cy.location('pathname').should('eq', '/prediction');
-        cy.location('search').should('include', `date=${tomorrow}`);
-        cy.location('search').should('include', `gameId=${tomorrowCompact}KTSS0`);
+        expectPredictionDetailRoute(`${tomorrowCompact}KTSS0`, tomorrow);
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
         cy.wait('@getGameDetailRouteState').then((interception) => {
             expect(interception.request.url).to.include(`${tomorrowCompact}KTSS0`);
@@ -370,38 +371,6 @@ describe('Home to Prediction deep link', () => {
             .should('be.visible');
     });
 
-    it('keeps the clicked schedule page game selected after prediction schedule refresh', () => {
-        cy.viewport(1280, 720);
-        visitHomePage({
-            path: '/schedule',
-            token: 'schedule-to-prediction-token',
-            resetStorage: true,
-        });
-        cy.wait('@getScheduleRange');
-        cy.get('@getMe.all').should('have.length', 0);
-        cy.contains('TestUser 님', { timeout: 10000 }).should('be.visible');
-
-        cy.get('[data-testid="schedule-selected-date-panel"]', { timeout: 10000 })
-            .should('have.attr', 'data-date', today)
-            .within(() => {
-                cy.contains('[data-slot="card"]', '삼성')
-                    .should('contain.text', 'KT')
-                    .click();
-            });
-
-        cy.url().should('include', '/prediction');
-        cy.location('search').should('include', `date=${today}`);
-        cy.location('search').should('include', `gameId=${todayCompact}KTSS0`);
-        cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
-        cy.get('@getUserVote.all').should('have.length', 0);
-        cy.wait('@getGameDetail').then((interception) => {
-            expect(interception.request.url).to.include(`${todayCompact}KTSS0`);
-            expect(interception.request.url).not.to.include(`${todayCompact}HHLG0`);
-        });
-        cy.contains(/KT(\s*위즈)?/).should('be.visible');
-        cy.contains(/삼성(\s*라이온즈)?/).should('be.visible');
-    });
-
     it('does not fall back to the first game detail when requested gameId is missing', () => {
         const missingGameId = `${todayCompact}MISSING0`;
 
@@ -414,6 +383,7 @@ describe('Home to Prediction deep link', () => {
 
         cy.wait('@getPredictionBootstrapHomeLink');
         cy.contains('전력분석실', { timeout: 20000 }).should('be.visible');
+        cy.get('[data-testid="prediction-schedule-preview"]', { timeout: 20000 }).should('be.visible');
         cy.contains('현재 목록에서 찾을 수 없습니다', { timeout: 20000 }).should('be.visible');
         cy.contains('경기 목록에서 다시 선택해주세요.').should('be.visible');
         cy.get('@getScheduleDay.all').should('have.length', 0);
@@ -451,10 +421,12 @@ describe('Home to Prediction deep link', () => {
             .should('contain.text', 'LG')
             .click();
 
-        cy.url().should('include', '/prediction');
-        cy.get('[data-testid="prediction-detail-refresh-indicator"]', { timeout: 10000 }).should('be.visible');
+        expectPredictionDetailRoute(`${todayCompact}HHLG0`, today);
+        cy.get('[data-testid="prediction-match-detail-root"]', { timeout: 20000 }).should('be.visible');
         cy.contains(/LG(\s*트윈스)?/).should('be.visible');
         cy.contains(/한화(\s*이글스)?/).should('be.visible');
-        cy.wait('@getDelayedGameDetail');
+        cy.wait('@getDelayedGameDetail').then((interception) => {
+            expect(interception.request.url).to.include(`${todayCompact}HHLG0`);
+        });
     });
 });

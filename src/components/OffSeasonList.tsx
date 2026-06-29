@@ -56,14 +56,14 @@ function OffseasonListContentFallback() {
                     </div>
                 </div>
             </div>
-            <div className="animate-pulse rounded-[28px] border border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950/70">
+            <div className="animate-pulse rounded-28 border border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="h-4 w-40 rounded-full bg-zinc-200 dark:bg-zinc-800" />
                 <div className="mt-3 h-3 w-28 rounded-full bg-zinc-200 dark:bg-zinc-800" />
             </div>
             {Array.from({ length: 3 }, (_, index) => (
                 <div
                     key={index}
-                    className="animate-pulse rounded-[26px] border border-zinc-200 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950/90"
+                    className="animate-pulse rounded-26 border border-zinc-200 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950/90"
                 >
                     <div className="h-5 w-48 rounded-full bg-zinc-200 dark:bg-zinc-800" />
                     <div className="mt-3 h-3 w-full rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -241,24 +241,24 @@ export default function OffSeasonList() {
                     </button>
                 </div>
 
-                <section className="relative overflow-hidden rounded-[32px] border border-emerald-200/70 bg-[#173b34] shadow-[0_24px_80px_-32px_rgba(16,37,32,0.9)] dark:border-emerald-950/40 dark:bg-[#173b34]">
+                <section className="relative overflow-hidden rounded-32 border border-emerald-200/70 bg-[#173b34] shadow-[0_24px_80px_-32px_rgba(16,37,32,0.9)] dark:border-emerald-950/40 dark:bg-[#173b34]">
                     <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.08]" />
                     <div className="relative grid gap-6 px-6 py-6 md:px-8 md:py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
                         <div className="space-y-4">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
                                 <SparklesIcon className="h-3.5 w-3.5 text-yellow-300" />
-                                <span className="text-[14px] font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
+                                <span className="text-caption font-black uppercase tracking-[0.22em] text-yellow-200">2025-26 Stove League Tracker</span>
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-3xl font-black leading-none tracking-tight text-white md:text-4xl">
                                     KBO 스토브리그
                                     <br className="sm:hidden" /> 전체 이적 현황
                                 </h1>
-                                <p className="max-w-2xl text-[15px] font-semibold leading-relaxed text-emerald-100/80 md:text-base">
+                                <p className="max-w-2xl text-15 font-semibold leading-relaxed text-emerald-100/80 md:text-base">
                                     검색, 팀 필터, 구분 필터를 한 번에 묶어 원하는 선수 이동을 빠르게 좁혀볼 수 있게 정리했습니다.
                                 </p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-emerald-100/75">
+                            <div className="flex flex-wrap items-center gap-2 text-caption font-semibold text-emerald-100/75">
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5">
                                     <CalendarDaysIcon className="h-3.5 w-3.5" />
                                     최근 업데이트 {latestUpdate}
@@ -283,7 +283,7 @@ export default function OffSeasonList() {
                                     key={stat.label}
                                     className="rounded-3xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm"
                                 >
-                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
+                                <p className="text-caption font-black uppercase tracking-[0.18em] text-emerald-100/60">{stat.label}</p>
                                     <p className={`mt-2 text-3xl font-black tracking-tight ${stat.accent}`}>{stat.value}</p>
                                 </div>
                             ))}
@@ -293,7 +293,7 @@ export default function OffSeasonList() {
 
                 <Card className="sticky top-4 z-30 overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/95 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
                     <div className="space-y-4 p-4 md:p-5">
-                        <div className="flex items-center gap-2 text-[14px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                        <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-[0.18em] text-zinc-400">
                             <FilterIcon className="h-4 w-4" />
                             탐색 도구
                         </div>
@@ -311,7 +311,7 @@ export default function OffSeasonList() {
 
                             <select
                                 aria-label="팀 필터"
-                                className="h-12 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-[15px] font-semibold shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
+                                className="h-12 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-15 font-semibold shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-950"
                                 value={selectedTeam}
                                 onChange={(event) => setSelectedTeam(event.target.value)}
                             >
@@ -329,7 +329,7 @@ export default function OffSeasonList() {
                                         key={option.value}
                                         type="button"
                                         onClick={() => setSortOrder(option.value)}
-                                        className={`rounded-2xl px-3 py-3 text-[15px] font-bold transition-colors ${sortOrder === option.value
+                                        className={`rounded-2xl px-3 py-3 text-15 font-bold transition-colors ${sortOrder === option.value
                                             ? 'bg-primary text-white shadow-sm'
                                             : 'border border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white dark:hover:text-zinc-100'
                                             }`}
@@ -347,7 +347,7 @@ export default function OffSeasonList() {
                                         key={option.value}
                                         type="button"
                                         onClick={() => setSelectedSection(option.value)}
-                                        className={`rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${selectedSection === option.value
+                                        className={`rounded-full px-4 py-2 text-15 font-bold transition-colors ${selectedSection === option.value
                                             ? 'bg-zinc-900 text-white dark:bg-white dark:text-white'
                                             : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                             }`}
@@ -361,7 +361,7 @@ export default function OffSeasonList() {
                                 <button
                                     type="button"
                                     onClick={() => setBigOnly((prev) => !prev)}
-                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-bold transition-colors ${bigOnly
+                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-15 font-bold transition-colors ${bigOnly
                                         ? 'bg-yellow-400 text-[#1a3c34]'
                                         : 'border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:text-zinc-100'
                                         }`}
@@ -370,7 +370,7 @@ export default function OffSeasonList() {
                                     주요 소식만
                                 </button>
                                 {hasActiveFilters && (
-                                        <Button variant="ghost" onClick={resetFilters} className="rounded-full px-4 text-[15px] font-bold">
+                                        <Button variant="ghost" onClick={resetFilters} className="rounded-full px-4 text-15 font-bold">
                                         <XIcon className="h-4 w-4" />
                                         초기화
                                     </Button>
@@ -379,13 +379,13 @@ export default function OffSeasonList() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-caption font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-white">
                                 전체 {movements.length}건 중 {filteredList.length}건 표시
                             </span>
                             {activeFilters.map((label) => (
                                 <OffseasonPill
                                     key={label}
-                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                                    className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-caption font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                                 >
                                     {label}
                                 </OffseasonPill>

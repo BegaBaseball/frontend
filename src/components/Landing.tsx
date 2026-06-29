@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import begaCharacter from '../assets/landing/bega-character-192.webp';
@@ -7,6 +8,14 @@ import landingCriticalCss from './Landing.css?inline';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 import { FirstLoadArrowRightIcon } from './icons/FirstLoadIcons';
+import {
+  BookOpenIcon,
+  HomeIcon,
+  LineChartIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  UsersIcon,
+} from './icons/PublicShellIcons';
 import { Button } from './ui/button';
 import ThemeToggleButton from './ThemeToggleButton';
 import ViewportDeferred from './ViewportDeferred';
@@ -45,6 +54,20 @@ const FOOTER_SECTIONS = [
     ],
   },
 ] as const;
+
+const HERO_HIGHLIGHTS = [
+  { Icon: HomeIcon, label: '경기일정' },
+  { Icon: MegaphoneIcon, label: '응원석' },
+  { Icon: MapPinIcon, label: '구장가이드' },
+  { Icon: LineChartIcon, label: '전력분석' },
+  { Icon: UsersIcon, label: '메이트' },
+  { Icon: BookOpenIcon, label: '다이어리' },
+] as const;
+
+// Stagger helper for the hero entrance choreography (MOTION_INTENSITY tuned).
+// Reduced-motion is handled in Landing.css, which zeroes `.landing-rise`.
+const riseStyle = (delay: string): CSSProperties =>
+  ({ '--rise-delay': delay } as unknown as CSSProperties);
 
 const LazyLandingFeaturesRuntime = lazy(() => import('./LandingFeaturesRuntime'));
 
@@ -162,7 +185,7 @@ export default function Landing() {
                 onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
                 size="touch"
                 data-testid="landing-header-login"
-                className="px-3 text-[16px] text-muted-foreground hover:bg-primary/5 hover:text-foreground sm:px-4"
+                className="px-3 text-body text-muted-foreground hover:bg-primary/5 hover:text-foreground sm:px-4"
               >
                 로그인
               </Button>
@@ -186,22 +209,16 @@ export default function Landing() {
       >
         <Container className="landing-hero-grid">
           <Stack gap="sm" className="landing-hero-copy-stack items-center text-center lg:items-start lg:text-left">
-            <span className="ds-kicker">KBO 야구 팬을 위한 올인원 플랫폼</span>
+            <span className="ds-kicker landing-rise" style={riseStyle('0s')}>
+              KBO 야구 팬을 위한 올인원 플랫폼
+            </span>
 
-            <div className="flex items-center gap-3">
-              <img
-                src={baseballLogo}
-                alt="BEGA Logo"
-                width={56}
-                height={56}
-                className="h-10 w-10 sm:h-12 sm:w-12"
-              />
-              <span className="landing-wordmark text-2xl text-primary sm:text-3xl">
-                BEGA
-              </span>
-            </div>
-
-            <TextBlock measure="narrow" align="start" className="items-center lg:items-start">
+            <TextBlock
+              measure="narrow"
+              align="start"
+              className="landing-rise items-center lg:items-start"
+              style={riseStyle('0.06s')}
+            >
               <h1 className="ds-hero-title max-w-md">
                 야구를 더 <span className="text-primary">스마트</span>하게
               </h1>
@@ -211,7 +228,7 @@ export default function Landing() {
               </p>
             </TextBlock>
 
-            <CTAGroup align="start">
+            <CTAGroup align="start" className="landing-rise" style={riseStyle('0.12s')}>
               <Button
                 size="touchLg"
                 variant="brand"
@@ -239,32 +256,73 @@ export default function Landing() {
                 기능 둘러보기
               </Button>
             </CTAGroup>
+
+            <ul
+              className="landing-feature-peek landing-rise hidden justify-center sm:flex lg:justify-start"
+              style={riseStyle('0.18s')}
+              aria-hidden="true"
+            >
+              {HERO_HIGHLIGHTS.map(({ Icon, label }) => (
+                <li key={label} className="landing-feature-peek-item">
+                  <Icon className="h-3.5 w-3.5 text-primary" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           </Stack>
 
-          <MockupFrame className="landing-hero-preview mx-auto w-full max-w-xl p-3 sm:p-5">
+          <MockupFrame
+            className="landing-hero-preview landing-rise mx-auto w-full max-w-xl p-3 sm:p-5"
+            style={riseStyle('0.2s')}
+          >
             <div className="relative z-10">
               <div className="landing-device-shell">
                 <div className="landing-device-notch" />
 
                 <div className="landing-device-screen">
-                  <div className="landing-device-screen-content absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                    <img
-                      src={begaCharacter}
-                      alt="BEGA Character"
-                      className="h-16 w-16 object-contain sm:h-20 sm:w-20"
-                      width={96}
-                      height={96}
-                      loading="eager"
-                      decoding="async"
-                      {...{ fetchpriority: 'high' }}
-                    />
-                    <div>
-                      <h2 className="landing-wordmark text-3xl sm:text-4xl">
-                        BEGA
-                      </h2>
-                      <p className="landing-brand-caption mt-2 sm:text-[16px]">
-                        Baseball Guide
-                      </p>
+                  <div className="landing-device-screen-content absolute inset-0 flex flex-col justify-between p-4 text-center sm:p-5">
+                    <div className="hidden items-center justify-between sm:flex">
+                      <img
+                        src={baseballLogo}
+                        alt=""
+                        aria-hidden="true"
+                        width={20}
+                        height={20}
+                        className="h-5 w-5"
+                      />
+                      <span className="landing-device-pill">
+                        <span className="landing-device-livedot" />
+                        오늘의 라인업
+                      </span>
+                    </div>
+
+                    <div className="flex flex-1 flex-col items-center justify-center gap-2">
+                      <img
+                        src={begaCharacter}
+                        alt="BEGA Character"
+                        className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+                        width={96}
+                        height={96}
+                        loading="eager"
+                        decoding="async"
+                        {...{ fetchpriority: 'high' }}
+                      />
+                      <div>
+                        <h2 className="landing-wordmark text-2xl text-white sm:text-3xl">
+                          BEGA
+                        </h2>
+                        <p className="landing-brand-caption mt-1 text-white/80 sm:text-body">
+                          Baseball Guide
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="landing-device-dock hidden sm:flex" aria-hidden="true">
+                      {HERO_HIGHLIGHTS.map(({ Icon, label }) => (
+                        <span key={label} className="landing-device-dock-item">
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -297,7 +355,7 @@ export default function Landing() {
                 height={96}
                 className="h-20 w-20 sm:h-24 sm:w-24"
               />
-              <span className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[16px] font-semibold text-white">
+              <span className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-body font-semibold text-white">
                 지금 시작하기
               </span>
               <h2 className="landing-cta-title mt-6 text-white">
@@ -337,25 +395,25 @@ export default function Landing() {
                 </div>
               </div>
 
-              <p className="mt-4 text-[16px] leading-6 text-muted-foreground">
+              <p className="mt-4 text-body leading-6 text-muted-foreground">
                 KBO 야구 팬들을 위한 일정, 응원, 구장 정보, 예측, 메이트 기능을 한 곳에
                 정리한 플랫폼입니다.
               </p>
-              <p className="mt-4 text-[16px] font-semibold text-muted-foreground/80">
+              <p className="mt-4 text-body font-semibold text-muted-foreground/80">
                 © 2025 BEGA. All rights reserved.
               </p>
             </div>
 
             {FOOTER_SECTIONS.map((section) => (
               <div key={section.title}>
-                <h3 className="text-[16px] font-bold text-foreground">{section.title}</h3>
+                <h3 className="text-body font-bold text-foreground">{section.title}</h3>
                 <ul className="mt-4 space-y-3">
                   {section.links.map((link) => (
                     <li key={link.label}>
                       <button
                         type="button"
                         onClick={() => handleFooterLinkClick(link.href)}
-                        className="inline-flex min-h-11 min-w-11 items-center bg-transparent py-2 text-left text-[16px] leading-6 text-muted-foreground transition-colors hover:text-foreground"
+                        className="inline-flex min-h-11 min-w-11 items-center bg-transparent py-2 text-left text-body leading-6 text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </button>

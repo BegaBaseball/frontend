@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import type { Game, Ranking } from '../types/home';
 import { buildDisplayableRankings } from './homeDashboard';
-import { groupGamesBySourceDate, partitionGamesByLeague } from './homeGameGrouping';
+import { groupGamesBySourceDate, partitionGamesByLeague, summarizeHomeLeagueGames } from './homeGameGrouping';
 
 const buildGame = (overrides: Partial<Game>): Game => ({
   gameId: '20260324KBO1',
@@ -43,6 +43,27 @@ test('partitionGamesByLeague는 리그별 경기를 한 번만 순회해 분리�
   assert.deepEqual(result.regularSeasonGames.map((game) => game.gameId), ['regular']);
   assert.deepEqual(result.postSeasonGames.map((game) => game.gameId), ['postseason']);
   assert.deepEqual(result.koreanSeriesGames.map((game) => game.gameId), ['series']);
+});
+
+test('summarizeHomeLeagueGames는 count와 활성 탭 경기만 계산한다', () => {
+  const games = [
+    buildGame({ gameId: 'regular', leagueType: 'REGULAR' }),
+    buildGame({ gameId: 'postseason', leagueType: 'POSTSEASON' }),
+    buildGame({ gameId: 'series', leagueType: 'KOREAN_SERIES' }),
+    buildGame({ gameId: 'other', leagueType: 'OFFSEASON' }),
+  ];
+
+  const postseasonSummary = summarizeHomeLeagueGames(games, 'postseason');
+  assert.equal(postseasonSummary.regularSeasonCount, 1);
+  assert.equal(postseasonSummary.postSeasonCount, 1);
+  assert.equal(postseasonSummary.koreanSeriesCount, 1);
+  assert.deepEqual(postseasonSummary.activeStandardGames.map((game) => game.gameId), ['postseason']);
+
+  const scheduledSummary = summarizeHomeLeagueGames(games, 'scheduled');
+  assert.equal(scheduledSummary.regularSeasonCount, 1);
+  assert.equal(scheduledSummary.postSeasonCount, 1);
+  assert.equal(scheduledSummary.koreanSeriesCount, 1);
+  assert.deepEqual(scheduledSummary.activeStandardGames, []);
 });
 
 test('groupGamesBySourceDate는 fallback 날짜를 적용하고 sourceDate 기준으로 정렬한다', () => {
