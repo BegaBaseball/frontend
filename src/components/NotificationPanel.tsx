@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthSession } from '../store/authStore';
 import { notificationApi, isIgnorableNotificationError } from '../utils/notificationApi';
@@ -29,11 +30,16 @@ type TabType = 'ALL' | 'MATE' | 'CHEER';
 export default function NotificationPanel() {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthSession();
-  const notifications = useNotificationStore((state) => state.notifications);
-  const setNotifications = useNotificationStore((state) => state.setNotifications);
-  const markAsRead = useNotificationStore((state) => state.markAsRead);
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
-  const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const { notifications, setNotifications, markAsRead, markAllAsRead, removeNotification } =
+    useNotificationStore(
+      useShallow((state) => ({
+        notifications: state.notifications,
+        setNotifications: state.setNotifications,
+        markAsRead: state.markAsRead,
+        markAllAsRead: state.markAllAsRead,
+        removeNotification: state.removeNotification,
+      })),
+    );
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
   const unreadCount = useMemo(
     () => notifications.reduce((count, notif) => (!notif.isRead ? count + 1 : count), 0),
@@ -92,9 +98,7 @@ export default function NotificationPanel() {
 
   const handleMarkAllRead = async () => {
     try {
-      // Backend bulk read endpoint is missing, so we loop through unread notifications
-      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-      await Promise.all(unreadIds.map(id => notificationApi.markAsRead(id)));
+      await notificationApi.markAllAsRead();
       markAllAsRead();
     } catch (error) {
       console.error('일괄 읽음 처리 오류:', error);
@@ -197,7 +201,7 @@ export default function NotificationPanel() {
                 type="button"
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-[16px] font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
+                className={`text-body font-bold pb-2 border-b-2 transition-colors ${activeTab === tab
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -210,7 +214,7 @@ export default function NotificationPanel() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-[16px] text-gray-400 hover:text-primary transition-colors"
+                className="flex items-center gap-1 text-body text-gray-400 hover:text-primary transition-colors"
               >
               <NotificationCheckCheckIcon className="w-3 h-3" />
               모두 읽음
@@ -228,7 +232,7 @@ export default function NotificationPanel() {
             <p className="text-gray-900 dark:text-white font-bold mb-1">
               새로운 알림이 없습니다
             </p>
-            <p className="text-[16px] text-gray-500 dark:text-white">
+            <p className="text-body text-gray-500 dark:text-white">
               {activeTab === 'ALL' ? '새로운 소식이 도착하면 알려드릴게요!' : '해당 카테고리의 알림이 없습니다.'}
             </p>
           </div>
@@ -237,7 +241,7 @@ export default function NotificationPanel() {
             {Object.entries(groupedNotifications).map(([groupName, groupNotifs]) => (
               groupNotifs.length > 0 && (
                 <div key={groupName}>
-                <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-[16px] font-bold text-gray-400 uppercase tracking-wider">
+                <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/50 text-body font-bold text-gray-400 uppercase tracking-wider">
                     {groupName}
                   </div>
                   {groupNotifs.map((notification) => (
@@ -261,14 +265,14 @@ export default function NotificationPanel() {
                           {/* Content Area */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
-                              <h4 className="text-[16px] font-bold text-gray-900 dark:text-white truncate pr-2">
+                              <h4 className="text-body font-bold text-gray-900 dark:text-white truncate pr-2">
                                 {notification.title}
                               </h4>
-                                <span className="text-[16px] text-gray-400 whitespace-nowrap flex-shrink-0">
+                                <span className="text-body text-gray-400 whitespace-nowrap flex-shrink-0">
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            <p className="text-[16px] text-gray-600 dark:text-white line-clamp-2 leading-relaxed">
+                            <p className="text-body text-gray-600 dark:text-white line-clamp-2 leading-relaxed">
                               {renderMessageWithBold(notification.message)}
                             </p>
                           </div>

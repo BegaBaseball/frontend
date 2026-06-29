@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from './ui/button';
 import {
@@ -50,8 +51,12 @@ const renderActionIcon = (icon: typeof ENTRY_ACTIONS[number]['icon']) => {
 };
 
 export default function WelcomeGuide() {
-  const showWelcome = useUIStore((state) => state.showWelcome);
-  const setShowWelcome = useUIStore((state) => state.setShowWelcome);
+  const { showWelcome, setShowWelcome } = useUIStore(
+    useShallow((state) => ({
+      showWelcome: state.showWelcome,
+      setShowWelcome: state.setShowWelcome,
+    })),
+  );
   const [isReady, setIsReady] = useState(false);
   const [imageError, setImageError] = useState(false);
   const titleId = useId();
@@ -137,10 +142,10 @@ export default function WelcomeGuide() {
               {renderActionIcon(action.icon)}
             </div>
             <div className="min-w-0">
-              <p className="text-[14px] font-black leading-5 text-slate-950 dark:text-white">
+              <p className="text-caption font-black leading-5 text-slate-950 dark:text-white">
                 {action.title}
               </p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-5 text-slate-600 dark:text-white">
+              <p className="mt-0.5 text-13 font-semibold leading-5 text-slate-600 dark:text-white">
                 {action.description}
               </p>
             </div>

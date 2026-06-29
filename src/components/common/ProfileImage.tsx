@@ -20,9 +20,9 @@ const SIZE_CLASS_MAP: Record<NonNullable<ProfileImageProps['size']>, string> = {
 };
 
 const FALLBACK_TEXT_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, string> = {
-  xs: 'text-[16px]',
-  sm: 'text-[16px]',
-  md: 'text-[16px]',
+  xs: 'text-body',
+  sm: 'text-body',
+  md: 'text-body',
   lg: 'text-base',
   xl: 'text-lg',
 };

@@ -4,19 +4,22 @@ import { useLocation } from 'react-router-dom';
 import {
   getPersistedAuthBootstrapMeta,
   hasPersistedAuthBootstrapHint,
-  normalizeAuthBootstrapPathname,
-  shouldAttemptRootAuthBootstrap,
+  shouldMountAuthBootstrapRuntime,
 } from '../utils/authBootstrap';
 
 const LazyAuthBootstrap = lazy(() => import('./AuthBootstrap'));
 
-const shouldSkipAuthBootstrap = (pathname: string): boolean => (
-  normalizeAuthBootstrapPathname(pathname) === '/'
-  && !shouldAttemptRootAuthBootstrap({
-    hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
-    authBootstrapMeta: getPersistedAuthBootstrapMeta(),
-  })
+const hasInjectedAuthProfileForTests = (): boolean => (
+  typeof window !== 'undefined'
+  && Boolean((window as Window & { __BEGA_TEST_AUTH_PROFILE__?: unknown }).__BEGA_TEST_AUTH_PROFILE__)
 );
+
+const shouldSkipAuthBootstrap = (pathname: string): boolean => !shouldMountAuthBootstrapRuntime(pathname, {
+  isLoggedIn: false,
+  hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
+  authBootstrapMeta: getPersistedAuthBootstrapMeta(),
+  hasInjectedAuthProfile: hasInjectedAuthProfileForTests(),
+});
 
 export default function AuthBootstrapGate() {
   const { pathname } = useLocation();
