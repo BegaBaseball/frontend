@@ -37,6 +37,8 @@
   font-weight: 700;
   letter-spacing: var(--letter-spacing-korean-tight);
   color: hsl(var(--foreground));
+  /* Korean copy should wrap on spaces, never mid-word (e.g. 스마트·하게). */
+  word-break: keep-all;
 }
 
 .ds-section-copy {
@@ -163,23 +165,108 @@
   box-shadow: 0 12px 28px -24px rgba(15, 23, 42, 0.5);
 }
 
+/* ── Hero device app preview chrome (VISUAL_DENSITY) ────── */
+.landing-device-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  backdrop-filter: blur(6px);
+}
+
+.landing-device-livedot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22);
+}
+
+/* Display is owned by Tailwind (hidden sm:flex); only set layout details. */
+.landing-device-dock {
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.landing-device-dock-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  backdrop-filter: blur(6px);
+}
+
+/* ── Hero feature peek pills (VISUAL_DENSITY) ───────────── */
+.landing-feature-peek {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.landing-feature-peek-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--text-secondary));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.landing-feature-peek-item:hover {
+  border-color: hsl(var(--primary) / 0.28);
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+
+/* ── Hero entrance choreography (MOTION_INTENSITY) ──────── */
+.landing-rise {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: landing-rise-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+@keyframes landing-rise-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .landing-cta-panel {
   position: relative;
   overflow: hidden;
   border-radius: 1.5rem;
   background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.88) 100%);
-  box-shadow: var(--surface-shadow-strong);
+  box-shadow: var(--surface-shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .landing-cta-panel::before,
 .landing-cta-panel::after {
   content: '';
   position: absolute;
-  width: 16rem;
-  height: 16rem;
+  width: 13rem;
+  height: 13rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.1);
-  filter: blur(48px);
+  background: rgba(255, 255, 255, 0.08);
+  filter: blur(44px);
   pointer-events: none;
 }
 
@@ -247,15 +334,29 @@
 
 @media (prefers-reduced-motion: reduce) {
   .landing-hero-panel,
-  .landing-cta-panel {
+  .landing-cta-panel,
+  .landing-feature-peek-item {
     animation: none !important;
     transition: none !important;
+  }
+
+  .landing-rise {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
 }
 
 :root[data-reduced-motion='true'] .landing-hero-panel,
-:root[data-reduced-motion='true'] .landing-cta-panel {
+:root[data-reduced-motion='true'] .landing-cta-panel,
+:root[data-reduced-motion='true'] .landing-feature-peek-item {
   animation: none !important;
   transition: none !important;
+}
+
+:root[data-reduced-motion='true'] .landing-rise {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }

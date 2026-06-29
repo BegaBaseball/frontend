@@ -1,5 +1,5 @@
 import type { GameDetail } from '../types/prediction';
-import type { PredictionLocationState } from '../utils/predictionDeepLink';
+import type { PredictionLocationState, PredictionNavigationOptions } from '../utils/predictionDeepLink';
 import type { PredictionFlowEmitter, PredictionOverlayController } from './predictionHookShared';
 
 // ---------------------------------------------------------------------------
@@ -10,7 +10,7 @@ export type UsePredictionScheduleParams = {
   isLoggedIn: boolean;
   isAuthLoading: boolean;
   searchParams: URLSearchParams;
-  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
+  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: PredictionNavigationOptions) => void;
   locationState: PredictionLocationState;
   emitFlowEvent?: PredictionFlowEmitter;
   showPredictionErrorOverlay?: PredictionOverlayController['showPredictionErrorOverlay'];

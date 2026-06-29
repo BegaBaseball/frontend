@@ -94,7 +94,7 @@ export default function TeamRecommendationTest({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-primary">나와 딱 맞는 팀 찾기</h3>
-                  <p className="text-[16px] text-gray-600 dark:text-white mt-1">
+                  <p className="text-body text-gray-600 dark:text-white mt-1">
                     {currentQuestion + 1}번째 질문 / 총 {totalQuestions}문항
                   </p>
                 </div>
@@ -125,7 +125,7 @@ export default function TeamRecommendationTest({
                       {currentQuestionData.question}
                     </h4>
                     {currentQuestionData.description && (
-                      <p className="text-[16px] text-gray-600 dark:text-white">
+                      <p className="text-body text-gray-600 dark:text-white">
                         {currentQuestionData.description}
                       </p>
                     )}
@@ -151,7 +151,7 @@ export default function TeamRecommendationTest({
                             {/* Option Letter */}
                             <div
                                 className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-[16px] transition-all flex-shrink-0
+                                w-8 h-8 rounded-full flex items-center justify-center text-body transition-all flex-shrink-0
                                 ${
                                   selectedAnswer === index
                                     ? 'text-white shadow-lg bg-primary'
@@ -162,7 +162,7 @@ export default function TeamRecommendationTest({
                               {String.fromCharCode(65 + index)}
                             </div>
 
-                            <span className="flex-1 text-[16px] text-gray-900 dark:text-white">
+                            <span className="flex-1 text-body text-gray-900 dark:text-white">
                               {answer.label}
                             </span>
 
@@ -215,7 +215,7 @@ export default function TeamRecommendationTest({
                 <div
                   className="inline-block mb-2 px-4 py-1 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-primary/25 dark:to-emerald-900/30 border-2 border-primary"
                 >
-                  <span className="text-[16px] text-primary">
+                  <span className="text-body text-primary">
                     테스트 완료!
                   </span>
                 </div>
@@ -243,14 +243,14 @@ export default function TeamRecommendationTest({
               <div
                 className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-primary/15 dark:to-emerald-900/20 rounded-xl p-4 mb-4 text-left border-2 border-primary"
               >
-                <p className="text-[16px] text-gray-700 dark:text-white leading-relaxed">
+                <p className="text-body text-gray-700 dark:text-white leading-relaxed">
                   {getTeamDescription(recommendedTeam)}
                 </p>
               </div>
 
               {/* Scores Summary */}
               <div className="mb-4">
-                <p className="text-[16px] text-gray-600 dark:text-white mb-2">팀별 점수</p>
+                <p className="text-body text-gray-600 dark:text-white mb-2">팀별 점수</p>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto px-1">
                   {sortedTeamScores.map(([team, score]) => {
                     const teamLabel = getTeamDisplayName(team);
@@ -271,10 +271,10 @@ export default function TeamRecommendationTest({
                           <div className="w-7 h-7 flex-shrink-0">
                             <TeamLogo team={team} size="sm" />
                           </div>
-                          <span className="text-[16px] text-gray-900 dark:text-white">{teamLabel}</span>
+                          <span className="text-body text-gray-900 dark:text-white">{teamLabel}</span>
                         </div>
                         <span
-                          className={`text-[16px] ${
+                          className={`text-body ${
                             team === recommendedTeam
                               ? 'text-primary'
                               : 'text-gray-500 dark:text-white'
