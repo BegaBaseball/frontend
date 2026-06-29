@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { type CSSProperties, lazy, Suspense, useState } from 'react';
 import {
   MyPageAlertCircleIcon,
   MyPageCheckCircleIcon,
@@ -22,16 +22,16 @@ import type { NicknameCheckState } from '../../types/profile';
 const TEAM_TEST_HINT = '구단 테스트로 나에게 맞는 응원스타일을 확인해 보세요.';
 const LazyTeamRecommendationTest = lazy(() => import('../TeamRecommendationTest'));
 
-const getNicknameClassName = (state: NicknameCheckState): string => {
+const getNicknameTextStyle = (state: NicknameCheckState): CSSProperties => {
   switch (state) {
     case 'available':
-      return 'text-emerald-600 dark:text-emerald-400';
+      return { color: 'var(--mp-win)' };
     case 'taken':
-      return 'text-red-500 dark:text-red-400';
+      return { color: 'var(--mp-lose)' };
     case 'error':
-      return 'text-orange-500 dark:text-orange-400';
+      return { color: 'var(--mp-draw)' };
     default:
-      return 'text-muted-foreground';
+      return {};
   }
 };
 
@@ -107,7 +107,7 @@ export default function ProfileEditProfileRuntime({
     if (!name || name.length <= 1 || nicknameCheckState === 'idle') {
       if (fieldErrors.name) {
         return (
-          <p className="text-[16px] text-red-500 dark:text-red-400">
+          <p className="text-body" style={{ color: 'var(--mp-lose)' }}>
             {fieldErrors.name}
           </p>
         );
@@ -116,17 +116,17 @@ export default function ProfileEditProfileRuntime({
     }
 
     if (nicknameCheckState === 'checking') {
-      return <p className="text-[16px] text-muted-foreground">{nicknameCheckMessage}</p>;
+      return <p className="text-body text-muted-foreground">{nicknameCheckMessage}</p>;
     }
 
     if (fieldErrors.name) {
-      return <p className="text-[16px] text-red-500 dark:text-red-400">{fieldErrors.name}</p>;
+      return <p className="text-body" style={{ color: 'var(--mp-lose)' }}>{fieldErrors.name}</p>;
     }
 
     if (nicknameCheckMessage) {
-      const colorClass = getNicknameClassName(nicknameCheckState);
+      const colorStyle = getNicknameTextStyle(nicknameCheckState);
       return (
-        <p className={`text-[16px] font-semibold ${colorClass}`}>
+        <p className="text-body font-semibold" style={colorStyle}>
           {nicknameCheckMessage}
         </p>
       );
@@ -148,14 +148,14 @@ export default function ProfileEditProfileRuntime({
 
         <Card>
           <CardContent className="space-y-2 p-4">
-            <label htmlFor="name" className="text-[16px] font-semibold text-muted-foreground">
+            <label htmlFor="name" className="text-body font-semibold text-muted-foreground">
               이름
             </label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={`w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 ${fieldErrors.name ? 'border-red-500 dark:border-red-400' : ''}`}
+              className={`w-full border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40 ${fieldErrors.name ? 'border-destructive' : ''}`}
               placeholder="이름을 입력하세요"
               maxLength={21}
               disabled={isLoading}
@@ -163,8 +163,11 @@ export default function ProfileEditProfileRuntime({
               aria-describedby="name-error"
             />
             <div className="flex items-center justify-between">
-              <p className="text-[16px] text-muted-foreground">닉네임은 2~20자</p>
-              <p className={`text-[16px] font-semibold ${name.length > 20 ? 'text-red-500' : 'text-muted-foreground'}`}>
+              <p className="text-body text-muted-foreground">닉네임은 2~20자</p>
+              <p
+                className="text-body"
+                style={name.length > 20 ? { color: 'var(--mp-lose)' } : undefined}
+              >
                 {name.length}/20
               </p>
             </div>
@@ -176,7 +179,7 @@ export default function ProfileEditProfileRuntime({
 
         <Card>
           <CardContent className="space-y-2 p-4">
-            <label htmlFor="email" className="text-[16px] font-semibold text-muted-foreground">
+            <label htmlFor="email" className="text-body font-semibold text-muted-foreground">
               이메일
             </label>
             <div className="flex items-center gap-2">
@@ -192,24 +195,24 @@ export default function ProfileEditProfileRuntime({
                 />
                 <MyPageLockIcon className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
-              <span className="whitespace-nowrap text-[16px] text-muted-foreground">
+              <span className="whitespace-nowrap text-body text-muted-foreground">
                 수정 불가
               </span>
             </div>
-            <p className="text-[16px] text-emerald-600 dark:text-emerald-400">이메일은 본인 확인에 사용되므로 변경할 수 없습니다.</p>
+            <p className="text-body" style={{ color: 'var(--mp-draw)' }}>이메일은 본인 확인에 사용되므로 변경할 수 없습니다.</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="space-y-2 p-4">
-            <label htmlFor="bio" className="text-[16px] font-semibold text-muted-foreground">
+            <label htmlFor="bio" className="text-body font-semibold text-muted-foreground">
               자기소개
             </label>
             <textarea
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className={`flex min-h-[90px] w-full rounded-md border border-border bg-card px-3 py-2 text-[16px] text-foreground ring-offset-background transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.bio ? 'border-red-500 dark:border-red-400' : ''}`}
+                className={`flex min-h-[90px] w-full rounded-md border border-border bg-card px-3 py-2 text-body text-foreground ring-offset-background transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 ${fieldErrors.bio ? 'border-destructive' : ''}`}
               placeholder="자기소개를 입력하세요 (500자 이내)"
               maxLength={500}
               disabled={isLoading}
@@ -217,13 +220,16 @@ export default function ProfileEditProfileRuntime({
               aria-describedby={fieldErrors.bio ? 'bio-error' : undefined}
             />
             <div className="flex justify-between">
-              <p className="text-[16px] text-muted-foreground">자기소개는 중요 정보입니다.</p>
-              <p className={`text-[16px] font-semibold ${bio.length > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>
+              <p className="text-body text-muted-foreground">자기소개는 중요 정보입니다.</p>
+              <p
+                className="text-body"
+                style={bio.length > 500 ? { color: 'var(--mp-lose)' } : undefined}
+              >
                 {bio.length}/500
               </p>
             </div>
             {fieldErrors.bio && (
-              <p id="bio-error" className="text-[16px] text-red-500 dark:text-red-400">
+              <p id="bio-error" className="text-body" style={{ color: 'var(--mp-lose)' }}>
                 {fieldErrors.bio}
               </p>
             )}
@@ -233,7 +239,7 @@ export default function ProfileEditProfileRuntime({
         {userRole === 'ROLE_USER' && (
           <Card>
             <CardContent className="space-y-3 p-4">
-            <label htmlFor="team" className="text-[16px] font-semibold text-muted-foreground">
+            <label htmlFor="team" className="text-body font-semibold text-muted-foreground">
                 응원구단
               </label>
 
@@ -252,7 +258,7 @@ export default function ProfileEditProfileRuntime({
                         id="team"
                         value={editingFavoriteTeam}
                         onChange={(event) => setEditingFavoriteTeam(event.target.value)}
-                        className="h-10 w-full appearance-none bg-transparent text-[16px] text-foreground outline-none"
+                        className="h-10 w-full appearance-none bg-transparent text-body text-foreground outline-none"
                         disabled={isLoading}
                       >
                         {selectableTeamIds.map((teamId) => (
@@ -261,7 +267,7 @@ export default function ProfileEditProfileRuntime({
                           </option>
                         ))}
                       </select>
-                      <span className="shrink-0 text-[16px] text-muted-foreground" aria-hidden="true">
+                      <span className="shrink-0 text-body text-muted-foreground" aria-hidden="true">
                         ▾
                       </span>
                     </div>
@@ -269,7 +275,7 @@ export default function ProfileEditProfileRuntime({
                     <Button
                       variant="outline"
                       onClick={() => setShowTeamTest(true)}
-                      className="flex h-10 items-center justify-center px-3 text-[16px] text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                className="flex h-10 items-center justify-center px-3 text-body text-primary hover:bg-primary/10"
                       title={TEAM_TEST_HINT}
                       disabled={isLoading}
                     >
@@ -278,7 +284,7 @@ export default function ProfileEditProfileRuntime({
                     </Button>
                   </div>
 
-                  <p className="text-[16px] text-muted-foreground">응원구단은 응원석에서 사용됩니다. {TEAM_TEST_HINT}</p>
+                  <p className="text-body text-muted-foreground">응원구단은 응원석에서 사용됩니다. {TEAM_TEST_HINT}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -289,14 +295,14 @@ export default function ProfileEditProfileRuntime({
                           <TeamLogo team={editingFavoriteTeam} size="sm" />
                         </div>
                       )}
-                      <span className="text-[16px] text-foreground">
+                      <span className="text-body text-foreground">
                         {getTeamLabel(editingFavoriteTeam)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        className="h-8 text-[16px]"
+                        className="h-8 text-body"
                         onClick={() => setShowTeamSheet(true)}
                         disabled={isLoading}
                       >
@@ -305,7 +311,7 @@ export default function ProfileEditProfileRuntime({
                       <Button
                         variant="outline"
                         onClick={() => setShowTeamTest(true)}
-                        className="h-8 px-2 text-[16px]"
+                        className="h-8 px-2 text-body"
                         title={TEAM_TEST_HINT}
                         disabled={isLoading}
                       >
@@ -314,7 +320,7 @@ export default function ProfileEditProfileRuntime({
                       </Button>
                     </div>
                   </div>
-                  <p className="text-[16px] text-muted-foreground">
+                  <p className="text-body text-muted-foreground">
                     앱처럼 빠르게 열어서 응원구단을 선택할 수 있습니다. {TEAM_TEST_HINT}
                   </p>
                 </div>
@@ -325,10 +331,10 @@ export default function ProfileEditProfileRuntime({
 
         <div className={`${hideBottomActions ? 'hidden' : 'sticky'} bottom-0 z-10 rounded-xl border border-border bg-card p-2`}>
           <div className="space-y-2 rounded-lg p-3">
-            <p className={`text-[16px] font-semibold ${hasChanges ? 'text-primary dark:text-primary-light' : 'text-muted-foreground'}`}>
+            <p className={`text-body font-semibold ${hasChanges ? 'text-primary' : 'text-muted-foreground'}`}>
               {hasChanges ? '저장되지 않은 변경사항이 있습니다.' : '변경사항 없음'}
             </p>
-            <p className="text-[16px] leading-5 text-muted-foreground">
+            <p className="text-body leading-5 text-muted-foreground">
               {lastSavedAt ? `마지막 저장: ${lastSavedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}` : '아직 저장 기록이 없습니다.'}
               {lastSavedAt && saveMessage ? ` · ${saveMessage}` : ''}
             </p>
@@ -357,7 +363,7 @@ export default function ProfileEditProfileRuntime({
           title="응원구단 선택"
           description="원하는 응원구단을 선택하면 즉시 반영됩니다."
           className="h-[70vh] max-w-2xl rounded-b-none rounded-t-3xl border-none"
-          bodyClassName="flex max-h-[calc(70vh-81px)] flex-col overflow-hidden bg-white p-0 dark:bg-card"
+          bodyClassName="flex max-h-[calc(70vh-81px)] flex-col overflow-hidden bg-card p-0"
           footer={(
             <Button variant="outline" className="w-full" onClick={() => setShowTeamSheet(false)}>
               닫기
@@ -402,7 +408,7 @@ export default function ProfileEditProfileRuntime({
               hideHeader
               className="max-w-md"
             >
-              <div className="py-8 text-center text-[16px] text-muted-foreground">
+              <div className="py-8 text-center text-body text-muted-foreground">
                 응원구단 추천 테스트를 불러오는 중입니다...
               </div>
             </PlainDialog>

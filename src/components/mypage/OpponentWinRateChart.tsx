@@ -39,24 +39,24 @@ export default function OpponentWinRateChart({ opponentStats = {} }: OpponentWin
             <CardContent>
                 <div className="space-y-4">
                     {data.map((entry) => {
-                        const barColor = entry.winRate >= 50 ? '#2d5f4f' : '#ef4444';
+                        const barColor = entry.winRate >= 50 ? 'var(--mp-win-bg)' : 'var(--mp-lose-bg)';
 
                         return (
                             <div key={entry.team} className="space-y-1.5">
                                 <div className="flex items-center justify-between gap-3">
-                                    <span className="truncate text-[16px] font-semibold text-foreground">{entry.team}</span>
-                                    <span className="shrink-0 text-[16px] font-bold" style={{ color: barColor }}>
+                                    <span className="truncate text-body font-semibold text-foreground">{entry.team}</span>
+                                    <span className="shrink-0 text-body font-bold" style={{ color: barColor }}>
                                         {entry.winRate}%
                                     </span>
                                 </div>
-                                <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-secondary">
+                                <div className="h-3 overflow-hidden rounded-full bg-muted">
                                     <div
                                         className="h-full rounded-full transition-all duration-300"
                                         style={{ width: `${entry.winRate}%`, backgroundColor: barColor }}
                                         title={`${entry.team} ${entry.winRate}% (${entry.wins}승 / ${entry.games}경기)`}
                                     />
                                 </div>
-                                <p className="text-[16px] text-muted-foreground">
+                                <p className="text-body text-muted-foreground">
                                     {entry.wins}승 / {entry.games}경기
                                 </p>
                             </div>

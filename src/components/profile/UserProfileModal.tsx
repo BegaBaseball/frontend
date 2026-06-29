@@ -146,7 +146,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                     aria-modal="true"
                     aria-labelledby={titleId}
                     onClick={(event) => event.stopPropagation()}
-                    className="w-full rounded-xl border bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-md"
+                    className="w-full rounded-xl border bg-white shadow-dialog ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-md"
                 >
                     <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-border">
                         <h2 id={titleId} className="text-xl font-bold dark:text-white">
@@ -166,7 +166,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                         {isLoading ? (
                             <div className="flex flex-col items-center py-8">
                                 <ProfileLoaderIcon className="h-8 w-8 animate-spin text-primary" />
-                                <p className="mt-2 text-[16px] text-gray-500">프로필 불러오는 중...</p>
+                                <p className="mt-2 text-body text-gray-500">프로필 불러오는 중...</p>
                             </div>
                         ) : error ? (
                             <div className="py-8 text-center text-red-500">
@@ -189,17 +189,17 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                 <div className="space-y-2 text-center">
                                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h3>
                                     {profile.favoriteTeam ? (
-                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-700 dark:bg-secondary dark:text-white">
+                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-body text-gray-700 dark:bg-secondary dark:text-white">
                                             <ProfileTrophyIcon className="mr-1 h-3 w-3 text-primary" />
                                             {getTeamKoreanName(profile.favoriteTeam)}
                                         </span>
                                     ) : (
-                                        <span className="text-[16px] text-gray-500">응원팀 없음</span>
+                                        <span className="text-body text-gray-500">응원팀 없음</span>
                                     )}
                                 </div>
 
                                 {followCounts && (
-                                    <div className="flex items-center justify-center gap-6 text-[16px]">
+                                    <div className="flex items-center justify-center gap-6 text-body">
                                         <div className="flex items-center gap-1">
                                             <ProfileUsersIcon className="h-4 w-4 text-gray-400" />
                                             <span className="font-semibold text-gray-900 dark:text-white">{followCounts.followerCount}</span>
@@ -248,7 +248,7 @@ export default function UserProfileModal({ handle, isOpen, onClose }: UserProfil
                                                 {profile.bio}
                                             </p>
                                         ) : (
-                                            <p className="text-[16px] italic text-gray-400">
+                                            <p className="text-body italic text-gray-400">
                                                 아직 자기소개가 없습니다.
                                             </p>
                                         )}

@@ -74,7 +74,7 @@ export default function BlockButton({
         }
     }, [handle, isLoading, onBlockChange]);
 
-    const buttonSize = size === 'sm' ? 'h-8 px-3 text-[16px]' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
+    const buttonSize = size === 'sm' ? 'h-8 px-3 text-body' : size === 'lg' ? 'h-11 px-6' : 'h-9 px-4';
 
     if (isBlocked) {
         return (
@@ -124,13 +124,13 @@ export default function BlockButton({
                             aria-labelledby={titleId}
                             aria-describedby={descriptionId}
                             onClick={(event) => event.stopPropagation()}
-                            className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card"
+                            className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-dialog ring-1 ring-black/5 dark:border-border dark:bg-card"
                         >
                             <div className="space-y-2">
                                 <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white">
                                     사용자 차단
                                 </h2>
-                                <div id={descriptionId} className="text-[16px] text-gray-600 dark:text-white">
+                                <div id={descriptionId} className="text-body text-gray-600 dark:text-white">
                                     <p>{userName}를 차단하시겠습니까?</p>
                                     <ul className="mt-3 list-inside list-disc space-y-1">
                                         <li>상대방의 게시글이 피드에서 숨겨집니다</li>

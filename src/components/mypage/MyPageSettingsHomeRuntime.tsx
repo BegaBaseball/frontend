@@ -43,7 +43,7 @@ function SettingRow({ title, description, icon, danger = false, onClick }: Setti
         </span>
         {description && <span className="mypage-season-setting-desc">{description}</span>}
       </span>
-      <MyPageChevronRightIcon className="h-4 w-4 flex-shrink-0 text-[#FFFFFF]" />
+      <MyPageChevronRightIcon className="h-4 w-4 flex-shrink-0 text-foreground" />
     </button>
   );
 }

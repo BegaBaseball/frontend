@@ -13,6 +13,8 @@ const VALID_VIEW_MODES: ViewMode[] = [
   'editProfile',
   'cheerPosts',
   'mateHistory',
+  'badges',
+  'alerts',
   'settings',
   'changePassword',
   'accountSettings',
@@ -23,6 +25,8 @@ const LEGACY_TAB_TO_VIEW_MODE: Record<string, ViewMode> = {
   blocked: 'blockedUsers',
   edit: 'editProfile',
   profile: 'editProfile',
+  badge: 'badges',
+  badges: 'badges',
   settings: 'settings',
 };
 
