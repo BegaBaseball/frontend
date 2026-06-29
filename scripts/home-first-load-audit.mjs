@@ -438,6 +438,7 @@ const installMetricsInitScript = async (context) => {
       firstGameCardAt: null,
       homeLoadAt: null,
       homeLoadEvents: [],
+      longTasks: [],
       lcpAt: null,
     };
 
@@ -497,6 +498,21 @@ const installMetricsInitScript = async (context) => {
       lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
     } catch (_error) {
       // LCP observer support may vary by browser channel.
+    }
+
+    try {
+      const longTaskObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          window.__homeFirstLoadMetrics.longTasks.push({
+            name: entry.name,
+            startTime: entry.startTime,
+            duration: entry.duration,
+          });
+        }
+      });
+      longTaskObserver.observe({ type: 'longtask', buffered: true });
+    } catch (_error) {
+      // Long task observer support may vary by browser channel.
     }
 
     const originalInfo = console.info.bind(console);
@@ -590,6 +606,90 @@ const readPageMetrics = async (page) => page.evaluate(() => {
   const metrics = window.__homeFirstLoadMetrics || {};
   const paintEntries = performance.getEntriesByType('paint');
   const fcp = paintEntries.find((entry) => entry.name === 'first-contentful-paint');
+  const round = (value) => (
+    typeof value === 'number' && Number.isFinite(value) ? Math.round(value * 10) / 10 : null
+  );
+  const toResourcePath = (name) => {
+    try {
+      const url = new URL(name);
+      return `${url.pathname}${url.search}`;
+    } catch (_error) {
+      return name;
+    }
+  };
+  const resources = performance.getEntriesByType('resource')
+    .map((entry) => ({
+      name: toResourcePath(entry.name),
+      initiatorType: entry.initiatorType,
+      startTime: round(entry.startTime),
+      responseEnd: round(entry.responseEnd),
+      duration: round(entry.duration),
+      transferSize: entry.transferSize || 0,
+      encodedBodySize: entry.encodedBodySize || 0,
+    }));
+  const firstGameCardAt = typeof metrics.firstGameCardAt === 'number' ? metrics.firstGameCardAt : null;
+  const withCardTiming = (entry) => {
+    if (
+      typeof firstGameCardAt !== 'number'
+      || typeof entry.responseEnd !== 'number'
+    ) {
+      return {
+        ...entry,
+        cardTiming: null,
+        firstCardDeltaMs: null,
+      };
+    }
+
+    const firstCardDeltaMs = round(entry.responseEnd - firstGameCardAt);
+    return {
+      ...entry,
+      cardTiming: entry.responseEnd <= firstGameCardAt ? 'pre-card' : 'post-card',
+      firstCardDeltaMs,
+    };
+  };
+  const resourcesWithCardTiming = resources.map(withCardTiming);
+  const scriptResources = resourcesWithCardTiming.filter((entry) => (
+    entry.initiatorType === 'script' || /\.js(?:$|\?)/.test(entry.name)
+  ));
+  const homeDeferredResourcePattern = /\/assets\/(?:AdSlot-|AuthenticatedLayoutChrome-|ChatBot-|ChatBotRuntime-|HomeAuthBridge-|HomeQueryProvider-|HomeSecondaryPanels-|HomeSecondaryPanelsContainer-|PublicNavbar-|PublicNavbarDmUnreadBadge-|liveGame-|realtimeAuth-|sonner-|stomp-)/;
+  const preCardScriptResources = firstGameCardAt === null
+    ? []
+    : scriptResources.filter((entry) => (
+      typeof entry.responseEnd === 'number' && entry.responseEnd <= firstGameCardAt
+    ));
+  const deferredBeforeFirstCardResources = firstGameCardAt === null
+    ? []
+    : resourcesWithCardTiming
+      .filter((entry) => (
+        homeDeferredResourcePattern.test(entry.name)
+        && typeof entry.responseEnd === 'number'
+        && entry.responseEnd <= firstGameCardAt
+      ))
+      .sort((a, b) => (b.responseEnd || 0) - (a.responseEnd || 0));
+  const criticalResources = resourcesWithCardTiming.filter((entry) => (
+    /\/assets\/(?:Home-|HomeMatchPanel-|vendor-react-core-|index-.*\.(?:js|css))/.test(entry.name)
+    || entry.name.includes('/api/home/bootstrap')
+  ));
+  const slowestResources = resourcesWithCardTiming
+    .filter((entry) => typeof entry.duration === 'number')
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, 8);
+  const latestScriptResponseEndMs = scriptResources.reduce((latest, entry) => (
+    typeof entry.responseEnd === 'number' ? Math.max(latest, entry.responseEnd) : latest
+  ), 0);
+  const latestPreCardScriptResponseEndMs = preCardScriptResources.reduce((latest, entry) => (
+    typeof entry.responseEnd === 'number' ? Math.max(latest, entry.responseEnd) : latest
+  ), 0);
+  const longTasks = Array.isArray(metrics.longTasks) ? metrics.longTasks : [];
+  const roundedLongTasks = longTasks
+    .map((entry) => ({
+      name: entry.name,
+      startTime: round(entry.startTime),
+      duration: round(entry.duration),
+    }))
+    .filter((entry) => typeof entry.duration === 'number');
+  const longTaskTotalMs = roundedLongTasks.reduce((total, entry) => total + entry.duration, 0);
+  const longestLongTaskMs = roundedLongTasks.reduce((longest, entry) => Math.max(longest, entry.duration), 0);
   const visibleGameCardCount = Array.from(document.querySelectorAll('[data-testid="home-game-card"]'))
     .filter((node) => {
       const rect = node.getBoundingClientRect();
@@ -598,11 +698,25 @@ const readPageMetrics = async (page) => page.evaluate(() => {
     }).length;
 
   return {
-    firstGameCardMs: metrics.firstGameCardAt,
+    firstGameCardMs: firstGameCardAt,
     homeLoadCompletedMs: metrics.homeLoadAt,
     homeLoadEvents: metrics.homeLoadEvents || [],
     fcpMs: fcp?.startTime ?? null,
     lcpMs: metrics.lcpAt ?? null,
+    longTaskCount: roundedLongTasks.length,
+    longTaskTotalMs,
+    longestLongTaskMs,
+    longTasks: roundedLongTasks
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 8),
+    scriptResourceCount: scriptResources.length,
+    preCardScriptResourceCount: preCardScriptResources.length,
+    latestScriptResponseEndMs,
+    latestPreCardScriptResponseEndMs,
+    deferredBeforeFirstCardCount: deferredBeforeFirstCardResources.length,
+    deferredBeforeFirstCardResources: deferredBeforeFirstCardResources.slice(0, 12),
+    criticalResources,
+    slowestResources,
     gameCardCount: document.querySelectorAll('[data-testid="home-game-card"]').length,
     visibleGameCardCount,
     emptyStateVisible: document.body.textContent?.includes('경기가 없는 날입니다.') ?? false,
@@ -635,6 +749,18 @@ const runIteration = async ({
     navigationRequestCount: 0,
     fcpMs: null,
     lcpMs: null,
+    longTaskCount: 0,
+    longTaskTotalMs: null,
+    longestLongTaskMs: null,
+    longTasks: [],
+    scriptResourceCount: 0,
+    preCardScriptResourceCount: 0,
+    latestScriptResponseEndMs: null,
+    latestPreCardScriptResponseEndMs: null,
+    deferredBeforeFirstCardCount: 0,
+    deferredBeforeFirstCardResources: [],
+    criticalResources: [],
+    slowestResources: [],
     gameCardCount: 0,
     visibleGameCardCount: 0,
     bootstrapGameCount: null,
@@ -678,6 +804,18 @@ const runIteration = async ({
     entry.navigationRequestCount = network.navigationRequestCount;
     entry.fcpMs = roundMetric(pageMetrics.fcpMs);
     entry.lcpMs = roundMetric(pageMetrics.lcpMs);
+    entry.longTaskCount = pageMetrics.longTaskCount;
+    entry.longTaskTotalMs = roundMetric(pageMetrics.longTaskTotalMs);
+    entry.longestLongTaskMs = roundMetric(pageMetrics.longestLongTaskMs);
+    entry.longTasks = pageMetrics.longTasks;
+    entry.scriptResourceCount = pageMetrics.scriptResourceCount;
+    entry.preCardScriptResourceCount = pageMetrics.preCardScriptResourceCount;
+    entry.latestScriptResponseEndMs = roundMetric(pageMetrics.latestScriptResponseEndMs);
+    entry.latestPreCardScriptResponseEndMs = roundMetric(pageMetrics.latestPreCardScriptResponseEndMs);
+    entry.deferredBeforeFirstCardCount = pageMetrics.deferredBeforeFirstCardCount;
+    entry.deferredBeforeFirstCardResources = pageMetrics.deferredBeforeFirstCardResources;
+    entry.criticalResources = pageMetrics.criticalResources;
+    entry.slowestResources = pageMetrics.slowestResources;
     entry.gameCardCount = pageMetrics.gameCardCount;
     entry.visibleGameCardCount = pageMetrics.visibleGameCardCount;
     entry.bootstrapGameCount = latestBootstrap?.gameCount ?? null;
@@ -785,6 +923,7 @@ const buildMarkdown = (report) => {
     '# Home First-Load Audit',
     '',
     `- Generated at: ${report.generatedAt}`,
+    `- Report key: ${report.reportKey}`,
     `- Mode: ${report.mode}`,
     `- Selected date: ${report.selectedDate}`,
     `- Status: ${report.status}`,
@@ -812,6 +951,33 @@ const buildMarkdown = (report) => {
     '',
   ];
 
+  lines.push(
+    '## Diagnostics',
+    '',
+    '| Viewport | Slowest measured entry | First card | Long task total | Longest long task | Pre-card scripts | Latest pre-card script end | Deferred before card | Critical resources | Slowest resource |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |',
+    ...report.viewports.map((viewport) => {
+      const measuredEntries = viewport.entries.filter((entry) => !entry.prewarm);
+      const slowestEntry = measuredEntries
+        .filter((entry) => typeof entry.firstGameCardMs === 'number')
+        .sort((a, b) => b.firstGameCardMs - a.firstGameCardMs)[0];
+
+      return [
+        viewport.label,
+        slowestEntry?.index ?? '',
+        formatMetric(slowestEntry?.firstGameCardMs),
+        formatMetric(slowestEntry?.longTaskTotalMs),
+        formatMetric(slowestEntry?.longestLongTaskMs),
+        slowestEntry?.preCardScriptResourceCount ?? '',
+        formatMetric(slowestEntry?.latestPreCardScriptResponseEndMs),
+        formatDeferredResourceSummary(slowestEntry),
+        formatCriticalResourceSummary(slowestEntry),
+        formatResourceSummary(slowestEntry),
+      ].join(' | ');
+    }).map((row) => `| ${row} |`),
+    '',
+  );
+
   if (report.status === 'needs-date') {
     lines.push(
       'Real mode found no game cards for the selected date. Re-run with HOME_FIRST_LOAD_DATE set to a known game date.',
@@ -825,6 +991,82 @@ const buildMarkdown = (report) => {
 const formatMetric = (value) => (
   typeof value === 'number' ? `${value}ms` : 'n/a'
 );
+
+const sanitizeMarkdownCell = (value) => String(value ?? '').replaceAll('|', '\\|');
+
+const formatResourceSummary = (entry) => {
+  const resource = entry?.slowestResources?.[0];
+  if (!resource) {
+    return '';
+  }
+
+  return sanitizeMarkdownCell([
+    resource.name,
+    formatMetric(resource.duration),
+    `@ ${formatMetric(resource.responseEnd)}`,
+    formatResourceCardTiming(entry, resource),
+  ].filter(Boolean).join(' '));
+};
+
+const formatResourceCardTiming = (entry, resource) => {
+  if (
+    (resource?.cardTiming === 'pre-card' || resource?.cardTiming === 'post-card')
+    && typeof resource.firstCardDeltaMs === 'number'
+  ) {
+    return `${resource.cardTiming} ${formatMetric(Math.abs(resource.firstCardDeltaMs))}`;
+  }
+
+  if (
+    typeof entry?.firstGameCardMs !== 'number'
+    || typeof resource?.responseEnd !== 'number'
+  ) {
+    return '';
+  }
+
+  const timing = resource.responseEnd <= entry.firstGameCardMs ? 'pre-card' : 'post-card';
+  const deltaMs = Math.abs(resource.responseEnd - entry.firstGameCardMs);
+  return `${timing} ${formatMetric(Math.round(deltaMs * 10) / 10)}`;
+};
+
+const formatCriticalResourceSummary = (entry) => {
+  const resources = entry?.criticalResources || [];
+  if (resources.length === 0) {
+    return '';
+  }
+
+  const summary = resources
+    .slice(0, 4)
+    .map((resource) => [
+      resource.name,
+      formatMetric(resource.duration),
+      `@ ${formatMetric(resource.responseEnd)}`,
+      formatResourceCardTiming(entry, resource),
+    ].filter(Boolean).join(' '))
+    .join('<br>');
+  const suffix = resources.length > 4 ? `<br>+${resources.length - 4} more` : '';
+  return sanitizeMarkdownCell(`${summary}${suffix}`);
+};
+
+const formatDeferredResourceSummary = (entry) => {
+  const resources = entry?.deferredBeforeFirstCardResources || [];
+  if (resources.length === 0) {
+    return '';
+  }
+
+  const summary = resources
+    .slice(0, 4)
+    .map((resource) => `${resource.name} @ ${formatMetric(resource.responseEnd)}`)
+    .join('<br>');
+  const suffix = resources.length > 4 ? `<br>+${resources.length - 4} more` : '';
+  return sanitizeMarkdownCell(`${summary}${suffix}`);
+};
+
+const buildReportPaths = (reportKey) => ({
+  latestJsonPath: path.join(outputRoot, 'home-first-load-summary.json'),
+  latestMarkdownPath: path.join(outputRoot, 'home-first-load-summary.md'),
+  variantJsonPath: path.join(outputRoot, `home-first-load-${reportKey}-summary.json`),
+  variantMarkdownPath: path.join(outputRoot, `home-first-load-${reportKey}-summary.md`),
+});
 
 const run = async () => {
   await ensureDir(outputRoot);
@@ -884,6 +1126,7 @@ const run = async () => {
       : 'passed';
   const report = {
     generatedAt: new Date().toISOString(),
+    reportKey: mode,
     mode,
     selectedDate,
     status,
@@ -897,13 +1140,22 @@ const run = async () => {
     viewports: viewportSummaries,
   };
 
-  const jsonPath = path.join(outputRoot, 'home-first-load-summary.json');
-  const markdownPath = path.join(outputRoot, 'home-first-load-summary.md');
-  await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  await fs.writeFile(markdownPath, buildMarkdown(report), 'utf8');
+  const {
+    latestJsonPath,
+    latestMarkdownPath,
+    variantJsonPath,
+    variantMarkdownPath,
+  } = buildReportPaths(report.reportKey);
+  const jsonPayload = `${JSON.stringify(report, null, 2)}\n`;
+  const markdownPayload = buildMarkdown(report);
+  await fs.writeFile(latestJsonPath, jsonPayload, 'utf8');
+  await fs.writeFile(latestMarkdownPath, markdownPayload, 'utf8');
+  await fs.writeFile(variantJsonPath, jsonPayload, 'utf8');
+  await fs.writeFile(variantMarkdownPath, markdownPayload, 'utf8');
 
   console.log(`[home-first-load] status=${status} mode=${mode} date=${selectedDate}`);
-  console.log(`[home-first-load] report=${markdownPath}`);
+  console.log(`[home-first-load] report=${latestMarkdownPath}`);
+  console.log(`[home-first-load] ${report.reportKey}Report=${variantMarkdownPath}`);
 
   if (status === 'failed') {
     process.exitCode = 1;

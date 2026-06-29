@@ -9,6 +9,7 @@ import {
   getBudgetOverageBytes,
   isBudgetWithinLimit,
 } from './lib/bundle-budget-policy.mjs';
+import { detectReactDevArtifacts } from './lib/react-dev-artifact-policy.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,6 +75,7 @@ const forbiddenChunkPrefixes = [
 ];
 
 const sizeBudgets = [
+  { label: 'global CSS', directory: clientAssetsDir, filePattern: /^index-.*\.css$/, maxBytes: 255_500 },
   { label: 'vendor-react-core', directory: clientAssetsDir, filePattern: /^vendor-react-core-.*\.js$/, maxBytes: 345_000 },
   { label: 'vendor-router', directory: clientAssetsDir, filePattern: /^vendor-router-.*\.js$/, maxBytes: 50_000 },
   { label: 'vendor-zustand', directory: clientAssetsDir, filePattern: /^vendor-zustand-.*\.js$/, maxBytes: 8_000, optionalMissing: true },
@@ -181,9 +183,12 @@ const sizeBudgets = [
   { label: 'CoachBriefing shell', directory: clientAssetsDir, filePattern: /^CoachBriefing-.*\.js$/, maxBytes: 18_300 },
   { label: 'CoachBriefing content runtime', directory: clientAssetsDir, filePattern: /^CoachBriefingContentRuntime-.*\.js$/, maxBytes: 8_000 },
   { label: 'CoachBriefing auto runtime', directory: clientAssetsDir, filePattern: /^CoachBriefingAutoRuntime-.*\.js$/, maxBytes: 12_000 },
+  { label: 'CoachBriefing cache util', directory: clientAssetsDir, filePattern: /^coach-briefing-cache-.*\.js$/, maxBytes: 4_000 },
   { label: 'CoachAnalysisDialog shell', directory: clientAssetsDir, filePattern: /^CoachAnalysisDialog-.*\.js$/, maxBytes: 8000 },
   { label: 'CoachAnalysisDialog runtime', directory: clientAssetsDir, filePattern: /^CoachAnalysisDialogRuntime-.*\.js$/, maxBytes: 24_000 },
   { label: 'CoachAnalysisDialog result runtime', directory: clientAssetsDir, filePattern: /^CoachAnalysisDialogResultRuntime-.*\.js$/, maxBytes: 22_000 },
+  { label: 'CoachAnalysisResultView (lazy)', directory: clientAssetsDir, filePattern: /^CoachAnalysisResultView-.*\.js$/, maxBytes: 85_000 },
+  { label: 'CoachMarkdown (lazy on detail expand)', directory: clientAssetsDir, filePattern: /^CoachMarkdown-.*\.js$/, maxBytes: 210_000 },
   { label: 'FollowButton route', directory: clientAssetsDir, filePattern: /^FollowButton-.*\.js$/, maxBytes: 8000 },
   { label: 'BlockButton route', directory: clientAssetsDir, filePattern: /^BlockButton-.*\.js$/, maxBytes: 8000 },
   { label: 'BlockedUsersSection route', directory: clientAssetsDir, filePattern: /^BlockedUsersSection-.*\.js$/, maxBytes: 9000 },
@@ -276,6 +281,75 @@ const routeDependencyGuards = [
 ];
 
 const manifestImportGuards = [
+  {
+    label: 'Layout manifest avoids eager public navbar runtime',
+    directory: clientAssetsDir,
+    filePattern: /^Layout-.*\.js$/,
+    forbiddenImportSubstrings: ['PublicNavbar-', 'PublicShellIcons-', 'vendor-query-', 'authStore-', 'useAuthBootstrapUiState-'],
+  },
+  {
+    label: 'PublicNavbar manifest avoids eager query runtime',
+    directory: clientAssetsDir,
+    filePattern: /^PublicNavbar-.*\.js$/,
+    forbiddenImportSubstrings: ['vendor-query-', 'queryClient-'],
+  },
+  {
+    label: 'Home route manifest avoids public shell icons',
+    directory: clientAssetsDir,
+    filePattern: /^Home-.*\.js$/,
+    forbiddenImportSubstrings: ['PublicShellIcons-'],
+  },
+  {
+    label: 'Home route manifest avoids eager auth runtime',
+    directory: clientAssetsDir,
+    filePattern: /^Home-.*\.js$/,
+    forbiddenImportSubstrings: ['authStore-', 'vendor-zustand-', 'loginRedirect-', 'queryClient-', 'vendor-query-', 'src/api/home.ts'],
+  },
+  {
+    label: 'Home route manifest keeps deferred surfaces lazy',
+    directory: clientAssetsDir,
+    filePattern: /^Home-.*\.js$/,
+    forbiddenImportSubstrings: [
+      'AdSlot-',
+      'HomeAuthBridge-',
+      'HomeQueryProvider-',
+      'HomeSecondaryPanelsContainer-',
+      'HomeSecondaryPanels-',
+      'src/components/ads/AdSlot.tsx',
+      'src/components/home/HomeAuthBridge.tsx',
+      'src/components/home/HomeQueryProvider.tsx',
+      'src/components/home/HomeSecondaryPanelsContainer.tsx',
+      'src/components/home/HomeSecondaryPanels.tsx',
+    ],
+  },
+  {
+    label: 'HomeMatchPanel manifest avoids public shell icons',
+    directory: clientAssetsDir,
+    filePattern: /^HomeMatchPanel-.*\.js$/,
+    forbiddenImportSubstrings: ['PublicShellIcons-'],
+  },
+  {
+    label: 'HomeMatchPanel manifest avoids eager team logo',
+    directory: clientAssetsDir,
+    filePattern: /^HomeMatchPanel-.*\.js$/,
+    forbiddenImportSubstrings: ['src/components/TeamLogo.tsx', 'TeamLogo-'],
+  },
+  {
+    label: 'AuthenticatedLayoutChrome manifest avoids eager realtime and toaster internals',
+    directory: clientAssetsDir,
+    filePattern: /^AuthenticatedLayoutChrome-.*\.js$/,
+    forbiddenImportSubstrings: [
+      'authStore-',
+      'notificationStore-',
+      'realtimeAuth-',
+      'stomp-',
+      'sonner-',
+      'vendor-realtime-',
+      'src/hooks/useNotificationSocket.ts',
+      'src/components/ChatBotFloatingButton.tsx',
+      'ChatBotFloatingButton-',
+    ],
+  },
   {
     label: 'OffSeasonHome page shell manifest imports',
     directory: clientAssetsDir,
@@ -1082,6 +1156,53 @@ const manifestImportGuards = [
   },
 ];
 
+const homeFirstLoadStaticClosureGuards = [
+  {
+    label: '/home first-load static closure',
+    entrypoints: [
+      'index.html',
+      'src/components/Layout.tsx',
+      'src/components/Home.tsx',
+      'src/components/home/HomeMatchPanel.tsx',
+    ],
+    maxJsBytes: 290_000,
+    forbiddenImportSubstrings: [
+      'AppQueryProvider',
+      'AuthenticatedLayoutChrome-',
+      'PublicNavbar-',
+      'PublicShellIcons-',
+      'authStore-',
+      'vendor-zustand-',
+      'loginRedirect-',
+      'queryClient-',
+      'sonner-',
+      'vendor-query-',
+      'src/api/home.ts',
+      'src/components/home/HomeRecoveryBanner.tsx',
+      'src/components/home/HomeDeferredSurfaces.tsx',
+      'src/components/home/GameCardSkeleton.tsx',
+      'src/components/TeamLogo.tsx',
+      'HomeDeferredSurfaces-',
+      'TeamLogo-',
+      'HomeRecoveryBanner-',
+      'GameCardSkeleton-',
+      'HomeMatchPanelErrorState-',
+      'homeLoadTelemetry-',
+      'skeleton-',
+      'card-',
+      'button-',
+      'utils-',
+      'errorUtils-',
+      'teams-',
+      'predictionHomeLogic',
+      'teamIdentity',
+      'stadiumDisplay',
+      'HomeScheduledMatchPanel-',
+      'HomeIcons',
+    ],
+  },
+];
+
 const forbiddenMatches = [
   ...clientFiles
     .filter((file) => forbiddenChunkPrefixes.some((prefix) => file.startsWith(prefix)))
@@ -1209,11 +1330,148 @@ const manifestImportGuardResults = manifestImportGuards.map((guard) => {
   };
 });
 
+const getManifestEntryJsSize = (entry) => {
+  if (!entry?.file || !entry.file.endsWith('.js')) {
+    return 0;
+  }
+
+  const filePath = path.join(distDir, entry.file);
+  return fs.existsSync(filePath) ? fs.statSync(filePath).size : 0;
+};
+
+const resolveManifestEntryKey = (manifest, key) => {
+  if (manifest?.[key]) {
+    return key;
+  }
+
+  const baseName = path.basename(key, path.extname(key));
+  if (!baseName) {
+    return null;
+  }
+
+  const matches = Object.entries(manifest || {})
+    .filter(([entryKey, entry]) => (
+      entry?.name === baseName
+      || entry?.file?.startsWith(`assets/${baseName}-`)
+      || entryKey.startsWith(`_${baseName}-`)
+    ))
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+
+  return matches[0]?.[0] ?? null;
+};
+
+const collectManifestStaticClosure = (manifest, entrypoints) => {
+  const includedKeys = new Set();
+  const missingEntrypoints = [];
+  const missingImports = [];
+
+  const visit = (key, parent = null) => {
+    const resolvedKey = resolveManifestEntryKey(manifest, key);
+
+    if (resolvedKey && includedKeys.has(resolvedKey)) {
+      return;
+    }
+
+    const entry = resolvedKey ? manifest?.[resolvedKey] : null;
+    if (!entry) {
+      if (parent) {
+        missingImports.push({ key, parent });
+      } else {
+        missingEntrypoints.push(key);
+      }
+      return;
+    }
+
+    includedKeys.add(resolvedKey);
+    (Array.isArray(entry.imports) ? entry.imports : []).forEach((importKey) => visit(importKey, resolvedKey));
+  };
+
+  entrypoints.forEach((entrypoint) => visit(entrypoint));
+
+  return {
+    includedKeys: [...includedKeys].sort(),
+    missingEntrypoints,
+    missingImports,
+  };
+};
+
+const homeFirstLoadStaticClosureResults = homeFirstLoadStaticClosureGuards.map((guard) => {
+  if (!clientManifest) {
+    return {
+      label: guard.label,
+      ok: false,
+      reason: 'missing_manifest',
+      entrypoints: guard.entrypoints,
+      maxJsBytes: guard.maxJsBytes,
+      forbiddenImportSubstrings: guard.forbiddenImportSubstrings,
+    };
+  }
+
+  const closure = collectManifestStaticClosure(clientManifest, guard.entrypoints);
+  const includedFiles = closure.includedKeys
+    .map((key) => {
+      const entry = clientManifest[key];
+      return entry?.file ? { key, file: entry.file, sizeBytes: getManifestEntryJsSize(entry) } : null;
+    })
+    .filter(Boolean);
+  const totalJsBytes = includedFiles.reduce((sum, file) => sum + file.sizeBytes, 0);
+  const violations = includedFiles.flatMap(({ key, file }) => (
+    guard.forbiddenImportSubstrings
+      .filter((substring) => key.includes(substring) || file.includes(substring))
+      .map((substring) => ({ key, file, substring }))
+  ));
+  const overageBytes = Math.max(0, totalJsBytes - guard.maxJsBytes);
+
+  return {
+    label: guard.label,
+    ok: closure.missingEntrypoints.length === 0
+      && closure.missingImports.length === 0
+      && violations.length === 0
+      && overageBytes === 0,
+    entrypoints: guard.entrypoints,
+    maxJsBytes: guard.maxJsBytes,
+    totalJsBytes,
+    overageBytes,
+    includedKeys: closure.includedKeys,
+    includedFiles,
+    missingEntrypoints: closure.missingEntrypoints,
+    missingImports: closure.missingImports,
+    forbiddenImportSubstrings: guard.forbiddenImportSubstrings,
+    violations,
+  };
+});
+
+const devArtifactResults = [
+  { label: 'client JS assets', directory: clientAssetsDir },
+  { label: 'worker JS assets', directory: workerAssetsDir },
+  { label: 'worker root JS', directory: workerDistDir },
+].flatMap((target) => (
+  listFiles(target.directory)
+    .filter((file) => file.endsWith('.js'))
+    .map((file) => {
+      const filePath = path.join(target.directory, file);
+      const matches = detectReactDevArtifacts(fs.readFileSync(filePath, 'utf-8'));
+
+      return {
+        label: target.label,
+        file: path.relative(projectRoot, filePath),
+        ok: matches.length === 0,
+        matches,
+      };
+    })
+));
+
 const failures = [
   ...forbiddenMatches.map((match) => ({
     message: `forbidden ${match.location} chunk reappeared: ${match.file}`,
     type: 'forbidden_chunk',
   })),
+  ...devArtifactResults
+    .filter((result) => !result.ok)
+    .map((result) => ({
+      message: `${result.file} contains React dev artifact(s): ${result.matches.join(', ')}`,
+      type: 'react_dev_artifact',
+    })),
   ...budgetResults
     .filter((result) => !result.ok)
     .map((result) => ({
@@ -1242,6 +1500,20 @@ const failures = [
             : `${result.label} imported forbidden manifest dependency (${result.violations.join(', ')})`,
       type: 'manifest_import_guard',
     })),
+  ...homeFirstLoadStaticClosureResults
+    .filter((result) => !result.ok)
+    .map((result) => ({
+      message: result.reason === 'missing_manifest'
+        ? `client manifest missing for static closure guard "${result.label}"`
+        : result.missingEntrypoints.length > 0
+          ? `${result.label} missing entrypoint(s): ${result.missingEntrypoints.join(', ')}`
+          : result.missingImports.length > 0
+            ? `${result.label} missing import(s): ${result.missingImports.map((item) => `${item.key} from ${item.parent}`).join(', ')}`
+            : result.violations.length > 0
+              ? `${result.label} included forbidden chunk(s): ${result.violations.map((item) => `${item.file} matched ${item.substring}`).join(', ')}`
+              : `${result.label} exceeded static closure budget (${result.totalJsBytes} > ${result.maxJsBytes})`,
+      type: 'home_first_load_static_closure',
+    })),
 ];
 
 const report = {
@@ -1252,9 +1524,11 @@ const report = {
     : null,
   forbiddenChunkPrefixes,
   forbiddenMatches,
+  devArtifactResults,
   budgetResults,
   dependencyGuardResults,
   manifestImportGuardResults,
+  homeFirstLoadStaticClosureResults,
   ok: failures.length === 0,
   failures,
 };

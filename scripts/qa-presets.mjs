@@ -15,6 +15,9 @@ const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,detail-loading,detail-error,t
 const PREDICTION_MOBILE_RANKING_SMOKE_STATES = 'ranking,ranking-ended,ranking-init-error,ranking-save-dialog,ranking-saved';
 
 const CYPRESS_SPECS = {
+  mypageConnections: [
+    'cypress/e2e/mypage-more-connections.cy.ts',
+  ],
   coach: [
     'cypress/e2e/prediction-coach-briefing.cy.ts',
     'cypress/e2e/prediction.cy.ts',
@@ -212,15 +215,24 @@ const buildMateSmokePreset = (forceDocker = false) => {
   return nodeStep(args, env);
 };
 
-const buildMateRegressionPreset = (suiteName) => nodeStep([
-  'scripts/test-e2e.mjs',
-  '--docker',
-  '--host',
-  '127.0.0.1',
-  '--browser',
-  process.env.MATE_REGRESSION_BROWSER || 'electron',
-  ...specArg(E2E_SPECS[suiteName]),
-]);
+const buildMateRegressionPreset = (suiteName) => {
+  const useDocker = process.env.MATE_REGRESSION_USE_DOCKER === '1';
+  return nodeStep(
+    [
+      'scripts/test-e2e.mjs',
+      ...(useDocker ? ['--docker'] : []),
+      '--host',
+      '127.0.0.1',
+      '--browser',
+      process.env.MATE_REGRESSION_BROWSER || 'electron',
+      ...specArg(E2E_SPECS[suiteName]),
+    ],
+    useDocker ? {} : {
+      CYPRESS_ALLOW_GLOBAL_FALLBACK: '1',
+      CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK: '1',
+    },
+  );
+};
 
 const PRESETS = {
   'home-first-load': {
@@ -303,9 +315,11 @@ const PRESETS = {
     'doctor-repair': cypressDoctorStep(['--repair']),
     'doctor-repair-global': cypressDoctorStep(['--repair', '--global-cache']),
     open: cypressStep(['--open']),
-    run: cypressDockerStep(),
+    run: cypressStep(),
     'run-docker': cypressDockerStep(),
-    'run-global': cypressDockerStep(['--global-cache']),
+    'run-global': cypressStep(['--global-cache']),
+    'mypage-connections': cypressDockerStep(specArg(CYPRESS_SPECS.mypageConnections)),
+    'mypage-connections-global': cypressStep(['--global-cache', ...specArg(CYPRESS_SPECS.mypageConnections)]),
     coach: cypressDockerStep(specArg(CYPRESS_SPECS.coach)),
     'coach-chrome': cypressDockerStep(['--browser', 'chrome', ...specArg(CYPRESS_SPECS.coach)]),
     'stadium-seatmaps': cypressDockerStep(specArg(CYPRESS_SPECS.stadiumSeatmaps)),

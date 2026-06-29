@@ -19,6 +19,44 @@ export default {
         sans: ['"Pretendard Variable"', '"Pretendard"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         retro: ['"Press Start 2P"', 'monospace'],
       },
+      // Font-size tokens — plain strings = font-size ONLY (no paired line-height),
+      // so they replace arbitrary `text-[NNpx]` without shifting cascade line-height.
+      // 14/16 reuse the semantic SSOT tokens from index.css. See docs/design-tokens.md.
+      fontSize: {
+        body: 'var(--font-body-size)',        // 16px
+        caption: 'var(--font-caption-size)',  // 14px
+        '8': '8px', '9': '9px', '10': '10px', '11': '11px', '12': '12px',
+        '13': '13px', '15': '15px', '17': '17px', '18': '18px', '19': '19px',
+        '20': '20px', '22': '22px', '30': '30px', '32': '32px', '38': '38px',
+        '120': '120px', '160': '160px',
+      },
+      // Radius tokens for sizes without an exact Tailwind default (8/12/16/24
+      // reuse rounded-lg/xl/2xl/3xl). Replaces arbitrary `rounded-[NNpx]`.
+      borderRadius: {
+        '7': '7px', '9': '9px', '10': '10px', '11': '11px', '13': '13px',
+        '14': '14px', '18': '18px', '20': '20px', '22': '22px', '26': '26px',
+        '28': '28px', '30': '30px', '32': '32px', '40': '40px', '56': '56px',
+      },
+      boxShadow: {
+        'cheer-mobile-chrome': 'var(--shadow-cheer-mobile-chrome)',
+        'cheer-mobile-chrome-dark': 'var(--shadow-cheer-mobile-chrome-dark)',
+        dialog: 'var(--shadow-dialog)',
+        'home-board': 'var(--shadow-home-board)',
+        'mobile-action': 'var(--shadow-mobile-action)',
+        'mobile-chrome': 'var(--shadow-mobile-chrome)',
+        'mobile-tab-active': 'var(--shadow-mobile-tab-active)',
+        'navbar-capsule': 'var(--shadow-navbar-capsule)',
+        'navbar-capsule-dark': 'var(--shadow-navbar-capsule-dark)',
+        'navbar-pill': 'var(--shadow-navbar-pill)',
+        'navbar-pill-dark': 'var(--shadow-navbar-pill-dark)',
+        'navbar-pill-hover': 'var(--shadow-navbar-pill-hover)',
+        surface: 'var(--shadow-surface)',
+        floating: 'var(--shadow-floating)',
+      },
+      gridTemplateColumns: {
+        'home-game-card': '5.5rem minmax(0,1.25fr) 5rem minmax(0,1.25fr) minmax(8rem,0.85fr) 7.5rem',
+        'navbar-capsule': 'auto minmax(0,1fr) auto',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -27,9 +65,10 @@ export default {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
-          hover: '#2f6c5c',
-          light: '#63b39b',
-          dark: '#1b4338',
+          // Brand green shades — defined once in index.css (single source of truth).
+          hover: 'rgb(var(--brand-primary-hover) / <alpha-value>)',
+          light: 'rgb(var(--brand-primary-light) / <alpha-value>)',
+          dark: 'rgb(var(--brand-primary-rest) / <alpha-value>)',
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -56,12 +95,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // 다크모드용 배경색
-        dark: {
-          bg: '#000000',
-          card: '#000000',
-          border: '#2c2f34',
-        }
       },
       keyframes: {
         'fade-in-up': {

@@ -3,12 +3,17 @@ export const predictionPerformanceStatusValues = new Set([
   'failed',
   'needs-backend',
   'needs-date',
+  'manual-data-required',
 ]);
+
+export const manualBaseballDataRequiredCode = 'MANUAL_BASEBALL_DATA_REQUIRED';
 
 export const predictionApiEndpointKeys = {
   MATCHES_DAY: 'matchesDay',
   BOOTSTRAP: 'bootstrap',
   RANKING_SNAPSHOT: 'rankingSnapshot',
+  RANKING_PREDICTION: 'rankingPrediction',
+  PREDICTION_STATS: 'predictionStats',
   GAME_DETAIL: 'gameDetail',
   VOTE_STATUS: 'voteStatus',
   LIVE: 'live',
@@ -18,6 +23,7 @@ export const predictionApiEndpointKeys = {
 
 export const predictionPerformanceDefaultScenarioIds = [
   'scheduled-game',
+  'ranking-tab',
   'rest-day',
   'past-completed',
   'today-live',
@@ -33,6 +39,7 @@ export const predictionPerformanceScenarioTiers = {
   ],
   extended: [
     'today-live',
+    'ranking-tab',
   ],
   all: predictionPerformanceDefaultScenarioIds,
 };
@@ -134,6 +141,31 @@ export const buildTimingSummary = (values) => {
   };
 };
 
+export const extractPredictionManualDataRequirements = (apiSummary = {}) => {
+  if (Array.isArray(apiSummary.manualDataRequirements) && apiSummary.manualDataRequirements.length > 0) {
+    return apiSummary.manualDataRequirements;
+  }
+
+  return Object.entries(apiSummary.endpoints ?? {}).flatMap(([endpointKey, endpoint]) => {
+    const contract = endpoint?.manualDataContract ?? {};
+    const hasManualContract = endpoint?.manualDataRequired === true
+      || contract.code === manualBaseballDataRequiredCode;
+    if (!hasManualContract) {
+      return [];
+    }
+
+    return [{
+      endpointKey,
+      url: endpoint?.url ?? null,
+      status: endpoint?.coldStatus ?? null,
+      code: contract.code ?? manualBaseballDataRequiredCode,
+      scope: contract.scope ?? null,
+      missingItems: Array.isArray(contract.missingItems) ? contract.missingItems : [],
+      operatorMessage: contract.operatorMessage ?? contract.message ?? null,
+    }];
+  });
+};
+
 export const classifyPredictionApiRequest = (rawUrl) => {
   let url;
   try {
@@ -154,6 +186,16 @@ export const classifyPredictionApiRequest = (rawUrl) => {
   }
   if (pathname === '/api/kbo/rankings/snapshot') {
     return predictionApiEndpointKeys.RANKING_SNAPSHOT;
+  }
+  if (
+    pathname === '/api/predictions/ranking'
+    || pathname === '/api/predictions/ranking/init'
+    || pathname === '/api/predictions/ranking/current-season'
+  ) {
+    return predictionApiEndpointKeys.RANKING_PREDICTION;
+  }
+  if (pathname === '/api/prediction/stats/me') {
+    return predictionApiEndpointKeys.PREDICTION_STATS;
   }
   if (/^\/api\/matches\/[^/]+\/live-relay$/.test(pathname)) {
     return predictionApiEndpointKeys.LIVE_RELAY;
@@ -306,6 +348,15 @@ export const evaluatePredictionScenarioSummary = ({
         pushScenarioFailure(failures, summary, 'SCENARIO_MANUAL_DATA_REQUIRED_FOCUS_RETRY');
       }
     }
+
+    if (summary.id === 'ranking-tab') {
+      if ((summary.maxRankingRequestsBeforeTabEntry ?? 0) > 0) {
+        pushScenarioFailure(failures, summary, 'SCENARIO_RANKING_REQUEST_BEFORE_TAB_ENTRY');
+      }
+      if ((summary.minRankingChunkLoadsAfterTabEntry ?? 0) < 1) {
+        pushScenarioFailure(failures, summary, 'SCENARIO_RANKING_CHUNK_NOT_LOADED');
+      }
+    }
   });
 
   return {
@@ -336,6 +387,17 @@ export const evaluatePredictionPerformanceReport = ({
     return {
       status: 'needs-date',
       failures: ['NO_GAME_OR_DETAIL_FOR_SELECTED_DATE'],
+      scenarioFailures: [],
+    };
+  }
+
+  const manualDataRequirements = extractPredictionManualDataRequirements(apiSummary);
+  if (mode === 'real' && manualDataRequirements.length > 0) {
+    return {
+      status: 'manual-data-required',
+      failures: manualDataRequirements.map((requirement) => (
+        `${manualBaseballDataRequiredCode}:${requirement.endpointKey}`
+      )),
       scenarioFailures: [],
     };
   }
@@ -437,6 +499,28 @@ const formatScenarioList = (scenarioIds) => (
   Array.isArray(scenarioIds) && scenarioIds.length > 0 ? scenarioIds.join(', ') : 'none'
 );
 
+const formatMarkdownTableCell = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return 'n/a';
+  }
+  return String(value)
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+};
+
+const formatManualDataMissingItems = (missingItems) => {
+  if (!Array.isArray(missingItems) || missingItems.length === 0) {
+    return 'n/a';
+  }
+
+  return missingItems.map((item) => {
+    const key = item?.key ?? 'unknown';
+    const label = item?.label ? `: ${item.label}` : '';
+    const reason = item?.reason ? ` (${item.reason})` : '';
+    return `${key}${label}${reason}`;
+  }).join('<br>');
+};
+
 const resolveFailureArtifactItems = (report) => {
   if (Array.isArray(report.failureArtifacts?.items)) {
     return report.failureArtifacts.items;
@@ -455,6 +539,7 @@ export const buildPredictionPerformanceJsonFallbackSummary = (report) => {
   const browser = report.browser?.summary || {};
   const scenarioSummary = Array.isArray(report.scenarioSummary) ? report.scenarioSummary : [];
   const failureArtifactItems = resolveFailureArtifactItems(report);
+  const manualDataRequirements = extractPredictionManualDataRequirements(report.api);
   const lines = [
     `- Status: ${report.status || 'unknown'}`,
     `- Mode: ${report.mode || 'unknown'}`,
@@ -473,10 +558,10 @@ export const buildPredictionPerformanceJsonFallbackSummary = (report) => {
     lines.push(
       '',
       '**Scenario summary**',
-      '| Scenario | Duration | Runs | Preview p95 | Detail p95 | Re-entry p95 | Bootstrap | Deferred before detail | Contract |',
-      '| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |',
+      '| Scenario | Duration | Runs | Preview p95 | Bootstrap p95 | Detail root p95 | Detail render p95 | Vote p95 | Re-entry p95 | Bootstrap | Deferred before detail | Ranking pre-tab | Ranking chunks | Ranking tab p95 | Contract |',
+      '| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
       ...scenarioSummary.map((summary) => (
-        `| ${summary.id} | ${formatMetric(summary.durationMs)} | ${formatRuns(summary)} | ${formatMetric(summary.previewP95Ms)} | ${formatMetric(summary.detailP95Ms)} | ${formatMetric(summary.reentryP95Ms)} | ${summary.maxDeepLinkBootstrapRequests ?? 'n/a'} | ${summary.maxPreDetailDeferredRequests ?? 'n/a'} | ${summary.contractStatus ?? 'n/a'} |`
+        `| ${summary.id} | ${formatMetric(summary.durationMs)} | ${formatRuns(summary)} | ${formatMetric(summary.previewP95Ms)} | ${formatMetric(summary.bootstrapReadyP95Ms)} | ${formatMetric(summary.detailRootVisibleP95Ms)} | ${formatMetric(summary.detailP95Ms)} | ${formatMetric(summary.voteButtonP95Ms)} | ${formatMetric(summary.reentryP95Ms)} | ${summary.maxDeepLinkBootstrapRequests ?? 'n/a'} | ${summary.maxPreDetailDeferredRequests ?? 'n/a'} | ${summary.maxRankingRequestsBeforeTabEntry ?? 'n/a'} | ${summary.minRankingChunkLoadsAfterTabEntry ?? 'n/a'} | ${formatMetric(summary.rankingTabEntryP95Ms)} | ${summary.contractStatus ?? 'n/a'} |`
       )),
     );
   } else {
@@ -496,6 +581,13 @@ export const buildPredictionPerformanceJsonFallbackSummary = (report) => {
     lines.push('', '**API timings**');
     Object.entries(report.api.endpoints).forEach(([key, endpoint]) => {
       lines.push(`- ${key}: status=${endpoint.coldStatus ?? 'n/a'}, cold=${formatMetric(endpoint.coldMs)}, warm p95=${formatMetric(endpoint.warm?.p95)}, warm budget=${formatMetric(endpoint.warmBudgetMs ?? report.budgets?.apiWarmP95Ms)}, failures=${endpoint.failedRequestCount ?? 0}`);
+    });
+  }
+
+  if (manualDataRequirements.length > 0) {
+    lines.push('', '**Manual baseball data required**');
+    manualDataRequirements.forEach((requirement) => {
+      lines.push(`- ${requirement.endpointKey}: scope=${requirement.scope ?? 'n/a'}, missing=${formatManualDataMissingItems(requirement.missingItems)}, operatorMessage=${requirement.operatorMessage ?? 'n/a'}`);
     });
   }
 
@@ -538,6 +630,7 @@ export const buildPredictionPerformanceMarkdown = (report) => {
     ? report.scenarioFailures
     : groupPredictionScenarioFailures(report.failures);
   const failureArtifactItems = resolveFailureArtifactItems(report);
+  const manualDataRequirements = extractPredictionManualDataRequirements(report.api);
   const lines = [
     '# Prediction Performance Audit',
     '',
@@ -567,10 +660,10 @@ export const buildPredictionPerformanceMarkdown = (report) => {
     lines.push(
       '## Scenario Summary',
       '',
-      '| Scenario | Duration | Runs | Preview p95 | Detail p95 | Re-entry p95 | Bootstrap | Deferred before detail | Idle live | Idle relay | Contract |',
-      '| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
+      '| Scenario | Duration | Runs | Preview p95 | Bootstrap p95 | Detail root p95 | Detail render p95 | Vote p95 | Re-entry p95 | Bootstrap | Deferred before detail | Ranking pre-tab | Ranking chunks | Ranking tab p95 | Idle live | Idle relay | Contract |',
+      '| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
       ...report.scenarioSummary.map((summary) => (
-        `| ${summary.id} | ${formatMetric(summary.durationMs)} | ${formatRuns(summary)} | ${formatMetric(summary.previewP95Ms)} | ${formatMetric(summary.detailP95Ms)} | ${formatMetric(summary.reentryP95Ms)} | ${summary.maxDeepLinkBootstrapRequests ?? 'n/a'} | ${summary.maxPreDetailDeferredRequests ?? 'n/a'} | ${summary.maxPostIdleLiveRequests ?? 'n/a'} | ${summary.maxPostIdleLiveRelayRequests ?? 'n/a'} | ${summary.contractStatus ?? 'n/a'} |`
+        `| ${summary.id} | ${formatMetric(summary.durationMs)} | ${formatRuns(summary)} | ${formatMetric(summary.previewP95Ms)} | ${formatMetric(summary.bootstrapReadyP95Ms)} | ${formatMetric(summary.detailRootVisibleP95Ms)} | ${formatMetric(summary.detailP95Ms)} | ${formatMetric(summary.voteButtonP95Ms)} | ${formatMetric(summary.reentryP95Ms)} | ${summary.maxDeepLinkBootstrapRequests ?? 'n/a'} | ${summary.maxPreDetailDeferredRequests ?? 'n/a'} | ${summary.maxRankingRequestsBeforeTabEntry ?? 'n/a'} | ${summary.minRankingChunkLoadsAfterTabEntry ?? 'n/a'} | ${formatMetric(summary.rankingTabEntryP95Ms)} | ${summary.maxPostIdleLiveRequests ?? 'n/a'} | ${summary.maxPostIdleLiveRelayRequests ?? 'n/a'} | ${summary.contractStatus ?? 'n/a'} |`
       )),
       '',
       `Runtime status: ${formatRuntimeStatus(report)}`,
@@ -584,7 +677,10 @@ export const buildPredictionPerformanceMarkdown = (report) => {
     '| Metric | p95 | Budget |',
     '| --- | ---: | ---: |',
     `| Preview first render | ${formatMetric(report.browser?.summary?.previewP95Ms)} | ${formatMetric(report.budgets.previewP95Ms)} |`,
-    `| Detail first render | ${formatMetric(report.browser?.summary?.detailP95Ms)} | ${formatMetric(report.budgets.detailP95Ms)} |`,
+    `| Deep-link bootstrap ready | ${formatMetric(report.browser?.summary?.bootstrapReadyP95Ms)} | n/a |`,
+    `| Detail root wall-clock | ${formatMetric(report.browser?.summary?.detailRootVisibleP95Ms)} | n/a |`,
+    `| Detail first render after bootstrap | ${formatMetric(report.browser?.summary?.detailP95Ms)} | ${formatMetric(report.budgets.detailP95Ms)} |`,
+    `| Vote button after bootstrap | ${formatMetric(report.browser?.summary?.voteButtonP95Ms)} | n/a |`,
     `| Same-game re-entry | ${formatMetric(report.browser?.summary?.reentryP95Ms)} | ${formatMetric(report.budgets.reentryP95Ms)} |`,
     '',
     '## Network Contract',
@@ -607,6 +703,19 @@ export const buildPredictionPerformanceMarkdown = (report) => {
       '| --- | ---: | ---: | ---: | ---: | ---: | ---: |',
       ...Object.entries(report.api.endpoints).map(([key, endpoint]) => (
         `| ${key} | ${formatStatus(endpoint.coldStatus)} | ${formatMetric(endpoint.coldMs)} | ${formatMetric(endpoint.warm?.p50)} | ${formatMetric(endpoint.warm?.p95)} | ${formatMetric(endpoint.warmBudgetMs ?? report.budgets?.apiWarmP95Ms)} | ${endpoint.failedRequestCount ?? 0} |`
+      )),
+      '',
+    );
+  }
+
+  if (manualDataRequirements.length > 0) {
+    lines.push(
+      '## Manual Baseball Data Required',
+      '',
+      '| Endpoint | Scope | Missing items | Operator message |',
+      '| --- | --- | --- | --- |',
+      ...manualDataRequirements.map((requirement) => (
+        `| ${formatMarkdownTableCell(requirement.endpointKey)} | ${formatMarkdownTableCell(requirement.scope)} | ${formatMarkdownTableCell(formatManualDataMissingItems(requirement.missingItems))} | ${formatMarkdownTableCell(requirement.operatorMessage)} |`
       )),
       '',
     );
