@@ -27,7 +27,7 @@ export function CheerFeedLoadingSkeleton() {
       data-testid="cheer-feed-skeleton"
       className="overflow-hidden rounded-2xl border border-border/70 bg-card/80 shadow-sm dark:border-border"
     >
-      <div className="border-b border-border/70 px-4 py-3 text-[13px] font-bold text-muted-foreground dark:border-border">
+      <div className="border-b border-border/70 px-4 py-3 text-13 font-bold text-muted-foreground dark:border-border">
         응원글을 불러오는 중
       </div>
       <div className="divide-y divide-border/70 dark:divide-border">
@@ -85,7 +85,7 @@ export function CheerFeedEmptyState({
           type="button"
           data-testid="cheer-feed-empty-write"
           onClick={onWriteClick}
-          className="min-h-11 rounded-full px-6 py-2 text-[15px] font-bold text-white shadow-sm transition-transform active:scale-[0.98]"
+          className="min-h-11 rounded-full px-6 py-2 text-15 font-bold text-white shadow-sm transition-transform active:scale-[0.98]"
           style={{ backgroundColor: teamColor }}
         >
           첫 글 작성하기
@@ -109,7 +109,7 @@ export function CheerFeedLoginRequiredState({
         <button
           type="button"
           onClick={onRequireLogin}
-          className="min-h-11 rounded-full px-6 py-2 text-[15px] font-bold text-white"
+          className="min-h-11 rounded-full px-6 py-2 text-15 font-bold text-white"
           style={{ backgroundColor: teamColor }}
         >
           로그인하기
@@ -131,7 +131,7 @@ export function CheerFeedErrorState({ onRetry }: CheerFeedErrorStateProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="min-h-11 rounded-full bg-secondary px-6 py-2 text-[15px] font-bold text-secondary-foreground transition-colors hover:bg-secondary/80"
+          className="min-h-11 rounded-full bg-secondary px-6 py-2 text-15 font-bold text-secondary-foreground transition-colors hover:bg-secondary/80"
         >
           다시 시도
         </button>

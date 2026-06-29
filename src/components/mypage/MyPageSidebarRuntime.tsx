@@ -97,7 +97,7 @@ export default function MyPageSidebarRuntime({
           width={64}
           height={64}
           showRing
-          ringClassName="bg-[#000000] p-px"
+          ringClassName="bg-card p-px"
         />
         <div className="mypage-season-id-copy">
           <div className="mypage-season-name">{name}</div>
@@ -189,7 +189,7 @@ export default function MyPageSidebarRuntime({
       </button>
 
       <Suspense fallback={null}>
-        <MyPageSidebarMoreRuntime onSetViewMode={onSetViewMode} />
+        <MyPageSidebarMoreRuntime viewMode={viewMode} onSetViewMode={onSetViewMode} />
       </Suspense>
     </aside>
   );

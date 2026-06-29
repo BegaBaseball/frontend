@@ -100,11 +100,11 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 onClick={() => navigate(`/cheer/${post.id}`)}
                 className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-secondary rounded-lg dark:bg-card dark:border dark:border-border"
             >
-                <div className="flex items-center justify-between mb-2 text-[16px] font-semibold text-[#536471] dark:text-white">
+                <div className="flex items-center justify-between mb-2 text-body font-semibold text-[#536471] dark:text-white">
                     <span className="font-bold">{post.team}</span>
                     <span>{post.timeAgo}</span>
                 </div>
-                <div className="text-[16px] font-bold text-[#0f1419] dark:text-white leading-relaxed mb-3">
+                <div className="text-body font-bold text-[#0f1419] dark:text-white leading-relaxed mb-3">
                     {displayContent.split('\n').map((line, i) => (
                         <React.Fragment key={i}>
                             {line}
@@ -119,13 +119,13 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             e.stopPropagation();
                             setIsExpanded(!isExpanded);
                         }}
-                        className="mb-3 inline-flex min-h-11 items-center rounded-full pr-3 text-[16px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                        className="mb-3 inline-flex min-h-11 items-center rounded-full pr-3 text-body font-bold text-indigo-600 hover:underline dark:text-indigo-400"
                         aria-expanded={isExpanded}
                     >
                         {isExpanded ? '접기' : '더보기'}
                     </button>
                 )}
-                <div className="flex items-center gap-4 text-[16px] font-semibold text-[#536471] dark:text-white">
+                <div className="flex items-center gap-4 text-body font-semibold text-[#536471] dark:text-white">
                     <span className="flex items-center gap-1">
                         <MessageCircleIcon className="h-4 w-4" />
                         <RollingNumber value={commentCount} />
@@ -150,7 +150,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
         >
             {/* 리포스트 표시 */}
             {post.repostType && (
-                <div className="flex items-center gap-1.5 text-[16px] font-semibold text-gray-500 dark:text-white mb-2 ml-14">
+                <div className="flex items-center gap-1.5 text-body font-semibold text-gray-500 dark:text-white mb-2 ml-14">
                     <RepeatIcon className="w-3.5 h-3.5" />
                     <span>
                         {(post.authorHandle === post.originalPost?.authorHandle || post.author === post.originalPost?.author)
@@ -161,7 +161,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
             )}
 
             {post.shareMode?.startsWith('EXTERNAL_') && post.sourceInfo?.url && (
-                <div className="mb-2 ml-14 text-[16px] font-semibold text-sky-600 dark:text-sky-300 truncate">
+                <div className="mb-2 ml-14 text-body font-semibold text-sky-600 dark:text-sky-300 truncate">
                     출처: {post.sourceInfo.url}
                 </div>
             )}
@@ -222,7 +222,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1.5 text-[16px] font-semibold">
+                    <div className="flex items-center justify-between gap-1.5 text-body font-semibold">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <span
                                 className="font-bold text-[#0f1419] dark:text-white truncate cursor-pointer hover:underline"
@@ -239,14 +239,14 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                             >
                                 {(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.author : post.author}
                             </span>
-                            <span className="text-[16px] font-bold text-[#536471] dark:text-white truncate">
+                            <span className="text-body font-bold text-[#536471] dark:text-white truncate">
                                 {(post.repostType === 'SIMPLE' && post.originalPost)
                                     ? (post.originalPost.authorHandle || '')
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
                                 · {post.timeAgo}
                             </span>
                             {((post.repostType === 'SIMPLE' && post.originalPost && post.isHot) || (!post.repostType && post.isHot)) && (
-                                <span className="text-[16px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
+                                <span className="text-body font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
                                 </span>
                             )}
@@ -280,7 +280,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         setIsOwnerMenuOpen(false);
                                         handleEdit(event);
                                     }}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-body font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
                                 >
                                     <EditIcon className="mr-2 h-4 w-4" />
                                     수정하기
@@ -292,7 +292,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                         setIsOwnerMenuOpen(false);
                                         void handleDelete(event);
                                     }}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                    className="flex w-full items-center rounded-lg px-3 py-2 text-body font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                 >
                                     <TrashIcon className="mr-2 h-4 w-4" />
                                     삭제하기
@@ -303,7 +303,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
 
                     {/* Title Display Removed */}
                     <div
-                        className="mt-1 text-[16px] font-bold leading-7 text-[#0f1419] dark:text-white transition-all duration-300"
+                        className="mt-1 text-body font-bold leading-7 text-[#0f1419] dark:text-white transition-all duration-300"
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost)
                             ? (post.originalPost.content ? post.originalPost.content.split('\n').map((line, i) => (
@@ -328,7 +328,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 e.stopPropagation();
                                 setIsExpanded(!isExpanded);
                             }}
-                            className="mt-0.5 inline-flex min-h-11 items-center rounded-full pr-3 text-[16px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                            className="mt-0.5 inline-flex min-h-11 items-center rounded-full pr-3 text-body font-bold text-indigo-600 hover:underline dark:text-indigo-400"
                             aria-expanded={isExpanded}
                         >
                             {isExpanded ? '접기' : '더보기'}
@@ -353,7 +353,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         <div className="relative mt-2">
                             <ImageGrid images={(post.repostType === 'SIMPLE' && post.originalPost) ? post.originalPost.imageUrls : post.imageUrls!} />
                             {post.imageUploadFailed && (
-                                    <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-[16px] font-bold text-white">
+                                    <span className="absolute right-3 top-3 rounded-full bg-red-600/90 px-2 py-1 text-body font-bold text-white">
                                         업로드 실패
                                     </span>
                             )}
@@ -369,7 +369,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         {shouldLoadInteractions ? (
                             <Suspense
                                 fallback={(
-                                    <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-white">
+                                    <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-body font-semibold text-[#536471] dark:text-white">
                                         <button type="button" className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full" aria-label={`댓글 ${commentCount}개`}>
                                             <span className="relative flex h-11 w-11 items-center justify-center rounded-full">
                                                 <RepeatIcon className="h-5 w-5 opacity-0" />
@@ -404,7 +404,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 />
                             </Suspense>
                         ) : (
-                            <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-[16px] font-semibold text-[#536471] dark:text-white">
+                            <div className="mt-1.5 flex max-w-[420px] items-center justify-between text-body font-semibold text-[#536471] dark:text-white">
                                 <button
                                     type="button"
                                     className="group/comment flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-sky-500"

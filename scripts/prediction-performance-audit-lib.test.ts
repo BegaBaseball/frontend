@@ -63,7 +63,7 @@ test('parsePredictionPerformanceScenarioSelection resolves scenario tiers', () =
       scenarioTier: 'core',
       scenarioSelectionSource: 'tier',
       selectedScenarioIds: ['scheduled-game', 'rest-day', 'past-completed', 'manual-data-required'],
-      skippedScenarioIds: ['today-live'],
+      skippedScenarioIds: ['ranking-tab', 'today-live'],
     },
   );
   assert.deepEqual(
@@ -71,7 +71,7 @@ test('parsePredictionPerformanceScenarioSelection resolves scenario tiers', () =
     {
       scenarioTier: 'extended',
       scenarioSelectionSource: 'tier',
-      selectedScenarioIds: ['today-live'],
+      selectedScenarioIds: ['today-live', 'ranking-tab'],
       skippedScenarioIds: ['scheduled-game', 'rest-day', 'past-completed', 'manual-data-required'],
     },
   );
@@ -80,7 +80,7 @@ test('parsePredictionPerformanceScenarioSelection resolves scenario tiers', () =
     {
       scenarioTier: 'all',
       scenarioSelectionSource: 'tier',
-      selectedScenarioIds: ['scheduled-game', 'rest-day', 'past-completed', 'today-live', 'manual-data-required'],
+      selectedScenarioIds: ['scheduled-game', 'ranking-tab', 'rest-day', 'past-completed', 'today-live', 'manual-data-required'],
       skippedScenarioIds: [],
     },
   );
@@ -100,7 +100,7 @@ test('parsePredictionPerformanceScenarioSelection lets explicit scenarios overri
       scenarioTier: 'custom',
       scenarioSelectionSource: 'env-scenarios',
       selectedScenarioIds: ['scheduled-game', 'today-live'],
-      skippedScenarioIds: ['rest-day', 'past-completed', 'manual-data-required'],
+      skippedScenarioIds: ['ranking-tab', 'rest-day', 'past-completed', 'manual-data-required'],
     },
   );
 });
@@ -117,6 +117,14 @@ test('classifyPredictionApiRequest recognizes prediction performance endpoints',
   assert.equal(
     classifyPredictionApiRequest('/api/kbo/rankings/snapshot?date=2026-06-07'),
     predictionApiEndpointKeys.RANKING_SNAPSHOT,
+  );
+  assert.equal(
+    classifyPredictionApiRequest('/api/predictions/ranking/init'),
+    predictionApiEndpointKeys.RANKING_PREDICTION,
+  );
+  assert.equal(
+    classifyPredictionApiRequest('/api/prediction/stats/me'),
+    predictionApiEndpointKeys.PREDICTION_STATS,
   );
   assert.equal(
     classifyPredictionApiRequest('/api/matches/GAME-1/live-relay?afterId=1'),
@@ -244,6 +252,40 @@ test('evaluatePredictionPerformanceReport reports needs-backend and optional str
   assert.ok(strictCold.failures.includes('API_COLD_BUDGET_EXCEEDED:bootstrap'));
 });
 
+test('evaluatePredictionPerformanceReport prioritizes manual baseball data requirements in real mode', () => {
+  const result = evaluatePredictionPerformanceReport({
+    mode: 'real',
+    budgets,
+    browserSummary: {
+      failedEntryCount: 1,
+      maxDeepLinkBootstrapRequests: 0,
+    },
+    apiSummary: {
+      endpoints: {
+        matchesDay: {
+          coldStatus: 409,
+          manualDataRequired: true,
+          manualDataContract: {
+            code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+            scope: 'prediction.matches_by_date',
+            missingItems: [{
+              key: 'season_league_context',
+              label: 'Season league context',
+              reason: 'season row is missing',
+            }],
+            operatorMessage: 'Provide season league context.',
+          },
+          warm: { p95: 12 },
+          failedRequestCount: 0,
+        },
+      },
+    },
+  });
+
+  assert.equal(result.status, 'manual-data-required');
+  assert.deepEqual(result.failures, ['MANUAL_BASEBALL_DATA_REQUIRED:matchesDay']);
+});
+
 test('evaluatePredictionScenarioSummary excludes rest-day detail and reentry budgets', () => {
   const result = evaluatePredictionScenarioSummary({
     budgets,
@@ -320,10 +362,10 @@ test('evaluatePredictionScenarioSummary fails live policy contract regressions',
         maxPreDetailDeferredRequests: 0,
         minPostIdleLiveRequests: 1,
         minPostIdleLiveRelayRequests: 1,
-        maxPostIdleLiveRequests: 2,
-        maxPostIdleLiveRelayRequests: 1,
-        maxAfterFocusLiveRequests: 1,
-        maxAfterFocusLiveRelayRequests: 0,
+        maxPostIdleLiveRequests: 3,
+        maxPostIdleLiveRelayRequests: 2,
+        maxAfterFocusLiveRequests: 2,
+        maxAfterFocusLiveRelayRequests: 1,
         failedEntryCount: 0,
       },
     ],
@@ -334,6 +376,54 @@ test('evaluatePredictionScenarioSummary fails live policy contract regressions',
   assert.ok(result.failures.includes('SCENARIO_MISSING_LIVE_REQUEST_AFTER_IDLE:today-live'));
   assert.ok(result.failures.includes('SCENARIO_MANUAL_DATA_REQUIRED_REPEATED_POLLING:manual-data-required'));
   assert.ok(result.failures.includes('SCENARIO_MANUAL_DATA_REQUIRED_FOCUS_RETRY:manual-data-required'));
+});
+
+test('evaluatePredictionScenarioSummary allows live score polling after manual relay suppression', () => {
+  const result = evaluatePredictionScenarioSummary({
+    budgets,
+    scenarioSummary: [{
+      id: 'manual-data-required',
+      requiresDetail: true,
+      livePolicy: 'manual-suppressed',
+      previewP95Ms: 800,
+      detailP95Ms: 1000,
+      reentryP95Ms: 100,
+      missingVoteButtonCount: 0,
+      maxDeepLinkBootstrapRequests: 1,
+      maxDeepLinkMatchesDayRequests: 0,
+      maxDeepLinkGameDetailRequests: 0,
+      maxDeepLinkVoteStatusRequests: 0,
+      maxPreDetailDeferredRequests: 0,
+      minPostIdleLiveRequests: 1,
+      minPostIdleLiveRelayRequests: 1,
+      maxPostIdleLiveRequests: 3,
+      maxPostIdleLiveRelayRequests: 1,
+      maxAfterFocusLiveRequests: 2,
+      maxAfterFocusLiveRelayRequests: 0,
+      failedEntryCount: 0,
+    }],
+  });
+
+  assert.equal(result.status, 'passed');
+  assert.deepEqual(result.failures, []);
+});
+
+test('evaluatePredictionScenarioSummary fails ranking deferred contract regressions', () => {
+  const result = evaluatePredictionScenarioSummary({
+    budgets,
+    scenarioSummary: [{
+      id: 'ranking-tab',
+      requiresDetail: false,
+      enforcePreviewBudget: false,
+      failedEntryCount: 0,
+      maxRankingRequestsBeforeTabEntry: 1,
+      minRankingChunkLoadsAfterTabEntry: 0,
+    }],
+  });
+
+  assert.equal(result.status, 'failed');
+  assert.ok(result.failures.includes('SCENARIO_RANKING_REQUEST_BEFORE_TAB_ENTRY:ranking-tab'));
+  assert.ok(result.failures.includes('SCENARIO_RANKING_CHUNK_NOT_LOADED:ranking-tab'));
 });
 
 test('groupPredictionScenarioFailures groups scenario-specific failures', () => {
@@ -484,6 +574,9 @@ test('buildPredictionPerformanceMarkdown renders real API baseline metadata and 
       summary: {
         previewP95Ms: 800,
         detailP95Ms: 1100,
+        bootstrapReadyP95Ms: 320,
+        detailRootVisibleP95Ms: 1420,
+        voteButtonP95Ms: 180,
         reentryP95Ms: 120,
         maxDeepLinkBootstrapRequests: 1,
         maxDeepLinkMatchesDayRequests: 0,
@@ -513,6 +606,9 @@ test('buildPredictionPerformanceMarkdown renders real API baseline metadata and 
   assert.match(markdown, /Backend reachable: yes/);
   assert.match(markdown, /Strict cold budget: disabled/);
   assert.match(markdown, /Cold API timing policy: report-only/);
+  assert.match(markdown, /\| Deep-link bootstrap ready \| 320ms \| n\/a \|/);
+  assert.match(markdown, /\| Detail root wall-clock \| 1420ms \| n\/a \|/);
+  assert.match(markdown, /\| Vote button after bootstrap \| 180ms \| n\/a \|/);
   assert.match(markdown, /\| Endpoint \| HTTP \| Cold \| Warm p50 \| Warm p95 \| Warm budget \| Failures \|/);
   assert.match(markdown, /\| bootstrap \| 200 \| 320ms \| 90ms \| 140ms \| 250ms \| 0 \|/);
 });
@@ -551,6 +647,9 @@ test('buildPredictionPerformanceMarkdown renders scenario summary matrix', () =>
         prewarmEntryCount: 1,
         previewP95Ms: 800,
         detailP95Ms: 1100,
+        bootstrapReadyP95Ms: 320,
+        detailRootVisibleP95Ms: 1420,
+        voteButtonP95Ms: 180,
         reentryP95Ms: 120,
         maxDeepLinkBootstrapRequests: 1,
         maxPreDetailDeferredRequests: 0,
@@ -598,8 +697,9 @@ test('buildPredictionPerformanceMarkdown renders scenario summary matrix', () =>
   assert.match(markdown, /## Scenario Summary/);
   assert.match(markdown, /Runtime: 3200ms \/ 300000ms \(ok, warn-only\)/);
   assert.match(markdown, /Runtime status: 3200ms \/ 300000ms \(ok, warn-only\)/);
-  assert.match(markdown, /\| Scenario \| Duration \| Runs \| Preview p95 \| Detail p95 \| Re-entry p95 \| Bootstrap \| Deferred before detail \| Idle live \| Idle relay \| Contract \|/);
-  assert.match(markdown, /\| rest-day \| 900ms \| 5 measured \+ 1 prewarm \| 650ms \| n\/a \| n\/a \| 0 \| 0 \| 0 \| 0 \| passed \|/);
+  assert.match(markdown, /\| Scenario \| Duration \| Runs \| Preview p95 \| Bootstrap p95 \| Detail root p95 \| Detail render p95 \| Vote p95 \| Re-entry p95 \| Bootstrap \| Deferred before detail \| Ranking pre-tab \| Ranking chunks \| Ranking tab p95 \| Idle live \| Idle relay \| Contract \|/);
+  assert.match(markdown, /\| scheduled-game \| 3100ms \| 5 measured \+ 1 prewarm \| 800ms \| 320ms \| 1420ms \| 1100ms \| 180ms \| 120ms \| 1 \| 0 \| n\/a \| n\/a \| n\/a \| 0 \| 0 \| passed \|/);
+  assert.match(markdown, /\| rest-day \| 900ms \| 5 measured \+ 1 prewarm \| 650ms \| n\/a \| n\/a \| n\/a \| n\/a \| n\/a \| 0 \| 0 \| n\/a \| n\/a \| n\/a \| 0 \| 0 \| passed \|/);
 });
 
 test('buildPredictionPerformanceMarkdown renders scenario failures after flat failure list', () => {
@@ -668,7 +768,7 @@ test('buildPredictionPerformanceJsonFallbackSummary prioritizes scenario summary
     scenarioTier: 'custom',
     scenarioSelectionSource: 'env-scenarios',
     selectedScenarioIds: ['scheduled-game'],
-    skippedScenarioIds: ['rest-day', 'past-completed', 'today-live', 'manual-data-required'],
+    skippedScenarioIds: ['ranking-tab', 'rest-day', 'past-completed', 'today-live', 'manual-data-required'],
     totalDurationMs: 301000,
     runtimeBudgetMs: 300000,
     runtimeBudgetStatus: 'warning',
@@ -680,7 +780,10 @@ test('buildPredictionPerformanceJsonFallbackSummary prioritizes scenario summary
       measuredEntryCount: 3,
       prewarmEntryCount: 1,
       previewP95Ms: 800,
+      bootstrapReadyP95Ms: 320,
+      detailRootVisibleP95Ms: 1920,
       detailP95Ms: 1600,
+      voteButtonP95Ms: 410,
       reentryP95Ms: 150,
       maxDeepLinkBootstrapRequests: 1,
       maxPreDetailDeferredRequests: 0,
@@ -713,9 +816,9 @@ test('buildPredictionPerformanceJsonFallbackSummary prioritizes scenario summary
   assert.match(summary, /- Runtime: 301000ms \/ 300000ms \(warning, warn-only\)/);
   assert.match(summary, /- Scenario tier: custom \(env-scenarios\)/);
   assert.match(summary, /- Selected scenarios: scheduled-game/);
-  assert.match(summary, /- Skipped scenarios: rest-day, past-completed, today-live, manual-data-required/);
+  assert.match(summary, /- Skipped scenarios: ranking-tab, rest-day, past-completed, today-live, manual-data-required/);
   assert.match(summary, /\*\*Scenario summary\*\*/);
-  assert.match(summary, /\| scheduled-game \| 1200ms \| 3 measured \+ 1 prewarm \| 800ms \| 1600ms \| 150ms \| 1 \| 0 \| failed \|/);
+  assert.match(summary, /\| scheduled-game \| 1200ms \| 3 measured \+ 1 prewarm \| 800ms \| 320ms \| 1920ms \| 1600ms \| 410ms \| 150ms \| 1 \| 0 \| n\/a \| n\/a \| n\/a \| failed \|/);
   assert.doesNotMatch(summary, /- Preview p95: 900ms/);
   assert.match(summary, /\*\*Scenario failures\*\*/);
   assert.match(summary, /scheduled-game: SCENARIO_DETAIL_P95_BUDGET_EXCEEDED/);
@@ -758,4 +861,57 @@ test('buildPredictionPerformanceMarkdown renders needs-backend guidance', () => 
   assert.match(markdown, /## Guidance/);
   assert.match(markdown, /Backend was not reachable/);
   assert.match(markdown, /BACKEND_UNREACHABLE/);
+});
+
+test('buildPredictionPerformanceMarkdown renders manual baseball data requirements', () => {
+  const markdown = buildPredictionPerformanceMarkdown({
+    generatedAt: '2026-06-08T00:00:00.000Z',
+    mode: 'real',
+    selectedDate: '2026-06-07',
+    selectedGameId: '20260607HHLT0',
+    status: 'manual-data-required',
+    baseUrl: null,
+    serverMode: 'not-started',
+    iterations: 1,
+    totalDurationMs: 1200,
+    runtimeBudgetMs: 300000,
+    runtimeBudgetStatus: 'ok',
+    apiBaseUrl: 'http://localhost:8080/api/',
+    backendReachable: true,
+    strictCold: false,
+    budgets,
+    browser: { summary: {}, entries: [] },
+    api: {
+      endpoints: {
+        matchesDay: {
+          url: 'http://localhost:8080/api/matches/day?date=2026-06-07',
+          coldStatus: 409,
+          coldMs: 42,
+          warm: { p50: 10, p95: 12 },
+          warmBudgetMs: 200,
+          failedRequestCount: 0,
+          manualDataRequired: true,
+          manualDataContract: {
+            code: 'MANUAL_BASEBALL_DATA_REQUIRED',
+            scope: 'prediction.matches_by_date',
+            missingItems: [{
+              key: 'season_league_context',
+              label: 'Season league context',
+              reason: 'season row is missing',
+            }],
+            operatorMessage: 'Provide season league context.',
+          },
+        },
+      },
+    },
+    guidance: [
+      'Real mode reached the backend, but baseball data is not ready.',
+    ],
+    failures: ['MANUAL_BASEBALL_DATA_REQUIRED:matchesDay'],
+  });
+
+  assert.match(markdown, /Status: manual-data-required/);
+  assert.match(markdown, /## Manual Baseball Data Required/);
+  assert.match(markdown, /\| matchesDay \| prediction\.matches_by_date \| season_league_context: Season league context \(season row is missing\) \| Provide season league context\. \|/);
+  assert.match(markdown, /MANUAL_BASEBALL_DATA_REQUIRED:matchesDay/);
 });

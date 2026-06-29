@@ -5,11 +5,13 @@ import type { ViewMode } from '../../types/profile';
 import LoadingSpinner from '../LoadingSpinner';
 
 const DiaryStatistics = lazy(() => import('./Diarystatistics'));
+const BadgesSection = lazy(() => import('./BadgesSection'));
 const ProfileEditSection = lazy(() => import('./ProfileEditSection'));
 const PasswordChangeSection = lazy(() => import('./PasswordChangeSection'));
 const DiaryViewSection = lazy(() => import('./Diaryform'));
 const MateHistorySection = lazy(() => import('./MateHistorySection'));
 const MyCheerPostsSection = lazy(() => import('./MyCheerPostsSection'));
+const AlertsSection = lazy(() => import('./AlertsSection'));
 const MyPageSeasonLogRuntime = lazy(() => import('./MyPageSeasonLogRuntime'));
 const MyPageSettingsHomeRuntime = lazy(() => import('./MyPageSettingsHomeRuntime'));
 
@@ -132,6 +134,14 @@ export default function MyPageViewRuntime({
 
   if (viewMode === 'stats') {
     return renderSection(<DiaryStatistics cheerPoints={cheerPoints} />);
+  }
+
+  if (viewMode === 'badges') {
+    return renderSection(<BadgesSection />);
+  }
+
+  if (viewMode === 'alerts') {
+    return renderSection(<AlertsSection />);
   }
 
   if (viewMode === 'mateHistory') {

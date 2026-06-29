@@ -72,7 +72,7 @@ export default function CheerDetailActionBarRuntime({
                 )}
             >
                 <HeartIcon className={cn('h-8 w-8 flex-shrink-0', interactionLikedByMe && 'fill-current')} />
-                <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
+                <span className="whitespace-nowrap text-body font-bold leading-none sm:text-body">
                     {interactionLikeCount.toLocaleString()}
                 </span>
             </button>
@@ -84,7 +84,7 @@ export default function CheerDetailActionBarRuntime({
                 className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
             >
                 <MessageSquareIcon className="h-8 w-8 flex-shrink-0" />
-                <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
+                <span className="whitespace-nowrap text-body font-bold leading-none sm:text-body">
                     {commentCount.toLocaleString()}
                 </span>
             </button>
@@ -122,7 +122,7 @@ export default function CheerDetailActionBarRuntime({
                         aria-haspopup="menu"
                     >
                         <RepeatIcon className="h-8 w-8 flex-shrink-0" />
-                        <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
+                        <span className="whitespace-nowrap text-body font-bold leading-none sm:text-body">
                             {repostCount.toLocaleString()}
                         </span>
                     </button>
@@ -139,10 +139,10 @@ export default function CheerDetailActionBarRuntime({
                         >
                             <RotateCcwIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             <div>
-                                <span className="block text-[16px] font-bold text-red-600 dark:text-red-400">
+                                <span className="block text-body font-bold text-red-600 dark:text-red-400">
                                     리포스트 삭제
                                 </span>
-                                <span className="text-[16px] font-bold text-red-500/80 dark:text-red-400/80">
+                                <span className="text-body font-bold text-red-500/80 dark:text-red-400/80">
                                     프로필에서 제외
                                 </span>
                             </div>
@@ -164,7 +164,7 @@ export default function CheerDetailActionBarRuntime({
                                     )}
                                 </div>
                                 <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
+                                        <span className="block text-body font-bold text-gray-700 dark:text-white">
                                             {interactionRepostedByMe ? '리포스트 취소' : '리포스트'}
                                         </span>
                                 </div>
@@ -181,7 +181,7 @@ export default function CheerDetailActionBarRuntime({
                                         <PenSquareIcon className="h-4 w-4 text-gray-500 dark:text-white" />
                                     </div>
                                     <div>
-                                        <span className="block text-[16px] font-bold text-gray-700 dark:text-white">
+                                        <span className="block text-body font-bold text-gray-700 dark:text-white">
                                             인용 응원
                                         </span>
                                     </div>
@@ -189,7 +189,7 @@ export default function CheerDetailActionBarRuntime({
                             ) : null}
                         </>
                     ) : (
-                        <div className="px-3.5 py-2.5 text-center text-[16px] text-gray-400">
+                        <div className="px-3.5 py-2.5 text-center text-body text-gray-400">
                             {repostUnavailableMessage}
                         </div>
                     )}
@@ -208,7 +208,7 @@ export default function CheerDetailActionBarRuntime({
                 )}
             >
                 <BookmarkIcon className={cn('h-8 w-8 flex-shrink-0', interactionBookmarked && 'fill-current')} />
-                <span className="whitespace-nowrap text-[16px] font-bold leading-none sm:text-[16px]">
+                <span className="whitespace-nowrap text-body font-bold leading-none sm:text-body">
                     {interactionBookmarkCount.toLocaleString()}
                 </span>
             </button>

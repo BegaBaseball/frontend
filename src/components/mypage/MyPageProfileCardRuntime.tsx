@@ -64,12 +64,14 @@ const formatCount = (count: number): string => {
   return count.toString();
 };
 
-const secondaryActionButtonClass = 'h-10 min-w-0 gap-1.5 px-3 text-[16px] font-semibold bg-white dark:bg-card border-2 border-primary dark:border-primary-light text-primary dark:text-primary-light hover:bg-gray-50 dark:hover:bg-secondary';
-const primaryActionButtonClass = 'h-10 min-w-0 gap-1.5 px-3 text-[16px] font-semibold text-white bg-primary-dark hover:bg-primary';
+const secondaryActionButtonClass =
+  'h-10 min-w-0 gap-1.5 px-3 text-body font-semibold bg-card border-2 border-border text-primary hover:bg-muted';
+const primaryActionButtonClass =
+  'h-10 min-w-0 gap-1.5 px-3 text-body font-semibold text-primary-foreground bg-primary hover:bg-primary';
 
 function LoadingProfileCard() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,_1fr)_auto] lg:items-start">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,_1fr)_auto] lg:items-start">
       <div className="flex min-w-0 items-start gap-3 md:gap-4">
         <Skeleton className="h-20 w-20 flex-shrink-0 rounded-full md:h-24 md:w-24" />
         <div className="min-w-0 flex-1 space-y-2 pt-0.5">
@@ -85,7 +87,7 @@ function LoadingProfileCard() {
             <Skeleton className="mx-auto h-6 w-10" />
             <Skeleton className="mx-auto h-4 w-16" />
           </div>
-          <div className="h-8 w-px bg-gray-200 dark:bg-border" />
+          <div className="h-8 w-px bg-border" />
           <div className="space-y-1 text-center">
             <Skeleton className="mx-auto h-6 w-10" />
             <Skeleton className="mx-auto h-4 w-16" />
@@ -122,7 +124,7 @@ function ProfileIdentity({
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="mb-1 flex min-w-0 flex-wrap items-center gap-2 md:gap-3">
-          <h2 className="min-w-0 max-w-full break-words text-xl font-bold text-primary dark:text-primary-light md:text-2xl">
+          <h2 className="min-w-0 max-w-full break-words text-xl font-bold text-primary md:text-2xl">
             {name}
           </h2>
           {savedFavoriteTeam !== '없음' && (
@@ -132,16 +134,23 @@ function ProfileIdentity({
           )}
         </div>
         {normalizedHandle && (
-          <p className="max-w-full truncate text-[16px] font-semibold text-gray-600 dark:text-white">
+            <p className="max-w-full truncate text-body font-semibold text-muted-foreground">
             {normalizedHandle}
           </p>
         )}
-        <p className="max-w-full break-all text-[16px] font-semibold text-gray-500 dark:text-white">
+          <p className="max-w-full break-all text-body font-semibold text-muted-foreground">
           {email}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[16px] font-semibold text-yellow-700 dark:border-yellow-700/50 dark:bg-yellow-900/20 dark:text-yellow-400">
-            <MyPageCoinsIcon className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+          <span
+            className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-body font-semibold"
+            style={{
+              borderColor: 'var(--mp-gold-border)',
+              backgroundColor: 'var(--mp-gold-soft)',
+              color: 'var(--mp-gold)',
+            }}
+          >
+            <MyPageCoinsIcon className="h-3.5 w-3.5" />
             {cheerPoints.toLocaleString()} P
           </span>
         </div>
@@ -163,24 +172,24 @@ function FollowStats({
         className="group min-w-[72px] cursor-pointer text-center"
         onClick={onOpenFollowers}
       >
-        <span className="block text-lg font-bold text-gray-900 transition-colors group-hover:text-primary dark:text-white">
+        <span className="block text-lg font-bold text-foreground transition-colors group-hover:text-primary">
           {formatCount(followerCount)}
         </span>
-        <span className="flex items-center justify-center gap-1 whitespace-nowrap text-[16px] font-semibold text-gray-500 transition-colors group-hover:text-primary dark:text-white">
+        <span className="flex items-center justify-center gap-1 whitespace-nowrap text-body font-semibold text-muted-foreground transition-colors group-hover:text-primary">
           <MyPageUsersIcon className="h-3.5 w-3.5" />
           팔로워
         </span>
       </button>
-      <div className="h-8 w-px bg-gray-200 dark:bg-border" />
+      <div className="h-8 w-px bg-border" />
       <button
         type="button"
         className="group min-w-[72px] cursor-pointer text-center"
         onClick={onOpenFollowing}
       >
-        <span className="block text-lg font-bold text-gray-900 transition-colors group-hover:text-primary dark:text-white">
+        <span className="block text-lg font-bold text-foreground transition-colors group-hover:text-primary">
           {formatCount(followingCount)}
         </span>
-        <span className="flex items-center justify-center gap-1 whitespace-nowrap text-[16px] font-semibold text-gray-500 transition-colors group-hover:text-primary dark:text-white">
+          <span className="flex items-center justify-center gap-1 whitespace-nowrap text-body font-semibold text-muted-foreground transition-colors group-hover:text-primary">
           <MyPageUserPlusIcon className="h-3.5 w-3.5" />
           팔로잉
         </span>
@@ -258,7 +267,7 @@ export default function MyPageProfileCardRuntime({
   const normalizedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : '';
 
   return (
-    <Card className="mb-5 gap-2 p-4 dark:bg-card dark:border-border md:p-5">
+    <Card className="mb-5 gap-2 p-4 md:p-5">
       {isProfileLoading ? (
         <LoadingProfileCard />
       ) : (

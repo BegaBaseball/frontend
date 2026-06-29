@@ -48,6 +48,7 @@ export const recordHomeLiveSummaryTimeoutFailure = (
 type LiveMergeTarget = {
   gameId: string;
   gameStatus?: string | null;
+  gameStatusKr?: string | null;
   homeScore?: number | string | null;
   awayScore?: number | string | null;
   liveLastEventSeq?: number | null;
@@ -83,6 +84,32 @@ const SKIP_LIVE_POLL_STATUSES = new Set([
 export const normalizeLiveStatus = (value?: string | null): string => (
   value?.trim().toUpperCase() || ''
 );
+
+const resolveLiveSummaryStatusLabel = (value?: string | null): string | null => {
+  const status = normalizeLiveStatus(value);
+  if (!status) {
+    return null;
+  }
+  if (LIVE_STATUSES.has(status)) {
+    return 'LIVE';
+  }
+  if (status === 'FINAL' || status === 'COMPLETED' || status === 'DONE' || status === 'END' || status === 'E' || status === 'F') {
+    return '경기 종료';
+  }
+  if (status === 'DRAW') {
+    return '무승부';
+  }
+  if (status === 'POSTPONED') {
+    return '경기 연기';
+  }
+  if (status === 'CANCELLED' || status === 'CANCEL') {
+    return '경기 취소';
+  }
+  if (SCHEDULED_LIVE_POLL_STATUSES.has(status)) {
+    return '경기 예정';
+  }
+  return null;
+};
 
 const toEventKey = (event: GameLiveEvent, index: number): string => (
   event.eventSeq == null
@@ -162,6 +189,7 @@ export const mergeGameDetailWithLiveSnapshot = (
   const nextInningScores = Array.isArray(snapshot.inningScores)
     ? snapshot.inningScores
     : base.inningScores;
+  const nextBoxScore = snapshot.boxScore !== undefined ? snapshot.boxScore : base.boxScore;
 
   return {
     ...base,
@@ -170,6 +198,7 @@ export const mergeGameDetailWithLiveSnapshot = (
     homeScore: snapshot.homeScore ?? base.homeScore,
     awayScore: snapshot.awayScore ?? base.awayScore,
     inningScores: nextInningScores,
+    boxScore: nextBoxScore,
     liveEvents: nextEvents,
     liveLastEventSeq: snapshot.lastEventSeq ?? base.liveLastEventSeq ?? resolveLastEventSeq(nextEvents),
     liveLastUpdatedAt: snapshot.lastUpdatedAt ?? base.liveLastUpdatedAt ?? null,
@@ -282,9 +311,13 @@ export const mergeHomeGamesWithLiveSummaries = <T extends LiveMergeTarget>(
     if (!summary) {
       return game;
     }
+    const summaryStatusLabel = resolveLiveSummaryStatusLabel(summary.gameStatus);
+    const shouldUpdateLocalizedStatus = summaryStatusLabel !== null
+      && (Object.prototype.hasOwnProperty.call(game, 'gameStatusKr') || game.gameStatusKr != null);
     const nextGame = {
       ...game,
       gameStatus: summary.gameStatus ?? game.gameStatus,
+      gameStatusKr: shouldUpdateLocalizedStatus ? summaryStatusLabel : game.gameStatusKr,
       homeScore: summary.homeScore ?? game.homeScore,
       awayScore: summary.awayScore ?? game.awayScore,
       liveLastEventSeq: summary.lastEventSeq ?? game.liveLastEventSeq ?? null,
@@ -292,6 +325,7 @@ export const mergeHomeGamesWithLiveSummaries = <T extends LiveMergeTarget>(
     };
     if (
       nextGame.gameStatus !== game.gameStatus
+      || nextGame.gameStatusKr !== game.gameStatusKr
       || nextGame.homeScore !== game.homeScore
       || nextGame.awayScore !== game.awayScore
       || nextGame.liveLastEventSeq !== game.liveLastEventSeq

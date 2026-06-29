@@ -7,6 +7,18 @@ type BootstrapLoadState = {
   timedOut: boolean;
   timedOutSections: string[];
   failedSections: string[];
+  failureReason?: 'manual-data-required' | 'request-failed' | null;
+  manualDataRequest?: {
+    scope: string;
+    missingItems: Array<{
+      key: string;
+      label: string;
+      reason: string;
+      expected_format: string;
+    }>;
+    operatorMessage: string;
+    blocking: boolean;
+  } | null;
 };
 
 describe('Home error UX', () => {
@@ -16,6 +28,26 @@ describe('Home error UX', () => {
     timedOut: false,
     timedOutSections: [],
     failedSections: [],
+  });
+  const buildPartialManualDataLoadState = (): BootstrapLoadState => ({
+    isFallback: true,
+    timedOut: false,
+    timedOutSections: [],
+    failedSections: ['games', 'scheduledGamesWindow'],
+    failureReason: 'manual-data-required',
+    manualDataRequest: {
+      scope: 'home.schedule',
+      missingItems: [
+        {
+          key: 'final_score',
+          label: '최종 점수',
+          reason: '과거 경기의 최종 점수가 비어 있습니다.',
+          expected_format: 'home_score, away_score',
+        },
+      ],
+      operatorMessage: '다음 야구 데이터가 필요합니다: 날짜=2026-06-24, 최종 점수',
+      blocking: true,
+    },
   });
 
   const buildBootstrapResponse = (
@@ -40,6 +72,34 @@ describe('Home error UX', () => {
     games: [],
     scheduledGamesWindow: [],
     loadState,
+  });
+  const buildBootstrapResponseWithGames = () => ({
+    ...buildBootstrapResponse(
+      '2026-06-23',
+      '2026-06-21',
+      '2026-06-24',
+      '2026-03-28',
+      buildCompleteBootstrapLoadState(),
+    ),
+    games: [
+      {
+        gameId: '20260623HTWO0',
+        gameDate: '2026-06-23',
+        sourceDate: '2026-06-23',
+        time: '18:31',
+        stadium: '고척',
+        gameStatus: 'COMPLETED',
+        gameStatusKr: '경기 종료',
+        gameInfo: '',
+        leagueType: 'REGULAR',
+        homeTeam: 'KH',
+        homeTeamFull: '키움 히어로즈',
+        awayTeam: 'KIA',
+        awayTeamFull: 'KIA 타이거즈',
+        homeScore: 3,
+        awayScore: 7,
+      },
+    ],
   });
   const buildWidgetsResponse = (rankingSeasonYear = 2025) => ({
     hotCheerPosts: [],
@@ -350,6 +410,36 @@ describe('Home error UX', () => {
     cy.get('@getHomeBootstrapNoGameDay.all').should('have.length', 1);
   });
 
+  it('renders game cards when bootstrap returns valid games', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponseWithGames(),
+    }).as('getHomeBootstrapWithGames');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home?date=2026-06-23',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapWithGames');
+    cy.wait('@getHomeWidgets');
+
+    cy.get('[data-testid="home-game-card"][data-game-id="20260623HTWO0"]', { timeout: 15000 })
+      .should('be.visible')
+      .and('contain.text', '키움 히어로즈')
+      .and('contain.text', 'KIA 타이거즈')
+      .and('contain.text', '경기 종료');
+    cy.contains('경기 일정을 불러오지 못했습니다').should('not.exist');
+    cy.contains('서비스 연결이 불안정합니다').should('not.exist');
+    cy.contains('야구 데이터 준비가 필요합니다').should('not.exist');
+  });
+
   it('uses backend partial loadState to avoid scheduled inline errors on section timeout', () => {
     cy.intercept('GET', '**/api/home/bootstrap*', {
       statusCode: 200,
@@ -385,6 +475,76 @@ describe('Home error UX', () => {
     cy.contains('선택한 날짜부터 7일 내 예정 경기가 없습니다.', { timeout: 15000 }).should('be.visible');
     cy.contains('예정 경기를 불러오지 못했습니다').should('not.exist');
     cy.get('@getHomeBootstrapPartial.all').should('have.length', 1);
+  });
+
+  it('shows manual-data copy instead of generic connection copy for partial bootstrap failures', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse(
+        '2026-06-24',
+        '2026-06-23',
+        '2026-06-25',
+        '2026-03-28',
+        buildPartialManualDataLoadState(),
+      ),
+    }).as('getHomeBootstrapPartialManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: false,
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapPartialManualData');
+    cy.wait('@getHomeWidgets');
+
+    cy.contains('야구 데이터 준비가 필요합니다', { timeout: 15000 }).should('be.visible');
+    cy.contains('운영자가 데이터를 제공하면 다시 확인할 수 있습니다.').should('be.visible');
+    cy.contains('경기 일정을 불러오지 못했습니다').should('not.exist');
+    cy.contains('서비스 연결이 불안정합니다').should('not.exist');
+    cy.get('[data-testid="home-global-recovery"]').should('not.exist');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-06-24, 최종 점수').should('not.exist');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
+  });
+
+  it('shows partial manual-data bootstrap details only to admin users', () => {
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: buildBootstrapResponse(
+        '2026-06-24',
+        '2026-06-23',
+        '2026-06-25',
+        '2026-03-28',
+        buildPartialManualDataLoadState(),
+      ),
+    }).as('getHomeBootstrapPartialManualData');
+
+    cy.intercept('GET', '**/api/home/widgets*', {
+      statusCode: 200,
+      body: buildWidgetsResponse(2026),
+    }).as('getHomeWidgets');
+
+    visitHomePage({
+      path: '/home',
+      authenticated: true,
+      resetStorage: true,
+      user: {
+        role: 'ROLE_ADMIN',
+      },
+    });
+
+    cy.wait('@getHomeBootstrapPartialManualData');
+    cy.wait('@getHomeWidgets');
+
+    cy.get('[data-testid="home-global-recovery"]', { timeout: 15000 }).should('be.visible');
+    cy.contains('운영자 데이터가 필요합니다').should('be.visible');
+    cy.contains('다음 야구 데이터가 필요합니다: 날짜=2026-06-24, 최종 점수').should('be.visible');
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('be.visible');
   });
 
   it('warns without exposing manual-data-required details to anonymous users', () => {

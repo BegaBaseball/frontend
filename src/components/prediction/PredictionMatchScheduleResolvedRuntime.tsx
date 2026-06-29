@@ -1,4 +1,4 @@
-import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import type { PredictionLocationState, PredictionNavigationOptions } from '../../utils/predictionDeepLink';
 import PredictionLoadingView from './PredictionLoadingView';
 import PredictionMatchesErrorView from './PredictionMatchesErrorView';
 import PredictionMatchScheduleReadyView from './PredictionMatchScheduleReadyView';
@@ -10,7 +10,7 @@ interface PredictionMatchScheduleResolvedRuntimeProps {
   userId?: number | string | null;
   locationState: PredictionLocationState;
   searchParams: URLSearchParams;
-  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
+  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: PredictionNavigationOptions) => void;
 }
 
 export default function PredictionMatchScheduleResolvedRuntime({

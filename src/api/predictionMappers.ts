@@ -165,8 +165,27 @@ export const toPredictionMatchDayNavigation = (value: unknown): MatchDayNavigati
   };
 };
 
+export const resolvePredictionBoxScorePayload = (source: Record<string, unknown>): unknown | undefined => (
+  source.boxScore ?? source.box_score ?? source.boxscore
+);
+
+export const resolvePredictionInningScoresPayload = (
+  source: Record<string, unknown>
+): GameDetail['inningScores'] | undefined => {
+  const rawInningScores = source.inningScores ?? source.inning_scores;
+  if (Array.isArray(rawInningScores)) {
+    return rawInningScores as GameDetail['inningScores'];
+  }
+
+  const rawBoxScore = resolvePredictionBoxScorePayload(source);
+  return Array.isArray(rawBoxScore)
+    ? rawBoxScore as GameDetail['inningScores']
+    : undefined;
+};
+
 export const toPredictionGameDetail = (value: unknown): GameDetail => {
   const source = asRecord(value);
+  const boxScore = resolvePredictionBoxScorePayload(source);
   return {
     gameId: toString(source.gameId ?? source.game_id),
     gameDate: toNullableString(source.gameDate ?? source.game_date) ?? undefined,
@@ -183,9 +202,8 @@ export const toPredictionGameDetail = (value: unknown): GameDetail => {
     homePitcher: toNullableString(source.homePitcher ?? source.home_pitcher),
     awayPitcher: toNullableString(source.awayPitcher ?? source.away_pitcher),
     gameStatus: toNullableString(source.gameStatus ?? source.game_status),
-    inningScores: Array.isArray(source.inningScores ?? source.inning_scores)
-      ? (source.inningScores ?? source.inning_scores) as GameDetail['inningScores']
-      : undefined,
+    inningScores: resolvePredictionInningScoresPayload(source),
+    boxScore,
     summary: Array.isArray(source.summary)
       ? source.summary as GameDetail['summary']
       : undefined,

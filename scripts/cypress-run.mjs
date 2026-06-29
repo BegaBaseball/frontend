@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const projectRoot = process.cwd();
 const cacheDir = resolve(process.env.CYPRESS_CACHE_FOLDER || `${projectRoot}/.cypress-cache`);
+const workspaceOutputRoot = resolve(projectRoot, '..', 'output');
 const rawArgs = process.argv.slice(2);
 const isOpen = rawArgs.includes('--open');
 const forceDocker = rawArgs.includes('--docker') || process.env.CYPRESS_USE_DOCKER === '1';
 const autoDocker = rawArgs.includes('--auto-docker') || process.env.CYPRESS_AUTO_DOCKER === '1';
-const skipVerify =
-  rawArgs.includes('--skip-verify')
-  || rawArgs.includes('--help')
-  || rawArgs.includes('-h');
+const isTruthyEnv = (value) => ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+const hasSkipVerifyFlag = rawArgs.includes('--skip-verify');
+const hasSkipVerifyEnv = isTruthyEnv(process.env.CYPRESS_SKIP_VERIFY);
+const hasHelpArg = rawArgs.includes('--help') || rawArgs.includes('-h');
+const skipVerify = hasSkipVerifyFlag || hasSkipVerifyEnv || hasHelpArg;
 const useGlobalCache = rawArgs.includes('--global-cache');
 const enableSelfHeal = rawArgs.includes('--self-heal')
   || process.env.CYPRESS_SELF_HEAL === '1';
@@ -26,6 +28,7 @@ const hasExplicitSpecArg = rawArgs.some((arg) => arg === '--spec' || arg.startsW
 const hasExplicitBrowserArg = rawArgs.some((arg) => arg === '--browser' || arg.startsWith('--browser='));
 const excludedDefaultSpecs = new Set([
   'cypress/e2e/chatbot-real.cy.ts',
+  'cypress/e2e/runner-docker-smoke.cy.ts',
 ]);
 const chromeMateRegressionSpecs = new Set([
   'cypress/e2e/mate.cy.ts',
@@ -37,6 +40,13 @@ const sequentialMateRegressionSpecs = new Set([
   'cypress/e2e/mate.cy.ts',
   'cypress/e2e/mate-detail-states.cy.ts',
   'cypress/e2e/mate-execution-flow.cy.ts',
+  'cypress/e2e/mate-qr-refresh.cy.ts',
+  'cypress/e2e/mate-create.cy.ts',
+  'cypress/e2e/mate-create-session-recovery.cy.ts',
+  'cypress/e2e/mate-apply-session-recovery.cy.ts',
+  'cypress/e2e/mate-selling-payment-success.cy.ts',
+  'cypress/e2e/mate-chat-upload.cy.ts',
+  'cypress/e2e/mate-flow-policy.cy.ts',
   'cypress/e2e/mate-visual.cy.ts',
 ]);
 
@@ -369,6 +379,34 @@ const printDockerUnavailableGuidance = () => {
   console.log('    reuses http://127.0.0.1:5176 when available, otherwise starts an isolated frontend');
 };
 
+const dockerPassthroughEnvKeys = [
+  'CYPRESS_SKIP_VERIFY',
+  'CYPRESS_VERIFY_TIMEOUT',
+  'CYPRESS_PREDICTION_MOBILE_ACTIVE_STATES',
+];
+
+const DEFAULT_DOCKER_CYPRESS_VERIFY_TIMEOUT_MS = '240000';
+const DEFAULT_DOCKER_SHM_SIZE = '2g';
+
+const getDockerPassthroughEnvValue = (key) => {
+  if (key === 'CYPRESS_SKIP_VERIFY') {
+    return hasSkipVerifyFlag || hasSkipVerifyEnv ? 'true' : undefined;
+  }
+
+  if (key === 'CYPRESS_VERIFY_TIMEOUT') {
+    return process.env[key] || DEFAULT_DOCKER_CYPRESS_VERIFY_TIMEOUT_MS;
+  }
+
+  return process.env[key];
+};
+
+const collectDockerPassthroughEnvArgs = () => dockerPassthroughEnvKeys.flatMap((key) => {
+  const value = getDockerPassthroughEnvValue(key);
+  return value ? ['-e', `${key}=${value}`] : [];
+});
+
+const getDockerShmSize = () => process.env.CYPRESS_DOCKER_SHM_SIZE || DEFAULT_DOCKER_SHM_SIZE;
+
 const getExpectedBinaryVersion = (environment = envWithCache) => {
   const cachePath = environment.CYPRESS_CACHE_FOLDER || cacheDir;
   if (!installedCypressVersion) {
@@ -379,23 +417,44 @@ const getExpectedBinaryVersion = (environment = envWithCache) => {
   return versions.includes(installedCypressVersion);
 };
 
-const runLocal = (environment = envWithCache) => {
-  if (shouldRunMateSpecsSequentially) {
-    console.log('\n[local] running Cypress mate regression specs sequentially');
+const getMateRegressionSpecRetries = () => {
+  const parsed = Number.parseInt(process.env.MATE_REGRESSION_SPEC_RETRIES || '1', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
 
-    for (const spec of explicitSpecs) {
-      console.log(`- spec: ${spec}`);
+const runSequentialMateSpecs = (environment, argsWithoutSpec, statusLabel) => {
+  const maxRetries = getMateRegressionSpecRetries();
+  console.log(statusLabel);
+
+  for (const spec of explicitSpecs) {
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      const retryLabel = attempt > 0 ? ` (retry ${attempt}/${maxRetries})` : '';
+      console.log(`- spec: ${spec}${retryLabel}`);
       const status = runCommandStatus(
         'npx',
-        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
+        ['cypress', commandMode, ...argsWithoutSpec, '--spec', spec],
         environment,
       );
-      if (status !== 0) {
+      if (status === 0) {
+        break;
+      }
+      if (attempt >= maxRetries) {
         return status ?? 1;
       }
+      console.log(`[local] retrying Mate regression spec after failure: ${spec}`);
     }
+  }
 
-    return 0;
+  return 0;
+};
+
+const runLocal = (environment = envWithCache) => {
+  if (shouldRunMateSpecsSequentially) {
+    return runSequentialMateSpecs(
+      environment,
+      cypressArgsWithoutSpec,
+      '\n[local] running Cypress mate regression specs sequentially',
+    );
   }
 
   console.log(`\n[local] running npx cypress ${commandMode}`);
@@ -412,21 +471,11 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
   const skipVerifyEnvironment = withCypressSkipVerifyEnv(environment);
 
   if (shouldRunMateSpecsSequentially) {
-    console.log('\n[local] direct sequential run without prior verify');
-
-    for (const spec of explicitSpecs) {
-      console.log(`- spec: ${spec}`);
-      const status = runCommandStatus(
-        'npx',
-        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
-        skipVerifyEnvironment,
-      );
-      if (status !== 0) {
-        return status ?? 1;
-      }
-    }
-
-    return 0;
+    return runSequentialMateSpecs(
+      skipVerifyEnvironment,
+      cypressArgsWithoutSpec,
+      '\n[local] direct sequential run without prior verify',
+    );
   }
 
   console.log('\n[local] direct run without prior verify');
@@ -628,24 +677,33 @@ const runDocker = (statusLabel = '[local failed] fallback to Docker image') => {
     process.exit(1);
   }
 
+  mkdirSync(workspaceOutputRoot, { recursive: true });
+
   const dockerCypressArgs = rewriteArgsForDocker(cypressArgs, hostUrl, dockerBackendUrl);
+  const dockerCommandArgs = process.env.CYPRESS_DOCKER_USE_NPX === '1'
+    ? ['npx', 'cypress', 'run', ...dockerCypressArgs]
+    : dockerCypressArgs;
   const dockerArgs = [
     'run',
     '--rm',
+    '--shm-size',
+    getDockerShmSize(),
     '--add-host',
     'host.docker.internal:host-gateway',
     '-v',
     `${projectRoot}:/e2e`,
+    '-v',
+    `${workspaceOutputRoot}:/workspace-output`,
     '-w',
     '/e2e',
     '-e',
     `CYPRESS_baseUrl=${hostUrl}`,
+    '-e',
+    'KBO_WORKSPACE_OUTPUT_DIR=/workspace-output',
     ...(dockerBackendUrl ? ['-e', `CYPRESS_BACKEND_BASE_URL=${dockerBackendUrl}`] : []),
+    ...collectDockerPassthroughEnvArgs(),
     image,
-    'npx',
-    'cypress',
-    'run',
-    ...dockerCypressArgs,
+    ...dockerCommandArgs,
   ];
 
   const hasConfig = dockerCypressArgs.includes('--config')

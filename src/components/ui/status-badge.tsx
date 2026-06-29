@@ -51,21 +51,21 @@ const markerToneTextClass: Record<StatusBadgeTone, string> = {
 };
 
 const sizeClass: Record<StatusBadgeSize, string> = {
-  xs: 'min-h-[22px] gap-1 pl-[3px] pr-2 py-0.5 text-[11px]',
-  sm: 'min-h-[26px] gap-1.5 pl-1 pr-[11px] py-[3px] text-[12px]',
-  md: 'min-h-8 gap-2 pl-1.5 pr-3.5 py-1 text-[14px]',
+  xs: 'min-h-[22px] gap-1 pl-[3px] pr-2 py-0.5 text-11',
+  sm: 'min-h-[26px] gap-1.5 pl-1 pr-[11px] py-[3px] text-12',
+  md: 'min-h-8 gap-2 pl-1.5 pr-3.5 py-1 text-caption',
 };
 
 const lineSizeClass: Record<StatusBadgeSize, string> = {
-  xs: 'min-h-[18px] gap-1 text-[11px]',
-  sm: 'min-h-[21px] gap-1.5 text-[12px]',
-  md: 'min-h-6 gap-2 text-[14px]',
+  xs: 'min-h-[18px] gap-1 text-11',
+  sm: 'min-h-[21px] gap-1.5 text-12',
+  md: 'min-h-6 gap-2 text-caption',
 };
 
 const markerSizeClass: Record<StatusBadgeSize, string> = {
-  xs: 'h-[15px] w-[15px] text-[9px]',
+  xs: 'h-[15px] w-[15px] text-9',
   sm: 'h-[18px] w-[18px] text-[10.5px]',
-  md: 'h-[23px] w-[23px] text-[12px]',
+  md: 'h-[23px] w-[23px] text-12',
 };
 
 const dotSizeClass: Record<StatusBadgeSize, string> = {
@@ -173,7 +173,12 @@ export function StatusBadge({
           </span>
         )}
       </span>
-      {hasLabel ? <span>{label}</span> : null}
+      {hasLabel
+        ? (
+          <span className={cn('relative z-0', markerToneTextClass[tone])}>
+            {label}
+          </span>
+        ) : null}
     </span>
   );
 }

@@ -79,10 +79,10 @@ export default function MateCreateSeatSelectionFields({
             <div className="mb-2">
               <TeamLogo teamId={homeTeamId} size={34} />
             </div>
-            <span className="text-center text-[16px] font-bold leading-tight sm:text-lg">
+            <span className="text-center text-body font-bold leading-tight sm:text-lg">
               {TEAMS.find((team) => team.id === homeTeamId)?.name || '홈팀'}
             </span>
-            <div className="mt-1 text-[16px] font-semibold opacity-80">홈 팀 응원</div>
+            <div className="mt-1 text-body font-semibold opacity-80">홈 팀 응원</div>
           </button>
 
           <button
@@ -94,8 +94,8 @@ export default function MateCreateSeatSelectionFields({
               }`}
           >
             <span className="mb-1 text-2xl sm:text-3xl">😐</span>
-            <span className="text-[16px] font-bold sm:text-lg">상관없음</span>
-            <div className="mt-1 text-[16px] font-semibold opacity-80">중립</div>
+            <span className="text-body font-bold sm:text-lg">상관없음</span>
+            <div className="mt-1 text-body font-semibold opacity-80">중립</div>
           </button>
 
           <button
@@ -115,10 +115,10 @@ export default function MateCreateSeatSelectionFields({
             <div className="mb-2">
               <TeamLogo teamId={awayTeamId} size={34} />
             </div>
-            <span className="text-center text-[16px] font-bold leading-tight sm:text-lg">
+            <span className="text-center text-body font-bold leading-tight sm:text-lg">
               {TEAMS.find((team) => team.id === awayTeamId)?.name || '원정팀'}
             </span>
-            <div className="mt-1 text-[16px] font-semibold opacity-80">원정 팀 응원</div>
+            <div className="mt-1 text-body font-semibold opacity-80">원정 팀 응원</div>
           </button>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function MateCreateSeatSelectionFields({
                     <div className={`font-bold ${isSelected ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>
                       {value.label}
                     </div>
-                    <div className="mt-1 text-[16px] leading-snug text-gray-500">
+                    <div className="mt-1 text-body leading-snug text-gray-500">
                       {seatDescriptions[value.label] || '편안한 관람'}
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export default function MateCreateSeatSelectionFields({
         <FieldLabel className="text-base font-bold sm:text-lg" htmlFor="seatDetail">좌석 상세 <span className="text-red-500 ml-0.5">*</span></FieldLabel>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className="text-[16px] text-gray-500 mb-1 block">구역/블록</label>
+            <label className="text-body text-gray-500 mb-1 block">구역/블록</label>
             <div className="relative">
               <Input
                 placeholder="예: 305"
@@ -176,11 +176,11 @@ export default function MateCreateSeatSelectionFields({
                 }}
                 className="pr-12"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">블록</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body pointer-events-none">블록</span>
             </div>
           </div>
           <div>
-            <label className="text-[16px] text-gray-500 mb-1 block">열</label>
+            <label className="text-body text-gray-500 mb-1 block">열</label>
             <div className="relative">
               <Input
                 placeholder="예: 12"
@@ -194,11 +194,11 @@ export default function MateCreateSeatSelectionFields({
                 }}
                 className="pr-10"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">열</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body pointer-events-none">열</span>
             </div>
           </div>
           <div>
-            <label className="text-[16px] text-gray-500 mb-1 block">번 (선택)</label>
+            <label className="text-body text-gray-500 mb-1 block">번 (선택)</label>
             <div className="relative">
               <Input
                 placeholder="예: 15"
@@ -212,15 +212,15 @@ export default function MateCreateSeatSelectionFields({
                 }}
                 className="pr-10"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px] pointer-events-none">번</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-body pointer-events-none">번</span>
             </div>
           </div>
         </div>
 
         {(formData.cheeringSide || formData.seatCategory || formData.seatDetail) && (
           <div className="mt-4 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 dark:bg-card sm:flex-row sm:items-center sm:justify-between sm:p-4">
-            <span className="text-[16px] text-gray-500">미리보기</span>
-            <span className="break-words text-[16px] font-bold text-gray-700 dark:text-white sm:text-right">
+            <span className="text-body text-gray-500">미리보기</span>
+            <span className="break-words text-body font-bold text-gray-700 dark:text-white sm:text-right">
               {[
                 formData.cheeringSide === 'HOME' ? '[홈응원]' : formData.cheeringSide === 'AWAY' ? '[원정응원]' : formData.cheeringSide === 'NEUTRAL' ? '[중립]' : '',
                 formData.seatCategory,

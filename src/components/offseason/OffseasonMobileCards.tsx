@@ -39,9 +39,9 @@ export function OffseasonMobileCards({
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                    <p className="text-[14px] font-bold uppercase tracking-wide text-zinc-400 dark:text-white">{teamName}</p>
+                                    <p className="text-caption font-bold uppercase tracking-wide text-zinc-400 dark:text-white">{teamName}</p>
                                         {item.isBigEvent && (
-                                            <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-[14px] font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+                                            <OffseasonPill className="rounded-full border border-yellow-200 bg-yellow-100 px-2 py-0.5 text-caption font-black text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
                                                 주요
                                             </OffseasonPill>
                                         )}
@@ -53,12 +53,12 @@ export function OffseasonMobileCards({
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-caption font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-white">
                                 <CalendarDaysIcon className="h-3.5 w-3.5" />
                                 {formatDateLabel(item.date)}
                             </span>
                             {amountLabel && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[14px] font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-caption font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
                                 <TrendingUpIcon className="h-3.5 w-3.5" />
                                 {amountLabel}
                             </span>
@@ -66,12 +66,12 @@ export function OffseasonMobileCards({
                         </div>
 
                         <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-950/60">
-                            <p className="text-[15px] font-semibold leading-relaxed text-zinc-700 dark:text-white">
+                            <p className="text-15 font-semibold leading-relaxed text-zinc-700 dark:text-white">
                                 {formatRemarks(summary)}
                             </p>
                         </div>
 
-                        <div className="flex items-center justify-between text-[14px] font-semibold text-zinc-400 dark:text-white">
+                        <div className="flex items-center justify-between text-caption font-semibold text-zinc-400 dark:text-white">
                             <span className="inline-flex items-center gap-1">
                                 <InfoIcon className="h-3.5 w-3.5" />
                                 ID #{item.id}

@@ -39,7 +39,7 @@ function ChipButton({ active, accent, onClick, children }: { active: boolean; ac
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-2 text-[11px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+      <div className="mb-2 text-11 font-black uppercase tracking-widest text-slate-400">{label}</div>
       {children}
     </div>
   );
@@ -71,7 +71,7 @@ export default function GwangjuUploadFlowModal({ section, mode, onClose, onSubmi
         <div className="border-b border-slate-100 px-6 pb-4 pt-5 dark:border-slate-800">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="mb-1 text-[11px] font-black uppercase tracking-widest text-slate-400">GWANGJU SEAT VIEW</div>
+              <div className="mb-1 text-11 font-black uppercase tracking-widest text-slate-400">GWANGJU SEAT VIEW</div>
               <h3 className="text-lg font-black tracking-tight text-slate-800 dark:text-white">시야 사진을 추가하세요</h3>
               <p className="mt-1 text-xs text-slate-500">
                 <span className="font-bold" style={{ color: accent }}>블록 {section.block}</span> · {cat.label}
@@ -168,7 +168,7 @@ export default function GwangjuUploadFlowModal({ section, mode, onClose, onSubmi
               className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               style={{ fontFamily: 'inherit' }}
             />
-            <div className="mt-1 text-right text-[10px] text-slate-400">{data.comment.length}/140</div>
+            <div className="mt-1 text-right text-10 text-slate-400">{data.comment.length}/140</div>
           </Field>
         </div>
 

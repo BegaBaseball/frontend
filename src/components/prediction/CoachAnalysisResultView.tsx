@@ -1,15 +1,25 @@
-import { type ComponentType, type SVGProps, useCallback, useEffect, useState } from 'react';
+import { type ComponentType, type SVGProps, lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
     CoachAnalysisData,
     CoachDataQuality,
     CoachGenerationMode,
     CoachMetric,
     DashboardStat,
+    getCoachDataQualityLabel,
 } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import CoachMarkdown from '../common/CoachMarkdown';
+
+// react-markdown(+remark-gfm, ~50-70KB)은 오직 여기서만 쓰이고 기본 접힘 "상세 리포트" 안에 있다.
+// 펼칠 때만 청크를 받도록 lazy 분리한다.
+const CoachMarkdown = lazy(() => import('../common/CoachMarkdown'));
 import TeamLogo from '../TeamLogo';
 import { resolveWinProbabilityDisplay } from '../../utils/coachWinProbability';
+import {
+    getCoachReviewOutcomeLabel,
+    isCoachCompletedStatusBucket,
+    resolveCoachReviewOutcome,
+    type CoachReviewOutcomeSide,
+} from '../../utils/coachReviewOutcome';
 import { getTeamColor } from '../../utils/teamColors';
 import {
     getEvidenceSourceGroups,
@@ -36,6 +46,10 @@ interface CoachAnalysisResultViewProps {
     analysisData: CoachAnalysisData | null;
     homeTeamId?: string;
     awayTeamId?: string;
+    homeScore?: number | string | null;
+    awayScore?: number | string | null;
+    homeRank?: number | null;
+    awayRank?: number | null;
     winProbabilityHome?: number | null;
     dataQualityLabel?: string;
     dataQualityMessage?: string;
@@ -55,8 +69,8 @@ const DATA_QUALITY_TONE: Record<CoachDataQuality, { chip: string; row: string }>
         row: 'text-emerald-700 dark:text-emerald-300',
     },
     partial: {
-        chip: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
-        row: 'text-amber-700 dark:text-amber-300',
+        chip: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-white',
+        row: 'text-slate-700 dark:text-white',
     },
     insufficient: {
         chip: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200',
@@ -69,9 +83,131 @@ const NEUTRAL_TONE = {
     row: 'text-slate-700 dark:text-white',
 };
 
-/** 가짜 합산 카운트 대신 실데이터 근거 수: 검증 fact 수 우선, 없으면 사용한 근거 소스 수. */
+const PARTIAL_SCOPE_MESSAGE = '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.';
+
+/** 가짜 합산 카운트 대신 경기 정보 근거 수: 검증 fact 수 우선, 없으면 사용한 근거 소스 수. */
 function resolveEvidenceCount(supportedFactCount?: number, usedEvidence?: string[]): number {
     return resolveCoachEvidenceCount({ supportedFactCount, usedEvidence });
+}
+
+interface CoachEvidenceDisclosureProps {
+    dataQualityLabel?: string;
+    dataQualityMessage?: string;
+    supportedFactCount?: number;
+    usedEvidence?: string[];
+    dataQuality?: CoachDataQuality;
+    groundingWarnings?: string[];
+    groundingReasons?: string[];
+    generationMode?: CoachGenerationMode;
+    freshnessLabel?: string | null;
+    className?: string;
+}
+
+function CoachEvidenceDisclosure({
+    dataQualityLabel,
+    dataQualityMessage,
+    supportedFactCount,
+    usedEvidence,
+    dataQuality,
+    groundingWarnings,
+    groundingReasons,
+    generationMode,
+    freshnessLabel,
+    className = '',
+}: CoachEvidenceDisclosureProps) {
+    const evidenceCount = resolveEvidenceCount(supportedFactCount, usedEvidence);
+    const evidenceSources = resolveEvidenceSources(usedEvidence);
+    const coreEvidenceSources = pickCoreEvidenceCodes(evidenceSources, {
+        dataQuality,
+        groundingWarnings,
+        groundingReasons,
+    });
+    const visibleEvidenceSources = coreEvidenceSources.length > 0 ? coreEvidenceSources : evidenceSources;
+    const groupedEvidenceSources = getEvidenceSourceGroups(visibleEvidenceSources);
+    const effectiveDataQualityLabel = dataQualityLabel || (dataQuality ? getCoachDataQualityLabel(dataQuality) : undefined);
+    const scopeMessage = dataQualityMessage
+        || (dataQuality === 'partial' ? PARTIAL_SCOPE_MESSAGE : null);
+    const hasDisclosure = evidenceCount > 0
+        || Boolean(effectiveDataQualityLabel)
+        || Boolean(scopeMessage)
+        || Boolean(freshnessLabel)
+        || groupedEvidenceSources.length > 0;
+
+    if (!hasDisclosure) return null;
+
+    return (
+        <details
+            data-testid="coach-evidence-sources"
+            className={`group rounded-lg border border-slate-200 bg-white/60 dark:border-slate-700 dark:bg-white/[0.03] ${className}`}
+        >
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-12 font-extrabold text-slate-700 dark:text-white">
+                <PredictionCheckCircleIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-white" />
+                <span className="min-w-0 flex-1">분석에 반영한 정보</span>
+                <span data-testid="coach-evidence-count" className="shrink-0 text-slate-900 dark:text-white">
+                    {evidenceCount > 0 ? `${evidenceCount}건` : '확인 중'}
+                </span>
+                <span className="text-11 font-bold text-slate-400 group-open:hidden">보기</span>
+                <span className="hidden text-11 font-bold text-slate-400 group-open:inline">접기</span>
+            </summary>
+            <div className="space-y-3 px-3 pb-3 pt-1">
+                <div className="space-y-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-slate-700 dark:bg-white/[0.03]">
+                    {effectiveDataQualityLabel ? (
+                        <div className="flex items-center justify-between gap-3 text-12">
+                            <span className="font-bold text-slate-500 dark:text-white">분석 범위</span>
+                            <span className={`font-extrabold ${(dataQuality && DATA_QUALITY_TONE[dataQuality]?.row) || NEUTRAL_TONE.row}`}>
+                                {effectiveDataQualityLabel}
+                            </span>
+                        </div>
+                    ) : null}
+                    <div className="flex items-center justify-between gap-3 text-12">
+                        <span className="font-bold text-slate-500 dark:text-white">사용한 경기 정보</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">
+                            {evidenceCount > 0 ? `${evidenceCount}건` : '확인 중'}
+                        </span>
+                    </div>
+                    {freshnessLabel ? (
+                        <div className="flex items-center justify-between gap-3 text-12">
+                            <span className="font-bold text-slate-500 dark:text-white">갱신</span>
+                            <span className="font-extrabold text-slate-900 dark:text-white">
+                                {freshnessLabel}
+                            </span>
+                        </div>
+                    ) : null}
+                </div>
+                {scopeMessage ? (
+                    <p className="break-keep rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-12 font-bold leading-relaxed text-slate-600 dark:border-slate-700 dark:bg-white/[0.03] dark:text-white">
+                        {scopeMessage}
+                    </p>
+                ) : null}
+                {groupedEvidenceSources.map((group) => (
+                    <div
+                        key={group.category}
+                        className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"
+                    >
+                        <div className="bg-slate-50 px-2 py-1.5 text-11 font-extrabold text-slate-500 dark:bg-white/[0.05] dark:text-white">
+                            {group.title}
+                        </div>
+                        <ul className="space-y-1.5 px-2 py-1.5">
+                            {group.items.map((item) => (
+                                <li
+                                    key={item.code}
+                                    title={item.description}
+                                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-left dark:border-slate-700 dark:bg-white/[0.03]"
+                                >
+                                    <p className="text-12 font-extrabold text-slate-700 dark:text-white">
+                                        {item.label}
+                                    </p>
+                                    <p className="mt-0.5 break-keep text-[10.5px] font-medium leading-snug text-slate-500 dark:text-white">
+                                        {item.description}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+        </details>
+    );
 }
 
 interface SectionHeadingProps {
@@ -134,12 +270,18 @@ function SectionHeading({
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={chipStyle}>
                 <Icon aria-hidden="true" className="h-3.5 w-3.5" />
             </div>
-            <div className="min-w-0">
-                <h4 className="text-[15.5px] font-extrabold leading-tight" style={{ color: t.c1TextHeading }}>
+            <div className="min-w-0 flex-1">
+                <h4
+                    className="break-keep text-[15.5px] font-extrabold leading-snug tracking-normal"
+                    style={{ color: t.c1TextHeading, overflowWrap: 'anywhere' }}
+                >
                     {title}
                 </h4>
                 {subtitle && (
-                    <p className="mt-0.5 text-[12.5px] font-bold leading-snug" style={{ color: t.c1TextSub }}>
+                    <p
+                        className="mt-0.5 break-keep text-[12.5px] font-bold leading-snug tracking-normal"
+                        style={{ color: t.c1TextSub, overflowWrap: 'anywhere' }}
+                    >
                         {subtitle}
                     </p>
                 )}
@@ -180,7 +322,7 @@ function InsightCard({ icon: Icon, title, items, tone = 'default' }: InsightCard
     const cls = INSIGHT_TONE_CLS[tone];
     const iconStyle = tone === 'default' ? { color: t.c1InsDefIcon } : undefined;
     return (
-        <div className="space-y-2.5 rounded-[18px] border px-[18px] py-4" style={insightContainerStyle(tone, t)}>
+        <div className="space-y-2.5 rounded-18 border px-[18px] py-4" style={insightContainerStyle(tone, t)}>
             <div className="flex items-center gap-2">
                 <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${cls.icon}`} style={iconStyle} />
                 <h5 className="text-[13.5px] font-extrabold leading-tight" style={{ color: t.c1TextHeading }}>
@@ -245,6 +387,8 @@ function C1SummaryRail({
     analysisData,
     homeTeamId,
     awayTeamId,
+    homeRank,
+    awayRank,
     winProbabilityHome,
     isReviewMode,
     dataQualityLabel,
@@ -263,6 +407,8 @@ function C1SummaryRail({
     analysisData: CoachAnalysisData;
     homeTeamId?: string;
     awayTeamId?: string;
+    homeRank?: number | null;
+    awayRank?: number | null;
     winProbabilityHome: number | null;
     isReviewMode: boolean;
     dataQualityLabel?: string;
@@ -279,7 +425,6 @@ function C1SummaryRail({
     freshnessLabel?: string | null;
 }) {
     const t = getCoachTokens(useIsDark());
-    const [showAllEvidence, setShowAllEvidence] = useState(false);
     const winProbability = resolveWinProbabilityDisplay(winProbabilityHome);
     const homePct = winProbability?.homePct ?? null;
     const awayPct = winProbability?.awayPct ?? null;
@@ -292,24 +437,9 @@ function C1SummaryRail({
     const homeColor = getTeamColor(homeTeamId);
     const awayColor = getTeamColor(awayTeamId);
     const favoredColor = favoredIsHome ? homeColor : awayColor;
-    // 실데이터 근거 수(가짜 합산 제거): 검증 fact 수 우선, 없으면 근거 소스 수.
-    const evidenceCount = resolveEvidenceCount(supportedFactCount, usedEvidence);
-    const evidenceSources = resolveEvidenceSources(usedEvidence);
-    const coreEvidenceSources = pickCoreEvidenceCodes(evidenceSources, {
-        dataQuality,
-        groundingWarnings,
-        groundingReasons,
-    });
-    const hasCoreEvidenceTrim = evidenceSources.length > coreEvidenceSources.length;
-    const visibleEvidenceSources = (showAllEvidence && hasCoreEvidenceTrim)
-        ? evidenceSources
-        : coreEvidenceSources;
-    const displayEvidenceCount = hasCoreEvidenceTrim ? visibleEvidenceSources.length : evidenceSources.length;
-    const groupedEvidenceSources = getEvidenceSourceGroups(visibleEvidenceSources);
-    const evidenceSummaryCount = hasCoreEvidenceTrim && !showAllEvidence ? coreEvidenceSources.length : evidenceSources.length;
-    const summaryTitle = `핵심 근거 ${evidenceSummaryCount}개`;
-    const qualityRowTone = (dataQuality && DATA_QUALITY_TONE[dataQuality]?.row) || NEUTRAL_TONE.row;
-
+    const hasHomeRank = typeof homeRank === 'number' && Number.isFinite(homeRank) && homeRank > 0;
+    const hasAwayRank = typeof awayRank === 'number' && Number.isFinite(awayRank) && awayRank > 0;
+    const showRankBlock = hasHomeRank || hasAwayRank;
     // A3: 승률 큰 % + split 바 제거. versus hero 가 팀별 %를 소유하므로 사이드바는 한 줄 요약만.
     const favoredLine = diff === null
         ? `${favoredName} 흐름 분석`
@@ -323,18 +453,18 @@ function C1SummaryRail({
             style={{ borderColor: t.c1RailBorder, background: t.c1RailBg }}
         >
             <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-white">
+                <p className="text-11 font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-white">
                     {isReviewMode ? '경기 리뷰' : '예측 결과'}
                 </p>
                 {favoredPct !== null && (
                     <p
-                        className="mt-2 text-[32px] font-black leading-none tracking-[-0.04em]"
+                        className="mt-2 text-32 font-black leading-none tracking-[-0.04em]"
                         style={{ color: favoredColor }}
                     >
-                        {favoredPct}<span className="ml-0.5 text-[18px]">%</span>
+                        {favoredPct}<span className="ml-0.5 text-18">%</span>
                     </p>
                 )}
-                <p className="mt-1.5 text-[15px] font-black leading-snug text-slate-950 dark:text-white">
+                <p className="mt-1.5 text-15 font-black leading-snug text-slate-950 dark:text-white">
                     {favoredLine}
                 </p>
             </div>
@@ -361,47 +491,52 @@ function C1SummaryRail({
                 </div>
             )}
             <div className="mt-5 space-y-2">
-                <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-white">근거</span>
-                    <span data-testid="coach-evidence-count" className="font-extrabold text-slate-900 dark:text-white">
-                        {evidenceCount > 0 ? `${evidenceCount}건` : '확인 중'}
-                    </span>
-                </div>
-                <div className="flex items-center justify-between text-[13px]">
+                <div className="flex items-center justify-between text-13">
                     <span className="font-bold text-slate-500 dark:text-white">리스크</span>
                     <span className="font-extrabold text-slate-900 dark:text-white">
                         {analysisData.risks.length > 0 ? `${analysisData.risks.length}건` : '없음'}
                     </span>
                 </div>
-                <div className="flex items-center justify-between text-[13px]">
+                <div className="flex items-center justify-between text-13">
                     <span className="font-bold text-slate-500 dark:text-white">상태</span>
                     <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
                         {isReviewMode ? '실경기 기반' : '경기 전'}
                     </span>
                 </div>
-                {dataQualityLabel && (
-                    <div className="flex items-center justify-between text-[13px]">
-                        <span className="font-bold text-slate-500 dark:text-white">데이터</span>
-                        <span className={`font-extrabold ${qualityRowTone}`}>{dataQualityLabel}</span>
-                    </div>
-                )}
-                <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-bold text-slate-500 dark:text-white">갱신</span>
-                    <span className="font-extrabold text-slate-900 dark:text-white">
-                        {freshnessLabel || '최신 갱신'}
-                    </span>
-                </div>
             </div>
-            {generationMode === 'evidence_fallback' && (
-                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-amber-700 dark:text-amber-300">
-                    근거가 제한적이라 보수적으로 요약했습니다.
-                </p>
+            {showRankBlock && (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="mb-2 text-11 font-extrabold uppercase tracking-[0.04em] text-slate-500 dark:text-white">
+                        현재 순위
+                    </p>
+                    <div className="space-y-1.5">
+                        {hasHomeRank && (
+                            <div className="flex items-center justify-between text-13">
+                                <span className="font-bold text-slate-500 dark:text-white">{homeName} 순위</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white">{homeRank}위</span>
+                            </div>
+                        )}
+                        {hasAwayRank && (
+                            <div className="flex items-center justify-between text-13">
+                                <span className="font-bold text-slate-500 dark:text-white">{awayName} 순위</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white">{awayRank}위</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
-            {dataQualityMessage && (
-                <p className="mt-2 break-keep text-[12px] font-bold leading-relaxed text-slate-500 dark:text-white">
-                    {dataQualityMessage}
-                </p>
-            )}
+            <CoachEvidenceDisclosure
+                className="mt-4"
+                dataQualityLabel={dataQualityLabel}
+                dataQualityMessage={dataQualityMessage}
+                dataQuality={dataQuality}
+                generationMode={generationMode}
+                supportedFactCount={supportedFactCount}
+                usedEvidence={usedEvidence}
+                groundingWarnings={groundingWarnings}
+                groundingReasons={groundingReasons}
+                freshnessLabel={freshnessLabel}
+            />
             <div className="my-4 h-px bg-slate-200 dark:bg-slate-700" />
             {/* A1: 실제 존재 섹션과 1:1, 클릭 점프 + scroll-spy active */}
             <nav className="space-y-1" aria-label="섹션 이동">
@@ -414,7 +549,7 @@ function C1SummaryRail({
                             type="button"
                             onClick={() => onJump(item.id)}
                             aria-current={active ? 'location' : undefined}
-                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-extrabold transition-colors ${
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-13 font-extrabold transition-colors ${
                                 active
                                     ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100'
                                     : 'text-slate-600 hover:bg-slate-100 dark:text-white dark:hover:bg-white/5'
@@ -423,7 +558,7 @@ function C1SummaryRail({
                             <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                             {item.count !== null && (
-                                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-black text-slate-600 dark:bg-slate-700 dark:text-white">
+                                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-10 font-black text-slate-600 dark:bg-slate-700 dark:text-white">
                                     {item.count}
                                 </span>
                             )}
@@ -431,69 +566,6 @@ function C1SummaryRail({
                     );
                 })}
             </nav>
-            {evidenceSources.length > 0 && (
-                <details
-                    data-testid="coach-evidence-sources"
-                    className="group mt-4 rounded-lg border border-slate-200 bg-white/60 dark:border-slate-700 dark:bg-white/[0.03]"
-                    open={showAllEvidence}
-                    onToggle={(event) => {
-                        const nextOpen = (event.currentTarget as HTMLDetailsElement).open;
-                        setShowAllEvidence(nextOpen);
-                    }}
-                >
-                    <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12px] font-extrabold text-slate-600 dark:text-white">
-                        <span className="flex-1">{summaryTitle}</span>
-                        {hasCoreEvidenceTrim ? (
-                            <span className="text-[11px] font-bold text-slate-400 group-open:hidden">
-                                전체 보기
-                            </span>
-                        ) : null}
-                        {hasCoreEvidenceTrim ? (
-                            <span className="hidden text-[11px] font-bold text-slate-400 group-open:inline">
-                                핵심 근거만
-                            </span>
-                        ) : null}
-                    </summary>
-                    <div className="space-y-2 px-3 pb-3 pt-1">
-                        {!showAllEvidence && hasCoreEvidenceTrim ? (
-                            <p className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] font-bold leading-tight text-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
-                                근거 품질 제약으로 핵심 항목 위주로 먼저 노출합니다.
-                            </p>
-                        ) : null}
-                        {groupedEvidenceSources.map((group) => (
-                            <div
-                                key={group.category}
-                                className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"
-                            >
-                                <div className="bg-slate-50 px-2 py-1.5 text-[11px] font-extrabold text-slate-500 dark:bg-white/[0.05] dark:text-white">
-                                    {group.title}
-                                </div>
-                                <ul className="space-y-1.5 px-2 py-1.5">
-                                    {group.items.map((item) => (
-                                        <li
-                                            key={item.code}
-                                            title={item.description}
-                                            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-left dark:border-slate-700 dark:bg-white/[0.03]"
-                                        >
-                                            <p className="text-[12px] font-extrabold text-slate-700 dark:text-white">
-                                                {item.label}
-                                            </p>
-                                            <p className="mt-0.5 break-keep text-[10.5px] font-medium leading-snug text-slate-500 dark:text-white">
-                                                {item.description}
-                                            </p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                        {displayEvidenceCount === 0 ? (
-                            <p className="rounded-md border border-amber-100 px-2 py-1.5 text-[11px] font-bold text-amber-700 dark:border-amber-900/30 dark:text-amber-200">
-                                표시 가능한 핵심 근거가 부족해 요약만 노출합니다.
-                            </p>
-                        ) : null}
-                    </div>
-                </details>
-            )}
         </aside>
     );
 }
@@ -502,11 +574,15 @@ function C1VersusHero({
     analysisData,
     homeTeamId,
     awayTeamId,
+    homeScore,
+    awayScore,
     winProbabilityHome,
 }: {
     analysisData: CoachAnalysisData;
     homeTeamId?: string;
     awayTeamId?: string;
+    homeScore?: number | string | null;
+    awayScore?: number | string | null;
     winProbabilityHome: number | null;
 }) {
     const t = getCoachTokens(useIsDark());
@@ -514,7 +590,12 @@ function C1VersusHero({
     const winProbability = resolveWinProbabilityDisplay(winProbabilityHome);
     const homePct = winProbability?.homePct ?? null;
     const awayPct = winProbability?.awayPct ?? null;
-    const favoredIsHome = winProbability ? winProbability.favoredSide === 'home' : analysisData.dashboard.sentiment !== 'negative';
+    const fallbackFavoredIsHome = winProbability ? winProbability.favoredSide === 'home' : analysisData.dashboard.sentiment !== 'negative';
+    const reviewOutcome = resolveCoachReviewOutcome({
+        gameStatusBucket: analysisData.game_status_bucket,
+        homeScore,
+        awayScore,
+    });
     const homeName = shortTeamName(homeTeamId) || '홈팀';
     const awayName = shortTeamName(awayTeamId) || '원정팀';
     const signals = buildSignals(analysisData);
@@ -527,80 +608,110 @@ function C1VersusHero({
         name,
         pct,
         isWinner,
+        outcome,
         rows,
     }: {
         teamId?: string;
         name: string;
         pct: number | null;
         isWinner: boolean;
+        outcome: CoachReviewOutcomeSide | null;
         rows: SignalItem[];
-    }) => (
-        <div
-            className="flex flex-col gap-4 p-[22px]"
-            style={{
-                background: isWinner
-                    ? `linear-gradient(to bottom, ${t.c1HeroWinnerFrom}, ${t.c1HeroWinnerTo})`
-                    : t.c1HeroLoserBg,
-            }}
-        >
-            <div className="flex items-center gap-2.5 text-[16px] font-black" style={{ color: t.c1TextStrong }}>
-                {teamId && <TeamLogo teamId={teamId} size={32} className="!rounded-none !bg-transparent p-0" />}
-                <span className="min-w-0 truncate">{name}</span>
-            </div>
-            <div className="text-[38px] font-black leading-none" style={{ color: isWinner ? IMPACT.away : IMPACT.home }}>
-                {pct === null ? '--' : pct}
-                {pct !== null && <span className="ml-0.5 text-[18px]">%</span>}
-            </div>
-            {rows.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                    {rows.slice(0, 2).map((row, idx) => (
-                        <span
-                            key={`${name}-tag-${row.label}-${idx}`}
-                            className="rounded-full px-2 py-1 text-[11.5px] font-extrabold"
-                            style={isWinner
-                                ? { background: t.c1TagWinBg, color: t.c1TagWinFg }
-                                : { background: t.c1TagLoseBg, color: t.c1TagLoseFg }}
+    }) => {
+        const isResultWinner = outcome === 'win';
+        const shouldHighlight = reviewOutcome ? isResultWinner : isWinner;
+        const outcomeColor = outcome === 'win'
+            ? t.c1TagWinFg
+            : outcome === 'loss'
+                ? t.c1TagLoseFg
+                : t.c1TextSub;
+
+        return (
+            <div
+                className="min-w-0 flex flex-col gap-4 p-4 sm:p-[22px]"
+                style={{
+                    background: shouldHighlight
+                        ? `linear-gradient(to bottom, ${t.c1HeroWinnerFrom}, ${t.c1HeroWinnerTo})`
+                        : t.c1HeroLoserBg,
+                }}
+            >
+                <div className="flex min-w-0 items-center gap-2.5 text-body font-black tracking-normal" style={{ color: t.c1TextStrong }}>
+                    {teamId && <TeamLogo teamId={teamId} size={32} className="!rounded-none !bg-transparent p-0" />}
+                    <span className="min-w-0 break-keep leading-tight" style={{ overflowWrap: 'anywhere' }}>{name}</span>
+                </div>
+                <div
+                    className="text-38 font-black leading-none"
+                    style={{ color: outcome ? outcomeColor : (isWinner ? IMPACT.away : IMPACT.home) }}
+                >
+                    {outcome ? getCoachReviewOutcomeLabel(outcome) : (pct === null ? '--' : pct)}
+                    {!outcome && pct !== null && <span className="ml-0.5 text-18">%</span>}
+                </div>
+                {outcome && pct !== null && (
+                    <div className="text-[12.5px] font-extrabold leading-tight" style={{ color: t.c1TextSub }}>
+                        예측 승률 {pct}%
+                    </div>
+                )}
+                {rows.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {rows.slice(0, 2).map((row, idx) => (
+                            <span
+                                key={`${name}-tag-${row.label}-${idx}`}
+                                className="rounded-full px-2 py-1 text-[11.5px] font-extrabold"
+                                style={shouldHighlight
+                                    ? { background: t.c1TagWinBg, color: t.c1TagWinFg }
+                                    : { background: t.c1TagLoseBg, color: t.c1TagLoseFg }}
+                            >
+                                {row.label || row.value}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                <div className="h-px" style={{ background: t.c1HeroInnerDivider }} />
+                <div>
+                    {(rows.length > 0 ? rows : [{ label: '분석', value: analysisData.dashboard.sentiment, detail: analysisData.dashboard.context, tone: 'neutral' as const }]).map((row, idx) => (
+                        <div
+                            key={`${name}-row-${row.label}-${idx}`}
+                            className="grid grid-cols-[minmax(0,4.5rem)_minmax(0,1fr)] items-start gap-3 border-t border-dashed py-2 text-13 font-bold first:border-t-0"
+                            style={{ borderColor: t.c1HeroRowBorder }}
                         >
-                            {row.label || row.value}
-                        </span>
+                            <span
+                                className="min-w-0 break-keep leading-snug"
+                                style={{ color: t.c1TextSub, overflowWrap: 'anywhere' }}
+                            >
+                                {row.label}
+                            </span>
+                            <span
+                                className="min-w-0 break-keep text-right leading-snug"
+                                style={{
+                                    color: row.tone === 'success' ? IMPACT.away : row.tone === 'danger' ? IMPACT.home : t.c1TextStrong,
+                                    overflowWrap: 'anywhere',
+                                }}
+                            >
+                                {row.value}
+                            </span>
+                        </div>
                     ))}
                 </div>
-            )}
-            <div className="h-px" style={{ background: t.c1HeroInnerDivider }} />
-            <div>
-                {(rows.length > 0 ? rows : [{ label: '분석', value: analysisData.dashboard.sentiment, detail: analysisData.dashboard.context, tone: 'neutral' as const }]).map((row, idx) => (
-                    <div
-                        key={`${name}-row-${row.label}-${idx}`}
-                        className="flex items-center justify-between gap-3 border-t border-dashed py-2 text-[13px] font-bold first:border-t-0"
-                        style={{ borderColor: t.c1HeroRowBorder }}
-                    >
-                        <span className="min-w-0 truncate" style={{ color: t.c1TextSub }}>{row.label}</span>
-                        <span
-                            className="shrink-0 text-right"
-                            style={{ color: row.tone === 'success' ? IMPACT.away : row.tone === 'danger' ? IMPACT.home : t.c1TextStrong }}
-                        >
-                            {row.value}
-                        </span>
-                    </div>
-                ))}
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <section
-            className="versus grid overflow-hidden rounded-[20px] border md:grid-cols-[1fr_64px_1fr]"
+            data-testid="coach-c1-versus-hero"
+            className="versus grid min-w-0 overflow-hidden rounded-20 border md:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)]"
             style={{ borderColor: t.c1HeroOuterBorder, background: t.c1HeroCardBg }}
         >
             {renderTeamColumn({
                 teamId: homeTeamId,
                 name: homeName,
                 pct: homePct,
-                isWinner: favoredIsHome,
+                isWinner: reviewOutcome ? reviewOutcome.home === 'win' : fallbackFavoredIsHome,
+                outcome: reviewOutcome?.home ?? null,
                 rows: homeRows,
             })}
             <div
-                className="flex items-center justify-center border-y px-3 py-2 font-serif text-[20px] font-bold italic md:border-x md:border-y-0"
+                className="flex items-center justify-center border-y px-3 py-2 font-serif text-20 font-bold italic md:border-x md:border-y-0"
                 style={{ borderColor: t.c1HeroVsBorder, background: t.c1HeroVsBg, color: t.c1TextSub }}
             >
                 VS
@@ -609,7 +720,8 @@ function C1VersusHero({
                 teamId: awayTeamId,
                 name: awayName,
                 pct: awayPct,
-                isWinner: !favoredIsHome,
+                isWinner: reviewOutcome ? reviewOutcome.away === 'win' : !fallbackFavoredIsHome,
+                outcome: reviewOutcome?.away ?? null,
                 rows: awayRows,
             })}
         </section>
@@ -670,6 +782,10 @@ export default function CoachAnalysisResultView({
     analysisData,
     homeTeamId,
     awayTeamId,
+    homeScore,
+    awayScore,
+    homeRank,
+    awayRank,
     winProbabilityHome = null,
     dataQualityLabel,
     dataQualityMessage,
@@ -682,12 +798,10 @@ export default function CoachAnalysisResultView({
     freshnessLabel,
 }: CoachAnalysisResultViewProps) {
     const isMobileSheet = useMediaQuery('(max-width: 640px)');
-    const isReviewMode = analysisData?.game_status_bucket === 'COMPLETED';
+    // 상세 리포트(react-markdown)는 사용자가 펼친 뒤에만 마운트/로드한다(한 번 열리면 유지).
+    const [detailReportOpened, setDetailReportOpened] = useState(false);
+    const isReviewMode = isCoachCompletedStatusBucket(analysisData?.game_status_bucket);
     const isPositive = analysisData?.dashboard.sentiment === 'positive';
-    // 근거 신뢰 칩: 실데이터 근거 수 + 데이터 품질 라벨. 둘 다 없으면 미렌더.
-    const evidenceCount = resolveEvidenceCount(supportedFactCount, usedEvidence);
-    const evidenceChipTone = (dataQuality && DATA_QUALITY_TONE[dataQuality]?.chip) || NEUTRAL_TONE.chip;
-    const showEvidenceChip = evidenceCount > 0 || Boolean(dataQualityLabel);
     const hasDetailedReport = Boolean(analysisData?.detailed_analysis) || Boolean(analysisData?.coach_note);
     const hasRisks = Boolean(analysisData && analysisData.risks.length > 0);
     const verdictText = analysisData
@@ -730,6 +844,8 @@ export default function CoachAnalysisResultView({
                     analysisData={analysisData}
                     homeTeamId={homeTeamId}
                     awayTeamId={awayTeamId}
+                    homeRank={homeRank}
+                    awayRank={awayRank}
                     winProbabilityHome={safeWinProbabilityHome}
                     isReviewMode={isReviewMode}
                     dataQualityLabel={dataQualityLabel}
@@ -748,22 +864,13 @@ export default function CoachAnalysisResultView({
                 )}
 
                 <div className="r3-body min-w-0 p-4 sm:p-6">
-                    {/* 근거 투명성 칩: AI 환각이 아닌 실데이터 기반임을 첫 시선 위치에서 신호 */}
-                    {showEvidenceChip && (
-                        <span
-                            data-testid="coach-evidence-chip"
-                            className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-extrabold ${evidenceChipTone}`}
-                        >
-                            <PredictionCheckCircleIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                            {evidenceCount > 0 ? `${evidenceCount}개 실데이터 근거` : '실데이터 근거'}
-                            {dataQualityLabel && <span className="opacity-70">· {dataQualityLabel}</span>}
-                        </span>
-                    )}
-
                     {/* A2: 핵심 결론 한 줄 — 첫 시선 집중 */}
-                    <p className={`mb-4 break-keep text-[17px] font-black leading-snug tracking-[-0.01em] sm:text-[19px] ${
+                    <p
+                        className={`mb-4 min-w-0 break-keep text-16 font-extrabold leading-[1.35] tracking-normal sm:text-18 ${
                         isPositive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
-                    }`}>
+                    }`}
+                        style={{ overflowWrap: 'anywhere', textWrap: 'balance' }}
+                    >
                         {analysisData.dashboard.headline}
                     </p>
 
@@ -781,8 +888,25 @@ export default function CoachAnalysisResultView({
                         analysisData={analysisData}
                         homeTeamId={homeTeamId}
                         awayTeamId={awayTeamId}
+                        homeScore={homeScore}
+                        awayScore={awayScore}
                         winProbabilityHome={safeWinProbabilityHome}
                     />
+
+                    {isMobileSheet && (
+                        <CoachEvidenceDisclosure
+                            className="mt-4"
+                            dataQualityLabel={dataQualityLabel}
+                            dataQualityMessage={dataQualityMessage}
+                            dataQuality={dataQuality}
+                            generationMode={generationMode}
+                            supportedFactCount={supportedFactCount}
+                            usedEvidence={usedEvidence}
+                            groundingWarnings={groundingWarnings}
+                            groundingReasons={groundingReasons}
+                            freshnessLabel={freshnessLabel}
+                        />
+                    )}
 
                     {/* A2: 균일 리듬 → 1차 섹션 사이 큰 여백(mt-9)으로 그룹 경계 강화 */}
                     <section id={SEC.verdict} data-testid="coach-section-verdict" aria-label="코치 판단" className="mt-9 scroll-mt-4 space-y-3">
@@ -868,25 +992,36 @@ export default function CoachAnalysisResultView({
                     {hasDetailedReport && (
                         <section id={SEC.detail} data-testid="coach-section-detail" aria-label="상세 리포트" className="mt-9 scroll-mt-4">
                             {/* A2: 길고 밀도 높은 원문은 기본 접기 — 첫 스캔 부담 제거 */}
-                            <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
-                                <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-[15px] font-extrabold text-slate-950 dark:text-white">
+                            <details
+                                className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950"
+                                onToggle={(e) => {
+                                    if (e.currentTarget.open) {
+                                        setDetailReportOpened(true);
+                                    }
+                                }}
+                            >
+                                <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-15 font-extrabold text-slate-950 dark:text-white">
                                     <PredictionBarChartIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-blue-500 dark:text-blue-300" />
                                     <span className="flex-1">상세 리포트</span>
                                     <span className="text-[12.5px] font-bold text-slate-500 dark:text-white group-open:hidden">원문 분석 보기</span>
                                     <span className="hidden text-[12.5px] font-bold text-slate-500 dark:text-white group-open:inline">접기</span>
                                 </summary>
                                 <div className="space-y-4 px-5 pb-5 pt-1">
-                                    {analysisData.detailed_analysis && (
-                                        <CoachMarkdown>{analysisData.detailed_analysis}</CoachMarkdown>
-                                    )}
-                                    {analysisData.coach_note && (
-                                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                                            <div className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-slate-950 dark:text-white">
-                                                <PredictionCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                                                코치의 한마디
-                                            </div>
-                                            <CoachMarkdown>{analysisData.coach_note}</CoachMarkdown>
-                                        </div>
+                                    {detailReportOpened && (
+                                        <Suspense fallback={<div className="px-1 py-2 text-13 text-slate-500 dark:text-white">불러오는 중…</div>}>
+                                            {analysisData.detailed_analysis && (
+                                                <CoachMarkdown>{analysisData.detailed_analysis}</CoachMarkdown>
+                                            )}
+                                            {analysisData.coach_note && (
+                                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                                                    <div className="mb-3 flex items-center gap-2 text-15 font-extrabold text-slate-950 dark:text-white">
+                                                        <PredictionCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                                                        코치의 한마디
+                                                    </div>
+                                                    <CoachMarkdown>{analysisData.coach_note}</CoachMarkdown>
+                                                </div>
+                                            )}
+                                        </Suspense>
                                     )}
                                 </div>
                             </details>

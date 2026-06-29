@@ -8,7 +8,6 @@ import {
   setMatePartyDetailQueryData,
 } from './mateQueryCache';
 import { useMateCreateDraft } from './useMateCreateDraft';
-import { mapBackendPartyToFrontend } from '../utils/mate';
 import { STADIUMS, TEAMS } from '../utils/constants';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import type { MateCreateFormErrors, PartyFormData } from '../utils/mateCreateDraft';
@@ -383,6 +382,7 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
         awayTeam: formData.awayTeam,
         cheeringSide: formData.cheeringSide,
         section: composeSection(formData),
+        seatDetail: formData.seatDetail || undefined,
         maxParticipants: formData.maxParticipants,
         description: formData.description,
         ticketPrice: formData.ticketPrice,
@@ -392,12 +392,11 @@ export function useMateCreateMachine(): UseMateCreateMachineReturn {
       };
 
       const createdParty = await createParty(partyData);
-      const frontendParty = mapBackendPartyToFrontend(createdParty);
-      setMatePartyDetailQueryData(queryClient, frontendParty);
+      setMatePartyDetailQueryData(queryClient, createdParty);
       void invalidateMateCollectionQueries(queryClient);
       resetForm();
 
-      setCreatedPartyId(frontendParty.id ?? null);
+      setCreatedPartyId(createdParty.id ?? null);
       verificationTokenRef.current = null;
       clearError();
     } catch (error) {

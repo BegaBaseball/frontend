@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
+  escapeHtml,
   indexableRoutes,
   robotsDisallow,
   siteUrl as defaultSiteUrl,
@@ -32,6 +34,14 @@ const normalizePathname = (value) => {
 const buildUrl = (baseUrl, routePath) => (
   normalizePathname(routePath) === '/' ? baseUrl : `${baseUrl}${normalizePathname(routePath)}`
 );
+const isLoopbackBaseUrl = (value) => {
+  try {
+    const hostname = new URL(value).hostname.replace(/^\[/, '').replace(/\]$/, '');
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+};
 const buildRouteCandidates = (baseUrl, routePath) => {
   const normalized = normalizePathname(routePath);
   if (normalized === '/') {
@@ -53,8 +63,6 @@ const expectedSiteUrl = normalizeSiteUrl(
 );
 const googleSiteVerification = String(process.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
 const naverSiteVerification = String(process.env.VITE_NAVER_SITE_VERIFICATION || '').trim();
-const hasGoogleSiteVerification = Boolean(googleSiteVerification);
-const hasNaverSiteVerification = Boolean(naverSiteVerification);
 
 const checks = [];
 const failures = [];
@@ -64,6 +72,7 @@ const routeChecks = [];
 const addCheck = (message) => checks.push(message);
 const addFailure = (message) => failures.push(message);
 const addWarning = (message) => warnings.push(message);
+const OG_IMAGE_PATH = '/favicon.png';
 
 const fetchWithTimeout = async (url) => {
   const controller = new AbortController();
@@ -89,55 +98,223 @@ const readTextOrFail = async (response, label) => {
   return response.text();
 };
 
-const validateHeadTags = (html, routePath) => {
+const parseAttributes = (tag) => {
+  const openTag = tag.match(/^<[^>]+>/)?.[0] ?? tag;
+  const attrSource = openTag
+    .replace(/^<\s*\/?\s*[^\s>/]+/i, '')
+    .replace(/\/?\s*>$/i, '');
+  const attrs = new Map();
+  const attrRegex = /([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match;
+
+  while ((match = attrRegex.exec(attrSource)) !== null) {
+    attrs.set(match[1].toLowerCase(), match[2] ?? match[3] ?? match[4] ?? '');
+  }
+
+  return attrs;
+};
+
+const findVoidTags = (html, tagName) => (
+  [...html.matchAll(new RegExp(`<${tagName}\\b[^>]*>`, 'gi'))].map((match) => match[0])
+);
+
+const findElementTags = (html, tagName) => (
+  [...html.matchAll(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'gi'))].map((match) => match[0])
+);
+
+const getAttr = (tag, attrName) => parseAttributes(tag).get(attrName.toLowerCase()) ?? '';
+
+const findMetaByName = (html, name) => (
+  findVoidTags(html, 'meta').filter((tag) => getAttr(tag, 'name').toLowerCase() === name.toLowerCase())
+);
+
+const findMetaByProperty = (html, property) => (
+  findVoidTags(html, 'meta').filter((tag) => getAttr(tag, 'property').toLowerCase() === property.toLowerCase())
+);
+
+const findCanonicalLinks = (html) => (
+  findVoidTags(html, 'link').filter((tag) => (
+    getAttr(tag, 'rel').split(/\s+/).map((value) => value.toLowerCase()).includes('canonical')
+  ))
+);
+
+const assertSingleTagValue = (messages, tags, label, attrName, expectedValue) => {
+  if (tags.length !== 1) {
+    messages.push(`${label} 태그 수 불일치(expected=1, actual=${tags.length})`);
+    return;
+  }
+
+  const actualValue = getAttr(tags[0], attrName);
+  if (actualValue !== expectedValue) {
+    messages.push(`${label} 값 불일치(expected=${expectedValue}, actual=${actualValue})`);
+  }
+};
+
+const stableJson = (value) => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+};
+
+const buildExpectedJsonLd = (route, expectedSiteUrl) => {
+  const canonicalUrl = buildUrl(expectedSiteUrl, route.path);
+  const webPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: route.title,
+    description: route.description,
+    url: canonicalUrl,
+    inLanguage: 'ko-KR',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'BEGA',
+      url: expectedSiteUrl,
+    },
+  };
+
+  if (route.schemaType === 'home') {
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'BEGA',
+        url: expectedSiteUrl,
+        logo: `${expectedSiteUrl}${OG_IMAGE_PATH}`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'BEGA',
+        url: expectedSiteUrl,
+        inLanguage: 'ko-KR',
+      },
+      webPage,
+    ];
+  }
+
+  return [webPage];
+};
+
+const getElementInnerHtml = (tag) => tag.replace(/^<[^>]+>/, '').replace(/<\/[^>]+>$/i, '');
+
+const getSingleElementText = (html, tagName) => {
+  const tags = findElementTags(html, tagName);
+  return tags.length === 1 ? getElementInnerHtml(tags[0]).trim() : null;
+};
+
+const getSingleMetaContent = (html, name) => {
+  const tags = findMetaByName(html, name);
+  return tags.length === 1 ? getAttr(tags[0], 'content') : null;
+};
+
+export const summarizeHtmlContract = (html) => {
+  const canonicalLinks = findCanonicalLinks(html);
+  const jsonLdTags = findElementTags(html, 'script').filter(
+    (tag) => getAttr(tag, 'type').toLowerCase() === 'application/ld+json',
+  );
+
+  return {
+    title: getSingleElementText(html, 'title'),
+    description: getSingleMetaContent(html, 'description'),
+    robots: getSingleMetaContent(html, 'robots'),
+    canonical: canonicalLinks.length === 1 ? getAttr(canonicalLinks[0], 'href') : null,
+    h1: getSingleElementText(html, 'h1'),
+    jsonLdCount: jsonLdTags.length,
+    hasPrerenderMarker: html.includes('data-seo-prerender="true"'),
+  };
+};
+
+export const validatePrerenderedHtmlContract = (html, route, options = {}) => {
   const messages = [];
-  const canonical = buildUrl(expectedSiteUrl, routePath);
-  if (!/<title>[\s\S]*?<\/title>/i.test(html)) {
-    messages.push('title 누락');
-  }
-  if (!/<meta name="description" content="[^"]+"/i.test(html)) {
-    messages.push('description 누락');
-  }
-  if (!new RegExp(`<link rel="canonical" href="${canonical.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}">`, 'i').test(html)) {
-    messages.push('canonical 누락/불일치');
-  }
-  if (!/<meta property="og:title" content="[^"]+"/i.test(html)) {
-    messages.push('og:title 누락');
-  }
-  if (!/<meta property="og:description" content="[^"]+"/i.test(html)) {
-    messages.push('og:description 누락');
-  }
-  if (!/<meta property="og:image" content="[^"]+"/i.test(html)) {
-    messages.push('og:image 누락');
-  }
-  if (!/<script type="application\/ld\+json"/i.test(html)) {
-    messages.push('JSON-LD 누락');
-  }
-  if (!/<h1[\s>]/i.test(html)) {
-    messages.push('h1 누락');
-  }
+  const contractSiteUrl = normalizeSiteUrl(options.expectedSiteUrl || expectedSiteUrl);
+  const canonical = buildUrl(contractSiteUrl, route.path);
+  const ogImage = `${contractSiteUrl}${OG_IMAGE_PATH}`;
+  const googleVerification = String(options.googleSiteVerification ?? googleSiteVerification).trim();
+  const naverVerification = String(options.naverSiteVerification ?? naverSiteVerification).trim();
+
   if (html.includes('SEO_HEAD_SLOT') || html.includes('SEO_ROOT_SLOT')) {
     messages.push('SEO 슬롯 문자열 잔존');
   }
 
-  if (hasGoogleSiteVerification) {
-    const googleTag = html.match(/<meta\s+name=["']google-site-verification["'][^>]*>/i);
-    if (!googleTag) {
-      messages.push('google-site-verification 메타 누락');
-    } else if (!googleTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ||
-      googleTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] !== googleSiteVerification) {
-      messages.push('google-site-verification 메타 값 불일치');
+  const titleTags = findElementTags(html, 'title');
+  if (titleTags.length !== 1) {
+    messages.push(`title 태그 수 불일치(expected=1, actual=${titleTags.length})`);
+  } else {
+    const title = getElementInnerHtml(titleTags[0]).trim();
+    if (title !== escapeHtml(route.title)) {
+      messages.push(`title 값 불일치(expected=${route.title}, actual=${title})`);
     }
   }
 
-  if (hasNaverSiteVerification) {
-    const naverTag = html.match(/<meta\s+name=["']naver-site-verification["'][^>]*>/i);
-    if (!naverTag) {
-      messages.push('naver-site-verification 메타 누락');
-    } else if (!naverTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ||
-      naverTag[0].match(/content\s*=\s*["']([^"']+)["']/i)?.[1] !== naverSiteVerification) {
-      messages.push('naver-site-verification 메타 값 불일치');
+  assertSingleTagValue(messages, findMetaByName(html, 'description'), 'description', 'content', escapeHtml(route.description));
+  assertSingleTagValue(messages, findMetaByName(html, 'robots'), 'robots', 'content', 'index,follow');
+  assertSingleTagValue(messages, findCanonicalLinks(html), 'canonical', 'href', canonical);
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:type'), 'og:type', 'content', 'website');
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:title'), 'og:title', 'content', escapeHtml(route.title));
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:description'), 'og:description', 'content', escapeHtml(route.description));
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:url'), 'og:url', 'content', canonical);
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:image'), 'og:image', 'content', ogImage);
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:site_name'), 'og:site_name', 'content', 'BEGA');
+  assertSingleTagValue(messages, findMetaByProperty(html, 'og:locale'), 'og:locale', 'content', 'ko_KR');
+  assertSingleTagValue(messages, findMetaByName(html, 'twitter:card'), 'twitter:card', 'content', 'summary_large_image');
+  assertSingleTagValue(messages, findMetaByName(html, 'twitter:title'), 'twitter:title', 'content', escapeHtml(route.title));
+  assertSingleTagValue(messages, findMetaByName(html, 'twitter:description'), 'twitter:description', 'content', escapeHtml(route.description));
+  assertSingleTagValue(messages, findMetaByName(html, 'twitter:image'), 'twitter:image', 'content', ogImage);
+
+  const jsonLdTags = findElementTags(html, 'script').filter(
+    (tag) => getAttr(tag, 'type').toLowerCase() === 'application/ld+json',
+  );
+  const expectedJsonLd = buildExpectedJsonLd(route, contractSiteUrl);
+  if (jsonLdTags.length !== expectedJsonLd.length) {
+    messages.push(`JSON-LD 태그 수 불일치(expected=${expectedJsonLd.length}, actual=${jsonLdTags.length})`);
+  }
+  jsonLdTags.forEach((tag, index) => {
+    try {
+      const parsed = JSON.parse(getElementInnerHtml(tag).trim());
+      if (expectedJsonLd[index] && stableJson(parsed) !== stableJson(expectedJsonLd[index])) {
+        messages.push(`JSON-LD[${index}] 값 불일치`);
+      }
+    } catch (error) {
+      messages.push(`JSON-LD[${index}] 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
     }
+  });
+
+  if (!html.includes('data-seo-prerender="true"')) {
+    messages.push('SEO 프리렌더 본문 마커 누락');
+  }
+
+  const h1Tags = findElementTags(html, 'h1');
+  if (h1Tags.length !== 1) {
+    messages.push(`h1 태그 수 불일치(expected=1, actual=${h1Tags.length})`);
+  } else {
+    const h1 = getElementInnerHtml(h1Tags[0]).trim();
+    if (h1 !== escapeHtml(route.heading)) {
+      messages.push(`h1 값 불일치(expected=${route.heading}, actual=${h1})`);
+    }
+  }
+
+  if (googleVerification) {
+    assertSingleTagValue(
+      messages,
+      findMetaByName(html, 'google-site-verification'),
+      'google-site-verification',
+      'content',
+      escapeHtml(googleVerification),
+    );
+  }
+
+  if (naverVerification) {
+    assertSingleTagValue(
+      messages,
+      findMetaByName(html, 'naver-site-verification'),
+      'naver-site-verification',
+      'content',
+      escapeHtml(naverVerification),
+    );
   }
   return messages;
 };
@@ -207,36 +384,64 @@ const main = async () => {
 
   for (const route of indexableRoutes) {
     const candidates = buildRouteCandidates(baseUrl, route.path);
-    const routeResult = { path: route.path, url: candidates[0], ok: false, status: 0, failures: [] };
-    const candidateFailures = [];
+    const routeResult = { path: route.path, url: candidates[0], ok: false, status: 0, failures: [], candidates: [] };
 
     for (const candidateUrl of candidates) {
+      const candidateResult = {
+        url: candidateUrl,
+        finalUrl: candidateUrl,
+        ok: false,
+        status: 0,
+        failures: [],
+      };
+
       try {
         const response = await fetchWithTimeout(candidateUrl);
-        routeResult.status = response.status;
+        candidateResult.status = response.status;
+        candidateResult.finalUrl = response.url;
         if (!response.ok) {
-          candidateFailures.push(`${candidateUrl} -> HTTP ${response.status}`);
+          candidateResult.failures.push(`HTTP ${response.status}`);
+          routeResult.candidates.push(candidateResult);
+          continue;
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.toLowerCase().includes('text/html')) {
+          candidateResult.failures.push(`content-type 불일치: ${contentType || '<empty>'}`);
+          routeResult.candidates.push(candidateResult);
           continue;
         }
 
         const html = await response.text();
-        const htmlFailures = validateHeadTags(html, route.path);
+        candidateResult.htmlSummary = summarizeHtmlContract(html);
+        const htmlFailures = validatePrerenderedHtmlContract(html, route, {
+          expectedSiteUrl,
+          googleSiteVerification,
+          naverSiteVerification,
+        });
         if (htmlFailures.length > 0) {
-          candidateFailures.push(`${candidateUrl} -> ${htmlFailures.join(', ')}`);
+          candidateResult.failures.push(...htmlFailures);
+          routeResult.candidates.push(candidateResult);
           continue;
         }
 
-        routeResult.ok = true;
-        routeResult.url = candidateUrl;
-        routeResult.failures = [];
-        break;
+        candidateResult.ok = true;
+        routeResult.candidates.push(candidateResult);
       } catch (error) {
-        candidateFailures.push(`${candidateUrl} -> ${error instanceof Error ? error.message : String(error)}`);
+        candidateResult.failures.push(error instanceof Error ? error.message : String(error));
+        routeResult.candidates.push(candidateResult);
       }
     }
 
+    routeResult.ok = routeResult.candidates.length === candidates.length &&
+      routeResult.candidates.every((candidate) => candidate.ok);
+    routeResult.status = routeResult.candidates[0]?.status || 0;
+    routeResult.url = routeResult.candidates[0]?.finalUrl || candidates[0];
+
     if (!routeResult.ok) {
-      routeResult.failures = candidateFailures;
+      routeResult.failures = routeResult.candidates.flatMap((candidate) => (
+        candidate.failures.map((failure) => `${candidate.url} -> ${failure}`)
+      ));
     }
 
     routeChecks.push(routeResult);
@@ -247,9 +452,18 @@ const main = async () => {
     }
   }
 
+  if (routeChecks.every((route) => route.ok)) {
+    addCheck('indexable route HTML contract가 SEO 정책/프리렌더 산출물과 일치');
+  }
+
   addWarning('Post-deploy smoke는 단기 상태 점검이며, CWV 평가는 별도 기준선 리포트를 사용합니다.');
   if (baseUrl !== expectedSiteUrl) {
     addWarning(`baseUrl(${baseUrl})과 expectedSiteUrl(${expectedSiteUrl})이 다릅니다.`);
+  }
+  if (isLoopbackBaseUrl(baseUrl)) {
+    addWarning(
+      '로컬 Vite preview는 Cloudflare Worker/static asset routing과 다르게 no-slash 경로를 root SPA HTML로 응답할 수 있습니다. route alias 검증은 wrangler/prod smoke를 기준으로 판단하세요.',
+    );
   }
 
   const result = {
@@ -286,7 +500,9 @@ const main = async () => {
   console.log(`[seo:smoke:prod] report: ${reportPath}`);
 };
 
-main().catch((error) => {
-  console.error(`[seo:smoke:prod] unexpected error: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(`[seo:smoke:prod] unexpected error: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  });
+}

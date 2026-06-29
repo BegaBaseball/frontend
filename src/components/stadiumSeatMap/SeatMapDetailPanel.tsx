@@ -62,7 +62,7 @@ function InfoTile({ label, value, mode }: { label: string; value: string; mode: 
       className="rounded-xl bg-slate-50 p-3"
       style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}
     >
-      <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{label}</div>
+      <div className="mb-1 text-10 font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{label}</div>
       <div className="text-base font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{value}</div>
     </div>
   );
@@ -136,14 +136,14 @@ export function SeatMapDetailPanel<TSection>({
 
         <div className="mb-2 flex flex-wrap items-center gap-2 pr-10">
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-11 font-bold"
             style={{ background: `${accent}22`, color: accent }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
             {category.label} · {adapter.getLevel(section)}
           </span>
           <span
-            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold"
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-11 font-bold"
             style={{ background: `${accent}22`, color: accent }}
           >
             {adapter.getSourceLabel(section)}
@@ -181,25 +181,25 @@ export function SeatMapDetailPanel<TSection>({
       {extraMeta?.(section, accent)}
 
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800" style={{ borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.border : undefined }}>
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">
           {copy?.officialBlocksTitle ?? '공식 블록 묶음'}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {adapter.getOfficialBlocks(section).map((block) => (
             <span
               key={block}
-              className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+              className="rounded-full border px-2.5 py-1 text-11 font-bold"
               style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}
             >
               {block}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
           {adapter.getSourceNote(section)}
         </p>
         {accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {accessibilityNote}
           </p>
         )}
@@ -213,7 +213,7 @@ export function SeatMapDetailPanel<TSection>({
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                  className="rounded-full border px-2.5 py-1 text-11 font-bold"
                   style={{ background: `${accent}1a`, borderColor: `${accent}44`, color: accent }}
                 >
                   {tag}
@@ -226,10 +226,10 @@ export function SeatMapDetailPanel<TSection>({
 
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800" style={{ borderColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.border : undefined }}>
         <div className="mb-3">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <div className="text-10 font-black uppercase tracking-widest text-slate-400">
             {copy?.galleryTitle ?? '실제 시야 사진'}
           </div>
-          <p className="mt-1 text-[12px] font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+          <p className="mt-1 text-12 font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             다이어리에 공유된 사진만 표시합니다.
           </p>
         </div>

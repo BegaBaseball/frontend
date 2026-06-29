@@ -76,7 +76,7 @@ export function LiveRelayTimeline({
         </span>
         문자중계
         {displayEvents.length > 0 ? (
-          <span className="ml-auto rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[13px] font-bold text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200">
+          <span className="ml-auto rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-13 font-bold text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200">
             최신 {displayEvents.length}개
           </span>
         ) : null}
@@ -86,7 +86,7 @@ export function LiveRelayTimeline({
         <div
           data-testid="prediction-live-relay-warning"
           data-error-code={errorCode || undefined}
-          className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 text-[15px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100"
+          className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 text-15 text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100"
         >
           <div className="flex items-start gap-2">
             <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -97,7 +97,7 @@ export function LiveRelayTimeline({
               {isManualRelayError ? (
                 <>
                   <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_LIVE_RELAY_MESSAGE}</p>
-                  <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-[13px] text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
+                  <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-13 text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
                     {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
                   </p>
                 </>
@@ -120,18 +120,18 @@ export function LiveRelayTimeline({
                 <div key={`${event.relayId ?? 'relay'}-${index}`} className="relative">
                   <span className="absolute left-3 top-4 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-rose-500 bg-white shadow-[0_0_0_5px_rgba(244,63,94,0.12)] dark:bg-background" />
                   <div className="ml-6 rounded-lg border border-gray-100 bg-white px-3 py-2.5 shadow-sm dark:border-border dark:bg-secondary/40">
-                    <div className="flex flex-wrap items-center gap-2 text-[14px] font-bold text-gray-500 dark:text-white">
+                    <div className="flex flex-wrap items-center gap-2 text-caption font-bold text-gray-500 dark:text-white">
                       <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-border/60 dark:text-white">
                         {formatInningLabel(event)}
                       </span>
                       {resultLabel ? <span>{resultLabel}</span> : null}
                       {updatedAt ? <span className="ml-auto font-mono">{updatedAt}</span> : null}
                     </div>
-                    <p className="mt-2 text-[16px] font-semibold leading-relaxed text-gray-900 dark:text-white">
+                    <p className="mt-2 text-body font-semibold leading-relaxed text-gray-900 dark:text-white">
                       {event.playDescription || '문자중계 내용이 비어 있습니다.'}
                     </p>
                     {metaItems.length > 0 ? (
-                      <p className="mt-1.5 text-[14px] font-medium text-gray-500 dark:text-white">
+                      <p className="mt-1.5 text-caption font-medium text-gray-500 dark:text-white">
                         {metaItems.join(' · ')}
                       </p>
                     ) : null}

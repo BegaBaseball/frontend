@@ -1,175 +1,197 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-
+import { buildPredictionScheduleRowViewModel } from '../../utils/predictionSchedulePreviewModel';
 import type { Game } from '../../types/prediction';
-import {
-  buildPredictionScheduleDateRail,
-  buildPredictionScheduleRowViewModel,
-  resolvePredictionScheduleStatus,
-  resolvePredictionScheduleMonthDate,
-} from '../../utils/predictionSchedulePreviewModel';
-import PredictionMatchPreviewTab from './PredictionMatchPreviewTab';
 
-const noop = () => {};
-const noopGame = () => {};
+const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-const firstGame: Game = {
-  gameId: 'PREVIEW-1',
-  gameDate: '2099-05-01',
-  awayTeam: 'KIA',
-  homeTeam: 'NC',
-  stadium: '창원',
-  startTime: '18:30:00',
-  gameStatus: 'SCHEDULED',
-  awayPitcher: {
-    name: '이의리',
-  },
-  homePitcher: {
-    name: '구창모',
-  },
-};
+const readyViewSource = readSource('./PredictionMatchScheduleReadyView.tsx');
+const dataContentSource = readSource('./PredictionMatchScheduleDataContent.tsx');
+const matchTabSource = readSource('./PredictionMatchTab.tsx');
+const interactiveDataSource = readSource('../../hooks/usePredictionInteractiveData.ts');
+const scheduleHookSource = readSource('../../hooks/usePredictionSchedule.ts');
+const deepLinkSource = readSource('../../utils/predictionDeepLink.ts');
+const appRoutesSource = readSource('../AppRoutes.tsx');
+const previewSource = readSource('./PredictionMatchPreviewTab.tsx');
 
-const secondGame: Game = {
-  gameId: 'PREVIEW-2',
-  gameDate: '2099-05-01',
-  awayTeam: 'LG',
-  homeTeam: 'KT',
-  stadium: '수원',
-  startTime: '18:30:00',
-  gameStatus: 'SCHEDULED',
-  awayPitcher: {
-    name: '이정용',
-  },
-  homePitcher: {
-    name: '소형준',
-  },
-};
-
-const renderPreview = (games: Game[], currentDate = '2099-05-01') => renderToStaticMarkup(createElement(PredictionMatchPreviewTab, {
-  currentDateGames: games,
-  currentDate,
-  nearestNavigationDate: null,
-  isToday: false,
-  onEnterMatchDetail: noopGame,
-  onGoToDate: noop,
-  onNearestNavigation: noop,
-}));
-
-test('PredictionMatchPreviewTab는 선택 날짜의 모든 경기 행을 일정 리스트로 보여준다', () => {
-  const html = renderPreview([firstGame, secondGame]);
-
-  assert.match(html, /2099\.05/);
-  assert.match(html, /KBO리그/);
-  assert.match(html, /KIA[\s\S]*예정[\s\S]*NC[\s\S]*전력/);
-  assert.match(html, /LG[\s\S]*예정[\s\S]*KT[\s\S]*전력/);
-  assert.match(html, /창원/);
-  assert.match(html, /수원/);
-  assert.match(html, /이의리/);
-  assert.match(html, /구창모/);
-  assert.match(html, /이정용/);
-  assert.match(html, /소형준/);
-  assert.equal((html.match(/prediction-schedule-match-row/g) || []).length, 2);
-  assert.equal((html.match(/prediction-match-enter-detail-btn/g) || []).length, 2);
-  assert.doesNotMatch(html, /경기 상세 보기/);
-  assert.doesNotMatch(html, /응원/);
+test('PredictionMatchScheduleReadyView는 gameId 없는 prediction 진입에서 날짜별 목록 런타임을 렌더링한다', () => {
+  assert.match(readyViewSource, /PredictionMatchSchedulePreviewRuntime/);
+  assert.match(readyViewSource, /shouldRenderPreview\s*=\s*!deepLinkGameId/);
+  assert.match(readyViewSource, /handlePreviewGoToDate/);
+  assert.match(readyViewSource, /onEnterMatchDetail=\{handleEnterMatchDetail\}/);
+  assert.match(readyViewSource, /InteractiveRuntimeComponent/);
 });
 
-test('PredictionMatchPreviewTab는 선발 누락과 불가 상태를 일정 행 안에서 처리한다', () => {
-  const html = renderPreview([
-    {
-      ...firstGame,
-      gameId: 'PREVIEW-FALLBACK',
-      awayPitcher: undefined,
-      homePitcher: undefined,
+test('PredictionMatchScheduleReadyView는 gameId 없는 prediction 진입을 자동 상세 URL로 replace하지 않는다', () => {
+  assert.doesNotMatch(readyViewSource, /defaultDetailGame/);
+  assert.doesNotMatch(readyViewSource, /nextSearchParams\.set\('gameId',\s*defaultDetailGameId\)/);
+});
+
+test('PredictionMatchScheduleReadyView는 목록에서 전력 상세 진입 시 origin state를 남긴다', () => {
+  assert.match(readyViewSource, /handleEnterMatchDetail/);
+  assert.match(readyViewSource, /fromPredictionList:\s*true/);
+  assert.match(readyViewSource, /predictionListPath/);
+  assert.match(readyViewSource, /predictionDetailPath/);
+  assert.match(readyViewSource, /setSearchParams\(nextSearchParams,\s*\{\s*state:/);
+});
+
+test('Prediction route-aware search params는 navigation state를 React Router navigate에 전달한다', () => {
+  assert.match(deepLinkSource, /type PredictionNavigationOptions = \{[\s\S]*replace\?: boolean;[\s\S]*state\?: unknown;[\s\S]*\}/);
+  assert.match(dataContentSource, /navigateOptions\?: PredictionNavigationOptions/);
+  assert.match(dataContentSource, /state:\s*navigateOptions\?\.state/);
+});
+
+test('Prediction 상세 nav는 legacy 목록 버튼을 노출하지 않는다', () => {
+  assert.doesNotMatch(matchTabSource, /prediction-detail-nav/);
+  assert.doesNotMatch(matchTabSource, /prediction-detail-nav-leaderboard/);
+  assert.doesNotMatch(matchTabSource, /prediction-detail-nav-schedule/);
+  assert.doesNotMatch(matchTabSource, /prediction-detail-nav-list/);
+  assert.doesNotMatch(matchTabSource, /onExitDetail/);
+  assert.doesNotMatch(interactiveDataSource, /exitMatchDetail/);
+  assert.doesNotMatch(readyViewSource, /suppressPredictionAutoDetail/);
+  assert.match(interactiveDataSource, /fromPredictionList/);
+});
+
+test('PredictionMatchTab은 legacy 같은 날짜 경기 전환 칩을 렌더링하지 않는다', () => {
+  assert.doesNotMatch(matchTabSource, /prediction-same-day-switcher/);
+  assert.doesNotMatch(matchTabSource, /prediction-detail-game-switch/);
+});
+
+test('구형 일정 캘린더 route는 AppRoutes에서 노출하지 않는다', () => {
+  assert.doesNotMatch(appRoutesSource, /SchedulePage/);
+  assert.doesNotMatch(appRoutesSource, /path="\/schedule"/);
+});
+
+test('Prediction schedule row model marks the completed winning side for logo emphasis', () => {
+  const game: Game = {
+    gameId: '20990501LGKT0',
+    gameDate: '2099-05-01',
+    awayTeam: 'LG',
+    homeTeam: 'KT',
+    stadium: '수원',
+    startTime: '18:30',
+    gameStatus: 'COMPLETED',
+    awayScore: 7,
+    homeScore: 4,
+    winner: 'away',
+  };
+
+  const row = buildPredictionScheduleRowViewModel(game, '2099-05-01', new Date('2099-05-01T21:30:00'));
+
+  assert.equal(row.winnerSide, 'away');
+});
+
+test('Prediction schedule row model exposes normalized scheduled AI win probability', () => {
+  const game: Game = {
+    gameId: '20990502LGKT0',
+    gameDate: '2099-05-02',
+    awayTeam: 'LG',
+    homeTeam: 'KT',
+    stadium: '수원',
+    startTime: '18:30',
+    gameStatus: 'SCHEDULED',
+    awayScore: null,
+    homeScore: null,
+    winner: null,
+    winProbability: {
+      home: 42,
+      away: 58,
     },
-    {
-      ...secondGame,
-      gameId: 'PREVIEW-POSTPONED',
-      gameStatus: 'POSTPONED',
-    },
-    {
-      ...firstGame,
-      gameId: 'PREVIEW-CANCELLED',
-      awayTeam: 'SSG',
-      homeTeam: 'HH',
-      gameStatus: 'CANCELLED',
-    },
-  ]);
+  };
 
-  assert.match(html, /발표 전/);
-  assert.match(html, /연기/);
-  assert.match(html, /취소/);
-  assert.equal((html.match(/prediction-match-enter-detail-btn/g) || []).length, 1);
+  const row = buildPredictionScheduleRowViewModel(game, '2099-05-02', new Date('2099-05-02T10:00:00'));
+
+  assert.deepEqual(row.winProbability, {
+    homePct: 42,
+    awayPct: 58,
+    favoredSide: 'away',
+    favoredPct: 58,
+    diffPct: 16,
+  });
 });
 
-test('buildPredictionScheduleDateRail은 월 경계 안에서 13일 날짜 레일을 만든다', () => {
-  const monthStart = buildPredictionScheduleDateRail('2099-05-01');
-  assert.equal(monthStart.length, 13);
-  assert.equal(monthStart[0]?.date, '2099-05-01');
-  assert.equal(monthStart[12]?.date, '2099-05-13');
-  assert.equal(monthStart[0]?.isSelected, true);
+test('Prediction schedule row model marks live summary status as in progress', () => {
+  const game: Game = {
+    gameId: '20990502LGKT0',
+    gameDate: '2099-05-02',
+    awayTeam: 'LG',
+    homeTeam: 'KT',
+    stadium: '수원',
+    startTime: null,
+    gameStatus: 'LIVE',
+    awayScore: 1,
+    homeScore: 2,
+    winner: null,
+  };
 
-  const monthMiddle = buildPredictionScheduleDateRail('2099-05-15');
-  assert.equal(monthMiddle[0]?.date, '2099-05-09');
-  assert.equal(monthMiddle[12]?.date, '2099-05-21');
+  const row = buildPredictionScheduleRowViewModel(game, '2099-05-02', new Date('2099-05-02T18:30:00'));
 
-  const monthEnd = buildPredictionScheduleDateRail('2099-05-31');
-  assert.equal(monthEnd[0]?.date, '2099-05-19');
-  assert.equal(monthEnd[12]?.date, '2099-05-31');
-
-  const leapYearFebruaryEnd = buildPredictionScheduleDateRail('2028-02-29');
-  assert.equal(leapYearFebruaryEnd.length, 13);
-  assert.equal(leapYearFebruaryEnd[0]?.date, '2028-02-17');
-  assert.equal(leapYearFebruaryEnd[12]?.date, '2028-02-29');
+  assert.equal(row.status.code, 'LIVE');
+  assert.equal(row.status.label, '진행중');
+  assert.equal(row.status.tone, 'live');
+  assert.equal(row.status.scoreLabel, '1 : 2');
 });
 
-test('resolvePredictionScheduleMonthDate는 월 이동 시 말일을 보정한다', () => {
-  assert.equal(resolvePredictionScheduleMonthDate('2026-03-31', -1), '2026-02-28');
-  assert.equal(resolvePredictionScheduleMonthDate('2028-03-31', -1), '2028-02-29');
-  assert.equal(resolvePredictionScheduleMonthDate('2026-01-31', 1), '2026-02-28');
+test('Prediction schedule row model avoids scheduled label after first pitch time while live score is pending', () => {
+  const game: Game = {
+    gameId: '20990502LGKT0',
+    gameDate: '2099-05-02',
+    awayTeam: 'LG',
+    homeTeam: 'KT',
+    stadium: '수원',
+    startTime: '17:00:00',
+    gameStatus: 'SCHEDULED',
+    awayScore: null,
+    homeScore: null,
+    winner: null,
+  };
+
+  const row = buildPredictionScheduleRowViewModel(game, '2099-05-02', new Date('2099-05-02T17:01:00'));
+
+  assert.equal(row.status.code, 'LIVE');
+  assert.equal(row.status.label, '실시간 확인중');
+  assert.equal(row.status.tone, 'live');
+  assert.equal(row.status.scoreLabel, null);
 });
 
-test('buildPredictionScheduleRowViewModel은 행 표시 데이터를 같은 규칙으로 만든다', () => {
-  const row = buildPredictionScheduleRowViewModel({
-    ...firstGame,
-    awayPitcher: null,
-    homePitcher: undefined,
-  }, '2099-05-01', new Date('2099-05-01T12:00:00'));
-
-  assert.equal(row.startTimeLabel, '18:30');
-  assert.equal(row.stadiumLabel, '창원 · NC파크');
-  assert.equal(row.awayTeam.shortName, 'KIA');
-  assert.equal(row.homeTeam.shortName, 'NC');
-  assert.equal(row.awayTeam.pitcherName, '발표 전');
-  assert.equal(row.homeTeam.pitcherName, '발표 전');
-  assert.equal(row.status.label, '예정');
-  assert.equal(row.status.tone, 'scheduled');
-  assert.equal(row.status.hasScore, false);
-  assert.equal(row.canEnterDetail, true);
+test('Prediction schedule preview recomputes time-sensitive status while the list stays open', () => {
+  assert.match(previewSource, /import \{ useCurrentTime \} from '\.\.\/\.\.\/hooks\/useCurrentTime';/);
+  assert.match(previewSource, /const currentTime = useCurrentTime\(60_000\);/);
+  assert.match(
+    previewSource,
+    /buildPredictionScheduleRowViewModel\(game, currentDate, currentTime\)/
+  );
+  assert.match(previewSource, /\[currentDateGames, currentDate, currentTime\]/);
 });
 
-test('resolvePredictionScheduleStatus는 스코어와 불가 상태를 preview 규칙으로 정규화한다', () => {
-  const completedStatus = resolvePredictionScheduleStatus({
-    ...firstGame,
-    gameStatus: 'FINAL',
-    awayScore: 4,
-    homeScore: 3,
-  }, '2099-05-01', new Date('2099-05-01T22:00:00'));
+test('Prediction schedule list polls live summaries for visible games', () => {
+  assert.match(scheduleHookSource, /fetchGameLiveSummaries/);
+  assert.match(scheduleHookSource, /mergeLiveSummariesIntoVisibleDate/);
+  assert.match(scheduleHookSource, /mergeHomeGamesWithLiveSummaries/);
+  assert.match(scheduleHookSource, /shouldPollPredictionLiveGame/);
+  assert.match(scheduleHookSource, /LIVE_GAME_POLL_INTERVAL_MS/);
+  assert.match(scheduleHookSource, /scheduleLiveSummaryPollingKey/);
+});
 
-  assert.equal(completedStatus.label, '종료');
-  assert.equal(completedStatus.tone, 'closed');
-  assert.equal(completedStatus.hasScore, true);
-  assert.equal(completedStatus.scoreLabel, '4 : 3');
+test('Prediction schedule initial load merges live summaries before state commit', () => {
+  assert.match(scheduleHookSource, /mergeInitialLiveSummariesIntoDay/);
+  assert.match(
+    scheduleHookSource,
+    /const liveMergedDayData = await mergeInitialLiveSummariesIntoDay\(result\.data, isStale\);[\s\S]*mergeDayIntoState\(liveMergedDayData,/
+  );
+  assert.match(
+    scheduleHookSource,
+    /const liveMergedSchedule = await mergeInitialLiveSummariesIntoDay\(result\.data\.schedule, isStale\);[\s\S]*mergeDayIntoState\(liveMergedSchedule,/
+  );
+});
 
-  const postponedRow = buildPredictionScheduleRowViewModel({
-    ...secondGame,
-    gameStatus: 'POSTPONED',
-  }, '2099-05-01', new Date('2099-05-01T12:00:00'));
-
-  assert.equal(postponedRow.status.label, '연기');
-  assert.equal(postponedRow.status.tone, 'unavailable');
-  assert.equal(postponedRow.canEnterDetail, false);
+test('PredictionMatchPreviewTab renders winner logo emphasis without schedule probability bars', () => {
+  assert.match(previewSource, /data-testid="prediction-schedule-winning-logo"/);
+  assert.match(previewSource, /renderScheduleTeamLogo/);
+  assert.doesNotMatch(previewSource, /data-testid="prediction-schedule-ai-probability"/);
+  assert.doesNotMatch(previewSource, /data-testid="prediction-schedule-ai-probability-missing"/);
+  assert.doesNotMatch(previewSource, /renderSchedulePredictionProbability/);
+  assert.doesNotMatch(previewSource, /AI 예측/);
 });

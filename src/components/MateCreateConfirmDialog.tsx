@@ -27,13 +27,13 @@ export default function MateCreateConfirmDialog({
           aria-labelledby="mate-create-confirm-title"
           aria-describedby="mate-create-confirm-description"
           onClick={(event) => event.stopPropagation()}
-          className="w-full max-w-[calc(100vw-2rem)] rounded-xl border bg-background p-6 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 sm:max-w-md"
+          className="w-full max-w-[calc(100vw-2rem)] rounded-xl border bg-background p-6 shadow-dialog ring-1 ring-black/5 sm:max-w-md"
         >
           <div className="space-y-2">
             <h2 id="mate-create-confirm-title" className="text-lg font-semibold text-primary">
               파티 생성 확인
             </h2>
-            <p id="mate-create-confirm-description" className="text-[16px] text-muted-foreground">
+            <p id="mate-create-confirm-description" className="text-body text-muted-foreground">
               아래 내용을 확인하고 파티를 생성하시겠습니까?
             </p>
           </div>
@@ -42,20 +42,20 @@ export default function MateCreateConfirmDialog({
             <div className="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 dark:bg-card sm:flex-row sm:items-center sm:justify-center">
               <div className="flex items-center justify-center gap-2">
                 <TeamLogo teamId={formData.awayTeam} size="sm" />
-                <span className="font-bold text-[16px]">
+                <span className="font-bold text-body">
                   {TEAMS.find((team) => team.id === formData.awayTeam)?.name}
                 </span>
               </div>
-              <span className="text-center text-gray-400 text-[16px] font-bold">VS</span>
+              <span className="text-center text-gray-400 text-body font-bold">VS</span>
               <div className="flex items-center justify-center gap-2">
-                <span className="font-bold text-[16px]">
+                <span className="font-bold text-body">
                   {TEAMS.find((team) => team.id === formData.homeTeam)?.name}
                 </span>
                 <TeamLogo teamId={formData.homeTeam} size="sm" />
               </div>
             </div>
 
-            <div className="space-y-2 text-[16px]">
+            <div className="space-y-2 text-body">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">경기 일시</span>
                 <span className="break-words font-semibold sm:text-right">
@@ -84,7 +84,7 @@ export default function MateCreateConfirmDialog({
               </div>
             </div>
 
-            <div className="space-y-2 border-t pt-3 text-[16px]">
+            <div className="space-y-2 border-t pt-3 text-body">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <span className="text-gray-500">거래 기준 금액</span>
                 <span className="font-semibold sm:text-right">{formData.ticketPrice.toLocaleString()}원</span>
@@ -95,14 +95,14 @@ export default function MateCreateConfirmDialog({
                   <span className="font-semibold sm:text-right">{formData.reservationDepositAmount.toLocaleString()}원</span>
                 </div>
               )}
-              <p className="text-[16px] text-gray-500">
+              <p className="text-body text-gray-500">
                 앱 내 결제 없이 승인 후 채팅으로 직거래를 진행합니다.
               </p>
             </div>
 
             <div className="border-t pt-3">
-              <p className="mb-1 text-[16px] text-gray-500">소개글</p>
-              <p className="line-clamp-3 text-[16px] text-gray-700 dark:text-white">
+              <p className="mb-1 text-body text-gray-500">소개글</p>
+              <p className="line-clamp-3 text-body text-gray-700 dark:text-white">
                 {formData.description}
               </p>
             </div>

@@ -41,13 +41,13 @@ export default function CheerDetailEmbeddedPostRuntime({
 
     return (
         <div
-            className="rounded-[20px] border p-3.5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
+            className="rounded-20 border p-3.5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
             style={{
                 ...primaryBorderStyle,
                 ...surfaceTintStyle,
             }}
         >
-            <div className="flex items-center gap-2 text-[16px] font-bold" style={{ color: detailAccent }}>
+            <div className="flex items-center gap-2 text-body font-bold" style={{ color: detailAccent }}>
                 {isQuoteRepost ? <QuoteIcon className="h-3.5 w-3.5" /> : <RepeatIcon className="h-3.5 w-3.5" />}
                 <span>
                     {isSimpleRepost

@@ -268,8 +268,6 @@ const runCypress = ({ baseUrl, states }) => {
     smokeSpec,
     '--config',
     `baseUrl=${baseUrl},viewportWidth=390,viewportHeight=844`,
-    '--env',
-    `PREDICTION_MOBILE_ACTIVE_STATES=${states.join(',')}`,
   ], {
     cwd: frontendRoot,
     env: {

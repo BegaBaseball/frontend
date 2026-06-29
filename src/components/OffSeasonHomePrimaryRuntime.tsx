@@ -94,7 +94,7 @@ export default function OffSeasonHomePrimaryRuntime({
       <button
         type="button"
         onClick={onNavigateHome}
-        className="mb-2 flex min-h-11 items-center gap-2 rounded-full border-2 border-primary px-4 py-1.5 text-[15px] text-primary transition-all hover:bg-gray-100 group dark:hover:bg-gray-800"
+        className="mb-2 flex min-h-11 items-center gap-2 rounded-full border-2 border-primary px-4 py-1.5 text-15 text-primary transition-all hover:bg-gray-100 group dark:hover:bg-gray-800"
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10/10 transition-all group-hover:scale-110">
           <ChevronLeftIcon className="h-4 w-4" />
@@ -107,12 +107,12 @@ export default function OffSeasonHomePrimaryRuntime({
         <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
-              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-[15px] font-bold text-gray-900 dark:text-white md:mb-4">2025-26 스토브리그</OffseasonPill>
+              <OffseasonPill className="mb-3 border-none bg-yellow-400 px-3 py-1 text-15 font-bold text-gray-900 dark:text-white md:mb-4">2025-26 스토브리그</OffseasonPill>
               <h2 className="mb-2 text-2xl text-white md:text-4xl" style={{ fontWeight: 900 }}>스토브리그 하이라이트</h2>
               <p className="text-base text-emerald-100/80 md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
             </div>
             <div className="w-fit rounded-xl border border-white/10 bg-black/20 p-3 text-white backdrop-blur-sm md:rounded-2xl md:p-4 md:text-right">
-              <div className="mb-1 text-[14px] font-bold tracking-wider text-white/60 uppercase md:text-[15px]">OFF-SEASON STATUS</div>
+              <div className="mb-1 text-caption font-bold tracking-wider text-white/60 uppercase md:text-15">OFF-SEASON STATUS</div>
               <div className="text-lg font-black md:text-2xl">
                 {statusDateLabel} 기준
               </div>
@@ -133,7 +133,7 @@ export default function OffSeasonHomePrimaryRuntime({
             <h3 className="mb-6 text-xl text-white md:mb-8 md:text-3xl font-black tracking-tight">
               2026 시즌 개막까지
             </h3>
-            <div className="mb-6 inline-block rounded-[30px] border border-white/20 px-6 py-3 shadow-2xl sm:px-8 sm:py-4 md:mb-8 md:rounded-[40px] md:px-12 md:py-8" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <div className="mb-6 inline-block rounded-30 border border-white/20 px-6 py-3 shadow-2xl sm:px-8 sm:py-4 md:mb-8 md:rounded-40 md:px-12 md:py-8" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
               <div className="text-5xl font-black tracking-tighter text-white md:text-8xl">
                 D-{daysUntilOpening}
               </div>

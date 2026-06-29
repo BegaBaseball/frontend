@@ -1,6 +1,7 @@
 import { GAME_TIME } from '../constants/prediction';
 import { TEAM_DATA, TEAM_NAME_TO_ID, getFullTeamName } from '../constants/teams';
 import type { Game } from '../types/prediction';
+import { resolveWinProbabilityDisplay, type WinProbabilityDisplay } from './coachWinProbability';
 import { formatTime } from './inningScoreParser';
 import { getGameStatus, type GameStatusCode } from './predictionStatus';
 import { formatStadiumDisplayName } from './stadiumDisplay';
@@ -17,7 +18,7 @@ export type PredictionScheduleStatusTone = 'scheduled' | 'live' | 'closed' | 'un
 
 export type PredictionScheduleStatusModel = {
   code: GameStatusCode;
-  label: '예정' | '진행중' | '종료' | '연기' | '취소';
+  label: '예정' | '진행중' | '실시간 확인중' | '종료' | '연기' | '취소';
   tone: PredictionScheduleStatusTone;
   isUnavailable: boolean;
   hasScore: boolean;
@@ -31,6 +32,8 @@ export type PredictionScheduleTeamModel = {
   pitcherName: string;
 };
 
+export type PredictionScheduleWinnerSide = 'away' | 'home' | null;
+
 export type PredictionScheduleRowViewModel = {
   gameId: string;
   gameDate: string;
@@ -39,6 +42,8 @@ export type PredictionScheduleRowViewModel = {
   awayTeam: PredictionScheduleTeamModel;
   homeTeam: PredictionScheduleTeamModel;
   status: PredictionScheduleStatusModel;
+  winnerSide: PredictionScheduleWinnerSide;
+  winProbability: WinProbabilityDisplay | null;
   canEnterDetail: boolean;
   ariaLabel: string;
 };
@@ -165,6 +170,7 @@ export const resolvePredictionScheduleStatus = (
   fallbackDate: string,
   currentTime: Date = new Date(),
 ): PredictionScheduleStatusModel => {
+  const sourceStatus = (game.gameStatus || '').trim().toUpperCase();
   const runtimeStatus = getGameStatus(game, currentTime, {
     gameStatus: game.gameStatus,
     gameDate: game.gameDate || fallbackDate,
@@ -174,6 +180,23 @@ export const resolvePredictionScheduleStatus = (
     hasProgressData: game.homeScore != null && game.awayScore != null,
   });
   const hasScore = hasKnownScore(game.awayScore) && hasKnownScore(game.homeScore);
+  const hasScheduledSourceStatus = sourceStatus === ''
+    || ['UNKNOWN', 'TBD', 'PENDING', 'READY', 'NOT_STARTED', 'NONE', 'SCHEDULED'].includes(sourceStatus);
+  const isStartedScheduledGameAwaitingLiveData = runtimeStatus.isToday
+    && runtimeStatus.hasStarted
+    && hasScheduledSourceStatus
+    && !hasScore;
+
+  if (isStartedScheduledGameAwaitingLiveData) {
+    return {
+      code: 'LIVE',
+      label: '실시간 확인중',
+      tone: 'live',
+      isUnavailable: false,
+      hasScore,
+      scoreLabel: null,
+    };
+  }
 
   return {
     code: runtimeStatus.statusCode,
@@ -192,6 +215,63 @@ const buildTeamModel = (team: string, pitcher?: Game['homePitcher']): Prediction
   pitcherName: getPitcherName(pitcher),
 });
 
+const normalizeWinnerText = (value?: string | null) => (value || '').trim().toLowerCase();
+
+const resolveWinnerSide = (
+  game: Game,
+  status: PredictionScheduleStatusModel,
+  awayTeam: PredictionScheduleTeamModel,
+  homeTeam: PredictionScheduleTeamModel,
+): PredictionScheduleWinnerSide => {
+  if (status.code !== 'COMPLETED' && status.code !== 'DRAW') {
+    return null;
+  }
+
+  if (status.hasScore) {
+    const awayScore = Number(game.awayScore);
+    const homeScore = Number(game.homeScore);
+    if (Number.isFinite(awayScore) && Number.isFinite(homeScore) && awayScore !== homeScore) {
+      return awayScore > homeScore ? 'away' : 'home';
+    }
+  }
+
+  const winnerText = normalizeWinnerText(game.winner);
+  if (!winnerText || winnerText === 'draw') {
+    return null;
+  }
+
+  const awayCandidates = [
+    'away',
+    awayTeam.rawName,
+    awayTeam.fullName,
+    awayTeam.shortName,
+  ].map(normalizeWinnerText);
+  const homeCandidates = [
+    'home',
+    homeTeam.rawName,
+    homeTeam.fullName,
+    homeTeam.shortName,
+  ].map(normalizeWinnerText);
+
+  if (awayCandidates.includes(winnerText)) {
+    return 'away';
+  }
+  if (homeCandidates.includes(winnerText)) {
+    return 'home';
+  }
+  return null;
+};
+
+const resolveScheduleWinProbability = (
+  game: Game,
+  status: PredictionScheduleStatusModel,
+): WinProbabilityDisplay | null => {
+  if (status.code !== 'SCHEDULED') {
+    return null;
+  }
+  return resolveWinProbabilityDisplay(game.winProbability?.home ?? null);
+};
+
 export const buildPredictionScheduleRowViewModel = (
   game: Game,
   fallbackDate: string,
@@ -202,6 +282,8 @@ export const buildPredictionScheduleRowViewModel = (
   const homeTeam = buildTeamModel(game.homeTeam, game.homePitcher);
   const startTimeLabel = formatTime(game.startTime || null) || GAME_TIME;
   const stadiumLabel = formatStadiumDisplayName(game.stadium) || '구장 미정';
+  const winnerSide = resolveWinnerSide(game, status, awayTeam, homeTeam);
+  const winProbability = resolveScheduleWinProbability(game, status);
 
   return {
     gameId: game.gameId,
@@ -211,6 +293,8 @@ export const buildPredictionScheduleRowViewModel = (
     awayTeam,
     homeTeam,
     status,
+    winnerSide,
+    winProbability,
     canEnterDetail: !status.isUnavailable,
     ariaLabel: `${awayTeam.fullName} 대 ${homeTeam.fullName} ${status.label}`,
   };

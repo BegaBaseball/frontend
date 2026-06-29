@@ -105,21 +105,21 @@ function JamsilOperatorVisitMeta({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">직관 체크</div>
-          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+          <div className="text-10 font-black uppercase tracking-widest text-slate-400">직관 체크</div>
+          <p className="mt-1 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
             검수된 정적 자료 기준으로만 출입구, 편의시설, 운영 동선을 표시합니다.
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+          className="shrink-0 rounded-full px-2.5 py-1 text-10 font-black"
           style={{ background: `${accent}18`, color: accent }}
         >
           현장 최종 안내 확인
         </span>
       </div>
       <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
-        <div className="text-[9px] font-bold tracking-widest text-slate-400">자료상태</div>
-        <div className="mt-0.5 break-words text-[12px] font-black text-slate-800 dark:text-white">
+        <div className="text-9 font-bold tracking-widest text-slate-400">자료상태</div>
+        <div className="mt-0.5 break-words text-12 font-black text-slate-800 dark:text-white">
           {operatorDataStatusLabel}
         </div>
       </div>
@@ -131,8 +131,8 @@ function JamsilOperatorVisitMeta({
             data-operator-field-source={getTileFieldSource(tile.value)}
             className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
           >
-            <div className="text-[10px] font-black tracking-widest text-slate-400">{tile.label}</div>
-            <div className="mt-1 break-words text-[12px] font-bold leading-relaxed text-slate-700 dark:text-white">
+            <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
+            <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
               {formatManualBaseballDataDisplayValue(tile.value)}
             </div>
           </div>
@@ -141,7 +141,7 @@ function JamsilOperatorVisitMeta({
       {operatorGuidance.cautionNotes.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {operatorGuidance.cautionNotes.map((item) => (
-            <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+            <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
               <span>{formatManualBaseballDataDisplayValue(item)}</span>
             </li>
@@ -151,7 +151,7 @@ function JamsilOperatorVisitMeta({
       {hasManualFallback && (
         <p
           data-testid="jamsil-operator-data-status"
-          className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+          className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
           {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
         </p>

@@ -11,6 +11,8 @@ interface PublicNavbarDesktopAuthControlsProps {
   compactProgress?: number;
 }
 
+const COMPACT_AUTH_BUTTON_SIZE = 40;
+
 export default function PublicNavbarDesktopAuthControls({
   isAuthBootstrapPending = false,
   compactProgress = 0,
@@ -29,18 +31,25 @@ export default function PublicNavbarDesktopAuthControls({
   const isCompact = collapseProgress > 0.92;
 
   const authButtonStyle = (expandedWidth: number): CSSProperties => ({
-    width: `${36 + ((expandedWidth - 36) * expandedProgress)}px`,
+    width: `${COMPACT_AUTH_BUTTON_SIZE + ((expandedWidth - COMPACT_AUTH_BUTTON_SIZE) * expandedProgress)}px`,
+    flexBasis: `${COMPACT_AUTH_BUTTON_SIZE + ((expandedWidth - COMPACT_AUTH_BUTTON_SIZE) * expandedProgress)}px`,
+    maxWidth: `${COMPACT_AUTH_BUTTON_SIZE + ((expandedWidth - COMPACT_AUTH_BUTTON_SIZE) * expandedProgress)}px`,
     paddingLeft: `${16 * expandedProgress}px`,
     paddingRight: `${16 * expandedProgress}px`,
+    paddingTop: '0px',
+    paddingBottom: '0px',
     fontSize: `${14 + (2 * expandedProgress)}px`,
+    lineHeight: '1',
   });
 
   const labelStyle = (maxWidth: number): CSSProperties => ({
+    display: isCompact ? 'none' : 'inline-flex',
     maxWidth: `${maxWidth * expandedProgress}px`,
     opacity: expandedProgress,
   });
 
   const profileLabelStyle = (width: number): CSSProperties => ({
+    display: isCompact ? 'none' : 'inline-flex',
     marginLeft: `${8 * expandedProgress}px`,
     width: `${width * expandedProgress}px`,
     opacity: expandedProgress,
@@ -57,7 +66,7 @@ export default function PublicNavbarDesktopAuthControls({
         type="button"
         disabled
         aria-busy="true"
-        className="rounded-full h-8 overflow-hidden text-white bg-primary-dark/80 hover:bg-primary-dark/80 cursor-wait transition-[width,padding,font-size] duration-150 ease-out"
+        className="rounded-full h-10 overflow-hidden p-0 text-white bg-primary-dark/80 hover:bg-primary-dark/80 cursor-wait transition-[width,padding,font-size] duration-150 ease-out"
         style={authButtonStyle(148)}
       >
         <span className="overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-150 ease-out" style={labelStyle(112)}>
@@ -73,12 +82,17 @@ export default function PublicNavbarDesktopAuthControls({
       <Button
         type="button"
         onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
-        className="rounded-full h-8 overflow-hidden text-white bg-primary-dark hover:bg-primary transition-[width,padding,font-size] duration-150 ease-out"
+        className="rounded-full h-10 overflow-hidden p-0 text-white bg-primary-dark hover:bg-primary transition-[width,padding,font-size] duration-150 ease-out"
         style={{
-          width: `${68 + (22 * expandedProgress)}px`,
+          width: `${COMPACT_AUTH_BUTTON_SIZE + (50 * expandedProgress)}px`,
+          flexBasis: `${COMPACT_AUTH_BUTTON_SIZE + (50 * expandedProgress)}px`,
+          maxWidth: `${COMPACT_AUTH_BUTTON_SIZE + (50 * expandedProgress)}px`,
           paddingLeft: `${12 + (4 * expandedProgress)}px`,
           paddingRight: `${12 + (4 * expandedProgress)}px`,
+          paddingTop: '0px',
+          paddingBottom: '0px',
           fontSize: `${14 + (2 * expandedProgress)}px`,
+          lineHeight: '1',
         }}
       >
         <span className="whitespace-nowrap">로그인</span>
@@ -92,10 +106,13 @@ export default function PublicNavbarDesktopAuthControls({
         type="button"
         onClick={() => navigate(userProfilePath)}
         aria-label={`${displayName} 마이페이지로 이동`}
-        className="group relative flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[rgba(15,23,42,.08)] bg-white/80 font-bold text-gray-900 transition-[width,font-size,background-color,color,border-color] duration-150 ease-out hover:border-primary hover:bg-primary hover:text-primary-foreground dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:border-primary/80 dark:hover:bg-primary/80 dark:hover:text-white"
+        className="group relative flex h-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[rgba(15,23,42,.08)] bg-white/80 font-bold text-gray-900 transition-[width,font-size,background-color,color,border-color] duration-150 ease-out hover:border-primary hover:bg-primary hover:text-primary-foreground dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:border-primary/80 dark:hover:bg-primary/80 dark:hover:text-white"
         style={{
-          width: `${36 + (106 * expandedProgress)}px`,
+          width: `${COMPACT_AUTH_BUTTON_SIZE + (102 * expandedProgress)}px`,
+          flexBasis: `${COMPACT_AUTH_BUTTON_SIZE + (102 * expandedProgress)}px`,
+          maxWidth: `${COMPACT_AUTH_BUTTON_SIZE + (102 * expandedProgress)}px`,
           fontSize: `${13 + (2 * expandedProgress)}px`,
+          lineHeight: '1',
         }}
       >
         <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full">
@@ -105,7 +122,7 @@ export default function PublicNavbarDesktopAuthControls({
             fallbackName={displayName}
             width={26}
             height={26}
-            className="text-[11px]"
+            className="text-11"
           />
         </span>
         <span
@@ -127,7 +144,7 @@ export default function PublicNavbarDesktopAuthControls({
           onClick={() => navigate('/admin')}
           variant="outline"
           aria-label="관리자 페이지로 이동"
-          className="rounded-full h-9 flex items-center gap-1 overflow-hidden text-red-600 border-red-500/80 transition-[width,padding,font-size] duration-150 ease-out dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+          className="rounded-full h-10 flex items-center justify-center gap-0 overflow-hidden p-0 text-red-600 border-red-500/80 transition-[width,padding,font-size] duration-150 ease-out dark:text-red-400 dark:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
           style={authButtonStyle(82)}
         >
           <ShieldAlertIcon className="w-4 h-4 shrink-0" />
@@ -140,7 +157,7 @@ export default function PublicNavbarDesktopAuthControls({
         type="button"
         onClick={handleLogout}
         aria-label="로그아웃"
-        className="rounded-full h-9 flex items-center gap-1 overflow-hidden text-primary dark:text-primary-light border-primary dark:border-primary-light transition-[width,padding,font-size] duration-150 ease-out"
+        className="rounded-full h-10 flex items-center justify-center gap-0 overflow-hidden p-0 text-primary dark:text-primary-light border-primary dark:border-primary-light transition-[width,padding,font-size] duration-150 ease-out"
         style={authButtonStyle(124)}
         variant="outline"
       >

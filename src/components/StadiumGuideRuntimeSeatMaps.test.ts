@@ -114,6 +114,26 @@ const STADIUM_SEATMAP_CONTRACTS: StadiumSeatMapRuntimeContract[] = [
   },
 ];
 
+const STADIUM_TEAM_FALLBACK_CASES = [
+  { stadiumId: '??', stadiumName: null, stadiumTeam: 'LG/두산', expectedPresetId: 'jamsil' },
+  { stadiumId: '??', stadiumName: '서울잠실야구장', stadiumTeam: 'LG 트윈스', expectedPresetId: 'jamsil' },
+  { stadiumId: '??', stadiumName: null, stadiumTeam: 'LG두산', expectedPresetId: 'jamsil' },
+  { stadiumId: '??', stadiumName: '잠실 야구장', stadiumTeam: '두산 베어스', expectedPresetId: 'jamsil' },
+  { stadiumId: 'JAMSIL', stadiumName: '서울 잠실', stadiumTeam: 'Doosan Bears', expectedPresetId: 'jamsil' },
+] as const;
+
+const OPERATIONAL_STADIUM_SEAT_MAP_ENTRIES = [
+  { stadiumId: 'JAMSIL', stadiumName: '서울 · 잠실야구장', stadiumTeam: 'LG/두산', expectedPresetId: 'jamsil' },
+  { stadiumId: 'INCHEON', stadiumName: '인천 · SSG랜더스필드', stadiumTeam: 'SSG', expectedPresetId: 'incheon' },
+  { stadiumId: 'DAEGU', stadiumName: '대구 · 삼성 라이온즈파크', stadiumTeam: '삼성', expectedPresetId: 'daegu' },
+  { stadiumId: 'DAEJEON', stadiumName: '대전 · 한화생명볼파크', stadiumTeam: '한화', expectedPresetId: 'daejeon' },
+  { stadiumId: 'GOCHEOK', stadiumName: '서울 · 고척스카이돔', stadiumTeam: '키움', expectedPresetId: 'gocheok' },
+  { stadiumId: 'GWANGJU', stadiumName: '광주 · KIA 챔피언스필드', stadiumTeam: 'KIA', expectedPresetId: 'gwangju' },
+  { stadiumId: 'CHANGWON', stadiumName: '창원 · NC파크', stadiumTeam: 'NC', expectedPresetId: 'changwon' },
+  { stadiumId: 'SAJIK', stadiumName: '부산 · 사직야구장', stadiumTeam: '롯데', expectedPresetId: 'sajik' },
+  { stadiumId: 'SUWON', stadiumName: '수원 · KT위즈파크', stadiumTeam: 'KT', expectedPresetId: 'suwon' },
+] as const;
+
 const projectRoot = process.cwd();
 
 function probeKey(id: string, point: [number, number]): string {
@@ -312,6 +332,35 @@ test('좌석도 registry는 운영 DB와 UI 별칭을 모두 매칭한다', () =
   assert.equal(resolveStadiumSeatMapEntry('HANWHA', '한화생명 이글스파크')?.id, 'daejeon');
   assert.equal(resolveStadiumSeatMapEntry('HH', '이글스파크')?.id, 'daejeon');
   assert.equal(resolveStadiumSeatMapEntry('HH', '한화')?.id, 'daejeon');
+  assert.equal(resolveStadiumSeatMapEntry('ssg', '인천SSG랜더스필드')?.id, 'incheon');
+  assert.equal(resolveStadiumSeatMapEntry('kt wiz', '수원 kt wiz 파크')?.id, 'suwon');
+  assert.equal(resolveStadiumSeatMapEntry('한화', '한화생명')?.id, 'daejeon');
+  assert.equal(resolveStadiumSeatMapEntry('lg', '서울잠실야구장')?.id, 'jamsil');
+});
+
+test('좌석도 registry는 팀명 기반 폴백으로도 매칭된다', () => {
+  assert.equal(resolveStadiumSeatMapEntry('UNKNOWN', '없는구장', 'KT 위즈')?.id, 'suwon');
+  assert.equal(resolveStadiumSeatMapEntry(null, null, '키움')?.id, 'gocheok');
+  assert.equal(resolveStadiumSeatMapEntry('??', null, 'NC 다이노스')?.id, 'changwon');
+  STADIUM_TEAM_FALLBACK_CASES.forEach((caseItem) => {
+    const { stadiumId, stadiumName, stadiumTeam, expectedPresetId } = caseItem;
+    const entry = resolveStadiumSeatMapEntry(stadiumId, stadiumName, stadiumTeam);
+    assert.equal(entry?.id, expectedPresetId);
+  });
+});
+
+test('운영 구장 샘플(9개)은 팀 변형 표기까지 포함해 매칭이 유지된다', () => {
+  OPERATIONAL_STADIUM_SEAT_MAP_ENTRIES.forEach((stadium) => {
+    const entry = resolveStadiumSeatMapEntry(stadium.stadiumId, stadium.stadiumName, stadium.stadiumTeam);
+    assert.equal(entry?.id, stadium.expectedPresetId, `${stadium.stadiumName} should map to ${stadium.expectedPresetId}`);
+  });
+});
+
+test('좌석도 registry는 stadiumDisplay 표기 기반 정체성으로도 복구 매칭한다', () => {
+  assert.equal(resolveStadiumSeatMapEntry('Jamsil', '잠실야구장')?.id, 'jamsil');
+  assert.equal(resolveStadiumSeatMapEntry('고척', '고척스카이돔')?.id, 'gocheok');
+  assert.equal(resolveStadiumSeatMapEntry('KT WIZ', '수원')?.id, 'suwon');
+  assert.equal(resolveStadiumSeatMapEntry('광주KIA', '광주-KIA 챔피언스필드')?.id, 'gwangju');
 });
 
 test('대구 좌석도는 canonical 표시명, alias, 검색 랭킹, 상세 메타 계약을 제공한다', () => {

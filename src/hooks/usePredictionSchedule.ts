@@ -4,6 +4,7 @@ import {
   type MatchDayFailure,
   type MatchDayResult,
 } from '../api/predictionMatchDay';
+import { fetchGameLiveSummaries } from '../api/prediction';
 import {
   PREDICTION_BOOTSTRAP_INVALIDATED_EVENT,
   fetchPredictionBootstrap,
@@ -24,7 +25,12 @@ import {
   schedulePredictionPostPaintIdleWork,
   type PredictionDeferredWorkCancel,
 } from '../utils/predictionDeferredWork';
-import type { DateGames, Game, MatchBounds, MatchDayNavigation } from '../types/prediction';
+import {
+  LIVE_GAME_POLL_INTERVAL_MS,
+  mergeHomeGamesWithLiveSummaries,
+  shouldPollPredictionLiveGame,
+} from '../utils/liveGame';
+import type { DateGames, Game, GameLiveSummary, MatchBounds, MatchDayNavigation } from '../types/prediction';
 import {
   MATCH_FETCH_SIZE,
   getCurrentGame,
@@ -52,6 +58,7 @@ import {
   normalizeMatchBoundsDate,
   normalizeMatchRangeError,
 } from './predictionScheduleUtils';
+import type { PredictionNavigationOptions } from '../utils/predictionDeepLink';
 import { usePredictionRangeState } from './usePredictionRangeState';
 import * as predictionRangeApi from '../api/predictionRange';
 import * as predictionRangeWindow from '../utils/predictionRangeWindow';
@@ -132,6 +139,8 @@ export const usePredictionSchedule = ({
   const adjacentPrefetchPendingAnchorRef = useRef<string | null>(null);
   const adjacentPrefetchCompletedAnchorsRef = useRef<Set<string>>(new Set());
   const matchBoundsHydrationCancelRef = useRef<PredictionDeferredWorkCancel | null>(null);
+  const scheduleLiveSummaryInFlightRef = useRef(false);
+  const scheduleLiveSummaryAbortRef = useRef<AbortController | null>(null);
   const scheduleMatchBoundsAfterInitialLoadRef = useRef(false);
   const programmaticSearchSignatureRef = useRef('');
   const suppressNextProgrammaticSearchLoadRef = useRef(false);
@@ -210,7 +219,7 @@ export const usePredictionSchedule = ({
 
   const setProgrammaticSearchParams = useCallback((
     nextSearchParams: URLSearchParams,
-    navigateOptions?: { replace?: boolean },
+    navigateOptions?: PredictionNavigationOptions,
   ) => {
     const nextGameId = toPredictionGameId(nextSearchParams.get('gameId')?.trim() || '') || '';
     const nextDate = normalizePredictionDate(nextSearchParams.get('date')?.trim() || '') || '';
@@ -364,6 +373,66 @@ export const usePredictionSchedule = ({
     return normalizedDates;
   }, [persistDayNavigationMeta]);
 
+  const mergeLiveSummariesIntoVisibleDate = useCallback((targetDate: string, summaries: GameLiveSummary[]) => {
+    if (!targetDate || summaries.length === 0) {
+      return;
+    }
+
+    setAllDatesData((prevDates) => {
+      const targetDateIndex = prevDates.findIndex((entry) => entry.date === targetDate);
+      if (targetDateIndex === -1) {
+        return prevDates;
+      }
+
+      const targetDateGames = prevDates[targetDateIndex];
+      const nextGames = mergeHomeGamesWithLiveSummaries(targetDateGames.games, summaries);
+      if (nextGames === targetDateGames.games) {
+        return prevDates;
+      }
+
+      const nextDates = [...prevDates];
+      nextDates[targetDateIndex] = {
+        ...targetDateGames,
+        games: nextGames,
+      };
+      allDatesDataRef.current = nextDates;
+      return nextDates;
+    });
+  }, []);
+
+  const mergeInitialLiveSummariesIntoDay = useCallback(async (
+    dayData: MatchDayNavigation,
+    requestGuard?: () => boolean
+  ): Promise<MatchDayNavigation> => {
+    const games = Array.isArray(dayData.games) ? dayData.games : [];
+    const gameIds = games
+      .filter((game) => shouldPollPredictionLiveGame(game, null))
+      .map((game) => game.gameId)
+      .filter(Boolean);
+    if (gameIds.length === 0 || requestGuard?.()) {
+      return dayData;
+    }
+
+    try {
+      const summaries = await fetchGameLiveSummaries(gameIds);
+      if (requestGuard?.() || summaries.length === 0) {
+        return dayData;
+      }
+
+      const nextGames = mergeHomeGamesWithLiveSummaries(games, summaries);
+      if (nextGames === games) {
+        return dayData;
+      }
+
+      return {
+        ...dayData,
+        games: nextGames,
+      };
+    } catch {
+      return dayData;
+    }
+  }, []);
+
   const requestPredictionDay = useCallback((targetDate: string): Promise<MatchDayResult> => {
     const normalizedDate = normalizePredictionDate(targetDate);
     if (!normalizedDate) {
@@ -439,8 +508,12 @@ export const usePredictionSchedule = ({
     const cachedResult = buildCachedDayResult(normalizedDate);
     if (cachedResult?.ok) {
       const cachedIndex = allDatesDataRef.current.findIndex((entry) => entry.date === normalizedDate);
-      if (cachedIndex === -1) {
-        await mergeDayIntoState(cachedResult.data, {
+      const liveMergedCachedData = await mergeInitialLiveSummariesIntoDay(cachedResult.data, isStale);
+      if (isStale()) {
+        return CANCELED_MATCH_DAY_RESULT;
+      }
+      if (cachedIndex === -1 || liveMergedCachedData !== cachedResult.data) {
+        await mergeDayIntoState(liveMergedCachedData, {
           moveToLoadedDate: options.moveToLoadedDate,
           preserveVisibleDate: options.preserveVisibleDate,
           replaceExistingDates: options.replaceExistingDates,
@@ -449,11 +522,14 @@ export const usePredictionSchedule = ({
         setCurrentDateIndex(cachedIndex);
       }
       await fetchAndCacheInteractiveUserVotes(
-        Array.isArray(cachedResult.data.games) ? cachedResult.data.games : [],
+        Array.isArray(liveMergedCachedData.games) ? liveMergedCachedData.games : [],
         options.requestKeySuffix,
         isStale
       );
-      return cachedResult;
+      return {
+        ok: true,
+        data: liveMergedCachedData,
+      };
     }
 
     const result = await requestPredictionDay(normalizedDate);
@@ -464,13 +540,18 @@ export const usePredictionSchedule = ({
       return result;
     }
 
-    const normalizedDates = await mergeDayIntoState(result.data, {
+    const liveMergedDayData = await mergeInitialLiveSummariesIntoDay(result.data, isStale);
+    if (isStale()) {
+      return CANCELED_MATCH_DAY_RESULT;
+    }
+
+    const normalizedDates = await mergeDayIntoState(liveMergedDayData, {
       moveToLoadedDate: options.moveToLoadedDate,
       preserveVisibleDate: options.preserveVisibleDate,
       replaceExistingDates: options.replaceExistingDates,
     });
     await fetchAndCacheInteractiveUserVotes(
-      Array.isArray(result.data.games) ? result.data.games : [],
+      Array.isArray(liveMergedDayData.games) ? liveMergedDayData.games : [],
       options.requestKeySuffix,
       isStale
     );
@@ -479,10 +560,14 @@ export const usePredictionSchedule = ({
       syncRangeStateFromDates(normalizedDates, normalizedDate);
     }
 
-    return result;
+    return {
+      ok: true,
+      data: liveMergedDayData,
+    };
   }, [
     buildCachedDayResult,
     fetchAndCacheInteractiveUserVotes,
+    mergeInitialLiveSummariesIntoDay,
     mergeDayIntoState,
     requestPredictionDay,
     syncRangeStateFromDates,
@@ -528,20 +613,31 @@ export const usePredictionSchedule = ({
         error: result.error,
       };
     }
-    if (result.data.selectedGameFound) {
-      rememberPredictionBootstrap(result.data);
+
+    const liveMergedSchedule = await mergeInitialLiveSummariesIntoDay(result.data.schedule, isStale);
+    if (isStale()) {
+      return CANCELED_MATCH_DAY_RESULT;
+    }
+    const bootstrapData = liveMergedSchedule === result.data.schedule
+      ? result.data
+      : {
+        ...result.data,
+        schedule: liveMergedSchedule,
+      };
+    if (bootstrapData.selectedGameFound) {
+      rememberPredictionBootstrap(bootstrapData);
     } else {
       deepLinkResolutionPendingRef.current = false;
       deepLinkResolutionAttemptRef.current = 0;
       deepLinkResolutionDirectionRef.current = 'future';
     }
-    const normalizedDates = await mergeDayIntoState(result.data.schedule, {
+    const normalizedDates = await mergeDayIntoState(liveMergedSchedule, {
       moveToLoadedDate: options.moveToLoadedDate,
       preserveVisibleDate: options.preserveVisibleDate,
       replaceExistingDates: options.replaceExistingDates,
     });
     await fetchAndCacheInteractiveUserVotes(
-      Array.isArray(result.data.schedule.games) ? result.data.schedule.games : [],
+      Array.isArray(liveMergedSchedule.games) ? liveMergedSchedule.games : [],
       options.requestKeySuffix,
       isStale
     );
@@ -552,10 +648,11 @@ export const usePredictionSchedule = ({
 
     return {
       ok: true,
-      data: result.data.schedule,
+      data: liveMergedSchedule,
     };
   }, [
     fetchAndCacheInteractiveUserVotes,
+    mergeInitialLiveSummariesIntoDay,
     mergeDayIntoState,
     rememberPredictionBootstrap,
     syncRangeStateFromDates,
@@ -1358,14 +1455,88 @@ export const usePredictionSchedule = ({
   useEffect(() => () => {
     clearScheduledAdjacentPrefetch();
     clearScheduledMatchBoundsHydration();
+    scheduleLiveSummaryAbortRef.current?.abort();
   }, [clearScheduledAdjacentPrefetch, clearScheduledMatchBoundsHydration]);
 
   const currentDateGames = allDatesData[currentDateIndex]?.games || [];
   const currentDate = allDatesData[currentDateIndex]?.date || getTodayString();
   const currentGame = getCurrentGame(allDatesData, currentDateIndex, selectedGame);
   const currentDayNavigationMeta = dayNavigationByDateRef.current[currentDate] || null;
+  const scheduleLiveSummaryPollingKey = currentDateGames
+    .filter((game) => shouldPollPredictionLiveGame(game, null))
+    .map((game) => game.gameId)
+    .filter(Boolean)
+    .join(',');
+
+  useEffect(() => {
+    if (disabled || matchesLoadState !== 'ready' || !currentDate || !scheduleLiveSummaryPollingKey) {
+      return;
+    }
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const gameIds = scheduleLiveSummaryPollingKey.split(',').filter(Boolean);
+    let disposed = false;
+
+    const refreshLiveSummaries = async () => {
+      if (disposed || document.visibilityState === 'hidden' || scheduleLiveSummaryInFlightRef.current) {
+        return;
+      }
+
+      const abortController = new AbortController();
+      scheduleLiveSummaryInFlightRef.current = true;
+      scheduleLiveSummaryAbortRef.current = abortController;
+
+      try {
+        const summaries = await fetchGameLiveSummaries(gameIds, { signal: abortController.signal });
+        if (disposed || abortController.signal.aborted || summaries.length === 0) {
+          return;
+        }
+        mergeLiveSummariesIntoVisibleDate(currentDate, summaries);
+      } catch {
+        // Keep the existing schedule list; the next polling cycle can recover when internal data is ready.
+      } finally {
+        if (scheduleLiveSummaryAbortRef.current === abortController) {
+          scheduleLiveSummaryAbortRef.current = null;
+        }
+        scheduleLiveSummaryInFlightRef.current = false;
+      }
+    };
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'hidden') {
+        scheduleLiveSummaryAbortRef.current?.abort();
+        return;
+      }
+      void refreshLiveSummaries();
+    };
+
+    void refreshLiveSummaries();
+    const intervalId = window.setInterval(() => {
+      void refreshLiveSummaries();
+    }, LIVE_GAME_POLL_INTERVAL_MS);
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      disposed = true;
+      scheduleLiveSummaryAbortRef.current?.abort();
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [
+    currentDate,
+    disabled,
+    matchesLoadState,
+    mergeLiveSummariesIntoVisibleDate,
+    scheduleLiveSummaryPollingKey,
+  ]);
 
   return {
+    searchParams,
     selectedGame,
     setSelectedGame,
     allDatesData,

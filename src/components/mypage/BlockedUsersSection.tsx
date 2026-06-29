@@ -41,15 +41,15 @@ export default function BlockedUsersSection() {
     return (
         <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-4 sm:p-6 md:p-8 mb-6">
             <div className="flex items-center gap-3 mb-6">
-                <MyPageBanIcon className="w-6 h-6 text-red-500" />
-                <h2 className="text-xl font-bold text-red-500">차단 관리</h2>
+                <MyPageBanIcon className="w-6 h-6 text-destructive" />
+                <h2 className="text-xl font-bold text-destructive">차단 관리</h2>
             </div>
 
             <div className="mb-4">
-                <p className="text-[16px] text-muted-foreground">
+                <p className="text-body text-muted-foreground">
                     차단한 사용자는 내 게시글을 볼 수 없으며, 나에게 메시지를 보낼 수 없습니다.
                 </p>
-                <p className="text-[16px] text-muted-foreground mt-2">
+                <p className="text-body text-muted-foreground mt-2">
                     상대방 프로필에서 <span className="font-semibold text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                 </p>
             </div>
@@ -60,7 +60,7 @@ export default function BlockedUsersSection() {
             >
                 {isLoading ? (
                     <div className="flex justify-center p-8">
-                        <MyPageLoaderIcon className="h-8 w-8 animate-spin text-red-500" />
+                        <MyPageLoaderIcon className="h-8 w-8 animate-spin text-destructive" />
                     </div>
                 ) : users.length > 0 ? (
                     <div className="divide-y divide-border">
@@ -79,10 +79,10 @@ export default function BlockedUsersSection() {
                                         ringClassName="p-0.5 bg-muted"
                                     />
                                     <div className="flex flex-col truncate">
-                                        <span className="text-[16px] font-bold text-foreground truncate">
+                                        <span className="text-body font-bold text-foreground truncate">
                                             {user.name}
                                         </span>
-                                        <span className="text-[16px] text-muted-foreground truncate">
+                                        <span className="text-body text-muted-foreground truncate">
                                             {user.handle}
                                         </span>
                                     </div>
@@ -107,13 +107,13 @@ export default function BlockedUsersSection() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
-                        <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
-                            <MyPageBanIcon className="h-6 w-6 text-red-500" />
+                    <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center mb-3">
+                            <MyPageBanIcon className="h-6 w-6 text-destructive" />
                         </div>
                         <p className="text-foreground font-semibold mb-1">
                             차단한 사용자가 없습니다.
                         </p>
-                        <p className="mt-2 text-[16px] text-muted-foreground font-semibold inline-flex items-center gap-1 justify-center">
+                        <p className="mt-2 text-body text-muted-foreground font-semibold inline-flex items-center gap-1 justify-center">
                             <MyPageInfoIcon className="w-3.5 h-3.5" />
                             상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
                         </p>

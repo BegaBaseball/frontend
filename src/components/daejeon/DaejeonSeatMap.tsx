@@ -150,7 +150,7 @@ function ZoomControls({
         aria-label="초기화"
         onClick={onReset}
         disabled={!canReset}
-        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-11 font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
         style={{ borderColor }}
       >
         {zoom.toFixed(2)}x
@@ -173,7 +173,7 @@ function ZoomControls({
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-      <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">{label}</div>
+      <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">{label}</div>
       <div className="text-base font-black text-slate-800 dark:text-white">{value}</div>
     </div>
   );
@@ -197,7 +197,7 @@ function OfficialBlockChips({
   return (
     <div className="flex flex-wrap gap-1.5">
       {visibleBlocks.map((block) => (
-        <span key={block} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+        <span key={block} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
           {block}
         </span>
       ))}
@@ -205,7 +205,7 @@ function OfficialBlockChips({
         <button
           type="button"
           onClick={() => setShowAll((value) => !value)}
-          className="cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-bold transition-opacity hover:opacity-80"
+          className="cursor-pointer rounded-full border px-2.5 py-1 text-11 font-bold transition-opacity hover:opacity-80"
           style={{ background: `${accent}0f`, borderColor: `${accent}55`, color: accent }}
         >
           {showAll ? '접기' : `더보기 +${hiddenCount}`}
@@ -253,7 +253,7 @@ function SectionFinder({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">구역 찾기</h3>
-          <p className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-white">
+          <p className="mt-0.5 text-11 font-semibold text-slate-500 dark:text-white">
             {blocks.length}/{totalCount}개 표시
           </p>
         </div>
@@ -279,7 +279,7 @@ function SectionFinder({
           >
             <div>검색어와 선택한 필터에 맞는 구역이 없습니다</div>
             {hasSearch && (
-              <div className="mt-1 text-[11px] font-semibold text-slate-400 dark:text-white">
+              <div className="mt-1 text-11 font-semibold text-slate-400 dark:text-white">
                 검색어: {searchTerm.trim()}
               </div>
             )}
@@ -287,7 +287,7 @@ function SectionFinder({
         ) : (
           sectionGroups.map((sectionGroup) => (
             <div key={sectionGroup.key} className="space-y-1.5">
-              <div className="sticky top-0 z-10 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-black text-slate-500 dark:bg-slate-800 dark:text-white">
+              <div className="sticky top-0 z-10 rounded-lg bg-slate-100 px-2.5 py-1.5 text-10 font-black text-slate-500 dark:bg-slate-800 dark:text-white">
                 {sectionGroup.label} · {sectionGroup.blocks.length}개 블록
               </div>
               {sectionGroup.blocks.map((block) => {
@@ -319,11 +319,11 @@ function SectionFinder({
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: accent }} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-black text-slate-800 dark:text-white">{block.name}</span>
-                      <span className="block truncate text-[11px] font-semibold text-slate-500 dark:text-white">
+                      <span className="block truncate text-11 font-semibold text-slate-500 dark:text-white">
                         {block.blockCode} · {cat.label} · {getDaejeonSideLabel(block.side)}
                       </span>
                       {isPendingReview && (
-                        <span className="mt-1 inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:bg-orange-950/35 dark:text-orange-200">
+                        <span className="mt-1 inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-10 font-bold text-orange-700 dark:bg-orange-950/35 dark:text-orange-200">
                           좌표 검수 필요
                         </span>
                       )}
@@ -383,10 +383,10 @@ function DetailPanel({
           ×
         </button>
         <div className="mb-2 flex flex-wrap gap-2 pr-10">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {cat.label} · {section.level} · {zoneLabel}
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800">
             {getDaejeonSourceLabel(section.sourceConfidence)}
           </span>
         </div>
@@ -402,28 +402,28 @@ function DetailPanel({
         <InfoTile label="시야 거리" value={info.distance ?? '-'} />
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">공식 블록</div>
         <OfficialBlockChips blocks={section.officialBlocks} accent={accent} />
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
           {section.sourceNote}
         </p>
-        <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-400 dark:text-white">
+        <p className="mt-1 text-11 font-semibold leading-relaxed text-slate-400 dark:text-white">
           {section.officialSectionName} · {getDaejeonTraceStatusLabel(section.traceStatus)}
         </p>
         {section.reviewNote && (
-          <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-orange-800 dark:bg-orange-950/35 dark:text-orange-200">
+          <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-12 font-semibold leading-relaxed text-orange-800 dark:bg-orange-950/35 dark:text-orange-200">
             {section.reviewNote}
           </p>
         )}
         {coverage && (
-          <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900 dark:bg-amber-950/35 dark:text-amber-100">
-            <div className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">검수 정보</div>
+          <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-12 font-semibold leading-relaxed text-amber-900 dark:bg-amber-950/35 dark:text-amber-100">
+            <div className="text-10 font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">검수 정보</div>
             <div className="mt-1">{coverage.officialSectionName} · {getDaejeonCoverageStatusLabel(coverage.status)}</div>
             <div className="mt-0.5 text-amber-800/80 dark:text-amber-100/80">{coverage.reviewNote}</div>
           </div>
         )}
         {section.accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
           </p>
         )}
@@ -438,7 +438,7 @@ function DetailPanel({
               {info.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                  className="rounded-full border px-2.5 py-1 text-11 font-bold"
                   style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}
                 >
                   {tag}
@@ -449,8 +449,8 @@ function DetailPanel({
         </div>
       )}
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
-        <p className="mb-3 text-[12px] font-semibold text-slate-500 dark:text-white">
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
+        <p className="mb-3 text-12 font-semibold text-slate-500 dark:text-white">
           다이어리에서 공유된 사진만 표시합니다.
         </p>
         <SeatViewGallery stadium="DAEJEON" section={section.name} sectionAliases={section.seatViewSections} compact />
@@ -483,7 +483,7 @@ function DaejeonExtraMeta({ section, accent }: { section: DaejeonBlock; accent: 
         <InfoTile label="부모 구역" value={parentGroup?.block ?? section.parentBlock} />
         <InfoTile label="source confidence" value={getDaejeonSourceLabel(section.sourceConfidence)} />
       </div>
-      <div className="mt-3 space-y-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+      <div className="mt-3 space-y-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
         <div
           data-testid="daejeon-seatmap-coverage-status"
           className="rounded-xl px-3 py-2"
@@ -547,7 +547,9 @@ export default function DaejeonSeatMap() {
       setIsSectionFinderOpen(true);
     }
   }, [selected]);
-  const hasOfficialBlocks = DAEJEON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && DAEJEON_BLOCKS.length > 0;
+  const canUseSeatMapImage = DAEJEON_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && DAEJEON_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
+  const hasOfficialBlocks = canUseSeatMapImage && DAEJEON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? DAEJEON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#F37321';
   const usedCategories = useMemo(() => [...new Set(DAEJEON_BLOCKS.map((block) => block.category))], []);

@@ -43,7 +43,7 @@ function ChipBtn({ active, accent, onClick, children }: { active: boolean; accen
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] font-black text-slate-400 tracking-widest uppercase mb-2">{label}</div>
+      <div className="text-11 font-black text-slate-400 tracking-widest uppercase mb-2">{label}</div>
       {children}
     </div>
   );
@@ -86,7 +86,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
         <div className="px-6 pt-5 pb-0 border-b border-slate-100 dark:border-slate-800">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <div className="text-[11px] font-black text-slate-400 tracking-widest mb-1">STEP {step}/{TOTAL_STEPS}</div>
+              <div className="text-11 font-black text-slate-400 tracking-widest mb-1">STEP {step}/{TOTAL_STEPS}</div>
               <h3 className="text-lg font-black tracking-tight text-slate-800 dark:text-white">{stepTitle}</h3>
               <p className="mt-1 text-xs text-slate-500">
                 <span className="font-bold" style={{ color: accent }}>블록 {section.block}</span> · {cat.label}
@@ -146,7 +146,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                   </button>
                 ))}
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-[11px] text-slate-500 leading-relaxed">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-11 text-slate-500 leading-relaxed">
                 💡 <strong className="text-slate-700 dark:text-white">좋은 시야 사진은?</strong><br/>
                 · 그라운드 전체가 보이도록 가로 촬영<br/>
                 · 좌석 등받이/옆자리 정도가 함께 나오면 거리감 전달
@@ -219,7 +219,7 @@ export default function JamsilUploadFlowModal({ section, mode, onClose, onSubmit
                   className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-white resize-none focus:outline-none focus:ring-2"
                   style={{ fontFamily: 'inherit' }}
                 />
-                <div className="text-right text-[10px] text-slate-400 mt-1">{data.comment.length}/140</div>
+                <div className="text-right text-10 text-slate-400 mt-1">{data.comment.length}/140</div>
               </Field>
               <div className="p-3.5 rounded-xl text-xs leading-relaxed" style={{ background: accent + '11', border: `1px solid ${accent}44` }}>
                 <div className="font-bold mb-1.5" style={{ color: accent }}>제출 미리보기</div>

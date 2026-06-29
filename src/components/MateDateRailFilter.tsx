@@ -36,7 +36,7 @@ export default function MateDateRailFilter({
           aria-pressed={selectedDate === null}
           aria-label={`전체 날짜 필터${selectedDate === null ? ', 선택됨' : ''}`}
           onClick={() => onDateSelect(null)}
-          className={`col-span-2 h-[42px] rounded-[10px] border px-3 text-[13px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
+          className={`col-span-2 h-[42px] rounded-10 border px-3 text-13 font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
             selectedDate === null
               ? FILTER_ACTIVE_CLASS
               : FILTER_IDLE_CLASS
@@ -59,13 +59,13 @@ export default function MateDateRailFilter({
               onClick={() => onDateSelect(date)}
               aria-label={dateFilterLabel}
               aria-pressed={Boolean(isSelected)}
-              className={`flex h-[42px] items-center justify-between rounded-[10px] border px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
+              className={`flex h-[42px] items-center justify-between rounded-10 border px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
                 isSelected
                   ? FILTER_ACTIVE_CLASS
                   : FILTER_IDLE_CLASS
               }`}
             >
-              <span className={`text-[11px] font-bold leading-4 ${
+              <span className={`text-11 font-bold leading-4 ${
                 isSelected
                   ? 'text-primary-foreground'
                   : isWeekend
@@ -75,7 +75,7 @@ export default function MateDateRailFilter({
               >
                 {quickLabel}
               </span>
-              <span className={`text-[13px] font-black leading-5 ${
+              <span className={`text-13 font-black leading-5 ${
                 isSelected ? 'text-primary-foreground' : 'text-gray-800 dark:text-white'
               }`}
               >
@@ -89,7 +89,7 @@ export default function MateDateRailFilter({
         <button
           type="button"
           onClick={() => setShowAllDates((current) => !current)}
-          className="mt-2 w-full py-1.5 text-[11px] font-bold text-primary transition-colors hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000]"
+          className="mt-2 w-full py-1.5 text-11 font-bold text-primary transition-colors hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000]"
         >
           {showAllDates ? '접기' : `+ ${hiddenDateCount}일 더 보기`}
         </button>

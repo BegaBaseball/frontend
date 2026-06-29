@@ -6,47 +6,38 @@ import { formatTimeAgo } from '../utils/time';
 import {
     FeaturedMateCard,
     Game,
-    HomeBootstrapResponse,
     HomeRankingSnapshot,
-    HomeScopedNavigationResponse,
     HomeWidgetsResponse,
     LeagueStartDates,
 } from '../types/home';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import { PublicApiError, publicGet } from './publicClient';
+import { publicGet } from './publicClient';
 import type { OpenApiResponseBody } from './openapiTypes';
-import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
 import { toHomeGames, toHomeGamesFromRange } from './homeMappers';
+export {
+    buildHomeLoadState,
+    fetchHomeBootstrap,
+    fetchHomeScopedNavigation,
+    getHomeBootstrapQueryOptions,
+    getHomeScopedNavigationQueryOptions,
+    HOME_BOOTSTRAP_QUERY_KEY,
+    HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
+    HOME_SCOPED_NAVIGATION_QUERY_KEY,
+    isHomeBootstrapBusinessConflict,
+    shouldRetryHomeBootstrapQuery,
+    shouldShowHomeConnectionError,
+} from './homeCore';
+export type {
+    HomeCoreLoadSuccessState,
+    HomeLoadFailureReason,
+    HomeLoadSource,
+    HomeLoadState,
+    HomeNavigationScope,
+} from './homeCore';
 
-export type HomeLoadSource = 'bootstrap' | 'legacy-fallback';
-export type HomeLoadFailureReason = 'manual-data-required' | 'request-failed';
-export type HomeNavigationScope = 'regular' | 'postseason' | 'koreanseries' | 'scheduled';
-
-export const HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS = 8000;
-export const HOME_BOOTSTRAP_QUERY_KEY = (dateKey: string) => ['home', 'bootstrap', dateKey] as const;
 export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
-export const HOME_SCOPED_NAVIGATION_QUERY_KEY = (dateKey: string, scope: HomeNavigationScope, seasonYear?: number) => (
-    ['home', 'navigation', dateKey, scope, seasonYear ?? 'auto'] as const
-);
 
 type ScheduleWireResponse = OpenApiResponseBody<'/api/kbo/schedule', 'get'>;
-
-export interface HomeLoadState {
-    source: HomeLoadSource;
-    isFallback: boolean;
-    timedOut: boolean;
-    timedOutSections: string[];
-    failedSections: string[];
-    failureReason: HomeLoadFailureReason | null;
-    manualDataRequest: ManualBaseballDataRequest | null;
-}
-
-export interface HomeCoreLoadSuccessState {
-    leagueStartDates: boolean;
-    navigation: boolean;
-    games: boolean;
-    scheduledGames: boolean;
-}
 
 interface RawHotCheerPost {
     id: number;
@@ -97,25 +88,6 @@ const toCheerPost = (post: RawHotCheerPost): CheerPost => ({
     imageUrls: post.imageUrls || [],
 });
 
-const isBootstrapResponse = (value: unknown): value is HomeBootstrapResponse => {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    const loadState = candidate.loadState;
-    return typeof candidate.selectedDate === 'string'
-        && Array.isArray(candidate.games)
-        && Array.isArray(candidate.scheduledGamesWindow)
-        && !!candidate.leagueStartDates
-        && !!candidate.navigation
-        && (loadState == null || (typeof loadState === 'object' && !Array.isArray(loadState)));
-};
-
-const isStringArray = (value: unknown): value is string[] => (
-    Array.isArray(value) && value.every((item) => typeof item === 'string')
-);
-
 const isRankingSnapshot = (value: unknown): value is HomeRankingSnapshot => {
     if (!value || typeof value !== 'object') {
         return false;
@@ -138,51 +110,6 @@ const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotChee
         && Array.isArray(candidate.featuredMates)
         && isRankingSnapshot(candidate.rankingSnapshot);
 };
-
-const isScopedNavigationResponse = (value: unknown): value is HomeScopedNavigationResponse => {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    return typeof candidate.hasPrev === 'boolean'
-        && typeof candidate.hasNext === 'boolean';
-};
-
-export const buildHomeLoadState = (
-    source: HomeLoadSource,
-    options: {
-        isFallback?: boolean;
-        timedOut?: boolean;
-        timedOutSections?: string[];
-        failedSections?: string[];
-        failureReason?: HomeLoadFailureReason | null;
-        manualDataRequest?: ManualBaseballDataRequest | null;
-    } = {},
-): HomeLoadState => ({
-    source,
-    isFallback: options.isFallback ?? source === 'legacy-fallback',
-    timedOut: options.timedOut === true,
-    timedOutSections: options.timedOutSections ?? [],
-    failedSections: options.failedSections ?? [],
-    failureReason: options.failureReason ?? null,
-    manualDataRequest: options.manualDataRequest ?? null,
-});
-
-export const shouldShowHomeConnectionError = (
-    state: HomeCoreLoadSuccessState,
-): boolean => !Object.values(state).some(Boolean);
-
-export const isHomeBootstrapBusinessConflict = (error: unknown): boolean => (
-    error instanceof PublicApiError && error.status === 409
-);
-
-export const shouldRetryHomeBootstrapQuery = (
-    failureCount: number,
-    error: unknown,
-): boolean => (
-    !isHomeBootstrapBusinessConflict(error) && failureCount < 1
-);
 
 /**
  * 특정 날짜의 경기 데이터 조회
@@ -227,88 +154,6 @@ export const fetchLeagueStartDates = async (): Promise<LeagueStartDates> => {
     } catch (error) {
         return getFallbackLeagueStartDates();
     }
-};
-
-export const fetchHomeBootstrap = async (
-    date: Date,
-    options: { timeoutMs?: number } = {},
-): Promise<HomeBootstrapResponse> => {
-    const apiDate = formatDateForAPI(date);
-    const data = await publicGet<unknown>('/home/bootstrap', {
-        params: { date: apiDate },
-        timeoutMs: options.timeoutMs ?? HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
-    });
-
-    if (!isBootstrapResponse(data)) {
-        throw new Error('Invalid home bootstrap response');
-    }
-
-    const loadState = data.loadState
-        ? {
-            ...data.loadState,
-            timedOutSections: isStringArray(data.loadState.timedOutSections)
-                ? data.loadState.timedOutSections
-                : [],
-            failedSections: isStringArray(data.loadState.failedSections)
-                ? data.loadState.failedSections
-                : [],
-        }
-        : undefined;
-    const response: HomeBootstrapResponse = {
-        selectedDate: data.selectedDate,
-        leagueStartDates: data.leagueStartDates,
-        navigation: data.navigation,
-        games: data.games,
-        scheduledGamesWindow: data.scheduledGamesWindow,
-        ...(loadState ? { loadState } : {}),
-    };
-
-    cacheLeagueStartDates(response.leagueStartDates);
-    return response;
-};
-
-export const getHomeBootstrapQueryOptions = (date: Date) => {
-    const dateKey = formatDateForAPI(date);
-    return {
-        queryKey: HOME_BOOTSTRAP_QUERY_KEY(dateKey),
-        queryFn: () => fetchHomeBootstrap(date),
-        retry: shouldRetryHomeBootstrapQuery,
-        staleTime: 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-    } as const;
-};
-
-export const fetchHomeScopedNavigation = async (
-    date: Date,
-    scope: HomeNavigationScope,
-    seasonYear?: number,
-): Promise<HomeScopedNavigationResponse> => {
-    const apiDate = formatDateForAPI(date);
-    const data = await publicGet<unknown>('/home/navigation', {
-        params: seasonYear == null
-            ? { date: apiDate, scope }
-            : { date: apiDate, scope, seasonYear },
-    });
-
-    if (!isScopedNavigationResponse(data)) {
-        throw new Error('Invalid home scoped navigation response');
-    }
-
-    return data;
-};
-
-export const getHomeScopedNavigationQueryOptions = (
-    date: Date,
-    scope: HomeNavigationScope,
-    seasonYear?: number,
-) => {
-    const dateKey = formatDateForAPI(date);
-    return {
-        queryKey: HOME_SCOPED_NAVIGATION_QUERY_KEY(dateKey, scope, seasonYear),
-        queryFn: () => fetchHomeScopedNavigation(date, scope, seasonYear),
-        staleTime: 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-    } as const;
 };
 
 export const fetchHomeWidgets = async (date: Date, seasonYear?: number): Promise<HomeWidgetsResponse> => {

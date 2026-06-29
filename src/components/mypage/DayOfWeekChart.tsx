@@ -39,7 +39,7 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
             </CardHeader>
             <CardContent>
                 <div className="grid h-[250px] grid-cols-[36px_minmax(0,1fr)] gap-3">
-                    <div className="flex h-[210px] flex-col justify-between pt-2 text-[16px] font-semibold text-muted-foreground">
+                    <div className="flex h-[210px] flex-col justify-between pt-2 text-body font-semibold text-muted-foreground">
                         {tickValues.map((tick) => (
                             <span key={tick}>{tick}%</span>
                         ))}
@@ -47,24 +47,26 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
 
                     <div className="relative">
                         <div className="pointer-events-none absolute inset-x-0 bottom-12 top-2 flex flex-col justify-between">
-                            {tickValues.map((tick) => (
-                                <div
-                                    key={tick}
-                                    className={tick === 50
-                                        ? 'border-t border-dashed border-primary/40'
-                                        : 'border-t border-dashed border-slate-200 dark:border-border'}
-                                />
-                            ))}
+                        {tickValues.map((tick) => (
+                            <div
+                                key={tick}
+                                className={tick === 50
+                                    ? 'border-t border-dashed border-primary/40'
+                                    : 'border-t border-dashed border-border'}
+                            />
+                        ))}
                         </div>
 
                         <div className="relative flex h-full items-end gap-3">
                             {data.map((entry) => {
                                 const barHeight = Math.max((entry.winRate / 100) * 150, 12);
-                                const barColor = entry.winRate >= 50 ? '#2d5f4f' : '#9ca3af';
+                                const barColor = entry.winRate >= 50
+                                    ? 'var(--mp-win-bg)'
+                                    : 'var(--mp-fg-muted)';
 
                                 return (
                                     <div key={entry.day} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                                        <span className="text-[16px] font-semibold text-slate-500 dark:text-white">
+                                        <span className="text-body font-semibold text-muted-foreground">
                                             {entry.winRate}%
                                         </span>
                                         <div className="flex h-[150px] w-full items-end justify-center">
@@ -75,8 +77,8 @@ export default function DayOfWeekChart({ dayOfWeekStats }: DayOfWeekChartProps) 
                                             />
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-[16px] font-semibold text-foreground">{entry.day}</p>
-                                            <p className="text-[16px] text-muted-foreground">{entry.count}경기</p>
+                                            <p className="text-body font-semibold text-foreground">{entry.day}</p>
+                                            <p className="text-body text-muted-foreground">{entry.count}경기</p>
                                         </div>
                                     </div>
                                 );

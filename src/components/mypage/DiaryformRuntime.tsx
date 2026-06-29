@@ -1,5 +1,5 @@
 import { type UseMutationResult } from '@tanstack/react-query';
-import { lazy, Suspense } from 'react';
+import { type CSSProperties, lazy, Suspense } from 'react';
 
 import './Diary.css';
 
@@ -33,8 +33,40 @@ interface DiaryViewSectionProps {
   onBackToLog?: () => void;
 }
 
+const getCalendarDayStyle = (type: DiaryEntry['type'] | undefined): CSSProperties | undefined => {
+  if (!type) {
+    return undefined;
+  }
+
+  return type === 'attended'
+    ? {
+        backgroundColor: 'var(--mp-win-bg)',
+        borderColor: 'var(--mp-win)',
+      }
+    : {
+        backgroundColor: 'var(--mp-draw-bg)',
+        borderColor: 'var(--mp-draw)',
+      };
+};
+
+const getCalendarDayBadgeStyle = (type: DiaryEntry['type'] | undefined): CSSProperties | undefined => {
+  if (!type) {
+    return undefined;
+  }
+
+  return type === 'attended'
+    ? {
+        backgroundColor: 'var(--mp-win-bg)',
+        borderColor: 'var(--mp-win)',
+      }
+    : {
+        backgroundColor: 'var(--mp-draw-bg)',
+        borderColor: 'var(--mp-draw)',
+      };
+};
+
 const diaryEditModeFallback = (
-  <div className="py-8 text-center text-[16px] text-muted-foreground">
+  <div className="py-8 text-center text-body text-muted-foreground">
     직관 기록 폼을 불러오는 중입니다.
   </div>
 );
@@ -81,10 +113,10 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
             <MyPageArrowLeftIcon className="h-4 w-4" />
             시즌 로그
           </button>
-          <span className="text-sm font-bold text-[#FFFFFF]">직관 기록</span>
+          <span className="text-sm font-bold text-foreground">직관 기록</span>
         </div>
       )}
-      <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-primary dark:bg-primary-dark text-primary-foreground transition-colors duration-200">
+      <div className="diary-green-surface rounded-2xl md:rounded-3xl p-3 md:p-8 bg-card text-card-foreground transition-colors duration-200">
       {isDesktop ? (
         // 데스크톱: 기존 월간 뷰
         <div className="diary-editor-grid grid grid-cols-1 gap-6 lg:grid-cols-10">
@@ -123,7 +155,7 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
 
             <div className="grid grid-cols-7 gap-2 md:gap-3">
               {monthCalendar.weekDays.map((day) => (
-                <div key={day} className="text-center py-2 text-[16px] text-muted-foreground">
+                <div key={day} className="text-center py-2 text-body text-muted-foreground">
                   {day}
                 </div>
               ))}
@@ -136,16 +168,19 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
 
                 // Determine classes based on state
                 let bgClass = '';
+                let style: CSSProperties | undefined;
                 if (entry) {
                   if (entry.type === 'attended') {
-                    bgClass = 'bg-emerald-50 dark:bg-secondary border-primary dark:border-primary';
+                    bgClass = 'border';
+                    style = getCalendarDayStyle(entry.type);
                   } else {
-                    bgClass = 'bg-amber-100 dark:bg-secondary border-amber-300 dark:border-amber-500';
+                    bgClass = 'border';
+                    style = getCalendarDayStyle(entry.type);
                   }
                 } else if (day.isValidDay) {
-                  bgClass = 'bg-card hover:bg-muted/80 dark:hover:bg-secondary border-border dark:border-border';
+                  bgClass = 'bg-card hover:bg-muted/80 border-border';
                 } else {
-                  bgClass = 'bg-muted dark:bg-background border-border dark:border-border';
+                  bgClass = 'bg-muted border-border';
                 }
 
                 return (
@@ -159,20 +194,21 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
                         new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day.dayNumber, 12, 0, 0)
                       )
                     }
-                    className={`border rounded-lg p-2 flex flex-col min-h-[96px] md:min-h-[110px] transition-colors ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''
+                    className={`border rounded-lg p-2 flex flex-col min-h-[96px] md:min-h-[110px] transition-colors ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-primary ring-offset-background' : ''
                       }`}
+                    style={style}
                     disabled={!day.isValidDay}
                   >
                     {day.isValidDay && (
                       <>
-                        <div className={`text-[16px] text-center w-full mb-2 ${!day.isValidDay ? 'text-muted-foreground' : 'text-foreground'
+                        <div className={`text-body text-center w-full mb-2 ${!day.isValidDay ? 'text-muted-foreground' : 'text-foreground'
                           }`}>
                           {day.dayNumber}
                         </div>
                         {entry && (
                           <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
                             {entry.team && (
-                              <div className="text-[16px] font-semibold text-center leading-snug px-1 line-clamp-2 text-muted-foreground">
+                              <div className="text-body font-semibold text-center leading-snug px-1 line-clamp-2 text-muted-foreground">
                                 {entry.team}
                               </div>
                             )}
@@ -191,17 +227,19 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
             </div>
 
             <div className="flex items-center gap-6 mt-6 justify-center">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
-                />
-                <span className="text-[16px] text-muted-foreground">직관 완료</span>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded border-2 border-primary"
+                    style={getCalendarDayBadgeStyle('attended')}
+                  />
+                <span className="text-body text-muted-foreground">직관 완료</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
-                />
-                <span className="text-[16px] text-muted-foreground">직관 예정</span>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded border-2 border-primary"
+                    style={getCalendarDayBadgeStyle('scheduled')}
+                  />
+                <span className="text-body text-muted-foreground">직관 예정</span>
               </div>
             </div>
           </Card>
@@ -282,7 +320,7 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
 
             <div className="grid grid-cols-7 gap-1.5">
               {weekCalendar.weekDays.map((day) => (
-                <div key={day} className="text-center py-1 text-[16px] text-muted-foreground">
+                <div key={day} className="text-center py-1 text-body text-muted-foreground">
                   {day}
                 </div>
               ))}
@@ -299,14 +337,15 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
                     key={index}
                     data-testid={`day-${date.getDate()}`}
                     onClick={() => handleDateSelect(date)}
-                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-muted/80 dark:hover:bg-secondary ${isSelected ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-gray-900' : ''} ${entry
+                    className={`border rounded-lg p-2 flex flex-col min-h-[84px] hover:bg-muted/80 ${isSelected ? 'ring-2 ring-offset-1 ring-primary ring-offset-background' : ''} ${entry
                         ? entry.type === 'attended'
-                          ? 'bg-emerald-50 dark:bg-secondary border-primary dark:border-primary'
-                          : 'bg-amber-100 dark:bg-secondary border-amber-300 dark:border-amber-500'
-                        : 'bg-card border-border dark:border-border'
+                          ? 'border'
+                          : 'border'
+                        : 'bg-card border-border'
                       }`}
+                    style={entry ? getCalendarDayStyle(entry.type) : undefined}
                   >
-                    <div className="text-[16px] text-center w-full mb-1 text-foreground">
+                    <div className="text-body text-center w-full mb-1 text-foreground">
                       {date.getDate()}
                     </div>
                     {entry && (
@@ -323,17 +362,19 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
               })}
             </div>
 
-            <div className="flex items-center gap-4 mt-4 justify-center text-[16px]">
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-3 h-3 rounded bg-emerald-50 dark:bg-secondary border-2 border-primary dark:border-primary"
-                />
+            <div className="flex items-center gap-4 mt-4 justify-center text-body">
+                <div className="flex items-center gap-1">
+                  <div
+                    className="w-3 h-3 rounded border-2 border-primary"
+                    style={getCalendarDayBadgeStyle('attended')}
+                  />
                 <span className="text-muted-foreground">직관 완료</span>
               </div>
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-3 h-3 rounded bg-amber-100 dark:bg-secondary border-2 border-amber-300 dark:border-amber-500"
-                />
+                <div className="flex items-center gap-1">
+                  <div
+                    className="w-3 h-3 rounded border-2 border-primary"
+                    style={getCalendarDayBadgeStyle('scheduled')}
+                  />
                 <span className="text-muted-foreground">직관 예정</span>
               </div>
             </div>
@@ -398,7 +439,8 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
 
       {/* 오늘의 기분 */}
       <div
-        className="diary-read-summary flex items-center gap-6 p-6 rounded-2xl bg-emerald-50 dark:bg-secondary"
+        className="diary-read-summary flex items-center gap-6 p-6 rounded-2xl"
+        style={{ backgroundColor: 'var(--mp-win-bg)' }}
       >
         <img
           src={getEmojiByName(diaryForm.emojiName)}
@@ -406,7 +448,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
           className="w-20 h-20 object-contain"
         />
         <div>
-          <div className="text-[16px] text-muted-foreground mb-1">오늘의 기분</div>
+          <div className="text-body text-muted-foreground mb-1">오늘의 기분</div>
           <div className="text-2xl text-primary" style={{ fontWeight: 900 }}>
             {diaryForm.emojiName}
           </div>
@@ -416,7 +458,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       {/* 사진 */}
       {diaryForm.photos && diaryForm.photos.length > 0 && (
         <div className="diary-read-photo-section">
-          <div className="text-[16px] mb-3 text-primary" style={{ fontWeight: 700 }}>
+          <div className="text-body mb-3 text-primary" style={{ fontWeight: 700 }}>
             사진
           </div>
           {diaryForm.photos.length === 1 ? (
@@ -435,8 +477,8 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
                     className="w-full h-full object-cover"
                   />
                   {index === 3 && diaryForm.photos.length > 4 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                      <span className="text-white text-2xl" style={{ fontWeight: 900 }}>
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                      <span className="text-foreground text-2xl" style={{ fontWeight: 900 }}>
                         +{diaryForm.photos.length - 4}
                       </span>
                     </div>
@@ -451,20 +493,20 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
       {/* 경기 정보 */}
       <div className="diary-read-details space-y-4">
         <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
-          <div className="text-[16px] text-muted-foreground">경기</div>
+          <div className="text-body text-muted-foreground">경기</div>
           <div className="font-bold text-primary">
             {selectedDiary?.team || '경기 정보 없음'}
           </div>
         </div>
         <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
-          <div className="text-[16px] text-muted-foreground">구장</div>
+          <div className="text-body text-muted-foreground">구장</div>
           <div className="font-bold text-primary">
             {selectedDiary?.stadium ? formatStadiumDisplayName(selectedDiary.stadium) : '구장 정보 없음'}
           </div>
         </div>
         {diaryForm.winningName && (
           <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
-            <div className="text-[16px] text-muted-foreground">승패</div>
+            <div className="text-body text-muted-foreground">승패</div>
             <div className="font-bold text-primary">
               {getWinningLabel(diaryForm.winningName)}
             </div>
@@ -472,7 +514,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         )}
         {diaryForm.memo && (
           <div className="diary-read-row grid grid-cols-[80px_1fr] gap-2">
-            <div className="text-[16px] text-muted-foreground">메모</div>
+            <div className="text-body text-muted-foreground">메모</div>
             <div
               data-testid="diary-memo"
               className="text-foreground leading-relaxed whitespace-pre-wrap"
@@ -495,7 +537,7 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         <Button
           data-testid="delete-diary-btn"
           onClick={handleDeleteDiary}
-          className="text-white bg-red-500 hover:bg-red-600"
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           disabled={deleteMutation.isPending}
         >
           {deleteMutation.isPending ? '삭제 중...' : '삭제'}

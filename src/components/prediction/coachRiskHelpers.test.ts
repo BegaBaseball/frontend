@@ -7,6 +7,7 @@ import {
     riskSevColor,
     resolveRiskImpactText,
     resolveRiskImpactTo,
+    resolveRiskAreaLabel,
     resolveRiskInningLabel,
     resolveRiskInningPosition,
     shortTeamName,
@@ -32,6 +33,15 @@ test('coach risk helpers shorten known team ids', () => {
     assert.equal(shortTeamName('ssg'), 'SSG');
     assert.equal(shortTeamName('kt'), 'KT');
     assert.equal(shortTeamName('unknown'), 'UNKNOWN');
+});
+
+test('coach risk helpers map structured risk areas to reader-facing Korean labels', () => {
+    assert.equal(resolveRiskAreaLabel('overall'), '종합 리스크');
+    assert.equal(resolveRiskAreaLabel('lineup'), '라인업 변수');
+    assert.equal(resolveRiskAreaLabel('offense'), '득점 연결');
+    assert.equal(resolveRiskAreaLabel('bullpen'), '불펜 운영');
+    assert.equal(resolveRiskAreaLabel('form'), '최근 흐름');
+    assert.equal(resolveRiskAreaLabel('선발 매치업'), '선발 매치업');
 });
 
 test('coach risk helpers prefer structured inning and impact fields when present', () => {

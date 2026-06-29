@@ -57,7 +57,7 @@ export default function PlainMenu({
         <div
           role={role}
           className={cn(
-            'absolute top-full z-[95] mt-2 rounded-xl border border-slate-200 bg-white shadow-[0_18px_50px_-22px_rgba(15,23,42,0.35)] ring-1 ring-black/5 dark:border-border dark:bg-card',
+            'absolute top-full z-[95] mt-2 rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 dark:border-border dark:bg-card',
             align === 'start' ? 'left-0' : 'right-0',
             panelClassName,
           )}

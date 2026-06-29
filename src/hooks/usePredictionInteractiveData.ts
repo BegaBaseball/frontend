@@ -20,6 +20,8 @@ import type {
 import type { GameDetail } from '../types/prediction';
 import { emitPredictionFlowEvent } from '../utils/predictionFlowTelemetry';
 import {
+  buildPredictionDetailPath,
+  buildPredictionListPath,
   buildPredictionRecoveryPath,
   buildSeedGameDetail,
   toPredictionGameId,
@@ -64,6 +66,7 @@ export const usePredictionInteractiveData = () => {
   const providedUserVotes = usePredictionUserVotesRuntimeState();
   const isUsingProvidedSchedule = providedSchedule !== null;
   const isUsingProvidedUserVotes = providedUserVotes !== null;
+  const activeSearchParams = providedSchedule?.searchParams ?? searchParams;
 
   const [predictionErrorOverlay, setPredictionErrorOverlay] = useState<PredictionErrorOverlayState | null>(null);
   const [pendingSeedDetail, setPendingSeedDetail] = useState<{ gameId: string; detail: GameDetail } | null>(null);
@@ -162,7 +165,7 @@ export const usePredictionInteractiveData = () => {
         window.location.href = buildPredictionRecoveryPath({
           currentDate: currentDateRef.current,
           currentGameId: currentGameIdRef.current,
-          searchParams,
+          searchParams: activeSearchParams,
         });
       }
     });
@@ -208,7 +211,7 @@ export const usePredictionInteractiveData = () => {
       toastKey: config.toastKey,
       retryConfig: normalizedRecoveryState,
     });
-  }, [emitFlowEvent, searchParams]);
+  }, [activeSearchParams, emitFlowEvent]);
 
   const handlePredictionErrorOverlayAction = useCallback(async (action: PredRecoveryAction) => {
     const overlayState = predictionErrorOverlay;
@@ -273,7 +276,7 @@ export const usePredictionInteractiveData = () => {
 
   const locationState = location.state as PredictionLocationState;
   const requestedDeepLinkGameId = toPredictionGameId(
-    searchParams.get('gameId')
+    activeSearchParams.get('gameId')
       || locationState?.gameId
       || locationState?.game?.gameId
       || ''
@@ -282,7 +285,7 @@ export const usePredictionInteractiveData = () => {
   const localSchedule = usePredictionSchedule({
     isLoggedIn,
     isAuthLoading,
-    searchParams,
+    searchParams: activeSearchParams,
     setSearchParams,
     locationState,
     emitFlowEvent,
@@ -299,6 +302,20 @@ export const usePredictionInteractiveData = () => {
   const currentGameId = schedule.currentGame?.gameId || null;
   currentGameIdRef.current = currentGameId;
   currentDateRef.current = schedule.currentDate || null;
+  const buildPredictionListOriginState = useCallback((targetDate?: string | null, targetGameId?: string | null) => {
+    const normalizedDate = normalizePredictionDate(targetDate || schedule.currentDate || '') || schedule.currentDate || '';
+    const normalizedGameId = toPredictionGameId(targetGameId || '') || '';
+    const previousState = locationState && typeof locationState === 'object' ? locationState : {};
+
+    return {
+      ...previousState,
+      fromPredictionList: true,
+      predictionListPath: buildPredictionListPath({ date: normalizedDate }),
+      predictionDetailPath: normalizedGameId
+        ? buildPredictionDetailPath({ gameId: normalizedGameId, date: normalizedDate })
+        : undefined,
+    };
+  }, [locationState, schedule.currentDate]);
   const hasLoadedRequestedDeepLinkGame = Boolean(
     requestedDeepLinkGameId
     && schedule.allDatesData.some((entry) => (
@@ -334,18 +351,22 @@ export const usePredictionInteractiveData = () => {
 
     schedule.setSelectedGame(gameIndex);
 
-    const nextSearchParams = new URLSearchParams(searchParams);
+    const nextSearchParams = new URLSearchParams(schedule.searchParams);
     nextSearchParams.set('gameId', nextGame.gameId);
     if (schedule.currentDate) {
       nextSearchParams.set('date', schedule.currentDate);
     }
-    schedule.setProgrammaticSearchParams(nextSearchParams, { replace: true });
+    schedule.setProgrammaticSearchParams(nextSearchParams, {
+      replace: true,
+      state: buildPredictionListOriginState(schedule.currentDate, nextGame.gameId),
+    });
   }, [
+    buildPredictionListOriginState,
     schedule.currentDate,
     schedule.currentDateGames,
+    schedule.searchParams,
     schedule.setProgrammaticSearchParams,
     schedule.setSelectedGame,
-    searchParams,
   ]);
 
   const syncPredictionDateSearchParams = useCallback((targetDate: string, targetGameId?: string | null) => {
@@ -354,15 +375,18 @@ export const usePredictionInteractiveData = () => {
       return;
     }
 
-    const nextSearchParams = new URLSearchParams(searchParams);
+    const nextSearchParams = new URLSearchParams(schedule.searchParams);
     nextSearchParams.set('date', normalizedDate);
     if (targetGameId) {
       nextSearchParams.set('gameId', targetGameId);
     } else {
       nextSearchParams.delete('gameId');
     }
-    schedule.setProgrammaticSearchParams(nextSearchParams, { replace: true });
-  }, [schedule.setProgrammaticSearchParams, searchParams]);
+    schedule.setProgrammaticSearchParams(nextSearchParams, {
+      replace: true,
+      state: targetGameId ? buildPredictionListOriginState(normalizedDate, targetGameId) : undefined,
+    });
+  }, [buildPredictionListOriginState, schedule.searchParams, schedule.setProgrammaticSearchParams]);
 
   const goToPreviousDate = useCallback(() => {
     const previousDateEntry = schedule.allDatesData[schedule.currentDateIndex - 1];

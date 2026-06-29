@@ -30,6 +30,7 @@ export interface CoachBriefingAnalyzePayload {
     season?: number | string;
     season_year?: number;
     game_date?: string;
+    game_status?: string;
     league_type?: string;
     league_type_code?: number;
     round?: string;
@@ -53,6 +54,34 @@ export interface CoachBriefingRequestDescriptor {
   requestPayload: CoachBriefingAnalyzePayload;
 }
 
+const UNANNOUNCED_PITCHER_LABELS = new Set([
+  '발표 전',
+  '발표전',
+  '미정',
+  '선발 발표 전',
+  '선발발표전',
+  '선발 미정',
+  '선발미정',
+  '선발 미발표',
+  '선발미발표',
+  'TBD',
+  'N/A',
+  '-',
+]);
+
+const normalizePitcherNameForCoachRequest = (value?: string): string | undefined => {
+  const normalized = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!normalized) {
+    return undefined;
+  }
+  const normalizedKey = normalized.toUpperCase();
+  const compactKey = normalizedKey.replace(/\s+/g, '');
+  if (UNANNOUNCED_PITCHER_LABELS.has(normalizedKey) || UNANNOUNCED_PITCHER_LABELS.has(compactKey)) {
+    return undefined;
+  }
+  return normalized;
+};
+
 export const buildCoachBriefingRequestDescriptor = ({
   game,
   requestMode,
@@ -74,6 +103,8 @@ export const buildCoachBriefingRequestDescriptor = ({
   const homeTeamId = TEAM_NAME_TO_ID[homeTeamName] || game.homeTeam;
   const awayTeamId = TEAM_NAME_TO_ID[awayTeamName] || game.awayTeam;
   const normalizedFocus = focus.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  const normalizedHomePitcherName = normalizePitcherNameForCoachRequest(homePitcherName);
+  const normalizedAwayPitcherName = normalizePitcherNameForCoachRequest(awayPitcherName);
 
   const requestPayload: CoachBriefingAnalyzePayload = {
     home_team_id: homeTeamId,
@@ -82,14 +113,15 @@ export const buildCoachBriefingRequestDescriptor = ({
       season: game.seasonId,
       season_year: requestSeasonYear,
       game_date: game.gameDate,
+      game_status: game.gameStatus ?? undefined,
       league_type: game.leagueType,
       league_type_code: requestLeagueTypeCode,
       round: game.postSeasonSeries,
       stage_label: game.postSeasonSeries,
       game_no: game.seriesGameNo,
       series_game_no: game.seriesGameNo,
-      home_pitcher: homePitcherName,
-      away_pitcher: awayPitcherName,
+      home_pitcher: normalizedHomePitcherName,
+      away_pitcher: normalizedAwayPitcherName,
       home: homeSeasonContext,
       away: awaySeasonContext,
     },

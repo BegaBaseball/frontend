@@ -4,6 +4,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
     resolveRiskImpactText,
     resolveRiskImpactTo,
+    resolveRiskAreaLabel,
     resolveRiskInningLabel,
     resolveRiskInningPosition,
     riskSevColor,
@@ -153,6 +154,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                 {/* 도트 */}
                 {dots.map(({ risk, x }, i) => {
                     const color = riskSevColor(risk.level);
+                    const areaLabel = resolveRiskAreaLabel(risk.area);
                     return (
                         <div
                             key={i}
@@ -184,7 +186,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                     left: '50%',
                                     transform: 'translateX(-50%)',
                                 }}>
-                                    {risk.area}
+                                    {areaLabel}
                                 </div>
                             )}
                         </div>
@@ -199,6 +201,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                     const impactTo    = resolveRiskImpactTo(r, isPositive);
                     const impactColor = impactTo === 'home' ? IMPACT.home : impactTo === 'away' ? IMPACT.away : IMPACT.bothText;
                     const impactText  = resolveRiskImpactText(r, isPositive);
+                    const areaLabel   = resolveRiskAreaLabel(r.area);
 
                     return (
                         <div
@@ -261,7 +264,7 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                         {resolveRiskInningLabel(r)}
                                     </span>
                                 )}
-                                <strong style={{ fontWeight: 800 }}>{r.area}</strong>
+                                <strong style={{ fontWeight: 800 }}>{areaLabel}</strong>
                                 <span style={{ color: subColor, fontWeight: 600 }}> · {r.description}</span>
                             </span>
 
@@ -270,7 +273,6 @@ export default function RiskTimeline({ risks, isPositive }: RiskTimelineProps) {
                                 fontWeight: 800,
                                 color: impactColor,
                                 whiteSpace: 'nowrap',
-                                fontFamily: 'ui-monospace, monospace',
                             }}>
                                 {impactText}
                             </span>

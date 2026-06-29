@@ -110,3 +110,22 @@ test('buildInningRows: 점수 미집계 경기의 0점 template row는 스코어
 
   assert.deepEqual(rows, {});
 });
+
+test('buildInningRows: boxScore side 배열을 실시간 이닝 스코어로 반영한다', () => {
+  const detail = buildDetail(undefined);
+  detail.boxScore = {
+    away: [0, 1, 0],
+    home: [2, 0, 1],
+  };
+
+  const rows = buildInningRows(baseGame, detail);
+
+  assert.deepEqual(Object.keys(rows).map(Number), [1, 2, 3]);
+  assert.equal(rows[1].away, 0);
+  assert.equal(rows[1].home, 2);
+  assert.equal(rows[2].away, 1);
+  assert.equal(rows[2].home, 0);
+  assert.equal(rows[3].away, 0);
+  assert.equal(rows[3].home, 1);
+  assert.equal(hasMeaningfulInningScoreData(detail), true);
+});

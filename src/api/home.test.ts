@@ -9,7 +9,6 @@ import {
   fetchHomeScopedNavigation,
   fetchHomeWidgets,
   fetchLeagueStartDates,
-  HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS,
   getHomeBootstrapQueryOptions,
   getHomeWidgetsQueryOptions,
   isHomeBootstrapBusinessConflict,
@@ -27,15 +26,6 @@ const buildJsonResponse = (body: unknown, status = 200) =>
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
-  const observedTimeouts: number[] = [];
-  const originalSetTimeout = globalThis.setTimeout;
-
-  t.mock.method(globalThis, 'setTimeout', ((handler: Parameters<typeof globalThis.setTimeout>[0], timeout?: number) => {
-    if (typeof timeout === 'number') {
-      observedTimeouts.push(timeout);
-    }
-    return originalSetTimeout(handler, timeout);
-  }) as typeof globalThis.setTimeout);
 
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
     requestUrl = typeof input === 'string'
@@ -82,7 +72,129 @@ test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin 
   assert.match(requestUrl, /\/api\/home\/bootstrap\?date=2026-03-16$/);
   assert.equal(requestInit?.credentials, 'include');
   assert.deepEqual(requestInit?.headers, { Accept: 'application/json' });
-  assert.ok(observedTimeouts.includes(HOME_BOOTSTRAP_REQUEST_TIMEOUT_MS));
+  assert.ok(requestInit?.signal instanceof AbortSignal);
+});
+
+test('fetchHomeBootstrap은 partial manual-data loadState metadata를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    selectedDate: '2026-06-24',
+    leagueStartDates: {
+      regularSeasonStart: '2026-03-28',
+      postseasonStart: '2026-10-06',
+      koreanSeriesStart: '2026-10-26',
+    },
+    navigation: {
+      hasPrev: true,
+      hasNext: true,
+      prevGameDate: '2026-06-23',
+      nextGameDate: '2026-06-25',
+    },
+    games: [],
+    scheduledGamesWindow: [],
+    loadState: {
+      isFallback: true,
+      timedOut: false,
+      timedOutSections: [],
+      failedSections: ['games', 'scheduledGamesWindow'],
+      failureReason: 'manual-data-required',
+      manualDataRequest: {
+        scope: 'home.schedule',
+        missingItems: [{
+          key: 'final_score',
+          label: '최종 점수',
+          reason: '과거 경기의 최종 점수가 비어 있습니다.',
+          expected_format: 'home_score, away_score',
+        }],
+        operatorMessage: '다음 야구 데이터가 필요합니다: 날짜=2026-06-24',
+        blocking: true,
+      },
+    },
+  }));
+
+  const response = await fetchHomeBootstrap(new Date('2026-06-24T12:00:00'));
+
+  assert.equal(response.loadState?.failureReason, 'manual-data-required');
+  assert.equal(response.loadState?.manualDataRequest?.scope, 'home.schedule');
+  assert.equal(response.loadState?.manualDataRequest?.operatorMessage, '다음 야구 데이터가 필요합니다: 날짜=2026-06-24');
+  assert.deepEqual(response.loadState?.failedSections, ['games', 'scheduledGamesWindow']);
+});
+
+test('fetchHomeBootstrap은 partial manual-data 응답에서도 유효한 games를 보존한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    selectedDate: '2026-06-26',
+    leagueStartDates: {
+      regularSeasonStart: '2026-03-28',
+      postseasonStart: '2026-10-06',
+      koreanSeriesStart: '2026-10-26',
+    },
+    navigation: {
+      hasPrev: true,
+      hasNext: true,
+      prevGameDate: '2026-06-25',
+      nextGameDate: '2026-06-27',
+    },
+    games: [{
+      gameId: '20260626HTOB0',
+      gameDate: '2026-06-26',
+      time: '18:30',
+      stadium: '잠실',
+      gameStatus: 'COMPLETED',
+      gameStatusKr: '경기 종료',
+      gameInfo: '',
+      leagueType: 'REGULAR',
+      homeTeam: 'DB',
+      homeTeamFull: '두산 베어스',
+      awayTeam: 'KIA',
+      awayTeamFull: 'KIA 타이거즈',
+      homeScore: 3,
+      awayScore: 2,
+    }, {
+      gameId: '20260626WONC0',
+      gameDate: '2026-06-26',
+      time: '18:30',
+      stadium: '창원',
+      gameStatus: 'COMPLETED',
+      gameStatusKr: '경기 종료',
+      gameInfo: '',
+      leagueType: 'REGULAR',
+      homeTeam: 'NC',
+      homeTeamFull: 'NC 다이노스',
+      awayTeam: 'KH',
+      awayTeamFull: '키움 히어로즈',
+      homeScore: 11,
+      awayScore: 4,
+    }],
+    scheduledGamesWindow: [],
+    loadState: {
+      isFallback: false,
+      timedOut: false,
+      timedOutSections: [],
+      failedSections: [],
+      failureReason: 'manual-data-required',
+      manualDataRequest: {
+        scope: 'home.schedule',
+        missingItems: [{
+          key: 'final_score',
+          label: '최종 점수',
+          reason: '과거 경기의 최종 점수가 비어 있습니다.',
+          expected_format: 'home_score, away_score',
+        }],
+        operatorMessage: '다음 야구 데이터가 필요합니다: 경기 ID=20260626HHSK0',
+        blocking: true,
+      },
+    },
+  }));
+
+  const response = await fetchHomeBootstrap(new Date('2026-06-26T12:00:00'));
+
+  assert.deepEqual(response.games.map((game) => game.gameId), [
+    '20260626HTOB0',
+    '20260626WONC0',
+  ]);
+  assert.equal(response.loadState?.isFallback, false);
+  assert.deepEqual(response.loadState?.failedSections, []);
+  assert.equal(response.loadState?.failureReason, 'manual-data-required');
+  assert.equal(response.loadState?.manualDataRequest?.scope, 'home.schedule');
 });
 
 test('fetchHomeWidgets은 공개 위젯 요청으로 seasonYear를 전달한다', async (t) => {

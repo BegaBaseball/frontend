@@ -72,10 +72,11 @@ export default function CoachVerdictMemo({
                 aria-hidden="true"
                 style={{
                     position: 'absolute',
-                    left: 18,
+                    // 레퍼런스 VerdictA 테이프 치수/위치 정렬(64×14 @ left:20)
+                    left: 20,
                     top: -8,
-                    width: 60,
-                    height: 13,
+                    width: 64,
+                    height: 14,
                     background: t.tapeBg,
                     transform: 'rotate(-2deg)',
                     borderRadius: 1,
@@ -100,7 +101,8 @@ export default function CoachVerdictMemo({
             <p style={{
                 margin: 0,
                 fontSize: isNarrow ? 14.5 : 15.5,
-                lineHeight: 1.6,
+                // 레퍼런스 VerdictA 본문 행간 정렬(1.55) — 종전 1.6 드리프트
+                lineHeight: 1.55,
                 fontWeight: 600,
                 color: textColor,
                 letterSpacing: 0,

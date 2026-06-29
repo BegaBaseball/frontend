@@ -9,6 +9,7 @@ import {
 describe('Prediction live inning score updates', () => {
     const today = '2026-02-03';
     const gameId = '20260203HHSS0';
+    const listGameId = '20260203HHSK0';
     const initialInningScores = [
         { inning: 1, teamSide: 'away', teamCode: 'SS', runs: 1, isExtra: false },
         { inning: 1, teamSide: 'home', teamCode: 'HH', runs: 0, isExtra: false },
@@ -29,6 +30,19 @@ describe('Prediction live inning score updates', () => {
         awayScore: 1,
         winner: null,
         gameStatus: 'LIVE',
+    };
+
+    const scheduledListGame = {
+        gameId: listGameId,
+        gameDate: today,
+        homeTeam: 'SSG',
+        awayTeam: 'HH',
+        stadium: '문학',
+        startTime: '10:00',
+        homeScore: null,
+        awayScore: null,
+        winner: null,
+        gameStatus: 'SCHEDULED',
     };
 
     const detail = {
@@ -114,6 +128,109 @@ describe('Prediction live inning score updates', () => {
         }).as('getLiveRelayManualRequired');
     });
 
+    it('renders live summary scores on the schedule list without flashing scheduled rows first', () => {
+        cy.viewport(1280, 900);
+
+        cy.intercept('GET', '**/api/matches/bounds*', {
+            statusCode: 200,
+            body: {
+                hasData: true,
+                earliestGameDate: today,
+                latestGameDate: today,
+            },
+        }).as('getMatchBoundsLiveList');
+
+        cy.intercept('GET', '**/api/matches/day*', {
+            statusCode: 200,
+            body: {
+                date: today,
+                games: [scheduledListGame],
+                prevDate: null,
+                nextDate: null,
+                hasPrev: false,
+                hasNext: false,
+            },
+        }).as('getScheduleDayLiveList');
+
+        cy.intercept('GET', '**/api/matches/live?*', {
+            delay: 1000,
+            statusCode: 200,
+            body: [{
+                gameId: listGameId,
+                gameStatus: 'LIVE',
+                homeScore: 1,
+                awayScore: 8,
+                lastEventSeq: 102,
+                lastUpdatedAt: '2026-02-03T12:00:00',
+            }],
+        }).as('getLiveSummariesList');
+
+        visitPredictionPage({
+            path: `/prediction?date=${today}`,
+            token: 'prediction-live-list-token',
+            authenticated: true,
+            resetStorage: true,
+        });
+
+        cy.wait('@getScheduleDayLiveList');
+        cy.wait(150);
+        cy.get('[data-testid="prediction-schedule-match-row"]').should('not.exist');
+        cy.get('body').should('not.contain.text', '경기 예정');
+
+        cy.wait('@getLiveSummariesList');
+        cy.get('[data-testid="prediction-schedule-match-row"][data-game-id="20260203HHSK0"]', { timeout: 20000 })
+            .should('be.visible')
+            .and(($row) => {
+                const text = $row.text().replace(/\s+/g, '');
+                expect(text).to.include('8:1');
+            });
+        cy.get('body').should('not.contain.text', '경기 예정');
+    });
+
+    it('moves from a match detail to the same-date schedule list through 다른 경기 조회', () => {
+        cy.intercept('GET', '**/api/matches/day*', {
+            statusCode: 200,
+            body: {
+                date: today,
+                games: [game],
+                prevDate: null,
+                nextDate: null,
+                hasPrev: false,
+                hasNext: false,
+            },
+        }).as('getScheduleDayFromOtherGames');
+
+        cy.intercept('GET', '**/api/matches/live?*', {
+            statusCode: 200,
+            body: [{
+                gameId,
+                gameStatus: 'LIVE',
+                homeScore: 0,
+                awayScore: 1,
+                lastEventSeq: 1,
+                lastUpdatedAt: '2026-02-03T12:00:01',
+            }],
+        }).as('getLiveSummariesFromOtherGames');
+
+        visitPredictionPage({
+            path: `/prediction/matches/${gameId}?date=${today}`,
+            token: 'prediction-other-games-token',
+            authenticated: true,
+            resetStorage: true,
+        });
+
+        cy.wait('@getPredictionBootstrapLiveInning');
+        cy.contains('a', '다른 경기 조회', { timeout: 20000 })
+            .should('have.attr', 'href', `/prediction?date=${today}`)
+            .click();
+
+        cy.location('pathname').should('eq', '/prediction');
+        cy.location('search').should('eq', `?date=${today}`);
+        cy.wait('@getScheduleDayFromOtherGames');
+        cy.wait('@getLiveSummariesFromOtherGames');
+        cy.get('[data-testid="prediction-schedule-preview"]', { timeout: 20000 }).should('be.visible');
+    });
+
     it('updates the detail scoreboard from live inning scores without a refresh', () => {
         visitPredictionPage({
             path: `/prediction?gameId=${gameId}&date=${today}`,
@@ -129,6 +246,7 @@ describe('Prediction live inning score updates', () => {
         cy.get('[data-testid="prediction-scoreboard-cell-home-1"]').should('have.text', '0');
         cy.get('[data-testid="prediction-scoreboard-total-away"]').should('have.text', '1');
         cy.get('[data-testid="prediction-scoreboard-total-home"]').should('have.text', '0');
+        cy.get('[data-testid="prediction-result-label"]').should('not.exist');
 
         cy.wait('@getLiveInningSnapshot');
         cy.wait('@getLiveRelayManualRequired');
@@ -142,6 +260,7 @@ describe('Prediction live inning score updates', () => {
         cy.get('[data-testid="prediction-scoreboard-cell-home-1"]').should('have.text', '2');
         cy.get('[data-testid="prediction-scoreboard-total-away"]').should('have.text', '1');
         cy.get('[data-testid="prediction-scoreboard-total-home"]').should('have.text', '2');
+        cy.get('[data-testid="prediction-result-label"]').should('not.exist');
         cy.get('@getLiveInningSnapshot.all').should('have.length', 2);
         cy.get('@getLiveRelayManualRequired.all').should('have.length', 1);
         cy.get('@getGameDetailLiveInning.all').should('have.length', 0);

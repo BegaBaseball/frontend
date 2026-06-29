@@ -113,7 +113,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                 {/* Current Password (Only show if user has password) */}
                 {hasPassword && (
                     <div className="space-y-2">
-                        <label htmlFor="currentPassword" className="text-[16px] font-semibold text-muted-foreground">
+                        <label htmlFor="currentPassword" className="text-body font-semibold text-muted-foreground">
                             현재 비밀번호 *
                         </label>
                         <div className="relative">
@@ -142,7 +142,7 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
 
                 {/* New Password */}
                 <div className="space-y-2">
-                        <label htmlFor="newPassword" className="text-[16px] font-semibold text-muted-foreground">
+                        <label htmlFor="newPassword" className="text-body font-semibold text-muted-foreground">
                         새 비밀번호 *
                     </label>
                     <div className="relative">
@@ -166,12 +166,12 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                             {showNewPassword ? <MyPageEyeOffIcon className="w-4 h-4" /> : <MyPageEyeIcon className="w-4 h-4" />}
                         </button>
                     </div>
-                    <p className="text-[16px] text-muted-foreground">비밀번호는 8자 이상이어야 합니다.</p>
+                    <p className="text-body text-muted-foreground">비밀번호는 8자 이상이어야 합니다.</p>
                 </div>
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                        <label htmlFor="confirmPassword" className="text-[16px] font-semibold text-muted-foreground">
+                        <label htmlFor="confirmPassword" className="text-body font-semibold text-muted-foreground">
                         비밀번호 확인 *
                     </label>
                     <div className="relative">
@@ -196,7 +196,10 @@ export default function PasswordChangeSection({ onCancel, onSuccess, hasPassword
                         </button>
                     </div>
                     {confirmPassword && newPassword === confirmPassword && (
-                        <div className="flex items-center gap-1 text-green-600 text-[16px]">
+                        <div
+                          className="flex items-center gap-1 text-body"
+                          style={{ color: 'var(--mp-win)' }}
+                        >
                             <MyPageCheckCircleIcon className="w-3 h-3" />
                             비밀번호가 일치합니다.
                         </div>

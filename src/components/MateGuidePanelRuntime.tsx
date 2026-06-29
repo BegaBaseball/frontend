@@ -15,7 +15,7 @@ export default function MateGuidePanelRuntime({ onClose }: MateGuidePanelRuntime
             <MateCheckCircleIcon aria-hidden="true" className="h-4 w-4 text-primary" />
             안전한 직관을 위한 체크포인트
           </h3>
-          <ul className="space-y-2 text-[16px] font-bold text-gray-500 dark:text-white">
+          <ul className="space-y-2 text-body font-bold text-gray-500 dark:text-white">
             <li className="flex items-start gap-2">
               <span className="text-gray-600 dark:text-white">•</span>
               거래 방식과 취소 규칙을 먼저 확인하세요.

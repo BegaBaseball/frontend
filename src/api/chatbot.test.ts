@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ChatStreamEventError, convertVoiceToText, sendChatMessageStream } from './chatbot';
+import {
+  ChatQueueStatus,
+  ChatStreamEventError,
+  convertVoiceToText,
+  RateLimitError,
+  sendChatMessageStream,
+} from './chatbot';
 
 type MetaPayload = {
   verified: boolean;
@@ -181,6 +187,80 @@ test('sendChatMessageStream forwards finish_reason and cancelled in meta', async
   assert.equal(metaPayload.finish_reason, 'cancelled');
   assert.equal(metaPayload.cancelled, true);
   assert.equal(metaPayload.error, 'temporary_generation_issue');
+});
+
+test('sendChatMessageStream forwards queue status events', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: queue\n',
+    'data: {"state":"queued","queuePosition":2,"estimatedWaitTime":7,"rpmLimit":18}\n',
+    '\n',
+    'event: queue\n',
+    'data: {"state":"processing","queuePosition":0,"estimatedWaitTime":0,"rpmLimit":18}\n',
+    '\n',
+    'event: message\n',
+    'data: {"delta":"대기 후 응답"}\n',
+    '\n',
+    'event: done\n',
+    'data: [DONE]\n',
+    '\n',
+  ]) as never);
+
+  const queueStatuses: ChatQueueStatus[] = [];
+  const deltas: string[] = [];
+
+  await sendChatMessageStream(
+    { question: '대기열 테스트', history: null },
+    (delta) => {
+      deltas.push(delta);
+    },
+    undefined,
+    {
+      onQueueStatus: (status) => {
+        queueStatuses.push(status);
+      },
+    },
+  );
+
+  assert.deepEqual(queueStatuses, [
+    {
+      state: 'queued',
+      queuePosition: 2,
+      estimatedWaitTime: 7,
+      rpmLimit: 18,
+    },
+    {
+      state: 'processing',
+      queuePosition: 0,
+      estimatedWaitTime: 0,
+      rpmLimit: 18,
+    },
+  ]);
+  assert.deepEqual(deltas, ['대기 후 응답']);
+});
+
+test('sendChatMessageStream maps 429 Retry-After to RateLimitError', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(
+    JSON.stringify({ detail: '요청이 많아 잠시 후 다시 시도해주세요.' }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': '37',
+      },
+    },
+  ) as never);
+
+  await assert.rejects(
+    () => sendChatMessageStream(
+      { question: '대기열 overflow 테스트', history: null },
+      () => undefined,
+    ),
+    (error) => {
+      assert.ok(error instanceof RateLimitError);
+      assert.equal(error.retryAfterSeconds, 37);
+      return true;
+    },
+  );
 });
 
 test('convertVoiceToText는 private voice endpoint 응답의 text를 반환한다', async (t) => {

@@ -19,6 +19,14 @@ import {
 
 const DEFERRED_PUBLIC_AUTH_BOOTSTRAP_DELAY_MS = 80;
 
+const hasInjectedAuthProfileForTests = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return Boolean((window as Window & { __BEGA_TEST_AUTH_PROFILE__?: unknown }).__BEGA_TEST_AUTH_PROFILE__);
+};
+
 export default function AuthBootstrap() {
   const location = useLocation();
   const bootstrapPendingRef = useRef(true);
@@ -49,6 +57,19 @@ export default function AuthBootstrap() {
     traceAuthEvent(
       `AuthBootstrap: pathname=${location.pathname}, mode=${authBootstrapMode}, isLoggedIn=${isLoggedIn}, isAuthLoading=${isAuthLoading}`,
     );
+
+    if (!isLoggedIn && hasInjectedAuthProfileForTests()) {
+      traceAuthEvent(`AuthBootstrap: using injected test profile for ${location.pathname}`);
+      setPublicAuthBootstrapPhase('running');
+      void fetchProfileAndAuthenticate()
+        .then((isAuthenticated) => {
+          traceAuthEvent(`AuthBootstrap: injected profile resolved isAuthenticated=${isAuthenticated}`);
+        })
+        .catch((error) => {
+          traceAuthEvent(`AuthBootstrap: injected profile failed: ${describeAuthError(error)}`);
+        });
+      return;
+    }
 
     if (shouldSkipPublicBootstrapForCypress) {
       traceAuthEvent(`AuthBootstrap: Cypress public skip for ${location.pathname}`);

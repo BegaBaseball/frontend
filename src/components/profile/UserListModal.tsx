@@ -112,7 +112,7 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                     aria-modal="true"
                     aria-labelledby={titleId}
                     onClick={(event) => event.stopPropagation()}
-                    className="flex max-h-[80vh] w-full flex-col gap-0 rounded-xl border border-gray-200 bg-white p-0 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-md"
+                    className="flex max-h-[80vh] w-full flex-col gap-0 rounded-xl border border-gray-200 bg-white p-0 shadow-dialog ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-md"
                 >
                     <div className="flex items-center justify-between border-b border-gray-100 p-4 dark:border-border">
                         <h2 id={titleId} className="text-lg font-bold text-gray-900 dark:text-white">
@@ -164,10 +164,10 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                                                 ringClassName="p-0.5 bg-gray-200/70 dark:bg-white/10"
                                             />
                                             <div className="flex flex-col truncate">
-                                                <span className="truncate text-[16px] font-bold text-gray-900 dark:text-white">
+                                                <span className="truncate text-body font-bold text-gray-900 dark:text-white">
                                                     {user.name}
                                                 </span>
-                                                <span className="truncate text-[16px] text-gray-500 dark:text-white">
+                                                <span className="truncate text-body text-gray-500 dark:text-white">
                                                     {user.handle}
                                                 </span>
                                             </div>
@@ -205,7 +205,7 @@ export default function UserListModal({ isOpen, onClose, userHandle, type, title
                                 <p className="mb-1 font-semibold text-gray-900 dark:text-white">
                                     {type === 'followers' ? '아직 팔로워가 없습니다.' : '아직 팔로잉하는 유저가 없습니다.'}
                                 </p>
-                                <p className="text-[16px] text-gray-500 dark:text-white">
+                                <p className="text-body text-gray-500 dark:text-white">
                                     {type === 'followers'
                                         ? '게시글을 작성하고 소통하여 팔로워를 늘려보세요!'
                                         : '관심 있는 유저를 찾아보세요!'}

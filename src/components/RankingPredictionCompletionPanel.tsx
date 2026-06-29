@@ -20,7 +20,7 @@ export default function RankingPredictionCompletionPanel({
   onShare,
 }: RankingPredictionCompletionPanelProps) {
   return (
-    <>
+    <div className="animate-fade-in-up motion-reduce:animate-none">
       <div className="mb-4 mx-auto w-[60px]">
         <img
           src={firstPlaceImage}
@@ -41,7 +41,7 @@ export default function RankingPredictionCompletionPanel({
         </div>
       ) : null}
 
-      <p className="mb-4 text-[16px]">모든 팀이 배치되었습니다!</p>
+      <p className="mb-4 text-body">모든 팀이 배치되었습니다!</p>
 
       {!isPredictionSaved && !alreadySaved ? (
         <Button
@@ -81,6 +81,6 @@ export default function RankingPredictionCompletionPanel({
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 }

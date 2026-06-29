@@ -16,7 +16,7 @@ const VerificationRequiredDialog = lazy(() => import('./VerificationRequiredDial
 
 function MateCreateStepFallback() {
   return (
-    <div className="py-16 text-center text-[16px] text-gray-500">
+    <div className="py-16 text-center text-body text-gray-500">
       단계 로딩 중...
     </div>
   );
@@ -79,13 +79,13 @@ export default function MateCreate() {
           <h1 className="mb-2 text-3xl sm:text-4xl text-primary">
             직관메이트 파티 만들기
           </h1>
-          <p className="text-[16px] text-gray-600 sm:text-base">단계별로 파티 정보를 입력해주세요</p>
+          <p className="text-body text-gray-600 sm:text-base">단계별로 파티 정보를 입력해주세요</p>
         </div>
 
         <div className="mb-6 sm:mb-8">
           <div className="flex justify-between mb-2">
-            <span className="text-[16px] text-gray-600">단계 {createStep} / 4</span>
-            <span className="text-[16px] text-primary">
+            <span className="text-body text-gray-600">단계 {createStep} / 4</span>
+            <span className="text-body text-primary">
               {progressValue.toFixed(0)}%
             </span>
           </div>
@@ -181,7 +181,7 @@ export default function MateCreate() {
             )}
           </div>
           {blockedStepMessage && (
-            <p className={`mt-3 text-[16px] text-center ${createStep === 4 ? 'text-red-500' : 'text-amber-600'}`}>
+            <p className={`mt-3 text-body text-center ${createStep === 4 ? 'text-red-500' : 'text-amber-600'}`}>
               {blockedStepMessage}
             </p>
           )}

@@ -29,7 +29,7 @@ export default function CheerDetailStatsAsideRuntime({
     return (
         <aside>
             <div
-                className="rounded-[16px] border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
+                className="rounded-2xl border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
                 style={primaryBorderStyle}
             >
                 <button
@@ -40,7 +40,7 @@ export default function CheerDetailStatsAsideRuntime({
                     aria-expanded={isStatsOpen}
                     aria-controls="cheer-detail-stats"
                 >
-                    <div className="flex items-center gap-1.5 text-[16px] font-bold" style={{ color: detailAccent }}>
+                    <div className="flex items-center gap-1.5 text-body font-bold" style={{ color: detailAccent }}>
                         <MegaphoneIcon className="h-3.5 w-3.5" />
                         <span>응원 현황</span>
                     </div>
@@ -64,7 +64,7 @@ export default function CheerDetailStatsAsideRuntime({
                                 {[1, 2, 3].map((item) => (
                                     <div
                                         key={item}
-                                        className="h-[44px] animate-pulse rounded-[12px] bg-slate-100 dark:bg-slate-800/80"
+                                        className="h-[44px] animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800/80"
                                     />
                                 ))}
                             </>

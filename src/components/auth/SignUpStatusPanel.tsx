@@ -13,7 +13,7 @@ export default function SignUpStatusPanel({ error, isSuccess }: SignUpStatusPane
         <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
         <div className="space-y-1">
           <p className="font-semibold">회원가입 성공!</p>
-          <p className="text-[16px]">환영합니다! 잠시 후 로그인 화면으로 이동합니다...</p>
+          <p className="text-body">환영합니다! 잠시 후 로그인 화면으로 이동합니다...</p>
         </div>
       </AuthStatusPanel>
     );
@@ -28,7 +28,7 @@ export default function SignUpStatusPanel({ error, isSuccess }: SignUpStatusPane
       <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
       <div className="space-y-1">
         <p className="font-semibold">회원가입 실패</p>
-        <p className="text-[16px]">{error}</p>
+        <p className="text-body">{error}</p>
       </div>
     </AuthStatusPanel>
   );

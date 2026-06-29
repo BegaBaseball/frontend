@@ -148,7 +148,7 @@ function Calendar({
           >
             <SharedChevronLeftIcon className="size-4" />
           </button>
-            <div className={cn("text-[15px] font-semibold", classNames?.caption_label)}>
+            <div className={cn("text-15 font-semibold", classNames?.caption_label)}>
               {displayedMonth.getFullYear()}년 {displayedMonth.getMonth() + 1}월
             </div>
           <button
@@ -172,7 +172,7 @@ function Calendar({
               <div
                 key={day}
                 className={cn(
-                  "text-muted-foreground rounded-md w-8 font-semibold text-[14px] text-center mx-auto",
+                  "text-muted-foreground rounded-md w-8 font-semibold text-caption text-center mx-auto",
                   classNames?.head_cell,
                 )}
               >
@@ -193,7 +193,7 @@ function Calendar({
                   <div
                     key={date.toISOString()}
                 className={cn(
-                  "relative p-0 text-center text-[15px]",
+                  "relative p-0 text-center text-15",
                   classNames?.cell,
                 )}
                   >

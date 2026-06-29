@@ -46,7 +46,7 @@ describe('Authentication Flow', () => {
             }).as('loginServerFail');
 
             cy.get('input[type="email"], input[name="email"]').type('broken@email.com');
-            cy.get('input[type="password"], input[name="password"]').type('Test1234!');
+            cy.get('input[type="password"], input[name="password"]').type('Test1234!Abc');
             cy.get('button[type="submit"]').click();
 
             cy.wait('@loginServerFail');
@@ -61,7 +61,7 @@ describe('Authentication Flow', () => {
             }).as('loginRateLimit');
 
             cy.get('input[type="email"], input[name="email"]').type('busy@email.com');
-            cy.get('input[type="password"], input[name="password"]').type('Test1234!');
+            cy.get('input[type="password"], input[name="password"]').type('Test1234!Abc');
             cy.get('button[type="submit"]').click();
 
             cy.wait('@loginRateLimit');
@@ -317,8 +317,8 @@ describe('Authentication Flow', () => {
             cy.get('input#name').type('테스트유저');
             cy.get('input#handle').clear().type('redirectuser');
             cy.get('input#email').type('redirect_signup_user@example.com');
-            cy.get('input#password').type('Test1234!');
-            cy.get('input#confirmPassword').type('Test1234!');
+            cy.get('input#password').type('Test1234!Abc');
+            cy.get('input#confirmPassword').type('Test1234!Abc');
 
             cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.tick(500);
@@ -373,8 +373,8 @@ describe('Authentication Flow', () => {
             cy.get('input#name').type('실패테스트유저');
             cy.get('input#handle').clear().type('signupfailure');
             cy.get('input#email').type('signup_failure_user@example.com');
-            cy.get('input#password').type('Test1234!');
-            cy.get('input#confirmPassword').type('Test1234!');
+            cy.get('input#password').type('Test1234!Abc');
+            cy.get('input#confirmPassword').type('Test1234!Abc');
 
             cy.get('select#favoriteTeam').select('LG 트윈스');
             cy.wait('@checkHandleAvailableForFailure');
@@ -500,8 +500,8 @@ describe('Authentication Flow', () => {
                 },
             });
 
-            cy.get('input#newPassword').type('Reset1234!');
-            cy.get('input#confirmPassword').type('Reset1234!');
+            cy.get('input#newPassword').type('Reset1234!Ab');
+            cy.get('input#confirmPassword').type('Reset1234!Ab');
             cy.contains('button', '비밀번호 변경').click();
 
             cy.wait('@passwordResetConfirm');

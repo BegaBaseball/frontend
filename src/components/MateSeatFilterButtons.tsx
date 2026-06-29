@@ -29,7 +29,7 @@ export default function MateSeatFilterButtons({
             variant="outline"
             size="touch"
             aria-pressed={isActive}
-            className={`${layout === 'rail' ? 'h-auto rounded-full px-3 py-1.5 text-[12px]' : 'rounded-full px-4 text-[15px]'} font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
+            className={`${layout === 'rail' ? 'h-auto rounded-full px-3 py-1.5 text-12' : 'rounded-full px-4 text-15'} font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
               isActive ? FILTER_ACTIVE_CLASS : FILTER_IDLE_CLASS
             }`}
             onClick={() => onToggleSeat(option.label)}

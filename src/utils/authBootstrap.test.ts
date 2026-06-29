@@ -11,6 +11,7 @@ import {
   resolveAuthBootstrapMode,
   shouldAttemptRootAuthBootstrap,
   shouldHoldAuthUiDuringBootstrap,
+  shouldMountAuthBootstrapRuntime,
   setPersistedAuthBootstrapMeta,
   setPersistedAuthBootstrapHint,
 } from './authBootstrap';
@@ -470,6 +471,45 @@ test('bootstrap marker가 없으면 익명 auth UI를 그대로 렌더링한다'
       now: 1_000,
     }),
     false,
+  );
+});
+
+test('bootstrap marker가 없는 공개 홈은 AuthBootstrap runtime을 마운트하지 않는다', () => {
+  assert.equal(
+    shouldMountAuthBootstrapRuntime('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      now: 1_000,
+    }),
+    false,
+  );
+});
+
+test('fresh marker가 있는 공개 홈은 AuthBootstrap runtime을 deferred로 유지한다', () => {
+  assert.equal(
+    shouldMountAuthBootstrapRuntime('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      authBootstrapMeta: {
+        version: 1,
+        lastSuccessAt: 10_000,
+        lastFailureAt: null,
+      },
+      now: 20_000,
+    }),
+    true,
+  );
+});
+
+test('테스트 auth profile 주입이 있으면 공개 홈도 AuthBootstrap runtime을 마운트한다', () => {
+  assert.equal(
+    shouldMountAuthBootstrapRuntime('/home', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      hasInjectedAuthProfile: true,
+      now: 1_000,
+    }),
+    true,
   );
 });
 

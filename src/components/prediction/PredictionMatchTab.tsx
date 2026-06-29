@@ -1,29 +1,17 @@
 import { lazy, Suspense } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { getFullTeamName } from '../../constants/teams';
 import type { PredictionUserVoteResolutionState } from '../../hooks/predictionHookShared';
-import { useCurrentTime } from '../../hooks/useCurrentTime';
 import type { Game, GameDetail, VoteStatus, VoteTeam } from '../../types/prediction';
-import {
-  calculateVotePercentages,
-  getGameStatus,
-  hasGameDetailProgressData,
-  type GameStatusResult,
-} from '../../utils/predictionStatus';
 import { formatDate } from '../../utils/predictionDates';
 import {
   PredictionChevronLeftIcon,
   PredictionChevronRightIcon,
-  PredictionLoaderIcon,
-  PredictionTrendingUpIcon,
 } from './PredictionShellIcons';
 
-const PredictionMatchDetailPanel = lazy(() => import('./PredictionMatchDetailPanel'));
+const PredictionMatchTabDetailSection = lazy(() => import('./PredictionMatchTabDetailSection'));
+const PredictionMatchTabEmptyState = lazy(() => import('./PredictionMatchTabEmptyState'));
 
 interface PredictionMatchTabProps {
   currentDateGames: Game[];
-  selectedGame: number;
   currentDate: string;
   currentGame: Game | null;
   currentGameId: string | undefined;
@@ -49,13 +37,11 @@ interface PredictionMatchTabProps {
   onPrevDate: () => void;
   onNextDate: () => void;
   onNearestNavigation: () => void;
-  onSelectGame: (gameIndex: number) => void;
   reloadCurrentGameDetail: (options?: { emitRetryEvent?: boolean }) => void;
 }
 
 export default function PredictionMatchTab({
   currentDateGames,
-  selectedGame,
   currentDate,
   currentGame,
   currentGameId,
@@ -81,24 +67,8 @@ export default function PredictionMatchTab({
   onPrevDate,
   onNextDate,
   onNearestNavigation,
-  onSelectGame,
   reloadCurrentGameDetail,
 }: PredictionMatchTabProps) {
-  const currentVotes = currentGameId ? votes[currentGameId] || { home: 0, away: 0 } : { home: 0, away: 0 };
-  const votePercentages = calculateVotePercentages(currentVotes.home, currentVotes.away);
-  const hasCurrentGameProgressData = hasGameDetailProgressData(currentGameDetail);
-  const hasCurrentGameScores = currentGame?.homeScore != null && currentGame?.awayScore != null;
-  const currentTime = useCurrentTime(60_000);
-  const gameStatus: GameStatusResult = getGameStatus(currentGame, currentTime, {
-    gameStatus: currentGameDetail?.gameStatus || currentGame?.gameStatus,
-    gameDate: currentGameDetail?.gameDate || currentGame?.gameDate || currentDate,
-    startTime: currentGameDetail?.startTime || currentGame?.startTime || null,
-    homeScore: currentGameDetail?.homeScore ?? currentGame?.homeScore ?? null,
-    awayScore: currentGameDetail?.awayScore ?? currentGame?.awayScore ?? null,
-    hasProgressData: hasCurrentGameProgressData || hasCurrentGameScores,
-  });
-  const { isToday: isCurrentDateToday, isPastGame, isFutureGame, statusCode } = gameStatus;
-
   return (
     <>
       <div className="flex md:hidden items-center justify-between mb-3 px-4">
@@ -128,132 +98,65 @@ export default function PredictionMatchTab({
       <div className="w-full">
         {currentDateGames.length > 0 ? (
           <>
-            {currentDateGames.length > 1 ? (
-              <div
-                data-testid="prediction-same-day-switcher"
-                className="mb-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:px-0"
-              >
-                {currentDateGames.map((game, index) => {
-                  const isSelected = index === selectedGame;
-                  const label = `${getFullTeamName(game.awayTeam)} @ ${getFullTeamName(game.homeTeam)}`;
-                  return (
-                    <button
-                      key={game.gameId || `${game.awayTeam}-${game.homeTeam}-${index}`}
-                      type="button"
-                      data-testid="prediction-detail-game-switch"
-                      data-game-id={game.gameId}
-                      aria-pressed={isSelected}
-                      onClick={() => onSelectGame(index)}
-                      className={[
-                        'min-w-[150px] flex-shrink-0 rounded-md border px-3 py-2 text-left text-[12px] font-semibold leading-tight transition-colors',
-                        isSelected
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm dark:border-emerald-400/70 dark:bg-emerald-500/15 dark:text-emerald-100'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/60 dark:border-border dark:bg-card dark:text-white dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/10',
-                      ].join(' ')}
-                    >
-                      <span className="block truncate">{label}</span>
-                      {game.startTime ? (
-                        <span className="mt-1 block text-[11px] font-medium text-slate-500 dark:text-white">
-                          {game.startTime}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
             {shouldRenderMatchCard && currentGame && currentGameId ? (
               <Suspense
                 fallback={(
-                  <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-                    <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
-                      <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+                  <div className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
+                    <div className="inline-flex items-center gap-2 text-body text-slate-500 dark:text-white">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                       경기 카드를 준비하고 있습니다.
                     </div>
-                  </Card>
+                  </div>
                 )}
               >
-                <PredictionMatchDetailPanel
-                  game={currentGame}
-                  gameDetail={currentGameDetail}
-                  gameDetailLoading={currentGameDetailLoading}
-                  gameDetailRefreshing={currentGameDetailRefreshing}
-                  gameDetailError={currentGameDetailError}
-                  gameDetailErrorCode={currentGameDetailErrorCode}
-                  isDetailRetryLoading={isDetailRetryLoading}
-                  reloadCurrentGameDetail={reloadCurrentGameDetail}
-                  predictionRecoveryPath={predictionRecoveryPath}
-                  userVote={currentGameId ? userVote[currentGameId] : null}
-                  userVoteResolutionState={currentUserVoteResolutionState}
-                  votePercentages={votePercentages}
-                  isVoteOpen={gameStatus.isVoteOpen}
-                  isVoteActionLocked={isVoteActionLocked}
-                  statusLabel={gameStatus.statusLabel}
-                  statusCode={statusCode}
-                  isPastGame={isPastGame}
-                  isFutureGame={isFutureGame}
-                  onVote={(team) => onVote(team, currentGame, gameStatus.isVoteOpen)}
-                  onPrevDate={onPrevDate}
-                  onNextDate={onNextDate}
-                  hasPrevDate={canMovePrevDate}
-                  hasNextDate={canMoveNextDate}
-                  isLoggedIn={isLoggedIn}
-                  isAuthLoading={isAuthLoading}
-                />
+                <div key={currentGameId} className="animate-fade-in-up motion-reduce:animate-none">
+                  <PredictionMatchTabDetailSection
+                    currentDate={currentDate}
+                    currentGame={currentGame}
+                    currentGameId={currentGameId}
+                    currentGameDetail={currentGameDetail}
+                    currentGameDetailLoading={currentGameDetailLoading}
+                    currentGameDetailRefreshing={currentGameDetailRefreshing}
+                    currentGameDetailError={currentGameDetailError}
+                    currentGameDetailErrorCode={currentGameDetailErrorCode}
+                    userVote={userVote}
+                    currentUserVoteResolutionState={currentUserVoteResolutionState}
+                    votes={votes}
+                    isLoggedIn={isLoggedIn}
+                    isAuthLoading={isAuthLoading}
+                    isVoteActionLocked={isVoteActionLocked}
+                    predictionRecoveryPath={predictionRecoveryPath}
+                    canMovePrevDate={canMovePrevDate}
+                    canMoveNextDate={canMoveNextDate}
+                    isDetailRetryLoading={isDetailRetryLoading}
+                    onVote={onVote}
+                    onPrevDate={onPrevDate}
+                    onNextDate={onNextDate}
+                    reloadCurrentGameDetail={reloadCurrentGameDetail}
+                  />
+                </div>
               </Suspense>
             ) : null}
           </>
         ) : (
-          <Card className="relative p-4 sm:p-6 md:p-7 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md flex flex-col items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[250px] rounded-2xl">
-            <div className="hidden md:block">
-              <button
-                type="button"
-                onClick={onPrevDate}
-                disabled={!canMovePrevDate}
-                aria-label="이전 날짜 보기"
-                className="absolute left-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-white transition-colors"
-              >
-                <PredictionChevronLeftIcon size={36} />
-              </button>
-              <button
-                type="button"
-                onClick={onNextDate}
-                disabled={!canMoveNextDate}
-                aria-label="다음 날짜 보기"
-                className="absolute right-6 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 dark:text-white transition-colors"
-              >
-                <PredictionChevronRightIcon size={36} />
-              </button>
-            </div>
-
-            <div className="bg-slate-100 dark:bg-card p-4 rounded-full mb-4">
-              <PredictionTrendingUpIcon className="w-8 h-8 text-slate-400 dark:text-white" />
-            </div>
-            <div className="mb-4">
-              <p className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                {formatDate(currentDate)}
-              </p>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
-              {isCurrentDateToday || isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
-            </h3>
-            <p className="text-slate-500 dark:text-white">
-              {nearestNavigationDate
-                ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
-                : '다른 날짜를 확인해보세요!'}
-            </p>
-            {nearestNavigationDate ? (
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="prediction-empty-nearest-date-btn"
-                className="mt-3 min-h-10 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
-                onClick={onNearestNavigation}
-              >
-                {nearestNavigationDate.isPast ? '가장 가까운 이전 경기 보기' : '가장 가까운 다음 경기 보기'}
-              </Button>
-            ) : null}
-          </Card>
+          <Suspense
+            fallback={(
+              <div className="relative flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-sm dark:border-border dark:bg-card dark:shadow-md sm:min-h-[210px] md:min-h-[250px]">
+                <div className="h-10 w-10 animate-pulse rounded-full bg-slate-100 dark:bg-white/10" />
+              </div>
+            )}
+          >
+            <PredictionMatchTabEmptyState
+              currentDate={currentDate}
+              isToday={isToday}
+              nearestNavigationDate={nearestNavigationDate}
+              canMovePrevDate={canMovePrevDate}
+              canMoveNextDate={canMoveNextDate}
+              onPrevDate={onPrevDate}
+              onNextDate={onNextDate}
+              onNearestNavigation={onNearestNavigation}
+            />
+          </Suspense>
         )}
       </div>
     </>

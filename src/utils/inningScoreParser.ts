@@ -149,11 +149,36 @@ const inferInningSideFromRawKey = (rawKey: string): InningSide | null => {
     }
 
     if (Array.isArray(node)) {
-      node.forEach((item) => walk(item, fallbackInning, fallbackSide));
+      node.forEach((item, index) => {
+        const indexedPrimitiveInning = fallbackInning == null
+          && fallbackSide
+          && !Array.isArray(item)
+          && !isObjectRecord(item)
+          ? index + 1
+          : fallbackInning;
+        walk(item, indexedPrimitiveInning, fallbackSide);
+      });
       return;
     }
 
     if (!isObjectRecord(node)) {
+      return;
+    }
+
+    const keys = Object.entries(node);
+    const sideCollectionEntries = keys
+      .map(([entryKey, entryValue]) => ({
+        side: inferInningSideFromRawKey(entryKey),
+        value: entryValue,
+      }))
+      .filter((entry) => (
+        entry.side
+        && (Array.isArray(entry.value) || isObjectRecord(entry.value))
+      ));
+    if (keys.length > 0 && sideCollectionEntries.length === keys.length) {
+      sideCollectionEntries.forEach((entry) => {
+        walk(entry.value, fallbackInning, entry.side);
+      });
       return;
     }
 
@@ -169,7 +194,6 @@ const inferInningSideFromRawKey = (rawKey: string): InningSide | null => {
       return;
     }
 
-    const keys = Object.entries(node);
     if (keys.length > 0 && keys.every(([entryKey, entryValue]) => (
       isNumericInningKey(entryKey) !== null
       && (isObjectRecord(entryValue) || Array.isArray(entryValue))
@@ -363,9 +387,12 @@ const extractInningScores = (gameDetail?: GameDetail | null): InningScorePayload
     gameDetail?.inningScores,
     gameDetail?.inning_scores,
     gameDetail?.inning_score,
+    gameDetail?.boxScore,
     gameDetail?.lineScore,
     gameDetail?.line_score,
     gameDetail?.innings,
+    rawDetail?.box_score,
+    rawDetail?.boxscore,
     rawDetail?.scores,
     rawDetail?.scoreByInning,
     rawDetail?.scoreByInningDetail,

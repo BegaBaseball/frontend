@@ -147,7 +147,7 @@ export default function VerificationRequiredDialog({
                     aria-labelledby={titleId}
                     aria-describedby={descriptionId}
                     onClick={(event) => event.stopPropagation()}
-                    className={`w-full max-w-[calc(100vw-2rem)] rounded-xl border p-6 shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 sm:max-w-md ${isSecurityMode
+                    className={`w-full max-w-[calc(100vw-2rem)] rounded-xl border p-6 shadow-dialog ring-1 ring-black/5 sm:max-w-md ${isSecurityMode
                         ? 'border-slate-700 bg-slate-950/95 text-white'
                         : 'bg-background'
                         }`}
@@ -166,11 +166,11 @@ export default function VerificationRequiredDialog({
                         <h2 id={titleId} className={`text-xl font-bold ${isSecurityMode ? 'text-white' : 'text-foreground'}`}>
                             {dialogTitle}
                         </h2>
-                        <div id={descriptionId} className={`pt-2 text-[16px] ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
+                        <div id={descriptionId} className={`pt-2 text-body ${isSecurityMode ? 'text-slate-200' : 'text-muted-foreground'}`}>
                             {dialogDescription}
                         </div>
                     </div>
-                    <div className={`my-4 rounded-lg p-4 text-[16px] ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
+                    <div className={`my-4 rounded-lg p-4 text-body ${isSecurityMode ? 'border border-slate-700 bg-slate-900/60 text-slate-100' : 'bg-gray-50 text-gray-600'}`}>
                         <p className={`mb-1 font-semibold ${isSecurityMode ? 'text-white' : 'text-gray-900'}`}>
                             {isSecurityMode ? '보안 조치 안내' : '왜 필요한가요?'}
                         </p>

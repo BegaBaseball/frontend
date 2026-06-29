@@ -17,14 +17,14 @@ export default function Footer() {
             <h3 className="tracking-wider text-lg" style={{ fontWeight: 900 }}>
               BEGA
             </h3>
-            <p className="text-[16px] text-gray-400 uppercase">BASEBALL GUIDE</p>
+            <p className="text-body text-gray-400 uppercase">BASEBALL GUIDE</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
           <div>
             <h4 className="mb-2 text-base font-bold">서비스</h4>
-            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-white">
+            <ul className="space-y-1 text-body text-zinc-600 dark:text-white">
               <li>
                 <Link to="/home" className={footerLinkClass}>
                   홈
@@ -59,7 +59,7 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="mb-2 text-base font-bold">정보</h4>
-            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-white">
+            <ul className="space-y-1 text-body text-zinc-600 dark:text-white">
               <li>
                 <Link to="/notice" className={footerLinkClass}>
                   공지사항
@@ -79,7 +79,7 @@ export default function Footer() {
           </div>
           <div className="col-span-2 md:col-span-1">
             <h4 className="mb-2 text-base font-bold">고객센터</h4>
-            <ul className="space-y-1 text-[16px] text-zinc-600 dark:text-white">
+            <ul className="space-y-1 text-body text-zinc-600 dark:text-white">
               <li>
                 이메일:{' '}
                 <a
@@ -94,7 +94,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 dark:border-gray-800 pt-4 text-center text-zinc-500 dark:text-white text-[16px]">
+        <div className="border-t border-zinc-200 dark:border-gray-800 pt-4 text-center text-zinc-500 dark:text-white text-body">
           <p>© 2025 BEGA (BASEBALL GUIDE). All rights reserved.</p>
         </div>
       </div>

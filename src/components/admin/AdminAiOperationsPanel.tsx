@@ -32,7 +32,7 @@ export function AdminAiOperationsPanel({
   const autoBriefPanel = (
     <Suspense
       fallback={(
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-12 text-center text-[14px] text-slate-400">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-12 text-center text-caption text-slate-400">
           Coach auto brief ops 패널 로딩 중...
         </div>
       )}

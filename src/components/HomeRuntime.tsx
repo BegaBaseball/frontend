@@ -1,35 +1,32 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Button } from './ui/button';
 import {
     buildHomeLoadState,
     fetchHomeBootstrap,
-    getHomeBootstrapQueryOptions,
-    getHomeScopedNavigationQueryOptions,
+    fetchHomeScopedNavigation,
+    shouldRetryHomeBootstrapQuery,
     shouldShowHomeConnectionError,
     type HomeNavigationScope,
     type HomeLoadFailureReason,
     type HomeCoreLoadSuccessState,
     type HomeLoadState,
-} from '../api/home';
-import { fetchGameLiveSummaries } from '../api/prediction';
+} from '../api/homeCore';
 import {
+    hasPrimaryScheduledGame,
     partitionScheduledGames,
     shouldAutoSwitchToScheduled,
     type LeagueTab,
-} from '../utils/predictionHomeLogic';
-import { buildPredictionMatchHandoff } from '../utils/predictionDeepLink';
+} from '../utils/homeScheduleClassification';
 import { cacheLeagueStartDates, formatDateForAPI, getFallbackLeagueStartDates } from '../utils/home';
-import { groupGamesBySourceDate, partitionGamesByLeague } from '../utils/homeGameGrouping';
+import { groupGamesBySourceDate, summarizeHomeLeagueGames } from '../utils/homeGameGrouping';
 import {
     buildHomeRouteSearchParams,
     coerceHomeRouteTab,
     resolveHomeRouteState,
 } from '../utils/homeRouteState';
-import type { Game, HomeBootstrapLoadState, HomeProps, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
+import type { Game, HomeBootstrapLoadState, HomeScopedNavigationResponse, LeagueStartDates } from '../types/home';
 import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
-import { queryClient } from '../lib/queryClient';
 import {
     toLocalMiddayDate,
     formatHomeDate,
@@ -38,40 +35,124 @@ import {
 import { resolveLeagueBadge } from '../utils/homeLeagueBadge';
 import { buildHomeRequestErrorContext, buildHomeNavigationState } from '../utils/homeErrorContext';
 import type { HomeNavigationState } from '../utils/homeErrorContext';
+import type { HomeAuthSnapshot } from './home/HomeAuthBridge';
 import {
-    createHomeLiveSummaryTimeoutWarningState,
-    LIVE_GAME_POLL_INTERVAL_MS,
-    mergeHomeGamesWithLiveSummaries,
-    recordHomeLiveSummaryTimeoutFailure,
-    resetHomeLiveSummaryTimeoutWarningState,
-    selectHomeLivePollingGameIds,
-} from '../utils/liveGame';
-import {
-    isPublicApiTimeoutError,
     MANUAL_BASEBALL_DATA_REQUIRED_CODE,
-    MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
-} from '../utils/errorUtils';
-import { GameCardSkeleton } from './home/GameCardSkeleton';
-import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    FlameIcon,
-    RefreshIcon,
-    SpinnerIcon,
-    WarningTriangleIcon,
-} from './icons/PublicShellIcons';
-import { isAdminRole, useAuthSession, useAuthProfileSnapshot } from '../store/authStore';
-import AdSlot from './ads/AdSlot';
+} from '../utils/manualBaseballDataContract';
 
 const homeMatchPanelModulePromise = import('./home/HomeMatchPanel');
-const LazyHomeSecondaryPanels = lazy(() => import('./home/HomeSecondaryPanelsContainer'));
+const LazyHomeRecoveryBanner = lazy(() => import('./home/HomeRecoveryBanner'));
+const LazyHomeDeferredSurfaces = lazy(() => import('./home/HomeDeferredSurfaces'));
 const LazyHomeMatchPanel = lazy(() => homeMatchPanelModulePromise);
+
+const HOME_FIRST_CARD_READY_EVENT = 'bega:home-first-card-ready';
+const HOME_BUTTON_BASE_CLASS = 'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-15 font-semibold transition-all outline-none focus-visible:border-ring focus-visible:ring focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0';
+const HOME_BUTTON_OUTLINE_TOUCH_CLASS = `${HOME_BUTTON_BASE_CLASS} h-11 rounded-xl border bg-background px-4 text-15 text-foreground hover:bg-accent hover:text-accent-foreground has-[>svg]:px-3 dark:border-input dark:bg-input/30 dark:hover:bg-input/50`;
+const HOME_BUTTON_GHOST_ICON_TOUCH_CLASS = `${HOME_BUTTON_BASE_CLASS} size-11 rounded-xl p-0 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50`;
+const HOME_BUTTON_LINK_SM_CLASS = `${HOME_BUTTON_BASE_CLASS} h-8 rounded-md px-3 text-primary underline-offset-4 hover:underline has-[>svg]:px-2.5`;
+const HOME_CSS_CHEVRON_LEFT_CLASS = 'block h-3.5 w-3.5 -rotate-45 border-l-2 border-t-2 border-current';
+const HOME_CSS_CHEVRON_RIGHT_CLASS = 'block h-3.5 w-3.5 rotate-45 border-r-2 border-t-2 border-current';
+const HOME_CSS_FLAME_CLASS = 'mr-2 inline-block h-4 w-3 rotate-45 rounded-bl-sm rounded-br-full rounded-t-full bg-orange-500';
+const HOME_DEFERRED_SURFACES_DEFER_DELAY_MS = 1800;
+const HOME_DEFERRED_SURFACES_IDLE_TIMEOUT_MS = 1200;
+const HOME_LIVE_POLLING_DEFER_DELAY_MS = 1200;
+const HOME_LIVE_POLLING_IDLE_TIMEOUT_MS = 1200;
+const HOME_LOAD_TELEMETRY_IDLE_TIMEOUT_MS = 1800;
+
+type HomeFirstCardReadyWindow = Window & {
+    __begaHomeFirstCardReadyPathname?: string;
+};
+
+type HomeMatchPanelSuspenseFallbackProps = {
+    loadingMatchCardCount: number;
+    matchSectionMinHeightStyle: { minHeight: string };
+};
+
+type ScheduledGamePartitions = {
+    primary: Game[];
+    secondary: Game[];
+    excluded: Game[];
+};
+
+const EMPTY_SCHEDULED_GAMES: Game[] = [];
+const EMPTY_GROUPED_GAMES_BY_SOURCE_DATE: Array<[string, Game[]]> = [];
+const EMPTY_SCHEDULED_GAME_PARTITIONS: ScheduledGamePartitions = {
+    primary: EMPTY_SCHEDULED_GAMES,
+    secondary: EMPTY_SCHEDULED_GAMES,
+    excluded: EMPTY_SCHEDULED_GAMES,
+};
+
+function HomeMatchPanelFallbackCard() {
+    return (
+        <div className="min-h-[168px] animate-pulse rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-card">
+            <div className="flex items-center justify-between gap-4">
+                <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
+                <div className="h-6 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+            </div>
+            <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+                <div className="h-5 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+                <div className="h-6 w-10 rounded-full bg-gray-200 dark:bg-white/10" />
+                <div className="ml-auto h-5 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+            </div>
+            <div className="mt-6 h-4 w-32 rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+    );
+}
+
+function HomeMatchPanelSuspenseFallback({
+    loadingMatchCardCount,
+    matchSectionMinHeightStyle,
+}: HomeMatchPanelSuspenseFallbackProps) {
+    return (
+        <div
+            className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
+            style={matchSectionMinHeightStyle}
+        >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
+                {Array.from({ length: loadingMatchCardCount }, (_, i) => (
+                    <HomeMatchPanelFallbackCard key={`fallback-card-${i}`} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+const isPublicApiTimeoutError = (error: unknown): boolean => (
+    error instanceof Error && /^Request timed out after \d+ms$/i.test(error.message)
+);
+
+const scheduleHomeLoadTelemetry = (payload: {
+    selectedDate: string;
+    loadState: HomeLoadState;
+    success: HomeCoreLoadSuccessState;
+    showConnectionError: boolean;
+}) => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const loadTelemetry = () => {
+        void import('../utils/homeLoadTelemetry')
+            .then(({ logHomeLoadTelemetry }) => logHomeLoadTelemetry(payload))
+            .catch(() => undefined);
+    };
+
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(loadTelemetry, {
+            timeout: HOME_LOAD_TELEMETRY_IDLE_TIMEOUT_MS,
+        });
+        return;
+    }
+
+    window.setTimeout(loadTelemetry, 0);
+};
 
 const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
 const GAME_CARD_MIN_HEIGHT_PX = 240;
 const MIN_LOADING_CARD_COUNT = 5;
-const LOADING_CARD_COUNT_MAX = 9;
+const LOADING_CARD_COUNT_MAX = MIN_LOADING_CARD_COUNT;
 const HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS = 6000;
+const HOME_BOOTSTRAP_CACHE_STALE_MS = 60 * 1000;
 const HOME_BOOTSTRAP_CORE_SECTIONS = [
     'leagueStartDates',
     'navigation',
@@ -92,13 +173,86 @@ const EMPTY_SCOPED_NAVIGATION: HomeScopedNavigationResponse = {
     hasNext: false,
 };
 
+const EMPTY_HOME_AUTH_SNAPSHOT: HomeAuthSnapshot = {
+    userId: null,
+    isLoggedIn: false,
+    isAdmin: false,
+};
+
+type HomeLiveSummaryTimeoutWarningState = {
+    consecutiveTimeoutCount: number;
+    timeoutWarningLogged: boolean;
+};
+type HomeBootstrapData = Awaited<ReturnType<typeof fetchHomeBootstrap>>;
+type HomeBootstrapCacheEntry = {
+    data: HomeBootstrapData;
+    updatedAt: number;
+};
+
+const homeBootstrapCache = new Map<string, HomeBootstrapCacheEntry>();
+
 const getTodayMidday = () => {
     const today = new Date();
     today.setHours(12, 0, 0, 0);
     return today;
 };
 
-const getCalendarMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const readCachedHomeBootstrap = (date: Date): HomeBootstrapData | null => {
+    const cacheEntry = homeBootstrapCache.get(formatDateForAPI(date));
+
+    if (!cacheEntry || Date.now() - cacheEntry.updatedAt > HOME_BOOTSTRAP_CACHE_STALE_MS) {
+        return null;
+    }
+
+    return cacheEntry.data;
+};
+
+const writeCachedHomeBootstrap = (date: Date, data: HomeBootstrapData) => {
+    homeBootstrapCache.set(formatDateForAPI(date), {
+        data,
+        updatedAt: Date.now(),
+    });
+};
+
+const fetchHomeBootstrapWithRetry = async (date: Date): Promise<HomeBootstrapData> => {
+    try {
+        const data = await fetchHomeBootstrap(date);
+        writeCachedHomeBootstrap(date, data);
+        return data;
+    } catch (error) {
+        if (!shouldRetryHomeBootstrapQuery(0, error)) {
+            throw error;
+        }
+
+        const data = await fetchHomeBootstrap(date);
+        writeCachedHomeBootstrap(date, data);
+        return data;
+    }
+};
+
+const createHomeLiveSummaryTimeoutWarningState = (): HomeLiveSummaryTimeoutWarningState => ({
+    consecutiveTimeoutCount: 0,
+    timeoutWarningLogged: false,
+});
+
+const buildHomeLivePollingCandidateKey = (
+    games: Game[],
+    scheduledGames: Game[],
+    selectedDateKey: string,
+): string => {
+    let candidateKey = '';
+    for (const game of games) {
+        const segment = `${game.gameId ?? ''}:${game.gameStatus ?? ''}:${game.sourceDate || game.gameDate || selectedDateKey}`;
+        candidateKey = candidateKey ? `${candidateKey}|${segment}` : segment;
+    }
+
+    for (const game of scheduledGames) {
+        const segment = `${game.gameId ?? ''}:${game.gameStatus ?? ''}:${game.sourceDate || game.gameDate || selectedDateKey}`;
+        candidateKey = candidateKey ? `${candidateKey}|${segment}` : segment;
+    }
+
+    return candidateKey;
+};
 
 const normalizeSameSeasonNavigationDate = (value: string | null | undefined, seasonYear: number): string | null => {
     if (!value) {
@@ -151,6 +305,9 @@ const buildBootstrapLoadState = (
         timedOut: clientTimedOut || backendLoadState?.timedOut === true || timedOutSections.length > 0,
         timedOutSections,
         failedSections,
+        failureReason: backendLoadState?.failureReason
+            ?? (failedSections.length > 0 ? 'request-failed' : null),
+        manualDataRequest: backendLoadState?.manualDataRequest ?? null,
     });
 };
 
@@ -185,17 +342,17 @@ const normalizeComparableDateKey = (dateKey: string | null | undefined): string 
     return formatDateForAPI(parsedDate);
 };
 
-const hasValidPostseasonStart = (leagueStartDates: LeagueStartDates | null): boolean => {
-    const regularStart = normalizeComparableDateKey(leagueStartDates?.regularSeasonStart);
-    const postseasonStart = normalizeComparableDateKey(leagueStartDates?.postseasonStart);
+const hasValidPostseasonStart = (leagueStartDates: LeagueStartDates): boolean => {
+    const regularStart = normalizeComparableDateKey(leagueStartDates.regularSeasonStart);
+    const postseasonStart = normalizeComparableDateKey(leagueStartDates.postseasonStart);
 
     return Boolean(regularStart && postseasonStart && postseasonStart > regularStart);
 };
 
-const hasValidKoreanSeriesStart = (leagueStartDates: LeagueStartDates | null): boolean => {
-    const regularStart = normalizeComparableDateKey(leagueStartDates?.regularSeasonStart);
-    const postseasonStart = normalizeComparableDateKey(leagueStartDates?.postseasonStart);
-    const koreanSeriesStart = normalizeComparableDateKey(leagueStartDates?.koreanSeriesStart);
+const hasValidKoreanSeriesStart = (leagueStartDates: LeagueStartDates): boolean => {
+    const regularStart = normalizeComparableDateKey(leagueStartDates.regularSeasonStart);
+    const postseasonStart = normalizeComparableDateKey(leagueStartDates.postseasonStart);
+    const koreanSeriesStart = normalizeComparableDateKey(leagueStartDates.koreanSeriesStart);
 
     if (!regularStart || !koreanSeriesStart || koreanSeriesStart <= regularStart) {
         return false;
@@ -204,18 +361,18 @@ const hasValidKoreanSeriesStart = (leagueStartDates: LeagueStartDates | null): b
     return !postseasonStart || koreanSeriesStart >= postseasonStart;
 };
 
-const buildVisibleLeagueTabs = (today: Date, leagueStartDates: LeagueStartDates | null) => (
+const buildVisibleLeagueTabs = (today: Date, leagueStartDates: LeagueStartDates) => (
     HOME_LEAGUE_TABS.filter((tab) => {
         if (tab.value === 'regular' || tab.value === 'scheduled') {
             return true;
         }
         if (tab.value === 'postseason') {
             return hasValidPostseasonStart(leagueStartDates)
-                && isSameOrAfterDateKey(today, leagueStartDates?.postseasonStart);
+                && isSameOrAfterDateKey(today, leagueStartDates.postseasonStart);
         }
         if (tab.value === 'koreanseries') {
             return hasValidKoreanSeriesStart(leagueStartDates)
-                && isSameOrAfterDateKey(today, leagueStartDates?.koreanSeriesStart);
+                && isSameOrAfterDateKey(today, leagueStartDates.koreanSeriesStart);
         }
         return false;
     })
@@ -233,8 +390,7 @@ const resolveAutomaticLeagueTab = (
         return 'regular';
     }
 
-    const { primary: upcomingScheduled } = partitionScheduledGames(scheduledGames);
-    if (upcomingScheduled.length > 0) {
+    if (hasPrimaryScheduledGame(scheduledGames)) {
         return 'scheduled';
     }
 
@@ -250,14 +406,9 @@ interface HomeLoadSnapshot {
     loadState: HomeLoadState;
 }
 
-export default function HomeRuntime({ onNavigate }: HomeProps) {
+export default function HomeRuntime() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { userId: authUserId, userRole } = useAuthProfileSnapshot();
-    const { isLoggedIn } = useAuthSession();
-    const isAdmin = isAdminRole(userRole);
-    const fallbackLeagueStartDates = useMemo(() => getFallbackLeagueStartDates(), []);
-    const calendarDialogTitleId = useId();
     const initialHomeRouteStateRef = useRef<ReturnType<typeof resolveHomeRouteState> | null>(null);
     if (initialHomeRouteStateRef.current === null) {
         initialHomeRouteStateRef.current = resolveHomeRouteState(searchParams, getTodayMidday());
@@ -265,11 +416,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const initialHomeRouteState = initialHomeRouteStateRef.current;
 
     const [selectedDate, setSelectedDate] = useState(() => initialHomeRouteState.date);
-    const [calendarMonth, setCalendarMonth] = useState(() => getCalendarMonth(initialHomeRouteState.date));
     const [showCalendar, setShowCalendar] = useState(false);
-    const [shouldMountWelcomeGuide, setShouldMountWelcomeGuide] = useState(false);
     const [games, setGames] = useState<Game[]>([]);
-    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates | null>(fallbackLeagueStartDates);
+    const [leagueStartDates, setLeagueStartDates] = useState<LeagueStartDates>(() => getFallbackLeagueStartDates());
 
     const [navInfo, setNavInfo] = useState<{ prev: string | null; next: string | null; hasPrev: boolean; hasNext: boolean }>({
         prev: null, next: null, hasPrev: true, hasNext: true
@@ -280,6 +429,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const [connectionError, setConnectionError] = useState(false);
     const [loadFailureReason, setLoadFailureReason] = useState<HomeLoadFailureReason | null>(null);
     const [manualDataRequest, setManualDataRequest] = useState<ManualBaseballDataRequest | null>(null);
+    const [homeAuthSnapshot, setHomeAuthSnapshot] = useState<HomeAuthSnapshot>(EMPTY_HOME_AUTH_SNAPSHOT);
 
     const [activeLeagueTab, setActiveLeagueTab] = useState<LeagueTab>(() => initialHomeRouteState.tab);
     const [scheduledGames, setScheduledGames] = useState<Game[]>([]);
@@ -299,11 +449,17 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const homeLiveSummaryTimeoutWarningRef = useRef(createHomeLiveSummaryTimeoutWarningState());
     const lastObservedHomeRouteSearchRef = useRef(searchParams.toString());
     const pendingHomeRouteSearchRef = useRef<string | null>(null);
-    const secondaryPanelsTimeoutRef = useRef<number | null>(null);
-    const secondaryPanelsIdleCallbackRef = useRef<number | null>(null);
+    const deferredSurfacesTimeoutRef = useRef<number | null>(null);
+    const deferredSurfacesIdleCallbackRef = useRef<number | null>(null);
     const matchLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
     const scheduledLoadingCardCountRef = useRef(MIN_LOADING_CARD_COUNT);
-    const [shouldMountSecondaryPanels, setShouldMountSecondaryPanels] = useState(false);
+    const [shouldMountDeferredSurfaces, setShouldMountDeferredSurfaces] = useState(false);
+    const [isHomeFirstCardReady, setIsHomeFirstCardReady] = useState(false);
+    const [shouldMountHomeTeamLogos, setShouldMountHomeTeamLogos] = useState(false);
+    const [shouldResolveHomeLivePollingCandidateKey, setShouldResolveHomeLivePollingCandidateKey] = useState(false);
+    const authUserId = homeAuthSnapshot.userId;
+    const isLoggedIn = homeAuthSnapshot.isLoggedIn;
+    const isAdmin = homeAuthSnapshot.isAdmin;
 
     const clampLoadingCount = (value: number) => (
         Math.max(MIN_LOADING_CARD_COUNT, Math.min(LOADING_CARD_COUNT_MAX, value))
@@ -373,11 +529,20 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setSearchParams(nextSearchParams, { replace: true });
     }, [setSearchParams]);
 
-    const handleGameCardSelectPrediction = (game: Game) => {
+    const handleGameCardSelectPrediction = async (game: Game) => {
+        const fallbackDate = formatDateForAPI(selectedDate);
+        const { buildPredictionMatchHandoff } = await import('../utils/predictionDeepLink')
+            .catch(() => ({ buildPredictionMatchHandoff: null }));
+
+        if (!buildPredictionMatchHandoff) {
+            navigate(`/prediction?date=${encodeURIComponent(fallbackDate)}`);
+            return;
+        }
+
         const handoff = buildPredictionMatchHandoff({
             sourcePage: 'home',
             game,
-            fallbackDate: formatDateForAPI(selectedDate),
+            fallbackDate,
         });
 
         navigate(handoff.path, {
@@ -385,15 +550,25 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         });
     };
 
-    const clearSecondaryPanelMount = useCallback(() => {
-        if (secondaryPanelsIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
-            window.cancelIdleCallback(secondaryPanelsIdleCallbackRef.current);
-            secondaryPanelsIdleCallbackRef.current = null;
+    const clearDeferredSurfacesMount = useCallback(() => {
+        if (deferredSurfacesIdleCallbackRef.current !== null && 'cancelIdleCallback' in window) {
+            window.cancelIdleCallback(deferredSurfacesIdleCallbackRef.current);
+            deferredSurfacesIdleCallbackRef.current = null;
         }
-        if (secondaryPanelsTimeoutRef.current !== null) {
-            window.clearTimeout(secondaryPanelsTimeoutRef.current);
-            secondaryPanelsTimeoutRef.current = null;
+        if (deferredSurfacesTimeoutRef.current !== null) {
+            window.clearTimeout(deferredSurfacesTimeoutRef.current);
+            deferredSurfacesTimeoutRef.current = null;
         }
+    }, []);
+
+    const handleHomeAuthSnapshotChange = useCallback((nextSnapshot: HomeAuthSnapshot) => {
+        setHomeAuthSnapshot((currentSnapshot) => (
+            currentSnapshot.userId === nextSnapshot.userId
+            && currentSnapshot.isLoggedIn === nextSnapshot.isLoggedIn
+            && currentSnapshot.isAdmin === nextSnapshot.isAdmin
+                ? currentSnapshot
+                : nextSnapshot
+        ));
     }, []);
 
     const loadScopedNavigation = useCallback(async (
@@ -405,9 +580,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setIsScopedNavigationLoading(true);
 
         try {
-            const navigation = await queryClient.fetchQuery(
-                getHomeScopedNavigationQueryOptions(anchorDate, scope, anchorDate.getFullYear()),
-            );
+            const navigation = await fetchHomeScopedNavigation(anchorDate, scope, anchorDate.getFullYear());
             if (requestId !== scopedNavigationRequestIdRef.current) {
                 return;
             }
@@ -488,34 +661,15 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setLoadFailureReason(snapshot.loadState.failureReason);
         setManualDataRequest(snapshot.loadState.manualDataRequest);
 
-        const homeLoadLogContext = {
+        scheduleHomeLoadTelemetry({
             selectedDate: formatDateForAPI(date),
-            source: snapshot.loadState.source,
-            isFallback: snapshot.loadState.isFallback,
-            timedOut: snapshot.loadState.timedOut,
-            timedOutSections: snapshot.loadState.timedOutSections,
-            failedSections: snapshot.loadState.failedSections,
-            failureReason: snapshot.loadState.failureReason,
+            loadState: snapshot.loadState,
             success: snapshot.success,
-        };
-
-        console.info('[HomeLoad]', {
-            event: 'home_load_completed',
-            ...homeLoadLogContext,
+            showConnectionError,
         });
-
-        if (showConnectionError) {
-            console.warn('[HomeLoad]', {
-                event: snapshot.loadState.failureReason === 'manual-data-required'
-                    ? 'home_load_manual_data_required'
-                    : 'home_load_all_sections_failed',
-                ...homeLoadLogContext,
-                manualDataRequest: snapshot.loadState.manualDataRequest,
-            });
-        }
     }, []);
 
-    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: Awaited<ReturnType<typeof fetchHomeBootstrap>>): HomeLoadSnapshot => {
+    const buildBootstrapHomeSnapshot = (date: Date, timedOut: boolean, data: HomeBootstrapData): HomeLoadSnapshot => {
         const loadState = buildBootstrapLoadState(timedOut, data.loadState);
 
         return {
@@ -538,9 +692,8 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         failureReason: HomeLoadFailureReason,
         manualDataRequest?: ManualBaseballDataRequest | null,
     ): HomeLoadSnapshot => {
-        const fallbackDates = leagueStartDates ?? fallbackLeagueStartDates;
         return {
-            leagueStartDates: fallbackDates,
+            leagueStartDates,
             navigation: {
                 prev: null,
                 next: null,
@@ -565,17 +718,15 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         };
     };
 
-    const getCachedBootstrapSnapshot = useCallback((date: Date, timedOut: boolean): HomeLoadSnapshot | null => {
-        const cachedBootstrap = queryClient.getQueryData<Awaited<ReturnType<typeof fetchHomeBootstrap>>>(
-            getHomeBootstrapQueryOptions(date).queryKey,
-        );
+    const getCachedBootstrapSnapshot = (date: Date, timedOut: boolean): HomeLoadSnapshot | null => {
+        const cachedBootstrap = readCachedHomeBootstrap(date);
 
         if (!cachedBootstrap) {
             return null;
         }
 
         return buildBootstrapHomeSnapshot(date, timedOut, cachedBootstrap);
-    }, []);
+    };
 
     const loadHomeBootstrap = useCallback(async (date: Date) => {
         const requestId = ++bootstrapRequestIdRef.current;
@@ -609,6 +760,9 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         setConnectionError(false);
         setLoadFailureReason(null);
         setManualDataRequest(null);
+        setIsHomeFirstCardReady(false);
+        setShouldMountHomeTeamLogos(false);
+        setShouldResolveHomeLivePollingCandidateKey(false);
         matchLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
         scheduledLoadingCardCountRef.current = LOADING_CARD_COUNT_MAX;
 
@@ -627,7 +781,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         }, HOME_BOOTSTRAP_SOFT_FALLBACK_DELAY_MS);
 
         try {
-            const data = await queryClient.fetchQuery(getHomeBootstrapQueryOptions(date));
+            const data = await fetchHomeBootstrapWithRetry(date);
             applySnapshotIfCurrent(buildBootstrapHomeSnapshot(date, timedOut, data));
         } catch (error) {
             if (requestId !== bootstrapRequestIdRef.current) {
@@ -658,7 +812,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                 window.clearTimeout(timeoutId);
             }
         }
-    }, [applyHomeSnapshot, buildLegacyFailureSnapshot, getCachedBootstrapSnapshot, leagueStartDates, fallbackLeagueStartDates]);
+    }, [applyHomeSnapshot, buildLegacyFailureSnapshot, leagueStartDates]);
 
     const handleTabChange = (tabValue: LeagueTab) => {
         if (!isVisibleLeagueTab(tabValue, visibleLeagueTabs)) {
@@ -674,11 +828,12 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     };
 
     const selectedDateKey = useMemo(() => formatDateForAPI(selectedDate), [selectedDate]);
-    const homeLivePollingGameIds = useMemo(
-        () => selectHomeLivePollingGameIds(games, scheduledGames, selectedDateKey),
-        [games, scheduledGames, selectedDateKey],
+    const homeLivePollingCandidateKey = useMemo(
+        () => shouldResolveHomeLivePollingCandidateKey
+            ? buildHomeLivePollingCandidateKey(games, scheduledGames, selectedDateKey)
+            : '',
+        [games, scheduledGames, selectedDateKey, shouldResolveHomeLivePollingCandidateKey],
     );
-    const homeLivePollingKey = homeLivePollingGameIds.join(',');
     const visibleLeagueTabs = useMemo(
         () => buildVisibleLeagueTabs(getTodayMidday(), leagueStartDates),
         [leagueStartDates],
@@ -696,8 +851,12 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         };
     }, [navInfo.next, navInfo.prev, selectedDate]);
     const activeTabIsScheduled = activeLeagueTab === 'scheduled';
-    const showConnectionRecoveryBanner = connectionError
-        && (loadFailureReason !== 'manual-data-required' || isAdmin);
+    const showAdminManualDataRecoveryBanner = isAdmin
+        && loadFailureReason === 'manual-data-required'
+        && manualDataRequest !== null;
+    const showConnectionRecoveryBanner = (
+        connectionError && (loadFailureReason !== 'manual-data-required' || isAdmin)
+    ) || showAdminManualDataRecoveryBanner;
     const visibleLeagueTabGridClass = visibleLeagueTabs.length >= 4
         ? 'grid-cols-4'
         : visibleLeagueTabs.length === 3
@@ -720,6 +879,35 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     };
 
     useEffect(() => {
+        if (shouldMountDeferredSurfaces) {
+            return clearDeferredSurfacesMount;
+        }
+
+        if (!isHomeFirstCardReady) {
+            clearDeferredSurfacesMount();
+            return clearDeferredSurfacesMount;
+        }
+
+        const mountDeferredSurfaces = () => {
+            setShouldMountDeferredSurfaces(true);
+            clearDeferredSurfacesMount();
+        };
+
+        deferredSurfacesTimeoutRef.current = globalThis.setTimeout(() => {
+            deferredSurfacesTimeoutRef.current = null;
+            if ('requestIdleCallback' in window) {
+                deferredSurfacesIdleCallbackRef.current = window.requestIdleCallback(mountDeferredSurfaces, {
+                    timeout: HOME_DEFERRED_SURFACES_IDLE_TIMEOUT_MS,
+                });
+                return;
+            }
+            mountDeferredSurfaces();
+        }, HOME_DEFERRED_SURFACES_DEFER_DELAY_MS) as unknown as number;
+
+        return clearDeferredSurfacesMount;
+    }, [clearDeferredSurfacesMount, isHomeFirstCardReady, shouldMountDeferredSurfaces]);
+
+    useEffect(() => {
         const dateKey = selectedDateKey;
         if (lastBootstrapDateKeyRef.current === dateKey) {
             return;
@@ -728,6 +916,35 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         lastBootstrapDateKeyRef.current = dateKey;
         void loadHomeBootstrap(selectedDate);
     }, [loadHomeBootstrap, selectedDate, selectedDateKey]);
+
+    useEffect(() => {
+        if (isLoading || typeof window === 'undefined') {
+            return;
+        }
+
+        let firstFrameId: number | null = null;
+        let secondFrameId: number | null = null;
+
+        firstFrameId = window.requestAnimationFrame(() => {
+            secondFrameId = window.requestAnimationFrame(() => {
+                const typedWindow = window as HomeFirstCardReadyWindow;
+                typedWindow.__begaHomeFirstCardReadyPathname = window.location.pathname;
+                window.dispatchEvent(new Event(HOME_FIRST_CARD_READY_EVENT));
+                setIsHomeFirstCardReady(true);
+                setShouldMountHomeTeamLogos(true);
+                setShouldResolveHomeLivePollingCandidateKey(true);
+            });
+        });
+
+        return () => {
+            if (firstFrameId !== null) {
+                window.cancelAnimationFrame(firstFrameId);
+            }
+            if (secondFrameId !== null) {
+                window.cancelAnimationFrame(secondFrameId);
+            }
+        };
+    }, [isLoading, selectedDateKey]);
 
     useEffect(() => {
         const coercedTab = coerceHomeRouteTab(activeLeagueTab, visibleLeagueTabs);
@@ -755,133 +972,186 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     }, [activeLeagueTab, replaceHomeRouteState, selectedDate, visibleLeagueTabs]);
 
     useEffect(() => {
-        if (!homeLivePollingKey) {
+        if (!homeLivePollingCandidateKey) {
             return;
         }
         if (typeof window === 'undefined' || typeof document === 'undefined') {
             return;
         }
 
-        const gameIds = homeLivePollingKey.split(',').filter(Boolean);
-        resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
         let disposed = false;
+        let startTimeoutId: number | null = null;
+        let startIdleCallbackId: number | null = null;
+        let intervalId: number | null = null;
+        let handleVisibilityOrFocus: (() => void) | null = null;
 
-        const refreshLiveSummaries = async () => {
-            if (disposed || document.visibilityState === 'hidden' || homeLiveSummaryInFlightRef.current) {
+        const startLiveSummaryPolling = async () => {
+            const [
+                {
+                    LIVE_GAME_POLL_INTERVAL_MS,
+                    mergeHomeGamesWithLiveSummaries,
+                    recordHomeLiveSummaryTimeoutFailure,
+                    resetHomeLiveSummaryTimeoutWarningState,
+                    selectHomeLivePollingGameIds,
+                },
+                { fetchGameLiveSummaries },
+            ] = await Promise.all([
+                import('../utils/liveGame'),
+                import('../api/prediction'),
+            ]);
+
+            if (disposed) {
                 return;
             }
 
-            const abortController = new AbortController();
-            homeLiveSummaryInFlightRef.current = true;
-            homeLiveSummaryAbortRef.current = abortController;
+            const gameIds = selectHomeLivePollingGameIds(games, scheduledGames, selectedDateKey);
+            if (!gameIds.length) {
+                return;
+            }
 
-            try {
-                const summaries = await fetchGameLiveSummaries(gameIds, { signal: abortController.signal });
-                resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
-                if (disposed || abortController.signal.aborted || summaries.length === 0) {
+            resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
+
+            const refreshLiveSummaries = async () => {
+                if (disposed || document.visibilityState === 'hidden' || homeLiveSummaryInFlightRef.current) {
                     return;
                 }
-                setGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
-                setScheduledGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
-            } catch (error) {
-                if (!abortController.signal.aborted) {
-                    if (isPublicApiTimeoutError(error)) {
-                        if (recordHomeLiveSummaryTimeoutFailure(homeLiveSummaryTimeoutWarningRef.current)) {
-                            console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
-                        }
+
+                const abortController = new AbortController();
+                homeLiveSummaryInFlightRef.current = true;
+                homeLiveSummaryAbortRef.current = abortController;
+
+                try {
+                    const summaries = await fetchGameLiveSummaries(gameIds, { signal: abortController.signal });
+                    resetHomeLiveSummaryTimeoutWarningState(homeLiveSummaryTimeoutWarningRef.current);
+                    if (disposed || abortController.signal.aborted || summaries.length === 0) {
                         return;
                     }
-                    console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
+                    setGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
+                    setScheduledGames((prev) => mergeHomeGamesWithLiveSummaries(prev, summaries));
+                } catch (error) {
+                    if (!abortController.signal.aborted) {
+                        if (isPublicApiTimeoutError(error)) {
+                            if (recordHomeLiveSummaryTimeoutFailure(homeLiveSummaryTimeoutWarningRef.current)) {
+                                console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
+                            }
+                            return;
+                        }
+                        console.warn('[HomeLivePolling] Failed to refresh live summaries:', error);
+                    }
+                } finally {
+                    if (homeLiveSummaryAbortRef.current === abortController) {
+                        homeLiveSummaryAbortRef.current = null;
+                    }
+                    homeLiveSummaryInFlightRef.current = false;
                 }
-            } finally {
-                if (homeLiveSummaryAbortRef.current === abortController) {
-                    homeLiveSummaryAbortRef.current = null;
+            };
+
+            handleVisibilityOrFocus = () => {
+                if (document.visibilityState === 'hidden') {
+                    homeLiveSummaryAbortRef.current?.abort();
+                    return;
                 }
-                homeLiveSummaryInFlightRef.current = false;
-            }
+                void refreshLiveSummaries();
+            };
+
+            void refreshLiveSummaries();
+            intervalId = window.setInterval(() => {
+                void refreshLiveSummaries();
+            }, LIVE_GAME_POLL_INTERVAL_MS);
+
+            document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+            window.addEventListener('focus', handleVisibilityOrFocus);
         };
 
-        const handleVisibilityOrFocus = () => {
-            if (document.visibilityState === 'hidden') {
-                homeLiveSummaryAbortRef.current?.abort();
+        const beginLiveSummaryPolling = () => {
+            void startLiveSummaryPolling().catch((error) => {
+                if (!disposed) {
+                    console.warn('[HomeLivePolling] Failed to initialize live summaries:', error);
+                }
+            });
+        };
+
+        startTimeoutId = globalThis.setTimeout(() => {
+            startTimeoutId = null;
+            if ('requestIdleCallback' in window) {
+                startIdleCallbackId = window.requestIdleCallback(beginLiveSummaryPolling, {
+                    timeout: HOME_LIVE_POLLING_IDLE_TIMEOUT_MS,
+                });
                 return;
             }
-            void refreshLiveSummaries();
-        };
-
-        void refreshLiveSummaries();
-        const intervalId = window.setInterval(() => {
-            void refreshLiveSummaries();
-        }, LIVE_GAME_POLL_INTERVAL_MS);
-
-        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-        window.addEventListener('focus', handleVisibilityOrFocus);
+            beginLiveSummaryPolling();
+        }, HOME_LIVE_POLLING_DEFER_DELAY_MS) as unknown as number;
 
         return () => {
             disposed = true;
+            if (startIdleCallbackId !== null && 'cancelIdleCallback' in window) {
+                window.cancelIdleCallback(startIdleCallbackId);
+                startIdleCallbackId = null;
+            }
+            if (startTimeoutId !== null) {
+                window.clearTimeout(startTimeoutId);
+                startTimeoutId = null;
+            }
             homeLiveSummaryAbortRef.current?.abort();
-            window.clearInterval(intervalId);
-            document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-            window.removeEventListener('focus', handleVisibilityOrFocus);
+            if (intervalId !== null) {
+                window.clearInterval(intervalId);
+            }
+            if (handleVisibilityOrFocus !== null) {
+                document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+                window.removeEventListener('focus', handleVisibilityOrFocus);
+            }
         };
-    }, [homeLivePollingKey]);
+    }, [homeLivePollingCandidateKey, selectedDateKey]);
 
     useEffect(() => {
         setIsSecondarySectionExpanded(false);
     }, [selectedDate]);
 
     useEffect(() => {
-        if (shouldMountSecondaryPanels) {
-            return clearSecondaryPanelMount;
+        if (showCalendar) {
+            clearDeferredSurfacesMount();
+            setShouldMountDeferredSurfaces(true);
         }
+    }, [clearDeferredSurfacesMount, showCalendar]);
 
-        const mountPanels = () => {
-            setShouldMountSecondaryPanels(true);
-            clearSecondaryPanelMount();
-        };
-
-        if ('requestIdleCallback' in window) {
-            secondaryPanelsIdleCallbackRef.current = window.requestIdleCallback(mountPanels, { timeout: 1800 });
-        } else {
-            secondaryPanelsTimeoutRef.current = globalThis.setTimeout(mountPanels, 1000) as unknown as number;
-        }
-
-        return clearSecondaryPanelMount;
-    }, [clearSecondaryPanelMount, shouldMountSecondaryPanels]);
-
-    useEffect(() => {
-        if (showCalendar || shouldMountWelcomeGuide) {
-            clearSecondaryPanelMount();
-            setShouldMountSecondaryPanels(true);
-        }
-    }, [clearSecondaryPanelMount, shouldMountWelcomeGuide, showCalendar]);
-
-    const { regularSeasonGames, postSeasonGames, koreanSeriesGames } = useMemo(
-        () => partitionGamesByLeague(games),
-        [games],
+    const {
+        regularSeasonCount,
+        postSeasonCount,
+        koreanSeriesCount,
+        activeStandardGames,
+    } = useMemo(
+        () => summarizeHomeLeagueGames(games, activeLeagueTab),
+        [activeLeagueTab, games],
+    );
+    const hasScheduledPrimaryGame = useMemo(
+        () => hasPrimaryScheduledGame(scheduledGames),
+        [scheduledGames],
+    );
+    const scheduledGamePartitions = useMemo(
+        () => activeTabIsScheduled ? partitionScheduledGames(scheduledGames) : EMPTY_SCHEDULED_GAME_PARTITIONS,
+        [activeTabIsScheduled, scheduledGames],
     );
     const {
         primary: scheduledPrimaryGames,
         secondary: scheduledSecondaryGames,
         excluded: liveOrFinishedScheduledGames,
-    } = useMemo(
-        () => partitionScheduledGames(scheduledGames),
-        [scheduledGames],
-    );
+    } = scheduledGamePartitions;
     const scheduledPrimaryGamesBySourceDate = useMemo(
-        () => groupGamesBySourceDate(scheduledPrimaryGames, selectedDateKey),
-        [scheduledPrimaryGames, selectedDateKey],
+        () => activeTabIsScheduled ? groupGamesBySourceDate(scheduledPrimaryGames, selectedDateKey) : EMPTY_GROUPED_GAMES_BY_SOURCE_DATE,
+        [activeTabIsScheduled, scheduledPrimaryGames, selectedDateKey],
     );
     const scheduledSecondaryGamesBySourceDate = useMemo(
-        () => groupGamesBySourceDate(scheduledSecondaryGames, selectedDateKey),
-        [scheduledSecondaryGames, selectedDateKey],
+        () => activeTabIsScheduled ? groupGamesBySourceDate(scheduledSecondaryGames, selectedDateKey) : EMPTY_GROUPED_GAMES_BY_SOURCE_DATE,
+        [activeTabIsScheduled, scheduledSecondaryGames, selectedDateKey],
     );
     const displayedHomeDate = selectedDate;
     const matchSkeletonCount = clampLoadingCount(
-        Math.max(regularSeasonGames.length, postSeasonGames.length, koreanSeriesGames.length),
+        Math.max(regularSeasonCount, postSeasonCount, koreanSeriesCount),
     );
     const scheduledSkeletonCount = clampLoadingCount(
-        Math.max(scheduledPrimaryGames.length + scheduledSecondaryGames.length, scheduledGames.length),
+        activeTabIsScheduled
+            ? Math.max(scheduledPrimaryGames.length + scheduledSecondaryGames.length, scheduledGames.length)
+            : scheduledGames.length,
     );
 
     if (!isLoading) {
@@ -899,11 +1169,6 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         );
     }
 
-    const activeStandardGames = activeLeagueTab === 'postseason'
-        ? postSeasonGames
-        : activeLeagueTab === 'koreanseries'
-            ? koreanSeriesGames
-            : regularSeasonGames;
     const activeCardHeight = GAME_CARD_MIN_HEIGHT_PX;
     const loadingMatchCardCount = activeTabIsScheduled
         ? scheduledLoadingCardCountRef.current
@@ -915,27 +1180,6 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
     const desktopHeight = (desktopRows * activeCardHeight) + ((desktopRows - 1) * 12);
     const calculatedMatchSectionMinHeight = Math.max(Math.max(mobileHeight, desktopHeight) + 24, 100);
     const matchSectionMinHeightStyle = { minHeight: `${calculatedMatchSectionMinHeight}px` };
-    const matchPanelFallback = activeTabIsScheduled ? (
-        <div
-            className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
-            style={matchSectionMinHeightStyle}
-        >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
-                {Array.from({ length: loadingMatchCardCount }, (_, index) => (
-                    <GameCardSkeleton key={`lazy-scheduled-skeleton-${index}`} />
-                ))}
-            </div>
-        </div>
-    ) : (
-        <div
-            className="rounded-2xl border border-gray-100 dark:border-white/15 bg-white/70 dark:bg-card/45 p-4 md:p-5 shadow-sm"
-            style={matchSectionMinHeightStyle}
-        >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-0 items-stretch">
-                {Array.from({ length: loadingMatchCardCount }, (_, index) => <GameCardSkeleton key={`lazy-game-${index}`} />)}
-            </div>
-        </div>
-    );
 
     useEffect(() => {
         const shouldSwitch = shouldAutoSwitchToScheduled({
@@ -943,10 +1187,10 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
             hasUserChangedTab: hasUserChangedTabRef.current,
             isLoading,
             isScheduledLoading,
-            regularCount: regularSeasonGames.length,
-            postseasonCount: postSeasonGames.length,
-            koreanSeriesCount: koreanSeriesGames.length,
-            scheduledPrimaryCount: scheduledPrimaryGames.length,
+            regularCount: regularSeasonCount,
+            postseasonCount: postSeasonCount,
+            koreanSeriesCount,
+            scheduledPrimaryCount: hasScheduledPrimaryGame ? 1 : 0,
         });
 
         if (shouldSwitch) {
@@ -956,193 +1200,110 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
         activeLeagueTab,
         isLoading,
         isScheduledLoading,
-        regularSeasonGames.length,
-        postSeasonGames.length,
-        koreanSeriesGames.length,
-        scheduledPrimaryGames.length,
+        regularSeasonCount,
+        postSeasonCount,
+        koreanSeriesCount,
+        hasScheduledPrimaryGame,
     ]);
-
-    useEffect(() => {
-        const dontShowAgain = localStorage.getItem('bega_dont_show_guide');
-        const hasVisited = localStorage.getItem('bega_has_visited');
-
-        if (!dontShowAgain && !hasVisited) {
-            setShouldMountWelcomeGuide(true);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!showCalendar) {
-            return;
-        }
-
-        const previousOverflow = document.body.style.overflow;
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setShowCalendar(false);
-            }
-        };
-
-        document.body.style.overflow = 'hidden';
-        window.addEventListener('keydown', handleEscape);
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            window.removeEventListener('keydown', handleEscape);
-        };
-    }, [showCalendar]);
-
-    if (!leagueStartDates) {
-        return (
-            <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
-                <SpinnerIcon className="w-10 h-10 animate-spin text-primary" />
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-background transition-colors duration-300 pb-[var(--mobile-content-safe-bottom)] lg:pb-20">
             {showConnectionRecoveryBanner && (
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-                    <div
-                        data-testid="home-global-recovery"
-                        className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 sm:flex-row sm:items-center"
-                    >
-                        <div className="flex min-w-0 items-start gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
-                                <WarningTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[16px] text-amber-900 dark:text-amber-200 font-black">
-                                    {loadFailureReason === 'manual-data-required'
-                                        ? '운영자 데이터가 필요합니다'
-                                        : '서비스 연결을 확인하지 못했습니다'}
-                                </p>
-                                <p className="mt-1 text-[16px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
-                                    {loadFailureReason === 'manual-data-required'
-                                        ? MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE
-                                        : '경기, 예정 경기, 홈 위젯을 한 번에 다시 불러올 수 있습니다.'}
-                                </p>
-                                {loadFailureReason === 'manual-data-required' && (
-                                    <div className="mt-3 space-y-2">
-                                        {manualDataRequest?.operatorMessage && (
-                                            <p className="rounded-xl border border-amber-300 bg-white/70 px-3 py-2 text-[13px] font-bold leading-relaxed text-amber-950 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-100">
-                                                {manualDataRequest.operatorMessage}
-                                            </p>
-                                        )}
-                                        {manualDataRequest?.missingItems?.length ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {manualDataRequest.missingItems.slice(0, 4).map((item) => (
-                                                    <span
-                                                        key={`${item.key}:${item.label}`}
-                                                        className="rounded-full border border-amber-300 bg-white/70 px-2 py-1 text-xs font-black text-amber-900 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-200"
-                                                    >
-                                                        {item.label}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        ) : null}
-                                        <p className="inline-flex rounded-md border border-amber-300 bg-white/70 px-2 py-1 font-mono text-xs font-black text-amber-900 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-200">
-                                            {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="touch"
-                            onClick={() => { setConnectionError(false); setManualDataRequest(null); void loadHomeBootstrap(selectedDate); }}
-                            className="w-full shrink-0 border-amber-300 bg-white text-amber-800 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-900/40 sm:ml-auto sm:w-auto"
-                        >
-                            <RefreshIcon className="w-4 h-4 mr-1" /> 전체 다시 시도
-                        </Button>
-                    </div>
-                </div>
+                <Suspense fallback={null}>
+                    <LazyHomeRecoveryBanner
+                        loadFailureReason={loadFailureReason}
+                        manualDataRequest={manualDataRequest}
+                        onRetry={() => {
+                            setConnectionError(false);
+                            setManualDataRequest(null);
+                            void loadHomeBootstrap(selectedDate);
+                        }}
+                    />
+                </Suspense>
             )}
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6 border-gray-100 dark:border-border">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-border/70 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-1.5 h-8 bg-primary rounded-full" />
-                            <h1 className="text-3xl font-black tracking-tight text-primary dark:text-emerald-400">
-                                KBO LEAGUE
-                            </h1>
+                        <div className="flex items-center gap-3">
+                            <span className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-primary to-primary/50" aria-hidden="true" />
+                            <div>
+                                <span className="block text-11 font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                                    Scoreboard
+                                </span>
+                                <h1 className="text-3xl font-extrabold tracking-tight text-primary dark:text-emerald-400">
+                                    KBO LEAGUE
+                                </h1>
+                            </div>
                         </div>
-                        <p className="text-gray-500 dark:text-white font-bold pl-4">
+                        <p className="mt-2 pl-[18px] font-medium text-muted-foreground">
                             {selectedDate.getFullYear()} 시즌 경기 일정 및 순위
                         </p>
                     </div>
                     <div>
                         {isTodayOffSeason ? (
-                            <Button
+                            <button
+                                type="button"
                                 data-testid="home-offseason-cta"
-                                variant="outline"
-                                size="touch"
                                 onClick={() => navigate('/offseason')}
-                                className="border-emerald-600/20 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                                className={`${HOME_BUTTON_OUTLINE_TOUCH_CLASS} border-emerald-600/20 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-900/20`}
                             >
-                                <FlameIcon className="w-4 h-4 mr-2 text-orange-500" /> 스토브리그
-                            </Button>
+                                <span className={HOME_CSS_FLAME_CLASS} aria-hidden="true" />
+                                스토브리그
+                            </button>
                         ) : (
-                            <Button
+                            <button
+                                type="button"
                                 data-priority="secondary"
                                 data-testid="home-secondary-prediction-cta"
-                                variant="outline"
-                                size="touch"
                                 onClick={handleNavigateToTodayPrediction}
-                                className="whitespace-nowrap rounded-xl border-primary/25 bg-white font-black text-primary hover:bg-primary/5 dark:border-primary/40 dark:bg-card dark:text-emerald-300 dark:hover:bg-primary/10"
+                                className={`${HOME_BUTTON_OUTLINE_TOUCH_CLASS} border-primary/25 bg-white font-black text-primary hover:bg-primary/5 dark:border-primary/40 dark:bg-card dark:text-emerald-300 dark:hover:bg-primary/10`}
                             >
                                 전력분석실 보기
-                            </Button>
+                            </button>
                         )}
                     </div>
                 </div>
 
-                <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 dark:border-white/15 dark:bg-card/70 sm:flex-row sm:items-center sm:justify-center sm:px-6 md:w-fit md:mx-auto">
+                <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 sm:flex-row sm:items-center sm:justify-center sm:px-6 md:w-fit md:mx-auto">
                   <div className="flex items-center justify-center gap-4 sm:gap-6">
-                    <Button
+                    <button
+                      type="button"
                       data-testid="home-date-prev"
-                      variant="ghost"
-                      size="iconTouch"
                       onClick={() => changeDate('prev')}
                       disabled={isLoading || isScopedNavigationLoading || !dateNavigation.hasPrev}
                       aria-label="이전 날짜"
-                      className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
+                      className={`${HOME_BUTTON_GHOST_ICON_TOUCH_CLASS} hover:bg-emerald-50 hover:text-primary disabled:opacity-30 dark:hover:bg-emerald-900/20`}
                     >
-                        <ChevronLeftIcon className="w-6 h-6" />
-                    </Button>
+                        <span className={HOME_CSS_CHEVRON_LEFT_CLASS} aria-hidden="true" />
+                    </button>
 
                     <div className="flex flex-col items-center min-w-[140px]">
-                        <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">
+                        <h2 className="text-xl font-extrabold text-foreground tracking-tight leading-none mb-1">
                             {formatHomeDate(displayedHomeDate)}
                         </h2>
-                        <Button
-                            variant="link"
-                            size="sm"
+                        <button
+                            type="button"
                             onClick={() => {
-                                setCalendarMonth(getCalendarMonth(selectedDate));
-                                setShouldMountSecondaryPanels(true);
+                                setShouldMountDeferredSurfaces(true);
                                 setShowCalendar(true);
                             }}
-                            className="text-[16px] text-primary dark:text-emerald-400 min-h-11 px-2 py-0 font-bold hover:underline opacity-80 hover:opacity-100 transition-opacity"
+                            className={`${HOME_BUTTON_LINK_SM_CLASS} min-h-11 px-2 py-0 text-body font-bold text-primary opacity-80 transition-opacity hover:opacity-100 dark:text-emerald-400`}
                         >
                             날짜 변경
-                        </Button>
+                        </button>
                     </div>
 
-                    <Button
+                    <button
+                      type="button"
                       data-testid="home-date-next"
-                      variant="ghost"
-                      size="iconTouch"
                       onClick={() => changeDate('next')}
                       disabled={isLoading || isScopedNavigationLoading || !dateNavigation.hasNext}
                       aria-label="다음 날짜"
-                      className="hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-30"
+                      className={`${HOME_BUTTON_GHOST_ICON_TOUCH_CLASS} hover:bg-emerald-50 hover:text-primary disabled:opacity-30 dark:hover:bg-emerald-900/20`}
                     >
-                        <ChevronRightIcon className="w-6 h-6" />
-                    </Button>
+                        <span className={HOME_CSS_CHEVRON_RIGHT_CLASS} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
 
@@ -1152,7 +1313,7 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             <div
                                 role="tablist"
                                 aria-label="경기 구분 선택"
-                                className={`grid w-full max-w-xl ${visibleLeagueTabGridClass} bg-gray-100 dark:bg-card p-1 rounded-xl mx-auto`}
+                                className={`grid w-full max-w-xl ${visibleLeagueTabGridClass} bg-muted p-1 rounded-xl mx-auto`}
                             >
                                 {visibleLeagueTabs.map((tab) => {
                                     const isActive = activeLeagueTab === tab.value;
@@ -1164,10 +1325,10 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                             aria-selected={isActive}
                                             aria-controls={`home-tabpanel-${tab.value}`}
                                             id={`home-tab-${tab.value}`}
-                                            className={`min-h-11 rounded-lg px-2 py-2 text-[16px] font-bold transition-all ${
+                                            className={`min-h-11 rounded-lg px-2 py-2 text-body font-bold transition-all ${
                                                 isActive
-                                                    ? 'bg-primary text-white shadow-md'
-                                                    : 'text-foreground dark:text-muted-foreground'
+                                                    ? 'bg-primary text-white shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                             onClick={() => handleTabChange(tab.value)}
                                         >
@@ -1185,7 +1346,14 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                             className="animate-in fade-in duration-150"
                             style={matchSectionMinHeightStyle}
                         >
-                            <Suspense fallback={matchPanelFallback}>
+                            <Suspense
+                                fallback={(
+                                    <HomeMatchPanelSuspenseFallback
+                                        loadingMatchCardCount={loadingMatchCardCount}
+                                        matchSectionMinHeightStyle={matchSectionMinHeightStyle}
+                                    />
+                                )}
+                            >
                                 <LazyHomeMatchPanel
                                     activeLeagueTab={activeLeagueTab}
                                     isLoading={isLoading}
@@ -1203,6 +1371,8 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                                     liveOrFinishedScheduledGames={liveOrFinishedScheduledGames}
                                     scheduledPrimaryGamesBySourceDate={scheduledPrimaryGamesBySourceDate}
                                     scheduledSecondaryGamesBySourceDate={scheduledSecondaryGamesBySourceDate}
+                                    shouldMountTeamLogos={shouldMountHomeTeamLogos}
+                                    LoadingCardComponent={HomeMatchPanelFallbackCard}
                                     onRetry={() => void loadHomeBootstrap(selectedDate)}
                                     onSelectPrediction={handleGameCardSelectPrediction}
                                     onToggleSecondarySection={() => setIsSecondarySectionExpanded(prev => !prev)}
@@ -1212,38 +1382,20 @@ export default function HomeRuntime({ onNavigate }: HomeProps) {
                     </div>
                 </div>
 
-                <AdSlot
-                    slotId="home_mid_1"
-                    pageType="home"
-                    contentId={selectedDateKey}
-                    loggedIn={isLoggedIn}
-                    userId={authUserId ? String(authUserId) : null}
-                />
-
-                {shouldMountSecondaryPanels ? (
+                {shouldMountDeferredSurfaces || showCalendar ? (
                     <Suspense fallback={null}>
-                        <LazyHomeSecondaryPanels
+                        <LazyHomeDeferredSurfaces
                             selectedDate={selectedDate}
                             selectedDateKey={selectedDateKey}
-                            calendarMonth={calendarMonth}
                             showCalendar={showCalendar}
-                            shouldMountWelcomeGuide={shouldMountWelcomeGuide}
-                            calendarDialogTitleId={calendarDialogTitleId}
                             loggedIn={isLoggedIn}
                             userId={authUserId ? String(authUserId) : null}
                             suppressRecoveryActions={showConnectionRecoveryBanner}
-                            onNavigateToCheer={() => navigate('/cheer')}
-                            onNavigateToMate={() => navigate('/mate')}
-                            onNavigateToCheerPost={(postId) => navigate(`/cheer?postId=${postId}`)}
-                            onSelectFeaturedMate={(mate) => navigate(`/mate/${mate.id}`, {
-                                state: { partySeed: mate },
-                            })}
+                            onAuthSnapshotChange={handleHomeAuthSnapshotChange}
                             onCloseCalendar={() => setShowCalendar(false)}
-                            onCalendarMonthChange={setCalendarMonth}
                             onSelectCalendarDate={(nextDate) => {
                                 hasUserChangedTabRef.current = true;
                                 setSelectedDate(nextDate);
-                                setCalendarMonth(getCalendarMonth(nextDate));
                                 replaceHomeRouteState(nextDate, activeLeagueTab);
                                 setShowCalendar(false);
                             }}

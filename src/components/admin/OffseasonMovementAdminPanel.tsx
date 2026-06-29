@@ -200,10 +200,10 @@ const getSectionBadgeClass = (section: string) => {
 };
 
 const adminNativeSelectClassName =
-  'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-[14px] text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-caption text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 const adminDialogSelectClassName =
-  'h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-[14px] text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-caption text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 const hasTextValue = (value?: string | null) => Boolean(value?.trim());
 

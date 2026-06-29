@@ -281,13 +281,13 @@ export default function MyPageSeasonLogRuntime({
           <span className="mypage-season-legend">
             적게
             <i style={{ background: 'var(--mp-surface-hi)' }} />
-            <i style={{ background: 'rgba(99, 179, 155, 0.35)' }} />
-            <i style={{ background: 'rgba(99, 179, 155, 0.65)' }} />
+            <i style={{ background: 'var(--mp-win-bg-dim)' }} />
+            <i style={{ background: 'var(--mp-win-bg-soft-65)' }} />
             <i style={{ background: 'var(--mp-accent)' }} />
             많이
           </span>
           <span className="mypage-season-legend">
-            <i style={{ background: 'rgba(232, 182, 76, 0.65)' }} />
+            <i style={{ background: 'var(--mp-draw-bg-soft-65)' }} />
             예정
           </span>
           <div className="mypage-season-kpis">

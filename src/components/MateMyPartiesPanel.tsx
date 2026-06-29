@@ -42,19 +42,19 @@ export default function MateMyPartiesPanel({ onPartyClick }: MateMyPartiesPanelP
   return (
     <section className="space-y-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]">
       <div className="flex items-center justify-between">
-        <h2 className="text-[13px] font-black text-gray-900 dark:text-white">내가 만든 파티</h2>
-        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary dark:bg-primary/15 dark:text-primary-light">
+        <h2 className="text-13 font-black text-gray-900 dark:text-white">내가 만든 파티</h2>
+        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-11 font-bold text-primary dark:bg-primary/15 dark:text-primary-light">
           {hostedParties.length}건
         </span>
       </div>
       {isLoading ? (
         <div className="space-y-2" aria-hidden="true">
           {Array.from({ length: 2 }, (_, index) => (
-            <div key={index} className="h-[74px] animate-pulse rounded-[10px] bg-gray-100 dark:bg-white/10" />
+            <div key={index} className="h-[74px] animate-pulse rounded-10 bg-gray-100 dark:bg-white/10" />
           ))}
         </div>
       ) : hostedParties.length === 0 ? (
-        <div className="rounded-[10px] border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-[12px] font-bold leading-relaxed text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
+        <div className="rounded-10 border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-12 font-bold leading-relaxed text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
           만든 파티가 없습니다.
         </div>
       ) : (
@@ -66,18 +66,18 @@ export default function MateMyPartiesPanel({ onPartyClick }: MateMyPartiesPanelP
                 key={party.id}
                 type="button"
                 onClick={() => onPartyClick(party)}
-                className="status-badge-hover-scope w-full rounded-[10px] border border-gray-200/80 p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.03] dark:border-white/10 dark:hover:border-primary/50 dark:hover:bg-primary/10"
+                className="status-badge-hover-scope w-full rounded-10 border border-gray-200/80 p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.03] dark:border-white/10 dark:hover:border-primary/50 dark:hover:bg-primary/10"
               >
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-extrabold text-primary dark:text-primary-light">
+                  <span className="text-11 font-extrabold text-primary dark:text-primary-light">
                     {getMateDDayLabel(party.gameDate, todayKey) || formatMiniDate(party.gameDate)}
                   </span>
                   <StatusBadge {...meta} size="xs" />
                 </div>
-                <div className="truncate text-[12px] font-bold text-gray-900 dark:text-white">
+                <div className="truncate text-12 font-bold text-gray-900 dark:text-white">
                   {party.homeTeam} vs {party.awayTeam}
                 </div>
-                <div className="mt-0.5 flex items-center justify-between text-[11px] font-semibold text-gray-500 dark:text-white">
+                <div className="mt-0.5 flex items-center justify-between text-11 font-semibold text-gray-500 dark:text-white">
                   <span>{party.currentParticipants}/{party.maxParticipants}명 모집</span>
                   <span>{formatMiniDate(party.gameDate)}</span>
                 </div>

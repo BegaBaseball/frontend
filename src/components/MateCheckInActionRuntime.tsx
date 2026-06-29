@@ -47,11 +47,11 @@ export default function MateCheckInActionRuntime({
     <>
       <Card className={`hidden p-5 lg:flex lg:sticky lg:top-6 ${mateSectionCardClass}`}>
         <div>
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             Next Action
           </p>
           <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">지금 해야 할 일</h3>
-          <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-white">
+          <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
             {!isCheckedIn
               ? '먼저 본인 체크인을 완료하세요. 그 다음 그룹 진행률을 확인하면 됩니다.'
               : allCheckedIn
@@ -85,7 +85,7 @@ export default function MateCheckInActionRuntime({
                 완료 확인
               </Button>
             ) : (
-              <div className={`${mateInsetPanelClass} p-4 text-[16px] text-gray-600 dark:text-white`}>
+              <div className={`${mateInsetPanelClass} p-4 text-body text-gray-600 dark:text-white`}>
                 {isHost ? '아직 도착하지 않은 참여자를 기다리는 중입니다.' : '다른 참여자의 체크인 완료를 기다리는 중입니다.'}
               </div>
             )}
@@ -100,8 +100,8 @@ export default function MateCheckInActionRuntime({
           </div>
 
           <div className={`${mateInsetPanelClass} mt-4 p-4`}>
-            <p className="text-[16px] font-semibold text-gray-900 dark:text-white">체크인 기준</p>
-            <ul className="mt-3 space-y-2 text-[16px] text-gray-600 dark:text-white">
+            <p className="text-body font-semibold text-gray-900 dark:text-white">체크인 기준</p>
+            <ul className="mt-3 space-y-2 text-body text-gray-600 dark:text-white">
               <li className="flex gap-2">
                 <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
                 <span>개인 체크인이 먼저 완료되어야 그룹 진행률이 올라갑니다.</span>
@@ -123,10 +123,10 @@ export default function MateCheckInActionRuntime({
         <div className={`${mateMobileBarClass} lg:hidden`}>
           <div className="mx-auto max-w-6xl">
             <div className="min-w-0">
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
                 체크인 요약
               </p>
-              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">
+              <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">
                 {checkedInCount}/{totalParticipants}명 체크인 완료
               </p>
             </div>

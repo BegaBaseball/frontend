@@ -26,12 +26,43 @@ import { useAnimatedPresence } from '../hooks/useAnimatedPresence';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { CHAT_UNREAD_QUERY_KEY, getChatUnreadQueryOptions } from '../hooks/chatUnreadQueryOptions';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { mergeNavbarCompactProgress, useNavbarViewportCompactProgress } from '../hooks/useNavbarViewportCompactProgress';
 import { useScrollMetrics } from '../hooks/useScrollStage';
 import { cn } from '../lib/utils';
+import { buildNavbarNavPath, isNavbarNavItemActive } from '../utils/navbarNavigation';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
 const MOBILE_MENU_TRANSITION_MS = 280;
+const DESKTOP_NAVBAR_GUEST_WIDTH = 980;
+const DESKTOP_NAVBAR_GUEST_COMPACT_WIDTH = 760;
+const DESKTOP_NAVBAR_AUTH_WIDTH = 1180;
+const DESKTOP_NAVBAR_AUTH_COMPACT_WIDTH = 1040;
+const NAVBAR_MOTION_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+const NAVBAR_NAV_ITEMS = [
+  { id: 'cheer', label: '응원석', icon: MegaphoneIcon },
+  { id: 'stadium', label: '구장가이드', icon: MapIcon },
+  { id: 'prediction', label: '전력분석실', icon: LineChartIcon },
+  { id: 'mate', label: '같이가요', icon: UsersIcon },
+] as const;
+
+type NavbarNavItemId = typeof NAVBAR_NAV_ITEMS[number]['id'];
+
+type ActivePillMetrics = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  opacity: number;
+};
+
+const EMPTY_ACTIVE_PILL_METRICS: ActivePillMetrics = {
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+  opacity: 0,
+};
 
 type NavbarProps = {
   authenticatedShell?: boolean;
@@ -68,12 +99,22 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     compactProgress,
     fastCompactProgress,
   } = useScrollMetrics();
-  const desktopChromeProgress = isLoggedIn ? fastCompactProgress : compactProgress;
+  const viewportFitProgress = useNavbarViewportCompactProgress();
+  const scrollChromeProgress = isLoggedIn ? fastCompactProgress : compactProgress;
+  const authControlsCompactProgress = mergeNavbarCompactProgress(scrollChromeProgress, viewportFitProgress);
+  const strongestCompactProgress = Math.max(scrollChromeProgress, viewportFitProgress);
+  const isScrollCenteredLayout = scrollChromeProgress >= 0.75;
   const logoSubtitleProgress = Math.min(1, shrinkProgress * 1.6);
-  const navIconButtonClass = 'relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-2 transition-colors duration-200 focus:outline-none';
-  const menuToggleButtonClass = 'relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0 transition-colors duration-200 focus:outline-none';
+  const isLogoSubtitleCollapsed = logoSubtitleProgress >= 0.98 || viewportFitProgress >= 0.98;
+  const navIconButtonClass = 'relative inline-flex h-10 w-10 shrink-0 transform-gpu items-center justify-center rounded-full p-2 transition-all duration-[220ms] ease-out motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5 motion-reduce:transform-none focus:outline-none';
+  const menuToggleButtonClass = 'relative inline-flex h-11 w-11 shrink-0 transform-gpu items-center justify-center rounded-full p-0 transition-all duration-[220ms] ease-out motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5 motion-reduce:transform-none focus:outline-none';
   const navIconToggleClass = `${navIconButtonClass} focus-visible:ring-2 focus-visible:ring-primary/50 text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/8`;
   const navIconSizeClass = 'h-5 w-5';
+  const navItems = NAVBAR_NAV_ITEMS;
+  const isNavItemActive = (id: NavbarNavItemId) => {
+    return isNavbarNavItemActive(id, location.pathname);
+  };
+  const activeNavItemId = navItems.find((item) => isNavItemActive(item.id))?.id ?? null;
   const userProfilePath = userHandle
     ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
     : '/mypage';
@@ -101,6 +142,9 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
+  const navSegmentRef = useRef<HTMLDivElement | null>(null);
+  const navButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [activePillMetrics, setActivePillMetrics] = useState<ActivePillMetrics>(EMPTY_ACTIVE_PILL_METRICS);
 
   useBodyScrollLock(shouldShowMobileMenuThemeToggle);
 
@@ -202,33 +246,124 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     navigate(path);
   };
 
-  const navItems = [
-    { id: 'cheer', label: '응원석', icon: MegaphoneIcon },
-    { id: 'stadium', label: '구장가이드', icon: MapIcon },
-    { id: 'prediction', label: '전력분석실', icon: LineChartIcon },
-    { id: 'mate', label: '같이가요', icon: UsersIcon }
-  ];
+  useEffect(() => {
+    if (!isDesktop || !activeNavItemId) {
+      setActivePillMetrics(EMPTY_ACTIVE_PILL_METRICS);
+      return;
+    }
+
+    const segment = navSegmentRef.current;
+    const activeButton = navButtonRefs.current[activeNavItemId];
+    if (!segment || !activeButton) {
+      setActivePillMetrics(EMPTY_ACTIVE_PILL_METRICS);
+      return;
+    }
+
+    let frameId = 0;
+    const updateActivePill = () => {
+      const segmentRect = segment.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const nextMetrics: ActivePillMetrics = {
+        left: buttonRect.left - segmentRect.left,
+        top: buttonRect.top - segmentRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height,
+        opacity: 1,
+      };
+
+      setActivePillMetrics((prev) => {
+        const isSame =
+          Math.abs(prev.left - nextMetrics.left) < 0.25
+          && Math.abs(prev.top - nextMetrics.top) < 0.25
+          && Math.abs(prev.width - nextMetrics.width) < 0.25
+          && Math.abs(prev.height - nextMetrics.height) < 0.25
+          && prev.opacity === nextMetrics.opacity;
+
+        return isSame ? prev : nextMetrics;
+      });
+    };
+    const scheduleActivePillUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateActivePill);
+    };
+
+    scheduleActivePillUpdate();
+    window.addEventListener('resize', scheduleActivePillUpdate);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleActivePillUpdate);
+    resizeObserver?.observe(segment);
+    resizeObserver?.observe(activeButton);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', scheduleActivePillUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [
+    activeNavItemId,
+    isDesktop,
+    isScrollCenteredLayout,
+    scrollChromeProgress,
+    viewportFitProgress,
+  ]);
+
+  const desktopCapsuleExpandedWidth = isLoggedIn
+    ? DESKTOP_NAVBAR_AUTH_WIDTH
+    : DESKTOP_NAVBAR_GUEST_WIDTH;
+  const desktopCapsuleCompactWidth = isLoggedIn
+    ? DESKTOP_NAVBAR_AUTH_COMPACT_WIDTH
+    : DESKTOP_NAVBAR_GUEST_COMPACT_WIDTH;
 
   const capsuleStyle = {
-    '--navbar-capsule-width': `${980 - (220 * shrinkProgress)}px`,
-    '--navbar-capsule-height': `${60 - (14 * shrinkProgress)}px`,
-    '--navbar-capsule-px': `${14 - (4 * shrinkProgress)}px`,
+    '--navbar-capsule-width': `${desktopCapsuleExpandedWidth - ((desktopCapsuleExpandedWidth - desktopCapsuleCompactWidth) * shrinkProgress)}px`,
+    '--navbar-capsule-height': `${64 - (8 * shrinkProgress)}px`,
+    '--navbar-capsule-px': `${18 - (6 * shrinkProgress) - (6 * viewportFitProgress)}px`,
+    '--navbar-capsule-gap': `${14 - (4 * scrollChromeProgress) - (6 * viewportFitProgress)}px`,
+    '--navbar-motion-ease': NAVBAR_MOTION_EASE,
+    gridTemplateColumns: isScrollCenteredLayout
+      ? 'minmax(0, 1fr) auto minmax(0, 1fr)'
+      : 'auto minmax(0, 1fr) auto',
   } as CSSProperties;
 
   const navSegmentStyle: CSSProperties = {
-    padding: `${4 - (2 * desktopChromeProgress)}px`,
+    padding: `${5 - (3 * strongestCompactProgress)}px`,
   };
 
   const navItemStyle: CSSProperties = {
-    height: `${36 - (4 * desktopChromeProgress)}px`,
-    paddingLeft: `${14 - (4 * desktopChromeProgress)}px`,
-    paddingRight: `${14 - (4 * desktopChromeProgress)}px`,
-    fontSize: `${14 - desktopChromeProgress}px`,
+    height: `${40 - (6 * scrollChromeProgress) - (4 * viewportFitProgress)}px`,
+    paddingLeft: `${16 - (10 * viewportFitProgress)}px`,
+    paddingRight: `${16 - (10 * viewportFitProgress)}px`,
+    fontSize: `${16 - (2 * viewportFitProgress)}px`,
+  };
+
+  const logoSubtitleStyle: CSSProperties = {
+    lineHeight: '17px',
+    maxHeight: isLogoSubtitleCollapsed ? '0px' : '17px',
+    opacity: isLogoSubtitleCollapsed ? 0 : 1,
+    transform: isLogoSubtitleCollapsed ? 'translateY(-2px)' : 'translateY(0)',
+  };
+
+  const rightControlsStyle: CSSProperties = {
+    gap: `${Math.max(4, 8 - (2 * scrollChromeProgress) - (4 * viewportFitProgress))}px`,
+  };
+
+  const desktopAuthWrapperStyle: CSSProperties = {
+    gap: `${Math.max(4, 8 - (2 * scrollChromeProgress) - (4 * viewportFitProgress))}px`,
+    marginLeft: `${4 * (1 - strongestCompactProgress)}px`,
+  };
+
+  const activeNavPillStyle: CSSProperties = {
+    left: `${activePillMetrics.left}px`,
+    top: `${activePillMetrics.top}px`,
+    width: `${activePillMetrics.width}px`,
+    height: `${activePillMetrics.height}px`,
+    opacity: activePillMetrics.opacity,
   };
 
   const capsuleGlass = shouldShowMobileMenuThemeToggle
     ? 'bg-background border-gray-200/80 dark:border-gray-800'
-    : 'bg-white/72 dark:bg-[rgba(0,0,0,.66)] backdrop-blur-xl border-white/80 dark:border-white/8 shadow-[0_1px_2px_rgba(15,23,42,.04),0_20px_50px_-20px_rgba(15,67,56,.35)] dark:shadow-[0_1px_2px_rgba(0,0,0,.5),0_0_0_1px_rgba(255,255,255,0.04),0_20px_50px_-20px_rgba(0,0,0,.65)]';
+    : 'bg-white/72 dark:bg-black/65 backdrop-blur-xl border-white/80 dark:border-white/8 shadow-navbar-capsule dark:shadow-navbar-capsule-dark';
 
   return (
     <>
@@ -236,7 +371,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
       {/* Backdrop tint — visible only at stage 0 */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 transition-opacity duration-150 ease-out"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-[220ms] ease-out"
         style={{
           opacity: 1 - shrinkProgress,
           backgroundColor: isDarkMode ? '#050505' : '#f7faf8',
@@ -244,8 +379,9 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
       />
       {/* Glass capsule */}
       <div
+        data-testid="navbar-capsule"
         className={cn(
-          'relative flex h-12 items-center gap-2 md:gap-[14px] rounded-full border px-3 transition-[width,height,padding,background-color,border-color,box-shadow] duration-150 ease-out md:left-1/2 md:h-[var(--navbar-capsule-height)] md:w-[var(--navbar-capsule-width)] md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2 md:px-[var(--navbar-capsule-px)]',
+          'relative flex h-12 items-center gap-2 rounded-full border px-3 transition-all duration-[240ms] ease-[var(--navbar-motion-ease)] md:left-1/2 md:grid md:h-[var(--navbar-capsule-height)] md:w-[var(--navbar-capsule-width)] md:max-w-[calc(100vw-1rem)] md:grid-cols-navbar-capsule md:items-center md:gap-[var(--navbar-capsule-gap)] md:-translate-x-1/2 md:px-[var(--navbar-capsule-px)]',
           capsuleGlass,
         )}
         style={capsuleStyle}
@@ -254,7 +390,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         <button
           type="button"
           onClick={() => navigate('/home')}
-          className="flex min-h-11 items-center gap-2 shrink-0 group rounded-full px-1"
+          className="flex min-h-11 items-center gap-2 shrink-0 group rounded-full px-1 md:justify-self-start"
         >
           <img
             src={baseballLogo}
@@ -262,16 +398,12 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
             className="w-8 h-8 md:w-9 md:h-9 transition-transform duration-300 group-hover:rotate-12"
           />
           <div className="flex flex-col items-start leading-none">
-            <h1 className="font-black text-[17px] tracking-widest text-primary dark:text-primary-light leading-none">
+            <h1 className="font-black text-17 tracking-widest text-primary dark:text-primary-light leading-none">
               BEGA
             </h1>
             <p
-              className="hidden overflow-hidden text-[10px] font-bold text-muted-foreground dark:text-white tracking-tight transition-[opacity,max-height,transform] duration-150 ease-out md:block"
-              style={{
-                maxHeight: `${10 * (1 - logoSubtitleProgress)}px`,
-                opacity: 1 - logoSubtitleProgress,
-                transform: `translateY(${-2 * logoSubtitleProgress}px)`,
-              }}
+              className="hidden overflow-hidden text-10 font-bold text-muted-foreground dark:text-white tracking-tight transition-all duration-150 ease-out md:block"
+              style={logoSubtitleStyle}
             >
               BASEBALL GUIDE
             </p>
@@ -280,33 +412,46 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
         {/* 2. 데스크톱 세그먼트 네비게이션 */}
         {isDesktop && (
-          <nav className="flex flex-1 items-center justify-center" aria-label="주 메뉴">
+          <nav className="flex min-w-0 items-center justify-center md:justify-self-center" aria-label="주 메뉴">
             <div
-              className="flex items-center gap-0.5 rounded-full bg-black/[.04] dark:bg-white/[.06] transition-[padding] duration-150 ease-out"
+              ref={navSegmentRef}
+              className="relative flex items-center gap-0.5 overflow-hidden rounded-full bg-black/[.035] dark:bg-white/[.045] transition-all duration-[240ms] ease-[var(--navbar-motion-ease)]"
               style={navSegmentStyle}
             >
+              {activeNavItemId && (
+                <span
+                  aria-hidden="true"
+                  data-testid="navbar-active-pill"
+                  className="pointer-events-none absolute z-0 rounded-full bg-white shadow-navbar-pill transition-all duration-[260ms] ease-[var(--navbar-motion-ease)] dark:bg-primary/70 dark:shadow-navbar-pill-dark motion-reduce:transition-opacity"
+                  style={activeNavPillStyle}
+                />
+              )}
               {navItems.map((item) => {
-                const isActive = location.pathname === `/${item.id}`;
+                const isActive = isNavItemActive(item.id);
                 return (
                   <button
                     type="button"
                     key={item.id}
+                    ref={(node) => {
+                      navButtonRefs.current[item.id] = node;
+                    }}
+                    data-nav-id={item.id}
                     aria-current={isActive ? 'page' : undefined}
-                    onClick={() => navigate(`/${item.id}`)}
+                    onClick={() => navigate(buildNavbarNavPath(item.id))}
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={cn(
-                      'relative rounded-full font-bold transition-[height,padding,font-size,background-color,color,box-shadow] duration-150 ease-out whitespace-nowrap',
+                      'relative z-10 transform-gpu rounded-full font-bold transition-all duration-[220ms] ease-out whitespace-nowrap motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5 motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
                       isActive
-                        ? 'bg-white text-primary shadow-sm dark:bg-primary/70 dark:text-white'
-                        : 'text-muted-foreground hover:text-foreground dark:text-white dark:hover:text-gray-100',
+                        ? 'text-primary dark:text-white'
+                        : 'text-muted-foreground hover:text-foreground hover:shadow-navbar-pill-hover dark:text-white dark:hover:text-gray-100',
                     )}
                     style={navItemStyle}
                   >
                     {item.label}
                     {item.id === 'mate' && chatUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                      <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-10 font-bold leading-none text-white">
                         {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                       </span>
                     )}
@@ -318,7 +463,11 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         )}
 
         {/* 3. 우측 컨트롤 */}
-        <div className="flex items-center gap-1 shrink-0 ml-auto">
+        <div
+          data-testid="navbar-right-controls"
+          className="flex min-w-0 items-center justify-self-end"
+          style={rightControlsStyle}
+        >
           {shouldShowTopThemeToggle && (
             <ThemeToggleButton className={navIconToggleClass} iconClassName={navIconSizeClass} />
           )}
@@ -337,7 +486,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
             >
               <MessageSquareIcon className={navIconSizeClass} />
               {dmUnreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-10 font-bold leading-none text-white">
                   {dmUnreadCount > 99 ? '99+' : dmUnreadCount}
                 </span>
               )}
@@ -345,8 +494,8 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
           )}
 
           {isDesktop && (
-            <div className="flex items-center gap-1.5 ml-1">
-              <PublicNavbarDesktopAuthControls compactProgress={desktopChromeProgress} />
+            <div data-testid="navbar-auth-controls" className="flex items-center" style={desktopAuthWrapperStyle}>
+              <PublicNavbarDesktopAuthControls compactProgress={authControlsCompactProgress} />
             </div>
           )}
 
@@ -366,7 +515,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 >
                   <MessageSquareIcon className={navIconSizeClass} />
                   {dmUnreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                    <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-600 px-1 text-10 font-bold leading-none text-white">
                       {dmUnreadCount > 99 ? '99+' : dmUnreadCount}
                     </span>
                   )}
@@ -417,7 +566,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 <div className="mb-4 flex items-center justify-between gap-2 px-4">
                   <p
                     id="mobile-menu-title"
-                    className="text-[16px] font-semibold text-gray-400 dark:text-white uppercase tracking-wider"
+                    className="text-body font-semibold text-gray-400 dark:text-white uppercase tracking-wider"
                   >
                     메뉴
                   </p>
@@ -435,7 +584,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         type="button"
                           key={item.id}
                           aria-current={isActive ? 'page' : undefined}
-                          onClick={() => handleMobileNav(`/${item.id}`)}
+                          onClick={() => handleMobileNav(buildNavbarNavPath(item.id))}
                         onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                         onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                         onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
@@ -450,7 +599,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         <span className="flex items-center gap-2">
                           {item.label}
                           {item.id === 'mate' && chatUnreadCount > 0 && (
-                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[16px] font-bold leading-none text-white bg-red-500 rounded-full">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-body font-bold leading-none text-white bg-red-500 rounded-full">
                               {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                             </span>
                           )}
@@ -466,7 +615,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
 
               {/* 사용자 영역 */}
               <div className="px-6 pb-6" data-mobile-menu-section="account">
-                <p className="text-[16px] font-semibold text-gray-400 dark:text-white uppercase tracking-wider mb-3 px-4">
+                <p className="text-body font-semibold text-gray-400 dark:text-white uppercase tracking-wider mb-3 px-4">
                   계정
                 </p>
                 {isLoggedIn ? (
@@ -497,7 +646,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                         <p className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           {displayName} 님
                         </p>
-                        <p className="text-[16px] text-gray-500 dark:text-white">
+                        <p className="text-body text-gray-500 dark:text-white">
                           내 프로필 보기 →
                         </p>
                       </div>
@@ -515,7 +664,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                           <ShieldAlertIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                         </div>
                         <span className="font-semibold text-amber-700 dark:text-amber-400">관리자</span>
-                    <span className="ml-auto px-2 py-0.5 text-[16px] font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                    <span className="ml-auto px-2 py-0.5 text-body font-bold rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
                           ADMIN
                         </span>
                       </button>
@@ -563,7 +712,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         }}
         aria-label="하단 탭바"
       >
-        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-white/90 bg-white/85 p-1.5 shadow-[0_18px_40px_-16px_rgba(15,67,56,.32)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[hsl(var(--surface-raised)/0.85)]">
+        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-white/90 bg-white/85 p-1.5 shadow-mobile-chrome backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[hsl(var(--surface-raised)/0.85)]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === `/${item.id}`;
@@ -572,11 +721,11 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 key={item.id}
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
-                onClick={() => navigate(`/${item.id}`)}
+                onClick={() => navigate(buildNavbarNavPath(item.id))}
                 onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                 onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                 className={cn(
-                  'relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[18px] transition-colors duration-150',
+                  'relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-18 transition-colors duration-150',
                   isActive
                     ? 'bg-primary text-white dark:bg-primary/80'
                     : 'text-muted-foreground hover:text-foreground dark:text-white',
@@ -585,7 +734,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                 <Icon className="w-5 h-5 shrink-0" />
                 <span className="text-[10.5px] font-bold leading-none">{item.label}</span>
                 {item.id === 'mate' && chatUnreadCount > 0 && (
-                  <span className="absolute top-1 right-2 inline-flex min-w-[14px] h-3.5 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white">
+                  <span className="absolute top-1 right-2 inline-flex min-w-[14px] h-3.5 items-center justify-center rounded-full bg-red-600 px-1 text-9 font-bold leading-none text-white">
                     {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                   </span>
                 )}

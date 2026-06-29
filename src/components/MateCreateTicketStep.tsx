@@ -77,7 +77,7 @@ export default function MateCreateTicketStep({
               <div className="flex flex-col items-center gap-3">
                 <MateLoaderIcon className="h-12 w-12 animate-spin text-primary sm:h-16 sm:w-16" />
                 <p className="text-base font-bold text-primary sm:text-lg">AI가 티켓을 분석 중...</p>
-                <p className="text-[16px] text-muted-foreground sm:text-base">경기 정보를 자동으로 추출합니다</p>
+                <p className="text-body text-muted-foreground sm:text-base">경기 정보를 자동으로 추출합니다</p>
               </div>
             ) : isScanFailed ? (
               <div className="flex flex-col items-center gap-3">
@@ -85,10 +85,10 @@ export default function MateCreateTicketStep({
                 <p className="break-all text-base font-bold text-red-700 dark:text-red-300 sm:text-lg">
                   {ticketFile?.name}
                 </p>
-                <p className="text-[16px] font-semibold text-red-600 dark:text-red-400 sm:text-base">
+                <p className="text-body font-semibold text-red-600 dark:text-red-400 sm:text-base">
                   파일 업로드 완료, AI 분석 실패
                 </p>
-                <p className="text-[16px] text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
+                <p className="text-body text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
               </div>
             ) : ticketFile ? (
               <div className="flex flex-col items-center gap-3">
@@ -96,13 +96,13 @@ export default function MateCreateTicketStep({
                 <p className="break-all text-base font-bold text-green-700 dark:text-green-400 sm:text-lg">
                   {ticketFile.name}
                 </p>
-                <p className="text-[16px] text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
+                <p className="text-body text-gray-500">클릭 또는 Enter로 다른 파일 선택</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <MateTicketIcon className="h-12 w-12 text-primary sm:h-16 sm:w-16" />
                 <p className="text-base font-bold text-primary sm:text-lg">티켓 사진으로 자동 입력</p>
-                <p className="text-[16px] text-gray-500">JPG, PNG (최대 10MB)</p>
+                <p className="text-body text-gray-500">JPG, PNG (최대 10MB)</p>
               </div>
             )}
           </label>
@@ -113,7 +113,7 @@ export default function MateCreateTicketStep({
             role="alert"
             aria-live="assertive"
           >
-            <p className="text-[16px] font-semibold text-red-700 dark:text-red-300">
+            <p className="text-body font-semibold text-red-700 dark:text-red-300">
               {fileErrorMessage}
             </p>
           </div>
@@ -134,7 +134,7 @@ export default function MateCreateTicketStep({
       <Alert>
         <MateAlertCircleIcon className="w-4 h-4" />
         <AlertDescription>
-          <ul className="list-disc list-inside space-y-1 text-[16px]">
+          <ul className="list-disc list-inside space-y-1 text-body">
             <li>티켓 사진을 올리면 AI가 경기 정보를 자동으로 입력합니다</li>
             <li>예매번호와 좌석 정보가 명확히 보여야 합니다</li>
             <li>개인정보는 가려서 업로드해주세요</li>
@@ -144,7 +144,7 @@ export default function MateCreateTicketStep({
       </Alert>
 
       <div className="flex flex-col items-center gap-3 mt-4 border-t pt-4 border-dashed border-gray-200">
-        <p className="text-[16px] text-gray-500">OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.</p>
+        <p className="text-body text-gray-500">OCR이 실패하면 같은 파일 또는 다른 파일로 다시 시도해주세요.</p>
         {import.meta.env.DEV && (
           <button
             type="button"
@@ -166,7 +166,7 @@ export default function MateCreateTicketStep({
               });
               goNext();
             }}
-            className="text-[16px] text-gray-300 hover:text-gray-500 transition-colors"
+            className="text-body text-gray-300 hover:text-gray-500 transition-colors"
           >
             (테스트 데이터로 채우기)
           </button>

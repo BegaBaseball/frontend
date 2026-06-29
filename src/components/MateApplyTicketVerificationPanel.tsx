@@ -82,13 +82,13 @@ export default function MateApplyTicketVerificationPanel({
         <MateTicketIcon className="w-5 h-5 text-primary" />
         <h3 className="font-bold text-primary">티켓 인증 (선택)</h3>
         {ticketVerified && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[16px] font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-300">
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-body font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-300">
             <MateCheckCircleIcon className="w-3.5 h-3.5" />
             인증 완료
           </span>
         )}
       </div>
-      <p className="mb-4 text-[16px] text-gray-500 dark:text-white">
+      <p className="mb-4 text-body text-gray-500 dark:text-white">
         티켓 사진을 올리면 호스트에게 인증 배지가 표시되어 승인율이 높아집니다.
       </p>
 
@@ -100,7 +100,7 @@ export default function MateApplyTicketVerificationPanel({
               <span className="font-semibold text-green-700 dark:text-green-400">티켓 인증 완료</span>
             </div>
             {ticketInfo && (
-              <div className="space-y-1.5 text-[16px] text-green-600 dark:text-green-300">
+              <div className="space-y-1.5 text-body text-green-600 dark:text-green-300">
                 {ticketInfo.date && <p>📅 {ticketInfo.date}</p>}
                 {ticketInfo.stadium && <p>🏟️ {formatStadiumDisplayName(ticketInfo.stadium)}</p>}
                 {(ticketInfo.section || ticketInfo.row || ticketInfo.seat) && (
@@ -111,7 +111,7 @@ export default function MateApplyTicketVerificationPanel({
           </div>
           <Button
             variant="ghost"
-            className="text-[16px] text-gray-500 dark:text-white"
+            className="text-body text-gray-500 dark:text-white"
             onClick={onReset}
           >
             다시 인증하기
@@ -142,7 +142,7 @@ export default function MateApplyTicketVerificationPanel({
               <div className="flex flex-col items-center gap-2">
                 <MateTicketIcon className="w-10 h-10 text-primary" />
                 <p className="font-semibold text-primary">티켓 사진 업로드</p>
-                <p className="text-[16px] text-gray-400">JPG, PNG (최대 10MB)</p>
+                <p className="text-body text-gray-400">JPG, PNG (최대 10MB)</p>
               </div>
             )}
           </label>
