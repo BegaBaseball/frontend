@@ -45,6 +45,7 @@ export interface GameLiveSnapshot {
   lastUpdatedAt?: string | null;
   events: GameLiveEvent[];
   inningScores?: Array<GameInningScore | RawGameInningScore>;
+  boxScore?: unknown;
 }
 
 export interface GameLiveSummary {
@@ -148,6 +149,7 @@ export interface GameDetail {
   inningScores?: Array<GameInningScore | RawGameInningScore>;
   inning_scores?: RawGameInningScore[];
   inning_score?: RawGameInningScore[];
+  boxScore?: unknown;
   lineScore?: unknown;
   line_score?: unknown;
   innings?: RawGameInningScore[];

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DateGames } from '../types/prediction';
 import {
+  buildPredictionDetailPath,
+  buildPredictionListPath,
   buildDeepLinkNotFoundMessage,
   buildPredictionMatchHandoff,
   buildPredictionRecoveryPath,
@@ -11,6 +13,18 @@ import {
   resolvePredictionDeepLinkSelection,
   sanitizePredictionDeepLinkParams,
 } from './predictionDeepLink';
+
+test('buildPredictionDetailPath creates canonical match detail URLs', () => {
+  assert.equal(
+    buildPredictionDetailPath({ gameId: ' GAME-1 ', date: '2026/03/07' }),
+    '/prediction/matches/GAME-1?date=2026-03-07',
+  );
+});
+
+test('buildPredictionListPath creates match list URLs without gameId', () => {
+  assert.equal(buildPredictionListPath({ date: '2026/03/07' }), '/prediction?date=2026-03-07');
+  assert.equal(buildPredictionListPath(), '/prediction');
+});
 
 test('sanitizePredictionDeepLinkParams normalizes valid params', () => {
   const params = new URLSearchParams('gameId= GAME_01 &date=2026/03/07');
@@ -110,7 +124,7 @@ test('buildPredictionMatchHandoff creates one URL and location state contract', 
     },
   });
 
-  assert.equal(handoff.path, '/prediction?date=2026-03-07&gameId=GAME-1');
+  assert.equal(handoff.path, '/prediction/matches/GAME-1?date=2026-03-07');
   assert.equal(handoff.date, '2026-03-07');
   assert.equal(handoff.gameId, 'GAME-1');
   assert.equal(handoff.state.sourcePage, 'schedule');

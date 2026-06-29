@@ -67,7 +67,15 @@ export type PredictionLocationState = {
   game?: PredictionNavigationSeedGame;
   gameId?: string;
   date?: string;
+  fromPredictionList?: boolean;
+  predictionListPath?: string;
+  predictionDetailPath?: string;
 } | null | undefined;
+
+export type PredictionNavigationOptions = {
+  replace?: boolean;
+  state?: unknown;
+};
 
 export type PredictionDeepLinkNormalizationResult = {
   normalizedGameId: string;
@@ -90,6 +98,11 @@ export type PredictionRecoveryPathOptions = {
   searchParams?: URLSearchParams | string | null;
 };
 
+export type PredictionMatchPathOptions = {
+  gameId?: string | null;
+  date?: string | null;
+};
+
 export const toPredictionGameId = (value: string): string | null => {
   const normalized = value.trim();
   if (!normalized) {
@@ -97,6 +110,38 @@ export const toPredictionGameId = (value: string): string | null => {
   }
 
   return PREDICTION_GAME_ID_PATTERN.test(normalized) ? normalized : null;
+};
+
+export const buildPredictionListPath = ({ date }: Pick<PredictionMatchPathOptions, 'date'> = {}): string => {
+  const nextSearchParams = new URLSearchParams();
+  const normalizedDate = normalizePredictionDate(date || '') || '';
+
+  if (normalizedDate) {
+    nextSearchParams.set('date', normalizedDate);
+  }
+
+  const query = nextSearchParams.toString();
+  return query ? `/prediction?${query}` : '/prediction';
+};
+
+export const buildPredictionDetailPath = ({
+  gameId,
+  date,
+}: PredictionMatchPathOptions): string => {
+  const normalizedGameId = toPredictionGameId(gameId || '') || '';
+  if (!normalizedGameId) {
+    return buildPredictionListPath({ date });
+  }
+
+  const nextSearchParams = new URLSearchParams();
+  const normalizedDate = normalizePredictionDate(date || '') || '';
+
+  if (normalizedDate) {
+    nextSearchParams.set('date', normalizedDate);
+  }
+
+  const query = nextSearchParams.toString();
+  return `/prediction/matches/${encodeURIComponent(normalizedGameId)}${query ? `?${query}` : ''}`;
 };
 
 export const toNumericScore = (value?: number | string | null): number | undefined => {
@@ -302,16 +347,6 @@ export const buildPredictionMatchHandoff = ({
     game.gameDate,
     fallbackDate,
   ) || '';
-  const predictionParams = new URLSearchParams();
-
-  if (targetDate) {
-    predictionParams.set('date', targetDate);
-  }
-  if (gameId) {
-    predictionParams.set('gameId', gameId);
-  }
-
-  const query = predictionParams.toString();
   const seedGame: PredictionNavigationSeedGame = {
     gameId,
     homeTeam: toOptionalSeedString(game.homeTeam),
@@ -332,7 +367,9 @@ export const buildPredictionMatchHandoff = ({
   };
 
   return {
-    path: query ? `/prediction?${query}` : '/prediction',
+    path: gameId
+      ? buildPredictionDetailPath({ gameId, date: targetDate })
+      : buildPredictionListPath({ date: targetDate }),
     date: targetDate,
     gameId,
     state: {

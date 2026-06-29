@@ -14,7 +14,7 @@ import {
   parseAiBriefing,
   resolveCoachAnalysisPresentation,
 } from './prediction';
-import { resolveCoachBriefingPolicy } from './predictionCoachPolicy';
+import { isCoachAutoBriefingSourceReady, resolveCoachBriefingPolicy } from './predictionCoachPolicy';
 import type { Game } from '../types/prediction';
 
 const buildCoachBriefingDescriptor = ({
@@ -116,6 +116,41 @@ test('getCoachAnalysisUnavailableMessage: 취소/연기 경기는 분석 불가 
     '연기된 경기는 일정 확정 후 AI 코치 분석을 제공합니다.',
   );
   assert.equal(getCoachAnalysisUnavailableMessage('SCHEDULED'), null);
+});
+
+test('isCoachAutoBriefingSourceReady: 예정 경기 preview는 상세 데이터 없이 schedule 근거로 시작한다', () => {
+  assert.equal(isCoachAutoBriefingSourceReady({
+    game: {
+      gameId: '20260627LGLT0',
+      gameDate: '2026-06-27',
+      homeTeam: 'LT',
+      awayTeam: 'LG',
+    },
+    gameDetail: null,
+    analysisType: 'game_preview',
+  }), true);
+});
+
+test('isCoachAutoBriefingSourceReady: 경기 리뷰는 상세 데이터가 선택 경기와 일치해야 시작한다', () => {
+  const game = {
+    gameId: '20260620LGLT0',
+    gameDate: '2026-06-20',
+    homeTeam: 'LT',
+    awayTeam: 'LG',
+  };
+
+  assert.equal(isCoachAutoBriefingSourceReady({
+    game,
+    gameDetail: null,
+    analysisType: 'game_review',
+  }), false);
+  assert.equal(isCoachAutoBriefingSourceReady({
+    game,
+    gameDetail: {
+      gameId: '20260620LGLT0',
+    },
+    analysisType: 'game_review',
+  }), true);
 });
 
 test('parseAiBriefing: markdown 문법을 텍스트로 정리한다', () => {
@@ -312,6 +347,40 @@ test('buildCoachBriefingRequestDescriptor: analysisType을 payload와 fingerprin
   assert.notEqual(preview.requestFingerprint, review.requestFingerprint);
 });
 
+test('buildCoachBriefingRequestDescriptor: 예정 경기 상태를 league_context에 전달한다', () => {
+  const descriptor = buildCoachBriefingDescriptor({
+    game: {
+      gameStatus: 'SCHEDULED',
+    },
+    analysisType: 'game_preview',
+  });
+
+  assert.ok(descriptor);
+  assert.equal(descriptor.requestPayload.league_context.game_status, 'SCHEDULED');
+});
+
+test('buildCoachBriefingRequestDescriptor: 미발표 선발 표시는 payload에서 제외한다', () => {
+  const descriptor = buildCoachBriefingDescriptor({
+    homePitcherName: '발표 전',
+    awayPitcherName: '미정',
+  });
+
+  assert.ok(descriptor);
+  assert.equal(descriptor.requestPayload.league_context.home_pitcher, undefined);
+  assert.equal(descriptor.requestPayload.league_context.away_pitcher, undefined);
+});
+
+test('buildCoachBriefingRequestDescriptor: 실제 선발명은 payload에 유지한다', () => {
+  const descriptor = buildCoachBriefingDescriptor({
+    homePitcherName: '임찬규',
+    awayPitcherName: '쿠에바스',
+  });
+
+  assert.ok(descriptor);
+  assert.equal(descriptor.requestPayload.league_context.home_pitcher, '임찬규');
+  assert.equal(descriptor.requestPayload.league_context.away_pitcher, '쿠에바스');
+});
+
 test('getCoachBriefingGroundingReasonLabels: 지원되는 코드만 지정 순서의 한국어 라벨로 정리한다', () => {
   const labels = getCoachBriefingGroundingReasonLabels([
     'missing_summary',
@@ -336,8 +405,8 @@ test('getCoachBriefingDataQualityNotice: 알 수 없는 코드만 있으면 gene
   const notice = getCoachBriefingDataQualityNotice('partial', ['unsupported_reason']);
 
   assert.deepEqual(notice, {
-    message: '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.',
-    reasons: ['실데이터 근거가 제한적입니다.'],
+    message: '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.',
+    reasons: ['현재 확인된 경기 정보 범위 안에서 정리합니다.'],
     details: [],
   });
 });
@@ -354,7 +423,7 @@ test('getCoachBriefingDataQualityNotice: 중복 기본 경고는 숨기고 구�
   );
 
   assert.deepEqual(notice, {
-    message: '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.',
+    message: '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.',
     reasons: ['승부처 데이터 부족', '요청 항목 근거 부족'],
     details: ['요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.'],
   });
@@ -363,11 +432,11 @@ test('getCoachBriefingDataQualityNotice: 중복 기본 경고는 숨기고 구�
 test('getCoachAnalysisFocusSectionNotice: 누락 focus를 사용자 문구로 변환한다', () => {
   assert.equal(
     getCoachAnalysisFocusSectionNotice(['bullpen']),
-    '불펜 상태 섹션은 실데이터 부족으로 축약되었습니다.',
+    '불펜 상태 섹션은 확인된 정보 범위로 축약되었습니다.',
   );
   assert.equal(
     getCoachAnalysisFocusSectionNotice(['bullpen', 'recent_form']),
-    '불펜 상태, 최근 전력 섹션은 실데이터 부족으로 축약되었습니다.',
+    '불펜 상태, 최근 전력 섹션은 확인된 정보 범위로 축약되었습니다.',
   );
 });
 

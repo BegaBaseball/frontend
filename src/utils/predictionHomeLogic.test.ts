@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { DateGames } from '../types/prediction';
 import {
+  hasPrimaryScheduledGame,
   normalizePredictionDate,
   partitionScheduledGames,
   resolveDeepLinkSelection,
@@ -45,6 +46,21 @@ test('partitionScheduledGames 미래 경기 + 상태 미확정 + 점수 미입�
   const result = partitionScheduledGames(games, { todayKey: '2026-03-05' });
   assert.deepEqual(result.primary.map((game) => game.gameId), ['future-unknown']);
   assert.deepEqual(result.excluded.map((game) => game.gameId), ['past-unknown', 'future-live-like', 'future-scored']);
+});
+
+test('hasPrimaryScheduledGame은 primary 배열 생성 없이 예정 경기 존재 여부를 판정한다', () => {
+  const games = [
+    { gameId: 'postponed', gameStatus: 'POSTPONED', sourceDate: '2026-03-23' },
+    { gameId: 'future-unknown', gameStatus: null, sourceDate: '2026-03-23', homeScore: null, awayScore: null },
+    { gameId: 'future-scored', gameStatus: null, sourceDate: '2026-03-23', homeScore: 3, awayScore: 1 },
+  ];
+
+  assert.equal(hasPrimaryScheduledGame(games, { todayKey: '2026-03-05' }), true);
+  assert.equal(hasPrimaryScheduledGame([games[0], games[2]], { todayKey: '2026-03-05' }), false);
+  assert.equal(
+    hasPrimaryScheduledGame(games, { todayKey: '2026-03-05' }),
+    partitionScheduledGames(games, { todayKey: '2026-03-05' }).primary.length > 0,
+  );
 });
 
 test('shouldAutoSwitchToScheduled true 조건', () => {

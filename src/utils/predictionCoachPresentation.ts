@@ -45,8 +45,8 @@ const COACH_BRIEFING_GROUNDING_REASON_LABELS: Record<string, string> = {
 };
 
 const COACH_BRIEFING_DATA_QUALITY_MESSAGE =
-  '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.';
-const COACH_BRIEFING_GENERIC_REASON_LABEL = '실데이터 근거가 제한적입니다.';
+  '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.';
+const COACH_BRIEFING_GENERIC_REASON_LABEL = '현재 확인된 경기 정보 범위 안에서 정리합니다.';
 const COACH_BRIEFING_REDUNDANT_WARNING_MESSAGES = new Set([
   '선발 정보가 완전하지 않아 선발 관련 표현을 제한합니다.',
   '라인업이 확정되지 않아 타순 관련 단정은 피합니다.',
@@ -77,8 +77,8 @@ export const resolveCoachAnalysisPresentation = ({
       title: 'AI 코치 경기 리뷰',
       buttonLabel: 'AI 코치 경기 리뷰',
       runButtonLabel: 'AI 코치 경기 리뷰 시작',
-      descriptionWithMatchup: '경기 결과를 실데이터 기반으로 복기합니다.',
-      descriptionWithTeam: '전략 및 결과를 실데이터와 함께 복기합니다.',
+      descriptionWithMatchup: '경기 결과를 확인된 데이터로 복기합니다.',
+      descriptionWithTeam: '전략 및 결과를 경기 데이터와 함께 복기합니다.',
       loginRequiredMessage: 'AI 코치 경기 리뷰는 로그인 후 제공됩니다.',
       authExpiredMessage: '로그인 세션이 만료되었습니다. 다시 로그인 후 경기 리뷰를 확인해주세요.',
     };
@@ -90,8 +90,8 @@ export const resolveCoachAnalysisPresentation = ({
       title: 'AI 코치 경기 예측',
       buttonLabel: 'AI 코치 경기 예측',
       runButtonLabel: 'AI 코치 경기 예측 시작',
-      descriptionWithMatchup: '현재 매치업의 승부처를 실데이터 기반으로 전망합니다.',
-      descriptionWithTeam: '전략 및 지표를 실데이터와 함께 전망합니다.',
+      descriptionWithMatchup: '현재 매치업의 승부처를 경기 데이터로 전망합니다.',
+      descriptionWithTeam: '전략 및 지표를 경기 데이터와 함께 전망합니다.',
       loginRequiredMessage: 'AI 코치 경기 예측은 로그인 후 제공됩니다.',
       authExpiredMessage: '로그인 세션이 만료되었습니다. 다시 로그인 후 경기 예측을 확인해주세요.',
     };
@@ -102,8 +102,8 @@ export const resolveCoachAnalysisPresentation = ({
     title: 'AI 코치 상세 분석',
     buttonLabel: 'AI 코치 상세 분석',
     runButtonLabel: 'AI 코치 상세 분석 시작',
-    descriptionWithMatchup: '승부처를 실데이터 기반으로 해석합니다.',
-    descriptionWithTeam: '전략 및 지표를 실데이터와 함께 해석합니다.',
+    descriptionWithMatchup: '승부처를 경기 데이터로 해석합니다.',
+    descriptionWithTeam: '전략 및 지표를 경기 데이터와 함께 해석합니다.',
     loginRequiredMessage: 'AI 코치 상세 분석은 로그인 후 제공됩니다.',
     authExpiredMessage: '로그인 세션이 만료되었습니다. 다시 로그인 후 상세 분석을 확인해주세요.',
   };

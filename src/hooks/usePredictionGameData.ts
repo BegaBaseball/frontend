@@ -50,6 +50,9 @@ type UsePredictionGameDataParams = {
   shouldLoadCurrentGameData?: boolean;
 };
 
+const PREDICTION_DETAIL_LOADING_TOAST_ID = 'prediction-detail-loading';
+const PREDICTION_DETAIL_LOADING_TOAST_DELAY_MS = 300;
+
 const isOfflineNow = (): boolean => {
   if (typeof navigator === 'undefined') {
     return false;
@@ -84,10 +87,12 @@ export const usePredictionGameData = ({
   const liveSnapshotAbortRef = useRef<AbortController | null>(null);
   const liveRelayInFlightRef = useRef(false);
   const liveRelayAbortRef = useRef<AbortController | null>(null);
-  const liveScoreManualDataSuppressedRef = useRef<Set<string>>(new Set());
   const liveRelayManualDataSuppressedRef = useRef<Set<string>>(new Set());
   const retryAttemptRef = useRef(createPredictionRetryAttemptState());
   const gameDetailsRef = useRef(gameDetails);
+  const detailLoadingToastTimerRef = useRef<number | null>(null);
+  const detailLoadingToastVisibleRef = useRef(false);
+  const detailLoadingToastRequestRef = useRef<number | null>(null);
   const offlineToastShownRef = useRef<Record<PredictionRetryActionKey, boolean>>({
     submitVote: false,
     cancelVote: false,
@@ -121,14 +126,6 @@ export const usePredictionGameData = ({
     const gameDate = detail?.gameDate || fallbackGame?.gameDate || 'unknown';
     return `${gameId}|${gameDate}`;
   }, []);
-
-  const isLiveScorePollingSuppressed = useCallback((gameId: string, fallbackGame?: Game | null) => (
-    liveScoreManualDataSuppressedRef.current.has(resolveLivePollingSuppressionKey(gameId, fallbackGame))
-  ), [resolveLivePollingSuppressionKey]);
-
-  const suppressLiveScorePollingForManualData = useCallback((gameId: string, fallbackGame?: Game | null) => {
-    liveScoreManualDataSuppressedRef.current.add(resolveLivePollingSuppressionKey(gameId, fallbackGame));
-  }, [resolveLivePollingSuppressionKey]);
 
   const isLiveRelayPollingSuppressed = useCallback((gameId: string, fallbackGame?: Game | null) => (
     liveRelayManualDataSuppressedRef.current.has(resolveLivePollingSuppressionKey(gameId, fallbackGame))
@@ -182,13 +179,73 @@ export const usePredictionGameData = ({
     return increasePredictionRetryAttempt(retryAttemptRef.current, actionKey);
   }, []);
 
+  const clearPredictionDetailLoadingToastTimer = useCallback((requestId?: number) => {
+    if (requestId != null && detailLoadingToastRequestRef.current !== requestId) {
+      return;
+    }
+    if (detailLoadingToastTimerRef.current == null) {
+      return;
+    }
+    window.clearTimeout(detailLoadingToastTimerRef.current);
+    detailLoadingToastTimerRef.current = null;
+  }, []);
+
+  const dismissPredictionDetailLoadingToast = useCallback((requestId?: number) => {
+    if (requestId != null && detailLoadingToastRequestRef.current !== requestId) {
+      return;
+    }
+    clearPredictionDetailLoadingToastTimer(requestId);
+    if (!detailLoadingToastVisibleRef.current) {
+      detailLoadingToastRequestRef.current = null;
+      return;
+    }
+    toast.dismiss(PREDICTION_DETAIL_LOADING_TOAST_ID);
+    detailLoadingToastVisibleRef.current = false;
+    detailLoadingToastRequestRef.current = null;
+  }, [clearPredictionDetailLoadingToastTimer]);
+
+  const schedulePredictionDetailLoadingToast = useCallback(() => {
+    clearPredictionDetailLoadingToastTimer();
+    if (detailLoadingToastVisibleRef.current) {
+      toast.dismiss(PREDICTION_DETAIL_LOADING_TOAST_ID);
+      detailLoadingToastVisibleRef.current = false;
+    }
+    const toastRequestId = detailRequestRef.current;
+    detailLoadingToastRequestRef.current = toastRequestId;
+    if (typeof window === 'undefined') {
+      return;
+    }
+    detailLoadingToastTimerRef.current = window.setTimeout(() => {
+      if (detailLoadingToastRequestRef.current !== toastRequestId) {
+        return;
+      }
+      detailLoadingToastTimerRef.current = null;
+      detailLoadingToastVisibleRef.current = true;
+      toast.loading('경기 상세 정보를 불러오는 중입니다.', {
+        id: PREDICTION_DETAIL_LOADING_TOAST_ID,
+        duration: Number.POSITIVE_INFINITY,
+        description: '카드는 그대로 두고 상세 영역만 준비합니다.',
+      });
+    }, PREDICTION_DETAIL_LOADING_TOAST_DELAY_MS);
+  }, [clearPredictionDetailLoadingToastTimer]);
+
+  useEffect(() => () => {
+    clearPredictionDetailLoadingToastTimer();
+    toast.dismiss(PREDICTION_DETAIL_LOADING_TOAST_ID);
+  }, [clearPredictionDetailLoadingToastTimer]);
+
   const loadGameDetail = useCallback(async (
     gameId: string,
     requestId: number,
     signal?: AbortSignal,
-    options: { backgroundRefresh?: boolean } = {}
+    options: { backgroundRefresh?: boolean; showLoadingToast?: boolean } = {}
   ) => {
     const backgroundRefresh = options.backgroundRefresh === true;
+    if (!backgroundRefresh) {
+      schedulePredictionDetailLoadingToast();
+    } else if (options.showLoadingToast === true) {
+      schedulePredictionDetailLoadingToast();
+    }
     emitFlowEvent('onRunProgress', 'RUNNING', {
       gameId,
       meta: { requestType: 'gameDetail', requestId },
@@ -229,13 +286,45 @@ export const usePredictionGameData = ({
     try {
       const detail = await fetchGameDetail(gameId, { signal });
       if (requestId !== detailRequestRef.current) {
+        dismissPredictionDetailLoadingToast(requestId);
         return;
       }
+      const fallbackGame = currentGameRef.current?.gameId === gameId ? currentGameRef.current : null;
+      let detailForCommit = detail;
+      if (shouldStartPredictionLivePolling(fallbackGame, detail, true)) {
+        try {
+          const snapshot = await fetchGameLiveSnapshot(gameId, {
+            limit: LIVE_GAME_EVENT_LIMIT,
+            signal,
+          });
+          detailForCommit = mergeGameDetailWithLiveSnapshot(detail, snapshot, fallbackGame);
+        } catch (liveError) {
+          if (isCancelLikeError(liveError)) {
+            dismissPredictionDetailLoadingToast(requestId);
+            return;
+          }
+          const parsedLiveError = parseError(liveError);
+          const liveErrorMessage = parsedLiveError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
+            ? '실시간 점수 데이터 준비가 필요합니다.'
+            : '실시간 점수 갱신에 실패했습니다.';
+          detailForCommit = mergeGameDetailLiveStatusError(
+            detail,
+            liveErrorMessage,
+            fallbackGame,
+            parsedLiveError.responseCode ?? null,
+          ) ?? detail;
+        }
+      }
+      if (requestId !== detailRequestRef.current) {
+        dismissPredictionDetailLoadingToast(requestId);
+        return;
+      }
+      dismissPredictionDetailLoadingToast();
       setGameDetails((prev) => ({
         ...prev,
         [gameId]: {
           status: 'ready',
-          data: detail,
+          data: detailForCommit,
           error: undefined,
           errorCode: undefined,
           isSeeded: false,
@@ -248,12 +337,14 @@ export const usePredictionGameData = ({
       });
     } catch (error: unknown) {
       if (requestId !== detailRequestRef.current || isCancelLikeError(error)) {
+        dismissPredictionDetailLoadingToast(requestId);
         return;
       }
 
       const parsedError = parseError(error);
       const mappedErrorCode = mapPredictionErrorCode(parsedError.type, parsedError.responseCode);
       if (backgroundRefresh) {
+        dismissPredictionDetailLoadingToast();
         setGameDetails((prev) => {
           const previousState = prev[gameId];
           if (previousState?.data != null) {
@@ -318,9 +409,19 @@ export const usePredictionGameData = ({
           fallbackShown: true,
         },
       });
-      toast.error(parsedError.message || '경기 상세를 불러오지 못했습니다.');
+      clearPredictionDetailLoadingToastTimer();
+      detailLoadingToastVisibleRef.current = false;
+      detailLoadingToastRequestRef.current = null;
+      toast.error(parsedError.message || '경기 상세를 불러오지 못했습니다.', {
+        id: PREDICTION_DETAIL_LOADING_TOAST_ID,
+      });
     }
-  }, [emitFlowEvent]);
+  }, [
+    clearPredictionDetailLoadingToastTimer,
+    dismissPredictionDetailLoadingToast,
+    emitFlowEvent,
+    schedulePredictionDetailLoadingToast,
+  ]);
 
   const loadLiveSnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null): Promise<boolean> => {
     if (liveSnapshotInFlightRef.current) {
@@ -331,7 +432,6 @@ export const usePredictionGameData = ({
     const abortController = new AbortController();
     liveSnapshotAbortRef.current = abortController;
     const previousDetail = gameDetailsRef.current[gameId]?.data ?? null;
-    let shouldContinuePolling = true;
     try {
       const snapshot = await fetchGameLiveSnapshot(gameId, {
         afterSeq: previousDetail?.liveLastEventSeq ?? null,
@@ -366,10 +466,6 @@ export const usePredictionGameData = ({
         return true;
       }
       const parsedError = parseError(error);
-      if (parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED') {
-        suppressLiveScorePollingForManualData(gameId, fallbackGame ?? currentGameRef.current);
-        shouldContinuePolling = false;
-      }
       const liveErrorMessage = parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
         ? '실시간 점수 데이터 준비가 필요합니다.'
         : '실시간 점수 갱신에 실패했습니다.';
@@ -403,8 +499,8 @@ export const usePredictionGameData = ({
       }
       liveSnapshotInFlightRef.current = false;
     }
-    return shouldContinuePolling;
-  }, [suppressLiveScorePollingForManualData]);
+    return true;
+  }, []);
 
   const loadLiveRelaySnapshot = useCallback(async (gameId: string, fallbackGame?: Game | null): Promise<boolean> => {
     if (liveRelayInFlightRef.current) {
@@ -451,9 +547,7 @@ export const usePredictionGameData = ({
       }
       const parsedError = parseError(error);
       if (parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED') {
-        const pollingFallbackGame = fallbackGame ?? currentGameRef.current;
-        suppressLiveRelayPollingForManualData(gameId, pollingFallbackGame);
-        suppressLiveScorePollingForManualData(gameId, pollingFallbackGame);
+        suppressLiveRelayPollingForManualData(gameId, fallbackGame ?? currentGameRef.current);
         shouldContinuePolling = false;
       }
       const relayErrorMessage = parsedError.responseCode === 'MANUAL_BASEBALL_DATA_REQUIRED'
@@ -490,7 +584,7 @@ export const usePredictionGameData = ({
       liveRelayInFlightRef.current = false;
     }
     return shouldContinuePolling;
-  }, [suppressLiveRelayPollingForManualData, suppressLiveScorePollingForManualData]);
+  }, [suppressLiveRelayPollingForManualData]);
 
   const loadVoteStatus = useCallback(async (
     gameId: string,
@@ -975,6 +1069,7 @@ export const usePredictionGameData = ({
     detailAbortRef.current = abortController;
     void loadGameDetail(nextCurrentGameId, requestId, abortController.signal, {
       backgroundRefresh: hasExistingData,
+      showLoadingToast: options.emitRetryEvent !== false,
     });
   }, [emitFlowEvent, gameDetails, getCurrentGameId, loadGameDetail]);
 
@@ -1095,9 +1190,6 @@ export const usePredictionGameData = ({
     if (!shouldStartCurrentLivePolling) {
       return;
     }
-    if (isLiveScorePollingSuppressed(currentGameId, currentGame)) {
-      return;
-    }
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
@@ -1109,12 +1201,9 @@ export const usePredictionGameData = ({
       if (disposed || document.visibilityState === 'hidden') {
         return;
       }
-      if (isLiveScorePollingSuppressed(currentGameId, currentGameRef.current)) {
-        return;
-      }
       void (async () => {
         const shouldContinue = await loadLiveSnapshot(currentGameId, currentGameRef.current);
-        if (!shouldContinue || disposed || isLiveScorePollingSuppressed(currentGameId, currentGameRef.current)) {
+        if (!shouldContinue || disposed) {
           return;
         }
         if (isLiveRelayPollingSuppressed(currentGameId, currentGameRef.current)) {
@@ -1161,7 +1250,6 @@ export const usePredictionGameData = ({
     currentGameId,
     currentGame,
     isLiveRelayPollingSuppressed,
-    isLiveScorePollingSuppressed,
     loadLiveRelaySnapshot,
     loadLiveSnapshot,
     shouldLoadCurrentGameData,

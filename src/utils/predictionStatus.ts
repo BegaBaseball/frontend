@@ -137,6 +137,9 @@ export const getGameStatus = (
       if (inferredFromProgressData !== 'UNKNOWN') {
         return inferredFromProgressData;
       }
+      if (isToday && hasStarted) {
+        return 'LIVE';
+      }
     }
     if (shouldOverrideToScheduled) {
       return 'SCHEDULED';

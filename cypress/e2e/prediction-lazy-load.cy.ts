@@ -53,7 +53,7 @@ describe('Prediction Lazy Load', () => {
         hasNext: Boolean(nextDateValue),
     });
 
-    const buildCoachAnalyzeSse = (message = '실데이터 브리핑을 준비했습니다.') => [
+    const buildCoachAnalyzeSse = (message = '경기 데이터 브리핑을 준비했습니다.') => [
         'event: message\n',
         `data: ${JSON.stringify({ delta: message })}\n`,
         '\n',

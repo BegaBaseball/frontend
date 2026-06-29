@@ -1052,12 +1052,12 @@ describe('Game Prediction', () => {
         cy.contains('닫기 전 요청 결과').should('not.exist');
         cy.contains('닫았다가 다시 열어도 보이면 안 됩니다.').should('not.exist');
         cy.contains('다시 연 분석 결과').should('exist');
-        cy.contains('두 번째 요청 결과만 유지되어야 합니다.').should('exist');
+        cy.contains('두 번째 요청 유지').should('exist');
         cy.wait(1200);
         cy.contains('닫기 전 요청 결과').should('not.exist');
         cy.contains('닫았다가 다시 열어도 보이면 안 됩니다.').should('not.exist');
         cy.contains('다시 연 분석 결과').should('exist');
-        cy.contains('두 번째 요청 결과만 유지되어야 합니다.').should('exist');
+        cy.contains('두 번째 요청 유지').should('exist');
 
         cy.get('@consoleError').then((spy: any) => {
             const calls = spy.getCalls().map((call: { args: unknown[] }) => call.args.map(String).join(' '));
@@ -1165,7 +1165,7 @@ describe('Game Prediction', () => {
                     headers: { 'content-type': 'text/event-stream' },
                     body: [
                         'event: meta',
-                        'data: {"validation_status":"success","resolved_focus":["matchup","batting"],"focus_signature":"matchup+batting","question_signature":"manual","cache_key_version":"v4","request_mode":"manual_detail","cached":false,"cache_state":"MISS_GENERATE","in_progress":false,"generation_mode":"evidence_fallback","data_quality":"partial","grounding_reasons":["missing_clutch_moments","focus_data_unavailable"],"grounding_warnings":["WPA 기반 승부처 데이터가 부족합니다.","요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.","요청한 focus 근거가 부족해 확인 가능한 항목만 분석하거나 보수 요약으로 전환합니다."],"structured_response":{"headline":"제한 근거 기반 상세 분석","sentiment":"neutral","key_metrics":[],"analysis":{"summary":"확인 가능한 실데이터를 기준으로만 분석했습니다.","verdict":"상세 지표가 일부 비어 있어 보수적으로 해석해야 합니다.","strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"제한 근거 기반 상세 분석 본문","coach_note":"확인 가능한 근거만 반영했습니다."}}',
+                        'data: {"validation_status":"success","resolved_focus":["matchup","batting"],"focus_signature":"matchup+batting","question_signature":"manual","cache_key_version":"v4","request_mode":"manual_detail","cached":false,"cache_state":"MISS_GENERATE","in_progress":false,"generation_mode":"evidence_fallback","data_quality":"partial","grounding_reasons":["missing_clutch_moments","focus_data_unavailable"],"grounding_warnings":["WPA 기반 승부처 데이터가 부족합니다.","요청한 focus 중 상대 전적, 타격 생산성 근거가 부족해 확인 가능한 항목만 분석합니다.","요청한 focus 근거가 부족해 확인 가능한 항목만 분석하거나 보수 요약으로 전환합니다."],"structured_response":{"headline":"확인 정보 중심 상세 분석","sentiment":"neutral","key_metrics":[],"analysis":{"summary":"확인 가능한 경기 데이터를 기준으로만 분석했습니다.","verdict":"상세 지표가 일부 비어 있어 보수적으로 해석해야 합니다.","strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"확인 정보 중심 상세 분석 본문","coach_note":"확인 가능한 근거만 반영했습니다."}}',
                         '',
                         'event: done',
                         'data: [DONE]',
@@ -1204,8 +1204,10 @@ describe('Game Prediction', () => {
         // partial 응답에 structured_response 가 있으면 analysisData 가 생성되어
         // 큰 notice 대신 사이드바 데이터 품질 라벨/메시지로 표시된다 (C1 레이아웃).
         getCoachAnalysisDialog().should('be.visible');
-        getCoachAnalysisDialog().should('contain', '실데이터 일부 기반');
-        getCoachAnalysisDialog().should('contain', '현재 브리핑은 실데이터 일부가 비어 있어 최근 흐름 중심으로 요약했습니다.');
+        cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
+        cy.get('[data-testid="coach-evidence-sources"]')
+            .should('contain', '주요 흐름 중심')
+            .and('contain', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.');
     });
 
     it('should render scheduled coach copy without jargon regressions in both briefing and manual dialog', () => {
@@ -1397,6 +1399,7 @@ describe('Game Prediction', () => {
             path: '/prediction?gameId=20260409HHSK0&date=2026-04-09',
         });
 
+        cy.wait('@getPredictionBootstrapScheduledCopy');
         cy.wait('@getRankingsScheduledCopy');
         cy.wait('@getGameDetailScheduledCopy');
         waitForPredictionVoteBootstrap();
@@ -1407,25 +1410,30 @@ describe('Game Prediction', () => {
             .should('contain', '한화 이글스 vs SSG 랜더스, 불펜 운용 정보 확인 필요')
             .and('contain', 'SSG 랜더스의 최근 흐름이 좋습니다')
             .and('contain', '불펜 운용 데이터 부족으로 인해 경기 후반 운영은 더 지켜봐야 합니다')
-            .and('contain', '실데이터 일부 기반')
-            .and('contain', '최근 흐름 위주로 분석했습니다.')
+            .and('contain', '주요 흐름 중심')
+            .and('contain', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.')
+            .and('not.contain', '핵심 근거')
+            .and('not.contain', '최신 갱신')
             .and('not.contain', '고레버리지')
             .and('not.contain', '핵심 구간를');
         cy.get('[data-testid="coach-analysis-open"]').should('contain', 'AI 코치 경기 예측').click({ force: true });
 
         cy.wait('@coachAnalyzeScheduledManualCopy');
-        // partial: 데이터 품질 라벨은 사이드바에 표시 (C1).
-        getCoachAnalysisDialog().should('contain', '실데이터 일부 기반');
+        // partial: 데이터 품질 라벨은 상세 disclosure 안에서 표시 (C1).
+        cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
+        cy.get('[data-testid="coach-evidence-sources"]').should('contain', '주요 흐름 중심');
         cy.get('[data-testid="coach-analysis-dialog"]')
             .should('contain', '한화 이글스는 팀 폼 점수 90.1점을 기록하며 최근 흐름이 상승세입니다.')
             .and('contain', 'SSG 랜더스는 팀 폼 점수 97.4점을 기록하며 최근 흐름이 상승세입니다.')
             .and('contain', '발표 선발 한화 이글스 발표 전 / SSG 랜더스 발표 전 뒤 첫 번째 불펜 선택이 가장 큰 변수입니다.')
-            .and('contain', 'SSG 랜더스는 불펜 소모가 적어 경기 후반 운영 여력이 남아 있습니다.')
             .and('not.contain', '고레버리지')
             .and('not.contain', '핵심 구간를')
             .and('not.contain', '최근 흐름 근거가 부족합니다.')
             .and('not.contain', '팀 폼 점수 90.최근 흐름 근거가 부족합니다.')
             .and('not.contain', '팀 폼 점수 97.최근 흐름 근거가 부족합니다.');
+        cy.contains('summary', '상세 리포트').click({ force: true });
+        cy.get('[data-testid="coach-analysis-dialog"]')
+            .should('contain', 'SSG 랜더스는 불펜 소모가 적어 경기 후반 운영 여력이 남아 있습니다.');
     });
 
     it('should keep only latest AI brief request after rapid game switch', () => {
@@ -2342,20 +2350,19 @@ describe('Game Prediction', () => {
             });
         });
 
-        it('surfaces evidence transparency: real fact count chip + collapsible source list', () => {
+        it('surfaces evidence transparency inside a collapsible source list', () => {
             interceptCoach();
             openCoachDialog();
-            // 헤드라인 신뢰 칩: supported_fact_count(7) 기반 실데이터 근거 + 품질 라벨
-            cy.get('[data-testid="coach-evidence-chip"]').should('be.visible')
-                .and('contain', '7개 실데이터 근거')
-                .and('contain', '실데이터 기반');
-            // 사이드바 '근거' 행도 가짜 합산이 아닌 실수치
-            cy.get('[data-testid="coach-evidence-count"]').should('contain', '7건');
-            // 접이식 소스 목록: 펼치면 한글 라벨 노출
+            cy.get('[data-testid="coach-evidence-chip"]').should('not.exist');
             cy.get('[data-testid="coach-evidence-sources"]').should('exist')
-                .and('contain', '핵심 근거');
+                .and('contain', '분석에 반영한 정보')
+                .and('contain', '7건');
             cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
             cy.get('[data-testid="coach-evidence-sources"]')
+                .should('contain', '사용한 경기 정보')
+                .and('contain', '분석 범위')
+                .and('contain', '경기 데이터 반영')
+                .and('contain', '방금 갱신')
                 .should('contain', '홈 선발')
                 .and('contain', '원정 라인업')
                 .and('contain', '경기 요약');
@@ -2365,21 +2372,24 @@ describe('Game Prediction', () => {
             interceptCoach({ supportedFactCount: null, usedEvidence: ['home_pitcher', 'series_context'] });
             openCoachDialog();
             cy.get('[data-testid="coach-evidence-count"]').should('contain', '2건');
-            cy.get('[data-testid="coach-evidence-chip"]').should('contain', '2개 실데이터 근거');
+            cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
+            cy.get('[data-testid="coach-evidence-sources"]').should('contain', '사용한 경기 정보');
         });
 
-        it('shows a conservative-summary note for partial/evidence_fallback quality', () => {
+        it('shows a scoped analysis note for partial/evidence_fallback quality', () => {
             interceptCoach({ dataQuality: 'partial', generationMode: 'evidence_fallback' });
             openCoachDialog();
-            cy.get('[data-testid="coach-evidence-chip"]').should('contain', '실데이터 일부 기반');
-            getCoachAnalysisDialog().should('contain', '근거가 제한적이라 보수적으로 요약했습니다.');
+            cy.get('[data-testid="coach-evidence-chip"]').should('not.exist');
+            cy.get('[data-testid="coach-evidence-sources"]').find('summary').click({ force: true });
+            cy.get('[data-testid="coach-evidence-sources"]')
+                .should('contain', '주요 흐름 중심')
+                .and('contain', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.');
         });
 
-        it('omits the source list when used_evidence is empty', () => {
+        it('keeps the evidence disclosure when only supported fact count is available', () => {
             interceptCoach({ usedEvidence: [], supportedFactCount: 4 });
             openCoachDialog();
-            cy.get('[data-testid="coach-evidence-sources"]').should('not.exist');
-            // fact count 만으로도 카운트/칩은 노출
+            cy.get('[data-testid="coach-evidence-sources"]').should('exist');
             cy.get('[data-testid="coach-evidence-count"]').should('contain', '4건');
         });
 
@@ -2393,7 +2403,7 @@ describe('Game Prediction', () => {
         });
 
         it('shows an empty risk state when risks are empty', () => {
-            interceptCoach({ analysis: { ...FULL_ANALYSIS, risks: [] } });
+            interceptCoach({ analysis: { ...FULL_ANALYSIS, weaknesses: [], risks: [], uncertainty: [] } });
             openCoachDialog();
             cy.get('[data-testid="coach-section-insights"]').should('exist');
             cy.get('[data-testid="coach-section-risks"]').should('exist');

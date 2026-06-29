@@ -10,11 +10,11 @@ export default function PredictionLoadingView({ topNotice }: PredictionLoadingVi
     <div className="min-h-screen bg-white font-sans transition-colors duration-200 dark:bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center gap-3">
-          <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200 p-2 dark:bg-card" />
-          <div className="h-8 w-32 animate-pulse rounded bg-slate-200 dark:bg-card" />
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200 p-2 motion-reduce:animate-none dark:bg-card" />
+          <div className="h-8 w-32 animate-pulse rounded bg-slate-200 motion-reduce:animate-none dark:bg-card" />
         </div>
 
-        <div className="mb-4 flex w-fit animate-pulse rounded-xl bg-slate-200 p-1 dark:bg-card md:rounded-2xl">
+        <div className="mb-4 flex w-fit animate-pulse rounded-xl bg-slate-200 p-1 motion-reduce:animate-none dark:bg-card md:rounded-2xl">
           <div className="h-10 w-20 rounded-lg bg-slate-300 dark:bg-card" />
           <div className="ml-1 h-10 w-20 rounded-lg bg-slate-300 dark:bg-card" />
         </div>
@@ -25,7 +25,7 @@ export default function PredictionLoadingView({ topNotice }: PredictionLoadingVi
           </div>
         )}
 
-        <Card className="mb-4 animate-pulse border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+        <Card className="mb-4 animate-pulse border border-slate-200/70 bg-white/90 p-4 shadow-sm motion-reduce:animate-none dark:border-border dark:bg-card dark:shadow-md">
           <div className="flex items-center justify-between">
             <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-card" />
             <div className="flex-1 space-y-2 px-4 text-center">
@@ -36,7 +36,7 @@ export default function PredictionLoadingView({ topNotice }: PredictionLoadingVi
           </div>
         </Card>
 
-        <Card className="animate-pulse overflow-hidden border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md">
+        <Card className="animate-pulse overflow-hidden border border-slate-200/70 bg-white/90 shadow-sm motion-reduce:animate-none dark:border-border dark:bg-card dark:shadow-md">
           <div className="h-11 bg-slate-200 dark:bg-card" />
           <div className="space-y-4 p-5">
             <div className="flex justify-between">
