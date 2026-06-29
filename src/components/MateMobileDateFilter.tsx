@@ -32,11 +32,11 @@ export default function MateMobileDateFilter({
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2
           id="mate-mobile-date-filter-heading"
-          className="text-[13px] font-black text-gray-900 dark:text-white"
+          className="text-13 font-black text-gray-900 dark:text-white"
         >
           경기 날짜
         </h2>
-        <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary dark:bg-primary/15 dark:text-primary-light">
+        <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-11 font-bold text-primary dark:bg-primary/15 dark:text-primary-light">
           {selectedDateLabel}
         </span>
       </div>
@@ -59,7 +59,7 @@ export default function MateMobileDateFilter({
               aria-pressed={selectedDate === null}
               aria-label={`전체 날짜 필터${selectedDate === null ? ', 선택됨' : ''}`}
               onClick={() => onDateSelect(null)}
-              className={`h-[42px] min-w-[82px] snap-start rounded-[10px] border px-4 text-[13px] font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#000000] ${
+              className={`h-[42px] min-w-[82px] snap-start rounded-10 border px-4 text-13 font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#000000] ${
                 selectedDate === null
                   ? FILTER_ACTIVE_CLASS
                   : FILTER_IDLE_CLASS
@@ -82,13 +82,13 @@ export default function MateMobileDateFilter({
                   onClick={() => onDateSelect(date)}
                   aria-label={`${dateButtonLabel} 필터${isSelected ? ', 선택됨' : ''}`}
                   aria-pressed={Boolean(isSelected)}
-                  className={`flex h-[42px] min-w-[68px] snap-start items-center justify-between rounded-[10px] border px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#000000] ${
+                  className={`flex h-[42px] min-w-[68px] snap-start items-center justify-between rounded-10 border px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#000000] ${
                     isSelected
                       ? FILTER_ACTIVE_CLASS
                       : FILTER_IDLE_CLASS
                   }`}
                 >
-                  <span className={`text-[11px] font-bold leading-4 ${
+                  <span className={`text-11 font-bold leading-4 ${
                     isSelected
                       ? 'text-primary-foreground'
                       : isWeekend
@@ -98,7 +98,7 @@ export default function MateMobileDateFilter({
                   >
                     {quickLabel}
                   </span>
-                  <span className={`text-[13px] font-black leading-5 ${
+                  <span className={`text-13 font-black leading-5 ${
                     isSelected ? 'text-primary-foreground' : 'text-gray-800 dark:text-white'
                   }`}
                   >

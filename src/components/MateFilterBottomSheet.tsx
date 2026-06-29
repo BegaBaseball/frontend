@@ -69,22 +69,22 @@ export default function MateFilterBottomSheet({
     >
       <div className="space-y-5">
         <div className="rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]">
-          <p className="text-[13px] font-black text-primary dark:text-primary-light">
+          <p className="text-13 font-black text-primary dark:text-primary-light">
             {activeFilterCount > 0 ? `${activeFilterCount}개 조건 적용 중` : '적용된 조건 없음'}
           </p>
-          <p className="mt-1 text-[12px] font-bold text-gray-500 dark:text-white">
+          <p className="mt-1 text-12 font-bold text-gray-500 dark:text-white">
             팀, 좌석, 날짜, 상태 조건을 한 번에 초기화할 수 있습니다.
           </p>
         </div>
 
         <section className="space-y-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]">
-          <p className="text-[13px] font-black text-gray-900 dark:text-white">팀</p>
+          <p className="text-13 font-black text-gray-900 dark:text-white">팀</p>
           {favoriteTeamId ? (
             <button
               type="button"
               aria-pressed={myTeamOnly}
               onClick={() => onMyTeamOnlyChange(!myTeamOnly)}
-              className={`flex w-full items-center justify-between rounded-[10px] border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
+              className={`flex w-full items-center justify-between rounded-10 border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
                 myTeamOnly
                   ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/5 dark:border-white/15 dark:bg-[#000000] dark:text-white'
@@ -93,8 +93,8 @@ export default function MateFilterBottomSheet({
               <span className="flex min-w-0 items-center gap-3">
                 <TeamLogo teamId={favoriteTeamId} size={28} className="shrink-0" />
                 <span className="min-w-0">
-                  <span className="block text-[13px] font-black">내 팀 경기만</span>
-                  <span className="block text-[12px] font-bold text-gray-500 dark:text-white">
+                  <span className="block text-13 font-black">내 팀 경기만</span>
+                  <span className="block text-12 font-bold text-gray-500 dark:text-white">
                     관심 구단 경기로 목록을 좁힙니다.
                   </span>
                 </span>
@@ -102,14 +102,14 @@ export default function MateFilterBottomSheet({
               <span aria-hidden="true" className={`h-3 w-3 shrink-0 rounded-full ${myTeamOnly ? 'bg-primary' : 'bg-gray-300 dark:bg-zinc-600'}`} />
             </button>
           ) : (
-            <div className="rounded-[10px] border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-[12px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
+            <div className="rounded-10 border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-12 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
               관심 구단을 설정하면 내 팀 경기만 볼 수 있습니다.
             </div>
           )}
         </section>
 
         <section className="space-y-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]">
-          <p className="text-[13px] font-black text-gray-900 dark:text-white">좌석</p>
+          <p className="text-13 font-black text-gray-900 dark:text-white">좌석</p>
           <div className="flex flex-wrap gap-1.5">
             {seatOptions.map((option) => {
               const isActive = inputValue.includes(option.label);
@@ -120,7 +120,7 @@ export default function MateFilterBottomSheet({
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => onToggleSeat(option.label)}
-                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-left text-[12px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
+                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-left text-12 font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] ${
                     isActive
                       ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/5 dark:border-white/15 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/20'

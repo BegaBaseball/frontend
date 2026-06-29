@@ -38,7 +38,7 @@ export default function MatePopularSearchesPanel({
 
   return (
     <section className={cardClass}>
-      <h2 className="mb-2.5 flex items-center gap-1.5 text-[13px] font-black text-gray-900 dark:text-white">
+      <h2 className="mb-2.5 flex items-center gap-1.5 text-13 font-black text-gray-900 dark:text-white">
         <FlameIcon className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />
         인기 검색어
       </h2>
@@ -50,11 +50,11 @@ export default function MatePopularSearchesPanel({
           ))}
         </div>
       ) : popularTerms.length === 0 ? (
-        <p className="text-[12px] font-semibold leading-relaxed text-gray-400 dark:text-white">
+        <p className="text-12 font-semibold leading-relaxed text-gray-400 dark:text-white">
           최근 7일 검색어가 아직 없습니다.
         </p>
       ) : (
-        <ol className="m-0 list-decimal space-y-1.5 pl-4 text-[12px] font-bold text-gray-700 dark:text-white">
+        <ol className="m-0 list-decimal space-y-1.5 pl-4 text-12 font-bold text-gray-700 dark:text-white">
           {popularTerms.map((item) => (
             <li key={`${item.rank}-${item.term}`} className="pl-1 marker:text-gray-400 marker:font-black">
               <button
@@ -64,7 +64,7 @@ export default function MatePopularSearchesPanel({
               >
                 <span className="min-w-0 truncate">{item.term}</span>
                 {item.rank === 1 ? (
-                  <span className="shrink-0 text-[10px] font-black text-red-500 dark:text-red-400">
+                  <span className="shrink-0 text-10 font-black text-red-500 dark:text-red-400">
                     HOT
                   </span>
                 ) : null}

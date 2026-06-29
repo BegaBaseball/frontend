@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import ViewportDeferred from './ViewportDeferred';
 import {
@@ -10,6 +10,7 @@ import {
 import type { Party } from '../types/mate';
 
 const LazyMateDetailReviewsSection = lazy(() => import('./MateDetailReviewsSection'));
+const LazyMateHostReviewsModal = lazy(() => import('./MateHostReviewsModal'));
 
 interface MateDetailInfoSectionsProps {
   party: Party;
@@ -37,12 +38,27 @@ export default function MateDetailInfoSections({
   onOpenChat,
   onRequestReview,
 }: MateDetailInfoSectionsProps) {
+  const [showHostReviews, setShowHostReviews] = useState(false);
+
   return (
     <>
       <MateDetailSeatViewBlock party={party} onOpenSeatViewGuide={onOpenSeatViewGuide} />
       <MateDetailHostBlock party={party} onOpenHostProfile={onOpenHostProfile} onOpenChat={onOpenChat} />
       <MateDetailIntroBlock party={party} summaryPolicyText={summaryPolicyText} />
-      <MateDetailReviewBlock party={party} />
+      <MateDetailReviewBlock
+        party={party}
+        onOpenHostReviews={party.hostHandle ? () => setShowHostReviews(true) : undefined}
+      />
+
+      {showHostReviews && party.hostHandle ? (
+        <Suspense fallback={null}>
+          <LazyMateHostReviewsModal
+            hostHandle={party.hostHandle}
+            hostName={party.hostName}
+            onClose={() => setShowHostReviews(false)}
+          />
+        </Suspense>
+      ) : null}
 
       {party.status === 'COMPLETED' && currentUserId && (isHost || isApproved) && (
         <ViewportDeferred
@@ -59,7 +75,7 @@ export default function MateDetailInfoSections({
               currentUserHandle={currentUserHandle}
               isHost={isHost}
               sectionCardClass="border border-gray-200/90 bg-white dark:border-white/15 dark:bg-[#000000]"
-              insetPanelClass="rounded-[13px] border border-gray-200/80 bg-gray-50 dark:border-border dark:bg-secondary/70"
+              insetPanelClass="rounded-13 border border-gray-200/80 bg-gray-50 dark:border-border dark:bg-secondary/70"
               onRequestReview={onRequestReview}
             />
           </Suspense>

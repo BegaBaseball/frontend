@@ -30,6 +30,7 @@ export type MateManageMobileAction = {
 
 export type MateManageEditFormState = {
   section: string;
+  seatDetail: string;
   maxParticipants: number;
   ticketPrice: number;
   reservationDepositAmount: number;
@@ -60,6 +61,7 @@ export type MateManageContentRuntimeProps = {
   onOpenChat: () => void;
   onOpenCheckIn: () => void;
   onEditSectionChange: (value: string) => void;
+  onEditSeatDetailChange: (value: string) => void;
   onEditTicketPriceChange: (value: string) => void;
   onEditReservationDepositAmountChange: (value: string) => void;
   onEditMaxParticipantsChange: (value: number) => void;
@@ -91,6 +93,7 @@ export default function MateManageContentRuntime({
   onOpenChat,
   onOpenCheckIn,
   onEditSectionChange,
+  onEditSeatDetailChange,
   onEditTicketPriceChange,
   onEditReservationDepositAmountChange,
   onEditMaxParticipantsChange,
@@ -100,7 +103,7 @@ export default function MateManageContentRuntime({
   const mateManageEditFallback = (
     <Card className={`p-6 ${mateSectionCardClass}`}>
       <div className="space-y-4">
-        <p className="text-[16px] font-semibold text-gray-800 dark:text-white">수정 패널을 준비하고 있습니다.</p>
+        <p className="text-body font-semibold text-gray-800 dark:text-white">수정 패널을 준비하고 있습니다.</p>
         <div className="space-y-3 animate-pulse">
           <div className="h-11 rounded-2xl bg-muted/70" />
           <div className="h-24 rounded-2xl bg-muted/60" />
@@ -120,6 +123,7 @@ export default function MateManageContentRuntime({
             onSaveEdit={onSaveEdit}
             onCancelEdit={onCancelEdit}
             onEditSectionChange={onEditSectionChange}
+            onEditSeatDetailChange={onEditSeatDetailChange}
             onEditTicketPriceChange={onEditTicketPriceChange}
             onEditReservationDepositAmountChange={onEditReservationDepositAmountChange}
             onEditMaxParticipantsChange={onEditMaxParticipantsChange}
@@ -133,8 +137,8 @@ export default function MateManageContentRuntime({
         <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
           <div className="space-y-4">
             <div>
-              <p className="text-[16px] font-semibold text-gray-800 dark:text-white">신청 현황을 불러오고 있습니다.</p>
-              <p className="mt-1 text-[14px] text-gray-500 dark:text-white">승인, 거절, 채팅 액션을 곧 사용할 수 있습니다.</p>
+              <p className="text-body font-semibold text-gray-800 dark:text-white">신청 현황을 불러오고 있습니다.</p>
+              <p className="mt-1 text-caption text-gray-500 dark:text-white">승인, 거절, 채팅 액션을 곧 사용할 수 있습니다.</p>
             </div>
             <div className="space-y-4 animate-pulse">
               <div className="flex gap-2">
@@ -164,11 +168,11 @@ export default function MateManageContentRuntime({
       <div className="space-y-4">
         <Card className={`hidden p-5 lg:flex lg:sticky lg:top-6 ${mateSectionCardClass}`}>
           <div>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               Next Action
             </p>
             <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">지금 먼저 할 일</h3>
-            <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-white">
+            <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
               {pendingApplications.length > 0
                 ? `응답 필요 ${pendingApplications.length}건이 있어 승인/거절이 최우선입니다.`
                 : approvedApplications.length > 0
@@ -206,8 +210,8 @@ export default function MateManageContentRuntime({
             </div>
 
             <div className={`${mateInsetPanelClass} mt-4 p-4`}>
-              <p className="text-[16px] font-semibold text-gray-900 dark:text-white">관리 기준</p>
-              <ul className="mt-3 space-y-2 text-[16px] text-gray-600 dark:text-white">
+              <p className="text-body font-semibold text-gray-900 dark:text-white">관리 기준</p>
+              <ul className="mt-3 space-y-2 text-body text-gray-600 dark:text-white">
                 <li className="flex gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
                   <span>상태와 신뢰 배지를 먼저 보고, 그 다음 금액과 메시지를 확인합니다.</span>
@@ -227,11 +231,11 @@ export default function MateManageContentRuntime({
 
         <Card className={`hidden p-5 lg:flex ${mateSectionCardClass}`}>
           <div>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               Secondary Controls
             </p>
             <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">보조 관리 영역</h3>
-            <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-white">
+            <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
               수정과 삭제는 승인 결정 뒤에 다루는 보조 액션입니다. 주 판단 흐름과 섞이지 않도록 아래에 분리했습니다.
             </p>
             <div className="mt-4 space-y-2">
@@ -245,7 +249,7 @@ export default function MateManageContentRuntime({
                   파티 정보 수정
                 </Button>
               ) : (
-                <div className={`${mateInsetPanelClass} p-4 text-[16px] text-gray-500 dark:text-white`}>
+                <div className={`${mateInsetPanelClass} p-4 text-body text-gray-500 dark:text-white`}>
                   승인 완료 이후에는 파티 정보를 수정할 수 없습니다.
                 </div>
               )}
@@ -267,10 +271,10 @@ export default function MateManageContentRuntime({
         <div className={`${mateMobileBarClass} lg:hidden`}>
           <div className="mx-auto max-w-6xl">
             <div className="min-w-0">
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
                 관리 요약
               </p>
-              <p className="mt-1 text-[16px] font-semibold text-gray-900 dark:text-white">
+              <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">
                 {pendingApplications.length > 0
                   ? `응답 필요 ${pendingApplications.length}건`
                   : `다음 단계: ${nextStepSummary}`}

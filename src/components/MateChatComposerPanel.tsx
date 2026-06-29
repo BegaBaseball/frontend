@@ -112,7 +112,7 @@ export default function MateChatComposerPanel({
 
       <Alert className={`mt-4 ${mateSectionCardClass}`}>
         <MateInfoIcon className="h-4 w-4" />
-        <AlertDescription className="text-[16px]">
+        <AlertDescription className="text-body">
           <ul className="list-disc list-inside space-y-1">
             <li>경기 당일까지 채팅에서 만날 위치와 시간을 확정해두세요.</li>
             <li>개인정보나 결제 민감 정보는 과도하게 공유하지 마세요.</li>

@@ -20,7 +20,7 @@ export default function MateCreateSeatPricingFields({
           id="maxParticipants"
           value={formData.maxParticipants.toString()}
           onChange={(event) => updateFormData({ maxParticipants: parseInt(event.target.value, 10) })}
-          className="h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-[16px] dark:border-border dark:bg-input/30"
+          className="h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-body dark:border-border dark:bg-input/30"
         >
           <option value="2">2명 (본인 포함)</option>
           <option value="3">3명 (본인 포함)</option>
@@ -45,12 +45,12 @@ export default function MateCreateSeatPricingFields({
             원
           </span>
         </div>
-        <p className="text-[16px] text-gray-500 mt-2 px-1">
+        <p className="text-body text-gray-500 mt-2 px-1">
           * 선택하신 <span className="font-bold text-primary">{formData.seatCategory}</span> 기준 예상 가격입니다. 실제 예매 가격과 다를 수 있습니다.
         </p>
         {formData.ticketPrice > 0 && (
           <Alert>
-            <AlertDescription className="text-[16px]">
+            <AlertDescription className="text-body">
               참여자는 호스트 승인 후 채팅에서 티켓 가격 <span className="text-primary">{formData.ticketPrice.toLocaleString()}원</span> 기준으로 직거래를 조율합니다.
             </AlertDescription>
           </Alert>
@@ -74,7 +74,7 @@ export default function MateCreateSeatPricingFields({
             원
           </span>
         </div>
-        <p className="text-[16px] text-gray-500 mt-2 px-1">
+        <p className="text-body text-gray-500 mt-2 px-1">
           비워두면 상세 페이지에는 예약금 대신 승인 후 직거래 안내가 표시됩니다.
         </p>
       </div>

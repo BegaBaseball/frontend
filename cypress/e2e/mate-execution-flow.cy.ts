@@ -72,6 +72,9 @@ describe('Mate execution flow UI', () => {
   beforeEach(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+    cy.window().then((win) => {
+      win.sessionStorage.clear();
+    });
     cy.mockAPI();
   });
 

@@ -63,7 +63,7 @@ export default function MateDetailRuntime({
           <Skeleton className="mb-4 h-8 w-24" />
           <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
             <div className="space-y-4 md:space-y-5 lg:space-y-4">
-              <Skeleton className="h-48 rounded-[18px]" />
+              <Skeleton className="h-48 rounded-18" />
               <Skeleton className="h-40 rounded-2xl" />
               <Skeleton className="h-44 rounded-2xl" />
             </div>
@@ -87,7 +87,7 @@ export default function MateDetailRuntime({
             <MateAlertTriangleIcon className="h-8 w-8 text-red-500" />
           </div>
           <h2 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">파티를 불러오지 못했습니다</h2>
-          <p className="mb-4 text-[16px] text-gray-500 dark:text-white">
+          <p className="mb-4 text-body text-gray-500 dark:text-white/60">
             {partyError || '파티 정보를 찾을 수 없습니다.'}
           </p>
           <div className="flex justify-center gap-3">
@@ -131,12 +131,12 @@ export default function MateDetailRuntime({
       <div className={isPanel ? 'w-full px-4 py-5' : 'mx-auto w-full max-w-full px-3 py-4 sm:max-w-[720px] sm:px-5 sm:py-5 lg:max-w-[1080px] lg:px-6 xl:max-w-[1120px]'}>
         <div className="mb-[18px] flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <Button variant="ghost" className="h-auto px-0 py-2 text-[15px] font-bold text-gray-700 hover:bg-transparent dark:text-white dark:hover:text-white" onClick={handleClose}>
+            <Button variant="ghost" className="h-auto px-0 py-2 text-15 font-bold text-gray-700 hover:bg-transparent dark:text-white dark:hover:text-white" onClick={handleClose}>
               <MateChevronLeftIcon className="mr-1 h-[18px] w-[18px]" /> {isPanel ? '닫기' : '목록으로'}
             </Button>
             <StatusBadge {...statusMeta} size="xs" />
           </div>
-          <Button variant="outline" size="sm" className="h-auto shrink-0 rounded-[10px] border-gray-200 bg-white px-3.5 py-2 text-[14px] font-bold text-gray-700 dark:border-white/10 dark:bg-[#000000] dark:text-white dark:hover:bg-white/10" onClick={handleShare}>
+          <Button variant="outline" size="sm" className="h-auto shrink-0 rounded-10 border-gray-200 bg-white px-3.5 py-2 text-caption font-bold text-gray-700 dark:border-white/10 dark:bg-[#000000] dark:text-white dark:hover:bg-white/10" onClick={handleShare}>
             <MateShareIcon className="mr-1.5 h-4 w-4" />
             공유
           </Button>
@@ -144,7 +144,7 @@ export default function MateDetailRuntime({
 
         {isPartyRevalidating && (
           <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            <AlertDescription className="text-[16px] text-blue-700 dark:text-blue-300">
+            <AlertDescription className="text-body text-blue-700 dark:text-blue-300">
               최신 파티 정보를 다시 확인하고 있습니다.
             </AlertDescription>
           </Alert>
@@ -196,6 +196,7 @@ export default function MateDetailRuntime({
             open={showSeatViewGuide}
             stadium={party.stadium}
             section={party.section}
+            seatDetail={party.seatDetail}
             onClose={() => setShowSeatViewGuide(false)}
           />
         </Suspense>
