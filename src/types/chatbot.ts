@@ -35,6 +35,13 @@ export interface ChatRequest {
   history: Array<{ role: string; content: string }> | null;
 }
 
+export interface ChatQueueStatus {
+  state: 'queued' | 'processing';
+  queuePosition: number;
+  estimatedWaitTime: number;
+  rpmLimit: number;
+}
+
 export interface EdgeFunctionRequest {
   query: string;
   history: Array<{ role: string; content: string }> | null;

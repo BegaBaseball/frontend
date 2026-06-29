@@ -1,4 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
 import { ensureRetroFontsLoaded } from './RetroTheme';
 
@@ -167,9 +168,14 @@ export default function ComboAnimation({
   show: externalShow,
   onComplete,
 }: ComboAnimationProps = {}) {
-  const storeComboState = useLeaderboardStore((state) => state.showComboAnimation);
-  const storeComboStreak = useLeaderboardStore((state) => state.comboStreak);
-  const storeComboScore = useLeaderboardStore((state) => state.comboScore);
+  const { showComboAnimation: storeComboState, comboStreak: storeComboStreak, comboScore: storeComboScore } =
+    useLeaderboardStore(
+      useShallow((state) => ({
+        showComboAnimation: state.showComboAnimation,
+        comboStreak: state.comboStreak,
+        comboScore: state.comboScore,
+      })),
+    );
   const hideCombo = useLeaderboardStore((state) => state.hideCombo);
 
   const streak = externalStreak ?? storeComboStreak;

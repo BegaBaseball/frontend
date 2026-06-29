@@ -31,6 +31,7 @@ export default function ChatBotSessionStateRuntime({
     rateLimitActive,
     rateLimitCountdown,
     rateLimitStage,
+    queueStatus,
     pendingMessage,
     isLoadingMessages,
     sessionListVersion,
@@ -91,7 +92,7 @@ export default function ChatBotSessionStateRuntime({
   };
 
   const chatbotTabFallback = (
-    <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
+    <div className="flex h-full items-center justify-center text-body text-muted-foreground">
       <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
       탭을 불러오는 중입니다.
     </div>
@@ -113,14 +114,14 @@ export default function ChatBotSessionStateRuntime({
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-white font-bold text-[16px] md:text-[17px] m-0">야구 가이드 BEGA</h3>
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[16px] font-semibold text-white">
+              <h3 className="text-white font-bold text-body md:text-17 m-0">야구 가이드 BEGA</h3>
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-body font-semibold text-white">
                 Beta
               </span>
             </div>
             <p
               data-testid="chatbot-session-title"
-              className="text-white/80 text-[16px] md:text-[16px] m-0 truncate max-w-[220px] font-semibold"
+              className="text-white/80 text-body md:text-body m-0 truncate max-w-[220px] font-semibold"
             >
               {currentSessionTitle}
             </p>
@@ -152,7 +153,7 @@ export default function ChatBotSessionStateRuntime({
                   data-testid={testId}
                   aria-pressed={isActive}
                   onClick={() => setActiveTab(value as typeof activeTab)}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[16px] font-semibold transition-colors ${
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-body font-semibold transition-colors ${
                     isActive
                       ? 'bg-white text-gray-900 shadow-sm dark:bg-white/15 dark:text-white'
                       : 'text-gray-600 hover:bg-white/70 dark:text-white dark:hover:bg-white/10'
@@ -177,6 +178,7 @@ export default function ChatBotSessionStateRuntime({
               rateLimitActive={rateLimitActive}
               rateLimitCountdown={rateLimitCountdown}
               rateLimitStage={rateLimitStage}
+              queueStatus={queueStatus}
               pendingMessage={pendingMessage}
               inputMessage={inputMessage}
               setInputMessage={setInputMessage}

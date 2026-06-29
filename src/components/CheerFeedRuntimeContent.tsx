@@ -258,7 +258,7 @@ export default function CheerFeedRuntimeContent({
                     <button
                         type="button"
                         onClick={handleNewPostsClick}
-                        className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-[16px] font-bold transition-colors flex items-center justify-center gap-2 border-b"
+                        className="sticky top-12 z-20 w-full backdrop-blur-sm min-h-11 text-body font-bold transition-colors flex items-center justify-center gap-2 border-b"
                         style={newPostBannerStyle}
                     >
                         <ArrowUpIcon className="w-4 h-4" />
@@ -312,7 +312,7 @@ export default function CheerFeedRuntimeContent({
                                     ) : (
                                         <ErrorBoundary
                                             fallback={(
-                                                <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-[16px] font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                <article className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-body font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
                                                     일부 게시글을 표시하는 중 오류가 발생했습니다. 다음 게시글부터 계속 볼 수 있습니다.
                                                 </article>
                                             )}
@@ -327,15 +327,15 @@ export default function CheerFeedRuntimeContent({
                 )}
                 <div ref={sentinelRef} className="relative flex min-h-[calc(120px+var(--mobile-content-safe-bottom))] items-center justify-center lg:min-h-[120px]">
                     {showNextPageError ? (
-                        <div className="flex flex-col items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-white">
+                        <div className="flex flex-col items-center gap-2 text-body font-semibold text-slate-500 dark:text-white">
                             <span className="font-bold">데이터를 불러오지 못했습니다.</span>
-                            <p className="text-[16px] font-bold text-slate-400 dark:text-white">
+                            <p className="text-body font-bold text-slate-400 dark:text-white">
                                 네트워크 상태를 확인하고 다시 시도해 주세요
                             </p>
                             <button
                                 type="button"
                                 onClick={requestNextPage}
-                                className="min-h-11 rounded-full border border-slate-200 px-4 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
+                                className="min-h-11 rounded-full border border-slate-200 px-4 py-2 text-body font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
                             >
                                 다시 시도
                             </button>
@@ -347,7 +347,7 @@ export default function CheerFeedRuntimeContent({
                         data-testid="cheer-feed-next-loader"
                         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${showNextPageLoader ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
                     >
-                        <div className="flex items-center gap-2 text-[16px] font-semibold text-slate-500 dark:text-white">
+                        <div className="flex items-center gap-2 text-body font-semibold text-slate-500 dark:text-white">
                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             <span className="font-bold">불러오는 중...</span>
                         </div>

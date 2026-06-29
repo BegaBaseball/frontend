@@ -264,7 +264,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                         type="button"
                                         onClick={() => navigate(item.path)}
                                         className={cn(
-                                            'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-bold transition-colors',
+                                            'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-18 font-bold transition-colors',
                                             isActive
                                                 ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
                                                 : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-white dark:hover:bg-secondary'
@@ -280,7 +280,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                             <button
                                 type="button"
                                 onClick={handleWriteClick}
-                                className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-[18px] font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                                className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-18 font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
                                 style={{ backgroundColor: teamAccent }}
                             >
                                 <PenSquareIcon className="h-6 w-6" />
@@ -299,7 +299,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                                 type="button"
                                                 onClick={() => setActiveFeedTab(tab.key)}
                                                 className={cn(
-                                                    'relative flex min-h-11 items-center rounded-full px-3 py-0 text-[14px] font-bold transition-all duration-200 sm:px-3.5 sm:text-[15px]',
+                                                    'relative flex min-h-11 items-center rounded-full px-3 py-0 text-caption font-bold transition-all duration-200 sm:px-3.5 sm:text-15',
                                                     isActive
                                                         ? 'text-[#0F172A] dark:text-white'
                                                         : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-white dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'

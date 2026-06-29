@@ -372,7 +372,7 @@ export default function CheerComposerRuntime({
                 {composerDragging && (
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-sky-50/30 backdrop-blur-sm dark:bg-sky-900/30">
                         <ImagePlusIcon className="h-8 w-8 text-sky-500 dark:text-sky-400" />
-                        <span className="text-[16px] font-bold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
+                        <span className="text-body font-bold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
                     </div>
                 )}
                 <div className="flex gap-3">
@@ -413,7 +413,7 @@ export default function CheerComposerRuntime({
                     <div className="flex-1">
                         <AutosizeTextarea
                             placeholder="지금 우리 팀에게 응원을 남겨주세요!"
-                            className="w-full resize-none border-none bg-transparent text-[16px] text-[#0f1419] placeholder:text-[#536471] focus:outline-none focus:ring-0 dark:text-white dark:placeholder:text-slate-500"
+                            className="w-full resize-none border-none bg-transparent text-body text-[#0f1419] placeholder:text-[#536471] focus:outline-none focus:ring-0 dark:text-white dark:placeholder:text-slate-500"
                             minRows={2}
                             maxRows={10}
                             value={composerContent}
@@ -432,14 +432,14 @@ export default function CheerComposerRuntime({
                                     disabled={composerFiles.length >= 10}
                                 >
                                     <ImagePlusIcon className="h-5 w-5" />
-                                    <span className="absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-[16px] text-white shadow-lg group-hover:block dark:bg-secondary">
+                                    <span className="absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-body text-white shadow-lg group-hover:block dark:bg-secondary">
                                         최대 10장, 각 5MB 이하
                                     </span>
                                 </button>
                                 {composerFiles.length >= 10 ? (
-                                    <span className="text-[16px] font-bold text-amber-500 dark:text-amber-400">10장 제한</span>
+                                    <span className="text-body font-bold text-amber-500 dark:text-amber-400">10장 제한</span>
                                 ) : composerFiles.length > 0 ? (
-                                    <span className="text-[16px] font-bold text-slate-400">{composerFiles.length}/10</span>
+                                    <span className="text-body font-bold text-slate-400">{composerFiles.length}/10</span>
                                 ) : null}
                                 <SmileIcon className="h-5 w-5" />
                                 <input
@@ -456,7 +456,7 @@ export default function CheerComposerRuntime({
                                 type="button"
                                 data-testid="write-post-btn"
                                 onClick={handleComposerSubmit}
-                                className="min-h-11 shrink-0 rounded-full px-5 py-2 text-[16px] font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
+                                className="min-h-11 shrink-0 rounded-full px-5 py-2 text-body font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
                                 style={{ backgroundColor: teamColor, color: teamContrastText }}
                                 disabled={composerSubmitting || !composerContent.trim()}
                             >
@@ -477,7 +477,7 @@ export default function CheerComposerRuntime({
                                         />
                                         <button
                                             type="button"
-                                            className="absolute right-1 top-1 flex h-11 min-h-11 w-11 items-center justify-center rounded-full bg-black/60 text-[16px] font-bold text-white"
+                                            className="absolute right-1 top-1 flex h-11 min-h-11 w-11 items-center justify-center rounded-full bg-black/60 text-body font-bold text-white"
                                             onClick={() => handleComposerRemove(index)}
                                             aria-label="첨부 이미지 제거"
                                         >
@@ -494,7 +494,7 @@ export default function CheerComposerRuntime({
             {hasMountedWriteModal ? (
                 <Suspense
                     fallback={isWriteModalOpen ? (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-bold text-white">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
                             작성 모달을 불러오는 중...
                         </div>
                     ) : null}

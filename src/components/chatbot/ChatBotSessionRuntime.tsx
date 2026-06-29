@@ -14,7 +14,7 @@ export default function ChatBotSessionRuntime({
   onRequestClose,
 }: ChatBotSessionRuntimeProps) {
   const chatBotSessionFallback = (
-    <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
+    <div className="flex h-full items-center justify-center text-body text-muted-foreground">
       <SpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
       세션 패널을 불러오는 중입니다.
     </div>

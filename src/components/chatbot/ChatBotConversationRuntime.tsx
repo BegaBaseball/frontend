@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type Keybo
 import { useNavigate } from 'react-router-dom';
 
 import { ChatBotSpinnerIcon } from './ChatBotIcons';
-import type { Message } from '../../types/chatbot';
+import type { ChatQueueStatus, Message } from '../../types/chatbot';
 
 const ChatBotConversationPanel = lazy(() => import('./ChatBotConversationPanel'));
 
@@ -28,6 +28,7 @@ interface ChatBotConversationRuntimeProps {
   rateLimitActive: boolean;
   rateLimitCountdown: number;
   rateLimitStage: number;
+  queueStatus: ChatQueueStatus | null;
   pendingMessage: string;
   inputMessage: string;
   setInputMessage: (next: string) => void;
@@ -120,6 +121,7 @@ export default function ChatBotConversationRuntime({
   rateLimitActive,
   rateLimitCountdown,
   rateLimitStage,
+  queueStatus,
   pendingMessage,
   inputMessage,
   setInputMessage,
@@ -308,7 +310,7 @@ export default function ChatBotConversationRuntime({
     <div className="flex min-h-0 flex-1 flex-col">
       <Suspense
         fallback={(
-          <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-body text-muted-foreground">
             <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             탭을 불러오는 중입니다.
           </div>
@@ -330,6 +332,7 @@ export default function ChatBotConversationRuntime({
           isSendDisabled={isSendDisabled}
           rateLimitActive={rateLimitActive}
           rateLimitCountdown={rateLimitCountdown}
+          queueStatus={queueStatus}
           pendingMessage={pendingMessage}
           rateLimitCopy={rateLimitCopy}
           setInputMessage={setInputMessage}

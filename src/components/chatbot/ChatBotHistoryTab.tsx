@@ -81,12 +81,12 @@ export default function ChatBotHistoryTab({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="m-0 text-[16px] text-muted-foreground">최근 세션을 다시 열거나 새 대화를 시작할 수 있습니다.</p>
+        <p className="m-0 text-body text-muted-foreground">최근 세션을 다시 열거나 새 대화를 시작할 수 있습니다.</p>
         <button
           type="button"
           onClick={() => { void handleCreateSession(); }}
           data-testid="chatbot-history-new-session"
-          className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-[16px] font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
+          className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-body font-semibold text-white transition-colors hover:bg-[#3d7f6f]"
         >
           <ChatBotPlusIcon className="h-3.5 w-3.5" />
           새 대화
@@ -94,12 +94,12 @@ export default function ChatBotHistoryTab({
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto">
         {isLoadingSessions ? (
-          <div className="flex h-full items-center justify-center text-[16px] text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-body text-muted-foreground">
             <ChatBotSpinnerIcon className="mr-2 h-4 w-4 animate-spin" />
             히스토리를 불러오는 중입니다.
           </div>
         ) : sessions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-[16px] text-muted-foreground dark:border-white/10 dark:bg-white/5">
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-body text-muted-foreground dark:border-white/10 dark:bg-white/5">
             아직 저장된 대화가 없습니다.
           </div>
         ) : (
@@ -124,12 +124,12 @@ export default function ChatBotHistoryTab({
                 >
                   <div className="flex items-center gap-2">
                     <ChatBotHistoryIcon className="h-4 w-4 text-primary" />
-                    <p className="m-0 truncate text-[16px] font-semibold text-gray-900 dark:text-white">{session.title}</p>
+                    <p className="m-0 truncate text-body font-semibold text-gray-900 dark:text-white">{session.title}</p>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-[16px] text-muted-foreground">
+                  <p className="mt-1 line-clamp-2 text-body text-muted-foreground">
                     {session.latestMessagePreview || '아직 메시지가 없습니다.'}
                   </p>
-                  <p className="mt-2 text-[16px] font-semibold text-muted-foreground">
+                  <p className="mt-2 text-body font-semibold text-muted-foreground">
                     {new Date(session.lastMessageAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </button>

@@ -89,13 +89,13 @@ type ParsedStructuredCoachPayload = {
 };
 
 const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
-    switch (value) {
+        switch (value) {
         case 'grounded':
-            return '실데이터 기반';
+            return '경기 데이터 반영';
         case 'partial':
-            return '실데이터 일부 기반';
+            return '';
         case 'insufficient':
-            return '데이터 부족';
+            return '데이터 확인 필요';
         default:
             return '근거 확인 중';
     }
@@ -219,6 +219,61 @@ const normalizeRiskItems = (risks?: Array<unknown> | null): CoachRiskItem[] => {
     return resolved;
 };
 
+const normalizeFallbackRiskDescription = (value: string): string => (
+    value
+        .replace(/\bOPS\b/g, '출루·장타 지표')
+        .replace(/\bWPA\/PA\b/g, '운영 지표')
+        .replace(/\bWPA\b/g, '운영 지표')
+        .replace(/타격 생산성/g, '득점 연결력')
+        .replace(/공격 생산성/g, '득점 연결력')
+        .replace(/클러치 생산성/g, '승부처 대응')
+);
+
+const deriveDisplayRiskItems = ({
+    risks,
+    weaknesses,
+    uncertainty,
+}: {
+    risks: CoachRiskItem[];
+    weaknesses: string[];
+    uncertainty: string[];
+}): CoachRiskItem[] => {
+    if (risks.length > 0) {
+        return risks;
+    }
+
+    const derived: CoachRiskItem[] = [];
+    const seen = new Set<string>();
+    const appendRisk = (risk: CoachRiskItem) => {
+        const description = risk.description.trim();
+        if (!description || seen.has(description)) {
+            return;
+        }
+        derived.push({ ...risk, description });
+        seen.add(description);
+    };
+
+    const weakness = weaknesses.find((item) => item.trim());
+    if (weakness) {
+        appendRisk({
+            area: 'overall',
+            level: 1,
+            description: normalizeFallbackRiskDescription(weakness),
+        });
+    }
+
+    const uncertaintyText = uncertainty.find((item) => item.trim());
+    if (uncertaintyText && derived.length < 2) {
+        appendRisk({
+            area: 'lineup',
+            level: 1,
+            description: normalizeFallbackRiskDescription(uncertaintyText),
+        });
+    }
+
+    return derived;
+};
+
 const parseStructuredCoachPayload = (raw: string): ParsedStructuredCoachPayload | null => {
     try {
         const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
@@ -311,18 +366,21 @@ export const getAnalysisData = ({
         return null;
     }
 
+    const effectiveGameStatusBucket = result?.game_status_bucket
+        ?? gameStatusBucket
+        ?? (isPastGame ? 'COMPLETED' : undefined);
     const presentation = resolveCoachAnalysisPresentation({
         isPastGame,
         isFutureGame,
-        gameStatusBucket: result?.game_status_bucket ?? gameStatusBucket,
+        gameStatusBucket: effectiveGameStatusBucket,
     });
     const isReviewMode = presentation.mode === 'review';
     const defaultAnalysisTitle = presentation.title;
     const defaultAnalysisMessage = isReviewMode
-        ? '실데이터를 바탕으로 경기 결과를 복기한 리포트입니다.'
+        ? '경기 데이터를 바탕으로 경기 결과를 복기한 리포트입니다.'
         : presentation.mode === 'prediction'
-            ? '실데이터를 바탕으로 승부처와 전개 가능성을 전망한 리포트입니다.'
-            : '실데이터를 바탕으로 승부처를 해석한 리포트입니다.';
+            ? '경기 데이터를 바탕으로 승부처와 전개 가능성을 전망한 리포트입니다.'
+            : '경기 데이터를 바탕으로 승부처를 해석한 리포트입니다.';
 
     const normalizeDashboardContext = (headline: string, context: string) => ({
         title: headline || defaultAnalysisTitle,
@@ -340,17 +398,23 @@ export const getAnalysisData = ({
         swing_factors?: string[];
         watch_points?: string[];
         uncertainty?: string[];
-    }) => ({
-        summary: normalizeStructuredInlineText(analysis?.summary || '', ''),
-        verdict: normalizeVerdictText(analysis?.verdict || '', ''),
-        strengths: normalizeStructuredInsightList(analysis?.strengths),
-        weaknesses: normalizeStructuredInsightList(analysis?.weaknesses),
-        risks: normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null),
-        why_it_matters: normalizeStructuredInsightList(analysis?.why_it_matters),
-        swing_factors: normalizeStructuredInsightList(analysis?.swing_factors),
-        watch_points: normalizeStructuredInsightList(analysis?.watch_points),
-        uncertainty: normalizeStructuredInsightList(analysis?.uncertainty),
-    });
+    }) => {
+        const weaknesses = normalizeStructuredInsightList(analysis?.weaknesses);
+        const uncertainty = normalizeStructuredInsightList(analysis?.uncertainty);
+        const risks = normalizeRiskItems(Array.isArray(analysis?.risks) ? analysis.risks : null);
+
+        return {
+            summary: normalizeStructuredInlineText(analysis?.summary || '', ''),
+            verdict: normalizeVerdictText(analysis?.verdict || '', ''),
+            strengths: normalizeStructuredInsightList(analysis?.strengths),
+            weaknesses,
+            risks: deriveDisplayRiskItems({ risks, weaknesses, uncertainty }),
+            why_it_matters: normalizeStructuredInsightList(analysis?.why_it_matters),
+            swing_factors: normalizeStructuredInsightList(analysis?.swing_factors),
+            watch_points: normalizeStructuredInsightList(analysis?.watch_points),
+            uncertainty,
+        };
+    };
 
     const mapStructuredMetrics = (metrics?: Array<{
         label: string;
@@ -453,7 +517,7 @@ export const getAnalysisData = ({
             swing_factors: normalizedAnalysis.swing_factors,
             watch_points: normalizedAnalysis.watch_points,
             uncertainty: normalizedAnalysis.uncertainty,
-            game_status_bucket: result?.game_status_bucket,
+            game_status_bucket: effectiveGameStatusBucket,
         };
     };
 
@@ -537,7 +601,7 @@ export const getAnalysisData = ({
             typeof data?.coach_note === 'string' ? data.coach_note : '',
             '기존 형식의 코치 노트가 없습니다.',
         ),
-        game_status_bucket: result?.game_status_bucket,
+        game_status_bucket: effectiveGameStatusBucket,
     });
 
     if (result?.data) {
@@ -617,6 +681,7 @@ export const getAnalysisData = ({
         swing_factors: [],
         watch_points: [],
         uncertainty: [],
+        game_status_bucket: effectiveGameStatusBucket,
     };
 };
 
@@ -633,6 +698,10 @@ interface CoachAnalysisDialogResultRuntimeProps {
     loadingFallbackMessage: string;
     homeTeamId?: string;
     awayTeamId?: string;
+    homeScore?: number | string | null;
+    awayScore?: number | string | null;
+    initialHomeRank?: number | null;
+    initialAwayRank?: number | null;
     initialWinProbabilityHome?: number | null;
     initialDataQuality?: CoachDataQuality;
     initialSupportedFactCount?: number;
@@ -651,10 +720,10 @@ function CoachAnalysisResultViewLoadFailureFallback({
 }) {
     return (
         <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
-            <p className="mb-3 text-[16px] font-bold">
+            <p className="mb-3 text-body font-bold">
                 코치 분석 뷰를 불러오지 못했습니다.
             </p>
-            <p className="mb-4 text-[15px] leading-relaxed text-amber-800/90 dark:text-amber-200/90">
+            <p className="mb-4 text-15 leading-relaxed text-amber-800/90 dark:text-amber-200/90">
                 일시적인 번들 로딩 이슈 또는 네트워크 오류일 수 있습니다.
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -692,6 +761,10 @@ export default function CoachAnalysisDialogResultRuntime({
     loadingFallbackMessage,
     homeTeamId,
     awayTeamId,
+    homeScore,
+    awayScore,
+    initialHomeRank = null,
+    initialAwayRank = null,
     initialWinProbabilityHome = null,
     initialDataQuality,
     initialSupportedFactCount,
@@ -711,9 +784,17 @@ export default function CoachAnalysisDialogResultRuntime({
             result?.win_probability_home ?? '',
             homeTeamId ?? '',
             awayTeamId ?? '',
+            homeScore ?? '',
+            awayScore ?? '',
+            initialHomeRank ?? '',
+            initialAwayRank ?? '',
         ].join('|'),
         [
+            initialAwayRank,
+            initialHomeRank,
+            awayScore,
             awayTeamId,
+            homeScore,
             homeTeamId,
             result?.cache_key_version,
             result?.focus_signature,
@@ -730,6 +811,7 @@ export default function CoachAnalysisDialogResultRuntime({
     useEffect(() => {
         setResultViewRetryKey(0);
     }, [resultBoundaryToken]);
+    const analysisDataQuality = result?.data_quality ?? initialDataQuality;
     const analysisDataQualityNotice = useMemo(
         () => (
             result?.error
@@ -741,13 +823,13 @@ export default function CoachAnalysisDialogResultRuntime({
                     details: [],
                 }
                 : getCoachBriefingDataQualityNotice(
-                    result?.data_quality ?? initialDataQuality,
+                    analysisDataQuality,
                     result?.grounding_reasons ?? initialGroundingReasons,
                     result?.grounding_warnings ?? initialGroundingWarnings,
                 )
         ),
         [
-            result?.data_quality,
+            analysisDataQuality,
             result?.error,
             result?.grounding_reasons,
             result?.grounding_warnings,
@@ -758,20 +840,28 @@ export default function CoachAnalysisDialogResultRuntime({
         ],
     );
     const analysisDataQualityLabel = useMemo(
-        () => getCoachDataQualityLabel(result?.data_quality ?? initialDataQuality),
-        [initialDataQuality, result?.data_quality],
+        () => getCoachDataQualityLabel(analysisDataQuality),
+        [analysisDataQuality],
     );
+    const freshnessLabel = result ? '방금 갱신' : initialFreshnessLabel;
+    const isPartialDataQualityNotice = analysisDataQuality === 'partial' && !result?.manual_data_request;
+    const analysisDataQualityNoteClassName = isPartialDataQualityNotice
+        ? 'm-6 rounded-14 border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-white'
+        : 'm-6 rounded-14 border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100';
+    const analysisDataQualityBadgeClassName = isPartialDataQualityNotice
+        ? 'inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-12 font-extrabold text-slate-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-white'
+        : 'inline-flex items-center rounded-full border border-amber-300 bg-white px-2.5 py-1 text-12 font-extrabold text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-100';
 
     return (
         <>
             {loading && !analysisData && (
                 <div className="p-6">
-                    <div className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="rounded-20 border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
                             <CoachResultLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
-                            <span className="text-[15px] font-extrabold">{analysisStep || loadingFallbackMessage}</span>
+                            <span className="text-15 font-extrabold">{analysisStep || loadingFallbackMessage}</span>
                         </div>
-                        <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-white">
+                        <p className="mt-2 break-keep text-13 font-bold leading-relaxed text-[#64748b] dark:text-white">
                             응답을 C1 코치 리포트 구조로 정리하고 있습니다.
                         </p>
                     {!result && (
@@ -792,16 +882,16 @@ export default function CoachAnalysisDialogResultRuntime({
             {analysisDataQualityNotice && !analysisData && (
                 <div
                     data-testid="coach-analysis-data-quality-note"
-                    className="m-6 rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+                    className={analysisDataQualityNoteClassName}
                 >
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             data-testid="coach-analysis-data-quality-badge"
-                            className="inline-flex items-center rounded-full border border-amber-300 bg-white px-2.5 py-1 text-[12px] font-extrabold text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-100"
+                            className={analysisDataQualityBadgeClassName}
                         >
                             {analysisDataQualityLabel}
                         </span>
-                        <p className="text-[14px] font-bold">
+                        <p className="text-caption font-bold">
                             {analysisDataQualityNotice.message}
                         </p>
                     </div>
@@ -830,6 +920,10 @@ export default function CoachAnalysisDialogResultRuntime({
                             analysisData={analysisData}
                             homeTeamId={homeTeamId}
                             awayTeamId={awayTeamId}
+                            homeScore={homeScore}
+                            awayScore={awayScore}
+                            homeRank={initialHomeRank}
+                            awayRank={initialAwayRank}
                             winProbabilityHome={result?.win_probability_home ?? initialWinProbabilityHome ?? null}
                             dataQualityLabel={analysisDataQualityLabel}
                             dataQualityMessage={analysisDataQualityNotice?.message}
@@ -839,15 +933,15 @@ export default function CoachAnalysisDialogResultRuntime({
                             groundingReasons={result?.grounding_reasons ?? initialGroundingReasons}
                             dataQuality={result?.data_quality ?? initialDataQuality}
                             generationMode={result?.generation_mode}
-                            freshnessLabel={result ? '방금 갱신' : initialFreshnessLabel}
+                            freshnessLabel={freshnessLabel}
                         />
                     </Suspense>
                 </ErrorBoundary>
             )}
 
             {result?.error && !analysisData && (
-                <div className="m-6 rounded-[14px] border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
-                    <p className="text-[14px] font-bold text-red-700 dark:text-red-300">
+                <div className="m-6 rounded-14 border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                    <p className="text-caption font-bold text-red-700 dark:text-red-300">
                         {result.error}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">

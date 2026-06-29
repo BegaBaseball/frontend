@@ -8,11 +8,11 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import CoachAnalysisDialogLauncher from './CoachAnalysisDialogLauncher';
 import {
+  PredictionCheckCircleIcon,
   PredictionSparklesIcon,
   PredictionWarningTriangleIcon,
   PredictionZapIcon,
 } from './prediction/PredictionShellIcons';
-import { getEvidenceSourceMeta, pickCoreEvidenceCodes } from './prediction/coachEvidenceLabels';
 import { teamIdToName } from './TeamLogo';
 
 export interface CoachBriefingContentRuntimeProps {
@@ -31,6 +31,7 @@ export interface CoachBriefingContentRuntimeProps {
   showSummaryPoints: boolean;
   summaryPoints: string[];
   inlineDataQualityNote: string | null;
+  inlineDataQualityNoteTone: 'neutral' | 'warning' | null;
   showLoginAction: boolean;
   isAuthCheckPending: boolean;
   aiLoading: boolean;
@@ -39,6 +40,8 @@ export interface CoachBriefingContentRuntimeProps {
   onLoginAction: () => void;
   game: Game | null;
   gameStatusBucket?: GameDetail['gameStatus'];
+  homeScore?: number | string | null;
+  awayScore?: number | string | null;
   homePitcherName: string;
   awayPitcherName: string;
   isPastGame: boolean;
@@ -46,6 +49,8 @@ export interface CoachBriefingContentRuntimeProps {
   // V5: team IDs for head bar match row and gauge coloring
   homeTeamId: string | null;
   awayTeamId: string | null;
+  homeRank?: number | null;
+  awayRank?: number | null;
   // V5: explicit win probability (null = not available from backend yet)
   winProbabilityHome: number | null;
 }
@@ -55,7 +60,7 @@ const getCoachBriefingBadgeClassName = (dataQuality?: string): string => {
     return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-200 dark:border-emerald-800/30';
   }
   if (dataQuality === 'partial') {
-    return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-800/30';
+    return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-white/[0.04] dark:text-white dark:border-white/10';
   }
   if (dataQuality === 'insufficient') {
     return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-200 dark:border-rose-800/30';
@@ -66,11 +71,11 @@ const getCoachBriefingBadgeClassName = (dataQuality?: string): string => {
 const getCoachDataQualityLabel = (value?: string): string => {
   switch (value) {
     case 'grounded':
-      return '실데이터 기반';
+      return '경기 데이터 반영';
     case 'partial':
-      return '실데이터 일부 기반';
+      return '주요 흐름 중심';
     case 'insufficient':
-      return '데이터 부족';
+      return '데이터 확인 필요';
     default:
       return '근거 확인 중';
   }
@@ -304,7 +309,7 @@ function TeamMatchRow({
   return (
     <span className="ml-auto flex items-center gap-1.5 text-[12.5px] font-bold text-gray-500 dark:text-white">
       <span>{awayName}</span>
-      <span className="font-serif italic text-gray-400 dark:text-white text-[12px]">vs</span>
+      <span className="font-serif italic text-gray-400 dark:text-white text-12">vs</span>
       <span>{homeName}</span>
     </span>
   );
@@ -312,7 +317,6 @@ function TeamMatchRow({
 
 export default function CoachBriefingContentCardRuntime({
   dataQuality,
-  totalEvidenceCount,
   supportedFactCount,
   usedEvidence,
   groundingWarnings,
@@ -326,6 +330,7 @@ export default function CoachBriefingContentCardRuntime({
   showSummaryPoints,
   summaryPoints,
   inlineDataQualityNote,
+  inlineDataQualityNoteTone,
   showLoginAction,
   isAuthCheckPending,
   aiLoading,
@@ -334,12 +339,16 @@ export default function CoachBriefingContentCardRuntime({
   onLoginAction,
   game,
   gameStatusBucket,
+  homeScore,
+  awayScore,
   homePitcherName,
   awayPitcherName,
   isPastGame,
   isFutureGame,
   homeTeamId,
   awayTeamId,
+  homeRank,
+  awayRank,
   winProbabilityHome,
 }: CoachBriefingContentRuntimeProps) {
   const isNarrow = useMediaQuery('(max-width: 640px)');
@@ -401,20 +410,6 @@ export default function CoachBriefingContentCardRuntime({
   const showVsBar = hasProbability && !aiLoading && !showLoginAction;
   const homePct = winProbability?.homePct ?? 50;
   const awayPct = winProbability?.awayPct ?? 50;
-  const coreEvidenceCodes = pickCoreEvidenceCodes(usedEvidence, {
-    dataQuality: dataQuality === 'grounded' || dataQuality === 'partial' || dataQuality === 'insufficient'
-      ? dataQuality
-      : undefined,
-    groundingWarnings,
-    groundingReasons,
-  });
-  const coreEvidenceLabels = coreEvidenceCodes.map((code) => getEvidenceSourceMeta(code).label).slice(0, 2);
-  const coreEvidenceCount = coreEvidenceCodes.length;
-  const coreEvidenceChips = coreEvidenceLabels.filter((item) => item.trim().length > 0).slice(0, 2);
-  const shouldShowCoreEvidenceChip = coreEvidenceCount > 0 || totalEvidenceCount > 0;
-  const evidenceChipText = coreEvidenceCount > 0
-    ? `핵심 근거 ${coreEvidenceCount}개`
-    : `근거 ${totalEvidenceCount}건`;
 
   return (
     <>
@@ -423,14 +418,14 @@ export default function CoachBriefingContentCardRuntime({
 
       <Card
         data-testid="coach-briefing-card"
-        className="relative mb-6 overflow-hidden rounded-[20px] border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-white"
+        className="relative mb-6 overflow-hidden rounded-20 border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-border dark:bg-card dark:text-white"
       >
         {/* ── HEAD BAR ─────────────────────────────────────────── */}
         <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gradient-to-b from-[#fafffd] to-white px-4 py-3 sm:px-5 dark:border-border dark:from-emerald-950/10 dark:to-transparent">
-          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2d5f4f] to-[#173b34] shadow-sm">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-10 bg-gradient-to-br from-[#2d5f4f] to-[#173b34] shadow-sm">
             <PredictionSparklesIcon className="h-[14px] w-[14px] text-emerald-100" />
           </div>
-          <span className="text-[15px] font-bold tracking-tight text-gray-800 dark:text-white">
+          <span className="text-15 font-bold tracking-tight text-gray-800 dark:text-white">
             AI 코치 경기 예측
           </span>
           {(homeTeamId || awayTeamId) ? (
@@ -479,10 +474,10 @@ export default function CoachBriefingContentCardRuntime({
             ) : showLoginAction ? (
               /* Guest / auth-expired state — use activeTitle + activeMessage from parent */
               <>
-                <h4 className="mb-2 break-keep text-[17px] font-bold leading-snug text-gray-900 dark:text-white">
+                <h4 className="mb-2 break-keep text-17 font-bold leading-snug text-gray-900 dark:text-white">
                   {activeTitle}
                 </h4>
-                <p className="text-[14px] font-semibold leading-relaxed text-gray-500 dark:text-white">
+                <p className="text-caption font-semibold leading-relaxed text-gray-500 dark:text-white">
                   {activeMessage}
                 </p>
               </>
@@ -491,7 +486,7 @@ export default function CoachBriefingContentCardRuntime({
               <>
                 {/* Season summary line */}
                 {seasonSummary ? (
-                  <p className="mb-1.5 text-[13px] font-semibold text-gray-400 dark:text-white">
+                  <p className="mb-1.5 text-13 font-semibold text-gray-400 dark:text-white">
                     {seasonSummary}
                   </p>
                 ) : null}
@@ -500,23 +495,24 @@ export default function CoachBriefingContentCardRuntime({
                 {hasProbability ? (
                   <div className="mb-2 flex flex-wrap items-center gap-1.5">
                     <span
-                      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-bold"
+                      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-12 font-bold"
                       style={{
-                        background: `${favoredColor}15`,
+                        // 레퍼런스 V5Card 우세 칩 배경 alpha 정렬(0x18) — 종전 0x15 드리프트
+                        background: `${favoredColor}18`,
                         color: favoredColor,
                         borderColor: `${favoredColor}40`,
                       }}
                     >
                       {favoredName} 우세
                     </span>
-                    <span className="text-[12px] font-bold text-gray-400 dark:text-white">
+                    <span className="text-12 font-bold text-gray-400 dark:text-white">
                       차이 {Math.abs(homePct - awayPct)}%p
                     </span>
                   </div>
                 ) : null}
 
                 {/* Headline */}
-                <h4 className="mb-3 break-keep text-[17px] font-bold leading-snug tracking-tight text-gray-900 dark:text-white">
+                <h4 className="mb-3 break-keep text-17 font-bold leading-snug tracking-tight text-gray-900 dark:text-white">
                   {activeTitle}
                 </h4>
 
@@ -544,8 +540,16 @@ export default function CoachBriefingContentCardRuntime({
                   )}
                   {inlineDataQualityNote ? (
                     <div className="mt-3 border-t border-gray-200/80 pt-2.5 dark:border-border/80">
-                      <div className="flex items-start gap-2 text-[13px] font-semibold text-gray-500 dark:text-white">
-                        <PredictionWarningTriangleIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
+                      <div className={`flex items-start gap-2 text-13 font-semibold ${
+                        inlineDataQualityNoteTone === 'neutral'
+                          ? 'text-slate-500 dark:text-white/80'
+                          : 'text-gray-500 dark:text-white'
+                      }`}>
+                        {inlineDataQualityNoteTone === 'neutral' ? (
+                          <PredictionCheckCircleIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-slate-400 dark:text-white/70" />
+                        ) : (
+                          <PredictionWarningTriangleIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
+                        )}
                         <p className="break-keep">{inlineDataQualityNote}</p>
                       </div>
                     </div>
@@ -573,41 +577,20 @@ export default function CoachBriefingContentCardRuntime({
         {/* ── FOOTER: chips + status bar + CTA ─────────────────── */}
         <div className="px-4 pb-6 pt-4 sm:px-6">
           {/* Trust chips */}
-          {(dataQuality || shouldShowCoreEvidenceChip || coreEvidenceChips.length > 0) ? (
+          {dataQuality ? (
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              {dataQuality ? (
-                <span
-                  className={`rounded-full border px-2.5 py-0.5 text-[12.5px] font-bold ${getCoachBriefingBadgeClassName(dataQuality)}`}
-                >
-                  {getCoachDataQualityLabel(dataQuality)}
-                </span>
-              ) : null}
-              {shouldShowCoreEvidenceChip ? (
-                <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[12.5px] font-bold text-gray-500 dark:border-border dark:text-white">
-                  {evidenceChipText}
-                </span>
-              ) : null}
-              {coreEvidenceChips.map((label) => (
-                <span
-                  key={label}
-                  className="max-w-[12rem] truncate rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[12px] font-semibold text-gray-500 dark:border-border dark:bg-white/[0.05] dark:text-white"
-                  title={label}
-                >
-                  {label}
-                </span>
-              ))}
-              {freshnessLabel ? (
-                <span className="rounded-full border border-gray-200 bg-transparent px-2.5 py-0.5 text-[12px] font-bold text-gray-400 dark:border-border dark:text-white">
-                  {freshnessLabel}
-                </span>
-              ) : null}
+              <span
+                className={`rounded-full border px-2.5 py-0.5 text-[12.5px] font-bold ${getCoachBriefingBadgeClassName(dataQuality)}`}
+              >
+                {getCoachDataQualityLabel(dataQuality)}
+              </span>
             </div>
           ) : null}
 
           {/* Status bar (partial / warn states) */}
           {briefingStatusMessage ? (
             <div
-              className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-[13px] font-bold ${getCoachBriefingStatusClassName(briefingStatusTone)}`}
+              className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-13 font-bold ${getCoachBriefingStatusClassName(briefingStatusTone)}`}
             >
               {briefingStatusTone === 'warning' ? (
                 <PredictionWarningTriangleIcon className="h-3.5 w-3.5 flex-none text-amber-500 dark:text-amber-300" />
@@ -624,7 +607,7 @@ export default function CoachBriefingContentCardRuntime({
               onClick={onLoginAction}
             >
               <PredictionZapIcon className="mr-2 h-4 w-4 flex-shrink-0 text-emerald-50" />
-              <span className="text-[15px] font-bold">{loginButtonLabel}</span>
+              <span className="text-15 font-bold">{loginButtonLabel}</span>
             </Button>
           ) : isAuthCheckPending ? (
             <Button
@@ -633,7 +616,7 @@ export default function CoachBriefingContentCardRuntime({
               className="h-12 w-full rounded-xl border border-emerald-700/40 bg-emerald-950/70 text-emerald-50 shadow-sm disabled:opacity-100"
             >
               <PredictionZapIcon className="mr-2 h-4 w-4 flex-shrink-0 text-emerald-50" />
-              <span className="text-[15px] font-bold">로그인 확인 중...</span>
+              <span className="text-15 font-bold">로그인 확인 중...</span>
             </Button>
           ) : aiLoading ? (
             <Button
@@ -650,13 +633,15 @@ export default function CoachBriefingContentCardRuntime({
                   />
                 ))}
               </span>
-              <span className="text-[15px] font-bold">실데이터 분석 중...</span>
+              <span className="text-15 font-bold">경기 데이터 분석 중...</span>
             </Button>
           ) : (
             <CoachAnalysisDialogLauncher
               initialTeam={game?.homeTeam}
               homeTeamId={game?.homeTeam}
               awayTeamId={game?.awayTeam}
+              homeScore={homeScore}
+              awayScore={awayScore}
               gameId={game?.gameId}
               gameDate={game?.gameDate}
               seasonId={game?.seasonId}
@@ -668,6 +653,8 @@ export default function CoachBriefingContentCardRuntime({
               isPastGame={isPastGame}
               isFutureGame={isFutureGame}
               gameStatusBucket={gameStatusBucket}
+              initialHomeRank={homeRank}
+              initialAwayRank={awayRank}
               initialWinProbabilityHome={winProbabilityHome}
               initialDataQuality={dataQuality === 'grounded' || dataQuality === 'partial' || dataQuality === 'insufficient' ? dataQuality : undefined}
               initialSupportedFactCount={supportedFactCount}
