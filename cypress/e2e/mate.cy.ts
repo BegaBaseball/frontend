@@ -51,8 +51,10 @@ describe('Mate Page Accuracy', () => {
     homeTeam: 'LG',
     awayTeam: 'KT',
     section: '1루석',
+    seatDetail: '305블록 12열 15번',
     maxParticipants: 4,
     currentParticipants: 1,
+    favorited: false,
     description: '기본 모집 파티',
     ...baseParty,
   };
@@ -269,6 +271,11 @@ describe('Mate Page Accuracy', () => {
       }
     });
 
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    });
+
     cy.intercept('POST', '**/api/checkin/qr-session', (req) => {
       const partyId = Number((req.body as { partyId?: number })?.partyId || 0);
       req.reply({
@@ -284,6 +291,9 @@ describe('Mate Page Accuracy', () => {
 
     cy.clearCookies();
     cy.clearLocalStorage();
+    cy.window().then((win) => {
+      win.sessionStorage.clear();
+    });
     cy.mockAPI();
     cy.failOnUnexpectedApi401();
     setupPartiesListMock();
@@ -291,6 +301,7 @@ describe('Mate Page Accuracy', () => {
 
   it('uses backend status filtering so matched tab shows results even outside the current page', () => {
     visitWithAuth('/mate');
+    cy.wait('@getPartiesPage0');
     cy.contains('잠실야구장').should('be.visible');
 
     clickVisibleButton('매칭 완료');
@@ -355,6 +366,91 @@ describe('Mate Page Accuracy', () => {
     cy.contains('호스트에게 문의').should('be.visible');
     cy.contains('파티 소개').should('be.visible');
     cy.contains('참여 현황').should('be.visible');
+  });
+
+  it('keeps favorite state in sync from list to detail and shows seat detail in the seat panel', () => {
+    let favorited = false;
+    const favoriteFlowParty = () => ({
+      ...pendingPartyPage0,
+      favorited,
+    });
+
+    cy.intercept('GET', '**/api/parties/201*', (req) => {
+      req.reply({
+        statusCode: 200,
+        body: favoriteFlowParty(),
+      });
+    }).as('getFavoritePartyDetail');
+    cy.intercept('GET', '**/api/applications/party/201/mine', {
+      statusCode: 200,
+      body: null,
+    }).as('getFavoritePartyMyApplication');
+    cy.intercept('GET', '**/api/applications/party/201*', {
+      statusCode: 200,
+      body: [],
+    }).as('getFavoritePartyApplications');
+    cy.intercept('POST', '**/api/parties/201/favorite', (req) => {
+      favorited = true;
+      req.reply({
+        statusCode: 200,
+        body: { favorited: true },
+      });
+    }).as('addPartyFavorite');
+    cy.intercept('DELETE', '**/api/parties/201/favorite', (req) => {
+      favorited = false;
+      req.reply({
+        statusCode: 200,
+        body: { favorited: false },
+      });
+    }).as('removePartyFavorite');
+    cy.intercept('GET', '**/api/diary/seat-views*', (req) => {
+      const requestUrl = new URL(req.url);
+      const section = requestUrl.searchParams.get('section');
+      if (section === '305블록 12열 15번') {
+        req.alias = 'getFavoriteSeatViews';
+      }
+      req.reply({
+        statusCode: 200,
+        body: section === '305블록 12열 15번' ? [
+          {
+            id: 51,
+            stadium: '잠실야구장',
+            section: '1루석',
+            block: '305블록',
+            seatRow: '12열',
+            seatNumber: '15번',
+            photoUrl: '/seat-view-201.png',
+            diaryDate: '2026-02-20',
+          },
+        ] : [],
+      });
+    });
+
+    visitWithAuth('/mate');
+    cy.wait('@getPartiesPage0');
+    cy.get('button[aria-label="찜하기"]').first().click();
+    cy.wait('@addPartyFavorite');
+    cy.get('button[aria-label="찜 해제"]').first().should('have.attr', 'aria-pressed', 'true');
+
+    cy.get('button[aria-label*="파티 상세 보기"]').first().click();
+    cy.location('pathname').should('eq', '/mate/201');
+    cy.contains('잠실야구장', { timeout: 10000 }).should('be.visible');
+    cy.get('button[aria-label="찜 해제"]').first().should('be.visible');
+
+    revealDeferredMateDetailContent();
+    cy.getBySel('mate-open-seat-panel').click();
+    cy.get('[data-testid="mate-seat-panel"]').should('be.visible');
+    cy.contains('305블록 12열 15번').should('be.visible');
+    cy.wait('@getFavoriteSeatViews');
+    cy.contains('button', '닫기').click();
+
+    cy.get('button[aria-label="찜 해제"]').first().click();
+    cy.wait('@removePartyFavorite');
+    cy.get('button[aria-label="찜하기"]').first().should('have.attr', 'aria-pressed', 'false');
+
+    cy.go('back');
+    cy.location('pathname').should('eq', '/mate');
+    cy.get('button[aria-label="찜하기"]').first().should('have.attr', 'aria-pressed', 'false');
   });
 
   it('resets pagination to first page on search and date filter changes', () => {

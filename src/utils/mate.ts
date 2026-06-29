@@ -27,6 +27,7 @@ export interface BackendPartyDTO {
   homeTeam: string;
   awayTeam: string;
   section: string;
+  seatDetail?: string | null;
   maxParticipants: number;
   currentParticipants: number;
   description: string;
@@ -37,6 +38,8 @@ export interface BackendPartyDTO {
   ticketPrice?: number | null;
   reservationDepositAmount?: number | null;
   hostTrustMetrics?: Party['hostTrustMetrics'];
+  favorited?: boolean | null;
+  members?: Party['members'];
   createdAt: string;
 }
 
@@ -76,6 +79,7 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   homeTeam: backendParty.homeTeam,
   awayTeam: backendParty.awayTeam,
   section: backendParty.section,
+  seatDetail: backendParty.seatDetail ?? undefined,
   maxParticipants: backendParty.maxParticipants,
   currentParticipants: backendParty.currentParticipants,
   description: backendParty.description,
@@ -86,6 +90,8 @@ export const mapBackendPartyToFrontend = (backendParty: BackendPartyDTO): Party 
   ticketPrice: backendParty.ticketPrice ?? 0,
   reservationDepositAmount: backendParty.reservationDepositAmount ?? null,
   hostTrustMetrics: backendParty.hostTrustMetrics ?? null,
+  favorited: backendParty.favorited ?? undefined,
+  members: backendParty.members ?? undefined,
   createdAt: backendParty.createdAt,
 });
 

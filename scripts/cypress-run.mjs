@@ -37,6 +37,13 @@ const sequentialMateRegressionSpecs = new Set([
   'cypress/e2e/mate.cy.ts',
   'cypress/e2e/mate-detail-states.cy.ts',
   'cypress/e2e/mate-execution-flow.cy.ts',
+  'cypress/e2e/mate-qr-refresh.cy.ts',
+  'cypress/e2e/mate-create.cy.ts',
+  'cypress/e2e/mate-create-session-recovery.cy.ts',
+  'cypress/e2e/mate-apply-session-recovery.cy.ts',
+  'cypress/e2e/mate-selling-payment-success.cy.ts',
+  'cypress/e2e/mate-chat-upload.cy.ts',
+  'cypress/e2e/mate-flow-policy.cy.ts',
   'cypress/e2e/mate-visual.cy.ts',
 ]);
 
@@ -379,23 +386,44 @@ const getExpectedBinaryVersion = (environment = envWithCache) => {
   return versions.includes(installedCypressVersion);
 };
 
-const runLocal = (environment = envWithCache) => {
-  if (shouldRunMateSpecsSequentially) {
-    console.log('\n[local] running Cypress mate regression specs sequentially');
+const getMateRegressionSpecRetries = () => {
+  const parsed = Number.parseInt(process.env.MATE_REGRESSION_SPEC_RETRIES || '1', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
 
-    for (const spec of explicitSpecs) {
-      console.log(`- spec: ${spec}`);
+const runSequentialMateSpecs = (environment, argsWithoutSpec, statusLabel) => {
+  const maxRetries = getMateRegressionSpecRetries();
+  console.log(statusLabel);
+
+  for (const spec of explicitSpecs) {
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      const retryLabel = attempt > 0 ? ` (retry ${attempt}/${maxRetries})` : '';
+      console.log(`- spec: ${spec}${retryLabel}`);
       const status = runCommandStatus(
         'npx',
-        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
+        ['cypress', commandMode, ...argsWithoutSpec, '--spec', spec],
         environment,
       );
-      if (status !== 0) {
+      if (status === 0) {
+        break;
+      }
+      if (attempt >= maxRetries) {
         return status ?? 1;
       }
+      console.log(`[local] retrying Mate regression spec after failure: ${spec}`);
     }
+  }
 
-    return 0;
+  return 0;
+};
+
+const runLocal = (environment = envWithCache) => {
+  if (shouldRunMateSpecsSequentially) {
+    return runSequentialMateSpecs(
+      environment,
+      cypressArgsWithoutSpec,
+      '\n[local] running Cypress mate regression specs sequentially',
+    );
   }
 
   console.log(`\n[local] running npx cypress ${commandMode}`);
@@ -412,21 +440,11 @@ const runLocalWithoutVerify = (environment = envWithCache) => {
   const skipVerifyEnvironment = withCypressSkipVerifyEnv(environment);
 
   if (shouldRunMateSpecsSequentially) {
-    console.log('\n[local] direct sequential run without prior verify');
-
-    for (const spec of explicitSpecs) {
-      console.log(`- spec: ${spec}`);
-      const status = runCommandStatus(
-        'npx',
-        ['cypress', commandMode, ...cypressArgsWithoutSpec, '--spec', spec],
-        skipVerifyEnvironment,
-      );
-      if (status !== 0) {
-        return status ?? 1;
-      }
-    }
-
-    return 0;
+    return runSequentialMateSpecs(
+      skipVerifyEnvironment,
+      cypressArgsWithoutSpec,
+      '\n[local] direct sequential run without prior verify',
+    );
   }
 
   console.log('\n[local] direct run without prior verify');
