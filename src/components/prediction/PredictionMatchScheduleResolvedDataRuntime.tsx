@@ -2,7 +2,7 @@ import type { ComponentProps, ComponentType } from 'react';
 
 import { usePredictionSchedule } from '../../hooks/usePredictionSchedule';
 import { usePredictionUserVotes } from '../../hooks/usePredictionUserVotes';
-import type { PredictionLocationState } from '../../utils/predictionDeepLink';
+import type { PredictionLocationState, PredictionNavigationOptions } from '../../utils/predictionDeepLink';
 import {
   PredictionScheduleProvider,
   PredictionUserVotesProvider,
@@ -18,7 +18,7 @@ interface PredictionMatchScheduleResolvedDataRuntimeProps {
   userId?: number | string | null;
   locationState: PredictionLocationState;
   searchParams: URLSearchParams;
-  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void;
+  setSearchParams: (nextInit: URLSearchParams, navigateOptions?: PredictionNavigationOptions) => void;
   PredictionLoadingViewComponent: PredictionLoadingViewComponent;
   PredictionMatchesErrorViewComponent: PredictionMatchesErrorViewComponent;
   PredictionMatchScheduleReadyViewComponent: PredictionMatchScheduleReadyViewComponent;
@@ -55,26 +55,10 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
     currentDateGames,
     currentDate,
     loading,
-    currentDayNavigationMeta,
-    allDatesData,
-    currentDateIndex,
-    deepLinkNotice,
-    goToPreviousDate,
-    goToNextDate,
-    goToDate,
     reloadMatches,
     matchesLoadState,
     matchesLoadErrorMessage,
     matchesLoadErrorCode,
-    pastRangeLoadState,
-    pastRangeLoadErrorMessage,
-    futureRangeLoadState,
-    futureRangeLoadErrorMessage,
-    canLoadMorePast,
-    canLoadMoreFuture,
-    matchBounds,
-    retryLoadMoreFutureMatches,
-    retryLoadMorePastMatches,
     setProgrammaticSearchParams,
   } = schedule;
 
@@ -103,22 +87,6 @@ export default function PredictionMatchScheduleResolvedDataRuntime({
           currentGame={currentGame}
           currentDateGames={currentDateGames}
           currentDate={currentDate}
-          currentDayNavigationMeta={currentDayNavigationMeta}
-          allDatesData={allDatesData}
-          currentDateIndex={currentDateIndex}
-          deepLinkNotice={deepLinkNotice}
-          goToPreviousDate={goToPreviousDate}
-          goToNextDate={goToNextDate}
-          goToDate={goToDate}
-          pastRangeLoadState={pastRangeLoadState}
-          pastRangeLoadErrorMessage={pastRangeLoadErrorMessage}
-          futureRangeLoadState={futureRangeLoadState}
-          futureRangeLoadErrorMessage={futureRangeLoadErrorMessage}
-          canLoadMorePast={canLoadMorePast}
-          canLoadMoreFuture={canLoadMoreFuture}
-          matchBounds={matchBounds}
-          retryLoadMorePastMatches={retryLoadMorePastMatches}
-          retryLoadMoreFutureMatches={retryLoadMoreFutureMatches}
         />
       </PredictionUserVotesProvider>
     </PredictionScheduleProvider>

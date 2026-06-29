@@ -126,6 +126,22 @@ test('getGameStatus: SCHEDULED라도 시작 이후 이닝 데이터가 있으면
   assert.equal(status.isVoteOpen, false);
 });
 
+test('getGameStatus: 오늘 시작 시간이 지난 SCHEDULED 경기는 점수가 없어도 진행중으로 본다', () => {
+  const status = getGameStatus(baseGame, fixedNow, {
+    gameStatus: 'SCHEDULED',
+    gameDate: '2026-02-20',
+    startTime: '11:30',
+    homeScore: null,
+    awayScore: null,
+    hasProgressData: false,
+  });
+
+  assert.equal(status.statusCode, 'LIVE');
+  assert.equal(status.statusLabel, '경기 진행중');
+  assert.equal(status.isVoteOpen, false);
+  assert.equal(status.canShowDetails, true);
+});
+
 test('hasGameDetailProgressData: 점수나 이닝 데이터가 있으면 true를 반환한다', () => {
   assert.equal(hasGameDetailProgressData({
     gameId: '1',

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { fetchRankingSnapshot } from '../../api/rankings';
 import { useLeaderboardStore } from '../../store/leaderboardStore';
 import type { RankingSnapshot } from '../../types/home';
@@ -109,8 +110,12 @@ export default function PredictionMatchDetailPanel({
   isLoggedIn,
   isAuthLoading,
 }: PredictionMatchDetailPanelProps) {
-  const shouldRenderComboAnimation = useLeaderboardStore((state) => state.showComboAnimation);
-  const hideComboAnimation = useLeaderboardStore((state) => state.hideCombo);
+  const { shouldRenderComboAnimation, hideComboAnimation } = useLeaderboardStore(
+    useShallow((state) => ({
+      shouldRenderComboAnimation: state.showComboAnimation,
+      hideComboAnimation: state.hideCombo,
+    })),
+  );
   const [rankingSnapshot, setRankingSnapshot] = useState<RankingSnapshot | null>(null);
   const [rankingSnapshotLoading, setRankingSnapshotLoading] = useState(false);
   const [resolvedRankingSnapshotScopeKey, setResolvedRankingSnapshotScopeKey] = useState<string | null>(null);
@@ -326,7 +331,7 @@ export default function PredictionMatchDetailPanel({
       <Suspense
         fallback={(
           <Card className="relative p-4 mb-4 text-center bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md rounded-2xl">
-            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
+            <div className="inline-flex items-center gap-2 text-body text-slate-500 dark:text-white">
               <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               경기 카드를 준비하고 있습니다.
             </div>

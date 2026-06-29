@@ -126,7 +126,7 @@ export default function PredictionMatchSchedulePreviewRuntime({
   return (
     <div className="relative font-sans">
       {topNoticeKind ? (
-        <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center sm:justify-end">
+        <div className="mb-3 flex justify-center sm:justify-end">
           <Suspense fallback={null}>
             <PredictionMatchScheduleTopNoticeRuntime
               kind={topNoticeKind}

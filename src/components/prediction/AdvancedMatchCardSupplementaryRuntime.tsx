@@ -88,7 +88,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       ) : null}
 
       {shouldShowEmptyState ? (
-        <div className="text-center text-[16px] text-gray-500 dark:text-white">표시할 경기 상세 정보가 없습니다.</div>
+        <div className="text-center text-body text-gray-500 dark:text-white">표시할 경기 상세 정보가 없습니다.</div>
       ) : null}
 
       {shouldShowManualTimelineState ? (
@@ -100,13 +100,13 @@ export default function AdvancedMatchCardSupplementaryRuntime({
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
             경기 주요 기록
           </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-4 text-[16px] text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-4 text-body text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-100">
             <div className="flex items-start gap-2">
               <PredictionWarningTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="min-w-0">
                 <p className="font-bold">경기 주요 기록 입력이 필요합니다.</p>
                 <p className="mt-1 leading-relaxed">{PREDICTION_MANUAL_TIMELINE_MESSAGE}</p>
-                <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-[13px] text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
+                <p className="mt-2 inline-flex w-fit rounded border border-amber-300/70 bg-amber-100/70 px-2 py-0.5 font-mono text-13 text-amber-900 dark:border-amber-300/50 dark:bg-amber-900/30 dark:text-amber-100">
                   {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
                 </p>
               </div>
@@ -116,7 +116,7 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       ) : null}
 
       {refereeSummary ? (
-        <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-[16px] text-gray-500 dark:text-white">
+        <div className="border-t border-gray-100 dark:border-border pt-4 text-center text-body text-gray-500 dark:text-white">
           심판: {refereeSummary.playerName || refereeSummary.detail || '정보 없음'}
         </div>
       ) : null}
@@ -124,27 +124,27 @@ export default function AdvancedMatchCardSupplementaryRuntime({
       {shouldShowMatchEnvironment ? (
         <section>
           <div
-            className="mb-3 flex items-center gap-2 text-[16px] font-bold text-gray-900 dark:text-white"
+            className="mb-3 flex items-center gap-2 text-body font-bold text-gray-900 dark:text-white"
             style={headingTextStyle}
           >
             <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-foreground" />
             경기 환경
           </div>
-          <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-[16px] sm:grid-cols-3 sm:gap-3">
+          <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-gray-100 dark:border-border bg-white dark:bg-secondary/40 px-4 py-3 text-body sm:grid-cols-3 sm:gap-3">
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-white">관중</p>
+              <p className="text-body text-gray-400 dark:text-white">관중</p>
               <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {attendanceLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>
             </div>
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-white">날씨</p>
+              <p className="text-body text-gray-400 dark:text-white">날씨</p>
               <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {weatherLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>
             </div>
             <div className="rounded-lg bg-slate-50/70 px-3 py-2.5 dark:bg-secondary/60">
-              <p className="text-[16px] text-gray-400 dark:text-white">경기시간</p>
+              <p className="text-body text-gray-400 dark:text-white">경기시간</p>
               <p className="mt-1 font-bold text-gray-800 dark:text-white">
                 {gameTimeLabel || (shouldShowMatchEnvironmentLoading ? '불러오는 중' : '정보 없음')}
               </p>

@@ -19,6 +19,19 @@ export interface CoachBriefingPolicy {
   analysisType: CoachAnalysisType;
 }
 
+export interface CoachAutoBriefingSourceReadyInput {
+  game?: {
+    gameId?: string | null;
+    gameDate?: string | null;
+    homeTeam?: string | null;
+    awayTeam?: string | null;
+  } | null;
+  gameDetail?: {
+    gameId?: string | null;
+  } | null;
+  analysisType: CoachAnalysisType;
+}
+
 const COMPLETED_STATUS_BUCKETS = new Set([
   'COMPLETED',
   'FINAL',
@@ -65,4 +78,33 @@ export const resolveCoachBriefingPolicy = ({
       gameStatusBucket,
     }),
   };
+};
+
+const normalizeCoachAutoBriefingText = (value?: string | null): string => (
+  typeof value === 'string' ? value.trim() : ''
+);
+
+export const isCoachAutoBriefingSourceReady = ({
+  game,
+  gameDetail,
+  analysisType,
+}: CoachAutoBriefingSourceReadyInput): boolean => {
+  const gameId = normalizeCoachAutoBriefingText(game?.gameId);
+  if (!gameId) {
+    return false;
+  }
+
+  if (normalizeCoachAutoBriefingText(gameDetail?.gameId) === gameId) {
+    return true;
+  }
+
+  if (analysisType !== 'game_preview') {
+    return false;
+  }
+
+  return Boolean(
+    normalizeCoachAutoBriefingText(game?.gameDate)
+    && normalizeCoachAutoBriefingText(game?.homeTeam)
+    && normalizeCoachAutoBriefingText(game?.awayTeam)
+  );
 };

@@ -38,6 +38,25 @@ export function riskSevColor(level: 0 | 1 | 2): string {
     return level === 0 ? RISK_SEV.high : level === 1 ? RISK_SEV.mid : RISK_SEV.low;
 }
 
+const RISK_AREA_LABELS: Record<string, string> = {
+    overall: '종합 리스크',
+    lineup: '라인업 변수',
+    offense: '득점 연결',
+    batting: '득점 연결',
+    bullpen: '불펜 운영',
+    pitching: '마운드 운영',
+    starter: '선발 매치업',
+    form: '최근 흐름',
+    weather: '환경 변수',
+    defense: '수비 집중',
+};
+
+export function resolveRiskAreaLabel(area?: string | null): string {
+    const normalized = String(area || '').trim();
+    if (!normalized) return '리스크';
+    return RISK_AREA_LABELS[normalized.toLowerCase()] || normalized;
+}
+
 export function riskImpactTo(
     level: 0 | 1 | 2,
     isPositive: boolean,

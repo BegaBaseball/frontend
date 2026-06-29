@@ -1,3 +1,16 @@
+/**
+ * Coach analysis card — intentionally isolated theme palette.
+ *
+ * Deliberate, self-contained LIGHT/DARK palette for the AI Coach result/dialog
+ * cards (consumed via inline styles in CoachAnalysisResultView). The raw
+ * hex/rgba literals here are BY DESIGN — the card needs finer-grained,
+ * dark-mode-aware surfaces (slate/emerald/rose/amber, paper textures) than the
+ * app's semantic CSS tokens provide. Do NOT migrate these to the --status-* or
+ * neutral tokens; it would cause visual regression.
+ *
+ * The ONLY exception is the brand green, which references the single source of
+ * truth in index.css (--brand-primary-rest). See docs/design-tokens.md.
+ */
 export const RISK_SEV = {
     high: '#dc2626', // level 0
     mid: '#d97706',  // level 1
@@ -112,7 +125,7 @@ const LIGHT: CoachTokens = {
     c1SecChipRiskBg: '#fef2f2',
     c1SecChipRiskFg: '#b91c1c',
     c1SecChipDefBg: '#f0f9f6',
-    c1SecChipDefFg: '#1b4338',
+    c1SecChipDefFg: 'rgb(var(--brand-primary-rest))', // brand green — SSOT: index.css
     c1HeroWinnerFrom: '#ecfdf5',
     c1HeroWinnerTo: '#ffffff',
     c1HeroLoserBg: '#fafafa',
@@ -134,7 +147,7 @@ const LIGHT: CoachTokens = {
     c1InsPosBg: '#f0fdf9',
     c1InsDefBorder: '#e5e7eb',
     c1InsDefBg: '#ffffff',
-    c1InsDefIcon: '#1b4338',
+    c1InsDefIcon: 'rgb(var(--brand-primary-rest))', // brand green — SSOT: index.css
 };
 
 const DARK: CoachTokens = {
@@ -145,13 +158,13 @@ const DARK: CoachTokens = {
     textColor: '#e5e7eb',
     axisColor: '#374151',
     tickColor: '#4b5563',
-    tickLabel: '#6b7280',
-    subColor: '#6b7280',
-    headerColor: '#9ca3af',
+    tickLabel: '#cbd5e1',
+    subColor: '#cbd5e1',
+    headerColor: '#d1d5db',
     headerBg: '#111827',
     headerBorder: '#1f2937',
-    headerText: '#6b7280',
-    subColorStrong: '#6b7280',
+    headerText: '#cbd5e1',
+    subColorStrong: '#d1d5db',
     pillBgHome: 'rgba(220,38,38,0.15)',
     pillBgAway: 'rgba(5,150,105,0.15)',
     pillBgBoth: 'rgba(133,77,14,0.15)',

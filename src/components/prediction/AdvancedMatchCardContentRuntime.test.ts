@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { registerHooks } from 'node:module';
 import test from 'node:test';
 
 import { createElement } from 'react';
@@ -7,6 +9,67 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import AdvancedMatchCardSupplementaryRuntime from './AdvancedMatchCardSupplementaryRuntime';
 import { shouldRenderPredictionCoachBriefing } from '../../utils/predictionCoachVisibility';
 import { getPredictionManualDataUiState } from '../../utils/predictionManualDataCopy';
+import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
+
+registerHooks({
+  load(url, context, nextLoad) {
+    if (url.endsWith('.png')) {
+      return {
+        format: 'module',
+        shortCircuit: true,
+        source: 'export default "/test-team-logo.png";',
+      };
+    }
+
+    return nextLoad(url, context);
+  },
+});
+
+const {
+  default: AdvancedMatchCardContentRuntime,
+  shouldShowPredictionManualScoreboardState,
+} = await import('./AdvancedMatchCardContentRuntime');
+
+const readDetailLoadingSkeletonSource = () => readFileSync(
+  new URL('./PredictionDetailLoadingSkeleton.tsx', import.meta.url),
+  'utf-8'
+);
+
+const renderMatchCardContent = (
+  overrides: Partial<AdvancedMatchCardContentRuntimeProps> = {},
+) => renderToStaticMarkup(createElement(AdvancedMatchCardContentRuntime, {
+  game: {
+    gameId: '20260625LGKT0',
+    gameDate: '2026-06-25',
+    awayTeam: 'LG',
+    homeTeam: 'KT',
+    stadium: '수원',
+    startTime: '18:30',
+  },
+  gameDetail: null,
+  gameDetailLoading: false,
+  gameDetailRefreshing: false,
+  gameDetailError: null,
+  gameDetailErrorCode: null,
+  gameDetailActions: createElement('button', { type: 'button' }, '다시 시도'),
+  coachBriefing: null,
+  awayColor: '#c30452',
+  homeColor: '#000000',
+  awayTeamName: 'LG',
+  homeTeamName: 'KT',
+  awayPitcherName: '발표 전',
+  homePitcherName: '발표 전',
+  awayScoreForDisplay: '-',
+  homeScoreForDisplay: '-',
+  isDarkMode: false,
+  isPostponedOrCancelled: false,
+  isCancelledStatus: false,
+  statusCode: 'SCHEDULED',
+  shouldHideResultSections: false,
+  isScoreboardLoading: false,
+  inningRows: {},
+  ...overrides,
+}));
 
 test('getPredictionManualDataUiState는 수동 야구 데이터 계약의 사용자 문구를 한 곳에서 제공한다', () => {
   const state = getPredictionManualDataUiState('MANUAL_BASEBALL_DATA_REQUIRED');
@@ -14,7 +77,7 @@ test('getPredictionManualDataUiState는 수동 야구 데이터 계약의 사용
   assert.ok(state);
   assert.equal(state.code, 'MANUAL_BASEBALL_DATA_REQUIRED');
   assert.match(state.summaryMessage, /임의로 채우지 않습니다/);
-  assert.match(state.scoreboardMessage, /최종 스코어만 표시 중입니다/);
+  assert.match(state.scoreboardMessage, /game_inning_scores 또는 game_events 데이터/);
   assert.match(state.coachMessage, /AI 코치 분석 캐시가 있으면/);
   assert.equal(getPredictionManualDataUiState('SERVER'), null);
 });
@@ -35,6 +98,115 @@ test('shouldRenderPredictionCoachBriefing는 수동 데이터 상태를 코치 �
     isPostponedOrCancelled: true,
     gameDetailErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
   }), false);
+});
+
+test('AdvancedMatchCardContentRuntime는 최초 상세 로딩을 카드 내부 skeleton으로 표시한다', () => {
+  const html = renderMatchCardContent({
+    gameDetailLoading: true,
+    gameDetail: null,
+    gameDetailError: null,
+    isScoreboardLoading: true,
+  });
+
+  assert.match(html, /data-testid="prediction-detail-loading-skeleton"/);
+  assert.doesNotMatch(html, /data-testid="prediction-detail-refresh-indicator"/);
+  assert.doesNotMatch(html, /data-testid="prediction-detail-error-banner"/);
+  assert.doesNotMatch(html, /경기 정보를 불러오는 중입니다/);
+  assert.doesNotMatch(html, /상세 데이터를 준비 중입니다/);
+});
+
+test('PredictionDetailLoadingSkeleton는 상세 영역 안의 최소 placeholder만 렌더링한다', () => {
+  const source = readDetailLoadingSkeletonSource();
+
+  assert.match(source, /data-testid="prediction-detail-loading-skeleton"/);
+  assert.match(source, /min-h-\[/);
+  assert.doesNotMatch(source, /상세 데이터를 준비 중입니다/);
+  assert.doesNotMatch(source, /PredictionLoaderIcon/);
+});
+
+test('AdvancedMatchCardContentRuntime는 상세 갱신 중 기존 콘텐츠와 작은 갱신 표시를 함께 유지한다', () => {
+  const html = renderMatchCardContent({
+    gameDetail: {
+      gameId: '20260625LGKT0',
+      gameDate: '2026-06-25',
+      awayTeam: 'LG',
+      homeTeam: 'KT',
+      stadium: '수원',
+      startTime: '18:30',
+      homePitcher: '홈투수',
+      awayPitcher: '원정투수',
+    },
+    gameDetailLoading: false,
+    gameDetailRefreshing: true,
+    isScoreboardLoading: false,
+    awayPitcherName: '원정투수',
+    homePitcherName: '홈투수',
+  });
+
+  assert.match(html, /data-testid="prediction-detail-refresh-indicator"/);
+  assert.match(html, /선발 투수/);
+  assert.match(html, /홈투수/);
+  assert.doesNotMatch(html, /data-testid="prediction-detail-loading-skeleton"/);
+});
+
+test('AdvancedMatchCardContentRuntime는 상세 에러 배너와 재시도 액션을 유지한다', () => {
+  const html = renderMatchCardContent({
+    gameDetailLoading: false,
+    gameDetailError: '경기 상세를 불러오지 못했습니다.',
+    gameDetailActions: createElement('button', { type: 'button' }, '다시 시도'),
+  });
+
+  assert.match(html, /data-testid="prediction-detail-error-banner"/);
+  assert.match(html, /경기 상세를 불러오지 못했습니다/);
+  assert.match(html, /다시 시도/);
+  assert.doesNotMatch(html, /data-testid="prediction-detail-loading-skeleton"/);
+});
+
+test('shouldShowPredictionManualScoreboardState는 LIVE 경기의 빈 스코어보드를 수동 데이터 필요 상태로 본다', () => {
+  assert.equal(shouldShowPredictionManualScoreboardState({
+    gameDetailErrorCode: null,
+    liveStatusErrorCode: null,
+    gameDetailLoading: false,
+    shouldHideResultSections: false,
+    inningRowCount: 0,
+    statusCode: 'LIVE',
+    awayScoreForDisplay: '-',
+    homeScoreForDisplay: '-',
+  }), true);
+
+  assert.equal(shouldShowPredictionManualScoreboardState({
+    gameDetailErrorCode: null,
+    liveStatusErrorCode: null,
+    gameDetailLoading: false,
+    shouldHideResultSections: false,
+    inningRowCount: 0,
+    statusCode: 'SCHEDULED',
+    awayScoreForDisplay: '-',
+    homeScoreForDisplay: '-',
+  }), false);
+
+  assert.equal(shouldShowPredictionManualScoreboardState({
+    gameDetailErrorCode: null,
+    liveStatusErrorCode: 'MANUAL_BASEBALL_DATA_REQUIRED',
+    gameDetailLoading: false,
+    shouldHideResultSections: false,
+    inningRowCount: 0,
+    statusCode: 'SCHEDULED',
+    awayScoreForDisplay: '-',
+    homeScoreForDisplay: '-',
+  }), true);
+});
+
+test('AdvancedMatchCardContentRuntime는 투표 패널만 표시하고 중복 응원 현황을 렌더링하지 않는다', () => {
+  const html = renderMatchCardContent({
+    votePanel: createElement('section', { 'data-testid': 'prediction-vote-panel' }, '승리 팀 예측'),
+  });
+
+  const votePanelIndex = html.indexOf('data-testid="prediction-vote-panel"');
+
+  assert.ok(votePanelIndex >= 0);
+  assert.doesNotMatch(html, /응원 현황/);
+  assert.doesNotMatch(html, /data-testid="cheering-gauge-caption"/);
 });
 
 test('AdvancedMatchCardSupplementaryRuntime는 주요 기록 결측을 일반 빈 상태와 구분한다', () => {

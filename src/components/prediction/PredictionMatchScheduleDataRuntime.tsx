@@ -2,7 +2,8 @@ import { lazy, Suspense } from 'react';
 
 import PredictionLoadingView from './PredictionLoadingView';
 
-const PredictionMatchScheduleDataContent = lazy(() => import('./PredictionMatchScheduleDataContent'));
+const predictionMatchScheduleDataContentModule = import('./PredictionMatchScheduleDataContent');
+const PredictionMatchScheduleDataContent = lazy(() => predictionMatchScheduleDataContentModule);
 
 export default function PredictionMatchScheduleDataRuntime() {
   return (

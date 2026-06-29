@@ -518,10 +518,10 @@ export const getCoachAnalysisFocusSectionNotice = (
   }
 
   if (labels.length === 1) {
-    return `${labels[0]} 섹션은 실데이터 부족으로 축약되었습니다.`;
+    return `${labels[0]} 섹션은 확인된 정보 범위로 축약되었습니다.`;
   }
 
-  return `${labels.join(', ')} 섹션은 실데이터 부족으로 축약되었습니다.`;
+  return `${labels.join(', ')} 섹션은 확인된 정보 범위로 축약되었습니다.`;
 };
 
 export const getCoachGenerationModeNotice = (

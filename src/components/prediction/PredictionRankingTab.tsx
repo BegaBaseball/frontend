@@ -26,10 +26,11 @@ export default function PredictionRankingTab({ isLoggedIn }: PredictionRankingTa
       <Suspense
         fallback={(
           <Card className="p-6 bg-white/90 border border-slate-200/70 shadow-sm dark:bg-card dark:border-border dark:shadow-md text-center rounded-2xl">
-            <div className="inline-flex items-center gap-2 text-[16px] text-slate-500 dark:text-white">
+            <div className="inline-flex items-center gap-2 text-body text-slate-500 dark:text-white">
               <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
               순위 예측 화면을 준비하고 있습니다.
             </div>
+            <div aria-hidden="true" className="mx-auto mt-3 h-2 w-36 animate-pulse rounded-full bg-slate-200 motion-reduce:animate-none dark:bg-secondary" />
           </Card>
         )}
       >
