@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { DEV_PROXY_UPSTREAM_UNAVAILABLE } from './httpClientCore';
 import { PublicApiError, publicGet, publicPost } from './publicClient';
 
 test('publicGet appends query params to the public api path', async (t) => {
@@ -47,6 +48,25 @@ test('publicGet throws a parseable public api error when the server responds wit
       assert.equal(error.status, 500);
       assert.equal(error.data?.code, 'OFFSEASON_DOWN');
       assert.equal(error.message, 'Internal Server Error');
+      return true;
+    },
+  );
+});
+
+test('publicGet classifies an empty development proxy 500 as upstream unavailable', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('', {
+    headers: { 'content-type': 'text/plain' },
+    status: 500,
+    statusText: 'Internal Server Error',
+  }));
+
+  await assert.rejects(
+    publicGet('/matches/bounds'),
+    (error: unknown) => {
+      assert.ok(error instanceof PublicApiError);
+      assert.equal(error.status, 500);
+      assert.equal(error.data?.code, DEV_PROXY_UPSTREAM_UNAVAILABLE);
+      assert.match(error.message, /Development API proxy upstream is unavailable/);
       return true;
     },
   );

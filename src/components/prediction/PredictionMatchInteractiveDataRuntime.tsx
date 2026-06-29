@@ -66,8 +66,6 @@ export default function PredictionMatchInteractiveDataRuntime() {
     emitFlowEvent,
     showPredictionErrorOverlay,
     confirm,
-    selectedGame,
-    selectGame,
   } = usePredictionInteractiveData();
 
   const pendingVoteActionIdRef = useRef(0);
@@ -162,8 +160,6 @@ export default function PredictionMatchInteractiveDataRuntime() {
     <Suspense fallback={null}>
       <PredictionMatchInteractiveView
         currentGame={currentGame}
-        selectedGame={selectedGame}
-        onSelectGame={selectGame}
         currentDateGames={currentDateGames}
         currentDate={currentDate}
         currentDayNavigationMeta={currentDayNavigationMeta}
@@ -224,8 +220,6 @@ export default function PredictionMatchInteractiveDataRuntime() {
     currentDateIndex,
     currentDayNavigationMeta,
     currentGame,
-    selectedGame,
-    selectGame,
     currentUserVoteResolutionState,
     currentGameDetail,
     currentGameDetailError,

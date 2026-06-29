@@ -26,7 +26,7 @@ export default function AdminPageRuntimeContent() {
                   data-testid={'testId' in item ? item.testId : undefined}
                   aria-pressed={isActive}
                   onClick={() => setActiveTab(value)}
-                  className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-[14px] font-semibold transition-all duration-300 ${
+                  className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-caption font-semibold transition-all duration-300 ${
                     isActive
                       ? activeClassName
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -45,7 +45,7 @@ export default function AdminPageRuntimeContent() {
         </Suspense>
       </div>
 
-      <footer className="mt-10 text-center text-slate-600 text-[14px]">
+      <footer className="mt-10 text-center text-slate-600 text-caption">
         <p>BEGA Platform Admin Dashboard v2.0</p>
       </footer>
     </>

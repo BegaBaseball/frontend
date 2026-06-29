@@ -86,12 +86,12 @@ export function SeatMapSectionFinder<TSection>({
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>블록 검색</h3>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+            <p className="mt-0.5 text-11 font-semibold text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
               {visibleBlocks.length}/{blocks.length}개 표시
             </p>
           </div>
           <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black"
+            className="shrink-0 rounded-full px-2.5 py-1 text-11 font-black"
             style={{ background: `${accentColor}1a`, color: accentColor }}
           >
             {stadiumShortLabel}
@@ -151,7 +151,7 @@ export function SeatMapSectionFinder<TSection>({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-black text-white"
+                          className="rounded-full px-2 py-0.5 text-10 font-black text-white"
                           style={{ background: accent }}
                         >
                           {adapter.getBlock(block)}
@@ -160,7 +160,7 @@ export function SeatMapSectionFinder<TSection>({
                           {adapter.getName(block)}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+                      <p className="mt-1 truncate text-11 font-semibold text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
                         {cat?.label} · {adapter.getSideLabel(block)} · {adapter.getFanRoleLabel(block)}
                       </p>
                     </div>

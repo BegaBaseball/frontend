@@ -34,7 +34,7 @@ const RankingItem = React.memo(function RankingItem({
   const movementStateClassName = isDragging
     ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 dark:ring-primary/40'
     : isRecentlyMoved
-      ? 'border-emerald-500 bg-emerald-50 shadow-md ring-2 ring-emerald-200 dark:border-emerald-500/80 dark:bg-emerald-950/30 dark:ring-emerald-500/30'
+      ? 'border-emerald-500 bg-emerald-50 shadow-md ring-2 ring-emerald-200 animate-fade-in-up motion-reduce:animate-none dark:border-emerald-500/80 dark:bg-emerald-950/30 dark:ring-emerald-500/30'
       : '';
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
@@ -108,7 +108,7 @@ const RankingItem = React.memo(function RankingItem({
       {index === PLAYOFF_TEAMS && (
         <div className="my-4 flex items-center gap-4 opacity-80">
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
-          <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[16px] font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
+          <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-body font-bold text-red-500 dark:border-red-800 dark:bg-red-900/20">
             가을야구 진출 (PS)
           </span>
           <div className="h-px flex-1 border-t border-dashed border-red-500 bg-red-400/50 dark:bg-red-500/50" />
@@ -131,7 +131,7 @@ const RankingItem = React.memo(function RankingItem({
             ? `${index + 1}위: ${team.name}${canReorder ? '. 위아래 버튼 또는 Ctrl+화살표로 순위 변경' : ''}`
             : `${index + 1}위: 팀 미선택`
         }
-        className={`border rounded-xl p-3 transition-[background-color,border-color,box-shadow] duration-150 ${
+        className={`border rounded-xl p-3 transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none ${
           team
             ? `${isPlayoffTeam ? 'border-primary/30 dark:border-primary/50' : 'border-gray-200 dark:border-border'} bg-white dark:bg-card shadow-sm ${!alreadySaved && 'cursor-grab active:cursor-grabbing'}`
             : 'border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/40'
@@ -191,7 +191,7 @@ const RankingItem = React.memo(function RankingItem({
               )}
             </>
           ) : (
-            <div className="flex-1 text-center text-gray-400 dark:text-white text-[16px]">
+            <div className="flex-1 text-center text-gray-400 dark:text-white text-body">
               팀을 선택하세요
             </div>
           )}

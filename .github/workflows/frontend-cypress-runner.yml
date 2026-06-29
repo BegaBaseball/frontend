@@ -1,0 +1,87 @@
+name: Frontend Cypress Runner
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/cypress-run.mjs"
+      - "scripts/cypress-run.test.mjs"
+      - "scripts/qa-presets.mjs"
+      - "scripts/test-e2e.mjs"
+      - "cypress/e2e/runner-docker-smoke.cy.ts"
+      - ".github/workflows/frontend-cypress-runner.yml"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Runner verification suite
+        required: true
+        default: contracts
+        type: choice
+        options:
+          - contracts
+          - docker-smoke
+
+concurrency:
+  group: frontend-cypress-runner-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cypress-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        env:
+          CYPRESS_INSTALL_BINARY: "0"
+        run: npm ci
+
+      - name: Run Cypress runner contract tests
+        run: npm run test:cypress-runner
+
+      - name: Check Docker runtime
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
+        run: docker info
+
+      - name: Start Vite dev server
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
+        env:
+          VITE_SUPPRESS_CYPRESS_PROXY_ERRORS: "true"
+        run: |
+          npm run dev -- --host 0.0.0.0 --port 5176 > /tmp/frontend-cypress-runner-vite.log 2>&1 &
+          echo "$!" > /tmp/frontend-cypress-runner-vite.pid
+
+      - name: Wait for Vite dev server
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
+        run: |
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:5176/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/frontend-cypress-runner-vite.log
+          exit 1
+
+      - name: Run Docker Cypress smoke
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
+        env:
+          CYPRESS_DOCKER_BASE_URL: http://host.docker.internal:5176
+          CYPRESS_SKIP_VERIFY: "1"
+          CYPRESS_VERIFY_TIMEOUT: "240000"
+        run: npm run test:cypress-runner:docker-smoke
+
+      - name: Print Vite dev server log
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
+        run: cat /tmp/frontend-cypress-runner-vite.log || true

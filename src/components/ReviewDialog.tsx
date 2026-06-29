@@ -91,7 +91,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
           aria-modal="true"
           aria-labelledby={titleId}
           onClick={(event) => event.stopPropagation()}
-          className="w-full rounded-xl border bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-[400px]"
+          className="w-full rounded-xl border bg-white shadow-dialog ring-1 ring-black/5 dark:border-border dark:bg-card sm:max-w-[400px]"
         >
           <div className="border-b border-gray-100 px-5 py-4 dark:border-border">
             <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -122,7 +122,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
                     </button>
                   ))}
                 </div>
-                <span className="h-5 text-[16px] text-gray-500">
+                <span className="h-5 text-body text-gray-500">
                   {ratingLabels[hoverRating || rating] || '별점을 선택해주세요'}
                 </span>
               </div>
@@ -132,9 +132,9 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
                   value={comment}
                   onChange={(event) => setComment(event.target.value.slice(0, 200))}
                   placeholder="한줄 후기를 남겨주세요 (선택)"
-                  className="min-h-[80px] w-full resize-none rounded-md border border-input bg-input-background px-3 py-2 text-base outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+                  className="min-h-[80px] w-full resize-none rounded-md border border-input bg-input-background px-3 py-2 text-base outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
                 />
-                <span className="text-right text-[16px] font-semibold text-gray-400">{comment.length}/200</span>
+                <span className="text-right text-body font-semibold text-gray-400">{comment.length}/200</span>
               </div>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
             <button
               type="button"
               onClick={handleClose}
-              className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 py-2 text-[16px] font-semibold text-foreground transition-all hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
+              className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 py-2 text-body font-semibold text-foreground transition-all hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
             >
               취소
             </button>
@@ -151,7 +151,7 @@ export default function ReviewDialog({ isOpen, onClose, partyId, reviewee, onSuc
               type="button"
               onClick={handleSubmit}
               disabled={rating === 0 || isSubmitting}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-[16px] font-semibold text-white transition-all disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-body font-semibold text-white transition-all disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90"
             >
               {isSubmitting ? '제출 중...' : '리뷰 제출'}
             </button>

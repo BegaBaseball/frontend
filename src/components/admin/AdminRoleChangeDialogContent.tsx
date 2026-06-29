@@ -47,7 +47,7 @@ export default function AdminRoleChangeDialogContent({
             <span className="text-slate-200 font-semibold">{pendingRoleChange?.userName}</span>
             {' '}({pendingRoleChange?.userEmail}) 의 역할을 변경합니다.
           </span>
-          <span className="flex items-center gap-2 text-[14px]">
+          <span className="flex items-center gap-2 text-caption">
             <AdminBadge className="bg-slate-700 text-slate-300 border-0">
               {pendingRoleChange?.currentRole === 'ROLE_ADMIN' ? '관리자' : '일반 사용자'}
             </AdminBadge>
@@ -90,7 +90,7 @@ export default function AdminRoleChangeDialogContent({
       )}
     >
       <div className="px-1 pb-2">
-          <label className="block text-[14px] text-slate-400 mb-1">변경 사유 (선택)</label>
+          <label className="block text-caption text-slate-400 mb-1">변경 사유 (선택)</label>
           <Input
             data-testid="admin-role-change-reason"
             placeholder="역할 변경 사유를 입력하세요..."

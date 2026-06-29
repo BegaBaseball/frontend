@@ -103,7 +103,7 @@ function CommentItemComponent({
               >
                 {comment.author}
               </p>
-              <p className="text-[16px] font-bold text-gray-500 dark:text-white">
+              <p className="text-body font-bold text-gray-500 dark:text-white">
                 {comment.isPending ? '전송 중...' : comment.timeAgo}
               </p>
             </div>
@@ -118,10 +118,10 @@ function CommentItemComponent({
               </button>
             )}
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-[16px] font-bold text-gray-700 dark:text-white leading-relaxed">
+          <p className="mt-2 whitespace-pre-wrap text-body font-bold text-gray-700 dark:text-white leading-relaxed">
             {comment.content}
           </p>
-          <div className="mt-3 flex items-center gap-4 text-[16px] text-gray-500 dark:text-white">
+          <div className="mt-3 flex items-center gap-4 text-body text-gray-500 dark:text-white">
             <button
               type="button"
               onClick={() => onCommentLike(comment.id)}

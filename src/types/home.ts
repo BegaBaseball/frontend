@@ -1,4 +1,5 @@
 import type { MateParty } from './mate';
+import type { ManualBaseballDataRequest } from './manualBaseballData';
 
 // types/home.ts
 export interface Game {
@@ -75,6 +76,8 @@ export interface HomeBootstrapLoadState {
     timedOut?: boolean;
     timedOutSections?: string[];
     failedSections?: string[];
+    failureReason?: 'manual-data-required' | 'request-failed' | null;
+    manualDataRequest?: ManualBaseballDataRequest | null;
 }
 
 export interface HomeBootstrapResponse {
@@ -90,8 +93,4 @@ export interface HomeWidgetsResponse {
     hotCheerPosts: import('../api/cheerApi').CheerPost[];
     featuredMates: FeaturedMateCard[];
     rankingSnapshot: RankingSnapshot;
-}
-
-export interface HomeProps {
-    onNavigate?: (page: string) => void;
 }

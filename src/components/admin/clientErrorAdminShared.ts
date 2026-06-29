@@ -16,7 +16,7 @@ export const channelBadgeClass: Record<'telegram' | 'slack', string> = {
   slack: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
 
-export const adminNativeSelectClassName = 'rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-[14px] text-slate-100 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60';
+export const adminNativeSelectClassName = 'rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-caption text-slate-100 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 export const formatDetailedDateTime = (value: string | null | undefined) => {
   if (!value) {

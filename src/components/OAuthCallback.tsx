@@ -89,7 +89,7 @@ export default function OAuthCallback() {
           <p className="font-semibold mb-2 text-red-600 dark:text-red-400">
             로그인 처리에 실패했습니다.
           </p>
-          <p className="text-muted-foreground text-[16px] mb-4">
+          <p className="text-muted-foreground text-body mb-4">
             로그인 페이지로 돌아가 다시 시도해주세요.
           </p>
           <Button onClick={() => navigate(retryLoginPath, { replace: true })} variant="outline">

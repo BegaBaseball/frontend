@@ -41,9 +41,9 @@ export default function StadiumVisitList({ entries }: StadiumVisitListProps) {
                     <div className="space-y-4 max-h-[300px] overflow-y-auto scrollbar-hide pr-2">
                         {stadiumStats.map((item, index) => (
                             <div key={item.name} className="space-y-1">
-                                <div className="flex justify-between text-[16px]">
-                                    <span className="font-semibold text-foreground flex items-center gap-2">
-                                        <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[16px] font-bold ${index < 3 ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                            <div className="flex justify-between text-body">
+                                  <span className="font-semibold text-foreground flex items-center gap-2">
+                                        <span className={`flex items-center justify-center w-5 h-5 rounded-full text-body font-bold ${index < 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                                             {index + 1}
                                         </span>
                                         {item.name}

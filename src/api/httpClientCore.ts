@@ -3,6 +3,15 @@ import { getApiBaseUrl } from './apiBase';
 export type ApiParamValue = string | number | boolean | null | undefined;
 
 export const DEFAULT_API_TIMEOUT_MS = 10_000;
+export const DEV_PROXY_UPSTREAM_UNAVAILABLE = 'DEV_PROXY_UPSTREAM_UNAVAILABLE';
+
+export interface ApiClientErrorData {
+  code?: string;
+  data?: unknown;
+  error?: string;
+  errors?: Record<string, unknown>;
+  message?: string;
+}
 
 export const isAbsoluteUrl = (value: string): boolean => /^https?:\/\//i.test(value);
 
@@ -43,6 +52,62 @@ export const parseResponseBody = async (response: Response): Promise<unknown> =>
 
   const text = await response.text();
   return text ? { message: text } : null;
+};
+
+const isDevelopmentRuntime = (): boolean => {
+  const viteEnv = import.meta.env ?? {};
+
+  if (viteEnv.PROD === true) {
+    return false;
+  }
+
+  if (viteEnv.DEV === true || viteEnv.MODE === 'development') {
+    return true;
+  }
+
+  return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
+};
+
+const isSameOriginApiRequest = (requestUrl: string): boolean => {
+  if (requestUrl.startsWith('/api')) {
+    return true;
+  }
+
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(requestUrl, window.location.origin);
+    return parsed.origin === window.location.origin && parsed.pathname.startsWith('/api');
+  } catch {
+    return false;
+  }
+};
+
+export const buildDevProxyUnavailableErrorData = (
+  response: Response,
+  responseBody: unknown,
+  requestUrl: string,
+): ApiClientErrorData | null => {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  const isEmptyTextProxyFailure = response.status === 500
+    && responseBody === null
+    && contentType.startsWith('text/plain');
+
+  if (!isDevelopmentRuntime() || !isEmptyTextProxyFailure || !isSameOriginApiRequest(requestUrl)) {
+    return null;
+  }
+
+  return {
+    code: DEV_PROXY_UPSTREAM_UNAVAILABLE,
+    error: 'Development API proxy upstream is unavailable',
+    message: 'Development API proxy upstream is unavailable. Start the backend on VITE_PROXY_TARGET before retrying.',
+    data: {
+      requestUrl,
+      hint: 'Run cd bega_backend/BEGA_PROJECT && ./gradlew bootRun, then retry through the Vite dev server.',
+    },
+  };
 };
 
 export const isBodyInitLike = (value: unknown): value is BodyInit =>

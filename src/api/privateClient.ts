@@ -1,6 +1,7 @@
 import { requestAuthReissue } from './authReissue';
 import {
   DEFAULT_API_TIMEOUT_MS,
+  buildDevProxyUnavailableErrorData,
   buildApiRequestHeaders,
   buildApiUrl,
   createTimeoutController,
@@ -8,17 +9,11 @@ import {
   parseResponseBody,
   toRequestBody,
 } from './httpClientCore';
-import type { ApiParamValue } from './httpClientCore';
+import type { ApiClientErrorData, ApiParamValue } from './httpClientCore';
 
 type PrivateApiParamValue = ApiParamValue;
 
-interface PrivateApiErrorData {
-  code?: string;
-  data?: unknown;
-  error?: string;
-  errors?: Record<string, unknown>;
-  message?: string;
-}
+type PrivateApiErrorData = ApiClientErrorData;
 
 export class PrivateApiError extends Error {
   data: PrivateApiErrorData | null;
@@ -108,9 +103,10 @@ const privateRequest = async <T>(
     }
 
     if (!response.ok) {
-      const data = typeof responseBody === 'object' && responseBody !== null
+      const parsedData = typeof responseBody === 'object' && responseBody !== null
         ? responseBody as PrivateApiErrorData
         : null;
+      const data = buildDevProxyUnavailableErrorData(response, responseBody, url) ?? parsedData;
       const message = data?.message || data?.error || response.statusText || `Request failed with status ${response.status}`;
       throw new PrivateApiError(response.status, message, data);
     }

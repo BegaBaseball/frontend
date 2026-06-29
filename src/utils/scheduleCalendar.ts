@@ -22,17 +22,65 @@ export const buildScheduleMonthDates = (cursor: Date): Date[] => {
   ));
 };
 
+const parseScheduleDateKey = (value: string | null | undefined): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/.exec(value.trim());
+  if (!match?.groups) {
+    return null;
+  }
+
+  const year = Number(match.groups.year);
+  const month = Number(match.groups.month);
+  const day = Number(match.groups.day);
+  const parsedDate = new Date(year, month - 1, day);
+
+  if (
+    parsedDate.getFullYear() !== year
+    || parsedDate.getMonth() !== month - 1
+    || parsedDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
+export const normalizeScheduleDateKey = (value: string | null | undefined): string | null => {
+  const parsedDate = parseScheduleDateKey(value);
+  return parsedDate ? formatScheduleDateKey(parsedDate) : null;
+};
+
+export const resolveScheduleInitialCursor = (
+  searchParams: URLSearchParams,
+  fallbackDate: Date = new Date(),
+): Date => {
+  const queryDate = parseScheduleDateKey(searchParams.get('date'));
+  const base = queryDate ?? fallbackDate;
+
+  return new Date(base.getFullYear(), base.getMonth(), 1);
+};
+
 export interface ResolveScheduleInitialSelectedDateOptions {
   cursor: Date;
   todayKey: string;
+  requestedDateKey?: string | null;
   gameDateKeys?: Iterable<string | null | undefined>;
 }
 
 export const resolveScheduleInitialSelectedDate = ({
   cursor,
   todayKey,
+  requestedDateKey,
   gameDateKeys = [],
 }: ResolveScheduleInitialSelectedDateOptions): string => {
+  const normalizedRequestedDateKey = normalizeScheduleDateKey(requestedDateKey);
+  if (normalizedRequestedDateKey && isScheduleDateKeyInMonth(normalizedRequestedDateKey, cursor)) {
+    return normalizedRequestedDateKey;
+  }
+
   if (isScheduleDateKeyInMonth(todayKey, cursor)) {
     return todayKey;
   }

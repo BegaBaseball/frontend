@@ -94,7 +94,7 @@ function ColorSwatch({ name, bg, text }: { name: string; bg: string; text: strin
   return (
     <div className={`${bg} ${text} p-4 rounded-lg shadow-sm flex flex-col items-center justify-center aspect-square`}>
       <span className="font-bold">{name}</span>
-      <span className="text-[10px] opacity-70">Variable</span>
+      <span className="text-10 opacity-70">Variable</span>
     </div>
   );
 }

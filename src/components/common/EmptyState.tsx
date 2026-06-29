@@ -46,11 +46,11 @@ export default function EmptyState({
             {icon}
           </div>
         ) : null}
-        <h3 className="text-[18px] font-bold leading-snug tracking-normal text-current">
+        <h3 className="text-18 font-bold leading-snug tracking-normal text-current">
           {title}
         </h3>
         {description ? (
-          <p className="mt-2 text-[15px] font-semibold leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-15 font-semibold leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}

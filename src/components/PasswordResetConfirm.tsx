@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { VALIDATION_RULES } from '../constants/validation';
 import { usePasswordResetConfirm } from '../hooks/usePasswordResetConfirm';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
@@ -66,7 +67,7 @@ export default function PasswordResetConfirm() {
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="password-reset-confirm-form">
             {error ? (
               <AuthStatusPanel tone="error" data-testid="password-reset-confirm-status-panel" role="alert">
-                <p className="text-[16px] font-semibold">{error}</p>
+                <p className="text-body font-semibold">{error}</p>
               </AuthStatusPanel>
             ) : null}
 
@@ -86,7 +87,7 @@ export default function PasswordResetConfirm() {
                     onChange={(event) => handleFieldChange('newPassword', event.target.value)}
                     onBlur={() => handleFieldBlur('newPassword')}
                     className={`auth-input auth-autofill-input pr-12 ${fieldErrors.newPassword ? 'auth-input-error' : ''}`}
-                    placeholder="새 비밀번호를 입력하세요 (최소 8자)"
+                    placeholder={`새 비밀번호를 입력하세요 (최소 ${VALIDATION_RULES.PASSWORD.MIN_LENGTH}자)`}
                     disabled={isLoading || !token}
                     data-testid="password-reset-confirm-new-password"
                   />
@@ -105,7 +106,7 @@ export default function PasswordResetConfirm() {
                   <p className="auth-error-text">* {fieldErrors.newPassword}</p>
                 ) : (
                   <p className="auth-helper-text">
-                    • 8자 이상
+                    • {VALIDATION_RULES.PASSWORD.MIN_LENGTH}자 이상
                     <br />
                     • 대문자, 소문자, 숫자, 특수문자(@$!%*?&#) 각 1개 이상 포함
                   </p>
@@ -146,11 +147,11 @@ export default function PasswordResetConfirm() {
               </div>
 
               <AuthStatusPanel tone="default" role="status">
-                <div className="space-y-2 text-[16px]">
+                <div className="space-y-2 text-body">
                   <p className="font-semibold text-foreground">비밀번호 조건</p>
                   <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-                    <li className={formData.newPassword.length >= 8 ? 'text-primary' : undefined}>
-                      최소 8자 이상
+                    <li className={formData.newPassword.length >= VALIDATION_RULES.PASSWORD.MIN_LENGTH ? 'text-primary' : undefined}>
+                      최소 {VALIDATION_RULES.PASSWORD.MIN_LENGTH}자 이상
                     </li>
                     <li className={formData.newPassword === formData.confirmPassword && formData.newPassword ? 'text-primary' : undefined}>
                       비밀번호 일치

@@ -24,7 +24,7 @@ function MateTeamFilterButton({
       variant="outline"
       size="touch"
       aria-pressed={myTeamOnly}
-      className={`${layout === 'rail' ? 'h-10 w-full justify-start rounded-[10px] px-3 text-[13px]' : 'rounded-full px-4 text-[15px]'} font-bold transition-colors ${
+      className={`${layout === 'rail' ? 'h-10 w-full justify-start rounded-10 px-3 text-13' : 'rounded-full px-4 text-15'} font-bold transition-colors ${
         myTeamOnly
           ? FILTER_ACTIVE_CLASS
           : FILTER_IDLE_CLASS

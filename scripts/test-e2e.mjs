@@ -65,7 +65,9 @@ const defaultPort = process.env.CYPRESS_TEST_PORT || resolvedFrontendTarget?.por
 const devServerEnvPrefix = 'VITE_SUPPRESS_CYPRESS_PROXY_ERRORS=true';
 const attachExistingServer = process.env.CYPRESS_ATTACH_EXISTING_SERVER === '1';
 const preferDocker = process.env.CYPRESS_PREFER_DOCKER === '1';
+const disableAutoDockerFallback = process.env.CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK === '1';
 const shouldPreferManagedLocalServer = !resolvedFrontendTarget && !attachExistingServer;
+const isTruthyEnv = (value) => ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 
 let startCommand = `${devServerEnvPrefix} npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
 let targetUrl = resolvedFrontendTarget?.baseUrl || `http://${defaultHost}:${defaultPort}`;
@@ -374,7 +376,7 @@ const runDirectCypressAndExit = (executionPlan, { useDocker = false, useAutoDock
     process.exit(status);
   }
 
-  if (!useDocker && !useAutoDocker) {
+  if (!useDocker && !useAutoDocker && !disableAutoDockerFallback) {
     console.log('\nPrimary Cypress execution failed.');
     console.log('Attempting auto-docker fallback (if Docker is available).');
     console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
@@ -395,7 +397,7 @@ const parseArgs = () => {
   const result = {
     useDocker: false,
     useAutoDocker: false,
-    skipVerify: false,
+    skipVerify: isTruthyEnv(process.env.CYPRESS_SKIP_VERIFY),
     noServer: false,
     host: defaultHost,
     port: defaultPort,
@@ -602,7 +604,7 @@ try {
       process.exit(status ?? 1);
     }
 
-    if (!useDocker && !useAutoDocker) {
+    if (!useDocker && !useAutoDocker && !disableAutoDockerFallback) {
       console.log('Primary execution failed. Trying auto-docker fallback.');
       console.log('Prediction subset rescue: npm run test:e2e:prediction:rescue');
       const rescueStatus = runCypressWithFallback(

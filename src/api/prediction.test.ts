@@ -322,6 +322,37 @@ test('fetchGameDetail은 generated wire 상세 응답을 domain GameDetail로 �
   assert.equal(requestInit?.method, 'GET');
 });
 
+test('fetchGameDetail은 box_score 별칭을 스코어보드 이닝 데이터로 정규화한다', async (t) => {
+  const boxScore = [
+    {
+      inning: '1',
+      team_side: 'away',
+      team_code: 'HH',
+      runs: '2',
+      is_extra: false,
+    },
+  ];
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    gameId: '20260627HHSK0',
+    gameDate: '2026-06-27',
+    stadium: '문학',
+    homeTeam: 'SK',
+    awayTeam: 'HH',
+    gameStatus: 'LIVE',
+    box_score: boxScore,
+    summary: [],
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }));
+
+  const detail = await fetchGameDetail('20260627HHSK0');
+
+  assert.deepEqual(detail.inningScores, boxScore);
+  assert.deepEqual(detail.boxScore, boxScore);
+});
+
 test('fetchVoteStatus는 다양한 응답 키를 표준 구조로 정규화한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
     counts: {
@@ -420,6 +451,33 @@ test('fetchGameLiveSnapshot은 delta 조회 파라미터와 문자중계 응답�
     runs: '1',
     isExtra: false,
   });
+});
+
+test('fetchGameLiveSnapshot은 box_score 별칭을 실시간 이닝 데이터로 정규화한다', async (t) => {
+  const boxScore = [{
+    inning: '2',
+    team_side: 'away',
+    team_code: 'HH',
+    runs: '1',
+    is_extra: false,
+  }];
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    game_id: '20260627HHSK0',
+    game_status: 'IN_PROGRESS',
+    home_score: 0,
+    away_score: 1,
+    box_score: boxScore,
+    events: [],
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }));
+
+  const snapshot = await fetchGameLiveSnapshot('20260627HHSK0');
+
+  assert.deepEqual(snapshot.inningScores, boxScore);
+  assert.deepEqual(snapshot.boxScore, boxScore);
 });
 
 test('fetchGameLiveRelaySnapshot은 원문 문자중계 delta 응답을 정규화한다', async (t) => {

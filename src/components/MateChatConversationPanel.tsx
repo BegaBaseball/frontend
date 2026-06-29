@@ -57,7 +57,7 @@ function ChatEmptyState({
         <MateUsersIcon className="h-8 w-8 text-gray-400 dark:text-white" />
       </div>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
-      <p className="mt-2 max-w-md text-[16px] leading-6 text-gray-500 dark:text-white">{description}</p>
+      <p className="mt-2 max-w-md text-body leading-6 text-gray-500 dark:text-white">{description}</p>
     </div>
   );
 }
@@ -107,17 +107,17 @@ export default function MateChatConversationPanel({
       <Card className={`mt-4 flex-1 overflow-hidden p-3 sm:p-4 ${mateSectionCardClass}`} data-testid="mate-chat-shell">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               Conversation
             </p>
             <h2 className="mt-2 text-lg font-black text-gray-900 dark:text-white">대화 기록</h2>
-            <p className="mt-1 text-[16px] text-gray-600 dark:text-white">
+            <p className="mt-1 text-body text-gray-600 dark:text-white">
               공용 일정, 전달 시간, 체크인 준비는 이 대화 흐름을 기준으로 정리합니다.
             </p>
           </div>
           <span
             className={cn(
-              'inline-flex items-center rounded-full border px-2.5 py-1 text-[16px] font-semibold',
+              'inline-flex items-center rounded-full border px-2.5 py-1 text-body font-semibold',
               isConnected
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-300'
                 : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300',
@@ -153,7 +153,7 @@ export default function MateChatConversationPanel({
                 <div key={group.date}>
                   <div className="mb-4 flex items-center gap-4">
                     <SectionDivider className="flex-1" />
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-[16px] text-gray-500 dark:bg-secondary/80 dark:text-white">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-body text-gray-500 dark:bg-secondary/80 dark:text-white">
                       {group.date}
                     </span>
                     <SectionDivider className="flex-1" />
@@ -174,7 +174,7 @@ export default function MateChatConversationPanel({
                             )}
                           >
                             {!isMyMessage && (
-                              <span className="mb-1 text-[16px] text-gray-600 dark:text-white">
+                              <span className="mb-1 text-body text-gray-600 dark:text-white">
                                 {message.senderName}
                               </span>
                             )}
@@ -200,7 +200,7 @@ export default function MateChatConversationPanel({
                                 {message.message}
                               </p>
                             </div>
-                            <span className="mt-1 text-[16px] text-gray-400 dark:text-white">
+                            <span className="mt-1 text-body text-gray-400 dark:text-white">
                               {formatMessageTime(message.createdAt)}
                             </span>
                           </div>

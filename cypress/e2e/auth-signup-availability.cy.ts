@@ -28,8 +28,8 @@ const fillRequiredSignUpFields = ({
   email: string;
 }) => {
   cy.get('input#name').clear().type(name);
-  cy.get('input#password').clear().type('Test1234!');
-  cy.get('input#confirmPassword').clear().type('Test1234!');
+  cy.get('input#password').clear().type('Test1234!Abc');
+  cy.get('input#confirmPassword').clear().type('Test1234!Abc');
   cy.get('select#favoriteTeam').select('LG 트윈스');
   cy.get('input#handle').clear().type(handle);
   cy.get('input#email').clear().type(email);

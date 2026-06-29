@@ -399,24 +399,27 @@ describe('Prediction Coach Briefing Regression', () => {
       });
     }).as('coachAnalyzeRetry');
 
-    openPredictionPage({ path: '/prediction?gameId=20260601HHSS0&date=2026-06-01' });
+    // 재시도 체인은 실(real)-async SSE 응답이 다음 retry setTimeout 을 arm 한다.
+    // fake clock(cy.tick)은 실 async 를 진행시키지 못해 "응답 처리 전에 시계가 지나가는" 레이스가
+    // 발생하므로(실패 경계가 런마다 이동), 동일 spec 의 다른 in_progress 재시도 테스트와 같이
+    // real clock 으로 구동한다. (clock 복원은 반드시 openPredictionPage 이전 — 이후 복원하면
+    // 초기 요청이 fake clock 에 arm 한 retry 타이머가 폐기되어 재시도가 끊긴다.)
+    cy.get('@appClock').then((clock: any) => {
+      clock.restore();
+    });
+    openPredictionPage({
+      path: '/prediction?gameId=20260601HHSS0&date=2026-06-01',
+      useRealClock: true,
+    });
 
-    cy.tick(2000);
-    cy.wait('@coachAnalyzeRetry');
-    cy.tick(100);
-    cy.tick(2000);
-    // PENDING 첫 지연은 5000ms — 2100ms 시점엔 아직 재시도 없어야 함
-    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 1);
-    cy.tick(5000);
-    cy.wait('@coachAnalyzeRetry');
-    cy.tick(100);
-    cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 2);
-    cy.tick(10000);
-    cy.wait('@coachAnalyzeRetry');
-    cy.tick(100);
+    // 초기 요청 + PENDING 재시도(지연 5000ms, 10000ms)를 발생 순서대로 수신한다.
+    cy.wait('@coachAnalyzeRetry'); // 초기
+    cy.wait('@coachAnalyzeRetry', { timeout: 12000 }); // 재시도 1 (~5s 후)
+    cy.wait('@coachAnalyzeRetry', { timeout: 20000 }); // 재시도 2 (~10s 후)
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 3);
-    // Pending은 초기 요청 + 2회 재시도까지만 허용한다.
-    cy.tick(30000);
+
+    // Pending 은 초기 요청 + 2회 재시도(상한)까지만 — 이후 시간이 더 지나도 4번째 요청은 없다.
+    cy.wait(8000);
     cy.get('@coachAnalyzeRetry.all').its('length').should('eq', 3);
     cy.contains('경기 전 브리핑 준비 중입니다. 잠시 후 다시 확인해 주세요.').should('be.visible');
   });
@@ -591,8 +594,8 @@ describe('Prediction Coach Briefing Regression', () => {
         headers: { 'content-type': 'text/event-stream' },
         body: buildSseResponse({
           delta: JSON.stringify({
-            headline: '부분 근거 브리핑',
-            coach_note: '부분 근거 브리핑입니다.',
+            headline: '주요 흐름 중심 브리핑',
+            coach_note: '현재 확인된 흐름을 기준으로 브리핑합니다.',
           }),
           meta: {
             validation_status: 'fallback',
@@ -619,8 +622,8 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.tick(2000);
     cy.wait('@coachAnalyzePartial');
     getCoachBriefingCard()
-      .should('contain.text', '실데이터 일부가 비어 있어 최근 흐름 중심으로 정리했습니다');
-    getCoachBriefingBadge('실데이터 일부 기반')
+      .should('contain.text', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다');
+    getCoachBriefingBadge('주요 흐름 중심')
       .should('exist');
   });
 
@@ -877,7 +880,7 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.get('@coachAnalyzeDefault.all').should('have.length', 0);
-    expectCoachBriefingText('실데이터 브리핑은 로그인 후 제공됩니다.');
+    expectCoachBriefingText('경기 데이터 브리핑은 로그인 후 제공됩니다.');
     getCoachBriefingButton('로그인하고 브리핑 보기')
       .should('exist');
     getCoachBriefingCard().then(($card) => {
@@ -931,7 +934,7 @@ describe('Prediction Coach Briefing Regression', () => {
           generation_mode: 'deterministic_auto',
           data_quality: 'grounded',
           structured_response: {
-            headline: '재발급 후 실데이터 브리핑',
+            headline: '재발급 후 경기 데이터 브리핑',
             sentiment: 'neutral',
             key_metrics: [],
             analysis: {
@@ -1110,7 +1113,7 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     getCoachBriefingCard()
-      .should('contain.text', '실데이터 분석 중');
+      .should('contain.text', '경기 데이터 분석 중');
     cy.get('@coachAnalyzeLoadingCursor.all').should((interceptions) => {
       expect(interceptions).to.have.length.at.least(1);
     });
@@ -1214,8 +1217,8 @@ describe('Prediction Coach Briefing Regression', () => {
     cy.intercept('POST', '**/coach/analyze*', (req) => {
       const gameId = extractCoachGameId(req.body);
       const headline = gameId === '20260601LGKT0'
-        ? 'LG vs KT, 2차전 실데이터 브리핑'
-        : '삼성 vs 한화, 1차전 실데이터 브리핑';
+        ? 'LG vs KT, 2차전 경기 데이터 브리핑'
+        : '삼성 vs 한화, 1차전 경기 데이터 브리핑';
 
       req.reply({
         statusCode: 200,
@@ -1247,7 +1250,7 @@ describe('Prediction Coach Briefing Regression', () => {
                 weaknesses: [],
                 risks: [],
               },
-              detailed_markdown: '## 경기 컨텍스트\n- 실데이터 기반',
+              detailed_markdown: '## 경기 컨텍스트\n- 경기 데이터 반영',
               coach_note: `${headline} 메모`,
             },
           },
@@ -1264,10 +1267,10 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeGrounded');
-    getCoachBriefingTitle().should('contain', '삼성 vs 한화, 1차전 실데이터 브리핑');
-    getCoachBriefingBadge('실데이터 기반').should('exist');
+    getCoachBriefingTitle().should('contain', '삼성 vs 한화, 1차전 경기 데이터 브리핑');
+    getCoachBriefingBadge('경기 데이터 반영').should('exist');
     cy.get('[data-testid="coach-analysis-open"]').should('exist');
-    cy.contains('최신 갱신').should('exist');
+    getCoachBriefingCard().should('not.contain.text', '최신 갱신');
 
     cy.get('button[aria-label="다음 날짜 보기"]')
       .filter(':visible')
@@ -1276,8 +1279,8 @@ describe('Prediction Coach Briefing Regression', () => {
       .click({ force: true });
     cy.wait('@getGameDetail');
     cy.wait('@coachAnalyzeGrounded');
-    getCoachBriefingTitle().should('contain', 'LG vs KT, 2차전 실데이터 브리핑');
-    getCoachBriefingBadge('실데이터 기반').should('exist');
+    getCoachBriefingTitle().should('contain', 'LG vs KT, 2차전 경기 데이터 브리핑');
+    getCoachBriefingBadge('경기 데이터 반영').should('exist');
   });
 
   it('shows partial-quality grounding metadata on the briefing card', () => {
@@ -1298,7 +1301,7 @@ describe('Prediction Coach Briefing Regression', () => {
         grounding_reasons: ['missing_summary', 'missing_starters', 'missing_lineups'],
         win_probability_home: 0.62,
         structured_response: {
-          headline: '부분 근거 기반 자동 브리핑',
+          headline: '주요 흐름 중심 자동 브리핑',
           sentiment: 'neutral',
           key_metrics: [],
           analysis: {
@@ -1306,8 +1309,8 @@ describe('Prediction Coach Briefing Regression', () => {
             weaknesses: [],
             risks: [],
           },
-          detailed_markdown: '## 최근 흐름\n- 부분 데이터 기반',
-          coach_note: '부분 데이터 기반 자동 브리핑입니다.',
+          detailed_markdown: '## 최근 흐름\n- 현재 확인된 정보 기준',
+          coach_note: '현재 확인된 흐름에서는 한화의 불펜 운영 여지가 조금 더 큽니다.',
         },
       };
 
@@ -1328,20 +1331,21 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzeMeta');
-    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
-    // Evidence chip now surfaces quality-weighted core evidence ("핵심 근거 N개")
-    // instead of the raw total ("근거 N건"). partial quality + 3 grounding reasons
-    // → baseLimit 4 - penalty 1 = 3 core evidence codes.
-    cy.contains('핵심 근거 3개').should('exist');
-    getCoachBriefingTitle().should('contain', '부분 근거 기반 자동 브리핑');
+    getCoachBriefingBadge('주요 흐름 중심').should('exist');
+    getCoachBriefingTitle().should('contain', '주요 흐름 중심 자동 브리핑');
     getCoachBriefingCard()
-      .should('contain.text', '선발 미발표/라인업 미발표 등으로 최근 흐름 위주로 분석했습니다.');
+      .should('contain.text', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.')
+      .and('not.contain.text', '핵심 근거')
+      .and('not.contain.text', '경기 자체')
+      .and('not.contain.text', 'KBO 시즌 흐름')
+      .and('not.contain.text', '최신 갱신')
+      .and('not.contain.text', '선발 미발표')
+      .and('not.contain.text', '부분 근거');
     // V5: VS bar should appear when win_probability_home is provided
     getCoachBriefingCard()
       .find('[data-testid="coach-vs-bar"]')
       .should('exist');
     cy.get('[data-testid="coach-analysis-open"]').should('exist');
-    cy.contains('최신 갱신').should('exist');
     cy.viewport(390, 844);
     getCoachBriefingCard().then(($card) => {
       const element = $card[0];
@@ -1371,7 +1375,7 @@ describe('Prediction Coach Briefing Regression', () => {
           '요청한 focus 근거가 부족해 확인 가능한 항목만 분석하거나 보수 요약으로 전환합니다.',
         ],
         structured_response: {
-          headline: '제한 근거 기반 자동 브리핑',
+          headline: '확인 정보 중심 자동 브리핑',
           sentiment: 'neutral',
           key_metrics: [],
           analysis: {
@@ -1379,8 +1383,8 @@ describe('Prediction Coach Briefing Regression', () => {
             weaknesses: [],
             risks: [],
           },
-          detailed_markdown: '## 최근 흐름\n- 제한 근거 기반',
-          coach_note: '승부처와 focus 근거가 부족한 상태입니다.',
+          detailed_markdown: '## 최근 흐름\n- 확인 가능한 정보 기준',
+          coach_note: '승부처와 요청 항목은 확인 가능한 범위로만 정리합니다.',
         },
       };
 
@@ -1396,9 +1400,12 @@ describe('Prediction Coach Briefing Regression', () => {
     });
 
     cy.wait('@coachAnalyzePartialDetail');
-    getCoachBriefingBadge('실데이터 일부 기반').should('exist');
+    getCoachBriefingBadge('주요 흐름 중심').should('exist');
     getCoachBriefingCard()
-      .should('contain.text', '승부처 데이터 부족/요청 항목 근거 부족으로 최근 흐름 위주로 분석했습니다.');
+      .should('contain.text', '아직 확정 전인 항목은 제외하고, 현재 확인된 경기 정보로 정리했습니다.')
+      .and('not.contain.text', '승부처 데이터 부족')
+      .and('not.contain.text', '요청 항목 근거 부족')
+      .and('not.contain.text', '제한 근거');
   });
 
   it('shows prediction labels for scheduled-game coach analysis entry', () => {
@@ -1571,7 +1578,8 @@ describe('Prediction Coach Briefing Regression', () => {
 
     cy.get('[data-testid="coach-analysis-dialog"]').within(() => {
       cy.contains('62%').should('exist');
-      cy.contains('실데이터 14건').should('exist');
+      cy.contains('분석에 반영한 정보').should('exist');
+      cy.contains('14건').should('exist');
       cy.contains('팀 비교').should('exist');
       cy.contains('코치 판단').should('exist');
       cy.contains('리스크 관리').should('exist');

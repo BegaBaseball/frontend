@@ -122,6 +122,9 @@ type BackendPartyDTO = Omit<MateMapperPartyDTO, 'gameTime'> & Partial<PartyPubli
   ticketPrice?: number | null;
   reservationDepositAmount?: number | null;
   hostTrustMetrics?: Party['hostTrustMetrics'];
+  favorited?: boolean | null;
+  seatDetail?: string | null;
+  members?: Party['members'];
 };
 type BackendMateHistoryDTO = {
   id: number;
@@ -143,7 +146,7 @@ type BackendMateHistoryDTO = {
 type CreatePartyRequestWire = Omit<CreatePartyRequest, 'gameTime'> & {
   gameTime: components['schemas']['LocalTime'];
 };
-type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'> & Pick<UpdatePartyRequest, 'reservationDepositAmount'>;
+type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'> & Pick<UpdatePartyRequest, 'reservationDepositAmount' | 'seatDetail'>;
 type ApplicationWireResponse = JsonResponse<'/api/applications', 'post'> & Application;
 type CreateApplicationRequestWire = JsonRequestBody<'/api/applications', 'post'>;
 type CreateApplicationRequestWireCompat = Omit<CreateApplicationRequestWire, 'ticketImageUrl' | 'verificationToken'>
@@ -225,7 +228,18 @@ export const normalizeMateParty = (party: BackendPartyDTO | Party): Party => {
     reservationDepositAmount: wireParty.reservationDepositAmount ?? null,
     hostTrustMetrics: wireParty.hostTrustMetrics ?? null,
   };
-  return mapBackendPartyToFrontend(mapperParty);
+  const normalized = mapBackendPartyToFrontend(mapperParty);
+  const extras = wireParty as {
+    favorited?: boolean | null;
+    seatDetail?: string | null;
+    members?: Party['members'];
+  };
+  return {
+    ...normalized,
+    ...(extras.favorited == null ? {} : { favorited: extras.favorited }),
+    ...(extras.seatDetail == null ? {} : { seatDetail: extras.seatDetail }),
+    ...(extras.members == null ? {} : { members: extras.members }),
+  };
 };
 
 const normalizeMateHistoryParty = (party: BackendMateHistoryDTO): MateParty => ({
@@ -274,6 +288,10 @@ export async function fetchPartyReviews(
   return privateGet<Array<JsonResponse<'/api/reviews/party/{partyId}', 'get'>[number] & PartyReview>>(
     `/reviews/party/${Number(partyId)}`,
   );
+}
+
+export async function fetchHostReviews(handle: string): Promise<PartyReview[]> {
+  return publicGet<PartyReview[]>(`/reviews/host/${encodeURIComponent(handle)}`);
 }
 
 export async function fetchPartyApplications(
@@ -420,6 +438,14 @@ export async function updateParty(
 
 export async function deleteParty(partyId: number | string): Promise<void> {
   await privateDelete(`/parties/${partyId}`);
+}
+
+export async function setPartyFavorite(partyId: number, favorited: boolean): Promise<boolean> {
+  const endpoint = `/parties/${partyId}/favorite`;
+  const response = favorited
+    ? await privatePost<{ favorited?: boolean }>(endpoint)
+    : await privateDelete<{ favorited?: boolean }>(endpoint);
+  return response?.favorited ?? favorited;
 }
 
 export async function createApplication(

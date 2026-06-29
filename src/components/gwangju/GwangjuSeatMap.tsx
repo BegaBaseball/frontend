@@ -106,7 +106,7 @@ function DerivedRangeSummary({
       data-derived-range-id={range.id}
       data-derived-block-ids={range.blockIds.join(',')}
       data-aggregate-hit-area={range.aggregateHitArea}
-      className="flex flex-wrap items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold"
+      className="flex flex-wrap items-center gap-1.5 rounded-xl border px-3 py-2 text-11 font-bold"
       style={{ borderColor, color: textColor }}
     >
       <span className="text-[#EA0029] dark:text-rose-300">{range.label}</span>
@@ -144,7 +144,7 @@ function DerivedRangeBadges({
           data-testid={`gwangju-section-derived-range-${range.id}`}
           data-derived-range-id={range.id}
           data-derived-blocks={range.displayBlocks}
-          className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+          className="rounded-full border px-2.5 py-1 text-11 font-bold"
           style={{
             background: mode === 'dark' ? '#1e293b' : '#f8fafc',
             borderColor: mode === 'dark' ? '#334155' : '#e2e8f0',
@@ -199,10 +199,10 @@ function DetailPanel({
           ×
         </button>
         <div className="mb-2 flex flex-wrap gap-2 pr-10">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {cat.label} · {section.level}
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800">
             {getGwangjuSourceLabel(section.sourceConfidence)}
           </span>
           <DerivedRangeBadges ranges={derivedRanges} mode={mode} />
@@ -212,36 +212,36 @@ function DetailPanel({
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">위치</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">위치</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getGwangjuSideLabel(section.side)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">팬 구분</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">팬 구분</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getGwangjuFanRoleLabel(section.fanRole)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">시야 거리</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">시야 거리</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{info.distance ?? '-'}</div>
         </div>
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">공식 블록 묶음</div>
         <div className="flex flex-wrap gap-1.5">
           {section.officialBlocks.map((block) => (
-            <span key={block} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+            <span key={block} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
               {block}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
           </p>
         )}
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
         <SeatViewGallery stadium="GWANGJU" section={section.name} sectionAliases={section.seatViewSections} compact />
       </div>
       <div className="sticky bottom-0 border-t border-slate-100 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
@@ -397,7 +397,7 @@ export default function GwangjuSeatMap() {
 
     return (
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">운영자 파생 구역</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">운영자 파생 구역</div>
         <div className="flex flex-wrap gap-1.5">
           <DerivedRangeBadges ranges={derivedRanges} mode={mode} />
         </div>

@@ -14,6 +14,7 @@ type MateManageEditPanelProps = {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onEditSectionChange: (value: string) => void;
+  onEditSeatDetailChange: (value: string) => void;
   onEditTicketPriceChange: (value: string) => void;
   onEditReservationDepositAmountChange: (value: string) => void;
   onEditMaxParticipantsChange: (value: number) => void;
@@ -25,7 +26,7 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNod
   return (
     <label
       htmlFor={htmlFor}
-      className="flex items-center gap-2 text-[16px] leading-none font-semibold text-gray-900 select-none dark:text-white"
+      className="flex items-center gap-2 text-body leading-none font-semibold text-gray-900 select-none dark:text-white"
     >
       {children}
     </label>
@@ -38,6 +39,7 @@ export default function MateManageEditPanel({
   onSaveEdit,
   onCancelEdit,
   onEditSectionChange,
+  onEditSeatDetailChange,
   onEditTicketPriceChange,
   onEditReservationDepositAmountChange,
   onEditMaxParticipantsChange,
@@ -48,15 +50,15 @@ export default function MateManageEditPanel({
     <Card className={`p-6 ${mateSectionCardClass}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             Edit Draft
           </p>
           <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">파티 정보 수정</h2>
-          <p className="mt-2 text-[16px] text-gray-600 dark:text-white">
+          <p className="mt-2 text-body text-gray-600 dark:text-white">
             승인 완료 전까지 좌석, 모집 인원, 가격, 소개를 정리할 수 있습니다.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[16px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-body font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
           승인 완료 전 수정 가능
         </span>
       </div>
@@ -68,6 +70,17 @@ export default function MateManageEditPanel({
             id="manage-section"
             value={editForm.section}
             onChange={(event) => onEditSectionChange(event.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <FieldLabel htmlFor="manage-seat-detail">좌석 상세</FieldLabel>
+          <Input
+            id="manage-seat-detail"
+            value={editForm.seatDetail}
+            maxLength={100}
+            placeholder="예: 305블록 12열 15번"
+            onChange={(event) => onEditSeatDetailChange(event.target.value)}
           />
         </div>
 
@@ -98,7 +111,7 @@ export default function MateManageEditPanel({
             id="manage-max-participants"
             value={editForm.maxParticipants}
             onChange={(event) => onEditMaxParticipantsChange(parseInt(event.target.value, 10))}
-            className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[16px] dark:border-border dark:bg-input/30"
+            className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-body dark:border-border dark:bg-input/30"
           >
             <option value={2}>2명</option>
             <option value={3}>3명</option>
@@ -117,7 +130,7 @@ export default function MateManageEditPanel({
           className={cn(descriptionError && 'border-red-400 focus-visible:ring-red-200')}
         />
         {descriptionError && (
-          <p className="text-[16px] text-red-500">{descriptionError}</p>
+          <p className="text-body text-red-500">{descriptionError}</p>
         )}
       </div>
 

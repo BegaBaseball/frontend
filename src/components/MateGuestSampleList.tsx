@@ -24,10 +24,10 @@ export default function MateGuestSampleList() {
           data-testid="mate-guest-sample-card"
           className="rounded-2xl border border-gray-200/80 bg-gray-50 px-4 py-3.5 dark:border-white/10 dark:bg-white/[0.04]"
         >
-          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[12px] font-black text-primary">
+          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-12 font-black text-primary">
             {sample.tag}
           </span>
-          <h2 className="mt-3 text-[15px] font-black leading-5 text-gray-900 dark:text-white">
+          <h2 className="mt-3 text-15 font-black leading-5 text-gray-900 dark:text-white">
             {sample.title}
           </h2>
           <p className="mt-1 text-sm font-bold leading-5 text-gray-500 dark:text-white">

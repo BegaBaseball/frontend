@@ -7,8 +7,7 @@ import {
 } from '../utils/authBootstrap';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 
-const landingModulePromise = import('./Landing');
-const Landing = lazy(() => landingModulePromise);
+const Landing = lazy(() => import('./Landing'));
 const RootEntryRouteAuthAware = lazy(() => import('./RootEntryRouteAuthAware'));
 
 const landingFallback = (

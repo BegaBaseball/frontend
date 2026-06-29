@@ -8,7 +8,7 @@ export default function NotFound() {
       <div className="max-w-md w-full text-center">
         {/* 404 숫자 */}
         <div className="relative mb-6">
-          <span className="text-[120px] sm:text-[160px] font-black leading-none tracking-tighter text-gray-100 dark:text-white select-none">
+          <span className="text-120 sm:text-160 font-black leading-none tracking-tighter text-gray-100 dark:text-white select-none">
             404
           </span>
           <div className="absolute inset-0 flex items-center justify-center">

@@ -55,7 +55,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
         {error ? (
           <AuthStatusPanel tone="error" data-testid="login-status-panel" role="alert">
-            <p className="text-[16px] font-semibold">{error}</p>
+            <p className="text-body font-semibold">{error}</p>
           </AuthStatusPanel>
         ) : null}
 
@@ -117,7 +117,7 @@ export default function Login() {
             {fieldErrors.password ? <p className="auth-error-text">* {fieldErrors.password}</p> : null}
 
             <div className="auth-support-row">
-              <label htmlFor="remember-email" className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-[16px] text-muted-foreground">
+              <label htmlFor="remember-email" className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-body text-muted-foreground">
                 <input
                   id="remember-email"
                   type="checkbox"
@@ -132,7 +132,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate(passwordResetPath)}
-                className="auth-link text-[16px]"
+                className="auth-link text-body"
                 disabled={isLoading}
                 data-testid="login-password-reset-link"
               >
@@ -183,7 +183,7 @@ export default function Login() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-card px-4 text-[16px] text-muted-foreground">또는</span>
+          <span className="bg-card px-4 text-body text-muted-foreground">또는</span>
         </div>
       </div>
 

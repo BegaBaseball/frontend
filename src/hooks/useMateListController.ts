@@ -1,7 +1,9 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
+import { setPartyFavorite } from '../api/mate';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { useMateStore } from '../store/mateStore';
 import type { Party, PartyStatus } from '../types/mate';
@@ -12,7 +14,7 @@ import { normalizeMateSearchText } from '../utils/mateSearchTerms';
 import { countActiveMateSeatFilters } from '../utils/mateSeatFilterCount';
 import { MATE_SORT_OPTIONS, type MateSortOptionKey } from '../utils/mateSortOptions';
 import { getMatePartyListQueryOptions } from './mateQueryOptions';
-import { seedMatePartyQueryData } from './mateList';
+import { seedMatePartyQueryData, updateMatePartyCollectionQueryData } from './mateQueryCache';
 import { useDebounce } from './useDebounce';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -53,6 +55,7 @@ export function useMateListController() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MateStatusTabKey>('all');
   const [activeSortKey, setActiveSortKey] = useState<MateSortOptionKey>('latest');
+  const [favoriteUpdatingPartyId, setFavoriteUpdatingPartyId] = useState<number | null>(null);
   const filterSignatureRef = useRef<string | null>(null);
   const searchInputSourceRef = useRef<'local' | 'external'>('local');
   const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
@@ -144,6 +147,38 @@ export function useMateListController() {
       state: buildMateRouteLocationState(party),
     });
   }, [navigate, queryClient]);
+
+  const handleFavoriteToggle = useCallback(async (party: Party) => {
+    if (favoriteUpdatingPartyId !== null) {
+      return;
+    }
+    if (!authUserId) {
+      toast.error('찜하려면 로그인이 필요합니다.');
+      return;
+    }
+
+    const previous = Boolean(party.favorited);
+    const next = !previous;
+    const applyFavoriteState = (favorited: boolean) => {
+      updateMatePartyCollectionQueryData(queryClient, party.id, (currentParty) => ({
+        ...currentParty,
+        favorited,
+      }));
+    };
+
+    setFavoriteUpdatingPartyId(party.id);
+    applyFavoriteState(next);
+    try {
+      const confirmed = await setPartyFavorite(party.id, next);
+      applyFavoriteState(confirmed);
+    } catch (error: unknown) {
+      console.error('찜 처리 중 오류:', error);
+      applyFavoriteState(previous);
+      toast.error('찜 처리 중 오류가 발생했습니다.');
+    } finally {
+      setFavoriteUpdatingPartyId(null);
+    }
+  }, [authUserId, favoriteUpdatingPartyId, queryClient]);
 
   useEffect(() => {
     if (rawLegacyPartyId !== null && legacyPartyId === null) {
@@ -292,11 +327,13 @@ export function useMateListController() {
     closeMobileFilter,
     dateItems,
     favoriteTeamId,
+    favoriteUpdatingPartyId,
     fetchError,
     handleCreatePartyClick,
     handleDateSelect,
     handleMyTeamOnlyChange,
     handlePartyClick,
+    handleFavoriteToggle,
     handleResetFilters,
     handleRetry,
     handleSearchInputChange,

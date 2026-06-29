@@ -1,7 +1,13 @@
 import { privateDelete, privateGet, privatePost } from './privateClient';
 import { publicGet } from './publicClient';
 import { invalidatePredictionBootstrapCache } from './predictionBootstrap';
-import { toPredictionGameDetail, toPredictionGames, toPredictionMatchRangePage } from './predictionMappers';
+import {
+  resolvePredictionBoxScorePayload,
+  resolvePredictionInningScoresPayload,
+  toPredictionGameDetail,
+  toPredictionGames,
+  toPredictionMatchRangePage,
+} from './predictionMappers';
 import type { OpenApiRequestBody, OpenApiResponseBody } from './openapiTypes';
 import { parseError } from '../utils/errorUtils';
 import {
@@ -335,7 +341,8 @@ const toLiveSnapshot = (value: unknown, fallbackGameId: string): GameLiveSnapsho
   const events = Array.isArray(source.events)
     ? source.events.map(toLiveEvent).filter((event): event is GameLiveEvent => Boolean(event))
     : [];
-  const rawInningScores = source.inningScores ?? source.inning_scores;
+  const inningScores = resolvePredictionInningScoresPayload(source);
+  const boxScore = resolvePredictionBoxScorePayload(source);
 
   return {
     gameId: toNullableString(source.gameId ?? source.game_id) || fallbackGameId,
@@ -347,9 +354,8 @@ const toLiveSnapshot = (value: unknown, fallbackGameId: string): GameLiveSnapsho
     lastEventSeq: toNullableNumber(source.lastEventSeq ?? source.last_event_seq),
     lastUpdatedAt: toNullableString(source.lastUpdatedAt ?? source.last_updated_at),
     events,
-    inningScores: Array.isArray(rawInningScores)
-      ? rawInningScores as GameLiveSnapshot['inningScores']
-      : undefined,
+    inningScores: inningScores as GameLiveSnapshot['inningScores'],
+    boxScore,
   };
 };
 

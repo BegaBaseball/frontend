@@ -14,10 +14,31 @@ const uploadTicketImage = () => {
   );
 };
 
+const assertCreatePageReady = () => {
+  cy.contains('직관메이트 파티 만들기', { timeout: 30000 }).should('be.visible');
+};
+
 describe('Mate Create Flow', () => {
   beforeEach(() => {
     cy.login('user');
     cy.mockAPI();
+
+    cy.intercept('GET', '**/auth/mypage*', {
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          id: 123,
+          email: 'test@example.com',
+          name: 'TestUser',
+          handle: 'testuser',
+          favoriteTeam: 'HH',
+          role: 'ROLE_USER',
+          hasPassword: true,
+          profileImageUrl: null,
+        },
+      },
+    }).as('getAuthMypage');
 
     cy.intercept('**/api/users/123/social-verified', {
       statusCode: 200,
@@ -70,7 +91,7 @@ describe('Mate Create Flow', () => {
     }).as('manualSchedule');
 
     cy.visit('/mate/create');
-    cy.contains('직관메이트 파티 만들기').should('be.visible');
+    assertCreatePageReady();
     cy.contains('button', '다음').should('be.disabled');
     cy.contains('직접 입력하기').should('not.exist');
 
@@ -116,7 +137,7 @@ describe('Mate Create Flow', () => {
     }).as('emptySchedule');
 
     cy.visit('/mate/create');
-    cy.contains('직관메이트 파티 만들기').should('be.visible');
+    assertCreatePageReady();
 
     uploadTicketImage();
     cy.wait('@analyzeTicketSuccess');
@@ -167,6 +188,30 @@ describe('Mate Create Flow', () => {
       ]);
     }).as('schedule');
 
+    const createdParty = {
+      id: 999,
+      hostId: 123,
+      hostName: 'TestUser',
+      hostBadge: 'NEW',
+      hostAverageRating: null,
+      hostReviewCount: 0,
+      teamId: 'kt',
+      cheeringSide: 'AWAY',
+      gameDate: '2026-05-21',
+      gameTime: '18:30',
+      stadium: '잠실야구장',
+      homeTeam: 'lg',
+      awayTeam: 'kt',
+      section: '[원정응원] 일반/시야 305블록 12열',
+      maxParticipants: 2,
+      currentParticipants: 1,
+      description: '함께 안전하게 관람해요!',
+      ticketVerified: true,
+      ticketPrice: 22000,
+      status: 'PENDING',
+      createdAt: '2026-05-01T09:00:00',
+    };
+
     let createPartyCallCount = 0;
     cy.intercept('POST', '**/api/parties', (req) => {
       createPartyCallCount += 1;
@@ -183,39 +228,32 @@ describe('Mate Create Flow', () => {
 
       req.reply({
         statusCode: 200,
-        body: {
-          id: 999,
-          hostId: 123,
-          hostName: 'TestUser',
-          hostBadge: 'NEW',
-          hostAverageRating: null,
-          hostReviewCount: 0,
-          teamId: 'kt',
-          cheeringSide: 'AWAY',
-          gameDate: '2026-05-21',
-          gameTime: '18:30',
-          stadium: '잠실야구장',
-          homeTeam: 'lg',
-          awayTeam: 'kt',
-          section: '[원정응원] 일반/시야 305블록 12열',
-          maxParticipants: 2,
-          currentParticipants: 1,
-          description: '함께 안전하게 관람해요!',
-          ticketVerified: true,
-          ticketPrice: 22000,
-          status: 'PENDING',
-          createdAt: '2026-05-01T09:00:00',
-        },
+        body: createdParty,
       });
     }).as('createParty');
+
+    cy.intercept('GET', '**/api/parties/999*', {
+      statusCode: 200,
+      body: createdParty,
+    }).as('getCreatedParty');
+
+    cy.intercept('GET', '**/api/applications/party/999', {
+      statusCode: 200,
+      body: [],
+    }).as('getCreatedPartyApplications');
 
     cy.intercept('GET', '**/api/applications/party/*/mine', {
       statusCode: 200,
       body: null,
     }).as('getMyApplicationByParty');
 
+    cy.intercept('GET', '**/api/reviews/party/999*', {
+      statusCode: 200,
+      body: [],
+    }).as('getCreatedPartyReviews');
+
     cy.visit('/mate/create');
-    cy.contains('직관메이트 파티 만들기').should('be.visible');
+    assertCreatePageReady();
 
     uploadTicketImage();
     cy.wait('@analyzeTicketSuccess');

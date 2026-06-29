@@ -145,6 +145,82 @@ test('getAnalysisData는 수동 야구 데이터 요청 응답에서 분석 본�
     assert.equal(analysisData, null);
 });
 
+test('getAnalysisData는 결과 응답에 상태 버킷이 없어도 부모 완료 상태를 보존한다', () => {
+    const result: CoachAnalyzeResponse = {
+        structuredData: {
+            headline: 'KIA 타이거즈 승리 리뷰',
+            sentiment: 'positive',
+            key_metrics: [],
+            analysis: {
+                summary: 'KIA 타이거즈가 후반 득점으로 경기를 가져갔습니다.',
+                verdict: '완료 경기 기준 리뷰입니다.',
+                strengths: ['KIA 타이거즈는 득점권 집중력이 좋았습니다.'],
+                weaknesses: ['KT 위즈는 불펜 운영에서 흔들렸습니다.'],
+                risks: [],
+                why_it_matters: [],
+                swing_factors: [],
+                watch_points: [],
+                uncertainty: [],
+            },
+            detailed_markdown: '## 경기 리뷰\n- 완료 경기 기준 리뷰입니다.',
+            coach_note: '완료 경기 기준 리뷰입니다.',
+        },
+    };
+
+    const analysisData = getAnalysisData({
+        result,
+        isPastGame: true,
+        isFutureGame: false,
+        gameStatusBucket: 'COMPLETED',
+    });
+
+    assert.ok(analysisData);
+    assert.equal(analysisData.game_status_bucket, 'COMPLETED');
+});
+
+test('getAnalysisData는 structured risks가 비어도 약점 근거에서 표시 리스크를 만든다', () => {
+    const result: CoachAnalyzeResponse = {
+        structuredData: {
+            headline: '한화 이글스 vs SSG 랜더스 예정 경기 분석',
+            sentiment: 'neutral',
+            key_metrics: [],
+            analysis: {
+                summary: 'SSG 랜더스가 최근 흐름과 득점 연결력에서 앞섭니다.',
+                verdict: '한화 이글스는 초반 득점 기회를 만드는 힘을 보강해야 합니다.',
+                strengths: ['SSG 랜더스는 최근 득점 흐름이 좋습니다.'],
+                weaknesses: ['한화 이글스는 득점 연결력 열세로 초반 득점 기회를 만드는 힘을 보강해야 합니다.'],
+                risks: [],
+                why_it_matters: ['최근 흐름과 출루·장타 지표가 초중반 주도권에 영향을 줍니다.'],
+                swing_factors: ['선발 발표 뒤 첫 불펜 카드가 핵심 변수입니다.'],
+                watch_points: ['첫 득점 직후 불펜 반응을 확인할 필요가 있습니다.'],
+                uncertainty: ['라인업 미발표라 타순 기반 세부 매치업은 경기 직전까지 달라질 수 있습니다.'],
+            },
+            detailed_markdown: '## 코치 판단\n- SSG 랜더스가 최근 흐름과 득점 연결력에서 앞섭니다.',
+            coach_note: '한화 이글스는 초반 득점 기회를 만드는 힘을 보강해야 합니다.',
+        },
+    };
+
+    const analysisData = getAnalysisData({
+        result,
+        isPastGame: false,
+        isFutureGame: true,
+        gameStatusBucket: 'SCHEDULED',
+    });
+
+    assert.ok(analysisData);
+    assert.equal(analysisData.risks.length, 2);
+    assert.deepEqual(analysisData.risks[0], {
+        area: 'overall',
+        level: 1,
+        description: '한화 이글스는 득점 연결력 열세로 초반 득점 기회를 만드는 힘을 보강해야 합니다.',
+    });
+    assert.deepEqual(analysisData.risks[1], {
+        area: 'lineup',
+        level: 1,
+        description: '라인업 미발표라 타순 기반 세부 매치업은 경기 직전까지 달라질 수 있습니다.',
+    });
+});
+
 test('getAnalysisData는 오류 응답에서 분석 본문을 만들지 않는다', () => {
     const result: CoachAnalyzeResponse = {
         error: 'AI 코치 분석 요청 데이터가 너무 큽니다.',

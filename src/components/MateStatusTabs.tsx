@@ -17,7 +17,7 @@ export default function MateStatusTabs({
   onTabChange,
 }: MateStatusTabsProps) {
   return (
-    <div role="group" aria-label="파티 상태 필터" className="relative inline-flex w-full justify-start gap-1 rounded-[12px] border border-gray-200/80 bg-white p-1 dark:border-white/15 dark:bg-[#000000] md:w-fit">
+    <div role="group" aria-label="파티 상태 필터" className="relative inline-flex w-full justify-start gap-1 rounded-xl border border-gray-200/80 bg-white p-1 dark:border-white/15 dark:bg-[#000000] md:w-fit">
       {MATE_TABS.map((tab) => {
         const isActive = activeTab === tab.key;
 
@@ -27,14 +27,14 @@ export default function MateStatusTabs({
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
             aria-pressed={isActive}
-            className={`relative h-8 min-w-0 flex-1 rounded-[8px] px-2 text-[13px] font-bold transition-colors duration-150 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] sm:px-3.5 md:flex-none ${
+            className={`relative h-8 min-w-0 flex-1 rounded-lg px-2 text-13 font-bold transition-colors duration-150 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#000000] sm:px-3.5 md:flex-none ${
               isActive
                 ? 'text-primary-foreground'
                 : 'bg-transparent text-gray-700 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:bg-primary/20 dark:hover:text-primary'
             }`}
           >
             {isActive ? (
-              <span className="absolute inset-0 rounded-[8px] bg-primary shadow-sm" />
+              <span className="absolute inset-0 rounded-lg bg-primary shadow-sm" />
             ) : null}
             <span className="relative z-10 whitespace-nowrap">{tab.label}</span>
           </button>

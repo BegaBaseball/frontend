@@ -29,7 +29,7 @@ export default function MateTodayCountBadge() {
   }
 
   return (
-    <span className="shrink-0 whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 text-[13px] font-extrabold text-primary dark:bg-primary/15 dark:text-primary-light">
+    <span className="shrink-0 whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 text-13 font-extrabold text-primary dark:bg-primary/15 dark:text-primary-light">
       오늘 {count}건 모집 중
     </span>
   );

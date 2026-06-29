@@ -100,8 +100,8 @@ export default function OffseasonMovementAdminResultsRuntime({
         <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-[14px] font-semibold text-sky-200">{csvReport.fileName} 업로드 결과</p>
-              <p className="mt-1 text-[14px] text-slate-300">
+              <p className="text-caption font-semibold text-sky-200">{csvReport.fileName} 업로드 결과</p>
+              <p className="mt-1 text-caption text-slate-300">
                 총 {csvReport.totalRows}행 중 등록 {csvReport.createdCount}건, 수정 {csvReport.updatedCount}건,
                 실패 {csvReport.failedCount}건
               </p>
@@ -110,13 +110,13 @@ export default function OffseasonMovementAdminResultsRuntime({
           </div>
           {csvReport.errors.length > 0 && (
             <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 p-3">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">Failed Rows</p>
-              <div className="mt-2 space-y-1 text-[14px] text-slate-300">
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Failed Rows</p>
+              <div className="mt-2 space-y-1 text-caption text-slate-300">
                 {csvReport.errors.slice(0, 5).map((message) => (
                   <p key={message}>{message}</p>
                 ))}
                 {csvReport.errors.length > 5 && (
-                <p className="text-[14px] text-slate-500">추가 실패 {csvReport.errors.length - 5}건은 같은 파일을 수정한 뒤 다시 업로드하면 됩니다.</p>
+                <p className="text-caption text-slate-500">추가 실패 {csvReport.errors.length - 5}건은 같은 파일을 수정한 뒤 다시 업로드하면 됩니다.</p>
                 )}
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function OffseasonMovementAdminResultsRuntime({
                     className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                     style={{ animationDelay: `${index * 35}ms` }}
                   >
-                    <TableCell className="text-slate-300 text-[14px] font-semibold">{formatDate(movement.movementDate)}</TableCell>
+                    <TableCell className="text-slate-300 text-caption font-semibold">{formatDate(movement.movementDate)}</TableCell>
                     <TableCell>
                       <AdminBadge className={getSectionBadgeClass(movement.section)}>
                         {movement.section}
@@ -171,61 +171,61 @@ export default function OffseasonMovementAdminResultsRuntime({
                       <div className="flex items-center gap-2">
                         <TeamLogo team={TEAM_DATA[movement.teamCode]?.name || movement.teamCode} size={24} />
                         <div>
-                          <p className="text-[14px] font-semibold text-slate-100">{TEAM_DATA[movement.teamCode]?.fullName || movement.teamCode}</p>
-                          <p className="text-[14px] text-slate-500">{movement.teamCode}</p>
+                          <p className="text-caption font-semibold text-slate-100">{TEAM_DATA[movement.teamCode]?.fullName || movement.teamCode}</p>
+                          <p className="text-caption text-slate-500">{movement.teamCode}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[14px] text-slate-200 font-semibold">{movement.playerName}</TableCell>
+                    <TableCell className="text-caption text-slate-200 font-semibold">{movement.playerName}</TableCell>
                     <TableCell className="max-w-[280px]">
                       <div className="space-y-1">
-                        <p className="line-clamp-2 text-[14px] text-slate-300">
+                        <p className="line-clamp-2 text-caption text-slate-300">
                           {movement.summary?.trim() || movement.details?.trim() || '요약 없음'}
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {!hasTextValue(movement.summary) && (
-                            <AdminBadge className="border-0 bg-amber-500/15 text-[12px] text-amber-200">요약 없음</AdminBadge>
+                            <AdminBadge className="border-0 bg-amber-500/15 text-12 text-amber-200">요약 없음</AdminBadge>
                           )}
                           {!hasTextValue(movement.details) && (
-                            <AdminBadge className="border-0 bg-amber-500/15 text-[12px] text-amber-200">상세 메모 없음</AdminBadge>
+                            <AdminBadge className="border-0 bg-amber-500/15 text-12 text-amber-200">상세 메모 없음</AdminBadge>
                           )}
                           {!hasStructuredValue(movement) && (
-                            <AdminBadge className="border-0 bg-violet-500/15 text-[12px] text-violet-200">구조화 없음</AdminBadge>
+                            <AdminBadge className="border-0 bg-violet-500/15 text-12 text-violet-200">구조화 없음</AdminBadge>
                           )}
                           {!hasSourceValue(movement) && (
-                            <AdminBadge className="border-0 bg-sky-500/15 text-[12px] text-sky-200">출처 없음</AdminBadge>
+                            <AdminBadge className="border-0 bg-sky-500/15 text-12 text-sky-200">출처 없음</AdminBadge>
                           )}
                         </div>
                         {movement.details?.trim() && movement.summary?.trim() && movement.details !== movement.summary && (
-                        <p className="line-clamp-1 text-[14px] text-slate-500">{movement.details}</p>
+                        <p className="line-clamp-1 text-caption text-slate-500">{movement.details}</p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1 text-[14px]">
+                      <div className="space-y-1 text-caption">
                         <p className="font-semibold text-emerald-300">{movement.contractValue || '-'}</p>
                         <p className="text-slate-500">{movement.contractTerm || movement.optionDetails || '-'}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1 text-[14px]">
+                      <div className="space-y-1 text-caption">
                         <p className="text-slate-200">{movement.sourceLabel || '-'}</p>
                         {movement.sourceUrl ? (
                           <a
                             href={movement.sourceUrl}
                             target="_blank"
                             rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[14px] text-sky-300 hover:text-sky-200"
+                          className="inline-flex items-center gap-1 text-caption text-sky-300 hover:text-sky-200"
                           >
                             <AdminLinkIcon className="h-3 w-3" />
                             원문
                           </a>
                         ) : (
-                        <p className="text-[14px] text-slate-500">링크 없음</p>
+                        <p className="text-caption text-slate-500">링크 없음</p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[14px] text-slate-400">{formatDateTimeLabel(movement.announcedAt)}</TableCell>
+                    <TableCell className="text-caption text-slate-400">{formatDateTimeLabel(movement.announcedAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button

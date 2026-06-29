@@ -184,7 +184,7 @@ export default function ProfileEditSection({
         />
         <div>
           <h3 className="font-semibold text-lg text-primary">{name}</h3>
-          <p className="text-[16px] text-muted-foreground">{email}</p>
+          <p className="text-body text-muted-foreground">{email}</p>
         </div>
       </div>
 
@@ -198,8 +198,8 @@ export default function ProfileEditSection({
             disabled={isLoading}
           >
             <span className="flex min-w-0 flex-1 flex-col items-start gap-1 pr-3">
-              <span className="text-[16px] font-semibold leading-none">{section.label}</span>
-              <span className="text-left text-[16px] leading-relaxed whitespace-normal text-muted-foreground">
+              <span className="text-body font-semibold leading-none">{section.label}</span>
+              <span className="text-left text-body leading-relaxed whitespace-normal text-muted-foreground">
                 {section.description}
               </span>
             </span>
@@ -213,7 +213,7 @@ export default function ProfileEditSection({
   const renderContent = () => {
     if (isProfileSection) {
       return (
-        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-[16px] text-muted-foreground">프로필 편집 화면을 불러오는 중입니다...</div>}>
+        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-body text-muted-foreground">프로필 편집 화면을 불러오는 중입니다...</div>}>
           <LazyProfileEditProfileRuntime
             name={name}
             setName={setName}
@@ -247,14 +247,14 @@ export default function ProfileEditSection({
 
     if (activeSection === 'accountSettings') {
       return (
-        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-[16px] text-muted-foreground">계정 설정을 불러오는 중입니다...</div>}>
+        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-body text-muted-foreground">계정 설정을 불러오는 중입니다...</div>}>
           <LazyAccountSettingsSection userProvider={userProvider} hasPassword={hasPassword} />
         </Suspense>
       );
     }
 
     return (
-        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-[16px] text-muted-foreground">차단 목록을 불러오는 중입니다...</div>}>
+        <Suspense fallback={<div className="rounded-xl border border-border bg-card p-6 text-body text-muted-foreground">차단 목록을 불러오는 중입니다...</div>}>
         <LazyBlockedUsersSection />
       </Suspense>
     );
@@ -295,7 +295,7 @@ export default function ProfileEditSection({
                         className="w-28 h-28"
                       />
                       <label
-                        className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-card border-2 border-primary dark:border-primary flex items-center justify-center cursor-pointer hover:bg-secondary dark:hover:bg-primary/10 shadow-md transition-colors"
+                        className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-card border-2 border-primary flex items-center justify-center cursor-pointer hover:bg-muted shadow-md transition-colors"
                       >
                         <MyPageCameraIcon className="w-5 h-5 text-primary" />
                         <input
@@ -309,7 +309,7 @@ export default function ProfileEditSection({
                       </label>
                     </div>
                     <h3 className="mt-4 text-lg font-semibold text-primary">{name}</h3>
-                    <p className="text-[16px] text-muted-foreground">{email}</p>
+                    <p className="text-body text-muted-foreground">{email}</p>
                   </div>
 
                   <div className="space-y-2 mt-4">
@@ -376,14 +376,14 @@ export default function ProfileEditSection({
             </Button>
             <Button
               onClick={handleTabDiscardConfirm}
-              className="bg-primary text-primary-foreground hover:bg-primary-dark"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               나가기
             </Button>
           </>
         )}
       >
-          <p className="text-[16px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             저장하지 않은 변경사항은 되돌릴 수 없습니다.
           </p>
       </PlainDialog>

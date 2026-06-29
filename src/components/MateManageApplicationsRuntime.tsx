@@ -59,14 +59,14 @@ function EmptyState({
         <Icon className="h-8 w-8 text-gray-400 dark:text-white" />
       </div>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{title}</p>
-      <p className="mt-2 max-w-sm text-[16px] leading-6 text-gray-500 dark:text-white">{description}</p>
+      <p className="mt-2 max-w-sm text-body leading-6 text-gray-500 dark:text-white">{description}</p>
     </div>
   );
 }
 
 function InlineBadge({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[16px] font-semibold', className)}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-body font-semibold', className)}>
       {children}
     </span>
   );
@@ -159,7 +159,7 @@ export default function MateManageApplicationsRuntime({
                   </InlineBadge>
                 )}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[16px] text-gray-500 dark:text-white">
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-body text-gray-500 dark:text-white">
                 <span className="inline-flex items-center gap-1">
                   <MateStarIcon className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                   평점 {app.applicantRating.toFixed(1)}
@@ -169,7 +169,7 @@ export default function MateManageApplicationsRuntime({
                   신청 {createdAt}
                 </span>
                 {responseDeadline && tabKey === 'pending' && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[16px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-body font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-300">
                     <MateAlertCircleIcon className="h-3.5 w-3.5" />
                     응답 기한 {responseDeadline}
                   </span>
@@ -177,10 +177,10 @@ export default function MateManageApplicationsRuntime({
               </div>
             </div>
             <div className={`${mateInsetPanelClass} min-w-[240px] p-4`}>
-              <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
                 신청 메시지
               </p>
-              <p className="mt-2 text-[16px] leading-6 text-gray-700 dark:text-white">
+              <p className="mt-2 text-body leading-6 text-gray-700 dark:text-white">
                 {app.message || '전달된 메시지가 없습니다.'}
               </p>
             </div>
@@ -189,19 +189,19 @@ export default function MateManageApplicationsRuntime({
 
         <div className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className={`${mateInsetPanelClass} p-4`}>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               진행 안내
             </p>
-            <div className="mt-2 space-y-2 text-[16px] text-gray-700 dark:text-white">
+            <div className="mt-2 space-y-2 text-body text-gray-700 dark:text-white">
               <p>채팅에서 전달 일정/장소를 확정하고 체크인 단계로 이어집니다.</p>
             </div>
           </div>
 
           <div className={`${mateInsetPanelClass} p-4`}>
-            <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
               다음 단계
             </p>
-            <p className="mt-2 text-[16px] leading-6 text-gray-600 dark:text-white">
+            <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
               {tabKey === 'pending'
                 ? '이 신청은 승인/거절을 먼저 결정해야 다음 흐름이 열립니다.'
                 : tabKey === 'approved'
@@ -240,7 +240,7 @@ export default function MateManageApplicationsRuntime({
                 </Button>
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white/80 px-4 py-3 text-[16px] text-gray-500 dark:border-border/70 dark:bg-card/60 dark:text-white">
+              <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white/80 px-4 py-3 text-body text-gray-500 dark:border-border/70 dark:bg-card/60 dark:text-white">
                 거절 처리된 신청은 보관용 상태입니다. 후속 조치는 필요하지 않습니다.
               </div>
             )}
@@ -254,15 +254,15 @@ export default function MateManageApplicationsRuntime({
     <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             Decision Queue
           </p>
           <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">신청 검토와 후속 진행</h2>
-          <p className="mt-2 text-[16px] text-gray-600 dark:text-white">
+          <p className="mt-2 text-body text-gray-600 dark:text-white">
             카드마다 신뢰 신호, 금액 기준, 채팅 진행 방식, 응답 기한을 확인한 뒤 바로 액션을 진행합니다.
           </p>
         </div>
-        <div className={`${mateInsetPanelClass} p-4 text-[16px] text-gray-600 dark:text-white`}>
+        <div className={`${mateInsetPanelClass} p-4 text-body text-gray-600 dark:text-white`}>
           <p className="font-semibold text-gray-900 dark:text-white">지금 우선순위</p>
           <p className="mt-1">
             {pendingApplications.length > 0
@@ -291,7 +291,7 @@ export default function MateManageApplicationsRuntime({
                 onClick={() => onSelectApplicationTab(tab.key)}
                 aria-pressed={isActive}
                 className={cn(
-                  'rounded-lg px-2 py-2 text-[16px] font-semibold transition-colors',
+                  'rounded-lg px-2 py-2 text-body font-semibold transition-colors',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:text-emerald-300',

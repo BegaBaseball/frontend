@@ -61,11 +61,11 @@ function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
             {label}
           </p>
           <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{value}</p>
-          <p className="mt-1 text-[16px] text-gray-500 dark:text-white">{detail}</p>
+          <p className="mt-1 text-body text-gray-500 dark:text-white">{detail}</p>
         </div>
       </div>
     </div>
@@ -74,7 +74,7 @@ function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
 
 function InlineBadge({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[16px] font-semibold', className)}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-body font-semibold', className)}>
       {children}
     </span>
   );
@@ -122,7 +122,7 @@ export default function MateManageOverviewRuntime({
   ] satisfies ReadonlyArray<SummaryItemProps>;
   const mateManageContentFallback = (
     <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
-      <p className="text-[16px] text-gray-500 dark:text-white">관리 패널을 준비하고 있습니다.</p>
+      <p className="text-body text-gray-500 dark:text-white">관리 패널을 준비하고 있습니다.</p>
     </Card>
   );
 
@@ -155,13 +155,13 @@ export default function MateManageOverviewRuntime({
                       <TeamLogo teamId={getMatePartyDisplayTeamId(party)} size="md" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[16px] font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
+                      <p className="text-body font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
                         Host Control
                       </p>
                       <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                         파티 관리
                       </h1>
-                      <p className="mt-3 max-w-2xl text-[16px] leading-6 text-gray-600 dark:text-white">
+                      <p className="mt-3 max-w-2xl text-body leading-6 text-gray-600 dark:text-white">
                         신청 검토, 승인 결정, 채팅 연결, 체크인 준비까지 한 흐름으로 정리합니다.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
@@ -187,11 +187,11 @@ export default function MateManageOverviewRuntime({
                   </div>
 
                   <div className={`${mateInsetPanelClass} min-w-full p-4 sm:min-w-[280px] lg:max-w-[320px]`}>
-                    <div className="grid gap-3 text-[16px] text-gray-600 dark:text-white">
+                    <div className="grid gap-3 text-body text-gray-600 dark:text-white">
                       <div className="flex items-start gap-3">
                         <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">일정</p>
+                          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">일정</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {formatGameDate(party.gameDate)} {party.gameTime}
                           </p>
@@ -200,21 +200,21 @@ export default function MateManageOverviewRuntime({
                       <div className="flex items-start gap-3">
                         <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">경기장 / 좌석</p>
+                          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">경기장 / 좌석</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {stadiumDisplayName}
                           </p>
-                          <p className="text-[16px] text-gray-500 dark:text-white">{party.section}</p>
+                          <p className="text-body text-gray-500 dark:text-white">{party.section}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <MateUsersIcon className="mt-0.5 h-4 w-4 text-primary" />
                         <div>
-                          <p className="text-[16px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">참여 현황</p>
+                          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">참여 현황</p>
                           <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                             {party.currentParticipants}/{party.maxParticipants}명
                           </p>
-                          <p className="text-[16px] text-gray-500 dark:text-white">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
+                          <p className="text-body text-gray-500 dark:text-white">승인 {approvedApplications.length}명, 대기 {pendingApplications.length}건</p>
                         </div>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ export default function MateManageOverviewRuntime({
 
             {isPartyRevalidating && (
               <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
-                <AlertDescription className="text-blue-700 dark:text-blue-300 text-[16px]">
+                <AlertDescription className="text-blue-700 dark:text-blue-300 text-body">
                   최신 파티 정보를 다시 확인하고 있습니다.
                 </AlertDescription>
               </Alert>

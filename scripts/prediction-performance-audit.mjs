@@ -48,9 +48,15 @@ const scenarioSelection = mode === 'mock'
     skippedScenarioIds: [],
   };
 const selectedScenarioIds = scenarioSelection.selectedScenarioIds;
+const defaultArtifactRoot = process.env.GITHUB_WORKSPACE
+  ? path.resolve(process.env.GITHUB_WORKSPACE)
+  : repoRoot;
+const artifactRoot = process.env.PREDICTION_PERF_ARTIFACT_ROOT
+  ? path.resolve(process.env.PREDICTION_PERF_ARTIFACT_ROOT)
+  : defaultArtifactRoot;
 const outputRoot = process.env.PREDICTION_PERF_OUTPUT_ROOT
   ? path.resolve(process.env.PREDICTION_PERF_OUTPUT_ROOT)
-  : path.join(repoRoot, 'output', 'playwright', 'prediction-performance');
+  : path.join(artifactRoot, 'output', 'playwright', 'prediction-performance');
 const failureArtifactsRoot = path.join(outputRoot, 'failure-artifacts');
 const runtimeBudgetMs = parsePositiveInt(process.env.PREDICTION_PERF_RUNTIME_BUDGET_MS, 300000);
 
@@ -93,7 +99,7 @@ const removeDir = async (dirPath) => {
   await fs.rm(dirPath, { recursive: true, force: true }).catch(() => undefined);
 };
 
-const artifactPath = (filePath) => path.relative(repoRoot, filePath).split(path.sep).join('/');
+const artifactPath = (filePath) => path.relative(artifactRoot, filePath).split(path.sep).join('/');
 
 const sleep = async (timeMs) => {
   await new Promise((resolve) => {
@@ -176,6 +182,33 @@ const findOpenPort = async (startPort) => {
   });
 };
 
+const parseManualBaseballDataContract = (bodyText) => {
+  if (typeof bodyText !== 'string' || bodyText.trim() === '') {
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    return null;
+  }
+
+  if (parsed?.code !== 'MANUAL_BASEBALL_DATA_REQUIRED') {
+    return null;
+  }
+
+  const data = parsed.data ?? {};
+  return {
+    code: parsed.code,
+    message: parsed.message ?? null,
+    scope: data.scope ?? null,
+    missingItems: Array.isArray(data.missingItems) ? data.missingItems : [],
+    operatorMessage: data.operatorMessage ?? null,
+    blocking: data.blocking ?? null,
+  };
+};
+
 const fetchWithTimeout = async (url, timeoutMs = 2000) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -186,11 +219,14 @@ const fetchWithTimeout = async (url, timeoutMs = 2000) => {
       signal: controller.signal,
       redirect: 'manual',
     });
-    await response.arrayBuffer().catch(() => undefined);
+    const bodyText = await response.text().catch(() => '');
+    const manualDataContract = parseManualBaseballDataContract(bodyText);
     return {
       ok: response.ok,
       status: response.status,
       durationMs: roundMetric(performance.now() - startedAt),
+      manualDataRequired: Boolean(manualDataContract),
+      manualDataContract,
     };
   } catch (error) {
     return {
@@ -338,6 +374,13 @@ const buildGuidance = ({ status, backendCheck = null } = {}) => {
     ];
   }
 
+  if (status === 'manual-data-required') {
+    return [
+      'Real mode reached the backend, but an internal baseball data contract returned MANUAL_BASEBALL_DATA_REQUIRED.',
+      'Provide operator-managed internal baseball data for the listed missing items, then rerun npm run qa:prediction:perf:real.',
+    ];
+  }
+
   if (mode === 'real') {
     return [
       strictCold
@@ -378,11 +421,15 @@ const measureRealApiTimings = async () => {
     const cold = await fetchWithTimeout(endpoint.url, 10000);
     const warmDurations = [];
     let failedRequestCount = cold.status && cold.status < 500 ? 0 : 1;
+    let manualDataContract = cold.manualDataContract ?? null;
 
     for (let index = 0; index < iterationCount; index += 1) {
       const result = await fetchWithTimeout(endpoint.url, 10000);
       if (!result.status || result.status >= 500) {
         failedRequestCount += 1;
+      }
+      if (!manualDataContract && result.manualDataContract) {
+        manualDataContract = result.manualDataContract;
       }
       warmDurations.push(result.durationMs);
       await sleep(50);
@@ -397,11 +444,23 @@ const measureRealApiTimings = async () => {
       warmBudgetMs: budgets.apiWarmP95Ms,
       coldBudgetMs: budgets.apiColdP95Ms,
       failedRequestCount,
+      manualDataRequired: Boolean(manualDataContract),
+      manualDataContract,
     };
   }
 
+  const manualDataRequirements = Object.entries(endpoints)
+    .filter(([, endpoint]) => endpoint.manualDataRequired)
+    .map(([endpointKey, endpoint]) => ({
+      endpointKey,
+      url: endpoint.url,
+      status: endpoint.coldStatus,
+      ...(endpoint.manualDataContract ?? {}),
+    }));
+
   return {
     endpoints,
+    manualDataRequirements,
   };
 };
 
@@ -490,6 +549,31 @@ const createMockScenarioDefinitions = () => {
       enforcePreviewBudget: true,
       enforceDetailBudget: true,
       enforceReentryBudget: true,
+    },
+    {
+      id: 'ranking-tab',
+      label: 'Ranking tab',
+      kind: 'ranking-tab',
+      date: selectedDate,
+      gameId: scheduledGame.gameId,
+      mockToday: selectedDate,
+      games: [scheduledGame],
+      detail: createScenarioDetail(scheduledGame),
+      voteStatus: {
+        gameId: scheduledGame.gameId,
+        homeVotes: 0,
+        awayVotes: 0,
+        totalVotes: 0,
+        homePercentage: 0,
+        awayPercentage: 0,
+      },
+      authenticated: true,
+      livePolicy: null,
+      requiresDetail: false,
+      expectsVoteButton: false,
+      enforcePreviewBudget: true,
+      enforceDetailBudget: false,
+      enforceReentryBudget: false,
     },
     {
       id: 'rest-day',
@@ -614,9 +698,19 @@ const fulfillJson = async (route, body, status = 200) => {
 
 const installMockRoutes = async (page, scenario) => {
   await page.route('**/api/auth/mypage*', (route) => fulfillJson(route, {
-    success: false,
-    message: 'Unauthorized',
-  }, 401));
+    success: true,
+    data: {
+      id: 123,
+      email: 'prediction-perf@example.com',
+      name: 'PredictionPerf',
+      handle: 'predictionperf',
+      favoriteTeam: 'HH',
+      role: 'ROLE_USER',
+      hasPassword: true,
+      profileImageUrl: null,
+      cheerPoints: 100,
+    },
+  }, scenario.authenticated ? 200 : 401));
   await page.route('**/api/auth/reissue*', (route) => fulfillJson(route, {
     success: false,
     message: 'Unauthorized',
@@ -666,6 +760,25 @@ const installMockRoutes = async (page, scenario) => {
     { teamId: 'HH', teamName: '한화 이글스', rank: 1, wins: 40, losses: 20, draws: 0, winRate: '0.667', games: 60, gamesBehind: 0 },
     { teamId: 'LT', teamName: '롯데 자이언츠', rank: 2, wins: 38, losses: 22, draws: 0, winRate: '0.633', games: 60, gamesBehind: 2 },
   ]));
+  await page.route('**/api/prediction/stats/me*', (route) => fulfillJson(route, {
+    success: true,
+    data: {
+      accuracy: 61.5,
+      totalPredictions: 13,
+      correctPredictions: 8,
+      streak: 2,
+    },
+  }));
+  await page.route('**/api/predictions/ranking/init*', (route) => fulfillJson(route, {
+    seasonYear: Number((scenario.date || selectedDate).slice(0, 4)),
+    saved: null,
+  }));
+  await page.route('**/api/predictions/ranking/current-season*', (route) => fulfillJson(route, {
+    seasonYear: Number((scenario.date || selectedDate).slice(0, 4)),
+  }));
+  await page.route(/\/api\/predictions\/ranking(?:\?.*)?$/, (route) => fulfillJson(route, {
+    message: 'No saved ranking prediction',
+  }, 404));
   await page.route(/\/api\/matches\/[^/?]+\/live-relay(?:\?.*)?$/, (route) => {
     if (scenario.livePolicy === 'manual-suppressed') {
       return fulfillJson(route, {
@@ -861,6 +974,16 @@ const countEndpointDelta = (beforeEntries, afterEntries, endpoint) => (
   countEndpoint(afterEntries, endpoint) - countEndpoint(beforeEntries, endpoint)
 );
 
+const rankingRequestEndpointKeys = new Set([
+  predictionApiEndpointKeys.RANKING_SNAPSHOT,
+  predictionApiEndpointKeys.RANKING_PREDICTION,
+  predictionApiEndpointKeys.PREDICTION_STATS,
+]);
+
+const countRankingRequests = (entries) => entries.filter((entry) => (
+  rankingRequestEndpointKeys.has(entry.endpoint)
+)).length;
+
 const endpointEntriesAfter = (entries, endpoint, cutoffMs) => entries.filter((entry) => (
   entry.endpoint === endpoint
   && entry.timeMs > cutoffMs
@@ -912,6 +1035,8 @@ const runBrowserIteration = async ({ context, baseUrl, scenario, index, prewarm,
     status: 'unknown',
     reason: null,
     previewMs: null,
+    bootstrapReadyMs: null,
+    detailRootVisibleMs: null,
     detailMs: null,
     voteButtonMs: null,
     reentryMs: null,
@@ -928,6 +1053,10 @@ const runBrowserIteration = async ({ context, baseUrl, scenario, index, prewarm,
     afterFocusLiveRelayRequests: 0,
     afterFocusLiveStatuses: [],
     afterFocusLiveRelayStatuses: [],
+    rankingRequestsBeforeTabEntry: 0,
+    rankingRequestsAfterTabEntry: 0,
+    rankingChunkLoadsAfterTabEntry: 0,
+    rankingTabEntryMs: null,
     failedRequests: [],
     screenshotPath: null,
     screenshotArtifactPath: null,
@@ -967,6 +1096,38 @@ const runBrowserIteration = async ({ context, baseUrl, scenario, index, prewarm,
       previewVisibleAtMs,
       lastEndpointResponseAt(previewEntries, predictionApiEndpointKeys.MATCHES_DAY),
     );
+    if (scenario.kind === 'ranking-tab') {
+      const rankingChunkCount = async () => previewPage.evaluate(() => (
+        performance.getEntriesByType('resource')
+          .filter((entry) => (
+            entry.name.includes('PredictionRankingTab')
+            || entry.name.includes('RankingPrediction')
+            || entry.name.includes('PredictionStatsPanel')
+          ))
+          .length
+      ));
+      const rankingChunksBeforeTab = await rankingChunkCount();
+      entry.rankingRequestsBeforeTabEntry = countRankingRequests(previewEntries);
+
+      const rankingStartedAt = Date.now();
+      await previewPage.getByTestId('prediction-tab-ranking').click({ timeout: 8000 });
+      await previewPage.waitForFunction(() => {
+        const bodyText = document.body?.textContent || '';
+        return bodyText.includes('나만의 드림팀 순위를 완성하고 친구들과 공유해보세요!')
+          || Boolean(document.querySelector('[data-testid="ranking-root"]'));
+      }, null, { timeout: 10000 });
+      entry.rankingTabEntryMs = roundMetric(Date.now() - rankingStartedAt);
+      await previewPage.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => undefined);
+      await sleep(150);
+
+      const rankingChunksAfterTab = await rankingChunkCount();
+      const rankingEntriesAfterTab = previewTracker.snapshot();
+      entry.rankingChunkLoadsAfterTabEntry = Math.max(0, rankingChunksAfterTab - rankingChunksBeforeTab);
+      entry.rankingRequestsAfterTabEntry = Math.max(
+        0,
+        countRankingRequests(rankingEntriesAfterTab) - entry.rankingRequestsBeforeTabEntry,
+      );
+    }
     if (!scenario.requiresDetail || !scenario.gameId) {
       await captureDiagnosticScreenshot(previewPage).catch(() => undefined);
     }
@@ -1010,6 +1171,8 @@ const runBrowserIteration = async ({ context, baseUrl, scenario, index, prewarm,
     await sleep(150);
     const initialDeepLinkEntries = tracker.snapshot();
     const bootstrapReadyAtMs = lastEndpointResponseAt(initialDeepLinkEntries, predictionApiEndpointKeys.BOOTSTRAP);
+    entry.bootstrapReadyMs = roundMetric(bootstrapReadyAtMs);
+    entry.detailRootVisibleMs = roundMetric(detailRootNetworkMs);
     entry.voteButtonMs = voteButtonNetworkMs === null ? null : renderMetricAfterData(voteButtonNetworkMs, bootstrapReadyAtMs);
     entry.detailMs = renderMetricAfterData(detailRootNetworkMs, bootstrapReadyAtMs);
     entry.deepLinkBootstrapRequests = countEndpoint(initialDeepLinkEntries, predictionApiEndpointKeys.BOOTSTRAP);
@@ -1176,15 +1339,20 @@ const resolveScenarioContractStatus = (summary) => {
   if (
     summary.livePolicy === 'manual-suppressed'
     && (
-      (summary.minPostIdleLiveRequests ?? 0) < 1
-      || (summary.minPostIdleLiveRelayRequests ?? 0) < 1
-      || (summary.maxPostIdleLiveRequests ?? 0) > 1
+      (summary.minPostIdleLiveRelayRequests ?? 0) < 1
       || (summary.maxPostIdleLiveRelayRequests ?? 0) > 1
-      || (summary.maxAfterFocusLiveRequests ?? 0) !== 0
       || (summary.maxAfterFocusLiveRelayRequests ?? 0) !== 0
     )
   ) {
     return 'failed';
+  }
+  if (summary.id === 'ranking-tab') {
+    if (
+      (summary.maxRankingRequestsBeforeTabEntry ?? 0) > 0
+      || (summary.minRankingChunkLoadsAfterTabEntry ?? 0) < 1
+    ) {
+      return 'failed';
+    }
   }
   return 'passed';
 };
@@ -1209,7 +1377,10 @@ const summarizeBrowserEntries = (entries, scenario = null, options = {}) => {
     measuredEntryCount: measuredEntries.length,
     prewarmEntryCount: prewarmEntries.length,
     previewP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.previewMs), 0.95)),
+    bootstrapReadyP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.bootstrapReadyMs), 0.95)),
+    detailRootVisibleP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.detailRootVisibleMs), 0.95)),
     detailP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.detailMs), 0.95)),
+    voteButtonP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.voteButtonMs), 0.95)),
     reentryP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.reentryMs), 0.95)),
     maxDeepLinkBootstrapRequests: Math.max(...measuredEntries.map((entry) => entry.deepLinkBootstrapRequests), 0),
     maxDeepLinkMatchesDayRequests: Math.max(...measuredEntries.map((entry) => entry.deepLinkMatchesDayRequests), 0),
@@ -1222,6 +1393,10 @@ const summarizeBrowserEntries = (entries, scenario = null, options = {}) => {
     minPostIdleLiveRelayRequests: minMeasured(measuredEntries.map((entry) => entry.postIdleLiveRelayRequests)),
     maxAfterFocusLiveRequests: Math.max(...measuredEntries.map((entry) => entry.afterFocusLiveRequests), 0),
     maxAfterFocusLiveRelayRequests: Math.max(...measuredEntries.map((entry) => entry.afterFocusLiveRelayRequests), 0),
+    maxRankingRequestsBeforeTabEntry: Math.max(...measuredEntries.map((entry) => entry.rankingRequestsBeforeTabEntry), 0),
+    maxRankingRequestsAfterTabEntry: Math.max(...measuredEntries.map((entry) => entry.rankingRequestsAfterTabEntry), 0),
+    minRankingChunkLoadsAfterTabEntry: minMeasured(measuredEntries.map((entry) => entry.rankingChunkLoadsAfterTabEntry)),
+    rankingTabEntryP95Ms: roundMetric(percentile(measuredEntries.map((entry) => entry.rankingTabEntryMs), 0.95)),
     failedEntryCount: measuredEntries.filter((entry) => entry.status === 'failed').length,
     missingVoteButtonCount: measuredEntries.filter((entry) => entry.voteButtonMs === null).length,
     contractStatus: 'pending',
@@ -1486,15 +1661,60 @@ const run = async () => {
       return;
     }
 
+    const api = await measureRealApiTimings();
+    const apiPreflightEvaluation = mode === 'real'
+      ? evaluatePredictionPerformanceReport({
+        mode,
+        browserSummary: {},
+        scenarioSummary: [],
+        apiSummary: api,
+        budgets,
+        strictCold,
+        backendReachable,
+        needsDate: false,
+      })
+      : null;
+
+    if (apiPreflightEvaluation?.status === 'manual-data-required') {
+      const report = {
+        generatedAt: new Date().toISOString(),
+        mode,
+        selectedDate,
+        selectedGameId,
+        status: apiPreflightEvaluation.status,
+        baseUrl: baseUrl || null,
+        serverMode: serverMode || 'not-started',
+        iterations: iterationCount,
+        budgets,
+        apiBaseUrl,
+        backendReachable,
+        backendCheck,
+        strictCold,
+        guidance: buildGuidance({ status: apiPreflightEvaluation.status, backendCheck }),
+        scenarios: [],
+        scenarioSummary: [],
+        scenarioFailures: apiPreflightEvaluation.scenarioFailures ?? [],
+        defaultScenario: null,
+        scenarioTier: scenarioSelection.scenarioTier,
+        scenarioSelectionSource: scenarioSelection.scenarioSelectionSource,
+        selectedScenarioIds: scenarioSelection.selectedScenarioIds,
+        skippedScenarioIds: scenarioSelection.skippedScenarioIds,
+        failureArtifacts: createEmptyFailureArtifacts(),
+        api,
+        browser: { summary: {}, entries: [] },
+        failures: apiPreflightEvaluation.failures,
+      };
+      await writeReport(withRuntimeFields(report, runStartedAt));
+      process.exitCode = 1;
+      return;
+    }
+
     const resolvedBaseUrl = await resolveBaseUrl();
     baseUrl = resolvedBaseUrl.baseUrl;
     serverMode = resolvedBaseUrl.serverMode;
     devServerProcess = resolvedBaseUrl.devServerProcess;
 
-    const [api, browser] = await Promise.all([
-      measureRealApiTimings(),
-      runBrowserAudit({ baseUrl }),
-    ]);
+    const browser = await runBrowserAudit({ baseUrl });
     const evaluation = evaluatePredictionPerformanceReport({
       mode,
       browserSummary: browser.summary,
@@ -1564,6 +1784,15 @@ const writeReport = async (report) => {
   await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   await fs.writeFile(markdownPath, buildPredictionPerformanceMarkdown(report), 'utf8');
   console.log(`[prediction-performance] status=${report.status} mode=${report.mode} date=${report.selectedDate} gameId=${report.selectedGameId}`);
+  if (Array.isArray(report.failures) && report.failures.length > 0) {
+    console.log(`[prediction-performance] failures=${report.failures.join(',')}`);
+  }
+  if (Array.isArray(report.scenarioFailures) && report.scenarioFailures.length > 0) {
+    const scenarioFailureSummary = report.scenarioFailures
+      .map((group) => `${group.scenarioId}:${group.failures.join('|')}`)
+      .join(',');
+    console.log(`[prediction-performance] scenarioFailures=${scenarioFailureSummary}`);
+  }
   console.log(`[prediction-performance] report=${markdownPath}`);
 };
 

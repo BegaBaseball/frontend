@@ -20,7 +20,7 @@ interface ProfileEditSectionProps {
 }
 
 const profileEditSectionFallback = (
-  <div className="rounded-2xl border-2 border-border bg-card p-6 text-center text-[16px] text-muted-foreground shadow-lg">
+  <div className="rounded-2xl border-2 border-border bg-card p-6 text-center text-body text-muted-foreground shadow-lg">
     프로필 설정을 불러오는 중입니다.
   </div>
 );

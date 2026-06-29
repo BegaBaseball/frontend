@@ -11,6 +11,7 @@ const REQUIRED_WORKFLOWS = [
   '_frontend-node-suite.yml',
   '_frontend-postdeploy-suite.yml',
   'ci-workflow-policy.yml',
+  'frontend-cypress-runner.yml',
   'frontend-mate.yml',
   'frontend-mobile-qa.yml',
   'frontend-postdeploy-smoke.yml',
@@ -228,6 +229,7 @@ const checkFrontendSiteAuditsWorkflow = (repoRoot, failures) => {
     'public/_headers',
     'public/_redirects',
     'index.html',
+    'package.json',
     'package-lock.json',
   ];
 
@@ -290,6 +292,37 @@ const checkPolicyWorkflowWiring = (repoRoot, failures) => {
   }
 };
 
+const checkFrontendCypressRunnerWorkflow = (repoRoot, failures) => {
+  const workflow = workflowPath('frontend-cypress-runner.yml');
+  const contents = requireFile(repoRoot, failures, workflow);
+  if (!contents) {
+    return;
+  }
+
+  const requiredSnippets = [
+    'node-version: 22',
+    'CYPRESS_INSTALL_BINARY: "0"',
+    'npm run test:cypress-runner',
+    'workflow_dispatch:',
+    'type: choice',
+    'docker-smoke',
+    "inputs.suite == 'docker-smoke'",
+    'docker info',
+    'npm run dev -- --host 0.0.0.0 --port 5176',
+    'CYPRESS_DOCKER_BASE_URL: http://host.docker.internal:5176',
+    'npm run test:cypress-runner:docker-smoke',
+    'scripts/cypress-run.mjs',
+    'scripts/cypress-run.test.mjs',
+    'scripts/qa-presets.mjs',
+    'scripts/test-e2e.mjs',
+    'cypress/e2e/runner-docker-smoke.cy.ts',
+  ];
+
+  for (const snippet of requiredSnippets) {
+    requireSnippet(failures, workflow, contents, snippet, 'missing-cypress-runner-workflow-wiring');
+  }
+};
+
 export const checkCiWorkflowPolicy = (repoRoot = DEFAULT_REPO_ROOT) => {
   const failures = [];
 
@@ -300,6 +333,7 @@ export const checkCiWorkflowPolicy = (repoRoot = DEFAULT_REPO_ROOT) => {
   checkFrontendSiteAuditsWorkflow(repoRoot, failures);
   checkFrontendMobileQaWorkflow(repoRoot, failures);
   checkPolicyWorkflowWiring(repoRoot, failures);
+  checkFrontendCypressRunnerWorkflow(repoRoot, failures);
 
   return {
     ok: failures.length === 0,

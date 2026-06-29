@@ -49,7 +49,7 @@ export function OffseasonMovementDetailPanel({
     const showRawRemarks = remarks && remarks !== summary;
     const body = (
         <div className="space-y-5">
-            <div className="rounded-[28px] border border-emerald-200/80 bg-[#173b34] p-5 text-white shadow-[0_24px_60px_-36px_rgba(16,37,32,0.95)] dark:border-emerald-950/40 dark:bg-[#173b34]">
+            <div className="rounded-28 border border-emerald-200/80 bg-[#173b34] p-5 text-white shadow-[0_24px_60px_-36px_rgba(16,37,32,0.95)] dark:border-emerald-950/40 dark:bg-[#173b34]">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className="rounded-3xl border border-white/10 bg-white/[0.08] p-3 shadow-sm backdrop-blur-sm">
@@ -58,12 +58,12 @@ export function OffseasonMovementDetailPanel({
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                                 <OffseasonSectionPill section={movement.section} />
-                                <OffseasonPill className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-[14px] font-bold text-emerald-50">
+                                <OffseasonPill className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-caption font-bold text-emerald-50">
                                     {statusLabel}
                                 </OffseasonPill>
                             </div>
                             <div>
-                                <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-emerald-100/65">{teamName}</p>
+                                <p className="text-caption font-bold uppercase tracking-[0.2em] text-emerald-100/65">{teamName}</p>
                                 <h3 className="mt-1 text-2xl font-black tracking-tight text-white">{movement.player}</h3>
                             </div>
                         </div>
@@ -87,15 +87,15 @@ export function OffseasonMovementDetailPanel({
                         key={item.label}
                         className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/70"
                     >
-                        <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
-                        <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
+                        <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                        <p className="mt-2 text-15 font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
                     </div>
                 ))}
             </div>
 
             <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
-                <div className="mt-3 text-[15px] font-semibold leading-7 text-zinc-700 dark:text-white">
+                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">Summary</p>
+                <div className="mt-3 text-15 font-semibold leading-7 text-zinc-700 dark:text-white">
                     {formatRemarks(summary)}
                 </div>
             </div>
@@ -103,11 +103,11 @@ export function OffseasonMovementDetailPanel({
             <div className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Structured Details</p>
-                        <p className="mt-1 text-[15px] font-bold text-zinc-900 dark:text-white">수집된 상세 데이터</p>
+                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">Structured Details</p>
+                        <p className="mt-1 text-15 font-bold text-zinc-900 dark:text-white">수집된 상세 데이터</p>
                     </div>
                     {hasStructuredFacts && (
-                        <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[14px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <OffseasonPill className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-caption font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                             {detailFacts.length}개 항목
                         </OffseasonPill>
                     )}
@@ -119,13 +119,13 @@ export function OffseasonMovementDetailPanel({
                                 key={item.label}
                                 className="rounded-3xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950/80"
                             >
-                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
-                                <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
+                                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                                <p className="mt-2 text-15 font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="mt-4 text-[15px] font-semibold leading-relaxed text-zinc-500 dark:text-white">
+                    <p className="mt-4 text-15 font-semibold leading-relaxed text-zinc-500 dark:text-white">
                         계약 조건, 상대 구단, 반대급부 같은 구조화 필드는 아직 등록되지 않았습니다.
                     </p>
                 )}
@@ -133,8 +133,8 @@ export function OffseasonMovementDetailPanel({
 
             {showRawRemarks && (
                 <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Raw Notes</p>
-                <div className="mt-3 text-[15px] font-semibold leading-7 text-zinc-700 dark:text-white">
+                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">Raw Notes</p>
+                <div className="mt-3 text-15 font-semibold leading-7 text-zinc-700 dark:text-white">
                     {formatRemarks(remarks)}
                 </div>
                 </div>
@@ -143,11 +143,11 @@ export function OffseasonMovementDetailPanel({
             <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">Source</p>
-                        <p className="mt-1 text-[15px] font-bold text-zinc-900 dark:text-white">출처 정보</p>
+                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">Source</p>
+                        <p className="mt-1 text-15 font-bold text-zinc-900 dark:text-white">출처 정보</p>
                     </div>
                     {hasSourceFacts && (
-                        <OffseasonPill className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                        <OffseasonPill className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-caption font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                             확인 가능
                         </OffseasonPill>
                     )}
@@ -156,8 +156,8 @@ export function OffseasonMovementDetailPanel({
                     <div className="mt-4 space-y-3">
                         {sourceFacts.map((item) => (
                             <div key={item.label} className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/70">
-                                <p className="text-[14px] font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
-                                <p className="mt-2 text-[15px] font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
+                                <p className="text-caption font-black uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+                                <p className="mt-2 text-15 font-bold leading-relaxed text-zinc-900 dark:text-white">{item.value}</p>
                             </div>
                         ))}
                         {sourceUrl && (
@@ -165,14 +165,14 @@ export function OffseasonMovementDetailPanel({
                                 href={sourceUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex rounded-full border border-zinc-200 bg-white px-4 py-2 text-[15px] font-bold text-zinc-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:border-emerald-900/60 dark:hover:text-emerald-200"
+                                className="inline-flex rounded-full border border-zinc-200 bg-white px-4 py-2 text-15 font-bold text-zinc-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:border-emerald-900/60 dark:hover:text-emerald-200"
                             >
                                 원문 출처 열기
                             </a>
                         )}
                     </div>
                 ) : (
-                    <p className="mt-4 text-[15px] font-semibold leading-relaxed text-zinc-500 dark:text-white">
+                    <p className="mt-4 text-15 font-semibold leading-relaxed text-zinc-500 dark:text-white">
                         구단 발표명, 기사 링크, 발표 시각이 아직 수집되지 않았습니다.
                     </p>
                 )}
@@ -180,14 +180,14 @@ export function OffseasonMovementDetailPanel({
 
             <div className="rounded-3xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <div className="flex flex-wrap items-center gap-2">
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-caption font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                         데이터 ID #{movement.id}
                     </OffseasonPill>
-                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[14px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                    <OffseasonPill className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-caption font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                         팀 코드 {movement.team}
                     </OffseasonPill>
                 </div>
-                <p className="mt-3 text-[15px] font-semibold leading-relaxed text-zinc-500 dark:text-white">
+                <p className="mt-3 text-15 font-semibold leading-relaxed text-zinc-500 dark:text-white">
                     상세 패널은 요약, 계약 구조, 출처, 원문 메모를 분리해서 보여주도록 확장되었습니다.
                 </p>
             </div>
@@ -207,15 +207,15 @@ export function OffseasonMovementDetailPanel({
             title="이적 상세 정보"
             placement={isMobile ? 'bottom' : 'center'}
             className={isMobile
-                ? 'max-h-[90vh] max-w-none !rounded-b-none !rounded-t-[32px] border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
-                : 'max-h-[88vh] max-w-3xl !rounded-[32px] border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+                ? 'max-h-[90vh] max-w-none !rounded-b-none !rounded-t-32 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+                : 'max-h-[88vh] max-w-3xl !rounded-32 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
             }
             bodyClassName={isMobile
                 ? '!max-h-[calc(90vh-4.5rem)] !overflow-y-auto !px-4 !pb-6 !pt-2'
                 : '!max-h-[calc(88vh-4.5rem)] !overflow-y-auto !p-6'
             }
         >
-            <p className="text-[15px] font-semibold text-zinc-500 dark:text-white">
+            <p className="text-15 font-semibold text-zinc-500 dark:text-white">
                 {isMobile
                     ? '선택한 선수 이동의 요약, 계약 구조, 출처 정보를 한 번에 확인할 수 있습니다.'
                     : '선택한 선수 이동의 요약, 원문 메모, 구조화 필드, 출처를 한 번에 확인할 수 있습니다.'}

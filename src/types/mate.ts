@@ -17,6 +17,7 @@ export interface Party {
   homeTeam: string;
   awayTeam: string;
   section: string;
+  seatDetail?: string;
   maxParticipants: number;
   currentParticipants: number;
   description: string;
@@ -27,7 +28,16 @@ export interface Party {
   ticketPrice?: number;
   reservationDepositAmount?: number | null;
   hostTrustMetrics?: HostTrustMetrics | null;
+  favorited?: boolean;
+  members?: MemberSummary[];
   createdAt: string;
+}
+
+export interface MemberSummary {
+  initial: string;
+  profileImageUrl?: string | null;
+  role: string;
+  host: boolean;
 }
 
 export interface HostTrustMetrics {
@@ -167,6 +177,7 @@ export interface CreatePartyRequest {
   awayTeam: string;
   cheeringSide: CheeringSide;
   section: string;
+  seatDetail?: string;
   maxParticipants: number;
   description: string;
   ticketPrice?: number;
@@ -180,6 +191,7 @@ export interface UpdatePartyRequest {
   price?: number;
   description?: string;
   section?: string;
+  seatDetail?: string;
   maxParticipants?: number;
   ticketPrice?: number;
   reservationDepositAmount?: number | null;

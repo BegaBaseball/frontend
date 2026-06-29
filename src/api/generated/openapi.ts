@@ -189,6 +189,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Mate chat image upload */
         post: operations["uploadChatImage"];
         delete?: never;
         options?: never;
@@ -221,6 +222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Mate review create */
         post: operations["createReview"];
         delete?: never;
         options?: never;
@@ -333,6 +335,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Cancel Mate Toss payment intent */
         post: operations["cancelTossPayment"];
         delete?: never;
         options?: never;
@@ -349,6 +352,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Prepare Mate Toss payment intent */
         post: operations["prepareTossPayment"];
         delete?: never;
         options?: never;
@@ -365,6 +369,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Confirm Mate Toss payment */
         post: operations["confirmTossPayment"];
         delete?: never;
         options?: never;
@@ -383,6 +388,22 @@ export interface paths {
         put?: never;
         post: operations["createParty"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/parties/{id}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addFavorite_1"];
+        delete: operations["removeFavorite_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -414,6 +435,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["markAsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/mark-all-read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markAllAsRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -925,6 +962,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Mate chat message send */
         post: operations["sendMessage_1"];
         delete?: never;
         options?: never;
@@ -1277,8 +1315,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["addFavorite_1"];
-        delete: operations["removeFavorite_1"];
+        post: operations["addFavorite_2"];
+        delete: operations["removeFavorite_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2012,6 +2050,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getReviewsByParty"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/host/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReviewsByHost"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2948,6 +3002,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dm/rooms/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diary/{id}": {
         parameters: {
             query?: never;
@@ -3108,6 +3178,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cheer/me/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMyPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cheer/bookmarks": {
         parameters: {
             query?: never;
@@ -3211,6 +3297,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Mate chat messages by party */
         get: operations["getMessagesByPartyId"];
         put?: never;
         post?: never;
@@ -3227,6 +3314,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Mate latest chat message by party */
         get: operations["getLatestMessage"];
         put?: never;
         post?: never;
@@ -3876,6 +3964,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dm/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cheer/comments/{commentId}": {
         parameters: {
             query?: never;
@@ -4196,6 +4300,39 @@ export interface components {
             /** Format: date-time */
             announcedAt?: string;
         };
+        ApiResponseOffseasonMovementAdminDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["OffseasonMovementAdminDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        OffseasonMovementAdminDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: date */
+            movementDate?: string;
+            section?: string;
+            teamCode?: string;
+            playerName?: string;
+            summary?: string;
+            details?: string;
+            contractTerm?: string;
+            contractValue?: string;
+            optionDetails?: string;
+            counterpartyTeam?: string;
+            counterpartyDetails?: string;
+            sourceLabel?: string;
+            sourceUrl?: string;
+            /** Format: date-time */
+            announcedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         GameInningScoreRequestDto: {
             /** Format: int32 */
             inning: number;
@@ -4205,12 +4342,45 @@ export interface components {
             runs: number;
             isExtra?: boolean;
         };
+        ApiResponseMapStringObject: {
+            success?: boolean;
+            message?: string;
+            data?: {
+                [key: string]: Record<string, never>;
+            };
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
         AdminNonCanonicalCleanupTrackerUpsertRequest: {
             ticketUrl?: string;
             assignee?: string;
             status?: string;
             note?: string;
             gameIds?: string[];
+        };
+        AdminNonCanonicalCleanupTrackerDto: {
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            ticketUrl?: string;
+            assignee?: string;
+            status?: string;
+            note?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            gameIds?: string[];
+        };
+        ApiResponseAdminNonCanonicalCleanupTrackerDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
         };
         BlockToggleResponse: {
             blocked?: boolean;
@@ -4235,13 +4405,39 @@ export interface components {
             gameId?: number;
             verificationToken?: string;
         };
-        Request: {
+        ApiResponseMateChatImageUploadResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MateChatImageUploadResponse"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MateChatImageUploadResponse: {
+            path?: string;
+            url?: string;
+        };
+        MateReviewCreateRequest: {
             /** Format: int64 */
             partyId?: number;
             revieweeHandle?: string;
             /** Format: int32 */
             rating?: number;
             comment?: string;
+        };
+        MateReviewResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            partyId?: number;
+            reviewerHandle?: string;
+            revieweeHandle?: string;
+            /** Format: int32 */
+            rating?: number;
+            comment?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         TeamUserAnswersDto: {
             answers?: {
@@ -4303,17 +4499,32 @@ export interface components {
             isThumbnail?: boolean;
             url?: string;
         };
-        CancelIntentRequest: {
+        MatePaymentCancelIntentRequest: {
             cancelReason?: string;
         };
-        PrepareClientRequest: {
+        ApiResponseMatePaymentCancelIntentResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MatePaymentCancelIntentResponse"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MatePaymentCancelIntentResponse: {
+            /** Format: int64 */
+            intentId?: number;
+            /** @enum {string} */
+            status?: "PREPARED" | "CONFIRMED" | "APPLICATION_CREATED" | "CANCEL_REQUESTED" | "CANCELED" | "CANCEL_FAILED" | "EXPIRED";
+        };
+        MatePaymentPrepareRequest: {
             /** Format: int64 */
             partyId?: number;
             /** @enum {string} */
             flowType?: "DEPOSIT" | "SELLING_FULL";
             cancelPolicyVersion?: string;
         };
-        PrepareResponse: {
+        MatePaymentPrepareResponse: {
             /** Format: int64 */
             intentId?: number;
             orderId?: string;
@@ -4327,7 +4538,7 @@ export interface components {
             /** @enum {string} */
             paymentType?: "DEPOSIT" | "FULL";
         };
-        ClientConfirmRequest: {
+        MatePaymentConfirmRequest: {
             paymentKey?: string;
             orderId?: string;
             /** Format: int64 */
@@ -4343,6 +4554,46 @@ export interface components {
             ticketImageUrl?: string;
             /** @enum {string} */
             paymentType?: "DEPOSIT" | "FULL";
+        };
+        MateApplicationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            partyId?: number;
+            applicantHandle?: string;
+            applicantName?: string;
+            /** @enum {string} */
+            applicantBadge?: "NEW" | "VERIFIED" | "TRUSTED";
+            /** Format: double */
+            applicantRating?: number;
+            message?: string;
+            /** Format: int32 */
+            depositAmount?: number;
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+            ticketVerified?: boolean;
+            ticketImageUrl?: string;
+            paymentKey?: string;
+            orderId?: string;
+            /** Format: int32 */
+            feeAmount?: number;
+            /** Format: int32 */
+            netSettlementAmount?: number;
+            /** @enum {string} */
+            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
+            /** @enum {string} */
+            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            /** Format: date-time */
+            rejectedAt?: string;
+            /** Format: date-time */
+            responseDeadline?: string;
+            isPaid?: boolean;
+            isApproved?: boolean;
+            isRejected?: boolean;
         };
         LocalTime: {
             /** Format: int32 */
@@ -4365,16 +4616,92 @@ export interface components {
             homeTeam: string;
             awayTeam: string;
             section: string;
+            seatDetail?: string;
             /** Format: int32 */
             maxParticipants: number;
             description: string;
             ticketImageUrl?: string;
             /** Format: int32 */
             ticketPrice?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
             reservationNumber?: string;
             verificationToken: string;
         };
-        MateSearchTermRecordRequest: {
+        MateHostReviewSnippet: {
+            reviewerHandle?: string;
+            /** Format: int32 */
+            rating?: number;
+            comment?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        MateHostTrustMetrics: {
+            /** Format: int32 */
+            averageResponseMinutes?: number;
+            /** Format: date-time */
+            lastActiveAt?: string;
+            /** Format: int64 */
+            completedMateCount?: number;
+            /** Format: int64 */
+            recentNoShowCount?: number;
+            reviewKeywordSummary?: components["schemas"]["MateReviewKeywordSummary"][];
+            recentHostReviews?: components["schemas"]["MateHostReviewSnippet"][];
+        };
+        MatePartyResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            hostId?: number;
+            hostHandle?: string;
+            hostName?: string;
+            hostProfileImageUrl?: string;
+            hostFavoriteTeam?: string;
+            /** @enum {string} */
+            hostBadge?: "NEW" | "VERIFIED" | "TRUSTED";
+            /** Format: double */
+            hostAverageRating?: number;
+            /** Format: int64 */
+            hostReviewCount?: number;
+            teamId?: string;
+            /** @enum {string} */
+            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
+            /** Format: date */
+            gameDate?: string;
+            gameTime?: components["schemas"]["LocalTime"];
+            stadium?: string;
+            homeTeam?: string;
+            awayTeam?: string;
+            section?: string;
+            /** Format: int32 */
+            maxParticipants?: number;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            ticketVerified?: boolean;
+            ticketImageUrl?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            /** Format: int32 */
+            price?: number;
+            /** Format: int32 */
+            ticketPrice?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
+            reservationNumber?: string;
+            seatDetail?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MateReviewKeywordSummary: {
+            label?: string;
+            /** Format: int64 */
+            count?: number;
+        };
+        RecordRequest: {
             term?: string;
         };
         InitMediaUploadRequest: {
@@ -4395,13 +4722,58 @@ export interface components {
             /** Format: int32 */
             remainingCount?: number;
         };
-        UpsertRequest: {
+        ApiResponseMateInternalSettlementPayoutResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MateInternalSettlementPayoutResponse"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MateInternalSettlementPayoutResponse: {
+            /** Format: int64 */
+            payoutId?: number;
+            /** @enum {string} */
+            status?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+            providerRef?: string;
+            failureCode?: string;
+            failReason?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+        };
+        MateSellerPayoutProfileUpsertRequest: {
             /** Format: int64 */
             userId?: number;
             provider?: string;
             providerSellerId?: string;
             kycStatus?: string;
             metadataJson?: string;
+        };
+        ApiResponseMateSellerPayoutProfileResponse: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MateSellerPayoutProfileResponse"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MateSellerPayoutProfileResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            userId?: number;
+            provider?: string;
+            providerSellerId?: string;
+            kycStatus?: string;
+            metadataJson?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         SignedUrlDto: {
             url?: string;
@@ -4410,6 +4782,12 @@ export interface components {
         };
         BootstrapRequest: {
             targetHandle: string;
+        };
+        Request: {
+            /** Format: int64 */
+            roomId: number;
+            content: string;
+            clientMessageId?: string;
         };
         SeatViewSelectionRequest: {
             candidateIds?: number[];
@@ -4574,9 +4952,61 @@ export interface components {
             /** Format: int32 */
             count?: number;
         };
-        QrSessionRequest: {
+        MateCheckInRequest: {
             /** Format: int64 */
             partyId: number;
+            location: string;
+            qrSessionId?: string;
+            manualCode?: string;
+        };
+        MateCheckInResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            partyId?: number;
+            userHandle?: string;
+            userName?: string;
+            location?: string;
+            /** Format: date-time */
+            checkedInAt?: string;
+        };
+        MateCheckInQrSessionRequest: {
+            /** Format: int64 */
+            partyId: number;
+        };
+        MateCheckInQrSessionResponse: {
+            sessionId?: string;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: date-time */
+            expiresAt?: string;
+            checkinUrl?: string;
+            manualCode?: string;
+        };
+        MateChatReadResponse: {
+            success?: boolean;
+            message?: string;
+        };
+        MateChatMessageRequest: {
+            /** Format: int64 */
+            partyId: number;
+            message?: string;
+            imageUrl?: string;
+            clientMessageId: string;
+        };
+        MateChatMessageResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: int64 */
+            senderId?: number;
+            senderName?: string;
+            message?: string;
+            imageUrl?: string;
+            clientMessageId?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         PolicyConsentItemDto: {
             /** @enum {string} */
@@ -4594,6 +5024,15 @@ export interface components {
             provider?: string;
             providerId?: string;
             policyConsents: components["schemas"]["PolicyConsentItemDto"][];
+        };
+        ApiResponseVoid: {
+            success?: boolean;
+            message?: string;
+            data?: Record<string, never>;
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
         };
         PolicyConsentSubmitDto: {
             policyConsents: components["schemas"]["PolicyConsentItemDto"][];
@@ -4615,14 +5054,102 @@ export interface components {
         AccountDeletionRecoveryRequestDto: {
             token: string;
         };
-        CancelRequest: {
+        MateApplicationCreateRequest: {
+            /** Format: int64 */
+            partyId: number;
+            message?: string;
+            /** Format: int32 */
+            depositAmount?: number;
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+            ticketVerified?: boolean;
+            ticketImageUrl?: string;
+            verificationToken?: string;
+        };
+        MateApplicationCancelRequest: {
             /** @enum {string} */
             cancelReasonType?: "BUYER_CHANGED_MIND" | "SELLER_CHANGED_MIND" | "SYSTEM" | "EVENT_CANCELED" | "OTHER";
             cancelMemo?: string;
         };
+        MateApplicationCancelResponse: {
+            /** Format: int64 */
+            applicationId?: number;
+            /** Format: int32 */
+            refundAmount?: number;
+            /** Format: int32 */
+            feeCharged?: number;
+            refundPolicyApplied?: string;
+            /** @enum {string} */
+            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
+            /** @enum {string} */
+            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+        };
         StreamingResponseBody: Record<string, never>;
+        ApiResponseChatSessionSummary: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ChatSessionSummary"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ChatSessionSummary: {
+            /** Format: int64 */
+            sessionId?: number;
+            title?: string;
+            /** Format: int32 */
+            messageCount?: number;
+            latestMessagePreview?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            lastMessageAt?: string;
+        };
         CreateUserChatMessageRequest: {
             content: string;
+        };
+        ApiResponseStoredChatMessage: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["StoredChatMessage"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        JsonNode: Record<string, never>;
+        StoredChatMessage: {
+            /** Format: int64 */
+            messageId?: number;
+            /** Format: int64 */
+            sessionId?: number;
+            /** @enum {string} */
+            role?: "USER" | "ASSISTANT";
+            /** @enum {string} */
+            status?: "COMPLETED" | "CANCELLED" | "ERROR";
+            content?: string;
+            verified?: boolean;
+            cached?: boolean;
+            intent?: string;
+            strategy?: string;
+            finishReason?: string;
+            cancelled?: boolean;
+            errorCode?: string;
+            plannerMode?: string;
+            plannerCacheHit?: boolean;
+            toolExecutionMode?: string;
+            fallbackReason?: string;
+            metadata?: components["schemas"]["JsonNode"];
+            citations?: components["schemas"]["JsonNode"];
+            toolCalls?: components["schemas"]["JsonNode"];
+            favorite?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         CreateAssistantChatMessageRequest: {
             content: string;
@@ -4642,12 +5169,293 @@ export interface components {
             citations?: components["schemas"]["JsonNode"];
             toolCalls?: components["schemas"]["JsonNode"];
         };
-        JsonNode: Record<string, never>;
+        ApiResponseChatFavoriteItem: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ChatFavoriteItem"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ChatFavoriteItem: {
+            /** Format: int64 */
+            messageId?: number;
+            /** Format: int64 */
+            sessionId?: number;
+            sessionTitle?: string;
+            content?: string;
+            prompt?: string;
+            /** Format: date-time */
+            favoritedAt?: string;
+            /** Format: date-time */
+            messageCreatedAt?: string;
+        };
         RoleChangeRequestDto: {
             reason?: string;
         };
+        ApiResponseRoleChangeResponseDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["RoleChangeResponseDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        RoleChangeResponseDto: {
+            /** Format: int64 */
+            userId?: number;
+            email?: string;
+            name?: string;
+            previousRole?: string;
+            newRole?: string;
+            /** Format: date-time */
+            changedAt?: string;
+        };
         AdminReportAppealReq: {
             appealReason?: string;
+        };
+        AdminReportDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            postId?: number;
+            postPreview?: string;
+            /** Format: int64 */
+            reporterId?: number;
+            reporterHandle?: string;
+            reason?: string;
+            description?: string;
+            status?: string;
+            adminAction?: string;
+            adminMemo?: string;
+            /** Format: int64 */
+            handledBy?: number;
+            /** Format: date-time */
+            handledAt?: string;
+            evidenceUrl?: string;
+            requestedAction?: string;
+            appealStatus?: string;
+            appealReason?: string;
+            /** Format: int32 */
+            appealCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiResponseAdminReportDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminReportDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseMediaSmokeReport: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MediaSmokeReport"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MediaSmokeDomainReport: {
+            /** @enum {string} */
+            domain?: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
+            /** Format: int32 */
+            checkedCount?: number;
+            /** Format: int32 */
+            missingObjectCount?: number;
+            /** Format: int32 */
+            urlFailureCount?: number;
+            /** Format: int32 */
+            feedDerivativeMissingCount?: number;
+            failedObjectKeys?: string[];
+        };
+        MediaSmokeReport: {
+            /** Format: int32 */
+            sampleLimit?: number;
+            requestedDomains?: string[];
+            domains?: components["schemas"]["MediaSmokeDomainReport"][];
+            hasFailures?: boolean;
+        };
+        ApiResponseMediaCleanupReport: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MediaCleanupReport"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MediaCleanupReport: {
+            requestedTargets?: string[];
+            targets?: components["schemas"]["MediaCleanupTargetReport"][];
+            hasFailures?: boolean;
+        };
+        MediaCleanupTargetReport: {
+            /** @enum {string} */
+            target?: "PENDING" | "ORPHAN";
+            /** Format: int32 */
+            scannedCount?: number;
+            /** Format: int32 */
+            deletedCount?: number;
+            /** Format: int32 */
+            errorCount?: number;
+        };
+        ApiResponseMediaBackfillReport: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["MediaBackfillReport"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        MediaBackfillDomainReport: {
+            domain?: string;
+            /** Format: int32 */
+            scannedCount?: number;
+            /** Format: int32 */
+            normalizedCount?: number;
+            /** Format: int32 */
+            updatedCount?: number;
+            /** Format: int32 */
+            clearedCount?: number;
+            /** Format: int32 */
+            linkSyncedCount?: number;
+            /** Format: int32 */
+            legacyPathRetainedCount?: number;
+            /** Format: int32 */
+            manualReviewCount?: number;
+            sampleNormalizedTargets?: string[];
+            sampleLegacyRetainedTargets?: string[];
+            sampleManualReviewTargets?: string[];
+            auditCounts?: {
+                [key: string]: number;
+            };
+            auditSamples?: components["schemas"]["MediaBackfillIssueSample"][];
+        };
+        MediaBackfillIssueSample: {
+            type?: string;
+            subject?: string;
+            objectKey?: string;
+            detail?: string;
+        };
+        MediaBackfillReport: {
+            applied?: boolean;
+            /** Format: int32 */
+            batchSize?: number;
+            requestedDomains?: string[];
+            domains?: components["schemas"]["MediaBackfillDomainReport"][];
+            hasFailures?: boolean;
+        };
+        ApiResponseGameScoreSyncResultDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["GameScoreSyncResultDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        GameScoreSyncResultDto: {
+            gameId?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            awayScore?: number;
+            gameStatus?: string;
+            /** Format: int32 */
+            inningScoreCount?: number;
+            synced?: boolean;
+            usedInningScores?: boolean;
+            winningTeam?: string;
+            /** Format: int32 */
+            winningScore?: number;
+        };
+        ApiResponseGameScoreSyncBatchResultDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["GameScoreSyncBatchResultDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        GameScoreSyncBatchResultDto: {
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int32 */
+            totalGames?: number;
+            /** Format: int32 */
+            syncedGames?: number;
+            /** Format: int32 */
+            skippedGames?: number;
+            results?: components["schemas"]["GameScoreSyncResultDto"][];
+        };
+        ApiResponseGameStatusRepairBatchResultDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["GameStatusRepairBatchResultDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        GameStatusMismatchDto: {
+            gameId?: string;
+            /** Format: date */
+            gameDate?: string;
+            startTime?: components["schemas"]["LocalTime"];
+            rawStatus?: string;
+            normalizedRawStatus?: string;
+            effectiveStatus?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            awayScore?: number;
+            /** Format: int32 */
+            inningScoreCount?: number;
+            hasKnownScore?: boolean;
+            hasInningScores?: boolean;
+            reasons?: string[];
+        };
+        GameStatusRepairBatchResultDto: {
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            dryRun?: boolean;
+            /** Format: int32 */
+            totalGames?: number;
+            /** Format: int32 */
+            mismatchCount?: number;
+            /** Format: int32 */
+            repairedCount?: number;
+            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
+            repairedGames?: components["schemas"]["GameScoreSyncResultDto"][];
+            /** Format: int32 */
+            nonCanonicalCount?: number;
+            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
+        };
+        NonCanonicalGameDto: {
+            gameId?: string;
+            /** Format: date */
+            gameDate?: string;
+            startTime?: components["schemas"]["LocalTime"];
+            rawStatus?: string;
+            homeTeam?: string;
+            awayTeam?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            awayScore?: number;
+            reasons?: string[];
         };
         MatePartyUpdateRequest: {
             /** @enum {string} */
@@ -4660,11 +5468,53 @@ export interface components {
             maxParticipants?: number;
             /** Format: int32 */
             ticketPrice?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
         };
         AdminSeatViewActionReq: {
             adminLabel?: string;
             moderationStatus?: string;
             adminMemo?: string;
+        };
+        AdminSeatViewDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            diaryId?: number;
+            /** Format: int64 */
+            userId?: number;
+            photoUrl?: string;
+            storagePath?: string;
+            sourceType?: string;
+            aiSuggestedLabel?: string;
+            /** Format: double */
+            aiConfidence?: number;
+            aiReason?: string;
+            userSelected?: boolean;
+            moderationStatus?: string;
+            adminLabel?: string;
+            adminMemo?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedAt?: string;
+            rewardGranted?: boolean;
+            stadium?: string;
+            section?: string;
+            block?: string;
+            seatRow?: string;
+            seatNumber?: string;
+            diaryDate?: string;
+            ticketVerified?: boolean;
+            ticketVerifiedAt?: string;
+        };
+        ApiResponseAdminSeatViewDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminSeatViewDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
         };
         AdminReportActionReq: {
             /** @enum {string} */
@@ -4783,19 +5633,6 @@ export interface components {
             address?: string;
             phone?: string;
             places?: components["schemas"]["PlaceDto"][];
-        };
-        Response: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            partyId?: number;
-            reviewerHandle?: string;
-            revieweeHandle?: string;
-            /** Format: int32 */
-            rating?: number;
-            comment?: string;
-            /** Format: date-time */
-            createdAt?: string;
         };
         PredictionResponseDto: {
             gameId: string;
@@ -4953,6 +5790,12 @@ export interface components {
             /** Format: int32 */
             streak: number;
         };
+        MatePartyMemberSummary: {
+            initial?: string;
+            profileImageUrl?: string;
+            role?: string;
+            host?: boolean;
+        };
         MatePartyPublicResponse: {
             /** Format: int64 */
             id?: number;
@@ -4988,17 +5831,36 @@ export interface components {
             price?: number;
             /** Format: int32 */
             ticketPrice?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            favorited?: boolean;
+            seatDetail?: string;
+            members?: components["schemas"]["MatePartyMemberSummary"][];
         };
-        MatePopularSearchTermResponse: {
+        PopularResponse: {
             term?: string;
             /** Format: int64 */
             count?: number;
             /** Format: int32 */
             rank?: number;
+        };
+        Response: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            type?: "APPLICATION_RECEIVED" | "APPLICATION_APPROVED" | "APPLICATION_REJECTED" | "PARTY_EXPIRED" | "PARTY_AUTO_COMPLETED" | "GAME_TOMORROW_REMINDER" | "GAME_DAY_REMINDER" | "HOST_RESPONSE_NUDGE" | "REVIEW_REQUEST" | "PARTY_CANCELLED_HOST_DELETED" | "PARTY_PARTICIPANT_LEFT" | "POST_COMMENT" | "COMMENT_REPLY" | "POST_LIKE" | "POST_REPOST" | "NEW_FOLLOWER" | "FOLLOWING_NEW_POST" | "NEW_DEVICE_LOGIN";
+            title?: string;
+            message?: string;
+            /** Format: int64 */
+            relatedId?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            isRead?: boolean;
         };
         GameLiveEventDto: {
             /** Format: int32 */
@@ -5030,6 +5892,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        /** @description Live game snapshot used by prediction detail polling. */
         GameLiveSnapshotDto: {
             gameId?: string;
             gameStatus?: string;
@@ -5045,6 +5908,8 @@ export interface components {
             /** Format: date-time */
             lastUpdatedAt?: string;
             events?: components["schemas"]["GameLiveEventDto"][];
+            /** @description Normalized meaningful inning scores from game_inning_scores or derived from cumulative game_events scores. Older clients should tolerate this field being absent. */
+            inningScores?: components["schemas"]["GameInningScoreDto"][];
         };
         GameRelayEventDto: {
             /** Format: int32 */
@@ -5228,27 +6093,27 @@ export interface components {
         };
         HomePageTeamRankingDto: {
             /** Format: int32 */
-            rank?: number;
-            teamId?: string;
-            teamName?: string;
+            rank: number;
+            teamId: string;
+            teamName: string;
             /** Format: int32 */
-            wins?: number;
+            wins: number;
             /** Format: int32 */
-            losses?: number;
+            losses: number;
             /** Format: int32 */
-            draws?: number;
-            winRate?: string;
+            draws: number;
+            winRate: string;
             /** Format: int32 */
-            games?: number;
+            games: number;
             /** Format: double */
-            gamesBehind?: number;
+            gamesBehind: number;
         };
         HomeRankingSnapshotDto: {
             /** Format: int32 */
-            rankingSeasonYear?: number;
-            rankingSourceMessage?: string;
-            rankings?: components["schemas"]["HomePageTeamRankingDto"][];
-            isOffSeason?: boolean;
+            rankingSeasonYear: number;
+            rankingSourceMessage: string;
+            rankings: components["schemas"]["HomePageTeamRankingDto"][];
+            isOffSeason: boolean;
         };
         OffseasonMovementDto: {
             /** Format: int64 */
@@ -5370,6 +6235,8 @@ export interface components {
             timedOut?: boolean;
             timedOutSections?: string[];
             failedSections?: string[];
+            failureReason?: string;
+            manualDataRequest?: components["schemas"]["ManualBaseballDataRequest"];
         };
         HomeBootstrapResponseDto: {
             selectedDate?: string;
@@ -5403,6 +6270,18 @@ export interface components {
             nextGameDate?: string;
             hasPrev?: boolean;
             hasNext?: boolean;
+        };
+        ManualBaseballDataMissingItem: {
+            key?: string;
+            label?: string;
+            reason?: string;
+            expected_format?: string;
+        };
+        ManualBaseballDataRequest: {
+            scope?: string;
+            missingItems?: components["schemas"]["ManualBaseballDataMissingItem"][];
+            operatorMessage?: string;
+            blocking?: boolean;
         };
         TeamEntity: {
             teamId?: string;
@@ -5454,6 +6333,18 @@ export interface components {
             mostVisitedStadium?: string;
             /** Format: int32 */
             mostVisitedCount?: number;
+            monthlyVisitCounts?: {
+                [key: string]: number;
+            };
+            stadiumVisitCounts?: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            homeVisitCount?: number;
+            /** Format: int32 */
+            awayVisitCount?: number;
+            /** Format: int32 */
+            scheduledCount?: number;
             happiestMonth?: string;
             /** Format: int32 */
             happiestCount?: number;
@@ -5528,9 +6419,510 @@ export interface components {
             };
             myVote?: string;
         };
+        MateChatUnreadCountResponse: {
+            success?: boolean;
+            /** Format: int64 */
+            data?: number;
+        };
+        ApiResponseListTrustedDeviceDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["TrustedDeviceDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        TrustedDeviceDto: {
+            /** Format: int64 */
+            id?: number;
+            deviceLabel?: string;
+            deviceType?: string;
+            browser?: string;
+            os?: string;
+            firstSeenAt?: string;
+            lastSeenAt?: string;
+            lastLoginAt?: string;
+            lastIp?: string;
+        };
+        AccountSecurityEventDto: {
+            /** Format: int64 */
+            id?: number;
+            eventType?: string;
+            occurredAt?: string;
+            deviceLabel?: string;
+            deviceType?: string;
+            browser?: string;
+            os?: string;
+            ip?: string;
+            message?: string;
+        };
+        ApiResponseListAccountSecurityEventDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AccountSecurityEventDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponsePolicyRequiredResponseDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["PolicyRequiredResponseDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        PolicyRequiredResponseDto: {
+            policies?: components["schemas"]["PolicyRequirementItemDto"][];
+            /** Format: int32 */
+            gracePeriodDays?: number;
+            effectiveDate?: string;
+            hardGateDate?: string;
+        };
+        PolicyRequirementItemDto: {
+            policyType?: string;
+            version?: string;
+            path?: string;
+            required?: boolean;
+            effectiveDate?: string;
+        };
+        ApiResponseAvailabilityCheckResponseDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AvailabilityCheckResponseDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AvailabilityCheckResponseDto: {
+            available?: boolean;
+            normalized?: string;
+        };
+        AccountDeletionRecoveryInfoDto: {
+            scheduledFor?: string;
+        };
+        ApiResponseAccountDeletionRecoveryInfoDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AccountDeletionRecoveryInfoDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseListChatSessionSummary: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ChatSessionSummary"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseListStoredChatMessage: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["StoredChatMessage"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseListChatFavoriteItem: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ChatFavoriteItem"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AdminUserDto: {
+            /** Format: int64 */
+            id?: number;
+            email?: string;
+            name?: string;
+            favoriteTeam?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            postCount?: number;
+            role?: string;
+        };
+        ApiResponseListAdminUserDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminUserDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AdminStatsDto: {
+            /** Format: int64 */
+            totalUsers?: number;
+            /** Format: int64 */
+            totalPosts?: number;
+            /** Format: int64 */
+            totalMates?: number;
+        };
+        ApiResponseAdminStatsDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminStatsDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseListAdminSeatViewDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminSeatViewDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponsePageAuditLogDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["PageObject"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AuditLogDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            adminId?: number;
+            adminEmail?: string;
+            adminName?: string;
+            /** Format: int64 */
+            targetUserId?: number;
+            targetUserEmail?: string;
+            targetUserName?: string;
+            action?: string;
+            actionDescription?: string;
+            oldValue?: string;
+            newValue?: string;
+            description?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PageObject: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["AuditLogDto"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            empty?: boolean;
+        };
+        PageableObject: {
+            paged?: boolean;
+            /** Format: int32 */
+            pageNumber?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            unpaged?: boolean;
+            /** Format: int64 */
+            offset?: number;
+            sort?: components["schemas"]["SortObject"];
+        };
+        SortObject: {
+            unsorted?: boolean;
+            sorted?: boolean;
+            empty?: boolean;
+        };
+        ApiResponsePageAdminReportDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["PageObject"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AdminPostDto: {
+            /** Format: int64 */
+            id?: number;
+            team?: string;
+            content?: string;
+            author?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            likeCount?: number;
+            /** Format: int32 */
+            commentCount?: number;
+            /** Format: int32 */
+            views?: number;
+            isHot?: boolean;
+        };
+        ApiResponseListAdminPostDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminPostDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseListOffseasonMovementAdminDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["OffseasonMovementAdminDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        AdminMateDto: {
+            /** Format: int64 */
+            id?: number;
+            teamId?: string;
+            title?: string;
+            stadium?: string;
+            /** Format: date */
+            gameDate?: string;
+            /** Format: int32 */
+            currentMembers?: number;
+            /** Format: int32 */
+            maxMembers?: number;
+            status?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            hostName?: string;
+            homeTeam?: string;
+            awayTeam?: string;
+            section?: string;
+        };
+        ApiResponseListAdminMateDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminMateDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseGameStatusMismatchBatchResultDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["GameStatusMismatchBatchResultDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        GameStatusMismatchBatchResultDto: {
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int32 */
+            totalGames?: number;
+            /** Format: int32 */
+            mismatchCount?: number;
+            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
+            /** Format: int32 */
+            nonCanonicalCount?: number;
+            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
+        };
+        ApiResponseListAdminNonCanonicalCleanupTrackerDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"][];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ApiResponseClientErrorEventPageDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ClientErrorEventPageDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ClientErrorEventPageDto: {
+            content?: components["schemas"]["ClientErrorEventSummaryDto"][];
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int32 */
+            number?: number;
+            last?: boolean;
+        };
+        ClientErrorEventSummaryDto: {
+            eventId?: string;
+            bucket?: string;
+            source?: string;
+            message?: string;
+            /** Format: int32 */
+            statusCode?: number;
+            statusGroup?: string;
+            responseCode?: string;
+            route?: string;
+            normalizedRoute?: string;
+            method?: string;
+            endpoint?: string;
+            normalizedEndpoint?: string;
+            fingerprint?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            sessionId?: string;
+            /** Format: int64 */
+            userId?: number;
+            /** Format: int32 */
+            feedbackCount?: number;
+        };
+        ApiResponseClientErrorEventDetailDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ClientErrorEventDetailDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ClientErrorEventDetailDto: {
+            event?: components["schemas"]["ClientErrorEventSummaryDto"];
+            stack?: string;
+            componentStack?: string;
+            feedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
+            sameFingerprintRecentEvents?: components["schemas"]["ClientErrorEventSummaryDto"][];
+        };
+        ClientErrorRecentFeedbackDto: {
+            eventId?: string;
+            route?: string;
+            actionTaken?: string;
+            comment?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
+        ApiResponseClientErrorDashboardDto: {
+            success?: boolean;
+            message?: string;
+            data?: components["schemas"]["ClientErrorDashboardDto"];
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
+        };
+        ClientErrorAlertNotificationDto: {
+            /** Format: int64 */
+            id?: number;
+            fingerprint?: string;
+            bucket?: string;
+            source?: string;
+            channel?: string;
+            route?: string;
+            statusGroup?: string;
+            /** Format: int64 */
+            observedCount?: number;
+            /** Format: int32 */
+            thresholdCount?: number;
+            /** Format: int32 */
+            windowMinutes?: number;
+            latestEventId?: string;
+            latestMessage?: string;
+            /** Format: date-time */
+            latestOccurredAt?: string;
+            /** Format: date-time */
+            notifiedAt?: string;
+            deliveryStatus?: string;
+            failureReason?: string;
+        };
+        ClientErrorDashboardDto: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            granularity?: string;
+            totals?: components["schemas"]["ClientErrorDashboardTotalsDto"];
+            timeSeries?: components["schemas"]["ClientErrorTimeSeriesPointDto"][];
+            topFingerprints?: components["schemas"]["ClientErrorTopFingerprintDto"][];
+            recentFeedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
+            recentAlerts?: components["schemas"]["ClientErrorAlertNotificationDto"][];
+        };
+        ClientErrorDashboardTotalsDto: {
+            /** Format: int64 */
+            api?: number;
+            /** Format: int64 */
+            runtime?: number;
+            /** Format: int64 */
+            feedback?: number;
+            /** Format: int64 */
+            uniqueFingerprints?: number;
+            /** Format: int64 */
+            affectedRoutes?: number;
+        };
+        ClientErrorTimeSeriesPointDto: {
+            /** Format: date-time */
+            bucketStart?: string;
+            /** Format: int64 */
+            api?: number;
+            /** Format: int64 */
+            runtime?: number;
+            /** Format: int64 */
+            feedback?: number;
+        };
+        ClientErrorTopFingerprintDto: {
+            fingerprint?: string;
+            bucket?: string;
+            source?: string;
+            message?: string;
+            route?: string;
+            endpoint?: string;
+            statusGroup?: string;
+            method?: string;
+            /** Format: int64 */
+            count?: number;
+            /** Format: int64 */
+            uniqueSessions?: number;
+            latestEventId?: string;
+            /** Format: date-time */
+            latestOccurredAt?: string;
+            /** Format: date-time */
+            latestAlertSentAt?: string;
+            latestAlertChannel?: string;
+        };
         DeleteAccountRequest: {
             password?: string;
             confirmText?: string;
+        };
+        ApiResponseMapStringLong: {
+            success?: boolean;
+            message?: string;
+            data?: {
+                [key: string]: number;
+            };
+            code?: string;
+            errors?: {
+                [key: string]: string;
+            };
         };
         MatchRangePageResponseDto: {
             content: components["schemas"]["MatchDto"][];
@@ -5785,8 +7177,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
                 };
             };
         };
@@ -5808,8 +7200,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
                 };
             };
         };
@@ -5835,7 +7227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -5855,7 +7247,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAdminNonCanonicalCleanupTrackerDto"];
                 };
             };
         };
@@ -5882,7 +7274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminNonCanonicalCleanupTrackerDto"];
                 };
             };
         };
@@ -6001,7 +7393,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateChatImageUploadResponse"];
                 };
             };
         };
@@ -6069,17 +7461,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request"];
+                "application/json": components["schemas"]["MateReviewCreateRequest"];
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateReviewResponse"];
                 };
             };
         };
@@ -6290,7 +7682,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["CancelIntentRequest"];
+                "application/json": components["schemas"]["MatePaymentCancelIntentRequest"];
             };
         };
         responses: {
@@ -6300,7 +7692,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMatePaymentCancelIntentResponse"];
                 };
             };
         };
@@ -6314,7 +7706,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PrepareClientRequest"];
+                "application/json": components["schemas"]["MatePaymentPrepareRequest"];
             };
         };
         responses: {
@@ -6324,7 +7716,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PrepareResponse"];
+                    "*/*": components["schemas"]["MatePaymentPrepareResponse"];
                 };
             };
         };
@@ -6338,7 +7730,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ClientConfirmRequest"];
+                "application/json": components["schemas"]["MatePaymentConfirmRequest"];
             };
         };
         responses: {
@@ -6348,7 +7740,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
         };
@@ -6402,7 +7803,55 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MatePartyResponse"];
+                };
+            };
+        };
+    };
+    addFavorite_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+        };
+    };
+    removeFavorite_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };
@@ -6416,7 +7865,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["MateSearchTermRecordRequest"];
+                "application/json": components["schemas"]["RecordRequest"];
             };
         };
         responses: {
@@ -6448,6 +7897,24 @@ export interface operations {
                 content: {
                     "*/*": Record<string, never>;
                 };
+            };
+        };
+    };
+    markAllAsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6566,7 +8033,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateInternalSettlementPayoutResponse"];
                 };
             };
         };
@@ -6580,7 +8047,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpsertRequest"];
+                "application/json": components["schemas"]["MateSellerPayoutProfileUpsertRequest"];
             };
         };
         responses: {
@@ -6590,7 +8057,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
                 };
             };
         };
@@ -7230,7 +8697,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request"];
+                "application/json": components["schemas"]["MateCheckInRequest"];
             };
         };
         responses: {
@@ -7240,7 +8707,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateCheckInResponse"];
                 };
             };
         };
@@ -7254,7 +8721,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["QrSessionRequest"];
+                "application/json": components["schemas"]["MateCheckInQrSessionRequest"];
             };
         };
         responses: {
@@ -7264,7 +8731,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateCheckInQrSessionResponse"];
                 };
             };
         };
@@ -7286,7 +8753,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateChatReadResponse"];
                 };
             };
         };
@@ -7300,17 +8767,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request"];
+                "application/json": components["schemas"]["MateChatMessageRequest"];
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateChatMessageResponse"];
                 };
             };
         };
@@ -7334,7 +8801,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -7378,7 +8845,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -7446,7 +8913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -7470,7 +8937,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -7492,7 +8959,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAccountDeletionRecoveryInfoDto"];
                 };
             };
         };
@@ -7516,7 +8983,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -7530,7 +8997,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request"];
+                "application/json": components["schemas"]["MateApplicationCreateRequest"];
             };
         };
         responses: {
@@ -7540,7 +9007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
         };
@@ -7562,7 +9029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
         };
@@ -7578,7 +9045,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["CancelRequest"];
+                "application/json": components["schemas"]["MateApplicationCancelRequest"];
             };
         };
         responses: {
@@ -7588,7 +9055,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationCancelResponse"];
                 };
             };
         };
@@ -7610,7 +9077,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
         };
@@ -7777,7 +9244,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListChatSessionSummary"];
                 };
             };
         };
@@ -7797,7 +9264,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseChatSessionSummary"];
                 };
             };
         };
@@ -7823,7 +9290,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
                 };
             };
         };
@@ -7849,12 +9316,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
                 };
             };
         };
     };
-    addFavorite_1: {
+    addFavorite_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7871,12 +9338,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseChatFavoriteItem"];
                 };
             };
         };
     };
-    removeFavorite_1: {
+    removeFavorite_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7893,7 +9360,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -7970,7 +9437,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
                 };
             };
         };
@@ -7996,7 +9463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
                 };
             };
         };
@@ -8022,7 +9489,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
                 };
             };
         };
@@ -8048,8 +9515,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
                 };
             };
         };
@@ -8073,8 +9540,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
                 };
             };
         };
@@ -8097,7 +9564,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMediaSmokeReport"];
                 };
             };
         };
@@ -8119,7 +9586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMediaCleanupReport"];
                 };
             };
         };
@@ -8144,7 +9611,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMediaBackfillReport"];
                 };
             };
         };
@@ -8164,7 +9631,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -8186,7 +9653,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseGameScoreSyncResultDto"];
                 };
             };
         };
@@ -8209,7 +9676,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseGameScoreSyncBatchResultDto"];
                 };
             };
         };
@@ -8233,7 +9700,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseGameStatusRepairBatchResultDto"];
                 };
             };
         };
@@ -8276,9 +9743,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": Record<string, never>;
-                };
+                content?: never;
             };
         };
     };
@@ -8303,7 +9768,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MatePartyResponse"];
                 };
             };
         };
@@ -8325,7 +9790,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
                 };
             };
         };
@@ -8351,7 +9816,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
                 };
             };
         };
@@ -8373,7 +9838,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
                 };
             };
         };
@@ -8399,7 +9864,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
                 };
             };
         };
@@ -9073,7 +10538,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Response"][];
+                    "*/*": components["schemas"]["MateReviewResponse"][];
+                };
+            };
+        };
+    };
+    getReviewsByHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateReviewResponse"][];
                 };
             };
         };
@@ -9287,7 +10774,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePopularSearchTermResponse"][];
+                    "*/*": components["schemas"]["PopularResponse"][];
                 };
             };
         };
@@ -9329,7 +10816,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MatePartyResponse"][];
                 };
             };
         };
@@ -10039,7 +11526,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
                 };
             };
         };
@@ -10357,6 +11844,26 @@ export interface operations {
             };
         };
     };
+    getMyRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
     getDiary: {
         parameters: {
             query?: never;
@@ -10581,6 +12088,28 @@ export interface operations {
             };
         };
     };
+    listMyPosts: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
     getBookmarks: {
         parameters: {
             query: {
@@ -10642,7 +12171,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Response"][];
+                    "*/*": components["schemas"]["MateCheckInResponse"][];
                 };
             };
         };
@@ -10664,7 +12193,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Response"][];
+                    "*/*": components["schemas"]["MateCheckInResponse"][];
                 };
             };
         };
@@ -10730,7 +12259,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateChatMessageResponse"][];
                 };
             };
         };
@@ -10752,8 +12281,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateChatMessageResponse"];
                 };
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10772,7 +12308,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateChatUnreadCountResponse"];
                 };
             };
         };
@@ -10792,7 +12328,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListTrustedDeviceDto"];
                 };
             };
         };
@@ -10854,7 +12390,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAccountSecurityEventDto"];
                 };
             };
         };
@@ -10894,7 +12430,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponsePolicyRequiredResponseDto"];
                 };
             };
         };
@@ -10958,7 +12494,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -10980,7 +12516,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAvailabilityCheckResponseDto"];
                 };
             };
         };
@@ -11002,7 +12538,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
                 };
             };
         };
@@ -11024,7 +12560,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
                 };
             };
         };
@@ -11046,7 +12582,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
                 };
             };
         };
@@ -11068,7 +12604,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
         };
@@ -11090,7 +12626,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
                 };
             };
         };
@@ -11110,7 +12646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
                 };
             };
         };
@@ -11234,7 +12770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListStoredChatMessage"];
                 };
             };
         };
@@ -11254,7 +12790,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListChatFavoriteItem"];
                 };
             };
         };
@@ -11276,7 +12812,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAdminUserDto"];
                 };
             };
         };
@@ -11296,7 +12832,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminStatsDto"];
                 };
             };
         };
@@ -11322,7 +12858,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAdminSeatViewDto"];
                 };
             };
         };
@@ -11344,7 +12880,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponsePageAuditLogDto"];
                 };
             };
         };
@@ -11371,7 +12907,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponsePageAdminReportDto"];
                 };
             };
         };
@@ -11391,7 +12927,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAdminPostDto"];
                 };
             };
         };
@@ -11411,7 +12947,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListAdminMateDto"];
                 };
             };
         };
@@ -11434,7 +12970,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseGameStatusMismatchBatchResultDto"];
                 };
             };
         };
@@ -11465,7 +13001,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseClientErrorEventPageDto"];
                 };
             };
         };
@@ -11487,7 +13023,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseClientErrorEventDetailDto"];
                 };
             };
         };
@@ -11510,7 +13046,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseClientErrorDashboardDto"];
                 };
             };
         };
@@ -11530,7 +13066,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -11641,6 +13177,28 @@ export interface operations {
             };
         };
     };
+    deleteMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
     deleteComment: {
         parameters: {
             query?: never;
@@ -11678,7 +13236,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -11767,9 +13325,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": Record<string, never>;
-                };
+                content?: never;
             };
         };
     };
@@ -11790,7 +13346,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -11812,7 +13368,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -11834,7 +13390,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -11856,7 +13412,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };

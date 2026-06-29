@@ -75,7 +75,7 @@ export default function MateDetailActionSection({
   const renderActionButtons = () => (
     <div className="space-y-2">
       {isAwaitingApproval && (
-        <div className="flex items-start gap-3 rounded-[13px] border border-amber-100 bg-amber-50 p-4 text-[13px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200" data-testid="mate-pending-status">
+        <div className="flex items-start gap-3 rounded-13 border border-amber-100 bg-amber-50 p-4 text-13 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200" data-testid="mate-pending-status">
           <MateClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-black">신청이 접수되었습니다.</p>
@@ -94,7 +94,7 @@ export default function MateDetailActionSection({
           {getActionLabel(action)}
         </Button>
       )) : (
-        <div className="rounded-[13px] border border-gray-200 bg-gray-50 p-4 text-[13px] text-gray-600 dark:border-border dark:bg-secondary/70 dark:text-white">
+        <div className="rounded-13 border border-gray-200 bg-gray-50 p-4 text-13 text-gray-600 dark:border-border dark:bg-secondary/70 dark:text-white">
           현재 바로 실행할 수 있는 액션은 없습니다. 상태 변화를 기다리거나 목록으로 돌아가세요.
         </div>
       )}
@@ -110,15 +110,15 @@ export default function MateDetailActionSection({
             <MateDetailPriceBox party={party} />
           </div>
           {renderActionButtons()}
-          <Button variant="outline" className="mt-2 h-auto w-full rounded-[13px] border-gray-200 bg-white px-3 py-3 text-[14px] font-bold text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10" onClick={onBrowsePartyList}>
+          <Button variant="outline" className="mt-2 h-auto w-full rounded-13 border-gray-200 bg-white px-3 py-3 text-caption font-bold text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10" onClick={onBrowsePartyList}>
             비슷한 파티 보기
           </Button>
-          <p className="m-0 mt-3 text-center text-[12px] leading-[1.5] text-gray-400 dark:text-white">승인 전 결제 없음 · 채팅에서 장소 조율</p>
+          <p className="m-0 mt-3 text-center text-12 leading-[1.5] text-gray-400 dark:text-white/55">승인 전 결제 없음 · 채팅에서 장소 조율</p>
         </MateDetailReferenceCard>
         <MateDetailQrHint canAccessCheckIn={canAccessCheckIn} onOpenQrPanel={onOpenQrPanel} />
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-1.5 rounded-[11px] border border-gray-200 bg-white p-3 text-[13px] font-bold text-gray-600 dark:border-border dark:bg-card dark:text-white"
+          className="inline-flex items-center justify-center gap-1.5 rounded-11 border border-gray-200 bg-white p-3 text-13 font-bold text-gray-600 dark:border-border dark:bg-card dark:text-white"
           onClick={onShare}
         >
           <MateShareIcon className="h-4 w-4" /> 친구에게 공유
@@ -133,18 +133,18 @@ export default function MateDetailActionSection({
               onClick={() => setShowSheet(true)}
               className="mb-2 flex w-full items-center justify-between gap-3 bg-transparent px-0.5 pb-1 text-left"
             >
-              <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-[12px] font-bold text-gray-900 dark:text-white sm:gap-2 sm:text-[13px]">
+              <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-12 font-bold text-gray-900 dark:text-white sm:gap-2 sm:text-13">
                 <span className="min-w-0 truncate text-primary">{compactAmountLabel}</span>
                 <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-gray-300 dark:bg-white/30" />
                 <span className="shrink-0 text-red-600">{view.remainingSeats}자리 남음</span>
               </span>
-              <span className="shrink-0 text-[12px] font-semibold text-gray-500 dark:text-white">자세히</span>
+              <span className="shrink-0 text-12 font-semibold text-gray-500 dark:text-white/60">자세히</span>
             </button>
             <Button
               onClick={() => setShowSheet(true)}
               disabled={primaryMobileAction.disabled}
               variant={primaryMobileAction.key === 'manage' || primaryMobileAction.key === 'apply' || primaryMobileAction.key === 'chat' ? 'default' : (primaryMobileAction.variant ?? 'outline')}
-              className={`h-auto w-full rounded-[13px] px-4 py-[15px] text-[16px] font-black ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-white' : getMobileActionClass(primaryMobileAction.key)}`}
+              className={`h-auto w-full rounded-13 px-4 py-[15px] text-body font-black ${primaryMobileAction.disabled ? 'bg-gray-300 text-gray-500 dark:bg-secondary/80 dark:text-white' : getMobileActionClass(primaryMobileAction.key)}`}
             >
               {getActionLabel(primaryMobileAction)}
             </Button>
@@ -154,14 +154,14 @@ export default function MateDetailActionSection({
 
       {showSheet && (
         <div className="fixed inset-0 z-[90] flex items-end bg-slate-900/45 dark:bg-black/70 lg:hidden" onClick={() => setShowSheet(false)}>
-          <div className="max-h-[calc(100dvh_-_1.5rem_-_env(safe-area-inset-bottom))] w-full overflow-y-auto rounded-t-[20px] bg-white px-[18px] pb-[calc(1.25rem_+_env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_44px_rgba(15,23,42,0.18)] dark:bg-[#000000] dark:shadow-[0_-18px_44px_rgba(0,0,0,0.45)]" onClick={(event) => event.stopPropagation()}>
+          <div className="max-h-[calc(100dvh_-_1.5rem_-_env(safe-area-inset-bottom))] w-full overflow-y-auto rounded-t-20 bg-white px-[18px] pb-[calc(1.25rem_+_env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_44px_rgba(15,23,42,0.18)] dark:bg-[#000000] dark:shadow-[0_-18px_44px_rgba(0,0,0,0.45)]" onClick={(event) => event.stopPropagation()}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-300 dark:bg-white/20" />
-            <h3 className="m-0 text-[18px] font-black text-gray-900 dark:text-white">{actionContext.eyebrow}</h3>
-            <p className="mb-4 mt-1 text-[13px] text-gray-500 dark:text-white">{party.section}</p>
+            <h3 className="m-0 text-18 font-black text-gray-900 dark:text-white">{actionContext.eyebrow}</h3>
+            <p className="mb-4 mt-1 text-13 text-gray-500 dark:text-white/60">{party.section} · {view.seatDetailLabel}</p>
             <div className="mb-3.5"><MateDetailParticipationBlock party={party} /></div>
             <div className="mb-4"><MateDetailPriceBox party={party} /></div>
             {renderActionButtons()}
-            <p className="m-0 mt-3 text-center text-[12px] text-gray-400 dark:text-white">승인 전 결제 없음 · 채팅에서 장소 조율</p>
+            <p className="m-0 mt-3 text-center text-12 text-gray-400 dark:text-white/55">승인 전 결제 없음 · 채팅에서 장소 조율</p>
           </div>
         </div>
       )}

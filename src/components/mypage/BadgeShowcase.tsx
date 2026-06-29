@@ -13,19 +13,19 @@ interface BadgeShowcaseProps {
 }
 
 interface BadgeInfo {
-    id: string;
-    name: string;
-    icon: React.ElementType;
-    description: string;
-    color: string;
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  description: string;
+  color: string;
 }
 
 const BADGES: BadgeInfo[] = [
-    { id: 'ticket', name: '첫 직관', icon: MyPageTicketIcon, description: '첫 다이어리 작성', color: '#4f8cff' },
-    { id: 'flame', name: '불꽃 응원단', icon: MyPageFlameIcon, description: '10경기 이상 직관', color: '#f97373' },
-    { id: 'map-pin', name: '구장 마스터', icon: MyPageMapPinIcon, description: '3개 이상 구장 방문', color: '#63b39b' },
-    { id: 'sparkles', name: '승리요정', icon: MyPageSparklesIcon, description: '승률 60% 이상 (10경기+)', color: '#e8b64c' },
-    { id: 'crown', name: '레전드', icon: MyPageCrownIcon, description: '50경기 이상 직관', color: '#b78cff' },
+    { id: 'ticket', name: '첫 직관', icon: MyPageTicketIcon, description: '첫 다이어리 작성', color: 'var(--mp-accent)' },
+    { id: 'flame', name: '불꽃 응원단', icon: MyPageFlameIcon, description: '10경기 이상 직관', color: 'var(--mp-gold)' },
+    { id: 'map-pin', name: '구장 마스터', icon: MyPageMapPinIcon, description: '3개 이상 구장 방문', color: 'var(--mp-fg)' },
+    { id: 'sparkles', name: '승리요정', icon: MyPageSparklesIcon, description: '승률 60% 이상 (10경기+)', color: 'var(--mp-win)' },
+    { id: 'crown', name: '레전드', icon: MyPageCrownIcon, description: '50경기 이상 직관', color: 'var(--mp-fg-muted)' },
 ];
 
 export default function BadgeShowcase({ earnedBadges = [] }: BadgeShowcaseProps) {

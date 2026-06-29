@@ -317,6 +317,108 @@ describe('Home scheduled tab', () => {
     cy.contains('기타 상태 경기 1건은 예정경기 탭에서 제외되었습니다.').should('be.visible');
   });
 
+  it('keeps completed regular games visible when the same day has a manual-data warning', () => {
+    const selectedDate = '2026-06-26';
+    const completedGames = [
+      {
+        gameId: '20260626HTOB0',
+        gameDate: selectedDate,
+        sourceDate: selectedDate,
+        time: '18:30',
+        stadium: '잠실',
+        gameStatus: 'COMPLETED',
+        gameStatusKr: '경기 종료',
+        gameInfo: '',
+        leagueType: 'REGULAR',
+        homeTeam: 'DB',
+        homeTeamFull: '두산 베어스',
+        awayTeam: 'KIA',
+        awayTeamFull: 'KIA 타이거즈',
+        homeScore: 3,
+        awayScore: 2,
+      },
+      {
+        gameId: '20260626WONC0',
+        gameDate: selectedDate,
+        sourceDate: selectedDate,
+        time: '18:30',
+        stadium: '창원',
+        gameStatus: 'COMPLETED',
+        gameStatusKr: '경기 종료',
+        gameInfo: '',
+        leagueType: 'REGULAR',
+        homeTeam: 'NC',
+        homeTeamFull: 'NC 다이노스',
+        awayTeam: 'KH',
+        awayTeamFull: '키움 히어로즈',
+        homeScore: 11,
+        awayScore: 4,
+      },
+    ];
+
+    cy.intercept('GET', '**/api/home/bootstrap*', {
+      statusCode: 200,
+      body: {
+        selectedDate,
+        leagueStartDates: {
+          regularSeasonStart: '2026-03-28',
+          postseasonStart: '2026-10-06',
+          koreanSeriesStart: '2026-10-26',
+        },
+        navigation: {
+          hasPrev: true,
+          hasNext: true,
+          prevGameDate: '2026-06-25',
+          nextGameDate: '2026-06-27',
+        },
+        games: completedGames,
+        scheduledGamesWindow: buildScheduledWindow('2026-06-27'),
+        loadState: {
+          ...buildCompleteBootstrapLoadState(),
+          failureReason: 'manual-data-required',
+          manualDataRequest: {
+            scope: 'home.schedule',
+            missingItems: [{
+              key: 'final_score',
+              label: '최종 점수',
+              reason: '일부 과거 경기의 최종 점수가 비어 있습니다.',
+              expected_format: 'home_score, away_score',
+            }],
+            operatorMessage: '다음 야구 데이터가 필요합니다.',
+            blocking: true,
+          },
+        },
+      },
+    }).as('getHomeBootstrapCompleted');
+
+    visitHomePage({
+      path: '/home?date=2026-06-26&tab=regular',
+      token: 'home-regular-completed-token',
+      resetStorage: true,
+    });
+
+    cy.wait('@getHomeBootstrapCompleted');
+    cy.contains('button', '정규시즌', { timeout: 15000 })
+      .should('be.visible')
+      .and('have.attr', 'aria-selected', 'true');
+    cy.contains('button', '예정경기')
+      .should('be.visible')
+      .and('have.attr', 'aria-selected', 'false');
+
+    cy.get('[data-testid="home-game-card"][data-game-id="20260626HTOB0"]')
+      .should('be.visible')
+      .and('contain.text', '경기 종료')
+      .and('contain.text', 'KIA')
+      .and('contain.text', '두산');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260626WONC0"]')
+      .should('be.visible')
+      .and('contain.text', '경기 종료')
+      .and('contain.text', '키움')
+      .and('contain.text', 'NC');
+    cy.get('[data-testid="home-game-card"]').should('have.length', 2);
+    cy.contains('경기가 없는 날입니다.').should('not.exist');
+  });
+
   it('resets secondary section to collapsed after date change', () => {
     visitHomePage({
       path: '/home',
@@ -380,7 +482,7 @@ describe('Home scheduled tab', () => {
       .should('be.visible');
     cy.get('@scheduledPredictionCard').click();
 
-    cy.location('pathname').should('eq', '/prediction');
+    cy.location('pathname').should('eq', '/prediction/matches/20260211LGHH0');
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
     cy.get('@getUserVote.all').should('have.length', 0);
 

@@ -64,7 +64,7 @@ function StadiumGuideCategorySelector({
     ? 'rounded-full p-2.5'
     : 'rounded-full p-2.5 sm:p-3';
   const iconClass = compact ? 'h-6 w-6' : 'h-6 w-6 sm:h-8 sm:w-8';
-  const labelClass = compact ? 'text-sm font-black leading-tight break-keep' : 'text-sm font-bold sm:text-[17px] break-keep';
+  const labelClass = compact ? 'text-sm font-black leading-tight break-keep' : 'text-sm font-bold sm:text-17 break-keep';
 
   return (
     <div className={gridClass}>
@@ -140,7 +140,12 @@ export default function StadiumGuideRuntime() {
   const { userId: authUserId } = useAuthProfileSnapshot();
   const selectedStadiumId = selectedStadium?.stadiumId ?? null;
   const selectedStadiumDisplayName = getStadiumDisplayName(selectedStadium);
-  const seatMapEntry = resolveStadiumSeatMapEntry(selectedStadiumId, selectedStadium?.stadiumName);
+  const selectedStadiumTeam = selectedStadium?.team ?? null;
+  const seatMapEntry = resolveStadiumSeatMapEntry(
+    selectedStadiumId,
+    selectedStadiumDisplayName,
+    selectedStadiumTeam,
+  );
   const seatMapBadgeLabel = seatMapEntry?.badgeLabel ?? '좌석도 준비 필요';
 
   const effectiveTheme = resolvedTheme ?? theme;
@@ -225,7 +230,7 @@ export default function StadiumGuideRuntime() {
           <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-400/30 dark:text-red-200 px-4 py-3 rounded-lg mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <WarningTriangleIcon className="w-4 h-4 flex-shrink-0" />
-              <span className="text-[16px]">{stadiumsError}</span>
+              <span className="text-body">{stadiumsError}</span>
             </div>
             <Button
               size="sm"
@@ -321,12 +326,12 @@ export default function StadiumGuideRuntime() {
                         )}
                       </div>
                       {selectedStadiumAddress && (
-                        <p className="stadium-guide-muted mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-[17px]">
+                        <p className="stadium-guide-muted mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-17">
                           <span className="opacity-60">📍</span> {selectedStadiumAddress}
                         </p>
                       )}
                       {selectedStadiumPhone && (
-                        <p className="stadium-guide-muted flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-[17px]">
+                        <p className="stadium-guide-muted flex items-center gap-2 text-sm text-gray-600 dark:text-white sm:text-17">
                           <span className="opacity-60">📞</span> {selectedStadiumPhone}
                         </p>
                       )}
@@ -390,7 +395,7 @@ export default function StadiumGuideRuntime() {
                   <h4 className="mt-3 text-center text-lg sm:text-xl" style={{ color: stadiumTitleColor, fontWeight: 800 }}>
                     {selectedStadiumDisplayName || '구장을 선택하세요'}
                   </h4>
-                  <p className="stadium-guide-muted mt-3 max-w-sm text-center text-sm leading-relaxed text-gray-500 dark:text-white sm:text-[16px]">
+                  <p className="stadium-guide-muted mt-3 max-w-sm text-center text-sm leading-relaxed text-gray-500 dark:text-white sm:text-body">
                     {!selectedStadium
                       ? '구장을 선택하면 주변 지도를 표시합니다.'
                       : !KAKAO_API_KEY

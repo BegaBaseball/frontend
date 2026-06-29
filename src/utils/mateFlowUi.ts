@@ -5,13 +5,13 @@ export const matePageShellClass =
   'relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200';
 
 export const mateHeroCardClass =
-  'overflow-hidden rounded-[20px] border border-gray-200/90 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/15 dark:bg-[#000000] dark:shadow-[0_10px_28px_rgba(0,0,0,0.35)]';
+  'overflow-hidden rounded-20 border border-gray-200/90 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/15 dark:bg-[#000000] dark:shadow-[0_10px_28px_rgba(0,0,0,0.35)]';
 
 export const mateSectionCardClass =
   'border border-gray-200/90 bg-white dark:border-white/15 dark:bg-[#000000]';
 
 export const mateInsetPanelClass =
-  'rounded-[14px] border border-gray-200/80 bg-gray-50/90 dark:border-white/10 dark:bg-secondary/70';
+  'rounded-14 border border-gray-200/80 bg-gray-50/90 dark:border-white/10 dark:bg-secondary/70';
 
 export const mateSubtlePanelClass =
   'rounded-xl border border-dashed border-gray-200 bg-white/80 dark:border-border/70 dark:bg-card/70';

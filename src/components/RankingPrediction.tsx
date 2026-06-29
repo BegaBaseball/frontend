@@ -12,6 +12,11 @@ import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 const RankingPredictionSaveDialog = lazy(() => import('./RankingPredictionSaveDialog'));
 const RankingPredictionCompletionPanel = lazy(() => import('./RankingPredictionCompletionPanel'));
 
+type RankingPredictionSmokeWindow = Window & {
+  Cypress?: unknown;
+  __BEGA_PREDICTION_MOBILE_SMOKE_RANKING_SAVE_DIALOG__?: boolean;
+};
+
 export default function RankingPrediction() {
   const navigate = useNavigate();
   const [draggedTeamId, setDraggedTeamId] = useState<string | null>(null);
@@ -43,6 +48,17 @@ export default function RankingPrediction() {
     handleShare,
     retryInitialize,
   } = useRankingPrediction();
+
+  useEffect(() => {
+    if (initState !== 'ready' || alreadySaved || showSaveDialog) {
+      return;
+    }
+
+    const typedWindow = window as RankingPredictionSmokeWindow;
+    if (typedWindow.Cypress && typedWindow.__BEGA_PREDICTION_MOBILE_SMOKE_RANKING_SAVE_DIALOG__) {
+      setShowSaveDialog(true);
+    }
+  }, [alreadySaved, initState, setShowSaveDialog, showSaveDialog]);
 
   useEffect(() => {
     if (!lastMovedTeamId && !reorderFeedback) {
@@ -130,7 +146,7 @@ export default function RankingPrediction() {
         <h2 className="mb-3 text-2xl font-bold text-primary">
           순위 예측 종료
         </h2>
-        <p className="mx-auto max-w-sm text-[16px] leading-relaxed text-gray-600 dark:text-white sm:text-base">
+        <p className="mx-auto max-w-sm text-body leading-relaxed text-gray-600 dark:text-white sm:text-base">
           순위 예측은 11월 1일부터 5월 31일까지 가능합니다.
         </p>
       </Card>
@@ -146,7 +162,7 @@ export default function RankingPrediction() {
         <h2 className="mb-3 text-2xl font-bold text-primary" data-testid="ranking-error-state">
           순위 예측을 불러오지 못했습니다
         </h2>
-        <p className="mx-auto mb-6 max-w-md text-[16px] leading-relaxed text-gray-600 dark:text-white sm:text-base">
+        <p className="mx-auto mb-6 max-w-md text-body leading-relaxed text-gray-600 dark:text-white sm:text-base">
           {initErrorMessage || '잠시 후 다시 시도해주세요.'}
         </p>
         <Button
@@ -195,7 +211,7 @@ export default function RankingPrediction() {
             data-testid="ranking-reorder-feedback"
           >
             {reorderFeedback ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[15px] font-bold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-15 font-bold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-200">
                 {reorderFeedback}
               </p>
             ) : null}
@@ -222,7 +238,7 @@ export default function RankingPrediction() {
         <div className="mt-6 md:mt-[60px]">
           {alreadySaved && (
             <div
-              className="mb-4 px-6 py-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-primary dark:text-primary"
+              className="mb-4 animate-fade-in-up rounded-lg bg-green-50 px-6 py-8 text-primary shadow-[0_0_0_1px_rgba(34,197,94,0.08),0_14px_32px_rgba(34,197,94,0.12)] motion-reduce:animate-none dark:bg-green-900/20 dark:text-primary"
               data-testid="ranking-saved-badge"
             >
               <p className="text-base font-bold text-center">
@@ -233,7 +249,7 @@ export default function RankingPrediction() {
 
           <h2 className="mb-4 text-primary font-bold text-lg">
             팀 선택
-            <span className="text-[16px] text-gray-500 dark:text-white ml-2 font-semibold">
+            <span className="text-body text-gray-500 dark:text-white ml-2 font-semibold">
               ({availableTeams.length}/10)
             </span>
           </h2>
@@ -248,7 +264,7 @@ export default function RankingPrediction() {
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
                     data-testid={`ranking-team-option-${team.id}`}
-                    className={`w-full p-2 transition-colors text-left border-b border-gray-100 dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:bg-gray-50 dark:hover:bg-primary/10'
+                    className={`w-full border-b border-gray-100 p-2 text-left transition-[background-color,transform] duration-150 ease-out motion-reduce:transition-none dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:translate-x-0.5 hover:bg-gray-50 active:scale-[0.99] motion-reduce:hover:translate-x-0 dark:hover:bg-primary/10'
                       } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
                   >
                     <div className="flex items-center gap-2.5">

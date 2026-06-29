@@ -369,14 +369,14 @@ export default function CheerDetailCommentsPanel({
       <div className="mb-2">
         <div>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[18px] font-bold text-slate-900 dark:text-white sm:text-[19px]">댓글 {commentsTotal}개</h3>
+            <h3 className="text-18 font-bold text-slate-900 dark:text-white sm:text-19">댓글 {commentsTotal}개</h3>
           </div>
         </div>
       </div>
 
       {isLoggedIn ? (
         <div
-          className="mb-2 rounded-[18px] border bg-white/85 p-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3"
+          className="mb-2 rounded-18 border bg-white/85 p-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3"
           style={primaryBorderStyle}
         >
           <div className="flex gap-3">
@@ -396,17 +396,17 @@ export default function CheerDetailCommentsPanel({
                   placeholder="오늘의 응원 한마디를 남겨보세요."
                   disabled={sendingComment}
                   aria-label="댓글 입력"
-                  className="min-h-[54px] rounded-[16px] border-slate-200 bg-slate-50/90 px-3 py-2 text-[16px] font-semibold leading-5 dark:border-white/10 dark:bg-slate-950/70"
+                  className="min-h-[54px] rounded-2xl border-slate-200 bg-slate-50/90 px-3 py-2 text-body font-semibold leading-5 dark:border-white/10 dark:bg-slate-950/70"
                 />
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[16px] font-bold text-slate-500 dark:text-white">
+                <p className="text-body font-bold text-slate-500 dark:text-white">
                   서로를 존중하는 응원 문화를 지켜주세요.
                 </p>
                 <Button
                   onClick={handleCommentSubmit}
                   disabled={!commentText.trim() || sendingComment}
                   aria-label="댓글 등록"
-                  className="h-7 rounded-full px-3 text-[16px] font-bold text-white sm:h-7 sm:text-[16px]"
+                  className="h-7 rounded-full px-3 text-body font-bold text-white sm:h-7 sm:text-body"
                   style={{ backgroundColor: detailAccent }}
                 >
                   등록
@@ -417,18 +417,18 @@ export default function CheerDetailCommentsPanel({
         </div>
       ) : (
         <div
-          className="mb-2 rounded-[18px] border p-2.5 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+          className="mb-2 rounded-18 border p-2.5 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80"
           style={{
             ...primaryBorderStyle,
             ...surfaceTintStyle,
           }}
         >
-          <p className="text-[16px] font-bold text-slate-600 dark:text-white">
+          <p className="text-body font-bold text-slate-600 dark:text-white">
             댓글과 좋아요는 로그인 후 이용할 수 있습니다.
           </p>
           <Button
             onClick={onRedirectToLogin}
-            className="mt-2.5 h-7 rounded-full px-3 text-[16px] font-bold text-white"
+            className="mt-2.5 h-7 rounded-full px-3 text-body font-bold text-white"
             style={{ backgroundColor: detailAccent }}
           >
             로그인하고 참여하기
@@ -437,7 +437,7 @@ export default function CheerDetailCommentsPanel({
       )}
 
       {commentsError ? (
-        <div className="rounded-[16px] border border-slate-200 bg-white p-3 text-[16px] font-semibold text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-white">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-body font-semibold text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-white">
             <p className="font-bold">{commentsError}</p>
           <Button
             variant="outline"
@@ -454,7 +454,7 @@ export default function CheerDetailCommentsPanel({
             {[1, 2].map((item) => (
               <div
                 key={item}
-                className="flex animate-pulse gap-2 rounded-[16px] border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-900/70"
+                className="flex animate-pulse gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-900/70"
               >
               <div className="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-800" />
               <div className="flex-1 space-y-1.5">
@@ -480,7 +480,7 @@ export default function CheerDetailCommentsPanel({
             className="mb-3"
           />
             <div
-            className="rounded-[18px] border p-3 text-center text-[16px] font-bold text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-white"
+            className="rounded-18 border p-3 text-center text-body font-bold text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-white"
             style={{
               ...primaryBorderStyle,
               ...surfaceTintStyle,
@@ -514,7 +514,7 @@ export default function CheerDetailCommentsPanel({
               <div
                 key={comment.id}
                 role="listitem"
-                className="rounded-[18px] border border-slate-200 bg-white/85 px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+                className="rounded-18 border border-slate-200 bg-white/85 px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
               >
                 <CommentItem
                   comment={comment}
@@ -556,7 +556,7 @@ export default function CheerDetailCommentsPanel({
           {commentsQuery.hasNextPage ? (
             <Button
               variant="outline"
-              className="mt-3 h-8 w-full rounded-full text-[16px] font-bold"
+              className="mt-3 h-8 w-full rounded-full text-body font-bold"
               onClick={() => {
                 void handleLoadMoreComments();
               }}

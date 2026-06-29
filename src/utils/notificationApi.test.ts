@@ -6,19 +6,7 @@ import {
   resetNotificationApiStateForTests,
 } from './notificationApi';
 
-const notificationFixture = [
-  {
-    id: 1,
-    type: 'POST_COMMENT' as const,
-    title: '댓글',
-    message: '새 댓글이 달렸습니다.',
-    relatedId: 99,
-    isRead: false,
-    createdAt: '2026-04-03T10:00:00.000Z',
-  },
-];
-
-test('notificationApi.getNotifications falls back to SERVER_BASE_URL when same-origin endpoint returns 404', async (t) => {
+test('notificationApi.getNotifications returns empty when the canonical endpoint returns 404', async (t) => {
   resetNotificationApiStateForTests();
   const requestUrls: string[] = [];
 
@@ -37,22 +25,16 @@ test('notificationApi.getNotifications falls back to SERVER_BASE_URL when same-o
       });
     }
 
-    if (url === 'http://localhost:8080/api/notifications/my') {
-      return new Response(JSON.stringify(notificationFixture), {
-        headers: { 'content-type': 'application/json' },
-        status: 200,
-      });
-    }
-
     throw new Error(`Unexpected url: ${url}`);
   });
 
   const notifications = await notificationApi.getNotifications();
+  const cachedNotifications = await notificationApi.getNotifications();
 
-  assert.deepEqual(notifications, notificationFixture);
+  assert.deepEqual(notifications, []);
+  assert.deepEqual(cachedNotifications, []);
   assert.deepEqual(requestUrls, [
     '/api/notifications/my',
-    'http://localhost:8080/api/notifications/my',
   ]);
 });
 

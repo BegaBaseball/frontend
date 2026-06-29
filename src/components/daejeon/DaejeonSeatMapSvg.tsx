@@ -39,7 +39,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="daejeon-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -53,7 +53,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {DAEJEON_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {DAEJEON_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -61,10 +61,6 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
 }
 
 function resolveOfficialSeatMapImageUrl() {
-  if (DAEJEON_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
-    return null;
-  }
-
   return new URL('../../assets/stadiums/hanwha/daejeon-hanwha-life-eagles-park-seatmap-official-2026.webp', import.meta.url).href;
 }
 
@@ -392,8 +388,7 @@ export default function DaejeonSeatMapSvg({
   };
 
   if (
-    DAEJEON_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
-    || !seatMapImageUrl
+    !seatMapImageUrl
     || imageWidth <= 0
     || imageHeight <= 0
     || imageFailed
@@ -611,8 +606,8 @@ export default function DaejeonSeatMapSvg({
         </svg>
       </div>
       {showDebug && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-white">Daejeon trace debug</div>
+        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-slate-900/10 bg-white/90 px-3 py-2 text-11 font-bold text-slate-800 shadow-lg dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
+          <div className="text-10 uppercase tracking-widest text-slate-500 dark:text-white">Daejeon trace debug</div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
             <span>blocks {DAEJEON_TRACE_REVIEW_SUMMARY.totalBlocks}</span>
             <span className="text-emerald-600 dark:text-emerald-300">traced {DAEJEON_TRACE_REVIEW_SUMMARY.officialImageTraced}</span>

@@ -19,7 +19,6 @@ import {
 } from '../utils/predictionCoachPresentation';
 import { resolveWinProbabilityDisplay } from '../utils/coachWinProbability';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
-import { resolveCoachEvidenceCount } from './prediction/coachEvidenceLabels';
 import PlainDialog from './ui/plain-dialog';
 import {
     PredictionLoaderIcon,
@@ -74,7 +73,7 @@ function CoachAnalysisDialogResultRuntimeFallback({
 
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[16px] text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-body text-primary dark:border-primary/40 dark:bg-primary/10 flex items-center gap-2">
                 <PredictionLoaderIcon className="h-4 w-4 animate-spin shrink-0 text-primary" />
                 <span>{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
             </div>
@@ -99,6 +98,8 @@ interface CoachAnalysisDialogRuntimeProps {
     initialTeam?: string;
     homeTeamId?: string;
     awayTeamId?: string;
+    homeScore?: number | string | null;
+    awayScore?: number | string | null;
     gameId?: string;
     gameDate?: string;
     seasonId?: number | string;
@@ -110,6 +111,8 @@ interface CoachAnalysisDialogRuntimeProps {
     isPastGame?: boolean;
     isFutureGame?: boolean;
     gameStatusBucket?: string | null;
+    initialHomeRank?: number | null;
+    initialAwayRank?: number | null;
     initialWinProbabilityHome?: number | null;
     initialDataQuality?: CoachDataQuality;
     initialSupportedFactCount?: number;
@@ -125,6 +128,8 @@ export default function CoachAnalysisDialogRuntime({
     initialTeam,
     homeTeamId,
     awayTeamId,
+    homeScore,
+    awayScore,
     gameId,
     gameDate,
     seasonId,
@@ -136,6 +141,8 @@ export default function CoachAnalysisDialogRuntime({
     isPastGame = false,
     isFutureGame = false,
     gameStatusBucket,
+    initialHomeRank = null,
+    initialAwayRank = null,
     initialWinProbabilityHome = null,
     initialDataQuality,
     initialSupportedFactCount,
@@ -474,7 +481,7 @@ export default function CoachAnalysisDialogRuntime({
         : result?.error
             ? '분석 오류 · 재시도 가능'
             : result
-            ? '실데이터 기반 · 홈팀 기준 분석'
+            ? '분석 완료 · 홈팀 기준'
             : '홈팀 기준 분석 준비';
     const resultWinProbabilityHome = result?.win_probability_home;
     const effectiveWinProbabilityHome = typeof resultWinProbabilityHome === 'number'
@@ -488,24 +495,13 @@ export default function CoachAnalysisDialogRuntime({
     const awayShortName = awayTeamId ? getInitialTeamName(awayTeamId).split(' ')[0] : '원정팀';
     const homeColor = getTeamColor(homeTeamId);
     const awayColor = getTeamColor(awayTeamId);
-    const trustEvidenceCount = resolveCoachEvidenceCount({
-        supportedFactCount: result?.supported_fact_count ?? initialSupportedFactCount,
-        usedEvidence: result?.used_evidence ?? initialUsedEvidence,
-    });
-    const freshnessLabel = result ? '방금 갱신' : (initialFreshnessLabel || '최신 갱신');
-    const resolvedFooterStatusText = loading
-        ? footerStatusText
-        : result?.error
-            ? footerStatusText
-            : trustEvidenceCount > 0
-                ? `실데이터 ${trustEvidenceCount}건 · ${freshnessLabel}`
-                : footerStatusText;
+    const freshnessLabel = result ? '방금 갱신' : (initialFreshnessLabel || '갱신 확인');
 
     // 스크린리더용 라이프사이클 안내. 한 번에 하나만 비어있지 않게(중복 낭독 방지).
     const liveAlertMessage = result?.error
         ? result.error
         : result?.manual_data_request
-            ? '분석에 필요한 실데이터가 부족합니다.'
+            ? '분석에 필요한 경기 데이터가 부족합니다.'
             : '';
     const liveStatusMessage = liveAlertMessage
         ? ''
@@ -532,7 +528,7 @@ export default function CoachAnalysisDialogRuntime({
             hideHeader
             className={isMobileSheet
                 ? "h-[100dvh] max-h-[100dvh] w-screen !max-w-none overflow-hidden rounded-none border-0 bg-white p-0 shadow-none dark:bg-[#000000]"
-                : "max-h-[90vh] overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white p-0 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.06)] sm:max-w-[1080px] dark:border-slate-800 dark:bg-[#000000]"}
+                : "max-h-[90vh] overflow-hidden rounded-3xl border border-[#e5e7eb] bg-white p-0 shadow-2xl sm:max-w-[1080px] dark:border-slate-800 dark:bg-[#000000]"}
             bodyClassName={isMobileSheet
                 ? "flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-white p-0 dark:bg-[#000000]"
                 : "flex max-h-[90vh] flex-col overflow-hidden bg-white p-0 dark:bg-[#000000]"}
@@ -543,7 +539,7 @@ export default function CoachAnalysisDialogRuntime({
                     <PredictionZapIcon aria-hidden="true" className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-[#0f1419] dark:text-white">
+                    <h2 className="truncate text-17 font-extrabold leading-tight text-[#0f1419] dark:text-white">
                         {defaultPresentation.title}
                     </h2>
                     <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] font-bold leading-snug text-[#536471] dark:text-white">
@@ -566,11 +562,11 @@ export default function CoachAnalysisDialogRuntime({
             {isMobileSheet && hasWinProbability && homePct !== null && awayPct !== null ? (
                 <div className="border-t border-[#f1f5f3] px-4 py-3 dark:border-white/10">
                     <div className="flex items-center gap-3">
-                        <div className="shrink-0 text-[30px] font-black leading-none tracking-[-0.04em]" style={{ color: homePct >= awayPct ? homeColor : awayColor }}>
-                            {Math.max(homePct, awayPct)}<span className="text-[16px]">%</span>
+                        <div className="shrink-0 text-30 font-black leading-none tracking-[-0.04em]" style={{ color: homePct >= awayPct ? homeColor : awayColor }}>
+                            {Math.max(homePct, awayPct)}<span className="text-body">%</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex justify-between text-[11px] font-extrabold">
+                            <div className="mb-1 flex justify-between text-11 font-extrabold">
                                 <span style={{ color: awayColor }}>{awayShortName} {awayPct}%</span>
                                 <span style={{ color: homeColor }}>{homeShortName} {homePct}%</span>
                             </div>
@@ -593,12 +589,12 @@ export default function CoachAnalysisDialogRuntime({
                     </p>
                     {!result ? (
                     <div className="p-6">
-                        <div role="status" className="rounded-[20px] border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                        <div role="status" className="rounded-20 border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
                             <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
                                 <PredictionLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
-                                <span className="text-[15px] font-extrabold">{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
+                                <span className="text-15 font-extrabold">{analysisStep || ANALYSIS_LOADING_FALLBACK_MESSAGE}</span>
                             </div>
-                            <p className="mt-2 break-keep text-[13px] font-bold leading-relaxed text-[#64748b] dark:text-white">
+                            <p className="mt-2 break-keep text-13 font-bold leading-relaxed text-[#64748b] dark:text-white">
                                 C1 코치 분석을 홈팀 기준으로 자동 생성하고 있습니다.
                             </p>
                             <div className="mt-5 space-y-3">
@@ -618,9 +614,9 @@ export default function CoachAnalysisDialogRuntime({
                         <div className="px-6 pb-6">
                             <div
                                 data-testid="coach-analysis-preview"
-                                className="rounded-[14px] border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+                                className="rounded-14 border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-13 leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
                             >
-                                <div className="mb-1 flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-wider">
+                                <div className="mb-1 flex items-center gap-2 text-11 font-extrabold uppercase tracking-wider">
                                     <span className="rounded bg-amber-200 px-1.5 py-0.5 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">초안</span>
                                     <span className="text-amber-700 dark:text-amber-200">근거 검증 전 생성 중 · 확정 결과로 대체됩니다</span>
                                 </div>
@@ -650,13 +646,17 @@ export default function CoachAnalysisDialogRuntime({
                                 loadingFallbackMessage={ANALYSIS_LOADING_FALLBACK_MESSAGE}
                                 homeTeamId={homeTeamId}
                                 awayTeamId={awayTeamId}
+                                homeScore={homeScore}
+                                awayScore={awayScore}
+                                initialHomeRank={initialHomeRank}
+                                initialAwayRank={initialAwayRank}
                                 initialWinProbabilityHome={initialWinProbabilityHome}
                                 initialDataQuality={initialDataQuality}
                                 initialSupportedFactCount={initialSupportedFactCount}
                                 initialUsedEvidence={initialUsedEvidence}
                                 initialGroundingWarnings={initialGroundingWarnings}
                                 initialGroundingReasons={initialGroundingReasons}
-                                initialFreshnessLabel={initialFreshnessLabel}
+                                initialFreshnessLabel={freshnessLabel}
                                 onRetry={handleAnalyze}
                             />
                         </Suspense>
@@ -665,13 +665,13 @@ export default function CoachAnalysisDialogRuntime({
             <div className="flex items-center gap-2 border-t border-[#eef2f0] bg-[#fafcfb] px-[22px] py-3.5 dark:border-white/10 dark:bg-white/[0.02]">
                 <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#536471] dark:text-white">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {resolvedFooterStatusText}
+                    {footerStatusText}
                 </span>
                 <span className="flex-1" />
                 <Button
                     type="button"
                     onClick={onRequestClose}
-                    className="h-9 rounded-[14px] bg-[#2d5f4f] px-5 text-[13px] font-extrabold text-white hover:bg-[#2f6c5c]"
+                    className="h-9 rounded-14 bg-[#2d5f4f] px-5 text-13 font-extrabold text-white hover:bg-[#2f6c5c]"
                 >
                     닫기
                 </Button>

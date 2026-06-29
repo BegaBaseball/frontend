@@ -15,6 +15,7 @@ import {
   ChatFavoriteItem,
   ChatMeta,
   ChatMessageStatus,
+  ChatQueueStatus,
   ChatSessionSummary,
   Message,
   StoredChatMessage,
@@ -265,6 +266,7 @@ export const useChatBot = (initialOpen = false) => {
   const [rateLimitActive, setRateLimitActive] = useState(false);
   const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const [queueStatus, setQueueStatus] = useState<ChatQueueStatus | null>(null);
   const [failureCount, setFailureCount] = useState(0);
   const [pendingMessage, setPendingMessage] = useState('');
   const [isLoadingMessages, setIsLoadingMessages] = useState(() => readStoredSessionId() !== null);
@@ -413,6 +415,7 @@ export const useChatBot = (initialOpen = false) => {
       currentSessionIdRef.current = null;
       currentSessionTitleRef.current = AiChatSessionTitleFallback;
       setMessageQueue([]);
+      setQueueStatus(null);
       setPendingMessage('');
       setInputMessage('');
       clearStoredChatUiState();
@@ -575,11 +578,13 @@ export const useChatBot = (initialOpen = false) => {
     activeStreamAbortControllerRef.current = null;
     activeBotMessageIdRef.current = null;
     activeBotMessageIndexRef.current = null;
+    setQueueStatus(null);
     return true;
   };
 
   const processMessage = async ({ sessionId, historyPayload, userMessage }: QueuedMessage) => {
     setIsTyping(true);
+    setQueueStatus(null);
     flushStreamingBuffer(activeBotMessageIdRef.current);
 
     const botMessageId = createMessageId();
@@ -637,7 +642,15 @@ export const useChatBot = (initialOpen = false) => {
             metadata: meta.perf ?? null,
           }));
         },
-        { signal: streamAbortController.signal },
+        {
+          signal: streamAbortController.signal,
+          onQueueStatus: (status) => {
+            if (activeRequestSeqRef.current !== requestSeq) {
+              return;
+            }
+            setQueueStatus(status.state === 'queued' ? status : null);
+          },
+        },
       );
 
       flushStreamingBuffer(botMessageId);
@@ -657,9 +670,11 @@ export const useChatBot = (initialOpen = false) => {
       setFailureCount(0);
       setRateLimitActive(false);
       setRateLimitUntil(null);
+      setQueueStatus(null);
       setPendingMessage('');
       sessionStorage.removeItem(PENDING_MESSAGE_STORAGE_KEY);
     } catch (error) {
+      setQueueStatus(null);
       flushStreamingBuffer(botMessageId);
 
       if (isStreamAbortError(error)) {
@@ -830,6 +845,7 @@ export const useChatBot = (initialOpen = false) => {
     if (!retryText) return;
     setRateLimitActive(false);
     setRateLimitUntil(null);
+    setQueueStatus(null);
     await submitMessage(retryText);
   };
 
@@ -851,6 +867,7 @@ export const useChatBot = (initialOpen = false) => {
       abortActiveStream();
     }
     setMessageQueue([]);
+    setQueueStatus(null);
     try {
       const { createChatSession } = await loadChatSessionsModule();
       const session = await createChatSession();
@@ -878,6 +895,7 @@ export const useChatBot = (initialOpen = false) => {
       abortActiveStream();
     }
     setMessageQueue([]);
+    setQueueStatus(null);
     await loadSessionMessages(sessionId, title);
   };
 
@@ -961,6 +979,7 @@ export const useChatBot = (initialOpen = false) => {
     rateLimitActive,
     rateLimitCountdown,
     rateLimitStage: Math.min(Math.max(failureCount, 1), 3),
+    queueStatus,
     pendingMessage,
     isLoadingMessages,
     sessionListVersion,

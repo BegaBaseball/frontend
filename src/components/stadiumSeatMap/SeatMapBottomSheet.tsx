@@ -97,7 +97,7 @@ export function SeatMapBottomSheet<TSection>({
           <div className="text-sm font-bold text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
             {copy?.emptyTitle ?? '구역을 탭하세요'}
           </div>
-          <div className="text-[11px] text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>블록 정보와 실제 시야 사진을 확인하세요</div>
+          <div className="text-11 text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>블록 정보와 실제 시야 사진을 확인하세요</div>
         </div>
       </div>
     );
@@ -150,7 +150,7 @@ export function SeatMapBottomSheet<TSection>({
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getName(section)}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+          <div className="flex items-center gap-1.5 text-11 text-slate-500" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             {category.label} · {adapter.getSideLabel(section)} · {adapter.getFanRoleLabel(section)}
           </div>
         </div>
@@ -160,7 +160,7 @@ export function SeatMapBottomSheet<TSection>({
             data-testid={searchAction.testId}
             aria-label={searchAction.ariaLabel ?? '구역 검색'}
             onClick={searchAction.onClick}
-            className="min-h-11 shrink-0 cursor-pointer rounded-lg border px-2.5 py-2 text-[11px] font-black transition-opacity hover:opacity-85"
+            className="min-h-11 shrink-0 cursor-pointer rounded-lg border px-2.5 py-2 text-11 font-black transition-opacity hover:opacity-85"
             style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
           >
             {searchAction.label ?? '구역 검색'}
@@ -187,11 +187,11 @@ export function SeatMapBottomSheet<TSection>({
         style={{ opacity: snap === 'peek' ? 0 : 1, transition: 'opacity 0.2s' }}
       >
         <div className="mb-4 flex flex-wrap gap-1.5">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {category.label} · {adapter.getLevel(section)}
           </span>
           <span
-            className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800"
+            className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800"
             style={{
               backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : undefined,
               color: isDark ? '#fcd34d' : undefined,
@@ -205,50 +205,50 @@ export function SeatMapBottomSheet<TSection>({
 
         <div className="mb-4 grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
-            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{blockLabel}</div>
+            <div className="text-9 font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>{blockLabel}</div>
             <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getBlock(section)}</div>
           </div>
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
-            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>위치</div>
+            <div className="text-9 font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>위치</div>
             <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getSideLabel(section)}</div>
           </div>
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
-            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>팬 구분</div>
+            <div className="text-9 font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>팬 구분</div>
             <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getFanRoleLabel(section)}</div>
           </div>
           <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800" style={{ backgroundColor: isDark ? STADIUM_SEATMAP_DARK_COLORS.surface : undefined }}>
-            <div className="text-[9px] font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>시야 거리</div>
+            <div className="text-9 font-bold tracking-widest text-slate-400" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>시야 거리</div>
             <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>{adapter.getDistance?.(section) ?? '-'}</div>
           </div>
         </div>
 
         <div className="mb-4">
-          <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">
             {copy?.officialBlocksTitle ?? '공식 블록 묶음'}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {adapter.getOfficialBlocks(section).map((block) => (
               <span
                 key={block}
-                className="rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                className="rounded-full border px-2.5 py-1 text-11 font-bold"
                 style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}
               >
                 {block}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
+          <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}>
             {adapter.getSourceNote(section)}
           </p>
           {accessibilityNote && (
-            <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+            <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
               {accessibilityNote}
             </p>
           )}
         </div>
 
         <div>
-          <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">
             {copy?.galleryTitle ?? '실제 시야 사진'}
           </div>
           <SeatViewGallery

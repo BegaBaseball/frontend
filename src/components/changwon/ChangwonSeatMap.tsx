@@ -130,7 +130,7 @@ function ZoomControls({
         aria-label="초기화"
         onClick={onReset}
         disabled={zoom === 1}
-        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-[11px] font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
+        className="h-8 min-w-14 cursor-pointer rounded-lg border px-2 text-11 font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white dark:hover:bg-slate-800"
         style={{ borderColor }}
       >
         {zoom.toFixed(2)}x
@@ -200,7 +200,7 @@ function BlockSearch({
         >
           <div
             data-testid="changwon-search-result-count"
-            className="border-b px-3 py-2 text-[11px] font-black text-slate-500 dark:text-white"
+            className="border-b px-3 py-2 text-11 font-black text-slate-500 dark:text-white"
             style={{ borderColor }}
           >
             검색 결과 {results.length}개
@@ -220,7 +220,7 @@ function BlockSearch({
                     className="flex w-full cursor-pointer items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
                   >
                     <span
-                      className="mt-0.5 shrink-0 rounded-md px-2 py-1 text-[11px] font-black text-white"
+                      className="mt-0.5 shrink-0 rounded-md px-2 py-1 text-11 font-black text-white"
                       style={{ background: accent }}
                     >
                       {block.imageGeometry.shortLabel}
@@ -229,12 +229,12 @@ function BlockSearch({
                       <span className="block truncate text-sm font-black text-slate-800 dark:text-white">
                         {getChangwonBlockDisplayName(block)}
                       </span>
-                      <span className="block truncate text-[11px] font-semibold text-slate-500 dark:text-white">
+                      <span className="block truncate text-11 font-semibold text-slate-500 dark:text-white">
                         {isChangwonSpecialSelectableArea(block) ? '특수 구역 · ' : ''}
                         {category.label} · {getChangwonLevelLabel(block.level)} · {block.seatTypes.join(' · ')}
                       </span>
                       {matchLabels.length > 0 && (
-                        <span className="mt-1 block truncate text-[10px] font-bold text-slate-400 dark:text-white">
+                        <span className="mt-1 block truncate text-10 font-bold text-slate-400 dark:text-white">
                           매칭: {matchLabels.join(' · ')}
                         </span>
                       )}
@@ -298,20 +298,20 @@ function DetailPanel({
           ×
         </button>
         <div className="mb-2 flex flex-wrap gap-2 pr-10">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}22`, color: accent }}>
+          <span className="rounded-full px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}22`, color: accent }}>
             {cat.label} · {getChangwonLevelLabel(section.level)}
           </span>
           {specialSelectable && (
-            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-11 font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
               특수 구역
             </span>
           )}
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-11 font-bold text-amber-800">
             {getChangwonSourceLabel(section.sourceConfidence)}
           </span>
           <span
             data-testid="changwon-selected-status"
-            className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+            className="rounded-full bg-emerald-100 px-2.5 py-1 text-11 font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
           >
             release-lock 승인
           </span>
@@ -321,52 +321,52 @@ function DetailPanel({
       </div>
       <div className="grid grid-cols-2 gap-2.5 px-5 pb-4">
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">위치</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">위치</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getChangwonSideLabel(section.side)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">팬 구분</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">팬 구분</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getChangwonFanRoleLabel(section.fanRole)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">층</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">층</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{getChangwonLevelLabel(section.level)}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">영역</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">영역</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{specialSelectable ? '특수 구역' : '숫자 블록'}</div>
         </div>
         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-          <div className="mb-1 text-[10px] font-bold tracking-widest text-slate-400">시야 거리</div>
+          <div className="mb-1 text-10 font-bold tracking-widest text-slate-400">시야 거리</div>
           <div className="text-base font-black text-slate-800 dark:text-white">{info.distance ?? '-'}</div>
         </div>
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">좌석 타입</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">좌석 타입</div>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {section.seatTypes.map((seatType) => (
-            <span key={seatType} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+            <span key={seatType} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
               {seatType}
             </span>
           ))}
         </div>
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">공식 블록</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">공식 블록</div>
         <div className="flex flex-wrap gap-1.5">
           {section.officialBlocks.map((block) => (
-            <span key={block} className="rounded-full border px-2.5 py-1 text-[11px] font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
+            <span key={block} className="rounded-full border px-2.5 py-1 text-11 font-bold" style={{ background: `${accent}14`, borderColor: `${accent}44`, color: accent }}>
               {block}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
+        <p className="mt-2 text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">{section.sourceNote}</p>
         {section.accessibilityNote && (
-          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
+          <p className="mt-2 rounded-xl bg-cyan-50 px-3 py-2 text-12 font-semibold leading-relaxed text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
             {section.accessibilityNote}
           </p>
         )}
       </div>
       <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-        <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
+        <div className="mb-2 text-10 font-black uppercase tracking-widest text-slate-400">실제 시야 사진</div>
         <SeatViewGallery stadium="CHANGWON" section={getChangwonBlockDisplayName(section)} sectionAliases={section.seatViewSections} compact />
       </div>
       <div className="sticky bottom-0 border-t border-slate-100 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
@@ -415,7 +415,9 @@ export default function ChangwonSeatMap() {
     isSectionVisible: (section, group) => (group ? isChangwonBlockInCategoryGroup(section, group) : true),
   });
   const { isMobile, isFullscreenOpen, openFullscreen, closeFullscreen } = useSeatMapTemplateShellState();
-  const hasOfficialBlocks = CHANGWON_SEATMAP_IMAGE.assetStatus === 'OFFICIAL' && CHANGWON_BLOCKS.length > 0;
+  const canUseSeatMapImage = CHANGWON_SEATMAP_IMAGE.assetStatus !== 'OPERATOR_REFERENCE_PENDING_ASSET'
+    && CHANGWON_SEATMAP_IMAGE.assetStatus !== 'EXTERNAL_REFERENCE_PENDING_ASSET';
+  const hasOfficialBlocks = canUseSeatMapImage && CHANGWON_BLOCKS.length > 0;
   const hoveredCategory = hoveredSection ? CHANGWON_CATEGORIES[hoveredSection.category] : null;
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#315288';
   const usedCategories = useMemo(() => [...new Set(CHANGWON_BLOCKS.map((block) => block.category))], []);
@@ -550,7 +552,7 @@ export default function ChangwonSeatMap() {
       </div>
       <div
         data-testid="changwon-filter-visible-count"
-        className="px-1 text-[11px] font-bold text-slate-500 dark:text-white"
+        className="px-1 text-11 font-bold text-slate-500 dark:text-white"
       >
         현재 필터 {visibleBlockCount}개 선택 영역 · 특수 구역 {specialSelectableCount}개 포함
       </div>
@@ -596,13 +598,13 @@ export default function ChangwonSeatMap() {
       extraMeta={(section) => (
         <>
           {isChangwonSpecialSelectableArea(section) && (
-            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-11 font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
               특수 구역
             </span>
           )}
           <span
             data-testid="changwon-selected-status"
-            className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+            className="rounded-full bg-emerald-100 px-2.5 py-1 text-11 font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
           >
             release-lock 승인
           </span>
@@ -640,13 +642,13 @@ export default function ChangwonSeatMap() {
             extraMeta={(section) => (
               <>
                 {isChangwonSpecialSelectableArea(section) && (
-                  <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+                  <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-11 font-bold text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
                     특수 구역
                   </span>
                 )}
                 <span
                   data-testid="changwon-selected-status-mobile"
-                  className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                  className="rounded-full bg-emerald-100 px-2.5 py-1 text-11 font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
                 >
                   release-lock 승인
                 </span>

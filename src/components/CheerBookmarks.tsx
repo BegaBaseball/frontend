@@ -45,7 +45,7 @@ export default function CheerBookmarks() {
                   type="button"
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-[18px] font-bold transition-colors',
+                    'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-18 font-bold transition-colors',
                     isActive
                       ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
                       : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-white dark:hover:bg-secondary'
@@ -61,7 +61,7 @@ export default function CheerBookmarks() {
           <main className="flex w-full flex-col gap-0 bg-white dark:bg-card border-x border-[#EFF3F4] dark:border-border">
             <div className="border-b border-[#EFF3F4] dark:border-border px-4 py-4">
               <h1 className="text-lg font-bold text-[#0F172A] dark:text-white">북마크</h1>
-              <p className="text-[16px] text-slate-500 dark:text-white">저장해둔 게시글을 모아볼 수 있어요.</p>
+              <p className="text-body text-slate-500 dark:text-white">저장해둔 게시글을 모아볼 수 있어요.</p>
             </div>
 
             {isLoading ? (
@@ -95,11 +95,11 @@ export default function CheerBookmarks() {
               </div>
             ) : isError ? (
               <div className="px-4 sm:px-6 py-8 sm:py-10 text-center">
-                <p className="text-[16px] text-slate-500 dark:text-white">북마크를 불러오지 못했습니다.</p>
+                <p className="text-body text-slate-500 dark:text-white">북마크를 불러오지 못했습니다.</p>
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="mt-3 min-h-11 rounded-full border border-slate-200 px-4 py-2 text-[16px] font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
+                  className="mt-3 min-h-11 rounded-full border border-slate-200 px-4 py-2 text-body font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
                 >
                   다시 시도
                 </button>
@@ -112,13 +112,13 @@ export default function CheerBookmarks() {
                 <p className="text-base font-bold text-slate-700 dark:text-white mb-1">
                   아직 북마크한 게시글이 없습니다
                 </p>
-                <p className="text-[16px] text-slate-400 dark:text-white mb-5">
+                <p className="text-body text-slate-400 dark:text-white mb-5">
                   응원 게시판에서 마음에 드는 게시글을 북마크해보세요
                 </p>
                 <button
                   type="button"
                   onClick={() => navigate('/cheer')}
-                  className="min-h-11 rounded-full bg-primary px-5 py-2 text-[16px] font-bold text-white transition-opacity hover:opacity-90"
+                  className="min-h-11 rounded-full bg-primary px-5 py-2 text-body font-bold text-white transition-opacity hover:opacity-90"
                 >
                   응원 게시판으로 이동
                 </button>
@@ -135,7 +135,7 @@ export default function CheerBookmarks() {
           <aside className="hidden lg:flex w-[320px] flex-col gap-4 sticky top-6 self-start lg:ml-4">
             <div className="rounded-2xl border border-[#E5E7EB] dark:border-border p-4 bg-white dark:bg-card">
               <p className="text-base font-bold text-[#0F172A] dark:text-white">북마크 팁</p>
-              <p className="mt-2 text-[16px] text-[#64748B] dark:text-white leading-relaxed">
+              <p className="mt-2 text-body text-[#64748B] dark:text-white leading-relaxed">
                 게시글 상세에서 북마크를 눌러 저장해보세요. 자주 보는 응원글을 빠르게 찾을 수 있어요.
               </p>
             </div>

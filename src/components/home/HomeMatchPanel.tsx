@@ -1,18 +1,12 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { lazy, Suspense, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 
-import { Button } from '../ui/button';
-import GameCard from '../GameCard';
-import {
-  ChevronDownIcon,
-  ClockIcon,
-  RefreshIcon,
-  WarningTriangleIcon,
-} from '../icons/PublicShellIcons';
-import { GameCardSkeleton } from './GameCardSkeleton';
-import { formatSourceDateLabel } from '../../utils/homeSeasonLogic';
+import HomeGameCard from './HomeGameCard';
 import type { Game } from '../../types/home';
-import type { LeagueTab } from '../../utils/predictionHomeLogic';
+import type { LeagueTab } from '../../utils/homeScheduleClassification';
 import type { HomeLoadFailureReason } from '../../api/home';
+
+const LazyHomeScheduledMatchPanel = lazy(() => import('./HomeScheduledMatchPanel'));
+const LazyHomeMatchPanelErrorState = lazy(() => import('./HomeMatchPanelErrorState'));
 
 interface HomeMatchPanelProps {
   activeLeagueTab: LeagueTab;
@@ -31,6 +25,8 @@ interface HomeMatchPanelProps {
   liveOrFinishedScheduledGames: Game[];
   scheduledPrimaryGamesBySourceDate: Array<[string, Game[]]>;
   scheduledSecondaryGamesBySourceDate: Array<[string, Game[]]>;
+  shouldMountTeamLogos: boolean;
+  LoadingCardComponent: ComponentType;
   onRetry: () => void;
   onSelectPrediction: (game: Game) => void;
   onToggleSecondarySection: () => void;
@@ -59,7 +55,7 @@ const HOME_MATCH_PANEL_COPY: Record<LeagueTab, { eyebrow: string; title: string;
   },
 };
 
-const BOARD_SHELL_CLASS = 'rounded-3xl border border-primary/20 bg-white p-4 shadow-[0_18px_60px_-28px_rgba(16,185,129,0.55)] ring-1 ring-primary/10 dark:border-primary/25 dark:bg-card md:p-5';
+const BOARD_SHELL_CLASS = 'rounded-3xl border border-primary/20 bg-white p-4 shadow-home-board ring-1 ring-primary/10 dark:border-primary/25 dark:bg-card md:p-5';
 const BOARD_GRID_CLASS = 'grid grid-cols-1 items-stretch gap-2.5';
 const MATCH_PRIORITY_REGION_PROPS = {
   'aria-label': '오늘 경기 중심 영역',
@@ -87,24 +83,24 @@ function HomeScheduleBoardHeader({
       <div className="min-w-0">
         <div className="mb-1 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary" />
-          <span className="text-[12px] font-black uppercase tracking-[0.16em] text-primary dark:text-emerald-300">
+          <span className="text-12 font-black uppercase tracking-[0.16em] text-primary dark:text-emerald-300">
             {copy.eyebrow}
           </span>
         </div>
-        <h3 className="truncate text-[20px] font-black tracking-tight text-gray-950 dark:text-white sm:text-2xl">
+        <h3 className="truncate text-20 font-black tracking-tight text-gray-950 dark:text-white sm:text-2xl">
           {copy.title}
         </h3>
-        <p className="mt-1 text-[14px] font-bold leading-relaxed text-gray-500 dark:text-white sm:text-[15px]">
+        <p className="mt-1 text-caption font-bold leading-relaxed text-gray-500 dark:text-white sm:text-15">
           {copy.description}
         </p>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <span className={`inline-flex min-h-9 items-center rounded-full border px-3 py-1 text-[14px] font-black ${countClass}`}>
+        <span className={`inline-flex min-h-9 items-center rounded-full border px-3 py-1 text-caption font-black ${countClass}`}>
           {countLabel}
         </span>
         {detailLabel ? (
-          <span className="inline-flex min-h-9 items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[14px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+          <span className="inline-flex min-h-9 items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-caption font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
             {detailLabel}
           </span>
         ) : null}
@@ -135,16 +131,51 @@ function HomeScheduleEmptyState({
           detailLabel={detailLabel}
         />
       ) : null}
-      <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center text-[16px] font-bold text-gray-500 dark:border-white/12 dark:bg-white/[0.04] dark:text-white">
+      <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center text-body font-bold text-gray-500 dark:border-white/12 dark:bg-white/[0.04] dark:text-white">
         {children}
       </div>
     </div>
   );
 }
 
+function HomeScheduleErrorState({
+  style,
+  title,
+  description,
+  suppressRecoveryActions,
+  compact = false,
+  onRetry,
+}: {
+  style: CSSProperties;
+  title: string;
+  description: string;
+  suppressRecoveryActions: boolean;
+  compact?: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <Suspense
+      fallback={(
+        <HomeScheduleEmptyState style={style}>
+          경기 상태를 확인하고 있습니다.
+        </HomeScheduleEmptyState>
+      )}
+    >
+      <LazyHomeMatchPanelErrorState
+        style={style}
+        title={title}
+        description={description}
+        suppressRecoveryActions={suppressRecoveryActions}
+        compact={compact}
+        onRetry={onRetry}
+      />
+    </Suspense>
+  );
+}
+
 function HomeScheduleListHeader() {
   return (
-    <div className="hidden px-3 pb-1 text-[11px] font-black text-gray-400 dark:text-white lg:grid lg:grid-cols-[5.5rem_minmax(0,1.25fr)_5rem_minmax(0,1.25fr)_minmax(8rem,0.85fr)_7.5rem] lg:gap-4">
+    <div className="hidden px-3 pb-1 text-11 font-black text-gray-400 dark:text-white lg:grid lg:grid-cols-home-game-card lg:gap-4">
       <span>시간</span>
       <span>원정</span>
       <span className="text-center">경기</span>
@@ -152,6 +183,56 @@ function HomeScheduleListHeader() {
       <span>구장</span>
       <span className="text-right">상태</span>
     </div>
+  );
+}
+
+function HomeScheduleGameList({
+  games,
+  sourceDate,
+  shouldMountTeamLogos,
+  onSelectPrediction,
+}: {
+  games: Game[];
+  sourceDate?: string;
+  shouldMountTeamLogos: boolean;
+  onSelectPrediction: (game: Game) => void;
+}) {
+  const keySuffix = sourceDate ? `${sourceDate}-` : '';
+
+  return (
+    <div className={BOARD_GRID_CLASS}>
+      {games.map((game, index) => (
+        <div
+          key={`${game.gameId}-${keySuffix}${index}`}
+          className="h-full"
+          data-testid="home-game-card"
+          data-game-id={game.gameId}
+        >
+          <HomeGameCard
+            game={game}
+            shouldMountTeamLogo={shouldMountTeamLogos}
+            onSelectPrediction={() => onSelectPrediction(game)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HomeScheduledPanelFallback({
+  matchSectionMinHeightStyle,
+}: {
+  matchSectionMinHeightStyle: CSSProperties;
+}) {
+  return (
+    <HomeScheduleEmptyState
+      style={matchSectionMinHeightStyle}
+      copy={HOME_MATCH_PANEL_COPY.scheduled}
+      countLabel="예정 경기 확인 중"
+      detailLabel="7일 일정"
+    >
+      예정 경기 화면을 준비하고 있습니다.
+    </HomeScheduleEmptyState>
   );
 }
 
@@ -172,15 +253,15 @@ export default function HomeMatchPanel({
   liveOrFinishedScheduledGames,
   scheduledPrimaryGamesBySourceDate,
   scheduledSecondaryGamesBySourceDate,
+  shouldMountTeamLogos,
+  LoadingCardComponent,
   onRetry,
   onSelectPrediction,
   onToggleSecondarySection,
 }: HomeMatchPanelProps) {
   const activeTabIsScheduled = activeLeagueTab === 'scheduled';
   const isManualDataError = loadFailureReason === 'manual-data-required';
-  const firstScheduledPrimaryDate = scheduledPrimaryGamesBySourceDate[0]?.[0];
   const activePanelCopy = HOME_MATCH_PANEL_COPY[activeLeagueTab];
-  const scheduledTotalGames = scheduledPrimaryGames.length + scheduledSecondaryGames.length;
 
   if (isLoading) {
     return (
@@ -196,7 +277,7 @@ export default function HomeMatchPanel({
         />
         <HomeScheduleListHeader />
         <div className={BOARD_GRID_CLASS}>
-          {Array.from({ length: loadingMatchCardCount }, (_, index) => <GameCardSkeleton key={`loading-game-${index}`} />)}
+          {Array.from({ length: loadingMatchCardCount }, (_, index) => <LoadingCardComponent key={`loading-game-${index}`} />)}
         </div>
       </div>
     );
@@ -204,237 +285,46 @@ export default function HomeMatchPanel({
 
   if (isGamesError) {
     return (
-      <div
-        className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm"
+      <HomeScheduleErrorState
         style={matchSectionMinHeightStyle}
-        {...MATCH_PRIORITY_REGION_PROPS}
-      >
-        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
-          <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
-        </div>
-        <p className="text-gray-700 dark:text-white font-bold mb-1">
-          {isManualDataError ? '야구 데이터 준비가 필요합니다' : '경기 일정을 불러오지 못했습니다'}
-        </p>
-        <p className="text-gray-400 dark:text-white text-[16px] font-bold mb-4">
-          {isManualDataError
-            ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
-            : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
-        </p>
-        {suppressRecoveryActions ? (
-          <p className="text-[16px] font-bold text-gray-500 dark:text-white">
-            위의 전체 다시 시도 버튼으로 한 번에 확인하세요.
-          </p>
-        ) : (
-          <Button
-            variant="outline"
-            size="touch"
-            onClick={onRetry}
-            className="border-primary/30 text-primary hover:bg-primary/5 font-bold"
-          >
-            <RefreshIcon className="w-4 h-4 mr-1.5" />
-            다시 시도
-          </Button>
-        )}
-      </div>
+        title={isManualDataError ? '야구 데이터 준비가 필요합니다' : '경기 일정을 불러오지 못했습니다'}
+        description={isManualDataError
+          ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
+          : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
+        suppressRecoveryActions={suppressRecoveryActions}
+        onRetry={onRetry}
+      />
     );
   }
 
   if (activeTabIsScheduled) {
-    if (isScheduledLoading) {
-      return (
-        <div
-          className={BOARD_SHELL_CLASS}
-          style={matchSectionMinHeightStyle}
-          {...MATCH_PRIORITY_REGION_PROPS}
-        >
-          <HomeScheduleBoardHeader
-            copy={activePanelCopy}
-            countLabel="예정 경기 확인 중"
-            detailLabel="7일 일정"
-          />
-          <HomeScheduleListHeader />
-          <div className={BOARD_GRID_CLASS}>
-            {Array.from({ length: loadingMatchCardCount }, (_, index) => (
-              <GameCardSkeleton key={`scheduled-skeleton-${index}`} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (isScheduledError) {
-      return (
-        <div
-          className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-card rounded-2xl border border-red-100 dark:border-red-900/40 shadow-sm"
-          style={matchSectionMinHeightStyle}
-          {...MATCH_PRIORITY_REGION_PROPS}
-        >
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
-            <WarningTriangleIcon className="w-8 h-8 text-red-500 dark:text-red-400" />
-          </div>
-          <p className="text-gray-700 dark:text-white font-bold mb-1">
-            {isManualDataError ? '야구 데이터 준비가 필요합니다' : '예정 경기를 불러오지 못했습니다'}
-          </p>
-          <p className="text-gray-500 dark:text-white text-[16px] font-bold mt-1">
-            {isManualDataError
-              ? '운영자가 데이터를 제공하면 다시 확인할 수 있습니다.'
-              : '서비스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.'}
-          </p>
-          {suppressRecoveryActions ? (
-            <p className="mt-3 text-[16px] font-bold text-gray-500 dark:text-white">
-              위의 전체 다시 시도 버튼으로 한 번에 확인하세요.
-            </p>
-          ) : (
-            <Button
-              variant="outline"
-              size="touch"
-              onClick={onRetry}
-              className="border-primary/30 text-primary hover:bg-primary/5 mt-3 font-bold"
-            >
-              <RefreshIcon className="w-4 h-4 mr-1.5" />
-              다시 시도
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    if (scheduledPrimaryGames.length === 0 && scheduledSecondaryGames.length === 0) {
-      return (
-        <HomeScheduleEmptyState
-          style={matchSectionMinHeightStyle}
-          copy={activePanelCopy}
-          countLabel="0경기"
-          detailLabel="7일 일정"
-        >
-          선택한 날짜부터 7일 내 예정 경기가 없습니다.
-        </HomeScheduleEmptyState>
-      );
-    }
-
     return (
-      <div className={`${BOARD_SHELL_CLASS} space-y-6`} style={matchSectionMinHeightStyle} {...MATCH_PRIORITY_REGION_PROPS}>
-        <HomeScheduleBoardHeader
-          copy={activePanelCopy}
-          countLabel={`${scheduledTotalGames}경기`}
-          detailLabel={`예정 ${scheduledPrimaryGames.length}건 · 변동 ${scheduledSecondaryGames.length}건`}
-          tone={scheduledSecondaryGames.length > 0 ? 'warning' : 'default'}
+      <Suspense
+        fallback={(
+          <HomeScheduledPanelFallback
+            matchSectionMinHeightStyle={matchSectionMinHeightStyle}
+          />
+        )}
+      >
+        <LazyHomeScheduledMatchPanel
+          isScheduledLoading={isScheduledLoading}
+          isScheduledError={isScheduledError}
+          loadFailureReason={loadFailureReason}
+          suppressRecoveryActions={suppressRecoveryActions}
+          isSecondarySectionExpanded={isSecondarySectionExpanded}
+          loadingMatchCardCount={loadingMatchCardCount}
+          matchSectionMinHeightStyle={matchSectionMinHeightStyle}
+          scheduledPrimaryGames={scheduledPrimaryGames}
+          scheduledSecondaryGames={scheduledSecondaryGames}
+          liveOrFinishedScheduledGames={liveOrFinishedScheduledGames}
+          scheduledPrimaryGamesBySourceDate={scheduledPrimaryGamesBySourceDate}
+          scheduledSecondaryGamesBySourceDate={scheduledSecondaryGamesBySourceDate}
+          shouldMountTeamLogos={shouldMountTeamLogos}
+          onRetry={onRetry}
+          onSelectPrediction={onSelectPrediction}
+          onToggleSecondarySection={onToggleSecondarySection}
         />
-
-        {scheduledPrimaryGames.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[15px] font-black text-gray-800 dark:text-white">
-                <ClockIcon className="h-4 w-4 text-primary dark:text-emerald-300" />
-                <span>곧 열리는 경기</span>
-                <span className="text-gray-300 dark:text-white">·</span>
-                <span>{scheduledPrimaryGames.length}건</span>
-              </div>
-              {firstScheduledPrimaryDate && (
-                <span className="inline-flex rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[14px] font-black text-gray-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
-                  {formatSourceDateLabel(firstScheduledPrimaryDate)}
-                </span>
-              )}
-            </div>
-            {scheduledPrimaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
-              <div key={`scheduled-primary-${sourceDate}`} className="space-y-2.5">
-                <div className={sourceDate === firstScheduledPrimaryDate ? 'sr-only' : 'flex items-center justify-between gap-2 px-1'}>
-                  <h4 className="text-[14px] font-black text-gray-600 dark:text-white">
-                    {formatSourceDateLabel(sourceDate)}
-                  </h4>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[12px] font-black text-gray-500 dark:bg-white/10 dark:text-white">
-                    {groupedGames.length}경기
-                  </span>
-                </div>
-                <HomeScheduleListHeader />
-                <div className={BOARD_GRID_CLASS}>
-                  {groupedGames.map((game, index) => (
-                    <div
-                      key={`${game.gameId}-${sourceDate}-${index}`}
-                      className="h-full"
-                      data-testid="home-game-card"
-                      data-game-id={game.gameId}
-                    >
-                      <GameCard
-                        game={game}
-                        variant="home"
-                        onSelectPrediction={() => onSelectPrediction(game)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {scheduledSecondaryGames.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-700/35 dark:bg-amber-950/20">
-              <div className="flex items-center gap-2 text-[16px] font-black text-amber-700 dark:text-amber-200">
-                <WarningTriangleIcon className="h-4 w-4" />
-                연기/취소
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex min-w-10 justify-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[15px] font-black text-amber-700 dark:border-amber-700/40 dark:bg-white/[0.04] dark:text-amber-200">
-                  {scheduledSecondaryGames.length}건
-                </span>
-                <button
-                  type="button"
-                  data-testid="home-scheduled-secondary-toggle"
-                  className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-amber-200 bg-white px-3 py-1 text-[15px] font-black text-amber-700 hover:bg-amber-50 dark:border-amber-700/40 dark:bg-white/[0.04] dark:text-amber-200 dark:hover:bg-amber-950/20"
-                  aria-expanded={isSecondarySectionExpanded}
-                  onClick={onToggleSecondarySection}
-                >
-                  {isSecondarySectionExpanded ? '접기' : '펼치기'}
-                  <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${isSecondarySectionExpanded ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-            </div>
-            {isSecondarySectionExpanded ? (
-              scheduledSecondaryGamesBySourceDate.map(([sourceDate, groupedGames]) => (
-                <div key={`scheduled-secondary-${sourceDate}`} className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-2 px-1">
-                    <h4 className="text-[14px] font-black text-amber-700 dark:text-amber-200">
-                      {formatSourceDateLabel(sourceDate)}
-                    </h4>
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-black text-amber-700 dark:bg-amber-950/20 dark:text-amber-200">
-                      {groupedGames.length}경기
-                    </span>
-                  </div>
-                  <HomeScheduleListHeader />
-                  <div className={BOARD_GRID_CLASS}>
-                    {groupedGames.map((game, index) => (
-                      <div
-                        key={`${game.gameId}-${sourceDate}-${index}`}
-                        className="h-full"
-                        data-testid="home-game-card"
-                        data-game-id={game.gameId}
-                      >
-                        <GameCard
-                          game={game}
-                          variant="home"
-                          onSelectPrediction={() => onSelectPrediction(game)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-[15px] font-bold text-amber-700 dark:border-amber-700/30 dark:bg-amber-950/20 dark:text-amber-200">
-                연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.
-              </p>
-            )}
-          </section>
-        )}
-
-        {liveOrFinishedScheduledGames.length > 0 && (
-          <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-[15px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
-            기타 상태 경기 {liveOrFinishedScheduledGames.length}건은 예정경기 탭에서 제외되었습니다.
-          </p>
-        )}
-      </div>
+      </Suspense>
     );
   }
 
@@ -459,22 +349,11 @@ export default function HomeMatchPanel({
         detailLabel="승부예측 이동 가능"
       />
       <HomeScheduleListHeader />
-      <div className={BOARD_GRID_CLASS}>
-        {activeStandardGames.map((game, index) => (
-          <div
-            key={`${game.gameId}-${index}`}
-            className="h-full"
-            data-testid="home-game-card"
-            data-game-id={game.gameId}
-          >
-            <GameCard
-              game={game}
-              variant="home"
-              onSelectPrediction={() => onSelectPrediction(game)}
-            />
-          </div>
-        ))}
-      </div>
+      <HomeScheduleGameList
+        games={activeStandardGames}
+        shouldMountTeamLogos={shouldMountTeamLogos}
+        onSelectPrediction={onSelectPrediction}
+      />
     </div>
   );
 }

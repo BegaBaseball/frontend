@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PrivateApiError, privateDelete, privatePost } from './privateClient';
+import { DEV_PROXY_UPSTREAM_UNAVAILABLE } from './httpClientCore';
+import { PrivateApiError, privateDelete, privateGet, privatePost } from './privateClient';
 
 test('privatePost는 401 후 reissue 성공 시 원 요청을 한 번 재시도한다', async (t) => {
   const urls: string[] = [];
@@ -110,6 +111,25 @@ test('privatePost는 reissue 실패 시 auth-session-expired를 dispatch하고 �
 
   assert.equal(events.length, 1);
   assert.equal(events[0]?.cause, 'reissue_failed');
+});
+
+test('privateGet classifies an empty development proxy 500 as upstream unavailable', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('', {
+    headers: { 'content-type': 'text/plain' },
+    status: 500,
+    statusText: 'Internal Server Error',
+  }));
+
+  await assert.rejects(
+    privateGet('/auth/mypage', { skipAuthSessionHandling: true }),
+    (error: unknown) => {
+      assert.ok(error instanceof PrivateApiError);
+      assert.equal(error.status, 500);
+      assert.equal(error.data?.code, DEV_PROXY_UPSTREAM_UNAVAILABLE);
+      assert.match(error.message, /Development API proxy upstream is unavailable/);
+      return true;
+    },
+  );
 });
 
 test('privateDelete는 delete body와 query params를 함께 전송한다', async (t) => {

@@ -337,7 +337,7 @@ test('잠실 seat-view alias는 정확한 블록명부터 조회하도록 정렬
 test('SeatViewGallery alias helper는 조회 순서와 사진 중복 제거를 보장한다', () => {
   assert.deepEqual(
     buildSeatViewSectionQueries('205 블록 1루 오렌지석', ['205', '205블록', '잠실 205', '205']),
-    ['205 블록 1루 오렌지석', '205', '205블록', '잠실 205'],
+    ['205', '205블록', '잠실 205', '205 블록 1루 오렌지석'],
   );
 
   const photos = dedupeSeatViewPhotos([

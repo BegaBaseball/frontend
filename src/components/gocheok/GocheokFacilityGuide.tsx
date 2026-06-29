@@ -33,7 +33,7 @@ function FacilityInfoList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
       {items.map((item) => (
-        <li key={item} className="flex gap-2 text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+        <li key={item} className="flex gap-2 text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#820024]" />
           <span>{item}</span>
         </li>
@@ -46,11 +46,11 @@ function OperatorDataPendingPanel() {
   return (
     <div
       data-testid="gocheok-operator-data-required"
-      className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] font-bold leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100"
+      className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-11 font-bold leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100"
     >
       <div
         data-testid="gocheok-operator-data-status"
-        className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300"
+        className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-10 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300"
       >
         운영자 제공 자료 필요
       </div>
@@ -67,23 +67,23 @@ function OperationNoticePanel() {
       data-testid="gocheok-operation-notice-panel"
       className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
     >
-      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">운영 안내</div>
+      <div className="text-10 font-black uppercase tracking-widest text-slate-400">운영 안내</div>
       {activeNotices.length > 0 ? (
         <div className="mt-3 space-y-2">
           {activeNotices.map((notice) => (
             <div key={notice.id} className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-              <div className="text-[10px] font-bold text-slate-500 dark:text-white">
+              <div className="text-10 font-bold text-slate-500 dark:text-white">
                 {notice.validFrom} ~ {notice.validTo}
               </div>
-              <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{notice.message}</div>
-              <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-white">
+              <div className="mt-1 text-12 font-bold leading-relaxed text-slate-900 dark:text-white">{notice.message}</div>
+              <div className="mt-1 text-10 font-semibold text-slate-500 dark:text-white">
                 자료 갱신일 {notice.lastUpdatedAt}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-[12px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-12 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           오늘 유효한 운영자 제공 동선 공지가 없습니다. 운영자 자료가 제공되면 이곳에 표시합니다.
         </div>
       )}
@@ -97,18 +97,18 @@ function MissingFacilityImage({ image, mode }: { image: GocheokFacilityGuideImag
       data-testid="gocheok-facility-asset-required"
       className="flex min-h-[180px] flex-col justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mx-auto mb-2 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mx-auto mb-2 rounded-full bg-white px-2.5 py-1 text-10 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         시설 이미지 준비 중
       </div>
       <div className="text-sm font-black text-slate-900 dark:text-white">{image.label}</div>
-      <p className="mx-auto mt-1 max-w-sm text-[12px] font-semibold leading-relaxed text-slate-600 dark:text-white">
+      <p className="mx-auto mt-1 max-w-sm text-12 font-semibold leading-relaxed text-slate-600 dark:text-white">
         공식 시설현황 이미지를 repo asset으로 추가하면 이 위치에 표시됩니다.
       </p>
-      <div className="mt-3 rounded-lg bg-white/75 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-white">
+      <div className="mt-3 rounded-lg bg-white/75 px-3 py-2 text-left text-11 font-semibold text-slate-600 shadow-sm dark:bg-slate-900/70 dark:text-white">
         <div>필요 파일: {image.requiredAssetFileName}</div>
         <div>저장 위치: {image.imagePath}</div>
       </div>
-      <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-2 text-10 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 외부 이미지는 hotlink하지 않습니다.
       </p>
     </div>
@@ -146,11 +146,11 @@ function FacilityImageCard({
           loading="lazy"
           decoding="async"
         />
-        <span className="absolute right-2 top-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-[11px] font-black text-white shadow-sm transition group-hover:bg-[#820024]">
+        <span className="absolute right-2 top-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-11 font-black text-white shadow-sm transition group-hover:bg-[#820024]">
           확대 보기
         </span>
       </button>
-      <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:text-white">
+      <figcaption className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-11 font-bold text-slate-500 dark:border-slate-800 dark:text-white">
         <span>{image.label}</span>
         <span className="font-black text-[#820024]">클릭해서 확대</span>
       </figcaption>
@@ -203,7 +203,7 @@ function FacilityImageDialog({
       >
         <div className="min-w-0 px-1">
           <div className="truncate text-sm font-black">{image.label}</div>
-          <div className="text-[11px] font-semibold text-white/55">서울시설공단 공식 시설현황</div>
+          <div className="text-11 font-semibold text-white/55">서울시설공단 공식 시설현황</div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
@@ -219,7 +219,7 @@ function FacilityImageDialog({
             type="button"
             aria-label="시설현황 이미지 원래 크기"
             onClick={() => updateZoom(1)}
-            className="h-9 min-w-14 rounded-lg border border-white/10 bg-white/10 px-2 text-[12px] font-black text-white transition hover:bg-white/15"
+            className="h-9 min-w-14 rounded-lg border border-white/10 bg-white/10 px-2 text-12 font-black text-white transition hover:bg-white/15"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -296,20 +296,20 @@ export default function GocheokFacilityGuide({
       <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-10 font-black uppercase tracking-widest text-slate-400">
               {guide.sourceLabel}
             </p>
             <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
               {guide.title}
             </h3>
-            <p className="mt-1 max-w-2xl text-[12px] font-semibold leading-relaxed text-slate-500 dark:text-white">
+            <p className="mt-1 max-w-2xl text-12 font-semibold leading-relaxed text-slate-500 dark:text-white">
               {guide.summary}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:min-w-[240px]">
             {summaryStats.map((stat) => (
               <div key={stat.label} className="rounded-xl bg-rose-50 px-3 py-2.5 text-left dark:bg-rose-950/30">
-                <div className="text-[10px] font-black uppercase tracking-widest text-rose-700 dark:text-rose-200">
+                <div className="text-10 font-black uppercase tracking-widest text-rose-700 dark:text-rose-200">
                   {stat.label}
                 </div>
                 <div className="mt-0.5 text-lg font-black text-rose-950 dark:text-rose-100">
@@ -330,7 +330,7 @@ export default function GocheokFacilityGuide({
                 data-testid={`gocheok-facility-tab-${tab.id}`}
                 aria-pressed={active}
                 onClick={() => handleTabChange(tab.id)}
-                className="shrink-0 rounded-lg border-0 px-3 py-2 text-[11px] font-black transition-colors"
+                className="shrink-0 rounded-lg border-0 px-3 py-2 text-11 font-black transition-colors"
                 style={{
                   background: active ? '#820024' : 'transparent',
                   color: active ? '#ffffff' : (mode === 'dark' ? '#cbd5e1' : '#475569'),
@@ -355,18 +355,18 @@ export default function GocheokFacilityGuide({
             ))}
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">시설 개요</div>
+            <div className="text-10 font-black uppercase tracking-widest text-slate-400">시설 개요</div>
             <div className="mt-3 space-y-2">
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-white">용도</div>
-                <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{guide.usage}</div>
+                <div className="text-10 font-bold text-slate-500 dark:text-white">용도</div>
+                <div className="mt-1 text-12 font-bold leading-relaxed text-slate-900 dark:text-white">{guide.usage}</div>
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-white">규모</div>
-                <div className="mt-1 text-[12px] font-bold leading-relaxed text-slate-900 dark:text-white">{guide.scale}</div>
+                <div className="text-10 font-bold text-slate-500 dark:text-white">규모</div>
+                <div className="mt-1 text-12 font-bold leading-relaxed text-slate-900 dark:text-white">{guide.scale}</div>
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-white">기타부대시설</div>
+                <div className="text-10 font-bold text-slate-500 dark:text-white">기타부대시설</div>
                 <div className="mt-2">
                   <FacilityInfoList items={guide.ancillaryFacilities} />
                 </div>
@@ -400,7 +400,7 @@ export default function GocheokFacilityGuide({
 
       {activeTab === 'operations' && <OperationNoticePanel />}
 
-      <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
         {guide.implementationNote} {guide.openLicenseLabel} 기준으로 출처를 표시합니다.
         <a
           href={guide.sourceUrl}

@@ -101,7 +101,7 @@ export function SeatMapTemplateShell({
         style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}
       >
         {title}
-        <span className="ml-2 text-[11px] font-semibold" style={{ color: titleAccentColor }}>
+        <span className="ml-2 text-11 font-semibold" style={{ color: titleAccentColor }}>
           {subtitle}
         </span>
       </div>
@@ -182,7 +182,7 @@ export function SeatMapTemplateShell({
               <div>
                 <div className="text-sm font-black text-white">{fullscreenTitle}</div>
                 <div
-                  className="text-[11px] font-semibold text-slate-400"
+                  className="text-11 font-semibold text-slate-400"
                   style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined }}
                 >
                   {fullscreenSubtitle}

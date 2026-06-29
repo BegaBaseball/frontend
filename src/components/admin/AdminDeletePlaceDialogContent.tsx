@@ -37,7 +37,7 @@ export default function AdminDeletePlaceDialogContent({
         </>
       )}
     >
-      <div className="text-[14px] text-slate-400">선택한 장소 정보가 완전히 제거됩니다.</div>
+      <div className="text-caption text-slate-400">선택한 장소 정보가 완전히 제거됩니다.</div>
     </PlainDialog>
   );
 }

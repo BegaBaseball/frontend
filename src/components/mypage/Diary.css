@@ -52,27 +52,26 @@
 .mypage-season-root .diary-green-surface .text-foreground,
 .mypage-season-root .diary-green-surface .text-card-foreground,
 .mypage-season-root .diary-green-surface .text-gray-900,
-.mypage-season-root .diary-green-surface .dark\:text-white,
-.mypage-season-root .diary-green-surface .dark\:text-gray-100 {
+.mypage-season-root .diary-green-surface .text-gray-100 {
   color: var(--mp-fg) !important;
 }
 
 .mypage-season-root .diary-green-surface .text-muted-foreground,
 .mypage-season-root .diary-green-surface .text-gray-500,
 .mypage-season-root .diary-green-surface .text-gray-600,
-.mypage-season-root .diary-green-surface .dark\:text-gray-300,
-.mypage-season-root .diary-green-surface .dark\:text-gray-400 {
+.mypage-season-root .diary-green-surface .text-gray-300,
+.mypage-season-root .diary-green-surface .text-gray-400 {
   color: var(--mp-fg-muted) !important;
 }
 
 .mypage-season-root .diary-green-surface .text-primary,
 .mypage-season-root .diary-green-surface .text-emerald-600,
-.mypage-season-root .diary-green-surface .dark\:text-emerald-400 {
+.mypage-season-root .diary-green-surface .text-emerald-400 {
   color: var(--mp-accent) !important;
 }
 
 .mypage-season-root .diary-green-surface .text-amber-600,
-.mypage-season-root .diary-green-surface .dark\:text-amber-300 {
+.mypage-season-root .diary-green-surface .text-amber-300 {
   color: var(--mp-gold) !important;
 }
 
@@ -80,22 +79,22 @@
 .mypage-season-root .diary-green-surface .border-border,
 .mypage-season-root .diary-green-surface .border-gray-100,
 .mypage-season-root .diary-green-surface .border-gray-200,
-.mypage-season-root .diary-green-surface .dark\:border-gray-700,
-.mypage-season-root .diary-green-surface .dark\:border-gray-800 {
+.mypage-season-root .diary-green-surface .border-gray-700,
+.mypage-season-root .diary-green-surface .border-gray-800 {
   border-color: var(--mp-hair) !important;
 }
 
 .mypage-season-root .diary-green-surface .border-primary,
 .mypage-season-root .diary-green-surface .border-emerald-200,
-.mypage-season-root .diary-green-surface .dark\:border-emerald-800 {
+.mypage-season-root .diary-green-surface .border-emerald-800 {
   border-color: var(--mp-accent) !important;
 }
 
 .mypage-season-root .diary-green-surface .bg-card,
 .mypage-season-root .diary-green-surface .bg-muted,
 .mypage-season-root .diary-green-surface .bg-gray-50,
-.mypage-season-root .diary-green-surface .dark\:bg-card\/50,
-.mypage-season-root .diary-green-surface .dark\:bg-secondary\/50 {
+.mypage-season-root .diary-green-surface .bg-card\/50,
+.mypage-season-root .diary-green-surface .bg-secondary\/50 {
   background: var(--mp-surface-hi) !important;
 }
 
@@ -107,19 +106,19 @@
 .mypage-season-root .diary-green-surface .bg-emerald-500,
 .mypage-season-root .diary-green-surface .hover\:bg-primary\/90:hover {
   background: var(--mp-accent) !important;
-  color: #0c1411 !important;
+  color: var(--mp-fg-soft) !important;
 }
 
 .mypage-season-root .diary-green-surface .bg-primary\/10,
 .mypage-season-root .diary-green-surface .bg-primary\/5,
 .mypage-season-root .diary-green-surface .bg-emerald-50,
-.mypage-season-root .diary-green-surface .dark\:bg-emerald-950\/30 {
+.mypage-season-root .diary-green-surface .bg-emerald-950\/30 {
   background: var(--mp-accent-dim) !important;
 }
 
 .mypage-season-root .diary-green-surface .bg-amber-100,
-.mypage-season-root .diary-green-surface .dark\:bg-amber-950\/30 {
-  background: rgba(232, 182, 76, 0.14) !important;
+.mypage-season-root .diary-green-surface .bg-amber-950\/30 {
+  background: var(--mp-draw-bg);
 }
 
 .mypage-season-root .diary-green-surface select,
@@ -147,7 +146,7 @@
 }
 
 .mypage-season-root .diary-green-surface ::placeholder {
-  color: rgba(229, 236, 232, 0.42) !important;
+  color: hsl(var(--muted-foreground) / 0.42) !important;
 }
 
 .mypage-season-root .diary-green-surface button {
@@ -162,28 +161,28 @@
 
 .mypage-season-root .diary-green-surface button[data-testid^="day-"]:hover {
   border-color: var(--mp-accent) !important;
-  background: rgba(30, 42, 38, 0.94) !important;
+  background: hsl(var(--muted) / 0.94) !important;
 }
 
 .mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-red-500,
 .mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-blue-500,
 .mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-yellow-500,
 .mypage-season-root .diary-green-surface button[data-testid^="day-"] .bg-gray-500 {
-  box-shadow: 0 0 0 1px rgba(8, 13, 12, 0.45);
+  box-shadow: 0 0 0 1px hsl(var(--border) / 0.45);
 }
 
 .mypage-season-root .diary-green-surface .ring-primary {
   --tw-ring-color: var(--mp-accent) !important;
 }
 
-.mypage-season-root .diary-green-surface .ring-offset-gray-900 {
+.mypage-season-root .diary-green-surface .ring-offset-background {
   --tw-ring-offset-color: var(--mp-bg) !important;
 }
 
 .mypage-season-root .diary-green-surface label.border-dashed,
 .mypage-season-root .diary-green-surface button.border-dashed {
   border-color: var(--mp-hair-strong) !important;
-  background: rgba(30, 42, 38, 0.64) !important;
+  background: hsl(var(--muted) / 0.64) !important;
 }
 
 .mypage-season-root .diary-green-surface label.border-dashed:hover,
@@ -411,7 +410,7 @@
 .mypage-season-root .diary-green-surface .diary-read-details {
   border: 1px solid var(--mp-hair) !important;
   border-radius: 12px !important;
-  background: rgba(30, 42, 38, 0.54) !important;
+  background: var(--mp-surface-hi) !important;
   padding: 4px 12px !important;
 }
 
@@ -434,26 +433,51 @@
 }
 
 .diary-seat-view-dialog {
-  --mp-bg: #000000;
-  --mp-surface: #000000;
-  --mp-surface-hi: #000000;
-  --mp-hair: rgba(138, 159, 153, 0.16);
-  --mp-hair-strong: rgba(138, 159, 153, 0.3);
-  --mp-fg: #FFFFFF;
-  --mp-fg-soft: #FFFFFF;
-  --mp-fg-muted: #FFFFFF;
-  --mp-accent: #63b39b;
-  --mp-accent-dim: rgba(99, 179, 155, 0.14);
-  --mp-gold: #e8b64c;
+  --mp-bg: hsl(var(--background));
+  --mp-surface: hsl(var(--card));
+  --mp-surface-hi: hsl(var(--muted));
+  --mp-hair: hsl(var(--border) / 0.16);
+  --mp-hair-strong: hsl(var(--border) / 0.3);
+  --mp-fg: hsl(var(--foreground));
+  --mp-fg-soft: hsl(var(--foreground));
+  --mp-fg-muted: hsl(var(--muted-foreground));
+  --mp-accent: hsl(var(--primary));
+  --mp-accent-dim: hsl(var(--primary) / 0.14);
+  --mp-gold: hsl(var(--status-warning-text));
+  --mp-gold-dim: hsl(var(--status-warning-bg));
+  --mp-gold-bg: hsl(var(--status-warning-bg));
+  --mp-gold-soft: hsl(var(--status-warning-bg) / 0.18);
+  --mp-gold-border: hsl(var(--status-warning-bg) / 0.42);
+  --mp-win: hsl(var(--status-success-text));
+  --mp-win-bg: hsl(var(--status-success-bg));
+  --mp-win-bg-dim: hsl(var(--status-success-bg) / 0.35);
+  --mp-win-bg-soft: hsl(var(--status-success-bg) / 0.16);
+  --mp-win-bg-soft-34: hsl(var(--status-success-bg) / 0.34);
+  --mp-win-bg-soft-55: hsl(var(--status-success-bg) / 0.55);
+  --mp-win-bg-soft-65: hsl(var(--status-success-bg) / 0.65);
+  --mp-win-dim: hsl(var(--status-success-bg));
+  --mp-draw-bg: hsl(var(--status-warning-bg));
+  --mp-draw-bg-dim: hsl(var(--status-warning-bg) / 0.65);
+  --mp-draw-bg-soft: hsl(var(--status-warning-bg) / 0.16);
+  --mp-draw-bg-soft-35: hsl(var(--status-warning-bg) / 0.35);
+  --mp-draw-bg-soft-36: hsl(var(--status-warning-bg) / 0.36);
+  --mp-draw-bg-soft-55: hsl(var(--status-warning-bg) / 0.55);
+  --mp-draw-bg-soft-65: hsl(var(--status-warning-bg) / 0.65);
+  --mp-lose: hsl(var(--status-error-text));
+  --mp-lose-bg: hsl(var(--status-error-bg));
+  --mp-lose-bg-dim: hsl(var(--status-error-bg) / 0.55);
+  --mp-lose-bg-soft: hsl(var(--status-error-bg) / 0.16);
+  --mp-lose-bg-soft-35: hsl(var(--status-error-bg) / 0.35);
+  --mp-lose-dim: hsl(var(--status-error-bg));
   border-color: var(--mp-hair) !important;
   border-radius: 14px !important;
   background: var(--mp-surface) !important;
   color: var(--mp-fg) !important;
-  box-shadow: 0 28px 80px -30px rgba(0, 0, 0, 0.62) !important;
+  box-shadow: 0 28px 80px -30px hsl(var(--border) / 0.45) !important;
 }
 
 .diary-seat-view-dialog .border-gray-100,
-.diary-seat-view-dialog .dark\:border-border {
+.diary-seat-view-dialog .border-border {
   border-color: var(--mp-hair) !important;
 }
 
@@ -507,6 +531,55 @@
   border-color: var(--mp-hair-strong) !important;
   background: transparent !important;
   color: var(--mp-fg-soft) !important;
+}
+
+.diary-seat-view-dialog [data-slot="button"].bg-primary {
+  background: var(--mp-fg) !important;
+  color: var(--mp-bg) !important;
+}
+
+.diary-seat-view-dialog [data-slot="button"].bg-primary:hover {
+  background: var(--mp-fg-soft) !important;
+  color: var(--mp-bg) !important;
+}
+
+.light .diary-seat-view-dialog,
+.dark .diary-seat-view-dialog {
+  --mp-bg: hsl(var(--background));
+  --mp-surface: hsl(var(--card));
+  --mp-surface-hi: hsl(var(--muted));
+  --mp-hair: hsl(var(--border) / 0.16);
+  --mp-hair-strong: hsl(var(--border) / 0.3);
+  --mp-fg: hsl(var(--foreground));
+  --mp-fg-soft: hsl(var(--foreground));
+  --mp-fg-muted: hsl(var(--muted-foreground));
+  --mp-accent: hsl(var(--primary));
+  --mp-accent-dim: hsl(var(--primary) / 0.14);
+  --mp-gold: hsl(var(--status-warning-text));
+  --mp-gold-bg: hsl(var(--status-warning-bg));
+  --mp-gold-soft: hsl(var(--status-warning-bg) / 0.18);
+  --mp-gold-border: hsl(var(--status-warning-bg) / 0.42);
+  --mp-win: hsl(var(--status-success-text));
+  --mp-win-bg: hsl(var(--status-success-bg));
+  --mp-win-bg-dim: hsl(var(--status-success-bg) / 0.35);
+  --mp-win-bg-soft: hsl(var(--status-success-bg) / 0.16);
+  --mp-win-bg-soft-34: hsl(var(--status-success-bg) / 0.34);
+  --mp-win-bg-soft-55: hsl(var(--status-success-bg) / 0.55);
+  --mp-win-bg-soft-65: hsl(var(--status-success-bg) / 0.65);
+  --mp-win-dim: hsl(var(--status-success-bg));
+  --mp-draw-bg: hsl(var(--status-warning-bg));
+  --mp-draw-bg-dim: hsl(var(--status-warning-bg) / 0.65);
+  --mp-draw-bg-soft: hsl(var(--status-warning-bg) / 0.16);
+  --mp-draw-bg-soft-35: hsl(var(--status-warning-bg) / 0.35);
+  --mp-draw-bg-soft-36: hsl(var(--status-warning-bg) / 0.36);
+  --mp-draw-bg-soft-55: hsl(var(--status-warning-bg) / 0.55);
+  --mp-draw-bg-soft-65: hsl(var(--status-warning-bg) / 0.65);
+  --mp-lose: hsl(var(--status-error-text));
+  --mp-lose-bg: hsl(var(--status-error-bg));
+  --mp-lose-bg-dim: hsl(var(--status-error-bg) / 0.55);
+  --mp-lose-bg-soft: hsl(var(--status-error-bg) / 0.16);
+  --mp-lose-bg-soft-35: hsl(var(--status-error-bg) / 0.35);
+  --mp-lose-dim: hsl(var(--status-error-bg));
 }
 
 @media (max-width: 600px) {

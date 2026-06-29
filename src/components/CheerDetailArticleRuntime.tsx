@@ -157,7 +157,7 @@ export default function CheerDetailArticleRuntime({
     const repostedAtLabel = isRepost ? detailDateFormatter.format(new Date(selectedPost.createdAt)) : null;
     const embeddedPostFallback = (
         <div
-            className="rounded-[20px] border p-3.5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
+            className="rounded-20 border p-3.5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/[0.03] sm:p-4"
             style={{
                 ...primaryBorderStyle,
                 ...surfaceTintStyle,
@@ -201,7 +201,7 @@ export default function CheerDetailArticleRuntime({
     const statsAsideFallback = (
         <aside>
             <div
-                className="rounded-[16px] border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
+                className="rounded-2xl border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
                 style={primaryBorderStyle}
                 aria-busy="true"
                 aria-label="응원 현황 불러오는 중"
@@ -211,7 +211,7 @@ export default function CheerDetailArticleRuntime({
                     {[1, 2, 3].map((item) => (
                         <div
                             key={item}
-                            className="h-[44px] rounded-[12px] bg-slate-200 dark:bg-slate-800/80"
+                            className="h-[44px] rounded-xl bg-slate-200 dark:bg-slate-800/80"
                         />
                     ))}
                 </div>
@@ -225,7 +225,7 @@ export default function CheerDetailArticleRuntime({
 
     return (
         <article
-            className="relative mt-4 overflow-hidden rounded-[24px] border bg-white font-sans shadow-[0_20px_60px_-44px_rgba(15,23,42,0.42)] dark:bg-slate-950"
+            className="relative mt-4 overflow-hidden rounded-3xl border bg-white font-sans shadow-lg dark:bg-slate-950"
             style={primaryBorderStyle}
         >
             <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
@@ -243,37 +243,37 @@ export default function CheerDetailArticleRuntime({
                                 >
                                     <ArrowLeftIcon className="h-5 w-5" />
                                 </button>
-                                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[15px] font-bold backdrop-blur-sm sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10" style={softBadgeStyle}>
+                                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-15 font-bold backdrop-blur-sm sm:px-2 sm:py-0.5 sm:text-15 dark:border-white/10" style={softBadgeStyle}>
                                     <MegaphoneIcon className="h-3 w-3" />
                                     {teamName}
                                 </span>
                                 {selectedPost.postType === 'NOTICE' && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-[15px] font-bold text-white sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-white/10 dark:bg-white dark:text-white">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-15 font-bold text-white sm:px-2 sm:py-0.5 sm:text-15 dark:border-white/10 dark:bg-white dark:text-white">
                                         공지
                                     </span>
                                 )}
                                 {selectedPost.isHot && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[15px] font-bold text-orange-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-15 font-bold text-orange-600 sm:px-2 sm:py-0.5 sm:text-15 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
                                         <FlameIcon className="h-3 w-3" />
                                         HOT
                                     </span>
                                 )}
                                 {isSimpleRepost && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[15px] font-bold text-emerald-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-15 font-bold text-emerald-600 sm:px-2 sm:py-0.5 sm:text-15 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
                                         <RepeatIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">리포스트</span>
                                         <span className="sm:hidden">리포</span>
                                     </span>
                                 )}
                                 {isQuoteRepost && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[15px] font-bold text-violet-600 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-15 font-bold text-violet-600 sm:px-2 sm:py-0.5 sm:text-15 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300">
                                         <QuoteIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">인용 응원</span>
                                         <span className="sm:hidden">인용</span>
                                     </span>
                                 )}
                                 {selectedPost.shareMode?.startsWith('EXTERNAL_') && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[15px] font-bold text-sky-700 sm:px-2 sm:py-0.5 sm:text-[15px] dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-15 font-bold text-sky-700 sm:px-2 sm:py-0.5 sm:text-15 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
                                         <ExternalLinkIcon className="h-3 w-3" />
                                         <span className="max-sm:hidden">외부 출처</span>
                                         <span className="sm:hidden">외부</span>
@@ -307,18 +307,18 @@ export default function CheerDetailArticleRuntime({
 
                                 <div className="min-w-0 flex-1">
                                     {isRepost && (
-                                        <p className="mb-1 text-[16px] font-bold text-slate-500 dark:text-white">
+                                        <p className="mb-1 text-body font-bold text-slate-500 dark:text-white">
                                             {isSimpleRepost ? `${selectedPost.author}님 리포스트` : `${selectedPost.author}님 인용`}
                                         </p>
                                     )}
                                     <button
                                         type="button"
                                         onClick={() => onNavigateToProfile(displayAuthorHandle)}
-                                        className="truncate text-left text-[16px] font-bold text-slate-950 transition-colors hover:underline dark:text-white sm:text-[16px]"
+                                        className="truncate text-left text-body font-bold text-slate-950 transition-colors hover:underline dark:text-white sm:text-body"
                                     >
                                         {displayAuthor}
                                     </button>
-                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[16px] font-bold text-slate-500 dark:text-white">
+                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-body font-bold text-slate-500 dark:text-white">
                                         <span>{displayAuthorHandleLabel}</span>
                                         <span className="mx-0.5 h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-500" />
                                         <span className="flex items-center gap-1">
@@ -362,7 +362,7 @@ export default function CheerDetailArticleRuntime({
                                             onOwnerMenuOpenChange(false);
                                             onDisplayEdit();
                                         }}
-                                        className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
+                                        className="flex w-full items-center rounded-lg px-3 py-2 text-body font-bold text-gray-700 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-secondary"
                                     >
                                         <EditIcon className="mr-2 h-4 w-4" />
                                         수정하기
@@ -374,7 +374,7 @@ export default function CheerDetailArticleRuntime({
                                             onOwnerMenuOpenChange(false);
                                             onDeleteRequested();
                                         }}
-                                        className="flex w-full items-center rounded-lg px-3 py-2 text-[16px] font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                        className="flex w-full items-center rounded-lg px-3 py-2 text-body font-bold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                     >
                                         <TrashIcon className="mr-2 h-4 w-4" />
                                         삭제하기
@@ -411,7 +411,7 @@ export default function CheerDetailArticleRuntime({
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
                         <div className="min-w-0">
                             <div
-                                className="rounded-[22px] border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5"
+                                className="rounded-22 border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5"
                                 style={primaryBorderStyle}
                             >
                                 {isSimpleRepost && selectedPost.originalDeleted && originalEmbeddedPost ? (
@@ -428,7 +428,7 @@ export default function CheerDetailArticleRuntime({
                                     </Suspense>
                                 ) : (
                                     <>
-                                        <div className="whitespace-pre-wrap break-words text-[16px] leading-6 font-bold text-slate-900 dark:text-white sm:text-[16px] sm:leading-7">
+                                        <div className="whitespace-pre-wrap break-words text-body leading-6 font-bold text-slate-900 dark:text-white sm:text-body sm:leading-7">
                                             {displayContent}
                                         </div>
 
@@ -437,12 +437,12 @@ export default function CheerDetailArticleRuntime({
                                                 href={safeSourceUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="mt-4 flex items-start justify-between gap-3 rounded-[18px] border border-sky-200 bg-sky-50/80 px-3.5 py-3 text-left text-sky-800 transition-colors hover:bg-sky-100 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/15"
+                                                className="mt-4 flex items-start justify-between gap-3 rounded-18 border border-sky-200 bg-sky-50/80 px-3.5 py-3 text-left text-sky-800 transition-colors hover:bg-sky-100 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/15"
                                             >
                                                 <div className="min-w-0">
-                                                    <p className="text-[16px] font-bold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300">출처</p>
-                                                    <p className="mt-1 truncate text-[16px] font-bold">{safeSourceUrl}</p>
-                                                    <p className="mt-1 text-[16px] font-bold text-sky-700/80 dark:text-sky-200/80">
+                                                    <p className="text-body font-bold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300">출처</p>
+                                                    <p className="mt-1 truncate text-body font-bold">{safeSourceUrl}</p>
+                                                    <p className="mt-1 text-body font-bold text-sky-700/80 dark:text-sky-200/80">
                                                         {sourceInfo?.author || '작성자 미상'}
                                                         {sourceInfo?.license ? ` · ${sourceInfo.license}` : ''}
                                                     </p>

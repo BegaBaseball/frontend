@@ -3,6 +3,7 @@ import { CoachRiskItem } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import TeamLogo from '../TeamLogo';
 import {
+    resolveRiskAreaLabel,
     resolveRiskImpactTo,
     resolveRiskInningLabel,
     riskSevColor,
@@ -81,30 +82,37 @@ export default function RiskVersus({
     const headerText   = t.headerText;
 
     return (
-        <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden' }}>
+        <div
+            data-testid="coach-risk-versus"
+            style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', minWidth: 0 }}
+        >
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
                 background: headerBg,
                 padding: isNarrow ? '8px 14px' : '10px 18px',
                 fontSize: isNarrow ? 10 : 11,
                 fontWeight: 800,
                 color: headerText,
                 textTransform: 'uppercase',
-                letterSpacing: '0.04em',
+                letterSpacing: 0,
                 borderBottom: `1px solid ${headerBorder}`,
             }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                     {homeTeamId && (
                         <span style={{ display: 'inline-flex', verticalAlign: 'middle', flexShrink: 0 }}>
                             <TeamLogo teamId={homeTeamId} size={13} className="!rounded-none !bg-transparent p-0" />
                         </span>
                     )}
-                    {homeName}에 불리
+                    <span style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'keep-all' }}>
+                        {homeName}에 불리
+                    </span>
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
-                    {awayName}에 불리
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', minWidth: 0, textAlign: 'right' }}>
+                    <span style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'keep-all' }}>
+                        {awayName}에 불리
+                    </span>
                     {awayTeamId && (
                         <span style={{ display: 'inline-flex', verticalAlign: 'middle', flexShrink: 0 }}>
                             <TeamLogo teamId={awayTeamId} size={13} className="!rounded-none !bg-transparent p-0" />
@@ -120,6 +128,7 @@ export default function RiskVersus({
                 const isAway    = impactTo === 'away';
                 const isBoth    = impactTo === 'both';
                 const sevColor  = riskSevColor(r.level);
+                const areaLabel = resolveRiskAreaLabel(r.area);
                 const pillText  = r.impact
                     ? `${isHome ? homeName : isAway ? awayName : '양 팀'} ${r.impact}`
                     : isHome ? `${homeName} 불리` : isAway ? `${awayName} 불리` : '양 팀 변수';
@@ -172,7 +181,8 @@ export default function RiskVersus({
                             alignItems: 'center',
                             gap: isNarrow ? 8 : 12,
                             marginBottom: 6,
-                            flexWrap: isNarrow ? 'wrap' : 'nowrap',
+                            flexWrap: 'wrap',
+                            minWidth: 0,
                         }}>
                             <span style={{
                                 width: 26,
@@ -187,26 +197,38 @@ export default function RiskVersus({
                             }}>
                                 <RiskIcon level={r.level} width="13" height="13" />
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: textColor }}>
-                                {r.area}
+                            <span style={{
+                                fontSize: 14,
+                                fontWeight: 800,
+                                color: textColor,
+                                minWidth: 0,
+                                overflowWrap: 'anywhere',
+                                wordBreak: 'keep-all',
+                            }}>
+                                {areaLabel}
                             </span>
                             <span style={{
                                 fontSize: 11,
                                 fontWeight: 700,
                                 color: subColor,
-                                fontFamily: 'ui-monospace, monospace',
+                                flexShrink: 0,
                             }}>
                                 · {resolveRiskInningLabel(r)}
                             </span>
                             <span style={{
-                                marginLeft: 'auto',
+                                marginLeft: isNarrow ? 0 : 'auto',
                                 fontSize: isNarrow ? 11 : 12,
                                 fontWeight: 800,
                                 color: pillColor,
                                 padding: '3px 8px',
                                 borderRadius: 999,
                                 background: pillBg,
-                                whiteSpace: 'nowrap',
+                                maxWidth: '100%',
+                                whiteSpace: 'normal',
+                                overflowWrap: 'anywhere',
+                                wordBreak: 'keep-all',
+                                textAlign: isNarrow ? 'left' : 'right',
+                                lineHeight: 1.3,
                             }}>
                                 {pillText}
                             </span>
@@ -219,6 +241,8 @@ export default function RiskVersus({
                             fontWeight: 600,
                             lineHeight: 1.5,
                             paddingLeft: isNarrow ? 34 : 38,
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'keep-all',
                         }}>
                             {r.description}
                         </p>

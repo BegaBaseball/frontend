@@ -63,6 +63,8 @@ export type ViewMode =
   | 'editProfile'
   | 'cheerPosts'
   | 'mateHistory'
+  | 'badges'
+  | 'alerts'
   | 'settings'
   | 'changePassword'
   | 'accountSettings'

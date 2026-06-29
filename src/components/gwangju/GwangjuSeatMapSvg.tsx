@@ -97,7 +97,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
       data-testid="gwangju-official-seatmap-required"
       className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-amber-50 px-5 py-10 text-center dark:border-amber-700 dark:bg-amber-950/25"
     >
-      <div className="mb-3 rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
+      <div className="mb-3 rounded-full bg-white px-3 py-1 text-11 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300">
         공식 좌석도 준비 중
       </div>
       <h4 className="text-lg font-black text-slate-900 dark:text-white">
@@ -111,7 +111,7 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
         <div>저장 위치: {GWANGJU_SEATMAP_IMAGE.imagePath}</div>
         <div>출처: {GWANGJU_SEATMAP_IMAGE.sourceLabel}</div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold text-slate-500 dark:text-white">
+      <p className="mt-3 text-11 font-semibold text-slate-500 dark:text-white">
         {mode === 'dark' ? '다크 모드' : '라이트 모드'}에서도 가짜 좌석도 fallback은 표시하지 않습니다.
       </p>
     </div>
@@ -119,10 +119,6 @@ function MissingOfficialSeatMap({ mode }: { mode: 'light' | 'dark' }) {
 }
 
 function resolveOfficialSeatMapImageUrl() {
-  if (GWANGJU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL') {
-    return null;
-  }
-
   return new URL('../../assets/stadiums/kia/gwangju-kia-seatmap-official-2026.webp', import.meta.url).href;
 }
 
@@ -593,13 +589,7 @@ export default function GwangjuSeatMapSvg({
     zoomFromDoubleClick(event.clientX, event.clientY);
   }, [zoomFromDoubleClick]);
 
-  if (
-    GWANGJU_SEATMAP_IMAGE.assetStatus !== 'OFFICIAL'
-    || !seatMapImageUrl
-    || imageWidth <= 0
-    || imageHeight <= 0
-    || imageFailed
-  ) {
+  if (!seatMapImageUrl || imageWidth <= 0 || imageHeight <= 0 || imageFailed) {
     return (
       <div className="relative rounded-xl bg-slate-100 dark:bg-[#000000]">
         <MissingOfficialSeatMap mode={mode} />
@@ -941,7 +931,7 @@ export default function GwangjuSeatMapSvg({
         <button
           type="button"
           data-testid="gwangju-seatmap-zoom-reset"
-          className="min-h-5 rounded-md border-0 bg-transparent px-1 py-0.5 text-center text-[9px] font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+          className="min-h-5 rounded-md border-0 bg-transparent px-1 py-0.5 text-center text-9 font-black text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
           onClick={() => updateZoom(minZoom)}
           disabled={zoom <= minZoom}
           aria-label="원래 크기"

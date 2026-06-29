@@ -41,7 +41,7 @@ export default function AdminReportDetailDrawer({
       <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 px-5 py-4 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between">
           <div>
-            <p className="text-[14px] text-slate-400">신고 케이스 상세</p>
+            <p className="text-caption text-slate-400">신고 케이스 상세</p>
             <h2 className="text-lg font-bold text-white">Case #{selectedReportId}</h2>
           </div>
           <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeReportDetail}>
@@ -54,7 +54,7 @@ export default function AdminReportDetailDrawer({
             <div className="text-slate-400">상세 정보를 불러오는 중...</div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 text-[14px]">
+              <div className="grid grid-cols-2 gap-3 text-caption">
                 <div className="rounded-lg border border-slate-800 p-3">
                   <p className="text-slate-500">상태</p>
                   <p className="text-slate-200 mt-1">{selectedReportDetail.status || '-'}</p>
@@ -73,12 +73,12 @@ export default function AdminReportDetailDrawer({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-800 p-3 text-[14px]">
+              <div className="rounded-lg border border-slate-800 p-3 text-caption">
                 <p className="text-slate-500 mb-1">게시물 미리보기</p>
                 <p className="text-slate-200 whitespace-pre-wrap">{selectedReportDetail.postPreview || '-'}</p>
               </div>
 
-              <div className="rounded-lg border border-slate-800 p-3 text-[14px] space-y-2">
+              <div className="rounded-lg border border-slate-800 p-3 text-caption space-y-2">
                 <p><span className="text-slate-500">요청 조치:</span> <span className="text-slate-200">{selectedReportDetail.requestedAction || '-'}</span></p>
                 <p><span className="text-slate-500">Appeal 상태:</span> <span className="text-slate-200">{selectedReportDetail.appealStatus || '-'}</span></p>
                 <p><span className="text-slate-500">Appeal 사유:</span> <span className="text-slate-200">{selectedReportDetail.appealReason || '-'}</span></p>
@@ -87,11 +87,11 @@ export default function AdminReportDetailDrawer({
               </div>
 
               <div className="rounded-lg border border-slate-800 p-3">
-                <p className="text-[14px] text-slate-500 mb-2">관리자 메모</p>
+                <p className="text-caption text-slate-500 mb-2">관리자 메모</p>
                 <textarea
                   value={adminMemo}
                   onChange={(e) => setAdminMemo(e.target.value)}
-                  className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-[14px] text-slate-100"
+                  className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-caption text-slate-100"
                   placeholder="조치 근거를 입력하세요."
                 />
               </div>

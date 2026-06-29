@@ -489,7 +489,7 @@ export default function SajikSeatMapEditor() {
       <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4 px-4 py-4 lg:px-6">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-3">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-700">Internal seatmap editor v1.7</div>
+            <div className="text-11 font-black uppercase tracking-[0.18em] text-cyan-700">Internal seatmap editor v1.7</div>
             <h1 className="text-xl font-black text-zinc-950">사직 좌석도 polygon editor</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-zinc-600">
@@ -647,19 +647,19 @@ export default function SajikSeatMapEditor() {
               <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs font-black">
                 <div className="border border-zinc-200 bg-zinc-50 px-2 py-2">
                   <div data-testid="sajik-editor-total-sections">{dataset.summary.totalSections}</div>
-                  <div className="text-[10px] uppercase text-zinc-500">sections</div>
+                  <div className="text-10 uppercase text-zinc-500">sections</div>
                 </div>
                 <div className="border border-zinc-200 bg-zinc-50 px-2 py-2">
                   <div>{dataset.summary.enabledSections}</div>
-                  <div className="text-[10px] uppercase text-zinc-500">enabled</div>
+                  <div className="text-10 uppercase text-zinc-500">enabled</div>
                 </div>
                 <div className="border border-zinc-200 bg-zinc-50 px-2 py-2">
                   <div>{dataset.summary.aliasOnlySections}</div>
-                  <div className="text-[10px] uppercase text-zinc-500">alias</div>
+                  <div className="text-10 uppercase text-zinc-500">alias</div>
                 </div>
                 <div className="border border-zinc-200 bg-zinc-50 px-2 py-2">
                   <div data-testid="sajik-editor-marker-count">{dataset.summary.markers}</div>
-                  <div className="text-[10px] uppercase text-zinc-500">markers</div>
+                  <div className="text-10 uppercase text-zinc-500">markers</div>
                 </div>
               </div>
             </section>
@@ -679,7 +679,7 @@ export default function SajikSeatMapEditor() {
                   {dirtySectionIds.includes(section.sectionId) && (
                     <span
                       data-testid={`sajik-editor-section-dirty-${section.sectionId}`}
-                      className="shrink-0 border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-700"
+                      className="shrink-0 border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-10 font-black uppercase text-amber-700"
                     >
                       dirty
                     </span>
@@ -687,14 +687,14 @@ export default function SajikSeatMapEditor() {
                   {section.hitPathExpansionCandidate && (
                     <span
                       data-testid={`sajik-editor-section-hit-candidate-${section.sectionId}`}
-                      className="shrink-0 border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-teal-700"
+                      className="shrink-0 border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-10 font-black uppercase text-teal-700"
                     >
                       hit
                     </span>
                   )}
                   <span
                     data-testid={`sajik-editor-section-status-${section.sectionId}`}
-                    className="shrink-0 border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-500"
+                    className="shrink-0 border border-zinc-200 bg-white px-1.5 py-0.5 text-10 font-black uppercase text-zinc-500"
                   >
                     {statusBadgeForSection(section)}
                   </span>
@@ -705,10 +705,10 @@ export default function SajikSeatMapEditor() {
             <section className="border border-zinc-200 bg-white p-3 shadow-sm" data-testid="sajik-editor-selected-section">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase text-zinc-500">selected section</div>
+                  <div className="text-11 font-black uppercase text-zinc-500">selected section</div>
                   <h2 className="text-lg font-black text-zinc-950">{selectedSection.sectionId}</h2>
                 </div>
-                <span className="rounded border border-zinc-200 px-2 py-1 text-[11px] font-black text-zinc-600">
+                <span className="rounded border border-zinc-200 px-2 py-1 text-11 font-black text-zinc-600">
                   {selectedSection.enabled ? 'MAP_SELECTABLE' : 'ALIAS_ONLY'}
                 </span>
               </div>
@@ -735,7 +735,7 @@ export default function SajikSeatMapEditor() {
             <section className="border border-zinc-200 bg-white p-3 shadow-sm" data-testid="sajik-editor-draft-controls">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase text-zinc-500">draft geometry</div>
+                  <div className="text-11 font-black uppercase text-zinc-500">draft geometry</div>
                   <div
                     data-testid="sajik-editor-draft-status"
                     className={`text-sm font-black ${selectedDraftChanged ? 'text-amber-700' : 'text-emerald-700'}`}
@@ -758,7 +758,7 @@ export default function SajikSeatMapEditor() {
                     type="button"
                     data-testid="sajik-editor-reset-all-drafts"
                     onClick={resetAllDrafts}
-                    className="h-9 border border-zinc-300 bg-white px-2 text-[11px] font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-9 border border-zinc-300 bg-white px-2 text-11 font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={dirtySectionIds.length === 0}
                   >
                     all
@@ -896,7 +896,7 @@ export default function SajikSeatMapEditor() {
                   data-testid="sajik-editor-add-vertex-after"
                   onClick={addVertexAfterSelected}
                   disabled={editingTarget === 'labelPoint'}
-                  className="inline-flex h-8 items-center justify-center gap-1 border border-zinc-300 bg-white px-2 text-[11px] font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-8 items-center justify-center gap-1 border border-zinc-300 bg-white px-2 text-11 font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                   add
@@ -906,7 +906,7 @@ export default function SajikSeatMapEditor() {
                   data-testid="sajik-editor-delete-vertex"
                   onClick={deleteSelectedVertex}
                   disabled={editingTarget === 'labelPoint' || editablePoints.length <= 3}
-                  className="inline-flex h-8 items-center justify-center gap-1 border border-zinc-300 bg-white px-2 text-[11px] font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-8 items-center justify-center gap-1 border border-zinc-300 bg-white px-2 text-11 font-black uppercase text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   delete
@@ -915,7 +915,7 @@ export default function SajikSeatMapEditor() {
                   type="button"
                   data-testid="sajik-editor-invalid-hitpath-fixture"
                   onClick={applyInvalidHitPathFixture}
-                  className="inline-flex h-8 items-center justify-center gap-1 border border-amber-300 bg-amber-50 px-2 text-[11px] font-black uppercase text-amber-800 hover:bg-amber-100"
+                  className="inline-flex h-8 items-center justify-center gap-1 border border-amber-300 bg-amber-50 px-2 text-11 font-black uppercase text-amber-800 hover:bg-amber-100"
                 >
                   <Bug className="h-3.5 w-3.5" aria-hidden="true" />
                   fail
@@ -952,15 +952,15 @@ export default function SajikSeatMapEditor() {
             <section className="grid min-h-0 flex-1 grid-rows-[auto_auto_minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(110px,1fr)_minmax(110px,1fr)] gap-2 border border-zinc-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase text-zinc-500">export preview</div>
-                  <div className="text-[11px] font-bold text-zinc-500" data-testid="sajik-editor-copy-status">
+                  <div className="text-11 font-black uppercase text-zinc-500">export preview</div>
+                  <div className="text-11 font-bold text-zinc-500" data-testid="sajik-editor-copy-status">
                     copy: {copyStatus}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div
                     data-testid="sajik-editor-before-after-status"
-                    className={`border px-2 py-1 text-[11px] font-black ${
+                    className={`border px-2 py-1 text-11 font-black ${
                       selectedPatchChanged ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-zinc-200 bg-zinc-50 text-zinc-600'
                     }`}
                   >
@@ -968,7 +968,7 @@ export default function SajikSeatMapEditor() {
                   </div>
                   <div
                     data-testid={`sajik-editor-patch-status-${selectedPatchPayload.validation.status.toLowerCase()}`}
-                    className={`border px-2 py-1 text-[11px] font-black ${
+                    className={`border px-2 py-1 text-11 font-black ${
                       selectedPatchPayload.validation.status === 'PASS'
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                         : 'border-amber-200 bg-amber-50 text-amber-700'
@@ -1002,19 +1002,19 @@ export default function SajikSeatMapEditor() {
               </div>
               <pre
                 data-testid="sajik-editor-patch-json"
-                className="overflow-auto bg-slate-950 p-3 text-[11px] leading-relaxed text-emerald-50"
+                className="overflow-auto bg-slate-950 p-3 text-11 leading-relaxed text-emerald-50"
               >
                 {selectedPatchJson}
               </pre>
               <pre
                 data-testid="sajik-editor-ts-patch"
-                className="overflow-auto bg-zinc-900 p-3 text-[11px] leading-relaxed text-amber-50"
+                className="overflow-auto bg-zinc-900 p-3 text-11 leading-relaxed text-amber-50"
               >
                 {selectedPatchTs}
               </pre>
               <pre
                 data-testid="sajik-editor-selected-json"
-                className="overflow-auto bg-zinc-950 p-3 text-[11px] leading-relaxed text-cyan-50"
+                className="overflow-auto bg-zinc-950 p-3 text-11 leading-relaxed text-cyan-50"
               >
                 {selectedSectionJson}
               </pre>
@@ -1022,7 +1022,7 @@ export default function SajikSeatMapEditor() {
                 data-testid="sajik-editor-dataset-json"
                 readOnly
                 value={datasetJson}
-                className="min-h-0 resize-none border border-zinc-300 bg-zinc-50 p-3 font-mono text-[11px] leading-relaxed text-zinc-900"
+                className="min-h-0 resize-none border border-zinc-300 bg-zinc-50 p-3 font-mono text-11 leading-relaxed text-zinc-900"
               />
             </section>
           </aside>

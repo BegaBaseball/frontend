@@ -240,6 +240,11 @@ describe('Mate Visual QA', () => {
       body: null,
     }).as('recordMateSearchTerm');
 
+    cy.intercept('GET', '**/api/diary/seat-views*', {
+      statusCode: 200,
+      body: [],
+    }).as('getMateSeatViews');
+
     cy.intercept('GET', '**/api/parties/777*', {
       statusCode: 200,
       body: listParty,

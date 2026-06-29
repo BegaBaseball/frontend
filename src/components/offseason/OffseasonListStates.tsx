@@ -40,7 +40,7 @@ export function OffseasonErrorState({
                 </div>
                 <div className="space-y-2">
                     <h3 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">이적 현황을 가져오지 못했습니다.</h3>
-                    <p className="text-[15px] font-semibold text-zinc-500 dark:text-white">{message}</p>
+                    <p className="text-15 font-semibold text-zinc-500 dark:text-white">{message}</p>
                 </div>
                 <Button onClick={onRetry} className="rounded-full px-5">
                     <RefreshIcon className="h-4 w-4" />
@@ -68,7 +68,7 @@ export function OffseasonEmptyState({
                 </div>
                 <div className="space-y-2">
                     <h3 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">조건에 맞는 이동이 없습니다.</h3>
-                    <p className="text-[15px] font-semibold text-zinc-500 dark:text-white">
+                    <p className="text-15 font-semibold text-zinc-500 dark:text-white">
                         {hasSearchTerm
                             ? '검색어를 조금 넓게 잡거나 팀과 구분 필터를 다시 선택해 주세요.'
                             : '필터 조건을 조정하면 더 많은 이적 내역을 확인할 수 있습니다.'}

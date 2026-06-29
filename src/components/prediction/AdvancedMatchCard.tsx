@@ -1,6 +1,5 @@
 import React, { Fragment, ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/card';
-import { Button } from '../ui/button';
 import { StatusBadge } from '../ui/status-badge';
 import TeamLogo from '../TeamLogo';
 import { useTheme } from '../../hooks/useTheme';
@@ -23,6 +22,7 @@ import {
   formatTime,
   toNumericScore,
 } from '../../utils/inningScoreParser';
+import { resolvePredictionResultLabel } from '../../utils/predictionResultLabel';
 import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { getGameStatusBadgeMeta } from '../../utils/statusBadgeMeta';
 import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
@@ -31,10 +31,10 @@ import {
   PredictionChevronRightIcon,
   PredictionClockIcon,
   PredictionLoaderIcon,
-  PredictionTrendingUpIcon,
 } from './PredictionShellIcons';
 
 const AdvancedMatchCardContentRuntime = lazy(() => import('./AdvancedMatchCardContentRuntime'));
+const PredictionVotePanel = lazy(() => import('./PredictionVotePanel'));
 
 interface AdvancedMatchCardProps {
   game: Game;
@@ -167,7 +167,6 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const homeTeamNameStyle = getInningTeamNameStyle(homeColor, isDarkMode);
   const topAwayScoreStyle = getTopScoreTextStyle(awayColor, isDarkMode);
   const topHomeScoreStyle = getTopScoreTextStyle(homeColor, isDarkMode);
-  const teamLabelTextStyle = getTeamLabelTextStyle();
   const awayTeamLabelTextStyle = getTeamLabelTextStyle(awayColor, isDarkMode);
   const homeTeamLabelTextStyle = getTeamLabelTextStyle(homeColor, isDarkMode);
   const matchDateValue = gameDetail?.gameDate || game.gameDate;
@@ -185,15 +184,13 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
   const homeAnimatedScore = homeScoreValue ?? 0;
   const lastInning = inningKeys.length > 0 ? Math.max(...inningKeys) : 9;
   const hasDetailedScores = hasGameScore || Object.keys(inningRows).length > 0;
-  const isResultDecided = hasGameScore && (statusCode === 'COMPLETED' || statusCode === 'DRAW');
-  const isTie = hasGameScore && awayScoreValue === homeScoreValue;
-  const winnerLabel = hasGameScore
-    ? isTie
-      ? (isResultDecided ? '무승부' : '동점')
-      : awayScoreValue > homeScoreValue
-        ? `${awayTeamName} 승`
-        : `${homeTeamName} 승`
-    : '';
+  const winnerLabel = resolvePredictionResultLabel({
+    statusCode,
+    awayScore: awayScoreValue,
+    homeScore: homeScoreValue,
+    awayTeamName,
+    homeTeamName,
+  });
   const isPostponedStatus = statusCode === 'POSTPONED';
   const isCancelledStatus = statusCode === 'CANCELLED';
   const isPostponedOrCancelled = isPostponedStatus || isCancelledStatus;
@@ -210,12 +207,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     : (statusCode === 'COMPLETED' || statusCode === 'DRAW') && lastInning
       ? `경기 종료 (${lastInning}회)`
       : statusLabel;
-  const cheeringCaption = isScheduledLayout ? '사전 응원/예측 참여수' : '실시간 팬 응원 참여수';
   const isScoreboardLoading = gameDetailLoading && !hasDetailedScores;
-  const isUserVoteResolutionUnknown = userVoteResolutionState === 'unknown-auth';
-  const voteButtonTitle = isUserVoteResolutionUnknown
-    ? '로그인 상태를 다시 확인한 뒤 예측을 진행해주세요.'
-    : undefined;
 
   useEffect(() => {
     if (!isVisible) return;
@@ -242,6 +234,31 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     };
   }, [awayAnimatedScore, homeAnimatedScore, game.gameId, isVisible]);
 
+  const votePanel = (isVoteOpen || isPostponedOrCancelled) ? (
+    <Suspense
+      fallback={(
+        <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-5 text-center text-body text-slate-500 shadow-sm dark:border-border dark:bg-secondary/30 dark:text-white">
+          <span className="inline-flex items-center gap-2">
+            <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
+            투표 영역을 준비하고 있습니다.
+          </span>
+        </div>
+      )}
+    >
+      <PredictionVotePanel
+        game={game}
+        userVote={userVote}
+        userVoteResolutionState={userVoteResolutionState}
+        votePercentages={votePercentages}
+        isDarkMode={isDarkMode}
+        isVoteOpen={isVoteOpen}
+        isVoteActionLocked={isVoteActionLocked}
+        isPostponedOrCancelled={isPostponedOrCancelled}
+        onVote={onVote}
+      />
+    </Suspense>
+  ) : null;
+
   const contentRuntimeProps: AdvancedMatchCardContentRuntimeProps = {
     game,
     gameDetail,
@@ -251,6 +268,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     gameDetailErrorCode,
     gameDetailActions,
     coachBriefing,
+    votePanel,
     awayColor,
     homeColor,
     awayTeamName,
@@ -259,11 +277,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
     homePitcherName,
     awayScoreForDisplay,
     homeScoreForDisplay,
-    votePercentages,
-    cheeringCaption,
     isDarkMode,
     isPostponedOrCancelled,
     isCancelledStatus,
+    statusCode,
     shouldHideResultSections,
     isScoreboardLoading,
     inningRows,
@@ -275,82 +292,8 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
       data-vote-resolution={userVoteResolutionState}
     >
       <div className="p-4 md:p-6">
-        {isVoteOpen && (
-          <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
-            <Button
-              onClick={() => onVote('away')}
-              disabled={isVoteActionLocked}
-              aria-pressed={userVote === 'away'}
-              aria-label={`${getFullTeamName(game.awayTeam)} 승리 예측`}
-              title={voteButtonTitle}
-              data-testid="prediction-vote-away-btn"
-              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
-              style={{
-                backgroundColor: getTeamColorByAnyKey(game.awayTeam),
-                fontWeight: 800,
-                opacity: isVoteActionLocked ? 0.7 : userVote === 'away' ? 1 : userVote === 'home' ? 0.4 : 1,
-                transform: userVote === 'away' ? 'scale(1.02)' : 'scale(1)'
-              }}
-            >
-              <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.awayTeam)}</span>
-              {userVote === 'away' && (
-                <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
-                  <PredictionTrendingUpIcon className="w-3 h-3 md:w-4 md:h-4" />
-                </span>
-              )}
-            </Button>
-            <Button
-              onClick={() => onVote('home')}
-              disabled={isVoteActionLocked}
-              aria-pressed={userVote === 'home'}
-              aria-label={`${getFullTeamName(game.homeTeam)} 승리 예측`}
-              title={voteButtonTitle}
-              data-testid="vote-home-btn"
-              className="flex-1 py-4 md:py-6 min-h-[48px] text-white text-base md:text-lg rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-md relative overflow-hidden disabled:cursor-not-allowed disabled:active:scale-100"
-              style={{
-                backgroundColor: getTeamColorByAnyKey(game.homeTeam),
-                fontWeight: 800,
-                opacity: isVoteActionLocked ? 0.7 : userVote === 'home' ? 1 : userVote === 'away' ? 0.4 : 1,
-                transform: userVote === 'home' ? 'scale(1.02)' : 'scale(1)'
-              }}
-            >
-              <span className="truncate px-2" style={teamLabelTextStyle}>{getFullTeamName(game.homeTeam)}</span>
-              {userVote === 'home' && (
-                <span className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 p-1 rounded-full">
-                  <PredictionTrendingUpIcon className="w-3 h-3 md:w-4 md:h-4" />
-                </span>
-              )}
-            </Button>
-          </div>
-        )}
-        {!isVoteOpen && isPostponedOrCancelled && (
-          <div className="mt-4 md:mt-6 space-y-2">
-            <div className="flex gap-2 md:gap-3">
-              <Button
-                disabled
-                data-testid="vote-disabled-away-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-white text-[16px]"
-                style={awayTeamLabelTextStyle}
-              >
-                {awayTeamName}
-              </Button>
-              <Button
-                disabled
-                data-testid="vote-disabled-home-btn"
-                className="flex-1 py-4 md:py-6 min-h-[48px] rounded-xl border border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-secondary dark:text-white text-[16px]"
-                style={homeTeamLabelTextStyle}
-              >
-                {homeTeamName}
-              </Button>
-            </div>
-            <p className="text-[16px] text-center text-amber-700 dark:text-amber-300">
-              현재 상태에서는 투표할 수 없습니다.
-            </p>
-          </div>
-        )}
-
         <div
-          className="mt-4 md:mt-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md"
+          className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-border dark:bg-card dark:shadow-md"
           style={surfaceTransitionStyle}
         >
           <div
@@ -387,12 +330,12 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                   data-testid="prediction-status-badge"
                   {...getGameStatusBadgeMeta(statusCode, scheduledStateLabel)}
                   size="md"
-                  className="absolute top-0 backdrop-blur"
+                  className={`absolute top-0 backdrop-blur ${isScheduledLayout ? 'text-sky-700 dark:text-sky-300' : ''}`}
                   style={surfaceTransitionStyle}
                 />
               )}
               <div
-                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-[16px] font-bold leading-tight backdrop-blur sm:px-3 sm:text-[16px]`}
+                className={`absolute ${showStatusBadge ? 'top-8' : 'top-0'} max-w-[calc(100%-1.75rem)] rounded-full bg-black/30 px-2.5 py-1 text-body font-bold leading-tight backdrop-blur sm:px-3 sm:text-body`}
                 style={surfaceTransitionStyle}
               >
                 <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
@@ -413,10 +356,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.awayTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-[16px] leading-tight" style={awayTeamLabelTextStyle}>
+                <div className="mt-2 text-body leading-tight" style={awayTeamLabelTextStyle}>
                   {awayTeamName}
                 </div>
-                <div className="text-[16px] text-white/80">AWAY</div>
+                <div className="text-body text-white/80">AWAY</div>
               </div>
               <div
                 ref={scoreBoxRef}
@@ -432,7 +375,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 {isScheduledLayout ? (
                   <div className="flex flex-col items-center justify-center gap-1.5">
                     <span className="h-px w-8 bg-gray-300 dark:bg-gray-600" />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[16px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-body font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                       <PredictionClockIcon className="h-3 w-3" />
                       경기 시작 예정
                     </span>
@@ -444,10 +387,11 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                       <span className="text-gray-300 dark:text-white">:</span>
                       <span style={topHomeScoreStyle}>{hasGameScore ? countedScores.home : '-'}</span>
                     </div>
-                    <div className="mt-1 text-[16px] font-bold text-gray-500 dark:text-white sm:text-[16px]">{matchStatusLabel}</div>
+                    <div className="mt-1 text-body font-bold text-gray-500 dark:text-white sm:text-body">{matchStatusLabel}</div>
                     {winnerLabel ? (
                       <div
-                        className={`mt-1 text-[16px] font-bold ${
+                        data-testid="prediction-result-label"
+                        className={`mt-1 text-body font-bold ${
                           winnerLabel === '무승부'
                             ? 'text-amber-600 dark:text-amber-300'
                             : 'text-slate-600 dark:text-white'
@@ -466,10 +410,10 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.homeTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-[16px] leading-tight" style={homeTeamLabelTextStyle}>
+                <div className="mt-2 text-body leading-tight" style={homeTeamLabelTextStyle}>
                   {homeTeamName}
                 </div>
-                <div className="text-[16px] text-white/80">HOME</div>
+                <div className="text-body text-white/80">HOME</div>
               </div>
             </div>
           </div>
@@ -477,7 +421,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
           <Suspense
             fallback={(
               <div className="px-4 py-6">
-                <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-[16px] text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-white">
+                <div className="flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-5 text-body text-gray-500 dark:border-border dark:bg-secondary/40 dark:text-white">
                   <span className="inline-flex items-center gap-2">
                     <PredictionLoaderIcon className="h-4 w-4 animate-spin" />
                     경기 상세 섹션을 준비하고 있습니다.

@@ -31,7 +31,7 @@ export default function MateSortDropdown({
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((currentValue) => !currentValue)}
-          className="h-[46px] rounded-[14px] border-gray-200/80 bg-white px-4 text-[13px] font-bold text-gray-700 shadow-none hover:border-primary/30 hover:bg-primary/10 hover:text-primary dark:border-white/10 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/15"
+          className="h-[46px] rounded-14 border-gray-200/80 bg-white px-4 text-13 font-bold text-gray-700 shadow-none hover:border-primary/30 hover:bg-primary/10 hover:text-primary dark:border-white/10 dark:bg-[#000000] dark:text-white dark:hover:bg-primary/15"
         >
           <span>정렬: {activeOption.label}</span>
           <ChevronDownIcon className="ml-1 h-3 w-3" />
@@ -59,8 +59,8 @@ export default function MateSortDropdown({
           >
             <MateCheckCircleIcon className={`mt-0.5 h-4 w-4 ${isActive ? 'text-primary' : 'text-transparent'}`} />
             <span className="min-w-0">
-              <span className="block text-[15px] font-black leading-5">{option.label}</span>
-              <span className="block text-[13px] font-bold leading-5 text-gray-500 dark:text-white">
+              <span className="block text-15 font-black leading-5">{option.label}</span>
+              <span className="block text-13 font-bold leading-5 text-gray-500 dark:text-white">
                 {option.description}
               </span>
             </span>
