@@ -17,7 +17,7 @@ const TEAM_OPTIONS = FRANCHISE_TEAM_IDS.map((code) => ({
 }));
 
 const adminDialogSelectClassName =
-  'h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-[14px] text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-caption text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 const getSectionBadgeClass = (section: string) => {
   if (section.includes('FA')) {
@@ -104,7 +104,7 @@ export default function OffseasonMovementAdminDialogs({
         <div className="grid gap-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">이동 날짜</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">이동 날짜</p>
               <Input
                 type="date"
                 data-testid="admin-offseason-movement-date"
@@ -114,7 +114,7 @@ export default function OffseasonMovementAdminDialogs({
               />
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">구분</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">구분</p>
               <select
                 data-testid="admin-offseason-dialog-section-trigger"
                 value={formData.section}
@@ -129,7 +129,7 @@ export default function OffseasonMovementAdminDialogs({
               </select>
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">팀 코드</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">팀 코드</p>
               <select
                 data-testid="admin-offseason-dialog-team-trigger"
                 value={formData.teamCode}
@@ -144,7 +144,7 @@ export default function OffseasonMovementAdminDialogs({
               </select>
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">선수명</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">선수명</p>
               <Input
                 data-testid="admin-offseason-player-name"
                 value={formData.playerName}
@@ -157,7 +157,7 @@ export default function OffseasonMovementAdminDialogs({
 
           <div className="grid gap-4 xl:grid-cols-[1.1fr_1.1fr_0.9fr]">
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">요약</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">요약</p>
               <Textarea
                 data-testid="admin-offseason-summary"
                 value={formData.summary}
@@ -167,7 +167,7 @@ export default function OffseasonMovementAdminDialogs({
               />
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">상세 메모</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">상세 메모</p>
               <Textarea
                 data-testid="admin-offseason-details"
                 value={formData.details}
@@ -178,7 +178,7 @@ export default function OffseasonMovementAdminDialogs({
             </div>
             <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="space-y-2">
-                <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">계약 기간</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">계약 기간</p>
                 <Input
                   data-testid="admin-offseason-contract-term"
                   value={formData.contractTerm}
@@ -188,7 +188,7 @@ export default function OffseasonMovementAdminDialogs({
                 />
               </div>
               <div className="space-y-2">
-                <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">계약 규모</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">계약 규모</p>
                 <Input
                   data-testid="admin-offseason-contract-value"
                   value={formData.contractValue}
@@ -198,7 +198,7 @@ export default function OffseasonMovementAdminDialogs({
                 />
               </div>
               <div className="space-y-2">
-                <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">옵션</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">옵션</p>
                 <Input
                   data-testid="admin-offseason-option-details"
                   value={formData.optionDetails}
@@ -212,7 +212,7 @@ export default function OffseasonMovementAdminDialogs({
 
           <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr_0.8fr_1fr]">
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">상대 구단</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">상대 구단</p>
               <select
                 data-testid="admin-offseason-counterparty-trigger"
                 value={formData.counterpartyTeam || NONE_VALUE}
@@ -228,7 +228,7 @@ export default function OffseasonMovementAdminDialogs({
               </select>
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">반대급부</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">반대급부</p>
               <Input
                 data-testid="admin-offseason-counterparty-details"
                 value={formData.counterpartyDetails}
@@ -238,7 +238,7 @@ export default function OffseasonMovementAdminDialogs({
               />
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">출처명</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">출처명</p>
               <Input
                 data-testid="admin-offseason-source-label"
                 value={formData.sourceLabel}
@@ -248,7 +248,7 @@ export default function OffseasonMovementAdminDialogs({
               />
             </div>
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">발표 시각</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">발표 시각</p>
               <Input
                 type="datetime-local"
                 data-testid="admin-offseason-announced-at"
@@ -261,7 +261,7 @@ export default function OffseasonMovementAdminDialogs({
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_1.8fr]">
             <div className="space-y-2">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">출처 URL</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">출처 URL</p>
               <Input
                 data-testid="admin-offseason-source-url"
                 value={formData.sourceUrl}
@@ -271,14 +271,14 @@ export default function OffseasonMovementAdminDialogs({
               />
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">미리보기</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">미리보기</p>
                 <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <AdminBadge className={getSectionBadgeClass(formData.section)}>{formData.section || '구분 없음'}</AdminBadge>
-                  <span className="text-[14px] text-slate-400">{TEAM_DATA[formData.teamCode]?.fullName || formData.teamCode}</span>
+                  <span className="text-caption text-slate-400">{TEAM_DATA[formData.teamCode]?.fullName || formData.teamCode}</span>
                 </div>
                 <p className="text-lg font-semibold text-white">{formData.playerName || '선수명'}</p>
-                <p className="text-[14px] leading-relaxed text-slate-300">
+                <p className="text-caption leading-relaxed text-slate-300">
                   {formData.summary?.trim() || formData.details?.trim() || '요약을 입력하면 카드와 표에 이렇게 노출됩니다.'}
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default function OffseasonMovementAdminDialogs({
         )}
       >
         {deleteTarget ? (
-          <p className="text-[14px] text-slate-400">
+          <p className="text-caption text-slate-400">
             삭제 후에는 동일한 이동 정보를 다시 입력해야 하며, 목록과 공개 페이지에서도 즉시 사라집니다.
           </p>
         ) : null}

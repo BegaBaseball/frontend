@@ -386,7 +386,7 @@ export default function AdminAiReleaseDecisionRuntime({
                 <AdminSparklesIcon className="h-5 w-5 text-fuchsia-300" />
                 릴리즈 결정 초안 생성
               </h3>
-              <p className="mt-1 text-[14px] text-slate-400">
+              <p className="mt-1 text-caption text-slate-400">
                 운영 문서만 읽어 `GO / NO_GO / PENDING` 초안을 만듭니다.
               </p>
             </div>
@@ -406,7 +406,7 @@ export default function AdminAiReleaseDecisionRuntime({
 
           <div className="mt-5 space-y-4">
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">시나리오</label>
+              <label className="text-caption text-slate-400">시나리오</label>
               <select
                 data-testid="admin-ai-scenario-trigger"
                 value={releaseSelectedScenario}
@@ -428,7 +428,7 @@ export default function AdminAiReleaseDecisionRuntime({
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">작업 프롬프트</label>
+              <label className="text-caption text-slate-400">작업 프롬프트</label>
               <Textarea
                 value={releaseTaskPrompt}
                 onChange={(e) => setReleaseTaskPrompt(e.target.value)}
@@ -439,7 +439,7 @@ export default function AdminAiReleaseDecisionRuntime({
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">추가 seed path (줄바꿈)</label>
+              <label className="text-caption text-slate-400">추가 seed path (줄바꿈)</label>
               <Textarea
                 value={releaseSeedPathsInput}
                 onChange={(e) => setReleaseSeedPathsInput(e.target.value)}
@@ -450,7 +450,7 @@ export default function AdminAiReleaseDecisionRuntime({
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">추가 allowed root (줄바꿈)</label>
+              <label className="text-caption text-slate-400">추가 allowed root (줄바꿈)</label>
               <Textarea
                 value={releaseAllowedRootsInput}
                 onChange={(e) => setReleaseAllowedRootsInput(e.target.value)}
@@ -480,7 +480,7 @@ export default function AdminAiReleaseDecisionRuntime({
           {selectedReleasePreset ? (
             <div className="mt-4 space-y-4">
               <div>
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">Seed Paths</p>
+                <p className="text-caption uppercase tracking-wide text-slate-500">Seed Paths</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedReleasePreset.seed_paths.map((path) => (
                     <AdminBadge
@@ -493,7 +493,7 @@ export default function AdminAiReleaseDecisionRuntime({
                 </div>
               </div>
               <div>
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">Allowed Roots</p>
+                <p className="text-caption uppercase tracking-wide text-slate-500">Allowed Roots</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedReleasePreset.allowed_roots.map((path) => (
                     <AdminBadge
@@ -507,7 +507,7 @@ export default function AdminAiReleaseDecisionRuntime({
               </div>
             </div>
           ) : (
-            <p className="mt-4 text-[14px] text-slate-500">
+            <p className="mt-4 text-caption text-slate-500">
               시나리오를 선택하면 기본 문서 범위가 표시됩니다.
             </p>
           )}
@@ -520,7 +520,7 @@ export default function AdminAiReleaseDecisionRuntime({
                 <AdminActivityIcon className="h-4 w-4 text-emerald-300" />
                 Deterministic Eval
               </h4>
-              <p className="mt-1 text-[14px] text-slate-500">
+              <p className="mt-1 text-caption text-slate-500">
                 현재 초안을 로컬 채점 규칙으로 검증합니다.
               </p>
             </div>
@@ -540,7 +540,7 @@ export default function AdminAiReleaseDecisionRuntime({
 
           <div className="mt-4 space-y-4">
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">평가 케이스</label>
+              <label className="text-caption text-slate-400">평가 케이스</label>
               <select
                 data-testid="admin-ai-eval-case-trigger"
                 value={releaseSelectedCaseId}
@@ -567,13 +567,13 @@ export default function AdminAiReleaseDecisionRuntime({
 
             {selectedEvalCase && (
               <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">
+                <p className="text-caption uppercase tracking-wide text-slate-500">
                   Expected Decision
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <AdminStatusBadge status={selectedEvalCase.expected_decision} />
                 </div>
-                <p className="mt-4 text-[14px] uppercase tracking-wide text-slate-500">
+                <p className="mt-4 text-caption uppercase tracking-wide text-slate-500">
                   Required Keywords
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -608,7 +608,7 @@ export default function AdminAiReleaseDecisionRuntime({
                 <AdminSaveIcon className="h-4 w-4 text-sky-300" />
                 저장된 아티팩트
               </h4>
-              <p className="mt-1 text-[14px] text-slate-500">
+              <p className="mt-1 text-caption text-slate-500">
                 현재 시나리오 기준으로 수동 저장한 초안 이력입니다.
               </p>
             </div>
@@ -628,11 +628,11 @@ export default function AdminAiReleaseDecisionRuntime({
 
           <div className="mt-4 space-y-3">
             {releaseArtifactsLoading ? (
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-5 text-[14px] text-slate-500">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-5 text-caption text-slate-500">
                 저장된 아티팩트 목록을 불러오는 중입니다.
               </div>
             ) : releaseScenarioArtifacts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/70 px-4 py-5 text-[14px] text-slate-500">
+              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/70 px-4 py-5 text-caption text-slate-500">
                 현재 시나리오에 저장된 아티팩트가 없습니다.
               </div>
             ) : (
@@ -658,11 +658,11 @@ export default function AdminAiReleaseDecisionRuntime({
                           eval 없음
                         </AdminBadge>
                       )}
-                      <span className="text-[14px] text-slate-500">
+                      <span className="text-caption text-slate-500">
                         {new Date(artifact.saved_at_utc).toLocaleString('ko-KR')}
                       </span>
                     </div>
-                    <p className="mt-2 break-all text-[14px] font-semibold text-white">
+                    <p className="mt-2 break-all text-caption font-semibold text-white">
                       {artifact.artifact_id}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -716,27 +716,27 @@ export default function AdminAiReleaseDecisionRuntime({
 
       <div className="space-y-6">
         {releaseDraftError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-caption text-red-300">
             {releaseDraftError}
           </div>
         )}
         {releaseEvaluationError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-caption text-red-300">
             {releaseEvaluationError}
           </div>
         )}
         {releaseSaveError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-caption text-red-300">
             {releaseSaveError}
           </div>
         )}
         {releaseArtifactsError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-caption text-red-300">
             {releaseArtifactsError}
           </div>
         )}
         {releaseSaveMessage && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-[14px] text-emerald-300">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-caption text-emerald-300">
             {releaseSaveMessage}
           </div>
         )}
@@ -745,39 +745,39 @@ export default function AdminAiReleaseDecisionRuntime({
           <>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">Decision</p>
+                <p className="text-caption uppercase tracking-wide text-slate-500">Decision</p>
                 <div className="mt-3 flex items-center gap-2">
                   <AdminStatusBadge status={releaseDraftResult.result.draft.decision} />
                   <AdminBadge className={confidenceBadgeClass[releaseDraftResult.result.draft.confidence]}>
                     {releaseDraftResult.result.draft.confidence}
                   </AdminBadge>
                 </div>
-                <p className="mt-4 text-[14px] text-slate-300">
+                <p className="mt-4 text-caption text-slate-300">
                   {releaseDraftResult.result.draft.title}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">Scenario</p>
-                <p className="mt-3 text-[14px] font-semibold text-white">
+                <p className="text-caption uppercase tracking-wide text-slate-500">Scenario</p>
+                <p className="mt-3 text-caption font-semibold text-white">
                   {releaseDraftResult.result.scenario}
                 </p>
-                <p className="mt-2 text-[14px] text-slate-500">
+                <p className="mt-2 text-caption text-slate-500">
                   model: {releaseDraftResult.result.model}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
-                <p className="text-[14px] uppercase tracking-wide text-slate-500">Evidence</p>
+                <p className="text-caption uppercase tracking-wide text-slate-500">Evidence</p>
                 <p className="mt-3 text-2xl font-semibold text-fuchsia-200">
                   {releaseDraftResult.result.draft.evidence.length}
                 </p>
-                <p className="mt-2 text-[14px] text-slate-500">
+                <p className="mt-2 text-caption text-slate-500">
                   generated:{' '}
                   {new Date(releaseDraftResult.result.generated_at_utc).toLocaleString('ko-KR')}
                 </p>
                 {releaseLoadedArtifact?.artifact_id && (
-                  <p className="mt-2 break-all text-[14px] text-sky-300">
+                  <p className="mt-2 break-all text-caption text-sky-300">
                     loaded: {releaseLoadedArtifact.artifact_id}
                   </p>
                 )}
@@ -790,7 +790,7 @@ export default function AdminAiReleaseDecisionRuntime({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h4 className="text-base font-semibold text-white">Eval Result</h4>
-                      <p className="mt-1 text-[14px] text-slate-500">
+                      <p className="mt-1 text-caption text-slate-500">
                         case: {releaseEvaluationResult.case.case_id}
                       </p>
                     </div>
@@ -857,7 +857,7 @@ export default function AdminAiReleaseDecisionRuntime({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h4 className="text-base font-semibold text-white">Markdown Draft</h4>
-                    <p className="mt-1 text-[14px] text-slate-500">
+                    <p className="mt-1 text-caption text-slate-500">
                       운영 문서에 바로 붙일 수 있는 초안입니다.
                     </p>
                   </div>
@@ -886,7 +886,7 @@ export default function AdminAiReleaseDecisionRuntime({
                     </Button>
                   </div>
                 </div>
-                <pre className="mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-[14px] leading-6 text-slate-200">
+                <pre className="mt-4 max-h-[520px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-caption leading-6 text-slate-200">
                   {releaseDraftResult.markdown}
                 </pre>
               </div>
@@ -894,7 +894,7 @@ export default function AdminAiReleaseDecisionRuntime({
               <div className="space-y-4">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
                   <h4 className="text-base font-semibold text-white">Summary</h4>
-                  <p className="mt-3 text-[14px] leading-6 text-slate-300">
+                  <p className="mt-3 text-caption leading-6 text-slate-300">
                     {releaseDraftResult.result.draft.summary}
                   </p>
                 </div>
@@ -907,7 +907,7 @@ export default function AdminAiReleaseDecisionRuntime({
                       : ['없음']).map((item) => (
                       <div
                         key={item}
-                        className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-[14px] text-slate-300"
+                        className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-caption text-slate-300"
                       >
                         {item}
                       </div>
@@ -923,7 +923,7 @@ export default function AdminAiReleaseDecisionRuntime({
                       : ['없음']).map((item) => (
                       <div
                         key={item}
-                        className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-[14px] text-slate-300"
+                        className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-caption text-slate-300"
                       >
                         {item}
                       </div>
@@ -946,8 +946,8 @@ export default function AdminAiReleaseDecisionRuntime({
                         {item.source}
                       </AdminBadge>
                     </div>
-                    <p className="mt-3 text-[14px] font-semibold text-white">{item.claim}</p>
-                    <p className="mt-2 text-[14px] leading-6 text-slate-400">{item.excerpt}</p>
+                    <p className="mt-3 text-caption font-semibold text-white">{item.claim}</p>
+                    <p className="mt-2 text-caption leading-6 text-slate-400">{item.excerpt}</p>
                   </div>
                 ))}
               </div>
@@ -959,7 +959,7 @@ export default function AdminAiReleaseDecisionRuntime({
             <h3 className="mt-4 text-lg font-semibold text-white">
               AI 운영 초안 대기 중
             </h3>
-            <p className="mt-2 max-w-xl text-[14px] leading-6 text-slate-500">
+            <p className="mt-2 max-w-xl text-caption leading-6 text-slate-500">
               왼쪽에서 시나리오를 선택하고 초안을 생성하면 `GO / NO_GO / PENDING`
               결정, 근거 문서, 후속 작업이 여기 표시됩니다.
             </p>
