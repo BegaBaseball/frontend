@@ -42,7 +42,7 @@ export default function AdminSeatViewDetailDrawer({
       <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 px-5 py-4 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between">
           <div>
-            <p className="text-[14px] text-slate-400">시야뷰 후보 상세</p>
+            <p className="text-caption text-slate-400">시야뷰 후보 상세</p>
             <h2 className="text-lg font-bold text-white">Seat View #{selectedSeatViewId}</h2>
           </div>
           <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={closeSeatViewDetail}>
@@ -61,7 +61,7 @@ export default function AdminSeatViewDetailDrawer({
                 className="w-full rounded-2xl border border-slate-800 object-cover max-h-[320px]"
               />
 
-              <div className="grid grid-cols-2 gap-3 text-[14px]">
+              <div className="grid grid-cols-2 gap-3 text-caption">
                 <div className="rounded-lg border border-slate-800 p-3">
                   <p className="text-slate-500">상태</p>
                   <p className="text-slate-200 mt-1">{selectedSeatViewDetail.moderationStatus || '미제출'}</p>
@@ -83,7 +83,7 @@ export default function AdminSeatViewDetailDrawer({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-800 p-3 text-[14px] space-y-2">
+              <div className="rounded-lg border border-slate-800 p-3 text-caption space-y-2">
                 <p><span className="text-slate-500">구장:</span> <span className="text-slate-200">{formatStadiumDisplayName(selectedSeatViewDetail.stadium)}</span></p>
                 <p><span className="text-slate-500">좌석:</span> <span className="text-slate-200">{[selectedSeatViewDetail.section, selectedSeatViewDetail.block, selectedSeatViewDetail.seatRow, selectedSeatViewDetail.seatNumber].filter(Boolean).join(' / ') || '-'}</span></p>
                 <p><span className="text-slate-500">업로드 타입:</span> <span className="text-slate-200">{selectedSeatViewDetail.sourceType}</span></p>
@@ -92,11 +92,11 @@ export default function AdminSeatViewDetailDrawer({
               </div>
 
               <div className="rounded-lg border border-slate-800 p-3">
-                <p className="text-[14px] text-slate-500 mb-2">관리자 메모</p>
+                <p className="text-caption text-slate-500 mb-2">관리자 메모</p>
                 <textarea
                   value={adminMemo}
                   onChange={(e) => setAdminMemo(e.target.value)}
-                  className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-[14px] text-slate-100"
+                  className="w-full min-h-24 rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-caption text-slate-100"
                   placeholder="분류 근거를 입력하세요."
                 />
               </div>

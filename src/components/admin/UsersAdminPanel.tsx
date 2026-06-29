@@ -44,7 +44,7 @@ interface UsersAdminPanelProps {
   setRoleChangeReason: (reason: string) => void;
 }
 
-const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[14px] text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
+const adminNativeSelectClassName = 'w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-caption text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 export function UsersAdminPanel({
   searchTerm,
@@ -116,7 +116,7 @@ export function UsersAdminPanel({
                     className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <TableCell className="text-slate-300 font-mono text-[14px]">{user.id}</TableCell>
+                    <TableCell className="text-slate-300 font-mono text-caption">{user.id}</TableCell>
                     <TableCell className="text-slate-200">{user.email}</TableCell>
                     <TableCell className="text-slate-200 font-semibold">{user.name}</TableCell>
                     <TableCell>
@@ -129,9 +129,9 @@ export function UsersAdminPanel({
                         <span className="text-slate-600">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-slate-400 text-[14px]">{formatDate(user.createdAt)}</TableCell>
+                    <TableCell className="text-slate-400 text-caption">{formatDate(user.createdAt)}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-amber-400 font-semibold text-[14px]">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-amber-400 font-semibold text-caption">
                         {user.postCount}
                       </span>
                     </TableCell>
@@ -154,7 +154,7 @@ export function UsersAdminPanel({
                       <TableCell>
                         {/* SUPER_ADMIN 자신의 역할은 변경 불가 */}
                         {user.id === currentUserId || user.role === 'ROLE_SUPER_ADMIN' ? (
-                          <span className="text-slate-600 text-[14px]">변경 불가</span>
+                          <span className="text-slate-600 text-caption">변경 불가</span>
                         ) : (
                           <select
                             data-testid={`admin-user-role-trigger-${user.id}`}
@@ -223,7 +223,7 @@ export function UsersAdminPanel({
         )}
       >
         {pendingDeleteUser ? (
-          <p className="text-[14px] text-slate-400">
+          <p className="text-caption text-slate-400">
             <span className="font-semibold text-slate-200">{pendingDeleteUser.name}</span> 계정을 삭제합니다.
           </p>
         ) : null}

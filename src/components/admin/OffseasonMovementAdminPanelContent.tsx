@@ -27,7 +27,7 @@ const TEAM_OPTIONS = FRANCHISE_TEAM_IDS.map((code) => ({
 }));
 
 const adminNativeSelectClassName =
-  'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-[14px] text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-caption text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
 
 type CsvImportReport = {
   fileName: string;
@@ -143,13 +143,13 @@ export default function OffseasonMovementAdminPanelContent({
   return (
     <div className="space-y-6">
       {successMessage && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-[14px] text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-caption text-emerald-300">
           {successMessage}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[14px] text-red-300">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-caption text-red-300">
           {error}
         </div>
       )}
@@ -162,7 +162,7 @@ export default function OffseasonMovementAdminPanelContent({
                 <AdminNewspaperIcon className="h-5 w-5 text-emerald-300" />
                 스토브리그 이동 관리
               </h3>
-              <p className="mt-1 text-[14px] leading-relaxed text-slate-400">
+              <p className="mt-1 text-caption leading-relaxed text-slate-400">
                 공개 `/offseason/list`에 노출되는 이동 데이터와 구조화 상세 필드를 여기서 직접 관리합니다.
               </p>
             </div>
@@ -180,37 +180,37 @@ export default function OffseasonMovementAdminPanelContent({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">Visible Rows</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Visible Rows</p>
               <p className="mt-2 text-3xl font-black tracking-tight text-white">{filteredMovements.length}</p>
-              <p className="mt-1 text-[14px] text-slate-500">원본 조회 결과 {movements.length}건</p>
+              <p className="mt-1 text-caption text-slate-500">원본 조회 결과 {movements.length}건</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">Summary Filled</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Summary Filled</p>
               <p className="mt-2 text-3xl font-black tracking-tight text-emerald-300">{summaryCount}</p>
-              <p className="mt-1 text-[14px] text-slate-500">미입력 {qualityCounts.MISSING_SUMMARY}건</p>
+              <p className="mt-1 text-caption text-slate-500">미입력 {qualityCounts.MISSING_SUMMARY}건</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">Source Linked</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Source Linked</p>
               <p className="mt-2 text-3xl font-black tracking-tight text-sky-300">{sourcedCount}</p>
-              <p className="mt-1 text-[14px] text-slate-500">미입력 {qualityCounts.MISSING_SOURCE}건</p>
+              <p className="mt-1 text-caption text-slate-500">미입력 {qualityCounts.MISSING_SOURCE}건</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-          <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-500">Structured Coverage</p>
+          <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Structured Coverage</p>
           <div className="mt-4 space-y-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-              <p className="text-[14px] font-semibold text-slate-200">구조화 상세 입력</p>
+              <p className="text-caption font-semibold text-slate-200">구조화 상세 입력</p>
               <p className="mt-2 text-2xl font-black text-violet-300">{structuredCount}</p>
-              <p className="mt-1 text-[14px] text-slate-500">계약 기간, 금액, 옵션, 상대 구단, 반대급부 중 1개 이상</p>
+              <p className="mt-1 text-caption text-slate-500">계약 기간, 금액, 옵션, 상대 구단, 반대급부 중 1개 이상</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-              <p className="text-[14px] font-semibold text-slate-200">운영 메모</p>
-              <p className="mt-2 text-[14px] leading-relaxed text-slate-400">
+              <p className="text-caption font-semibold text-slate-200">운영 메모</p>
+              <p className="mt-2 text-caption leading-relaxed text-slate-400">
                 `summary`는 표와 카드에 노출되고, `details`는 상세 패널 원문 메모로 사용됩니다.
               </p>
-              <p className="mt-2 text-[14px] text-slate-500">상세 메모 입력 {detailsCount}건 · 미입력 {qualityCounts.MISSING_DETAILS}건</p>
+              <p className="mt-2 text-caption text-slate-500">상세 메모 입력 {detailsCount}건 · 미입력 {qualityCounts.MISSING_DETAILS}건</p>
             </div>
           </div>
         </div>
@@ -280,12 +280,12 @@ export default function OffseasonMovementAdminPanelContent({
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-          <p className="text-[14px] text-slate-400">
+          <p className="text-caption text-slate-400">
             조회 결과 <span className="font-semibold text-white">{movements.length}</span>건 중
             품질 보기 <span className="font-semibold text-emerald-300">{activeQualityOption.label}</span> 적용 후
             <span className="ml-1 font-semibold text-white">{filteredMovements.length}</span>건 표시
           </p>
-            <p className="mt-1 text-[14px] text-slate-500">{activeQualityOption.hint}</p>
+            <p className="mt-1 text-caption text-slate-500">{activeQualityOption.hint}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -336,13 +336,13 @@ export default function OffseasonMovementAdminPanelContent({
                 )}
               >
                 {option.label}
-                <span className="rounded-full bg-slate-950/80 px-2 py-0.5 text-[12px] font-semibold text-slate-400">
+                <span className="rounded-full bg-slate-950/80 px-2 py-0.5 text-12 font-semibold text-slate-400">
                   {qualityCounts[option.value]}
                 </span>
               </Button>
             ))}
           </div>
-          <p className="mt-3 text-[14px] text-slate-500">
+          <p className="mt-3 text-caption text-slate-500">
             날짜, 구분, 팀 조회로 먼저 범위를 좁힌 뒤 품질 보기로 `요약`, `상세 메모`, `출처`, `구조화 상세` 누락 건만 따로 볼 수 있습니다.
             CSV는 `id`를 채우면 수정, 비워두면 신규 등록으로 처리합니다.
           </p>

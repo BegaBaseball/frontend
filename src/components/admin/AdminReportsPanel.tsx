@@ -135,7 +135,7 @@ export function AdminReportsPanel({
                   className="cursor-pointer border-slate-800 transition-colors duration-200 hover:bg-slate-800/30"
                   onClick={() => openReportDetail(report.id)}
                 >
-                  <TableCell className="font-mono text-[14px] text-slate-300">{report.id}</TableCell>
+                  <TableCell className="font-mono text-caption text-slate-300">{report.id}</TableCell>
                   <TableCell className="text-slate-300">{report.reason || '-'}</TableCell>
                   <TableCell>
                     <AdminStatusBadge
@@ -145,7 +145,7 @@ export function AdminReportsPanel({
                   </TableCell>
                   <TableCell className="max-w-[260px] truncate text-slate-300">{report.postPreview || '-'}</TableCell>
                   <TableCell className="text-slate-300">{report.reporterHandle || '-'}</TableCell>
-                  <TableCell className="text-[14px] text-slate-400">{getTimeAgo(report.createdAt)}</TableCell>
+                  <TableCell className="text-caption text-slate-400">{getTimeAgo(report.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button

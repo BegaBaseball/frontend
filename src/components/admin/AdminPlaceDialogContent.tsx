@@ -19,7 +19,7 @@ interface AdminPlaceDialogContentProps {
   onSubmit: () => void;
 }
 
-const selectClassName = 'w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-[14px] text-slate-200 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500';
+const selectClassName = 'w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-caption text-slate-200 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500';
 
 export default function AdminPlaceDialogContent({
   open,
@@ -68,7 +68,7 @@ export default function AdminPlaceDialogContent({
     >
       <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">이름 *</label>
+            <label className="text-caption text-slate-400">이름 *</label>
             <Input
               value={placeForm.name}
               onChange={(e) => setPlaceForm((form) => ({ ...form, name: e.target.value }))}
@@ -78,7 +78,7 @@ export default function AdminPlaceDialogContent({
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">카테고리 *</label>
+            <label className="text-caption text-slate-400">카테고리 *</label>
             <select
               data-testid="admin-place-category-trigger"
               value={placeForm.category}
@@ -95,7 +95,7 @@ export default function AdminPlaceDialogContent({
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">설명</label>
+            <label className="text-caption text-slate-400">설명</label>
             <Input
               value={placeForm.description ?? ''}
               onChange={(e) => setPlaceForm((form) => ({ ...form, description: e.target.value }))}
@@ -105,7 +105,7 @@ export default function AdminPlaceDialogContent({
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">주소</label>
+            <label className="text-caption text-slate-400">주소</label>
             <Input
               value={placeForm.address ?? ''}
               onChange={(e) => setPlaceForm((form) => ({ ...form, address: e.target.value }))}
@@ -115,7 +115,7 @@ export default function AdminPlaceDialogContent({
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">전화번호</label>
+            <label className="text-caption text-slate-400">전화번호</label>
             <Input
               value={placeForm.phone ?? ''}
               onChange={(e) => setPlaceForm((form) => ({ ...form, phone: e.target.value }))}
@@ -126,7 +126,7 @@ export default function AdminPlaceDialogContent({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">위도 *</label>
+              <label className="text-caption text-slate-400">위도 *</label>
               <Input
                 type="number"
                 step="any"
@@ -137,7 +137,7 @@ export default function AdminPlaceDialogContent({
               />
             </div>
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">경도 *</label>
+              <label className="text-caption text-slate-400">경도 *</label>
               <Input
                 type="number"
                 step="any"
@@ -150,7 +150,7 @@ export default function AdminPlaceDialogContent({
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-[14px] text-slate-400">평점 (0.0 ~ 5.0)</label>
+            <label className="text-caption text-slate-400">평점 (0.0 ~ 5.0)</label>
             <Input
               type="number"
               step="0.1"
@@ -168,7 +168,7 @@ export default function AdminPlaceDialogContent({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">오픈 시간</label>
+              <label className="text-caption text-slate-400">오픈 시간</label>
               <Input
                 value={placeForm.openTime ?? ''}
                 onChange={(e) => setPlaceForm((form) => ({ ...form, openTime: e.target.value }))}
@@ -177,7 +177,7 @@ export default function AdminPlaceDialogContent({
               />
             </div>
             <div className="grid gap-1.5">
-              <label className="text-[14px] text-slate-400">마감 시간</label>
+              <label className="text-caption text-slate-400">마감 시간</label>
               <Input
                 value={placeForm.closeTime ?? ''}
                 onChange={(e) => setPlaceForm((form) => ({ ...form, closeTime: e.target.value }))}
@@ -189,7 +189,7 @@ export default function AdminPlaceDialogContent({
         </div>
 
         {stadiumError && (
-          <p className="text-red-400 text-[14px] mt-1">{stadiumError}</p>
+          <p className="text-red-400 text-caption mt-1">{stadiumError}</p>
         )}
     </PlainDialog>
   );

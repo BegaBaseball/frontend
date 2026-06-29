@@ -247,7 +247,7 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-2xl border p-5 ${accentClassName}`}>
-      <p className="text-[14px] uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="text-caption uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-3 text-3xl font-black text-slate-50">{value}</p>
     </div>
   );
@@ -303,7 +303,7 @@ function AdminGameStatusBadge({ status }: { status: string | null | undefined })
 function RepairedGameRow({ game }: { game: AdminGameScoreSyncResult }) {
   return (
     <TableRow data-testid={`admin-game-status-repaired-${game.gameId}`} className="border-slate-800/80">
-      <TableCell className="font-mono text-[14px] text-slate-300">{game.gameId}</TableCell>
+      <TableCell className="font-mono text-caption text-slate-300">{game.gameId}</TableCell>
       <TableCell>
         <AdminGameStatusBadge status={game.gameStatus} />
       </TableCell>
@@ -322,7 +322,7 @@ function NonCanonicalGameRow({ game }: { game: AdminNonCanonicalGame }) {
       className="border-slate-800/80"
     >
       <TableCell className="text-slate-300">{game.gameDate}</TableCell>
-      <TableCell className="font-mono text-[14px] text-slate-300">{game.gameId}</TableCell>
+      <TableCell className="font-mono text-caption text-slate-300">{game.gameId}</TableCell>
       <TableCell className="text-slate-300">{formatTimeLabel(game.startTime)}</TableCell>
       <TableCell>
         <AdminGameStatusBadge status={game.rawStatus} />
@@ -376,8 +376,8 @@ function MismatchDateSuggestionCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[14px] font-semibold">{recommendation.gameDate}</p>
-          <p className="mt-1 text-[14px] text-slate-400">이상 {recommendation.issueCount}건</p>
+          <p className="text-caption font-semibold">{recommendation.gameDate}</p>
+          <p className="mt-1 text-caption text-slate-400">이상 {recommendation.issueCount}건</p>
         </div>
         <AdminBadge className="border-amber-500/25 bg-amber-500/10 text-amber-200">
           추천
@@ -387,14 +387,14 @@ function MismatchDateSuggestionCard({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <AdminStatusBadge status={trackerStatus} label={cleanupStatusLabel[trackerStatus]} />
           {trackerAssignee && (
-            <span className="text-[13px] text-slate-400">담당: {trackerAssignee}</span>
+            <span className="text-13 text-slate-400">담당: {trackerAssignee}</span>
           )}
         </div>
       )}
       {trackerClosureSync && (
         <p
           data-testid={`admin-game-status-suggestion-closure-${recommendation.gameDate}`}
-          className="mt-2 text-[13px] text-slate-400"
+          className="mt-2 text-13 text-slate-400"
         >
           closure {trackerClosureSync.compareStatus} / remaining {trackerClosureSync.remainingCount ?? '-'}
         </p>
@@ -402,15 +402,15 @@ function MismatchDateSuggestionCard({
       {artifactSummary && (
         <p
           data-testid={`admin-game-status-suggestion-artifacts-${recommendation.gameDate}`}
-          className="mt-1 text-[13px] text-slate-500"
+          className="mt-1 text-13 text-slate-500"
         >
           산출물: {artifactSummary}
         </p>
       )}
-      <p className="mt-3 text-[14px] text-slate-300">
+      <p className="mt-3 text-caption text-slate-300">
         {issueSummary}
       </p>
-      <p className="mt-1 text-[14px] text-slate-400">
+      <p className="mt-1 text-caption text-slate-400">
         예상 상태: {statusSummary || '상태 mismatch 없음'}
       </p>
     </button>
@@ -439,14 +439,14 @@ function CleanupArtifactPaths({
 
   return (
     <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">자동 산출물</p>
+      <p className="text-12 font-semibold uppercase tracking-[0.18em] text-slate-500">자동 산출물</p>
       {artifacts.summaryJson && (
         <div className="space-y-1">
-          <p className="text-[12px] text-slate-500">summary</p>
+          <p className="text-12 text-slate-500">summary</p>
           <div className="flex flex-wrap items-center gap-2">
             <code
               data-testid={`${testIdPrefix}-summary-path`}
-              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+              className="break-all rounded bg-slate-900 px-2 py-1 text-12 text-slate-300"
             >
               {artifacts.summaryJson}
             </code>
@@ -465,11 +465,11 @@ function CleanupArtifactPaths({
       )}
       {artifacts.handoffMd && (
         <div className="space-y-1">
-          <p className="text-[12px] text-slate-500">handoff</p>
+          <p className="text-12 text-slate-500">handoff</p>
           <div className="flex flex-wrap items-center gap-2">
             <code
               data-testid={`${testIdPrefix}-handoff-path`}
-              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+              className="break-all rounded bg-slate-900 px-2 py-1 text-12 text-slate-300"
             >
               {artifacts.handoffMd}
             </code>
@@ -488,11 +488,11 @@ function CleanupArtifactPaths({
       )}
       {closureCommand && (
         <div className="space-y-1">
-          <p className="text-[12px] text-slate-500">closure rerun</p>
+          <p className="text-12 text-slate-500">closure rerun</p>
           <div className="flex flex-wrap items-center gap-2">
             <code
               data-testid={`${testIdPrefix}-closure-command`}
-              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+              className="break-all rounded bg-slate-900 px-2 py-1 text-12 text-slate-300"
             >
               {closureCommand}
             </code>
@@ -511,11 +511,11 @@ function CleanupArtifactPaths({
       )}
       {trackerSyncCommand && (
         <div className="space-y-1">
-          <p className="text-[12px] text-slate-500">closure + tracker sync</p>
+          <p className="text-12 text-slate-500">closure + tracker sync</p>
           <div className="flex flex-wrap items-center gap-2">
             <code
               data-testid={`${testIdPrefix}-tracker-sync-command`}
-              className="break-all rounded bg-slate-900 px-2 py-1 text-[12px] text-slate-300"
+              className="break-all rounded bg-slate-900 px-2 py-1 text-12 text-slate-300"
             >
               {trackerSyncCommand}
             </code>
@@ -550,7 +550,7 @@ function CleanupClosureStatus({
   return (
     <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">최신 closure</p>
+        <p className="text-12 font-semibold uppercase tracking-[0.18em] text-slate-500">최신 closure</p>
         <AdminStatusBadge
           status={closureSync.compareStatus}
           testId={`${testIdPrefix}-compare-status`}
@@ -565,14 +565,14 @@ function CleanupClosureStatus({
       </div>
       <p
         data-testid={`${testIdPrefix}-counts`}
-        className="text-[13px] text-slate-300"
+        className="text-13 text-slate-300"
       >
         resolved {closureSync.resolvedCount ?? '-'} / remaining {closureSync.remainingCount ?? '-'} / new {closureSync.newCount ?? '-'}
       </p>
       {closureSync.comparedAt && (
         <p
           data-testid={`${testIdPrefix}-compared-at`}
-          className="text-[12px] text-slate-500"
+          className="text-12 text-slate-500"
         >
           비교 시각: {closureSync.comparedAt}
         </p>
@@ -1039,13 +1039,13 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
       <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-2xl">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[14px] font-semibold text-emerald-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-caption font-semibold text-emerald-300">
               <AdminShieldAlertIcon className="h-4 w-4" />
               Prediction 경기 상태 복구
             </div>
             <div>
               <h2 className="text-2xl font-black text-white">경기 상태 mismatch 진단 및 복구</h2>
-              <p className="mt-2 max-w-3xl text-[14px] text-slate-400">
+              <p className="mt-2 max-w-3xl text-caption text-slate-400">
                 raw game status와 점수/이닝 데이터가 어긋난 경기, 팀 코드가 비정상인 raw row를 날짜 범위 기준으로 진단하고 dry-run 또는 실제 복구를 바로 실행할 수 있습니다.
               </p>
             </div>
@@ -1053,7 +1053,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:min-w-[540px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <span className="flex items-center gap-2 text-caption font-semibold uppercase tracking-[0.18em] text-slate-400">
                 <AdminCalendarIcon className="h-4 w-4" />
                 시작일
               </span>
@@ -1069,7 +1069,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-[14px] font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
+              <span className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
               <Input
                 data-testid="admin-game-status-end-date"
                 type="date"
@@ -1168,13 +1168,13 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {lastActionMessage && (
-          <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-[14px] text-emerald-200">
+          <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-caption text-emerald-200">
             {lastActionMessage}
           </div>
         )}
 
         {panelError && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[14px] text-rose-200">
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-caption text-rose-200">
             <AdminAlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{panelError}</span>
           </div>
@@ -1183,9 +1183,9 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
           <div className="flex items-center gap-2 text-slate-100">
             <AdminShieldAlertIcon className="h-4 w-4 text-amber-300" />
-            <h3 className="text-[15px] font-semibold">운영 메모</h3>
+            <h3 className="text-15 font-semibold">운영 메모</h3>
           </div>
-          <div className="mt-3 space-y-2 text-[14px] text-slate-400">
+          <div className="mt-3 space-y-2 text-caption text-slate-400">
             <p>1. `dry-run`으로 mismatch 반영 건수와 비정상 팀 코드 row 수를 먼저 확인합니다.</p>
             <p>2. `정제 요청 복사`는 raw 데이터 정제 티켓 본문으로, `비정상 row CSV`는 첨부 파일로 사용합니다.</p>
             <p>3. `정제 티켓 추적`에 티켓 URL, 담당자, 상태를 남겨 관리자 공용 처리 이력을 서버에 저장합니다.</p>
@@ -1211,15 +1211,15 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="text-[15px] font-semibold text-slate-100">정제 티켓 추적</h3>
-                <p className="mt-1 text-[14px] text-slate-400">
+                <h3 className="text-15 font-semibold text-slate-100">정제 티켓 추적</h3>
+                <p className="mt-1 text-caption text-slate-400">
                   현재 범위({formatRangeLabel(trackerRangeStartDate, trackerRangeEndDate || undefined)})의 non-canonical row 처리 이력을 관리자 공용 tracker로 서버에 저장합니다.
                 </p>
               </div>
               <AdminStatusBadge status={cleanupStatus} label={cleanupStatusLabel[cleanupStatus]} />
             </div>
             {currentRangeCleanupTracker?.ticketUrl && (
-              <p className="mt-3 text-[14px] text-slate-400">
+              <p className="mt-3 text-caption text-slate-400">
                 저장된 티켓:{' '}
                 <a
                   data-testid="admin-game-status-ticket-link"
@@ -1233,14 +1233,14 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               </p>
             )}
             {currentRangeCleanupTracker?.gameIds.length ? (
-              <p className="mt-2 text-[13px] text-slate-500">
+              <p className="mt-2 text-13 text-slate-500">
                 추적 대상: {currentRangeCleanupTracker.gameIds.join(', ')}
               </p>
             ) : null}
             {currentRangeCleanupProgressMessage && (
               <p
                 data-testid="admin-game-status-ticket-progress"
-                className="mt-2 text-[13px] text-slate-400"
+                className="mt-2 text-13 text-slate-400"
               >
                 {currentRangeCleanupProgressMessage}
               </p>
@@ -1263,7 +1263,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-400">티켓 URL</span>
+                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">티켓 URL</span>
                 <Input
                   data-testid="admin-game-status-ticket-url"
                   value={cleanupTicketUrl}
@@ -1273,7 +1273,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-400">담당자</span>
+                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">담당자</span>
                 <Input
                   data-testid="admin-game-status-ticket-assignee"
                   value={cleanupAssignee}
@@ -1286,7 +1286,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
             <div className="mt-3 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
               <label className="space-y-2">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-400">상태</span>
+                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">상태</span>
                 <select
                   data-testid="admin-game-status-ticket-status"
                   value={cleanupStatus}
@@ -1301,7 +1301,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-400">메모</span>
+                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">메모</span>
                 <Textarea
                   data-testid="admin-game-status-ticket-note"
                   value={cleanupNote}
@@ -1352,7 +1352,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               >
                 초기화
               </Button>
-              <span className="text-[13px] text-slate-500">
+              <span className="text-13 text-slate-500">
                 마지막 저장: <span data-testid="admin-game-status-ticket-saved-at" className="text-slate-300">{formatSavedAtLabel(cleanupSavedAt)}</span>
               </span>
             </div>
@@ -1360,7 +1360,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
             {cleanupTrackerMessage && (
               <div
                 data-testid="admin-game-status-ticket-message"
-                className="mt-4 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-[14px] text-sky-200"
+                className="mt-4 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-caption text-sky-200"
               >
                 {cleanupTrackerMessage}
               </div>
@@ -1373,7 +1373,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">최근 이슈 날짜 추천</h3>
-            <p className="text-[14px] text-slate-400">
+            <p className="text-caption text-slate-400">
               최근 14일({suggestionWindowStartDate} ~ {today}) 범위에서 mismatch 또는 비정상 팀 코드 row가 발견된 날짜입니다.
             </p>
           </div>
@@ -1392,18 +1392,18 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {suggestionsError && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[14px] text-rose-200">
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-caption text-rose-200">
             <AdminAlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{suggestionsError}</span>
           </div>
         )}
 
         {loadingSuggestions ? (
-          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-caption text-slate-400">
             최근 이슈 날짜를 확인 중입니다.
           </div>
         ) : recentRecommendations.length === 0 ? (
-          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-caption text-slate-400">
             최근 14일 범위에서 추천할 이상 날짜가 없습니다.
           </div>
         ) : (
@@ -1429,7 +1429,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">저장된 정제 이력</h3>
-              <p className="text-[14px] text-slate-400">
+              <p className="text-caption text-slate-400">
                 서버에 저장된 non-canonical 정제 티켓 범위를 다시 불러와 재진단할 수 있습니다.
               </p>
             </div>
@@ -1461,24 +1461,24 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-mono text-[14px] text-slate-100">
+                        <p className="font-mono text-caption text-slate-100">
                           {formatRangeLabel(savedStartDate, savedEndDate)}
                         </p>
                         <AdminStatusBadge status={record.status} label={cleanupStatusLabel[record.status]} />
                         {record.assignee && (
-                          <span className="text-[13px] text-slate-400">담당: {record.assignee}</span>
+                          <span className="text-13 text-slate-400">담당: {record.assignee}</span>
                         )}
                       </div>
-                      <p className="text-[13px] text-slate-500">
+                      <p className="text-13 text-slate-500">
                         마지막 저장: {formatSavedAtLabel(record.updatedAt)}
                       </p>
                       {record.gameIds.length > 0 && (
-                        <p className="text-[13px] text-slate-400">
+                        <p className="text-13 text-slate-400">
                           대상 경기: {record.gameIds.join(', ')}
                         </p>
                       )}
                       {trackerUserNote && (
-                        <p className="text-[13px] text-slate-400">
+                        <p className="text-13 text-slate-400">
                           메모: {trackerUserNote}
                         </p>
                       )}
@@ -1487,7 +1487,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                           href={record.ticketUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="block break-all text-[13px] text-sky-300 underline underline-offset-2"
+                          className="block break-all text-13 text-sky-300 underline underline-offset-2"
                         >
                           {record.ticketUrl}
                         </a>
@@ -1555,7 +1555,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">진단 결과</h3>
-            <p className="text-[14px] text-slate-400">
+            <p className="text-caption text-slate-400">
               조회 범위: {formatRangeLabel(startDate, endDate || undefined)}
             </p>
           </div>
@@ -1567,11 +1567,11 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
         </div>
 
         {!mismatchResult ? (
-          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
+          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-caption text-slate-400">
             날짜 범위를 선택한 뒤 진단을 실행하세요.
           </div>
         ) : mismatchList.length === 0 && nonCanonicalList.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-[14px] text-slate-400">
+          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-10 text-center text-caption text-slate-400">
             선택한 날짜 범위에서 경기 상태 불일치나 비정상 팀 코드 경기가 없습니다.
           </div>
         ) : (
@@ -1580,8 +1580,8 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               <div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-[15px] font-semibold text-slate-100">상태 mismatch</h4>
-                    <p className="text-[13px] text-slate-400">
+                    <h4 className="text-15 font-semibold text-slate-100">상태 mismatch</h4>
+                    <p className="text-13 text-slate-400">
                       점수/이닝 근거와 raw 상태가 어긋난 경기입니다.
                     </p>
                   </div>
@@ -1611,7 +1611,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                           className="border-slate-800/80"
                         >
                           <TableCell className="text-slate-300">{mismatch.gameDate}</TableCell>
-                          <TableCell className="font-mono text-[14px] text-slate-300">{mismatch.gameId}</TableCell>
+                          <TableCell className="font-mono text-caption text-slate-300">{mismatch.gameId}</TableCell>
                           <TableCell className="text-slate-300">{formatTimeLabel(mismatch.startTime)}</TableCell>
                           <TableCell>
                             <AdminGameStatusBadge status={mismatch.normalizedRawStatus || mismatch.rawStatus} />
@@ -1633,7 +1633,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-4 text-[14px] text-slate-400">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-4 text-caption text-slate-400">
                 상태 mismatch는 없고 비정상 팀 코드 row만 존재합니다.
               </div>
             )}
@@ -1642,8 +1642,8 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               <div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-[15px] font-semibold text-slate-100">비정상 팀 코드 raw row</h4>
-                    <p className="text-[13px] text-slate-400">
+                    <h4 className="text-15 font-semibold text-slate-100">비정상 팀 코드 raw row</h4>
+                    <p className="text-13 text-slate-400">
                       canonical 팀 코드로 해석되지 않아 prediction/AI 대상에서 제외된 raw row입니다.
                     </p>
                   </div>
@@ -1682,7 +1682,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold text-white">복구 반영 목록</h3>
-              <p className="text-[14px] text-slate-400">
+              <p className="text-caption text-slate-400">
                 {formatRangeLabel(repairResult.startDate, repairResult.endDate)} 범위에서 실제로 반영된 경기입니다.
               </p>
             </div>

@@ -62,10 +62,10 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                   className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <TableCell className="text-slate-300 font-mono text-[14px]">{mate.id}</TableCell>
+                  <TableCell className="text-slate-300 font-mono text-caption">{mate.id}</TableCell>
                   <TableCell className="text-slate-200 font-semibold max-w-[200px] truncate">{mate.title}</TableCell>
                   <TableCell className="text-slate-300">{mate.hostName}</TableCell>
-                  <TableCell className="text-slate-400 text-[14px]">{formatGameDate(mate.gameDate)}</TableCell>
+                  <TableCell className="text-slate-400 text-caption">{formatGameDate(mate.gameDate)}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1">
                       <span className="text-sky-400 font-semibold">{mate.currentMembers}</span>
@@ -120,7 +120,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
         )}
       >
         {pendingDeleteMate ? (
-          <p className="text-[14px] text-slate-400">
+          <p className="text-caption text-slate-400">
             <span className="font-semibold text-slate-200">{pendingDeleteMate.title}</span> 모임을 삭제합니다.
           </p>
         ) : null}
