@@ -38,6 +38,10 @@ export function seedCypressAuthState(
     token: string = DEFAULT_CYPRESS_AUTH_TOKEN,
     options: SeedAuthOptions = {},
 ) {
+    (win as Window & { __BEGA_TEST_AUTH_PROFILE__?: { data: ReturnType<typeof toAuthApiUser> } }).__BEGA_TEST_AUTH_PROFILE__ = {
+        data: toAuthApiUser(user),
+    };
+
     const authState = {
         state: {
             user,

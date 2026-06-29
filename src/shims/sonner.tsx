@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-type ToastVariant = 'default' | 'success' | 'error' | 'info' | 'warning';
+type ToastVariant = 'default' | 'success' | 'error' | 'info' | 'warning' | 'loading';
 
 export interface ToastOptions {
   id?: string | number;
@@ -72,9 +72,17 @@ const dismissToast = (id?: string | number) => {
   notify();
 };
 
+const getDefaultDuration = (variant: ToastVariant) => {
+  if (variant === 'loading') {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return variant === 'error' ? 5000 : 3600;
+};
+
 const pushToast = (variant: ToastVariant, title: ReactNode, options?: ToastOptions) => {
   const id = String(options?.id ?? createToastId());
-  const duration = options?.duration ?? (variant === 'error' ? 5000 : 3600);
+  const duration = options?.duration ?? getDefaultDuration(variant);
   const nextToast: ToastRecord = {
     id,
     title,
@@ -94,6 +102,7 @@ type ToastFn = ((title: ReactNode, options?: ToastOptions) => string) & {
   error: (title: ReactNode, options?: ToastOptions) => string;
   info: (title: ReactNode, options?: ToastOptions) => string;
   warning: (title: ReactNode, options?: ToastOptions) => string;
+  loading: (title: ReactNode, options?: ToastOptions) => string;
   dismiss: (id?: string | number) => void;
 };
 
@@ -104,6 +113,10 @@ export const toast = Object.assign(
     error: (title: ReactNode, options?: ToastOptions) => pushToast('error', title, options),
     info: (title: ReactNode, options?: ToastOptions) => pushToast('info', title, options),
     warning: (title: ReactNode, options?: ToastOptions) => pushToast('warning', title, options),
+    loading: (title: ReactNode, options?: ToastOptions) => pushToast('loading', title, {
+      duration: Number.POSITIVE_INFINITY,
+      ...options,
+    }),
     dismiss: dismissToast,
   },
 ) as ToastFn;
@@ -123,6 +136,7 @@ const variantTokenMap: Record<ToastVariant, { rail: string; tint: string; darkRa
   error:   { rail: '#b91c1c', tint: '#fef2f2', darkRail: '#f87171', darkTint: 'rgba(185,28,28,.18)' },
   info:    { rail: '#2d5f4f', tint: '#eef6f3', darkRail: '#6ee7b7', darkTint: 'rgba(45,95,79,.18)' },
   warning: { rail: '#a16207', tint: '#fefce8', darkRail: '#fbbf24', darkTint: 'rgba(161,98,7,.18)' },
+  loading: { rail: '#047857', tint: '#ecfdf5', darkRail: '#6ee7b7', darkTint: 'rgba(4,120,87,.20)' },
 };
 
 const variantIconMap: Record<ToastVariant, string> = {
@@ -131,6 +145,7 @@ const variantIconMap: Record<ToastVariant, string> = {
   error:   '<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
   info:    '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
   warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  loading: '<path d="M21 12a9 9 0 1 1-9-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
 };
 
 const useToastState = () => useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
@@ -151,9 +166,14 @@ export function Toaster({
       return;
     }
 
-    const timers = toasts.map((entry) => window.setTimeout(() => {
-      dismissToast(entry.id);
-    }, entry.duration));
+    const timers = toasts
+      .filter((entry) => {
+        const shouldAutoDismiss = Number.isFinite(entry.duration) && entry.duration > 0;
+        return shouldAutoDismiss;
+      })
+      .map((entry) => window.setTimeout(() => {
+        dismissToast(entry.id);
+      }, entry.duration));
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -186,6 +206,8 @@ export function Toaster({
         const tint = isDark ? tokens.darkTint : tokens.tint;
         const iconSvg = variantIconMap[entry.variant];
         const durationSec = entry.duration / 1000;
+        const isLoading = entry.variant === 'loading';
+        const shouldShowProgress = Number.isFinite(entry.duration) && entry.duration > 0;
 
         return (
           <div
@@ -219,6 +241,7 @@ export function Toaster({
                   backgroundColor: tint,
                   color: rail,
                   boxShadow: `0 0 0 3px ${rail}2e`,
+                  animation: isLoading ? 'toast-spin 900ms linear infinite' : undefined,
                 }}
                 dangerouslySetInnerHTML={{
                   __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">${iconSvg}</svg>`,
@@ -262,21 +285,22 @@ export function Toaster({
               ×
             </button>
 
-            {/* Progress bar */}
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 2,
-                background: rail,
-                opacity: 0.5,
-                transformOrigin: 'left',
-                animation: `toast-countdown ${durationSec}s linear forwards`,
-              }}
-            />
+            {shouldShowProgress ? (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  background: rail,
+                  opacity: 0.5,
+                  transformOrigin: 'left',
+                  animation: `toast-countdown ${durationSec}s linear forwards`,
+                }}
+              />
+            ) : null}
           </div>
         );
       })}

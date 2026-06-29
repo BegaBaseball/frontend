@@ -83,7 +83,12 @@ const seedAuthenticatedHomeState = (
   user?: Partial<HomeUserState>,
 ) => {
   (win as HomeWindowWithAuthTrace).__BEGA_TEST_AUTH_PROFILE__ = buildInjectedAuthProfile(user);
-  win.sessionStorage.setItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY, '1');
+  win.sessionStorage.removeItem(CYPRESS_SKIP_PUBLIC_AUTH_BOOTSTRAP_KEY);
+  win.localStorage.setItem('auth-bootstrap-hint', '1');
+  seedHomeAuthBootstrapMeta(win, {
+    lastSuccessAt: Date.now(),
+    lastFailureAt: null,
+  });
   win.localStorage.setItem('auth-storage', JSON.stringify({
     state: {
       user: {

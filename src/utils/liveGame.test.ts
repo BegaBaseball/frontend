@@ -94,6 +94,30 @@ test('mergeGameDetailWithLiveSnapshot은 구버전 snapshot이면 기존 이닝 
   assert.deepEqual(result.inningScores, [{ inning: 1, teamSide: 'away', runs: 1 }]);
 });
 
+test('mergeGameDetailWithLiveSnapshot은 snapshot boxScore가 있으면 상세 boxScore를 교체한다', () => {
+  const boxScore = {
+    away: [0, 1],
+    home: [2, 0],
+  };
+  const result = mergeGameDetailWithLiveSnapshot({
+    gameId: 'GAME-1',
+    homeTeam: 'LG',
+    awayTeam: 'KT',
+    boxScore: {
+      away: [0],
+      home: [0],
+    },
+  }, {
+    gameId: 'GAME-1',
+    homeScore: 2,
+    awayScore: 1,
+    events: [],
+    boxScore,
+  });
+
+  assert.deepEqual(result.boxScore, boxScore);
+});
+
 test('mergeGameDetailLiveStatusError는 score polling 오류 code를 보존하고 성공 snapshot에서 초기화한다', () => {
   const errored = mergeGameDetailLiveStatusError({
     gameId: 'GAME-1',
@@ -202,6 +226,34 @@ test('mergeHomeGamesWithLiveSummaries는 홈 카드용 필드만 업데이트한
   assert.equal(result[0].homeScore, 1);
   assert.equal(result[0].awayScore, 2);
   assert.equal(result[0].liveLastEventSeq, 9);
+});
+
+test('mergeHomeGamesWithLiveSummaries는 홈 카드 상태 뱃지 문구도 live summary에 맞춘다', () => {
+  const games: HomeGame[] = [{
+    gameId: 'GAME-1',
+    time: '18:30',
+    stadium: '잠실',
+    gameStatus: 'SCHEDULED',
+    gameStatusKr: '경기 예정',
+    gameInfo: '',
+    leagueType: 'REGULAR',
+    homeTeam: 'LG',
+    homeTeamFull: 'LG 트윈스',
+    awayTeam: 'KT',
+    awayTeamFull: 'KT 위즈',
+  }];
+
+  const result = mergeHomeGamesWithLiveSummaries(games, [{
+    gameId: 'GAME-1',
+    gameStatus: 'LIVE',
+    homeScore: 1,
+    awayScore: 2,
+    lastEventSeq: 9,
+    lastUpdatedAt: '2026-04-29T19:30:00',
+  }]);
+
+  assert.equal(result[0].gameStatus, 'LIVE');
+  assert.equal(result[0].gameStatusKr, 'LIVE');
 });
 
 test('selectHomeLivePollingGameIds는 오늘 경기와 진행 경기만 고른다', () => {

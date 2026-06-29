@@ -22,11 +22,14 @@ test('mapBackendPartyToFrontend tolerates public party payload without hostId', 
     homeTeam: 'LG',
     awayTeam: 'OB',
     section: '1루',
+    seatDetail: '305블록 12열 15번',
     maxParticipants: 4,
     currentParticipants: 2,
     description: '같이 갑니다',
     ticketVerified: true,
     status: 'PENDING',
+    favorited: true,
+    members: [{ initial: 'H', role: '호스트', host: true }],
     createdAt: '2026-03-09T00:00:00Z',
   });
 
@@ -34,6 +37,9 @@ test('mapBackendPartyToFrontend tolerates public party payload without hostId', 
   assert.equal(party.hostHandle, 'host');
   assert.equal(party.hostAverageRating, 4.8);
   assert.equal(party.hostReviewCount, 12);
+  assert.equal(party.seatDetail, '305블록 12열 15번');
+  assert.equal(party.favorited, true);
+  assert.deepEqual(party.members, [{ initial: 'H', role: '호스트', host: true }]);
 });
 
 test('hasSameMateUserIdentity prefers handle matching over numeric ids', () => {

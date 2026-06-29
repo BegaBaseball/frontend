@@ -110,6 +110,8 @@ export const interceptBaseApis = () => {
   cy.intercept('GET', '**/api/stadiums/GWANGJU/places?category=food', { statusCode: 200, body: [] }).as('getGwangjuPlaces');
   cy.intercept('GET', '**/api/stadiums/INCHEON/places?category=food', { statusCode: 200, body: [] }).as('getIncheonPlaces');
   cy.intercept('GET', '**/api/stadiums/SUWON/places?category=food', { statusCode: 200, body: [] }).as('getSuwonPlaces');
+  cy.intercept('GET', '**/api/stadiums/CHANGWON/places?category=food', { statusCode: 200, body: [] }).as('getChangwonPlaces');
+  cy.intercept('GET', '**/api/stadiums/SAJIK/places?category=food', { statusCode: 200, body: [] }).as('getSajikPlaces');
   cy.intercept('GET', '**/api/stadiums/favorites', { statusCode: 200, body: { stadiumIds: [] } }).as('getFavorites');
   cy.intercept('GET', '**/api/diary/seat-views*', { statusCode: 200, body: [] }).as('getSeatViews');
 };

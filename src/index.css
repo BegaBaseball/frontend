@@ -69,6 +69,14 @@
     --action-disabled-text: var(--primitive-color-neutral-600);
     --focus-ring: var(--primitive-color-green-700);
 
+    /* Brand green — legacy shades (single source of truth).
+       Space-separated RGB channels so Tailwind `<alpha-value>` opacity
+       modifiers work (e.g. bg-primary-dark/80). Values are byte-exact to the
+       previous tailwind.config hex, so rendered pixels are unchanged. */
+    --brand-primary-rest: 27 67 56;     /* #1b4338 — bg-primary-dark   */
+    --brand-primary-hover: 47 108 92;   /* #2f6c5c — bg-primary-hover  */
+    --brand-primary-light: 99 179 155;  /* #63b39b — text-primary-light */
+
     --background: var(--surface-default);
     --foreground: var(--text-primary);
     --card: var(--surface-raised);
@@ -135,6 +143,18 @@
     --shadow-none: none;
     --shadow-surface: 0 18px 48px -32px rgba(15, 23, 42, 0.28);
     --shadow-floating: 0 24px 56px -32px rgba(15, 23, 42, 0.34);
+    --shadow-cheer-mobile-chrome: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 40px -16px rgba(15, 67, 56, 0.35);
+    --shadow-cheer-mobile-chrome-dark: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 40px -16px rgba(15, 120, 85, 0.18);
+    --shadow-dialog: 0 28px 80px -30px rgba(15, 23, 42, 0.40);
+    --shadow-home-board: 0 18px 60px -28px rgba(16, 185, 129, 0.55);
+    --shadow-mobile-action: 0 4px 12px rgba(15, 23, 42, 0.22);
+    --shadow-mobile-chrome: 0 18px 40px -16px rgba(15, 67, 56, 0.32);
+    --shadow-mobile-tab-active: 0 4px 12px -4px rgba(45, 95, 79, 0.4);
+    --shadow-navbar-capsule: 0 1px 2px rgba(15, 23, 42, 0.04), 0 20px 50px -20px rgba(15, 67, 56, 0.35);
+    --shadow-navbar-capsule-dark: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04), 0 20px 50px -20px rgba(0, 0, 0, 0.65);
+    --shadow-navbar-pill: 0 10px 24px -16px rgba(15, 23, 42, 0.48);
+    --shadow-navbar-pill-dark: 0 12px 28px -16px rgba(20, 184, 166, 0.72);
+    --shadow-navbar-pill-hover: 0 10px 20px -18px rgba(15, 23, 42, 0.55);
     --surface-shadow: var(--shadow-surface);
     --surface-shadow-strong: var(--shadow-floating);
 
@@ -265,10 +285,6 @@
 }
 
 @layer utilities {
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
   .mobile-chrome-safe-bottom {
     padding-bottom: var(--mobile-content-safe-bottom);
   }
@@ -300,16 +316,6 @@
     image-rendering: auto;
   }
 
-  .avatar-circle-mask {
-    -webkit-mask-image: radial-gradient(circle, #000 98%, transparent 100%);
-    mask-image: radial-gradient(circle, #000 98%, transparent 100%);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-  }
 }
 
 @layer components {
@@ -391,6 +397,10 @@
 @keyframes toast-countdown {
   from { transform: scaleX(1); }
   to   { transform: scaleX(0); }
+}
+
+@keyframes toast-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

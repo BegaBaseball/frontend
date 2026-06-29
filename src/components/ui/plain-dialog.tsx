@@ -114,8 +114,8 @@ export default function PlainDialog({
           onClick={(event) => event.stopPropagation()}
           className={joinClassNames(
             placement === 'right'
-              ? 'flex h-full w-full max-w-[640px] flex-col overflow-y-auto border-l bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 motion-safe:animate-[plainDialogSlideInRight_0.22s_ease-out] dark:border-border dark:bg-card'
-              : 'w-full rounded-xl border bg-white shadow-[0_28px_80px_-30px_rgba(15,23,42,0.40)] ring-1 ring-black/5 dark:border-border dark:bg-card',
+              ? 'flex h-full w-full max-w-[640px] flex-col overflow-y-auto border-l bg-white shadow-dialog ring-1 ring-black/5 motion-safe:animate-[plainDialogSlideInRight_0.22s_ease-out] dark:border-border dark:bg-card'
+              : 'w-full rounded-xl border bg-white shadow-dialog ring-1 ring-black/5 dark:border-border dark:bg-card',
             className,
           )}
         >
@@ -128,7 +128,7 @@ export default function PlainDialog({
                   </h2>
                 ) : null}
                 {description ? (
-                  <p id={descriptionId} className="mt-1 text-[15px] text-gray-600 dark:text-white">
+                  <p id={descriptionId} className="mt-1 text-15 text-gray-600 dark:text-white">
                     {description}
                   </p>
                 ) : null}
