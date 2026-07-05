@@ -70,7 +70,6 @@ export default function ProfileEditSection({
     setName,
     email,
     editingFavoriteTeam,
-    setEditingFavoriteTeam,
     bio,
     setBio,
     showTeamTest,
@@ -200,7 +199,6 @@ export default function ProfileEditSection({
             setBio={setBio}
             userRole={userRole}
             editingFavoriteTeam={editingFavoriteTeam}
-            setEditingFavoriteTeam={setEditingFavoriteTeam}
             selectableTeamIds={selectableTeamIds}
             isDesktop={isDesktop}
             isLoading={isLoading}
