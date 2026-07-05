@@ -47,7 +47,6 @@ interface ProfileEditProfileRuntimeProps {
   setBio: (value: string) => void;
   userRole?: string;
   editingFavoriteTeam: string;
-  setEditingFavoriteTeam: (teamId: string) => void;
   selectableTeamIds?: string[];
   isDesktop: boolean;
   isLoading: boolean;
