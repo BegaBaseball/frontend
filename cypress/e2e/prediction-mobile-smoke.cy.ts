@@ -8,6 +8,8 @@ import {
 
 type PredictionMobileSmokeState =
   | 'match'
+  | 'vote-panel'
+  | 'date-sheet'
   | 'detail-loading'
   | 'detail-error'
   | 'top-notice'
@@ -23,14 +25,19 @@ type PredictionMobileSmokeWindow = Window & {
 
 const defaultStates: PredictionMobileSmokeState[] = [
   'match',
+  'vote-panel',
+  'date-sheet',
   'detail-loading',
   'detail-error',
   'top-notice',
 ];
 
 const targetDate = '2026-02-04';
+const votePanelDate = '2099-05-01';
 const gameIdsByState: Record<PredictionMobileSmokeState, string> = {
   match: '20260204LGKT0',
+  'vote-panel': '20990501LGKT0',
+  'date-sheet': '20260204LGKT9',
   'detail-loading': '20260204LGKT1',
   'detail-error': '20260204LGKT2',
   'top-notice': '20260204LGKT3',
@@ -41,6 +48,9 @@ const gameIdsByState: Record<PredictionMobileSmokeState, string> = {
   'ranking-saved': '20260204LGKT8',
 };
 const targetGameId = gameIdsByState.match;
+const dateForState = (state: PredictionMobileSmokeState) => (
+  state === 'vote-panel' ? votePanelDate : targetDate
+);
 const rankingTeamIds = [
   'samsung',
   'lg',
@@ -107,9 +117,14 @@ const voteStatus = {
 };
 
 const pathForState = (state: PredictionMobileSmokeState) => {
+  if (state === 'date-sheet') {
+    return `/prediction?date=${targetDate}`;
+  }
+
+  const stateDate = dateForState(state);
   const params = new URLSearchParams({
     gameId: gameIdsByState[state],
-    date: targetDate,
+    date: stateDate,
   });
   return `/prediction?${params.toString()}`;
 };
@@ -193,17 +208,42 @@ const runWhenStateActive = (
 
 const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
   const stateGameId = gameIdsByState[state];
+  const stateDate = dateForState(state);
+  const isVotePanelState = state === 'vote-panel';
   const stateGame = {
     ...game,
     gameId: stateGameId,
+    gameDate: stateDate,
+    ...(isVotePanelState
+      ? {
+          gameStatus: 'SCHEDULED',
+          gameStatusKr: '경기 예정',
+          homeScore: null,
+          awayScore: null,
+          winner: null,
+          startTime: '18:30',
+        }
+      : {}),
   };
   const stateGameDetail = {
     ...gameDetail,
     gameId: stateGameId,
+    gameDate: stateDate,
     summary: gameDetail.summary.map((item) => ({
       ...item,
       gameId: stateGameId,
     })),
+    ...(isVotePanelState
+      ? {
+          gameStatus: 'SCHEDULED',
+          homeScore: null,
+          awayScore: null,
+          gameTimeMinutes: null,
+          inningScores: [],
+          summary: [],
+          startTime: '18:30',
+        }
+      : {}),
   };
 
   cy.viewport(390, 844);
@@ -216,7 +256,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
   cy.intercept('GET', '**/api/matches/day*', {
     statusCode: 200,
     body: {
-      date: targetDate,
+      date: stateDate,
       games: [stateGame],
       prevDate: null,
       nextDate: null,
@@ -299,7 +339,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
 
   cy.intercept('**/api/predictions/my-votes*', {
     statusCode: 200,
-    body: { votes: { [stateGameId]: null } },
+    body: { votes: { [stateGameId]: isVotePanelState ? 'home' : null } },
   }).as('getPredictionUserVotes');
 
   cy.intercept('**/api/predictions/status/*', {
@@ -307,7 +347,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
     body: voteStatus,
   }).as('getPredictionVoteStatus');
 
-  const shouldBootstrapDetail = state === 'match' || state === 'top-notice';
+  const shouldBootstrapDetail = state === 'match' || state === 'top-notice' || isVotePanelState;
   installPredictionBootstrapIntercept({
     games: [stateGame],
     detailByGameId: shouldBootstrapDetail ? { [stateGameId]: stateGameDetail } : {},
@@ -390,6 +430,64 @@ describe('Prediction mobile smoke', () => {
       cy.contains('경기 정보를 불러오는 중입니다').should('not.exist');
       expectNoHorizontalOverflow();
       captureState('match');
+    });
+  });
+
+  it('renders the mobile vote panel selected state without overflow', () => {
+    runWhenStateActive('vote-panel', () => {
+      visitSmokeState('vote-panel');
+
+      cy.get('[data-testid="prediction-vote-panel"]', { timeout: 40000 })
+        .scrollIntoView()
+        .should('be.visible')
+        .and('have.attr', 'aria-labelledby', 'prediction-vote-panel-title')
+        .and('have.attr', 'aria-describedby')
+        .and('include', 'prediction-vote-panel-helper');
+      cy.get('#prediction-vote-panel-title').should('contain.text', '승리 팀 예측');
+      cy.get('[data-testid="prediction-vote-participants"]')
+        .should('be.visible')
+        .and('contain.text', '참여 12명');
+      cy.get('[data-testid="vote-home-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-pressed', 'true')
+        .and('have.attr', 'aria-label')
+        .and('include', '선택됨');
+      cy.get('[data-testid="prediction-vote-away-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-pressed', 'false');
+      cy.get('[data-testid="prediction-vote-cancel-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-label')
+        .and('include', '예측 취소');
+      expectNoHorizontalOverflow();
+      cy.screenshot('prediction-mobile-smoke/vote-panel-mobile-390', {
+        capture: 'fullPage',
+        overwrite: true,
+      });
+    });
+  });
+
+  it('renders the mobile date sheet without overflow', () => {
+    runWhenStateActive('date-sheet', () => {
+      visitSmokeState('date-sheet');
+
+      cy.get('[data-testid="prediction-schedule-preview"]', { timeout: 30000 })
+        .should('be.visible');
+      cy.get('[data-testid="prediction-schedule-mobile-date-trigger"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-haspopup', 'dialog')
+        .click();
+      cy.get('#prediction-mobile-date-sheet', { timeout: 20000 })
+        .should('be.visible')
+        .and('have.attr', 'role', 'dialog');
+      cy.get('[data-testid="prediction-schedule-mobile-date-button"][aria-pressed="true"]')
+        .should('be.focused');
+      expectElementInsideViewport(cy.get('#prediction-mobile-date-sheet'));
+      expectNoHorizontalOverflow();
+      captureState('date-sheet');
+      cy.focused().type('{esc}');
+      cy.get('#prediction-mobile-date-sheet').should('not.exist');
+      cy.get('[data-testid="prediction-schedule-mobile-date-trigger"]').should('be.focused');
     });
   });
 

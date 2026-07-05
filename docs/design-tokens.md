@@ -36,7 +36,21 @@ KBO Platform 프론트엔드의 브랜드 색상은 **[src/index.css](../src/ind
 
 [src/components/prediction/coachStyleTokens.ts](../src/components/prediction/coachStyleTokens.ts)는 AI 코치 카드 전용의 **의도적으로 격리된** LIGHT/DARK 팔레트입니다. slate·emerald·rose·amber 및 페이퍼 텍스처 등 카드 고유 색을 인라인 스타일로 직접 정의하며, 이는 설계상 허용됩니다. 단 **브랜드 그린만은 SSOT(`--brand-primary-rest`)를 참조**합니다. 이 파일의 상태색/중립색을 앱 `--status-*`/중립 토큰으로 강제 치환하지 마세요(시각 회귀 발생).
 
-## 4. 타이포·반경 토큰 (Phase 2 완료)
+## 4. Prediction 전용 class-token 상수
+
+`/prediction` 화면의 모바일 앱형 UI는 [src/components/prediction/predictionUiTokens.ts](../src/components/prediction/predictionUiTokens.ts)에 정의된 class-token 상수를 사용합니다. 전역 CSS 예산을 늘리지 않도록 반복 조합은 TypeScript 상수로 중앙화합니다.
+
+| 상수 | 용도 |
+|---|---|
+| `PREDICTION_BRAND_GRADIENT_CLASS` | 딥그린 헤더/empty state 배경 |
+| `PREDICTION_BRAND_BUTTON_CLASS` | primary CTA 버튼 |
+| `PREDICTION_BRAND_TEXT_CLASS` | 흰 카드 위 브랜드 텍스트 |
+| `PREDICTION_SURFACE_CARD_CLASS` | 흰 카드형 prediction panel |
+| `PREDICTION_SOFT_CHIP_CLASS` | 참여 인원/경기 수 등 연한 브랜드 chip |
+
+신규 prediction UI에서 `#173b34`, `#2d5f4f`, `#2f6c5c` 같은 원시 hex를 직접 쓰지 말고 위 상수나 `bg-primary`, `text-primary`, `bg-primary-hover`, `text-primary-dark` 토큰 유틸리티를 사용합니다.
+
+## 5. 타이포·반경 토큰 (Phase 2 완료)
 
 임의값 `text-[NNpx]` / `rounded-[NNpx]`는 모두 **명명 토큰으로 치환 완료**(0건 잔존). 신규 코드도 임의값 대신 아래 토큰을 사용합니다.
 
@@ -52,6 +66,6 @@ KBO Platform 프론트엔드의 브랜드 색상은 **[src/index.css](../src/ind
 ### codemod
 - 임의값 치환은 [scripts/codemod-arbitrary-classes.mjs](../scripts/codemod-arbitrary-classes.mjs)(매핑 테이블 + `--dry-run`/`--dir`/`--kind`)로 수행. 새 크기 추가 시 이 매핑과 위 토큰을 함께 갱신.
 
-## 5. 로드맵 (Phase 3, 예정)
+## 6. 로드맵 (Phase 3, 예정)
 - 비-팀 하드코딩 hex(className 212곳) + 인라인 `fontSize`(88곳) → 토큰 치환 (구단색 `TEAM_COLORS_MAP`은 제외).
 - 드리프트 재발 방지: 신규 `text-[NNpx]`/`rounded-[NNpx]`/비-팀 hex를 차단하는 grep/lint 가드.

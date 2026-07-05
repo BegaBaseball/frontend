@@ -11,7 +11,7 @@ const printMode = cliArgs.includes('--print');
 const [group, preset, ...rawArgs] = cliArgs.filter((arg) => arg !== '--print');
 const passthroughArgs = rawArgs.filter((arg) => arg !== '--');
 
-const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,detail-loading,detail-error,top-notice';
+const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,vote-panel,date-sheet,detail-loading,detail-error,top-notice';
 const PREDICTION_MOBILE_RANKING_SMOKE_STATES = 'ranking,ranking-ended,ranking-init-error,ranking-save-dialog,ranking-saved';
 
 const CYPRESS_SPECS = {
