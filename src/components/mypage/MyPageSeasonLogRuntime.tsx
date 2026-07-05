@@ -1,10 +1,9 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
 import type { DiaryEntry, WinningType } from '../../types/diary';
 import { formatDateString } from '../../utils/diary';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
-import LoadingSpinner from '../LoadingSpinner';
 import { MyPageTicketIcon } from './MyPageIcons';
 
 const MyPageSeasonTimelineRuntime = lazy(() => import('./MyPageSeasonTimelineRuntime'));
@@ -37,7 +36,7 @@ const RESULT_FILTERS = [
   { key: 'draw', label: '무' },
   { key: 'lose', label: '패' },
 ] as const;
-const OPPONENT_FILTERS = ['LG', '두산', '삼성', '한화', 'NC', '롯데', 'SSG', 'KT', '키움'];
+const SKELETON_ITEMS = [0, 1, 2, 3] as const;
 
 type ResultFilter = (typeof RESULT_FILTERS)[number]['key'];
 
@@ -81,6 +80,18 @@ const getHeatLevelClass = (entry?: DiaryEntry): string => {
 const getEntryStatusLabel = (entry: DiaryEntry): string => {
   if (entry.type === 'scheduled') return '직관 예정';
   return getWinningShortLabel(entry.winningName);
+};
+
+const getPrefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return (
+    (typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    || document.documentElement.dataset.reducedMotion === 'true'
+  );
 };
 
 const buildHeatmap = (year: number, entries: DiaryEntry[]) => {
@@ -135,21 +146,58 @@ const buildHeatmap = (year: number, entries: DiaryEntry[]) => {
   return { cells, monthLabels, totalColumns };
 };
 
+function MyPageSeasonLogSkeleton() {
+  return (
+    <section className="mypage-season-section mypage-season-loading-shell" aria-busy="true" aria-label="시즌 로그 로딩">
+      <span className="mypage-season-loading-caption">
+        <span className="mypage-season-loading-spinner" aria-hidden="true" />
+        시즌 로그를 불러오는 중...
+      </span>
+      <div className="mypage-season-head">
+        <div>
+          <span className="mypage-season-skeleton mypage-season-skeleton-title" />
+          <span className="mypage-season-skeleton mypage-season-skeleton-subtitle" />
+        </div>
+        <span className="mypage-season-skeleton mypage-season-skeleton-button" />
+      </div>
+      <div className="mypage-season-panel">
+        <span className="mypage-season-skeleton mypage-season-skeleton-panel is-tall" />
+      </div>
+      <div className="mypage-season-skeleton-grid mt-4">
+        {SKELETON_ITEMS.map((item) => (
+          <span key={item} className="mypage-season-skeleton mypage-season-skeleton-card" />
+        ))}
+      </div>
+      <span className="mypage-season-skeleton mypage-season-skeleton-panel" />
+    </section>
+  );
+}
+
 export default function MyPageSeasonLogRuntime({
   profileImage,
   name,
   onOpenDiaryEditor,
   onOpenTicketUploadModal,
 }: MyPageSeasonLogRuntimeProps) {
-  const { statistics, diaryEntries, isLoading } = useDiaryStatistics();
+  const { diaryEntries, isLoading } = useDiaryStatistics();
   const [flashingEntryId, setFlashingEntryId] = useState<number | null>(null);
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
   const [opponentFilter, setOpponentFilter] = useState('all');
+  const [pendingScrollEntryId, setPendingScrollEntryId] = useState<number | null>(null);
+  const flashTimeoutRef = useRef<number | null>(null);
 
   const seasonYear = useMemo(() => getLatestSeasonYear(diaryEntries), [diaryEntries]);
   const seasonEntries = useMemo(
     () => diaryEntries.filter((entry) => getEntryYear(entry) === seasonYear),
     [diaryEntries, seasonYear],
+  );
+  const opponentOptions = useMemo(
+    () => Array.from(new Set(
+      seasonEntries
+        .map((entry) => entry.team?.trim())
+        .filter((team): team is string => Boolean(team)),
+    )).sort((a, b) => a.localeCompare(b, 'ko-KR')),
+    [seasonEntries],
   );
   const filteredSeasonEntries = useMemo(
     () => seasonEntries.filter((entry) => {
@@ -179,25 +227,79 @@ export default function MyPageSeasonLogRuntime({
 
   const maxMonth = Array.from(monthCounts.entries()).sort((a, b) => b[1] - a[1])[0];
   const scheduledCount = seasonEntries.filter((entry) => entry.type === 'scheduled').length;
-  const totalCount = statistics.totalCount || seasonEntries.filter((entry) => entry.type === 'attended').length;
-  const winCount = statistics.totalWins || seasonEntries.filter((entry) => entry.winningName === 'WIN').length;
-  const drawCount = statistics.totalDraws || seasonEntries.filter((entry) => entry.winningName === 'DRAW').length;
-  const lossCount = statistics.totalLosses || seasonEntries.filter((entry) => entry.winningName === 'LOSE').length;
-  const winRate = statistics.winRate || (totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0);
+  const attendedSeasonEntries = seasonEntries.filter((entry) => entry.type === 'attended');
+  const winCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'WIN').length;
+  const drawCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'DRAW').length;
+  const lossCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'LOSE').length;
+  const totalCount = attendedSeasonEntries.length;
+  const decisionCount = winCount + drawCount + lossCount;
+  const winRate = decisionCount > 0 ? Math.round((winCount / decisionCount) * 100) : 0;
+
+  useEffect(() => {
+    if (opponentFilter !== 'all' && !opponentOptions.includes(opponentFilter)) {
+      setOpponentFilter('all');
+    }
+  }, [opponentFilter, opponentOptions]);
+
+  useEffect(() => () => {
+    if (flashTimeoutRef.current !== null) {
+      window.clearTimeout(flashTimeoutRef.current);
+    }
+  }, []);
+
+  const scrollToEntry = (entryId: number): boolean => {
+    const target = document.getElementById(`mypage-log-entry-${entryId}`) as HTMLElement | null;
+    if (!target) {
+      return false;
+    }
+
+    target.scrollIntoView({ behavior: getPrefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+    target.focus({ preventScroll: true });
+    setFlashingEntryId(entryId);
+
+    if (flashTimeoutRef.current !== null) {
+      window.clearTimeout(flashTimeoutRef.current);
+    }
+
+    flashTimeoutRef.current = window.setTimeout(() => {
+      setFlashingEntryId((current) => (current === entryId ? null : current));
+      flashTimeoutRef.current = null;
+    }, 1600);
+
+    return true;
+  };
+
+  useEffect(() => {
+    if (pendingScrollEntryId === null) {
+      return undefined;
+    }
+
+    if (scrollToEntry(pendingScrollEntryId)) {
+      setPendingScrollEntryId(null);
+      return undefined;
+    }
+
+    const retryId = window.setTimeout(() => {
+      if (scrollToEntry(pendingScrollEntryId)) {
+        setPendingScrollEntryId(null);
+      }
+    }, 80);
+
+    return () => window.clearTimeout(retryId);
+  }, [filteredSeasonEntries, pendingScrollEntryId]);
 
   const handleHeatCellClick = (entry: DiaryEntry) => {
-    const target = document.getElementById(`mypage-log-entry-${entry.id}`);
-    if (!target) {
+    if (scrollToEntry(entry.id)) {
       return;
     }
 
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setFlashingEntryId(entry.id);
-    window.setTimeout(() => setFlashingEntryId((current) => (current === entry.id ? null : current)), 1600);
+    setResultFilter('all');
+    setOpponentFilter('all');
+    setPendingScrollEntryId(entry.id);
   };
 
   if (isLoading) {
-    return <LoadingSpinner size="lg" text="시즌 로그를 불러오는 중..." fullScreen={false} />;
+    return <MyPageSeasonLogSkeleton />;
   }
 
   return (
@@ -323,6 +425,7 @@ export default function MyPageSeasonLogRuntime({
               type="button"
               key={filter.key}
               className={resultFilter === filter.key ? 'is-active' : undefined}
+              aria-pressed={resultFilter === filter.key}
               onClick={() => setResultFilter(filter.key)}
             >
               {filter.label}
@@ -336,7 +439,7 @@ export default function MyPageSeasonLogRuntime({
           onChange={(event) => setOpponentFilter(event.target.value)}
         >
           <option value="all">상대팀 전체</option>
-          {OPPONENT_FILTERS.map((opponent) => (
+          {opponentOptions.map((opponent) => (
             <option key={opponent} value={opponent}>{opponent}</option>
           ))}
         </select>

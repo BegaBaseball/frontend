@@ -29,8 +29,6 @@ type ThemePreference = 'dark' | 'light';
 type ThemeSnapshot = {
     rootBg: string;
     rootText: string;
-    sideBg: string;
-    mainBg: string;
     screenBg: string;
     screenText: string;
 };
@@ -45,6 +43,8 @@ type ParsedRgb = {
     b: number;
     a: number;
 };
+
+const MY_PAGE_SHELL_SELECTOR = '.mypage-season-root';
 
 const authUser: CypressAuthUser = {
     id: 123,
@@ -425,6 +425,9 @@ describe('MyPage tab backend health', () => {
     const getComputedTokenCssValue = (selector: string, propertyName: keyof CSSStyleDeclaration) =>
         cy.get(selector).invoke('css', propertyName).then((value) => value);
 
+    const getEffectiveBackgroundCssValue = (selector: string) =>
+        cy.get(selector).then(($target) => getEffectiveBackgroundColor($target[0]));
+
     const getRoundedHeight = (selector: string) =>
         cy.get(selector).then(($target) => Math.round($target[0].getBoundingClientRect().height));
 
@@ -679,10 +682,8 @@ describe('MyPage tab backend health', () => {
         };
 
         return {
-            rootBg: pickBackground('.mypage-season-root'),
-            rootText: pickStyle('.mypage-season-root', 'color'),
-            sideBg: pickBackground('.mypage-season-side'),
-            mainBg: pickBackground('.mypage-season-main'),
+            rootBg: pickBackground(MY_PAGE_SHELL_SELECTOR),
+            rootText: pickStyle(MY_PAGE_SHELL_SELECTOR, 'color'),
             screenBg: pickBackground(screenSelector),
             screenText: pickStyle(screenSelector, 'color'),
         };
@@ -691,7 +692,6 @@ describe('MyPage tab backend health', () => {
     const assertThemeDelta = (dark: ThemeSnapshot, light: ThemeSnapshot, viewLabel: string) => {
         expect(light.rootBg, `root background should change in ${viewLabel}`).not.to.eq(dark.rootBg);
         expect(light.rootText, `root text color should change in ${viewLabel}`).not.to.eq(dark.rootText);
-        expect(light.mainBg, `main background should change in ${viewLabel}`).not.to.eq(dark.mainBg);
         expect(light.screenBg, `screen background should change in ${viewLabel}`).not.to.eq(dark.screenBg);
         expect(light.screenText, `screen text should change in ${viewLabel}`).not.to.eq(dark.screenText);
     };
@@ -709,22 +709,22 @@ describe('MyPage tab backend health', () => {
         let beforeHeight = 0;
         let darkSnapshot: ThemeSnapshot | null = null;
 
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             beforeHeight = height;
         });
 
         collectThemeSnapshot(screenSelector).then((snapshot) => {
             darkSnapshot = snapshot;
         });
-        assertReadableContrast('.mypage-season-side', `${viewLabel} dark sidebar`);
+        assertReadableContrast(MY_PAGE_SHELL_SELECTOR, `${viewLabel} dark shell`);
         assertReadableContrast(screenSelector, `${viewLabel} dark screen`);
 
         toggleThemeTo('light');
         getThemeClassState('light');
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             expect(Math.abs(height - beforeHeight), `${viewLabel} height should remain stable in light mode`).to.be.lte(2);
         });
-        assertReadableContrast('.mypage-season-side', `${viewLabel} light sidebar`);
+        assertReadableContrast(MY_PAGE_SHELL_SELECTOR, `${viewLabel} light shell`);
         assertReadableContrast(screenSelector, `${viewLabel} light screen`);
 
         collectThemeSnapshot(screenSelector).then((lightSnapshot) => {
@@ -734,7 +734,7 @@ describe('MyPage tab backend health', () => {
 
         toggleThemeTo('dark');
         getThemeClassState('dark');
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             expect(Math.abs(height - beforeHeight), `${viewLabel} height should return after theme restore`).to.be.lte(2);
         });
     };
@@ -813,7 +813,6 @@ describe('MyPage tab backend health', () => {
     it('records backend calls and activation timing for each MyPage tab', () => {
         startActivation('seasonLog');
         cy.visit('/mypage', { onBeforeLoad: seedAuth });
-        cy.wait('@healthGetMyPageProfile');
         cy.wait('@healthGetFollowCounts');
         cy.wait('@healthGetDiaryEntries');
         cy.wait('@healthGetDiaryStatistics');
@@ -828,14 +827,14 @@ describe('MyPage tab backend health', () => {
 
         measureActivation(
             'cheerPosts',
-            () => cy.get('[data-testid="mypage-cheer-posts-nav"]').click(),
+            () => cy.visit('/mypage?view=cheerPosts', { onBeforeLoad: seedAuth }),
             () => visibleScreen('응원석 글'),
             ['@healthGetMyCheerPosts'],
         );
 
         measureActivation(
             'mateHistoryAll',
-            () => cy.get('[data-testid="mypage-mate-history-nav"]').click(),
+            () => cy.contains('button', '메이트 내역').click(),
             () => visibleScreen('메이트 내역'),
             ['@healthGetMateHistory'],
         );
@@ -856,8 +855,13 @@ describe('MyPage tab backend health', () => {
 
         measureActivation(
             'settingsHome',
-            () => cy.contains('button', '설정').click(),
-            () => visibleScreen('설정'),
+            () => cy.contains('button', '내 정보 수정').click(),
+            () => {
+                visibleScreen('설정');
+                cy.contains('button[role="tab"]', '내 정보 수정', { timeout: 20000 })
+                    .should('be.visible')
+                    .and('have.attr', 'aria-selected', 'true');
+            },
         );
 
         measureActivation(
@@ -873,8 +877,8 @@ describe('MyPage tab backend health', () => {
         measureActivation(
             'blockedUsers',
             () => {
-                cy.contains('button', '설정').click();
-                cy.contains('button', '차단한 사용자').click();
+                cy.contains('button', '내 정보 수정').click();
+                cy.contains('button[role="tab"]', '차단 관리').click();
             },
             () => cy.contains('차단한 사용자가 없습니다.', { timeout: 20000 }).should('be.visible'),
             ['@healthGetBlockedUsers'],
@@ -885,7 +889,6 @@ describe('MyPage tab backend health', () => {
             () => cy.visit('/mypage?view=diaryEditor&date=2026-06-12', { onBeforeLoad: seedAuth }),
             () => cy.get('[data-testid="diary-editor-calendar-card"]', { timeout: 20000 }).should('be.visible'),
             [
-                '@healthGetMyPageProfile',
                 '@healthGetFollowCounts',
                 '@healthGetDiaryEntries',
                 '@healthGetDiaryGames',
@@ -933,22 +936,22 @@ describe('MyPage tab backend health', () => {
         waitForThemeMeasurementSettle();
 
         getThemeClassState('dark');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((value) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((value) => {
             darkRootBg = String(value);
         });
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             darkAppHeight = height;
         });
 
         cy.get('button[aria-label="라이트 모드로 변경"]').should('be.visible').click();
 
         getThemeClassState('light');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((value) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((value) => {
             lightRootBg = String(value);
             expect(lightRootBg).not.to.eq(darkRootBg);
         });
 
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             expect(Math.abs(height - darkAppHeight), 'layout height should be stable after theme toggle').to.be.lte(2);
             cy.document().its('documentElement.classList').then((classList) => {
                 expect(classList.contains('light')).to.be.true;
@@ -963,10 +966,10 @@ describe('MyPage tab backend health', () => {
         cy.get('button[aria-label="다크 모드로 변경"]').should('be.visible').click();
 
         getThemeClassState('dark');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((value) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((value) => {
             expect(String(value)).to.eq(darkRootBg);
         });
-        getRoundedHeight('.mypage-season-app').then((height) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((height) => {
             expect(Math.abs(height - darkAppHeight), 'layout height should return after second toggle').to.be.lte(2);
         });
     });
@@ -989,46 +992,44 @@ describe('MyPage tab backend health', () => {
         runThemeToggleForScreen(
             '응원석 글',
             'section[data-screen-label="응원석 글"]',
-            () => cy.get('[data-testid="mypage-cheer-posts-nav"]').click(),
+            () => cy.visit('/mypage?view=cheerPosts', { onBeforeLoad: (win) => seedAuthWithTheme(win, 'dark') }),
         );
 
         runThemeToggleForScreen(
             '메이트 내역',
             'section[data-screen-label="메이트 내역"]',
-            () => cy.get('[data-testid="mypage-mate-history-nav"]').click(),
+            () => cy.contains('button', '메이트 내역').click(),
         );
 
         runThemeToggleForScreen(
             '알림',
             'section[data-screen-label="알림"]',
-            () => cy.get('[aria-label="마이페이지 더보기"] button').contains('알림').click(),
+            () => cy.visit('/mypage?view=alerts', { onBeforeLoad: (win) => seedAuthWithTheme(win, 'dark') }),
         );
 
         runThemeToggleForScreen(
             '배지 도감',
             'section[data-screen-label="배지 도감"]',
-            () => {
-                cy.get('[aria-label="마이페이지 더보기"] button').contains('배지 도감').click();
-                visibleScreen('배지 도감');
-            },
+            () => cy.visit('/mypage?view=badges', { onBeforeLoad: (win) => seedAuthWithTheme(win, 'dark') }),
         );
 
         runThemeToggleForScreen(
             '설정',
             'section[data-screen-label="설정"]',
-            () => cy.get('.mypage-season-nav').contains('button', '설정').click(),
+            () => cy.contains('button', '내 정보 수정').click(),
         );
 
         runThemeToggleForScreen(
             '내 정보 수정',
-            '.mypage-season-main',
+            'section[data-screen-label="설정"]',
             () => {
-                cy.get('.mypage-season-nav').contains('button', '설정').click();
+                cy.contains('button', '내 정보 수정').click();
                 cy.get('section[data-screen-label="설정"]').should('be.visible');
-                cy.contains('button', '프로필 정보').click();
             },
             () => {
-                cy.contains('h2', '내 정보 수정', { timeout: 20000 }).should('be.visible');
+                cy.contains('button[role="tab"]', '내 정보 수정', { timeout: 20000 })
+                    .should('be.visible')
+                    .and('have.attr', 'aria-selected', 'true');
             },
         );
     });
@@ -1047,7 +1048,9 @@ describe('MyPage tab backend health', () => {
             '다이어리 편집',
             '.diary-green-surface',
             () => {
-                cy.get('[data-testid="mypage-season-sidebar-record-cta"]').click();
+                cy.visit('/mypage?view=diaryEditor&date=2026-06-12', {
+                    onBeforeLoad: (win) => seedAuthWithTheme(win, 'dark'),
+                });
                 cy.get('.diary-green-surface', { timeout: 20000 }).should('be.visible');
             },
             () => cy.get('.diary-green-surface', { timeout: 20000 }).should('be.visible'),
@@ -1080,20 +1083,20 @@ describe('MyPage tab backend health', () => {
         });
 
         getThemeClassState('dark');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((darkThemeBg) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((darkThemeBg) => {
             darkBackground = String(darkThemeBg);
         });
 
         setSystemPrefersDark(false);
         getThemeClassState('light');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((lightThemeBg) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((lightThemeBg) => {
             lightBackground = String(lightThemeBg);
             expect(lightBackground).not.to.eq(darkBackground);
         });
 
         setSystemPrefersDark(true);
         getThemeClassState('dark');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((darkThemeBg) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((darkThemeBg) => {
             expect(String(darkThemeBg)).to.eq(darkBackground);
         });
 
@@ -1102,11 +1105,11 @@ describe('MyPage tab backend health', () => {
         });
 
         getThemeClassState('light');
-        getComputedTokenCssValue('.mypage-season-root', 'backgroundColor').then((lightThemeBg) => {
+        getEffectiveBackgroundCssValue(MY_PAGE_SHELL_SELECTOR).then((lightThemeBg) => {
             expect(String(lightThemeBg)).to.eq(lightBackground);
         });
 
-        getRoundedHeight('.mypage-season-root').then((heightBefore) => {
+        getRoundedHeight(MY_PAGE_SHELL_SELECTOR).then((heightBefore) => {
             expect(heightBefore).to.be.greaterThan(0);
         });
     });

@@ -100,6 +100,7 @@ export interface DiaryStatistics {
   homeVisitCount?: number;
   awayVisitCount?: number;
   scheduledCount?: number;
+  scopedStatistics?: Record<string, DiaryScopedStatistics>;
   happiestMonth: string | null;
   happiestCount: number;
   firstDiaryDate: string | null;
@@ -119,6 +120,22 @@ export interface DiaryStatistics {
   dayOfWeekStats: Record<string, DayStats>;
   luckyDay: string;
   earnedBadges: string[];
+}
+
+export interface DiaryScopedStatistics {
+  totalCount: number;
+  totalWins: number;
+  totalLosses: number;
+  totalDraws: number;
+  winRate: number;
+  mostVisitedStadium: string | null;
+  mostVisitedCount: number;
+  monthlyVisitCounts?: Record<string, number>;
+  stadiumVisitCounts?: Record<string, number>;
+  homeVisitCount?: number;
+  awayVisitCount?: number;
+  emojiCounts?: Record<string, number>;
+  opponentWinRates?: Record<string, OpponentStats>;
 }
 
 export interface OpponentStats {

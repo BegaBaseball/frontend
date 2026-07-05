@@ -170,7 +170,7 @@ export default function MyPageSidebarRuntime({
         <button
           type="button"
           className={isSettingsView(viewMode) ? 'is-active' : undefined}
-          onClick={() => onSetViewMode('settings')}
+          onClick={() => onSetViewMode('editProfile')}
         >
           <MyPageSettingsIcon />
           <span>설정</span>
