@@ -5,6 +5,7 @@ import {
   MyPageEditIcon,
   MyPageTicketIcon,
 } from './MyPageIcons';
+import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 type MyPageSeasonTimelineRuntimeProps = {
   entries: DiaryEntry[];
@@ -109,9 +110,13 @@ export default function MyPageSeasonTimelineRuntime({
 
   if (monthGroups.length === 0) {
     return (
-      <div className="mypage-season-empty">
-        조건에 맞는 직관 기록이 없습니다. 필터를 바꾸거나 새 기록을 남겨보세요.
-      </div>
+      <MyPageSeasonEmptyState
+        icon={<MyPageTicketIcon />}
+        title="조건에 맞는 직관 기록이 없습니다"
+        description="필터를 바꾸거나 새 기록을 남기면 시즌 타임라인이 다시 채워져요."
+        actionLabel="새 기록 남기기"
+        onAction={() => onOpenDiaryEditor()}
+      />
     );
   }
 
@@ -132,6 +137,8 @@ export default function MyPageSeasonTimelineRuntime({
                 key={entry.id}
                 id={`mypage-log-entry-${entry.id}`}
                 className={`mypage-season-entry ${flashingEntryId === entry.id ? 'is-flash' : ''}`}
+                tabIndex={-1}
+                aria-label={`${entry.date} ${entry.team || '직관 기록'} ${getEntryStatusLabel(entry)}`}
               >
                 <div className="mypage-season-rail" aria-hidden="true">
                   <span className="mypage-season-rail-date">{entryDate.getDate()}</span>
@@ -197,6 +204,7 @@ export default function MyPageSeasonTimelineRuntime({
                     <button
                       type="button"
                       className="mypage-season-ghost-button"
+                      aria-label={`${entry.date} 직관 기록 수정`}
                       onClick={() => onOpenDiaryEditor(entry.date)}
                     >
                       <MyPageEditIcon className="h-4 w-4" />

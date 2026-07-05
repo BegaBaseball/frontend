@@ -133,7 +133,12 @@ export default function MyPageViewRuntime({
   }
 
   if (viewMode === 'stats') {
-    return renderSection(<DiaryStatistics cheerPoints={cheerPoints} />);
+    return renderSection(
+      <DiaryStatistics
+        cheerPoints={cheerPoints}
+        onOpenDiaryEditor={() => onSetViewMode('diaryEditor')}
+      />
+    );
   }
 
   if (viewMode === 'badges') {
