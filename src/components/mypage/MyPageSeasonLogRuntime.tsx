@@ -173,6 +173,22 @@ function MyPageSeasonLogSkeleton() {
   );
 }
 
+function MyPageSeasonTimelineFallback() {
+  return (
+    <div className="mypage-season-loading-shell" aria-busy="true" aria-label="기록 목록 로딩">
+      <span className="mypage-season-loading-caption">
+        <span className="mypage-season-loading-spinner" aria-hidden="true" />
+        기록 목록을 불러오는 중...
+      </span>
+      <div className="mypage-season-skeleton-grid mt-4">
+        {SKELETON_ITEMS.map((item) => (
+          <span key={item} className="mypage-season-skeleton mypage-season-skeleton-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function MyPageSeasonLogRuntime({
   profileImage,
   name,
@@ -446,7 +462,7 @@ export default function MyPageSeasonLogRuntime({
         <span className="mypage-season-filter-count">기록 {filteredSeasonEntries.length}개</span>
       </div>
 
-      <Suspense fallback={<div className="mypage-season-empty">기록 목록을 불러오는 중...</div>}>
+      <Suspense fallback={<MyPageSeasonTimelineFallback />}>
         <MyPageSeasonTimelineRuntime
           entries={filteredSeasonEntries}
           flashingEntryId={flashingEntryId}
