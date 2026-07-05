@@ -195,3 +195,23 @@ test('PredictionMatchPreviewTab renders winner logo emphasis without schedule pr
   assert.doesNotMatch(previewSource, /renderSchedulePredictionProbability/);
   assert.doesNotMatch(previewSource, /AI 예측/);
 });
+
+test('Prediction schedule preview keeps desktop rail and adds mobile date sheet controls', () => {
+  assert.match(previewSource, /useState\(false\)/);
+  assert.match(previewSource, /MOBILE_DATE_SHEET_SIZE = 7/);
+  assert.match(previewSource, /data-testid="prediction-schedule-date-rail"/);
+  assert.match(previewSource, /hidden sm:-mx-6 md:block/);
+  assert.match(previewSource, /data-testid="prediction-schedule-mobile-date-button"/);
+  assert.match(previewSource, /prediction-schedule-mobile-today-btn/);
+});
+
+test('Prediction mobile date sheet exposes dialog semantics and restores focus', () => {
+  assert.match(previewSource, /aria-haspopup="dialog"/);
+  assert.match(previewSource, /aria-expanded=\{isDateSheetOpen\}/);
+  assert.match(previewSource, /role="dialog"/);
+  assert.match(previewSource, /aria-modal="true"/);
+  assert.match(previewSource, /aria-labelledby="prediction-mobile-date-sheet-title"/);
+  assert.match(previewSource, /mobileDateTriggerRef\.current\?\.focus\(\)/);
+  assert.match(previewSource, /event\.key === 'Escape'/);
+  assert.match(previewSource, /handleDateSheetKeyDown/);
+});
