@@ -279,6 +279,96 @@
   animation: mypage-season-scope-fade 0.2s ease-out both;
 }
 
+.mypage-profile-team-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.mypage-profile-team-chip {
+  --mp-team-color: var(--mp-accent);
+  display: inline-flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--mp-hair-strong);
+  border-radius: 10px;
+  background: var(--mp-surface);
+  padding: 8px 10px;
+  color: var(--mp-fg);
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: left;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
+}
+
+.mypage-profile-team-chip:hover {
+  border-color: var(--mp-team-color);
+  background: hsl(var(--primary) / 0.06);
+  transform: translateY(-1px);
+}
+
+.mypage-profile-team-chip:focus-visible {
+  outline: none;
+  border-color: var(--mp-team-color);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.16);
+}
+
+.mypage-profile-team-chip.is-active {
+  border-color: var(--mp-team-color);
+  background: hsl(var(--primary) / 0.1);
+  box-shadow: inset 0 0 0 1px var(--mp-team-color);
+}
+
+.mypage-profile-team-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mypage-profile-team-chip-mark {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  overflow: hidden;
+}
+
+.mypage-profile-team-chip-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mypage-profile-team-chip-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage-profile-team-chip-check {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: transparent;
+  transition: color 0.16s ease;
+}
+
+.mypage-profile-team-chip.is-active .mypage-profile-team-chip-check {
+  color: var(--mp-team-color);
+}
+
+.mypage-profile-team-test-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 @media (min-width: 640px) {
   .mypage-card-panel,
   .mypage-account-panel,
@@ -1956,6 +2046,7 @@ button.mypage-season-cell:focus-visible {
   .mypage-season-entry-card:hover,
   .mypage-season-stat-card:hover,
   .mypage-season-badge-orb:hover,
+  .mypage-profile-team-chip:hover,
   .mypage-settings-tab:hover,
   button.mypage-season-cell:hover,
   .mypage-season-donut:hover {
@@ -1975,6 +2066,7 @@ button.mypage-season-cell:focus-visible {
 :root[data-reduced-motion='true'] .mypage-season-entry-card:hover,
 :root[data-reduced-motion='true'] .mypage-season-stat-card:hover,
 :root[data-reduced-motion='true'] .mypage-season-badge-orb:hover,
+:root[data-reduced-motion='true'] .mypage-profile-team-chip:hover,
 :root[data-reduced-motion='true'] .mypage-settings-tab:hover,
 :root[data-reduced-motion='true'] button.mypage-season-cell:hover,
 :root[data-reduced-motion='true'] .mypage-season-donut:hover {

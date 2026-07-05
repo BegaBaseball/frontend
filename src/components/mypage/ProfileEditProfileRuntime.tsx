@@ -78,7 +78,6 @@ export default function ProfileEditProfileRuntime({
   setBio,
   userRole,
   editingFavoriteTeam,
-  setEditingFavoriteTeam,
   selectableTeamIds = ['없음', ...FRANCHISE_TEAM_IDS],
   isDesktop,
   isLoading,
@@ -239,43 +238,51 @@ export default function ProfileEditProfileRuntime({
         {userRole === 'ROLE_USER' && (
           <Card>
             <CardContent className="space-y-3 p-4">
-            <label htmlFor="team" className="text-body font-semibold text-muted-foreground">
+              <div id="favorite-team-label" className="text-body font-semibold text-muted-foreground">
                 응원구단
-              </label>
+              </div>
 
               {isDesktop ? (
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-card px-3">
-                      {editingFavoriteTeam !== '없음' ? (
-                        <div className="h-6 w-6 shrink-0">
-                          <TeamLogo team={editingFavoriteTeam} size="sm" />
-                        </div>
-                      ) : (
-                        <div className="h-6 w-6 shrink-0 rounded-full bg-muted" />
-                      )}
-                      <select
-                        id="team"
-                        value={editingFavoriteTeam}
-                        onChange={(event) => setEditingFavoriteTeam(event.target.value)}
-                        className="h-10 w-full appearance-none bg-transparent text-body text-foreground outline-none"
-                        disabled={isLoading}
-                      >
-                        {selectableTeamIds.map((teamId) => (
-                          <option key={teamId} value={teamId}>
-                            {TEAM_DATA[teamId].name}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="shrink-0 text-body text-muted-foreground" aria-hidden="true">
-                        ▾
-                      </span>
-                    </div>
+                <div className="space-y-3">
+                  <div
+                    className="mypage-profile-team-chip-grid"
+                    role="group"
+                    aria-labelledby="favorite-team-label"
+                  >
+                    {selectableTeamIds.map((teamId) => {
+                      const isSelected = editingFavoriteTeam === teamId;
+                      const teamColor = TEAM_DATA[teamId]?.color;
 
+                      return (
+                        <button
+                          key={teamId}
+                          type="button"
+                          className={`mypage-profile-team-chip ${isSelected ? 'is-active' : ''}`}
+                          style={teamColor ? ({ '--mp-team-color': teamColor } as CSSProperties) : undefined}
+                          aria-pressed={isSelected}
+                          onClick={() => handleTeamSelect(teamId)}
+                          disabled={isLoading}
+                        >
+                          <span className="mypage-profile-team-chip-mark" aria-hidden="true">
+                            {teamId !== '없음' ? (
+                              <TeamLogo team={teamId} size="sm" />
+                            ) : null}
+                          </span>
+                          <span className="mypage-profile-team-chip-name">
+                            {getTeamLabel(teamId)}
+                          </span>
+                          <MyPageCheckCircleIcon className="mypage-profile-team-chip-check" />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-body text-muted-foreground">응원구단은 응원석에서 사용됩니다. {TEAM_TEST_HINT}</p>
                     <Button
                       variant="outline"
                       onClick={() => setShowTeamTest(true)}
-                className="flex h-10 items-center justify-center px-3 text-body text-primary hover:bg-primary/10"
+                      className="mypage-profile-team-test-button flex h-10 items-center justify-center px-3 text-body text-primary hover:bg-primary/10"
                       title={TEAM_TEST_HINT}
                       disabled={isLoading}
                     >
@@ -283,8 +290,6 @@ export default function ProfileEditProfileRuntime({
                       구단 테스트 해보기
                     </Button>
                   </div>
-
-                  <p className="text-body text-muted-foreground">응원구단은 응원석에서 사용됩니다. {TEAM_TEST_HINT}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -389,7 +394,7 @@ export default function ProfileEditProfileRuntime({
                     </div>
                   )}
                   {teamId === '없음' && <div className="h-6 w-6 rounded-full bg-muted" />}
-                  <span className="truncate">{TEAM_DATA[teamId].name}</span>
+                  <span className="truncate">{getTeamLabel(teamId)}</span>
                   </span>
                 <MyPageCheckCircleIcon className={`h-4 w-4 ${editingFavoriteTeam === teamId ? 'text-primary' : 'text-transparent'}`} />
               </Button>
