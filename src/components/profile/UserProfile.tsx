@@ -20,6 +20,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { getTeamTheme } from '../../utils/teamColors';
+import { getNextPageParamFromPageResponse } from '../../utils/pageResponsePagination';
 import { useAuthProfileSnapshot, useAuthSession } from '../../store/authStore';
 
 const FollowButton = lazy(() => import('./FollowButton'));
@@ -87,7 +88,7 @@ export default function UserProfile() {
     } = useInfiniteQuery({
         queryKey: ['userPosts', normalizedHandle],
         queryFn: ({ pageParam = 0 }) => fetchUserPostsByHandle(normalizedHandle!, pageParam),
-        getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
+        getNextPageParam: getNextPageParamFromPageResponse,
         enabled: !!profile?.handle, // Only fetch posts if user exists
         initialPageParam: 0,
     });

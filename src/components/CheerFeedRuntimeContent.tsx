@@ -7,6 +7,7 @@ import type { CheerPost } from '../api/cheerApi';
 import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
+import { getNextPageParamFromPageResponse } from '../utils/pageResponsePagination';
 import AdSlot from './ads/AdSlot';
 import EndOfFeed from './EndOfFeed';
 import ErrorBoundary from './common/ErrorBoundary';
@@ -48,6 +49,7 @@ export default function CheerFeedRuntimeContent({
     const [newPostCount, setNewPostCount] = useState(0);
     const [showNextPageLoader, setShowNextPageLoader] = useState(false);
     const [isSentinelIntersecting, setIsSentinelIntersecting] = useState(false);
+    const [isNextPageRequestInFlight, setIsNextPageRequestInFlight] = useState(false);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -92,16 +94,7 @@ export default function CheerFeedRuntimeContent({
                 sort: activeSort,
             });
         },
-        getNextPageParam: (lastPage, allPages) => {
-            if (!lastPage) {
-                return undefined;
-            }
-            if (lastPage.last) return undefined;
-            if (typeof lastPage.number === 'number') {
-                return lastPage.number + 1;
-            }
-            return allPages.length;
-        },
+        getNextPageParam: getNextPageParamFromPageResponse,
         initialPageParam: 0,
         staleTime: 60 * 1000,
         gcTime: 5 * 60 * 1000,
@@ -111,7 +104,7 @@ export default function CheerFeedRuntimeContent({
     const isFetchingNextPageRef = useRef(false);
     const nextPageRequestInFlightRef = useRef(false);
     const fetchNextPageRef = useRef<typeof fetchNextPage | null>(null);
-    const isNextPageRequestActive = isFetchingNextPage || nextPageRequestInFlightRef.current;
+    const isNextPageRequestActive = isFetchingNextPage || isNextPageRequestInFlight;
 
     const currentPosts = useMemo(() => {
         if (!data?.pages) return [];
@@ -124,7 +117,8 @@ export default function CheerFeedRuntimeContent({
             return true;
         });
     }, [data]);
-    const showNextPageError = Boolean(queryError && currentPosts.length > 0 && !showNextPageLoader);
+    const shouldShowNextPageLoader = Boolean(hasNextPage && showNextPageLoader);
+    const showNextPageError = Boolean(queryError && currentPosts.length > 0 && !shouldShowNextPageLoader);
 
     const feedItems = useMemo<FeedItem[]>(() => {
         const items: FeedItem[] = [];
@@ -173,6 +167,11 @@ export default function CheerFeedRuntimeContent({
     useEffect(() => {
         let hideLoaderTimer: ReturnType<typeof setTimeout> | undefined;
 
+        if (!hasNextPage) {
+            setShowNextPageLoader(false);
+            return undefined;
+        }
+
         if (isNextPageRequestActive) {
             setShowNextPageLoader(true);
             return undefined;
@@ -189,7 +188,7 @@ export default function CheerFeedRuntimeContent({
                 clearTimeout(hideLoaderTimer);
             }
         };
-    }, [isNextPageRequestActive, showNextPageLoader]);
+    }, [hasNextPage, isNextPageRequestActive, showNextPageLoader]);
 
     const requestNextPage = useCallback(() => {
         if (isFetchingNextPageRef.current || !hasNextPageRef.current || !fetchNextPageRef.current) {
@@ -198,6 +197,7 @@ export default function CheerFeedRuntimeContent({
 
         nextPageRequestInFlightRef.current = true;
         isFetchingNextPageRef.current = true;
+        setIsNextPageRequestInFlight(true);
         setShowNextPageLoader(true);
         void fetchNextPageRef.current()
             .catch((error) => {
@@ -206,6 +206,7 @@ export default function CheerFeedRuntimeContent({
             .finally(() => {
                 nextPageRequestInFlightRef.current = false;
                 isFetchingNextPageRef.current = false;
+                setIsNextPageRequestInFlight(false);
             });
     }, []);
 
@@ -342,17 +343,17 @@ export default function CheerFeedRuntimeContent({
                         </div>
                     ) : null}
                     <div
-                        aria-hidden={!showNextPageLoader}
-                        aria-live={showNextPageLoader ? 'polite' : 'off'}
+                        aria-hidden={!shouldShowNextPageLoader}
+                        aria-live={shouldShowNextPageLoader ? 'polite' : 'off'}
                         data-testid="cheer-feed-next-loader"
-                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${showNextPageLoader ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${shouldShowNextPageLoader ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
                     >
                         <div className="flex items-center gap-2 text-body font-semibold text-slate-500 dark:text-white">
                             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             <span className="font-bold">불러오는 중...</span>
                         </div>
                     </div>
-                    {!hasNextPage && currentPosts.length > 0 && !showNextPageLoader && !showNextPageError && (
+                    {!hasNextPage && currentPosts.length > 0 && !shouldShowNextPageLoader && !showNextPageError && (
                         <EndOfFeed />
                     )}
                 </div>
