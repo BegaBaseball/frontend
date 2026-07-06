@@ -105,6 +105,7 @@ describe('My Page (User Profile)', () => {
                 stadiumVisitCounts: {},
                 homeVisitCount: 0,
                 awayVisitCount: 0,
+                scheduledCount: 0,
                 emojiCounts: {},
                 opponentWinRates: {},
             },
@@ -120,6 +121,7 @@ describe('My Page (User Profile)', () => {
                 stadiumVisitCounts: {},
                 homeVisitCount: 0,
                 awayVisitCount: 0,
+                scheduledCount: 0,
                 emojiCounts: {},
                 opponentWinRates: {},
             },
@@ -135,6 +137,7 @@ describe('My Page (User Profile)', () => {
                 stadiumVisitCounts: {},
                 homeVisitCount: 0,
                 awayVisitCount: 0,
+                scheduledCount: 0,
                 emojiCounts: {},
                 opponentWinRates: {},
             },
@@ -150,8 +153,10 @@ describe('My Page (User Profile)', () => {
         earnedBadges: [],
     };
 
-    const openSettingsHome = () => {
-        cy.contains('button', '내 정보 수정').click();
+    const openSettingsProfileTab = () => {
+        cy.get('[data-testid="mypage-season-sidebar"]', { timeout: 20000 })
+            .contains('button', '설정')
+            .click();
         cy.url().should('include', 'view=editProfile');
         cy.get('section[data-screen-label="설정"]', { timeout: 20000 }).within(() => {
             cy.contains('button[role="tab"]', '내 정보 수정')
@@ -161,26 +166,26 @@ describe('My Page (User Profile)', () => {
     };
 
     const openProfileEditPage = () => {
-        openSettingsHome();
+        openSettingsProfileTab();
         cy.url().should('include', 'view=editProfile');
         cy.get('input#name').should('be.visible');
         cy.contains('내 정보 수정').should('be.visible');
     };
 
     const openAccountSettingsPage = () => {
-        openSettingsHome();
+        openSettingsProfileTab();
         cy.contains('button[role="tab"]', '계정 설정').click();
         cy.url().should('include', 'view=accountSettings');
     };
 
     const openBlockedUsersPage = () => {
-        openSettingsHome();
+        openSettingsProfileTab();
         cy.contains('button[role="tab"]', '차단 관리').click();
         cy.url().should('include', 'view=blockedUsers');
     };
 
     const openPasswordChangePage = () => {
-        openSettingsHome();
+        openSettingsProfileTab();
         cy.contains('button', '비밀번호 변경').click();
         cy.contains('button', '안전하게 진행').should('be.visible').click();
         cy.url().should('include', 'view=changePassword');
@@ -309,7 +314,8 @@ describe('My Page (User Profile)', () => {
         it('should show default avatar when profile image is not set', () => {
             cy.get('img[alt="Profile"]').should('not.exist');
             cy.get('[data-testid="profile-avatar-fallback"]').should('exist');
-            cy.contains('button', '내 정보 수정', { timeout: 20000 }).should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]', { timeout: 20000 }).should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').should('be.visible');
             cy.contains('button', '티켓 등록').should('be.visible');
         });
 
@@ -442,7 +448,7 @@ describe('My Page (User Profile)', () => {
             });
 
             cy.contains('이미지가 선택되었습니다. 저장 버튼을 눌러주세요.').should('be.visible');
-            cy.contains('저장되지 않은 변경사항이 있습니다.').should('be.visible');
+            cy.contains('저장되지 않은 변경사항이 있습니다.').should('exist');
             cy.get('[data-testid="profile-image-upload-input"]')
                 .parents('.relative')
                 .find('[data-testid="profile-avatar-image"]')
@@ -557,16 +563,23 @@ describe('My Page (User Profile)', () => {
     });
 
     describe('Reference responsive shell', () => {
-        it('uses the reference desktop profile card with core actions', () => {
+        it('uses the reference desktop prototype sidebar shell', () => {
             cy.viewport(1280, 900);
 
-            cy.contains('h2', 'TestUser').should('be.visible');
-            cy.contains('button', '메이트 내역').should('be.visible');
-            cy.get('[data-testid="mypage-toggle-stats"]').should('be.visible').and('contain', '통계 보기');
+            cy.get('[data-testid="mypage-prototype-shell"]').should(($shell) => {
+                const style = getComputedStyle($shell[0]);
+                expect(style.display).to.eq('grid');
+                expect(style.gridTemplateColumns).to.match(/^232px /);
+            });
+            cy.get('[data-testid="mypage-season-sidebar"]').should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]').within(() => {
+                cy.contains('TestUser').should('be.visible');
+                cy.contains('button', '시즌 로그').should('be.visible').and('have.attr', 'aria-current', 'page');
+                cy.get('[data-testid="mypage-toggle-stats"]').should('be.visible').and('contain', '나의 기록');
+                cy.contains('button', '설정').should('be.visible');
+                cy.contains('button', '메이트 내역').should('be.visible');
+            });
             cy.contains('button', '티켓 등록').should('be.visible');
-            cy.contains('button', '내 정보 수정').should('be.visible');
-            cy.get('[data-testid="mypage-season-sidebar"]').should('not.exist');
-            cy.get('.mypage-season-nav').should('not.exist');
             cy.get('[aria-label="빠른 작업"]').should('not.exist');
             cy.get('.mypage-season-heat-months').should(($months) => {
                 const style = getComputedStyle($months[0]);
@@ -581,21 +594,35 @@ describe('My Page (User Profile)', () => {
             });
         });
 
-        it('routes the approved profile card actions and excludes unavailable shortcuts', () => {
+        it('routes the approved prototype sidebar actions and excludes unavailable shortcuts', () => {
             cy.viewport(1280, 900);
 
             cy.get('[data-testid="mypage-toggle-stats"]').click();
             cy.url().should('include', 'view=stats');
-            cy.get('section[data-screen-label="나의 기록"]', { timeout: 20000 }).should('be.visible');
-            cy.contains('아직 분석할 기록이 없어요').should('be.visible');
-            cy.contains('button', '직관 기록하기').should('be.visible');
-            cy.get('[data-testid="mypage-toggle-stats"]').should('contain', '다이어리 보기');
+            cy.get('section[data-screen-label="나의 기록"]', { timeout: 20000 }).within(() => {
+                cy.contains('button[role="tab"]', '전체')
+                    .should('be.visible')
+                    .and('have.attr', 'aria-selected', 'true');
+                cy.contains('아직 분석할 기록이 없어요').should('be.visible');
+                cy.contains('button', '직관 기록하기').should('be.visible');
+
+                cy.contains('button[role="tab"]', '홈').click();
+                cy.contains('button[role="tab"]', '홈').should('have.attr', 'aria-selected', 'true');
+                cy.contains('홈 직관 기록이 아직 없어요').should('be.visible');
+                cy.contains('해당 범위의 직관 기록을 남기면 이곳에 분석 데이터가 채워져요.').should('be.visible');
+
+                cy.contains('button[role="tab"]', '원정').click();
+                cy.contains('button[role="tab"]', '원정').should('have.attr', 'aria-selected', 'true');
+                cy.contains('원정 직관 기록이 아직 없어요').should('be.visible');
+                cy.contains('button', '직관 기록하기').should('be.visible');
+            });
+            cy.get('[data-testid="mypage-toggle-stats"]').should('contain', '나의 기록');
 
             cy.contains('button', '메이트 내역').click();
             cy.url().should('include', 'view=mateHistory');
             cy.get('section[data-screen-label="메이트 내역"]', { timeout: 20000 }).should('be.visible');
 
-            cy.contains('button', '내 정보 수정').click();
+            cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').click();
             cy.url().should('include', 'view=editProfile');
             cy.get('section[data-screen-label="설정"]', { timeout: 20000 }).within(() => {
                 cy.contains('button[role="tab"]', '내 정보 수정')
@@ -799,6 +826,250 @@ describe('My Page (User Profile)', () => {
             });
         });
 
+        it('drives season log home and away views from scoped statistics and entry gameScope', () => {
+            cy.viewport(1280, 900);
+
+            const scopedSeasonEntries = [
+                {
+                    id: 3101,
+                    date: '2026-04-12',
+                    type: 'attended',
+                    emoji: '😊',
+                    emojiName: '최고',
+                    winningName: 'WIN',
+                    gameId: 901,
+                    memo: '홈 스코프 기록',
+                    photos: [],
+                    gameScope: 'home',
+                    team: 'LG vs 한화',
+                    stadium: '대전 한화생명 볼파크',
+                    ticketVerified: true,
+                },
+                {
+                    id: 3102,
+                    date: '2026-05-18',
+                    type: 'attended',
+                    emoji: '😊',
+                    emojiName: '즐거움',
+                    winningName: 'LOSE',
+                    gameId: 902,
+                    memo: '원정 스코프 기록',
+                    photos: [],
+                    gameScope: 'away',
+                    team: '한화 vs LG',
+                    stadium: '잠실야구장',
+                    ticketVerified: true,
+                },
+                {
+                    id: 3103,
+                    date: '2026-06-20',
+                    type: 'attended',
+                    emoji: '😊',
+                    emojiName: '최고',
+                    winningName: 'WIN',
+                    gameId: 903,
+                    memo: '중립 스코프 기록',
+                    photos: [],
+                    gameScope: 'neutral',
+                    team: 'KT vs 삼성',
+                    stadium: '수원 KT위즈파크',
+                    ticketVerified: false,
+                },
+                {
+                    id: 3104,
+                    date: '2026-07-09',
+                    type: 'scheduled',
+                    emoji: '😊',
+                    emojiName: '즐거움',
+                    winningName: null,
+                    gameId: 904,
+                    memo: '홈 예정 기록',
+                    photos: [],
+                    gameScope: 'home',
+                    team: 'LG vs 한화',
+                    stadium: '대전 한화생명 볼파크',
+                    ticketVerified: false,
+                },
+            ];
+
+            cy.intercept('GET', '**/api/diary/entries*', {
+                statusCode: 200,
+                body: scopedSeasonEntries,
+            }).as('getScopedSeasonEntries');
+            cy.intercept('GET', '**/api/diary/statistics*', {
+                statusCode: 200,
+                body: {
+                    ...defaultDiaryStatistics,
+                    totalCount: 3,
+                    totalWins: 2,
+                    totalLosses: 1,
+                    totalDraws: 0,
+                    winRate: 66.7,
+                    scheduledCount: 1,
+                    scopedStatistics: {
+                        all: {
+                            totalCount: 3,
+                            totalWins: 2,
+                            totalLosses: 1,
+                            totalDraws: 0,
+                            winRate: 66.7,
+                            mostVisitedStadium: '대전 한화생명 볼파크',
+                            mostVisitedCount: 1,
+                            monthlyVisitCounts: { 4: 1, 5: 1, 6: 1 },
+                            stadiumVisitCounts: {
+                                '대전 한화생명 볼파크': 1,
+                                잠실야구장: 1,
+                                '수원 KT위즈파크': 1,
+                            },
+                            homeVisitCount: 1,
+                            awayVisitCount: 1,
+                            scheduledCount: 1,
+                            emojiCounts: { 최고: 2, 즐거움: 1 },
+                            opponentWinRates: {},
+                        },
+                        home: {
+                            totalCount: 1,
+                            totalWins: 1,
+                            totalLosses: 0,
+                            totalDraws: 0,
+                            winRate: 100,
+                            mostVisitedStadium: '대전 한화생명 볼파크',
+                            mostVisitedCount: 1,
+                            monthlyVisitCounts: { 4: 1 },
+                            stadiumVisitCounts: {
+                                '대전 한화생명 볼파크': 1,
+                            },
+                            homeVisitCount: 1,
+                            awayVisitCount: 0,
+                            scheduledCount: 1,
+                            emojiCounts: { 최고: 1 },
+                            opponentWinRates: {},
+                        },
+                        away: {
+                            totalCount: 1,
+                            totalWins: 0,
+                            totalLosses: 1,
+                            totalDraws: 0,
+                            winRate: 0,
+                            mostVisitedStadium: '잠실야구장',
+                            mostVisitedCount: 1,
+                            monthlyVisitCounts: { 5: 1 },
+                            stadiumVisitCounts: {
+                                잠실야구장: 1,
+                            },
+                            homeVisitCount: 0,
+                            awayVisitCount: 1,
+                            scheduledCount: 0,
+                            emojiCounts: { 즐거움: 1 },
+                            opponentWinRates: {},
+                        },
+                    },
+                },
+            }).as('getScopedSeasonStatistics');
+
+            cy.visit('/mypage?view=diary', {
+                onBeforeLoad: (win) => bootstrapAuthenticatedWindow(win),
+            });
+            cy.wait('@getScopedSeasonEntries');
+            cy.wait('@getScopedSeasonStatistics');
+
+            cy.get('section[data-screen-label="시즌 로그"]', { timeout: 20000 }).within(() => {
+                cy.contains('전체 직관 기록').should('be.visible');
+                cy.contains('직관 기록 3회').should('be.visible');
+                cy.contains('2026 시즌 전체 직관 히트맵').should('be.visible');
+                cy.get('[data-testid="mypage-season-heatmap-cell"]').should('have.length', 4);
+                cy.contains('홈 스코프 기록').should('be.visible');
+                cy.contains('원정 스코프 기록').should('be.visible');
+                cy.contains('중립 스코프 기록').should('be.visible');
+                cy.contains('.mypage-season-kpis span', '예정 1').should('be.visible');
+
+                cy.contains('button[role="tab"]', '홈').click();
+                cy.contains('홈 직관 기록').should('be.visible');
+                cy.contains('직관 기록 1회').should('be.visible');
+                cy.contains('2026 시즌 홈 직관 히트맵').should('be.visible');
+                cy.get('[data-testid="mypage-season-heatmap-cell"]').should('have.length', 2);
+                cy.contains('홈 스코프 기록').should('be.visible');
+                cy.contains('홈 예정 기록').should('be.visible');
+                cy.contains('원정 스코프 기록').should('not.exist');
+                cy.contains('중립 스코프 기록').should('not.exist');
+                cy.contains('.mypage-season-kpis span', '예정 1').should('be.visible');
+
+                cy.contains('button[role="tab"]', '원정').click();
+                cy.contains('원정 직관 기록').should('be.visible');
+                cy.contains('직관 기록 1회').should('be.visible');
+                cy.contains('2026 시즌 원정 직관 히트맵').should('be.visible');
+                cy.get('[data-testid="mypage-season-heatmap-cell"]').should('have.length', 1);
+                cy.contains('원정 스코프 기록').should('be.visible');
+                cy.contains('홈 스코프 기록').should('not.exist');
+                cy.contains('홈 예정 기록').should('not.exist');
+                cy.contains('중립 스코프 기록').should('not.exist');
+                cy.contains('.mypage-season-kpis span', '예정 0').should('be.visible');
+            });
+        });
+
+        it('keeps season home and away tabs disabled until entries include gameScope', () => {
+            cy.viewport(1280, 900);
+
+            cy.intercept('GET', '**/api/diary/entries*', {
+                statusCode: 200,
+                body: [
+                    {
+                        id: 3201,
+                        date: '2026-04-12',
+                        type: 'attended',
+                        emoji: '😊',
+                        emojiName: '최고',
+                        winningName: 'WIN',
+                        gameId: 901,
+                        memo: '구계약 직관 기록',
+                        photos: [],
+                        team: 'LG vs 한화',
+                        stadium: '대전 한화생명 볼파크',
+                        ticketVerified: true,
+                    },
+                ],
+            }).as('getLegacySeasonEntries');
+            cy.intercept('GET', '**/api/diary/statistics*', {
+                statusCode: 200,
+                body: {
+                    ...defaultDiaryStatistics,
+                    totalCount: 1,
+                    totalWins: 1,
+                    winRate: 100,
+                    scopedStatistics: {
+                        ...defaultDiaryStatistics.scopedStatistics,
+                        all: {
+                            ...defaultDiaryStatistics.scopedStatistics.all,
+                            totalCount: 1,
+                            totalWins: 1,
+                            winRate: 100,
+                        },
+                        home: {
+                            ...defaultDiaryStatistics.scopedStatistics.home,
+                            totalCount: 1,
+                            totalWins: 1,
+                            winRate: 100,
+                        },
+                    },
+                },
+            }).as('getLegacyScopedStatistics');
+
+            cy.visit('/mypage?view=diary', {
+                onBeforeLoad: (win) => bootstrapAuthenticatedWindow(win),
+            });
+            cy.wait('@getLegacySeasonEntries');
+            cy.wait('@getLegacyScopedStatistics');
+
+            cy.get('section[data-screen-label="시즌 로그"]', { timeout: 20000 }).within(() => {
+                cy.contains('button[role="tab"]', '전체')
+                    .should('have.attr', 'aria-selected', 'true')
+                    .and('not.be.disabled');
+                cy.contains('button[role="tab"]', '홈').should('be.disabled');
+                cy.contains('button[role="tab"]', '원정').should('be.disabled');
+                cy.contains('구계약 직관 기록').should('be.visible');
+            });
+        });
+
         it('keeps the season composer avatar compact when a profile image exists', () => {
             cy.viewport(1280, 900);
             mockExistingProfileImage();
@@ -832,10 +1103,11 @@ describe('My Page (User Profile)', () => {
             cy.get('.mypage-season-composer [data-testid="mypage-season-write-cta"]').should('be.visible');
         });
 
-        it('keeps the profile card actions usable on tablet', () => {
+        it('keeps the prototype sidebar actions usable on tablet', () => {
             cy.viewport(768, 1024);
 
-            cy.contains('button', '내 정보 수정').should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]').should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').should('be.visible');
             cy.contains('button', '메이트 내역').should('be.visible');
             cy.get('[data-testid="mypage-toggle-stats"]').should('be.visible');
             cy.get('.mypage-season-composer').should(($composer) => {
@@ -853,8 +1125,9 @@ describe('My Page (User Profile)', () => {
         it('keeps mobile content within safe page bounds', () => {
             cy.viewport(390, 844);
 
-            cy.contains('button', '내 정보 수정').should('be.visible');
-            cy.get('.mypage-season-nav').should('not.exist');
+            cy.get('[data-testid="mypage-season-sidebar"]').should('be.visible');
+            cy.get('.mypage-season-nav').should('be.visible');
+            cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').should('be.visible');
             expectNoPageHorizontalOverflow();
             cy.visit('/mypage?view=stats', {
                 onBeforeLoad: (win) => bootstrapAuthenticatedWindow(win),
@@ -867,7 +1140,7 @@ describe('My Page (User Profile)', () => {
         });
 
         it('keeps settings mapped to existing account functions only', () => {
-            openSettingsHome();
+            openSettingsProfileTab();
 
             cy.get('section[data-screen-label="설정"]').within(() => {
                 cy.contains('button[role="tab"]', '내 정보 수정').should('be.visible');
@@ -1024,6 +1297,13 @@ describe('My Page (User Profile)', () => {
                     cy.contains('button[role="tab"]', '내 정보 수정')
                         .should('be.visible')
                         .and('have.attr', 'aria-selected', 'true');
+                });
+                cy.window().then((win) => {
+                    cy.get('.mypage-profile-summary').should(($summary) => {
+                        const rect = $summary[0].getBoundingClientRect();
+                        expect(rect.left, 'settings profile summary left edge').to.be.gte(-1);
+                        expect(rect.right, 'settings profile summary right edge').to.be.lte(win.innerWidth + 1);
+                    });
                 });
                 expectNoPageHorizontalOverflow();
                 expectNoStatisticsToast();

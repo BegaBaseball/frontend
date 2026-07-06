@@ -22,6 +22,8 @@ type ActivationMetric = {
     requests: ApiCall[];
 };
 
+type CypressWaitAlias = `@${string}`;
+
 type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 type ThemePreference = 'dark' | 'light';
@@ -238,7 +240,7 @@ describe('MyPage tab backend health', () => {
         label: string,
         action: () => void,
         ready: () => void,
-        waitAliases: string[] = [],
+        waitAliases: CypressWaitAlias[] = [],
     ) => {
         startActivation(label);
         action();
@@ -266,7 +268,7 @@ describe('MyPage tab backend health', () => {
         const listeners = new Set<(event: MediaQueryListEvent) => void>();
 
         const createChangeEvent = () => {
-            const event = new win.Event('change') as MediaQueryListEvent;
+            const event = new (win as Window & { Event: typeof Event }).Event('change') as MediaQueryListEvent;
             Object.defineProperty(event, 'matches', { configurable: true, value: prefersDarkState });
             Object.defineProperty(event, 'media', { configurable: true, value: mediaQuery });
             return event;
@@ -854,8 +856,8 @@ describe('MyPage tab backend health', () => {
         );
 
         measureActivation(
-            'settingsHome',
-            () => cy.contains('button', '내 정보 수정').click(),
+            'settingsProfileTab',
+            () => cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').click(),
             () => {
                 visibleScreen('설정');
                 cy.contains('button[role="tab"]', '내 정보 수정', { timeout: 20000 })
@@ -877,7 +879,6 @@ describe('MyPage tab backend health', () => {
         measureActivation(
             'blockedUsers',
             () => {
-                cy.contains('button', '내 정보 수정').click();
                 cy.contains('button[role="tab"]', '차단 관리').click();
             },
             () => cy.contains('차단한 사용자가 없습니다.', { timeout: 20000 }).should('be.visible'),
@@ -902,8 +903,8 @@ describe('MyPage tab backend health', () => {
             const statsMetric = activationMetrics.find((metric) => metric.label === 'statsFromSeasonLog');
             expect(statsMetric?.requestCount, 'stats tab should reuse season log diary/statistics cache').to.equal(0);
 
-            const settingsMetric = activationMetrics.find((metric) => metric.label === 'settingsHome');
-            expect(settingsMetric?.requestCount, 'settings home should not trigger backend fetches').to.equal(0);
+            const settingsMetric = activationMetrics.find((metric) => metric.label === 'settingsProfileTab');
+            expect(settingsMetric?.requestCount, 'settings profile tab should not trigger backend fetches').to.equal(0);
 
             const profileCallCountByActivation = (label: string) =>
                 activationMetrics
@@ -1016,14 +1017,14 @@ describe('MyPage tab backend health', () => {
         runThemeToggleForScreen(
             '설정',
             'section[data-screen-label="설정"]',
-            () => cy.contains('button', '내 정보 수정').click(),
+            () => cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').click(),
         );
 
         runThemeToggleForScreen(
             '내 정보 수정',
             'section[data-screen-label="설정"]',
             () => {
-                cy.contains('button', '내 정보 수정').click();
+                cy.get('[data-testid="mypage-season-sidebar"]').contains('button', '설정').click();
                 cy.get('section[data-screen-label="설정"]').should('be.visible');
             },
             () => {

@@ -1,7 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
-import type { DiaryEntry, WinningType } from '../../types/diary';
+import type {
+  DiaryEntry,
+  DiaryScopedStatistics,
+  DiaryStatistics,
+  DiaryStatsScope,
+  WinningType,
+} from '../../types/diary';
 import { formatDateString } from '../../utils/diary';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { MyPageTicketIcon } from './MyPageIcons';
@@ -36,6 +42,11 @@ const RESULT_FILTERS = [
   { key: 'draw', label: '무' },
   { key: 'lose', label: '패' },
 ] as const;
+const STATS_SCOPE_OPTIONS = [
+  { value: 'all', label: '전체' },
+  { value: 'home', label: '홈' },
+  { value: 'away', label: '원정' },
+] as const;
 const SKELETON_ITEMS = [0, 1, 2, 3] as const;
 
 type ResultFilter = (typeof RESULT_FILTERS)[number]['key'];
@@ -43,6 +54,48 @@ type ResultFilter = (typeof RESULT_FILTERS)[number]['key'];
 const parseEntryDate = (dateString: string): Date => new Date(`${dateString}T12:00:00`);
 
 const getEntryYear = (entry: DiaryEntry): number => parseEntryDate(entry.date).getFullYear();
+
+const getScopeLabel = (statsScope: DiaryStatsScope): string => (
+  STATS_SCOPE_OPTIONS.find((option) => option.value === statsScope)?.label || '전체'
+);
+
+const hasCompleteScopedStatistics = (statistics: DiaryStatistics): boolean => (
+  Boolean(
+    statistics.scopedStatistics?.all
+    && statistics.scopedStatistics.home
+    && statistics.scopedStatistics.away,
+  )
+);
+
+const hasScopedEntryData = (entries: DiaryEntry[]): boolean => (
+  entries.every((entry) => entry.gameScope === 'home' || entry.gameScope === 'away' || entry.gameScope === 'neutral')
+);
+
+const buildEntryStats = (entries: DiaryEntry[]): DiaryScopedStatistics => {
+  const attendedEntries = entries.filter((entry) => entry.type === 'attended');
+  const totalWins = attendedEntries.filter((entry) => entry.winningName === 'WIN').length;
+  const totalDraws = attendedEntries.filter((entry) => entry.winningName === 'DRAW').length;
+  const totalLosses = attendedEntries.filter((entry) => entry.winningName === 'LOSE').length;
+  const totalCount = attendedEntries.length;
+  const decisionCount = totalWins + totalDraws + totalLosses;
+
+  return {
+    totalCount,
+    totalWins,
+    totalDraws,
+    totalLosses,
+    winRate: decisionCount > 0 ? Math.round((totalWins / decisionCount) * 1000) / 10 : 0,
+    mostVisitedStadium: null,
+    mostVisitedCount: 0,
+    monthlyVisitCounts: {},
+    stadiumVisitCounts: {},
+    homeVisitCount: attendedEntries.filter((entry) => entry.gameScope === 'home').length,
+    awayVisitCount: attendedEntries.filter((entry) => entry.gameScope === 'away').length,
+    scheduledCount: entries.filter((entry) => entry.type === 'scheduled').length,
+    emojiCounts: {},
+    opponentWinRates: {},
+  };
+};
 
 const getLatestSeasonYear = (entries: DiaryEntry[]): number => {
   const latestEntry = [...entries]
@@ -195,28 +248,40 @@ export default function MyPageSeasonLogRuntime({
   onOpenDiaryEditor,
   onOpenTicketUploadModal,
 }: MyPageSeasonLogRuntimeProps) {
-  const { diaryEntries, isLoading } = useDiaryStatistics();
+  const { diaryEntries, statistics, isLoading } = useDiaryStatistics();
   const [flashingEntryId, setFlashingEntryId] = useState<number | null>(null);
+  const [statsScope, setStatsScope] = useState<DiaryStatsScope>('all');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
   const [opponentFilter, setOpponentFilter] = useState('all');
   const [pendingScrollEntryId, setPendingScrollEntryId] = useState<number | null>(null);
   const flashTimeoutRef = useRef<number | null>(null);
+  const scopedStatsAvailable = hasCompleteScopedStatistics(statistics);
+  const scopeLabel = getScopeLabel(statsScope);
 
   const seasonYear = useMemo(() => getLatestSeasonYear(diaryEntries), [diaryEntries]);
   const seasonEntries = useMemo(
     () => diaryEntries.filter((entry) => getEntryYear(entry) === seasonYear),
     [diaryEntries, seasonYear],
   );
+  const canUseScopedSeasonEntries = scopedStatsAvailable && hasScopedEntryData(seasonEntries);
+  const scopedSeasonEntries = useMemo(
+    () => seasonEntries.filter((entry) => statsScope === 'all' || entry.gameScope === statsScope),
+    [seasonEntries, statsScope],
+  );
+  const displayStats = useMemo(
+    () => statistics.scopedStatistics?.[statsScope] ?? buildEntryStats(scopedSeasonEntries),
+    [scopedSeasonEntries, statistics.scopedStatistics, statsScope],
+  );
   const opponentOptions = useMemo(
     () => Array.from(new Set(
-      seasonEntries
+      scopedSeasonEntries
         .map((entry) => entry.team?.trim())
         .filter((team): team is string => Boolean(team)),
     )).sort((a, b) => a.localeCompare(b, 'ko-KR')),
-    [seasonEntries],
+    [scopedSeasonEntries],
   );
   const filteredSeasonEntries = useMemo(
-    () => seasonEntries.filter((entry) => {
+    () => scopedSeasonEntries.filter((entry) => {
       const resultMatches =
         resultFilter === 'all'
         || (resultFilter === 'win' && entry.winningName === 'WIN')
@@ -228,28 +293,32 @@ export default function MyPageSeasonLogRuntime({
 
       return resultMatches && opponentMatches;
     }),
-    [opponentFilter, resultFilter, seasonEntries],
+    [opponentFilter, resultFilter, scopedSeasonEntries],
   );
-  const heatmap = useMemo(() => buildHeatmap(seasonYear, seasonEntries), [seasonEntries, seasonYear]);
+  const heatmap = useMemo(() => buildHeatmap(seasonYear, scopedSeasonEntries), [scopedSeasonEntries, seasonYear]);
 
   const monthCounts = useMemo(() => {
     const counts = new Map<number, number>();
-    seasonEntries.forEach((entry) => {
+    scopedSeasonEntries.forEach((entry) => {
       const month = parseEntryDate(entry.date).getMonth() + 1;
       counts.set(month, (counts.get(month) || 0) + 1);
     });
     return counts;
-  }, [seasonEntries]);
+  }, [scopedSeasonEntries]);
 
   const maxMonth = Array.from(monthCounts.entries()).sort((a, b) => b[1] - a[1])[0];
-  const scheduledCount = seasonEntries.filter((entry) => entry.type === 'scheduled').length;
-  const attendedSeasonEntries = seasonEntries.filter((entry) => entry.type === 'attended');
-  const winCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'WIN').length;
-  const drawCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'DRAW').length;
-  const lossCount = attendedSeasonEntries.filter((entry) => entry.winningName === 'LOSE').length;
-  const totalCount = attendedSeasonEntries.length;
-  const decisionCount = winCount + drawCount + lossCount;
-  const winRate = decisionCount > 0 ? Math.round((winCount / decisionCount) * 100) : 0;
+  const scheduledCount = displayStats.scheduledCount ?? 0;
+  const winCount = displayStats.totalWins;
+  const drawCount = displayStats.totalDraws;
+  const lossCount = displayStats.totalLosses;
+  const totalCount = displayStats.totalCount;
+  const winRate = displayStats.winRate;
+
+  useEffect(() => {
+    if (statsScope !== 'all' && !canUseScopedSeasonEntries) {
+      setStatsScope('all');
+    }
+  }, [canUseScopedSeasonEntries, statsScope]);
 
   useEffect(() => {
     if (opponentFilter !== 'all' && !opponentOptions.includes(opponentFilter)) {
@@ -324,7 +393,7 @@ export default function MyPageSeasonLogRuntime({
         <div>
           <h1>{seasonYear} 시즌 로그</h1>
           <p>
-            직관 기록 <b>{totalCount}</b>회 · <b>{winCount}</b>승 <b>{drawCount}</b>무 <b>{lossCount}</b>패 · 승률 <b>{winRate.toFixed(0)}%</b>
+            {scopeLabel} 직관 기록 <b>{totalCount}</b>회 · <b>{winCount}</b>승 <b>{drawCount}</b>무 <b>{lossCount}</b>패 · 승률 <b>{winRate.toFixed(0)}%</b>
           </p>
         </div>
         <button type="button" className="mypage-season-cta" onClick={onOpenTicketUploadModal}>
@@ -333,9 +402,27 @@ export default function MyPageSeasonLogRuntime({
         </button>
       </div>
 
+      <div className="mypage-season-filters mypage-season-stat-scope">
+        <div className="mypage-season-seg" role="tablist" aria-label="시즌 범위">
+          {STATS_SCOPE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={statsScope === option.value}
+              className={statsScope === option.value ? 'is-active' : ''}
+              onClick={() => setStatsScope(option.value)}
+              disabled={!canUseScopedSeasonEntries && option.value !== 'all'}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mypage-season-panel" data-screen-label="시즌 히트맵" data-testid="mypage-season-heatmap">
         <div className="mypage-season-heat-head">
-          <span className="mypage-season-heat-title">{seasonYear} 시즌 직관 히트맵</span>
+          <span className="mypage-season-heat-title">{seasonYear} 시즌 {scopeLabel} 직관 히트맵</span>
           <span className="mypage-season-heat-sub">3월~10월 KBO 시즌 · 셀을 클릭하면 해당 기록으로 이동해요</span>
         </div>
         <div className="mypage-season-heat-scroll">
@@ -465,6 +552,7 @@ export default function MyPageSeasonLogRuntime({
       <Suspense fallback={<MyPageSeasonTimelineFallback />}>
         <MyPageSeasonTimelineRuntime
           entries={filteredSeasonEntries}
+          scopeLabel={scopeLabel}
           flashingEntryId={flashingEntryId}
           onOpenDiaryEditor={onOpenDiaryEditor}
         />

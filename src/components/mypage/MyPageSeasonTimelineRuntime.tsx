@@ -9,6 +9,7 @@ import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 type MyPageSeasonTimelineRuntimeProps = {
   entries: DiaryEntry[];
+  scopeLabel?: string;
   flashingEntryId: number | null;
   onOpenDiaryEditor: (date?: string) => void;
 };
@@ -103,16 +104,18 @@ const groupEntriesByMonth = (entries: DiaryEntry[]) => {
 
 export default function MyPageSeasonTimelineRuntime({
   entries,
+  scopeLabel = '전체',
   flashingEntryId,
   onOpenDiaryEditor,
 }: MyPageSeasonTimelineRuntimeProps) {
   const monthGroups = groupEntriesByMonth(entries);
+  const emptyScopeLabel = scopeLabel === '전체' ? '' : `${scopeLabel} `;
 
   if (monthGroups.length === 0) {
     return (
       <MyPageSeasonEmptyState
         icon={<MyPageTicketIcon />}
-        title="조건에 맞는 직관 기록이 없습니다"
+        title={`조건에 맞는 ${emptyScopeLabel}직관 기록이 없습니다`}
         description="필터를 바꾸거나 새 기록을 남기면 시즌 타임라인이 다시 채워져요."
         actionLabel="새 기록 남기기"
         onAction={() => onOpenDiaryEditor()}
