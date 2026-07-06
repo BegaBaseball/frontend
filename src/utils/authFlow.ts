@@ -33,7 +33,6 @@ export const resolveLoginCompletionPath = ({
 export const resolveOAuthSuccessPath = ({
   status,
   pendingRedirect,
-  handle,
 }: {
   status?: string | null;
   pendingRedirect?: string | null;
@@ -43,12 +42,7 @@ export const resolveOAuthSuccessPath = ({
     return ACCOUNT_SETTINGS_REDIRECT_PATH;
   }
 
-  const normalizedHandle = (handle || '').trim();
-  const fallbackPath = normalizedHandle
-    ? `/mypage/${normalizedHandle.startsWith('@') ? normalizedHandle : `@${normalizedHandle}`}`
-    : '/mypage';
-
-  return resolvePostLoginRedirect(null, pendingRedirect, fallbackPath);
+  return resolvePostLoginRedirect(null, pendingRedirect, '/mypage');
 };
 
 export const resolveOAuthCompletionPath = ({

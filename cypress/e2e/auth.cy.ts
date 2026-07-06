@@ -520,7 +520,7 @@ describe('Authentication Flow', () => {
     });
 
     describe('OAuth Callback', () => {
-        it('should redirect to handle-specific mypage after successful callback consumption', () => {
+        it('should redirect to internal mypage after successful callback consumption', () => {
             cy.intercept('GET', '**/api/auth/oauth2/state/state-success', {
                 statusCode: 200,
                 body: {
@@ -536,7 +536,7 @@ describe('Authentication Flow', () => {
             cy.visit('/oauth/callback?state=state-success');
 
             cy.wait('@consumeOAuthState');
-            cy.url().should('include', '/mypage/@slugger');
+            cy.location('pathname').should('eq', '/mypage');
         });
 
         it('should fall back to generic mypage when callback response has no handle', () => {

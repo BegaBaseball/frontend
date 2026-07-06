@@ -48,14 +48,14 @@ test('resolveOAuthSuccessPath는 linked status면 account settings로 고정 복
   );
 });
 
-test('resolveOAuthSuccessPath는 일반 로그인에서 handle fallback을 사용한다', () => {
+test('resolveOAuthSuccessPath는 일반 로그인 fallback을 내부 마이페이지로 고정한다', () => {
   assert.equal(
     resolveOAuthSuccessPath({
       status: null,
       pendingRedirect: null,
       handle: 'slugger',
     }),
-    '/mypage/@slugger',
+    '/mypage',
   );
 });
 
