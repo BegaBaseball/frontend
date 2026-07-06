@@ -1,6 +1,5 @@
 import { lazy, Suspense, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 
 import { getMyFollowCounts } from '../../api/followApi';
 import { getFullTeamName, TEAM_DATA } from '../../constants/teams';
@@ -11,15 +10,13 @@ import {
   MyPageBarChartIcon,
   MyPageCoinsIcon,
   MyPageEditIcon,
-  MyPageFlameIcon,
-  MyPageHomeIcon,
   MyPageSettingsIcon,
-  MyPageUsersIcon,
 } from './MyPageIcons';
 
 const MyPageSidebarMoreRuntime = lazy(() => import('./MyPageSidebarMoreRuntime'));
 
 type MyPageSidebarRuntimeProps = {
+  isProfileLoading: boolean;
   currentUserId: number | null;
   profileImage: string | null;
   name: string;
@@ -60,7 +57,34 @@ const isSettingsView = (viewMode: ViewMode) =>
   || viewMode === 'blockedUsers'
   || viewMode === 'changePassword';
 
+function MyPageSidebarLoading() {
+  return (
+    <aside
+      className="mypage-season-side"
+      data-screen-label="마이페이지 사이드바"
+      data-testid="mypage-season-sidebar"
+      aria-label="마이페이지 사이드바 로딩"
+      aria-busy="true"
+    >
+      <section className="mypage-season-id" aria-label="내 프로필 요약 로딩">
+        <span className="mypage-season-skeleton mypage-season-sidebar-avatar" />
+        <div className="mypage-season-id-copy">
+          <span className="mypage-season-skeleton mypage-season-sidebar-title" />
+          <span className="mypage-season-skeleton mypage-season-sidebar-subtitle" />
+          <span className="mypage-season-skeleton mypage-season-sidebar-chip" />
+        </div>
+      </section>
+      <div className="mypage-season-nav" aria-hidden="true">
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+      </div>
+    </aside>
+  );
+}
+
 export default function MyPageSidebarRuntime({
+  isProfileLoading,
   currentUserId,
   profileImage,
   name,
@@ -78,6 +102,10 @@ export default function MyPageSidebarRuntime({
     enabled: Boolean(currentUserId),
     retry: false,
   });
+
+  if (isProfileLoading) {
+    return <MyPageSidebarLoading />;
+  }
 
   const normalizedHandle = normalizeHandle(handle);
   const hasFavoriteTeam = savedFavoriteTeam !== '없음';
@@ -128,13 +156,10 @@ export default function MyPageSidebarRuntime({
       </section>
 
       <nav className="mypage-season-nav" aria-label="마이페이지 메뉴">
-        <Link to="/home" data-testid="mypage-home-nav">
-          <MyPageHomeIcon />
-          <span>홈</span>
-        </Link>
         <button
           type="button"
           className={isLogView(viewMode) ? 'is-active' : undefined}
+          aria-current={isLogView(viewMode) ? 'page' : undefined}
           onClick={() => onSetViewMode('diary')}
         >
           <MyPageEditIcon />
@@ -144,6 +169,7 @@ export default function MyPageSidebarRuntime({
           type="button"
           data-testid="mypage-toggle-stats"
           className={viewMode === 'stats' ? 'is-active' : undefined}
+          aria-current={viewMode === 'stats' ? 'page' : undefined}
           onClick={() => onSetViewMode('stats')}
         >
           <MyPageBarChartIcon />
@@ -151,25 +177,8 @@ export default function MyPageSidebarRuntime({
         </button>
         <button
           type="button"
-          data-testid="mypage-cheer-posts-nav"
-          className={viewMode === 'cheerPosts' ? 'is-active' : undefined}
-          onClick={() => onSetViewMode('cheerPosts')}
-        >
-          <MyPageFlameIcon />
-          <span>응원석 글</span>
-        </button>
-        <button
-          type="button"
-          data-testid="mypage-mate-history-nav"
-          className={viewMode === 'mateHistory' ? 'is-active' : undefined}
-          onClick={() => onSetViewMode('mateHistory')}
-        >
-          <MyPageUsersIcon />
-          <span>메이트 내역</span>
-        </button>
-        <button
-          type="button"
           className={isSettingsView(viewMode) ? 'is-active' : undefined}
+          aria-current={isSettingsView(viewMode) ? 'page' : undefined}
           onClick={() => onSetViewMode('editProfile')}
         >
           <MyPageSettingsIcon />
@@ -177,19 +186,12 @@ export default function MyPageSidebarRuntime({
         </button>
       </nav>
 
-      <button
-        type="button"
-        className="mypage-season-sidebar-card text-left"
-        data-testid="mypage-season-sidebar-record-cta"
-        onClick={() => onSetViewMode('diaryEditor', { date: formatTodayString() })}
-      >
-        <strong>오늘의 기록</strong>
-        <span>직관 기록 남기기</span>
-        <small>티켓이나 경기 기억을 다이어리에 저장해요</small>
-      </button>
-
       <Suspense fallback={null}>
-        <MyPageSidebarMoreRuntime viewMode={viewMode} onSetViewMode={onSetViewMode} />
+        <MyPageSidebarMoreRuntime
+          viewMode={viewMode}
+          todayDate={formatTodayString()}
+          onSetViewMode={onSetViewMode}
+        />
       </Suspense>
     </aside>
   );

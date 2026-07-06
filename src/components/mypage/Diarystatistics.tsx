@@ -2,7 +2,13 @@ import { useMemo, useState, type CSSProperties } from 'react';
 
 import { EMOJI_STATS } from '../../constants/diary';
 import { useDiaryStatistics } from '../../hooks/useDiaryStatistics';
-import type { DiaryEntry, OpponentStats } from '../../types/diary';
+import type {
+  DiaryEntry,
+  DiaryScopedStatistics,
+  DiaryStatistics as DiaryStatisticsPayload,
+  DiaryStatsScope,
+  OpponentStats,
+} from '../../types/diary';
 import BadgeShowcase from './BadgeShowcase';
 import {
   MyPageBarChartIcon,
@@ -34,7 +40,58 @@ const STATS_SCOPE_OPTIONS = [
   { value: 'away', label: '원정' },
 ] as const;
 
-type StatsScope = (typeof STATS_SCOPE_OPTIONS)[number]['value'];
+const EMPTY_SCOPED_STATS: DiaryScopedStatistics = {
+  totalCount: 0,
+  totalWins: 0,
+  totalLosses: 0,
+  totalDraws: 0,
+  winRate: 0,
+  mostVisitedStadium: null,
+  mostVisitedCount: 0,
+  monthlyVisitCounts: {},
+  stadiumVisitCounts: {},
+  homeVisitCount: 0,
+  awayVisitCount: 0,
+  scheduledCount: 0,
+  emojiCounts: {},
+  opponentWinRates: {},
+};
+
+const hasCompleteScopedStatistics = (statistics: DiaryStatisticsPayload): boolean => (
+  Boolean(
+    statistics.scopedStatistics?.all
+    && statistics.scopedStatistics.home
+    && statistics.scopedStatistics.away,
+  )
+);
+
+const buildLegacyAllScope = (statistics: DiaryStatisticsPayload): DiaryScopedStatistics => ({
+  totalCount: statistics.totalCount,
+  totalWins: statistics.totalWins,
+  totalLosses: statistics.totalLosses,
+  totalDraws: statistics.totalDraws,
+  winRate: statistics.winRate,
+  mostVisitedStadium: statistics.mostVisitedStadium,
+  mostVisitedCount: statistics.mostVisitedCount,
+  monthlyVisitCounts: statistics.monthlyVisitCounts ?? {},
+  stadiumVisitCounts: statistics.stadiumVisitCounts ?? {},
+  homeVisitCount: statistics.homeVisitCount ?? 0,
+  awayVisitCount: statistics.awayVisitCount ?? 0,
+  scheduledCount: statistics.scheduledCount ?? 0,
+  emojiCounts: statistics.emojiCounts,
+  opponentWinRates: statistics.opponentWinRates ?? {},
+});
+
+const resolveDisplayStats = (
+  statistics: DiaryStatisticsPayload,
+  statsScope: DiaryStatsScope,
+): DiaryScopedStatistics => {
+  const scopedStats = statistics.scopedStatistics?.[statsScope];
+  if (scopedStats) {
+    return scopedStats;
+  }
+  return statsScope === 'all' ? buildLegacyAllScope(statistics) : EMPTY_SCOPED_STATS;
+};
 
 const getRecordValue = (record: Record<string, number> | undefined, key: string | number): number => {
   if (!record) {
@@ -80,38 +137,24 @@ function DiaryStatisticsSkeleton() {
 
 export default function DiaryStatistics({ cheerPoints = 0, onOpenDiaryEditor }: DiaryStatisticsProps) {
   const { statistics, emojiStats, diaryEntries, isLoading } = useDiaryStatistics();
-  const [statsScope, setStatsScope] = useState<StatsScope>('all');
-  const scopedStats = statistics.scopedStatistics?.[statsScope];
-  const scopedStatsAvailable = Boolean(statistics.scopedStatistics);
-  const displayStats = {
-    totalCount: scopedStats?.totalCount ?? statistics.totalCount,
-    totalWins: scopedStats?.totalWins ?? statistics.totalWins,
-    totalDraws: scopedStats?.totalDraws ?? statistics.totalDraws,
-    totalLosses: scopedStats?.totalLosses ?? statistics.totalLosses,
-    winRate: scopedStats?.winRate ?? statistics.winRate,
-    mostVisitedStadium: scopedStats?.mostVisitedStadium ?? statistics.mostVisitedStadium,
-    monthlyVisitCounts: scopedStats?.monthlyVisitCounts ?? statistics.monthlyVisitCounts ?? {},
-    stadiumVisitCounts: scopedStats?.stadiumVisitCounts ?? statistics.stadiumVisitCounts ?? {},
-    homeVisitCount: scopedStats?.homeVisitCount ?? statistics.homeVisitCount ?? 0,
-    awayVisitCount: scopedStats?.awayVisitCount ?? statistics.awayVisitCount ?? 0,
-    opponentWinRates: scopedStats?.opponentWinRates ?? statistics.opponentWinRates ?? {},
-    emojiCounts: scopedStats?.emojiCounts ?? statistics.emojiCounts,
-  };
+  const [statsScope, setStatsScope] = useState<DiaryStatsScope>('all');
+  const scopedStatsAvailable = hasCompleteScopedStatistics(statistics);
+  const displayStats = resolveDisplayStats(statistics, statsScope);
 
   const opponentRows = Object.entries(displayStats.opponentWinRates || {})
     .sort((a, b) => b[1].winRate - a[1].winRate)
     .slice(0, 6);
   const activeEmojiStats = useMemo(() => {
-    if (statsScope === 'all' || !displayStats.emojiCounts) {
-      return emojiStats.filter((item) => item.count > 0);
+    if (displayStats.emojiCounts) {
+      return EMOJI_STATS.map((item) => ({
+        name: item.name,
+        emoji: item.emoji,
+        count: displayStats.emojiCounts?.[item.name] || 0,
+      })).filter((item) => item.count > 0);
     }
 
-    return EMOJI_STATS.map((item) => ({
-      name: item.name,
-      emoji: item.emoji,
-      count: displayStats.emojiCounts?.[item.name] || 0,
-    })).filter((item) => item.count > 0);
-  }, [displayStats.emojiCounts, emojiStats, statsScope]);
+    return emojiStats.filter((item) => item.count > 0);
+  }, [displayStats.emojiCounts, emojiStats]);
   const earnedBadges = statistics.earnedBadges || [];
   const monthlyVisitCounts = displayStats.monthlyVisitCounts || {};
   const monthRows = SEASON_MONTHS.map((month) => ({

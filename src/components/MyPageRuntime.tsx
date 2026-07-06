@@ -3,11 +3,9 @@ import { lazy, Suspense, useState } from 'react';
 import { TicketInfo } from '../api/ticket';
 import { useMyPage } from '../hooks/useMyPage';
 import { useDiaryStore } from '../store/diaryStore';
-import { Card } from './ui/card';
-import { Skeleton } from './ui/skeleton';
 import './mypage/MyPageSeason.css';
 
-const MyPageProfileCardRuntime = lazy(() => import('./mypage/MyPageProfileCardRuntime'));
+const MyPageSidebarRuntime = lazy(() => import('./mypage/MyPageSidebarRuntime'));
 const MyPageViewRuntime = lazy(() => import('./mypage/MyPageViewRuntime'));
 const UserListModal = lazy(() => import('./profile/UserListModal'));
 const TicketUploadModal = lazy(() =>
@@ -28,7 +26,6 @@ export default function MyPageRuntime() {
     setViewMode,
     selectedDiaryDate,
     handleProfileUpdated,
-    handleToggleStats,
     isLoading: isProfileLoading,
   } = useMyPage();
 
@@ -79,70 +76,67 @@ export default function MyPageRuntime() {
     return null;
   }
 
-  const profileCardFallback = (
-    <Card className="mb-5 gap-2 p-2.5 dark:bg-card dark:border-border md:p-4">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 md:gap-4">
-          <Skeleton className="h-20 w-20 flex-shrink-0 rounded-full md:h-24 md:w-24" />
-          <div className="space-y-1">
-            <Skeleton className="h-7 w-36" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Skeleton className="h-10 rounded-md" />
-          <Skeleton className="h-10 rounded-md" />
-          <Skeleton className="col-span-2 h-10 rounded-md" />
-          <Skeleton className="col-span-2 h-10 rounded-md" />
+  const sidebarFallback = (
+    <aside className="mypage-season-side" aria-label="마이페이지 사이드바 로딩" aria-busy="true">
+      <div className="mypage-season-id">
+        <span className="mypage-season-skeleton mypage-season-sidebar-avatar" />
+        <div className="mypage-season-id-copy">
+          <span className="mypage-season-skeleton mypage-season-sidebar-title" />
+          <span className="mypage-season-skeleton mypage-season-sidebar-subtitle" />
         </div>
       </div>
-    </Card>
+      <div className="mypage-season-nav">
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+      </div>
+    </aside>
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <div className="mx-auto max-w-[1400px] px-4 py-8 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-        <Suspense fallback={profileCardFallback}>
-          <MyPageProfileCardRuntime
-            isProfileLoading={isProfileLoading}
-            currentUserId={user?.id ?? profile?.id ?? null}
-            profileImage={profileImage}
-            name={name}
-            handle={handle}
-            email={email}
-            savedFavoriteTeam={savedFavoriteTeam}
-            cheerPoints={cheerPoints}
-            isStatsView={viewMode === 'stats'}
-            onOpenFollowers={() => openUserListModal('followers', '팔로워')}
-            onOpenFollowing={() => openUserListModal('following', '팔로잉')}
-            onOpenMateHistory={() => setViewMode('mateHistory')}
-            onToggleStats={handleToggleStats}
-            onOpenTicketUploadModal={openTicketUploadModal}
-            onOpenEditProfile={() => setViewMode('editProfile')}
-          />
-        </Suspense>
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground transition-colors duration-200">
+      <div className="mypage-season-root">
+        <div className="mx-auto w-full min-w-0 max-w-[1240px] px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+          <div className="mypage-season-app" data-testid="mypage-prototype-shell">
+            <Suspense fallback={sidebarFallback}>
+              <MyPageSidebarRuntime
+                isProfileLoading={isProfileLoading}
+                currentUserId={user?.id ?? profile?.id ?? null}
+                profileImage={profileImage}
+                name={name}
+                handle={handle}
+                savedFavoriteTeam={savedFavoriteTeam}
+                cheerPoints={cheerPoints}
+                viewMode={viewMode}
+                onOpenFollowers={() => openUserListModal('followers', '팔로워')}
+                onOpenFollowing={() => openUserListModal('following', '팔로잉')}
+                onSetViewMode={setViewMode}
+              />
+            </Suspense>
 
-        <div className="mypage-season-root mypage-season-view-scope">
-          <Suspense fallback={null}>
-            <MyPageViewRuntime
-              viewMode={viewMode}
-              profileImage={profileImage}
-              name={name}
-              email={email}
-              savedFavoriteTeam={savedFavoriteTeam}
-              cheerPoints={cheerPoints}
-              userRole={user?.role}
-              userProvider={effectiveUserProvider}
-              initialBio={effectiveBio}
-              hasPassword={effectiveHasPassword}
-              selectedDiaryDate={selectedDiaryDate}
-              onSetViewMode={setViewMode}
-              onProfileUpdated={handleProfileUpdated}
-              onOpenTicketUploadModal={openTicketUploadModal}
-            />
-          </Suspense>
+            <main className="mypage-season-main">
+              <div className="mypage-season-view-scope">
+                <Suspense fallback={null}>
+                  <MyPageViewRuntime
+                    viewMode={viewMode}
+                    profileImage={profileImage}
+                    name={name}
+                    email={email}
+                    savedFavoriteTeam={savedFavoriteTeam}
+                    cheerPoints={cheerPoints}
+                    userRole={user?.role}
+                    userProvider={effectiveUserProvider}
+                    initialBio={effectiveBio}
+                    hasPassword={effectiveHasPassword}
+                    selectedDiaryDate={selectedDiaryDate}
+                    onSetViewMode={setViewMode}
+                    onProfileUpdated={handleProfileUpdated}
+                    onOpenTicketUploadModal={openTicketUploadModal}
+                  />
+                </Suspense>
+              </div>
+            </main>
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 export type DiaryType = 'attended' | 'scheduled';
 export type WinningType = 'WIN' | 'DRAW' | 'LOSE' | '' | null;
+export type DiaryStatsScope = 'all' | 'home' | 'away';
+export type DiaryGameScope = 'home' | 'away' | 'neutral';
 export type SeatViewSourceType = 'DIARY_UPLOAD' | 'TICKET_SCAN';
 export type SeatViewLabel = 'SEAT_VIEW' | 'TICKET' | 'OTHER' | 'INAPPROPRIATE';
 
@@ -38,6 +40,7 @@ export interface DiaryEntry {
   memo: string;
   photos: string[];
   photoStoragePaths?: string[];
+  gameScope?: DiaryGameScope;
   team: string;
   stadium: string;
   section?: string;
@@ -134,6 +137,7 @@ export interface DiaryScopedStatistics {
   stadiumVisitCounts?: Record<string, number>;
   homeVisitCount?: number;
   awayVisitCount?: number;
+  scheduledCount?: number;
   emojiCounts?: Record<string, number>;
   opponentWinRates?: Record<string, OpponentStats>;
 }
