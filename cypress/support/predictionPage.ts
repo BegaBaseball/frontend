@@ -40,6 +40,7 @@ interface PredictionVoteBootstrapWaitOptions {
   userVotesAlias?: string;
   legacyUserVoteAlias?: string;
 }
+type CypressWaitAlias = `@${string}`;
 
 interface PredictionVisitOptions {
   path?: string;
@@ -113,6 +114,22 @@ const defaultPredictionAuthState = {
     isAdmin: false,
   },
   version: 0,
+};
+
+const defaultPredictionLeaderboardStats = {
+  handle: 'testuser',
+  userName: 'TestUser',
+  rank: 1,
+  totalScore: 0,
+  seasonScore: 0,
+  monthlyScore: 0,
+  weeklyScore: 0,
+  level: 1,
+  rankTitle: 'ROOKIE',
+  currentStreak: 0,
+  maxStreak: 0,
+  experiencePoints: 0,
+  nextLevelExp: 100,
 };
 
 export const buildDefaultPredictionPath = (games: PredictionPathGame[]): string => {
@@ -457,6 +474,11 @@ export const installPredictionAuthenticatedSessionIntercept = (
     statusCode: 200,
     body: defaultPredictionAuthProfile,
   }).as(alias);
+
+  cy.intercept('GET', '**/api/leaderboard/me', {
+    statusCode: 200,
+    body: defaultPredictionLeaderboardStats,
+  }).as('getPredictionLeaderboardMe');
 };
 
 export const installPredictionGuestSessionIntercept = (
@@ -531,7 +553,7 @@ export const waitForPredictionVoteBootstrap = ({
   userVotesAlias = 'getUserVotes',
   legacyUserVoteAlias = 'getUserVote',
 }: PredictionVoteBootstrapWaitOptions = {}) => {
-  const aliases: string[] = [];
+  const aliases: CypressWaitAlias[] = [];
   if (waitForVoteStatus) {
     aliases.push(`@${voteStatusAlias}`);
   }

@@ -195,7 +195,7 @@ const runWhenStateActive = (
   state: PredictionMobileSmokeState,
   body: () => void
 ) => {
-  cy.env<unknown>(['PREDICTION_MOBILE_ACTIVE_STATES']).then((activeStateEnv) => {
+  cy.env(['PREDICTION_MOBILE_ACTIVE_STATES']).then((activeStateEnv: unknown) => {
     const activeStates = parseActiveStates(resolveActiveStateValue(activeStateEnv));
     if (!activeStates.includes(state)) {
       cy.log(`Skipping inactive prediction mobile smoke state: ${state}`);
@@ -459,6 +459,21 @@ describe('Prediction mobile smoke', () => {
         .should('be.visible')
         .and('have.attr', 'aria-label')
         .and('include', '예측 취소');
+      cy.get('[data-testid="prediction-vote-cancel-btn"]').click();
+      cy.get('[data-testid="confirm-dialog"]', { timeout: 20000 })
+        .should('be.visible')
+        .and('contain.text', '투표 취소')
+        .then(($dialog) => {
+          const dialogWidth = $dialog[0].getBoundingClientRect().width;
+          cy.window().then((win) => {
+            expect(dialogWidth, 'confirm dialog mobile width').to.be.lte(Math.min(win.innerWidth - 32, 448) + 1);
+          });
+        });
+      expectElementInsideViewport(cy.get('[data-testid="confirm-dialog"]'));
+      cy.get('[data-testid="confirm-dialog"]').within(() => {
+        cy.contains('button', '취소').click();
+      });
+      cy.get('[data-testid="confirm-dialog"]').should('not.exist');
       expectNoHorizontalOverflow();
       cy.screenshot('prediction-mobile-smoke/vote-panel-mobile-390', {
         capture: 'fullPage',
@@ -538,6 +553,7 @@ describe('Prediction mobile smoke', () => {
         .should('be.visible')
         .and('have.attr', 'href')
         .and('include', '/prediction');
+      expectElementInsideViewport(cy.get('[data-testid="prediction-top-notice"]', { timeout: 20000 }));
       cy.get('[data-testid="prediction-scoreboard"]', { timeout: 20000 })
         .should('be.visible');
       expectNoHorizontalOverflow();

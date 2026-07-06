@@ -241,7 +241,7 @@ export default function PredictionMatchInteractiveContentRuntime({
   return (
     <div className="relative font-sans">
       {sharedTopNotice ? (
-        <div className="mb-3 flex justify-center sm:justify-end">
+        <div className="mb-3 flex min-w-0 justify-center overflow-hidden px-4 sm:justify-end sm:px-0">
           {sharedTopNotice.content}
         </div>
       ) : null}
