@@ -68,6 +68,90 @@ test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화�
   assert.equal(post?.originalPost && Object.prototype.hasOwnProperty.call(post.originalPost, 'authorId'), false);
 });
 
+test('fetchPosts는 중첩 page 메타 응답을 페이지 정보로 정규화한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        id: 3,
+        teamId: 'LG',
+        content: 'single',
+        author: 'Writer',
+        authorHandle: '@writer',
+        createdAt: '2026-03-10T00:00:00Z',
+        updatedAt: '2026-03-10T00:00:00Z',
+        commentCount: 0,
+        likeCount: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: false,
+        postType: 'NORMAL',
+        imageUrls: [],
+      },
+    ],
+    page: {
+      size: 20,
+      number: 0,
+      totalElements: 1,
+      totalPages: 1,
+    },
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  const response = await fetchPosts();
+
+  assert.equal(response.content.length, 1);
+  assert.equal(response.last, true);
+  assert.equal(response.number, 0);
+  assert.equal(response.size, 20);
+  assert.equal(response.totalElements, 1);
+  assert.equal(response.totalPages, 1);
+});
+
+test('fetchPosts는 짧은 페이지 응답에서 last가 없어도 마지막 페이지로 정규화한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        id: 4,
+        teamId: 'LG',
+        content: 'short',
+        author: 'Writer',
+        authorHandle: '@writer',
+        createdAt: '2026-03-10T00:00:00Z',
+        updatedAt: '2026-03-10T00:00:00Z',
+        commentCount: 0,
+        likeCount: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: false,
+        postType: 'NORMAL',
+        imageUrls: [],
+      },
+    ],
+    size: 20,
+    number: 0,
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  const response = await fetchPosts();
+
+  assert.equal(response.last, true);
+  assert.equal(response.totalPages, 1);
+});
+
 test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규화한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
     content: [
@@ -93,6 +177,41 @@ test('fetchComments는 공개 응답에서 authorEmail 없이 댓글을 정규�
 
   assert.equal(comment?.authorHandle, '@commenter');
   assert.equal(Object.prototype.hasOwnProperty.call(comment ?? {}, 'authorEmail'), false);
+});
+
+test('fetchComments는 중첩 page 메타 응답을 페이지 정보로 정규화한다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        id: 12,
+        author: 'Commenter',
+        authorHandle: '@commenter',
+        content: 'nested page',
+        createdAt: '2026-03-10T00:00:00Z',
+        likeCount: 0,
+        likedByMe: false,
+        replies: [],
+      },
+    ],
+    page: {
+      size: 20,
+      number: 0,
+      totalElements: 1,
+      totalPages: 1,
+    },
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  const response = await fetchComments(1);
+
+  assert.equal(response.content.length, 1);
+  assert.equal(response.last, true);
+  assert.equal(response.number, 0);
+  assert.equal(response.size, 20);
+  assert.equal(response.totalElements, 1);
+  assert.equal(response.totalPages, 1);
 });
 
 test('createComment는 비공개 응답을 댓글 뷰 모델로 정규화한다', async (t) => {

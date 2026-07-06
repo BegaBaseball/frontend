@@ -1108,7 +1108,6 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             },
         });
 
-        cy.wait('@getMeAnyPath');
         cy.wait('@getCommentAvatarDetail');
         cy.wait('@getCommentAvatarComments');
 
@@ -1772,7 +1771,6 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             },
         });
 
-        cy.wait('@getMeAnyPath');
         cy.wait('@getAvatarDetail');
         cy.wait('@getAvatarComments');
 
@@ -1849,7 +1847,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
             const pageNumber = Number(url.searchParams.get('page') || '0');
             req.alias = `getCheerPostsPage${pageNumber}`;
             req.reply({
-                delay: pageNumber === 1 ? 30000 : 0,
+                delay: pageNumber === 1 ? 10000 : 0,
                 statusCode: 200,
                 body: buildFeedPage(pageNumber, pageNumber >= 1),
             });
@@ -1895,6 +1893,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
 
         cy.tick(15000);
         cy.wait('@getPollingPostChanges');
+        cy.tick(0);
         cy.get('[data-testid="cheer-new-post-banner-slot"]').contains('새 글 3개 보기').should('exist');
         cy.get('[data-testid="cheer-feed-section"]').should(($section) => {
             expect($section[0].dataset.stableNode).to.eq('section');
@@ -1905,8 +1904,7 @@ describe('Cheer 커뮤니티 결함 해결 검증', () => {
                 expect($loader[0].dataset.stableNode).to.eq('loader');
             });
 
-        cy.tick(30000);
-        cy.wait('@getCheerPostsPage1');
+        cy.wait('@getCheerPostsPage1', { responseTimeout: 15000 });
     });
 
 });

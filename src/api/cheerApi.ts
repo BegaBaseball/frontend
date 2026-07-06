@@ -1,6 +1,7 @@
 import { getTeamColorByAnyKey, TEAM_DATA } from '../constants/teams';
 import { buildPostChangesQuery } from '../utils/cheerPolling';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { normalizePageResponseMeta, type PageResponseLike } from '../utils/pageResponsePagination';
 import { formatTimeAgo } from '../utils/time';
 import { privateDelete, privateGet, privatePost, privatePut } from './privateClient';
 import { publicGet } from './publicClient';
@@ -307,21 +308,17 @@ function transformPost(post: PostDTO): CheerPost {
   };
 }
 
-function transformPostPage(data: {
-  content: PostDTO[];
-  last: boolean;
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-}): PageResponse<CheerPost> {
+function transformPostPage(data: PageResponseLike & { content?: PostDTO[] }): PageResponse<CheerPost> {
+  const content = Array.isArray(data.content) ? data.content : [];
+  const pageMeta = normalizePageResponseMeta(data, content.length);
+
   return {
-    content: data.content.map(transformPost),
-    last: data.last,
-    totalPages: data.totalPages,
-    totalElements: data.totalElements,
-    size: data.size,
-    number: data.number,
+    content: content.map(transformPost),
+    last: pageMeta.last,
+    totalPages: pageMeta.totalPages,
+    totalElements: pageMeta.totalElements,
+    size: pageMeta.size,
+    number: pageMeta.number,
   };
 }
 
@@ -501,22 +498,21 @@ export async function fetchComments(
   page = 0,
   size = 20,
   requestOptions: CheerPublicRequestOptions = {},
-) {
-  const data = await publicGet<{
-    content: CommentDTO[];
-    totalElements: number;
-    last?: boolean;
-    totalPages?: number;
-    size?: number;
-    number?: number;
-  }>(`/cheer/posts/${postId}/comments`, {
+): Promise<PageResponse<Comment>> {
+  const data = await publicGet<PageResponseLike & { content?: CommentDTO[] }>(`/cheer/posts/${postId}/comments`, {
     ...requestOptions,
     params: { page, size },
   });
+  const content = Array.isArray(data.content) ? data.content : [];
+  const pageMeta = normalizePageResponseMeta(data, content.length);
 
   return {
-    ...data,
-    content: data.content.map(transformComment),
+    content: content.map(transformComment),
+    last: pageMeta.last,
+    totalPages: pageMeta.totalPages,
+    totalElements: pageMeta.totalElements,
+    size: pageMeta.size,
+    number: pageMeta.number,
   };
 }
 

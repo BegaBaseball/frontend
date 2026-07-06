@@ -8,6 +8,7 @@ import type {
 } from './cheerApi';
 import { formatTimeAgo } from '../utils/time';
 import { getTeamColorByAnyKey } from '../constants/teams';
+import { normalizePageResponseMeta, type PageResponseLike } from '../utils/pageResponsePagination';
 import { publicGet } from './publicClient';
 
 interface PostDTO {
@@ -48,14 +49,7 @@ interface PostDTO {
   sourceInfo?: SourceInfo;
 }
 
-interface PostPageResponse {
-  content: PostDTO[];
-  last: boolean;
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-}
+type PostPageResponse = PageResponseLike & { content?: PostDTO[] };
 
 const normalizePostType = (postType?: string): CheerPost['postType'] =>
   postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
@@ -110,14 +104,19 @@ const transformPost = (post: PostDTO): CheerPost => ({
   sourceInfo: post.sourceInfo,
 });
 
-const transformPostPage = (data: PostPageResponse): PageResponse<CheerPost> => ({
-  content: data.content.map(transformPost),
-  last: data.last,
-  totalPages: data.totalPages,
-  totalElements: data.totalElements,
-  size: data.size,
-  number: data.number,
-});
+const transformPostPage = (data: PostPageResponse): PageResponse<CheerPost> => {
+  const content = Array.isArray(data.content) ? data.content : [];
+  const pageMeta = normalizePageResponseMeta(data, content.length);
+
+  return {
+    content: content.map(transformPost),
+    last: pageMeta.last,
+    totalPages: pageMeta.totalPages,
+    totalElements: pageMeta.totalElements,
+    size: pageMeta.size,
+    number: pageMeta.number,
+  };
+};
 
 export async function fetchUserPostsByHandle(handle: string, page = 0, size = 20): Promise<PageResponse<CheerPost>> {
   const routeHandle = handle.startsWith('@') ? handle.slice(1) : handle;

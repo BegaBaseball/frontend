@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { fetchMyCheerPosts } from '../api/cheerApi';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { useAuthSession } from '../store/authStore';
+import { getNextPageParamFromPageResponse } from '../utils/pageResponsePagination';
 import { CHEER_KEYS } from './cheerQueryKeys';
 
 const MY_CHEER_POSTS_PAGE_SIZE = 10;
@@ -29,13 +30,7 @@ export const useMyCheerPosts = () => {
       size: MY_CHEER_POSTS_PAGE_SIZE,
     }),
     enabled: canLoadMyPosts,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.last) {
-        return undefined;
-      }
-      const nextPage = lastPage.number + 1;
-      return nextPage < lastPage.totalPages ? nextPage : undefined;
-    },
+    getNextPageParam: getNextPageParamFromPageResponse,
     initialPageParam: 0,
     retry: false,
   });

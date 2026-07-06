@@ -89,8 +89,8 @@ export default function UserProfilePostsSection({
                     ))}
                 </>
             </Suspense>
-            {isFetchingNextPage ? (
-                <div className="flex justify-center py-4">
+            {hasNextPage && isFetchingNextPage ? (
+                <div className="flex justify-center py-4" data-testid="user-profile-posts-next-loader">
                     <SpinnerIcon
                         className="h-6 w-6 animate-spin"
                         style={{ color: primaryColor }}
