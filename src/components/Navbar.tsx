@@ -77,7 +77,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const { isLoggedIn } = useAuthSession();
-  const { userHandle, userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
+  const { userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
   const displayName = userName?.trim() || '회원';
@@ -115,9 +115,6 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
     return isNavbarNavItemActive(id, location.pathname);
   };
   const activeNavItemId = navItems.find((item) => isNavItemActive(item.id))?.id ?? null;
-  const userProfilePath = userHandle
-    ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
-    : '/mypage';
   const prefetchPredictionPage = () => {
     void import('./Prediction');
   };
@@ -625,13 +622,13 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                       type="button"
                       onClick={() => {
                         setIsMenuOpen(false);
-                        navigate(userProfilePath);
+                        navigate('/mypage');
                       }}
                       className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
                         ? 'bg-card hover:bg-secondary'
                         : 'bg-gray-50 hover:bg-gray-100'
                         }`}
-                      aria-label="프로필로 이동"
+                      aria-label="마이페이지로 이동"
                     >
                       <ProfileAvatar
                         src={userProfileImageUrl}
@@ -647,7 +644,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
                           {displayName} 님
                         </p>
                         <p className="text-body text-gray-500 dark:text-white">
-                          내 프로필 보기 →
+                          마이페이지 보기 →
                         </p>
                       </div>
                     </button>

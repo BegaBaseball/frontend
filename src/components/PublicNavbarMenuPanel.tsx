@@ -42,12 +42,9 @@ export default function PublicNavbarMenuPanel({
   const { theme, resolvedTheme } = useTheme();
   const isDarkMode = (resolvedTheme || theme) === 'dark';
   const { isLoggedIn } = useAuthSession();
-  const { userHandle, userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
+  const { userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
-  const userProfilePath = userHandle
-    ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
-    : '/mypage';
   const displayName = userName?.trim() || '회원';
 
   const handleMobileNav = (path: string) => {
@@ -116,12 +113,12 @@ export default function PublicNavbarMenuPanel({
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => handleMobileNav(userProfilePath)}
+              onClick={() => handleMobileNav('/mypage')}
               className={`flex items-center gap-4 w-full py-4 px-4 rounded-xl transition-all duration-200 ${isDarkMode
                 ? 'bg-card hover:bg-secondary'
                 : 'bg-gray-50 hover:bg-gray-100'
                 }`}
-              aria-label="프로필로 이동"
+              aria-label="마이페이지로 이동"
             >
               <ProfileAvatar
                 src={userProfileImageUrl}
@@ -137,7 +134,7 @@ export default function PublicNavbarMenuPanel({
                   {displayName} 님
                 </p>
                 <p className="text-body text-gray-500 dark:text-white">
-                  내 프로필 보기 →
+                  마이페이지 보기 →
                 </p>
               </div>
             </button>

@@ -19,12 +19,9 @@ export default function PublicNavbarDesktopAuthControls({
 }: PublicNavbarDesktopAuthControlsProps) {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthSession();
-  const { userHandle, userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
+  const { userName, userProfileImageUrl, userRole } = useAuthProfileSnapshot();
   const { logout } = useAuthAccessActions();
   const isAdmin = isAdminRole(userRole);
-  const userProfilePath = userHandle
-    ? `/mypage/${userHandle.startsWith('@') ? userHandle : `@${userHandle}`}`
-    : '/mypage';
   const displayName = userName?.trim() || '회원';
   const collapseProgress = Math.min(1, Math.max(0, compactProgress));
   const expandedProgress = 1 - collapseProgress;
@@ -104,7 +101,7 @@ export default function PublicNavbarDesktopAuthControls({
     <>
       <button
         type="button"
-        onClick={() => navigate(userProfilePath)}
+        onClick={() => navigate('/mypage')}
         aria-label={`${displayName} 마이페이지로 이동`}
         className="group relative flex h-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[rgba(15,23,42,.08)] bg-white/80 font-bold text-gray-900 transition-[width,font-size,background-color,color,border-color] duration-150 ease-out hover:border-primary hover:bg-primary hover:text-primary-foreground dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:border-primary/80 dark:hover:bg-primary/80 dark:hover:text-white"
         style={{

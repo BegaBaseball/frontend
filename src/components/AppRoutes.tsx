@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { loadPredictionPage } from './lazyRouteLoaders';
 import RootEntryRoute from './RootEntryRoute';
@@ -59,6 +59,13 @@ const SajikSeatMapEditor = import.meta.env.DEV
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
 
+function LegacyMyPageProfileRedirect() {
+  const { handle = '' } = useParams<{ handle: string }>();
+  const normalizedHandle = handle.startsWith('@') ? handle : `@${handle}`;
+
+  return <Navigate to={`/profile/${normalizedHandle}`} replace />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -87,6 +94,7 @@ export default function AppRoutes() {
           <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
           <Route path="/cheer/:postId" element={<CheerDetailPage />} />
           <Route path="/profile/:handle" element={<UserProfilePage />} />
+          <Route path="/mypage/:handle" element={<LegacyMyPageProfileRedirect />} />
           <Route path="/predictions/ranking/share/:shareId/:seasonYear" element={<RankingPredictionSharePage />} />
           <Route path="/notice" element={<NoticePage />} />
           <Route path="/terms" element={<TermsOfService />} />
@@ -107,7 +115,6 @@ export default function AppRoutes() {
             <Route path="/mate/:id/chat" element={<MateChatPage />} />
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/mypage/:handle" element={<UserProfilePage />} />
             <Route path="/messages" element={<DmInboxPage />} />
             <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
