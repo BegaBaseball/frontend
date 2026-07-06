@@ -21,15 +21,19 @@ export default function ConfirmDialogRenderer({
       onClose={() => onResult(false)}
       title={options.title}
       description={options.description}
+      contentTestId="confirm-dialog"
+      className="max-w-md"
+      bodyClassName="hidden"
       footer={(
         <>
-          <Button type="button" variant="outline" onClick={() => onResult(false)}>
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onResult(false)}>
             {options.cancelLabel || '취소'}
           </Button>
           <Button
             type="button"
             onClick={() => onResult(true)}
             className={cn(
+              'w-full sm:w-auto',
               options.variant === 'destructive'
                 && buttonVariants({ variant: 'destructive' })
             )}
@@ -39,7 +43,7 @@ export default function ConfirmDialogRenderer({
         </>
       )}
     >
-      <div />
+      {null}
     </PlainDialog>
   );
 }
