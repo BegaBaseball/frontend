@@ -17,7 +17,7 @@ const featureTimeoutMs = parsePositiveInt(process.env.LANDING_FIRST_LOAD_FEATURE
 // ViewportDeferred wraps the feature runtime with rootMargin="240px 0px 240px 0px"
 // (see src/components/Landing.tsx). When the feature section sits within
 // viewportHeight + this margin at first paint, the IntersectionObserver fires
-// immediately — eager-loading the runtime is then EXPECTED, not a regression.
+// immediately, so eager-loading the runtime is then EXPECTED, not a regression.
 const featureTriggerRootMarginPx = parsePositiveInt(
   process.env.LANDING_FIRST_LOAD_FEATURE_ROOT_MARGIN_PX,
   240,
@@ -32,14 +32,16 @@ const markdownPath = path.resolve(
 );
 const criticalLandingAssetBudgetBytes = parsePositiveInt(
   process.env.LANDING_FIRST_LOAD_CRITICAL_ASSET_BUDGET_BYTES,
-  24 * 1024,
+  128 * 1024,
 );
 const stylesheetBudgetBytes = parsePositiveInt(
   process.env.LANDING_FIRST_LOAD_STYLESHEET_BUDGET_BYTES,
   260 * 1024,
 );
 const criticalLandingAssetNames = [
-  'bega-character-192',
+  'landing-showcase-home-',
+  'landing-showcase-prediction-',
+  'landing-showcase-mate-',
   'bega-logo-192',
 ];
 const stateAuthManifestReferencePatterns = [
@@ -994,7 +996,7 @@ const runIteration = async ({
         // Expected: the feature section is within viewport + rootMargin at scroll 0,
         // so ViewportDeferred's IntersectionObserver fires on first paint. This is
         // correct lazy-load behavior (still off the critical bundle), not a regression.
-        checks.push(`deferred feature runtime eagerly requested before scroll/click because the feature section is within the viewport + ${featureTriggerRootMarginPx}px IntersectionObserver margin (section top=${roundMetric(featureSectionTop)}px, viewport=${viewportHeight}px) — expected ViewportDeferred behavior`);
+        checks.push(`deferred feature runtime eagerly requested before scroll/click because the feature section is within the viewport + ${featureTriggerRootMarginPx}px IntersectionObserver margin (section top=${roundMetric(featureSectionTop)}px, viewport=${viewportHeight}px), expected ViewportDeferred behavior`);
       } else {
         failures.push(`deferred resources loaded before user scroll/click while the feature section was below the trigger zone (section top=${roundMetric(featureSectionTop)}px > viewport ${viewportHeight}px + ${featureTriggerRootMarginPx}px): ${initialDeferredRequests.map((request) => request.url).join(', ')}`);
       }

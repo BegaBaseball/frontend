@@ -83,7 +83,7 @@ const visitLanding = (options?: { reducedMotion?: boolean; holdDeferredSections?
   });
 
   cy.getBySel('landing-page').should('be.visible');
-  cy.contains('야구를 더').should('be.visible');
+  cy.contains('경기 전부터 기록까지 한 번에').should('be.visible');
   cy.get('@getSessionProfile.all').should('have.length', 0);
   getHomeAuthRequestTraces().should('deep.equal', []);
 };
@@ -115,8 +115,14 @@ describe('Landing design system pilot QA', () => {
       visitLanding();
 
       cy.getBySel('landing-hero').should('be.visible');
+      cy.getBySel('landing-capability-showcase').should('exist');
+      cy.getBySel('landing-capability-grid').should('exist');
+      cy.getBySel('landing-features-deferred').scrollIntoView({ duration: 0 });
       cy.getBySel('landing-features').should('be.visible');
       cy.getBySel('landing-cta').should('be.visible');
+      cy.window().then((win) => {
+        win.scrollTo(0, 0);
+      });
 
       cy.get('.ds-hero-title').should(($title) => {
         expect(getComputedStyle($title[0]).fontSize).to.equal(heroFontSize);
@@ -152,13 +158,13 @@ describe('Landing design system pilot QA', () => {
       cy.get('.ds-hero-title').should('be.visible');
       cy.get('.ds-section-copy').should('be.visible');
       cy.getBySel('landing-hero-cta-primary').should('be.visible');
-      cy.get('.landing-hero-panel').should('be.visible');
+      cy.get('.landing-product-showcase').should('be.visible');
     });
 
     cy.window().then((win) => {
       const viewportBottom = win.innerHeight;
 
-      cy.get('.ds-kicker').first().should(($kicker) => {
+      cy.get('.landing-hero-context').first().should(($kicker) => {
         expect($kicker[0].getBoundingClientRect().top).to.be.lessThan(128);
       });
 
@@ -168,13 +174,27 @@ describe('Landing design system pilot QA', () => {
     });
   });
 
+  it('uses dark product screenshots across six feature areas', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-capability-showcase').scrollIntoView({ duration: 0 });
+    cy.getBySel('landing-capability-grid').find('img').should('have.length', 6);
+    cy.getBySel('landing-capability-grid').contains('오늘 경기').should('be.visible');
+    cy.getBySel('landing-capability-grid').contains('전력분석실').should('be.visible');
+    cy.getBySel('landing-capability-grid').contains('같이가요').should('be.visible');
+    cy.getBySel('landing-capability-grid').contains('응원석').should('be.visible');
+    cy.getBySel('landing-capability-grid').contains('구장 가이드').should('be.visible');
+    cy.getBySel('landing-capability-grid').contains('다이어리').should('be.visible');
+  });
+
   it('uses one primary CTA and sends the secondary CTA to feature exploration', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
     cy.get('[data-cta-priority="primary"]').should('have.length', 1);
     cy.getBySel('landing-hero-cta-secondary')
-      .should('contain', '기능 둘러보기')
+      .should('contain', '기능 흐름 보기')
       .click();
 
     cy.location('pathname').should('eq', '/');
@@ -192,9 +212,15 @@ describe('Landing design system pilot QA', () => {
     cy.getBySel('landing-features-placeholder-card').should('have.length.at.least', 3);
   });
 
-  it('keeps feature accordion and scroll mockup behavior intact on desktop', () => {
+  it('keeps feature accordion and preview behavior intact on desktop', () => {
     cy.viewport(1280, 900);
     visitLanding();
+    cy.getBySel('landing-features-deferred').scrollIntoView({ duration: 0 });
+    cy.getBySel('landing-features').should('be.visible');
+
+    cy.getBySel('landing-laptop-mockup')
+      .find('img')
+      .should('have.attr', 'alt', '오늘 경기 보드');
 
     cy.getBySel('landing-feature-card-0')
       .should('have.attr', 'aria-expanded', 'false')
@@ -207,29 +233,17 @@ describe('Landing design system pilot QA', () => {
 
     cy.getBySel('landing-feature-card-3').click().should('have.attr', 'aria-expanded', 'true');
     cy.getBySel('landing-feature-card-0').should('have.attr', 'aria-expanded', 'false');
-    cy.contains('전력분석실').scrollIntoView();
-
-    let initialOffsetStyle = '';
-    cy.getBySel('landing-laptop-mockup')
-      .invoke('attr', 'style')
-      .then((style) => {
-        initialOffsetStyle = style ?? '';
-      });
-
-    cy.contains('같이가요').scrollIntoView();
-    cy.wait(250);
 
     cy.getBySel('landing-laptop-mockup')
-      .invoke('attr', 'style')
-      .should((style) => {
-        expect(style).to.not.equal(initialOffsetStyle);
-        expect(style ?? '').to.match(/--landing-scroll-offset:\s*(?!0px\b)\d+/);
-      });
+      .find('img')
+      .should('have.attr', 'alt', '전력분석실');
   });
 
   it('disables landing motion when reduced motion is requested', () => {
     cy.viewport(1280, 900);
     visitLanding({ reducedMotion: true });
+    cy.getBySel('landing-features-deferred').scrollIntoView({ duration: 0 });
+    cy.getBySel('landing-features').should('be.visible');
 
     cy.getBySel('landing-laptop-mockup').should(($mockup) => {
       expect(getComputedStyle($mockup[0]).transitionDuration).to.equal('0s');
