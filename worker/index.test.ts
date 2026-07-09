@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import worker, {
   buildCanonicalRedirect,
@@ -7,6 +8,10 @@ import worker, {
   isHtmlNavigation,
   shouldBlockPreviewHost,
 } from './index';
+
+const readWranglerConfig = () => JSON.parse(
+  readFileSync('wrangler.jsonc', 'utf-8').replace(/^\s*\/\/.*$/gm, ''),
+);
 
 test('redirects bare domain to canonical www host with path and query intact', async () => {
   const response = buildCanonicalRedirect(new URL('http://begabaseball.xyz/auth/callback?code=123'));
@@ -35,6 +40,14 @@ test('treats html accept headers as SPA navigations only for get or head request
   assert.equal(isHtmlNavigation(new Request('https://www.begabaseball.xyz/assets/app.js', {
     headers: { accept: '*/*' },
   })), false);
+});
+
+test('Cloudflare assets use no-slash HTML handling for canonical SEO routes', () => {
+  const wranglerConfig = readWranglerConfig();
+
+  assert.equal(wranglerConfig.assets.html_handling, 'drop-trailing-slash');
+  assert.equal(wranglerConfig.assets.not_found_handling, 'single-page-application');
+  assert.equal(wranglerConfig.assets.run_worker_first, true);
 });
 
 test('blocks pages.dev preview hosts in production routing', () => {
@@ -92,6 +105,39 @@ test('worker returns 404 for api paths on the frontend host', async () => {
   );
 
   assert.equal(response.status, 404);
+});
+
+test('worker delegates indexable no-slash SEO routes to the asset binding unchanged', async () => {
+  const seenUrls: string[] = [];
+
+  const response = await worker.fetch(
+    new Request('https://www.begabaseball.xyz/home', {
+      headers: { accept: 'text/html,application/xhtml+xml' },
+    }),
+    {
+      ASSETS: {
+        fetch: async (input) => {
+          const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+          seenUrls.push(url);
+
+          if (url === 'https://www.begabaseball.xyz/home') {
+            return new Response('<html><title>home</title></html>', {
+              status: 200,
+              headers: { 'content-type': 'text/html' },
+            });
+          }
+
+          return new Response('unexpected', { status: 500 });
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('location'), null);
+  assert.deepEqual(seenUrls, [
+    'https://www.begabaseball.xyz/home',
+  ]);
 });
 
 test('worker falls back to index.html for missing html routes', async () => {

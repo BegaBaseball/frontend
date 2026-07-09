@@ -5,7 +5,11 @@ export type DaejeonSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type DaejeonFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type DaejeonLevel = '1F' | '2F' | '3F' | '4F' | 'OUTFIELD';
 export type DaejeonSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
-export type DaejeonSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
+export type DaejeonSeatMapAssetStatus =
+  | 'OFFICIAL'
+  | 'MANUAL_BASEBALL_DATA_REQUIRED'
+  | 'OPERATOR_REFERENCE_PENDING_ASSET'
+  | 'EXTERNAL_REFERENCE_PENDING_ASSET';
 export type DaejeonZoneGroup = 'CENTER' | 'INFIELD' | 'OUTFIELD' | 'SPECIAL';
 export type DaejeonTraceStatus = 'OFFICIAL_IMAGE_TRACED' | 'NEEDS_OPERATOR_REVIEW';
 export type DaejeonTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE' | 'APPROX_CENTER_RECT' | 'APPROX_INTERPOLATED_POLYLINE';

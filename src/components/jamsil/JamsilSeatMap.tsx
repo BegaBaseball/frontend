@@ -12,8 +12,9 @@ import {
 } from '../../data/jamsilSeatData';
 import { getJamsilOperatorVisitGuidance } from '../../data/jamsilOperatorVisitGuide';
 import JamsilSeatMapSvg from './JamsilSeatMapSvg';
-import JamsilUploadFlowModal from './JamsilUploadFlowModal';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import {
   MANUAL_BASEBALL_DATA_REQUIRED_CODE,
   formatManualBaseballDataDisplayValue,
@@ -26,6 +27,7 @@ import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -162,6 +164,7 @@ function JamsilOperatorVisitMeta({
 
 export default function JamsilSeatMap() {
   const { resolvedTheme } = useTheme();
+  const { requireLogin } = useAuthAccessActions();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   const [zoom, setZoom] = useState(1);
@@ -209,11 +212,15 @@ export default function JamsilSeatMap() {
     }
   }, [selected]);
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-  }, [showToast, uploadFor]);
+  const handleOpenUpload = useCallback((section: JamsilBlock | null) => {
+    if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
+
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -377,7 +384,7 @@ export default function JamsilSeatMap() {
         adapter={jamsilSectionAdapter}
         stadiumKey="JAMSIL"
         onClose={handleCloseSection}
-        onUpload={() => setUploadFor(selected)}
+        onUpload={() => handleOpenUpload(selected)}
         testId="jamsil-seatmap-bottom-sheet"
         extraMeta={renderOperatorVisitMeta}
         searchAction={{
@@ -397,7 +404,7 @@ export default function JamsilSeatMap() {
       adapter={jamsilSectionAdapter}
       stadiumKey="JAMSIL"
       onClose={handleCloseSection}
-      onUpload={() => displaySection && setUploadFor(displaySection)}
+      onUpload={() => handleOpenUpload(displaySection)}
       extraMeta={renderOperatorVisitMeta}
       searchAction={{
         label: '구역 검색',
@@ -453,11 +460,13 @@ export default function JamsilSeatMap() {
       />
 
       {uploadFor && (
-        <JamsilUploadFlowModal
-          section={uploadFor}
-          mode={mode}
+        <SeatViewDirectUploadModal
+          stadium="JAMSIL"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? JAMSIL_CATEGORIES[uploadFor.category].dark : JAMSIL_CATEGORIES[uploadFor.category].light}
           onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
+          onSubmitted={handleUploadSubmitted}
         />
       )}
     </>

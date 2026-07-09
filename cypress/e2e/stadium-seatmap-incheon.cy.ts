@@ -1,6 +1,12 @@
 /// <reference types="cypress" />
 
-import { interceptBaseApis, interceptDiaryDraftApis, interceptGuestSession, interceptLoggedInSession, seedLoggedInAuth, withinVisibleStadiumSeatMap } from '../support/stadiumSeatmap';
+import {
+  interceptBaseApis,
+  interceptGuestSession,
+  interceptLoggedInSession,
+  seedLoggedInAuth,
+  withinVisibleStadiumSeatMap,
+} from '../support/stadiumSeatmap';
 
 // Suite 2-D — Incheon First Visit UX
 // -----------------------------------------------------------------
@@ -45,28 +51,91 @@ function getVisibleIncheon(testId: string) {
     .first();
 }
 
-function formatBrowserLocalDate(win: Window) {
-  const BrowserDate = (win as Window & typeof globalThis).Date;
-  const today = new BrowserDate();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+function uploadSeatViewFixture() {
+  cy.fixture('tiny-image.base64').then((base64) => {
+    cy.get('[data-testid="seat-view-direct-upload-file"]').selectFile({
+      contents: Cypress.Buffer.from(base64, 'base64'),
+      fileName: 'incheon-seat-view.png',
+      mimeType: 'image/png',
+      lastModified: Date.now(),
+    }, { force: true });
+  });
 }
 
-function assertIncheonDiaryDraft(win: Window) {
-  const rawDraft = win.sessionStorage.getItem('diary-draft-storage');
-  expect(rawDraft).to.be.a('string');
-  const pendingDraft = JSON.parse(rawDraft!).state.pendingDraft;
-  expect(pendingDraft).to.deep.include({
-    stadium: 'INCHEON',
-    team: 'SSG',
-    section: '101B 내야 필드석',
-    block: '101B',
-    seatRow: '',
-    seatNumber: '',
-  });
-  expect(pendingDraft.date).to.eq(formatBrowserLocalDate(win));
+function interceptDirectSeatViewUpload() {
+  cy.intercept('POST', '**/api/media/uploads/init', (req) => {
+    expect(req.body.domain).to.eq('SEAT_VIEW');
+    expect(req.body.fileName).to.match(/incheon-seat-view|compressed/i);
+    req.reply({
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          assetId: 7301,
+          uploadUrl: 'https://object.example.com/upload/seat-view-7301',
+          stagingObjectKey: 'media/staging/seat-view/7301-incheon-seat-view.webp',
+          expiresAt: '2026-07-07T00:00:00Z',
+          requiredHeaders: {
+            'Content-Type': req.body.contentType || 'image/png',
+          },
+        },
+      },
+    });
+  }).as('initSeatViewMediaUpload');
+
+  cy.intercept('PUT', 'https://object.example.com/upload/seat-view-*', {
+    statusCode: 200,
+    body: '',
+  }).as('putSeatViewMediaUpload');
+
+  cy.intercept('POST', '**/api/media/uploads/7301/finalize', {
+    statusCode: 200,
+    body: {
+      success: true,
+      data: {
+        assetId: 7301,
+        storagePath: 'media/seat-view/42/7301.webp',
+        publicUrl: 'https://cdn.example.com/media/seat-view/42/7301.webp',
+      },
+    },
+  }).as('finalizeSeatViewMediaUpload');
+
+  cy.intercept('POST', '**/api/seat-views', (req) => {
+    expect(req.body).to.deep.equal({
+      storagePath: 'media/seat-view/42/7301.webp',
+      stadium: 'INCHEON',
+      section: '101B 내야 필드석',
+      block: '101B',
+      seatRow: '10열',
+      seatNumber: '12번',
+      rating: 4,
+      comment: '전광판과 내야가 잘 보여요',
+      tags: ['전광판 잘 보임', '통로 가까움'],
+    });
+    req.reply({
+      statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          id: 8801,
+          storagePath: 'media/seat-view/42/7301.webp',
+          photoUrl: 'https://cdn.example.com/media/seat-view/42/7301.webp',
+          sourceType: 'SEATMAP_UPLOAD',
+          moderationStatus: 'PENDING',
+          aiSuggestedLabel: null,
+          aiConfidence: null,
+          stadium: 'INCHEON',
+          section: '101B 내야 필드석',
+          block: '101B',
+          seatRow: '10열',
+          seatNumber: '12번',
+          rating: 4,
+          comment: '전광판과 내야가 잘 보여요',
+          tags: ['전광판 잘 보임', '통로 가까움'],
+        },
+      },
+    });
+  }).as('createSeatViewSubmission');
 }
 
 describe('Stadium SeatMap — Incheon First Visit UX', () => {
@@ -78,7 +147,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
     cy.viewport(1280, 720);
   });
 
-  it('101B 검색 선택 후 상세 패널과 다이어리 공유 CTA를 제공한다', () => {
+  it('101B 검색 선택 후 상세 패널과 direct 시야 사진 업로드 CTA를 제공한다', () => {
     interceptGuestSession();
     interceptBaseApis();
     cy.visit('/stadium');
@@ -103,16 +172,16 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       '1루',
       '홈 응원',
       '직관 동선 안내',
-      'MANUAL_BASEBALL_DATA_REQUIRED',
+      '운영자 제공 자료 필요',
       '비교에 추가',
-      '다이어리에서 시야 사진 공유하기',
+      '시야 사진 올리기',
     ]);
 
     withinVisibleStadiumSeatMap(() => {
       cy.get('[data-testid="incheon-operator-visit-guide"]')
         .should('contain', '직관 동선 안내');
       cy.get('[data-testid="incheon-operator-data-status"]')
-        .should('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+        .should('contain', '운영자 제공 자료 필요');
       cy.get('[data-testid="incheon-operator-row-entrance"]')
         .should('contain', '운영자 제공 자료 필요');
       cy.get('[data-testid="incheon-operator-row-facilities"]')
@@ -122,6 +191,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       cy.get('[data-testid="incheon-operator-row-updated"]')
         .should('contain', '운영자 제공 자료 필요');
     });
+    cy.contains('MANUAL_BASEBALL_DATA_REQUIRED').should('not.exist');
     cy.get('[data-testid="incheon-operator-visit-check"]').should('not.exist');
   });
 
@@ -202,7 +272,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
         .and('have.attr', 'aria-pressed', 'true');
       cy.get('[data-testid="incheon-seatmap-detail-panel"]')
         .should('contain', '101B 내야 필드석')
-        .and('contain', '다이어리에서 시야 사진 공유하기');
+        .and('contain', '시야 사진 올리기');
       cy.get('[data-testid="incheon-seatmap-detail-panel"] [aria-label="닫기"]')
         .click();
 
@@ -216,7 +286,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
         .should('have.attr', 'aria-pressed', 'true');
       cy.get('[data-testid="incheon-seatmap-detail-panel"]')
         .should('contain', '101B 내야 필드석')
-        .and('contain', '다이어리에서 시야 사진 공유하기');
+        .and('contain', '시야 사진 올리기');
     });
 
     cy.contains('사진은 데모 상태').should('not.exist');
@@ -285,13 +355,13 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       .should('not.exist');
     withinVisibleStadiumSeatMap(() => {
       cy.get('[data-testid="incheon-seatmap-detail-panel"]')
-        .should('contain', '다이어리에서 시야 사진 공유하기');
+        .should('contain', '시야 사진 올리기');
     });
 
     cy.contains('사진은 데모 상태').should('not.exist');
   });
 
-  it('비로그인 공유 CTA는 인천 다이어리 draft와 /mypage 로그인 redirect를 남긴다', () => {
+  it('비로그인 공유 CTA는 현재 좌석도 경로로 로그인 redirect를 남긴다', () => {
     interceptGuestSession();
     interceptBaseApis();
     cy.visit('/stadium');
@@ -302,21 +372,20 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
 
     selectIncheonBlock('101B', 'incheon-section-finder-item-incheon-101b');
     withinVisibleStadiumSeatMap(() => {
-      cy.contains('button', '다이어리에서 시야 사진 공유하기', { timeout: 10000 })
+      cy.contains('button', '시야 사진 올리기', { timeout: 10000 })
         .click();
     });
 
     cy.contains('로그인 필요').should('be.visible');
     cy.window().then((win) => {
-      expect(win.sessionStorage.getItem('pendingLoginRedirect')).to.eq('/mypage');
-      assertIncheonDiaryDraft(win);
+      expect(win.sessionStorage.getItem('pendingLoginRedirect')).to.eq('/stadium');
+      expect(win.sessionStorage.getItem('diary-draft-storage')).to.be.null;
     });
   });
 
-  it('로그인 공유 CTA는 인천 다이어리 draft를 /mypage 폼에 반영한다', () => {
+  it('로그인 공유 CTA는 direct 업로드 모달을 연다', () => {
     interceptLoggedInSession();
     interceptBaseApis();
-    interceptDiaryDraftApis();
     cy.visit('/stadium', { onBeforeLoad: seedLoggedInAuth });
     cy.wait('@getStadiums');
     cy.wait('@getJamsilPlaces');
@@ -326,22 +395,57 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
 
     selectIncheonBlock('101B', 'incheon-section-finder-item-incheon-101b');
     withinVisibleStadiumSeatMap(() => {
-      cy.contains('button', '다이어리에서 시야 사진 공유하기', { timeout: 10000 })
+      cy.contains('button', '시야 사진 올리기', { timeout: 10000 })
         .click();
     });
 
-    cy.location('pathname').should('eq', '/mypage');
-    cy.get('input[placeholder="구역 (예: 1루 레드석)"]', { timeout: 20000 })
-      .should('have.value', '101B 내야 필드석');
-    cy.get('input[placeholder="블록 (예: 101블록)"]')
-      .should('have.value', '101B');
+    cy.get('[data-testid="seat-view-direct-upload-modal"]', { timeout: 10000 })
+      .should('be.visible')
+      .and('contain', '시야 사진 올리기')
+      .and('contain', 'INCHEON')
+      .and('contain', '101B 내야 필드석')
+      .and('contain', '사진 선택');
     cy.window().then((win) => {
       expect(win.sessionStorage.getItem('pendingLoginRedirect')).to.be.null;
-      const rawDraft = win.sessionStorage.getItem('diary-draft-storage');
-      if (rawDraft) {
-        expect(JSON.parse(rawDraft).state.pendingDraft).to.be.null;
-      }
+      expect(win.sessionStorage.getItem('diary-draft-storage')).to.be.null;
     });
+  });
+
+  it('로그인 사용자는 인천 좌석도에서 direct 시야 사진 업로드를 제출한다', () => {
+    interceptLoggedInSession();
+    interceptBaseApis();
+    interceptDirectSeatViewUpload();
+    cy.visit('/stadium', { onBeforeLoad: seedLoggedInAuth });
+    cy.wait('@getStadiums');
+    cy.wait('@getJamsilPlaces');
+    cy.get('#stadium-guide-select').select('INCHEON');
+    cy.wait('@getIncheonPlaces');
+
+    selectIncheonBlock('101B', 'incheon-section-finder-item-incheon-101b');
+    withinVisibleStadiumSeatMap(() => {
+      cy.contains('button', '시야 사진 올리기', { timeout: 10000 })
+        .click();
+    });
+
+    cy.get('[data-testid="seat-view-direct-upload-modal"]', { timeout: 10000 })
+      .should('be.visible')
+      .and('contain', 'INCHEON')
+      .and('contain', '101B 내야 필드석');
+
+    uploadSeatViewFixture();
+    cy.get('[data-testid="seat-view-direct-upload-row"]').type('10열');
+    cy.get('[data-testid="seat-view-direct-upload-seat"]').type('12번');
+    cy.get('[aria-label="4점"]').click();
+    cy.contains('button', '전광판 잘 보임').click();
+    cy.contains('button', '통로 가까움').click();
+    cy.get('[data-testid="seat-view-direct-upload-comment"]').type('전광판과 내야가 잘 보여요');
+    cy.get('[data-testid="seat-view-direct-upload-submit"]').click();
+
+    cy.wait('@initSeatViewMediaUpload');
+    cy.wait('@putSeatViewMediaUpload');
+    cy.wait('@finalizeSeatViewMediaUpload');
+    cy.wait('@createSeatViewSubmission');
+    cy.get('[data-testid="seat-view-direct-upload-modal"]').should('not.exist');
   });
 
   it('모바일에서는 가이드와 블록 검색을 탭으로 전환하고 선택 CTA까지 연결한다', () => {
@@ -374,10 +478,10 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.45));
 
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
-      .should('contain', '다이어리에서 시야 사진 공유하기')
+      .should('contain', '시야 사진 올리기')
       .and('contain', '비교에 추가')
       .and('contain', '직관 동선 안내')
-      .and('contain', 'MANUAL_BASEBALL_DATA_REQUIRED');
+      .and('contain', '운영자 제공 자료 필요');
     cy.get('[data-testid="incheon-seatmap-bottom-sheet"] [aria-label="닫기"]')
       .filter(':visible')
       .first()
@@ -397,7 +501,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
       .then((zoom) => expect(parseFloat(zoom!)).to.be.at.least(1.5));
 
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
-      .should('contain', '다이어리에서 시야 사진 공유하기')
+      .should('contain', '시야 사진 올리기')
       .and('contain', '직관 동선 안내');
     cy.contains('사진은 데모 상태').should('not.exist');
   });
@@ -422,7 +526,7 @@ describe('Stadium SeatMap — Incheon First Visit UX', () => {
     getVisibleIncheon('incheon-guide-result-incheon-101b')
       .click();
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
-      .should('contain', '다이어리에서 시야 사진 공유하기');
+      .should('contain', '시야 사진 올리기');
     getVisibleIncheon('incheon-seatmap-bottom-sheet')
       .find('[data-testid="incheon-compare-add"]')
       .click({ force: true });

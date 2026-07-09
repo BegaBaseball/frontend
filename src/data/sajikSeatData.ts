@@ -4,7 +4,11 @@ export type SajikSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type SajikFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type SajikLevel = '1F' | '2F' | '3F' | 'OUTFIELD';
 export type SajikSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
-export type SajikSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
+export type SajikSeatMapAssetStatus =
+  | 'OFFICIAL'
+  | 'MANUAL_BASEBALL_DATA_REQUIRED'
+  | 'OPERATOR_REFERENCE_PENDING_ASSET'
+  | 'EXTERNAL_REFERENCE_PENDING_ASSET';
 export type SajikTraceStatus = 'OFFICIAL_IMAGE_TRACED' | 'NEEDS_OPERATOR_REVIEW';
 export type SajikTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE';
 export type SajikTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';

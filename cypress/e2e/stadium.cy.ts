@@ -142,33 +142,6 @@ describe('Stadium Guide Quality Flow', () => {
     }).as('getDaeguFoodPlaces');
   };
 
-  const interceptDiaryDraftApis = () => {
-    cy.intercept('GET', '**/api/diary/entries*', {
-      statusCode: 200,
-      body: [],
-    }).as('getDiaryEntries');
-
-    cy.intercept('GET', '**/api/diary/games*', {
-      statusCode: 200,
-      body: [],
-    }).as('getDiaryGames');
-
-    cy.intercept('GET', '**/api/diary/statistics*', {
-      statusCode: 200,
-      body: {
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      },
-    }).as('getDiaryStatistics');
-
-    cy.intercept('GET', '**/api/diary/seat-views*', {
-      statusCode: 200,
-      body: [],
-    }).as('getSeatViews');
-  };
-
   const desktopPanels = () =>
     cy.get('[data-testid="stadium-guide-desktop-panels"]').should('be.visible');
 
@@ -400,10 +373,9 @@ describe('Stadium Guide Quality Flow', () => {
     cy.get('button[aria-label="즐겨찾기 추가"]').should('be.visible');
   });
 
-  it('대구 좌석 CTA가 로그인 사용자 다이어리 draft로 연결된다', () => {
+  it('대구 좌석 CTA가 로그인 사용자 direct 업로드 모달로 연결된다', () => {
     interceptLoggedInSession();
     interceptBaseStadiumApis();
-    interceptDiaryDraftApis();
     cy.intercept('GET', '**/api/stadiums/favorites', {
       statusCode: 200,
       body: { stadiumIds: [] },
@@ -418,17 +390,15 @@ describe('Stadium Guide Quality Flow', () => {
     cy.get('[data-testid="daegu-section-finder"]').filter(':visible').should('exist');
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
-    cy.contains('button', '다이어리에서 시야 사진 공유하기').click();
+    cy.contains('button', '시야 사진 올리기').click();
 
-    cy.location('pathname').should('eq', '/mypage');
-    cy.wait('@getDiaryEntries');
-    // pendingDraft is only applied in diary editor (DiaryformRuntime/useDiaryView).
-    // Clicking "기록 남기기" opens the diary editor which fetches games and applies the draft.
-    cy.get('[data-testid="mypage-season-write-cta"]', { timeout: 10000 }).should('be.visible').click();
-    cy.wait('@getDiaryGames');
-    cy.contains('대구 좌석 정보가 반영되었습니다').should('be.visible');
-    cy.get('input[placeholder="구역 (예: 1루 레드석)"]').should('have.value', '원정 응원석 1-1');
-    cy.get('input[placeholder="블록 (예: 101블록)"]').should('have.value', '1-1');
+    cy.location('pathname').should('eq', '/stadium');
+    cy.get('[data-testid="seat-view-direct-upload-modal"]', { timeout: 10000 })
+      .should('be.visible')
+      .and('contain', '시야 사진 올리기')
+      .and('contain', 'DAEGU')
+      .and('contain', '원정 응원석 1-1')
+      .and('contain', '사진 선택');
   });
 
   it('대구 좌석 CTA가 게스트에게 기존 로그인 유도 흐름을 사용한다', () => {
@@ -444,13 +414,13 @@ describe('Stadium Guide Quality Flow', () => {
     cy.get('[data-testid="daegu-section-finder"]').filter(':visible').should('exist');
     cy.get('[data-testid="daegu-block-search"]', { timeout: 10000 }).filter(':visible').first().type('1-1');
     cy.get('[data-testid="daegu-section-finder-item-daegu-away-cheering-1-1"]').filter(':visible').first().click();
-    cy.contains('button', '다이어리에서 시야 사진 공유하기').click();
+    cy.contains('button', '시야 사진 올리기').click();
 
     cy.contains('로그인 필요').should('be.visible');
     cy.window()
       .its('sessionStorage')
       .invoke('getItem', 'pendingLoginRedirect')
-      .should('eq', '/mypage');
+      .should('eq', '/stadium');
   });
 
   it('모바일에서 카드 탭 → 주소 상세 정보가 펼쳐지고 재탭 시 닫힌다', () => {
