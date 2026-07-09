@@ -30,21 +30,18 @@ function AuthFormPanel({ className, ...props }: React.ComponentProps<"section">)
 }
 
 interface AuthHeaderProps extends Omit<React.ComponentProps<"header">, "title"> {
-  eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
 }
 
 function AuthHeader({
   className,
-  eyebrow,
   title,
   description,
   ...props
 }: AuthHeaderProps) {
   return (
     <header data-slot="auth-header" className={cn("auth-header", className)} {...props}>
-      {eyebrow ? <span className="auth-eyebrow">{eyebrow}</span> : null}
       <div className="space-y-2">
         <h1 className="auth-title">{title}</h1>
         {description ? <p className="auth-description">{description}</p> : null}
