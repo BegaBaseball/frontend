@@ -30,7 +30,7 @@ export default function AdminDeletePlaceDialogContent({
           </Button>
           <Button
             onClick={onConfirm}
-            className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+            className="bg-red-500 text-white border-0 shadow-sm hover:bg-red-600"
           >
             삭제
           </Button>

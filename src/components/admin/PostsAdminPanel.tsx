@@ -52,11 +52,10 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                 </TableCell>
               </TableRow>
             ) : (
-              posts.map((post, index) => (
+              posts.map((post) => (
                 <TableRow
                   key={post.id}
-                  className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="border-slate-800 transition-colors duration-150 hover:bg-slate-800/30"
                 >
                   <TableCell className="text-slate-300 font-mono text-caption">{post.id}</TableCell>
                   <TableCell>
@@ -69,7 +68,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     <div className="flex items-center gap-2">
                       <span className="text-slate-200">{post.content?.slice(0, 40) || '-'}</span>
                       {post.isHot && (
-                        <AdminBadge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-11 px-1.5 py-0 border-0 animate-pulse">
+                        <AdminBadge className="animate-pulse border-0 bg-red-500/20 px-1.5 py-0 text-11 text-red-200 motion-reduce:animate-none">
                           HOT
                         </AdminBadge>
                       )}
@@ -92,7 +91,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                      className="rounded-lg text-slate-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"
                       onClick={() => setPendingDeletePost(post)}
                     >
                       <AdminTrashIcon className="w-4 h-4" />
@@ -122,7 +121,7 @@ export function PostsAdminPanel({ posts, handleDeletePost }: PostsAdminPanelProp
                 handleDeletePost(pendingDeletePost.id);
                 setPendingDeletePost(null);
               }}
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+              className="bg-red-500 text-white border-0 shadow-sm hover:bg-red-600"
             >
               삭제
             </Button>
