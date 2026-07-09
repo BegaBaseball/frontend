@@ -113,7 +113,7 @@ function LandingFeaturesFallback() {
             <div className="h-7 w-56 max-w-full rounded bg-muted" />
             <div className="h-4 w-72 max-w-full rounded bg-muted/70" />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }, (_, index) => (
               <div
                 key={index}
@@ -366,7 +366,7 @@ export default function Landing() {
 
       <section className="py-20 lg:py-28" data-testid="landing-cta">
         <Container>
-          <div className="landing-cta-panel px-6 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+          <div className="landing-cta-panel px-6 py-10 sm:px-10 sm:py-12">
             <div className="landing-cta-layout">
               <div>
                 <h2 className="landing-cta-title">

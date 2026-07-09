@@ -292,7 +292,7 @@ const getPageWebSocketUrl = async (port, targetUrl) => {
   const startedAt = Date.now();
   let lastPageUrls = [];
   let createdTarget = false;
-  while (Date.now() - startedAt < 10000) {
+  while (Date.now() - startedAt < 20000) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
         signal: AbortSignal.timeout(1500),
@@ -482,6 +482,7 @@ const main = async () => {
     '--hide-scrollbars',
     '--disable-background-networking',
     '--disable-component-update',
+    '--disable-extensions',
     '--disable-sync',
     '--metrics-recording-only',
     '--no-first-run',
