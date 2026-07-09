@@ -1,4 +1,5 @@
 {
+  "defaultOgImagePath": "/og/bega-og.png",
   "indexableRoutes": [
     {
       "path": "/",
