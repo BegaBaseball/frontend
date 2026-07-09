@@ -379,11 +379,11 @@ export default function AdminAiReleaseDecisionRuntime({
       <div className="space-y-6">
         {autoBriefPanel}
 
-        <div className="rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/10 via-slate-900 to-slate-900 p-5 shadow-lg shadow-fuchsia-500/10">
+        <div className="rounded-2xl border border-amber-500/20 bg-slate-900/90 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                <AdminSparklesIcon className="h-5 w-5 text-fuchsia-300" />
+                <AdminSparklesIcon className="h-5 w-5 text-amber-300" />
                 릴리즈 결정 초안 생성
               </h3>
               <p className="mt-1 text-caption text-slate-400">
@@ -396,7 +396,7 @@ export default function AdminAiReleaseDecisionRuntime({
               onClick={loadReleasePresets}
               data-testid="admin-ai-refresh-presets"
               disabled={releasePresetsLoading}
-              className="text-slate-300 hover:bg-fuchsia-500/10 hover:text-fuchsia-200"
+              className="text-slate-300 hover:bg-amber-500/10 hover:text-amber-200"
             >
               <AdminRefreshIcon
                 className={`h-4 w-4 ${releasePresetsLoading ? 'animate-spin' : ''}`}
@@ -465,7 +465,7 @@ export default function AdminAiReleaseDecisionRuntime({
               onClick={handleReleaseDraftGenerate}
               data-testid="admin-ai-generate-draft"
               disabled={releaseDraftLoading || releasePresetsLoading || !releaseSelectedScenario}
-              className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/20 hover:from-fuchsia-600 hover:to-pink-700"
+              className="w-full bg-amber-500 text-slate-950 shadow-sm hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500"
             >
               {releaseDraftLoading ? '초안 생성 중...' : 'AI 초안 생성'}
             </Button>
@@ -474,7 +474,7 @@ export default function AdminAiReleaseDecisionRuntime({
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
           <div className="flex items-center gap-2 text-white">
-            <AdminFileSearchIcon className="h-4 w-4 text-fuchsia-300" />
+            <AdminFileSearchIcon className="h-4 w-4 text-amber-300" />
             <h4 className="font-semibold">현재 프리셋 문서 범위</h4>
           </div>
           {selectedReleasePreset ? (
@@ -498,7 +498,7 @@ export default function AdminAiReleaseDecisionRuntime({
                   {selectedReleasePreset.allowed_roots.map((path) => (
                     <AdminBadge
                       key={path}
-                      className="border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-200"
+                      className="border-amber-500/20 bg-amber-500/10 text-amber-200"
                     >
                       {path}
                     </AdminBadge>
@@ -594,7 +594,7 @@ export default function AdminAiReleaseDecisionRuntime({
               onClick={handleReleaseEvaluate}
               data-testid="admin-ai-run-eval"
               disabled={releaseEvaluationLoading || !releaseDraftResult || !releaseSelectedCaseId}
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700"
+              className="w-full bg-emerald-500 text-slate-950 shadow-sm hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500"
             >
               {releaseEvaluationLoading ? '평가 실행 중...' : '현재 초안 평가'}
             </Button>
@@ -769,7 +769,7 @@ export default function AdminAiReleaseDecisionRuntime({
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5">
                 <p className="text-caption uppercase tracking-wide text-slate-500">Evidence</p>
-                <p className="mt-3 text-2xl font-semibold text-fuchsia-200">
+                <p className="mt-3 text-2xl font-semibold text-amber-200">
                   {releaseDraftResult.result.draft.evidence.length}
                 </p>
                 <p className="mt-2 text-caption text-slate-500">
@@ -879,7 +879,7 @@ export default function AdminAiReleaseDecisionRuntime({
                       type="button"
                       onClick={handleReleaseSave}
                       disabled={releaseSaveLoading}
-                      className="bg-gradient-to-r from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-500/20 hover:from-sky-600 hover:to-cyan-700"
+                      className="bg-amber-500 text-slate-950 shadow-sm hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500"
                     >
                       <AdminSaveIcon className="mr-2 h-4 w-4" />
                       {releaseSaveLoading ? '저장 중...' : '저장'}
@@ -942,7 +942,7 @@ export default function AdminAiReleaseDecisionRuntime({
                     className="rounded-xl border border-slate-800 bg-slate-950/70 p-4"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <AdminBadge className="border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-200">
+                      <AdminBadge className="border-slate-700 bg-slate-800 text-slate-300">
                         {item.source}
                       </AdminBadge>
                     </div>
@@ -955,7 +955,7 @@ export default function AdminAiReleaseDecisionRuntime({
           </>
         ) : (
           <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/60 p-10 text-center">
-            <AdminBotIcon className="h-12 w-12 text-fuchsia-300" />
+            <AdminBotIcon className="h-12 w-12 text-amber-300" />
             <h3 className="mt-4 text-lg font-semibold text-white">
               AI 운영 초안 대기 중
             </h3>

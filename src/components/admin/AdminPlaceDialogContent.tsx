@@ -19,7 +19,7 @@ interface AdminPlaceDialogContentProps {
   onSubmit: () => void;
 }
 
-const selectClassName = 'w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-caption text-slate-200 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500';
+const selectClassName = 'w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-caption text-slate-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500';
 
 export default function AdminPlaceDialogContent({
   open,
@@ -41,7 +41,7 @@ export default function AdminPlaceDialogContent({
       onClose={() => onOpenChange(false)}
       title={(
         <span className="flex items-center gap-2 text-white">
-          <AdminMapPinIcon className="w-5 h-5 text-violet-400" />
+          <AdminMapPinIcon className="w-5 h-5 text-amber-300" />
           {isCreate ? '장소 추가' : '장소 수정'}
         </span>
       )}
@@ -59,7 +59,7 @@ export default function AdminPlaceDialogContent({
           <Button
             onClick={onSubmit}
             disabled={placeSubmitting || !placeForm.name || !placeForm.category}
-            className="bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+            className="bg-amber-500 text-slate-950 shadow-sm hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500"
           >
             {placeSubmitting ? '저장 중...' : (isCreate ? '추가' : '저장')}
           </Button>
@@ -119,7 +119,7 @@ export default function AdminPlaceDialogContent({
             <Input
               value={placeForm.phone ?? ''}
               onChange={(e) => setPlaceForm((form) => ({ ...form, phone: e.target.value }))}
-              placeholder="02-1234-5678"
+              placeholder="대표 전화번호"
               className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
             />
           </div>
@@ -132,7 +132,7 @@ export default function AdminPlaceDialogContent({
                 step="any"
                 value={placeForm.lat}
                 onChange={(e) => setPlaceForm((form) => ({ ...form, lat: parseFloat(e.target.value) || 0 }))}
-                placeholder="37.123456"
+                placeholder="37.5121"
                 className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
               />
             </div>
@@ -143,7 +143,7 @@ export default function AdminPlaceDialogContent({
                 step="any"
                 value={placeForm.lng}
                 onChange={(e) => setPlaceForm((form) => ({ ...form, lng: parseFloat(e.target.value) || 0 }))}
-                placeholder="126.987654"
+                placeholder="127.0719"
                 className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
               />
             </div>
@@ -161,7 +161,7 @@ export default function AdminPlaceDialogContent({
                 const value = e.target.value;
                 setPlaceForm((form) => ({ ...form, rating: value === '' ? undefined : parseFloat(value) }));
               }}
-              placeholder="4.5"
+              placeholder="4.3"
               className="bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-lg"
             />
           </div>

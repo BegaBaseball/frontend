@@ -69,14 +69,14 @@ export function UsersAdminPanel({
             data-testid="admin-users-search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-500 rounded-xl focus:ring-amber-500 focus:border-amber-500 transition-all"
+            className="rounded-xl border-slate-700 bg-slate-800/50 pl-12 text-slate-100 transition-colors placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500"
           />
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent motion-reduce:animate-none" />
         </div>
       ) : (
         <div className="rounded-xl border border-slate-800 overflow-hidden">
@@ -110,11 +110,10 @@ export function UsersAdminPanel({
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user, index) => (
+                users.map((user) => (
                   <TableRow
                     key={user.id}
-                    className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    className="border-slate-800 transition-colors duration-150 hover:bg-slate-800/30"
                   >
                     <TableCell className="text-slate-300 font-mono text-caption">{user.id}</TableCell>
                     <TableCell className="text-slate-200">{user.email}</TableCell>
@@ -137,11 +136,11 @@ export function UsersAdminPanel({
                     </TableCell>
                     <TableCell>
                       {user.role === 'ROLE_SUPER_ADMIN' ? (
-                        <AdminBadge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 shadow-lg shadow-purple-500/20">
+                        <AdminBadge className="border-0 bg-amber-500 text-slate-950">
                           최고관리자
                         </AdminBadge>
                       ) : user.role === 'ROLE_ADMIN' ? (
-                        <AdminBadge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-amber-500/20">
+                        <AdminBadge className="border-0 bg-amber-500/20 text-amber-200">
                           관리자
                         </AdminBadge>
                       ) : (
@@ -183,7 +182,7 @@ export function UsersAdminPanel({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                        className="rounded-lg text-slate-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"
                         disabled={user.role === 'ROLE_ADMIN'}
                         onClick={() => setPendingDeleteUser(user)}
                       >
@@ -215,7 +214,7 @@ export function UsersAdminPanel({
                 handleDeleteUser(pendingDeleteUser.id);
                 setPendingDeleteUser(null);
               }}
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+              className="bg-red-500 text-white border-0 shadow-sm hover:bg-red-600"
             >
               삭제
             </Button>
