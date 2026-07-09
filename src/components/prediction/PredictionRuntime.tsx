@@ -118,7 +118,7 @@ export default function PredictionRuntime() {
               <PredictionLineChartIcon className="h-5 w-5 text-emerald-200" />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="block text-11 font-extrabold uppercase tracking-[0.2em] text-white/55">
+              <span className="block text-13 font-semibold text-emerald-100/75">
                 ANALYSIS LAB
               </span>
               <h2 className="truncate text-xl font-extrabold tracking-normal text-white sm:text-2xl">전력분석실</h2>
