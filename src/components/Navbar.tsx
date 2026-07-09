@@ -709,7 +709,7 @@ export default function Navbar({ authenticatedShell = true }: NavbarProps) {
         }}
         aria-label="하단 탭바"
       >
-        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-white/90 bg-white/85 p-1.5 shadow-mobile-chrome backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[hsl(var(--surface-raised)/0.85)]">
+        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-border bg-card p-1.5 shadow-sm dark:border-white/10 dark:bg-[hsl(var(--surface-raised))]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === `/${item.id}`;

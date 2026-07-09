@@ -9,11 +9,12 @@ import ThemeToggleButton from './ThemeToggleButton';
 import NavbarNotificationControls from './NavbarNotificationControls';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { mergeNavbarCompactProgress, useNavbarViewportCompactProgress } from '../hooks/useNavbarViewportCompactProgress';
-import { publicNavbarNavItems } from './publicNavbarNavItems';
+import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbarNavItems';
 import { CloseIcon, LineChartIcon, MapIcon, MegaphoneIcon, MenuIcon, MessageSquareIcon, UsersIcon } from './icons/PublicShellIcons';
 import { useScrollMetrics } from '../hooks/useScrollStage';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/utils';
+import { hasPersistedAuthBootstrapHint } from '../utils/authBootstrap';
 import { buildNavbarNavPath, isNavbarNavItemActive } from '../utils/navbarNavigation';
 import { loadPredictionPage } from './lazyRouteLoaders';
 
@@ -32,6 +33,23 @@ const DESKTOP_NAVBAR_GUEST_WIDTH = 980;
 const DESKTOP_NAVBAR_GUEST_COMPACT_WIDTH = 760;
 const DESKTOP_NAVBAR_AUTH_WIDTH = 1180;
 const DESKTOP_NAVBAR_AUTH_COMPACT_WIDTH = 1040;
+const NAVBAR_MOTION_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+type ActivePillMetrics = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  opacity: number;
+};
+
+const EMPTY_ACTIVE_PILL_METRICS: ActivePillMetrics = {
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+  opacity: 0,
+};
 
 export default function PublicNavbar() {
   const navigate = useNavigate();
@@ -73,6 +91,15 @@ export default function PublicNavbar() {
   const menuToggleButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuPopupRef = useRef<HTMLDivElement | null>(null);
   const preMenuFocusRef = useRef<HTMLElement | null>(null);
+  const navSegmentRef = useRef<HTMLDivElement | null>(null);
+  const navButtonRefs = useRef<Record<PublicNavbarNavItemId, HTMLButtonElement | null>>({
+    cheer: null,
+    stadium: null,
+    prediction: null,
+    mate: null,
+  });
+  const [activePillMetrics, setActivePillMetrics] = useState<ActivePillMetrics>(EMPTY_ACTIVE_PILL_METRICS);
+  const activeNavItemId = publicNavbarNavItems.find((item) => isNavbarNavItemActive(item.id, location.pathname))?.id ?? null;
   const predictionPrefetchedRef = useRef(false);
 
   const prefetchPredictionPage = useCallback(() => {
@@ -140,10 +167,73 @@ export default function PublicNavbar() {
     };
   }, [shouldRenderMobileMenu]);
 
-  const desktopCapsuleExpandedWidth = isLoggedIn
+  useEffect(() => {
+    if (!isDesktop || !activeNavItemId) {
+      setActivePillMetrics(EMPTY_ACTIVE_PILL_METRICS);
+      return;
+    }
+
+    const segment = navSegmentRef.current;
+    const activeButton = navButtonRefs.current[activeNavItemId];
+    if (!segment || !activeButton) {
+      setActivePillMetrics(EMPTY_ACTIVE_PILL_METRICS);
+      return;
+    }
+
+    let frameId = 0;
+    const updateActivePill = () => {
+      const segmentRect = segment.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const nextMetrics: ActivePillMetrics = {
+        left: buttonRect.left - segmentRect.left,
+        top: buttonRect.top - segmentRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height,
+        opacity: 1,
+      };
+
+      setActivePillMetrics((prev) => {
+        const isSame =
+          Math.abs(prev.left - nextMetrics.left) < 0.25
+          && Math.abs(prev.top - nextMetrics.top) < 0.25
+          && Math.abs(prev.width - nextMetrics.width) < 0.25
+          && Math.abs(prev.height - nextMetrics.height) < 0.25
+          && prev.opacity === nextMetrics.opacity;
+
+        return isSame ? prev : nextMetrics;
+      });
+    };
+    const scheduleActivePillUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateActivePill);
+    };
+
+    scheduleActivePillUpdate();
+    window.addEventListener('resize', scheduleActivePillUpdate);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleActivePillUpdate);
+    resizeObserver?.observe(segment);
+    resizeObserver?.observe(activeButton);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', scheduleActivePillUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [
+    activeNavItemId,
+    isDesktop,
+    isScrollCenteredLayout,
+    scrollChromeProgress,
+    viewportFitProgress,
+  ]);
+
+  const shouldReserveAuthenticatedChrome = isAuthBootstrapPending || isLoggedIn || hasPersistedAuthBootstrapHint();
+  const desktopCapsuleExpandedWidth = shouldReserveAuthenticatedChrome
     ? DESKTOP_NAVBAR_AUTH_WIDTH
     : DESKTOP_NAVBAR_GUEST_WIDTH;
-  const desktopCapsuleCompactWidth = isLoggedIn
+  const desktopCapsuleCompactWidth = shouldReserveAuthenticatedChrome
     ? DESKTOP_NAVBAR_AUTH_COMPACT_WIDTH
     : DESKTOP_NAVBAR_GUEST_COMPACT_WIDTH;
 
@@ -152,6 +242,7 @@ export default function PublicNavbar() {
     '--navbar-capsule-height': `${64 - (8 * shrinkProgress)}px`,
     '--navbar-capsule-px': `${18 - (6 * shrinkProgress) - (6 * viewportFitProgress)}px`,
     '--navbar-capsule-gap': `${14 - (4 * scrollChromeProgress) - (6 * viewportFitProgress)}px`,
+    '--navbar-motion-ease': NAVBAR_MOTION_EASE,
     gridTemplateColumns: isScrollCenteredLayout
       ? 'minmax(0, 1fr) auto minmax(0, 1fr)'
       : 'auto minmax(0, 1fr) auto',
@@ -184,6 +275,14 @@ export default function PublicNavbar() {
     marginLeft: `${4 * (1 - strongestCompactProgress)}px`,
   };
 
+  const activeNavPillStyle: CSSProperties = {
+    left: `${activePillMetrics.left}px`,
+    top: `${activePillMetrics.top}px`,
+    width: `${activePillMetrics.width}px`,
+    height: `${activePillMetrics.height}px`,
+    opacity: activePillMetrics.opacity,
+  };
+
   const capsuleGlass = shouldRenderMobileMenu
     ? 'bg-background border-gray-200/80 dark:border-gray-800'
     : 'bg-white/72 dark:bg-black/65 backdrop-blur-xl border-white/80 dark:border-white/8 shadow-navbar-capsule dark:shadow-navbar-capsule-dark';
@@ -194,7 +293,7 @@ export default function PublicNavbar() {
       {/* Backdrop tint — visible only at stage 0 */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 transition-opacity duration-150 ease-out"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-[220ms] ease-out"
         style={{
           opacity: 1 - shrinkProgress,
           backgroundColor: isDarkMode ? '#050505' : '#f7faf8',
@@ -204,7 +303,7 @@ export default function PublicNavbar() {
       <div
         data-testid="navbar-capsule"
         className={cn(
-          'relative flex h-12 items-center gap-2 rounded-full border px-3 transition-all duration-150 ease-out md:left-1/2 md:grid md:h-[var(--navbar-capsule-height)] md:w-[var(--navbar-capsule-width)] md:max-w-[calc(100vw-1rem)] md:grid-cols-navbar-capsule md:items-center md:gap-[var(--navbar-capsule-gap)] md:-translate-x-1/2 md:px-[var(--navbar-capsule-px)]',
+          'relative flex h-12 items-center gap-2 rounded-full border px-3 transition-all duration-[240ms] ease-[var(--navbar-motion-ease)] md:left-1/2 md:grid md:h-[var(--navbar-capsule-height)] md:w-[var(--navbar-capsule-width)] md:max-w-[calc(100vw-1rem)] md:grid-cols-navbar-capsule md:items-center md:gap-[var(--navbar-capsule-gap)] md:-translate-x-1/2 md:px-[var(--navbar-capsule-px)]',
           capsuleGlass,
         )}
         style={capsuleStyle}
@@ -237,25 +336,38 @@ export default function PublicNavbar() {
         {isDesktop && (
           <nav className="flex min-w-0 items-center justify-center md:justify-self-center" aria-label="주 메뉴">
             <div
-              className="flex items-center gap-0.5 rounded-full bg-black/[.035] dark:bg-white/[.045] transition-all duration-150 ease-out"
+              ref={navSegmentRef}
+              className="relative flex items-center gap-0.5 overflow-hidden rounded-full bg-black/[.035] dark:bg-white/[.045] transition-all duration-[240ms] ease-[var(--navbar-motion-ease)]"
               style={navSegmentStyle}
             >
+              {activeNavItemId && (
+                <span
+                  aria-hidden="true"
+                  data-testid="navbar-active-pill"
+                  className="pointer-events-none absolute z-0 rounded-full bg-white shadow-navbar-pill transition-all duration-[260ms] ease-[var(--navbar-motion-ease)] dark:bg-primary/70 dark:shadow-navbar-pill-dark motion-reduce:transition-opacity"
+                  style={activeNavPillStyle}
+                />
+              )}
               {publicNavbarNavItems.map((item) => {
                 const isActive = isNavbarNavItemActive(item.id, location.pathname);
                 return (
                   <button
                     type="button"
                     key={item.id}
+                    ref={(node) => {
+                      navButtonRefs.current[item.id] = node;
+                    }}
+                    data-nav-id={item.id}
                     aria-current={isActive ? 'page' : undefined}
                     onClick={() => navigate(buildNavbarNavPath(item.id))}
                     onMouseEnter={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onFocus={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     onTouchStart={item.id === 'prediction' ? prefetchPredictionPage : undefined}
                     className={cn(
-                      'relative rounded-full font-bold transition-all duration-150 ease-out whitespace-nowrap',
+                      'relative z-10 transform-gpu rounded-full font-bold transition-all duration-[220ms] ease-out whitespace-nowrap motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5 motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
                       isActive
-                        ? 'bg-white text-primary shadow-sm dark:bg-primary/70 dark:text-white'
-                        : 'text-muted-foreground hover:text-foreground dark:text-white dark:hover:text-gray-100',
+                        ? 'text-primary dark:text-white'
+                        : 'text-muted-foreground hover:text-foreground hover:shadow-navbar-pill-hover dark:text-white dark:hover:text-gray-100',
                     )}
                     style={navItemStyle}
                   >
@@ -387,7 +499,7 @@ export default function PublicNavbar() {
         }}
         aria-label="하단 탭바"
       >
-        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-white/90 bg-white/85 p-1.5 shadow-mobile-chrome backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[hsl(var(--surface-raised)/0.85)]">
+        <div className="grid h-[var(--mobile-chrome-height)] grid-cols-4 gap-0.5 rounded-3xl border border-border bg-card p-1.5 shadow-sm dark:border-white/10 dark:bg-[hsl(var(--surface-raised))]">
           {publicNavbarNavItems.map((item) => {
             const Icon = NAV_ITEM_ICONS[item.id];
             const isActive = isNavbarNavItemActive(item.id, location.pathname);
