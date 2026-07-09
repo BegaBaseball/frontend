@@ -46,7 +46,6 @@ export default function Login() {
   return (
     <AuthLayout showHomeButton={true}>
       <AuthHeader
-        eyebrow="Account Access"
         title="로그인"
         description="경기 일정, 응원, 메이트, 예측을 이어서 보려면 계정으로 들어오세요."
         data-testid="login-header"

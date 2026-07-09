@@ -143,7 +143,7 @@ export default function NotificationPanel() {
   // Helpers for rendering
   const renderMessageWithBold = (message: string) => {
     // Bold names ending with '님' or text inside quotes
-    // Example: "김철수님이...", "'공지사항' 게시글에..."
+    // Example: "박민재님이...", "'공지사항' 게시글에..."
     // Using a regex that captures the whole group to bold
     const parts = message.split(/([^\s]+님|'.*?')/g);
     return parts.map((part, i) => {

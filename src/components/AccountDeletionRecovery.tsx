@@ -118,7 +118,6 @@ export default function AccountDeletionRecovery() {
       {isRecovered ? (
         <>
           <AuthHeader
-            eyebrow="Recovery Complete"
             title="계정 복구 완료"
             description="탈퇴 예약이 취소되었습니다. 이제 기존 계정으로 다시 로그인할 수 있습니다."
             data-testid="account-recovery-header"
@@ -146,7 +145,6 @@ export default function AccountDeletionRecovery() {
       ) : (
         <>
           <AuthHeader
-            eyebrow="Recovery Link"
             title="탈퇴 예약 취소"
             description="메일로 받은 링크를 통해 들어오셨다면 아래에서 탈퇴 예약을 취소하고 계정을 다시 사용할 수 있습니다."
             data-testid="account-recovery-header"
