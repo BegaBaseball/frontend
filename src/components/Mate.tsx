@@ -41,7 +41,7 @@ function MateControlsFallback() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-2">
-          <div className="text-13 font-semibold uppercase tracking-[0.16em] text-primary/70">같이가요</div>
+          <div className="text-13 font-semibold text-primary/75">같이가요</div>
           <div className="h-8 w-56 animate-pulse rounded bg-muted" />
         </div>
         <div className="hidden h-11 w-28 animate-pulse rounded-full bg-muted/70 sm:block" />
