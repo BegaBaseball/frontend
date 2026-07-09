@@ -158,7 +158,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
     <>
       <div className="mb-5 flex items-start justify-between gap-3 md:mb-6 md:items-end">
         <div className="min-w-0">
-          <p className="mb-1 hidden text-15 font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white sm:block">
+          <p className="mb-1 hidden text-13 font-semibold text-gray-500 dark:text-white/70 sm:block">
             Mate Flow
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
