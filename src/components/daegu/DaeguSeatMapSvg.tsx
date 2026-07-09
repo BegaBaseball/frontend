@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { ExternalLink, Minus, Plus } from 'lucide-react';
+import {
+  ArrowSquareOutIcon as ExternalLink,
+  MinusIcon as Minus,
+  PlusIcon as Plus,
+} from '@phosphor-icons/react';
 import {
   DAEGU_CATEGORIES,
   getDaeguTraceMethodLabel,

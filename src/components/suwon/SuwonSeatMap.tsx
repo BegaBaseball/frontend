@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Eye, Plus, Trash2, X } from 'lucide-react';
+import { EyeIcon as Eye, PlusIcon as Plus, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import {
   SUWON_BLOCKS,
   SUWON_CATEGORIES,
@@ -21,7 +23,6 @@ import {
 } from '../../utils/manualBaseballDataContract';
 import SuwonSeatMapSvg, { type SeatMapPan } from './SuwonSeatMapSvg';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
-import SuwonUploadFlowModal from './SuwonUploadFlowModal';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
 import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
@@ -29,6 +30,7 @@ import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -651,6 +653,7 @@ function SuwonOperatorVisitMeta({
 
 export default function SuwonSeatMap() {
   const { resolvedTheme } = useTheme();
+  const { requireLogin } = useAuthAccessActions();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
@@ -812,6 +815,16 @@ export default function SuwonSeatMap() {
     </>
   ), [comparisonIds, handleAddComparison, handleRemoveComparison]);
 
+  const handleOpenUpload = useCallback((section: SuwonBlock | null) => {
+    if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
+
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
+
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <SuwonSeatMapSvg
       selectedId={selected?.id ?? null}
@@ -865,7 +878,7 @@ export default function SuwonSeatMap() {
       adapter={suwonSectionAdapter}
       stadiumKey="SUWON"
       onClose={() => selectSuwonBlock(null)}
-      onUpload={() => selected && setUploadFor(selected)}
+      onUpload={() => handleOpenUpload(selected)}
       extraMeta={renderOperatorVisitMeta}
       searchAction={{
         label: '구역 검색',
@@ -943,12 +956,6 @@ export default function SuwonSeatMap() {
     </>
   ) : null;
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-  }, [showToast, uploadFor]);
-
   return (
     <>
       <SeatMapTemplateShell
@@ -980,7 +987,7 @@ export default function SuwonSeatMap() {
             adapter={suwonSectionAdapter}
             stadiumKey="SUWON"
             onClose={() => selectSuwonBlock(null)}
-            onUpload={() => selected && setUploadFor(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             testId="suwon-seatmap-bottom-sheet"
             extraMeta={renderOperatorVisitMeta}
             searchAction={{
@@ -1012,11 +1019,13 @@ export default function SuwonSeatMap() {
         fullscreenSubtitle="kt 공식 좌석도 전체화면"
       />
       {uploadFor && (
-        <SuwonUploadFlowModal
-          section={uploadFor}
-          mode={mode}
+        <SeatViewDirectUploadModal
+          stadium="SUWON"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? SUWON_CATEGORIES[uploadFor.category].dark : SUWON_CATEGORIES[uploadFor.category].light}
           onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
+          onSubmitted={handleUploadSubmitted}
         />
       )}
     </>

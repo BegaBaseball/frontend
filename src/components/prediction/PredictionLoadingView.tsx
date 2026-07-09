@@ -1,3 +1,4 @@
+import { Baseball } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { Card } from '../ui/card';
 import { PREDICTION_SURFACE_CARD_CLASS } from './predictionUiTokens';
@@ -19,15 +20,7 @@ export default function PredictionLoadingView({ topNotice }: PredictionLoadingVi
         <div className="flex flex-col items-center text-center">
           <div className="relative flex h-20 w-20 items-center justify-center">
             <span className="absolute inset-0 animate-spin rounded-full border-2 border-dashed border-emerald-200 motion-reduce:animate-none" />
-            <svg
-              className="h-14 w-14 animate-spin motion-reduce:animate-none"
-              viewBox="0 0 56 56"
-              aria-hidden="true"
-            >
-              <circle cx="28" cy="28" r="25" fill="#fff" stroke="#e2e8f0" strokeWidth="2" />
-              <path d="M12 9 C25 20 25 36 12 47" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="2.5 4" />
-              <path d="M44 9 C31 20 31 36 44 47" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="2.5 4" />
-            </svg>
+            <Baseball className="h-14 w-14 animate-spin text-red-600 motion-reduce:animate-none" aria-hidden="true" />
           </div>
           <h3 className="mt-4 text-18 font-extrabold tracking-normal text-slate-950 dark:text-white">
             데이터 워밍업 중...

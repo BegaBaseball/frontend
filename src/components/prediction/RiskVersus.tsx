@@ -1,4 +1,4 @@
-import { type SVGProps } from 'react';
+import { Baseball, Brain, Wind, type IconProps } from '@phosphor-icons/react';
 import { CoachRiskItem } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import TeamLogo from '../TeamLogo';
@@ -12,42 +12,9 @@ import {
 } from './coachRiskHelpers';
 import { getCoachTokens, IMPACT } from './coachStyleTokens';
 
-function PitchIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-            <circle cx="12" cy="12" r="9" />
-            <path d="M8 7c2 3 6 7 9 9M16 7c-2 3-6 7-9 9" />
-        </svg>
-    );
-}
-
-function WindIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-            <path d="M3 8h10a3 3 0 100-6" />
-            <path d="M3 14h14a3 3 0 110 6" />
-            <path d="M3 11h7" />
-        </svg>
-    );
-}
-
-function BrainIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-            <path d="M9 4a3 3 0 00-3 3v1a3 3 0 00-2 3v1a3 3 0 002 3v1a3 3 0 003 3" />
-            <path d="M15 4a3 3 0 013 3v1a3 3 0 012 3v1a3 3 0 01-2 3v1a3 3 0 01-3 3" />
-            <path d="M9 4a3 3 0 016 0M9 20a3 3 0 006 0" />
-        </svg>
-    );
-}
-
-function RiskIcon({ level, ...props }: SVGProps<SVGSVGElement> & { level: 0 | 1 | 2 }) {
-    if (level === 0) return <PitchIcon {...props} />;
-    if (level === 1) return <WindIcon {...props} />;
-    return <BrainIcon {...props} />;
+function RiskIcon({ level, ...props }: IconProps & { level: 0 | 1 | 2 }) {
+    const Icon = level === 0 ? Baseball : level === 1 ? Wind : Brain;
+    return <Icon aria-hidden="true" {...props} />;
 }
 
 interface RiskVersusProps {

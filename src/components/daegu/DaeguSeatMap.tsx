@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react';
 import {
   DAEGU_CATEGORIES,
   DAEGU_CATEGORY_GROUPS,
@@ -19,8 +18,8 @@ import {
   type DaeguCanonicalBlock,
 } from '../../data/daeguCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
-import { useDiaryStore } from '../../store/diaryStore';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import DaeguSeatMapSvg from './DaeguSeatMapSvg';
@@ -31,6 +30,7 @@ import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -62,13 +62,6 @@ const daeguSectionAdapter: SeatMapSectionAdapter<DaeguCanonicalBlock> = {
   },
   getTags: (section) => (DAEGU_VIEW_INFO[section.id] ?? DAEGU_VIEW_INFO.default).tags ?? [],
 };
-
-function formatDraftDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function getDaeguCanonicalDecisionStatusLabel(status: DaeguCanonicalBlock['canonicalDecisionStatus']): string {
   if (status === 'CANONICAL_OPERATOR_FROM_OVERLAP') return 'operator overlap canonical';
@@ -301,7 +294,7 @@ function DetailPanel({
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           style={{ background: accent }}
         >
-          다이어리에서 시야 사진 공유하기
+          시야 사진 올리기
         </button>
       </div>
     </div>
@@ -359,13 +352,11 @@ function DaeguExtraMeta({ section, accent }: { section: DaeguCanonicalBlock; acc
 
 export default function DaeguSeatMap() {
   const { resolvedTheme } = useTheme();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
-  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
+  const [uploadFor, setUploadFor] = useState<DaeguCanonicalBlock | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
   const [sectionFinderAutoFocus, setSectionFinderAutoFocus] = useState(false);
@@ -397,6 +388,8 @@ export default function DaeguSeatMap() {
     filterSides,
     filterLevels,
     activeFilterGroup,
+    toast,
+    showToast,
   } = useSeatMapSelectionState({
     sections: selectableDaeguBlocks,
     filterGroups: DAEGU_CATEGORY_GROUPS,
@@ -504,26 +497,15 @@ export default function DaeguSeatMap() {
     }));
   }, [selectableDaeguBlockIds, setHover, setSelected]);
 
-  const handleShareSeatView = useCallback((section: DaeguCanonicalBlock | null) => {
+  const handleOpenUpload = useCallback((section: DaeguCanonicalBlock | null) => {
     if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
 
-    setPendingDraft({
-      date: formatDraftDate(new Date()),
-      stadium: 'DAEGU',
-      team: '삼성',
-      section: section.name,
-      block: section.block,
-      seatRow: '',
-      seatNumber: '',
-    });
-
-    if (!isLoggedIn) {
-      requireLogin('/mypage');
-      return;
-    }
-
-    navigate('/mypage');
-  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <DaeguSeatMapSvg
@@ -613,8 +595,8 @@ export default function DaeguSeatMap() {
       adapter={daeguSectionAdapter}
       stadiumKey="DAEGU"
       onClose={handleCloseSection}
-      onUpload={() => handleShareSeatView(selected)}
-      copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      onUpload={() => handleOpenUpload(selected)}
+      copy={{ blockLabel: '정확 블록', uploadLabel: '시야 사진 올리기' }}
       extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
       searchAction={{
         label: '구역 검색',
@@ -649,8 +631,8 @@ export default function DaeguSeatMap() {
             adapter={daeguSectionAdapter}
             stadiumKey="DAEGU"
             onClose={handleCloseSection}
-            onUpload={() => handleShareSeatView(selected)}
-            copy={{ blockLabel: '정확 블록', uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            onUpload={() => handleOpenUpload(selected)}
+            copy={{ blockLabel: '정확 블록', uploadLabel: '시야 사진 올리기' }}
             extraMeta={(section, accent) => <DaeguExtraMeta section={section} accent={accent} />}
             searchAction={{
               label: '구역 검색',
@@ -663,6 +645,7 @@ export default function DaeguSeatMap() {
         mobileHasSidePanel={Boolean(mapToolsEnabled && selected)}
         desktopSecondaryPanel={sectionFinder}
         desktopSidePanel={detailPanel}
+        toast={toast}
         isFullscreenOpen={isFullscreenOpen}
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(
@@ -687,6 +670,16 @@ export default function DaeguSeatMap() {
         fullscreenTitle="대구 삼성 라이온즈파크"
         fullscreenSubtitle="대구 삼성 라이온즈파크 공식 좌석도 · canonical 좌석도 전체화면"
       />
+      {uploadFor && (
+        <SeatViewDirectUploadModal
+          stadium="DAEGU"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? DAEGU_CATEGORIES[uploadFor.category].dark : DAEGU_CATEGORIES[uploadFor.category].light}
+          onClose={() => setUploadFor(null)}
+          onSubmitted={handleUploadSubmitted}
+        />
+      )}
     </>
   );
 }
