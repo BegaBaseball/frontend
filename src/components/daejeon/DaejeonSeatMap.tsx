@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Minus, Plus, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import {
+  BookOpenIcon as BookOpen,
+  MagnifyingGlassIcon as Search,
+  MinusIcon as Minus,
+  PlusIcon as Plus,
+} from '@phosphor-icons/react';
 import {
   DAEJEON_BLOCKS,
   DAEJEON_CATEGORIES,
@@ -20,8 +24,8 @@ import {
   type DaejeonBlock,
 } from '../../data/daejeonSeatData';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
-import { useDiaryStore } from '../../store/diaryStore';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import DaejeonSeatMapSvg from './DaejeonSeatMapSvg';
@@ -31,6 +35,7 @@ import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -72,13 +77,6 @@ const daejeonSectionAdapter: SeatMapSectionAdapter<DaejeonBlock> = {
   },
   getTags: (section) => getDaejeonViewInfo(section).tags ?? [],
 };
-
-function formatDraftDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function normalizeSearchText(value?: string | null): string {
   return value?.replace(/\s+/g, '').toLowerCase() ?? '';
@@ -464,7 +462,7 @@ function DetailPanel({
           style={{ background: isPendingReview ? '#94a3b8' : accent }}
         >
           <BookOpen className="h-4 w-4" />
-          {isPendingReview ? '좌표 검수 후 공유 가능' : '다이어리에서 시야 사진 공유하기'}
+          {isPendingReview ? '좌표 검수 후 공유 가능' : '시야 사진 올리기'}
         </button>
       </div>
     </div>
@@ -504,14 +502,12 @@ function DaejeonExtraMeta({ section, accent }: { section: DaejeonBlock; accent: 
 
 export default function DaejeonSeatMap() {
   const { resolvedTheme } = useTheme();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
-  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [finderSelectedBlockId, setFinderSelectedBlockId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
+  const [uploadFor, setUploadFor] = useState<DaejeonBlock | null>(null);
   const [mapFocusRequest, setMapFocusRequest] = useState<{ blockId: string | null; requestId: number }>({ blockId: null, requestId: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
@@ -528,6 +524,8 @@ export default function DaejeonSeatMap() {
     filterSides,
     filterLevels,
     activeFilterGroup,
+    toast,
+    showToast,
   } = useSeatMapSelectionState({
     sections: DAEJEON_BLOCKS,
     filterGroups: DAEJEON_CATEGORY_GROUPS,
@@ -681,27 +679,16 @@ export default function DaejeonSeatMap() {
     }
   }, [hover, visibleBlockIds]);
 
-  const handleShareSeatView = useCallback((section: DaejeonBlock | null) => {
+  const handleOpenUpload = useCallback((section: DaejeonBlock | null) => {
     if (!section) return;
     if (!isDaejeonSelectableSeatBlock(section)) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
 
-    setPendingDraft({
-      date: formatDraftDate(new Date()),
-      stadium: 'DAEJEON',
-      team: '한화',
-      section: section.name,
-      block: section.blockCode,
-      seatRow: '',
-      seatNumber: '',
-    });
-
-    if (!isLoggedIn) {
-      requireLogin('/mypage');
-      return;
-    }
-
-    navigate('/mypage');
-  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const mapSvg = (
     <DaejeonSeatMapSvg
@@ -796,12 +783,12 @@ export default function DaejeonSeatMap() {
       adapter={daejeonSectionAdapter}
       stadiumKey="DAEJEON"
       onClose={handleCloseSection}
-      onUpload={() => handleShareSeatView(selected)}
+      onUpload={() => handleOpenUpload(selected)}
       copy={{ blockLabel: '정확 블록' }}
       extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}
       isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
       getUploadLabel={(section) => (
-        isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
+        isDaejeonSelectableSeatBlock(section) ? '시야 사진 올리기' : '좌표 검수 후 공유 가능'
       )}
       searchAction={{
         label: '구역 검색',
@@ -841,12 +828,12 @@ export default function DaejeonSeatMap() {
             stadiumKey="DAEJEON"
             preferFull={selected?.id === finderSelectedBlockId}
             onClose={handleCloseSection}
-            onUpload={() => handleShareSeatView(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             copy={{ blockLabel: '정확 블록' }}
             extraMeta={(section, accent) => <DaejeonExtraMeta section={section} accent={accent} />}
             isUploadDisabled={(section) => !isDaejeonSelectableSeatBlock(section)}
             getUploadLabel={(section) => (
-              isDaejeonSelectableSeatBlock(section) ? '다이어리에서 시야 사진 공유하기' : '좌표 검수 후 공유 가능'
+              isDaejeonSelectableSeatBlock(section) ? '시야 사진 올리기' : '좌표 검수 후 공유 가능'
             )}
             searchAction={{
               label: '구역 검색',
@@ -859,6 +846,7 @@ export default function DaejeonSeatMap() {
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
         desktopSecondaryPanel={sectionFinder}
         desktopSidePanel={detailPanel}
+        toast={toast}
         isFullscreenOpen={isFullscreenOpen}
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(
@@ -871,6 +859,16 @@ export default function DaejeonSeatMap() {
         fullscreenTitle="대전 한화생명볼파크"
         fullscreenSubtitle="대전 한화생명볼파크 공식 좌석도 전체화면"
       />
+      {uploadFor && (
+        <SeatViewDirectUploadModal
+          stadium="DAEJEON"
+          section={uploadFor.name}
+          block={uploadFor.blockCode}
+          accentColor={mode === 'dark' ? DAEJEON_CATEGORIES[uploadFor.category].dark : DAEJEON_CATEGORIES[uploadFor.category].light}
+          onClose={() => setUploadFor(null)}
+          onSubmitted={handleUploadSubmitted}
+        />
+      )}
     </>
   );
 }

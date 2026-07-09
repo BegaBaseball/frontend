@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react';
 import type { SeatMapSectionAdapter, SeatMapCategoryMeta } from './seatMapCommonTypes';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 

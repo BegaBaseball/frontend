@@ -1,3 +1,4 @@
+import { CaretDownIcon } from '@phosphor-icons/react';
 import { lazy, Suspense } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -279,18 +280,12 @@ export default function StadiumGuideRuntime() {
                   ))}
                 </select>
                 <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 sm:right-6">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={isDark ? STADIUM_DARK_COLORS.accentHex : THEME_COLORS.primary}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
+                  <CaretDownIcon
+                    size={28}
+                    weight="bold"
+                    color={isDark ? STADIUM_DARK_COLORS.accentHex : THEME_COLORS.primary}
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
             </div>

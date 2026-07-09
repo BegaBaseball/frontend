@@ -1,3 +1,4 @@
+import { CaretDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { SeatMapFilterGroup, SeatMapThemeMode } from './seatMapCommonTypes';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
@@ -131,13 +132,12 @@ export function SeatMapFilterBar({
             aria-expanded={isExpanded}
           >
             {secondaryLabels}
-            <svg
-              width="10" height="10" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="2.5"
+            <CaretDownIcon
+              size={10}
+              weight="bold"
+              aria-hidden="true"
               style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            />
           </button>
           {secondaryActive && (
             <span
