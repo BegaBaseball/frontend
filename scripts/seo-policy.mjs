@@ -11,6 +11,16 @@ const rawPolicy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
 const defaultSiteUrl = 'https://www.begabaseball.xyz';
 
 export const siteUrl = (process.env.VITE_SITE_URL || defaultSiteUrl).replace(/\/+$/, '');
+const normalizePublicPath = (value) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) {
+    return '/favicon.png';
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+export const defaultOgImagePath = normalizePublicPath(rawPolicy.defaultOgImagePath || '/favicon.png');
+export const defaultOgImageUrl = `${siteUrl}${defaultOgImagePath}`;
 export const indexableRoutes = rawPolicy.indexableRoutes;
 export const noindexPrefixes = rawPolicy.noindexPrefixes;
 export const noindexRegex = rawPolicy.noindexRegex;

@@ -8,6 +8,7 @@ import {
   buildSeoHeadMarkup,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
+import { defaultOgImageUrl } from './seo-policy.mjs';
 
 const route = {
   path: '/',
@@ -16,6 +17,8 @@ const route = {
   heading: 'BEGA SEO Test',
   schemaType: 'page',
 };
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test('prerender SEO head includes escaped search verification meta tags', () => {
   const html = buildSeoHeadMarkup(route, {
@@ -30,6 +33,23 @@ test('prerender SEO head includes escaped search verification meta tags', () => 
   assert.match(
     html,
     /<meta name="naver-site-verification" content="naver-token">/,
+  );
+});
+
+test('prerender SEO head uses policy default OG image', () => {
+  const html = buildSeoHeadMarkup(route, {
+    googleSiteVerification: '',
+    naverSiteVerification: '',
+  });
+  const escapedOgImage = escapeRegExp(defaultOgImageUrl);
+
+  assert.match(
+    html,
+    new RegExp(`<meta property="og:image" content="${escapedOgImage}">`),
+  );
+  assert.match(
+    html,
+    new RegExp(`<meta name="twitter:image" content="${escapedOgImage}">`),
   );
 });
 

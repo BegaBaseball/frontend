@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   canonicalUrlForPath,
+  defaultOgImageUrl,
   distDir,
   ensureDir,
   escapeHtml,
@@ -72,7 +73,7 @@ const buildStructuredData = (route) => {
 
 export const buildSeoHeadMarkup = (route, siteVerification = readSiteVerificationEnv()) => {
   const canonicalUrl = canonicalUrlForPath(route.path);
-  const ogImage = `${siteUrl}/favicon.png`;
+  const ogImage = defaultOgImageUrl;
   const jsonLdList = buildStructuredData(route);
   const jsonLdTags = jsonLdList
     .map(
