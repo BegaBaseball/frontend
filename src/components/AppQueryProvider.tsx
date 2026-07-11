@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Outlet } from 'react-router-dom';
 import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext';
@@ -19,7 +19,7 @@ const LoginRequiredDialog = lazy(() =>
   }))
 );
 
-export default function AppQueryProvider() {
+export default function AppQueryProvider({ children }: { children?: ReactNode }) {
   const { userId } = useAuthProfileSnapshot();
   const { isLoggedIn } = useAuthSession();
   const { logout, requireLogin } = useAuthAccessActions();
@@ -110,7 +110,7 @@ export default function AppQueryProvider() {
     <QueryClientProvider client={queryClient}>
       <ConfirmDialogProvider>
         <PredictionQueryGuard />
-        <Outlet />
+        {children ?? <Outlet />}
         <GlobalErrorDialog />
         {showLoginRequiredDialog && (
           <Suspense fallback={null}>

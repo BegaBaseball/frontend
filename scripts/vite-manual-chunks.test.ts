@@ -53,6 +53,7 @@ const cheerRuntimeSource = readFileSync(new URL('../src/components/CheerRuntime.
 const cheerFeedRuntimeContentSource = readFileSync(new URL('../src/components/CheerFeedRuntimeContent.tsx', import.meta.url), 'utf8');
 const cheerSidebarPanelsSource = readFileSync(new URL('../src/components/CheerSidebarPanels.tsx', import.meta.url), 'utf8');
 const matePageSource = readFileSync(new URL('../src/components/MatePage.tsx', import.meta.url), 'utf8');
+const appQueryProviderSource = readFileSync(new URL('../src/components/AppQueryProvider.tsx', import.meta.url), 'utf8');
 const uiButtonSource = readFileSync(new URL('../src/components/ui/button.tsx', import.meta.url), 'utf8');
 const uiInputSource = readFileSync(new URL('../src/components/ui/input.tsx', import.meta.url), 'utf8');
 const uiTextareaSource = readFileSync(new URL('../src/components/ui/textarea.tsx', import.meta.url), 'utf8');
@@ -157,7 +158,7 @@ test('preloads /home route chunks before nested lazy route rendering', () => {
 
 test('preloads /cheer route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerRoute = /^\\/cheer(?:\\/write)?\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;"));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;'));
   assert.ok(appRoutesSource.includes("const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;"));
   assert.ok(appRoutesSource.includes("const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;"));
   assert.match(
@@ -202,9 +203,41 @@ test('loads the /cheer feed runtime after the composer can paint', () => {
 test('preloads /mate public route shells in parallel', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialMateRoute = /^\\/mate\\/?$/.test(initialPathname);"));
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;"));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;'));
   assert.ok(appRoutesSource.includes("const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;"));
   assert.ok(appRoutesSource.includes("const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));"));
-  assert.match(appRoutesSource, /<Route path="\/mate" element={<MatePage \/>} \/>/);
+  assert.match(
+    appRoutesSource,
+    /<Route element={<Layout authenticated={false} \/>}>\s*<Route path="\/home" element={<Home \/>} \/>\s*<Route path="\/mate" element={<MatePage \/>} \/>/,
+  );
+
+  const appQueryProviderRouteGroup = appRoutesSource.slice(
+    appRoutesSource.indexOf('<Route element={<AppQueryProvider />}>'),
+    appRoutesSource.indexOf('{import.meta.env.DEV'),
+  );
+  assert.equal(appQueryProviderRouteGroup.includes('<Route path="/mate" element={<MatePage />} />'), false);
+});
+
+test('loads React Query only for the authenticated /mate runtime', () => {
+  assert.ok(matePageSource.includes("const AppQueryProvider = lazy(() => import('./AppQueryProvider'));"));
+  assert.match(
+    matePageSource,
+    /<AppQueryProvider>\s*<MateRuntime \/>\s*<\/AppQueryProvider>/,
+  );
+  assert.match(
+    appQueryProviderSource,
+    /export default function AppQueryProvider\(\{ children \}: \{ children\?: ReactNode \}\)/,
+  );
+  assert.ok(appQueryProviderSource.includes('{children ?? <Outlet />}'));
+
+  const mateGuestFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/mate',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(mateGuestFirstLoadGuard);
+  assert.ok(mateGuestFirstLoadGuard.includes("label: '/mate guest first-load static closure'"));
+  assert.ok(mateGuestFirstLoadGuard.includes('maxJsGzipBytes: 90_000'));
+  assert.equal(mateGuestFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"), false);
+  assert.equal(mateGuestFirstLoadGuard.includes("'src/components/Mate.tsx'"), false);
 });
 
 test('keeps the /mate guest LCP heading on the zero-request font stack', () => {
