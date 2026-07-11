@@ -5,6 +5,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import {
+  buildPerformanceRouteHeadMarkup,
   buildSeoHeadMarkup,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
@@ -19,6 +20,16 @@ const route = {
 };
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test('performance-only route shell remains noindex without preload metadata', () => {
+  const html = buildPerformanceRouteHeadMarkup({
+    title: '승부예측 | BEGA',
+    description: '경기 승부를 예측하세요.',
+  });
+  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
+  assert.match(html, /<meta name="description" content="경기 승부를 예측하세요\.">/);
+  assert.doesNotMatch(html, /modulepreload|ROUTE-MODULE-PRELOAD|index,follow/);
+});
 
 test('prerender SEO head includes escaped search verification meta tags', () => {
   const html = buildSeoHeadMarkup(route, {
