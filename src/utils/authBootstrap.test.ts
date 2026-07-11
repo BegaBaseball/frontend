@@ -11,6 +11,7 @@ import {
   resolveAuthBootstrapMode,
   shouldAttemptRootAuthBootstrap,
   shouldHoldAuthUiDuringBootstrap,
+  shouldInitializeAuthLoading,
   shouldMountAuthBootstrapRuntime,
   setPersistedAuthBootstrapMeta,
   setPersistedAuthBootstrapHint,
@@ -134,6 +135,34 @@ test('익명 prediction 진입은 persisted auth hint가 없으면 공개 홈 �
       hasPersistedAuthHint: false,
     }),
     'public-home',
+  );
+});
+
+test('bootstrap을 생략하는 익명 prediction은 auth loading 없이 초기화한다', () => {
+  assert.equal(
+    shouldInitializeAuthLoading('/prediction', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    false,
+  );
+});
+
+test('보호 경로와 injected profile은 auth loading 상태로 초기화한다', () => {
+  assert.equal(
+    shouldInitializeAuthLoading('/mypage', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldInitializeAuthLoading('/prediction', {
+      isLoggedIn: false,
+      hasPersistedAuthHint: false,
+      hasInjectedAuthProfile: true,
+    }),
+    true,
   );
 });
 

@@ -812,8 +812,8 @@ const installMockRoutes = async (page, scenario) => {
   }));
 };
 
-const installMetricsInitScript = async (context, mockDate = null) => {
-  await context.addInitScript((mockDate) => {
+const installMetricsInitScript = async (context, mockDate = null, authenticated = false) => {
+  await context.addInitScript(({ mockDate, authenticated }) => {
     if (mockDate) {
       const RealDate = Date;
       const fixedNow = new RealDate(`${mockDate}T12:00:00+09:00`);
@@ -877,13 +877,24 @@ const installMetricsInitScript = async (context, mockDate = null) => {
     try {
       window.localStorage.setItem('bega_has_visited', 'true');
       window.localStorage.setItem('bega_dont_show_guide', 'true');
-      window.localStorage.removeItem('auth-bootstrap-hint');
+      if (authenticated) {
+        window.localStorage.setItem('auth-bootstrap-hint', '1');
+      } else {
+        window.localStorage.removeItem('auth-bootstrap-hint');
+      }
       window.localStorage.removeItem('auth-bootstrap-meta');
-      window.sessionStorage.setItem('cypress:skip-public-auth-bootstrap', '1');
+      if (authenticated) {
+        window.sessionStorage.removeItem('cypress:skip-public-auth-bootstrap');
+      } else {
+        window.sessionStorage.setItem('cypress:skip-public-auth-bootstrap', '1');
+      }
     } catch (_error) {
       // Ignore storage setup failures in audit mode.
     }
-  }, mode === 'mock' ? mockDate : null);
+  }, {
+    mockDate: mode === 'mock' ? mockDate : null,
+    authenticated: mode === 'mock' && authenticated,
+  });
 };
 
 const isVisibleSelector = (selector) => {
@@ -1436,7 +1447,11 @@ const runBrowserAudit = async ({ baseUrl }) => {
         hasTouch: viewport.hasTouch,
         deviceScaleFactor: viewport.deviceScaleFactor,
       });
-      await installMetricsInitScript(context, scenario.mockToday ?? scenario.date ?? selectedDate);
+      await installMetricsInitScript(
+        context,
+        scenario.mockToday ?? scenario.date ?? selectedDate,
+        scenario.authenticated === true,
+      );
 
       const prewarmEntry = await runBrowserIteration({
         context,
@@ -1543,7 +1558,11 @@ const capturePredictionFailureArtifacts = async ({ baseUrl, scenarioIds }) => {
           hasTouch: viewport.hasTouch,
           deviceScaleFactor: viewport.deviceScaleFactor,
         });
-        await installMetricsInitScript(context, scenario.mockToday ?? scenario.date ?? selectedDate);
+        await installMetricsInitScript(
+          context,
+          scenario.mockToday ?? scenario.date ?? selectedDate,
+          scenario.authenticated === true,
+        );
         await context.tracing.start({
           screenshots: true,
           snapshots: true,
