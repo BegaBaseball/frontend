@@ -22,6 +22,10 @@ const route = {
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const seoPolicy = JSON.parse(
+  fs.readFileSync(new URL('../seo-routes.json', import.meta.url), 'utf-8'),
+);
+
 test('performance-only route shell remains noindex without preload metadata', () => {
   const html = buildPerformanceRouteHeadMarkup({
     title: '승부예측 | BEGA',
@@ -44,6 +48,13 @@ test('performance-only route root is a fixed paintable shell', () => {
   assert.match(html, /style="position:fixed;inset:0;z-index:1;display:flex;/);
   assert.match(html, /<h1 style="margin:0;font-size:24px;/);
   assert.match(html, /<p style="margin:12px 0 0;/);
+});
+
+test('root and home routes opt into the paintable performance shell', () => {
+  for (const routePath of ['/', '/home']) {
+    const configuredRoute = seoPolicy.indexableRoutes.find((item) => item.path === routePath);
+    assert.equal(configuredRoute?.performanceShell, true, `${routePath} performanceShell`);
+  }
 });
 
 test('prerender SEO head includes escaped search verification meta tags', () => {

@@ -133,6 +133,10 @@ test('keeps GA4 network loading off the initial render critical path', () => {
 });
 
 test('reveals the performance prerender shell before delayed React hydration', () => {
+  assert.match(
+    indexHtmlSource,
+    /id="app-shell-loader"[\s\S]*?querySelector\('\[data-performance-prerender="true"\]'\)[\s\S]*?shellLoader\.remove\(\)/,
+  );
   assert.ok(mainEntrySource.includes("rootEl.querySelector('[data-performance-prerender=\"true\"]')"));
   assert.ok(mainEntrySource.includes('const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;'));
   assert.match(
