@@ -7,7 +7,7 @@ import AutosizeTextarea from './ui/autosize-textarea';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { CheerPost, createComment } from '../api/cheerApi';
 import TeamLogo from './TeamLogo';
-import { SmileIcon } from './icons/CheerIcons';
+import { CheerModalSmileIcon as SmileIcon } from './icons/CheerModalIcons';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { TEAM_DATA } from '../constants/teams';
 import { useTheme } from '../hooks/useTheme';

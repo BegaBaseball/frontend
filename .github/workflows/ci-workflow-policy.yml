@@ -7,6 +7,7 @@ on:
       - ".github/labeler.yml"
       - "scripts/ci-workflow-policy.mjs"
       - "scripts/ci-workflow-policy.test.ts"
+      - "docs/core-web-vitals.md"
       - "package.json"
   workflow_dispatch:
 

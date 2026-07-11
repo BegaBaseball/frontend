@@ -1,7 +1,13 @@
 // hooks/usePasswordReset.ts
 import { useState } from 'react';
-import { requestPasswordReset } from '../api/authPublic';
 import { sanitizeLoginText, validateLoginField } from '../utils/validation';
+
+let authPublicModulePromise: Promise<typeof import('../api/authPublic')> | null = null;
+
+const loadAuthPublicModule = () => {
+  authPublicModulePromise ??= import('../api/authPublic');
+  return authPublicModulePromise;
+};
 
 export const usePasswordReset = (redirectPath?: string | null) => {
   const defaultSuccessMessage = '입력한 이메일로 가입된 계정이 있다면 비밀번호 재설정 안내를 발송했습니다.';
@@ -43,6 +49,7 @@ export const usePasswordReset = (redirectPath?: string | null) => {
     setIsLoading(true);
 
     try {
+      const { requestPasswordReset } = await loadAuthPublicModule();
       const data = await requestPasswordReset(email, redirectPath);
       
       if (data.success) {

@@ -59,6 +59,13 @@ const mountApp = (renderPerf: RenderPerfController) => {
       {appTree}
     </RootMode>
   );
+
+  if (import.meta.env.PROD) {
+    void import('./utils/coreWebVitalsTelemetry')
+      .then(({ startCoreWebVitalsTelemetry }) => {
+        startCoreWebVitalsTelemetry();
+      });
+  }
 };
 
 const boot = async () => {

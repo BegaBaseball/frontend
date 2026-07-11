@@ -1,4 +1,4 @@
-import { CheckCircleIcon, XCircleIcon } from '../icons/PublicShellIcons';
+import { CheckCircleIcon, XCircleIcon } from '../icons/AuthFlowIcons';
 import { AuthStatusPanel } from '../ui/auth-primitives';
 
 interface SignUpStatusPanelProps {

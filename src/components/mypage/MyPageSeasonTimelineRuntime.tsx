@@ -4,7 +4,7 @@ import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import {
   MyPageEditIcon,
   MyPageTicketIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 type MyPageSeasonTimelineRuntimeProps = {

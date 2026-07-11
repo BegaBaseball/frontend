@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '../lib/utils';
-import { ChevronDownIcon, MegaphoneIcon } from './icons/CheerIcons';
+import { ChevronDownIcon, MegaphoneIcon } from './icons/CheerFlowIcons';
 
 const LazyCheerDetailStatsBody = lazy(() => import('./CheerDetailStatsBody'));
 

@@ -1,4 +1,3 @@
-import { Lightning, SpinnerGap } from '@phosphor-icons/react';
 import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
 
 import { Button } from './ui/button';
@@ -6,6 +5,10 @@ import PlainDialog from './ui/plain-dialog';
 import type { CoachDataQuality } from '../api/coach';
 import { TEAM_DATA, TEAM_LIST, getRandomTeamName } from '../constants/teams';
 import { resolveCoachAnalysisPresentation } from '../utils/predictionCoachPresentation';
+import {
+  CoachAnalysisResultLoaderIcon as CoachDialogLoaderIcon,
+  CoachAnalysisResultZapIcon as CoachDialogZapIcon,
+} from './icons/CoachAnalysisResultIcons';
 
 const CoachAnalysisDialogRuntime = lazy(() => import('./CoachAnalysisDialogRuntime'));
 
@@ -60,9 +63,9 @@ function CoachAnalysisTriggerButton({
       className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold"
     >
       {disabled ? (
-        <SpinnerGap className="w-4 h-4 animate-spin" aria-hidden="true" />
+        <CoachDialogLoaderIcon className="w-4 h-4 animate-spin" aria-hidden="true" />
       ) : (
-        <Lightning className="w-4 h-4" weight="fill" aria-hidden="true" />
+        <CoachDialogZapIcon className="w-4 h-4" aria-hidden="true" />
       )}
       <span>AI 코치 상세 분석</span>
     </Button>
@@ -105,7 +108,7 @@ function CoachAnalysisDialogFallback({
     >
       <div className="flex min-h-[18rem] items-center justify-center bg-gray-50/60 dark:bg-black/40">
         <div className="inline-flex items-center gap-2 text-body font-semibold text-gray-600 dark:text-white">
-                            <SpinnerGap className="h-4 w-4 animate-spin" aria-hidden="true" />
+          <CoachDialogLoaderIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
           AI 코치 분석 도구를 불러오는 중입니다.
         </div>
       </div>

@@ -1,6 +1,6 @@
-import { Baseball } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { Card } from '../ui/card';
+import { PredictionBaseballIcon } from './PredictionShellIcons';
 import { PREDICTION_SURFACE_CARD_CLASS } from './predictionUiTokens';
 
 interface PredictionLoadingViewProps {
@@ -20,7 +20,7 @@ export default function PredictionLoadingView({ topNotice }: PredictionLoadingVi
         <div className="flex flex-col items-center text-center">
           <div className="relative flex h-20 w-20 items-center justify-center">
             <span className="absolute inset-0 animate-spin rounded-full border-2 border-dashed border-emerald-200 motion-reduce:animate-none" />
-            <Baseball className="h-14 w-14 animate-spin text-red-600 motion-reduce:animate-none" aria-hidden="true" />
+            <PredictionBaseballIcon className="h-14 w-14 animate-spin motion-reduce:animate-none" />
           </div>
           <h3 className="mt-4 text-18 font-extrabold tracking-normal text-slate-950 dark:text-white">
             데이터 워밍업 중...

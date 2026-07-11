@@ -1,5 +1,8 @@
 import { useTheme } from '../hooks/useTheme';
-import { FirstLoadMoonIcon, FirstLoadSunIcon } from './icons/FirstLoadIcons';
+import {
+  NavbarMoonIcon as FirstLoadMoonIcon,
+  NavbarSunIcon as FirstLoadSunIcon,
+} from './icons/NavbarIcons';
 
 interface ThemeToggleButtonProps {
   className?: string;

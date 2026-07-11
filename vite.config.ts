@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import { createLogger, defineConfig, loadEnv } from 'vite';
+import { cloudflare } from '@cloudflare/vite-plugin';
+import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-import { cloudflare } from "@cloudflare/vite-plugin";
+import { createBegaModuleFederationConfig } from './module-federation.config';
 
 type BuildCommandEnv = {
   command: string;
@@ -12,12 +14,46 @@ type BuildCommandEnv = {
 
 type MutableBuildEnv = Record<string, string | undefined>;
 
+type ViteAliasConfigOptions = {
+  hasDesignSystemRemoteEntry: boolean;
+  rootDir: string;
+  useHelmetShim: boolean;
+};
+
+const designSystemFallbackAliases = {
+  'design_system/Button': './src/components/moduleFederation/fallback/Button.tsx',
+  'design_system/Modal': './src/components/moduleFederation/fallback/Modal.tsx',
+  'design_system/ThemeProvider': './src/components/moduleFederation/fallback/ThemeProvider.tsx',
+} as const;
+
 export const isProductionBuildCommand = ({ command, mode }: BuildCommandEnv) =>
   command === 'build' && mode === 'production';
 
 export const forceProductionBuildNodeEnv = (targetEnv: MutableBuildEnv) => {
   targetEnv.NODE_ENV = 'production';
   targetEnv.VITE_USER_NODE_ENV = 'production';
+};
+
+export const createViteAliasConfig = ({
+  hasDesignSystemRemoteEntry,
+  rootDir,
+  useHelmetShim,
+}: ViteAliasConfigOptions): Record<string, string> => {
+  const alias: Record<string, string> = {
+    sonner: path.resolve(rootDir, './src/shims/sonner.tsx'),
+    '@': path.resolve(rootDir, './src'),
+  };
+
+  if (useHelmetShim) {
+    alias['react-helmet-async'] = path.resolve(rootDir, './src/shims/react-helmet-async.tsx');
+  }
+  if (!hasDesignSystemRemoteEntry) {
+    for (const [remoteModule, fallbackPath] of Object.entries(designSystemFallbackAliases)) {
+      alias[remoteModule] = path.resolve(rootDir, fallbackPath);
+    }
+  }
+
+  return alias;
 };
 
 export default defineConfig(({ mode, command }) => {
@@ -41,15 +77,17 @@ export default defineConfig(({ mode, command }) => {
   const suppressCypressProxyErrors = env.VITE_SUPPRESS_CYPRESS_PROXY_ERRORS === 'true';
   const enableCloudflarePlugin =
     command !== 'serve' || env.VITE_ENABLE_CLOUDFLARE_PLUGIN === 'true';
+  const hasDesignSystemRemoteEntry = Boolean(env.VITE_MF_DESIGN_SYSTEM_ENTRY?.trim());
+  const enableModuleFederationPlugin =
+    env.VITE_ENABLE_MODULE_FEDERATION === 'true'
+    || hasDesignSystemRemoteEntry;
   const helmetPackagePath = path.resolve(__dirname, 'node_modules/react-helmet-async/package.json');
   const useHelmetShim = !fs.existsSync(helmetPackagePath);
-  const alias = {
-    sonner: path.resolve(__dirname, './src/shims/sonner.tsx'),
-    '@': path.resolve(__dirname, './src'),
-  };
-  if (useHelmetShim) {
-    alias['react-helmet-async'] = path.resolve(__dirname, './src/shims/react-helmet-async.tsx');
-  }
+  const alias = createViteAliasConfig({
+    hasDesignSystemRemoteEntry,
+    rootDir: __dirname,
+    useHelmetShim,
+  });
 
   const viteLogger = createLogger();
   const customLogger = suppressCypressProxyErrors
@@ -64,10 +102,18 @@ export default defineConfig(({ mode, command }) => {
     }
     : viteLogger;
 
+  const moduleFederationPlugins = enableModuleFederationPlugin
+    ? federation(createBegaModuleFederationConfig(env))
+    : [];
+
   return {
     appType: 'spa',
     customLogger,
-    plugins: [react(), ...(enableCloudflarePlugin ? [cloudflare()] : [])],
+    plugins: [
+      react(),
+      ...moduleFederationPlugins,
+      ...(enableCloudflarePlugin ? [cloudflare()] : []),
+    ],
 
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -155,9 +201,6 @@ export default defineConfig(({ mode, command }) => {
               || id.includes('/@stomp/')
             ) {
               return 'vendor-realtime';
-            }
-            if (id.includes('/@phosphor-icons/react/')) {
-              return 'vendor-icons';
             }
           },
         },

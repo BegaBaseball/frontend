@@ -1,6 +1,6 @@
-import { XIcon } from '@phosphor-icons/react';
 import { type ReactNode } from 'react';
 
+import { XIcon } from '../icons/StadiumGuideIcons';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
 interface SeatMapTemplateShellProps {
@@ -200,7 +200,7 @@ export function SeatMapTemplateShell({
                   color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined,
                 }}
               >
-                <XIcon size={16} weight="bold" aria-hidden="true" />
+                <XIcon className="h-4 w-4" />
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-4 sm:py-4">

@@ -8,12 +8,12 @@ import { useAuthStore } from '../../store/authStore';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/plain-button';
 import {
-    ProfileCloseIcon,
-    ProfileLoaderIcon,
-    ProfileQuoteIcon,
-    ProfileTrophyIcon,
-    ProfileUsersIcon,
-} from './ProfileIcons';
+    UserProfileQuoteIcon as ProfileQuoteIcon,
+    UserProfileSpinnerIcon as ProfileLoaderIcon,
+    UserProfileTrophyIcon as ProfileTrophyIcon,
+    UserProfileUsersIcon as ProfileUsersIcon,
+    UserProfileXIcon as ProfileCloseIcon,
+} from './UserProfileIcons';
 
 const FollowButton = lazy(() => import('./FollowButton'));
 const BlockButton = lazy(() => import('./BlockButton'));

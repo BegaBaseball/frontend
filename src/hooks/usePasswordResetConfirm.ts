@@ -1,13 +1,19 @@
 // hooks/usePasswordResetConfirm.ts
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { confirmPasswordReset } from '../api/authPublic';
 import {
   sanitizeLoginPasswordText,
   validatePasswordResetField,
   validatePasswordResetForm,
 } from '../utils/validation';
-import { PasswordResetConfirmFormData, PasswordResetConfirmFieldErrors } from '../types/auth';
+import type { PasswordResetConfirmFormData, PasswordResetConfirmFieldErrors } from '../types/auth';
+
+let authPublicModulePromise: Promise<typeof import('../api/authPublic')> | null = null;
+
+const loadAuthPublicModule = () => {
+  authPublicModulePromise ??= import('../api/authPublic');
+  return authPublicModulePromise;
+};
 
 const initialFormData: PasswordResetConfirmFormData = {
   newPassword: '',
@@ -79,6 +85,7 @@ export const usePasswordResetConfirm = () => {
     setIsLoading(true);
 
     try {
+      const { confirmPasswordReset } = await loadAuthPublicModule();
       const data = await confirmPasswordReset(token, formData.newPassword, formData.confirmPassword);
       
       if (data.success) {

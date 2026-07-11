@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { ChatBotSpinnerIcon } from './ChatBotIcons';
+import { ChatBotConversationSpinnerIcon as ChatBotSpinnerIcon } from './ChatBotConversationIcons';
 import type { ChatQueueStatus, Message } from '../../types/chatbot';
 
 const ChatBotConversationPanel = lazy(() => import('./ChatBotConversationPanel'));

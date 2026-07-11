@@ -8,11 +8,11 @@ import { useAuthProfileSnapshot } from '../../store/authStore';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import {
-    ProfileAlertCircleIcon,
-    ProfileCloseIcon,
-    ProfileLoaderIcon,
-    ProfileUserIcon,
-} from './ProfileIcons';
+    UserProfileAlertCircleIcon as ProfileAlertCircleIcon,
+    UserProfileSpinnerIcon as ProfileLoaderIcon,
+    UserProfileUserIcon as ProfileUserIcon,
+    UserProfileXIcon as ProfileCloseIcon,
+} from './UserProfileIcons';
 
 const FollowButton = lazy(() => import('./FollowButton'));
 

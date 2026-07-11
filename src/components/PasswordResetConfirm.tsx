@@ -10,7 +10,7 @@ import {
   EyeIcon,
   EyeOffIcon,
   LockIcon,
-} from './icons/PublicShellIcons';
+} from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,

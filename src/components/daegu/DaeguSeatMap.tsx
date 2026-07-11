@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react';
+import { SearchIcon as Search } from '../icons/StadiumGuideIcons';
 import {
   DAEGU_CATEGORIES,
   DAEGU_CATEGORY_GROUPS,

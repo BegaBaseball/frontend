@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchHotPosts } from '../api/cheerApi';
 import CheerCard from './CheerCard';
-import { AlertCircleIcon } from './icons/PublicFeatureIcons';
-import { FlameIcon } from './icons/PublicShellIcons';
+import { AlertCircleIcon, FlameIcon } from './icons/CheerFlowIcons';
 
 export default function CheerHot() {
     const { data, isLoading, isError, refetch } = useQuery({

@@ -20,7 +20,7 @@ import {
   MateTicketIcon,
   MateUsersIcon,
   MateXCircleIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import type { MateManageApplicationTabKey } from './MateManageContentRuntime';

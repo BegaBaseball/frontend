@@ -2,7 +2,10 @@ import { type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
-import { LogOutIcon, ShieldAlertIcon } from './icons/PublicShellIcons';
+import {
+  NavbarLogOutIcon as LogOutIcon,
+  NavbarShieldAlertIcon as ShieldAlertIcon,
+} from './icons/NavbarIcons';
 import { Button } from './ui/button';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 

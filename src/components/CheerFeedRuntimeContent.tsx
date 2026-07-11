@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -8,10 +8,9 @@ import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { resolveLatestVisiblePostId } from '../utils/cheerPolling';
 import { getNextPageParamFromPageResponse } from '../utils/pageResponsePagination';
-import AdSlot from './ads/AdSlot';
 import EndOfFeed from './EndOfFeed';
 import ErrorBoundary from './common/ErrorBoundary';
-import { ArrowUpIcon } from './icons/PublicShellIcons';
+import { ArrowUpIcon } from './icons/CheerFlowIcons';
 import CheerCard from './CheerCard';
 import {
     CheerFeedEmptyState,
@@ -19,6 +18,8 @@ import {
     CheerFeedLoadingSkeleton,
     CheerFeedLoginRequiredState,
 } from './CheerFeedStates';
+
+const AdSlot = lazy(() => import('./ads/AdSlot'));
 
 type FeedTabKey = 'all' | 'popular' | 'following';
 type FeedItem = { type: 'post'; post: CheerPost } | { type: 'ad' };
@@ -269,7 +270,8 @@ export default function CheerFeedRuntimeContent({
             </div>
 
             <section className="mt-3" data-testid="cheer-feed-section">
-                {isLoading && currentPosts.length === 0 ? (
+                <div className="min-h-[72svh]">
+                  {isLoading && currentPosts.length === 0 ? (
                     <CheerFeedLoadingSkeleton />
                 ) : queryError ? (
                     <CheerFeedErrorState onRetry={handleRetryClick} />
@@ -301,15 +303,17 @@ export default function CheerFeedRuntimeContent({
                                     }}
                                 >
                                     {item.type === 'ad' ? (
-                                        <AdSlot
-                                            slotId="cheer_feed_1"
-                                            pageType="cheer_feed"
-                                            listIndex={4}
-                                            creativeType="native_card"
-                                            loggedIn={Boolean(authUserId)}
-                                            userId={authUserId ? String(authUserId) : null}
-                                            minHeight={156}
-                                        />
+                                        <Suspense fallback={null}>
+                                            <AdSlot
+                                                slotId="cheer_feed_1"
+                                                pageType="cheer_feed"
+                                                listIndex={4}
+                                                creativeType="native_card"
+                                                loggedIn={Boolean(authUserId)}
+                                                userId={authUserId ? String(authUserId) : null}
+                                                minHeight={156}
+                                            />
+                                        </Suspense>
                                     ) : (
                                         <ErrorBoundary
                                             fallback={(
@@ -325,8 +329,9 @@ export default function CheerFeedRuntimeContent({
                             );
                         })}
                     </div>
-                )}
-                <div ref={sentinelRef} className="relative flex min-h-[calc(120px+var(--mobile-content-safe-bottom))] items-center justify-center lg:min-h-[120px]">
+                  )}
+                </div>
+                <div ref={sentinelRef} className="relative flex min-h-[220px] items-center justify-center">
                     {showNextPageError ? (
                         <div className="flex flex-col items-center gap-2 text-body font-semibold text-slate-500 dark:text-white">
                             <span className="font-bold">데이터를 불러오지 못했습니다.</span>

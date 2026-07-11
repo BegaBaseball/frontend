@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import {
-  SharedChevronLeftIcon,
-  SharedChevronRightIcon,
-  SharedCloseIcon,
-} from './icons/SharedLeafIcons';
+  ImageGridChevronLeftIcon,
+  ImageGridChevronRightIcon,
+  ImageGridCloseIcon,
+} from './icons/ImageGridIcons';
 
 interface ImageLightboxProps {
   images: string[];
@@ -57,7 +57,7 @@ export default function ImageLightbox({
       onPointerDown={(event) => event.stopPropagation()}
       aria-label="Close image viewer"
       >
-        <SharedCloseIcon className="h-8 w-8" />
+        <ImageGridCloseIcon className="h-8 w-8" />
       </button>
 
       {images.length > 1 && (
@@ -72,7 +72,7 @@ export default function ImageLightbox({
         onPointerDown={(event) => event.stopPropagation()}
         aria-label="Previous image"
       >
-        <SharedChevronLeftIcon className="h-10 w-10" />
+        <ImageGridChevronLeftIcon className="h-10 w-10" />
       </button>
       )}
 
@@ -105,7 +105,7 @@ export default function ImageLightbox({
         onPointerDown={(event) => event.stopPropagation()}
         aria-label="Next image"
       >
-        <SharedChevronRightIcon className="h-10 w-10" />
+        <ImageGridChevronRightIcon className="h-10 w-10" />
       </button>
       )}
     </div>

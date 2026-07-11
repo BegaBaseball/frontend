@@ -23,10 +23,10 @@ export default function HomeRecoveryBanner({
   const isManualDataError = loadFailureReason === 'manual-data-required';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div className="pointer-events-none fixed inset-x-0 top-[4.75rem] z-50 px-4 sm:px-6 lg:px-8">
       <div
         data-testid="home-global-recovery"
-        className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 sm:flex-row sm:items-center"
+        className="pointer-events-auto mx-auto flex max-w-7xl flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 sm:flex-row sm:items-center"
       >
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">

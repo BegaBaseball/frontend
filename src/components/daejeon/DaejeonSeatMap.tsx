@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BookOpenIcon as BookOpen,
-  MagnifyingGlassIcon as Search,
   MinusIcon as Minus,
   PlusIcon as Plus,
-} from '@phosphor-icons/react';
+  SearchIcon as Search,
+} from '../icons/StadiumGuideIcons';
 import {
   DAEJEON_BLOCKS,
   DAEJEON_CATEGORIES,

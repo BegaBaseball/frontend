@@ -1,7 +1,10 @@
 import { lazy, Suspense } from 'react';
 import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
-import { MateChevronLeftIcon, MateChevronRightIcon } from './MateIcons';
+import {
+  MateCreateChevronLeftIcon as MateChevronLeftIcon,
+  MateCreateChevronRightIcon as MateChevronRightIcon,
+} from './icons/MateCreateIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { useMateCreateController } from '../hooks/useMateCreateController';
@@ -64,6 +67,10 @@ export default function MateCreate() {
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        width={2000}
+        height={2000}
+        sizes="100vw"
+        fetchPriority="low"
       />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24 sm:py-8 relative z-10">

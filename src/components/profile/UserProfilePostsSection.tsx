@@ -3,7 +3,7 @@ import type { CheerPost } from '../../api/cheerApi';
 import EndOfFeed from '../EndOfFeed';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
-import { PenSquareIcon, SpinnerIcon, XCircleIcon } from '../icons/PublicShellIcons';
+import { UserProfilePenSquareIcon, UserProfileSpinnerIcon, UserProfileXCircleIcon } from './UserProfileIcons';
 
 const CheerCard = lazy(() => import('../CheerCard'));
 
@@ -29,7 +29,7 @@ export default function UserProfilePostsSection({
     if (isPostsLoading) {
         return (
             <div className="flex justify-center py-8 sm:py-10">
-                <SpinnerIcon className="h-8 w-8 animate-spin" style={{ color: primaryColor }} />
+                <UserProfileSpinnerIcon className="h-8 w-8 animate-spin" style={{ color: primaryColor }} />
             </div>
         );
     }
@@ -37,7 +37,7 @@ export default function UserProfilePostsSection({
     if (isPostsError) {
         return (
             <div className="rounded-2xl border border-gray-200 bg-gray-50 py-8 text-center dark:border-border dark:bg-card/50 sm:py-10">
-                <XCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-500" />
+                <UserProfileXCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-500" />
                 <p className="mb-4 text-gray-600 dark:text-white">
                     게시글을 불러오지 못했습니다.
                 </p>
@@ -51,7 +51,7 @@ export default function UserProfilePostsSection({
     if (uniquePosts.length === 0) {
         return (
             <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 py-12 text-center dark:border-border dark:bg-card/50 sm:py-14">
-                <PenSquareIcon className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-white" />
+                <UserProfilePenSquareIcon className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-white" />
                 <p className="text-gray-400 dark:text-white">
                     아직 작성한 게시글이 없습니다.
                 </p>
@@ -91,7 +91,7 @@ export default function UserProfilePostsSection({
             </Suspense>
             {hasNextPage && isFetchingNextPage ? (
                 <div className="flex justify-center py-4" data-testid="user-profile-posts-next-loader">
-                    <SpinnerIcon
+                    <UserProfileSpinnerIcon
                         className="h-6 w-6 animate-spin"
                         style={{ color: primaryColor }}
                     />

@@ -1,6 +1,6 @@
 import { mateInsetPanelClass, mateMetaLabelClass, mateSectionCardClass } from '../utils/mateFlowUi';
 import type { CheckIn } from '../types/mate';
-import { MateCheckCircleIcon, MateLoaderIcon, MateMapPinIcon } from './MateIcons';
+import { MateCheckCircleIcon, MateLoaderIcon, MateMapPinIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { StatusBadge } from './ui/status-badge';
