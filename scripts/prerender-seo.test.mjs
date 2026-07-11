@@ -47,7 +47,7 @@ test('performance-only route root is a fixed paintable shell', () => {
   assert.match(html, /data-performance-prerender="true"/);
   assert.match(html, /style="position:fixed;inset:0;z-index:1;display:flex;/);
   assert.match(html, /<h1 style="margin:0;font-size:24px;/);
-  assert.match(html, /<p style="margin:12px 0 0;/);
+  assert.match(html, /<p style="margin:12px 0 0;max-width:22rem;font-size:20px;line-height:1.6;/);
 });
 
 test('core indexable routes opt into the paintable performance shell', () => {
