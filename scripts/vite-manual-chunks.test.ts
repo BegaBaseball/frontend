@@ -49,6 +49,7 @@ const navbarSource = readFileSync(new URL('../src/components/Navbar.tsx', import
 const publicNavbarSource = readFileSync(new URL('../src/components/PublicNavbar.tsx', import.meta.url), 'utf8');
 const publicNavbarDmUnreadBadgeSource = readFileSync(new URL('../src/components/PublicNavbarDmUnreadBadge.tsx', import.meta.url), 'utf8');
 const cheerMobileBottomNavSource = readFileSync(new URL('../src/components/CheerMobileBottomNav.tsx', import.meta.url), 'utf8');
+const cheerRuntimeSource = readFileSync(new URL('../src/components/CheerRuntime.tsx', import.meta.url), 'utf8');
 const cheerFeedRuntimeContentSource = readFileSync(new URL('../src/components/CheerFeedRuntimeContent.tsx', import.meta.url), 'utf8');
 const cheerSidebarPanelsSource = readFileSync(new URL('../src/components/CheerSidebarPanels.tsx', import.meta.url), 'utf8');
 const matePageSource = readFileSync(new URL('../src/components/MatePage.tsx', import.meta.url), 'utf8');
@@ -161,8 +162,9 @@ test('preloads /cheer route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;"));
   assert.match(
     appRoutesSource,
-    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerComposerRuntime'\);\s*void import\('\.\/CheerFeedRuntimeContent'\);\s*\}/,
+    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerComposerRuntime'\);\s*\}/,
   );
+  assert.equal(appRoutesSource.includes("void import('./CheerFeedRuntimeContent');"), false);
   assert.equal(appRoutesSource.includes('shouldPreloadInitialCheerSidebar'), false);
   assert.equal(appRoutesSource.includes("void import('./CheerSidebarPanels');"), false);
   assert.ok(appRoutesSource.includes("const AppQueryProvider = lazy(() => initialAppQueryProviderModulePromise ?? import('./AppQueryProvider'));"));
@@ -180,9 +182,21 @@ test('preloads /cheer route chunks before nested lazy route rendering', () => {
   )?.[0];
   assert.ok(cheerFirstLoadGuard);
   assert.ok(cheerFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"));
-  assert.ok(cheerFirstLoadGuard.includes("'src/components/CheerFeedRuntimeContent.tsx'"));
+  assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerFeedRuntimeContent.tsx'"), false);
   assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerComposerRuntime.tsx'"), false);
   assert.ok(cheerFirstLoadGuard.includes('maxJsGzipBytes: 155_000'));
+});
+
+test('loads the /cheer feed runtime after the composer can paint', () => {
+  assert.ok(cheerRuntimeSource.includes('const [shouldRenderFeedRuntime, setShouldRenderFeedRuntime] = useState(false);'));
+  assert.match(
+    cheerRuntimeSource,
+    /scheduleAfterNextPaint\(\(\) => \{\s*startTransition\(\(\) => setShouldRenderFeedRuntime\(true\)\);\s*\}\)/,
+  );
+  assert.match(
+    cheerRuntimeSource,
+    /shouldRenderFeedRuntime \? \([\s\S]*?<LazyCheerFeedRuntimeContent[\s\S]*?\) : \(<CheerFeedRuntimeFallback \/>\)/,
+  );
 });
 
 test('preloads /mate public route shells in parallel', () => {

@@ -103,6 +103,39 @@ const CheerFeedTabs = memo(function CheerFeedTabs({
     );
 });
 
+const CheerFeedRuntimeFallback = () => (
+    <section className="mt-4 min-h-[88svh] divide-y divide-border/70 dark:divide-border/70">
+        <div className="px-4 pb-1 pt-3">
+            <p className="text-18 font-bold leading-snug tracking-normal text-slate-600 dark:text-white">
+                응원글을 불러오는 중입니다.
+            </p>
+        </div>
+        {[1, 2, 3].map((index) => (
+            <div key={index} className="px-4 py-4 animate-pulse">
+                <div className="flex gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
+                    <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-24 bg-slate-200 dark:bg-secondary rounded" />
+                            <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
+                        </div>
+                        <div className="space-y-2">
+                            <div className="h-4 w-full bg-slate-200 dark:bg-secondary rounded" />
+                            <div className="h-4 w-5/6 bg-slate-200 dark:bg-secondary rounded" />
+                            <div className="h-4 w-4/6 bg-slate-200 dark:bg-secondary rounded" />
+                        </div>
+                        <div className="flex gap-4 pt-2">
+                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
+                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
+                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ))}
+    </section>
+);
+
 export interface CheerProps {
     openComposerOnMount?: boolean;
 }
@@ -136,6 +169,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     ));
     const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [shouldRenderFeedRuntime, setShouldRenderFeedRuntime] = useState(false);
     const {
         recentSearches,
         addRecentSearch,
@@ -339,6 +373,17 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     const activeTabConfig = feedTabs.find((item) => item.key === activeContentFeedTab);
     const activeSurface = resolveCheerSurface(contentFeedTab, normalizedSearchQuery);
     const isSearchSettling = activeSurface === 'search' && debouncedSearchQuery !== normalizedSearchQuery;
+
+    useEffect(() => {
+        if (activeSurface === 'live' || shouldRenderFeedRuntime) {
+            return undefined;
+        }
+
+        return scheduleAfterNextPaint(() => {
+            startTransition(() => setShouldRenderFeedRuntime(true));
+        });
+    }, [activeSurface, shouldRenderFeedRuntime]);
+
     return (
         <div className="min-h-screen bg-[#f7f9f9] pb-[var(--mobile-content-safe-bottom)] dark:bg-background lg:pb-0">
             <div className="px-4 pt-0 pb-6 sm:px-6 sm:pt-0 sm:pb-8">
@@ -539,40 +584,9 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                         <div className="h-16 rounded-xl bg-slate-100 dark:bg-secondary" />
                                     </div>
                                 </section>
-                            ) : (
+                            ) : shouldRenderFeedRuntime ? (
                               <Suspense
-                                fallback={(
-                                    <section className="mt-4 divide-y divide-border/70 dark:divide-border/70">
-                                        <div className="px-4 pb-1 pt-3">
-                                            <p className="text-18 font-bold leading-snug tracking-normal text-slate-600 dark:text-white">
-                                                응원글을 불러오는 중입니다.
-                                            </p>
-                                        </div>
-                                        {[1, 2, 3].map((index) => (
-                                            <div key={index} className="px-4 py-4 animate-pulse">
-                                                <div className="flex gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-secondary flex-shrink-0" />
-                                                    <div className="flex-1 space-y-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-4 w-24 bg-slate-200 dark:bg-secondary rounded" />
-                                                            <div className="h-3 w-16 bg-slate-200 dark:bg-secondary rounded" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="h-4 w-full bg-slate-200 dark:bg-secondary rounded" />
-                                                            <div className="h-4 w-5/6 bg-slate-200 dark:bg-secondary rounded" />
-                                                            <div className="h-4 w-4/6 bg-slate-200 dark:bg-secondary rounded" />
-                                                        </div>
-                                                        <div className="flex gap-4 pt-2">
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
-                                                            <div className="h-4 w-12 bg-slate-200 dark:bg-secondary rounded" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </section>
-                                )}
+                                fallback={<CheerFeedRuntimeFallback />}
                             >
                                 <LazyCheerFeedRuntimeContent
                                     activeFeedTab={activeContentFeedTab}
@@ -586,7 +600,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                     searchQuery={activeSurface === 'search' ? debouncedSearchQuery : ''}
                                 />
                               </Suspense>
-                            )}
+                            ) : (<CheerFeedRuntimeFallback />)}
                         </main>
 
                         {shouldRenderSidebar ? (
