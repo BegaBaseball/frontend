@@ -25,7 +25,9 @@ import {
 } from './MyPageIcons';
 import type { WinningType } from '../../types/diary';
 
-const WINNING_STYLE_BY_RESULT: Record<WinningType, {
+type SelectedWinningType = Exclude<WinningType, '' | null>;
+
+const WINNING_STYLE_BY_RESULT: Record<SelectedWinningType, {
   activeBg: string;
   activeText: string;
   activeBorder: string;

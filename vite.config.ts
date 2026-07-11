@@ -45,7 +45,6 @@ export default defineConfig(({ mode, command }) => {
   const useHelmetShim = !fs.existsSync(helmetPackagePath);
   const alias = {
     sonner: path.resolve(__dirname, './src/shims/sonner.tsx'),
-    'lucide-react': path.resolve(__dirname, './src/shims/lucide-react.tsx'),
     '@': path.resolve(__dirname, './src'),
   };
   if (useHelmetShim) {
@@ -156,6 +155,9 @@ export default defineConfig(({ mode, command }) => {
               || id.includes('/@stomp/')
             ) {
               return 'vendor-realtime';
+            }
+            if (id.includes('/@phosphor-icons/react/')) {
+              return 'vendor-icons';
             }
           },
         },

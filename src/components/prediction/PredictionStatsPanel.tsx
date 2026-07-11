@@ -96,13 +96,13 @@ export default function PredictionStatsPanel() {
 
           <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
 
-          <div className="col-span-2 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-10 sm:shrink-0">
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+          <div className="col-span-2 grid gap-2.5 sm:flex sm:shrink-0 sm:items-center sm:gap-10">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-slate-500 dark:text-white">
                 <PredictionHashIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">총 예측</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">
                   {predictionStats.totalPredictions}
                 </span>
@@ -110,12 +110,12 @@ export default function PredictionStatsPanel() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
                 <PredictionCheckCircleIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">적중</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">
                   {predictionStats.correctPredictions}
                 </span>
@@ -123,12 +123,12 @@ export default function PredictionStatsPanel() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
                 <PredictionFlameIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">연속 적중</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
                   {predictionStats.streak}
                 </span>

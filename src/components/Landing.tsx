@@ -2,20 +2,14 @@ import { lazy, Suspense, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import begaCharacter from '../assets/landing/bega-character-192.webp';
+import homeScreenshot from '../assets/landing-showcase-home.webp';
+import mateScreenshot from '../assets/landing-showcase-mate.webp';
+import predictionScreenshot from '../assets/landing-showcase-prediction.webp';
 import baseballLogo from '../assets/landing/bega-logo-192.webp';
 import landingCriticalCss from './Landing.css?inline';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 import { FirstLoadArrowRightIcon } from './icons/FirstLoadIcons';
-import {
-  BookOpenIcon,
-  HomeIcon,
-  LineChartIcon,
-  MapPinIcon,
-  MegaphoneIcon,
-  UsersIcon,
-} from './icons/PublicShellIcons';
 import { Button } from './ui/button';
 import ThemeToggleButton from './ThemeToggleButton';
 import ViewportDeferred from './ViewportDeferred';
@@ -33,16 +27,8 @@ const FOOTER_SECTIONS = [
     title: '제품',
     links: [
       { label: '주요 기능', href: '#features' },
-      { label: '홈', href: '/home' },
+      { label: '앱 열기', href: '/home' },
       { label: '구장 가이드', href: '/stadium' },
-    ],
-  },
-  {
-    title: '탐색',
-    links: [
-      { label: '응원석', href: '/cheer' },
-      { label: '직관 메이트', href: '/mate' },
-      { label: '전력분석실', href: '/prediction' },
     ],
   },
   {
@@ -55,38 +41,86 @@ const FOOTER_SECTIONS = [
   },
 ] as const;
 
-const HERO_HIGHLIGHTS = [
-  { Icon: HomeIcon, label: '경기일정' },
-  { Icon: MegaphoneIcon, label: '응원석' },
-  { Icon: MapPinIcon, label: '구장가이드' },
-  { Icon: LineChartIcon, label: '전력분석' },
-  { Icon: UsersIcon, label: '메이트' },
-  { Icon: BookOpenIcon, label: '다이어리' },
-] as const;
-
 // Stagger helper for the hero entrance choreography (MOTION_INTENSITY tuned).
 // Reduced-motion is handled in Landing.css, which zeroes `.landing-rise`.
 const riseStyle = (delay: string): CSSProperties =>
   ({ '--rise-delay': delay } as unknown as CSSProperties);
 
+const capabilitySkeletonImageStyle: CSSProperties = {
+  background: 'hsl(var(--muted) / 0.28)',
+};
+
+const capabilitySkeletonTitleStyle: CSSProperties = {
+  height: '0.875rem',
+  width: '7.5rem',
+  borderRadius: '999px',
+  background: 'hsl(var(--muted) / 0.62)',
+};
+
+const capabilitySkeletonCopyStyle: CSSProperties = {
+  ...capabilitySkeletonTitleStyle,
+  width: 'min(100%, 14rem)',
+  marginTop: '0.75rem',
+  opacity: 0.72,
+};
+
+const LazyLandingCapabilityShowcase = lazy(() => import('./LandingCapabilityShowcase'));
 const LazyLandingFeaturesRuntime = lazy(() => import('./LandingFeaturesRuntime'));
+
+function LandingCapabilityFallback() {
+  return (
+    <Container>
+      <div className="landing-capability-layout">
+        <div className="landing-capability-copy">
+          <h2 className="landing-capability-title">
+            경기 전, 현장, 경기 후를 나눠 보여줍니다
+          </h2>
+          <p>
+            예정 경기 확인부터 예측, 동행, 구장 동선, 응원, 다이어리까지 실제 화면으로 이어집니다.
+          </p>
+        </div>
+
+        <div className="landing-capability-grid" data-testid="landing-capability-grid" aria-hidden="true">
+          {Array.from({ length: 6 }, (_, index) => (
+            <article
+              key={index}
+              className={`landing-capability-tile landing-capability-tile-${index + 1}`}
+            >
+              <div className="landing-capability-image" style={capabilitySkeletonImageStyle} />
+              <div className="landing-capability-tile-copy">
+                <div style={capabilitySkeletonTitleStyle} />
+                <div style={capabilitySkeletonCopyStyle} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </Container>
+  );
+}
 
 function LandingFeaturesFallback() {
   return (
-    <Section id="features" className="bg-background" data-testid="landing-features-placeholder">
+    <Section
+      id="features"
+      className="bg-background"
+      data-testid="landing-features-placeholder"
+      style={{ paddingBlock: 'var(--space-24)' }}
+    >
       <Container>
         <div className="mx-auto max-w-5xl" aria-hidden="true">
-          <div className="mb-6 space-y-3 text-center">
-            <div className="mx-auto h-5 w-20 rounded-full bg-primary/10" />
-            <div className="mx-auto h-7 w-56 max-w-full rounded bg-muted" />
-            <div className="mx-auto h-4 w-72 max-w-full rounded bg-muted/70" />
+          <div className="mb-8 space-y-3">
+            <div className="h-7 w-56 max-w-full rounded bg-muted" />
+            <div className="h-4 w-72 max-w-full rounded bg-muted/70" />
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            {Array.from({ length: 3 }, (_, index) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }, (_, index) => (
               <div
                 key={index}
                 data-testid="landing-features-placeholder-card"
-                className="h-20 rounded-2xl border border-border/80 bg-card p-3 shadow-sm sm:h-24 sm:p-4"
+                className={`rounded-2xl border border-border/80 bg-card p-3 shadow-sm sm:p-4 ${
+                  index === 0 ? 'col-span-2 h-24 sm:h-32' : 'h-20 sm:h-24'
+                }`}
               >
                 <div className="h-7 w-7 rounded-xl bg-primary/10 sm:h-8 sm:w-8" />
                 <div className="mt-3 h-3 w-12 rounded bg-muted sm:mt-4 sm:h-4 sm:w-28" />
@@ -161,7 +195,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground" data-testid="landing-page">
+    <div className="landing-page-shell min-h-screen bg-background text-foreground" data-testid="landing-page">
       <style>{landingCriticalCss}</style>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
         <Container>
@@ -209,8 +243,8 @@ export default function Landing() {
       >
         <Container className="landing-hero-grid">
           <Stack gap="sm" className="landing-hero-copy-stack items-center text-center lg:items-start lg:text-left">
-            <span className="ds-kicker landing-rise" style={riseStyle('0s')}>
-              KBO 야구 팬을 위한 올인원 플랫폼
+            <span className="landing-hero-context landing-rise" style={riseStyle('0s')}>
+              BEGA Baseball Guide
             </span>
 
             <TextBlock
@@ -220,11 +254,10 @@ export default function Landing() {
               style={riseStyle('0.06s')}
             >
               <h1 className="ds-hero-title max-w-md">
-                야구를 더 <span className="text-primary">스마트</span>하게
+                경기 전부터 기록까지 한 번에
               </h1>
               <p className="ds-section-copy">
-                경기 일정, 응원, 구장 가이드, 예측, 메이트, 다이어리를 한 화면 흐름 안에
-                정리해 KBO 팬의 하루를 더 가볍게 만듭니다.
+                오늘 경기, 예측, 동행, 구장 정보, 응원과 직관 기록을 한 화면 흐름으로 이어봅니다.
               </p>
             </TextBlock>
 
@@ -237,7 +270,7 @@ export default function Landing() {
                 data-cta-priority="primary"
                 className="group w-full sm:w-auto"
               >
-                지금 바로 시작하기
+                앱 열기
                 <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
               <Button
@@ -253,86 +286,73 @@ export default function Landing() {
                 data-cta-priority="secondary"
                 className="w-full sm:w-auto"
               >
-                기능 둘러보기
+                기능 흐름 보기
               </Button>
             </CTAGroup>
-
-            <ul
-              className="landing-feature-peek landing-rise hidden justify-center sm:flex lg:justify-start"
-              style={riseStyle('0.18s')}
-              aria-hidden="true"
-            >
-              {HERO_HIGHLIGHTS.map(({ Icon, label }) => (
-                <li key={label} className="landing-feature-peek-item">
-                  <Icon className="h-3.5 w-3.5 text-primary" />
-                  {label}
-                </li>
-              ))}
-            </ul>
           </Stack>
 
           <MockupFrame
-            className="landing-hero-preview landing-rise mx-auto w-full max-w-xl p-3 sm:p-5"
-            style={riseStyle('0.2s')}
+            className="landing-hero-preview landing-rise mx-auto w-full max-w-3xl p-2 sm:p-3"
+            style={riseStyle('0.18s')}
           >
-            <div className="relative z-10">
-              <div className="landing-device-shell">
-                <div className="landing-device-notch" />
-
-                <div className="landing-device-screen">
-                  <div className="landing-device-screen-content absolute inset-0 flex flex-col justify-between p-4 text-center sm:p-5">
-                    <div className="hidden items-center justify-between sm:flex">
-                      <img
-                        src={baseballLogo}
-                        alt=""
-                        aria-hidden="true"
-                        width={20}
-                        height={20}
-                        className="h-5 w-5"
-                      />
-                      <span className="landing-device-pill">
-                        <span className="landing-device-livedot" />
-                        오늘의 라인업
-                      </span>
-                    </div>
-
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2">
-                      <img
-                        src={begaCharacter}
-                        alt="BEGA Character"
-                        className="h-14 w-14 object-contain sm:h-16 sm:w-16"
-                        width={96}
-                        height={96}
-                        loading="eager"
-                        decoding="async"
-                        {...{ fetchpriority: 'high' }}
-                      />
-                      <div>
-                        <h2 className="landing-wordmark text-2xl text-white sm:text-3xl">
-                          BEGA
-                        </h2>
-                        <p className="landing-brand-caption mt-1 text-white/80 sm:text-body">
-                          Baseball Guide
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="landing-device-dock hidden sm:flex" aria-hidden="true">
-                      {HERO_HIGHLIGHTS.map(({ Icon, label }) => (
-                        <span key={label} className="landing-device-dock-item">
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            <figure className="landing-product-showcase" aria-label="BEGA 주요 화면 미리보기">
+              <div className="landing-product-main">
+                <img
+                  src={homeScreenshot}
+                  alt="BEGA 홈에서 오늘의 경기와 주요 정보를 확인하는 화면"
+                  className="landing-product-main-image"
+                  width={1440}
+                  height={900}
+                  loading="eager"
+                  decoding="async"
+                  {...{ fetchpriority: 'high' }}
+                />
+              </div>
+              <div className="landing-product-side" aria-hidden="true">
+                <div className="landing-product-side-item">
+                  <img
+                    src={predictionScreenshot}
+                    alt=""
+                    className="landing-product-side-image"
+                    width={1440}
+                    height={900}
+                    loading="eager"
+                    decoding="async"
+                  />
+                  <span>전력분석실</span>
+                </div>
+                <div className="landing-product-side-item">
+                  <img
+                    src={mateScreenshot}
+                    alt=""
+                    className="landing-product-side-image"
+                    width={1440}
+                    height={900}
+                    loading="eager"
+                    decoding="async"
+                  />
+                  <span>같이가요</span>
                 </div>
               </div>
-
-              <div className="landing-device-base" />
-            </div>
+              <figcaption className="landing-product-caption">
+                오늘 경기에서 전력분석실, 같이가요까지 이어지는 실제 사용 흐름입니다.
+              </figcaption>
+            </figure>
           </MockupFrame>
         </Container>
       </Section>
+
+      <section className="landing-capability-section" data-testid="landing-capability-showcase">
+        <ViewportDeferred
+          fallback={<LandingCapabilityFallback />}
+          rootMargin="0px 0px 160px 0px"
+          containerTestId="landing-capability-deferred"
+        >
+          <Suspense fallback={<LandingCapabilityFallback />}>
+            <LazyLandingCapabilityShowcase />
+          </Suspense>
+        </ViewportDeferred>
+      </section>
 
       <ViewportDeferred
         fallback={<LandingFeaturesFallback />}
@@ -344,36 +364,27 @@ export default function Landing() {
         </Suspense>
       </ViewportDeferred>
 
-      <section className="pb-16 pt-0 lg:pb-20" data-testid="landing-cta">
+      <section className="py-20 lg:py-28" data-testid="landing-cta">
         <Container>
-          <div className="landing-cta-panel px-6 py-12 text-center sm:px-10 sm:py-16">
-            <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center">
-              <img
-                src={baseballLogo}
-                alt="BEGA Logo"
-                width={96}
-                height={96}
-                className="h-20 w-20 sm:h-24 sm:w-24"
-              />
-              <span className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-body font-semibold text-white">
-                지금 시작하기
-              </span>
-              <h2 className="landing-cta-title mt-6 text-white">
-                BEGA와 함께 KBO 야구의 모든 순간을 더 편하게 즐기세요
-              </h2>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
-                규칙적인 레이아웃과 명확한 정보 구조로, 오늘 필요한 경기 정보와 팬 경험을
-                빠르게 이어서 확인할 수 있습니다.
-              </p>
+          <div className="landing-cta-panel px-6 py-10 sm:px-10 sm:py-12">
+            <div className="landing-cta-layout">
+              <div>
+                <h2 className="landing-cta-title">
+                  오늘의 야구 루틴을 BEGA에서 이어가세요
+                </h2>
+                <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+                  경기 전 준비부터 현장 정보, 팬 소통, 직관 기록까지 한 흐름으로 정리됩니다.
+                </p>
+              </div>
 
               <Button
                 size="touchLg"
-                variant="brandOutline"
+                variant="brand"
                 onClick={() => navigate('/home')}
                 data-testid="landing-cta-button"
-                className="group mt-8 border-white/15 bg-white text-primary hover:bg-white/90"
+                className="group w-full sm:w-auto"
               >
-                무료로 시작하기
+                앱 열기
                 <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             </div>
@@ -396,8 +407,8 @@ export default function Landing() {
               </div>
 
               <p className="mt-4 text-body leading-6 text-muted-foreground">
-                KBO 야구 팬들을 위한 일정, 응원, 구장 정보, 예측, 메이트 기능을 한 곳에
-                정리한 플랫폼입니다.
+                KBO 팬이 경기 전 준비, 현장 정보, 응원, 직관 기록을 한 흐름에서 확인하는
+                플랫폼입니다.
               </p>
               <p className="mt-4 text-body font-semibold text-muted-foreground/80">
                 © 2025 BEGA. All rights reserved.

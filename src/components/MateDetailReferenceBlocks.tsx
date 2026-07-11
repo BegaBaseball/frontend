@@ -11,6 +11,7 @@ import {
   MateClockIcon,
   MateHeartIcon,
   MateInfoIcon,
+  MateMapIcon,
   MateMapPinIcon,
   MateMessageSquareIcon,
   MatePulseIcon,
@@ -32,7 +33,7 @@ import { useSeatViewPhotos } from '../hooks/useSeatViewPhotos';
 
 const joinClassNames = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ');
 
-const referenceCardClass = 'rounded-2xl border border-gray-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-[#000000] dark:shadow-[0_12px_32px_rgba(0,0,0,0.28)] sm:p-5';
+const referenceCardClass = 'rounded-xl border border-gray-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-card dark:shadow-[0_12px_32px_rgba(0,0,0,0.28)] sm:p-5';
 
 const badgeToneClasses = {
   neutral: 'border-gray-200 bg-gray-100 text-gray-600 dark:border-white/10 dark:bg-white/10 dark:text-white',
@@ -262,11 +263,7 @@ export function MateDetailSeatViewBlock({ party, onOpenSeatViewGuide }: { party:
       </SectionTitle>
       <div className="flex flex-col gap-3.5 sm:flex-row sm:items-stretch">
         <div className="relative flex min-h-[104px] w-full shrink-0 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 dark:border-blue-900/50 dark:from-blue-950/40 dark:to-blue-900/30 dark:text-blue-200 sm:w-[104px]">
-          <svg width="60" height="56" viewBox="0 0 60 56" fill="none" aria-hidden="true">
-            <rect x="2" y="2" width="56" height="52" rx="8" className="fill-blue-200 dark:fill-blue-950/70" />
-            <path d="M30 14 44 30 30 46 16 30Z" className="fill-white stroke-blue-700 dark:fill-blue-900/70 dark:stroke-blue-300" strokeWidth="1.5" />
-            <circle cx="30" cy="42" r="3" className="fill-red-500" />
-          </svg>
+          <MateMapIcon className="h-12 w-12" aria-hidden="true" />
           <span className="text-11 font-bold">구장 배치도</span>
         </div>
         <div className="min-w-0 flex-1">

@@ -429,9 +429,13 @@ export async function updateParty(
   partyId: number,
   data: UpdatePartyRequest,
 ): Promise<Party> {
+  const request: UpdatePartyRequestWire = {
+    ...data,
+    reservationDepositAmount: data.reservationDepositAmount ?? undefined,
+  };
   const response = await privatePatch<BackendPartyDTO, UpdatePartyRequestWire>(
     `/parties/${partyId}`,
-    data,
+    request,
   );
   return normalizeMateParty(response);
 }

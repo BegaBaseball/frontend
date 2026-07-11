@@ -88,7 +88,7 @@ export function AdminStadiumsPanel({
           onClick={openCreateDialog}
           data-testid="admin-stadium-add-place"
           disabled={!selectedStadiumId}
-          className="rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:from-violet-600 hover:to-purple-700"
+          className="rounded-xl bg-amber-500 text-slate-950 shadow-sm hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500"
         >
           <AdminPlusIcon className="mr-2 h-4 w-4" />
           장소 추가
@@ -97,7 +97,7 @@ export function AdminStadiumsPanel({
 
       {placesLoading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent motion-reduce:animate-none" />
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-800">
@@ -125,17 +125,16 @@ export function AdminStadiumsPanel({
                   </TableCell>
                 </TableRow>
               ) : (
-                places.map((place, index) => (
+                places.map((place) => (
                   <TableRow
                     key={place.id}
-                    className="animate-fade-in-up border-slate-800 transition-colors duration-200 hover:bg-slate-800/30"
-                    style={{ animationDelay: `${index * 40}ms` }}
+                    className="border-slate-800 transition-colors duration-150 hover:bg-slate-800/30"
                   >
                     <TableCell className="font-mono text-caption text-slate-300">
                       {place.id}
                     </TableCell>
                     <TableCell>
-                      <AdminBadge className="border-0 bg-violet-500/20 text-violet-300">
+                      <AdminBadge className="border-slate-700 bg-slate-800 text-slate-300">
                         {place.category}
                       </AdminBadge>
                     </TableCell>
@@ -170,7 +169,7 @@ export function AdminStadiumsPanel({
                           size="sm"
                           data-testid={`admin-place-edit-${place.id}`}
                           onClick={() => openEditDialog(place)}
-                          className="rounded-lg text-slate-400 transition-all duration-200 hover:bg-violet-500/10 hover:text-violet-400"
+                          className="rounded-lg text-slate-400 transition-colors duration-150 hover:bg-amber-500/10 hover:text-amber-300"
                         >
                           <AdminEditIcon className="h-4 w-4" />
                         </Button>
@@ -179,7 +178,7 @@ export function AdminStadiumsPanel({
                           size="sm"
                           data-testid={`admin-place-delete-${place.id}`}
                           onClick={() => setDeletingPlaceId(place.id)}
-                          className="rounded-lg text-slate-500 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-lg text-slate-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"
                         >
                           <AdminTrashIcon className="h-4 w-4" />
                         </Button>

@@ -5,7 +5,11 @@ export type ChangwonSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type ChangwonFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type ChangwonLevel = '1F' | '2F' | '3F' | '4F' | 'OUTFIELD';
 export type ChangwonSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
-export type ChangwonSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
+export type ChangwonSeatMapAssetStatus =
+  | 'OFFICIAL'
+  | 'MANUAL_BASEBALL_DATA_REQUIRED'
+  | 'OPERATOR_REFERENCE_PENDING_ASSET'
+  | 'EXTERNAL_REFERENCE_PENDING_ASSET';
 export type ChangwonTraceStatus = 'OFFICIAL_IMAGE_TRACED' | 'NEEDS_OPERATOR_REVIEW';
 export type ChangwonTraceMethod = 'PATH_TRACED_FROM_OFFICIAL_IMAGE';
 export type ChangwonTraceSource = 'OFFICIAL_PNG_MANUAL_POLYGON';

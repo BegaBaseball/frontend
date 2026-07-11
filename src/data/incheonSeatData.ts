@@ -4,7 +4,11 @@ export type IncheonSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type IncheonFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type IncheonLevel = '1F' | '2F' | '3F' | '4F' | 'OUTFIELD';
 export type IncheonSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
-export type IncheonSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
+export type IncheonSeatMapAssetStatus =
+  | 'OFFICIAL'
+  | 'MANUAL_BASEBALL_DATA_REQUIRED'
+  | 'OPERATOR_REFERENCE_PENDING_ASSET'
+  | 'EXTERNAL_REFERENCE_PENDING_ASSET';
 
 export interface IncheonImageGeometry {
   d: string;

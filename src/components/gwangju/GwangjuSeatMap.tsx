@@ -18,16 +18,18 @@ import {
   type GwangjuDerivedOperatorBlockRange,
 } from '../../data/gwangjuSeatData';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import GwangjuSeatMapSvg from './GwangjuSeatMapSvg';
-import GwangjuUploadFlowModal from './GwangjuUploadFlowModal';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
 import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -264,6 +266,7 @@ const ZOOM_STEP = 0.25;
 
 export default function GwangjuSeatMap() {
   const { resolvedTheme } = useTheme();
+  const { requireLogin } = useAuthAccessActions();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
@@ -301,11 +304,15 @@ export default function GwangjuSeatMap() {
       .map((group) => group.id),
   ), []);
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-  }, [showToast, uploadFor]);
+  const handleOpenUpload = useCallback((section: GwangjuBlock | null) => {
+    if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
+
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const mapSvg = (
     <GwangjuSeatMapSvg
@@ -413,7 +420,7 @@ export default function GwangjuSeatMap() {
       adapter={gwangjuSectionAdapter}
       stadiumKey="GWANGJU"
       onClose={() => setSelected(null)}
-      onUpload={() => selected && setUploadFor(selected)}
+      onUpload={() => handleOpenUpload(selected)}
       extraMeta={renderDesktopDerivedRangeMeta}
     />
   ) : null;
@@ -455,7 +462,7 @@ export default function GwangjuSeatMap() {
             adapter={gwangjuSectionAdapter}
             stadiumKey="GWANGJU"
             onClose={() => setSelected(null)}
-            onUpload={() => selected && setUploadFor(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             testId="gwangju-bottom-sheet"
             extraMeta={renderDerivedRangeMeta}
           />
@@ -470,11 +477,13 @@ export default function GwangjuSeatMap() {
         fullscreenSubtitle="광주 KIA 공식 좌석도 전체화면"
       />
       {uploadFor && (
-        <GwangjuUploadFlowModal
-          section={uploadFor}
-          mode={mode}
+        <SeatViewDirectUploadModal
+          stadium="GWANGJU"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? GWANGJU_CATEGORIES[uploadFor.category].dark : GWANGJU_CATEGORIES[uploadFor.category].light}
           onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
+          onSubmitted={handleUploadSubmitted}
         />
       )}
     </>

@@ -21,7 +21,7 @@ export default function PredictionRankingTab({ isLoggedIn }: PredictionRankingTa
     <>
       <Card className={`${PREDICTION_SURFACE_CARD_CLASS} mb-4 overflow-hidden rounded-2xl text-center`}>
         <div className={`${PREDICTION_BRAND_GRADIENT_CLASS} px-5 py-5 text-white`}>
-          <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-11 font-extrabold uppercase tracking-[0.16em] text-emerald-100">
+          <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-13 font-semibold text-emerald-100">
             Season Ranking
           </span>
           <h3 className="mt-3 text-xl font-extrabold tracking-normal sm:text-2xl">

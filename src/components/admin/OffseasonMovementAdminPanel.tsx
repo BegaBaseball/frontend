@@ -187,7 +187,7 @@ const getSectionBadgeClass = (section: string) => {
     return 'bg-orange-500/20 text-orange-300 border-0';
   }
   if (section.includes('외국인')) {
-    return 'bg-violet-500/20 text-violet-300 border-0';
+    return 'bg-amber-500/20 text-amber-300 border-0';
   }
   if (section.includes('방출') || section.includes('웨이버')) {
     return 'bg-slate-700 text-slate-200 border-0';

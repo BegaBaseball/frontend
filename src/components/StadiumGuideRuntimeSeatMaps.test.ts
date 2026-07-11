@@ -835,9 +835,10 @@ test('인천 전용 guide/quick-action 계약은 표준 좌석도 슬롯에서 �
     'incheon-operator-row-facilities',
     'incheon-operator-row-notice',
     'incheon-operator-row-updated',
-    'setPendingDraft',
-    "stadium: 'INCHEON'",
-    "team: 'SSG'",
+    'SeatViewDirectUploadModal',
+    'requireLogin',
+    'getCurrentRelativeUrl',
+    'stadium="INCHEON"',
   ].forEach((requiredToken) => {
     assert.ok(incheonSource.includes(requiredToken), `IncheonSeatMap should include ${requiredToken}`);
   });
@@ -981,12 +982,12 @@ test('좌석도 공통 UI 컴포넌트는 잠실 기준 UX 계약을 제공한�
   assert.ok(jamsilSource.includes('SeatMapDetailPanel'), 'Jamsil should wire the shared desktop detail panel');
   assert.ok(!jamsilSource.includes(jamsilDedicatedBottomSheetName), 'Jamsil should not keep a dedicated mobile bottom sheet');
   assert.ok(!jamsilSource.includes(jamsilDedicatedSidePanelName), 'Jamsil should not keep a dedicated desktop detail panel');
-  assert.ok(jamsilSource.includes('JamsilUploadFlowModal'), 'Jamsil should keep the upload CTA modal');
+  assert.ok(jamsilSource.includes('SeatViewDirectUploadModal'), 'Jamsil should wire the shared direct upload modal');
   assert.ok(jamsilSource.includes('isAuxiliaryGuideActive={isDoosanGuideActive}'), 'Jamsil should keep Doosan guide as an auxiliary guide extension');
   const suwonDedicatedBottomSheetName = 'Suwon' + 'BottomSheet';
   assert.ok(suwonSource.includes('SeatMapBottomSheet'), 'Suwon should wire the shared mobile bottom sheet');
   assert.ok(!suwonSource.includes(suwonDedicatedBottomSheetName), 'Suwon should not keep a dedicated mobile bottom sheet');
-  assert.ok(suwonSource.includes('SuwonUploadFlowModal'), 'Suwon should wire the upload CTA modal');
+  assert.ok(suwonSource.includes('SeatViewDirectUploadModal'), 'Suwon should wire the shared direct upload modal');
 });
 
 test('구장별 전용 모바일 바텀시트 파일은 재도입하지 않는다', () => {
@@ -1237,8 +1238,7 @@ test('인천 직관 UX Cypress spec은 전용 stadium-seatmap 회귀 파일에�
     'MANUAL_BASEBALL_DATA_REQUIRED',
     'incheon-mobile-tool-tab-guide',
     'incheon-mobile-tool-tab-finder',
-    '다이어리에서 시야 사진 공유하기',
-    'diary-draft-storage',
+    '시야 사진 올리기',
     'pendingLoginRedirect',
   ].forEach((requiredText) => {
     assert.ok(stadiumSeatmapSpec.includes(requiredText), `Stadium seatmap Cypress spec should include ${requiredText}`);

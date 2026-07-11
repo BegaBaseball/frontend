@@ -28,9 +28,6 @@
       "@/*": [
         "./src/*"
       ],
-      "lucide-react": [
-        "./src/shims/lucide-react.tsx"
-      ],
       "sonner": [
         "./src/shims/sonner.tsx"
       ],

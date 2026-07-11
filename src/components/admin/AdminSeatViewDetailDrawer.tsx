@@ -31,6 +31,12 @@ export default function AdminSeatViewDetailDrawer({
   closeSeatViewDetail,
   handleSeatViewAction,
 }: AdminSeatViewDetailDrawerProps) {
+  const submissionTags = selectedSeatViewDetail?.tags ?? [];
+  const hasSubmissionDetails = Boolean(
+    selectedSeatViewDetail
+      && (selectedSeatViewDetail.rating != null || selectedSeatViewDetail.comment || submissionTags.length > 0),
+  );
+
   const content = (
     <div className="fixed inset-0 z-50">
       <button
@@ -39,7 +45,10 @@ export default function AdminSeatViewDetailDrawer({
         onClick={closeSeatViewDetail}
         aria-label="시야뷰 상세 패널 닫기"
       />
-      <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
+      <aside
+        data-testid="admin-seat-view-detail-drawer"
+        className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto"
+      >
         <div className="sticky top-0 z-10 px-5 py-4 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between">
           <div>
             <p className="text-caption text-slate-400">시야뷰 후보 상세</p>
@@ -87,9 +96,30 @@ export default function AdminSeatViewDetailDrawer({
                 <p><span className="text-slate-500">구장:</span> <span className="text-slate-200">{formatStadiumDisplayName(selectedSeatViewDetail.stadium)}</span></p>
                 <p><span className="text-slate-500">좌석:</span> <span className="text-slate-200">{[selectedSeatViewDetail.section, selectedSeatViewDetail.block, selectedSeatViewDetail.seatRow, selectedSeatViewDetail.seatNumber].filter(Boolean).join(' / ') || '-'}</span></p>
                 <p><span className="text-slate-500">업로드 타입:</span> <span className="text-slate-200">{selectedSeatViewDetail.sourceType}</span></p>
+                <p><span className="text-slate-500">다이어리 ID:</span> <span className="text-slate-200">{selectedSeatViewDetail.diaryId ?? '-'}</span></p>
                 <p><span className="text-slate-500">리워드 지급:</span> <span className="text-slate-200">{selectedSeatViewDetail.rewardGranted ? '완료' : '미지급'}</span></p>
                 <p><span className="text-slate-500">AI 사유:</span> <span className="text-slate-200 whitespace-pre-wrap">{selectedSeatViewDetail.aiReason || '-'}</span></p>
               </div>
+
+              {hasSubmissionDetails && (
+                <div
+                  data-testid="admin-seat-view-submission-details"
+                  className="rounded-lg border border-slate-800 p-3 text-caption space-y-2"
+                >
+                  <p><span className="text-slate-500">제출 별점:</span> <span className="text-slate-200">{selectedSeatViewDetail.rating != null ? `${selectedSeatViewDetail.rating}점` : '-'}</span></p>
+                  <p><span className="text-slate-500">한줄평:</span> <span className="text-slate-200 whitespace-pre-wrap">{selectedSeatViewDetail.comment || '-'}</span></p>
+                  <div>
+                    <span className="text-slate-500">태그:</span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {submissionTags.length > 0 ? submissionTags.map((tag) => (
+                        <span key={tag} className="rounded-full bg-slate-800 px-2 py-1 text-slate-200">
+                          {tag}
+                        </span>
+                      )) : <span className="text-slate-200">-</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-lg border border-slate-800 p-3">
                 <p className="text-caption text-slate-500 mb-2">관리자 메모</p>

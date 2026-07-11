@@ -136,6 +136,7 @@ const scheduleHomeLoadTelemetry = (payload: {
             .then(({ logHomeLoadTelemetry }) => logHomeLoadTelemetry(payload))
             .catch(() => undefined);
     };
+    const setWindowTimeout = window.setTimeout.bind(window);
 
     if ('requestIdleCallback' in window) {
         window.requestIdleCallback(loadTelemetry, {
@@ -144,7 +145,7 @@ const scheduleHomeLoadTelemetry = (payload: {
         return;
     }
 
-    window.setTimeout(loadTelemetry, 0);
+    setWindowTimeout(loadTelemetry, 0);
 };
 
 const GAME_CARD_MIN_HEIGHT = 'min-h-[240px]';
@@ -1228,7 +1229,7 @@ export default function HomeRuntime() {
                         <div className="flex items-center gap-3">
                             <span className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-primary to-primary/50" aria-hidden="true" />
                             <div>
-                                <span className="block text-11 font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                                <span className="block text-13 font-semibold text-muted-foreground">
                                     Scoreboard
                                 </span>
                                 <h1 className="text-3xl font-extrabold tracking-tight text-primary dark:text-emerald-400">

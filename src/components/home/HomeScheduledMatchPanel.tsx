@@ -26,7 +26,7 @@ interface HomeScheduledMatchPanelProps {
 }
 
 const HOME_SCHEDULED_PANEL_COPY = {
-  eyebrow: 'Upcoming',
+  context: 'Upcoming',
   title: '다가오는 경기',
   description: '예정 경기와 일정 변동을 날짜별로 확인하세요.',
 };
@@ -63,9 +63,8 @@ function HomeScheduledBoardHeader({
     <div className="mb-4 flex flex-col gap-3 border-b border-gray-100 pb-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <div className="mb-1 flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary" />
-          <span className="text-12 font-black uppercase tracking-[0.16em] text-primary dark:text-emerald-300">
-            {HOME_SCHEDULED_PANEL_COPY.eyebrow}
+          <span className="text-13 font-semibold text-primary dark:text-emerald-300">
+            {HOME_SCHEDULED_PANEL_COPY.context}
           </span>
         </div>
         <h3 className="truncate text-20 font-black tracking-tight text-gray-950 dark:text-white sm:text-2xl">

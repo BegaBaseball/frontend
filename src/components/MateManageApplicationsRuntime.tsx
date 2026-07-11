@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import {
   getBadgeMeta,
   mateInsetPanelClass,
+  mateMetaLabelClass,
   mateSectionCardClass,
   mateSubtlePanelClass,
 } from '../utils/mateFlowUi';
@@ -177,7 +178,7 @@ export default function MateManageApplicationsRuntime({
               </div>
             </div>
             <div className={`${mateInsetPanelClass} min-w-[240px] p-4`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className={mateMetaLabelClass}>
                 신청 메시지
               </p>
               <p className="mt-2 text-body leading-6 text-gray-700 dark:text-white">
@@ -189,7 +190,7 @@ export default function MateManageApplicationsRuntime({
 
         <div className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className={`${mateInsetPanelClass} p-4`}>
-            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className={mateMetaLabelClass}>
               진행 안내
             </p>
             <div className="mt-2 space-y-2 text-body text-gray-700 dark:text-white">
@@ -198,7 +199,7 @@ export default function MateManageApplicationsRuntime({
           </div>
 
           <div className={`${mateInsetPanelClass} p-4`}>
-            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className={mateMetaLabelClass}>
               다음 단계
             </p>
             <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
@@ -254,8 +255,8 @@ export default function MateManageApplicationsRuntime({
     <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
-            Decision Queue
+          <p className={mateMetaLabelClass}>
+            신청 검토
           </p>
           <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">신청 검토와 후속 진행</h2>
           <p className="mt-2 text-body text-gray-600 dark:text-white">
@@ -275,7 +276,7 @@ export default function MateManageApplicationsRuntime({
       </div>
 
       <div className="mt-6">
-        <div className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-gray-200/70 bg-white p-1.5 dark:border-white/5 dark:bg-[#000000]">
+        <div className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-gray-200/70 bg-white p-1.5 dark:border-white/5 dark:bg-card">
           {APPLICATION_TABS.map((tab) => {
             const count = tab.key === 'pending'
               ? pendingApplications.length
