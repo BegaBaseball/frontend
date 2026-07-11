@@ -5,6 +5,7 @@ import test from 'node:test';
 const packageJsonSource = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
 const packageJson = JSON.parse(packageJsonSource) as { scripts: Record<string, string> };
 const indexHtmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const indexCssSource = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
 const bundleGuardSource = readFileSync(new URL('./bundle-guard.mjs', import.meta.url), 'utf8');
 const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
@@ -23,7 +24,7 @@ const authenticatedLayoutChromeSource = readFileSync(new URL('../src/components/
 const authenticatedLayoutToasterSource = readFileSync(new URL('../src/components/AuthenticatedLayoutToaster.tsx', import.meta.url), 'utf8');
 const authenticatedNotificationSocketBridgeSource = readFileSync(new URL('../src/components/AuthenticatedNotificationSocketBridge.tsx', import.meta.url), 'utf8');
 const authBootstrapGateSource = readFileSync(new URL('../src/components/AuthBootstrapGate.tsx', import.meta.url), 'utf8');
-const deferredPretendardFontSource = readFileSync(new URL('../src/components/DeferredPretendardFont.tsx', import.meta.url), 'utf8');
+const appShellRuntimeSource = readFileSync(new URL('../src/components/AppShellRuntime.tsx', import.meta.url), 'utf8');
 const homeApiSource = readFileSync(new URL('../src/api/home.ts', import.meta.url), 'utf8');
 const homeCoreApiSource = readFileSync(new URL('../src/api/homeCore.ts', import.meta.url), 'utf8');
 const homeRuntimeSource = readFileSync(new URL('../src/components/HomeRuntime.tsx', import.meta.url), 'utf8');
@@ -192,7 +193,7 @@ test('preloads /mate public route shells in parallel', () => {
   assert.match(appRoutesSource, /<Route path="\/mate" element={<MatePage \/>} \/>/);
 });
 
-test('keeps the /mate guest LCP heading stable across deferred font loading', () => {
+test('keeps the /mate guest LCP heading on the zero-request font stack', () => {
   assert.ok(tailwindConfigSource.includes("native: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '\"Segoe UI\"', 'sans-serif']"));
   assert.match(
     matePageSource,
@@ -295,21 +296,13 @@ test('defers public home footer outside the first card critical path', () => {
   assert.ok(layoutSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
 });
 
-test('defers the Pretendard variable dynamic subset outside the /home first-card critical path', () => {
-  assert.ok(deferredPretendardFontSource.includes("const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';"));
-  assert.equal(deferredPretendardFontSource.includes('/pretendardvariable.css'), false);
-  assert.ok(deferredPretendardFontSource.includes("const HOME_FIRST_CARD_READY_EVENT = 'bega:home-first-card-ready';"));
-  assert.ok(deferredPretendardFontSource.includes('const FONT_IDLE_TIMEOUT_MS = 3000;'));
-  assert.ok(deferredPretendardFontSource.includes('const HOME_FONT_FALLBACK_DELAY_MS = 5000;'));
-  assert.ok(deferredPretendardFontSource.includes('__begaHomeFirstCardReadyPathname'));
-  assert.ok(deferredPretendardFontSource.includes('const requestFontWhenReady = () => {'));
-  assert.ok(deferredPretendardFontSource.includes('const handleHomeFirstCardReady = () => {'));
-  assert.ok(deferredPretendardFontSource.includes('if (readyPathname !== pathname)'));
-  assert.ok(deferredPretendardFontSource.includes('window.addEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.ok(deferredPretendardFontSource.includes('const setWindowTimeout = window.setTimeout.bind(window);'));
-  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = setWindowTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
-  assert.ok(deferredPretendardFontSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.equal(deferredPretendardFontSource.includes("const delayMs = pathname === '/home' ? 1800 : 0;"), false);
+test('uses a zero-request system font stack on the app critical path', () => {
+  const systemFontStack = "['system-ui', '-apple-system', 'BlinkMacSystemFont', '\"Segoe UI\"', 'sans-serif']";
+  assert.ok(tailwindConfigSource.includes(`sans: ${systemFontStack}`));
+  assert.ok(tailwindConfigSource.includes(`native: ${systemFontStack}`));
+  assert.ok(indexCssSource.includes("font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"));
+  assert.equal(appShellRuntimeSource.includes('DeferredPretendardFont'), false);
+  assert.equal(appShellRuntimeSource.includes('cdn.jsdelivr.net'), false);
 });
 
 test('keeps authenticated layout realtime and toaster internals out of the chrome shell', () => {
