@@ -199,11 +199,12 @@ test('defers Pretendard font loading outside the /home first-card critical path'
   assert.ok(deferredPretendardFontSource.includes('const FONT_IDLE_TIMEOUT_MS = 3000;'));
   assert.ok(deferredPretendardFontSource.includes('const HOME_FONT_FALLBACK_DELAY_MS = 5000;'));
   assert.ok(deferredPretendardFontSource.includes('__begaHomeFirstCardReadyPathname'));
+  assert.ok(deferredPretendardFontSource.includes('const setWindowTimeout = window.setTimeout.bind(window);'));
   assert.ok(deferredPretendardFontSource.includes('const requestFontWhenReady = () => {'));
   assert.ok(deferredPretendardFontSource.includes('const handleHomeFirstCardReady = () => {'));
   assert.ok(deferredPretendardFontSource.includes('if (readyPathname !== pathname)'));
   assert.ok(deferredPretendardFontSource.includes('window.addEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = window.setTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
+  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = setWindowTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
   assert.ok(deferredPretendardFontSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
   assert.equal(deferredPretendardFontSource.includes("const delayMs = pathname === '/home' ? 1800 : 0;"), false);
 });
