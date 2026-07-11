@@ -188,7 +188,7 @@ test('preloads /cheer route chunks before nested lazy route rendering', () => {
 });
 
 test('reserves /cheer feed and sidebar space to prevent CLS', () => {
-  assert.ok(cheerFeedRuntimeContentSource.includes('className="min-h-[72svh]"'));
+  assert.ok(cheerFeedRuntimeContentSource.includes('className="min-h-[88svh]"'));
   assert.equal(cheerFeedRuntimeContentSource.includes('lg:min-h-0'), false);
   assert.ok(cheerFeedRuntimeContentSource.includes('className="relative flex min-h-[220px] items-center justify-center"'));
   assert.ok(cheerSidebarPanelsSource.includes('className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card"'));
