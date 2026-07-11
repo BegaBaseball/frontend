@@ -50,6 +50,7 @@ const publicNavbarDmUnreadBadgeSource = readFileSync(new URL('../src/components/
 const cheerMobileBottomNavSource = readFileSync(new URL('../src/components/CheerMobileBottomNav.tsx', import.meta.url), 'utf8');
 const cheerFeedRuntimeContentSource = readFileSync(new URL('../src/components/CheerFeedRuntimeContent.tsx', import.meta.url), 'utf8');
 const cheerSidebarPanelsSource = readFileSync(new URL('../src/components/CheerSidebarPanels.tsx', import.meta.url), 'utf8');
+const matePageSource = readFileSync(new URL('../src/components/MatePage.tsx', import.meta.url), 'utf8');
 const uiButtonSource = readFileSync(new URL('../src/components/ui/button.tsx', import.meta.url), 'utf8');
 const uiInputSource = readFileSync(new URL('../src/components/ui/input.tsx', import.meta.url), 'utf8');
 const uiTextareaSource = readFileSync(new URL('../src/components/ui/textarea.tsx', import.meta.url), 'utf8');
@@ -189,6 +190,14 @@ test('preloads /mate public route shells in parallel', () => {
   assert.ok(appRoutesSource.includes("const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;"));
   assert.ok(appRoutesSource.includes("const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));"));
   assert.match(appRoutesSource, /<Route path="\/mate" element={<MatePage \/>} \/>/);
+});
+
+test('keeps the /mate guest LCP heading stable across deferred font loading', () => {
+  assert.ok(tailwindConfigSource.includes("native: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '\"Segoe UI\"', 'sans-serif']"));
+  assert.match(
+    matePageSource,
+    /<h1 className="text-2xl font-native font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">/,
+  );
 });
 
 test('reserves /cheer feed and sidebar space to prevent CLS', () => {
