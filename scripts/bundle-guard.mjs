@@ -1830,7 +1830,6 @@ const routeStaticClosureTargets = [
       'src/components/AppQueryProvider.tsx',
       'src/components/Cheer.tsx',
       'src/components/CheerRuntime.tsx',
-      'src/components/CheerFeedRuntimeContent.tsx',
     ],
   },
   {

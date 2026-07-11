@@ -23,7 +23,6 @@ if (shouldPreloadInitialHomeRoute) {
 if (shouldPreloadInitialCheerRoute) {
   void import('./CheerRuntime');
   void import('./CheerComposerRuntime');
-  void import('./CheerFeedRuntimeContent');
 }
 
 const Layout = lazy(() => initialLayoutModulePromise ?? import('./Layout'));
