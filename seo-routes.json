@@ -44,6 +44,7 @@
       "title": "응원 커뮤니티 | BEGA",
       "description": "야구 팬들과 응원글을 공유하고 경기를 함께 즐겨보세요.",
       "heading": "응원 커뮤니티",
+      "performanceShell": true,
       "schemaType": "page",
       "changefreq": "daily",
       "priority": "0.8"

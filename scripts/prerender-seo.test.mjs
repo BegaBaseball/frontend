@@ -50,8 +50,8 @@ test('performance-only route root is a fixed paintable shell', () => {
   assert.match(html, /<p style="margin:12px 0 0;/);
 });
 
-test('root and home routes opt into the paintable performance shell', () => {
-  for (const routePath of ['/', '/home']) {
+test('core indexable routes opt into the paintable performance shell', () => {
+  for (const routePath of ['/', '/home', '/cheer']) {
     const configuredRoute = seoPolicy.indexableRoutes.find((item) => item.path === routePath);
     assert.equal(configuredRoute?.performanceShell, true, `${routePath} performanceShell`);
   }
