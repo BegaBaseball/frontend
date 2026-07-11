@@ -8,6 +8,7 @@ import {
   buildPerformanceRouteHeadMarkup,
   buildRootMarkup,
   buildSeoHeadMarkup,
+  deferPerformanceShellModule,
   deferPerformanceShellStyles,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
@@ -65,6 +66,18 @@ test('performance shell styles load without blocking the first paint', () => {
   assert.match(html, /rel="preload" as="style" data-performance-app-style="true"/);
   assert.match(html, /onload="this\.onload=null;this\.rel='stylesheet';this\.dataset\.performanceStyleReady='true'"/);
   assert.match(html, new RegExp(`<noscript>${escapeRegExp(stylesheet)}</noscript>`));
+});
+
+test('performance shell app module starts after the first paint', () => {
+  const html = deferPerformanceShellModule(
+    '<body><script type="module" crossorigin src="/assets/index-test.js"></script></body>',
+  );
+
+  assert.doesNotMatch(html, /<script type="module"/);
+  assert.match(html, /data-performance-app-module="true"/);
+  assert.match(html, /requestAnimationFrame/);
+  assert.match(html, /setTimeout/);
+  assert.match(html, /import\("\/assets\/index-test\.js"\)/);
 });
 
 test('prerender SEO head includes escaped search verification meta tags', () => {
