@@ -263,7 +263,7 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_paths }}
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
 
       - name: Upload secondary suite artifacts
         if: ${{ always() && inputs.extra_artifact_name != '' && inputs.extra_artifact_paths != '' }}
@@ -272,4 +272,4 @@ jobs:
           name: ${{ inputs.extra_artifact_name }}
           path: ${{ inputs.extra_artifact_paths }}
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7

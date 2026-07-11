@@ -76,7 +76,7 @@ on:
     - cron: "0 18 * * *"
 
 concurrency:
-  group: frontend-mate-${{ github.event_name }}-${{ github.ref }}
+  group: frontend-mate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

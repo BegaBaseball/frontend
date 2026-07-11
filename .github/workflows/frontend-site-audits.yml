@@ -79,6 +79,10 @@ on:
   schedule:
     - cron: "0 3 * * 1"
 
+concurrency:
+  group: frontend-site-audits-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   seo-gate:
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'seo' || github.event.inputs.suite == 'all')) }}
