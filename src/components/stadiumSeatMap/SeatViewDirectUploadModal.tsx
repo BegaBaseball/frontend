@@ -4,7 +4,7 @@ import {
   SpinnerGapIcon as Loader2,
   StarIcon as Star,
   XIcon as X,
-} from '@phosphor-icons/react';
+} from '../icons/StadiumGuideIcons';
 
 import {
   SEAT_VIEW_UPLOAD_TAGS,

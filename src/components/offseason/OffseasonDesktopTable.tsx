@@ -1,4 +1,4 @@
-import { ArrowUpDownIcon, SparklesIcon } from '../icons/PublicFeatureIcons';
+import { ArrowUpDownIcon, SparklesIcon } from '../icons/OffseasonIcons';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';

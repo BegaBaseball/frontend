@@ -11,7 +11,7 @@ import {
   MyPageFingerprintIcon,
   MyPageShieldAlertIcon,
   MyPageTrashIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsAdvancedRuntimeProps {
   showAdvancedSettingsDialog: boolean;

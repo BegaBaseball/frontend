@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthProfileActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
@@ -17,7 +17,7 @@ import {
     MegaphoneIcon,
     PenSquareIcon,
     UserIcon,
-} from './icons/PublicShellIcons';
+} from './icons/CheerShellIcons';
 import {
     normalizeHexColor,
     getReadableAccent,
@@ -26,6 +26,7 @@ import {
 } from '../utils/teamColors';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { scheduleAfterNextPaint } from '../utils/afterNextPaint';
 import CheerMobileBottomNav from './CheerMobileBottomNav';
 
 const LazyCheerComposerRuntime = lazy(() => import('./CheerComposerRuntime'));
@@ -73,6 +74,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             ? (tabParam as FeedTabKey)
             : feedTabs[0].key;
     });
+    const [contentFeedTab, setContentFeedTab] = useState<FeedTabKey>(activeFeedTab);
     const [shouldRenderSidebar, setShouldRenderSidebar] = useState(() => (
         typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
     ));
@@ -125,6 +127,18 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         }
         setSearchParams(nextSearchParams, { replace: true });
     }, [activeFeedTab, feedTabs, searchParams, setSearchParams]);
+
+    useEffect(() => {
+        if (activeFeedTab === contentFeedTab) {
+            return undefined;
+        }
+
+        return scheduleAfterNextPaint(() => {
+            startTransition(() => {
+                setContentFeedTab(activeFeedTab);
+            });
+        });
+    }, [activeFeedTab, contentFeedTab]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -243,6 +257,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             : '멋진 선택이에요! 함께 응원하며 즐거운 야구 생활을 시작해보세요.';
     }, [teamMetadata]);
     const activeTabConfig = feedTabs.find((item) => item.key === activeFeedTab);
+    const contentTabConfig = feedTabs.find((item) => item.key === contentFeedTab);
     return (
         <div className="min-h-screen bg-[#f7f9f9] pb-[var(--mobile-content-safe-bottom)] dark:bg-background lg:pb-0">
             <div className="px-4 pt-0 pb-6 sm:px-6 sm:pt-0 sm:pb-8">
@@ -387,9 +402,9 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                 )}
                             >
                                 <LazyCheerFeedRuntimeContent
-                                    activeFeedTab={activeFeedTab}
-                                    activePostType={activeTabConfig?.postType}
-                                    activeSort={activeTabConfig?.sort}
+                                    activeFeedTab={contentFeedTab}
+                                    activePostType={contentTabConfig?.postType}
+                                    activeSort={contentTabConfig?.sort}
                                     isLoggedIn={isLoggedIn}
                                     teamColor={teamColor}
                                     authUserId={authUserId}

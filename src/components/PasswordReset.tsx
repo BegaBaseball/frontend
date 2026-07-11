@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { usePasswordReset } from '../hooks/usePasswordReset';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
-import { ArrowLeftIcon, CheckIcon, MailIcon } from './icons/PublicShellIcons';
+import { ArrowLeftIcon, CheckIcon, MailIcon } from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,

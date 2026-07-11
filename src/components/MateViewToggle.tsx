@@ -1,24 +1,32 @@
-import { ListBullets, Rows, SquaresFour, type IconProps } from '@phosphor-icons/react';
-import type { ComponentType } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 
 import { useShallow } from 'zustand/react/shallow';
 import { useUIStore, type MateListViewMode } from '../store/uiStore';
+import {
+  MateListBulletsIcon,
+  MateRowsIcon,
+  MateSquaresFourIcon,
+} from './icons/MateFlowIcons';
 
-const VIEW_OPTIONS: { key: MateListViewMode; label: string; Icon: ComponentType<IconProps> }[] = [
+type MateViewToggleIconProps = SVGProps<SVGSVGElement> & {
+  size?: number;
+};
+
+const VIEW_OPTIONS: { key: MateListViewMode; label: string; Icon: ComponentType<MateViewToggleIconProps> }[] = [
   {
     key: 'grid',
     label: '카드',
-    Icon: SquaresFour,
+    Icon: MateSquaresFourIcon,
   },
   {
     key: 'list',
     label: '리스트',
-    Icon: ListBullets,
+    Icon: MateListBulletsIcon,
   },
   {
     key: 'compact',
     label: '컴팩트',
-    Icon: Rows,
+    Icon: MateRowsIcon,
   },
 ];
 
@@ -50,7 +58,7 @@ export default function MateViewToggle() {
               : 'text-gray-500 hover:bg-primary/10 hover:text-primary dark:text-white dark:hover:bg-primary/20'
           }`}
         >
-          <Icon size={16} weight="bold" aria-hidden="true" />
+          <Icon size={16} aria-hidden="true" />
         </button>
       ))}
     </div>

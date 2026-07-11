@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { formatTimeAgo } from '../utils/time';
 import { OptimizedImage } from './common/OptimizedImage';
-import { TrashIcon } from './icons/CheerIcons';
+import { CheerCardTrashIcon as TrashIcon } from './icons/CheerCardIcons';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 
 interface EmbeddedPostProps {

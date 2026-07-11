@@ -27,8 +27,8 @@ import {
   type PredictionScheduleStatusTone,
   type PredictionScheduleWinnerSide,
 } from '../../utils/predictionSchedulePreviewModel';
-import { SharedCalendarDaysIcon } from '../icons/SharedLeafIcons';
 import {
+  PredictionCalendarDaysIcon,
   PredictionChevronLeftIcon,
   PredictionChevronRightIcon,
   PredictionTrendingUpIcon,
@@ -312,7 +312,7 @@ export default function PredictionMatchPreviewTab({
             onClick={() => setIsDateSheetOpen(true)}
           >
             {getCompactDateLabel(currentDateKey)}
-            <SharedCalendarDaysIcon className="h-4 w-4" />
+            <PredictionCalendarDaysIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -354,7 +354,7 @@ export default function PredictionMatchPreviewTab({
           </button>
           <label className="relative inline-flex h-11 cursor-pointer items-center justify-center overflow-hidden rounded-full px-3 text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary sm:px-4">
             <span className="sr-only">날짜 선택</span>
-            <SharedCalendarDaysIcon className="h-6 w-6" />
+            <PredictionCalendarDaysIcon className="h-6 w-6" />
             <input
               type="date"
               value={currentDateKey}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { DiaryEntry } from '../../types/diary';
-import { MyPageMapPinIcon } from './MyPageIcons';
+import { MyPageMapPinIcon } from './MyPageFlowIcons';
 
 interface StadiumVisitListProps {
     entries: DiaryEntry[];

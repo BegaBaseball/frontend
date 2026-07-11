@@ -1,10 +1,10 @@
-import { CheckIcon } from './icons/PublicShellIcons';
+import { EndOfFeedCheckIcon } from './icons/EndOfFeedIcons';
 
 export default function EndOfFeed() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
-        <CheckIcon className="h-6 w-6" />
+        <EndOfFeedCheckIcon className="h-6 w-6" />
       </div>
       <h3 className="text-body font-bold text-slate-900">모든 응원을 확인했습니다</h3>
       <p className="mt-1 text-body text-slate-500">

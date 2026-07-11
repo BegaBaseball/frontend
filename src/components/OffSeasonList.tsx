@@ -12,7 +12,7 @@ import {
     SparklesIcon,
     TrendingUpIcon,
     XIcon,
-} from './icons/PublicFeatureIcons';
+} from './icons/OffseasonIcons';
 import { useIsMobile } from '../hooks/use-mobile';
 import { getTeamKoreanName } from '../utils/teamNames';
 import {

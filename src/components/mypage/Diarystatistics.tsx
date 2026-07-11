@@ -14,7 +14,7 @@ import {
   MyPageBarChartIcon,
   MyPageMapPinIcon,
   MyPageSparklesIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 type DiaryStatisticsProps = {

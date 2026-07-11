@@ -13,10 +13,10 @@ import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import {
-  MyPageArrowLeftIcon,
-  MyPageChevronLeftIcon,
-  MyPageChevronRightIcon,
-} from './MyPageIcons';
+  DiaryformArrowLeftIcon as MyPageArrowLeftIcon,
+  DiaryformChevronLeftIcon as MyPageChevronLeftIcon,
+  DiaryformChevronRightIcon as MyPageChevronRightIcon,
+} from './DiaryformIcons';
 
 interface DiaryReadModeProps {
   diaryForm: DiaryFormData;

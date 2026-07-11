@@ -10,14 +10,14 @@ import { getMateStatusBadgeMeta } from '../../utils/statusBadgeMeta';
 import TeamLogo from '../TeamLogo';
 import AdSlot from '../ads/AdSlot';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  FlameIcon,
-  MessageSquareIcon,
-  RefreshIcon,
-  TrophyIcon,
-  UsersIcon,
-} from '../icons/PublicShellIcons';
+  HomeSecondaryChevronLeftIcon as ChevronLeftIcon,
+  HomeSecondaryChevronRightIcon as ChevronRightIcon,
+  HomeSecondaryFlameIcon as FlameIcon,
+  HomeSecondaryMessageSquareIcon as MessageSquareIcon,
+  HomeSecondaryRefreshIcon as RefreshIcon,
+  HomeSecondaryTrophyIcon as TrophyIcon,
+  HomeSecondaryUsersIcon as UsersIcon,
+} from './HomeSecondaryIcons';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';

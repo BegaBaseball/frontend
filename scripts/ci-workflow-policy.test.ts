@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -40,6 +40,32 @@ const writePassingPolicyFixture = () => {
     '          - "scripts/mate-regression-label-policy.test.ts"',
   ].join('\n'));
 
+  writeFixtureFile(repoRoot, 'docs/core-web-vitals.md', [
+    '# Core Web Vitals Runbook',
+    '<= 1.8 s',
+    '<= 100 ms',
+    '<= 0.05',
+    'PAGESPEED_API_KEY',
+    'PSI_API_KEY',
+    '--env-file ../.env.prod',
+    'CWV_BASELINE_ENV_FILE',
+    'CWV_BASELINE_ROUTES',
+    '--routes /prediction,/mate',
+    'npm run gate:cwv:baseline',
+    'npm run gate:cwv:lab',
+    'reports/cwv-baseline.md',
+    'reports/cwv-lab-audit.md',
+    'frontend-cwv-lab-artifacts',
+    'frontend-cwv-baseline-artifacts',
+    'Pull requests that touch CWV-sensitive routes',
+    'Scheduled and manual `cwv` / `all` runs',
+    'src/utils/coreWebVitalsTelemetry.ts',
+    'cwv_lcp',
+    'cwv_cls',
+    'cwv_inp',
+    'metric_slo_status',
+  ].join('\n'));
+
   writeWorkflowFixture(repoRoot, 'frontend-mate.yml', [
     'on:',
     '  pull_request:',
@@ -69,8 +95,102 @@ const writePassingPolicyFixture = () => {
     '      - "public/_headers"',
     '      - "public/_redirects"',
     '      - "index.html"',
+    '      - "vite.config.ts"',
+    '      - "src/main.tsx"',
+    '      - "src/index.css"',
+    '      - "src/components/AppRoutes.tsx"',
+    '      - "src/components/RootEntryRoute.tsx"',
+    '      - "src/components/lazyRouteLoaders.ts"',
+    '      - "src/components/Layout.tsx"',
+    '      - "src/components/Navbar*.tsx"',
+    '      - "src/components/PublicNavbar*.tsx"',
+    '      - "src/components/Landing.tsx"',
+    '      - "src/components/Home.tsx"',
+    '      - "src/components/home/**"',
+    '      - "src/components/Prediction.tsx"',
+    '      - "src/components/prediction/**"',
+    '      - "src/components/Cheer.tsx"',
+    '      - "src/components/Cheer*.tsx"',
+    '      - "src/components/cheer/**"',
+    '      - "src/components/MatePage.tsx"',
+    '      - "src/components/Mate*.tsx"',
+    '      - "module-federation.config.ts"',
+    '      - "src/vite-env.d.ts"',
+    '      - "src/types/module-federation.d.ts"',
+    '      - "src/components/moduleFederation/**"',
+    '      - "src/utils/coreWebVitalsTelemetry.ts"',
+    '      - "src/utils/coreWebVitalsTelemetry.test.ts"',
+    '      - "scripts/bundle-guard.mjs"',
+    '      - "scripts/dist-assets.mjs"',
+    '      - "scripts/cwv-baseline.mjs"',
+    '      - "scripts/cwv-baseline.test.mjs"',
+    '      - "scripts/cwv-lab-audit.mjs"',
+    '      - "scripts/cwv-lab-audit.test.mjs"',
+    '      - "scripts/module-federation-config.test.ts"',
+    '      - "scripts/module-federation-artifacts-smoke.mjs"',
+    '      - "scripts/module-federation-artifacts-smoke.test.mjs"',
+    '      - "scripts/module-federation-gate.mjs"',
+    '      - "scripts/module-federation-gate.test.mjs"',
+    '      - "scripts/module-federation-host-usage.test.mjs"',
+    '      - "scripts/module-federation-probe-smoke.mjs"',
+    '      - "scripts/module-federation-probe-smoke.test.mjs"',
+    '      - "scripts/module-federation-readiness.mjs"',
+    '      - "scripts/module-federation-readiness.test.mjs"',
+    '      - "scripts/module-federation-remote-smoke.mjs"',
+    '      - "scripts/module-federation-remote-smoke.test.mjs"',
+    '      - "scripts/module-federation-types.test.mjs"',
+    '      - "cypress/e2e/module-federation-probe.cy.ts"',
+    '      - "docs/core-web-vitals.md"',
+    '      - "docs/module-federation.md"',
     '      - "package.json"',
     '      - "package-lock.json"',
+    '  workflow_dispatch:',
+    '    inputs:',
+    '      suite:',
+    '        options:',
+    '          - mf',
+    '          - cwv',
+    'jobs:',
+    '  module-federation-build:',
+    "    if: ${{ github.event.inputs.suite == 'mf' }}",
+    '    with:',
+    '      env_exports: |',
+    '        VITE_MF_DESIGN_SYSTEM_ENTRY=',
+    '      run_script: |',
+    '        npm run gate:mf',
+    '        npm run smoke:mf:probe',
+    '        npm run smoke:mf:probe:remote',
+    '      summary_script: |',
+    '        echo "- Remote entry configured: yes"',
+    '      artifact_name: frontend-module-federation-artifacts',
+    '      artifact_paths: |',
+    '        reports/module-federation-readiness.json',
+    '        reports/module-federation-artifacts-smoke.json',
+    '        reports/module-federation-remote-smoke.json',
+    '        cypress/screenshots/module-federation-probe.cy.ts/**',
+    '        dist/mf-manifest.json',
+    '        dist/begabaseball_frontend/remoteEntry.js',
+    '  cwv-lab:',
+    "    if: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event.inputs.suite == 'cwv' }}",
+    '    with:',
+    '      install_playwright: true',
+    '      run_script: |',
+    '        npm run gate:cwv:lab',
+    '      artifact_name: frontend-cwv-lab-artifacts',
+    '      artifact_paths: |',
+    '        reports/cwv-lab-audit.json',
+    '        reports/cwv-lab-audit.md',
+    '        reports/bundle-guard-report.json',
+    '  cwv-baseline:',
+    "    if: ${{ github.event.inputs.suite == 'cwv' }}",
+    '    secrets:',
+    '      PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}',
+    '    with:',
+    '      run_script: |',
+    '        npm run gate:cwv:baseline',
+    '      artifact_name: frontend-cwv-baseline-artifacts',
+    '      artifact_paths: |',
+    '        reports/cwv-baseline.json',
   ].join('\n'));
 
   writeWorkflowFixture(repoRoot, 'frontend-mobile-qa.yml', [
@@ -96,6 +216,7 @@ const writePassingPolicyFixture = () => {
     '      - ".github/labeler.yml"',
     '      - "scripts/ci-workflow-policy.mjs"',
     '      - "scripts/ci-workflow-policy.test.ts"',
+    '      - "docs/core-web-vitals.md"',
   ].join('\n'));
 
   writeWorkflowFixture(repoRoot, 'frontend-cypress-runner.yml', [
@@ -211,6 +332,38 @@ test('policy blocks monorepo frontend path prefixes', () => {
   assert.equal(report.ok, false);
   assert.ok(report.failures.some((failure) => (
     failure.id === 'forbidden-monorepo-frontend-prefix'
+  )));
+});
+
+test('policy requires the Core Web Vitals runbook contract', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'docs/core-web-vitals.md', [
+    '# Core Web Vitals Runbook',
+    'npm run gate:cwv:lab',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => (
+    failure.id === 'missing-cwv-runbook-contract'
+  )));
+});
+
+test('policy requires pull request Core Web Vitals lab wiring', () => {
+  const repoRoot = writePassingPolicyFixture();
+  const workflowPath = join(repoRoot, '.github/workflows/frontend-site-audits.yml');
+  const workflow = readFileSync(workflowPath, 'utf8')
+    .replace('  cwv-lab:', '  cwv-lab-disabled:')
+    .replace("github.event_name == 'pull_request' || ", '');
+  writeFileSync(workflowPath, workflow);
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => (
+    failure.id === 'missing-cwv-baseline-wiring'
+    && failure.message.includes('cwv-lab:')
   )));
 });
 

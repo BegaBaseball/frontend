@@ -6,7 +6,7 @@ import BlockButton from '../profile/BlockButton';
 import {
   MyPageBanIcon,
   MyPageLoaderIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 export default function BlockedUsersSection() {

@@ -7,7 +7,7 @@ import {
   MegaphoneIcon,
   PenSquareIcon,
   UserIcon,
-} from './icons/PublicShellIcons';
+} from './icons/CheerShellIcons';
 
 export type CheerMobileBottomNavItem = 'home' | 'team' | 'bookmarks' | 'profile';
 

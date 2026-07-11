@@ -4,13 +4,13 @@ import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSessi
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { buildNavbarNavPath, isNavbarNavItemActive } from '../utils/navbarNavigation';
 import {
-  LineChartIcon,
-  LogOutIcon,
-  MapIcon,
-  MegaphoneIcon,
-  ShieldAlertIcon,
-  UsersIcon,
-} from './icons/PublicShellIcons';
+  NavbarLineChartIcon as LineChartIcon,
+  NavbarLogOutIcon as LogOutIcon,
+  NavbarMapIcon as MapIcon,
+  NavbarMegaphoneIcon as MegaphoneIcon,
+  NavbarShieldAlertIcon as ShieldAlertIcon,
+  NavbarUsersIcon as UsersIcon,
+} from './icons/NavbarIcons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { Button } from './ui/button';
 import { ProfileAvatar } from './ui/ProfileAvatar';

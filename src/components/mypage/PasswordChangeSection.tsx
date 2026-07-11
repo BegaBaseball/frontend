@@ -19,7 +19,7 @@ import {
   MyPageEyeOffIcon,
   MyPageLockIcon,
   MyPageSaveIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface PasswordChangeSectionProps {
     onCancel: () => void;

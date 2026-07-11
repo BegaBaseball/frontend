@@ -39,6 +39,13 @@ const GOCHEOK_GUIDE_MODES: { id: GocheokGuideMode; label: string }[] = [
   { id: 'seatmap', label: '공식 좌석도' },
   { id: 'facility', label: '시설현황' },
 ];
+const MANUAL_OPERATOR_GUIDANCE_STATUS = 'MANUAL_BASEBALL_DATA_REQUIRED';
+
+const formatOperatorGuidanceValue = (value: string) => (
+  value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)
+    ? value
+    : formatManualBaseballDataDisplayValue(value)
+);
 
 const gocheokSectionAdapter: SeatMapSectionAdapter<GocheokBlock> = {
   getId: (section) => section.id,
@@ -382,7 +389,7 @@ export default function GocheokSeatMap() {
             <div key={tile.label} className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
               <div className="text-9 font-bold tracking-widest text-slate-400">{tile.label}</div>
               <div className="mt-0.5 break-words text-12 font-black text-slate-800 dark:text-white">
-                {formatManualBaseballDataDisplayValue(tile.value)}
+                {formatOperatorGuidanceValue(tile.value)}
               </div>
             </div>
           ))}
@@ -404,7 +411,7 @@ export default function GocheokSeatMap() {
             >
               <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
               <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
-                {formatManualBaseballDataDisplayValue(tile.value)}
+                {formatOperatorGuidanceValue(tile.value)}
               </div>
             </div>
           ))}
@@ -420,7 +427,7 @@ export default function GocheokSeatMap() {
           </ul>
         )}
         <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
+          {operatorGuidance.operatorDataPendingLabel}
         </p>
         <button
           type="button"
